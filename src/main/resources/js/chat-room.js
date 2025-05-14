@@ -2130,6 +2130,8 @@ ${result.info.msg}
                     $fn.removeClass("fn-none");
 
                     $stacked.fadeIn(200);
+                    // 防止图片无法正常打开
+                    ChatRoom.imageViewer()
                 }, 100);
             } else {
                 $('#plusOne').remove();
