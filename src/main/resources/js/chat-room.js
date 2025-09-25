@@ -724,7 +724,6 @@ border-bottom: none;
             <h2 class="list__user">
                 <a target="_blank" href="` + Label.servePath + `/member/` + userName + `" style="color: #c0c0c0; text-decoration: none;">` + useName + `</a>
             </h2>
-            <span class="ft__fade ft__smaller"><a onclick="Util.closeAlert(this);ChatRoom.editor.setValue('合议破戒 ` + userName + `');ChatRoom.send();$(window).scrollTop(0);" style="cursor: pointer; font-weight: bold;" href="javascript:void(0);">爲他求情</a></span>
         </div>
         <div class="fn__flex-center" style="color: #ff1919; font-weight: bold">
         將於 ` + date.getFullYear() + `年` + (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + `月` + date.getDate() + `日 ` + date.getHours() + `時` + date.getMinutes() + `分 釋放
