@@ -44,7 +44,7 @@
             </script>
         </a>
     </h1>
-    <div class="nav-tabs">
+    <div class="responsive-hide nav-tabs">
         <a pjax-title="${latestLabel} - ${symphonyLabel}"
            href="${servePath}/recent"<#if selected?? && 'recent' == selected> class="current"</#if>>
             <svg>

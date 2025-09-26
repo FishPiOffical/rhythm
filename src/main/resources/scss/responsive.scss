@@ -73,11 +73,6 @@
         display: none;
     }
 
-    .nav .user-nav {
-        position: absolute;
-        right: 10px;
-    }
-
     .nav div > a.current {
         border-bottom: 0;
         padding-bottom: 11px;
@@ -206,5 +201,10 @@
     .article-info .fn-right,
     .article-info .fn-left {
         float: none;
+    }
+
+    .metro-line {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
