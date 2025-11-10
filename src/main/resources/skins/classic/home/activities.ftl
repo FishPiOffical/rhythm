@@ -88,7 +88,21 @@
                                                 <a target="_blank" href="https://maze.hancel.org/">《Maze》</a>
                                             </h2>
                                             <span class="ft-fade vditor-reset">
-                                                游戏规则十分简单，游戏开始会随机生成一个迷宫，但每次只显示你所在当下位置周围 3 × 3 的迷宫，你只需要凭直觉找到出口即可。<br>通过游戏右上角 Login 按钮使用摸鱼派账号登录后，每次通关将会<b>奖励关卡数 × 10的积分</b>。
+                                                游戏规则十分简单，游戏开始会随机生成一个迷宫，但每次只显示你所在当下位置周围 3 × 3 的迷宫，你只需要凭直觉找到出口即可。<br><del title="已停服">通过游戏右上角 Login 按钮使用摸鱼派账号登录后，每次通关将会<b>奖励关卡数 × 10的积分</b></del>。
+                                            </span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class='fn-flex'>
+                                        <div class="avatar"
+                                             style="background-image:url('https://wju.adventext.fun/images/logo.png')"></div>
+                                        <div class="fn-flex-1">
+                                            <h2>
+                                                <a target="_blank" href="https://wju.adventext.fun/">WJU 谜题</a>
+                                            </h2>
+                                            <span class="ft-fade vditor-reset">
+                                                游戏开始会随机生成 WJU 三个字母组成的字符串，你需要通过 5 种字符串的操作，来生成最终的目标字符串。<br>使用摸鱼派账号登录后，每次通关将会随机<b>奖励 128 ~ 1024 的积分</b>。连续通关奖励可以叠加！
                                             </span>
                                         </div>
                                     </div>
