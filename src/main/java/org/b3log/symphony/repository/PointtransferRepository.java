@@ -78,11 +78,6 @@ public class PointtransferRepository extends AbstractRepository {
         return ret;
     }
 
-    @Override
-    public String add(JSONObject jsonObject) throws RepositoryException {
-        return super.add(jsonObject);
-    }
-
     /**
      * Public constructor.
      */
