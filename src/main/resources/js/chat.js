@@ -97,7 +97,7 @@ var Chat = {
             $.when(reqLoadUser).done(function () {
                 if (toUser === "") {
                     // 未选定用户
-                    $("#chatStatus").html('请在左侧列表选择最近聊天的成员，或直接发起聊天。<br><br>' +
+                    $("#chatStatus").html('请在列表点选联系人，或直接发起聊天。<br><br>' +
                         '<input class="form" id="chatWithInput" placeholder="输入用户名">&nbsp;<button onclick="Chat.startAChat()">发起聊天</button>');
                     // 监听回车
                     $("#chatWithInput").keypress(function (e) {
@@ -333,8 +333,8 @@ var Chat = {
     },
 
     addToMessageList(userName, avatarURL, preview, isOnline) {
-        let dot = preview.length > 10 ? "..." : "";
-        let status = isOnline ? '[在线]' : '[离线]';
+        let dot = preview.length > 7 ? "..." : "";
+        let status = isOnline ? '<div style="line-height: 0.65em; font-size: 2.5em; color: green">·</div>' : '<div style="line-height: 0.65em; font-size: 2.5em; color: rgba(149,149,149,0.3)">·</div>';
         $("#chatMessageList").append('' +
             '<div class="module-panel" id="chatTo' + userName + '" style="padding: 10px 15px;cursor: pointer" onclick="Chat.init(\'' + userName + '\')"\n' +
             '    <nav class="home-menu">\n' +
@@ -343,7 +343,7 @@ var Chat = {
             '        </div>\n' +
             '        <div style="display: inline-block; vertical-align: -12px;">\n' +
             '            ' + userName + '<br>\n' +
-            '            <span style="color: #868888">' + preview.substring(0, 10) + dot + '</span>\n' +
+            '            <span style="color: #868888">' + preview.substring(0, 7) + dot + '</span>\n' +
             '        </div>\n' +
             '        <div style="float: right;display: inline-block; color: #868888">'+ status + '</div>\n'+
             '    </nav>\n' +

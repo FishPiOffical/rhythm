@@ -343,10 +343,10 @@ public class ChatProcessor {
                 continue;
             }
             info.put("senderUserName", currentUser.optString(User.USER_NAME));
-            info.put("senderAvatar", currentUser.optString(UserExt.USER_AVATAR_URL));
+            info.put("senderAvatar", currentUser.optString(UserExt.USER_AVATAR_URL) + "?imageView2/1/w/48/h/48/interlace/0/q/100");
             if (!otherId.equals("1000000000086")) {
                 info.put("receiverUserName", otherUser.optString(User.USER_NAME));
-                info.put("receiverAvatar", otherUser.optString(UserExt.USER_AVATAR_URL));
+                info.put("receiverAvatar", otherUser.optString(UserExt.USER_AVATAR_URL) + "?imageView2/1/w/48/h/48/interlace/0/q/100");
                 info.put("receiverOnlineFlag", otherUser.optBoolean(UserExt.USER_ONLINE_FLAG));
             } else {
                 info.put("receiverOnlineFlag", true);
@@ -362,6 +362,12 @@ public class ChatProcessor {
             info.put("markdown", markdown);
             res.add(info);
         }
+        Collections.sort(res, (o1, o2) -> {
+            boolean flag1 = o1.optBoolean("receiverOnlineFlag", false);
+            boolean flag2 = o2.optBoolean("receiverOnlineFlag", false);
+            if (flag1 == flag2) return 0;
+            return flag1 ? -1 : 1;
+        });
         context.renderJSON(new JSONObject().put("result", 0)
                 .put("data", res));
     }

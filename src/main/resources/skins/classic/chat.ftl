@@ -77,7 +77,7 @@
             </div>
             <span id="messageListPanel" style="display: none">
             <div>
-                <details class="details action__item fn__flex-center" style="margin-left: 95%">
+                <details class="details action__item fn__flex-center" style="margin-left: 93%">
                     <summary>
                         ···
                     </summary>
@@ -86,7 +86,7 @@
                     </details-menu>
                 </details>
             </div>
-            <div class="module person-info" id="chatMessageList"  style="padding: 0">
+            <div class="module person-info" id="chatMessageList"  style="padding: 0; height: 700px; overflow-y: auto;">
             </div>
             </span>
         </div>

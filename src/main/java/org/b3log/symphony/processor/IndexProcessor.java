@@ -483,6 +483,50 @@ public class IndexProcessor {
         // 假期信息
         dataModel.put("vocationData", Vocation.vocationData);
 
+        // 聊天室信息
+        List<JSONObject> messages = ChatroomProcessor.getMessages(1,"html");
+        for (JSONObject message : messages) {
+            String content = message.optString("content");
+            Document doc = Jsoup.parse(content);
+
+            // 获取所有的 img 标签
+            Elements imgElements = doc.select("img");
+            for (Element img : imgElements) {
+                String src = img.attr("src");
+                // 在 src 后面加上 ?imageView2/0/w/150/h/150/interlace/0/q/90
+                img.attr("src", src + "?imageView2/0/w/150/h/150/interlace/0/q/90");
+            }
+
+            // 更新 message 中的 content 字段
+            message.put("content", doc.html());
+        }
+        dataModel.put(Common.MESSAGES, messages);
+
+        // 最近注册的新人
+        dataModel.put("recentRegUsers", userQueryService.getRecentRegisteredUsers(20));
+
+        // 主页标签
+        dataModelService.fillIndexTags(dataModel);
+
+        // TGIF
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        if (calendar.get(Calendar.DAY_OF_WEEK) == 6 && calendar.get(Calendar.HOUR_OF_DAY) > 8) {
+            // 周五
+            String date = DateFormatUtils.format(new Date(), "yyyyMMdd");
+            String articleTitle = "摸鱼周报 " + date;
+            JSONObject article = articleQueryService.getArticleByTitle(articleTitle);
+            if (article == null) {
+                dataModel.put("TGIF", "0");
+                dataModel.put("yyyyMMdd", date);
+            } else {
+                dataModel.put("TGIF", Latkes.getServePath() + article.optString(Article.ARTICLE_PERMALINK));
+            }
+        } else {
+            // 不是周五
+            dataModel.put("TGIF", "-1");
+        }
+
         //indexModelCache.clear();
         indexModelCache.putAll(dataModel);
         LOGGER.log(Level.INFO, "Refreshed index model cache.");
@@ -506,12 +550,6 @@ public class IndexProcessor {
         final Map<String, Object> dataModel = renderer.getDataModel();
         final JSONObject currentUser = Sessions.getUser();
         if (null != currentUser) {
-            // 自定义首页跳转 https://github.com/b3log/symphony/issues/774
-            final String indexRedirectURL = currentUser.optString(UserExt.USER_INDEX_REDIRECT_URL);
-            if (StringUtils.isNotBlank(indexRedirectURL)) {
-                context.sendRedirect(indexRedirectURL);
-                return;
-            }
             dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, currentUser.optInt(UserExt.CHAT_ROOM_PICTURE_STATUS));
             // 是否领取过昨日奖励
             final String userId = currentUser.optString(Keys.OBJECT_ID);
@@ -550,50 +588,9 @@ public class IndexProcessor {
             dataModel.put("need2fa", "no");
         }
 
-        List<JSONObject> messages = ChatroomProcessor.getMessages(1,"html");
-        for (JSONObject message : messages) {
-            String content = message.optString("content");
-            Document doc = Jsoup.parse(content);
-
-            // 获取所有的 img 标签
-            Elements imgElements = doc.select("img");
-            for (Element img : imgElements) {
-                String src = img.attr("src");
-                // 在 src 后面加上 ?imageView2/0/w/150/h/150/interlace/0/q/90
-                img.attr("src", src + "?imageView2/0/w/150/h/150/interlace/0/q/90");
-            }
-
-            // 更新 message 中的 content 字段
-            message.put("content", doc.html());
-        }
-        dataModel.put(Common.MESSAGES, messages);
-
         makeIndexData(dataModel);
 
-        // TGIF
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        if (calendar.get(Calendar.DAY_OF_WEEK) == 6 && calendar.get(Calendar.HOUR_OF_DAY) > 8) {
-            // 周五
-            String date = DateFormatUtils.format(new Date(), "yyyyMMdd");
-            String articleTitle = "摸鱼周报 " + date;
-            JSONObject article = articleQueryService.getArticleByTitle(articleTitle);
-            if (article == null) {
-                dataModel.put("TGIF", "0");
-                dataModel.put("yyyyMMdd", date);
-            } else {
-                dataModel.put("TGIF", Latkes.getServePath() + article.optString(Article.ARTICLE_PERMALINK));
-            }
-        } else {
-            // 不是周五
-            dataModel.put("TGIF", "-1");
-        }
-
-        // 最近注册的新人
-        dataModel.put("recentRegUsers", userQueryService.getRecentRegisteredUsers(20));
-
         dataModelService.fillHeaderAndFooter(context, dataModel);
-        dataModelService.fillIndexTags(dataModel);
 
         dataModel.put(Common.SELECTED, Common.INDEX);
     }

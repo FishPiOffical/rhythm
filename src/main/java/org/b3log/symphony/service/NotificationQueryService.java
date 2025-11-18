@@ -494,6 +494,9 @@ public class NotificationQueryService {
                         desTemplate = langPropsService.get("notificationPointChargeLabel");
 
                         final JSONObject transfer5 = pointtransferRepository.get(dataId);
+                        if (transfer5 == null) {
+                            continue;
+                        }
                         final int sum5 = transfer5.optInt(Pointtransfer.SUM);
                         final String memo5 = transfer5.optString(Pointtransfer.DATA_ID);
                         final String yuan = memo5.split("-")[0];
@@ -505,6 +508,9 @@ public class NotificationQueryService {
                         desTemplate = langPropsService.get("notificationPointExchangeLabel");
 
                         final JSONObject transfer6 = pointtransferRepository.get(dataId);
+                        if (transfer6 == null) {
+                            continue;
+                        }
                         final int sum6 = transfer6.optInt(Pointtransfer.SUM);
                         final String yuan6 = transfer6.optString(Pointtransfer.DATA_ID);
 
@@ -573,6 +579,9 @@ public class NotificationQueryService {
                         desTemplate = langPropsService.get("notificationPointTransferLabel");
 
                         final JSONObject transfer101 = pointtransferRepository.get(dataId);
+                        if (transfer101 == null) {
+                            continue;
+                        }
                         final String fromId101 = transfer101.optString(Pointtransfer.FROM_ID);
                         if (!fromId101.equals(Pointtransfer.ID_C_SYS)) {
                             final JSONObject user101 = userRepository.get(fromId101);
