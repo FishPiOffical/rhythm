@@ -27,6 +27,7 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.PointtransferRedcRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.json.JSONObject;
@@ -76,6 +77,7 @@ public class PointtransferMgmtService {
      */
     public synchronized String transfer(final String fromId, final String toId, final int type, final int sum,
                                         final String dataId, final long time, final String memo) {
+        System.out.println("transfer");
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
 
@@ -123,6 +125,8 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.MEMO, memo);
 
             final String ret = pointtransferRepository.add(pointtransfer);
+            PointtransferRedcRepository.addRecord(fromId, ret);
+            PointtransferRedcRepository.addRecord(toId, ret);
 
             transaction.commit();
 
@@ -153,6 +157,7 @@ public class PointtransferMgmtService {
      */
     public String transferInCurrentTransaction(final String fromId, final String toId, final int type, final int sum,
                                                final String dataId, final long time, final String memo) {
+        System.out.println("transferInCurrentTransaction");
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
             return null;
@@ -195,7 +200,12 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.DATA_ID, dataId);
             pointtransfer.put(Pointtransfer.MEMO, memo);
 
-            return pointtransferRepository.add(pointtransfer);
+            String ret = pointtransferRepository.add(pointtransfer);
+
+            PointtransferRedcRepository.addRecord(fromId, ret);
+            PointtransferRedcRepository.addRecord(toId, ret);
+
+            return ret;
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Transfer (in current tx) [fromId=" + fromId + ", toId=" + toId + ", sum=" + sum +
                     ", type=" + type + ", dataId=" + dataId + ", memo=" + memo + "] failed", e);

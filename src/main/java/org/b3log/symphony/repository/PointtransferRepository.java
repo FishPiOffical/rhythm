@@ -80,10 +80,7 @@ public class PointtransferRepository extends AbstractRepository {
 
     @Override
     public String add(JSONObject jsonObject) throws RepositoryException {
-        String oId = super.add(jsonObject);
-        PointtransferRedcRepository.addRecord(jsonObject.optString("fromId"), oId);
-        PointtransferRedcRepository.addRecord(jsonObject.optString("toId"), oId);
-        return oId;
+        return super.add(jsonObject);
     }
 
     /**

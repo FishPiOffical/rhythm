@@ -70,10 +70,7 @@ public class PointtransferRedcRepository extends AbstractRepository {
         JSONObject obj = new JSONObject();
         obj.put("userId", userId);
         obj.put("rawId", rawId);
-        final Transaction transaction = pointtransferRedcRepository.beginTransaction();
-        String result = pointtransferRedcRepository.add(obj);
-        transaction.commit();
-        return result;
+        return pointtransferRedcRepository.add(obj);
     }
 
     /**
