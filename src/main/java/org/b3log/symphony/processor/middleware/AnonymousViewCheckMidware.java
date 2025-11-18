@@ -162,28 +162,6 @@ public class AnonymousViewCheckMidware {
                     context.abort();
                     return;
                 } else if (Article.ARTICLE_ANONYMOUS_VIEW_C_ALLOW == article.optInt(Article.ARTICLE_ANONYMOUS_VIEW)) {
-                    final String ip = Requests.getRemoteAddr(context.getRequest());
-                    final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-                    if (!isSearchEngineBot(ua)) {
-                        // 计数逻辑
-                        Integer count = ipVisitCountCache.getIfPresent(ip);
-                        if (count == null) count = 0;
-                        count++;
-                        ipVisitCountCache.put(ip, count);
-                        System.out.println(ip + " 访问计数：" + count + " " + context.requestURI());
-                        if (count >= 30) {
-                            String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
-                            System.out.println(ip + " 已封禁");
-                        }
-                        if (count >= 5) {
-                            // 进入黑名单
-                            ipBlacklistCache.put(ip, true);
-                            // 跳转到验证码页面
-                            context.sendRedirect("/test");
-                            System.out.println(ip + " 进入黑名单");
-                            return;
-                        }
-                    }
                     context.handle();
                     return;
                 }
