@@ -295,8 +295,8 @@ public final class Server extends BaseServer {
             if (!Strings.isNumeric(portArg)) {
                 portArg = "8080";
             }
-            PointtransferSyncTool.syncAllHistoryToRedc();
-            //server.start(Integer.parseInt(portArg));
+            //PointtransferSyncTool.syncAllHistoryToRedc();
+            server.start(Integer.parseInt(portArg));
         }
     }
 }

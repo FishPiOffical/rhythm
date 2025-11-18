@@ -24,46 +24,57 @@ import org.b3log.symphony.repository.PointtransferRedcRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
 import org.json.JSONObject;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PointtransferSyncTool {
 
     public static void syncAllHistoryToRedc() throws Exception {
         // 获取Bean
         PointtransferRepository pointtransferRepository = BeanManager.getInstance().getReference(PointtransferRepository.class);
-
         // 1. 查询主表所有数据
         Query query = new Query(); // 不设置分页，查全部
         List<JSONObject> records = pointtransferRepository.getList(query);
-
         if (records == null || records.isEmpty()) {
             System.out.println("主表无数据，无需同步。");
             return;
         }
-
-        int count = 0;
+        int threadCount = 30; // 可根据实际情况调整
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(records.size() * 2); // 每条记录2个插入任务
+        AtomicInteger count = new AtomicInteger(0);
         for (JSONObject record : records) {
-            System.out.println("正在处理数据：" + record);
             String oId = record.optString("oId");
             String fromId = record.optString("fromId");
             String toId = record.optString("toId");
-
-            // 插入fromId冗余
-            try {
-                PointtransferRedcRepository.addRecord(fromId, oId);
-            } catch (Exception e) {
-                // 已存在或其他异常，忽略或记录日志
-                e.printStackTrace();
-            }
-            // 插入toId冗余
-            try {
-                PointtransferRedcRepository.addRecord(toId, oId);
-            } catch (Exception e) {
-                // 已存在或其他异常，忽略或记录日志
-                e.printStackTrace();
-            }
-            count += 2;
+            // fromId冗余插入
+            executor.submit(() -> {
+                try {
+                    PointtransferRedcRepository.addRecord(fromId, oId);
+                    count.incrementAndGet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            });
+            // toId冗余插入
+            executor.submit(() -> {
+                try {
+                    PointtransferRedcRepository.addRecord(toId, oId);
+                    count.incrementAndGet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            });
         }
-
-        System.out.println("历史数据同步完成！共插入冗余记录数：" + count);
+        // 等待所有任务完成
+        latch.await();
+        executor.shutdown();
+        System.out.println("历史数据同步完成！共插入冗余记录数：" + count.get());
     }
 }
