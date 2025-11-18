@@ -109,9 +109,14 @@ public class CaptchaProcessor {
     }
 
     public void captcha(final RequestContext context) {
-        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "captcha.ftl");
-        final Map<String, Object> dataModel = renderer.getDataModel();
-
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        // 黑名单判断
+        if (AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null) {
+            final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "captcha.ftl");
+            final Map<String, Object> dataModel = renderer.getDataModel();
+        } else {
+            context.sendRedirect("/");
+        }
     }
 
     public void validateCaptcha(final RequestContext context) {
