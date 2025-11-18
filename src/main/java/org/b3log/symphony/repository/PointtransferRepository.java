@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.repository.AbstractRepository;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Pointtransfer;
@@ -75,6 +76,14 @@ public class PointtransferRepository extends AbstractRepository {
         }
 
         return ret;
+    }
+
+    @Override
+    public String add(JSONObject jsonObject) throws RepositoryException {
+        String oId = super.add(jsonObject);
+        PointtransferRedcRepository.addRecord(jsonObject.optString("fromId"), oId);
+        PointtransferRedcRepository.addRecord(jsonObject.optString("toId"), oId);
+        return oId;
     }
 
     /**

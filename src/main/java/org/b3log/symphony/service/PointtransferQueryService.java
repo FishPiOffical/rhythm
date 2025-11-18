@@ -34,6 +34,7 @@ import org.b3log.symphony.util.DateUtils;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Escapes;
 import org.b3log.symphony.util.Symphonys;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -236,16 +237,16 @@ public class PointtransferQueryService {
      * </pre>
      */
     public JSONObject getUserPoints(final String userId, final int currentPageNum, final int pageSize) {
-        final Query query = new Query().addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).
-                setPage(currentPageNum, pageSize);
-        final List<Filter> filters = new ArrayList<>();
-        filters.add(new PropertyFilter(Pointtransfer.FROM_ID, FilterOperator.EQUAL, userId));
-        filters.add(new PropertyFilter(Pointtransfer.TO_ID, FilterOperator.EQUAL, userId));
-        query.setFilter(new CompositeFilter(CompositeFilterOperator.OR, filters));
-
         try {
-            final JSONObject ret = pointtransferRepository.get(query);
-            final List<JSONObject> records = (List<JSONObject>) ret.opt(Keys.RESULTS);
+            final JSONObject ret = PointtransferRedcRepository.getPointtransferByUserId(userId, currentPageNum, pageSize);
+            JSONArray arr = ret.optJSONArray("rslts");
+            List<JSONObject> records = new ArrayList<>();
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    records.add(arr.getJSONObject(i));
+                }
+            }
+
             for (int i = 0; i < records.size(); i++) {
                 final JSONObject record = records.get(i);
                 record.put(Common.CREATE_TIME, new Date(record.optLong(Pointtransfer.TIME)));

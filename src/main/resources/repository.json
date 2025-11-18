@@ -974,6 +974,30 @@
       ]
     },
     {
+      "name": "pointtransfer_redc",
+      "description": "积分转账冗余表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "关联的用户ID"
+        },
+        {
+          "name": "rawId",
+          "type": "String",
+          "length": 19,
+          "description": "关联的转账表ID"
+        }
+      ]
+    },
+    {
       "name": "notification",
       "description": "通知表",
       "keys": [

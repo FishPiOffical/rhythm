@@ -80,7 +80,7 @@ public final class Server extends BaseServer {
      *
      * @param args the specified arguments
      */
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws Exception {
         System.setProperty("java.awt.headless", "true");
         Stopwatchs.start("Booting");
 
@@ -295,7 +295,8 @@ public final class Server extends BaseServer {
             if (!Strings.isNumeric(portArg)) {
                 portArg = "8080";
             }
-            server.start(Integer.parseInt(portArg));
+            PointtransferSyncTool.syncAllHistoryToRedc();
+            //server.start(Integer.parseInt(portArg));
         }
     }
 }

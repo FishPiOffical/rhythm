@@ -48,6 +48,7 @@ import org.b3log.symphony.repository.ChatInfoRepository;
 import org.b3log.symphony.repository.ChatUnreadRepository;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
@@ -1497,7 +1498,13 @@ public class UserProcessor {
         dataModel.put(Follow.FOLLOWING_ID, followingId);
 
         final JSONObject userPointsResult = pointtransferQueryService.getUserPoints(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
-        final List<JSONObject> userPoints = (List<JSONObject>) userPointsResult.opt(Keys.RESULTS);
+        JSONArray arr = userPointsResult.optJSONArray(Keys.RESULTS);
+        List<JSONObject> userPoints = new ArrayList<>();
+        if (arr != null) {
+            for (int i = 0; i < arr.length(); i++) {
+                userPoints.add(arr.getJSONObject(i));
+            }
+        }
         dataModel.put(Common.USER_HOME_POINTS, userPoints);
 
         final boolean isLoggedIn = (Boolean) dataModel.get(Common.IS_LOGGED_IN);
