@@ -1508,8 +1508,8 @@ var Util = {
     userCardCache: new Map(),
     listenUserCard: function () {
         var cardLock = false;
-        var hoverTimeout = null; // 用于延迟显示
-        var currentTarget = null; // 记录当前悬停的目标
+        var hoverTimeout = null;
+        var currentTarget = null;
 
         $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at").unbind();
 
@@ -1517,22 +1517,17 @@ var Util = {
             var $this = $(this);
             currentTarget = this;
 
-            // 清除之前的延迟
             if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
             }
 
-            // 添加延迟，避免快速切换时频繁触发
             hoverTimeout = setTimeout(function () {
-                // 再次检查目标是否还是当前元素
                 if (currentTarget !== $this[0]) {
                     return;
                 }
 
-                // 加载用户信息
                 if ($this.attr("aria-label") !== undefined) {
                     let username = $this.attr("aria-label");
-                    // 请求数据
                     let data;
                     if (Util.userCardCache.has(username)) {
                         data = Util.userCardCache.get(username);
@@ -1550,7 +1545,6 @@ var Util = {
                         });
                     }
 
-                    // 如果数据加载失败，不显示卡片
                     if (!data) {
                         return;
                     }
@@ -1574,15 +1568,15 @@ var Util = {
                     let userAppRole = data.userAppRole;
                     let sysMetal = JSON.parse(data.sysMetal);
                     let mbti = data.mbti;
-                    // 组合内容
+
                     let html = "" +
                         '<div class="user-card" id="userCardContent">\n' +
                         '    <div>\n' +
                         '        <a href="' + Label.servePath + '/member/' + userName + '">\n' +
-                        '            <div class="avatar-mid-card" style="background-image: url(' + userAvatarURL + ');"></div>\n' +
+                        '            <div class="avatar-mid-card user-card__avatar" style="background-image: url(' + userAvatarURL + ');"></div>\n' +
                         '        </a>\n' +
                         '        <div class="user-card__meta">\n' +
-                        '            <div class="fn__ellipsis">\n' +
+                        '            <div class="fn__ellipsis user-card__name-wrapper">\n' +
                         '                <a class="user-card__name" href="' + Label.servePath + '/member/' + userName + '"><b>' + userNickname + '</b></a>\n' +
                         '                <a class="ft-gray ft-smaller" href="' + Label.servePath + '/member/' + userName + '"><b>' + userName + '</b></a>\n';
                     if (mbti !== "") {
@@ -1591,7 +1585,7 @@ var Util = {
                             leftMbti = mbti.split('-')[0];
                         }
                         html += '' +
-                            '<a target="_blank" href="https://www.16personalities.com/ch/' + leftMbti + '-%E4%BA%BA%E6%A0%BC" class="tooltipped-new tooltipped__n" rel="nofollow"\n' +
+                            '<a target="_blank" href="https://www.16personalities.com/ch/' + leftMbti + '-%E4%BA%BA%E6%A0%BC" class="tooltipped-new tooltipped__n user-card__badge" rel="nofollow"\n' +
                             '   aria-label="TA是 ' + mbti + '">\n' +
                             '   <span style="background-color: #b2b1ff;color: #fff;font-size: 12px;line-height: 20px;border-radius: 3px;height: 20px;display: inline-block;padding: 0 5px;vertical-align: middle;box-sizing: border-box;svg {margin-top: 2px;}">' +
                             '   <svg style="vertical-align: -3px"><use xlink:href="#mbti"></use></svg> ' + mbti + '</span>' +
@@ -1600,32 +1594,32 @@ var Util = {
                     html += '            </div>\n';
                     if (userIntro !== "") {
                         html += '' +
-                            '            <div class="user-card__info vditor-reset">\n' +
+                            '            <div class="user-card__info user-card__intro vditor-reset">\n' +
                             '                ' + userIntro + '\n' +
                             '            </div>\n';
                     } else {
                         if (userAppRole === "0") {
-                            html += '<div class="user-card__info vditor-reset">' +
+                            html += '<div class="user-card__info user-card__intro vditor-reset">' +
                                 '摸鱼派 ' + userNo + ' 号成员，<b>黑客</b>' +
                                 '</div>\n';
                         } else if (userAppRole === "1") {
-                            html += '<div class="user-card__info vditor-reset">' +
+                            html += '<div class="user-card__info user-card__intro vditor-reset">' +
                                 '摸鱼派 ' + userNo + ' 号成员，<b>画家</b>' +
                                 '</div>\n';
                         }
                     }
                     let list = sysMetal.list;
                     if (list !== undefined && list.length !== 0) {
-                        html += '<div class="user-card__info vditor-reset">';
+                        html += '<div class="user-card__info user-card__medals vditor-reset">';
                         for (let i = 0; i < list.length; i++) {
                             let m = list[i];
-                            html += "<img title='" + m.description + "' src='" + Util.genMetal(m.name, m.attr) + "'/>";
+                            html += "<img class='user-card__medal' title='" + m.description + "' src='" + Util.genMetal(m.name, m.attr) + "'/>";
                         }
                         html += '</div>';
                     }
                     html += '            <div class="user-card__icons fn__flex">\n' +
-                        '                <div class="fn__flex-1">\n' +
-                        '                    <a href="https://fishpi.cn/article/1630575841478" class="tooltipped__n tooltipped-new"\n' +
+                        '                <div class="fn__flex-1 user-card__icon-list">\n' +
+                        '                    <a href="https://fishpi.cn/article/1630575841478" class="tooltipped__n tooltipped-new user-card__icon"\n' +
                         '                       aria-label="用户分组：' + userRole + '">\n';
                     switch (userRole) {
                         case '管理员':
@@ -1648,7 +1642,7 @@ var Util = {
                             break;
                     }
                     html += '                    </a>\n';
-                    html += '                    <a href="' + Label.servePath + '/member/' + userName + '/points" class="tooltipped-new tooltipped__n"\n' +
+                    html += '                    <a href="' + Label.servePath + '/member/' + userName + '/points" class="tooltipped-new tooltipped__n user-card__icon"\n' +
                         '                       aria-label="' + userPoint + ' 积分">\n' +
                         '                        <svg>\n' +
                         '                            <use xlink:href="#iconPoints"></use>\n' +
@@ -1656,7 +1650,7 @@ var Util = {
                         '                    </a>\n';
                     if (userCity !== "") {
                         html += '' +
-                            '<a href="' + Label.servePath + '/city/' + userCity + '" class="tooltipped-new tooltipped__n" rel="nofollow"\n' +
+                            '<a href="' + Label.servePath + '/city/' + userCity + '" class="tooltipped-new tooltipped__n user-card__icon" rel="nofollow"\n' +
                             '   aria-label="' + userCity + '">\n' +
                             '    <svg>\n' +
                             '        <use xlink:href="#icon-local"></use>\n' +
@@ -1665,7 +1659,7 @@ var Util = {
                     }
                     if (userURL !== "") {
                         html += '' +
-                            '<a target="_blank" href="' + userURL + '" class="tooltipped-new tooltipped__n" rel="nofollow"\n' +
+                            '<a target="_blank" href="' + userURL + '" class="tooltipped-new tooltipped__n user-card__icon" rel="nofollow"\n' +
                             '   aria-label="' + userURL + '">\n' +
                             '    <svg>\n' +
                             '        <use xlink:href="#card-link"></use>\n' +
@@ -1674,7 +1668,7 @@ var Util = {
                     }
 
                     html += '' +
-                        '<a class="tooltipped-new tooltipped__n" rel="nofollow" onclick="javascript:void(0)" style="background-color:#eeeeeecc;border-radius:5px;padding:0 7px 0 4px;cursor:default;color:#6d6c6c;font-size:12px;"\n' +
+                        '<a class="tooltipped-new tooltipped__n user-card__icon user-card__no" rel="nofollow" onclick="javascript:void(0)" style="background-color:#eeeeeecc;border-radius:5px;padding:0 7px 0 4px;cursor:default;color:#6d6c6c;font-size:12px;"\n' +
                         '   aria-label="' + userNo + ' 号成员">\n' +
                         '    <svg style="height: 12px; vertical-align: -4.5px">\n' +
                         '        <use xlink:href="#no"></use>' +
@@ -1685,22 +1679,22 @@ var Util = {
                         '                </div>\n';
 
                     if (userOnlineFlag === true) {
-                        html += '<span style="background-color:#d23f31;color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">在线</span>';
+                        html += '<span class="user-card__status user-card__status--online" style="background-color:#d23f31;color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">在线</span>';
                     } else {
-                        html += '<span style="background-color:rgba(0,0,0,0.54);color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">离线</span>';
+                        html += '<span class="user-card__status user-card__status--offline" style="background-color:rgba(0,0,0,0.54);color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">离线</span>';
                     }
-                    html += '                <div class="fn__shrink">\n' +
-                        '                    <a class="green small btn" href="' + Label.servePath + '/chat?toUser=' + userName + '" rel="nofollow">\n' +
+                    html += '                <div class="fn__shrink user-card__actions">\n' +
+                        '                    <a class="green small btn user-card__btn" href="' + Label.servePath + '/chat?toUser=' + userName + '" rel="nofollow">\n' +
                         '                        私信\n' +
                         '                    </a>\n';
                     if (canFollow === "yes") {
                         html += '' +
-                            '<button class="follow small" onclick="Util.follow(this, \'' + oId + '\', \'user\')">\n' +
+                            '<button class="follow small user-card__btn" onclick="Util.follow(this, \'' + oId + '\', \'user\')">\n' +
                             ' 关注\n' +
                             '</button>';
                     } else if (canFollow === "no") {
                         html += '' +
-                            '<button class="follow small" onclick="Util.unfollow(this, \'' + oId + '\', \'user\')">\n' +
+                            '<button class="follow small user-card__btn" onclick="Util.unfollow(this, \'' + oId + '\', \'user\')">\n' +
                             ' 取消关注\n' +
                             '</button>';
                     }
@@ -1720,7 +1714,6 @@ var Util = {
                         $("#userCardContent > div > a > div").css("top", "80px");
                     }
 
-                    // 设置位置
                     let left = $this.offset().left + 30;
                     if (left + 350 > $(document.body).width()) {
                         left = left - 350;
@@ -1731,11 +1724,13 @@ var Util = {
                         top = $this.offset().top + 45;
                     }
                     $("#userCard").css("top", top + "px");
+
+                    // 添加显示动画类
+                    $("#userCard").removeClass("user-card-hide").addClass("user-card-show");
                     $("#userCard").show();
                 }
-            }, 200); // 200ms 延迟，避免快速切换时频繁触发
+            }, 200);
         }, function (event) {
-            // 清除延迟
             if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
                 hoverTimeout = null;
@@ -1746,7 +1741,11 @@ var Util = {
                 let el = $(event.toElement || event.relatedTarget);
                 if (el.parents("#userCard").length === 0) {
                     if (!cardLock) {
-                        $("#userCard").hide();
+                        // 添加隐藏动画
+                        $("#userCard").removeClass("user-card-show").addClass("user-card-hide");
+                        setTimeout(function() {
+                            $("#userCard").hide();
+                        }, 250);
                     }
                 }
             }, 100);
@@ -1757,7 +1756,11 @@ var Util = {
             cardLock = true;
         }, function () {
             cardLock = false;
-            $("#userCard").hide();
+            // 添加隐藏动画
+            $("#userCard").removeClass("user-card-show").addClass("user-card-hide");
+            setTimeout(function() {
+                $("#userCard").hide();
+            }, 250);
         });
     },
     /**
