@@ -1865,14 +1865,13 @@ a[class*=" icon-"]:hover {
 
 // 勋章 hover 效果
 .user-card__medal {
-  pointer-events: auto; // 允许悬停特效生效
-  cursor: default; // 鼠标样式为默认，表示不可点击
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.2s ease;
 }
 
 .user-card__medal:hover {
-  transform: scale(1.12) translateY(-2px); // 保留悬停时的放大和上移效果
-  filter: brightness(1.08); // 保留悬停时的亮度变化
+  transform: scale(1.12) translateY(-2px);
+  filter: brightness(1.08);
 }
 
 // 图标 hover 效果
