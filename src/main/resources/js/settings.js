@@ -1196,11 +1196,36 @@ var Settings = {
       cache: false,
       success: function (result, textStatus) {
         if (0 === result.code) {
-          window.location.reload()
+            Settings.refreshNotificationsAllRead()
         }
       },
     })
   },
+    refreshNotificationsAllRead: function () {
+        $.ajax({
+            url: window.location.href,
+            type: 'GET',
+            success: function(html) {
+                // 用 jQuery 解析返回的 HTML 字符串
+                var $tempDom = $('<div>').html(html);
+                var $newMain = $tempDom.find('.main').first();
+                if ($newMain.length === 0) {
+                    console.error('未找到class为main的div');
+                    return;
+                }
+                var $oldMain = $('.main').first();
+                if ($oldMain.length === 0) {
+                    console.error('当前页面未找到class为main的div');
+                    return;
+                }
+                // 替换
+                $oldMain.replaceWith($newMain);
+            },
+            error: function(xhr, status, error) {
+                console.error('请求或处理出错:', error);
+            }
+        });
+    },
   /**
    * @description 删除消息.
    */
