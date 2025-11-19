@@ -1533,6 +1533,20 @@ public class ArticleProcessor {
                 articleTags = "思绪";
             }
 
+            final String[] tags = articleTags.split(",");
+            final String[] tagsForLongStory = new String[1];
+            tagsForLongStory[0] = "长篇连载";
+            final StringBuilder retBuilder = new StringBuilder();
+            for (final String tag : tags) {
+                if (!ArrayUtils.contains(tagsForLongStory, tag)) {
+                    retBuilder.append(tag).append(",");
+                }
+            }
+            if (retBuilder.length() > 0) {
+                retBuilder.deleteCharAt(retBuilder.length() - 1);
+            }
+            articleTags = retBuilder.toString();
+
             article.put(Article.ARTICLE_TAGS, articleTags);
             // 用户帖子列表
             final List<JSONObject> userArticles = articleQueryService.getUserArticles(currentUser.optString(Keys.OBJECT_ID),Article.ARTICLE_ANONYMOUS_C_PUBLIC, 1, 1);

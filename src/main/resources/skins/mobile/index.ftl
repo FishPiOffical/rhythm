@@ -46,6 +46,67 @@
         </#if>
     </ul>
 </div>
+<#if novels?? && novels?size gt 0>
+    <div class="fn-hr10"></div>
+    <div class="module_new">
+        <h2 class="module__title ft__fade fn__clear">
+            长篇连载
+            <div class="fn__right">
+                <a class="ft__gray" href="${servePath}/tag/长篇连载">更多</a>
+            </div>
+        </h2>
+    </div>
+    <div class="main" style="padding: 0;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px;">
+            <#list novels as novel>
+                <#if novel_index < 6>
+                    <a href="${servePath}${novel.articlePermalink}" style="text-decoration: none; color: inherit;">
+                        <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: white;">
+                            <div style="width: 100%; height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: relative;">
+                                <#if novel.articleImg?? && novel.articleImg?length gt 0>
+                                    <img src="${novel.articleImg}" alt="${novel.articleTitle}"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                <#else>
+                                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: rgba(255,255,255,0.8);">
+                                        📖
+                                    </div>
+                                </#if>
+                                <#if novel.articleStick != 0>
+                                    <span style="position: absolute; top: 8px; left: 8px; background: #ff6b6b; color: white; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">
+                                    置顶
+                                </span>
+                                </#if>
+                            </div>
+                            <div style="padding: 10px;">
+                                <h3 style="margin: 0 0 6px 0; font-size: 14px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${novel.articleTitleEmoj}
+                                </h3>
+                                <p style="margin: 0 0 8px 0; font-size: 11px; color: #666; line-height: 1.5; height: 33px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                    <#if novel.articlePreviewContent?? && novel.articlePreviewContent?length gt 0>
+                                        ${novel.articlePreviewContent?html}
+                                    <#else>
+                                        ${novel.articleTitle}
+                                    </#if>
+                                </p>
+                                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #999;">
+                                    <div style="display: flex; align-items: center; overflow: hidden;">
+                                        <img src="${novel.articleAuthorThumbnailURL48}"
+                                             style="width: 16px; height: 16px; border-radius: 50%; margin-right: 5px; flex-shrink: 0;">
+                                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${novel.articleAuthorName}</span>
+                                    </div>
+                                    <div style="flex-shrink: 0;">
+                                        <svg style="width: 12px; height: 12px; vertical-align: middle;"><use xlink:href="#view"></use></svg>
+                                        50K
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </#if>
+            </#list>
+        </div>
+    </div>
+</#if>
 
 <#if tags?size != 0>
     <div class="module_new">

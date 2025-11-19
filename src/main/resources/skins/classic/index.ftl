@@ -334,8 +334,76 @@
     </div>
 </#if>
 
-    <div class="index-bottom" style="padding-top:20px;padding-bottom: 20px;">
-        <div class="wrapper">
+    <div class="wrapper" style="padding-bottom: 20px">
+        <div class="index-recent fn-flex-1">
+            <div class="index-head-title">
+                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">长篇连载</div>
+                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/tag/长篇连载">更多</a></div>
+                <div style="clear:both;"></div>
+            </div>
+            <div class="module-panel">
+                <#if novels?? && novels?size gt 0>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 10px;">
+                        <#list novels as novel>
+                            <#if novel_index < 6>
+                                <a href="${servePath}${novel.articlePermalink}" style="text-decoration: none; color: inherit;">
+                                    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s;"
+                                         onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
+                                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                                        <div style="width: 100%; height: 260px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: relative;">
+                                            <#if novel.articleImg?? && novel.articleImg?length gt 0>
+                                                <img src="${novel.articleImg}" alt="${novel.articleTitle}"
+                                                     style="width: 100%; height: 100%; object-fit: cover;">
+                                            <#else>
+                                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; color: rgba(255,255,255,0.8);">
+                                                    📖
+                                                </div>
+                                            </#if>
+                                            <#if novel.articleStick != 0>
+                                                <span style="position: absolute; top: 10px; left: 10px; background: #ff6b6b; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold;">
+                                                置顶
+                                            </span>
+                                            </#if>
+                                        </div>
+                                        <div style="padding: 12px;">
+                                            <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                ${novel.articleTitleEmoj}
+                                            </h3>
+                                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; line-height: 1.6; height: 38px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                                <#if novel.articlePreviewContent?? && novel.articlePreviewContent?length gt 0>
+                                                    ${novel.articlePreviewContent?html}
+                                                <#else>
+                                                    ${novel.articleTitle}
+                                                </#if>
+                                            </p>
+                                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #999;">
+                                                <div style="display: flex; align-items: center;">
+                                                    <img src="${novel.articleAuthorThumbnailURL48}"
+                                                         style="width: 20px; height: 20px; border-radius: 50%; margin-right: 6px;">
+                                                    <span>${novel.articleAuthorName}</span>
+                                                </div>
+                                                <div>
+                                                    <svg style="width: 14px; height: 14px; vertical-align: middle;"><use xlink:href="#view"></use></svg>
+                                                    50K
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </#if>
+                        </#list>
+                    </div>
+                <#else>
+                    <div style="text-align: center; padding: 40px; color: #999;">
+                        <svg style="width: 60px; height: 60px; margin-bottom: 15px;"><use xlink:href="#book"></use></svg>
+                        <p>暂无长篇连载</p>
+                    </div>
+                </#if>
+            </div>
+        </div>
+    </div>
+
+    <div class="wrapper">
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">聊天室（<span

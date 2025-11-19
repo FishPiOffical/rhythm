@@ -162,6 +162,9 @@ public class IndexProcessor {
     @Inject
     private SponsorService sponsorService;
 
+    @Inject
+    private TagQueryService tagQueryService;
+
     /**
      * Register request handlers.
      */
@@ -586,6 +589,16 @@ public class IndexProcessor {
             dataModel.put("userPhone", "not-logged");
             // 提示绑定2FA
             dataModel.put("need2fa", "no");
+        }
+
+        // 长篇连载数据
+        final JSONObject tag = tagQueryService.getTagByTitle("新人报道");
+        // tag有可能为null
+        if (tag == null) {
+            dataModel.put("novels", Collections.emptyList());
+        } else {
+            final List<JSONObject> novels = articleQueryService.getArticlesByTag(0, tag, 1, 10);
+            dataModel.put("novels", novels);
         }
 
         makeIndexData(dataModel);
