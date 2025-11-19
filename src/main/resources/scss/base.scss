@@ -1857,13 +1857,17 @@ a[class*=" icon-"]:hover {
 
 // 图标 hover 效果
 .user-card__icon {
+  position: relative;
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-              color 0.16s ease;
+              color 0.16s ease,
+              z-index 0s;
   display: inline-block;
+  z-index: 1;
 }
 
 .user-card__icon:hover {
   transform: translateY(-2px) scale(1.06);
+  z-index: 10; // 悬停时提升层级，让 tooltipped 显示在其他图标上方
 }
 
 .user-card__icon svg {
@@ -1968,7 +1972,8 @@ a[class*=" icon-"]:hover {
 .user-card__icons a,.user-card__icons span {
   margin-right: 10px;
   float: left;
-  height: 20px
+  height: 20px;
+  position: relative; // 确保 z-index 生效
 }
 
 .user-card__icons a svg,.user-card__icons span svg {
@@ -1980,7 +1985,8 @@ a[class*=" icon-"]:hover {
 }
 
 .user-card__icons a:hover {
-  text-decoration: none
+  text-decoration: none;
+  z-index: 10; // 悬停时提升层级
 }
 
 .user-card__icons a:hover svg {
