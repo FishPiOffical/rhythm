@@ -2553,3 +2553,78 @@ $theme-orange-light: #fff7ec;
 #aPersonListPanel {
   border-bottom: none !important;
 }
+
+/* iOS26 风格 — 按钮与输入框的克制动画增强（视觉层面，不改布局） */
+$ios26-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+/* 按钮（全站通用）—— 轻微放大、柔和阴影，按下时回弹 */
+button,
+.btn {
+  transition: transform 220ms $ios26-ease, box-shadow 220ms $ios26-ease, background 160ms linear, color 160ms linear;
+  will-change: transform, box-shadow;
+  /* 不覆盖颜色/尺寸等，只增强交互手感 */
+}
+
+button:hover,
+.btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 22px rgba(34,44,60,0.08);
+}
+
+button:active,
+.btn:active {
+  transform: scale(0.985);
+  box-shadow: 0 6px 14px rgba(34,44,60,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+  transition-duration: 120ms;
+}
+
+/* 小尺寸按钮降低动效强度 */
+button.small,
+.btn.small { transition-duration: 180ms; transform-origin: center; }
+
+/* 输入框（包含表单和导航搜索）—— 轻微上移 + 柔和光晕，不改 width */
+.form input[type=text],
+.form input[type=password],
+.form input[type=datetime],
+.form input[type=datetime-local],
+.form input[type=number],
+.form textarea,
+.form select,
+.nav input.search {
+  transition: box-shadow 260ms $ios26-ease, border-color 220ms $ios26-ease, transform 220ms $ios26-ease;
+  will-change: box-shadow, transform;
+  /* 保留现有 box-model（width/border） */
+}
+
+.form input[type=text]:focus,
+.form input[type=password]:focus,
+.form input[type=datetime]:focus,
+.form input[type=datetime-local]:focus,
+.form input[type=number]:focus,
+.form textarea:focus,
+.nav input.search:focus {
+  transform: translateY(-1px) scale(1.002);
+  border-color: rgba(25,140,255,0.55) !important;
+  box-shadow: 0 10px 28px rgba(25,140,255,0.08), 0 2px 6px rgba(25,140,255,0.05);
+  outline: none;
+}
+
+/* 聚焦的一次性脉冲提示（克制） */
+@keyframes ios26-input-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(25,140,255,0.10); }
+  60% { box-shadow: 0 0 0 6px rgba(25,140,255,0.02); }
+  100% { box-shadow: 0 0 0 0 rgba(25,140,255,0); }
+}
+.form input[type=text]:focus,
+.form textarea:focus,
+.nav input.search:focus {
+  animation: ios26-input-pulse 580ms ease-out;
+}
+
+/* 额外兼容：避免在表单中的绝对定位按钮受到 transform 影响（不改变原有布局） */
+.form button.absolute { transform: none; }
+
+/* 说明注记（仅供维护者参考）：
+   - 动画时间与尺度非常克制（scale ≤ 1.02，模糊/阴影很轻）
+   - 所有改动均为视觉层面，不修改宽度/定位/盒模型，避免引发换行或头像跑位问题
+*/
