@@ -832,7 +832,30 @@ a[class*=" icon-"]:hover {
   overflow: hidden;
   min-width: 500px;
   max-width: 90vw;
-  animation: dialog-pop-in 0.28s cubic-bezier(.4,0,.2,1);
+  animation: dialog-pop-in 0.28s cubic-bezier(.4, 0, .2, 1);
+  transform: scale(0.95);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease-in-out;
+
+  &.show {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  &.hide {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-pop-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .dialog-header-bg,

@@ -338,6 +338,18 @@ var Util = {
         }, 200);
     },
 
+    closeAlertWithEffect: function () {
+        const dialogPanel = document.getElementById("alertDialogPanel");
+        if (dialogPanel) {
+            dialogPanel.classList.remove("show");
+            dialogPanel.classList.add("hide");
+            setTimeout(() => {
+                Util.clearAlert();
+            }, 250); // 等待动画完成
+        }
+        $(".dialog-background").fadeOut(200);
+    },
+
     clearAlert() {
         $("#alertDialogPanel,.dialog-background").remove();
     },
@@ -346,7 +358,7 @@ var Util = {
      * @param {String} content alert 内容
      * @param {String} title 标题
      */
-    alert: function (content, title="") {
+    alert: function (content, title = "") {
         function function_drag(ele) {
             function ondown(e) {
                 // 获取鼠标离元素(0,0)位置的距离
@@ -359,7 +371,7 @@ var Util = {
                     $("body").css("overflow", "hidden")
                     e = e.pageX ? e : e.targetTouches[0]
                     let x = e.pageX - distenceX;
-                    let y = e.pageY - distenceY-$(window).scrollTop();
+                    let y = e.pageY - distenceY - $(window).scrollTop();
                     if (x < 0) {
                         x = 0;
                     } else if (x > $(document).width() - $(ele).outerWidth(true)) {
@@ -390,9 +402,9 @@ var Util = {
         }
 
         var alertHTML = '',
-            alertBgHTML = '<div onclick="Util.closeAlert(this)" style="height: ' +
-                document.documentElement.scrollHeight
-                + 'px;display: block;" class="dialog-background"></div>',
+            alertBgHTML = '<div class="dialog-background" style="height: ' +
+                document.documentElement.scrollHeight +
+                'px;display: block;" onclick="Util.closeAlertWithEffect()"></div>',
             alertContentHTML = '<div class="dialog-panel" id="alertDialogPanel" tabindex="0">'
                 +
                 '<div class="fn-clear dialog-header-bg"><span style="font-size: 14px;">' + title + '</span><a class="icon-close" href="javascript:void(0);" onclick="Util.closeAlert()"><svg><use xlink:href="#close"></use></svg></a></div>'
@@ -404,11 +416,27 @@ var Util = {
 
         $('body').append(alertHTML)
 
-        $('#alertDialogPanel').css({
-            'top': ($(window).height() - $('#alertDialogPanel').height()) / 2 + 'px',
-            'left': ($(window).width() - $('#alertDialogPanel').width()) / 2 + 'px',
-            'outline': 'none',
-        }).fadeIn(200).focus()
+        $('#alertDialogPanel')
+            .addClass('show')
+            .css({
+                'top': ($(window).height() - $('#alertDialogPanel').height()) / 2 + 'px',
+                'left': ($(window).width() - $('#alertDialogPanel').width()) / 2 + 'px',
+                'outline': 'none',
+            })
+            .fadeIn(200)
+            .focus();
+
+        $('.dialog-background').fadeIn(200);
+
+        // 关闭时添加 hide 类
+        $('#alertDialogPanel .icon-close').on('click', function () {
+            $('#alertDialogPanel').removeClass('show').addClass('hide');
+            $('.dialog-background').fadeOut(200);
+            setTimeout(function () {
+                $('#alertDialogPanel').remove();
+            }, 250); // 等待动画完成
+        });
+
         function_drag('#alertDialogPanel');
     },
     /**
@@ -1255,8 +1283,8 @@ var Util = {
     goLogin: function () {
         // 因为openid登录也带login 所以改成path必须是/login
         let path = location.pathname
-        if(path === "/login" ){
-             return
+        if (path === "/login") {
+            return
         }
         // if (-1 !== location.href.indexOf('/login')) {
         //     return
@@ -1320,18 +1348,18 @@ var Util = {
             percent = 1;
         }
         let now = 0;
-        let topAnimation = setInterval(()=>{
+        let topAnimation = setInterval(() => {
             now++;
-            if(now >= percent){
+            if (now >= percent) {
                 now = percent;
                 clearInterval(topAnimation)
             }
             let top = (20 - (percent / 2)) + "px";
-            $("#activityProcessor .percent-wave-before").css("top",top);
-            $("#activityProcessor .percent-wave-after").css("top",top);
+            $("#activityProcessor .percent-wave-before").css("top", top);
+            $("#activityProcessor .percent-wave-after").css("top", top);
             $("#activityProcessor .percent").html(parseInt(now) + "%")
 
-        },10)
+        }, 10)
     },
     /**
      * 初始化清风明月
@@ -1613,7 +1641,7 @@ var Util = {
                 }
                 if (userURL !== "") {
                     html += '' +
-                        '<a target="_blank" href="' +  userURL + '" class="tooltipped-new tooltipped__n" rel="nofollow"\n' +
+                        '<a target="_blank" href="' + userURL + '" class="tooltipped-new tooltipped__n" rel="nofollow"\n' +
                         '   aria-label="' + userURL + '">\n' +
                         '    <svg>\n' +
                         '        <use xlink:href="#card-link"></use>\n' +
@@ -2436,5 +2464,4 @@ function Rotate(id) {
         return (d >= 0 && this.lastIndexOf(endStr) === d);
     }
 }
-
 
