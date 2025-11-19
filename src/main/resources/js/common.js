@@ -1510,6 +1510,7 @@ var Util = {
         var cardLock = false;
         var hoverTimeout = null;
         var currentTarget = null;
+        var isCardVisible = false; // 新增：追踪卡片是否可见
 
         $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at").unbind();
 
@@ -1704,6 +1705,10 @@ var Util = {
                         '        </div>\n' +
                         '    </div>\n' +
                         '</div>';
+
+                    // 更新内容前先移除所有动画类
+                    $("#userCard").removeClass("user-card-show user-card-hide");
+
                     $("#userCard").html(html);
                     if (cardBg !== "") {
                         $("#userCardContent").addClass("user-card--bg");
@@ -1725,9 +1730,18 @@ var Util = {
                     }
                     $("#userCard").css("top", top + "px");
 
-                    // 添加显示动画类
-                    $("#userCard").removeClass("user-card-hide").addClass("user-card-show");
-                    $("#userCard").show();
+                    // 如果已经显示，直接切换内容不重新触发入场动画
+                    if (isCardVisible && $("#userCard").is(":visible")) {
+                        $("#userCard").addClass("user-card-show");
+                    } else {
+                        // 首次显示或从隐藏状态显示时才触发入场动画
+                        $("#userCard").show();
+                        // 使用 requestAnimationFrame 确保动画正确触发
+                        requestAnimationFrame(function() {
+                            $("#userCard").addClass("user-card-show");
+                        });
+                        isCardVisible = true;
+                    }
                 }
             }, 200);
         }, function (event) {
@@ -1744,7 +1758,10 @@ var Util = {
                         // 添加隐藏动画
                         $("#userCard").removeClass("user-card-show").addClass("user-card-hide");
                         setTimeout(function() {
-                            $("#userCard").hide();
+                            if (!$("#userCard").hasClass("user-card-show")) {
+                                $("#userCard").hide();
+                                isCardVisible = false;
+                            }
                         }, 250);
                     }
                 }
@@ -1760,6 +1777,7 @@ var Util = {
             $("#userCard").removeClass("user-card-show").addClass("user-card-hide");
             setTimeout(function() {
                 $("#userCard").hide();
+                isCardVisible = false;
             }, 250);
         });
     },

@@ -1758,32 +1758,34 @@ a[class*=" icon-"]:hover {
   border-top: 1px solid transparent;
   opacity: 0;
   transform: scale(0.92) translateY(8px);
-  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-              transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  // 移除 transition，由动画类控制
 }
 
-// 显示动画
+// 显示动画 - 使用更平滑的曲线
 .user-card-show .user-card {
   opacity: 1;
   transform: scale(1) translateY(0);
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-// 隐藏动画
+// 隐藏动画 - 更快的退出
 .user-card-hide .user-card {
   opacity: 0;
   transform: scale(0.95) translateY(6px);
-  transition-duration: 0.2s;
+  transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-// 头像入场动画
+// 头像入场动画 - 优化时间函数
 .user-card__avatar {
-  animation: user-card-avatar-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  animation: user-card-avatar-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
 }
 
 @keyframes user-card-avatar-in {
   from {
     opacity: 0;
-    transform: scale(0.85);
+    transform: scale(0.88);
   }
   to {
     opacity: 1;
@@ -1793,39 +1795,39 @@ a[class*=" icon-"]:hover {
 
 // 名字区域入场动画
 .user-card__name-wrapper {
-  animation: user-card-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
 }
 
 // 介绍文字入场动画
 .user-card__intro {
-  animation: user-card-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
 }
 
 // 勋章入场动画
 .user-card__medals {
-  animation: user-card-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
 }
 
 // 图标列表入场动画
 .user-card__icon-list {
-  animation: user-card-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
 }
 
 // 状态标签入场动画
 .user-card__status {
-  animation: user-card-fade-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+  animation: user-card-fade-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 // 按钮组入场动画
 .user-card__actions {
-  animation: user-card-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
 }
 
 @keyframes user-card-slide-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -1844,77 +1846,77 @@ a[class*=" icon-"]:hover {
 
 // 勋章 hover 效果
 .user-card__medal {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-              filter 0.22s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.2s ease;
 }
 
 .user-card__medal:hover {
-  transform: scale(1.15) translateY(-2px);
-  filter: brightness(1.1);
+  transform: scale(1.12) translateY(-2px);
+  filter: brightness(1.08);
 }
 
 // 图标 hover 效果
 .user-card__icon {
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-              color 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.16s ease;
   display: inline-block;
 }
 
 .user-card__icon:hover {
-  transform: translateY(-2px) scale(1.08);
+  transform: translateY(-2px) scale(1.06);
 }
 
 .user-card__icon svg {
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .user-card__icon:hover svg {
-  transform: rotate(-5deg);
+  transform: rotate(-4deg);
 }
 
 // 按钮 hover 效果
 .user-card__btn {
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.2s ease,
-              background-color 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.18s ease,
+              background-color 0.16s ease;
 }
 
 .user-card__btn:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .user-card__btn:active {
   transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  transition-duration: 0.1s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition-duration: 0.08s;
 }
 
 // 状态标签 hover 效果
 .user-card__status--online:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(210, 63, 49, 0.3);
+  transform: scale(1.04);
+  box-shadow: 0 2px 6px rgba(210, 63, 49, 0.25);
 }
 
 .user-card__status--offline:hover {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 // 徽章 hover 效果
 .user-card__badge span {
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.18s ease;
   display: inline-block;
 }
 
 .user-card__badge:hover span {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(178, 177, 255, 0.35);
+  box-shadow: 0 2px 6px rgba(178, 177, 255, 0.3);
 }
 
 // 用户编号 hover 效果
 .user-card__no:hover {
-  transform: scale(1.05) !important;
+  transform: scale(1.04) !important;
   background-color: #e0e0e0 !important;
 }
 
@@ -1948,7 +1950,7 @@ a[class*=" icon-"]:hover {
   font-size: 18px;
   line-height: 22px;
   margin-left: 92px;
-  transition: color 0.2s ease;
+  transition: color 0.18s ease;
 }
 
 .user-card__name,.user-card__name:hover {
@@ -1988,11 +1990,11 @@ a[class*=" icon-"]:hover {
 .user-card__icons img {
   float: left;
   margin-top: 2px;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .user-card__icons img:hover {
-  transform: scale(1.1) rotate(-3deg);
+  transform: scale(1.08) rotate(-3deg);
 }
 
 .user-card__icon--disabled svg {
@@ -2025,6 +2027,9 @@ a[class*=" icon-"]:hover {
 #userCard{
   background-color: white;
   will-change: transform, opacity;
+  // 添加硬件加速
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* xiaoIce Game */
@@ -2668,7 +2673,7 @@ a[class*=" icon-"]:hover {
 }
 
 .nav .person-list.show {
-  opacity: 1;
+  opacity:  1;
   pointer-events: auto;
   transform: translateY(0) scale(1);
   animation: dropdown-fade-in 0.25s;
