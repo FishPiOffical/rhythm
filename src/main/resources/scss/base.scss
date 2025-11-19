@@ -1741,6 +1741,26 @@ a[class*=" icon-"]:hover {
   margin: 20px 0 0 0;
 }
 
+#userCard{
+  background-color: transparent; // 改为透明，避免显示白框
+  will-change: transform, opacity;
+  // 添加硬件加速
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  // 添加过渡效果
+  transition: opacity 0.2s ease;
+}
+
+// 显示状态时恢复背景
+#userCard.user-card-show {
+  opacity: 1;
+}
+
+// 隐藏状态时也隐藏容器
+#userCard.user-card-hide {
+  opacity: 0;
+}
+
 .user-card {
   -webkit-animation-duration: .15s;
   animation-duration: .15s;
@@ -1758,7 +1778,6 @@ a[class*=" icon-"]:hover {
   border-top: 1px solid transparent;
   opacity: 0;
   transform: scale(0.92) translateY(8px);
-  // 移除 transition，由动画类控制
 }
 
 // 显示动画 - 使用更平滑的曲线
@@ -2030,149 +2049,94 @@ a[class*=" icon-"]:hover {
   border-bottom:1px solid #eee;
 }
 
-#userCard{
-  background-color: white;
-  will-change: transform, opacity;
-  // 添加硬件加速
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* xiaoIce Game */
-.ice-game-btn{
+.music-list-box{
   position: fixed;
-  bottom: 40vh;
-  right: 0;
-  z-index: 1024;
-  width: 75px;
-  height: 150px;
-  cursor: pointer;
-  .ice-game-icon{
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
+  bottom: -400px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: .3s;
+  width: 80%;
+  height: 400px;
+  min-width: 720px;
+  max-width: 800px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: -1px -1px 4px 1px rgba(0,0,0,.3);
+  z-index: 9980;
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
+  box-sizing: border-box;
+  overflow-y: scroll;
+  &::-webkit-scrollbar{
+    width: 0;
   }
-}
-#xiaoIceGameBox{
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 1024;
-  width: 300px;
-  height: 30px;
-  transition: .4s;
-  background-color: #fff;
-  box-shadow: -2px -2px 5px rgba(0,0,0,.3);
-  &:not(.active){
-    .ice-minimize-btn{
-      display: none!important;
-    }
+  &.show{
+    bottom: 50px;
   }
-  &.active{
-    height: 360px;
-    .ice-restore-btn{
-      display: none!important;
-    }
-  }
-  .ice-tool-bar {
+  .music-list-item{
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    width: 100%;
-    height: 30px;
-    padding: 0 5px;
-    box-sizing: border-box;
-    background-color: #3b3e43;
-    color:#fff;
-    .ice-logo{
-      width: 25px;
-      height: 25px;
-      transform: rotateZ(-25deg);
+    border-bottom: 1px solid rgba(0,0,0,.3);
+    padding: 5px;
+    background: #fff;
+    transition: .3s;
+    &:hover{
+      background: rgba(0,0,0,.1);
     }
-    .ice-toolbar-btn{
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      svg{
-        display: flex;
-      }
+    img{
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
     }
-  }
-  .ice-chat-box{
-    position: relative;
-    .ice-chat-input{
-      width: 100%;
-      height: 30px;
-      padding: 5px 55px 5px 10px;
-      box-sizing: border-box;
-      border: 1px solid #eee;
-      font-size: 12px;
+    .music-list-title{
+      flex: 1;
     }
-    .ice-send-btn{
-      position: absolute;
-      right: 3px;
-      top: 3px;
-      width: 50px;
-      height: 24px;
-      line-height: 24px;
-      text-align: center;
-      cursor: pointer;
-      background-color: #60b044;
-      color: #fff;
-      border-radius: 2px;
-    }
-  }
-  #iceMsgList{
-    padding: 10px;
-    height: 300px;
-    box-sizing: border-box;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    &::-webkit-scrollbar{
-      display: none;
-    }
-    .ice-msg-item{
-      display: flex;
-      margin: 10px 0;
-      &.me {
-        flex-direction: row-reverse;
-        .ice-msg-content{
-          background-color: rgba(98,162,240,.1);
-          &:after{
-            right: -10px;
-            border-left-color: rgba(98,162,240,.1);
-            left: auto;
-            border-right-color: rgba(0,0,0,0);
-          }
-        }
-
-      }
-      .ice-msg-content{
-        position: relative;
-        background-color: var(--background-secondary-color);
-        border-radius: 5px;
-        padding: 8px 15px;
-        overflow: initial;
-        max-width: 75%;
-        font-size: 12px;
-        box-sizing: border-box;
-        &:after {
-          position: absolute;
-          width: 0;
-          height: 0;
-          content: "";
-          top: 5px;
-          left: -10px;
-          border: 5px solid rgba(0,0,0,0);
-          border-right: 5px solid var(--background-secondary-color);
+    .music-list-controller{
+      span{
+        cursor: pointer;
+        &:hover{
+          text-decoration: underline;
         }
       }
     }
   }
 }
 
-// 音乐播放器
+.music-player{
+  margin: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px #ccc;
+  background: #fff;
+  .music-player-img{
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+  }
+  .music-player-box{
+    .music-player-title{
+      width: 200px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .music-player-controller{
+      span{
+        cursor: pointer;
+        &:hover{
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+/* 音乐播放器 */
 #musicBox{
   position: fixed;
   bottom: -106px;
@@ -2276,93 +2240,6 @@ a[class*=" icon-"]:hover {
     bottom: -100px;
     left: 0;
     z-index: -1;
-  }
-}
-
-.music-list-box{
-  position: fixed;
-  bottom: -400px;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: .3s;
-  width: 80%;
-  height: 400px;
-  min-width: 720px;
-  max-width: 800px;
-  padding: 20px;
-  background: #fff;
-  box-shadow: -1px -1px 4px 1px rgba(0,0,0,.3);
-  z-index: 9980;
-  border-top-right-radius: 5px;
-  border-top-left-radius: 5px;
-  box-sizing: border-box;
-  overflow-y: scroll;
-  &::-webkit-scrollbar{
-    width: 0;
-  }
-  &.show{
-    bottom: 50px;
-  }
-  .music-list-item{
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid rgba(0,0,0,.3);
-    padding: 5px;
-    background: #fff;
-    transition: .3s;
-    &:hover{
-      background: rgba(0,0,0,.1);
-    }
-    img{
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-    }
-    .music-list-title{
-      flex: 1;
-    }
-    .music-list-controller{
-      span{
-        cursor: pointer;
-        &:hover{
-          text-decoration: underline;
-        }
-      }
-    }
-  }
-}
-
-.music-player{
-  margin: 10px;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  box-shadow: 0 0 10px #ccc;
-  background: #fff;
-  .music-player-img{
-    width: 50px;
-    height: 50px;
-    margin-right: 10px;
-  }
-  .music-player-box{
-    .music-player-title{
-      width: 200px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-weight: bold;
-      font-size: 18px;
-    }
-    .music-player-controller{
-      span{
-        cursor: pointer;
-        &:hover{
-          text-decoration: underline;
-        }
-      }
-    }
   }
 }
 
