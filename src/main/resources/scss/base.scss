@@ -1867,6 +1867,8 @@ a[class*=" icon-"]:hover {
 .user-card__medal {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
               filter 0.2s ease;
+  pointer-events: none;
+  cursor: default;
 }
 
 .user-card__medal:hover {
