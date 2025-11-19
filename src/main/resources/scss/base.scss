@@ -1776,7 +1776,7 @@ a[class*=" icon-"]:hover {
   font-size: 14px;
   border-radius: 3px;
   border-top: 1px solid transparent;
-  opacity: 0;
+  opacity: 1;
   transform: scale(0.92) translateY(8px);
 }
 
@@ -2708,3 +2708,4 @@ button.small,
    - 动画时间与尺度非常克制（scale ≤ 1.02，模糊/阴影很轻）
    - 所有改动均为视觉层面，不修改宽度/定位/盒模型，避免引发换行或头像跑位问题
 */
+

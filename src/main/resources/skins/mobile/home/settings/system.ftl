@@ -114,9 +114,19 @@
         maxSize: '${imgMaxSize?c}'
     }, function (data) {
         let imgUrl = data.result.key;
-        $("#userCardSettings").val(imgUrl);
-        $("#userCardSettings").attr("bgUrl", imgUrl);
-        Settings.update('system', '${csrfToken}');
+        let userCardInput = $("#userCardSettings");
+
+        // 确保图片加载完成后再设置背景
+        let img = new Image();
+        img.onload = function () {
+            userCardInput.val(imgUrl);
+            userCardInput.attr("bgUrl", imgUrl);
+            Settings.update('system', '${csrfToken}');
+        };
+        img.onerror = function () {
+            alert("图片加载失败，请检查图片格式或重新上传。");
+        };
+        img.src = imgUrl; // 触发图片加载
     });
 
     Settings.initUploadAvatar({

@@ -148,15 +148,27 @@
         maxSize: '${imgMaxSize?c}'
     }, function (data) {
         let imgUrl = data.result.key;
-        $("#cardBgUploadButtons").css("margin-top", "270px");
-        $("#userCardSettings").addClass("user-card--bg");
-        $("#userCardSettings").css("background-image", "url(" + imgUrl + ")");
-        $("#userCardSettings > div").attr("style", "background-image: linear-gradient(90deg, rgba(214, 227, 235, 0.36), rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76));");
-        $("#userCardSettings > div > a > div").css("width", "105px");
-        $("#userCardSettings > div > a > div").css("height", "105px");
-        $("#userCardSettings > div > a > div").css("top", "80px");
-        $("#userCardSettings").attr("bgUrl", imgUrl);
-        Settings.update('system', '${csrfToken}');
+        let userCard = $("#userCardSettings");
+
+        // 确保图片加载完成后再设置背景
+        let img = new Image();
+        img.onload = function () {
+            $("#cardBgUploadButtons").css("margin-top", "270px");
+            userCard.addClass("user-card--bg");
+            userCard.css("background-image", "url(" + imgUrl + ")");
+            userCard.find("> div").attr("style", "background-image: linear-gradient(90deg, rgba(214, 227, 235, 0.36), rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76));");
+            userCard.find("> div > a > div").css({
+                width: "105px",
+                height: "105px",
+                top: "80px"
+            });
+            userCard.attr("bgUrl", imgUrl);
+            Settings.update('system', '${csrfToken}');
+        };
+        img.onerror = function () {
+            alert("图片加载失败，请检查图片格式或重新上传。");
+        };
+        img.src = imgUrl; // 触发图片加载
     });
 
     Settings.initUploadAvatar({
