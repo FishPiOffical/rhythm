@@ -1,0 +1,1736 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * @fileoverview article page and add comment.
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.43.0.3, Apr 30, 2020
+ */
+
+/**
+ * @description Add comment function.
+ * @static
+ */
+var Comment = {
+  editor: undefined,
+  /**
+   * 举报
+   * @param it
+   */
+  report: function (it) {
+    var $btn = $(it)
+    $btn.attr('disabled', 'disabled').css('opacity', '0.3')
+    $.ajax({
+      url: Label.servePath + '/report',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify({
+        reportDataId: $('#reportDialog').data('id'),
+        reportDataType: $('#reportDialog').data('type'),
+        reportType: $('input[name=report]:checked').val(),
+        reportMemo: $('#reportTextarea').val(),
+      }),
+      complete: function (result) {
+        $btn.removeAttr('disabled').css('opacity', '1')
+        if (result.responseJSON.code === 0) {
+          Util.alert(Label.reportSuccLabel)
+          $('#reportTextarea').val('')
+          $('#reportDialog').dialog('close')
+        } else {
+          Util.alert(result.responseJSON.msg)
+        }
+      },
+    })
+  },
+
+
+  /**
+   * 回复面板显示／隐藏
+   * @param {function} cb 面板弹出后的回掉函数
+   */
+  _toggleReply: function (cb) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    if ($('#commentContent').length === 0) {
+      Util.alert(Label.notAllowCmtLabel)
+      return false
+    }
+    if ($(this).data('hasPermission') === 'false') {
+      Article.permissionTip(Label.noPermissionLabel)
+      return false
+    }
+
+    if ($('.footer').attr('style')) {
+      $('.editor-panel .wrapper').slideUp(function () {
+        $(".editor-panel").fadeOut(100)
+        $('.footer').removeAttr('style')
+      })
+      return false
+    }
+
+    $('.cmt-anonymous').show()
+
+    $('.footer').
+      css('margin-bottom', $('.editor-panel > .wrapper').outerHeight() + 'px')
+    $('#replyUseName').
+      html('<a href="javascript:void(0)" onclick="Comment._bgFade($(\'.article-content\'))" class="ft-a-title"><svg><use xlink:href="#reply-to"></use></svg>'
+        +
+        $('.article-title').text().replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+        '</a>').
+      removeData()
+
+    // 如果 hide 初始化， focus 无效
+    if ($('.editor-panel').css('bottom') !== '0px') {
+      $('.editor-panel .wrapper').hide()
+      $('.editor-panel').css('bottom', 0)
+    }
+
+    $('.editor-panel').show()
+    $('.editor-panel .wrapper').slideDown(function () {
+      Comment.editor.focus()
+      cb ? cb() : ''
+    })
+  },
+  /**
+   * 加载表情
+   */
+  loadEmojis: function () {
+    let emojis = Comment.getEmojis(),html="";
+    for (let i = 0; i < emojis.length; i++) {
+      html+=`<button onclick="Comment.editor.setValue(Comment.editor.getValue() + '![图片表情](${emojis[i]})')">
+    <div class="divX"><svg onclick='Comment.delEmoji("${emojis[i]}");event.cancelBubble =true;' style="width: 15px; height: 15px;"><use xlink:href="#delIcon"></use></svg></div>
+    <img style='max-height: 50px' class="vditor-emojis__icon" src="${emojis[i]}">
+</button>`;
+    }
+    $("#emojis").html(html);
+  },
+  /**
+   * 删除表情包
+   * @param url
+   */
+  confirmed: false,
+  delEmoji: function (url) {
+    if (Comment.confirmed === true || confirm("确定要删除该表情包吗？")) {
+      Comment.confirmed = true;
+      let emojis = Comment.getEmojis();
+      for (let i = 0; i < emojis.length; i++) {
+        if (emojis[i] === url) {
+          emojis.splice(i, 1);
+        }
+      }
+      emojis.reverse();
+      $.ajax({
+        url: Label.servePath + "/api/cloud/sync",
+        method: "POST",
+        data: JSON.stringify({
+          gameId: "emojis",
+          data: emojis
+        }),
+        headers: {'csrfToken': Label.csrfToken},
+        async: false,
+        success: function (result) {
+          if (result.code === 0) {
+            Util.notice("success", 1500, "表情包删除成功。");
+            Comment.loadEmojis();
+            setTimeout(function () {
+              $("#emojiBtn").click();
+            }, 50)
+          } else {
+            Util.notice("warning", 1500, "表情包删除失败：" + result.msg);
+          }
+        }
+      });
+    }
+  },
+  /**
+   * 上传表情
+   */
+  listenUploadEmojis: function () {
+    $('#uploadEmoji').fileupload({
+      acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i,
+      maxFileSize: 5242880,
+      multipart: true,
+      pasteZone: null,
+      dropZone: null,
+      url: Label.servePath + '/upload',
+      paramName: 'file[]',
+      add: function (e, data) {
+        ext = data.files[0].type.split('/')[1]
+
+        if (window.File && window.FileReader && window.FileList &&
+            window.Blob) {
+          var reader = new FileReader()
+          reader.readAsArrayBuffer(data.files[0])
+          reader.onload = function (evt) {
+            var fileBuf = new Uint8Array(evt.target.result.slice(0, 11))
+            var isImg = isImage(fileBuf)
+
+            if (!isImg) {
+              Util.alert('只允许上传图片!')
+
+              return
+            }
+
+            if (evt.target.result.byteLength > 1024 * 1024 * 5) {
+              Util.alert('图片过大 (最大限制 5M)')
+
+              return
+            }
+
+            data.submit()
+          }
+        } else {
+          data.submit()
+        }
+      },
+      formData: function (form) {
+        var data = form.serializeArray()
+        return data
+      },
+      submit: function (e, data) {
+      },
+      done: function (e, data) {
+        var result = {
+          result: {
+            key: data.result.data.succMap[Object.keys(data.result.data.succMap)[0]]
+          }
+        }
+        Comment.addEmoji(result.result.key);
+      },
+      fail: function (e, data) {
+        Util.alert('Upload error: ' + data.errorThrown)
+      },
+    })
+  },
+  // 从URL导入表情包
+  fromURL: function () {
+    Util.alert("" +
+        "<div class=\"form fn__flex-column\">\n" +
+        "<label>\n" +
+        "  <div class=\"ft__smaller ft__fade\" style=\"float: left\">请输入图片的URL</div>\n" +
+        "  <div class=\"fn-hr5 fn__5\"></div>\n" +
+        "  <input type=\"text\" id=\"fromURL\">\n" +
+        "</label>\n" +
+        "<div class=\"fn-hr5\"></div>\n" +
+        "<div class=\"fn__flex\" style=\"margin-top: 15px; justify-content: flex-end;\">\n" +
+        "  <button class=\"btn btn--confirm\" onclick='Comment.addEmoji($(\"#fromURL\").val());Util.closeAlert();'>导入</button>\n" +
+        "</div>\n" +
+        "</div>" +
+        "", "从URL导入表情包");
+    $("#fromURL").focus();
+    $("#fromURL").unbind();
+    $("#fromURL").bind('keypress',function(event){
+      if (event.keyCode == "13") {
+        Comment.addEmoji($("#fromURL").val());
+        Util.closeAlert();
+      }
+    });
+  },
+  addEmoji: function () {
+    for (let i = 0; i < arguments.length; i++) {
+      let url = arguments[i];
+      let emojis = Comment.getEmojis();
+      emojis.reverse();
+      for (let i = 0; i < emojis.length; i++) {
+        if (emojis[i] === url) {
+          emojis.splice(i, 1);
+        }
+      }
+      emojis.push(url);
+      $.ajax({
+        url: Label.servePath + "/api/cloud/sync",
+        method: "POST",
+        data: JSON.stringify({
+          gameId: "emojis",
+          data: emojis
+        }),
+        headers: {'csrfToken': Label.csrfToken},
+        async: false,
+        success: function (result) {
+          if (result.code !== 0) {
+            Util.notice("warning", 1500, "表情包上传失败：" + result.msg);
+          }
+        }
+      });
+    }
+    Util.notice("success", 1500, "表情包上传成功。");
+    $("details[open]").removeAttr("open");
+    Comment.loadEmojis();
+  },
+  /**
+   * 获取表情包
+   */
+  getEmojis: function () {
+    let ret;
+    $.ajax({
+      url: Label.servePath + "/api/cloud/get",
+      method: "POST",
+      data: JSON.stringify({
+        gameId: "emojis",
+      }),
+      headers: {'csrfToken': Label.csrfToken},
+      async: false,
+      success: function (result) {
+        if (result.code === 0 && result.data !== "") {
+          ret = Util.parseArray(result.data);
+        } else {
+          ret = [];
+        }
+      },
+    });
+    try {
+      ret.reverse();
+    } catch (e) {
+      return [];
+    }
+    return ret;
+  },
+  /**
+   * 初始化帖子
+   * @returns {undefined}
+   */
+  _initHotKey: function () {
+    if (!Label.userKeyboardShortcutsStatus ||
+      Label.userKeyboardShortcutsStatus === '1') {
+      return false
+    }
+
+    $(document).bind('keyup', 'x', function assets () {
+      // listen jump hotkey h
+      Util.prevKey = 'x'
+      setTimeout(function () {
+        Util.prevKey = undefined
+      }, 1000)
+      return false
+    }).bind('keyup', 'v', function assets () {
+      // listen jump hotkey h
+      Util.prevKey = 'v'
+      setTimeout(function () {
+        Util.prevKey = undefined
+      }, 1000)
+      return false
+    }).bind('keydown', 'r', function assets (event) {
+      if (!Util.prevKey) {
+        // r 回复帖子
+        Comment._toggleReply()
+      } else if (Util.prevKey === 'v') {
+        // v r 打赏帖子
+        $('#articleRewardContent .icon-points').click()
+      } else if ($('#comments .list > ul > li.focus').length === 1 &&
+        Util.prevKey === 'x') {
+        // x r 回复回帖
+        $('#comments .list > ul > li.focus .icon-reply').parent().click()
+      }
+      return false
+    }).bind('keyup', 'h', function assets () {
+      // x h 感谢选中回贴
+      if ($('#comments .list > ul > li.focus').length === 1 && Util.prevKey ===
+        'x') {
+        $('#comments .list > ul > li.focus .icon-heart').parent().click()
+      }
+      return false
+    }).bind('keyup', 't', function assets () {
+      // x t 赞同选中回贴
+      if ($('#comments .list > ul > li.focus').length === 1 && Util.prevKey ===
+        'x') {
+        $('#comments .list > ul > li.focus .icon-thumbs-up').parent().click()
+      }
+      return false
+    }).bind('keyup', 'd', function assets () {
+      // x d 反对选中回贴
+      if ($('#comments .list > ul > li.focus').length === 1 && Util.prevKey ===
+        'x') {
+        $('#comments .list > ul > li.focus .icon-thumbs-down').parent().click()
+      }
+      return false
+    }).bind('keyup', 'c', function assets () {
+      // x c 查看选中回复的回贴
+      if ($(
+        '#comments .list > ul > li.focus .comment-info .icon-reply-to').length ===
+        1 && Util.prevKey === 'x') {
+        $('#comments .list > ul > li.focus .comment-info .icon-reply-to').
+          parent().
+          click()
+      }
+      return false
+    }).bind('keyup', 'm', function assets () {
+      // x m 查看选中回贴的回复
+      if ($(
+        '#comments .list > ul > li.focus .comment-action > .ft-fade > .fn-pointer').length ===
+        1 && Util.prevKey === 'x') {
+        $('#comments .list > ul > li.focus .comment-action > .ft-fade > .fn-pointer').
+          click()
+      }
+      return false
+    }).bind('keyup', 'a', function assets () {
+      // x a 管理员编辑选中的回贴
+      if (Util.prevKey === 'x' &&
+        $('#comments .list > ul > li.focus .icon-setting').parent().length ===
+        1) {
+        window.location = $('#comments .list > ul > li.focus .icon-setting').
+          parent().
+          attr('href')
+      }
+      return false
+    }).bind('keyup', 'm', function assets () {
+      // v m 帖子目录
+      if (Util.prevKey === 'v') {
+        Article.toggleToc()
+      }
+      return false
+    }).bind('keyup', 'h', function assets () {
+      // v h 感谢帖子
+      if (Util.prevKey === 'v') {
+        $('#thankArticle').click()
+      }
+      return false
+    }).bind('keyup', 't', function assets () {
+      // v t 赞同帖子
+      if (Util.prevKey === 'v') {
+        $('.article-header .icon-thumbs-up').parent().click()
+      }
+      return false
+    }).bind('keyup', 'd', function assets () {
+      // v d 反对帖子
+      if (Util.prevKey === 'v') {
+        $('.article-header .icon-thumbs-down').parent().click()
+      }
+      return false
+    }).bind('keyup', 'i', function assets () {
+      // v i 关注帖子
+      if (Util.prevKey === 'v') {
+        $('.article-header .icon-view').parent().click()
+      }
+      return false
+    }).bind('keyup', 'c', function assets () {
+      // v c 收藏帖子
+      if (Util.prevKey === 'v') {
+        $('.article-header .icon-star').parent().click()
+      }
+      return false
+    }).bind('keyup', 'l', function assets () {
+      // v l 查看帖子历史
+      if (Util.prevKey === 'v') {
+        $('.article-header .icon-history').parent().click()
+      }
+      return false
+    }).bind('keyup', 'e', function assets () {
+      // v e 编辑帖子
+      if (Util.prevKey === 'v' &&
+        $('.article-actions .icon-edit').parent().length === 1) {
+        window.location = $('.article-actions .icon-edit').
+          parent().
+          attr('href')
+      }
+      return false
+    }).bind('keyup', 's', function assets () {
+      // v s 置顶帖子
+      if (Util.prevKey === 'v' &&
+        $('.article-actions .icon-chevron-up').length === 1) {
+        Article.stick(Label.articleOId)
+      }
+      return false
+    }).bind('keyup', 'a', function assets () {
+      // v a 管理员编辑帖子
+      if (Util.prevKey === 'v' &&
+        $('.article-actions .icon-setting').parent().length === 1) {
+        window.location = $('.article-actions .icon-setting').
+          parent().
+          attr('href')
+      }
+      return false
+    }).bind('keyup', 'p', function assets () {
+      // v p 跳转到上一篇帖子 prev
+      if (Util.prevKey === 'v' && $('.article-header a[rel=prev]').length ===
+        1) {
+        window.location = $('.article-header a[rel=prev]').attr('href')
+      }
+      return false
+    }).bind('keyup', 'n', function assets () {
+      // v n 跳转到下一篇帖子 next
+      if (Util.prevKey === 'v' && $('.article-header a[rel=next]').length ===
+        1) {
+        window.location = $('.article-header a[rel=next]').attr('href')
+      }
+      return false
+    })
+  },
+  /**
+   * 评论初始化
+   * @returns {Boolean}
+   */
+  init: function () {
+    $("#sendComment").click(function () {
+      Comment._toggleReply()
+    })
+
+    if ($(window.location.hash).length === 1) {
+      // if (!isNaN(parseInt(window.location.hash.substr(1)))) {
+      Comment._bgFade($(window.location.hash))
+      //}
+    }
+
+    this._setCmtVia()
+    this._initHotKey()
+
+    $.pjax({
+      selector: '#comments .pagination a',
+      container: '#comments',
+      show: '',
+      cache: false,
+      storage: true,
+      titleSuffix: '',
+      callback: function () {
+        Util.parseMarkdown()
+        Util.parseHljs()
+        Util.listenUserCard()
+      },
+    })
+    NProgress.configure({showSpinner: false})
+    $('#comments').bind('pjax.start', function () {
+      NProgress.start()
+    })
+    $('#comments').bind('pjax.end', function () {
+      NProgress.done()
+    })
+
+    if (!Label.isLoggedIn || !document.getElementById('commentContent')) {
+      return false
+    }
+    Comment.editor = Util.newVditor({
+      id: 'commentContent',
+      cache: true,
+      preview: {
+        mode: 'editor',
+      },
+      resize: {
+        enable: true,
+        position: 'top',
+      },
+      height: 200,
+      placeholder: Label.commentEditorPlaceholderLabel,
+      ctrlEnter: function () {
+        Comment.add(Label.articleOId, Label.csrfToken,
+          document.getElementById('articleCommentBtn'))
+      },
+      esc: function () {
+        $('.editor-hide').click()
+      },
+    })
+  },
+  /**
+   * @description 感谢评论.
+   * @param {String} id 评论 id
+   * @param {String} csrfToken CSRF 令牌
+   * @param {String} tip 确认提示
+   * @param {Integer} 0：公开评论，1：匿名评论
+   */
+  thank: function (id, csrfToken, tip, commentAnonymous, it) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+
+    // 匿名回帖不需要进行 confirm
+    if (0 === commentAnonymous && !confirm(tip)) {
+      return false
+    }
+
+    var requestJSONObject = {
+      commentId: id,
+    }
+
+    $.ajax({
+      url: Label.servePath + '/comment/thank',
+      type: 'POST',
+      headers: {'csrfToken': csrfToken},
+      cache: false,
+      data: JSON.stringify(requestJSONObject),
+      error: function (jqXHR, textStatus, errorThrown) {
+        Util.alert(errorThrown)
+      },
+      success: function (result, textStatus) {
+        if (0 === result.code) {
+          $(it).removeAttr('onclick')
+          var $heart = $(
+            '<svg class="ft-red"><use xlink:href="#heart"></use></svg>'),
+            y = $(it).offset().top,
+            x = $(it).offset().left
+          $heart.css({
+            'z-index': 9999,
+            'top': y,
+            'left': x,
+            'position': 'absolute',
+            'font-size': 16,
+            '-moz-user-select': 'none',
+            '-webkit-user-select': 'none',
+            '-ms-user-select': 'none',
+          })
+          $('body').append($heart)
+
+          $heart.animate({'left': x - 150, 'top': y - 60, 'opacity': 0},
+            1000,
+            function () {
+              var cnt = parseInt($(it).text())
+
+              $(it).
+                html('<svg><use xlink:href="#heart"></use></svg> ' + (cnt + 1)).
+                addClass('ft-red')
+
+              $heart.remove()
+            }
+          )
+
+        } else {
+          Util.alert(result.msg)
+        }
+      },
+    })
+  },
+  /**
+   * @description 展现回帖回复列表
+   * @param {type} id 回帖 id
+   * @returns {Boolean}
+   */
+  showReply: function (id, it, className) {
+    var $commentReplies = $(it).closest('li').find('.' + className)
+
+    if ('comment-get-comment' === className) {
+      if ($commentReplies.find('li').length !== 0) {
+        $commentReplies.html('')
+        return false
+      }
+    } else {
+      if ($(it).find('.icon-chevron-down').length === 0) {
+        // 收起回复
+        $(it).
+          find('.icon-chevron-up').
+          removeClass('icon-chevron-up').
+          addClass('icon-chevron-down').
+          find('use').
+          attr('xlink:href', '#chevron-down')
+
+        $commentReplies.html('')
+        return false
+      }
+    }
+
+    if ($(it).css('opacity') === '0.3') {
+      return false
+    }
+
+    var url = '/comment/replies'
+    if ('comment-get-comment' === className) {
+      url = '/comment/original'
+    }
+
+    $.ajax({
+      url: Label.servePath + url,
+      type: 'POST',
+      data: JSON.stringify({
+        commentId: id,
+        userCommentViewMode: Label.userCommentViewMode,
+      }),
+      beforeSend: function () {
+        $(it).css('opacity', '0.3')
+      },
+      success: function (result, textStatus) {
+        if (0 !== result.code) {
+          Util.alert(result.msg)
+          return false
+        }
+
+        var comments = result.commentReplies,
+          template = ''
+        if (!(comments instanceof Array)) {
+          comments = [comments]
+        }
+
+        if (comments.length === 0) {
+          template = '<li class="ft-red">' + Label.removedLabel + '</li>'
+        }
+
+        for (var i = 0; i < comments.length; i++) {
+          var data = comments[i]
+
+          template += '<li><div class="fn-flex">'
+          template += '<a rel="nofollow" href="/member/' + data.commentAuthorName + '">'
+          template += '<div class="avatar tooltipped tooltipped-se" aria-label="' +
+            data.commentAuthorName + '" style="background-image:url('
+            + data.commentAuthorThumbnailURL + ')"></div>'
+          template += '</a>'
+
+          template += '<div class="fn-flex-1"><div class="comment-info ft-smaller">'
+          template += '<a class="ft-gray" rel="nofollow" href="/member/' + data.commentAuthorName + '">'
+          template += data.commentAuthorNickName + ' (' + data.commentAuthorName + ')'
+          template += '</a>'
+
+          template += '<span class="ft-fade"> • ' + data.timeAgo
+          if (data.rewardedCnt > 0) {
+            template += '<span aria-label="'
+              + (data.rewarded ? Label.thankedLabel : Label.thankLabel + ' ' +
+                data.rewardedCnt)
+              + '" class="tooltipped tooltipped-n '
+              + (data.rewarded ? 'ft-red' : 'ft-fade') + '">'
+              +
+              ' <svg class="fn-text-top"><use xlink:href="#heart"></use></svg> ' +
+              data.rewardedCnt + '</span> '
+          }
+
+          template += ' ' + Util.getDeviceByUa(data.commentUA) + '</span>'
+
+          template += '<a class="tooltipped tooltipped-nw ft-a-title fn-right" aria-label="' +
+            Label.referenceLabel + '" href="javascript:Comment.goComment(\''
+            + Label.servePath + '/article/' + Label.articleOId + '?p=' +
+            data.paginationCurrentPageNum
+            + '&m=' + Label.userCommentViewMode + '#' + data.oId
+            +
+            '\')"><svg><use xlink:href="#quote"></use></svg></a></div><div class="vditor-reset comment">'
+            + data.commentContent + '</div></div></div></li>'
+        }
+        $commentReplies.html('<ul>' + template + '</ul>')
+        Util.parseHljs()
+        Util.parseMarkdown()
+
+        // 如果是回帖的回复需要处理下样式
+        $(it).
+          find('.icon-chevron-down').
+          removeClass('icon-chevron-down').
+          addClass('icon-chevron-up').
+          find('use').
+          attr('xlink:href', '#chevron-up')
+      },
+      error: function (result) {
+        Util.alert(result.statusText)
+      },
+      complete: function () {
+        $(it).css('opacity', '1')
+      },
+    })
+  },
+  /**
+   * @description 添加评论
+   * @param {String} id 文章 id
+   * @param {String} csrfToken CSRF 令牌
+   * @param {BOM} it targetElement
+   */
+  add: function (id, csrfToken, it) {
+    var requestJSONObject = {
+      articleId: id,
+      commentAnonymous: $('#commentAnonymous').prop('checked'),
+      commentVisible: $('#commentVisible').prop('checked'),
+      commentContent: Comment.editor.getValue(), // 实际提交时不去除空格，因为直接贴代码时需要空格
+      userCommentViewMode: Label.userCommentViewMode,
+    }
+
+    if ($('#replyUseName').data('commentOriginalCommentId')) {
+      requestJSONObject.commentOriginalCommentId = $('#replyUseName').
+        data('commentOriginalCommentId')
+    }
+
+    var url = Label.servePath + '/comment',
+      type = 'POST',
+      commentId = $('#replyUseName').data('commentId')
+    if (commentId) {
+      url = Label.servePath + '/comment/' + commentId
+      type = 'PUT'
+    }
+
+    $.ajax({
+      url: url,
+      type: type,
+      headers: {'csrfToken': csrfToken},
+      cache: false,
+      data: JSON.stringify(requestJSONObject),
+      beforeSend: function () {
+        $(it).attr('disabled', 'disabled').css('opacity', '0.3')
+      },
+      success: function (result, textStatus) {
+        $(it).removeAttr('disabled').css('opacity', '1')
+
+        if (0 === result.code) {
+          // edit cmt
+          if (commentId) {
+            $('#' + commentId + ' > .fn-flex > .fn-flex-1 > .vditor-reset').
+              html(result.commentContent)
+            $('#' + commentId + ' .icon-history').parent().show()
+          }
+
+          if (requestJSONObject.commentOriginalCommentId) {
+            Util.setUnreadNotificationCount()
+          }
+
+          // reset comment editor
+          Comment.editor.setValue('')
+
+          // hide comment panel
+          $('.editor-hide').click()
+
+          // clear reply comment
+          $('#replyUseName').text('').removeData()
+
+          // 定为到回贴位置
+          if (Label.userCommentViewMode === 1) {
+            // 实时模式
+            Comment._bgFade($('#comments'))
+          } else {
+            Comment._bgFade($('#bottomComment'))
+          }
+        } else {
+          $('#addCommentTip').
+            addClass('error').
+            html('<ul><li>' + result.msg + '</li></ul>')
+        }
+      },
+      error: function (result) {
+        $('#addCommentTip').
+          addClass('error').
+          html('<ul><li>' + result.statusText + '</li></ul>')
+      },
+      complete: function () {
+        $(it).removeAttr('disabled').css('opacity', '1')
+        setTimeout(Util.listenUserCard, 1000);
+      },
+    });
+  },
+  /**
+   * @description 点击回复评论时，把当楼层的用户名带到评论框中
+   * @param {String} userName 用户名称
+   */
+  reply: function (userName, id) {
+    Comment._toggleReply(function () {
+      // 回帖在底部，当评论框弹出时会被遮住的解决方案
+      if ($(window).height() -
+        ($('#' + id)[0].offsetTop - $(window).scrollTop() +
+          $('#' + id).outerHeight()) <
+        $('.editor-panel .wrapper').outerHeight()) {
+        $(window).scrollTop($('#' + id)[0].offsetTop -
+          ($(window).height() - $('.editor-panel .wrapper').outerHeight() -
+            $('#' + id).outerHeight()))
+      }
+    })
+
+    // 帖子作者 clone 到编辑器左上角
+    var replyUserHTML = '',
+      $avatar = $('#' + id).find('>.fn-flex>div>a').clone()
+    if ($avatar.length === 0) {
+      $avatar = $('#' + id).find('>.fn-flex .avatar').clone()
+      $avatar.removeClass('avatar').addClass('avatar-small')
+      replyUserHTML = '<a rel="nofollow" href="#' + id
+        + '" class="ft-a-title" onclick="Comment._bgFade($(\'#' + id
+        + '\'))"><svg><use xlink:href="#reply-to"></use></svg> '
+        + $avatar[0].outerHTML + ' ' + userName + '</a>'
+    } else {
+      $avatar.addClass('ft-a-title').
+        attr('href', '#' + id).
+        attr('onclick', 'Comment._bgFade($("#' + id + '"))')
+      $avatar.find('div').
+        removeClass('avatar').
+        addClass('avatar-small').
+        after(' ' + userName).
+        before('<svg><use xlink:href="#reply-to"></use></svg> ')
+      replyUserHTML = $avatar[0].outerHTML
+    }
+
+    $('#replyUseName').html(replyUserHTML).data('commentOriginalCommentId', id)
+  },
+}
+
+var Article = {
+  initAudio: function () {
+    $('.content-audio').each(function () {
+      var $it = $(this)
+      new APlayer({
+        element: this,
+        narrow: false,
+        autoplay: false,
+        mutex: true,
+        theme: '#4285f4',
+        preload: 'none',
+        mode: 'circulation',
+        music: {
+          title: $it.data('title'),
+          author: '<a href="' + Label.servePath + '/about" target="_blank">音乐分享</a>',
+          url: $it.data('url'),
+          pic: Label.staticServePath + '/images/music.png',
+        },
+      })
+    })
+
+    var $articleAudio = $('#articleAudio')
+    if ($articleAudio.length === 0) {
+      return false
+    }
+
+    new APlayer({
+      element: document.getElementById('articleAudio'),
+      narrow: false,
+      autoplay: false,
+      mutex: true,
+      theme: '#4285f4',
+      mode: 'order',
+      preload: 'none',
+      music: {
+        title: '语音预览',
+        author: '<a href="' + Label.servePath + '/about" target="_blank">小薇</a>',
+        url: $articleAudio.data('url'),
+        pic: Label.staticServePath + '/images/blank.png',
+      },
+    })
+  },
+  /**
+   * @description 没有权限的提示
+   * @param {String} tip 提示内容
+   */
+  permissionTip: function (tip) {
+    if (Label.isLoggedIn) {
+      Util.alert(tip)
+    } else {
+      Util.needLogin()
+    }
+  },
+  /**
+   * @description 赞同
+   * @param {String} id 赞同的实体数据 id
+   * @param {String} type 赞同的实体类型
+   */
+  voteUp: function (id, type, it) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+
+    var $voteUp = $(it)
+    var $voteDown = $voteUp.next()
+
+    if ($voteUp.hasClass('disabled')) {
+      return false
+    }
+
+    var requestJSONObject = {
+      dataId: id,
+    }
+
+    $voteUp.addClass('disabled')
+
+    $.ajax({
+      url: Label.servePath + '/vote/up/' + type,
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify(requestJSONObject),
+      success: function (result, textStatus) {
+        $voteUp.removeClass('disabled')
+        var upCnt = parseInt($voteUp.text()),
+          downCnt = parseInt($voteDown.text())
+        if (0 === result.code) {
+          if (0 === result.type) { // cancel up
+            $voteUp.html('<svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ' +
+              (upCnt - 1)).removeClass('ft-red')
+          } else {
+            $voteUp.html('<svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ' +
+              (upCnt + 1)).addClass('ft-red')
+            if ($voteDown.hasClass('ft-red')) {
+              $voteDown.html('<svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ' +
+                (downCnt - 1)).removeClass('ft-red')
+            }
+          }
+
+          return
+        }
+
+        Util.alert(result.msg)
+      },
+    })
+  },
+  /**
+   * @description 反对
+   * @param {String} id 反对的实体数据 id
+   * @param {String} type 反对的实体类型
+   */
+  voteDown: function (id, type, it) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    var $voteDown = $(it)
+    var $voteUp = $voteDown.prev()
+
+    if ($voteDown.hasClass('disabled')) {
+      return false
+    }
+
+    var requestJSONObject = {
+      dataId: id,
+    }
+
+    $voteDown.addClass('disabled')
+
+    $.ajax({
+      url: Label.servePath + '/vote/down/' + type,
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify(requestJSONObject),
+      success: function (result, textStatus) {
+        $voteDown.removeClass('disabled')
+        var upCnt = parseInt($voteUp.text()),
+          downCnt = parseInt($voteDown.text())
+        if (0 === result.code) {
+          if (1 === result.type) { // cancel down
+            $voteDown.html('<svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ' +
+              (downCnt - 1)).removeClass('ft-red')
+          } else {
+            $voteDown.html('<svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ' +
+              (downCnt + 1)).addClass('ft-red')
+            if ($voteUp.hasClass('ft-red')) {
+              $voteUp.html('<svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ' +
+                (upCnt - 1)).removeClass('ft-red')
+            }
+          }
+
+          return false
+        }
+
+        Util.alert(result.msg)
+      },
+    })
+  },
+  /**
+   * @description 大图预览等待获取大小后重制 translate
+   */
+  previewImgAfterLoading: function () {
+    $('.img-preview img').css('transform', 'translate3d(' +
+      (Math.max(0, $(window).width() - $('.img-preview img').width()) / 2) +
+      'px, ' +
+      (Math.max(0, $(window).height() - $('.img-preview img').height()) / 2) +
+      'px, 0)')
+
+    // fixed chrome render transform bug
+    setTimeout(function () {
+      $('.img-preview').width($(window).width())
+    }, 300)
+  },
+  /**
+   * @description 初始化文章
+   */
+  init: function () {
+    this.initToc()
+    this.share()
+    Util.parseHljs()
+    Util.parseMarkdown()
+
+    // img preview
+    var fixDblclick = null
+    $('.article').on('dblclick', '.vditor-reset img', function () {
+      clearTimeout(fixDblclick)
+      if ($(this).hasClass('emoji') ||
+        $(this).closest('.editor-panel').length === 1 ||
+        $(this).closest('.ad').length === 1) {
+        return
+      }
+      window.open($(this).attr('src'))
+    }).on('click', '.vditor-reset img', function (event) {
+      clearTimeout(fixDblclick)
+      if ($(this).hasClass('emoji') ||
+        $(this).closest('.editor-panel').length === 1 ||
+        $(this).closest('.ad').length === 1) {
+        return
+      }
+      var $it = $(this),
+        it = this
+      fixDblclick = setTimeout(function () {
+        var top = it.offsetTop,
+          left = it.offsetLeft
+        if ($it.closest('.comments').length === 1) {
+          top = top + $it.closest('li')[0].offsetTop
+          left = left + $('.comments')[0].offsetLeft + 15
+        }
+
+        $('body').
+          append('<div class="img-preview" onclick="$(this).remove()"><img style="transform: translate3d(' +
+            Math.max(0, left) + 'px, ' +
+            Math.max(0, (top - $(window).scrollTop())) + 'px, 0)" src="' +
+            ($it.attr('src').split('?imageView2')[0]) +
+            '" onload="Article.previewImgAfterLoading()"></div>')
+
+        $('.img-preview').css({
+          'background-color': '#fff',
+          'position': 'fixed',
+        })
+      }, 100)
+    })
+
+    // UA
+    var ua = $('#articltVia').data('ua'),
+      name = Util.getDeviceByUa(ua)
+    if (name !== '') {
+      $('#articltVia').text('via ' + name)
+    }
+
+    // his
+    $('#revision').dialog({
+      'width': Math.min($(window).width() - 50, 1000, $(window).width() * 0.8),
+      // 'width': $(window).width() > 500 ? 500 : $(window).width() - 50,
+      'height': $(window).height() - 50,
+      'modal': true,
+      'hideFooter': true,
+    })
+
+    // report
+    $('#reportDialog').dialog({
+      'width': $(window).width() > 500 ? 500 : $(window).width() - 50,
+      'height': 450,
+      'modal': true,
+      'hideFooter': true,
+    })
+
+    this.initAudio()
+
+    // scroll
+    $(window).scroll(function () {
+      var currentScrollTop = $(window).scrollTop()
+
+      // share
+
+      $('.share').css('top',currentScrollTop + 60 + 'px');
+      if (currentScrollTop < $('.article-title').offset().top) {
+        $('.article-header').css('top', '-60px');
+        $('.nav').show();
+
+      } else {
+        $('.article-header').css('top', '0');
+        $('.nav').hide();
+      }
+    })
+
+//        $(window).on('mousewheel DOMMouseScroll', function(e){
+//            var currentScrollTop = $(window).scrollTop();
+//            if (currentScrollTop < 150) {
+//                $('.article-header').css('top', '-48px');
+//                return;
+//            }
+//
+//            var eo = e.originalEvent;
+//            var xy = eo.wheelDelta || -eo.detail; //shortest possible code
+//            var y = eo.wheelDeltaY || (eo.axis === 2 ? xy : 0); // () necessary!
+//
+//            if (y < 0 && currentScrollTop >= 150) {
+//                $('.article-header').css('top', 0);
+//            } else if (y > 0) {
+//                $('.article-header').css('top', '-48px');
+//            }
+//
+//        });
+
+    // nav
+//        window.addEventListener('mousewheel', function(event) {
+//            var currentScrollTop = $(window).scrollTop();
+//            if (currentScrollTop < 150) {
+//                $('.article-header').css('top', '-48px');
+//                return false;
+//            }
+//
+//            if (event.deltaY > 0 && currentScrollTop >= 150) {
+//                $('.article-header').css('top', 0);
+//            } else if (event.deltaY < -5) {
+//                $('.article-header').css('top', '-48px');
+//            }
+//        }, false);
+
+    $(window).resize(function () {
+      // var shareL = parseInt($('.article-footer').css('margin-left')) / 2 - 15
+      // $('.share').css('left', (shareL < 0 ? 0 : shareL) + 'px')
+
+      $('#articleToC > .module-panel').height($(window).height() - 48)
+
+      if ($(window).width() < 1024) {
+        // $('.article-header > h2').removeAttr('style')
+        if ($('#articleToC').length === 0) {
+          return false
+        }
+        $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
+          css('margin-right', 'auto')
+        return false
+      }
+
+      if ($('#articleToC').length === 1) {
+        var articleToCW = $('#articleToC').width(),
+          articleMR = ($(window).width() - articleToCW -
+            $('.article-info').width() - 30) / 3 + articleToCW
+        $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
+          css('margin-right', articleMR + 'px')
+      }
+      // $('.article-header > h2').css('margin-left', Math.max(20,($('.article-footer').offset().left - 58)) + 'px')
+    })
+
+    // set session storage
+    var searchQuery = location.search.split('r=')[1]
+    if (searchQuery) {
+      sessionStorage.setItem('r', searchQuery.split('&')[0])
+    }
+
+    $(function () {
+      // 显示点赞和感谢数量
+      $.ajax({
+        url: Label.servePath + "/api/article/reward/senders/" + Label.articleOId,
+        method: "GET",
+        async: false,
+        headers: {'csrfToken': Label.csrfToken},
+        success: function (result) {
+          if (result.code === 0 && result.data !== "") {
+            let data = result.data;
+            for (let i = 0; i < data.length; i++) {
+              let innerData = data[i];
+              $("#articleThanksCnt").after("" +
+                  "<a target=\"_blank\" href=\"" + Label.servePath + "/member/" + innerData.userName + "\">\n" +
+                  "    <div class=\"article__participant\">\n" +
+                  "        <div class=\"avatar-small\" aria-label=\"" + innerData.userName + "\" style=\"background-image: url('" + innerData.userAvatarURL48 + "');\"></div>\n" +
+                  "    </div>\n" +
+                  "</a>")
+            };
+            Util.listenUserCard();
+          }},
+      });
+    });
+  },
+  /**
+   * 历史版本对比
+   * @param {string} id 文章/评论 id
+   * @param {string} type 类型[comment, article]
+   * @returns {undefined}
+   */
+  revision: function (id, type) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    if (!type) {
+      type = 'article'
+    }
+
+    $.ajax({
+      url: Label.servePath + '/' + type + '/' + id + '/revisions',
+      cache: false,
+      success: function (result, textStatus) {
+        if (0 === result.code) {
+          if (0 === result.revisions.length // for legacy data
+            || 1 === result.revisions.length) {
+            $('#revision > .revisions').remove()
+            $('#revisions').html('<b>' + Label.noRevisionLabel + '</b>')
+            return false
+          }
+
+          // clear data
+          $('#revisions').html('').prev().remove()
+
+          $('#revisions').
+            data('revisions', result.revisions).
+            before('<div class="revisions">' +
+              '<a href="javascript:void(0)" class="first"><svg><use xlink:href="#chevron-left"</svg></a><span>' +
+              (result.revisions.length - 1) + '~' + result.revisions.length +
+              '/' +
+              result.revisions.length +
+              '</span><a href="javascript:void(0)" class="disabled last"><svg><use xlink:href="#chevron-right"</svg></a>' +
+              '</div>')
+          if (result.revisions.length <= 2) {
+            $('#revision a').first().addClass('disabled')
+          }
+
+          var diff = JsDiff.createPatch('',
+            result.revisions[result.revisions.length -
+            2].revisionData.articleContent ||
+            result.revisions[result.revisions.length -
+            2].revisionData.commentContent,
+            result.revisions[result.revisions.length -
+            1].revisionData.articleContent ||
+            result.revisions[result.revisions.length -
+            1].revisionData.commentContent,
+            result.revisions[result.revisions.length -
+            2].revisionData.articleTitle || '',
+            result.revisions[result.revisions.length -
+            1].revisionData.articleTitle || '')
+
+          var diff2htmlUi = new Diff2HtmlUI({diff: diff})
+          diff2htmlUi.draw('#revisions', {
+            matching: 'lines',
+            outputFormat: 'side-by-side',
+            synchronisedScroll: true,
+          })
+          Article._revisionsControls(type)
+          return false
+        }
+
+        Util.alert(result.msg)
+      },
+    })
+    $('#revision').dialog('open')
+  },
+  /**
+   * 上一版本，下一版本对比
+   * @returns {undefined}
+   */
+  _revisionsControls: function (type) {
+    var revisions = $('#revisions').data('revisions')
+    $('#revision a.first').click(function () {
+      if ($(this).hasClass('disabled')) {
+        return
+      }
+
+      var prevVersion = parseInt(
+        $('#revision .revisions').text().split('~')[0])
+      if (prevVersion <= 2) {
+        $(this).addClass('disabled')
+      } else {
+        $(this).removeClass('disabled')
+      }
+
+      if (revisions.length > 2) {
+        $('#revision a.last').removeClass('disabled')
+      }
+
+      $('#revision .revisions > span').
+        html((prevVersion - 1) + '~' + prevVersion + '/' + revisions.length)
+
+      var diff = JsDiff.createPatch('',
+        revisions[prevVersion - 2].revisionData.articleContent ||
+        revisions[prevVersion - 2].revisionData.commentContent,
+        revisions[prevVersion - 1].revisionData.articleContent ||
+        revisions[prevVersion - 1].revisionData.commentContent,
+        revisions[prevVersion - 2].revisionData.articleTitle || '',
+        revisions[prevVersion - 1].revisionData.articleTitle || '')
+
+      var diff2htmlUi = new Diff2HtmlUI({diff: diff})
+      diff2htmlUi.draw('#revisions', {
+        matching: 'lines',
+        outputFormat: 'side-by-side',
+        synchronisedScroll: true,
+      })
+    })
+
+    $('#revision a.last').click(function () {
+      if ($(this).hasClass('disabled')) {
+        return
+      }
+
+      var prevVersion = parseInt(
+        $('#revision .revisions span').text().split('~')[0])
+      if (prevVersion > revisions.length - 3) {
+        $(this).addClass('disabled')
+      } else {
+        $(this).removeClass('disabled')
+      }
+
+      if (revisions.length > 2) {
+        $('#revision a.first').removeClass('disabled')
+      }
+
+      $('#revision .revisions > span').
+        html((prevVersion + 1) + '~' + (prevVersion + 2) + '/' +
+          revisions.length)
+
+      var diff = JsDiff.createPatch('',
+        revisions[prevVersion].revisionData.articleContent ||
+        revisions[prevVersion].revisionData.commentContent,
+        revisions[prevVersion + 1].revisionData.articleContent ||
+        revisions[prevVersion + 1].revisionData.commentContent,
+        revisions[prevVersion].revisionData.articleTitle || '',
+        revisions[prevVersion + 1].revisionData.articleTitle || '')
+
+      var diff2htmlUi = new Diff2HtmlUI({diff: diff})
+      diff2htmlUi.draw('#revisions', {
+        matching: 'lines',
+        outputFormat: 'side-by-side',
+        synchronisedScroll: true,
+      })
+    })
+  },
+  /**
+   * @description 分享按钮
+   */
+  share: function () {
+    // var shareL = parseInt($('.article-footer').css('margin-left')) / 2 - 15
+    // $('.share').css('left', (shareL < 20 ? 20 : shareL) + 'px')
+
+    var shareURL = $('#qrCode').data('shareurl')
+    $('#qrCode').qrcode({
+      width: 90,
+      height: 90,
+      text: shareURL,
+    })
+
+    $('body').click(function () {
+      $('#qrCode').slideUp()
+    })
+
+    $('.share > span').click(function () {
+      var key = $(this).data('type')
+      if (!key) return false
+      if (key === 'wechat') {
+        $('#qrCode').slideToggle()
+        return false
+      }
+
+      if (key === 'copy') {
+        return false
+      }
+
+      var title = encodeURIComponent(Label.articleTitle + ' - ' +
+        Label.symphonyLabel),
+        url = encodeURIComponent(shareURL),
+        picCSS = $('.article-info .avatar-mid').css('background-image')
+      pic = picCSS.substring(5, picCSS.length - 2)
+
+      var urls = {}
+      urls.tencent = 'http://share.v.t.qq.com/index.php?c=share&a=index&title=' +
+        title +
+        '&url=' + url + '&pic=' + pic
+      urls.weibo = 'http://v.t.sina.com.cn/share/share.php?title=' +
+        title + '&url=' + url + '&pic=' + pic
+      urls.google = 'https://plus.google.com/share?url=' + url
+      urls.twitter = 'https://twitter.com/intent/tweet?status=' + title + ' ' +
+        url
+      window.open(urls[key], '_blank', 'top=100,left=200,width=648,height=618')
+    })
+
+    $('#qrCode').click(function () {
+      $(this).hide()
+    })
+
+    $('#shareClipboard').mouseover(function () {
+      $(this).attr('aria-label', Label.copyLabel)
+    })
+    Util.clipboard($('#shareClipboard'), $('#shareClipboard').next(),
+      function () {
+        $('#shareClipboard').attr('aria-label', Label.copiedLabel)
+      })
+  },
+  /**
+   * @description 打赏
+   */
+  reward: function (articleId) {
+    var r = confirm(Label.rewardConfirmLabel)
+
+    if (r) {
+      $.ajax({
+        url: Label.servePath + '/article/reward?articleId=' + articleId,
+        type: 'POST',
+        cache: false,
+        success: function (result, textStatus) {
+          if (0 === result.code) {
+            $('#articleRewardContent .vditor-reset').
+              html(result.articleRewardContent)
+            Util.parseHljs()
+            Util.parseMarkdown()
+
+            var $rewarcCnt = $('#articleRewardContent > span'),
+              cnt = parseInt($rewarcCnt.text())
+            $rewarcCnt.addClass('ft-red').
+              removeClass('ft-blue').
+              html((cnt + 1) + ' ' + Label.rewardLabel).
+              removeAttr('onclick')
+            return
+          }
+
+          Util.alert(result.msg)
+        },
+        error: function (result) {
+          Util.needLogin()
+        },
+      })
+    }
+  },
+  /**
+   * @description 感谢文章
+   */
+  thankArticle: function (articleId, articleAnonymous) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+
+    // 匿名贴不需要 confirm
+    if (0 === articleAnonymous && !confirm(Label.thankArticleConfirmLabel)) {
+      return false
+    }
+
+    if (Label.currentUserName === Label.articleAuthorName) {
+      Util.alert(Label.thankSelfLabel)
+      return false
+    }
+
+    $.ajax({
+      url: Label.servePath + '/article/thank?articleId=' + articleId,
+      type: 'POST',
+      cache: false,
+      success: function (result, textStatus) {
+        if (0 === result.code) {
+          var thxCnt = parseInt($('#thankArticle').text())
+          $('#thankArticle').
+            removeAttr('onclick').
+            html('<svg><use xlink:href="#heart"></use></svg><span class="ft-13">' +
+              (thxCnt + 1) + '</span>').
+            addClass('ft-red').
+            removeClass('ft-blue')
+
+          var $heart = $(
+            '<svg class="ft-red"><use xlink:href="#heart"></use></svg>'),
+            y = $('#thankArticle').offset().top,
+            x = $('#thankArticle').offset().left
+          $heart.css({
+            'z-index': 9999,
+            'top': y - 20,
+            'left': x,
+            'position': 'absolute',
+            'font-size': 16,
+            '-moz-user-select': 'none',
+            '-webkit-user-select': 'none',
+            '-ms-user-select': 'none',
+          })
+          $('body').append($heart)
+
+          $heart.animate({'top': y - 180, 'opacity': 0},
+            1500,
+            function () {
+              $heart.remove()
+            }
+          )
+
+          return false
+        }
+
+        Util.alert(result.msg)
+      },
+    })
+  },
+  /**
+   * @description 置顶
+   */
+  stick: function (articleId) {
+    var r = confirm(Label.stickConfirmLabel)
+
+    if (r) {
+      $.ajax({
+        url: Label.servePath + '/article/stick?articleId=' + articleId,
+        type: 'POST',
+        cache: false,
+        success: function (result, textStatus) {
+          Util.alert(result.msg)
+
+          window.location.href = Label.servePath + '/recent'
+        },
+      })
+    }
+  },
+  /**
+   * @description 初始化目录.
+   */
+  initToc: function () {
+    if ($('#articleToC').length === 0) {
+      // $('.article-header > h2').
+      //   css('margin-left', Math.max(20,
+      //     ($('.article-footer').offset().left - 58)) + 'px')
+      $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
+        css('margin-right', 'auto')
+      return false
+    }
+
+    var articleToCW = $('#articleToC').width(),
+      articleMR = ($(window).width() - articleToCW -
+        $('.article-info').width() - 30) / 3 + articleToCW
+    $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
+      css('margin-right', articleMR + 'px')
+
+    // $('.article-header > h2').
+    //   css('margin-left', Math.max(20,
+    //     ($('.article-footer').offset().left - 58)) + 'px')
+    $('#articleToC > .module-panel').height($(window).height() - 48)
+
+    // 样式
+    var $articleToc = $('#articleToC'),
+      $articleTocUl = $('.article-toc'),
+      $articleTocs = $('.article-content [id^=toc]'),
+      isUlScroll = false,
+      top = $articleToc.offset().top
+    toc = []
+
+    // 目录点击
+    $articleToc.find('li').click(function () {
+      var $it = $(this)
+      setTimeout(function () {
+        $articleToc.find('li').removeClass('current')
+        $it.addClass('current')
+      }, 50)
+    })
+
+    $(window).scroll(function (event) {
+      if (parseInt($('#articleToC').css('right')) < 0) {
+        return false
+      }
+      $('#articleToC > .module-panel').height($(window).height() - 49)
+
+      // 界面各种图片加载会导致帖子目录定位
+      toc = []
+      $articleTocs.each(function (i) {
+        toc.push({
+          id: this.id,
+          offsetTop: this.offsetTop,
+        })
+      })
+
+      // 当前目录样式
+      var scrollTop = $(window).scrollTop()
+      for (var i = 0, iMax = toc.length; i < iMax; i++) {
+        if (scrollTop < toc[i].offsetTop - 53) {
+          $articleToc.find('li').removeClass('current')
+          var index = i > 0 ? i - 1 : 0
+          $articleToc.find('a[data-id="' + toc[index].id + '"]').
+            parent().
+            addClass('current')
+          break
+        }
+      }
+      if (scrollTop >= toc[toc.length - 1].offsetTop - 53) {
+        $articleToc.find('li').removeClass('current')
+        $articleToc.find('li:last').addClass('current')
+      }
+
+      // auto scroll to current toc
+      var liOffsetTop = $articleToc.find('li.current')[0].offsetTop
+      if (!isUlScroll) {
+        // down scroll
+        if ($articleTocUl.scrollTop() < liOffsetTop - $articleTocUl.height() +
+          30) {
+          $articleTocUl.scrollTop(liOffsetTop - $articleTocUl.height() + 30)
+        }
+        // up scroll
+        if ($articleTocUl.scrollTop() > liOffsetTop - 30) {
+          $articleTocUl.scrollTop(liOffsetTop)
+        }
+      }
+      // 在目录上滚动到边界时，会滚动 window，为了不让 window 滚动触发目录滚动。
+      setTimeout(function () {
+        isUlScroll = false
+      }, 600)
+    })
+
+    $(window).scroll()
+
+    $articleTocUl.scrollTop($articleToc.find('li.current')[0].offsetTop).
+      scroll(function () {
+        isUlScroll = true
+      })
+  },
+  /**
+   * @description 目录展现隐藏切换.
+   */
+  toggleToc: function () {
+    var $articleToc = $('#articleToC')
+    if ($articleToc.length === 0) {
+      return false
+    }
+
+    var $menu = $('.article-header .icon-unordered-list')
+    if ($menu.hasClass('ft-red')) {
+      $articleToc.animate({
+        right: '-' + $('#articleToC').outerWidth() + 'px',
+      })
+      $menu.removeClass('ft-red')
+      $('.article-actions  .icon-unordered-list').removeClass('ft-red')
+    } else {
+      $articleToc.animate({
+        right: 0,
+      })
+      $menu.addClass('ft-red')
+      $('.article-actions  .icon-unordered-list').addClass('ft-red')
+    }
+  },
+  /**
+   * @description 标记消息通知为已读状态.
+   */
+  makeNotificationRead: function (articleId, commentIds) {
+    var requestJSONObject = {
+      articleId: articleId,
+      commentIds: commentIds,
+    }
+
+    $.ajax({
+      url: Label.servePath + '/notifications/make-read',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify(requestJSONObject),
+    })
+  },
+}
+
+Article.init()
+
+$(document).ready(function () {
+  Comment.init()
+
+  // 表情包初始化
+  // 加载表情
+  Comment.listenUploadEmojis();
+  Comment.loadEmojis();
+  // 监听表情包按钮
+
+  (()=>{
+    let time_out=new Date().getTime(),timeoutId=0
+    const closeEmoji=function () {
+      if(timeoutId!==0){
+        clearTimeout(timeoutId)
+        timeoutId=0
+      }
+      $('#emojiList').css('top','auto')
+      $('#emojiList').css('bottom','60px')
+      time_out=new Date().getTime()
+      timeoutId=setTimeout(()=>{
+        new Date().getTime()-time_out<=700&&$("#emojiList").removeClass("showList")
+      },navigator.userAgent.match(/(phone|pad|pod|ios|Android|Mobile|BlackBerry|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian)/i)!==null?0:600)
+    }
+    $("#emojiBtn").hover(function (){
+      if(timeoutId!==0){
+        clearTimeout(timeoutId)
+        timeoutId=0
+      }
+      time_out=new Date().getTime()
+      setTimeout(()=>0!==$("#emojiBtn:hover").length&&$("#emojiList").addClass("showList"),300)
+    },closeEmoji)
+    $("#emojiList").hover(function () {
+      if(timeoutId!==0){
+        clearTimeout(timeoutId)
+        timeoutId=0
+      }
+      time_out=new Date().getTime()
+    },closeEmoji)
+  })()
+
+  // Init [Article] channel
+  ArticleChannel.init(Label.articleChannel)
+
+  // make notification read
+  if (Label.isLoggedIn) {
+    Article.makeNotificationRead(Label.articleOId, Label.notificationCmtIds)
+
+    setTimeout(function () {
+      Util.setUnreadNotificationCount()
+    }, 1000)
+  }
+})
