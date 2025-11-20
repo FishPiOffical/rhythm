@@ -31,64 +31,6 @@
  */
 var Activity = {
     /**
-     * @description 上证指数博彩活动下注
-     * @argument {String} csrfToken CSRF token
-     */
-    bet1A0001: function (csrfToken) {
-        var requestJSONObject = {
-            smallOrLarge: $("input[name=smallOrLarge]:checked").val(),
-            amount: $("input[name=amount]:checked").val()
-        };
-
-        $.ajax({
-            url: Label.servePath + "/activity/1A0001/bet",
-            type: "POST",
-            headers: {"csrfToken": csrfToken},
-            cache: false,
-            data: JSON.stringify(requestJSONObject),
-            success: function (result, textStatus) {
-                if (0 === result.code) {
-                    $("#betDiv, #betBtn").remove();
-                    $("#tip").addClass("succ").removeClass('error').html('<ul><li>' + result.msg + '</li></ul>');
-                } else {
-                    $("#tip").addClass("error").removeClass('succ').html('<ul><li>' + result.msg + '</li></ul>');
-                }
-
-                $("#tip").show();
-
-                setTimeout(function () {
-                    $("#tip").hide();
-                }, 3000);
-            }
-        });
-    },
-    /**
-     * @description 上证指数博彩活动兑奖
-     */
-    collect1A0001: function () {
-        var requestJSONObject = {
-        };
-
-        $.ajax({
-            url: Label.servePath + "/activity/1A0001/collect",
-            type: "POST",
-            cache: false,
-            data: JSON.stringify(requestJSONObject),
-            success: function (result, textStatus) {
-                $("#tip").show();
-                if (0 === result.code) {
-                    $("#tip").addClass("succ").removeClass('error').html('<ul><li>' + result.msg + '</li></ul>');
-                    $("#collectBtn").remove();
-                } else {
-                    $("#tip").addClass("error").removeClass('succ').html('<ul><li>' + result.msg + '</li></ul>');
-                    setTimeout(function () {
-                        $("#tip").hide();
-                    }, 3000);
-                }
-            }
-        });
-    },
-    /**
      * paint brush
      * @param {string} id canvas id.
      * @returns {undefined}

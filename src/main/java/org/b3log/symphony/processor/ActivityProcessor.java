@@ -57,9 +57,6 @@ import java.util.*;
  * <ul>
  * <li>Shows activities (/activities), GET</li>
  * <li>Daily checkin (/activity/daily-checkin), GET</li>
- * <li>Shows 1A0001 (/activity/1A0001), GET</li>
- * <li>Bets 1A0001 (/activity/1A0001/bet), POST</li>
- * <li>Collects 1A0001 (/activity/1A0001/collect), POST</li>
  * <li>Shows character (/activity/character), GET</li>
  * <li>Submit character (/activity/character/submit), POST</li>
  * <li>Shows eating snake (/activity/eating-snake), GET</li>
@@ -162,9 +159,6 @@ public class ActivityProcessor {
         // Dispatcher.get("/activity/daily-checkin-api", activityProcessor::dailyCheckinApi, loginCheck::handle);
         Dispatcher.get("/activity/yesterday-liveness-reward-api", activityProcessor::yesterdayLivenessRewardApi, loginCheck::handle);
         Dispatcher.post("/activity/yesterday-liveness-reward-api", activityProcessor::yesterdayLivenessRewardApiGold);
-        // Dispatcher.get("/activity/1A0001", activityProcessor::show1A0001, csrfMidware::fill);
-        // Dispatcher.post("/activity/1A0001/bet", activityProcessor::bet1A0001, loginCheck::handle, csrfMidware::check, activity1A0001ValidationMidware::handle);
-        // Dispatcher.post("/activity/1A0001/collect", activityProcessor::collect1A0001, loginCheck::handle, activity1A0001CollectValidationMidware::handle);
         Dispatcher.get("/activity/eating-snake", activityProcessor::showEatingSnake, loginCheck::handle, csrfMidware::fill);
         Dispatcher.post("/activity/eating-snake/start", activityProcessor::startEatingSnake, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/activity/eating-snake/collect", activityProcessor::collectEatingSnake, loginCheck::handle, csrfMidware::fill);

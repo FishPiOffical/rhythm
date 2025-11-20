@@ -18,24 +18,31 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
+<#-- 根据标签情况直接设置最终的permalink -->
+<#assign permalink = article.articlePermalink>
+<#list article.articleTagObjs as articleTag>
+    <#if articleTag.tagTitle?contains("长篇连载")>
+        <#assign permalink = "/yuhu" + article.articlePermalink>
+        <#break>
+    </#if>
+</#list>
 <li>
     <div class="fn-clear ft-smaller list-info">
         <#list article.articleTagObjs as articleTag>
         <a rel="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a> &nbsp;
         </#list>
-
         <span class="fn-right ft-fade">
             <#if article.articleCommentCount != 0>
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}#comments"><b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a> &nbsp;•&nbsp;
+                <a class="ft-fade" href="${servePath}${permalink}#comments"><b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a> &nbsp;•&nbsp;
             </#if>
 
             <#if article.articleViewCount != 0>
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}"><span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>"><#if article.articleViewCount < 1000>${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></span> ${viewLabel}</a>
+                <a class="ft-fade" href="${servePath}${permalink}"><span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>"><#if article.articleViewCount < 1000>${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></span> ${viewLabel}</a>
             </#if>
 
             <#if article.articleQnAOfferPoint != 0>
                 &nbsp;•&nbsp;
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}">
+                <a class="ft-fade" href="${servePath}${permalink}">
                 <span class="article-level<#if article.articleQnAOfferPoint lt 400>${(article.articleQnAOfferPoint/100)?int}<#else>4</#if>">${article.articleQnAOfferPoint?c}</span>
                     ${qnaOfferLabel}
                 </a>
@@ -44,10 +51,10 @@
     </div>
     <h2 class="fn-ellipsis">
         <@icon article.articlePerfect article.articleType></@icon>
-        <a class="ft-a-title" data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
+        <a class="ft-a-title" data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark" href="${servePath}${permalink}">${article.articleTitleEmoj}
         </a>
         <#if article.offered>
-            <a href="${servePath}${article.articlePermalink}#comments">
+            <a href="${servePath}${permalink}#comments">
                 <svg style="color: green" fill="currentColor;" width="14px" height="14px" display="inline" stroke="currentColor;" stroke-width="0">
                     <use xlink:href="#iconAdopt"></use>
                 </svg>
@@ -76,13 +83,13 @@
                 </div>
             </div>
             <#if isLoggedIn && 1 == currentUser.userListViewMode>
-            <a class="abstract" href="${servePath}${article.articlePermalink}">
+            <a class="abstract" href="${servePath}${permalink}">
                 ${article.articlePreviewContent}
             </a>
             </#if>
         </div>
         <#if "" != article.articleThumbnailURL && isLoggedIn && 1 == currentUser.userListViewMode>
-            <a href="${servePath}${article.articlePermalink}" class="abstract-img" style="background-image:url('${article.articleThumbnailURL}')"></a>
+            <a href="${servePath}${permalink}" class="abstract-img" style="background-image:url('${article.articleThumbnailURL}')"></a>
         </#if>
     </div>
 

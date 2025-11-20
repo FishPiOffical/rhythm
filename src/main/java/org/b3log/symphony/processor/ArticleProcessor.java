@@ -238,6 +238,7 @@ public class ArticleProcessor {
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
+        Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/yuhu/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.put("/article/{id}", articleProcessor::updateArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
@@ -1164,7 +1165,15 @@ public class ArticleProcessor {
         final String articleId = context.pathVar("articleId");
         final Request request = context.getRequest();
 
-        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "article.ftl");
+        boolean isYuhuPath = request.getRequestURI().contains("/yuhu");
+        String ftlPath = "article.ftl";
+        if (isYuhuPath) {
+            ftlPath = "yuhu-article.ftl";
+        }else{
+            ftlPath = "article.ftl";
+        }
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, ftlPath);
         final Map<String, Object> dataModel = renderer.getDataModel();
 
         final JSONObject article = articleQueryService.getArticleById(articleId);
@@ -1468,6 +1477,7 @@ public class ArticleProcessor {
      * @param context the specified context
      */
     public void addArticle(final RequestContext context) {
+        System.out.println("addArticle");
         context.renderJSON(StatusCodes.ERR);
 
         final Request request = context.getRequest();
