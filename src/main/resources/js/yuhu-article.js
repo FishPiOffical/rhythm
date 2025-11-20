@@ -488,8 +488,6 @@ var Comment = {
       Comment._bgFade($(window.location.hash))
       //}
     }
-
-    this._setCmtVia()
     this._initHotKey()
 
     $.pjax({
@@ -1033,7 +1031,6 @@ var Article = {
    */
   init: function () {
     this.initToc()
-    this.share()
     Util.parseHljs()
     Util.parseMarkdown()
 
@@ -1363,66 +1360,6 @@ var Article = {
     })
   },
   /**
-   * @description 分享按钮
-   */
-  share: function () {
-    // var shareL = parseInt($('.article-footer').css('margin-left')) / 2 - 15
-    // $('.share').css('left', (shareL < 20 ? 20 : shareL) + 'px')
-
-    var shareURL = $('#qrCode').data('shareurl')
-    $('#qrCode').qrcode({
-      width: 90,
-      height: 90,
-      text: shareURL,
-    })
-
-    $('body').click(function () {
-      $('#qrCode').slideUp()
-    })
-
-    $('.share > span').click(function () {
-      var key = $(this).data('type')
-      if (!key) return false
-      if (key === 'wechat') {
-        $('#qrCode').slideToggle()
-        return false
-      }
-
-      if (key === 'copy') {
-        return false
-      }
-
-      var title = encodeURIComponent(Label.articleTitle + ' - ' +
-        Label.symphonyLabel),
-        url = encodeURIComponent(shareURL),
-        picCSS = $('.article-info .avatar-mid').css('background-image')
-      pic = picCSS.substring(5, picCSS.length - 2)
-
-      var urls = {}
-      urls.tencent = 'http://share.v.t.qq.com/index.php?c=share&a=index&title=' +
-        title +
-        '&url=' + url + '&pic=' + pic
-      urls.weibo = 'http://v.t.sina.com.cn/share/share.php?title=' +
-        title + '&url=' + url + '&pic=' + pic
-      urls.google = 'https://plus.google.com/share?url=' + url
-      urls.twitter = 'https://twitter.com/intent/tweet?status=' + title + ' ' +
-        url
-      window.open(urls[key], '_blank', 'top=100,left=200,width=648,height=618')
-    })
-
-    $('#qrCode').click(function () {
-      $(this).hide()
-    })
-
-    $('#shareClipboard').mouseover(function () {
-      $(this).attr('aria-label', Label.copyLabel)
-    })
-    Util.clipboard($('#shareClipboard'), $('#shareClipboard').next(),
-      function () {
-        $('#shareClipboard').attr('aria-label', Label.copiedLabel)
-      })
-  },
-  /**
    * @description 打赏
    */
   reward: function (articleId) {
@@ -1721,16 +1658,4 @@ $(document).ready(function () {
       time_out=new Date().getTime()
     },closeEmoji)
   })()
-
-  // Init [Article] channel
-  ArticleChannel.init(Label.articleChannel)
-
-  // make notification read
-  if (Label.isLoggedIn) {
-    Article.makeNotificationRead(Label.articleOId, Label.notificationCmtIds)
-
-    setTimeout(function () {
-      Util.setUnreadNotificationCount()
-    }, 1000)
-  }
 })

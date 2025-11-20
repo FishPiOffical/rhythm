@@ -33,44 +33,56 @@
         </#if>
     </@head>
     <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${staticServePath}/css/yuhu.css?${staticResourceVersion}">
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
     <link rel="canonical"
           href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
-    <#if articlePrevious??>
-        <link rel="prev" title="${articlePrevious.articleTitleEmojUnicode}"
-              href="${servePath}${articlePrevious.articlePermalink}">
-    </#if>
-    <#if articleNext??>
-        <link rel="next" title="${articleNext.articleTitleEmojUnicode}"
-              href="${servePath}${articleNext.articlePermalink}">
-    </#if>
-    <!-- Open Graph -->
-    <meta property="og:locale" content="zh_CN"/>
-    <meta property="og:type" content="article"/>
-    <meta property="og:title" content="${article.articleTitle} - ${symphonyLabel}"/>
-    <meta property="og:description" content="${article.articlePreviewContent}"/>
-    <meta property="og:image" content="${article.articleAuthorThumbnailURL210}"/>
-    <meta property="og:url" content="${servePath}${article.articlePermalink}"/>
-    <meta property="og:site_name" content="${symphonyLabel}"/>
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary"/>
-    <meta name="twitter:description" content="${article.articlePreviewContent}"/>
-    <meta name="twitter:title" content="${article.articleTitle} - ${symphonyLabel}"/>
-    <meta name="twitter:image" content="${article.articleAuthorThumbnailURL210}"/>
-    <meta name="twitter:url" content="${servePath}${article.articlePermalink}"/>
-    <meta name="twitter:site" content="@B3logOS"/>
-    <meta name="twitter:creator" content="@B3logOS"/>
 </head>
-<body itemscope itemtype="http://schema.org/Product" class="article">
-<div>
-    <h1 class="article-title" itemprop="name">
-        ${article.articleTitleEmoj}
-    </h1>
-    <div class="vditor-reset article-content">
-        ${article.articleContent}
-    </div>
-</div>
 
+<body class="article">
+    <div class="article-body">
+        <h1 class="article-title" itemprop="name">
+            ${article.articleTitleEmoj}
+        </h1>
+        <div class="article-desc">${article.articleAuthorName} ${article.timeAgo}</div>
+        <div class="vditor-reset article-content">
+            ${article.articleContent}
+        </div>
+    </div>
+    <div class="right-nav-box">
+        <ul class="right-nav">
+            <li class="right-nav-item">
+                <svg style="width: 24px;height: 24px;">
+                    <use xlink:href="#color-sun"></use>
+                </svg>
+                <span>目录</span>
+            </li>
+            <li class="right-nav-item">
+                <svg style="width: 24px;height: 24px;">
+                    <use xlink:href="#color-sun"></use>
+                </svg>
+                <span>详情</span>
+            </li>
+            <li class="right-nav-item">
+                <svg style="width: 24px;height: 24px;">
+                    <use xlink:href="#color-sun"></use>
+                </svg>
+                <span>投票</span>
+            </li>
+            <li id="color-mode" class="right-nav-item">
+                <svg style="width: 24px;height: 24px;">
+                    <use xlink:href="#color-sun"></use>
+                </svg>
+                <span>夜间</span>
+            </li>
+            <li class="right-nav-item">
+                <svg style="width: 24px;height: 24px;">
+                    <use xlink:href="#color-sun"></use>
+                </svg>
+                <span>设置</span>
+            </li>
+        </ul>
+    </div>
 <#include "footer.ftl">
 
 <#if isLoggedIn && discussionViewable && article.articleCommentable>
@@ -102,7 +114,8 @@
                                     <span>
                                             <a onclick="$('#uploadEmoji input').click()">上传表情包</a>
                                         </span>
-                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">
+                                    <form style="display: none" id="uploadEmoji" method="POST"
+                                          enctype="multipart/form-data">
                                         <input type="file" name="file">
                                     </form>
                                 </div>
@@ -111,7 +124,8 @@
                         <#if permissions["commonAddCommentAnonymous"].permissionGrant>
                             <label class="cmt-anonymous">${anonymousLabel}<input type="checkbox" id="commentAnonymous"></label>
                         </#if>
-                        <label class="cmt-anonymous">${onlyArticleAuthorVisibleLabel}<input type="checkbox" id="commentVisible"></label>
+                        <label class="cmt-anonymous">${onlyArticleAuthorVisibleLabel}<input type="checkbox"
+                                                                                            id="commentVisible"></label>
                         <div class="fn-flex-1"></div>
                         <div class="fn-right">
                             <div class="tip fn-left" id="addCommentTip"></div> &nbsp; &nbsp;
@@ -128,8 +142,6 @@
     <div id="thoughtProgressPreview"></div>
 </#if>
 <script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
-<script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
-<script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/yuhu-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
