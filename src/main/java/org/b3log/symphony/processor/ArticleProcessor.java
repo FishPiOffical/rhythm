@@ -1187,6 +1187,12 @@ public class ArticleProcessor {
             return;
         }
 
+        // 防止普通文章通过YUHU访问
+        if (article.optInt(Article.ARTICLE_TYPE)!=Article.ARTICLE_TYPE_C_YUHU && isYuhuPath){
+            context.sendError(404);
+            return;
+        }
+
         dataModelService.fillHeaderAndFooter(context, dataModel);
 
         final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
@@ -1477,7 +1483,6 @@ public class ArticleProcessor {
      * @param context the specified context
      */
     public void addArticle(final RequestContext context) {
-        System.out.println("addArticle");
         context.renderJSON(StatusCodes.ERR);
 
         final Request request = context.getRequest();

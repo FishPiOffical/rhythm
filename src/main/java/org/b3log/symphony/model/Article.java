@@ -476,6 +476,10 @@ public final class Article {
      * Article type - <a href="https://github.com/b3log/symphony/issues/486">QnA</a>.
      */
     public static final int ARTICLE_TYPE_C_QNA = 5;
+    /**
+     * Article type - yuhu: serialized novel
+     */
+    public static final int ARTICLE_TYPE_C_YUHU = 6;
 
     // Show in list constants
     /**
