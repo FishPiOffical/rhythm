@@ -1,7 +1,12 @@
+:root{
+  --article-body-width:800px;
+}
+
 .right-nav-box{
   position: fixed;
-  right: 50px;
-  bottom: 50px;
+  left: calc(50% + (var(--article-body-width)/2) + 10px);
+  top: 30vh;
+  transition: .5s;
   .right-nav{
     display: flex;
     flex-direction: column;
@@ -18,9 +23,18 @@
       background-color: #dcebdd;
       border-radius: 5px;
       cursor: pointer;
-      transition: .3s;
+      transition: .5s;
       &:hover{
         color: #e59230;
+      }
+      svg{
+        width: 18px;
+        height: 18px;
+        margin-bottom: 3px;
+      }
+      &.top svg{
+        width: 32px;
+        height: 32px;
       }
     }
   }
@@ -28,17 +42,27 @@
 .article{
   background-color: #c7dcc8;
   padding-top: 0 !important;
-  transition: .3s;
+  transition: .5s;
+  min-width: 1000px;
   .article-body{
     position: relative;
     margin: 0 auto;
     padding: 80px 64px !important;
-    width: 800px;
+    width: var(--article-body-width);
     background-color: #dcebdd;
     box-sizing: border-box;
-    transition: .3s;
+    transition: .5s;
     .article-desc{
+      display: flex;
+      justify-content: start;
       color: grey;
+      margin: 10px 0;
+      .article-desc-item{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+      }
     }
     .article-title{
       text-align: left !important;
@@ -46,6 +70,28 @@
     .article-content{
       text-indent: 2rem;
       font-size: 18px;
+    }
+  }
+
+  &.night{
+    background-color: #0a0a0a;
+    .article-body{
+      background-color: #111111;
+      color: rgba(255,255,255,.6) !important;
+      .article-desc{
+        color: rgba(255,255,255,.4);
+      }
+      .article-content{
+        color: #989898 !important;
+      }
+    }
+
+    .right-nav-item{
+      background-color: #191919;
+      color: #989898 !important;
+      &:hover{
+        color: #e59230 !important;
+      }
     }
   }
 }
