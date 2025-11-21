@@ -114,7 +114,16 @@ var Chat = {
                             let count = result.result;
                             let list = result.data;
                             list.forEach((data) => {
-                                $("#chatTo" + data.senderUserName).css("background-color", "#fff4eb");
+                                // 兼容后端返回字段：优先使用 senderUserName，没有则使用 receiverUserName（文件传输助手等）
+                                const name = data.senderUserName || data.receiverUserName;
+                                if (!name) return;
+                                const $item = $("#chatTo" + name);
+                                if ($item.length > 0) {
+                                    // 设置高亮背景
+                                    $item.css("background-color", "#fff4eb");
+                                    // 将未读用户移动到列表顶部，方便点击
+                                    $("#chatMessageList").prepend($item);
+                                }
                             });
                         }
                     });
@@ -258,7 +267,13 @@ var Chat = {
                             let count = result.result;
                             let list = result.data;
                             list.forEach((data) => {
-                                $("#chatTo" + data.senderUserName).css("background-color", "#fff4eb");
+                                const name = data.senderUserName || data.receiverUserName;
+                                if (!name) return;
+                                const $item = $("#chatTo" + name);
+                                if ($item.length > 0) {
+                                    $item.css("background-color", "#fff4eb");
+                                    $("#chatMessageList").prepend($item);
+                                }
                             });
                         }
                     });
