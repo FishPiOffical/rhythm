@@ -23,7 +23,7 @@
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
  * @version 1.43.0.3, Apr 30, 2020
  */
-
+let isNight = false;
 function scrollToTop() {
     window.scrollTo({
         top: 0,
@@ -44,34 +44,65 @@ function listenScroll() {
     })
 }
 
-function changeNight(){
-    let isNight = localStorage.getItem('isNight');
-    if(isNight != null){
-        localStorage.removeItem('isNight')
-    }else{
-
-        localStorage.setItem('isNight','true');
-    }
-    loadLocalSetting();
+function toggleNight(){
+    isNight = !isNight;
+    changeNight();
 }
 
-function loadLocalSetting(){
-    let isNight = !!localStorage.getItem('isNight');
-    if(isNight){
-        $('.article').addClass('night')
+function changeNight() {
+    if (isNight) {
+        $('.article').removeClass().addClass('article night');
         $('.right-nav-item .night').hide();
         $('.right-nav-item .day').show();
         $('.day-night-label').html("日间");
-    }else{
-        $('.article').removeClass('night')
+        localStorage.setItem("isNight", "true");
+    } else {
+        $('.article').removeClass().addClass('article');
         $('.right-nav-item .night').show();
         $('.right-nav-item .day').hide();
         $('.day-night-label').html("夜间");
+        localStorage.removeItem("isNight");
+    }
+    $('.color-item').removeClass('active');
+    $(`.color-item.${isNight ? 'night' : 'light'}`).addClass('active');
+}
+
+function loadLocalSetting() {
+    isNight = !!localStorage.getItem('isNight');
+    changeNight();
+}
+
+function changeTheme(theme) {
+    $('.color-item').removeClass('active');
+    $(`.color-item.${theme}`).addClass('active');
+    switch (theme) {
+        case "night":
+            isNight = true;
+            changeNight();
+            break;
+        default:
+            isNight = false;
+            changeNight();
+            break;
     }
 }
+
+function openSetting() {
+    $('.setting-box').toggle(200);
+}
+
+function listenDocumentClick() {
+    $(document).click(function (e) {
+        if ($(e.target).closest('.setting-box,.right-nav-item').length === 0) {
+            $('.setting-box').hide(200);
+        }
+    });
+}
+
 
 $(document).ready(function () {
     // 监听滚动
     listenScroll();
     loadLocalSetting();
+    listenDocumentClick();
 })
