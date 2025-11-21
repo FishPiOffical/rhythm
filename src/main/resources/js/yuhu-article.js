@@ -24,6 +24,7 @@
  * @version 1.43.0.3, Apr 30, 2020
  */
 let isNight = false;
+let pageWidth = 800;
 function scrollToTop() {
     window.scrollTo({
         top: 0,
@@ -70,6 +71,8 @@ function changeNight() {
 function loadLocalSetting() {
     isNight = !!localStorage.getItem('isNight');
     changeNight();
+    pageWidth = parseInt(localStorage.getItem("pageWidth") ?? "800");
+    changeWidth(pageWidth);
 }
 
 function changeTheme(theme) {
@@ -85,6 +88,13 @@ function changeTheme(theme) {
             changeNight();
             break;
     }
+}
+
+function changeWidth(width){
+    $('.page-width').removeClass('active');
+    $(`.page-width.w-${width}`).addClass('active');
+    document.documentElement.style.setProperty('--article-body-width',width === 0 ? '80%' :width+'px');
+    localStorage.setItem("pageWidth",width);
 }
 
 function openSetting() {

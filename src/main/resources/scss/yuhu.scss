@@ -64,6 +64,7 @@
     justify-content: start;
     align-items: center;
     flex-direction: row;
+    margin: 10px 0;
 
     .setting-item-label {
       font-size: 12px;
@@ -100,6 +101,21 @@
         align-items: center;
       }
     }
+
+    .page-width {
+      padding: 5px 10px;
+      border: 1px solid #333333;
+      cursor: pointer;
+      transition: .5s;
+      margin: 0 3px;
+      border-radius: 5px;
+
+      &:hover, &.active {
+        border: 1px solid #e59230;
+        color: #e59230;
+      }
+    }
+
   }
 
 }

@@ -137,6 +137,14 @@
             <div class="color-item light" onclick="changeTheme('light')"></div>
             <div class="color-item night" onclick="changeTheme('night')"></div>
         </div>
+        <div class="setting-item">
+            <div class="setting-item-label">页面宽度</div>
+            <div class="page-width w-0" onclick="changeWidth(0)">自动</div>
+            <div class="page-width w-600" onclick="changeWidth(600)">600</div>
+            <div class="page-width w-800" onclick="changeWidth(800)">800</div>
+            <div class="page-width w-1000" onclick="changeWidth(1000)">1000</div>
+            <div class="page-width w-1200" onclick="changeWidth(1200)">1200</div>
+        </div>
     </div>
 </div>
 <#include "footer.ftl">
