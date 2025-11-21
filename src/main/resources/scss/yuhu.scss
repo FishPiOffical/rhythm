@@ -1,5 +1,6 @@
 :root {
   --article-body-width: 800px;
+  --article-font-size: 18px;
 }
 
 /* 右侧菜单栏 */
@@ -64,10 +65,11 @@
     justify-content: start;
     align-items: center;
     flex-direction: row;
-    margin: 10px 0;
+    margin: 15px 0;
 
     .setting-item-label {
       font-size: 12px;
+      margin-right: 10px;
     }
 
     .color-item {
@@ -103,16 +105,49 @@
     }
 
     .page-width {
-      padding: 5px 10px;
+      width: 52px;
+      height: 36px;
       border: 1px solid #333333;
       cursor: pointer;
       transition: .5s;
-      margin: 0 3px;
       border-radius: 5px;
+      text-align: center;
+      line-height: 36px;
 
       &:hover, &.active {
         border: 1px solid #e59230;
         color: #e59230;
+      }
+    }
+
+    .font-size-controller-box {
+      width: 280px;
+      height: 36px;
+      border: 1px solid #333333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 5px;
+      font-size: 18px;
+
+      .font-size-input {
+        font-size: 16px;
+      }
+
+      .font-size-controller {
+        width: 90px;
+        height: 36px;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: .5s;
+        background: rgba(255, 255, 255, 0);
+        text-align: center;
+        line-height: 36px;
+
+        &:hover {
+          color: #e59230;
+          background: rgba(255, 255, 255, .16);
+        }
       }
     }
 
@@ -152,11 +187,12 @@
 
     .article-title {
       text-align: left !important;
+      font-size: calc(var(--article-font-size) * 1.5)
     }
 
     .article-content {
       text-indent: 2rem;
-      font-size: 18px;
+      font-size: var(--article-font-size);
     }
   }
 

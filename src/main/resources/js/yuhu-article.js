@@ -25,6 +25,8 @@
  */
 let isNight = false;
 let pageWidth = 800;
+let fontSize = 18;
+
 function scrollToTop() {
     window.scrollTo({
         top: 0,
@@ -45,7 +47,7 @@ function listenScroll() {
     })
 }
 
-function toggleNight(){
+function toggleNight() {
     isNight = !isNight;
     changeNight();
 }
@@ -73,6 +75,8 @@ function loadLocalSetting() {
     changeNight();
     pageWidth = parseInt(localStorage.getItem("pageWidth") ?? "800");
     changeWidth(pageWidth);
+    fontSize = parseInt(localStorage.getItem("fontSize") ?? "18");
+    changeFontSize(0);
 }
 
 function changeTheme(theme) {
@@ -90,11 +94,18 @@ function changeTheme(theme) {
     }
 }
 
-function changeWidth(width){
+function changeWidth(width) {
     $('.page-width').removeClass('active');
     $(`.page-width.w-${width}`).addClass('active');
-    document.documentElement.style.setProperty('--article-body-width',width === 0 ? '80%' :width+'px');
-    localStorage.setItem("pageWidth",width);
+    document.documentElement.style.setProperty('--article-body-width', width === 0 ? '80%' : width + 'px');
+    localStorage.setItem("pageWidth", width);
+}
+
+function changeFontSize(size) {
+    fontSize += size;
+    $('.font-size-input').html(fontSize);
+    document.documentElement.style.setProperty('--article-font-size', fontSize + 'px');
+    localStorage.setItem("fontSize",fontSize);
 }
 
 function openSetting() {
