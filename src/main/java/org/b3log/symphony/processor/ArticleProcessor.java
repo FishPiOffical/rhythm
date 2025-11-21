@@ -1187,7 +1187,7 @@ public class ArticleProcessor {
             return;
         }
 
-        // 防止普通文章通过YUHU访问
+        //防止普通文章通过YUHU访问
         if (article.optInt(Article.ARTICLE_TYPE)!=Article.ARTICLE_TYPE_C_YUHU && isYuhuPath){
             context.sendError(404);
             return;

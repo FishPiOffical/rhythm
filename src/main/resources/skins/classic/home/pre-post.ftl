@@ -39,6 +39,13 @@
                     <div class="ft-gray">${addNormalArticleTipLabel}</div>
                 </div>
                 <div>
+                    <a href="${servePath}/post?type=6">
+                        <svg><use xlink:href="#streamline-sharp--paragraph-article-solid"></use></svg> <br/>
+                        长篇连载
+                    </a>
+                    <div class="ft-gray">一颗不断生长的故事树，书写你的故事</div>
+                </div>
+                <div>
                     <a rel="nofollow" href="${servePath}/post?type=5">
                         <svg><use xlink:href="#iconAsk"></use></svg> <br/>
                     ${qnaLabel}

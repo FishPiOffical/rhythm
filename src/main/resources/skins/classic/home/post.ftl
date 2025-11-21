@@ -39,6 +39,7 @@
                          data-placeholder="<#if !article?? && 1 == articleType>${addDiscussionEditorPlaceholderLabel}</#if>${addArticleEditorPlaceholderLabel}"></div>
                     <textarea class="fn-none"><#if article??>${article.articleContent?html}</#if><#if at??>@${at}</#if></textarea>
                 </div>
+                <#if (!article?? && 6 != articleType) || (article?? && article.articleType != 6)>
                 <div class="tags-wrap tag_selection">
                     <div class="tags-input fn-flex"><span class="tags-selected"></span>
                     <input class="fn-flex-1" id="articleTags" type="text" tabindex="3"<#if requisite> readonly disabled</#if>
@@ -63,15 +64,19 @@
                     </div>
                     </#if>
                 </div>
+                </#if>
                 <#if (!article?? && 5 == articleType) || (article?? && article.articleType == 5)>
                  <input id="articleAskPoint"
                         value="<#if article??>${article.articleQnAOfferPoint}</#if>"
                         type="number" tabindex="5" min="1" placeholder="${qnaOfferPointLabel}"/>
                 <#else>
+
+                <#if (!article?? && 6 != articleType) || (article?? && article.articleType != 6)>
                 <button id="showReward" class="fn-ellipsis"<#if requisite> readonly disabled</#if>
                 onclick="$(this).next().show(); $(this).hide()">
                     ${rewardEditorPlaceholderLabel} &dtrif;
                 </button>
+                </#if>
                 <div class="fn-none">
                     <div class="fn-clear article-reward-content">
                         <div id="articleRewardContent"
@@ -148,6 +153,9 @@
                             <use xlink:href="#iconAsk"></use>
                         </svg> ${qnaLabel}
                         <span class="ft-gray">${addAskArticleTipLabel}</span>
+                    <#elseif 6 == articleType>
+                        <svg class="post__info"><use xlink:href="#streamline-sharp--paragraph-article-solid"></use></svg> 长篇连载
+                        <span class="ft-gray">一颗不断生长的故事树，书写你的故事</span>
                     </#if>
                     <div class="fn-right">
                         <label class="article-anonymous">&nbsp;  ${statementLabel}
@@ -156,8 +164,10 @@
                                 <option value="1" <#if article?? && 1 == article.articleStatement>selected</#if>>${statementAILabel}</option>
                                 <option value="2" <#if article?? && 2 == article.articleStatement>selected</#if>>${statementSpoilersLabel}</option>
                                 <option value="3" <#if article?? && 3 == article.articleStatement>selected</#if>>${statementImaginaryLabel}</option>
+                                <option value="4" <#if article?? && 4 == article.articleStatement>selected</#if>>原创</option>
                             </select>
                         </label>
+                        <#if (!article?? && 6 != articleType) || (article?? && article.articleType != 6)>
                         <#if permissions["commonAddArticleAnonymous"].permissionGrant && articleType != 2 && articleType != 5>
                         <label class="article-anonymous">${anonymousLabel}<input<#if requisite> readonly disabled</#if>
                                 <#if article??> disabled="disabled"<#if 1 == article.articleAnonymous> checked</#if></#if>
@@ -168,6 +178,7 @@
                         <label class="article-anonymous">&nbsp;  ${commentableLabel}<input
                                 <#if (article?? && article.articleCommentable) || !article??> checked="checked"</#if> type="checkbox" id="articleCommentable"></label>
                         <label class="article-anonymous">&nbsp;  ${notifyFollowersLabel}<input type="checkbox" id="articleNotifyFollowers"></label>
+                        </#if>
                         <#if article?? && permissions["commonRemoveArticle"].permissionGrant>
                             <button class="red" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
                         </#if>

@@ -37,6 +37,12 @@
                     <div class="ft-fade">${addNormalArticleTipLabel}</div>
                 </div>
                 <div>
+                    <a href="${servePath}/post?type=6">
+                        <svg><use xlink:href="#streamline-sharp--paragraph-article-solid"></use></svg> ${articleLabel}
+                    </a>
+                    <div class="ft-fade">长篇连载</div>
+                </div>
+                <div>
                     <a rel="nofollow" href="${servePath}/post?type=5">
                         <svg><use xlink:href="#iconAsk"></use></svg> ${qnaLabel}
                     </a>
