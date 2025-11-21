@@ -349,7 +349,7 @@ var Chat = {
 
     addToMessageList(userName, avatarURL, preview, isOnline) {
         let dot = preview.length > 7 ? "..." : "";
-        let status = isOnline ? '<div style="line-height: 0.65em; font-size: 2.5em; color: green">·</div>' : '<div style="line-height: 0.65em; font-size: 2.5em; color: rgba(149,149,149,0.3)">·</div>';
+        let status = isOnline ? '<div style="color: green">[在线]</div>' : '<div style="color: rgba(149,149,149,0.3)">[离线]</div>';
         $("#chatMessageList").append('' +
             '<div class="module-panel" id="chatTo' + userName + '" style="padding: 10px 15px;cursor: pointer" onclick="Chat.init(\'' + userName + '\')"\n' +
             '    <nav class="home-menu">\n' +
