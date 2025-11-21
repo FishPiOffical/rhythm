@@ -18,8 +18,12 @@
  */
 package org.b3log.symphony.util;
 
-import jodd.http.HttpRequest;
-import jodd.http.HttpResponse;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
@@ -27,14 +31,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.model.Common;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import jodd.http.HttpRequest;
+import jodd.http.HttpResponse;
 
 /**
  * Geography utilities.
