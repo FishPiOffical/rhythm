@@ -132,6 +132,31 @@ public class ChatProcessor {
                 final Transaction transaction = chatInfoRepository.beginTransaction();
                 chatInfoRepository.remove(oId);
                 transaction.commit();
+
+                // 新增：删除与此条消息相关的未读记录（按 fromId/toId 匹配）
+                try {
+                    final Transaction unreadTx = chatUnreadRepository.beginTransaction();
+                    Query q = new Query().setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter("fromId", FilterOperator.EQUAL, msg.optString("fromId")),
+                            new PropertyFilter("toId", FilterOperator.EQUAL, msg.optString("toId"))
+                    ));
+                    chatUnreadRepository.remove(q);
+                    unreadTx.commit();
+
+                    // 通知接收者刷新未读数
+                    try {
+                        Query queryUnread = new Query().setFilter(new PropertyFilter("toId", FilterOperator.EQUAL, msg.optString("toId")));
+                        List<JSONObject> remain = chatUnreadRepository.getList(queryUnread);
+                        final JSONObject cmd = new JSONObject();
+                        cmd.put(UserExt.USER_T_ID, msg.optString("toId"));
+                        cmd.put(Common.COMMAND, "chatUnreadCountRefresh");
+                        cmd.put("count", remain == null ? 0 : remain.size());
+                        UserChannel.sendCmd(cmd);
+                    } catch (Exception ignored) {
+                    }
+                } catch (Exception ignored) {
+                }
+
                 ChatChannel.sendMsg(msg.optString("fromId"), msg.optString("toId"), oId);
             } else {
                 context.renderJSON(new JSONObject()
