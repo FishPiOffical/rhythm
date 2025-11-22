@@ -1,0 +1,16 @@
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.recommend.points_per_ticket','512','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.monthly.free_tickets_per_month','1','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.monthly.vip_bonus_tickets.V4','4','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.tip.allowed_denominations','32,64,128,512,1024,2048','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.tip.custom.min','32','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.tip.custom.max','10240','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.rate.limit.vote.same_target.min_interval_ms','60000','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.rate.limit.vote.window.minutes','10','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.rate.limit.vote.window.max_actions','30','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.notify.aggregate.window.minutes','10','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.notify.max_items_per_batch','50','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.search.index_domain','yuhu','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.prefs.default.theme','light','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.prefs.default.fontSize','18','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.prefs.default.pageWidth','800','yuhu');
+INSERT INTO option (oId, optionValue, optionCategory) VALUES ('yuhu.tag.alias.regex','^[a-z][a-z0-9_-]*$','yuhu');

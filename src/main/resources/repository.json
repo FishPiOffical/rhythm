@@ -884,6 +884,156 @@
       ]
     },
     {
+      "name": "yuhu_book",
+      "description": "Yuhu 书籍",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuBookTitle", "type": "String", "length": 255, "description": "书名" },
+        { "name": "yuhuBookIntro", "type": "String", "length": 10240, "description": "简介" },
+        { "name": "yuhuBookAuthorProfileId", "type": "String", "length": 19, "description": "作者 ProfileId" },
+        { "name": "yuhuBookStatus", "type": "String", "length": 32, "description": "状态" },
+        { "name": "yuhuBookCoverURL", "type": "String", "length": 512, "description": "封面 URL" },
+        { "name": "yuhuBookWordCount", "type": "int", "description": "字数" },
+        { "name": "yuhuBookLatestChapterId", "type": "String", "length": 19, "description": "最新章节 id" },
+        { "name": "yuhuBookScore", "type": "double", "description": "评分" },
+        { "name": "yuhuBookCreated", "type": "long", "description": "创建时间" },
+        { "name": "yuhuBookUpdated", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "yuhu_volume",
+      "description": "Yuhu 分卷",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuVolumeBookId", "type": "String", "length": 19, "description": "所属书籍 id" },
+        { "name": "yuhuVolumeIndex", "type": "int", "description": "卷序" },
+        { "name": "yuhuVolumeTitle", "type": "String", "length": 255, "description": "卷标题" },
+        { "name": "yuhuVolumeIntro", "type": "String", "length": 10240, "description": "卷简介" },
+        { "name": "yuhuVolumeCreated", "type": "long", "description": "创建时间" }
+      ]
+    },
+    {
+      "name": "yuhu_chapter",
+      "description": "Yuhu 章节",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuChapterBookId", "type": "String", "length": 19, "description": "所属书籍 id" },
+        { "name": "yuhuChapterVolumeId", "type": "String", "length": 19, "description": "所属分卷 id" },
+        { "name": "yuhuChapterIndex", "type": "int", "description": "章序" },
+        { "name": "yuhuChapterTitle", "type": "String", "length": 255, "description": "标题" },
+        { "name": "yuhuChapterContentMD", "type": "String", "length": 1048576, "description": "Markdown 正文" },
+        { "name": "yuhuChapterContentHTML", "type": "String", "length": 1048576, "description": "HTML 正文" },
+        { "name": "yuhuChapterWordCount", "type": "int", "description": "字数" },
+        { "name": "yuhuChapterPublishedAt", "type": "long", "description": "发布时间" },
+        { "name": "yuhuChapterIsPaid", "type": "boolean", "description": "是否付费" },
+        { "name": "yuhuChapterStatus", "type": "String", "length": 16, "description": "状态" },
+        { "name": "yuhuChapterToC", "type": "String", "length": 10240, "description": "目录 JSON" },
+        { "name": "yuhuChapterParagraphAnchors", "type": "String", "length": 10240, "description": "段落锚点 JSON" }
+      ]
+    },
+    {
+      "name": "yuhu_user_profile",
+      "description": "Yuhu 用户档案",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuUserProfileLinkedUserId", "type": "String", "length": 19, "description": "关联用户 id" },
+        { "name": "yuhuUserProfileRole", "type": "String", "length": 16, "description": "角色" },
+        { "name": "yuhuUserProfileNickname", "type": "String", "length": 64, "description": "昵称" },
+        { "name": "yuhuUserProfileIntro", "type": "String", "length": 10240, "description": "简介" },
+        { "name": "yuhuUserProfileAvatarURL", "type": "String", "length": 512, "description": "头像 URL" },
+        { "name": "yuhuUserProfileDisplayOverrideEnabled", "type": "boolean", "description": "显示覆盖开关" },
+        { "name": "yuhuUserProfilePrefTheme", "type": "String", "length": 16, "description": "主题" },
+        { "name": "yuhuUserProfilePrefFontSize", "type": "int", "description": "字号" },
+        { "name": "yuhuUserProfilePrefPageWidth", "type": "int", "description": "页面宽度" },
+        { "name": "yuhuUserProfileCreated", "type": "long", "description": "创建时间" },
+        { "name": "yuhuUserProfileUpdated", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "yuhu_bookmark",
+      "description": "Yuhu 书签",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuBookmarkProfileId", "type": "String", "length": 19, "description": "ProfileId" },
+        { "name": "yuhuBookmarkBookId", "type": "String", "length": 19, "description": "书籍 id" },
+        { "name": "yuhuBookmarkChapterId", "type": "String", "length": 19, "description": "章节 id" },
+        { "name": "yuhuBookmarkParagraphId", "type": "String", "length": 64, "description": "段落 id" },
+        { "name": "yuhuBookmarkOffset", "type": "int", "description": "偏移量" },
+        { "name": "yuhuBookmarkCreated", "type": "long", "description": "创建时间" }
+      ]
+    },
+    {
+      "name": "yuhu_reading_progress",
+      "description": "Yuhu 阅读进度",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuReadingProgressProfileId", "type": "String", "length": 19, "description": "ProfileId" },
+        { "name": "yuhuReadingProgressBookId", "type": "String", "length": 19, "description": "书籍 id" },
+        { "name": "yuhuReadingProgressChapterId", "type": "String", "length": 19, "description": "章节 id" },
+        { "name": "yuhuReadingProgressPercent", "type": "int", "description": "百分比" },
+        { "name": "yuhuReadingProgressUpdated", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "yuhu_comment",
+      "description": "Yuhu 评论",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuCommentProfileId", "type": "String", "length": 19, "description": "ProfileId" },
+        { "name": "yuhuCommentBookId", "type": "String", "length": 19, "description": "书籍 id" },
+        { "name": "yuhuCommentChapterId", "type": "String", "length": 19, "description": "章节 id" },
+        { "name": "yuhuCommentParagraphId", "type": "String", "length": 64, "description": "段落 id" },
+        { "name": "yuhuCommentContent", "type": "String", "length": 102400, "description": "正文" },
+        { "name": "yuhuCommentCreated", "type": "long", "description": "创建时间" },
+        { "name": "yuhuCommentStatus", "type": "String", "length": 16, "description": "状态" },
+        { "name": "yuhuCommentLikeCnt", "type": "int", "description": "点赞计数" },
+        { "name": "yuhuCommentDislikeCnt", "type": "int", "description": "点踩计数" }
+      ]
+    },
+    {
+      "name": "yuhu_tag",
+      "description": "Yuhu 标签",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuTagName", "type": "String", "length": 64, "description": "名称" },
+        { "name": "yuhuTagAliasEN", "type": "String", "length": 64, "description": "别名" },
+        { "name": "yuhuTagDesc", "type": "String", "length": 512, "description": "描述" }
+      ]
+    },
+    {
+      "name": "yuhu_book_tag",
+      "description": "Yuhu 书籍-标签",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuBookTagBookId", "type": "String", "length": 19, "description": "书籍 id" },
+        { "name": "yuhuBookTagTagId", "type": "String", "length": 19, "description": "标签 id" }
+      ]
+    },
+    {
+      "name": "yuhu_subscription",
+      "description": "Yuhu 订阅",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuSubscriptionProfileId", "type": "String", "length": 19, "description": "ProfileId" },
+        { "name": "yuhuSubscriptionBookId", "type": "String", "length": 19, "description": "书籍 id" },
+        { "name": "yuhuSubscriptionCreated", "type": "long", "description": "创建时间" }
+      ]
+    },
+    {
+      "name": "yuhu_vote",
+      "description": "Yuhu 投票/支持/评分",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "yuhuVoteProfileId", "type": "String", "length": 19, "description": "ProfileId" },
+        { "name": "yuhuVoteTargetType", "type": "int", "description": "目标类型" },
+        { "name": "yuhuVoteTargetId", "type": "String", "length": 19, "description": "目标 id" },
+        { "name": "yuhuVoteType", "type": "int", "description": "类型" },
+        { "name": "yuhuVoteValue", "type": "int", "description": "值" },
+        { "name": "yuhuVotePointsCost", "type": "int", "description": "积分消耗" },
+        { "name": "yuhuVoteCreated", "type": "long", "description": "创建时间" }
+      ]
+    },
+    {
       "name": "reward",
       "description": "打赏表",
       "keys": [

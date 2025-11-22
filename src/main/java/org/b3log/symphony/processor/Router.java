@@ -79,6 +79,8 @@ public final class Router {
         ActivityProcessor.register();
         // 帖子
         ArticleProcessor.register();
+        // YUHU
+        YuhuProcessor.register();
         // 清风明月
         BreezemoonProcessor.register();
         // 验证码
