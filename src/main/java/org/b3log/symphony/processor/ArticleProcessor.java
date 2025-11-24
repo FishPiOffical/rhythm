@@ -1168,7 +1168,7 @@ public class ArticleProcessor {
         boolean isYuhuPath = request.getRequestURI().contains("/yuhu");
         String ftlPath = "article.ftl";
         if (isYuhuPath) {
-            ftlPath = "yuhu-article.ftl";
+            ftlPath = "yuhu/yuhu-article.ftl";
         }else{
             ftlPath = "article.ftl";
         }

@@ -18,9 +18,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
-<#include "macro-head.ftl">
-<#include "macro-pagination-query.ftl">
-<#include "common/title-icon.ftl">
+<#include "../macro-head.ftl">
+<#include "../macro-pagination-query.ftl">
+<#include "../common/title-icon.ftl">
 <!DOCTYPE html>
 <html>
 <head>
@@ -164,7 +164,7 @@
         </div>
     </div>
 </div>
-<#include "footer.ftl">
+<#include "../footer.ftl">
 <script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
 <script src="${staticServePath}/js/yuhu-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>

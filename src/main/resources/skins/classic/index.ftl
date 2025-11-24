@@ -338,7 +338,7 @@
         <div class="index-recent fn-flex-1">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">长篇连载</div>
-                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/tag/长篇连载">更多</a></div>
+                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/yuhu">更多</a></div>
                 <div style="clear:both;"></div>
             </div>
             <div class="module-panel">
@@ -346,7 +346,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 10px;">
                         <#list novels as novel>
                             <#if novel_index < 6>
-                                <a href="${servePath}${novel.articlePermalink}" style="text-decoration: none; color: inherit;">
+                                <a href="${servePath}/yuhu${novel.articlePermalink}" style="text-decoration: none; color: inherit;">
                                     <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s;"
                                          onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
                                          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">

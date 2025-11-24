@@ -20,11 +20,13 @@ package org.b3log.symphony.processor;
 
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
+import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.Keys;
 import org.b3log.latke.model.User;
+import org.b3log.symphony.service.DataModelService;
 import org.b3log.symphony.service.YuhuService;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
@@ -35,11 +37,17 @@ import org.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class YuhuProcessor {
     @Inject
     private YuhuService yuhuService;
+    /**
+     * Data model service.
+     */
+    @Inject
+    private DataModelService dataModelService;
 
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
@@ -48,6 +56,7 @@ public class YuhuProcessor {
         final PermissionMidware permissionMidware = beanManager.getReference(PermissionMidware.class);
         final YuhuProcessor p = beanManager.getReference(YuhuProcessor.class);
 
+        Dispatcher.get("/yuhu", p::bookHome);
         Dispatcher.post("/yuhu/book", p::addBook, loginCheck::handle);
         Dispatcher.get("/yuhu/books", p::listBooks);
         Dispatcher.get("/yuhu/book/{bookId}", p::getBook);
@@ -87,6 +96,15 @@ public class YuhuProcessor {
         Dispatcher.get("/yuhu/search", p::search);
 
         Dispatcher.post("/yuhu/profile/display", p::toggleProfileDisplay, loginCheck::handle);
+    }
+
+    public void bookHome(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "yuhu/yuhu.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        dataModel.put(User.USER, user);
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
     public void addBook(final RequestContext context) {

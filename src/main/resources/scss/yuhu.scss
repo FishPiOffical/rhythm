@@ -3,6 +3,19 @@
   --article-font-size: 18px;
 }
 
+
+/* 鱼乎 Home*/
+.container{
+  min-height: 70vh;
+  box-sizing: border-box;
+  margin: 20px 0;
+  background: white;
+  padding: 20px;
+}
+
+
+
+/* 鱼乎 文章 */
 /* 右侧菜单栏 */
 .right-nav-box {
   position: fixed;
