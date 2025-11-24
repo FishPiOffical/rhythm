@@ -271,6 +271,10 @@ public class BreezemoonProcessor {
 
             if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS)) {
                 UserChannel.sendCmdToAll(new JSONObject().put("bz", data).put("command", "bz-update"));
+            } else {
+                context.renderMsg("您的清风明月发表成功，但由于您的隐私设置为不公开，将不会显示在公开列表。<br>请至设置-隐私中，打开“公开清风明月列表”选项。");
+                context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
+                return;
             }
 
             context.renderData(data);
