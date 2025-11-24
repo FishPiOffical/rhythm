@@ -269,10 +269,12 @@ var Chat = {
                             list.forEach((data) => {
                                 const name = data.senderUserName || data.receiverUserName;
                                 if (!name) return;
-                                const $item = $("#chatTo" + name);
-                                if ($item.length > 0) {
-                                    $item.css("background-color", "#fff4eb");
-                                    $("#chatMessageList").prepend($item);
+                                if (name != to) {
+                                    const $item = $("#chatTo" + name);
+                                    if ($item.length > 0) {
+                                        $item.css("background-color", "#fff4eb");
+                                        $("#chatMessageList").prepend($item);
+                                    }
                                 }
                             });
                         }
