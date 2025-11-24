@@ -69,6 +69,14 @@ public class ChatProcessor {
             .maximumSize(10000)
             .build();
 
+    /**
+     * 未读消息缓存，key: userId, value: List<JSONObject>
+     */
+    private static final Cache<String, List<JSONObject>> CHAT_UNREAD_CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(30, TimeUnit.SECONDS)
+            .maximumSize(10000)
+            .build();
+
     @Inject
     private ChatUnreadRepository chatUnreadRepository;
 
@@ -233,12 +241,23 @@ public class ChatProcessor {
             String fromUser = context.param("fromUser");
             JSONObject fromUserJSON = userQueryService.getUserByName(fromUser);
             String fromUserId = fromUserJSON.optString(Keys.OBJECT_ID);
-            final Transaction transaction = chatUnreadRepository.beginTransaction();
+
+            // 优化：先查未读消息是否存在，无则直接返回
             Query query = new Query()
                     .setFilter(CompositeFilterOperator.and(
                             new PropertyFilter("fromId", FilterOperator.EQUAL, fromUserId),
                             new PropertyFilter("toId", FilterOperator.EQUAL, userId)
                     ));
+            List<JSONObject> unreadList = chatUnreadRepository.getList(query);
+            if (unreadList == null || unreadList.isEmpty()) {
+                // 无未读消息，直接返回
+                context.renderJSON(new JSONObject().put("result", 0));
+                // 清理未读缓存
+                CHAT_UNREAD_CACHE.invalidate(userId);
+                return;
+            }
+
+            final Transaction transaction = chatUnreadRepository.beginTransaction();
             chatUnreadRepository.remove(query);
             transaction.commit();
             // 通知用户
@@ -252,6 +271,8 @@ public class ChatProcessor {
                 UserChannel.sendCmd(cmd);
             } catch (Exception ignored) {
             }
+            // 清理未读缓存
+            CHAT_UNREAD_CACHE.invalidate(userId);
         } catch (Exception e) {
             context.renderJSON(new JSONObject()
                     .put("result", -1)
@@ -454,6 +475,15 @@ public class ChatProcessor {
         JSONObject currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
         String userId = currentUser.optString(Keys.OBJECT_ID);
 
+        // 优先从缓存获取
+        List<JSONObject> cachedResult = CHAT_UNREAD_CACHE.getIfPresent(userId);
+        if (cachedResult != null) {
+            context.renderJSON(new JSONObject().put("result", cachedResult.size())
+                    .put("data", cachedResult)
+                    .put("cached", true));
+            return;
+        }
+
         Query query = new Query().setFilter(new PropertyFilter("toId", FilterOperator.EQUAL, userId));
         try {
             List<JSONObject> result = chatUnreadRepository.getList(query);
@@ -474,8 +504,11 @@ public class ChatProcessor {
                 }
             }
             if (result != null) {
+                // 写入缓存
+                CHAT_UNREAD_CACHE.put(userId, result);
                 context.renderJSON(new JSONObject().put("result", result.size())
-                        .put("data", result));
+                        .put("data", result)
+                        .put("cached", false));
             }
         } catch (RepositoryException ignored) {
         }
@@ -504,6 +537,9 @@ public class ChatProcessor {
     public static void invalidateChatListCache(String fromId, String toId) {
         CHAT_LIST_CACHE.invalidate(fromId);
         CHAT_LIST_CACHE.invalidate(toId);
+        // 同时清理未读缓存
+        CHAT_UNREAD_CACHE.invalidate(fromId);
+        CHAT_UNREAD_CACHE.invalidate(toId);
     }
 
     /**
@@ -511,5 +547,6 @@ public class ChatProcessor {
      */
     public static void clearChatListCache() {
         CHAT_LIST_CACHE.invalidateAll();
+        CHAT_UNREAD_CACHE.invalidateAll();
     }
 }
