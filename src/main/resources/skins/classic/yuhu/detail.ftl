@@ -32,8 +32,8 @@
 <body>
 <#include "../header.ftl">
 <div class="container">
-    <h1>YuHu-鱼乎</h1>
-    <h3>鱼乎专栏首页-如果已经登录，那么会显示搜藏的专栏(book架)</h3>
+    <h1>YuHu-鱼乎-合集详情</h1>
+    <h3>合集信息</h3>
 </div>
 <#include "../footer.ftl">
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>

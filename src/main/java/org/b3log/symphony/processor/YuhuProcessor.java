@@ -138,13 +138,19 @@ public class YuhuProcessor {
 
     public void getBook(final RequestContext context) {
         try {
-            final String bookId = context.pathVar("bookId");
-            final JSONObject ret = yuhuService.getBook(bookId);
-            context.renderJSON(StatusCodes.SUCC);
-            context.renderData(ret);
+            final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "yuhu/detail.ftl");
+            final Map<String, Object> dataModel = renderer.getDataModel();
+            final JSONObject user = (JSONObject) context.attr(User.USER);
+            dataModel.put(User.USER, user);
+
+//            final String bookId = context.pathVar("bookId");
+//            final JSONObject ret = yuhuService.getBook(bookId);
+//            dataModel.put("book",ret);
+
+            dataModelService.fillHeaderAndFooter(context, dataModel);
+
         } catch (Exception e) {
-            context.renderJSON(StatusCodes.ERR);
-            context.renderMsg("资源不存在");
+            context.sendError(404);
         }
     }
 
