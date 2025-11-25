@@ -794,6 +794,19 @@ public class SettingsProcessor {
 
         // “感谢加入”系统通知已读置位 https://github.com/b3log/symphony/issues/907
         notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_SYS_ANNOUNCE_NEW_USER);
+
+        // 根据param中的to查用户是否存在
+        String to = context.param("to");
+        if (to == null) {
+            dataModel.put("pointTransferToUser", "");
+        } else {
+            JSONObject pointTransferToUser = userQueryService.getUserByName(to);
+            if (pointTransferToUser == null) {
+                dataModel.put("pointTransferToUser", "");
+            } else {
+                dataModel.put("pointTransferToUser", pointTransferToUser.optString(User.USER_NAME));
+            }
+        }
     }
 
     /**

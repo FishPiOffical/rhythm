@@ -38,5 +38,8 @@
         <div id="pointTransferTip" class="tip"></div> <br/>
         <button class="red fn-right" onclick="Settings.pointTransfer('${csrfToken}')">${confirmTransferLabel}</button>
     </div>
+    <script>
+        $('#pointTransferUserName').val('${pointTransferToUser}');
+    </script>
 </div>
 </@home>

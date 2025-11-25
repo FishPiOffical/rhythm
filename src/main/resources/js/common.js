@@ -1643,8 +1643,8 @@ var Util = {
                             break;
                     }
                     html += '                    </a>\n';
-                    html += '                    <a href="' + Label.servePath + '/member/' + userName + '/points" class="tooltipped-new tooltipped__n user-card__icon"\n' +
-                        '                       aria-label="' + userPoint + ' 积分">\n' +
+                    html += '                    <a href="' + Label.servePath + '/settings/point?to=' + userName + '" class="tooltipped-new tooltipped__n user-card__icon"\n' +
+                        '                       aria-label="' + userPoint + ' 积分（点击转账）">\n' +
                         '                        <svg>\n' +
                         '                            <use xlink:href="#iconPoints"></use>\n' +
                         '                        </svg>\n' +
@@ -1669,8 +1669,7 @@ var Util = {
                     }
 
                     html += '' +
-                        '<a class="tooltipped-new tooltipped__n user-card__icon user-card__no" rel="nofollow" onclick="javascript:void(0)" style="background-color:#eeeeeecc;border-radius:5px;padding:0 7px 0 4px;cursor:default;color:#6d6c6c;font-size:12px;"\n' +
-                        '   aria-label="' + userNo + ' 号成员">\n' +
+                        '<a class="user-card__icon user-card__no" rel="nofollow" onclick="javascript:void(0)" style="background-color:#eeeeeecc;border-radius:5px;padding:0 7px 0 4px;cursor:default;color:#6d6c6c;font-size:12px;">\n' +
                         '    <svg style="height: 12px; vertical-align: -4.5px">\n' +
                         '        <use xlink:href="#no"></use>' +
                         '    </svg>' +
