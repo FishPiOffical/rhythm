@@ -1923,8 +1923,8 @@ a[class*=" icon-"]:hover {
 }
 
 .user-card__btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.10);
 }
 
 .user-card__btn:active {
@@ -2006,6 +2006,35 @@ a[class*=" icon-"]:hover {
   overflow: hidden
 }
 
+/* 图标区：允许内部内容换行，图标行在上，底部控制区在下 */
+.user-card__icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 图标列表本身占满一行，其内部的 a/span 继续 float left 保持原有效果 */
+.user-card__icon-list {
+  flex: 1 1 100%;
+}
+
+/* 底部状态+按钮区域：单独一行，左右分布 */
+.user-card__status,
+.user-card__actions {
+  margin-top: 8px;
+}
+
+/* 让状态和按钮容器在底部一行布局：状态在左，按钮在右 */
+.user-card__icons .user-card__status {
+  order: 1;
+}
+
+.user-card__icons .user-card__actions {
+  order: 2;
+  margin-left: auto; /* 推到最右侧 */
+}
+
+/* 原有图标元素保持不变 */
 .user-card__icons a,.user-card__icons span {
   margin-right: 10px;
   float: left;
