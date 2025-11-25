@@ -64,6 +64,12 @@
 /* end common business */
 
 /* start common */
+.profile-module {
+  background: radial-gradient(circle at top left, rgba(229, 146, 48, 0.08), transparent 60%),
+  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.06), transparent 55%),
+  #ffffff !important;
+}
+
 .tag {
   font-size: 12px;
   color: $fade;
@@ -1329,13 +1335,20 @@ a[class*=" icon-"]:hover {
 /* start side module */
 .module {
   margin-bottom: 20px;
-  border-radius: 3px;
+  border-radius: 8px;
   width: 100%;
   word-wrap: break-word;
   box-sizing: border-box;
   min-width: 1px;
   background: $theme-primary;
   box-shadow: 0px 0px 2px rgb(98 124 153 / 10%);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.main .module:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transform: none;
+  border-color: rgba(203, 213, 225, 0.9);
 }
 
 .module-header {
@@ -1548,10 +1561,13 @@ a[class*=" icon-"]:hover {
 }
 
 .person-info {
-  //border-radius: 20px;
-  padding: 15px 0 5px;
-  border: 1px solid #eee;
+  padding: 18px 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   position: relative;
+  background: radial-gradient(circle at top left, rgba(229, 146, 48, 0.08), transparent 60%),
+  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.06), transparent 55%),
+  #ffffff;
 
   .status {
     margin-top: 0;
