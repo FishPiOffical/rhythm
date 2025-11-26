@@ -82,19 +82,32 @@ public class PointtransferMgmtService {
      * @return transfer record id, returns {@code null} if transfer failed
      */
     public String transfer(final String fromId, final String toId, final int type, final int sum,
-                                        final String dataId, final long time, final String memo) {
-        System.out.println("transfer");
+                           final String dataId, final long time, final String memo) {
+        // 简单打一个请求标识，方便在日志里区分不同调用
+        final long requestId = System.currentTimeMillis();
+        System.out.println("transfer[" + requestId + "] start");
+
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
-
             return null;
         }
 
+        // 统计等待锁的时间
+        final long waitStart = System.currentTimeMillis();
         TRANSFER_LOCK.lock();
+        final long waitEnd = System.currentTimeMillis();
+        System.out.println("transfer[" + requestId + "] wait lock: " + (waitEnd - waitStart) + " ms");
+
+        final long txBeginAt = System.currentTimeMillis();
         final Transaction transaction = pointtransferRepository.beginTransaction();
+        System.out.println("transfer[" + requestId + "] beginTransaction cost: " + (System.currentTimeMillis() - txBeginAt) + " ms");
+
+        final long bizStart = System.currentTimeMillis();
         try {
             int fromBalance = 0;
+            long fromUserStart = 0L;
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
+                fromUserStart = System.currentTimeMillis();
                 final JSONObject fromUser = userRepository.get(fromId);
                 fromBalance = fromUser.optInt(UserExt.USER_POINT) - sum;
                 if (type != Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT) {
@@ -110,16 +123,21 @@ public class PointtransferMgmtService {
                 }
                 fromUser.put(UserExt.USER_POINT, fromBalance);
                 userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
+                System.out.println("transfer[" + requestId + "] fromUser get+update cost: " + (System.currentTimeMillis() - fromUserStart) + " ms");
             }
 
             int toBalance = 0;
+            long toUserStart = 0L;
             if (!Pointtransfer.ID_C_SYS.equals(toId)) {
+                toUserStart = System.currentTimeMillis();
                 final JSONObject toUser = userRepository.get(toId);
                 toBalance = toUser.optInt(UserExt.USER_POINT) + sum;
                 toUser.put(UserExt.USER_POINT, toBalance);
                 userRepository.update(toId, toUser, UserExt.USER_POINT);
+                System.out.println("transfer[" + requestId + "] toUser get+update cost: " + (System.currentTimeMillis() - toUserStart) + " ms");
             }
 
+            final long ptStart = System.currentTimeMillis();
             final JSONObject pointtransfer = new JSONObject();
             pointtransfer.put(Pointtransfer.FROM_ID, fromId);
             pointtransfer.put(Pointtransfer.TO_ID, toId);
@@ -131,11 +149,21 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.DATA_ID, dataId);
             pointtransfer.put(Pointtransfer.MEMO, memo);
 
+            final long addStart = System.currentTimeMillis();
             final String ret = pointtransferRepository.add(pointtransfer);
-            PointtransferRedcRepository.addRecord(fromId, ret);
-            PointtransferRedcRepository.addRecord(toId, ret);
+            System.out.println("transfer[" + requestId + "] pointtransferRepository.add cost: " + (System.currentTimeMillis() - addStart) + " ms");
 
+            final long redcStart = System.currentTimeMillis();
+            PointtransferRedcRepository.addRecordAsync(fromId, ret);
+            PointtransferRedcRepository.addRecordAsync(toId, ret);
+            System.out.println("transfer[" + requestId + "] PointtransferRedcRepository.addRecordAsync enqueue cost: " + (System.currentTimeMillis() - redcStart) + " ms");
+
+            System.out.println("transfer[" + requestId + "] add pointtransfer + redc (enqueue) total cost: " + (System.currentTimeMillis() - ptStart) + " ms");
+
+            final long commitStart = System.currentTimeMillis();
             transaction.commit();
+            System.out.println("transfer[" + requestId + "] commit cost: " + (System.currentTimeMillis() - commitStart) + " ms");
+            System.out.println("transfer[" + requestId + "] total biz cost: " + (System.currentTimeMillis() - bizStart) + " ms");
 
             return ret;
         } catch (final Exception e) {
@@ -149,6 +177,7 @@ public class PointtransferMgmtService {
             return null;
         } finally {
             TRANSFER_LOCK.unlock();
+            System.out.println("transfer[" + requestId + "] end");
         }
     }
 
@@ -175,7 +204,9 @@ public class PointtransferMgmtService {
         TRANSFER_LOCK.lock();
         try {
             int fromBalance = 0;
+            long fromUserStart = 0L;
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
+                fromUserStart = System.currentTimeMillis();
                 final JSONObject fromUser = userRepository.get(fromId);
                 fromBalance = fromUser.optInt(UserExt.USER_POINT) - sum;
                 if (fromBalance < 0) {
@@ -189,16 +220,21 @@ public class PointtransferMgmtService {
                 }
                 fromUser.put(UserExt.USER_POINT, fromBalance);
                 userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
+                System.out.println("transfer[] fromUser get+update cost: " + (System.currentTimeMillis() - fromUserStart) + " ms");
             }
 
             int toBalance = 0;
+            long toUserStart = 0L;
             if (!Pointtransfer.ID_C_SYS.equals(toId)) {
+                toUserStart = System.currentTimeMillis();
                 final JSONObject toUser = userRepository.get(toId);
                 toBalance = toUser.optInt(UserExt.USER_POINT) + sum;
                 toUser.put(UserExt.USER_POINT, toBalance);
                 userRepository.update(toId, toUser, UserExt.USER_POINT);
+                System.out.println("transfer[] toUser get+update cost: " + (System.currentTimeMillis() - toUserStart) + " ms");
             }
 
+            final long ptStart = System.currentTimeMillis();
             final JSONObject pointtransfer = new JSONObject();
             pointtransfer.put(Pointtransfer.FROM_ID, fromId);
             pointtransfer.put(Pointtransfer.TO_ID, toId);
@@ -210,10 +246,16 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.DATA_ID, dataId);
             pointtransfer.put(Pointtransfer.MEMO, memo);
 
-            String ret = pointtransferRepository.add(pointtransfer);
+            final long addStart = System.currentTimeMillis();
+            final String ret = pointtransferRepository.add(pointtransfer);
+            System.out.println("transfer[] pointtransferRepository.add cost: " + (System.currentTimeMillis() - addStart) + " ms");
 
-            PointtransferRedcRepository.addRecord(fromId, ret);
-            PointtransferRedcRepository.addRecord(toId, ret);
+            final long redcStart = System.currentTimeMillis();
+            PointtransferRedcRepository.addRecordAsync(fromId, ret);
+            PointtransferRedcRepository.addRecordAsync(toId, ret);
+            System.out.println("transfer[] PointtransferRedcRepository.addRecord cost: " + (System.currentTimeMillis() - redcStart) + " ms");
+
+            System.out.println("transfer[] add pointtransfer + redc total cost: " + (System.currentTimeMillis() - ptStart) + " ms");
 
             return ret;
         } catch (final Exception e) {
