@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Pointtransfer management service.
@@ -50,6 +51,11 @@ public class PointtransferMgmtService {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(PointtransferMgmtService.class);
+
+    /**
+     * Global lock for all point transfers (single JVM).
+     */
+    private static final ReentrantLock TRANSFER_LOCK = new ReentrantLock();
 
     /**
      * Pointtransfer repository.
@@ -75,7 +81,7 @@ public class PointtransferMgmtService {
      * @param memo   the specified memo
      * @return transfer record id, returns {@code null} if transfer failed
      */
-    public synchronized String transfer(final String fromId, final String toId, final int type, final int sum,
+    public String transfer(final String fromId, final String toId, final int type, final int sum,
                                         final String dataId, final long time, final String memo) {
         System.out.println("transfer");
         if (StringUtils.equals(fromId, toId)) {
@@ -84,6 +90,7 @@ public class PointtransferMgmtService {
             return null;
         }
 
+        TRANSFER_LOCK.lock();
         final Transaction transaction = pointtransferRepository.beginTransaction();
         try {
             int fromBalance = 0;
@@ -140,6 +147,8 @@ public class PointtransferMgmtService {
                     ", type=" + type + ", dataId=" + dataId + ", memo=" + memo + "] failed", e);
 
             return null;
+        } finally {
+            TRANSFER_LOCK.unlock();
         }
     }
 
@@ -163,6 +172,7 @@ public class PointtransferMgmtService {
             return null;
         }
 
+        TRANSFER_LOCK.lock();
         try {
             int fromBalance = 0;
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
@@ -210,6 +220,8 @@ public class PointtransferMgmtService {
             LOGGER.log(Level.ERROR, "Transfer (in current tx) [fromId=" + fromId + ", toId=" + toId + ", sum=" + sum +
                     ", type=" + type + ", dataId=" + dataId + ", memo=" + memo + "] failed", e);
             return null;
+        } finally {
+            TRANSFER_LOCK.unlock();
         }
     }
 }
