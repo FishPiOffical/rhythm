@@ -304,7 +304,7 @@ public class ChatRoomBot {
                                 }
                             }
                             StringBuilder userSessionList = new StringBuilder();
-                            userSessionList.append("<details><summary>钉子户（" + ChatroomChannel.SESSIONS.size() + "人）</summary>");
+                            userSessionList.append("<details><summary>故障转移区（" + ChatroomChannel.SESSIONS.size() + "人）</summary>");
                             for (Map.Entry<String, Integer> s : sessionList.entrySet()) {
                                 userSessionList.append(s.getKey() + " " + s.getValue() + "<br>");
                             }
@@ -388,9 +388,9 @@ public class ChatRoomBot {
                             Map<String, Long> result = ChatroomChannel.check();
                             StringBuilder stringBuilder = new StringBuilder();
                             if (result.isEmpty()) {
-                                sendBotMsg("钉子户：报告！没有超过6小时未活跃的成员，一切都很和谐~");
+                                sendBotMsg("故障转移区：报告！没有超过6小时未活跃的成员，一切都很和谐~");
                             } else {
-                                stringBuilder.append("钉子户：报告！成功扫描超过6小时未活跃的成员，并已将他们断开连接：<br>");
+                                stringBuilder.append("故障转移区：报告！成功扫描超过6小时未活跃的成员，并已将他们断开连接：<br>");
                                 stringBuilder.append("<details><summary>不活跃用户列表</summary>");
                                 for (String i : result.keySet()) {
                                     long time = result.get(i);

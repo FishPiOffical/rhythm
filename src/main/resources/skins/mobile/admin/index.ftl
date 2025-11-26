@@ -39,10 +39,10 @@
             <li>文章列表频道 <span id="c1"></span></li>
             <li>文章频道 <span id="c2"></span></li>
             <li>私信频道 <span id="c3"></span></li>
-            <li>聊天室频道 <span id="c4"></span></li>
+            <li>聊天室频道（故障转移区） <span id="c4"></span></li>
             <li>五子棋频道 <span id="c5"></span></li>
             <li>管理日志频道 <span id="c6"></span></li>
-            <li>商店频道 <span id="c7"></span></li>
+            <li>商店频道（弃用） <span id="c7"></span></li>
             <li>用户频道 <span id="c8"></span></li>
         </ul>
         <span style="padding: 0 0 7px 10px;display: block;font-weight: 550;">实时：近十分钟请求数量/带宽</span>

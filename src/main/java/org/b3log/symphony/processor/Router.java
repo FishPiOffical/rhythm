@@ -60,8 +60,8 @@ public final class Router {
         //Dispatcher.webSocket("/logs-channel", logsChannel);
         //final ArticleListChannel articleListChannel = beanManager.getReference(ArticleListChannel.class);
         //Dispatcher.webSocket("/article-list-channel", articleListChannel);
-        //final ChatroomChannel chatroomChannel = beanManager.getReference(ChatroomChannel.class);
-        //Dispatcher.webSocket("/chat-room-channel", chatroomChannel);
+        final ChatroomChannel chatroomChannel = beanManager.getReference(ChatroomChannel.class);
+        Dispatcher.webSocket("/chat-room-channel", chatroomChannel);
 
         // 注册 HTTP 错误处理
         final ErrorProcessor errorProcessor = beanManager.getReference(ErrorProcessor.class);
