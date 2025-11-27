@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
+import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.JSONs;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONObject;
@@ -58,6 +59,16 @@ public class UserCache {
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
             return size() > 2000;
+        }
+    });
+
+    /**
+     * IP, User.
+     */
+    private static final Map<String, String> IP_CACHE = Collections.synchronizedMap(new LinkedHashMap<String, String>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return size() > 50000;
         }
     });
 
@@ -115,6 +126,10 @@ public class UserCache {
         return JSONs.clone(user);
     }
 
+    public static boolean hasUserByIP(final String ip) {
+        return IP_CACHE.containsKey(ip);
+    }
+
     /**
      * Adds or updates the specified user.
      *
@@ -123,7 +138,8 @@ public class UserCache {
     public void putUser(final JSONObject user) {
         ID_CACHE.put(user.optString(Keys.OBJECT_ID), JSONs.clone(user));
         NAME_CACHE.put(user.optString(User.USER_NAME), JSONs.clone(user));
-
+        IP_CACHE.put(user.optString(UserExt.USER_LATEST_LOGIN_IP), user.optString(Keys.OBJECT_ID));
+        System.out.println("UserCache.putIpCache:" + user.optString(UserExt.USER_LATEST_LOGIN_IP) + ":" + user.optString(Keys.OBJECT_ID) + " size" + IP_CACHE.size());
         Sessions.put(user.optString(Keys.OBJECT_ID), user);
     }
 
