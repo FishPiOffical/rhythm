@@ -482,10 +482,17 @@ public class UserProcessor {
                         return;
                     }
                     final String userId = user.optString(Keys.OBJECT_ID);
+                    // 打印转账信息
+                    System.out.println("金手指-积分：用户: " + userName + ", 积分: " + point + ", 描述: " + memo);
                     if (point > 0) {
                         // 增加积分
                         final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
                                 Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, point, userId, System.currentTimeMillis(), memo);
+                        if (transferId == null) {
+                            context.renderJSON(StatusCodes.ERR);
+                            context.renderMsg("转账失败：无法完成交易。");
+                            return;
+                        }
                         final JSONObject notification = new JSONObject();
                         notification.put(Notification.NOTIFICATION_USER_ID, userId);
                         notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
@@ -501,6 +508,11 @@ public class UserProcessor {
                         point = -point;
                         final String transferId = pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
                                 Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT, point, memo, System.currentTimeMillis(), "");
+                        if (transferId == null) {
+                            context.renderJSON(StatusCodes.ERR);
+                            context.renderMsg("转账失败：无法完成交易。");
+                            return;
+                        }
                         final JSONObject notification = new JSONObject();
                         notification.put(Notification.NOTIFICATION_USER_ID, userId);
                         notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
