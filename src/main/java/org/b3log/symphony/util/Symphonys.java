@@ -114,7 +114,14 @@ public final class Symphonys {
                 resourceAsStream = Latkes.class.getResourceAsStream("/symphony.properties");
             }
 
-            CFG.load(resourceAsStream);
+            if (resourceAsStream == null) {
+                throw new FileNotFoundException("symphony.properties not found");
+            }
+
+            // 使用 UTF-8 读取，支持直接写中文
+            try (Reader reader = new InputStreamReader(resourceAsStream, java.nio.charset.StandardCharsets.UTF_8)) {
+                CFG.load(reader);
+            }
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Loads symphony.properties failed, exited", e);
 
