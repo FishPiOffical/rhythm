@@ -164,17 +164,4 @@
         </span>
     </div>
 </div>
-
-<div class="module">
-    <div class="module-header">
-        <h2>${deactivateAccountLabel} ${deactivateAccountTipLabel}</h2>
-    </div>
-    <div class="module-panel form fn-clear">
-        <label>${currentUsernameLabel}</label>
-        <input value="${currentUser.userName}" type="text" readonly /><br/><br/>
-
-        <div id="deactivateTip" class="tip"></div><br/>
-        <button class="fn-right ft-red" onclick="Settings.requestDeactive('${csrfToken}')">${deactivateAccountLabel}</button>
-    </div>
-</div>
 </@home>

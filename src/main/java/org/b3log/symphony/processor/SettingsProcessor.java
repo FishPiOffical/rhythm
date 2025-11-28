@@ -230,7 +230,7 @@ public class SettingsProcessor {
         final PointTransferValidationMidware pointTransferValidationMidware = beanManager.getReference(PointTransferValidationMidware.class);
 
         final SettingsProcessor settingsProcessor = beanManager.getReference(SettingsProcessor.class);
-        Dispatcher.post("/settings/deactivate", settingsProcessor::deactivateUser, loginCheck::handle);
+        //Dispatcher.post("/settings/deactivate", settingsProcessor::deactivateUser, loginCheck::handle);
         Dispatcher.post("/settings/username", settingsProcessor::updateUserName, loginCheck::handle);
         Dispatcher.post("/settings/email/vc", settingsProcessor::sendEmailVC, loginCheck::handle);
         Dispatcher.post("/settings/phone/vc", settingsProcessor::sendPhoneVC, loginCheck::handle);
