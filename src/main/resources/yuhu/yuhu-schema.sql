@@ -34,7 +34,11 @@ CREATE TABLE IF NOT EXISTS symphony_yuhu_chapter (
   yuhuChapterIsPaid TINYINT(1),
   yuhuChapterStatus VARCHAR(16),
   yuhuChapterToC TEXT,
-  yuhuChapterParagraphAnchors TEXT
+  yuhuChapterParagraphAnchors TEXT,
+  yuhuChapterReviewedAt BIGINT,
+  yuhuChapterReviewerProfileId VARCHAR(19),
+  yuhuChapterReviewResult VARCHAR(16),
+  yuhuChapterReviewNote VARCHAR(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS symphony_yuhu_user_profile (

@@ -44,7 +44,9 @@ while true; do
   echo "5) List volumes"
   echo "6) Create chapter"
   echo "7) Update chapter draft"
-  echo "8) Publish chapter"
+  echo "8) Submit chapter for review"
+  echo "8a) Approve chapter"
+  echo "8b) Reject chapter"
   echo "9) Freeze chapter"
   echo "10) Ban chapter"
   echo "11) Get prefs"
@@ -120,6 +122,16 @@ while true; do
     8)
       ask "Chapter ID" "$CHAPTER_ID" CHAPTER_ID
       curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/publish?apiKey=$API_KEY"
+      ;;
+    8a)
+      ask "Chapter ID" "$CHAPTER_ID" CHAPTER_ID
+      ask "Note" "" note
+      json_put "$BASE/yuhu/chapter/$CHAPTER_ID/approve?apiKey=$API_KEY" "{\"note\":\"$note\"}"
+      ;;
+    8b)
+      ask "Chapter ID" "$CHAPTER_ID" CHAPTER_ID
+      ask "Note" "" note
+      json_put "$BASE/yuhu/chapter/$CHAPTER_ID/reject?apiKey=$API_KEY" "{\"note\":\"$note\"}"
       ;;
     9)
       ask "Chapter ID" "$CHAPTER_ID" CHAPTER_ID

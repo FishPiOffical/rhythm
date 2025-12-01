@@ -928,7 +928,11 @@
         { "name": "yuhuChapterIsPaid", "type": "boolean", "description": "是否付费" },
         { "name": "yuhuChapterStatus", "type": "String", "length": 16, "description": "状态" },
         { "name": "yuhuChapterToC", "type": "String", "length": 10240, "description": "目录 JSON" },
-        { "name": "yuhuChapterParagraphAnchors", "type": "String", "length": 10240, "description": "段落锚点 JSON" }
+        { "name": "yuhuChapterParagraphAnchors", "type": "String", "length": 10240, "description": "段落锚点 JSON" },
+        { "name": "yuhuChapterReviewedAt", "type": "long", "description": "审批时间" },
+        { "name": "yuhuChapterReviewerProfileId", "type": "String", "length": 19, "description": "审批人 ProfileId" },
+        { "name": "yuhuChapterReviewResult", "type": "String", "length": 16, "description": "审批结果" },
+        { "name": "yuhuChapterReviewNote", "type": "String", "length": 512, "description": "审批备注" }
       ]
     },
     {

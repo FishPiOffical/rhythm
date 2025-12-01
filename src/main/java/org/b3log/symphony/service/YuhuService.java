@@ -107,7 +107,10 @@ public class YuhuService {
     public JSONObject getBook(final String bookId) throws RepositoryException {
         final JSONObject book = bookRepository.get(bookId);
         final List<JSONObject> volumes = volumeRepository.getList(new Query().setFilter(new PropertyFilter(YuhuVolume.YUHU_VOLUME_BOOK_ID, FilterOperator.EQUAL, bookId)).addSort(YuhuVolume.YUHU_VOLUME_INDEX, SortDirection.ASCENDING).setPage(1, Integer.MAX_VALUE));
-        final List<JSONObject> chapters = chapterRepository.getList(new Query().setFilter(new PropertyFilter(YuhuChapter.YUHU_CHAPTER_BOOK_ID, FilterOperator.EQUAL, bookId)).addSort(YuhuChapter.YUHU_CHAPTER_INDEX, SortDirection.ASCENDING).setPage(1, Integer.MAX_VALUE));
+        final List<JSONObject> chapters = chapterRepository.getList(new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, new ArrayList<>() {{
+            add(new PropertyFilter(YuhuChapter.YUHU_CHAPTER_BOOK_ID, FilterOperator.EQUAL, bookId));
+            add(new PropertyFilter(YuhuChapter.YUHU_CHAPTER_STATUS, FilterOperator.EQUAL, "normal"));
+        }})).addSort(YuhuChapter.YUHU_CHAPTER_INDEX, SortDirection.ASCENDING).setPage(1, Integer.MAX_VALUE));
         final JSONObject ret = new JSONObject();
         ret.put("book", book);
         ret.put("volumes", (Object) volumes);
@@ -162,12 +165,24 @@ public class YuhuService {
     public JSONObject publishChapter(final String chapterId) throws RepositoryException {
         final JSONObject ch = chapterRepository.get(chapterId);
         if (!"draft".equals(ch.optString(YuhuChapter.YUHU_CHAPTER_STATUS))) throw new RepositoryException("invalid state");
+        ch.put(YuhuChapter.YUHU_CHAPTER_STATUS, "pending");
+        chapterRepository.update(chapterId, ch);
+        return new JSONObject().put("status","pending");
+    }
+
+    public JSONObject approveChapter(final String chapterId, final String reviewerProfileId, final String note) throws RepositoryException {
+        final JSONObject ch = chapterRepository.get(chapterId);
+        if (!"pending".equals(ch.optString(YuhuChapter.YUHU_CHAPTER_STATUS))) throw new RepositoryException("invalid state");
         final String md = ch.optString(YuhuChapter.YUHU_CHAPTER_CONTENT_MD);
         final String html = Markdowns.toHTML(md);
         ch.put(YuhuChapter.YUHU_CHAPTER_CONTENT_HTML, html);
         ch.put(YuhuChapter.YUHU_CHAPTER_WORD_COUNT, md == null ? 0 : md.length());
         ch.put(YuhuChapter.YUHU_CHAPTER_STATUS, "normal");
         ch.put(YuhuChapter.YUHU_CHAPTER_PUBLISHED_AT, System.currentTimeMillis());
+        ch.put("yuhuChapterReviewedAt", System.currentTimeMillis());
+        ch.put("yuhuChapterReviewerProfileId", reviewerProfileId);
+        ch.put("yuhuChapterReviewResult", "approved");
+        if (note != null) ch.put("yuhuChapterReviewNote", note);
         chapterRepository.update(chapterId, ch);
         final String bookId = ch.optString(YuhuChapter.YUHU_CHAPTER_BOOK_ID);
         final JSONObject book = bookRepository.get(bookId);
@@ -177,6 +192,18 @@ public class YuhuService {
         book.put(YuhuBook.YUHU_BOOK_WORD_COUNT, wc);
         bookRepository.update(bookId, book);
         return new JSONObject().put("status","normal").put(YuhuChapter.YUHU_CHAPTER_PUBLISHED_AT, ch.optLong(YuhuChapter.YUHU_CHAPTER_PUBLISHED_AT));
+    }
+
+    public JSONObject rejectChapter(final String chapterId, final String reviewerProfileId, final String note) throws RepositoryException {
+        final JSONObject ch = chapterRepository.get(chapterId);
+        if (!"pending".equals(ch.optString(YuhuChapter.YUHU_CHAPTER_STATUS))) throw new RepositoryException("invalid state");
+        ch.put(YuhuChapter.YUHU_CHAPTER_STATUS, "draft");
+        ch.put("yuhuChapterReviewedAt", System.currentTimeMillis());
+        ch.put("yuhuChapterReviewerProfileId", reviewerProfileId);
+        ch.put("yuhuChapterReviewResult", "rejected");
+        if (note != null) ch.put("yuhuChapterReviewNote", note);
+        chapterRepository.update(chapterId, ch);
+        return new JSONObject().put("status","draft").put("reason", note == null ? "" : note);
     }
 
     public void setChapterState(final String chapterId, final String state) throws RepositoryException {

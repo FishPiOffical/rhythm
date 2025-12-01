@@ -17,6 +17,8 @@ curl -sS "$BASE/yuhu/book/$BOOK_ID/volumes"
 curl -sS -X POST "$BASE/yuhu/book/$BOOK_ID/chapter?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"volumeId":"'$VOL_ID'","title":"第一章","contentMD":"内容 Markdown","isPaid":false}'
 curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/draft?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"title":"第一章（修订）","contentMD":"更新后的 Markdown 内容"}'
 curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/publish?apiKey=$API_KEY"
+curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/approve?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"note":"LGTM"}'
+curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/reject?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"note":"需要修订"}'
 curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/freeze?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"reason":"质量问题待修"}'
 curl -sS -X PUT "$BASE/yuhu/chapter/$CHAPTER_ID/ban?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"reason":"违规内容"}'
 

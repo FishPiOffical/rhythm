@@ -64,6 +64,8 @@ public class YuhuProcessor {
         Dispatcher.get("/yuhu/book/{bookId}/volumes", p::listVolumes);
         Dispatcher.post("/yuhu/book/{bookId}/chapter", p::addChapterDraft, loginCheck::handle);
         Dispatcher.put("/yuhu/chapter/{chapterId}/publish", p::publishChapter, loginCheck::handle, permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/approve", p::approveChapter, loginCheck::handle, permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/reject", p::rejectChapter, loginCheck::handle, permissionMidware::check);
         Dispatcher.put("/yuhu/chapter/{chapterId}/freeze", p::freezeChapter, loginCheck::handle, permissionMidware::check);
         Dispatcher.put("/yuhu/chapter/{chapterId}/ban", p::banChapter, loginCheck::handle, permissionMidware::check);
         Dispatcher.put("/yuhu/chapter/{chapterId}/draft", p::updateChapterDraft, loginCheck::handle);
@@ -209,6 +211,40 @@ public class YuhuProcessor {
         try {
             final String chapterId = context.pathVar("chapterId");
             final JSONObject ret = yuhuService.publishChapter(chapterId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("状态非法");
+        }
+    }
+
+    public void approveChapter(final RequestContext context) {
+        try {
+            final JSONObject user = Sessions.getUser();
+            final String linkedUserId = user.optString(Keys.OBJECT_ID);
+            final JSONObject profile = yuhuService.ensureProfile(linkedUserId);
+            final String chapterId = context.pathVar("chapterId");
+            final JSONObject req = context.requestJSON();
+            final String note = req.optString("note");
+            final JSONObject ret = yuhuService.approveChapter(chapterId, profile.optString(Keys.OBJECT_ID), note);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("状态非法");
+        }
+    }
+
+    public void rejectChapter(final RequestContext context) {
+        try {
+            final JSONObject user = Sessions.getUser();
+            final String linkedUserId = user.optString(Keys.OBJECT_ID);
+            final JSONObject profile = yuhuService.ensureProfile(linkedUserId);
+            final String chapterId = context.pathVar("chapterId");
+            final JSONObject req = context.requestJSON();
+            final String note = req.optString("note");
+            final JSONObject ret = yuhuService.rejectChapter(chapterId, profile.optString(Keys.OBJECT_ID), note);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(ret);
         } catch (Exception e) {
