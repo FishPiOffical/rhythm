@@ -260,6 +260,7 @@ public class ChatroomProcessor {
         Dispatcher.get("/chat-room/barrager/get", chatroomProcessor::getBarragerCost, loginCheck::handle);
 
         Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
+        Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
     }
 
     public void getBarragerCost(final RequestContext context) {
@@ -274,6 +275,22 @@ public class ChatroomProcessor {
             return size() > 2000;
         }
     });
+
+    public void genMetalMaker(final RequestContext context) {
+        String body = "";
+        String genUrl = Symphonys.get("gen.metal.url") + "/maker";
+        final HttpRequest req = HttpRequest.get(genUrl).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT);
+        final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
+        res.close();
+        if (200 != res.statusCode()) {
+            context.sendError(500);
+            return;
+        }
+        body = res.charset("utf-8").bodyText();
+
+        context.getResponse().setContentType("text/html");
+        context.getResponse().sendBytes(body.getBytes());
+    }
 
     public void genMetalGif(final RequestContext context) {
         String ver = safeParam(context.param("ver"), "ver");

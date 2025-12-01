@@ -118,6 +118,9 @@
     <include path="/games/**/**/**/**/**/**/**/**/**/*.*" />
     <include path="/games/**/**/**/**/**/**/**/**/**/**/*.*" />
 
+    <include path="/gen/assets/*.js" />
+    <include path="/gen/assets/*.css" />
+
     <include path="/ads.txt" />
     <include path="/403.html" />
     <include path="/503.html" />
