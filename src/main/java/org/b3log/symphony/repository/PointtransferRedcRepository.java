@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Pointtransfer repository.
@@ -48,6 +50,11 @@ public class PointtransferRedcRepository extends AbstractRepository {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(PointtransferRedcRepository.class);
+
+    /**
+     * Single-thread executor for async redc insert.
+     */
+    private static final ExecutorService ASYNC_EXECUTOR = Executors.newSingleThreadExecutor();
 
     /**
      * Public constructor.
@@ -71,6 +78,31 @@ public class PointtransferRedcRepository extends AbstractRepository {
         obj.put("userId", userId);
         obj.put("rawId", rawId);
         return pointtransferRedcRepository.add(obj);
+    }
+
+    /**
+     * 新增一条冗余表记录（异步），不阻塞调用线程。
+     *
+     * 异常会被记录日志，但不会影响主流程。
+     *
+     * @param userId 关联用户ID
+     * @param rawId  主表转账ID
+     */
+    public static void addRecordAsync(final String userId, final String rawId) {
+        ASYNC_EXECUTOR.submit(() -> {
+            try {
+                final BeanManager beanManager = BeanManager.getInstance();
+                final PointtransferRedcRepository pointtransferRedcRepository = beanManager.getReference(PointtransferRedcRepository.class);
+                final Transaction transaction = pointtransferRedcRepository.beginTransaction();
+                JSONObject obj = new JSONObject();
+                obj.put("userId", userId);
+                obj.put("rawId", rawId);
+                pointtransferRedcRepository.add(obj);
+                transaction.commit();
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, "Async add redc record failed [userId=" + userId + ", rawId=" + rawId + "]", e);
+            }
+        });
     }
 
     /**

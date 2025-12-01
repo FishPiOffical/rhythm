@@ -18,8 +18,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
-<div class="ft-center module">
-    <div id="avatarURLDom" class="avatar-big" style="background-image:url('${user.userAvatarURL210}')"></div>
+<div class="ft-center module profile-module">
+    <div id="avatarURLDom"
+         class="avatar-big"
+         aria-label="${user.userName}"
+         style="background-image:url('${user.userAvatarURL210}')"></div>
     <div>
         <div class="user-name">
             <div id="userNicknameDom"><b>${user.userNickname}</b></div>

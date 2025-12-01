@@ -52,7 +52,7 @@ public class PointtransferSyncTool {
             // fromId冗余插入
             executor.submit(() -> {
                 try {
-                    PointtransferRedcRepository.addRecord(fromId, oId);
+                    PointtransferRedcRepository.addRecordAsync(fromId, oId);
                     count.incrementAndGet();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -63,7 +63,7 @@ public class PointtransferSyncTool {
             // toId冗余插入
             executor.submit(() -> {
                 try {
-                    PointtransferRedcRepository.addRecord(toId, oId);
+                    PointtransferRedcRepository.addRecordAsync(toId, oId);
                     count.incrementAndGet();
                 } catch (Exception e) {
                     e.printStackTrace();

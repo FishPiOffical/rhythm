@@ -205,6 +205,10 @@ public class ChatChannel implements WebSocketChannel {
             AdminProcessor.manager.onMessageSent(3, result.toString().length());
             return;
         }
+
+        // 清除缓存
+        ChatProcessor.invalidateChatListCache(fromId, toId);
+
         JSONObject chatUnread = new JSONObject();
         chatUnread.put("fromId", fromId);
         chatUnread.put("toId", toId);
@@ -298,6 +302,10 @@ public class ChatChannel implements WebSocketChannel {
             e.printStackTrace();
             return;
         }
+
+        // 清除缓存
+        ChatProcessor.invalidateChatListCache(fromId, toId);
+
         JSONObject chatUnread = new JSONObject();
         chatUnread.put("fromId", fromId);
         chatUnread.put("toId", toId);

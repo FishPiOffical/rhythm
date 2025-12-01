@@ -64,6 +64,12 @@
 /* end common business */
 
 /* start common */
+.profile-module {
+  background: radial-gradient(circle at top left, rgba(229, 146, 48, 0.08), transparent 60%),
+  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.06), transparent 55%),
+  #ffffff !important;
+}
+
 .tag {
   font-size: 12px;
   color: $fade;
@@ -201,7 +207,7 @@
   -webkit-animation-timing-function: ease-in;
   animation-timing-function: ease-in;
   -webkit-animation-delay: 0.4s;
-  animation-delay: 0.4s
+  animation-delay: 0.4s;
 }
 
 .tooltipped-s::after, .tooltipped-se::after, .tooltipped-sw::after {
@@ -832,7 +838,30 @@ a[class*=" icon-"]:hover {
   overflow: hidden;
   min-width: 500px;
   max-width: 90vw;
-  animation: dialog-pop-in 0.28s cubic-bezier(.4,0,.2,1);
+  animation: dialog-pop-in 0.28s cubic-bezier(.4, 0, .2, 1);
+  transform: scale(0.95);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease-in-out;
+
+  &.show {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  &.hide {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-pop-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .dialog-header-bg,
@@ -1306,13 +1335,20 @@ a[class*=" icon-"]:hover {
 /* start side module */
 .module {
   margin-bottom: 20px;
-  border-radius: 3px;
+  border-radius: 8px;
   width: 100%;
   word-wrap: break-word;
   box-sizing: border-box;
   min-width: 1px;
   background: $theme-primary;
   box-shadow: 0px 0px 2px rgb(98 124 153 / 10%);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.main .module:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transform: none;
+  border-color: rgba(203, 213, 225, 0.9);
 }
 
 .module-header {
@@ -1525,10 +1561,13 @@ a[class*=" icon-"]:hover {
 }
 
 .person-info {
-  //border-radius: 20px;
-  padding: 15px 0 5px;
-  border: 1px solid #eee;
+  padding: 18px 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   position: relative;
+  background: radial-gradient(circle at top left, rgba(229, 146, 48, 0.08), transparent 60%),
+  radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.06), transparent 55%),
+  #ffffff;
 
   .status {
     margin-top: 0;
@@ -1718,6 +1757,26 @@ a[class*=" icon-"]:hover {
   margin: 20px 0 0 0;
 }
 
+#userCard{
+  background-color: transparent; // 改为透明，避免显示白框
+  will-change: transform, opacity;
+  // 添加硬件加速
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  // 添加过渡效果
+  transition: opacity 0.2s ease;
+}
+
+// 显示状态时恢复背景
+#userCard.user-card-show {
+  opacity: 1;
+}
+
+// 隐藏状态时也隐藏容器
+#userCard.user-card-hide {
+  opacity: 0;
+}
+
 .user-card {
   -webkit-animation-duration: .15s;
   animation-duration: .15s;
@@ -1732,12 +1791,179 @@ a[class*=" icon-"]:hover {
   box-sizing: border-box;
   font-size: 14px;
   border-radius: 3px;
-  border-top: 1px solid transparent
+  border-top: 1px solid transparent;
+  opacity: 1;
+  transform: scale(0.92) translateY(8px);
+}
+
+// 显示动画 - 使用更平滑的曲线
+.user-card-show .user-card {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// 隐藏动画 - 更快的退出
+.user-card-hide .user-card {
+  opacity: 0;
+  transform: scale(0.95) translateY(6px);
+  transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// 头像入场动画 - 优化时间函数
+.user-card__avatar {
+  animation: user-card-avatar-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+@keyframes user-card-avatar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 名字区域入场动画
+.user-card__name-wrapper {
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+// 介绍文字入场动画
+.user-card__intro {
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+// 勋章入场动画
+.user-card__medals {
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+
+// 图标列表入场动画
+.user-card__icon-list {
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
+}
+
+// 状态标签入场动画
+.user-card__status {
+  animation: user-card-fade-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// 按钮组入场动画
+.user-card__actions {
+  animation: user-card-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+@keyframes user-card-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes user-card-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// 勋章 hover 效果
+.user-card__medal {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.2s ease;
+  pointer-events: none;
+  cursor: default;
+}
+
+.user-card__medal:hover {
+  transform: scale(1.12) translateY(-2px);
+  filter: brightness(1.08);
+}
+
+// 图标 hover 效果
+.user-card__icon {
+  position: relative;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.16s ease,
+              z-index 0s;
+  display: inline-block;
+  z-index: 1;
+}
+
+.user-card__icon:hover {
+  transform: translateY(-2px) scale(1.06);
+  z-index: 10; // 悬停时提升层级，让 tooltipped 显示在其他图标上方
+}
+
+.user-card__icon svg {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.user-card__icon:hover svg {
+  transform: rotate(-4deg);
+}
+
+// 按钮 hover 效果
+.user-card__btn {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.18s ease,
+              background-color 0.16s ease;
+}
+
+.user-card__btn:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.10);
+}
+
+.user-card__btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition-duration: 0.08s;
+}
+
+// 状态标签 hover 效果
+.user-card__status--online:hover {
+  transform: scale(1.04);
+  box-shadow: 0 2px 6px rgba(210, 63, 49, 0.25);
+}
+
+.user-card__status--offline:hover {
+  transform: scale(1.04);
+}
+
+// 徽章 hover 效果
+.user-card__badge span {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.18s ease;
+  display: inline-block;
+}
+
+.user-card__badge:hover span {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(178, 177, 255, 0.3);
+}
+
+// 用户编号 hover 效果
+.user-card__no:hover {
+  transform: scale(1.04) !important;
+  background-color: #e0e0e0 !important;
 }
 
 .user-card>div {
   padding: 15px;
-  border-radius: 3px
+  border-radius: 3px;
 }
 
 .user-card--bg {
@@ -1764,7 +1990,8 @@ a[class*=" icon-"]:hover {
 .user-card__name {
   font-size: 18px;
   line-height: 22px;
-  margin-left: 92px
+  margin-left: 92px;
+  transition: color 0.18s ease;
 }
 
 .user-card__name,.user-card__name:hover {
@@ -1779,10 +2006,40 @@ a[class*=" icon-"]:hover {
   overflow: hidden
 }
 
+/* 图标区：允许内部内容换行，图标行在上，底部控制区在下 */
+.user-card__icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 图标列表本身占满一行，其内部的 a/span 继续 float left 保持原有效果 */
+.user-card__icon-list {
+  flex: 1 1 100%;
+}
+
+/* 底部状态+按钮区域：单独一行，左右分布 */
+.user-card__status,
+.user-card__actions {
+  margin-top: 8px;
+}
+
+/* 让状态和按钮容器在底部一行布局：状态在左，按钮在右 */
+.user-card__icons .user-card__status {
+  order: 1;
+}
+
+.user-card__icons .user-card__actions {
+  order: 2;
+  margin-left: auto; /* 推到最右侧 */
+}
+
+/* 原有图标元素保持不变 */
 .user-card__icons a,.user-card__icons span {
   margin-right: 10px;
   float: left;
-  height: 20px
+  height: 20px;
+  position: relative; // 确保 z-index 生效
 }
 
 .user-card__icons a svg,.user-card__icons span svg {
@@ -1794,7 +2051,8 @@ a[class*=" icon-"]:hover {
 }
 
 .user-card__icons a:hover {
-  text-decoration: none
+  text-decoration: none;
+  z-index: 10; // 悬停时提升层级
 }
 
 .user-card__icons a:hover svg {
@@ -1803,7 +2061,12 @@ a[class*=" icon-"]:hover {
 
 .user-card__icons img {
   float: left;
-  margin-top: 2px
+  margin-top: 2px;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.user-card__icons img:hover {
+  transform: scale(1.08) rotate(-3deg);
 }
 
 .user-card__icon--disabled svg {
@@ -1833,145 +2096,94 @@ a[class*=" icon-"]:hover {
   border-bottom:1px solid #eee;
 }
 
-#userCard{
-  background-color: white;
-}
-
-/* xiaoIce Game */
-.ice-game-btn{
+.music-list-box{
   position: fixed;
-  bottom: 40vh;
-  right: 0;
-  z-index: 1024;
-  width: 75px;
-  height: 150px;
-  cursor: pointer;
-  .ice-game-icon{
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
+  bottom: -400px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: .3s;
+  width: 80%;
+  height: 400px;
+  min-width: 720px;
+  max-width: 800px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: -1px -1px 4px 1px rgba(0,0,0,.3);
+  z-index: 9980;
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
+  box-sizing: border-box;
+  overflow-y: scroll;
+  &::-webkit-scrollbar{
+    width: 0;
   }
-}
-#xiaoIceGameBox{
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 1024;
-  width: 300px;
-  height: 30px;
-  transition: .4s;
-  background-color: #fff;
-  box-shadow: -2px -2px 5px rgba(0,0,0,.3);
-  &:not(.active){
-    .ice-minimize-btn{
-      display: none!important;
-    }
+  &.show{
+    bottom: 50px;
   }
-  &.active{
-    height: 360px;
-    .ice-restore-btn{
-      display: none!important;
-    }
-  }
-  .ice-tool-bar {
+  .music-list-item{
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    width: 100%;
-    height: 30px;
-    padding: 0 5px;
-    box-sizing: border-box;
-    background-color: #3b3e43;
-    color:#fff;
-    .ice-logo{
-      width: 25px;
-      height: 25px;
-      transform: rotateZ(-25deg);
+    border-bottom: 1px solid rgba(0,0,0,.3);
+    padding: 5px;
+    background: #fff;
+    transition: .3s;
+    &:hover{
+      background: rgba(0,0,0,.1);
     }
-    .ice-toolbar-btn{
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      svg{
-        display: flex;
-      }
+    img{
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
     }
-  }
-  .ice-chat-box{
-    position: relative;
-    .ice-chat-input{
-      width: 100%;
-      height: 30px;
-      padding: 5px 55px 5px 10px;
-      box-sizing: border-box;
-      border: 1px solid #eee;
-      font-size: 12px;
+    .music-list-title{
+      flex: 1;
     }
-    .ice-send-btn{
-      position: absolute;
-      right: 3px;
-      top: 3px;
-      width: 50px;
-      height: 24px;
-      line-height: 24px;
-      text-align: center;
-      cursor: pointer;
-      background-color: #60b044;
-      color: #fff;
-      border-radius: 2px;
-    }
-  }
-  #iceMsgList{
-    padding: 10px;
-    height: 300px;
-    box-sizing: border-box;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    &::-webkit-scrollbar{
-      display: none;
-    }
-    .ice-msg-item{
-      display: flex;
-      margin: 10px 0;
-      &.me {
-        flex-direction: row-reverse;
-        .ice-msg-content{
-          background-color: rgba(98,162,240,.1);
-          &:after{
-            right: -10px;
-            border-left-color: rgba(98,162,240,.1);
-            left: auto;
-            border-right-color: rgba(0,0,0,0);
-          }
-        }
-
-      }
-      .ice-msg-content{
-        position: relative;
-        background-color: var(--background-secondary-color);
-        border-radius: 5px;
-        padding: 8px 15px;
-        overflow: initial;
-        max-width: 75%;
-        font-size: 12px;
-        box-sizing: border-box;
-        &:after {
-          position: absolute;
-          width: 0;
-          height: 0;
-          content: "";
-          top: 5px;
-          left: -10px;
-          border: 5px solid rgba(0,0,0,0);
-          border-right: 5px solid var(--background-secondary-color);
+    .music-list-controller{
+      span{
+        cursor: pointer;
+        &:hover{
+          text-decoration: underline;
         }
       }
     }
   }
 }
 
-// 音乐播放器
+.music-player{
+  margin: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px #ccc;
+  background: #fff;
+  .music-player-img{
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+  }
+  .music-player-box{
+    .music-player-title{
+      width: 200px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .music-player-controller{
+      span{
+        cursor: pointer;
+        &:hover{
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+/* 音乐播放器 */
 #musicBox{
   position: fixed;
   bottom: -106px;
@@ -2075,93 +2287,6 @@ a[class*=" icon-"]:hover {
     bottom: -100px;
     left: 0;
     z-index: -1;
-  }
-}
-
-.music-list-box{
-  position: fixed;
-  bottom: -400px;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: .3s;
-  width: 80%;
-  height: 400px;
-  min-width: 720px;
-  max-width: 800px;
-  padding: 20px;
-  background: #fff;
-  box-shadow: -1px -1px 4px 1px rgba(0,0,0,.3);
-  z-index: 9980;
-  border-top-right-radius: 5px;
-  border-top-left-radius: 5px;
-  box-sizing: border-box;
-  overflow-y: scroll;
-  &::-webkit-scrollbar{
-    width: 0;
-  }
-  &.show{
-    bottom: 50px;
-  }
-  .music-list-item{
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid rgba(0,0,0,.3);
-    padding: 5px;
-    background: #fff;
-    transition: .3s;
-    &:hover{
-      background: rgba(0,0,0,.1);
-    }
-    img{
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-    }
-    .music-list-title{
-      flex: 1;
-    }
-    .music-list-controller{
-      span{
-        cursor: pointer;
-        &:hover{
-          text-decoration: underline;
-        }
-      }
-    }
-  }
-}
-
-.music-player{
-  margin: 10px;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  box-shadow: 0 0 10px #ccc;
-  background: #fff;
-  .music-player-img{
-    width: 50px;
-    height: 50px;
-    margin-right: 10px;
-  }
-  .music-player-box{
-    .music-player-title{
-      width: 200px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-weight: bold;
-      font-size: 18px;
-    }
-    .music-player-controller{
-      span{
-        cursor: pointer;
-        &:hover{
-          text-decoration: underline;
-        }
-      }
-    }
   }
 }
 
@@ -2478,7 +2603,7 @@ a[class*=" icon-"]:hover {
 }
 
 .nav .person-list.show {
-  opacity: 1;
+  opacity:  1;
   pointer-events: auto;
   transform: translateY(0) scale(1);
   animation: dropdown-fade-in 0.25s;
@@ -2553,3 +2678,79 @@ $theme-orange-light: #fff7ec;
 #aPersonListPanel {
   border-bottom: none !important;
 }
+
+/* iOS26 风格 — 按钮与输入框的克制动画增强（视觉层面，不改布局） */
+$ios26-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+/* 按钮（全站通用）—— 轻微放大、柔和阴影，按下时回弹 */
+button,
+.btn {
+  transition: transform 220ms $ios26-ease, box-shadow 220ms $ios26-ease, background 160ms linear, color 160ms linear;
+  will-change: transform, box-shadow;
+  /* 不覆盖颜色/尺寸等，只增强交互手感 */
+}
+
+button:hover,
+.btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 22px rgba(34,44,60,0.08);
+}
+
+button:active,
+.btn:active {
+  transform: scale(0.985);
+  box-shadow: 0 6px 14px rgba(34,44,60,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+  transition-duration: 120ms;
+}
+
+/* 小尺寸按钮降低动效强度 */
+button.small,
+.btn.small { transition-duration: 180ms; transform-origin: center; }
+
+/* 输入框（包含表单和导航搜索）—— 轻微上移 + 柔和光晕，不改 width */
+.form input[type=text],
+.form input[type=password],
+.form input[type=datetime],
+.form input[type=datetime-local],
+.form input[type=number],
+.form textarea,
+.form select,
+.nav input.search {
+  transition: box-shadow 260ms $ios26-ease, border-color 220ms $ios26-ease, transform 220ms $ios26-ease;
+  will-change: box-shadow, transform;
+  /* 保留现有 box-model（width/border） */
+}
+
+.form input[type=text]:focus,
+.form input[type=password]:focus,
+.form input[type=datetime]:focus,
+.form input[type=datetime-local]:focus,
+.form input[type=number]:focus,
+.form textarea:focus,
+.nav input.search:focus {
+  transform: translateY(-1px) scale(1.002);
+  border-color: rgba(25,140,255,0.55) !important;
+  box-shadow: 0 10px 28px rgba(25,140,255,0.08), 0 2px 6px rgba(25,140,255,0.05);
+  outline: none;
+}
+
+/* 聚焦的一次性脉冲提示（克制） */
+@keyframes ios26-input-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(25,140,255,0.10); }
+  60% { box-shadow: 0 0 0 6px rgba(25,140,255,0.02); }
+  100% { box-shadow: 0 0 0 0 rgba(25,140,255,0); }
+}
+.form input[type=text]:focus,
+.form textarea:focus,
+.nav input.search:focus {
+  animation: ios26-input-pulse 580ms ease-out;
+}
+
+/* 额外兼容：避免在表单中的绝对定位按钮受到 transform 影响（不改变原有布局） */
+.form button.absolute { transform: none; }
+
+/* 说明注记（仅供维护者参考）：
+   - 动画时间与尺度非常克制（scale ≤ 1.02，模糊/阴影很轻）
+   - 所有改动均为视觉层面，不修改宽度/定位/盒模型，避免引发换行或头像跑位问题
+*/
+

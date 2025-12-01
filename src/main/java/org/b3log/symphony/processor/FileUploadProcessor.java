@@ -262,7 +262,7 @@ public class FileUploadProcessor {
             if (Strings.contains(suffix, animatePictureSuffixArray)) {
                 // 动态图片处理
                 try {
-                    bytes = GifUtils.gifScale(bytes, 0.7, 0.7);
+                    //bytes = GifUtils.gifScale(bytes, 0.7, 0.7);
                     LOGGER.log(Level.INFO, "Compressed " + file.getFilename() + " as an animate picture, before: " + before / 1024 + "KB, after: " + bytes.length / 1024 + "KB");
                 } catch (Exception e) {
                     LOGGER.log(Level.ERROR, "Unable to compress " + file.getFilename() + " as an animate picture", e);

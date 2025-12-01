@@ -35,9 +35,11 @@ import org.b3log.latke.util.AntPathMatcher;
 import org.b3log.latke.util.Execs;
 import org.b3log.latke.util.Requests;
 import org.b3log.latke.util.URLs;
+import org.b3log.symphony.cache.UserCache;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
+import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.OptionQueryService;
 import org.b3log.symphony.service.UserMgmtService;
@@ -48,9 +50,7 @@ import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Anonymous view check.
@@ -100,6 +100,8 @@ public class AnonymousViewCheckMidware {
     public static final Cache<String, Boolean> ipBlacklistCache = Caffeine.newBuilder()
             .maximumSize(100000)
             .build();
+    // String类型的白名单
+    public static final Set<String> whiteList = new HashSet<>();
 
     private static Cookie getCookie(final Request request, final String name) {
         final Set<Cookie> cookies = request.getCookies();
@@ -129,9 +131,43 @@ public class AnonymousViewCheckMidware {
     public void handle(final RequestContext context) {
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
+        JSONObject currentUser = Sessions.getUser();
+        try {
+            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (NullPointerException ignored) {
+        }
+        if (null == currentUser) {
+            final String ip = Requests.getRemoteAddr(context.getRequest());
+            if (!whiteList.contains(ip)) {
+                if (UserCache.hasUserByIP(ip)) {
+                    whiteList.add(ip);
+                } else {
+                    final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
+                    if (!isSearchEngineBot(ua)) {
+                        // 计数逻辑
+                        Integer count = ipVisitCountCache.getIfPresent(ip);
+                        if (count == null) count = 0;
+                        count++;
+                        ipVisitCountCache.put(ip, count);
+                        System.out.println(ip + " 访问计数：" + count + " " + context.requestURI());
+                        if (count >= 300) {
+                            String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
+                            System.out.println(ip + " 已封禁");
+                        }
+                        if (count >= 5) {
+                            // 进入黑名单
+                            ipBlacklistCache.put(ip, true);
+                            // 跳转到验证码页面
+                            context.sendRedirect("/test");
+                            System.out.println(ip + " 进入黑名单");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
 
         if (requestURI.startsWith(Latkes.getContextPath() + "/member/") || requestURI.startsWith(Latkes.getContextPath() + "/article/1636516552191")) {
-            final JSONObject currentUser = Sessions.getUser();
             if (null == currentUser) {
                 context.sendError(401);
                 context.abort();
@@ -176,36 +212,11 @@ public class AnonymousViewCheckMidware {
         // Check if admin allow to anonymous view
         final JSONObject option = optionQueryService.getOption(Option.ID_C_MISC_ALLOW_ANONYMOUS_VIEW);
         if (!"0".equals(option.optString(Option.OPTION_VALUE))) {
-            final JSONObject currentUser = Sessions.getUser();
-
             // https://github.com/b3log/symphony/issues/373
             final String cookieNameVisits = "anonymous-visits";
             final Cookie visitsCookie = getCookie(request, cookieNameVisits);
 
             if (null == currentUser) {
-                final String ip = Requests.getRemoteAddr(context.getRequest());
-                final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-                if (!isSearchEngineBot(ua)) {
-                    // 计数逻辑
-                    Integer count = ipVisitCountCache.getIfPresent(ip);
-                    if (count == null) count = 0;
-                    count++;
-                    ipVisitCountCache.put(ip, count);
-                    System.out.println(ip + " 访问计数：" + count + " " + context.requestURI());
-                    if (count >= 30) {
-                        String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
-                        System.out.println(ip + " 已封禁");
-                    }
-                    if (count >= 5) {
-                        // 进入黑名单
-                        ipBlacklistCache.put(ip, true);
-                        // 跳转到验证码页面
-                        context.sendRedirect("/test");
-                        System.out.println(ip + " 进入黑名单");
-                        return;
-                    }
-                }
-
                 if (null != visitsCookie) {
                     final JSONArray uris = new JSONArray(URLs.decode(visitsCookie.getValue()));
                     for (int i = 0; i < uris.length(); i++) {
@@ -245,31 +256,6 @@ public class AnonymousViewCheckMidware {
             }
         }
 
-        final JSONObject currentUser = Sessions.getUser();
-        if (null == currentUser) {
-            final String ip = Requests.getRemoteAddr(context.getRequest());
-            final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-            if (!isSearchEngineBot(ua)) {
-                // 计数逻辑
-                Integer count = ipVisitCountCache.getIfPresent(ip);
-                if (count == null) count = 0;
-                count++;
-                ipVisitCountCache.put(ip, count);
-                System.out.println(ip + " 访问计数：" + count + " " + context.requestURI());
-                if (count >= 30) {
-                    String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
-                    System.out.println(ip + " 已封禁");
-                }
-                if (count >= 5) {
-                    // 进入黑名单
-                    ipBlacklistCache.put(ip, true);
-                    // 跳转到验证码页面
-                    context.sendRedirect("/test");
-                    System.out.println(ip + " 进入黑名单");
-                    return;
-                }
-            }
-        }
         context.handle();
     }
 

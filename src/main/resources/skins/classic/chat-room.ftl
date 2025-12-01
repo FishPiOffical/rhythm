@@ -156,11 +156,13 @@
                         </#if>
                     </div>
                 </div>
-            </div>
-            <div class="list module" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
-                <div id="chats">
+                <div class="list" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
+                    <div id="chats">
+                    </div>
+                    <#if !isLoggedIn>
+                        <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
+                    </#if>
                 </div>
-                <#if !isLoggedIn><div style="color:rgba(0,0,0,0.54);">登录后查看更多</div></#if>
             </div>
         </div>
         <div class="side">

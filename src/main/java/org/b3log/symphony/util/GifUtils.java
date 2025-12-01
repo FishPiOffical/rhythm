@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.util;
 
-
+/**
 import com.gif4j.*;
 
 import java.io.*;
@@ -88,3 +88,4 @@ public class GifUtils {
         return null;
     }
 }
+**/

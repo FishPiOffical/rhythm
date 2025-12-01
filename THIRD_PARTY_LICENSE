@@ -19,6 +19,29 @@ qiniu-java-sdk: MIT
 slf4j*: MIT
 UserAgentUtils: BSD
 
+# Backend (additional)
+
+testng: APL
+owasp encoder: BSD-like (OWASP Encoder License)
+snakeyaml: APL
+javax.mail: CDDL + GPL with Classpath Exception
+okio: APL
+elasticsearch (test scope): APL
+assertj-core: APL
+commons-cli: APL
+commons-lang3: APL
+tencentcloud-sdk-java: APL
+pinyin4j: BSD
+thumbnailator: MIT
+geoip2 (code only, no .mmdb distributed): APL
+hutool-all: APL
+caffeine: APL
+
+# Backend (special / non-standard licenses)
+
+OpenViewerFX (JPedal): LGPL-3.0
+alipay-sdk-java: Proprietary, no explicit open-source license; allowed for commercial use under Alipay SDK terms
+
 # Frontend
 
 aplayer: SATA

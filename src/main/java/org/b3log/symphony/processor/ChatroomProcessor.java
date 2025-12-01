@@ -496,6 +496,7 @@ public class ChatroomProcessor {
         JSONObject ret = new JSONObject();
         ret.put(Keys.CODE, StatusCodes.SUCC);
         ret.put(Keys.MSG, "");
+        JSONArray backupData = new JSONArray();
         if (NodeUtil.wsOnline == null || NodeUtil.wsOnline.isEmpty()) {
             final String serverScheme = Latkes.getServerScheme();
             String wsScheme = StringUtils.containsIgnoreCase(serverScheme, "https") ? "wss" : "ws";
@@ -506,6 +507,13 @@ public class ChatroomProcessor {
                 port2 = ":" + port1;
             }
             ret.put(Keys.DATA, wsScheme + "://" + wsHost + port2 + "/chat-room-channel?apiKey=" + key);
+            ret.put(Keys.MSG, "故障转移区");
+            JSONObject node = new JSONObject();
+            node.put("node", wsScheme + "://" + wsHost + port2 + "/chat-room-channel");
+            node.put("name", "故障转移区");
+            node.put("weight", 1);
+            node.put("online", ChatroomChannel.onlineUsers.size());
+            backupData.put(node);
         } else {
             // 按权重分配节点
             StringBuilder logBuilder = new StringBuilder();
@@ -570,6 +578,9 @@ public class ChatroomProcessor {
             node.put("weight", NodeUtil.nodeWeights.get(entry.getKey()));
             node.put("online", entry.getValue());
             data.put(node);
+        }
+        if (data.isEmpty()) {
+            data = backupData;
         }
         ret.put("avaliable", data);
         ret.put("apiKey", key);

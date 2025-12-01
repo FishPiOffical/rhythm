@@ -114,7 +114,16 @@ var Chat = {
                             let count = result.result;
                             let list = result.data;
                             list.forEach((data) => {
-                                $("#chatTo" + data.senderUserName).css("background-color", "#fff4eb");
+                                // 兼容后端返回字段：优先使用 senderUserName，没有则使用 receiverUserName（文件传输助手等）
+                                const name = data.senderUserName || data.receiverUserName;
+                                if (!name) return;
+                                const $item = $("#chatTo" + name);
+                                if ($item.length > 0) {
+                                    // 设置高亮背景
+                                    $item.css("background-color", "#fff4eb");
+                                    // 将未读用户移动到列表顶部，方便点击
+                                    $("#chatMessageList").prepend($item);
+                                }
                             });
                         }
                     });
@@ -258,7 +267,15 @@ var Chat = {
                             let count = result.result;
                             let list = result.data;
                             list.forEach((data) => {
-                                $("#chatTo" + data.senderUserName).css("background-color", "#fff4eb");
+                                const name = data.senderUserName || data.receiverUserName;
+                                if (!name) return;
+                                if (name != to) {
+                                    const $item = $("#chatTo" + name);
+                                    if ($item.length > 0) {
+                                        $item.css("background-color", "#fff4eb");
+                                        $("#chatMessageList").prepend($item);
+                                    }
+                                }
                             });
                         }
                     });
@@ -334,7 +351,7 @@ var Chat = {
 
     addToMessageList(userName, avatarURL, preview, isOnline) {
         let dot = preview.length > 7 ? "..." : "";
-        let status = isOnline ? '<div style="line-height: 0.65em; font-size: 2.5em; color: green">·</div>' : '<div style="line-height: 0.65em; font-size: 2.5em; color: rgba(149,149,149,0.3)">·</div>';
+        let status = isOnline ? '<div style="color: green">[在线]</div>' : '<div style="color: rgba(149,149,149,0.3)">[离线]</div>';
         $("#chatMessageList").append('' +
             '<div class="module-panel" id="chatTo' + userName + '" style="padding: 10px 15px;cursor: pointer" onclick="Chat.init(\'' + userName + '\')"\n' +
             '    <nav class="home-menu">\n' +
