@@ -37,6 +37,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.util.CollectionUtils;
 import org.b3log.latke.util.Locales;
@@ -164,6 +165,12 @@ public class IndexProcessor {
 
     @Inject
     private TagQueryService tagQueryService;
+
+    /**
+     * yuhu service
+     */
+    @Inject
+    private YuhuService yuhuService;
 
     /**
      * Register request handlers.
@@ -591,15 +598,15 @@ public class IndexProcessor {
             dataModel.put("need2fa", "no");
         }
 
-        // 长篇连载数据
-        final JSONObject tag = tagQueryService.getTagByTitle("新人报道");
-        // tag有可能为null
-        if (tag == null) {
-            dataModel.put("novels", Collections.emptyList());
-        } else {
-            final List<JSONObject> novels = articleQueryService.getArticlesByTag(0, tag, 1, 10);
-            dataModel.put("novels", novels);
+        // 长篇连载数据 - 替换为新接口获取
+         List<JSONObject> novels;
+        try {
+            final JSONObject ret = yuhuService.listBooks("", "", "", 1, 10);
+            novels = Collections.singletonList(ret.getJSONObject("list"));
+        } catch (RepositoryException e) {
+            novels = Collections.emptyList();
         }
+        dataModel.put("novels", novels);
 
         makeIndexData(dataModel);
 
