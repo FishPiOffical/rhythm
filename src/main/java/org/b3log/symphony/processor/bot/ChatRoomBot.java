@@ -450,7 +450,7 @@ public class ChatRoomBot {
                         case "进出提示":
                             try {
                                 String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
-                                if (user.equals("查询")) {
+                                if (user.equals("查询") || user.equals("cx")) {
                                     String uname = cmd1.split("\\s")[2];
                                     String join = ChatroomChannel.getCustomMessage(1, uname);
                                     if (join.isEmpty()) {
@@ -463,11 +463,21 @@ public class ChatRoomBot {
                                     sendBotMsg("用户 **" + uname + "** 的进出提示设定如下：\n" +
                                             "进入：" + join + "\n" +
                                             "离开：" + left + "\n");
+                                } else if (user.equals("帮助") || user.equals("bz")) {
+                                    sendBotMsg("**进出提示变量**：\n" +
+                                            "设置格式：执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]" +
+                                            "{userName} 用户名\n" +
+                                            "{userNickName} 用户昵称\n" +
+                                            "{userPoint} 用户积分余额\n" +
+                                            "{userLevel} 用户VIP等级（如过期会为空）\n" +
+                                            "{userNo} 用户编号\n" +
+                                            "{userCity} 用户所在城市"
+                                    );
                                 } else {
-                                    if (userName.equals("adlered") || userName.equals("csfwff") || userName.equals("admin")) {
+                                    if (currentUser.optString(User.USER_ROLE).equals(Role.ROLE_ID_C_ADMIN)) {
                                         if (cmd1.split("\\s").length == 2) {
                                             ChatroomChannel.removeCustomMessage(user);
-                                            sendBotMsg("用户 **" + user + "** 的进出提示已恢复默认。");
+                                            sendBotMsg("用户 **" + user + "** 的进出提示已关闭。");
                                         } else if (cmd1.split("\\s").length >= 3) {
                                             String msg = content.replaceAll("执法 ", "")
                                                     .replaceAll("zf ", "")
@@ -498,7 +508,7 @@ public class ChatRoomBot {
                                     "* **扣除指定成员的积分** 执法 处罚 [用户名] [扣除积分数量] [理由]\n" +
                                     "* **断开指定用户的全部聊天室会话** 执法 断开会话 [用户名]\n" +
                                     "* **进出提示恢复默认（未经管理员允许禁止使用）** 执法 进出提示 [用户名]\n" +
-                                    "* **设置进出提示（未经管理员允许禁止使用）** 执法 进出提示 [用户名] [内容及变量]\n" +
+                                    "* **设置进出提示（详细变量列表请输入：执法 进出提示 帮助）** 执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]\n" +
                                     "* **查询进出提示** 执法 进出提示 查询 [用户名]\n" +
                                     "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]</details>\n" +
                                     "<p></p>");
