@@ -313,7 +313,7 @@ public class MembershipProcessor {
         } catch (ServiceException e) {
             final JSONObject response = new JSONObject();
             response.put("code", StatusCodes.ERR);
-            response.put("msg", e.getMessage());
+            response.put("msg", e.getCause().getMessage());
             response.put("data", new JSONObject());
             context.renderJSON(response);
         }
