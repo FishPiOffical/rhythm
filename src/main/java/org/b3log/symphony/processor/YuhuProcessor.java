@@ -56,17 +56,19 @@ public class YuhuProcessor {
         final PermissionMidware permissionMidware = beanManager.getReference(PermissionMidware.class);
         final YuhuProcessor p = beanManager.getReference(YuhuProcessor.class);
 
-        Dispatcher.get("/yuhu", p::bookHome);
         Dispatcher.post("/yuhu/book", p::addBook, loginCheck::handle);
         Dispatcher.get("/yuhu/books", p::listBooks);
-        Dispatcher.get("/yuhu/book/{bookId}", p::getBook);
         Dispatcher.post("/yuhu/book/{bookId}/volume", p::addVolume, loginCheck::handle);
         Dispatcher.get("/yuhu/book/{bookId}/volumes", p::listVolumes);
         Dispatcher.post("/yuhu/book/{bookId}/chapter", p::addChapterDraft, loginCheck::handle);
-        Dispatcher.put("/yuhu/chapter/{chapterId}/publish", p::publishChapter, loginCheck::handle, permissionMidware::check);
-        Dispatcher.put("/yuhu/chapter/{chapterId}/approve", p::approveChapter, loginCheck::handle, permissionMidware::check);
-        Dispatcher.put("/yuhu/chapter/{chapterId}/reject", p::rejectChapter, loginCheck::handle, permissionMidware::check);
-        Dispatcher.put("/yuhu/chapter/{chapterId}/freeze", p::freezeChapter, loginCheck::handle, permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/publish", p::publishChapter, loginCheck::handle,
+                permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/approve", p::approveChapter, loginCheck::handle,
+                permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/reject", p::rejectChapter, loginCheck::handle,
+                permissionMidware::check);
+        Dispatcher.put("/yuhu/chapter/{chapterId}/freeze", p::freezeChapter, loginCheck::handle,
+                permissionMidware::check);
         Dispatcher.put("/yuhu/chapter/{chapterId}/ban", p::banChapter, loginCheck::handle, permissionMidware::check);
         Dispatcher.put("/yuhu/chapter/{chapterId}/draft", p::updateChapterDraft, loginCheck::handle);
 
@@ -98,6 +100,11 @@ public class YuhuProcessor {
         Dispatcher.get("/yuhu/search", p::search);
 
         Dispatcher.post("/yuhu/profile/display", p::toggleProfileDisplay, loginCheck::handle);
+
+        // 页面
+        Dispatcher.get("/yuhu", p::bookHome);
+        Dispatcher.get("/yuhu/book/{bookId}", p::getBook);
+        Dispatcher.get("/yuhu/dashboard", p::showYuhuDashboard, loginCheck::handle);
     }
 
     public void bookHome(final RequestContext context) {
@@ -126,9 +133,16 @@ public class YuhuProcessor {
             final String tag = context.param("tag");
             final String q = context.param("q");
             final String sort = context.param("sort");
-            int page = 1; int size = 20;
-            try { page = Integer.parseInt(context.param("page")); } catch (Exception ignored) {}
-            try { size = Integer.parseInt(context.param("size")); } catch (Exception ignored) {}
+            int page = 1;
+            int size = 20;
+            try {
+                page = Integer.parseInt(context.param("page"));
+            } catch (Exception ignored) {
+            }
+            try {
+                size = Integer.parseInt(context.param("size"));
+            } catch (Exception ignored) {
+            }
             final JSONObject ret = yuhuService.listBooks(tag, q, sort, page, size);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(ret);
@@ -145,9 +159,9 @@ public class YuhuProcessor {
             final JSONObject user = (JSONObject) context.attr(User.USER);
             dataModel.put(User.USER, user);
 
-//            final String bookId = context.pathVar("bookId");
-//            final JSONObject ret = yuhuService.getBook(bookId);
-//            dataModel.put("book",ret);
+            // final String bookId = context.pathVar("bookId");
+            // final JSONObject ret = yuhuService.getBook(bookId);
+            // dataModel.put("book",ret);
 
             dataModelService.fillHeaderAndFooter(context, dataModel);
 
@@ -259,7 +273,7 @@ public class YuhuProcessor {
             final JSONObject req = context.requestJSON();
             yuhuService.setChapterState(chapterId, "frozen");
             context.renderJSON(StatusCodes.SUCC);
-            context.renderData(new JSONObject().put("status","frozen").put("reason", req.optString("reason")));
+            context.renderData(new JSONObject().put("status", "frozen").put("reason", req.optString("reason")));
         } catch (Exception e) {
             context.renderJSON(StatusCodes.ERR);
             context.renderMsg("请求非法");
@@ -272,7 +286,7 @@ public class YuhuProcessor {
             final JSONObject req = context.requestJSON();
             yuhuService.setChapterState(chapterId, "banned");
             context.renderJSON(StatusCodes.SUCC);
-            context.renderData(new JSONObject().put("status","banned").put("reason", req.optString("reason")));
+            context.renderData(new JSONObject().put("status", "banned").put("reason", req.optString("reason")));
         } catch (Exception e) {
             context.renderJSON(StatusCodes.ERR);
             context.renderMsg("请求非法");
@@ -399,9 +413,16 @@ public class YuhuProcessor {
     public void listComments(final RequestContext context) {
         try {
             final String chapterId = context.param("chapterId");
-            int page = 1; int size = 20;
-            try { page = Integer.parseInt(context.param("page")); } catch (Exception ignored) {}
-            try { size = Integer.parseInt(context.param("size")); } catch (Exception ignored) {}
+            int page = 1;
+            int size = 20;
+            try {
+                page = Integer.parseInt(context.param("page"));
+            } catch (Exception ignored) {
+            }
+            try {
+                size = Integer.parseInt(context.param("size"));
+            } catch (Exception ignored) {
+            }
             final List<org.json.JSONObject> list = yuhuService.listComments(chapterId, page, size);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(new org.json.JSONArray(list));
@@ -452,7 +473,8 @@ public class YuhuProcessor {
             final JSONObject req = context.requestJSON();
             final org.json.JSONArray arr = req.optJSONArray("tags");
             final String[] aliases = new String[arr.length()];
-            for (int i = 0; i < arr.length(); i++) aliases[i] = arr.optString(i);
+            for (int i = 0; i < arr.length(); i++)
+                aliases[i] = arr.optString(i);
             yuhuService.bindTagsToBook(bookId, Arrays.asList(aliases));
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(new JSONObject().put("updated", true));
@@ -546,12 +568,30 @@ public class YuhuProcessor {
             final JSONObject req = context.requestJSON();
             final boolean enabled = req.optBoolean("displayOverrideEnabled");
             profile.put("yuhuUserProfileDisplayOverrideEnabled", enabled);
-            BeanManager.getInstance().getReference(org.b3log.symphony.repository.YuhuUserProfileRepository.class).update(profile.optString(Keys.OBJECT_ID), profile);
+            BeanManager.getInstance().getReference(org.b3log.symphony.repository.YuhuUserProfileRepository.class)
+                    .update(profile.optString(Keys.OBJECT_ID), profile);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(new JSONObject().put("updated", true));
         } catch (Exception e) {
             context.renderJSON(StatusCodes.ERR);
             context.renderMsg("请求非法");
+        }
+    }
+
+    public void showYuhuDashboard(final RequestContext context) {
+        try {
+            final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "yuhu/dashboard.ftl");
+            final Map<String, Object> dataModel = renderer.getDataModel();
+            final JSONObject user = (JSONObject) context.attr(User.USER);
+            dataModel.put(User.USER, user);
+
+            // final String bookId = context.pathVar("bookId");
+            // final JSONObject ret = yuhuService.getBook(bookId);
+            // dataModel.put("book",ret);
+
+            dataModelService.fillHeaderAndFooter(context, dataModel);
+        } catch (Exception e) {
+            // TODO: handle exception
         }
     }
 }
