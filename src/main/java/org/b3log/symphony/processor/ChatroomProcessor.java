@@ -303,6 +303,13 @@ public class ChatroomProcessor {
         String anime = safeParam(context.param("anime"), "anime");
         String way = safeParam(context.param("way"), "way");
         String fontway = safeParam(context.param("fontway"), "fontway");
+        String size = safeParam(context.param("size"), "size");
+        String border = safeParam(context.param("border"), "border");
+        String barlen = safeParam(context.param("barlen"), "barlen");
+        String font = safeParam(context.param("font"), "font");
+        String fontsize = safeParam(context.param("fontsize"), "fontsize");
+        String barradius = safeParam(context.param("barradius"), "barradius");
+
         String paramString = "?ver=" + ver
                 + "&scale=" + scale
                 + "&txt=" + txt
@@ -312,7 +319,13 @@ public class ChatroomProcessor {
                 + (shadow != null && !shadow.isEmpty() ? "&shadow=" + shadow : "")
                 + (anime != null && !anime.isEmpty() ? "&anime=" + anime : "")
                 + (way != null && !way.isEmpty() ? "&way=" + way : "")
-                + (fontway != null && !fontway.isEmpty() ? "&fontway=" + fontway : "");
+                + (fontway != null && !fontway.isEmpty() ? "&fontway=" + fontway : "")
+                + (size != null && !size.isEmpty() ? "&size=" + size : "")
+                + (border != null && !border.isEmpty() ? "&border=" + border : "")
+                + (barlen != null && !barlen.isEmpty() ? "&barlen=" + barlen : "")
+                + (font != null && !font.isEmpty() ? "&font=" + font : "")
+                + (fontsize != null && !fontsize.isEmpty() ? "&fontsize=" + fontsize : "")
+                + (barradius != null && !barradius.isEmpty() ? "&barradius=" + barradius : "");
 
         String body = "";
         if (!metalCache.containsKey(paramString)) {
@@ -433,6 +446,43 @@ public class ChatroomProcessor {
             }
             return "bottom"; // 默认值
         }
+        /**
+         * 新增检查：
+         * size: Option<u32>
+         * border: Option<u32>
+         * barlen: Option<String>
+         * font: Option<String>
+         * fontsize: Option<u32>
+         * barradius: Option<u32>
+         *     u32是转换成int，转换不了则返回空；String的话没关系
+         */
+        if ("size".equals(type) || "border".equals(type) || "fontsize".equals(type) || "barradius".equals(type)) {
+            try {
+                int i = Integer.parseInt(value);
+                return String.valueOf(i);
+            } catch (NumberFormatException e) {
+                return "";
+            }
+        }
+
+        // barlen只能是auto或者小数，其它的都不行
+        if ("barlen".equals(type)) {
+            if ("auto".equalsIgnoreCase(value)) {
+                return "auto";
+            }
+            try {
+                int d = Integer.parseInt(value);
+                return String.valueOf(d);
+            } catch (NumberFormatException e) {
+                return "";
+            }
+        }
+
+        // font是base64，筛选字符
+        if ("font".equals(type)) {
+            return value.replaceAll("[^0-9a-zA-Z+/=]", "");
+        }
+
         return value;
     }
 
