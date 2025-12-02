@@ -20,7 +20,9 @@ package org.b3log.symphony.processor;
 
 import static org.b3log.symphony.processor.channel.ChatroomChannel.sendCustomMessage;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -480,7 +482,12 @@ public class ChatroomProcessor {
 
         // font是base64，筛选字符
         if ("font".equals(type)) {
-            return value.replaceAll("[^0-9a-zA-Z+/=]", "");
+            value = value.replaceAll("[^0-9a-zA-Z+/=]", "");
+            try {
+                return URLEncoder.encode(value, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                return "";
+            }
         }
 
         return value;
