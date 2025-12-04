@@ -53,11 +53,164 @@
                     </div>
                 </div>
             </div>
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">最新互动</div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="dashboard-box">2</div>
-        <div class="dashboard-box">3</div>
-        <div class="dashboard-box">4</div>
-        <div class="dashboard-box">5</div>
+        <div class="dashboard-box">
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">我的作品</div>
+                <div class="dashboard-content-box" style="display: flex">
+                    <img src="${user.userAvatarURL}" class="books-avatar"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>作品名称</div>
+                        <div>最新章节-xxxx</div>
+                        <div>更新时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-box">
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">数据统计</div>
+                <div class="dashboard-content-box" style="display: flex">
+                    <div class="" style="margin-left: 20px;">
+                        <div>总月票</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>总推荐票</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>总阅读数量</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>总收藏</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>总打赏</div>
+                        <div>xxxx</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">作品数据</div>
+                <div>筛选作品 xxxxx</div>
+                <div class="dashboard-content-box" style="display: flex">
+                    <div class="" style="margin-left: 20px;">
+                        <div>月票</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>推荐票</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>阅读数量</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>收藏</div>
+                        <div>xxxx</div>
+                    </div>
+                    <div class="" style="margin-left: 20px;">
+                        <div>打赏</div>
+                        <div>xxxx</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-box">
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">互动管理</div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <img src="${user.userAvatarURL}" style="border-radius: 32px;width: 32px;height: 32px;"/>
+                    <div class="" style="margin-left: 20px;">
+                        <div>评论昵称</div>
+                        <div>评论内容</div>
+                        <div>评论时间 xxxx-xx-xx</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-box">
+            <div class="dashboard-content">
+                <div class="dashboard-content-title">最新消息</div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+                <div class="dashboard-content-box" style="display: flex;margin-bottom: 10px">
+                    <div class="" style="margin-left: 20px;">
+                        <div>审核通知: xxxx-xxxxxxx-xxxxxxxxxx</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="dashboard-right">
         <ul class="dashboard-manu">
