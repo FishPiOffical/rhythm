@@ -1,11 +1,23 @@
 :root {
   --article-body-width: 800px;
   --article-font-size: 18px;
+  --dashboard-shadow: 0 1px 4px rgba(21, 26, 48, 0.08);
+  --primary-color: #e59230;
+}
+* {
+  box-sizing: border-box;
 }
 
+ul,
+ol,
+li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 
 /* 鱼乎 Home*/
-.container{
+.container {
   min-height: 70vh;
   box-sizing: border-box;
   margin: 20px 10%;
@@ -13,7 +25,84 @@
   padding: 20px;
 }
 
+/* 鱼乎 作者工作台 侧边栏 */
+.dashboard-container {
+  width: 70%;
+  min-width: 1200px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: start;
+  margin: 20px auto;
 
+  .dashboard-left {
+    width: 85%;
+    .dashboard-box {
+      display: none;
+      &.active {
+        display: block;
+      }
+    }
+  }
+  .dashboard-right {
+    width: 14%;
+  }
+
+  .dashboard-content {
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: var(--dashboard-shadow);
+    .dashboard-content-title {
+      font-size: 18px;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.16);
+      margin-bottom: 10px;
+      padding: 8px 0;
+    }
+  }
+
+  .dashboard-manu {
+    padding: 10px 0;
+    font-size: 18px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: var(--dashboard-shadow);
+    .dashboard-manu-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: 0.5s;
+      border-radius: 5px;
+      margin: 10px;
+      &:hover,
+      &.active {
+        color: #fff;
+        background-color: var(--primary-color);
+      }
+    }
+  }
+
+  .author-tag {
+    padding: 5px 10px;
+    border-radius: 5px;
+
+    &.normal {
+      color: #fff;
+      background-color: var(--primary-color);
+    }
+  }
+
+  .books-avatar{
+    width: 100px;
+    height: 140px;
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    border-radius: 5px;
+  }
+}
 
 /* 鱼乎 文章 */
 /* 右侧菜单栏 */
@@ -21,7 +110,7 @@
   position: fixed;
   left: calc(50% + (var(--article-body-width) / 2) + 10px);
   top: calc(50% - 200px);
-  transition: .5s;
+  transition: 0.5s;
 
   .right-nav {
     display: flex;
@@ -40,10 +129,10 @@
       background-color: #dcebdd;
       border-radius: 5px;
       cursor: pointer;
-      transition: .5s;
+      transition: 0.5s;
 
       &:hover {
-        color: #e59230;
+        color: var(--primary-color);
       }
 
       svg {
@@ -70,7 +159,7 @@
   width: 420px;
   height: 424px;
   box-sizing: border-box;
-  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, .16);
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.16);
   background-color: #ebfaeb;
 
   .setting-item {
@@ -91,7 +180,7 @@
       border: 1px solid #333333;
       border-radius: 50%;
       margin: 0 8px;
-      transition: .5s;
+      transition: 0.5s;
       cursor: pointer;
 
       &.light {
@@ -102,13 +191,14 @@
         background-color: #111111;
       }
 
-      &:hover, &.active {
-        border: 1px solid #e59230;
+      &:hover,
+      &.active {
+        border: 1px solid var(--primary-color);
       }
 
       &.active::after {
         content: "\2713";
-        color: #e59230;
+        color: var(--primary-color);
         width: 36px;
         height: 36px;
         display: flex;
@@ -122,14 +212,15 @@
       height: 36px;
       border: 1px solid #333333;
       cursor: pointer;
-      transition: .5s;
+      transition: 0.5s;
       border-radius: 5px;
       text-align: center;
       line-height: 36px;
 
-      &:hover, &.active {
-        border: 1px solid #e59230;
-        color: #e59230;
+      &:hover,
+      &.active {
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
       }
     }
 
@@ -152,27 +243,25 @@
         height: 36px;
         cursor: pointer;
         border-radius: 5px;
-        transition: .5s;
+        transition: 0.5s;
         background: rgba(255, 255, 255, 0);
         text-align: center;
         line-height: 36px;
 
         &:hover {
-          color: #e59230;
-          background: rgba(255, 255, 255, .16);
+          color: var(--primary-color);
+          background: rgba(255, 255, 255, 0.16);
         }
       }
     }
-
   }
-
 }
 
 /* 文章 */
 .article {
   background-color: #c7dcc8;
   padding-top: 0 !important;
-  transition: .5s;
+  transition: 0.5s;
   min-width: 1000px;
 
   .article-body {
@@ -182,7 +271,7 @@
     width: var(--article-body-width);
     background-color: #dcebdd;
     box-sizing: border-box;
-    transition: .5s;
+    transition: 0.5s;
 
     .article-desc {
       display: flex;
@@ -200,7 +289,7 @@
 
     .article-title {
       text-align: left !important;
-      font-size: calc(var(--article-font-size) * 1.5)
+      font-size: calc(var(--article-font-size) * 1.5);
     }
 
     .article-content {
@@ -214,10 +303,10 @@
 
     .article-body {
       background-color: #111111;
-      color: rgba(255, 255, 255, .6) !important;
+      color: rgba(255, 255, 255, 0.6) !important;
 
       .article-desc {
-        color: rgba(255, 255, 255, .4);
+        color: rgba(255, 255, 255, 0.4);
       }
 
       .article-content {
@@ -230,13 +319,13 @@
       color: #989898 !important;
 
       &:hover {
-        color: #e59230 !important;
+        color: var(--primary-color) !important;
       }
     }
 
     .setting-box {
       background-color: #1f1f1f;
-      color: rgba(255, 255, 255, .6) !important;
+      color: rgba(255, 255, 255, 0.6) !important;
     }
   }
 }
