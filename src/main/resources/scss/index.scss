@@ -2009,6 +2009,27 @@ code .dec {
     overflow-y: auto;
     /* 覆盖原有高度设置 */
     height: auto !important;
+
+    /* 美化滚动条 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.26) transparent;
+  }
+
+  #comments::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  #comments::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #comments::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.26);
+    border-radius: 3px;
+  }
+
+  #comments::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.38);
   }
 
   .chat-room__input {

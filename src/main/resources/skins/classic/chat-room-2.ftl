@@ -195,9 +195,6 @@
     </div>
 </div>
 <div id="goToTop" style="position:fixed;bottom:20px;right:10%;display:none;"><a href="#"><svg style="width:30px;height:30px;color:#626262;"><use xlink:href="#toTopIcon"></use></svg></a></div>
-<div id="xiaoIceGameBtn" class="ice-game-btn">
-    <a href="https://game.yuis.cc" target="_blank"><img src="${staticServePath}/images/xiaoIce/xiaoIce.gif" class="ice-game-icon" alt=""></a>
-</div>
 <div id="musicBox">
     <div class="music-box">
         <div class="music-controller">
@@ -349,8 +346,47 @@
     Label.onlineAvatarData = "";
 </script>
 <script>
-    // 取消滚动到底部自动加载历史，以避免初次进入即疯狂加载
-    // 如需“手动加载更多”，建议在聊天区底部放一个按钮调用 ChatRoom.more()
+    // 判断消息区是否接近底部（用于决定是否自动跟随新消息滚动）
+    ChatRoom.isAtBottom = function (threshold) {
+        const $c = $('#comments');
+        const scrollTop = $c.scrollTop();
+        const scrollHeight = $c[0].scrollHeight;
+        const clientHeight = $c[0].clientHeight;
+        const gap = scrollHeight - clientHeight - scrollTop;
+        return gap <= (threshold || 50); // 默认阈值 50px
+    };
+
+    // 平滑滚动到消息区底部
+    ChatRoom.scrollToBottom = function () {
+        const $c = $('#comments');
+        $c.stop().animate({scrollTop: $c[0].scrollHeight}, 300);
+    };
+</script>
+<script>
+    // 在消息区滚动到顶部时加载更多历史消息
+    $(function () {
+        const $c = $('#comments');
+        let isLoadingMore = false;
+
+        $c.on('scroll', function () {
+            if (isLoadingMore) return;
+            if ($c.scrollTop() <= 0 && Label.hasMore) {
+                isLoadingMore = true;
+                const oldHeight = $c[0].scrollHeight;
+                const oldScrollTop = $c.scrollTop();
+
+                ChatRoom.more();
+
+                // 等更多历史加载并渲染完成后，再根据高度差调整 scrollTop，避免“跳动到最上面”
+                setTimeout(function () {
+                    const newHeight = $c[0].scrollHeight;
+                    const delta = newHeight - oldHeight;
+                    $c.scrollTop(oldScrollTop + delta);
+                    isLoadingMore = false;
+                }, 50); // 50ms 够让一次 AJAX+DOM 渲染完成，必要时可以略微调大
+            }
+        });
+    });
 </script>
 <script type="text/javascript">
     $(document).ready(function(){

@@ -1207,7 +1207,11 @@ border-bottom: none;
             },
             success: function (result) {
                 if (0 === result.code) {
-                    $('#chatContentTip').removeClass('error succ').html('')
+                    $('#chatContentTip').removeClass('error succ').html('');
+                    // 自己发送成功后，强制滚到最新
+                    if (typeof ChatRoom.scrollToBottom === 'function') {
+                        ChatRoom.scrollToBottom();
+                    }
                 } else {
                     $('#chatContentTip').addClass('error').html('<ul><li>' + result.msg + '</li></ul>')
                     ChatRoom.editor.setValue(content)
@@ -1233,9 +1237,14 @@ border-bottom: none;
             page++;
             let chatMessageLatestOId;
             if (page !== 1) {
+                // 向上翻页：应该以当前“最旧的一条”（列表顶部）为锚点
                 let chatMessages = $(".chats__item");
-                let chatMessageLatest = chatMessages[chatMessages.length - 1];
-                chatMessageLatestOId = $(chatMessageLatest).attr('id').replace('chatroom', '');
+                if (chatMessages.length === 0) {
+                    chatMessageLatestOId = null;
+                } else {
+                    let oldest = chatMessages[0]; // 顶部那条
+                    chatMessageLatestOId = $(oldest).attr('id').replace('chatroom', '');
+                }
             }
             if (Label.hasMore) {
                 if (page === 1) {
@@ -1246,7 +1255,8 @@ border-bottom: none;
                         async: false,
                         success: function (result) {
                             if (result.data.length !== 0) {
-                                for (let i in result.data) {
+                                // 接口返回通常是“旧在前，新在后”，首屏按原顺序渲染
+                                for (let i = 0; i < result.data.length; i++) {
                                     let data = result.data[i];
                                     if ($("#chatroom" + data.oId).length === 0) {
                                         ChatRoom.renderMsg(data, 'more');
@@ -1254,7 +1264,11 @@ border-bottom: none;
                                     ChatRoom.resetMoreBtnListen();
                                 }
                                 Util.listenUserCard();
-                                ChatRoom.imageViewer()
+                                ChatRoom.imageViewer();
+                                // 首屏加载完成后，滚动到最新消息（底部）
+                                if (typeof ChatRoom.scrollToBottom === 'function') {
+                                    ChatRoom.scrollToBottom();
+                                }
                             } else {
                                 alert("没有更多聊天消息了！");
                                 Label.hasMore = false;
@@ -1262,6 +1276,11 @@ border-bottom: none;
                         }
                     });
                 } else {
+                    if (!chatMessageLatestOId) {
+                        Label.hasMore = false;
+                        NProgress.done();
+                        return;
+                    }
                     $.ajax({
                         url: Label.servePath + '/chat-room/getMessage?size=25&mode=1&oId=' + chatMessageLatestOId,
                         type: 'GET',
@@ -1269,7 +1288,8 @@ border-bottom: none;
                         async: false,
                         success: function (result) {
                             if (result.data.length !== 0) {
-                                for (let i in result.data) {
+                                // 历史页也按接口顺序（旧→新）渲染，renderMsg 负责“插在顶部”
+                                for (let i = 0; i < result.data.length; i++) {
                                     let data = result.data[i];
                                     if ($("#chatroom" + data.oId).length === 0) {
                                         ChatRoom.renderMsg(data, 'more');
@@ -1277,7 +1297,7 @@ border-bottom: none;
                                     ChatRoom.resetMoreBtnListen();
                                 }
                                 Util.listenUserCard();
-                                ChatRoom.imageViewer()
+                                ChatRoom.imageViewer();
                             } else {
                                 alert("没有更多聊天消息了！");
                                 Label.hasMore = false;
@@ -2197,8 +2217,8 @@ ${result.info.msg}
                 '    </div>\n' +
                 '</div></div>';
             if (more) {
-                // 加载历史消息：追加到列表底部（旧在上，新在下）
-                $('#chats').append(newHTML);
+                // 加载历史消息：插入到列表顶部（旧在上，新在下）
+                $('#chats').prepend(newHTML);
                 let $fn = $('#chats>div.fn-none');
                 $fn.show();
                 $fn.removeClass("fn-none");
@@ -2208,6 +2228,11 @@ ${result.info.msg}
                     Label.latestMessage = data.md;
                     Label.plusN = 0;
                 }
+                const $comments = $('#comments');
+                const shouldStick = typeof ChatRoom.isAtBottom === 'function'
+                    ? ChatRoom.isAtBottom(80)   // 在离底部 80px 以内就认为用户在“看最新”
+                    : true;
+
                 let $chats = $('#chats');
                 $chats.find('.latest').removeClass('latest');
                 $chats.append(newHTML);
@@ -2215,6 +2240,11 @@ ${result.info.msg}
                 $fn.slideDown(200);
                 $fn.addClass("latest");
                 $fn.removeClass("fn-none");
+
+                // 若当前在底部附近，则新消息到来后自动滚到底部
+                if (shouldStick && typeof ChatRoom.scrollToBottom === 'function') {
+                    ChatRoom.scrollToBottom();
+                }
             }
             if (isWeather) {
                 ChatRoom.initNewWeather(data.oId);
