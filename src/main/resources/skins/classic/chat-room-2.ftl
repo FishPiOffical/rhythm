@@ -296,6 +296,8 @@
     Label.plusN = 0;
     Label.hasMore = true;
     Label.node;
+    // 首屏是否已经自动滚动到底部
+    Label.initialScrolled = false;
     ChatRoom.init();
     // Init [ChatRoom] channel
     $.ajax({
@@ -313,6 +315,13 @@
     var linesArray = [];
     if ('${contextMode}' === 'no') {
         ChatRoom.more();
+        // 兜底：再过 500ms 再尝试滚一次（如果之前没滚成功）
+        setTimeout(function () {
+            if (!Label.initialScrolled && typeof ChatRoom.scrollToBottom === 'function') {
+                ChatRoom.scrollToBottom(true);
+                Label.initialScrolled = true;
+            }
+        }, 500);
     } else {
         page = 1;
         let contextOId = '${contextOId}';

@@ -1265,9 +1265,12 @@ border-bottom: none;
                                 }
                                 Util.listenUserCard();
                                 ChatRoom.imageViewer();
-                                // 首屏加载完成后，瞬间滚动到最新消息（底部），避免进来先看到顶部闪一下
-                                if (typeof ChatRoom.scrollToBottom === 'function') {
-                                    ChatRoom.scrollToBottom(true);
+                                // 首屏加载完成后，稍作延迟再滚动到底部，确保 DOM / 图片高度都已渲染完成
+                                if (!Label.initialScrolled && typeof ChatRoom.scrollToBottom === 'function') {
+                                    Label.initialScrolled = true;
+                                    setTimeout(function () {
+                                        ChatRoom.scrollToBottom(true);
+                                    }, 100); // 可根据体验微调 50~200ms
                                 }
                             } else {
                                 alert("没有更多聊天消息了！");
