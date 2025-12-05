@@ -171,9 +171,9 @@
     </div>
 </div>
 <div id="goToTop" style="position:fixed;bottom:20px;right:10%;display:none;"><a href="#"><svg style="width:30px;height:30px;color:#626262;"><use xlink:href="#toTopIcon"></use></svg></a></div>
-<div id="xiaoIceGameBtn" class="ice-game-btn">
+<!--<div id="xiaoIceGameBtn" class="ice-game-btn">
     <a href="https://game.yuis.cc" target="_blank"><img src="${staticServePath}/images/xiaoIce/xiaoIce.gif" class="ice-game-icon" alt=""></a>
-</div>
+</div>-->
 <div id="musicBox">
     <div class="music-box">
         <div class="music-controller">
