@@ -1265,9 +1265,9 @@ border-bottom: none;
                                 }
                                 Util.listenUserCard();
                                 ChatRoom.imageViewer();
-                                // 首屏加载完成后，滚动到最新消息（底部）
+                                // 首屏加载完成后，瞬间滚动到最新消息（底部），避免进来先看到顶部闪一下
                                 if (typeof ChatRoom.scrollToBottom === 'function') {
-                                    ChatRoom.scrollToBottom();
+                                    ChatRoom.scrollToBottom(true);
                                 }
                             } else {
                                 alert("没有更多聊天消息了！");

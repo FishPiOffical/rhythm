@@ -356,10 +356,16 @@
         return gap <= (threshold || 50); // 默认阈值 50px
     };
 
-    // 平滑滚动到消息区底部
-    ChatRoom.scrollToBottom = function () {
+    // 滚动到消息区底部（首屏使用瞬间滚动，避免闪烁）
+    ChatRoom.scrollToBottom = function (instant) {
         const $c = $('#comments');
-        $c.stop().animate({scrollTop: $c[0].scrollHeight}, 300);
+        if (!$c.length) return;
+        const target = $c[0].scrollHeight;
+        if (instant) {
+            $c.scrollTop(target);
+        } else {
+            $c.stop().animate({scrollTop: target}, 300);
+        }
     };
 </script>
 <script>

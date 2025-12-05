@@ -1980,6 +1980,12 @@ code .dec {
 
 /* QQ-style chat room layout */
 .chat-room--qq-layout {
+  // 整个聊天模块顶部留白，避免滚动条和话题紧贴顶部
+  .module {
+    padding-top: 15px;
+    box-sizing: border-box;
+  }
+
   .chat-room__layout {
     display: flex;
     flex-direction: row;
@@ -2066,6 +2072,7 @@ code .dec {
     flex-direction: column;
     gap: 10px;
     max-height: calc(100vh - 160px);
+    overflow: hidden;
   }
 
   .chat-room__topic,
