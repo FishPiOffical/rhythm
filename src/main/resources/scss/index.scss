@@ -1980,9 +1980,34 @@ code .dec {
 
 /* QQ-style chat room layout */
 .chat-room--qq-layout {
+  /* 顶部头部栏：与 module 同级，左标题 + 右按钮 */
+  .chat-room__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+    box-sizing: border-box;
+  }
+
+  .chat-room__header-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .chat-room__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   // 整个聊天模块顶部留白，避免滚动条和话题紧贴顶部
   .module {
-    padding-top: 15px;
+    padding-top: 10px;
     box-sizing: border-box;
   }
 
@@ -2072,12 +2097,26 @@ code .dec {
     flex-direction: column;
     gap: 10px;
     max-height: calc(100vh - 160px);
-    overflow: hidden;
+    overflow: hidden; /* 保证右侧整体不超出模块 */
+  }
+
+  /* 话题卡片：不参与伸缩，按内容自高 */
+  .chat-room__topic {
+    flex: 0 0 auto;
+  }
+
+  /* 在线卡片：占据右侧栏剩余高度，内部列表滚动 */
+  .chat-room__online {
+    flex: 1 1 auto;
+    min-height: 0; /* 关键，允许内部子元素正确计算滚动高度 */
+    display: flex;
+    flex-direction: column;
   }
 
   /* 顶部功能栏：类似 QQ 群功能区 */
   .chat-room__top-bar {
     flex: 0 0 auto;
+    width: 100%;
   }
 
   .chat-room__top-bar-inner {
@@ -2091,11 +2130,29 @@ code .dec {
     box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
   }
 
+  /* 右上角紧凑模式：按钮挨着放，整体靠右 */
+  .chat-room__top-bar--compact {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    width: auto;
+  }
+
+  .chat-room__top-bar-inner--right {
+    justify-content: flex-end;
+    padding: 4px 0;
+    gap: 4px;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+  }
+
   .chat-room__top-btn {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
     white-space: nowrap;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 999px;
     border: none;
     background: rgba(255, 255, 255, 0.85);
@@ -2116,6 +2173,12 @@ code .dec {
     height: 14px;
   }
 
+  /* 顶栏里的按钮稍微小一号，避免占满右侧 */
+  .chat-room__side-topbar .chat-room__top-btn {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
   .chat-room__top-btn:hover {
     background: #eff6ff;
     box-shadow: 0 0 0 1px #3b82f6;
@@ -2128,6 +2191,17 @@ code .dec {
   }
 
   @media (max-width: 960px) {
+    .chat-room__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .chat-room__header-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      width: 100%;
+    }
     .chat-room__top-bar-inner {
       padding: 6px 8px;
       gap: 4px;
@@ -2188,7 +2262,9 @@ code .dec {
   }
 
   .chat-room__online-list {
-    max-height: 260px;
+    /* 填满在线卡片剩余空间，在其中滚动 */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
   }
 
@@ -2199,14 +2275,25 @@ code .dec {
 
   /* 小屏幕下回退为纵向布局 */
   @media (max-width: 960px) {
+    .chat-room__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .chat-room__header-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      width: 100%;
+    }
     .chat-room__layout {
       flex-direction: column;
     }
 
     .chat-room__side {
       flex: 0 0 auto;
-      max-height: none;
-      order: -1; /* 手机上可将右侧栏放在上面或下面，根据需求调整 */
+      max-height: none; /* 手机版右侧不再限制高度，交给整体滚动 */
+      order: -1;
     }
 
     .chat-room__main {
@@ -2392,7 +2479,7 @@ code .dec {
     padding: 6px 4px 2px 4px;
     border-radius: 8px;
     background: rgba(148, 163, 184, 0.05);
-    max-height: 260px;
+    /* 高度交给外层的 flex 布局控制，这里只负责内部滚动和布局 */
     overflow-y: auto;
     display: flex;
     flex-wrap: wrap;
@@ -2454,6 +2541,17 @@ code .dec {
 
   /* 小屏时右侧卡片整体间距调整，避免太挤 */
   @media (max-width: 960px) {
+    .chat-room__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .chat-room__header-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      width: 100%;
+    }
     .chat-room__side {
       gap: 8px;
     }
@@ -2465,7 +2563,7 @@ code .dec {
     }
 
     .chat-room__online-list {
-      max-height: 200px;
+      /* 在小屏也不强行卡死一个高度，让整体布局决定 */
     }
   }
 }
