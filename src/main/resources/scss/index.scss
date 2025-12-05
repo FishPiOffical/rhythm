@@ -2681,6 +2681,28 @@ code .dec {
   right: 11px;
 }
 
+/* 当菜单需要向上展开时的样式 */
+.details details-menu.fn__layer--top {
+  top: auto;
+  bottom: 24px; /* 与 summary 的间距，可按需求微调 */
+}
+
+/* 箭头翻到下面，朝上 */
+.details details-menu.fn__layer--top:after,
+.details details-menu.fn__layer--top:before {
+  top: auto;
+  bottom: -14px;
+  border: 7px solid transparent;
+  border-top: 7px solid var(--layer-background-color);
+  border-bottom-color: transparent;
+}
+
+.details details-menu.fn__layer--top:before {
+  bottom: -16px;
+  border-width: 8px;
+  border-top-color: var(--layer-border-color);
+}
+
 .fn__layer .item {
   display: block;
   text-shadow: 0 1px 0 var(--layer-background-color);

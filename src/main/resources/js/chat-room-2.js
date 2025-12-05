@@ -3046,6 +3046,8 @@ ${result.info.msg}
             // animate=true: 平滑滚动；否则瞬间到底
             ChatRoom.scrollToBottom(!animate ? true : false);
         }
+
+        ChatRoom.bindActionMenuDirection();
     },
 
     /**
@@ -3094,6 +3096,41 @@ ${result.info.msg}
 
         // 清理时只删最上面的 n 个节点（不是只删 .chats__item，因为顶部也可能有红包提示、系统提示等）
         $children.slice(0, removeCount).remove();
+    },
+
+    /**
+     * 根据菜单位置，决定是向上展开还是向下展开
+     */
+    bindActionMenuDirection: function () {
+        // 事件委托，兼容后续新增消息
+        console.log('bindActionMenuDirection');
+        $('details.action__item').on('toggle',function () {
+            const details = this;
+
+            if (!details.open) {
+                return;
+            }
+            const menu = details.querySelector('details-menu');
+            console.log(menu);
+            if (!menu) {
+                return;
+            }
+
+            // 先移除旧状态
+            menu.classList.remove('fn__layer--top');
+
+            // 使用可视区域判断：菜单底部是否超出窗口
+            const rect = menu.getBoundingClientRect();
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+            // 打印诊断信息
+            console.log('rect.bottom', rect.bottom);
+            console.log('viewportHeight', viewportHeight);
+
+            // 留一点缓冲，比如 8px
+            if (rect.bottom > viewportHeight - 320) {
+                menu.classList.add('fn__layer--top');
+            }
+        });
     }
 }
 
