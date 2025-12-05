@@ -659,32 +659,55 @@ var ChatRoom = {
     },
     times: 0,
     reloadMessages: function () {
-        // 关闭自动静默清屏，避免新消息刚插入就被截断
-        // 如需重新启用，可根据新布局重新设计判断条件
+        // 关闭旧的“静默清屏”逻辑，改为基于消息数量与滚动高度的智能清理
+        ChatRoom.smartTrimMessages();
     },
     flashScreen: function () {
+        // 清屏：保留最新 N 条消息，删除更旧的，并滚到最底部
+        const KEEP_LATEST = 80; // 保留的最新消息数量，可按需求调整
+
         NProgress.start();
-        $('#chats').css("display", "none");
-        page = 1;
-        let chatLength = $("#chats>div");
-        if (chatLength.length > 25) {
-            for (let i = chatLength.length - 1; i > 24; i--) {
-                chatLength[i].remove();
-            }
+        const $chats = $("#chats");
+        const $items = $chats.children(); // 按当前 DOM 顺序：旧在上，新在下
+
+        // 计算需要删除的数量：只删顶部的旧消息
+        const total = $items.length;
+        const removeCount = Math.max(0, total - KEEP_LATEST);
+
+        if (removeCount > 0) {
+            $items.slice(0, removeCount).remove();
         }
+
+        // 重置页码，让后续“加载更多”从当前最旧一条向上翻
+        page = 1;
+
+        // 清屏完成后滚动到最底部，保证视图停留在最新消息
         setTimeout(function () {
-            $('#chats').css("display", "block");
+            if (typeof ChatRoom.scrollToBottom === 'function') {
+                ChatRoom.scrollToBottom(true);
+            } else {
+                const $comments = $('#comments');
+                if ($comments.length) {
+                    $comments.scrollTop($comments[0].scrollHeight);
+                }
+            }
             NProgress.done();
-        }, 150);
+        }, 100);
     },
     flashScreenQuiet: function () {
-        page = 1;
-        let chatLength = $("#chats>div");
-        if (chatLength.length > 25) {
-            for (let i = chatLength.length - 1; i > 24; i--) {
-                chatLength[i].remove();
-            }
+        // 静默清屏：仅清理旧消息，不做动画/提示
+        const KEEP_LATEST = 80;
+
+        const $chats = $("#chats");
+        const $items = $chats.children();
+        const total = $items.length;
+        const removeCount = Math.max(0, total - KEEP_LATEST);
+
+        if (removeCount > 0) {
+            $items.slice(0, removeCount).remove();
         }
+
+        page = 1;
     },
     /**
      * 打开思过崖
@@ -3023,6 +3046,60 @@ ${result.info.msg}
             // animate=true: 平滑滚动；否则瞬间到底
             ChatRoom.scrollToBottom(!animate ? true : false);
         }
+    },
+
+    /**
+     * 流畅模式下的智能清理：
+     * - 只在用户接近底部时清理（避免翻历史时被删内容）
+     * - 同时考虑条数和“屏幕高度”两个维度
+     */
+    smartTrimMessages: function () {
+        // 仅在流畅模式开启时工作
+        const smoothMode = localStorage.getItem("smoothMode") || 'false';
+        if (smoothMode !== 'true') {
+            return;
+        }
+
+        const $comments = $('#comments');
+        const $chats = $('#chats');
+        if (!$comments.length || !$chats.length) {
+            return;
+        }
+
+        // 如果用户在看上面的历史，就不要删
+        if (typeof ChatRoom.isAtBottom === 'function' && !ChatRoom.isAtBottom(200)) {
+            return;
+        }
+
+        const $children = $chats.children();
+        const totalCount = $children.length;
+
+        // 允许的最大节点数（包括系统提示类节点）
+        const MAX_NODES = 320;
+        const KEEP_NODES = 220; // 一次清理后保留的目标数量
+
+        // 如果数量还不多，就不用删
+        if (totalCount <= MAX_NODES) {
+            // 还可以额外按滚动高度判断一层
+            const scrollHeight = $comments[0].scrollHeight;
+            const clientHeight = $comments[0].clientHeight;
+            const multiple = scrollHeight / Math.max(clientHeight, 1);
+
+            // 高度不超过 N 屏就不处理
+            const MAX_MULTIPLE = 8;
+            if (multiple <= MAX_MULTIPLE) {
+                return;
+            }
+        }
+
+        // 走到这里说明满足“太多了”的条件：删除最旧的一批（顶部）
+        const removeCount = Math.max(0, totalCount - KEEP_NODES);
+        if (removeCount <= 0) {
+            return;
+        }
+
+        // 清理时只删最上面的 n 个节点（不是只删 .chats__item，因为顶部也可能有红包提示、系统提示等）
+        $children.slice(0, removeCount).remove();
     }
 }
 
