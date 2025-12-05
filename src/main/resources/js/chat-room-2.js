@@ -170,7 +170,23 @@ var ChatRoom = {
                 }, navigator.userAgent.match(/(phone|pad|pod|ios|Android|Mobile|BlackBerry|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian)/i) !== null ? 0 : 600)
             }
             $("#emojiBtn").hover(function (e) {
-                $('#emojiList').css('top', '290px')
+                // 动态计算弹窗位置：始终出现在按钮正上方
+                const $btn = $("#emojiBtn");
+                const $list = $("#emojiList");
+                const btnOffset = $btn.offset();
+                const btnHeight = $btn.outerHeight();
+                const listWidth = $list.outerWidth();
+                const btnWidth = $btn.outerWidth();
+
+                // 以按钮为参考：水平居中，垂直在按钮上方 8px
+                const top = btnOffset.top - $list.outerHeight() - 120;
+                const left = btnOffset.left + (btnWidth / 2) - (listWidth / 2);
+
+                $list.css({
+                    top: top + "px",
+                    left: left + "px"
+                });
+
                 if (timeoutId !== 0) {
                     clearTimeout(timeoutId)
                     timeoutId = 0
