@@ -54,6 +54,7 @@
                                 批量撤回
                             </button>
                         </#if>
+                        <button class="button chat-room__top-btn" onclick="javascript:location.href='/cr'">切换样式：经典</button>
                         <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
                         <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
                         <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">清屏</button>
