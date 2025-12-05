@@ -39,35 +39,37 @@
 <#include "header.ftl">
 <div class="main">
     <div class="wrapper">
-        <div class="content chat-room">
+        <div class="content chat-room chat-room--qq-layout">
             <div class="module" style="margin-bottom: 0">
                 <div class="fn-content" style="padding-top: 0;">
-                    <div class="reply">
-                        <#if isLoggedIn>
-                            <div id="chatContent" style="margin: 0 -15px"> </div>
-                            <div class="fn-clear" style="padding: 16px 0 8px 0;margin: 0 -4px;">
-                                <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#redPacketIcon"></use>
-                                </svg>
-                                <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#emojiIcon"></use>
-                                </svg>
-                                <svg id="barragerBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#danmu"></use>
-                                </svg>
-                                <div class="discuss_title">
-                                    <a style="text-decoration: none; display: inline-block; cursor: default">
-                                        <span style="color: #616161">当前话题：</span><span class="ft-green"># <span id="discuss-title">加载中...</span> #</span>
-                                    </a>
-                                    <div style="padding-left: 5px;display: inline-block;vertical-align: -2px;">
-                                        <a onclick="ChatRoom.setDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="编辑话题" style="text-decoration: none;">
-                                            <svg><use xlink:href="#edit-discuss"></use></svg>
-                                        </a>
-                                        <a onclick="ChatRoom.useDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="引用话题" style="text-decoration: none;">
-                                            <svg><use xlink:href="#pound"></use></svg>
-                                        </a>
+                    <div class="chat-room__layout">
+                        <div class="chat-room__main">
+                            <#-- 消息列表区域 -->
+                            <div class="chat-room__messages">
+                                <div class="list" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
+                                    <div id="chats">
                                     </div>
+                                    <#if !isLoggedIn>
+                                        <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
+                                    </#if>
                                 </div>
+                            </div>
+
+                            <#-- 输入区域：在消息列表下方 -->
+                            <div class="chat-room__input">
+                                <div class="reply">
+                                    <#if isLoggedIn>
+                                        <div id="chatContent" style="margin: 0 -15px"> </div>
+                                        <div class="fn-clear chat-room__toolbar" style="padding: 16px 0 8px 0;margin: 0 -4px;">
+                                            <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#redPacketIcon"></use>
+                                            </svg>
+                                            <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#emojiIcon"></use>
+                                            </svg>
+                                            <svg id="barragerBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#danmu"></use>
+                                            </svg>
                                 <#-- z-index 130 因为猜拳红包是128 会覆盖表情包 所以这里改成130 oh-yeh！ -->
                                 <div class="hide-list" id="emojiList" style="z-index: 130">
                                     <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
@@ -93,7 +95,7 @@
                                         </a>
                                     </div>
                                 </#if>
-                                <div class="fn-right">
+                                <div class="fn-right chat-room__actions">
                                     <button class="button" id="nodeButton" onclick="ChatRoom.switchNode()"><svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区</button>
                                     <#if level3Permitted == true>
                                         <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button">
@@ -138,15 +140,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="fn-clear comment-submit">
-                                <div class="fn-left online-cnt">${onlineVisitorCountLabel} <span id="onlineCnt"></span>
+                            <div class="fn-clear comment-submit chat-room__status">
+                                <div class="fn-left chat-room__status-left">
+                                    <div class="tip" id="chatContentTip"></div>
                                 </div>
-                                <div class="tip fn-left" id="chatContentTip"></div>
-                                <a onclick="ChatRoom.toggleOnlineAvatar()" style="cursor:pointer;">
-                                    <svg style="vertical-align: -10px;" id="toggleAvatarBtn"><use xlink:href="#showMore"></use></svg>
-                                </a>
-                            </div>
-                            <div id="chatRoomOnlineCnt" class="chats__users" style="display: none">
                             </div>
                         <#else>
                             <div class="comment-login">
@@ -154,19 +151,46 @@
                                    href="javascript:window.scrollTo(0,0);Util.goLogin();">${loginDiscussLabel}</a>
                             </div>
                         </#if>
-                    </div>
-                </div>
-                <div class="list" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
-                    <div id="chats">
-                    </div>
-                    <#if !isLoggedIn>
-                        <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
-                    </#if>
+                    </div> <!-- .reply -->
+                </div> <!-- .chat-room__input -->
+                        </div> <!-- .chat-room__main -->
+
+                        <#-- 右侧：话题 + 在线用户 -->
+                        <div class="chat-room__side">
+                            <#if isLoggedIn>
+                                <div class="chat-room__topic">
+                                    <div class="chat-room__topic-header">
+                                        <span class="chat-room__topic-label">当前话题</span>
+                                    </div>
+                                    <div class="chat-room__topic-body">
+                                        <span class="chat-room__topic-text"># <span id="discuss-title">加载中...</span> #</span>
+                                        <div class="chat-room__topic-actions">
+                                            <a onclick="ChatRoom.setDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="编辑话题" style="text-decoration: none;">
+                                                <svg><use xlink:href="#edit-discuss"></use></svg>
+                                            </a>
+                                            <a onclick="ChatRoom.useDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="引用话题" style="text-decoration: none;">
+                                                <svg><use xlink:href="#pound"></use></svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chat-room__online">
+                                    <div class="chat-room__online-header">
+                                        <span>${onlineVisitorCountLabel}</span>
+                                        <span class="chat-room__online-count" id="onlineCnt"></span>
+                                        <a onclick="ChatRoom.toggleOnlineAvatar()" class="chat-room__online-toggle" style="cursor:pointer;">
+                                            <svg id="toggleAvatarBtn"><use xlink:href="#showMore"></use></svg>
+                                        </a>
+                                    </div>
+                                    <div id="chatRoomOnlineCnt" class="chats__users chat-room__online-list" style="display: none">
+                                    </div>
+                                </div>
+                            </#if>
+                        </div> <!-- .chat-room__side -->
+                    </div> <!-- .chat-room__layout -->
                 </div>
             </div>
-        </div>
-        <div class="side">
-            <#include "side.ftl">
         </div>
     </div>
 </div>
@@ -325,16 +349,8 @@
     Label.onlineAvatarData = "";
 </script>
 <script>
-    $(window).scroll(
-        function() {
-            var scrollTop = $(this).scrollTop();
-            var scrollHeight = $(document).height();
-            var windowHeight = $(this).height();
-            if (scrollTop + windowHeight + 500 >= scrollHeight) {
-                ChatRoom.more();
-            }
-        }
-    );
+    // 取消滚动到底部自动加载历史，以避免初次进入即疯狂加载
+    // 如需“手动加载更多”，建议在聊天区底部放一个按钮调用 ChatRoom.more()
 </script>
 <script type="text/javascript">
     $(document).ready(function(){

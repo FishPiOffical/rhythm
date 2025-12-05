@@ -1978,6 +1978,154 @@ code .dec {
   display: none;
 }
 
+/* QQ-style chat room layout */
+.chat-room--qq-layout {
+  .chat-room__layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .chat-room__main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 160px);
+  }
+
+  .chat-room__messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 消息列表容器 */
+  #comments {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* 覆盖原有高度设置 */
+    height: auto !important;
+  }
+
+  .chat-room__input {
+    flex: 0 0 auto;
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
+
+  .chat-room__toolbar {
+    padding-bottom: 8px;
+  }
+
+  .chat-room__actions {
+    margin-top: 8px;
+  }
+
+  .chat-room__status {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .chat-room__status-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chat-room__side {
+    flex: 0 0 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 160px);
+  }
+
+  .chat-room__topic,
+  .chat-room__online {
+    background-color: #fff;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .chat-room__topic-header {
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #616161;
+  }
+
+  .chat-room__topic-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .chat-room__topic-text {
+    color: #4285f4;
+    font-size: 13px;
+    word-break: break-all;
+  }
+
+  .chat-room__topic-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chat-room__online-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #616161;
+    margin-bottom: 6px;
+  }
+
+  .chat-room__online-toggle svg {
+    vertical-align: -2px;
+  }
+
+  .chat-room__online-list {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  /* 防止旧样式干扰在线列表滚动行为 */
+  .chat-room__online-list.chats__users {
+    overflow: auto !important;
+  }
+
+  /* 小屏幕下回退为纵向布局 */
+  @media (max-width: 960px) {
+    .chat-room__layout {
+      flex-direction: column;
+    }
+
+    .chat-room__side {
+      flex: 0 0 auto;
+      max-height: none;
+      order: -1; /* 手机上可将右侧栏放在上面或下面，根据需求调整 */
+    }
+
+    .chat-room__main {
+      max-height: none;
+    }
+
+    #comments {
+      max-height: 50vh;
+    }
+  }
+}
+
 .chats__input {
   margin-bottom: 15px;
 }

@@ -643,17 +643,8 @@ var ChatRoom = {
     },
     times: 0,
     reloadMessages: function () {
-        ChatRoom.times++;
-        if (document.documentElement.scrollTop <= 2000) {
-            ChatRoom.flashScreenQuiet();
-        } else if (ChatRoom.times > 20) {
-            ChatRoom.flashScreenQuiet();
-            ChatRoom.times = 0;
-        }
-
-        if (ChatRoom.times > 20) {
-            ChatRoom.times = 0;
-        }
+        // 关闭自动静默清屏，避免新消息刚插入就被截断
+        // 如需重新启用，可根据新布局重新设计判断条件
     },
     flashScreen: function () {
         NProgress.start();
@@ -2206,52 +2197,21 @@ ${result.info.msg}
                 '    </div>\n' +
                 '</div></div>';
             if (more) {
+                // 加载历史消息：追加到列表底部（旧在上，新在下）
                 $('#chats').append(newHTML);
                 let $fn = $('#chats>div.fn-none');
                 $fn.show();
                 $fn.removeClass("fn-none");
-            }
-            // 堆叠复读机消息
-            else if (isPlusOne) {
-                let plusN = ++Label.plusN;
-                if (plusN === 1) {
-                    let stackedHtml = "<div id='stacked' class='fn__flex' style='position:relative;display:none;'>" +
-                        "<span id='plusOne' onclick='ChatRoom.plusOne()' style='display:block;margin-left: 20px'><svg style='width: 30px; height: 20px; cursor: pointer;'><use xlink:href='#plusOneIcon'></use></svg></span>" +
-                        "</div>"
-                    $('#chats').prepend(stackedHtml);
-                    let latest = $('#chats>div.latest');
-                    $('#stacked').prepend(latest);
-                    latest.find('#userName').show();
-                    latest.removeClass('latest');
-                }
-                let $stacked = $('#stacked');
-                if (plusN !== 1) {
-                    $stacked.fadeOut(100);
-                }
-                setTimeout(function () {
-                    $stacked.append(newHTML);
-                    $stacked.height($stacked.height() + 27 + 'px')
-
-                    let $fn = $('#stacked>div.fn-none');
-                    $fn.show();
-                    $fn.css('left', plusN * 9 + 'px');
-                    $fn.css('top', plusN * 27 + 'px');
-                    $fn.css('position', 'absolute');
-                    $fn.find('.chats__content').css('background-color', plusN % 2 === 0 ? 'rgb(240 245 254)' : 'rgb(245 245 245)');
-                    $fn.removeClass("fn-none");
-
-                    $stacked.fadeIn(200);
-                }, 100);
             } else {
-                $('#plusOne').remove();
+                // 新消息：统一追加到列表底部
                 if (data.md) {
                     Label.latestMessage = data.md;
                     Label.plusN = 0;
                 }
                 let $chats = $('#chats');
                 $chats.find('.latest').removeClass('latest');
-                $chats.prepend(newHTML);
-                let $fn = $('#chats>div.fn-none');
+                $chats.append(newHTML);
+                let $fn = $('#chats>div.fn-none').last();
                 $fn.slideDown(200);
                 $fn.addClass("latest");
                 $fn.removeClass("fn-none");
