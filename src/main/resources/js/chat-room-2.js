@@ -2231,23 +2231,17 @@ ${result.info.msg}
                     Label.latestMessage = data.md;
                     Label.plusN = 0;
                 }
-                const $comments = $('#comments');
-                const shouldStick = typeof ChatRoom.isAtBottom === 'function'
-                    ? ChatRoom.isAtBottom(80)   // 在离底部 80px 以内就认为用户在“看最新”
-                    : true;
 
                 let $chats = $('#chats');
                 $chats.find('.latest').removeClass('latest');
-                $chats.append(newHTML);
+
+                // 使用统一工具追加并根据情况下滚（在底部时平滑滚动）
+                ChatRoom.appendAndMaybeScroll(newHTML, { animate: true });
+
                 let $fn = $('#chats>div.fn-none').last();
                 $fn.slideDown(200);
                 $fn.addClass("latest");
                 $fn.removeClass("fn-none");
-
-                // 若当前在底部附近，则新消息到来后自动滚到底部
-                if (shouldStick && typeof ChatRoom.scrollToBottom === 'function') {
-                    ChatRoom.scrollToBottom();
-                }
             }
             if (isWeather) {
                 ChatRoom.initNewWeather(data.oId);
@@ -2986,6 +2980,33 @@ ${result.info.msg}
         setTimeout(function () {
             clearInterval(ChatRoomChannel.manual);
         }, 1000);
+    },
+
+    /**
+     * 统一的“追加消息 + 若在底部则自动下滚”的工具
+     * newHTML: 字符串 HTML（单条或多条消息）
+     * options: { animate: boolean } 是否用动画滚动
+     */
+    appendAndMaybeScroll: function (newHTML, options) {
+        const $comments = $('#comments');
+        const $chats = $('#chats');
+        if (!$comments.length || !$chats.length) {
+            // 回退：直接 append
+            $chats.append(newHTML);
+            return;
+        }
+
+        const animate = options && options.animate === true;
+        const shouldStick = typeof ChatRoom.isAtBottom === 'function'
+            ? ChatRoom.isAtBottom(600)
+            : true;
+
+        $chats.append(newHTML);
+
+        if (shouldStick && typeof ChatRoom.scrollToBottom === 'function') {
+            // animate=true: 平滑滚动；否则瞬间到底
+            ChatRoom.scrollToBottom(!animate ? true : false);
+        }
     }
 }
 
