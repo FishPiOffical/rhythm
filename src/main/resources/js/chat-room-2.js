@@ -3054,12 +3054,6 @@ ${result.info.msg}
      * - 同时考虑条数和“屏幕高度”两个维度
      */
     smartTrimMessages: function () {
-        // 仅在流畅模式开启时工作
-        const smoothMode = localStorage.getItem("smoothMode") || 'false';
-        if (smoothMode !== 'true') {
-            return;
-        }
-
         const $comments = $('#comments');
         const $chats = $('#chats');
         if (!$comments.length || !$chats.length) {

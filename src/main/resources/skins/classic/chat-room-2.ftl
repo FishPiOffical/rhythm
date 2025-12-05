@@ -269,7 +269,99 @@
     </div>
     <div id="robotMsgList"></div>
 </div>
-<#include "footer.ftl">
+<script src="${staticServePath}/js/symbol-defs${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>
+<script src="https://file.fishpi.cn/vditor/3.11.1/dist/index.min.js"></script>
+<script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/count${miniPostfix}.js?${staticResourceVersion}"></script>
+<script>
+    var Label = {
+        commentEditorPlaceholderLabel: '${commentEditorPlaceholderLabel}',
+        langLabel: '${langLabel}',
+        luteAvailable: ${luteAvailable?c},
+        reportSuccLabel: '${reportSuccLabel}',
+        breezemoonLabel: '${breezemoonLabel}',
+        confirmRemoveLabel: "${confirmRemoveLabel}",
+        reloginLabel: "${reloginLabel}",
+        invalidPasswordLabel: "${invalidPasswordLabel}",
+        loginNameErrorLabel: "${loginNameErrorLabel}",
+        followLabel: "${followLabel}",
+        unfollowLabel: "${unfollowLabel}",
+        symphonyLabel: "${symphonyLabel}",
+        visionLabel: "${visionLabel}",
+        cmtLabel: "${cmtLabel}",
+        collectLabel: "${collectLabel}",
+        uncollectLabel: "${uncollectLabel}",
+        desktopNotificationTemplateLabel: "${desktopNotificationTemplateLabel}",
+        servePath: "${servePath}",
+        staticServePath: "${staticServePath}",
+        isLoggedIn: ${isLoggedIn?c},
+        funNeedLoginLabel: '${funNeedLoginLabel}',
+        notificationCommentedLabel: '${notificationCommentedLabel}',
+        notificationReplyLabel: '${notificationReplyLabel}',
+        notificationAtLabel: '${notificationAtLabel}',
+        notificationFollowingLabel: '${notificationFollowingLabel}',
+        pointLabel: '${pointLabel}',
+        sameCityLabel: '${sameCityLabel}',
+        systemLabel: '${systemLabel}',
+        newFollowerLabel: '${newFollowerLabel}',
+        makeAsReadLabel: '${makeAsReadLabel}',
+        imgMaxSize: ${imgMaxSize?c},
+        fileMaxSize: ${fileMaxSize?c},
+        <#if isLoggedIn>
+        currentUserName: '${currentUser.userName}',
+        </#if>
+        <#if csrfToken??>
+        csrfToken: '${csrfToken}',
+        </#if>
+        staticResourceVersion: '${staticResourceVersion}',
+    }
+
+    <#if isLoggedIn>
+    Label.userKeyboardShortcutsStatus = '${currentUser.userKeyboardShortcutsStatus}'
+    </#if>
+
+    Util.init(${isLoggedIn?c})
+
+    <#if isLoggedIn>
+    // Init [User] channel
+    Util.initUserChannel("${wsScheme}://${serverHost}:${serverPort}${contextPath}/user-channel")
+    </#if>
+
+    <#if mouseEffects>
+    Util.mouseClickEffects()
+    </#if>
+</script>
+<#if algoliaEnabled>
+    <script src="${staticServePath}/js/lib/algolia/algolia.min.js"></script>
+    <script>
+        Util.initSearch('${algoliaAppId}', '${algoliaSearchKey}', '${algoliaIndex}')
+    </script>
+</#if>
+<script src="${staticServePath}/js/lib/tooltips/tooltips.min.js?${staticResourceVersion}"></script>
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?bab35868f6940b3c4bfc020eac6fe61f";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+<script>
+    function iframeCheck () {
+        try {
+            return window.self !== window.top;
+        } catch (e) {
+            return true;
+        }
+    }
+    $(function () {
+        if (iframeCheck()) {
+            location.href = "/privacy"
+        }
+    });
+</script>
 <script>
     Label.uploadLabel = "${uploadLabel}";
     Label.vipUsers = ${vipUsers};
