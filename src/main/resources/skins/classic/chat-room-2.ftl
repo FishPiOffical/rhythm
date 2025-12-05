@@ -96,15 +96,6 @@
                                     </div>
                                 </#if>
                                 <div class="fn-right chat-room__actions">
-                                    <button class="button" id="nodeButton" onclick="ChatRoom.switchNode()"><svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区</button>
-                                    <#if level3Permitted == true>
-                                        <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button">
-                                            批量撤回
-                                        </button>
-                                    </#if>
-                                    <button class="button" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
-                                    <button class="button" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
-                                    <button class="button" onclick="ChatRoom.flashScreen()">清屏</button>
                                     <button class="green" onclick="ChatRoom.send()">发送</button>
                                 </div>
                                 <div id="paintContent" style="display: none;">
@@ -155,9 +146,25 @@
                 </div> <!-- .chat-room__input -->
                         </div> <!-- .chat-room__main -->
 
-                        <#-- 右侧：话题 + 在线用户 -->
+                        <#-- 右侧：顶部功能栏 + 话题 + 在线用户 -->
                         <div class="chat-room__side">
                             <#if isLoggedIn>
+                                <div class="chat-room__top-bar">
+                                    <div class="chat-room__top-bar-inner">
+                                        <button class="button chat-room__top-btn" id="nodeButton" onclick="ChatRoom.switchNode()">
+                                            <svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区
+                                        </button>
+                                        <#if level3Permitted == true>
+                                            <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button chat-room__top-btn">
+                                                批量撤回
+                                            </button>
+                                        </#if>
+                                        <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
+                                        <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
+                                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">清屏</button>
+                                    </div>
+                                </div>
+
                                 <div class="chat-room__topic">
                                     <div class="chat-room__topic-header">
                                         <span class="chat-room__topic-label">当前话题</span>
