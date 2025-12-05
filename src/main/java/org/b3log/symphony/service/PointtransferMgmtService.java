@@ -201,7 +201,6 @@ public class PointtransferMgmtService {
      */
     public String transferInCurrentTransaction(final String fromId, final String toId, final int type, final int sum,
                                                final String dataId, final long time, final String memo) {
-        System.out.println("transferInCurrentTransaction");
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
             return null;
