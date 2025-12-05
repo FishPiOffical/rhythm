@@ -2152,6 +2152,255 @@ code .dec {
       max-height: 50vh;
     }
   }
+
+  /* ================================
+   * Chat room QQ-style right panel (additive styles only)
+   * ================================ */
+
+  /**
+   * 如果你希望只在某些皮肤/页面启用 QQ 风格，
+   * 可以在外层加一个开关类，比如 body 或 .chat-room 上加 .chat-room--qq-right
+   * 当前 FTL 上外层已有 .chat-room.chat-room--qq-layout，
+   * 这里按 chat-room--qq-layout 做局部增强。
+   */
+  /* 右侧整体卡片过渡感：圆角 + 阴影 + 渐变边框 */
+  .chat-room__topic,
+  .chat-room__online {
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    padding: 12px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 顶部细色条，模拟 QQ 群公告 / 群成员卡头部的视觉 */
+  .chat-room__topic::before,
+  .chat-room__online::before {
+    content: "";
+    position: absolute;
+    left: -40%;
+    top: 0;
+    width: 180%;
+    height: 3px;
+    background: linear-gradient(90deg, #4f46e5, #0ea5e9, #10b981);
+    opacity: 0.75;
+  }
+
+  /* 卡片标题行：左侧标题 + 右侧小图标 */
+  .chat-room__topic-header,
+  .chat-room__online-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #4b5563;
+  }
+
+  .chat-room__topic-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #111827;
+  }
+
+  .chat-room__topic-header svg,
+  .chat-room__online-header svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* 话题主体：类似 QQ 群公告布局 */
+  .chat-room__topic-body {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(37, 99, 235, 0.03);
+    border: 1px solid rgba(37, 99, 235, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* 标题行前面加一个主题图标 */
+  .chat-room__topic-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #111827;
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .chat-room__topic-text::before {
+    content: "公告";
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.06);
+    color: #1d4ed8;
+    border: 1px solid rgba(37, 99, 235, 0.15);
+  }
+
+  /* “# xxx #” 内的文字色增强 */
+  .chat-room__topic-text #discuss-title {
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  /* 话题操作按钮行：靠右贴边，小图标样式类似 QQ 小操作栏 */
+  .chat-room__topic-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .chat-room__topic-actions a {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(148, 163, 184, 0.12);
+    transition: all 0.15s ease-in-out;
+  }
+
+  .chat-room__topic-actions a svg {
+    width: 14px;
+    height: 14px;
+    color: #6b7280;
+  }
+
+  .chat-room__topic-actions a:hover {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .chat-room__topic-actions a:hover svg {
+    color: #2563eb;
+  }
+
+  /* 在线人数卡片头部：左标题 + 中人数 + 右展开图标，类似 QQ */
+  .chat-room__online-header {
+    font-size: 12px;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+
+  .chat-room__online-header > span:first-child {
+    font-weight: 600;
+  }
+
+  .chat-room__online-count {
+    font-weight: 600;
+    color: #2563eb;
+  }
+
+  .chat-room__online-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.12);
+    transition: background-color 0.15s ease-in-out;
+  }
+
+  .chat-room__online-toggle:hover {
+    background: rgba(59, 130, 246, 0.16);
+  }
+
+  .chat-room__online-toggle svg {
+    width: 14px;
+    height: 14px;
+    color: #6b7280;
+  }
+
+  /* 在线成员列表：一行一个 + 头像 + 名字，类似 QQ */
+  .chat-room__online-list {
+    /* 让它更像 QQ 成员列表的容器 */
+    margin-top: 4px;
+    padding: 4px 2px 2px 2px;
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.05);
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  /* 关闭原有完全隐藏滚动条的效果，保留细滚动条，避免长列表不可察觉 */
+  .chat-room__online-list.chats__users::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .chat-room__online-list.chats__users::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .chat-room__online-list.chats__users::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.6);
+    border-radius: 999px;
+  }
+
+  .chat-room__online-list.chats__users::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.9);
+  }
+
+  /* 在线成员：一行一个，QQ 风格 */
+  .chat-room__online-list a {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background-color 0.12s ease-in-out;
+  }
+
+  .chat-room__online-list a:hover {
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  .chat-room__online-list .avatar-small {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.4);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .chat-room__online-list a::after {
+    /* 利用 aria-label 当昵称用 */
+    content: attr(aria-label);
+    font-size: 12px;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 小屏时右侧卡片整体间距调整，避免太挤 */
+  @media (max-width: 960px) {
+    .chat-room__side {
+      gap: 8px;
+    }
+
+    .chat-room__topic,
+    .chat-room__online {
+      padding: 10px 12px;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+    }
+
+    .chat-room__online-list {
+      max-height: 200px;
+    }
+  }
 }
 
 .chats__input {
