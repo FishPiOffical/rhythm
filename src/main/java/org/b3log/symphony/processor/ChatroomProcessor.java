@@ -249,6 +249,7 @@ public class ChatroomProcessor {
         final ChatroomProcessor chatroomProcessor = beanManager.getReference(ChatroomProcessor.class);
         Dispatcher.post("/chat-room/send", chatroomProcessor::addChatRoomMsg, loginCheck::handle, chatMsgAddValidationMidware::handle);
         Dispatcher.get("/cr", chatroomProcessor::showChatRoom, loginCheck::handle);
+        Dispatcher.get("/cr2", chatroomProcessor::showChatRoom2, loginCheck::handle);
         Dispatcher.get("/chat-room/more", chatroomProcessor::getMore);
         Dispatcher.get("/chat-room/getMessage", chatroomProcessor::getContextMessage);
         Dispatcher.get("/chat-room/online-users", chatroomProcessor::getChatRoomUsers);
@@ -1737,6 +1738,76 @@ public class ChatroomProcessor {
      */
     public synchronized void showChatRoom(final RequestContext context) {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "chat-room.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        try {
+            String oId = context.param("oId");
+            if (oId == null) {
+                throw new NullPointerException();
+            }
+            dataModel.put("contextMode", "yes");
+            dataModel.put("contextOId", oId);
+        } catch (Exception ignored) {
+            dataModel.put("contextMode", "no");
+            dataModel.put("contextOId", '0');
+        }
+        dataModel.put(Common.ONLINE_CHAT_CNT, 0);
+        final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, currentUser.optInt(UserExt.CHAT_ROOM_PICTURE_STATUS));
+            dataModel.put("level3Permitted", DataModelService.hasPermission(currentUser.optString(User.USER_ROLE), 3));
+            // 通知标为已读
+            notificationMgmtService.makeRead(currentUser.optString(Keys.OBJECT_ID), Notification.DATA_TYPE_C_CHAT_ROOM_AT);
+            try {
+                final org.json.JSONObject status = membershipQueryService.getStatusByUserId(currentUser.optString(Keys.OBJECT_ID));
+                dataModel.put("membership", status);
+            } catch (Exception e) {
+                dataModel.put("membership", new JSONObject());
+            }
+        } else {
+            dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
+            dataModel.put("level3Permitted", false);
+            dataModel.put("membership", new JSONObject());
+        }
+        // 是否宵禁
+        int start = 1930;
+        int end = 800;
+        int now = Integer.parseInt(new SimpleDateFormat("HHmm").format(new Date()));
+        if (now > end && now < start) {
+            dataModel.put("nightDisableMode", false);
+        } else {
+            dataModel.put("nightDisableMode", true);
+        }
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+        dataModel.put(Common.SELECTED, "cr");
+        dataModel.put("barragerCost", barragerCost);
+        dataModel.put("barragerUnit", barragerUnit);
+
+        try {
+            final java.util.List<org.json.JSONObject> memberships = membershipQueryService.listActiveConfigs();
+            final org.json.JSONArray vipData = new org.json.JSONArray();
+            for (final org.json.JSONObject m : memberships) {
+                final org.json.JSONObject item = new org.json.JSONObject();
+                item.put(org.b3log.symphony.model.Membership.USER_ID, m.optString(org.b3log.symphony.model.Membership.USER_ID));
+                item.put(org.b3log.symphony.model.Membership.CONFIG_JSON, m.optString(org.b3log.symphony.model.Membership.CONFIG_JSON));
+                vipData.put(item);
+            }
+            dataModel.put("vipUsers", vipData);
+        } catch (Exception e) {
+            dataModel.put("vipUsers", new org.json.JSONArray());
+        }
+    }
+
+    /**
+     * Shows chatroom 2.
+     *
+     * @param context the specified context
+     */
+    public synchronized void showChatRoom2(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "chat-room-2.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
         try {
             String oId = context.param("oId");
