@@ -37,7 +37,7 @@
 </head>
 <body>
 <#include "header.ftl">
-<div class="main">
+<div class="main" style="margin: 10px 0 0 0; padding: 0">
     <div class="wrapper">
         <div class="content chat-room chat-room--qq-layout">
             <#-- 顶部头部栏：与 module 同级，左标题 + 右按钮 -->
@@ -57,7 +57,7 @@
                         <button class="button chat-room__top-btn" onclick="javascript:location.href='/cr'">切换样式：经典</button>
                         <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
                         <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
-                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">清屏</button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">返回底部并清屏</button>
                     </div>
                 </#if>
             </div>
@@ -68,7 +68,7 @@
                         <div class="chat-room__main">
                             <#-- 消息列表区域 -->
                             <div class="chat-room__messages">
-                                <div class="list" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
+                                <div class="list" id="comments" style="height: auto; padding: 20px 30px 5px 30px">
                                     <div id="chats">
                                     </div>
                                     <#if !isLoggedIn>
@@ -81,8 +81,8 @@
                             <div class="chat-room__input">
                                 <div class="reply">
                                     <#if isLoggedIn>
-                                        <div id="chatContent" style="margin: 0 -15px"> </div>
-                                        <div class="fn-clear chat-room__toolbar" style="padding: 16px 0 8px 0;margin: 0 -4px;">
+                                        <div id="chatContent"> </div>
+                                        <div class="fn-clear chat-room__toolbar" style="padding: 16px 0 8px 0;">
                                             <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
                                                 <use xlink:href="#redPacketIcon"></use>
                                             </svg>
