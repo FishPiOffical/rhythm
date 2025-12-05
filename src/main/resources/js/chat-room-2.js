@@ -2286,6 +2286,7 @@ ${result.info.msg}
                 ChatRoom.initNewWeather(data.oId);
             }
         }
+        ChatRoom.bindActionMenuDirection();
     },
     /**
      * 天气卡片渲染
