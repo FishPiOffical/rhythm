@@ -2478,7 +2478,6 @@ code .dec {
     margin-top: 4px;
     padding: 6px 4px 2px 4px;
     border-radius: 8px;
-    background: rgba(148, 163, 184, 0.05);
     /* 高度交给外层的 flex 布局控制，这里只负责内部滚动和布局 */
     overflow-y: auto;
     display: flex;
