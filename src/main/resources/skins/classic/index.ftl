@@ -337,7 +337,7 @@
     <div class="wrapper" style="padding-bottom: 20px">
         <div class="index-recent fn-flex-1">
             <div class="index-head-title">
-                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">长篇连载</div>
+                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">鱼乎</div>
                 <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/yuhu">更多</a></div>
                 <div style="clear:both;"></div>
             </div>
@@ -397,7 +397,7 @@
                 <#else>
                     <div style="text-align: center; padding: 40px; color: #999;">
                         <svg style="width: 60px; height: 60px; margin-bottom: 15px;"><use xlink:href="#book"></use></svg>
-                        <p>暂无长篇连载</p>
+                        <p>暂无鱼乎</p>
                     </div>
                 </#if>
             </div>

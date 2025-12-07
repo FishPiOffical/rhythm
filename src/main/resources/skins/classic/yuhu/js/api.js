@@ -53,3 +53,13 @@ export const queryYuhu = async (tag,q,sort,page,size) => {
     },
   });
 };
+
+// 获取鱼乎详情
+export const getYuhu = async (id) => {
+  return yuhuAPI(`/yuhu/book/${id}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};

@@ -50,9 +50,9 @@
     <div class="fn-hr10"></div>
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">
-            长篇连载
+            鱼乎
             <div class="fn__right">
-                <a class="ft__gray" href="${servePath}/tag/长篇连载">更多</a>
+                <a class="ft__gray" href="${servePath}/yuhu">更多</a>
             </div>
         </h2>
     </div>

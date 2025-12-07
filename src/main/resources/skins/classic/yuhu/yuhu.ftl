@@ -32,8 +32,19 @@
 <body>
 <#include "../header.ftl">
 <div class="container">
-    <h1>YuHu-鱼乎</h1>
-    <h3>鱼乎专栏首页-如果已经登录，那么会显示搜藏的专栏(book架)</h3>
+    <div>
+        <div class="yuhu-search">
+            <input class="yuhu-search-input" type="text" placeholder="搜索鱼乎">
+            <div class="yuhu-search-label">搜索</div>
+        </div>
+        <div>
+            推荐
+        </div>
+        <div>分类</div>
+        <div>
+            我的收藏
+        </div>
+    </div>
 </div>
 <#include "../footer.ftl">
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
