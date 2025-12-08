@@ -2506,7 +2506,6 @@ code .dec {
 
   /* 在线成员：头像墙效果，不再一行一个带名字 */
   .chat-room__online-list a {
-    display: inline-flex !important;
     align-items: center;
     justify-content: center;
     width: 30px;
@@ -2519,7 +2518,7 @@ code .dec {
 
   .chat-room__online-list a:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.18);
+    box-shadow: 0 1px 1px rgba(15, 23, 42, 0.18);
     background: transparent;
   }
 
