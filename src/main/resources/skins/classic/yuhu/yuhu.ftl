@@ -31,21 +31,22 @@
 </head>
 <body>
 <#include "../header.ftl">
-<div class="container">
-    <div>
+    <div class="container">
+        <div class="yuhu-main-title">鱼乎/YUHU</div>
         <div class="yuhu-search">
             <input class="yuhu-search-input" type="text" placeholder="搜索鱼乎">
             <div class="yuhu-search-label">搜索</div>
         </div>
-        <div>
-            推荐
-        </div>
-        <div>分类</div>
-        <div>
-            我的收藏
-        </div>
     </div>
-</div>
+    <div class="yuhu-container">
+        <div class="yuhu-title">推荐</div>
+    </div>
+    <div class="yuhu-container">
+        <div class="yuhu-title">分类</div>
+    </div>
+    <div class="yuhu-container">
+        <div class="yuhu-title">我的收藏</div>
+    </div>
 <#include "../footer.ftl">
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
