@@ -63,7 +63,6 @@
                                 上传者：<a href="${servePath}/member/${file.userName}" target="_blank">${file.userName}</a>
                                 <#if file.public == true>
                                     <span style="position: absolute; left: 5px; bottom: 5px">
-                                        <button class="btn red" onclick="mark('${file.oId}', 'temp')">标记为临时图片</button><br>
                                         <button class="btn red" onclick="mark('${file.oId}', 'illegal')">标记为违规图片</button><br>
                                         <button class="btn green" style="margin-top: 8px" onclick="mark('${file.oId}', 'normal')">标记为正常图片</button>
                                     </span>
