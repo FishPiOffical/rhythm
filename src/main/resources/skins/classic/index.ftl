@@ -41,7 +41,6 @@
         <div class="index-recent fn-flex-1">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">最新</div>
-                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/recent">更多</a></div>
                 <div style="clear:both;"></div>
             </div>
             <div class="module-panel">
@@ -100,29 +99,30 @@
         </div>
         <div class="index-recent fn-flex-1">
             <div class="index-head-title">
-                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">热议</div>
+                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">&nbsp;</div>
                 <div style="float:right;font-size:13px;margin:5px 0 0 0;">
-                    <a href="${servePath}/hot">更多</a>
+                    <a href="${servePath}/recent">更多</a>
                 </div>
                 <div style="clear:both;"></div>
             </div>
             <div class="module-panel">
                 <ul class="module-list" id="hotArticles">
-                    <#list hot as article>
+                    <#list recentArticles2 as article>
                         <li class="fn-flex">
+                            <#if article.articleStick != 0>
+                                <span class="cb-stick" aria-label="管理置顶"><svg class="icon-pin"><use
+                                                xlink:href="#pin"></use></svg></span>
+                            </#if>
                             <a rel="nofollow" href="${servePath}/member/${article.articleAuthorName}">
-                                <span class="avatar-small slogan"
-                                      aria-label="${article.articleAuthorName}"
-                                      style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
+                                    <span class="avatar-small slogan"
+                                          aria-label="${article.articleAuthorName}"
+                                          style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
                             </a>
                             <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
                                href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
                             <a class="fn-right count ft-gray ft-smaller"
-                               href="${servePath}${article.articlePermalink}">
-                                <svg style="padding-top: 1px;vertical-align: -2px;">
-                                    <use xlink:href="#fire"></use>
-                                </svg> ${article.total_score}
-                            </a>
+                               href="${servePath}${article.articlePermalink}"><#if article.articleViewCount < 1000>
+                                    ${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></a>
                         </li>
                     </#list>
                 </ul>
@@ -400,36 +400,33 @@
                     </div>
                 </div>
             </div>
-
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
-                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">标签</div>
-                    <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/tags">更多</a>
+                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">热议</div>
+                    <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/hot">更多</a>
                     </div>
                     <div style="clear:both;"></div>
                 </div>
-                <div class="module-panel">
-                    <div class="index-user">
-                        <#list tags as tag>
-                            <#if tag_index <= 20>
-                                <div class="tag-metro-item">
-                                    <a class="preview" href="${servePath}/tag/${tag.tagURI}">
-                                        <img src="${tag.tagIconPath}" alt="${tag.tagTitle}">
-                                        <span style="white-space: nowrap;">
-                                        <#if tag.tagTitle?length gt 2>
-                                            <marquee width="100%" height="100%" scrollamount="1" scrolldelay="100"
-                                                     truespeed>
-                                                    ${tag.tagTitle}
-                                                </marquee>
-                                        <#else>
-                                            ${tag.tagTitle}
-                                        </#if>
-                                        </span>
-                                    </a>
-                                </div>
-                            </#if>
+                <div class="module-panel" style="padding: 0 0 15px 0">
+                    <ul class="module-list" id="hotArticles">
+                        <#list hot as article>
+                            <li class="fn-flex">
+                                <a rel="nofollow" href="${servePath}/member/${article.articleAuthorName}">
+                                <span class="avatar-small slogan"
+                                      aria-label="${article.articleAuthorName}"
+                                      style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
+                                </a>
+                                <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
+                                   href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                                <a class="fn-right count ft-gray ft-smaller"
+                                   href="${servePath}${article.articlePermalink}">
+                                    <svg style="padding-top: 1px;vertical-align: -2px;">
+                                        <use xlink:href="#fire"></use>
+                                    </svg> ${article.total_score}
+                                </a>
+                            </li>
                         </#list>
-                    </div>
+                    </ul>
                 </div>
 
                 <div class="index-head-title">
@@ -441,7 +438,7 @@
                 <div class="module-panel">
                     <ul class="module-list">
                         <#list qna as article>
-                            <#if article_index <= 9>
+                            <#if article_index <= 11>
                                 <li class="fn-flex">
                                     <a rel="nofollow" href="${servePath}/member/${article.articleAuthorName}">
                                     <span class="avatar-small slogan"
@@ -484,6 +481,34 @@
                             </a>
                         </#list>
                     </div>
+                </div>
+
+                <div class="index-head-title">
+                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">标签</div>
+                    <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/tags">更多</a>
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+                <div class="index-user">
+                    <#list tags as tag>
+                        <#if tag_index <= 20>
+                            <div class="tag-metro-item">
+                                <a class="preview" href="${servePath}/tag/${tag.tagURI}">
+                                    <img src="${tag.tagIconPath}" alt="${tag.tagTitle}">
+                                    <span style="white-space: nowrap;">
+                                        <#if tag.tagTitle?length gt 2>
+                                            <marquee width="100%" height="100%" scrollamount="1" scrolldelay="100"
+                                                     truespeed>
+                                                    ${tag.tagTitle}
+                                                </marquee>
+                                        <#else>
+                                            ${tag.tagTitle}
+                                        </#if>
+                                        </span>
+                                </a>
+                            </div>
+                        </#if>
+                    </#list>
                 </div>
 
                 <div class="index-head-title">
