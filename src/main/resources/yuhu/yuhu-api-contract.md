@@ -25,6 +25,42 @@ GET `/yuhu/book/{bookId}`
 - 权限：匿名
 - 响应：`{ book, volumes, chapters }`
 
+GET `/yuhu/author/{profileId}`
+- 接口功能：根据作者档案 `profileId` 获取作者信息
+- 权限：匿名
+- 响应：`{ profileId, nickname, intro, avatarURL, role, created, updated, creationDays, works, wordCount, levelCode, levelActive, badges:[] }`
+- 异常：`10003` 资源不存在（当返回空对象时表示不存在）
+
+GET `/yuhu/author/byBook/{bookId}`
+- 接口功能：根据书籍获取作者信息（内部读取书籍的 `authorProfileId`）
+- 权限：匿名
+- 响应：`{ profileId, nickname, intro, avatarURL, role, created, updated, creationDays, works, wordCount, levelCode, levelActive, badges:[] }`
+- 异常：`10003` 资源不存在（当返回空对象时表示不存在）
+
+GET `/yuhu/author/{profileId}/stats`
+- 接口功能：作者聚合统计信息
+- 权限：匿名
+- 响应：`{ works, wordCount, chaptersPublished, subscribers, comments, bookmarks, monthly, recommend, tip:{sum,count}, thumbUp, thumbDown, avgRating, ratingsCount, score }`
+- 说明：
+- `works` 作品数
+- `wordCount` 累计字数（书籍统计）
+- `chaptersPublished` 已发布章节数（状态 `normal`）
+- `subscribers` 总订阅数（作者全部书籍）
+- `comments` 总评论数（作者全部书籍）
+- `bookmarks` 总书签数（作者全部书籍）
+- `monthly|recommend|tip|thumbUp|thumbDown|avgRating|ratingsCount` 投票统计聚合
+- `score` 简单综合评分（同书籍统计规则）
+
+GET `/yuhu/author/{profileId}/me`
+- 接口功能：作者本人查看信息（私域）
+- 权限：登录且本人
+- 响应：在公域字段基础上附加 `{ monthly, recommend, tip:{sum,count}, thumbUp, thumbDown, avgRating, ratingsCount, score }`
+
+GET `/yuhu/author/{profileId}/books?page=1&size=20`
+- 接口功能：作者作品列表分页
+- 权限：匿名
+- 响应：`[ { id, title, intro, coverURL, wordCount, status, created, updated }, ... ]`
+
 POST `/yuhu/book/{bookId}/volume`
 - 接口功能：新增分卷
 - 权限：`author|admin`

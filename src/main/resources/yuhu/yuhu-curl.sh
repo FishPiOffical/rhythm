@@ -50,3 +50,10 @@ curl -sS "$BASE/yuhu/vote/stats?bookId=$BOOK_ID"
 curl -sS "$BASE/yuhu/search?q=测试"
 
 curl -sS -X POST "$BASE/yuhu/profile/display?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"displayOverrideEnabled":true}'
+
+# Author queries
+curl -sS "$BASE/yuhu/author/author-profile-id"
+curl -sS "$BASE/yuhu/author/byBook/$BOOK_ID"
+curl -sS "$BASE/yuhu/author/author-profile-id/stats"
+curl -sS "$BASE/yuhu/author/author-profile-id/me?apiKey=$API_KEY"
+curl -sS "$BASE/yuhu/author/author-profile-id/books?page=1&size=20"

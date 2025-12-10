@@ -32,6 +32,7 @@ import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Markdowns;
+import org.b3log.symphony.service.MembershipQueryService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -62,6 +63,9 @@ public class YuhuService {
     private YuhuSubscriptionRepository subscriptionRepository;
     @Inject
     private YuhuVoteRepository voteRepository;
+
+    @Inject
+    private MembershipQueryService membershipQueryService;
 
     public JSONObject ensureProfile(final String linkedUserId) throws RepositoryException {
         final Query q = new Query().setFilter(new PropertyFilter(YuhuUserProfile.YUHU_USER_PROFILE_LINKED_USER_ID, FilterOperator.EQUAL, linkedUserId)).setPage(1,1);
@@ -401,6 +405,156 @@ public class YuhuService {
         ret.put("avgRating", avgRating);
         ret.put("score", score);
         return ret;
+    }
+
+    public JSONObject getAuthorProfile(final String profileId) throws RepositoryException {
+        final JSONObject p = profileRepository.get(profileId);
+        if (p == null) return new JSONObject();
+        final JSONObject ret = new JSONObject();
+        ret.put("profileId", p.optString(Keys.OBJECT_ID));
+        ret.put("nickname", p.optString(YuhuUserProfile.YUHU_USER_PROFILE_NICKNAME));
+        ret.put("intro", p.optString(YuhuUserProfile.YUHU_USER_PROFILE_INTRO));
+        ret.put("avatarURL", p.optString(YuhuUserProfile.YUHU_USER_PROFILE_AVATAR_URL));
+        ret.put("role", p.optString(YuhuUserProfile.YUHU_USER_PROFILE_ROLE));
+        ret.put("created", p.optLong(YuhuUserProfile.YUHU_USER_PROFILE_CREATED));
+        ret.put("updated", p.optLong(YuhuUserProfile.YUHU_USER_PROFILE_UPDATED));
+        long created = p.optLong(YuhuUserProfile.YUHU_USER_PROFILE_CREATED);
+        if (created > 0) {
+            long days = Math.max(1, (System.currentTimeMillis() - created) / (1000L*60*60*24));
+            ret.put("creationDays", days);
+        }
+        // works & word count summary
+        final List<JSONObject> books = bookRepository.getList(new Query().setFilter(new PropertyFilter(YuhuBook.YUHU_BOOK_AUTHOR_PROFILE_ID, FilterOperator.EQUAL, profileId)).setPage(1, Integer.MAX_VALUE));
+        ret.put("works", books.size());
+        int wordCount = 0;
+        for (final JSONObject b : books) wordCount += b.optInt(YuhuBook.YUHU_BOOK_WORD_COUNT);
+        ret.put("wordCount", wordCount);
+        // level & badges via membership
+        final String linkedUserId = p.optString(YuhuUserProfile.YUHU_USER_PROFILE_LINKED_USER_ID);
+        try {
+            final org.json.JSONObject m = membershipQueryService.getStatusByUserId(linkedUserId);
+            final int state = m.optInt(org.b3log.symphony.model.Membership.STATE, 0);
+            final String lvCode = m.optString(org.b3log.symphony.model.Membership.LV_CODE, "");
+            ret.put("levelCode", lvCode);
+            ret.put("levelActive", state == 1);
+            final org.json.JSONArray badges = new org.json.JSONArray();
+            if (state == 1 && !lvCode.isEmpty()) {
+                badges.put(lvCode);
+            }
+            ret.put("badges", badges);
+        } catch (final Exception ignore) {
+            ret.put("levelCode", "");
+            ret.put("levelActive", false);
+            ret.put("badges", new org.json.JSONArray());
+        }
+        return ret;
+    }
+
+    public JSONObject getAuthorByBook(final String bookId) throws RepositoryException {
+        final JSONObject book = bookRepository.get(bookId);
+        if (book == null) return new JSONObject();
+        final String profileId = book.optString(YuhuBook.YUHU_BOOK_AUTHOR_PROFILE_ID);
+        return getAuthorProfile(profileId);
+    }
+
+    public JSONObject getAuthorStats(final String profileId) throws RepositoryException {
+        final List<JSONObject> books = bookRepository.getList(new Query().setFilter(new PropertyFilter(YuhuBook.YUHU_BOOK_AUTHOR_PROFILE_ID, FilterOperator.EQUAL, profileId)).setPage(1, Integer.MAX_VALUE));
+        int works = books.size();
+        int wordCount = 0;
+        int chaptersPublished = 0;
+        int subscribers = 0;
+        int comments = 0;
+        int bookmarks = 0;
+        int monthly = 0, recommend = 0, tipSum = 0, tipCnt = 0, up = 0, down = 0;
+        final List<Integer> ratings = new ArrayList<>();
+        for (final JSONObject b : books) {
+            wordCount += b.optInt(YuhuBook.YUHU_BOOK_WORD_COUNT);
+            final String bookId = b.optString(Keys.OBJECT_ID);
+            chaptersPublished += chapterRepository.count(new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, new ArrayList<>() {{
+                add(new PropertyFilter(YuhuChapter.YUHU_CHAPTER_BOOK_ID, FilterOperator.EQUAL, bookId));
+                add(new PropertyFilter(YuhuChapter.YUHU_CHAPTER_STATUS, FilterOperator.EQUAL, "normal"));
+            }})));
+            subscribers += subscriptionRepository.count(new Query().setFilter(new PropertyFilter(YuhuSubscription.YUHU_SUBSCRIPTION_BOOK_ID, FilterOperator.EQUAL, bookId)));
+            comments += commentRepository.count(new Query().setFilter(new PropertyFilter(YuhuComment.YUHU_COMMENT_BOOK_ID, FilterOperator.EQUAL, bookId)));
+            bookmarks += bookmarkRepository.count(new Query().setFilter(new PropertyFilter(YuhuBookmark.YUHU_BOOKMARK_BOOK_ID, FilterOperator.EQUAL, bookId)));
+            final List<JSONObject> vlist = voteRepository.getList(new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, new ArrayList<>() {{
+                add(new PropertyFilter(YuhuVote.YUHU_VOTE_TARGET_TYPE, FilterOperator.EQUAL, YuhuVote.TARGET_TYPE_C_BOOK));
+                add(new PropertyFilter(YuhuVote.YUHU_VOTE_TARGET_ID, FilterOperator.EQUAL, bookId));
+            }})).setPage(1, Integer.MAX_VALUE));
+            for (final JSONObject v : vlist) {
+                final int t = v.optInt(YuhuVote.YUHU_VOTE_TYPE);
+                final int val = v.optInt(YuhuVote.YUHU_VOTE_VALUE);
+                if (t == YuhuVote.TYPE_C_MONTHLY) monthly += val;
+                else if (t == YuhuVote.TYPE_C_RECOMMEND) recommend += val;
+                else if (t == YuhuVote.TYPE_C_TIP) { tipSum += val; tipCnt++; }
+                else if (t == YuhuVote.TYPE_C_THUMB_UP) up += val;
+                else if (t == YuhuVote.TYPE_C_THUMB_DOWN) down += val;
+                else if (t == YuhuVote.TYPE_C_RATING) ratings.add(val);
+            }
+        }
+        double avgRating = 0;
+        if (!ratings.isEmpty()) {
+            int s = 0; for (int r : ratings) s += r; avgRating = ((double) s) / ratings.size();
+        }
+        double score = monthly + recommend + tipSum + (up - down) + avgRating;
+        final JSONObject ret = new JSONObject();
+        ret.put("works", works);
+        ret.put("wordCount", wordCount);
+        ret.put("chaptersPublished", chaptersPublished);
+        ret.put("subscribers", subscribers);
+        ret.put("comments", comments);
+        ret.put("bookmarks", bookmarks);
+        ret.put("monthly", monthly);
+        ret.put("recommend", recommend);
+        ret.put("tip", new JSONObject().put("sum", tipSum).put("count", tipCnt));
+        ret.put("thumbUp", up);
+        ret.put("thumbDown", down);
+        ret.put("avgRating", avgRating);
+        ret.put("ratingsCount", ratings.size());
+        ret.put("score", score);
+        return ret;
+    }
+
+    public JSONObject getAuthorProfilePrivate(final String profileId) throws RepositoryException {
+        final JSONObject base = getAuthorProfile(profileId);
+        final List<JSONObject> books = bookRepository.getList(new Query().setFilter(new PropertyFilter(YuhuBook.YUHU_BOOK_AUTHOR_PROFILE_ID, FilterOperator.EQUAL, profileId)).setPage(1, Integer.MAX_VALUE));
+        int monthly = 0, recommend = 0, tipSum = 0, tipCnt = 0, up = 0, down = 0;
+        final List<Integer> ratings = new ArrayList<>();
+        for (final JSONObject b : books) {
+            final String bookId = b.optString(Keys.OBJECT_ID);
+            final List<JSONObject> vlist = voteRepository.getList(new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, new ArrayList<>() {{
+                add(new PropertyFilter(YuhuVote.YUHU_VOTE_TARGET_TYPE, FilterOperator.EQUAL, YuhuVote.TARGET_TYPE_C_BOOK));
+                add(new PropertyFilter(YuhuVote.YUHU_VOTE_TARGET_ID, FilterOperator.EQUAL, bookId));
+            }})).setPage(1, Integer.MAX_VALUE));
+            for (final JSONObject v : vlist) {
+                final int t = v.optInt(YuhuVote.YUHU_VOTE_TYPE);
+                final int val = v.optInt(YuhuVote.YUHU_VOTE_VALUE);
+                if (t == YuhuVote.TYPE_C_MONTHLY) monthly += val;
+                else if (t == YuhuVote.TYPE_C_RECOMMEND) recommend += val;
+                else if (t == YuhuVote.TYPE_C_TIP) { tipSum += val; tipCnt++; }
+                else if (t == YuhuVote.TYPE_C_THUMB_UP) up += val;
+                else if (t == YuhuVote.TYPE_C_THUMB_DOWN) down += val;
+                else if (t == YuhuVote.TYPE_C_RATING) ratings.add(val);
+            }
+        }
+        double avgRating = 0;
+        if (!ratings.isEmpty()) {
+            int s = 0; for (int r : ratings) s += r; avgRating = ((double) s) / ratings.size();
+        }
+        double score = monthly + recommend + tipSum + (up - down) + avgRating;
+        base.put("monthly", monthly);
+        base.put("recommend", recommend);
+        base.put("tip", new JSONObject().put("sum", tipSum).put("count", tipCnt));
+        base.put("thumbUp", up);
+        base.put("thumbDown", down);
+        base.put("avgRating", avgRating);
+        base.put("ratingsCount", ratings.size());
+        base.put("score", score);
+        return base;
+    }
+
+    public List<JSONObject> listAuthorBooks(final String profileId, final int page, final int size) throws RepositoryException {
+        return bookRepository.getList(new Query().setFilter(new PropertyFilter(YuhuBook.YUHU_BOOK_AUTHOR_PROFILE_ID, FilterOperator.EQUAL, profileId)).addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).setPage(page, size));
     }
 
     private int typeByString(final String s) {

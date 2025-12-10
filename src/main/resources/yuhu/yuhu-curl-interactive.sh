@@ -68,6 +68,11 @@ while true; do
   echo "27) Vote tip"
   echo "28) Vote stats"
   echo "29) Search"
+  echo "31) Get author by profileId"
+  echo "32) Get author by bookId"
+  echo "33) Get author stats"
+  echo "34) Get my author profile"
+  echo "35) List author books"
   echo "30) Profile display"
   echo "99) Print state"
   echo "0) Exit"
@@ -242,6 +247,28 @@ while true; do
     30)
       ask "Display override enabled" "true" enabled
       json_post "$BASE/yuhu/profile/display?apiKey=$API_KEY" "{\"displayOverrideEnabled\":$enabled}"
+      ;;
+    31)
+      ask "Author profileId" "author-profile-id" pid
+      curl -sS "$BASE/yuhu/author/$pid"
+      ;;
+    32)
+      ask "Book ID" "$BOOK_ID" BOOK_ID
+      curl -sS "$BASE/yuhu/author/byBook/$BOOK_ID"
+      ;;
+    33)
+      ask "Author profileId" "author-profile-id" pid
+      curl -sS "$BASE/yuhu/author/$pid/stats"
+      ;;
+    34)
+      ask "Author profileId" "author-profile-id" pid
+      curl -sS "$BASE/yuhu/author/$pid/me?apiKey=$API_KEY"
+      ;;
+    35)
+      ask "Author profileId" "author-profile-id" pid
+      ask "Page" "1" page
+      ask "Size" "20" size
+      curl -sS "$BASE/yuhu/author/$pid/books?page=$page&size=$size"
       ;;
     99)
       print_state

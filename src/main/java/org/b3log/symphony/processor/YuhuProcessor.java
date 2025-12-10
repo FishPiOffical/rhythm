@@ -101,6 +101,12 @@ public class YuhuProcessor {
 
         Dispatcher.post("/yuhu/profile/display", p::toggleProfileDisplay, loginCheck::handle);
 
+        Dispatcher.get("/yuhu/author/{profileId}", p::getAuthorProfile);
+        Dispatcher.get("/yuhu/author/byBook/{bookId}", p::getAuthorByBook);
+        Dispatcher.get("/yuhu/author/{profileId}/stats", p::getAuthorStats);
+        Dispatcher.get("/yuhu/author/{profileId}/me", p::getAuthorProfileMe, loginCheck::handle);
+        Dispatcher.get("/yuhu/author/{profileId}/books", p::listAuthorBooks);
+
         // 页面
         Dispatcher.get("/yuhu", p::bookHome);
         Dispatcher.get("/yuhu/book/{bookId}", p::getBook);
@@ -438,6 +444,76 @@ public class YuhuProcessor {
             yuhuService.deleteComment(id);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(new JSONObject().put("deleted", true));
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void getAuthorProfile(final RequestContext context) {
+        try {
+            final String profileId = context.pathVar("profileId");
+            final JSONObject ret = yuhuService.getAuthorProfile(profileId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void getAuthorByBook(final RequestContext context) {
+        try {
+            final String bookId = context.pathVar("bookId");
+            final JSONObject ret = yuhuService.getAuthorByBook(bookId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void getAuthorStats(final RequestContext context) {
+        try {
+            final String profileId = context.pathVar("profileId");
+            final JSONObject ret = yuhuService.getAuthorStats(profileId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void getAuthorProfileMe(final RequestContext context) {
+        try {
+            final String profileId = context.pathVar("profileId");
+            final JSONObject user = Sessions.getUser();
+            final String linkedUserId = user.optString(Keys.OBJECT_ID);
+            final JSONObject profile = yuhuService.ensureProfile(linkedUserId);
+            if (!profileId.equals(profile.optString(Keys.OBJECT_ID))) {
+                context.renderJSON(StatusCodes.ERR);
+                context.renderMsg("权限不足");
+                return;
+            }
+            final JSONObject ret = yuhuService.getAuthorProfilePrivate(profileId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void listAuthorBooks(final RequestContext context) {
+        try {
+            final String profileId = context.pathVar("profileId");
+            final int page = org.apache.commons.lang.StringUtils.isBlank(context.param("page")) ? 1 : Integer.parseInt(context.param("page"));
+            final int size = org.apache.commons.lang.StringUtils.isBlank(context.param("size")) ? 20 : Integer.parseInt(context.param("size"));
+            final java.util.List<org.json.JSONObject> list = yuhuService.listAuthorBooks(profileId, page, size);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(new org.json.JSONArray(list));
         } catch (Exception e) {
             context.renderJSON(StatusCodes.ERR);
             context.renderMsg("请求非法");
