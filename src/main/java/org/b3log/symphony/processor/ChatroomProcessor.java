@@ -20,7 +20,9 @@ package org.b3log.symphony.processor;
 
 import static org.b3log.symphony.processor.channel.ChatroomChannel.sendCustomMessage;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -247,6 +249,7 @@ public class ChatroomProcessor {
         final ChatroomProcessor chatroomProcessor = beanManager.getReference(ChatroomProcessor.class);
         Dispatcher.post("/chat-room/send", chatroomProcessor::addChatRoomMsg, loginCheck::handle, chatMsgAddValidationMidware::handle);
         Dispatcher.get("/cr", chatroomProcessor::showChatRoom, loginCheck::handle);
+        Dispatcher.get("/cr2", chatroomProcessor::showChatRoom2, loginCheck::handle);
         Dispatcher.get("/chat-room/more", chatroomProcessor::getMore);
         Dispatcher.get("/chat-room/getMessage", chatroomProcessor::getContextMessage);
         Dispatcher.get("/chat-room/online-users", chatroomProcessor::getChatRoomUsers);
@@ -260,6 +263,7 @@ public class ChatroomProcessor {
         Dispatcher.get("/chat-room/barrager/get", chatroomProcessor::getBarragerCost, loginCheck::handle);
 
         Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
+        Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
     }
 
     public void getBarragerCost(final RequestContext context) {
@@ -275,6 +279,22 @@ public class ChatroomProcessor {
         }
     });
 
+    public void genMetalMaker(final RequestContext context) {
+        String body = "";
+        String genUrl = Symphonys.get("gen.metal.url") + "/maker";
+        final HttpRequest req = HttpRequest.get(genUrl).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT);
+        final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
+        res.close();
+        if (200 != res.statusCode()) {
+            context.sendError(500);
+            return;
+        }
+        body = res.charset("utf-8").bodyText();
+
+        context.getResponse().setContentType("text/html");
+        context.getResponse().sendBytes(body.getBytes());
+    }
+
     public void genMetalGif(final RequestContext context) {
         String ver = safeParam(context.param("ver"), "ver");
         String scale = safeParam(context.param("scale"), "scale");
@@ -286,6 +306,13 @@ public class ChatroomProcessor {
         String anime = safeParam(context.param("anime"), "anime");
         String way = safeParam(context.param("way"), "way");
         String fontway = safeParam(context.param("fontway"), "fontway");
+        String size = safeParam(context.param("size"), "size");
+        String border = safeParam(context.param("border"), "border");
+        String barlen = safeParam(context.param("barlen"), "barlen");
+        String font = safeParam(context.param("font"), "font");
+        String fontsize = safeParam(context.param("fontsize"), "fontsize");
+        String barradius = safeParam(context.param("barradius"), "barradius");
+
         String paramString = "?ver=" + ver
                 + "&scale=" + scale
                 + "&txt=" + txt
@@ -295,7 +322,13 @@ public class ChatroomProcessor {
                 + (shadow != null && !shadow.isEmpty() ? "&shadow=" + shadow : "")
                 + (anime != null && !anime.isEmpty() ? "&anime=" + anime : "")
                 + (way != null && !way.isEmpty() ? "&way=" + way : "")
-                + (fontway != null && !fontway.isEmpty() ? "&fontway=" + fontway : "");
+                + (fontway != null && !fontway.isEmpty() ? "&fontway=" + fontway : "")
+                + (size != null && !size.isEmpty() ? "&size=" + size : "")
+                + (border != null && !border.isEmpty() ? "&border=" + border : "")
+                + (barlen != null && !barlen.isEmpty() ? "&barlen=" + barlen : "")
+                + (font != null && !font.isEmpty() ? "&font=" + font : "")
+                + (fontsize != null && !fontsize.isEmpty() ? "&fontsize=" + fontsize : "")
+                + (barradius != null && !barradius.isEmpty() ? "&barradius=" + barradius : "");
 
         String body = "";
         if (!metalCache.containsKey(paramString)) {
@@ -416,6 +449,48 @@ public class ChatroomProcessor {
             }
             return "bottom"; // 默认值
         }
+        /**
+         * 新增检查：
+         * size: Option<u32>
+         * border: Option<u32>
+         * barlen: Option<String>
+         * font: Option<String>
+         * fontsize: Option<u32>
+         * barradius: Option<u32>
+         *     u32是转换成int，转换不了则返回空；String的话没关系
+         */
+        if ("size".equals(type) || "border".equals(type) || "fontsize".equals(type) || "barradius".equals(type)) {
+            try {
+                int i = Integer.parseInt(value);
+                return String.valueOf(i);
+            } catch (NumberFormatException e) {
+                return "";
+            }
+        }
+
+        // barlen只能是auto或者小数，其它的都不行
+        if ("barlen".equals(type)) {
+            if ("auto".equalsIgnoreCase(value)) {
+                return "auto";
+            }
+            try {
+                int d = Integer.parseInt(value);
+                return String.valueOf(d);
+            } catch (NumberFormatException e) {
+                return "";
+            }
+        }
+
+        // font是base64，筛选字符
+        if ("font".equals(type)) {
+            value = value.replaceAll("[^0-9a-zA-Z+/=]", "");
+            try {
+                return URLEncoder.encode(value, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                return "";
+            }
+        }
+
         return value;
     }
 
@@ -1663,6 +1738,76 @@ public class ChatroomProcessor {
      */
     public synchronized void showChatRoom(final RequestContext context) {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "chat-room.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        try {
+            String oId = context.param("oId");
+            if (oId == null) {
+                throw new NullPointerException();
+            }
+            dataModel.put("contextMode", "yes");
+            dataModel.put("contextOId", oId);
+        } catch (Exception ignored) {
+            dataModel.put("contextMode", "no");
+            dataModel.put("contextOId", '0');
+        }
+        dataModel.put(Common.ONLINE_CHAT_CNT, 0);
+        final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, currentUser.optInt(UserExt.CHAT_ROOM_PICTURE_STATUS));
+            dataModel.put("level3Permitted", DataModelService.hasPermission(currentUser.optString(User.USER_ROLE), 3));
+            // 通知标为已读
+            notificationMgmtService.makeRead(currentUser.optString(Keys.OBJECT_ID), Notification.DATA_TYPE_C_CHAT_ROOM_AT);
+            try {
+                final org.json.JSONObject status = membershipQueryService.getStatusByUserId(currentUser.optString(Keys.OBJECT_ID));
+                dataModel.put("membership", status);
+            } catch (Exception e) {
+                dataModel.put("membership", new JSONObject());
+            }
+        } else {
+            dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
+            dataModel.put("level3Permitted", false);
+            dataModel.put("membership", new JSONObject());
+        }
+        // 是否宵禁
+        int start = 1930;
+        int end = 800;
+        int now = Integer.parseInt(new SimpleDateFormat("HHmm").format(new Date()));
+        if (now > end && now < start) {
+            dataModel.put("nightDisableMode", false);
+        } else {
+            dataModel.put("nightDisableMode", true);
+        }
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+        dataModel.put(Common.SELECTED, "cr");
+        dataModel.put("barragerCost", barragerCost);
+        dataModel.put("barragerUnit", barragerUnit);
+
+        try {
+            final java.util.List<org.json.JSONObject> memberships = membershipQueryService.listActiveConfigs();
+            final org.json.JSONArray vipData = new org.json.JSONArray();
+            for (final org.json.JSONObject m : memberships) {
+                final org.json.JSONObject item = new org.json.JSONObject();
+                item.put(org.b3log.symphony.model.Membership.USER_ID, m.optString(org.b3log.symphony.model.Membership.USER_ID));
+                item.put(org.b3log.symphony.model.Membership.CONFIG_JSON, m.optString(org.b3log.symphony.model.Membership.CONFIG_JSON));
+                vipData.put(item);
+            }
+            dataModel.put("vipUsers", vipData);
+        } catch (Exception e) {
+            dataModel.put("vipUsers", new org.json.JSONArray());
+        }
+    }
+
+    /**
+     * Shows chatroom 2.
+     *
+     * @param context the specified context
+     */
+    public synchronized void showChatRoom2(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "chat-room-2.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
         try {
             String oId = context.param("oId");

@@ -306,15 +306,20 @@ public class CloudService {
             JSONObject result = cloudRepository.getFirst(cloudQuery);
             JSONObject object1 = new JSONObject(result.optString("data"));
             JSONArray object2 = object1.optJSONArray("list");
+            boolean hasExpired = false;
             for (int i = object2.length() - 1; i >= 0; i--) {
                 JSONObject object3 = object2.optJSONObject(i);
                 // 如果勋章过期日期在今天之前, 移除
                 if (Dates.isExpired(object3.optString("expireDate", "2099-12-31"), Dates.PATTERN_DATE)) {
                     object2.remove(i);
-                    removeMetal(userId, object3.optString("name"));
+                    hasExpired = true;
                 }
             }
             object1.put("list", object2);
+            // 如果有过期勋章被移除，更新数据库
+            if (hasExpired) {
+                saveMetal(userId, object1.toString());
+            }
             return object1.toString();
         } catch (Exception e) {
             return new JSONObject().toString();
@@ -331,18 +336,24 @@ public class CloudService {
             JSONObject result = cloudRepository.getFirst(cloudQuery);
             JSONObject object1 = new JSONObject(result.optString("data"));
             JSONArray object2 = object1.optJSONArray("list");
+            boolean hasExpired = false;
             for (int i = object2.length() - 1; i >= 0; i--) {
                 JSONObject object3 = object2.optJSONObject(i);
                 if (!object3.optBoolean("enabled")) {
                     object2.remove(i);
+                    continue;
                 }
                 // 如果勋章过期日期在今天之前, 移除
                 if (Dates.isExpired(object3.optString("expireDate", "2099-12-31"), Dates.PATTERN_DATE)) {
                     object2.remove(i);
-                    removeMetal(userId, object3.optString("name"));
+                    hasExpired = true;
                 }
             }
             object1.put("list", object2);
+            // 如果有过期勋章被移除，更新数据库
+            if (hasExpired) {
+                saveMetal(userId, object1.toString());
+            }
             return object1.toString();
         } catch (Exception e) {
             return new JSONObject().toString();
@@ -380,41 +391,63 @@ public class CloudService {
     }
 
     synchronized public void removeMetal(String userId, String name) {
-        JSONObject metal = new JSONObject(getMetal(userId));
-        if (!metal.has("list")) {
-            metal.put("list", new JSONArray());
-        }
-        JSONArray list = metal.optJSONArray("list");
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject jsonObject = list.optJSONObject(i);
-            if (jsonObject.optString("name").equals(name)) {
-                list.remove(i);
+        try {
+            Query cloudQuery = new Query()
+                    .setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
+                            new PropertyFilter("gameId", FilterOperator.EQUAL, CloudService.SYS_MEDAL)
+                    ));
+            JSONObject result = cloudRepository.getFirst(cloudQuery);
+            String dataStr = result.optString("data");
+            JSONObject metal = new JSONObject(dataStr);
+            if (!metal.has("list")) {
+                metal.put("list", new JSONArray());
             }
+            JSONArray list = metal.optJSONArray("list");
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject jsonObject = list.optJSONObject(i);
+                if (jsonObject.optString("name").equals(name)) {
+                    list.remove(i);
+                }
+            }
+            metal.put("list", list);
+            saveMetal(userId, metal.toString());
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "Failed to remove medal [" + name + "] for user [" + userId + "]", e);
         }
-        metal.put("list", list);
-        saveMetal(userId, metal.toString());
     }
 
     synchronized public void toggleMetal(String userId, String name, boolean enabled) {
-        JSONObject metal = new JSONObject(getMetal(userId));
-        if (!metal.has("list")) {
-            metal.put("list", new JSONArray());
-        }
-        JSONArray list = metal.optJSONArray("list");
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject jsonObject = list.optJSONObject(i);
-            if (jsonObject.optString("name").equals(name)) {
-                list.remove(i);
-                jsonObject.put("enabled", enabled);
-                list.put(jsonObject);
+        try {
+            Query cloudQuery = new Query()
+                    .setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
+                            new PropertyFilter("gameId", FilterOperator.EQUAL, CloudService.SYS_MEDAL)
+                    ));
+            JSONObject result = cloudRepository.getFirst(cloudQuery);
+            String dataStr = result.optString("data");
+            JSONObject metal = new JSONObject(dataStr);
+            if (!metal.has("list")) {
+                metal.put("list", new JSONArray());
             }
-            // 如果勋章过期日期在今天之前, 移除
-            if (Dates.isExpired(jsonObject.optString("expireDate", "2099-12-31"), Dates.PATTERN_DATE)) {
-                list.remove(i);
-                removeMetal(userId, jsonObject.optString("name"));
+            JSONArray list = metal.optJSONArray("list");
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject jsonObject = list.optJSONObject(i);
+                if (jsonObject.optString("name").equals(name)) {
+                    list.remove(i);
+                    jsonObject.put("enabled", enabled);
+                    list.put(jsonObject);
+                }
+                // 如果勋章过期日期在今天之前, 移除
+                if (Dates.isExpired(jsonObject.optString("expireDate", "2099-12-31"), Dates.PATTERN_DATE)) {
+                    list.remove(i);
+                    // Skip the recursive call to removeMetal, just continue the loop
+                }
             }
+            metal.put("list", list);
+            saveMetal(userId, metal.toString());
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "Failed to toggle medal [" + name + "] for user [" + userId + "]", e);
         }
-        metal.put("list", list);
-        saveMetal(userId, metal.toString());
     }
 }

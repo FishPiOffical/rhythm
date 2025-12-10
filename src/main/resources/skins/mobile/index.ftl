@@ -45,6 +45,14 @@
         </#list>
         </#if>
     </ul>
+
+    <#if recentArticlesMobile??>
+        <div style="text-align: center; padding: 10px 0 0 0;">
+            <a href="${servePath}/recent" style="display: inline-block; padding: 8px 16px; border-radius: 4px; background-color: #fff; border: 1px solid #ddd; color: #333; text-decoration: none;">
+                查看更多最近文章
+            </a>
+        </div>
+    </#if>
 </div>
 <#if novels?? && novels?size gt 0>
     <div class="fn-hr10"></div>

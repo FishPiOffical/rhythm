@@ -1210,7 +1210,7 @@ public class ArticleQueryService {
      *
      * @return recent articles, returns an empty list if not found
      */
-    public List<JSONObject> getIndexRecentArticles(int fetchSize) {
+    public List<JSONObject> getIndexRecentArticles(int fetchSize, int page) {
         List<JSONObject> ret;
         try {
             Stopwatchs.start("Query index recent articles");
@@ -1221,12 +1221,12 @@ public class ArticleQueryService {
                                 new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
                                 new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT),
                                 new PropertyFilter(Article.ARTICLE_CREATE_TIME, FilterOperator.GREATER_THAN_OR_EQUAL, String.valueOf(DateUtils.addDays(new Date(), -30).getTime())))).
-                        setPageCount(1).setPage(1, fetchSize).
+                        setPageCount(1).setPage(page, fetchSize).
                         addSort(Article.ARTICLE_LATEST_CMT_TIME, SortDirection.DESCENDING);
                 ret = articleRepository.getList(query);
 
                 final List<JSONObject> stickArticles = getStickArticles();
-                if (!stickArticles.isEmpty()) {
+                if (!stickArticles.isEmpty() && page == 1) {
                     final Iterator<JSONObject> i = ret.iterator();
                     while (i.hasNext()) {
                         final JSONObject article = i.next();
@@ -1264,7 +1264,7 @@ public class ArticleQueryService {
     private static List<JSONObject> hotArticlesCache = Collections.synchronizedList(new ArrayList<>());
     public synchronized void refreshHotArticlesCache() {
         try {
-            final long thirtyDaysAgo = DateUtils.addDays(new Date(), -30).getTime();
+            final long thirtyDaysAgo = DateUtils.addDays(new Date(), -365).getTime();
             List<JSONObject> ret = articleRepository.select("" +
                     "SELECT " +
                     "    *, " +

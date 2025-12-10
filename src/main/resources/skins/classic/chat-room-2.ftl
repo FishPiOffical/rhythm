@@ -37,37 +37,61 @@
 </head>
 <body>
 <#include "header.ftl">
-<div class="main">
+<div class="main" style="margin: 10px 0 0 0; padding: 0">
     <div class="wrapper">
-        <div class="content chat-room">
+        <div class="content chat-room chat-room--qq-layout">
+            <#-- 顶部头部栏：与 module 同级，左标题 + 右按钮 -->
+            <div class="chat-room__header">
+                <div class="chat-room__header-title">
+                    <button class="button chat-room__top-btn" id="nodeButton" onclick="ChatRoom.switchNode()">
+                        <svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区
+                    </button>
+                </div>
+                <#if isLoggedIn>
+                    <div class="chat-room__header-actions">
+                        <#if level3Permitted == true>
+                            <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button chat-room__top-btn">
+                                批量撤回
+                            </button>
+                        </#if>
+                        <button class="button chat-room__top-btn" onclick="javascript:location.href='/cr'">切换样式：经典</button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">返回底部并清屏</button>
+                    </div>
+                </#if>
+            </div>
+
             <div class="module" style="margin-bottom: 0">
                 <div class="fn-content" style="padding-top: 0;">
-                    <div class="reply">
-                        <#if isLoggedIn>
-                            <div id="chatContent" style="margin: 0 -15px"> </div>
-                            <div class="fn-clear" style="padding: 16px 0 8px 0;margin: 0 -4px;">
-                                <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#redPacketIcon"></use>
-                                </svg>
-                                <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#emojiIcon"></use>
-                                </svg>
-                                <svg id="barragerBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                    <use xlink:href="#danmu"></use>
-                                </svg>
-                                <div class="discuss_title">
-                                    <a style="text-decoration: none; display: inline-block; cursor: default">
-                                        <span style="color: #616161">当前话题：</span><span class="ft-green"># <span id="discuss-title">加载中...</span> #</span>
-                                    </a>
-                                    <div style="padding-left: 5px;display: inline-block;vertical-align: -2px;">
-                                        <a onclick="ChatRoom.setDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="编辑话题" style="text-decoration: none;">
-                                            <svg><use xlink:href="#edit-discuss"></use></svg>
-                                        </a>
-                                        <a onclick="ChatRoom.useDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="引用话题" style="text-decoration: none;">
-                                            <svg><use xlink:href="#pound"></use></svg>
-                                        </a>
+                    <div class="chat-room__layout">
+                        <div class="chat-room__main">
+                            <#-- 消息列表区域 -->
+                            <div class="chat-room__messages">
+                                <div class="list" id="comments" style="height: auto; padding: 20px 30px 5px 30px">
+                                    <div id="chats">
                                     </div>
+                                    <#if !isLoggedIn>
+                                        <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
+                                    </#if>
                                 </div>
+                            </div>
+
+                            <#-- 输入区域：在消息列表下方 -->
+                            <div class="chat-room__input">
+                                <div class="reply">
+                                    <#if isLoggedIn>
+                                        <div id="chatContent"> </div>
+                                        <div class="fn-clear chat-room__toolbar" style="padding: 16px 0 8px 0;">
+                                            <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#redPacketIcon"></use>
+                                            </svg>
+                                            <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#emojiIcon"></use>
+                                            </svg>
+                                            <svg id="barragerBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                                <use xlink:href="#danmu"></use>
+                                            </svg>
                                 <#-- z-index 130 因为猜拳红包是128 会覆盖表情包 所以这里改成130 oh-yeh！ -->
                                 <div class="hide-list" id="emojiList" style="z-index: 130">
                                     <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
@@ -93,17 +117,7 @@
                                         </a>
                                     </div>
                                 </#if>
-                                <div class="fn-right">
-                                    <button class="button" id="nodeButton" onclick="ChatRoom.switchNode()"><svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区</button>
-                                    <#if level3Permitted == true>
-                                        <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button">
-                                            批量撤回
-                                        </button>
-                                    </#if>
-                                    <button class="red" onclick="javascript:location.href='/cr2'">切换样式：简约</button>
-                                    <button class="button" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
-                                    <button class="button" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
-                                    <button class="button" onclick="ChatRoom.flashScreen()">清屏</button>
+                                <div class="fn-right chat-room__actions">
                                     <button class="green" onclick="ChatRoom.send()">发送</button>
                                 </div>
                                 <div id="paintContent" style="display: none;">
@@ -139,15 +153,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="fn-clear comment-submit">
-                                <div class="fn-left online-cnt">${onlineVisitorCountLabel} <span id="onlineCnt"></span>
+                            <div class="fn-clear comment-submit chat-room__status">
+                                <div class="fn-left chat-room__status-left">
+                                    <div class="tip" id="chatContentTip"></div>
                                 </div>
-                                <div class="tip fn-left" id="chatContentTip"></div>
-                                <a onclick="ChatRoom.toggleOnlineAvatar()" style="cursor:pointer;">
-                                    <svg style="vertical-align: -10px;" id="toggleAvatarBtn"><use xlink:href="#showMore"></use></svg>
-                                </a>
-                            </div>
-                            <div id="chatRoomOnlineCnt" class="chats__users" style="display: none">
                             </div>
                         <#else>
                             <div class="comment-login">
@@ -155,55 +164,79 @@
                                    href="javascript:window.scrollTo(0,0);Util.goLogin();">${loginDiscussLabel}</a>
                             </div>
                         </#if>
-                    </div>
-                </div>
-                <div class="list" id="comments" style="height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
-                    <div id="chats">
-                    </div>
-                    <#if !isLoggedIn>
-                        <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>
-                    </#if>
+                    </div> <!-- .reply -->
+                </div> <!-- .chat-room__input -->
+                        </div> <!-- .chat-room__main -->
+
+                        <#-- 右侧：话题 + 在线用户 -->
+                        <div class="chat-room__side">
+                            <#if isLoggedIn>
+                                <div class="chat-room__topic">
+                                    <div class="chat-room__topic-header">
+                                        <span class="chat-room__topic-label">当前话题</span>
+                                    </div>
+                                    <div class="chat-room__topic-body">
+                                        <span class="chat-room__topic-text"># <span id="discuss-title">加载中...</span> #</span>
+                                        <div class="chat-room__topic-actions">
+                                            <a onclick="ChatRoom.setDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="编辑话题" style="text-decoration: none;">
+                                                <svg><use xlink:href="#edit-discuss"></use></svg>
+                                            </a>
+                                            <a onclick="ChatRoom.useDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="引用话题" style="text-decoration: none;">
+                                                <svg><use xlink:href="#pound"></use></svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chat-room__online">
+                                    <div class="chat-room__online-header">
+                                        <span>${onlineVisitorCountLabel}</span>
+                                        <span class="chat-room__online-count" id="onlineCnt"></span>
+                                        <a onclick="ChatRoom.toggleOnlineAvatar()" class="chat-room__online-toggle" style="cursor:pointer;">
+                                            <svg id="toggleAvatarBtn"><use xlink:href="#showMore"></use></svg>
+                                        </a>
+                                    </div>
+                                    <div id="chatRoomOnlineCnt" class="chats__users chat-room__online-list" style="display: none">
+                                    </div>
+                                </div>
+                            </#if>
+                        </div> <!-- .chat-room__side -->
+                    </div> <!-- .chat-room__layout -->
                 </div>
             </div>
-        </div>
-        <div class="side">
-            <#include "side.ftl">
         </div>
     </div>
 </div>
 <div id="goToTop" style="position:fixed;bottom:20px;right:10%;display:none;"><a href="#"><svg style="width:30px;height:30px;color:#626262;"><use xlink:href="#toTopIcon"></use></svg></a></div>
-<!--<div id="xiaoIceGameBtn" class="ice-game-btn">
-    <a href="https://game.yuis.cc" target="_blank"><img src="${staticServePath}/images/xiaoIce/xiaoIce.gif" class="ice-game-icon" alt=""></a>
-</div>-->
 <div id="musicBox">
     <div class="music-box">
         <div class="music-controller">
             <div class="music-prev" onclick="ChatRoom.playSound.prev()">
                 <img src="${staticServePath}/images/music/circle_skip_previous.png" alt="">
             </div>
-<#--            <div class="music-play" onclick="ChatRoom.playSound.togglePlay()">-->
-<#--                <img class="music-play-icon" src="${staticServePath}/images/music/circle_play.png" alt="">-->
-<#--            </div>-->
+            <#--            <div class="music-play" onclick="ChatRoom.playSound.togglePlay()">-->
+            <#--                <img class="music-play-icon" src="${staticServePath}/images/music/circle_play.png" alt="">-->
+            <#--            </div>-->
             <div class="music-next" onclick="ChatRoom.playSound.next()">
                 <img src="${staticServePath}/images/music/circle_skip_next.png" alt="">
             </div>
         </div>
-<#--        <div class="music-img">-->
-<#--            <img src="${staticServePath}/images/music/cat.gif" class="music-img-item" alt="" />-->
-<#--        </div>-->
+        <#--        <div class="music-img">-->
+        <#--            <img src="${staticServePath}/images/music/cat.gif" class="music-img-item" alt="" />-->
+        <#--        </div>-->
         <div class="music-detail">
-<#--            <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height="52" src="//music.163.com/outchain/player?type=2&id=2635209343&auto=0&height=32"></iframe>-->
+            <#--            <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height="52" src="//music.163.com/outchain/player?type=2&id=2635209343&auto=0&height=32"></iframe>-->
 
             <div class="music-title">摸鱼播放器v1.0</div>
             <div class="music-time"><span class="music-current">00:00</span>-<span class="music-duration">00:00</span></div>
         </div>
         <div class="music-controller">
-<#--            <div class="music-voice" style="padding: 2px;box-sizing: border-box">-->
-<#--                <img class="music-voice-icon" src="${staticServePath}/images/music/volume_3.png" alt="">-->
-<#--                <div class="music-voice-box">-->
-<#--                    <input type="range" value="100" max="100" min="0" onchange="ChatRoom.playSound.changeVoice(this)">-->
-<#--                </div>-->
-<#--            </div>-->
+            <#--            <div class="music-voice" style="padding: 2px;box-sizing: border-box">-->
+            <#--                <img class="music-voice-icon" src="${staticServePath}/images/music/volume_3.png" alt="">-->
+            <#--                <div class="music-voice-box">-->
+            <#--                    <input type="range" value="100" max="100" min="0" onchange="ChatRoom.playSound.changeVoice(this)">-->
+            <#--                </div>-->
+            <#--            </div>-->
             <div class="music-mode" style="padding: 5px;box-sizing: border-box" onclick="ChatRoom.playSound.toggleMode()">
                 <img class="music-mode-icon" src="${staticServePath}/images/music/repeat.png" alt="">
             </div>
@@ -242,7 +275,99 @@
     </div>
     <div id="robotMsgList"></div>
 </div>
-<#include "footer.ftl">
+<script src="${staticServePath}/js/symbol-defs${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>
+<script src="https://file.fishpi.cn/vditor/3.11.1/dist/index.min.js"></script>
+<script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/count${miniPostfix}.js?${staticResourceVersion}"></script>
+<script>
+    var Label = {
+        commentEditorPlaceholderLabel: '${commentEditorPlaceholderLabel}',
+        langLabel: '${langLabel}',
+        luteAvailable: ${luteAvailable?c},
+        reportSuccLabel: '${reportSuccLabel}',
+        breezemoonLabel: '${breezemoonLabel}',
+        confirmRemoveLabel: "${confirmRemoveLabel}",
+        reloginLabel: "${reloginLabel}",
+        invalidPasswordLabel: "${invalidPasswordLabel}",
+        loginNameErrorLabel: "${loginNameErrorLabel}",
+        followLabel: "${followLabel}",
+        unfollowLabel: "${unfollowLabel}",
+        symphonyLabel: "${symphonyLabel}",
+        visionLabel: "${visionLabel}",
+        cmtLabel: "${cmtLabel}",
+        collectLabel: "${collectLabel}",
+        uncollectLabel: "${uncollectLabel}",
+        desktopNotificationTemplateLabel: "${desktopNotificationTemplateLabel}",
+        servePath: "${servePath}",
+        staticServePath: "${staticServePath}",
+        isLoggedIn: ${isLoggedIn?c},
+        funNeedLoginLabel: '${funNeedLoginLabel}',
+        notificationCommentedLabel: '${notificationCommentedLabel}',
+        notificationReplyLabel: '${notificationReplyLabel}',
+        notificationAtLabel: '${notificationAtLabel}',
+        notificationFollowingLabel: '${notificationFollowingLabel}',
+        pointLabel: '${pointLabel}',
+        sameCityLabel: '${sameCityLabel}',
+        systemLabel: '${systemLabel}',
+        newFollowerLabel: '${newFollowerLabel}',
+        makeAsReadLabel: '${makeAsReadLabel}',
+        imgMaxSize: ${imgMaxSize?c},
+        fileMaxSize: ${fileMaxSize?c},
+        <#if isLoggedIn>
+        currentUserName: '${currentUser.userName}',
+        </#if>
+        <#if csrfToken??>
+        csrfToken: '${csrfToken}',
+        </#if>
+        staticResourceVersion: '${staticResourceVersion}',
+    }
+
+    <#if isLoggedIn>
+    Label.userKeyboardShortcutsStatus = '${currentUser.userKeyboardShortcutsStatus}'
+    </#if>
+
+    Util.init(${isLoggedIn?c})
+
+    <#if isLoggedIn>
+    // Init [User] channel
+    Util.initUserChannel("${wsScheme}://${serverHost}:${serverPort}${contextPath}/user-channel")
+    </#if>
+
+    <#if mouseEffects>
+    Util.mouseClickEffects()
+    </#if>
+</script>
+<#if algoliaEnabled>
+    <script src="${staticServePath}/js/lib/algolia/algolia.min.js"></script>
+    <script>
+        Util.initSearch('${algoliaAppId}', '${algoliaSearchKey}', '${algoliaIndex}')
+    </script>
+</#if>
+<script src="${staticServePath}/js/lib/tooltips/tooltips.min.js?${staticResourceVersion}"></script>
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?bab35868f6940b3c4bfc020eac6fe61f";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+<script>
+    function iframeCheck () {
+        try {
+            return window.self !== window.top;
+        } catch (e) {
+            return true;
+        }
+    }
+    $(function () {
+        if (iframeCheck()) {
+            location.href = "/privacy"
+        }
+    });
+</script>
 <script>
     Label.uploadLabel = "${uploadLabel}";
     Label.vipUsers = ${vipUsers};
@@ -250,8 +375,8 @@
 </script>
 <script src="${staticServePath}/js/lib/echarts.min.js"></script>
 <script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
-<script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
-<script src="${staticServePath}/js/chat-room${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/channel-2${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/chat-room-2${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/viewer.min.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/barrager/jquery.barrager.min.js"></script>
 <script>
@@ -276,6 +401,8 @@
     Label.plusN = 0;
     Label.hasMore = true;
     Label.node;
+    // 首屏是否已经自动滚动到底部
+    Label.initialScrolled = false;
     ChatRoom.init();
     // Init [ChatRoom] channel
     $.ajax({
@@ -293,6 +420,13 @@
     var linesArray = [];
     if ('${contextMode}' === 'no') {
         ChatRoom.more();
+        // 兜底：再过 500ms 再尝试滚一次（如果之前没滚成功）
+        setTimeout(function () {
+            if (!Label.initialScrolled && typeof ChatRoom.scrollToBottom === 'function') {
+                ChatRoom.scrollToBottom(true);
+                Label.initialScrolled = true;
+            }
+        }, 500);
     } else {
         page = 1;
         let contextOId = '${contextOId}';
@@ -326,16 +460,53 @@
     Label.onlineAvatarData = "";
 </script>
 <script>
-    $(window).scroll(
-        function() {
-            var scrollTop = $(this).scrollTop();
-            var scrollHeight = $(document).height();
-            var windowHeight = $(this).height();
-            if (scrollTop + windowHeight + 500 >= scrollHeight) {
-                ChatRoom.more();
-            }
+    // 判断消息区是否接近底部（用于决定是否自动跟随新消息滚动）
+    ChatRoom.isAtBottom = function (threshold) {
+        const $c = $('#comments');
+        const scrollTop = $c.scrollTop();
+        const scrollHeight = $c[0].scrollHeight;
+        const clientHeight = $c[0].clientHeight;
+        const gap = scrollHeight - clientHeight - scrollTop;
+        return gap <= (threshold || 50); // 默认阈值 50px
+    };
+
+    // 滚动到消息区底部（首屏使用瞬间滚动，避免闪烁）
+    ChatRoom.scrollToBottom = function (instant) {
+        const $c = $('#comments');
+        if (!$c.length) return;
+        const target = $c[0].scrollHeight;
+        if (instant) {
+            $c.scrollTop(target);
+        } else {
+            $c.stop().animate({scrollTop: target}, 300);
         }
-    );
+    };
+</script>
+<script>
+    // 在消息区滚动到顶部时加载更多历史消息
+    $(function () {
+        const $c = $('#comments');
+        let isLoadingMore = false;
+
+        $c.on('scroll', function () {
+            if (isLoadingMore) return;
+            if ($c.scrollTop() <= 0 && Label.hasMore) {
+                isLoadingMore = true;
+                const oldHeight = $c[0].scrollHeight;
+                const oldScrollTop = $c.scrollTop();
+
+                ChatRoom.more();
+
+                // 等更多历史加载并渲染完成后，再根据高度差调整 scrollTop，避免“跳动到最上面”
+                setTimeout(function () {
+                    const newHeight = $c[0].scrollHeight;
+                    const delta = newHeight - oldHeight;
+                    $c.scrollTop(oldScrollTop + delta);
+                    isLoadingMore = false;
+                }, 50); // 50ms 够让一次 AJAX+DOM 渲染完成，必要时可以略微调大
+            }
+        });
+    });
 </script>
 <script type="text/javascript">
     $(document).ready(function(){
@@ -359,7 +530,7 @@
         margin: 0!important;
     }
     #emojiList {
-         bottom: unset!important;
+        bottom: unset!important;
     }
 </style>
 </body>

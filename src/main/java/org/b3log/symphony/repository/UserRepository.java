@@ -29,6 +29,8 @@ import org.b3log.symphony.model.UserExt;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * User repository.
@@ -45,6 +47,21 @@ public class UserRepository extends AbstractRepository {
      */
     @Inject
     private UserCache userCache;
+
+    /**
+     * Per-user locks keyed by user id to serialize updates for the same user.
+     */
+    private final ConcurrentHashMap<String, ReentrantLock> userLocks = new ConcurrentHashMap<>();
+
+    /**
+     * Gets (or creates) a lock for the specified user id.
+     *
+     * @param id user id
+     * @return the lock associated with the user
+     */
+    private ReentrantLock getUserLock(final String id) {
+        return userLocks.computeIfAbsent(id, k -> new ReentrantLock());
+    }
 
     /**
      * Public constructor.
@@ -73,15 +90,21 @@ public class UserRepository extends AbstractRepository {
 
     @Override
     public void update(final String id, final JSONObject user, final String... propertyNames) throws RepositoryException {
-        final JSONObject old = get(id);
-        if (null == old) {
-            return;
-        }
+        final ReentrantLock lock = getUserLock(id);
+        lock.lock();
+        try {
+            final JSONObject old = get(id);
+            if (null == old) {
+                return;
+            }
 
-        userCache.removeUser(old);
-        super.update(id, user, propertyNames);
-        user.put(Keys.OBJECT_ID, id);
-        userCache.putUser(user);
+            userCache.removeUser(old);
+            super.update(id, user, propertyNames);
+            user.put(Keys.OBJECT_ID, id);
+            userCache.putUser(user);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

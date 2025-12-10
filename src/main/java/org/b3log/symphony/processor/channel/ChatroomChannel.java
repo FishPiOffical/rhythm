@@ -30,12 +30,14 @@ import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.AdminProcessor;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.service.AvatarQueryService;
+import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.NodeUtil;
 import org.json.JSONArray;
@@ -162,6 +164,15 @@ public class ChatroomChannel implements WebSocketChannel {
                 msg = msg.replaceAll("\\{userName}", user.optString(User.USER_NAME));
                 msg = msg.replaceAll("\\{userNickName}", user.optString(UserExt.USER_NICKNAME));
                 msg = msg.replaceAll("\\{userPoint}", user.optString(UserExt.USER_POINT));
+                try {
+                    final MembershipQueryService membershipQueryService = beanManager.getReference(MembershipQueryService.class);
+                    final JSONObject status = membershipQueryService.getStatusByUserId(userId);
+                    msg = msg.replaceAll("\\{userLevel}", status.optString("lvCode").split("_")[0]);
+                } catch (ServiceException e) {
+                    msg = msg.replaceAll("\\{userLevel}", "");
+                }
+                msg = msg.replaceAll("\\{userNo}", user.optString(UserExt.USER_NO));
+                msg = msg.replaceAll("\\{userCity}", user.optString(UserExt.USER_CITY).isEmpty() ? "神秘角落" : user.optString(UserExt.USER_CITY));
             }
             return msg;
         } else {

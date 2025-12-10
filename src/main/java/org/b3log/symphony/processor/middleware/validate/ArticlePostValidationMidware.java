@@ -215,10 +215,12 @@ public class ArticlePostValidationMidware {
         }
 
         // 频率检测
-        if (!addArticleLimiter.access(currentUser.optString(Keys.OBJECT_ID))) {
-            context.renderJSON(exception.put(Keys.MSG, "操作过于频繁，请稍候重试。"));
-            context.abort();
-            return;
+        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE)) && !"1630552921050".equals(currentUser.optString(User.USER_ROLE))) {
+            if (!addArticleLimiter.access(currentUser.optString(Keys.OBJECT_ID))) {
+                context.renderJSON(exception.put(Keys.MSG, "操作过于频繁，请稍候重试。"));
+                context.abort();
+                return;
+            }
         }
 
         final int rewardPoint = requestJSONObject.optInt(Article.ARTICLE_REWARD_POINT, 0);

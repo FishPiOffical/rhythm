@@ -32,9 +32,8 @@
                 <div>
                     <h3>审前必读</h3>
                     <p>1. 您的审核将被记录，审核完毕的图片刷新页面后会消失，只能审核最近45天的图片</p>
-                    <p>2. 临时图片：未出现在帖子、帖子回复下的临时图片：例如截图是最常见的。这一类图片可以从图床删除以节约摸鱼派的存储资源，删除此类图片您将获得16积分奖励，但不处罚、不通知用户</p>
-                    <p>3. 违规图片：如涉及政治、色情、违法等违规图片，请及时删除，删除后您将获得128积分奖励，同时用户将被处以500积分的处罚，并通知用户</p>
-                    <p>4. 正常图片：以后会被翻出来看，有用并且合法的图片，标记后您将获得8积分奖励</p>
+                    <p>2. 违规图片：如涉及政治、色情、违法等违规图片，请及时删除，删除后您将获得128积分奖励，同时用户将被处以500积分的处罚，并通知用户</p>
+                    <p>3. 正常图片：以后会被翻出来看，有用并且合法的图片，标记后您将获得2积分奖励</p>
                 </div>
                 <br>
                 <div class="file__items fn__clear">
@@ -68,7 +67,6 @@
                                 上传者：<a href="${servePath}/member/${file.userName}" target="_blank">${file.userName}</a>
                                 <#if file.public == true>
                                     <span style="position: absolute; left: 5px; bottom: 5px">
-                                        <button class="btn red" onclick="mark('${file.oId}', 'temp')">标记为临时图片</button><br>
                                         <button class="btn red" onclick="mark('${file.oId}', 'illegal')">标记为违规图片</button><br>
                                         <button class="btn green" style="margin-top: 8px" onclick="mark('${file.oId}', 'normal')">标记为正常图片</button>
                                     </span>

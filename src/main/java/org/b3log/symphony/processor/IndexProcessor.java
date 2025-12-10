@@ -463,20 +463,24 @@ public class IndexProcessor {
         dataModel.put("onlineTopUsers", onlineTopUsers);
 
         // 热议
-        final List<JSONObject> hotArticles = articleQueryService.getHotArticles(18);
+        final List<JSONObject> hotArticles = articleQueryService.getHotArticles(11);
         dataModel.put(Common.HOT, hotArticles);
 
         // 问题文章
-        final JSONObject result = articleQueryService.getQuestionArticles(0, 1, 10);
+        final JSONObject result = articleQueryService.getQuestionArticles(0, 1, 12);
         final List<JSONObject> qaArticles = (List<JSONObject>) result.get(Article.ARTICLES);
         dataModel.put(Common.QNA,qaArticles);
 
         // 最近文章
-        final List<JSONObject> recentArticles = articleQueryService.getIndexRecentArticles(18);
+        final List<JSONObject> recentArticles = articleQueryService.getIndexRecentArticles(18, 1);
         dataModel.put(Common.RECENT_ARTICLES, recentArticles);
 
+        // 最近文章第二列
+        final List<JSONObject> recentArticles2 = articleQueryService.getIndexRecentArticles(18, 2);
+        dataModel.put("recentArticles2", recentArticles2);
+
         // 最近文章（移动端）
-        final List<JSONObject> recentArticlesMobile = articleQueryService.getIndexRecentArticles(50);
+        final List<JSONObject> recentArticlesMobile = articleQueryService.getIndexRecentArticles(15, 1);
         dataModel.put("recentArticlesMobile", recentArticlesMobile);
 
         // 活跃用户

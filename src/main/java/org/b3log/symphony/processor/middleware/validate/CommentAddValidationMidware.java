@@ -28,6 +28,7 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
+import org.b3log.symphony.model.Role;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatChannel;
@@ -80,10 +81,12 @@ public class CommentAddValidationMidware {
         exception.put(Keys.CODE, StatusCodes.ERR);
 
         // 频率检测
-        if (!addCommentLimiter.access(currentUser.optString(Keys.OBJECT_ID))) {
-            context.renderJSON(exception.put(Keys.MSG, "操作过于频繁，请稍候重试。"));
-            context.abort();
-            return;
+        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE)) && !"1630552921050".equals(currentUser.optString(User.USER_ROLE))) {
+            if (!addCommentLimiter.access(currentUser.optString(Keys.OBJECT_ID))) {
+                context.renderJSON(exception.put(Keys.MSG, "操作过于频繁，请稍候重试。"));
+                context.abort();
+                return;
+            }
         }
 
         requestJSONObject.put(Comment.COMMENT_CONTENT, ReservedWords.processReservedWord(requestJSONObject.optString(Comment.COMMENT_CONTENT)));

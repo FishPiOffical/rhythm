@@ -170,7 +170,23 @@ var ChatRoom = {
                 }, navigator.userAgent.match(/(phone|pad|pod|ios|Android|Mobile|BlackBerry|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian)/i) !== null ? 0 : 600)
             }
             $("#emojiBtn").hover(function (e) {
-                $('#emojiList').css('top', '290px')
+                // 动态计算弹窗位置：始终出现在按钮正上方
+                const $btn = $("#emojiBtn");
+                const $list = $("#emojiList");
+                const btnOffset = $btn.offset();
+                const btnHeight = $btn.outerHeight();
+                const listWidth = $list.outerWidth();
+                const btnWidth = $btn.outerWidth();
+
+                // 以按钮为参考：水平居中，垂直在按钮上方 8px
+                const top = btnOffset.top - $list.outerHeight() - 120;
+                const left = btnOffset.left + (btnWidth / 2) - (listWidth / 2);
+
+                $list.css({
+                    top: top + "px",
+                    left: left + "px"
+                });
+
                 if (timeoutId !== 0) {
                     clearTimeout(timeoutId)
                     timeoutId = 0
@@ -643,41 +659,55 @@ var ChatRoom = {
     },
     times: 0,
     reloadMessages: function () {
-        ChatRoom.times++;
-        if (document.documentElement.scrollTop <= 2000) {
-            ChatRoom.flashScreenQuiet();
-        } else if (ChatRoom.times > 20) {
-            ChatRoom.flashScreenQuiet();
-            ChatRoom.times = 0;
-        }
-
-        if (ChatRoom.times > 20) {
-            ChatRoom.times = 0;
-        }
+        // 关闭旧的“静默清屏”逻辑，改为基于消息数量与滚动高度的智能清理
+        ChatRoom.smartTrimMessages();
     },
     flashScreen: function () {
+        // 清屏：保留最新 N 条消息，删除更旧的，并滚到最底部
+        const KEEP_LATEST = 80; // 保留的最新消息数量，可按需求调整
+
         NProgress.start();
-        $('#chats').css("display", "none");
-        page = 1;
-        let chatLength = $("#chats>div");
-        if (chatLength.length > 25) {
-            for (let i = chatLength.length - 1; i > 24; i--) {
-                chatLength[i].remove();
-            }
+        const $chats = $("#chats");
+        const $items = $chats.children(); // 按当前 DOM 顺序：旧在上，新在下
+
+        // 计算需要删除的数量：只删顶部的旧消息
+        const total = $items.length;
+        const removeCount = Math.max(0, total - KEEP_LATEST);
+
+        if (removeCount > 0) {
+            $items.slice(0, removeCount).remove();
         }
+
+        // 重置页码，让后续“加载更多”从当前最旧一条向上翻
+        page = 1;
+
+        // 清屏完成后滚动到最底部，保证视图停留在最新消息
         setTimeout(function () {
-            $('#chats').css("display", "block");
+            if (typeof ChatRoom.scrollToBottom === 'function') {
+                ChatRoom.scrollToBottom(true);
+            } else {
+                const $comments = $('#comments');
+                if ($comments.length) {
+                    $comments.scrollTop($comments[0].scrollHeight);
+                }
+            }
             NProgress.done();
-        }, 150);
+        }, 100);
     },
     flashScreenQuiet: function () {
-        page = 1;
-        let chatLength = $("#chats>div");
-        if (chatLength.length > 25) {
-            for (let i = chatLength.length - 1; i > 24; i--) {
-                chatLength[i].remove();
-            }
+        // 静默清屏：仅清理旧消息，不做动画/提示
+        const KEEP_LATEST = 80;
+
+        const $chats = $("#chats");
+        const $items = $chats.children();
+        const total = $items.length;
+        const removeCount = Math.max(0, total - KEEP_LATEST);
+
+        if (removeCount > 0) {
+            $items.slice(0, removeCount).remove();
         }
+
+        page = 1;
     },
     /**
      * 打开思过崖
@@ -1216,7 +1246,11 @@ border-bottom: none;
             },
             success: function (result) {
                 if (0 === result.code) {
-                    $('#chatContentTip').removeClass('error succ').html('')
+                    $('#chatContentTip').removeClass('error succ').html('');
+                    // 自己发送成功后，强制滚到最新
+                    if (typeof ChatRoom.scrollToBottom === 'function') {
+                        ChatRoom.scrollToBottom();
+                    }
                 } else {
                     $('#chatContentTip').addClass('error').html('<ul><li>' + result.msg + '</li></ul>')
                     ChatRoom.editor.setValue(content)
@@ -1242,9 +1276,14 @@ border-bottom: none;
             page++;
             let chatMessageLatestOId;
             if (page !== 1) {
+                // 向上翻页：应该以当前“最旧的一条”（列表顶部）为锚点
                 let chatMessages = $(".chats__item");
-                let chatMessageLatest = chatMessages[chatMessages.length - 1];
-                chatMessageLatestOId = $(chatMessageLatest).attr('id').replace('chatroom', '');
+                if (chatMessages.length === 0) {
+                    chatMessageLatestOId = null;
+                } else {
+                    let oldest = chatMessages[0]; // 顶部那条
+                    chatMessageLatestOId = $(oldest).attr('id').replace('chatroom', '');
+                }
             }
             if (Label.hasMore) {
                 if (page === 1) {
@@ -1255,7 +1294,8 @@ border-bottom: none;
                         async: false,
                         success: function (result) {
                             if (result.data.length !== 0) {
-                                for (let i in result.data) {
+                                // 接口返回通常是“旧在前，新在后”，首屏按原顺序渲染
+                                for (let i = 0; i < result.data.length; i++) {
                                     let data = result.data[i];
                                     if ($("#chatroom" + data.oId).length === 0) {
                                         ChatRoom.renderMsg(data, 'more');
@@ -1263,7 +1303,14 @@ border-bottom: none;
                                     ChatRoom.resetMoreBtnListen();
                                 }
                                 Util.listenUserCard();
-                                ChatRoom.imageViewer()
+                                ChatRoom.imageViewer();
+                                // 首屏加载完成后，稍作延迟再滚动到底部，确保 DOM / 图片高度都已渲染完成
+                                if (!Label.initialScrolled && typeof ChatRoom.scrollToBottom === 'function') {
+                                    Label.initialScrolled = true;
+                                    setTimeout(function () {
+                                        ChatRoom.scrollToBottom(true);
+                                    }, 100); // 可根据体验微调 50~200ms
+                                }
                             } else {
                                 alert("没有更多聊天消息了！");
                                 Label.hasMore = false;
@@ -1271,6 +1318,11 @@ border-bottom: none;
                         }
                     });
                 } else {
+                    if (!chatMessageLatestOId) {
+                        Label.hasMore = false;
+                        NProgress.done();
+                        return;
+                    }
                     $.ajax({
                         url: Label.servePath + '/chat-room/getMessage?size=25&mode=1&oId=' + chatMessageLatestOId,
                         type: 'GET',
@@ -1278,7 +1330,8 @@ border-bottom: none;
                         async: false,
                         success: function (result) {
                             if (result.data.length !== 0) {
-                                for (let i in result.data) {
+                                // 历史页也按接口顺序（旧→新）渲染，renderMsg 负责“插在顶部”
+                                for (let i = 0; i < result.data.length; i++) {
                                     let data = result.data[i];
                                     if ($("#chatroom" + data.oId).length === 0) {
                                         ChatRoom.renderMsg(data, 'more');
@@ -1286,7 +1339,7 @@ border-bottom: none;
                                     ChatRoom.resetMoreBtnListen();
                                 }
                                 Util.listenUserCard();
-                                ChatRoom.imageViewer()
+                                ChatRoom.imageViewer();
                             } else {
                                 alert("没有更多聊天消息了！");
                                 Label.hasMore = false;
@@ -2206,52 +2259,25 @@ ${result.info.msg}
                 '    </div>\n' +
                 '</div></div>';
             if (more) {
-                $('#chats').append(newHTML);
+                // 加载历史消息：插入到列表顶部（旧在上，新在下）
+                $('#chats').prepend(newHTML);
                 let $fn = $('#chats>div.fn-none');
                 $fn.show();
                 $fn.removeClass("fn-none");
-            }
-            // 堆叠复读机消息
-            else if (isPlusOne) {
-                let plusN = ++Label.plusN;
-                if (plusN === 1) {
-                    let stackedHtml = "<div id='stacked' class='fn__flex' style='position:relative;display:none;'>" +
-                        "<span id='plusOne' onclick='ChatRoom.plusOne()' style='display:block;margin-left: 20px'><svg style='width: 30px; height: 20px; cursor: pointer;'><use xlink:href='#plusOneIcon'></use></svg></span>" +
-                        "</div>"
-                    $('#chats').prepend(stackedHtml);
-                    let latest = $('#chats>div.latest');
-                    $('#stacked').prepend(latest);
-                    latest.find('#userName').show();
-                    latest.removeClass('latest');
-                }
-                let $stacked = $('#stacked');
-                if (plusN !== 1) {
-                    $stacked.fadeOut(100);
-                }
-                setTimeout(function () {
-                    $stacked.append(newHTML);
-                    $stacked.height($stacked.height() + 27 + 'px')
-
-                    let $fn = $('#stacked>div.fn-none');
-                    $fn.show();
-                    $fn.css('left', plusN * 9 + 'px');
-                    $fn.css('top', plusN * 27 + 'px');
-                    $fn.css('position', 'absolute');
-                    $fn.find('.chats__content').css('background-color', plusN % 2 === 0 ? 'rgb(240 245 254)' : 'rgb(245 245 245)');
-                    $fn.removeClass("fn-none");
-
-                    $stacked.fadeIn(200);
-                }, 100);
             } else {
-                $('#plusOne').remove();
+                // 新消息：统一追加到列表底部
                 if (data.md) {
                     Label.latestMessage = data.md;
                     Label.plusN = 0;
                 }
+
                 let $chats = $('#chats');
                 $chats.find('.latest').removeClass('latest');
-                $chats.prepend(newHTML);
-                let $fn = $('#chats>div.fn-none');
+
+                // 使用统一工具追加并根据情况下滚（在底部时平滑滚动）
+                ChatRoom.appendAndMaybeScroll(newHTML, { animate: true });
+
+                let $fn = $('#chats>div.fn-none').last();
                 $fn.slideDown(200);
                 $fn.addClass("latest");
                 $fn.removeClass("fn-none");
@@ -2260,6 +2286,7 @@ ${result.info.msg}
                 ChatRoom.initNewWeather(data.oId);
             }
         }
+        ChatRoom.bindActionMenuDirection();
     },
     /**
      * 天气卡片渲染
@@ -2993,6 +3020,118 @@ ${result.info.msg}
         setTimeout(function () {
             clearInterval(ChatRoomChannel.manual);
         }, 1000);
+    },
+
+    /**
+     * 统一的“追加消息 + 若在底部则自动下滚”的工具
+     * newHTML: 字符串 HTML（单条或多条消息）
+     * options: { animate: boolean } 是否用动画滚动
+     */
+    appendAndMaybeScroll: function (newHTML, options) {
+        const $comments = $('#comments');
+        const $chats = $('#chats');
+        if (!$comments.length || !$chats.length) {
+            // 回退：直接 append
+            $chats.append(newHTML);
+            return;
+        }
+
+        const animate = options && options.animate === true;
+        const shouldStick = typeof ChatRoom.isAtBottom === 'function'
+            ? ChatRoom.isAtBottom(600)
+            : true;
+
+        $chats.append(newHTML);
+
+        if (shouldStick && typeof ChatRoom.scrollToBottom === 'function') {
+            // animate=true: 平滑滚动；否则瞬间到底
+            ChatRoom.scrollToBottom(!animate ? true : false);
+        }
+
+        ChatRoom.bindActionMenuDirection();
+    },
+
+    /**
+     * 流畅模式下的智能清理：
+     * - 只在用户接近底部时清理（避免翻历史时被删内容）
+     * - 同时考虑条数和“屏幕高度”两个维度
+     */
+    smartTrimMessages: function () {
+        const $comments = $('#comments');
+        const $chats = $('#chats');
+        if (!$comments.length || !$chats.length) {
+            return;
+        }
+
+        // 如果用户在看上面的历史，就不要删
+        if (typeof ChatRoom.isAtBottom === 'function' && !ChatRoom.isAtBottom(200)) {
+            return;
+        }
+
+        const $children = $chats.children();
+        const totalCount = $children.length;
+
+        // 允许的最大节点数（包括系统提示类节点）
+        const MAX_NODES = 320;
+        const KEEP_NODES = 220; // 一次清理后保留的目标数量
+
+        // 如果数量还不多，就不用删
+        if (totalCount <= MAX_NODES) {
+            // 还可以额外按滚动高度判断一层
+            const scrollHeight = $comments[0].scrollHeight;
+            const clientHeight = $comments[0].clientHeight;
+            const multiple = scrollHeight / Math.max(clientHeight, 1);
+
+            // 高度不超过 N 屏就不处理
+            const MAX_MULTIPLE = 8;
+            if (multiple <= MAX_MULTIPLE) {
+                return;
+            }
+        }
+
+        // 走到这里说明满足“太多了”的条件：删除最旧的一批（顶部）
+        const removeCount = Math.max(0, totalCount - KEEP_NODES);
+        if (removeCount <= 0) {
+            return;
+        }
+
+        // 清理时只删最上面的 n 个节点（不是只删 .chats__item，因为顶部也可能有红包提示、系统提示等）
+        $children.slice(0, removeCount).remove();
+    },
+
+    /**
+     * 根据菜单位置，决定是向上展开还是向下展开
+     */
+    bindActionMenuDirection: function () {
+        // 事件委托，兼容后续新增消息
+        console.log('bindActionMenuDirection');
+        $('details.action__item').on('toggle',function () {
+            const details = this;
+
+            if (!details.open) {
+                return;
+            }
+            const menu = details.querySelector('details-menu');
+            console.log(menu);
+            if (!menu) {
+                return;
+            }
+
+            // 先移除旧状态
+            menu.classList.remove('fn__layer--top');
+
+            // 使用可视区域判断：菜单底部是否超出窗口
+            const rect = menu.getBoundingClientRect();
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+            // 打印诊断信息
+            console.log('rect.bottom', rect.bottom);
+            console.log('viewportHeight', viewportHeight);
+
+            // 留一点缓冲，比如 8px
+            if (rect.bottom > viewportHeight - 320) {
+                menu.classList.add('fn__layer--top');
+            }
+        });
     }
 }
 
