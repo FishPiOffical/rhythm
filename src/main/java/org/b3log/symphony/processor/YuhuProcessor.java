@@ -85,6 +85,8 @@ public class YuhuProcessor {
         Dispatcher.post("/yuhu/comment", p::addComment, loginCheck::handle);
         Dispatcher.get("/yuhu/comments", p::listComments);
         Dispatcher.delete("/yuhu/comment/{id}", p::deleteComment, loginCheck::handle, permissionMidware::check);
+        Dispatcher.get("/yuhu/admin/comments", p::listCommentsAdmin, loginCheck::handle);
+        Dispatcher.put("/yuhu/comment/{id}", p::updateComment, loginCheck::handle);
 
         Dispatcher.post("/yuhu/tag", p::addTag, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/yuhu/tags", p::listTags);
@@ -96,6 +98,7 @@ public class YuhuProcessor {
 
         Dispatcher.post("/yuhu/vote", p::vote, loginCheck::handle);
         Dispatcher.get("/yuhu/vote/stats", p::voteStats);
+        Dispatcher.get("/yuhu/subscription/stats", p::subscriptionStats);
 
         Dispatcher.get("/yuhu/search", p::search);
 
@@ -450,6 +453,89 @@ public class YuhuProcessor {
         }
     }
 
+    public void listCommentsAdmin(final RequestContext context) {
+        try {
+            final org.json.JSONObject currentUser = (org.json.JSONObject) context.attr(org.b3log.latke.model.User.USER);
+            final String bookId = context.param("bookId");
+            final String chapterId = context.param("chapterId");
+            final String profileId = context.param("profileId");
+            final String status = context.param("status");
+            final String q = context.param("q");
+            final int page = org.apache.commons.lang.StringUtils.isBlank(context.param("page")) ? 1 : Integer.parseInt(context.param("page"));
+            final int size = org.apache.commons.lang.StringUtils.isBlank(context.param("size")) ? 20 : Integer.parseInt(context.param("size"));
+            boolean allow = false;
+            try {
+                final java.util.Set<String> requisite = org.b3log.symphony.util.Symphonys.URL_PERMISSION_RULES.get("permission.rule.url./yuhu/admin/comments.GET");
+                if (requisite != null) {
+                    final String userId = currentUser.optString(org.b3log.latke.Keys.OBJECT_ID);
+                    allow = org.b3log.latke.ioc.BeanManager.getInstance().getReference(org.b3log.symphony.service.RoleQueryService.class).userHasPermissions(userId, requisite);
+                }
+            } catch (Exception ignored) {
+            }
+            if (!allow) {
+                if (org.apache.commons.lang.StringUtils.isBlank(bookId)) {
+                    context.renderJSON(StatusCodes.ERR);
+                    context.renderMsg("权限不足");
+                    return;
+                }
+                final String linkedUserId = currentUser.optString(org.b3log.latke.Keys.OBJECT_ID);
+                final org.json.JSONObject me = yuhuService.ensureProfile(linkedUserId);
+                final org.json.JSONObject author = yuhuService.getAuthorByBook(bookId);
+                if (!me.optString(org.b3log.latke.Keys.OBJECT_ID).equals(author.optString("profileId"))) {
+                    context.renderJSON(StatusCodes.ERR);
+                    context.renderMsg("权限不足");
+                    return;
+                }
+            }
+            final JSONObject ret = yuhuService.listCommentsAdmin(bookId, chapterId, profileId, status, q, page, size);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void updateComment(final RequestContext context) {
+        try {
+            final org.json.JSONObject currentUser = (org.json.JSONObject) context.attr(org.b3log.latke.model.User.USER);
+            final String id = context.pathVar("id");
+            final JSONObject req = context.requestJSON();
+            boolean allow = false;
+            try {
+                final java.util.Set<String> requisite = org.b3log.symphony.util.Symphonys.URL_PERMISSION_RULES.get("permission.rule.url./yuhu/comment/{id}.PUT");
+                if (requisite != null) {
+                    final String userId = currentUser.optString(org.b3log.latke.Keys.OBJECT_ID);
+                    allow = org.b3log.latke.ioc.BeanManager.getInstance().getReference(org.b3log.symphony.service.RoleQueryService.class).userHasPermissions(userId, requisite);
+                }
+            } catch (Exception ignored) {
+            }
+            if (!allow) {
+                final String linkedUserId = currentUser.optString(org.b3log.latke.Keys.OBJECT_ID);
+                final org.json.JSONObject me = yuhuService.ensureProfile(linkedUserId);
+                final org.json.JSONObject c = yuhuService.getComment(id);
+                if (c == null) {
+                    context.renderJSON(StatusCodes.ERR);
+                    context.renderMsg("资源不存在");
+                    return;
+                }
+                final String bookId = c.optString(org.b3log.symphony.model.YuhuComment.YUHU_COMMENT_BOOK_ID);
+                final org.json.JSONObject author = yuhuService.getAuthorByBook(bookId);
+                if (!me.optString(org.b3log.latke.Keys.OBJECT_ID).equals(author.optString("profileId"))) {
+                    context.renderJSON(StatusCodes.ERR);
+                    context.renderMsg("权限不足");
+                    return;
+                }
+            }
+            yuhuService.updateComment(id, req);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(new JSONObject().put("updated", true));
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
     public void getAuthorProfile(final RequestContext context) {
         try {
             final String profileId = context.pathVar("profileId");
@@ -623,6 +709,18 @@ public class YuhuProcessor {
         try {
             final String bookId = context.param("bookId");
             final JSONObject ret = yuhuService.voteStats(bookId);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderData(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("请求非法");
+        }
+    }
+
+    public void subscriptionStats(final RequestContext context) {
+        try {
+            final String bookId = context.param("bookId");
+            final JSONObject ret = yuhuService.subscriptionStats(bookId);
             context.renderJSON(StatusCodes.SUCC);
             context.renderData(ret);
         } catch (Exception e) {

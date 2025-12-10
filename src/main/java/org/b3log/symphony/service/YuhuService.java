@@ -33,6 +33,8 @@ import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Markdowns;
 import org.b3log.symphony.service.MembershipQueryService;
+import org.b3log.symphony.model.Follow;
+import org.b3log.symphony.repository.FollowRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -66,6 +68,9 @@ public class YuhuService {
 
     @Inject
     private MembershipQueryService membershipQueryService;
+
+    @Inject
+    private FollowRepository followRepository;
 
     public JSONObject ensureProfile(final String linkedUserId) throws RepositoryException {
         final Query q = new Query().setFilter(new PropertyFilter(YuhuUserProfile.YUHU_USER_PROFILE_LINKED_USER_ID, FilterOperator.EQUAL, linkedUserId)).setPage(1,1);
@@ -307,8 +312,49 @@ public class YuhuService {
         return commentRepository.getList(new Query().setFilter(new PropertyFilter(YuhuComment.YUHU_COMMENT_CHAPTER_ID, FilterOperator.EQUAL, chapterId)).addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).setPage(page, size));
     }
 
+    public JSONObject listCommentsAdmin(final String bookId, final String chapterId, final String profileId, final String status, final String q, final int page, final int size) throws RepositoryException {
+        final java.util.List<org.b3log.latke.repository.Filter> filters = new ArrayList<>();
+        if (bookId != null && !bookId.isEmpty()) filters.add(new PropertyFilter(YuhuComment.YUHU_COMMENT_BOOK_ID, FilterOperator.EQUAL, bookId));
+        if (chapterId != null && !chapterId.isEmpty()) filters.add(new PropertyFilter(YuhuComment.YUHU_COMMENT_CHAPTER_ID, FilterOperator.EQUAL, chapterId));
+        if (profileId != null && !profileId.isEmpty()) filters.add(new PropertyFilter(YuhuComment.YUHU_COMMENT_PROFILE_ID, FilterOperator.EQUAL, profileId));
+        if (status != null && !status.isEmpty()) filters.add(new PropertyFilter(YuhuComment.YUHU_COMMENT_STATUS, FilterOperator.EQUAL, status));
+        Query query = new Query().addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).setPage(page, size);
+        if (!filters.isEmpty()) query.setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters));
+        final List<JSONObject> list = commentRepository.getList(query);
+        // 简单包含查询（content like q）在内存过滤，避免跨数据库差异
+        final List<JSONObject> filtered = new ArrayList<>();
+        if (q != null && !q.isEmpty()) {
+            final String term = q.toLowerCase();
+            for (final JSONObject c : list) {
+                if (c.optString(YuhuComment.YUHU_COMMENT_CONTENT).toLowerCase().contains(term)) filtered.add(c);
+            }
+        } else {
+            filtered.addAll(list);
+        }
+        final JSONObject ret = new JSONObject();
+        ret.put("list", (Object) filtered);
+        ret.put("pagination", new JSONObject().put("page", page).put("size", size).put("total", filtered.size()));
+        return ret;
+    }
+
     public void deleteComment(final String id) throws RepositoryException {
         commentRepository.remove(id);
+    }
+
+    public void updateComment(final String id, final JSONObject req) throws RepositoryException {
+        final JSONObject c = commentRepository.get(id);
+        if (c == null) return;
+        if (req.has("content")) c.put(YuhuComment.YUHU_COMMENT_CONTENT, req.optString("content"));
+        if (req.has("status")) c.put(YuhuComment.YUHU_COMMENT_STATUS, req.optString("status"));
+        commentRepository.update(id, c);
+    }
+
+    public JSONObject getComment(final String id) throws RepositoryException {
+        return commentRepository.get(id);
+    }
+
+    public JSONObject getChapter(final String id) throws RepositoryException {
+        return chapterRepository.get(id);
     }
 
     public String addTag(final JSONObject req) throws RepositoryException {
@@ -447,6 +493,17 @@ public class YuhuService {
             ret.put("levelActive", false);
             ret.put("badges", new org.json.JSONArray());
         }
+        // fans: followers count on linked user
+        try {
+            final Query fq = new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, new java.util.ArrayList<>() {{
+                add(new PropertyFilter(Follow.FOLLOWING_ID, FilterOperator.EQUAL, linkedUserId));
+                add(new PropertyFilter(Follow.FOLLOWING_TYPE, FilterOperator.EQUAL, Follow.FOLLOWING_TYPE_C_USER));
+            }}));
+            final long followers = followRepository.count(fq);
+            ret.put("followers", followers);
+        } catch (final RepositoryException ignore) {
+            ret.put("followers", 0);
+        }
         return ret;
     }
 
@@ -551,6 +608,11 @@ public class YuhuService {
         base.put("ratingsCount", ratings.size());
         base.put("score", score);
         return base;
+    }
+
+    public JSONObject subscriptionStats(final String bookId) throws RepositoryException {
+        final long subscribers = subscriptionRepository.count(new Query().setFilter(new PropertyFilter(YuhuSubscription.YUHU_SUBSCRIPTION_BOOK_ID, FilterOperator.EQUAL, bookId)));
+        return new JSONObject().put("subscribers", subscribers);
     }
 
     public List<JSONObject> listAuthorBooks(final String profileId, final int page, final int size) throws RepositoryException {

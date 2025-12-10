@@ -133,6 +133,8 @@ DELETE `/yuhu/bookmarks/{id}`（登录） → `{ deleted:true }`
 POST `/yuhu/comment` 入参：`{ bookId, chapterId, paragraphId?, content }` → `{ id, created }`
 GET `/yuhu/comments?chapterId=...&page=1&size=20` → `{ list:[...], pagination }`
 DELETE `/yuhu/comment/{id}` 权限：`admin|op` 或作者规则 → `{ deleted:true }`
+GET `/yuhu/admin/comments?bookId=&chapterId=&profileId=&status=&q=&page=1&size=20` 权限：`admin|op` 或作者本人（需传 `bookId` 或 `chapterId`） → `{ list, pagination }`
+PUT `/yuhu/comment/{id}` 权限：`admin|op` 或作者本人 入参：`{ content?, status? }` → `{ updated:true }`
 
 ## 标签
 
@@ -150,6 +152,7 @@ GET `/yuhu/subscriptions` → `{ list:[...] }`
 
 POST `/yuhu/vote` 入参：`{ targetType, targetId, type, value }` → `{ accepted, pointsCost, oId }`
 GET `/yuhu/vote/stats?bookId=...` → `{ monthly, recommend, tip:{sum,count}, thumbUp, thumbDown, avgRating, score }`
+GET `/yuhu/subscription/stats?bookId=...` → `{ subscribers }`
 
 ## 搜索
 

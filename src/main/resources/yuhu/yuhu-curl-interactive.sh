@@ -73,6 +73,8 @@ while true; do
   echo "33) Get author stats"
   echo "34) Get my author profile"
   echo "35) List author books"
+  echo "41) Admin list comments"
+  echo "42) Admin update comment"
   echo "30) Profile display"
   echo "99) Print state"
   echo "0) Exit"
@@ -269,6 +271,23 @@ while true; do
       ask "Page" "1" page
       ask "Size" "20" size
       curl -sS "$BASE/yuhu/author/$pid/books?page=$page&size=$size"
+      ;;
+    41)
+      ask "Book ID" "$BOOK_ID" bid
+      ask "Chapter ID" "$CHAPTER_ID" cid
+      ask "Profile ID" "author-profile-id" pid
+      ask "Status" "" status
+      ask "Query" "" q
+      ask "Page" "1" page
+      ask "Size" "20" size
+      curl -sS "$BASE/yuhu/admin/comments?bookId=$bid&chapterId=$cid&profileId=$pid&status=$status&q=$q&page=$page&size=$size&apiKey=$API_KEY"
+      ;;
+    42)
+      ask "Comment ID" "$COMMENT_ID" id
+      ask "New content" "" content
+      ask "New status" "" status
+      payload=$(jq -n --arg c "$content" --arg s "$status" '{content:$c,status:$s}')
+      json_put "$BASE/yuhu/comment/$id?apiKey=$API_KEY" "$payload"
       ;;
     99)
       print_state

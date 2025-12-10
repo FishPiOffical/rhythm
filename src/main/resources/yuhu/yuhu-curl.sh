@@ -46,6 +46,7 @@ curl -sS "$BASE/yuhu/subscriptions?apiKey=$API_KEY"
 
 curl -sS -X POST "$BASE/yuhu/vote?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"type":"tip","targetType":"book","targetId":"'$BOOK_ID'","value":128}'
 curl -sS "$BASE/yuhu/vote/stats?bookId=$BOOK_ID"
+curl -sS "$BASE/yuhu/subscription/stats?bookId=$BOOK_ID"
 
 curl -sS "$BASE/yuhu/search?q=测试"
 
@@ -57,3 +58,11 @@ curl -sS "$BASE/yuhu/author/byBook/$BOOK_ID"
 curl -sS "$BASE/yuhu/author/author-profile-id/stats"
 curl -sS "$BASE/yuhu/author/author-profile-id/me?apiKey=$API_KEY"
 curl -sS "$BASE/yuhu/author/author-profile-id/books?page=1&size=20"
+
+# Admin comment management
+curl -sS "$BASE/yuhu/admin/comments?bookId=$BOOK_ID&chapterId=$CHAPTER_ID&profileId=author-profile-id&status=&q=&page=1&size=20&apiKey=$API_KEY"
+curl -sS -X PUT "$BASE/yuhu/comment/$COMMENT_ID?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"content":"新内容","status":"normal"}'
+
+# Author comment management
+curl -sS "$BASE/yuhu/admin/comments?bookId=$BOOK_ID&apiKey=$API_KEY"
+curl -sS -X PUT "$BASE/yuhu/comment/$COMMENT_ID?apiKey=$API_KEY" -H 'Content-Type: application/json' -d '{"content":"作者修订"}'
