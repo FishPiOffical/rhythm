@@ -308,7 +308,7 @@
                     <div class="activity-hub__right">
                         <div class="activity-hub__actions">
                             <button type="button"
-                                    class="activity-hub__pill activity-hub__pill--primary"
+                                    class="activity-hub__pill"
                                     id="yesterday"
                                     onclick="yesterday()">
                                 <div class="activity-hub__pill-icon">
@@ -746,6 +746,7 @@
         var collectedYesterdayLivenessReward = ${collectedYesterdayLivenessReward};
         if (collectedYesterdayLivenessReward === 0) {
             $("#yesterdayImg").addClass("cake");
+            $("#yesterday").addClass("activity-hub__pill--primary");
         }
     });
 
@@ -768,6 +769,8 @@
                         Util.fadeIn(yesterdayBtn, function () {
                             setTimeout(function () {
                                 Util.fadeOut(yesterdayBtn, function () {
+                                    $("#yesterdayImg").removeClass("cake");
+                                    $("#yesterday").removeClass("activity-hub__pill--primary");
                                     $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">昨日活跃奖励</div><div class="activity-hub__pill-desc">一键领取·活跃积分</div></div>');
                                     Util.fadeIn(yesterdayBtn);
                                 });
@@ -778,6 +781,8 @@
                         Util.fadeIn(yesterdayBtn, function () {
                             setTimeout(function () {
                                 Util.fadeOut(yesterdayBtn, function () {
+                                    $("#yesterdayImg").removeClass("cake");
+                                    $("#yesterday").removeClass("activity-hub__pill--primary");
                                     $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">昨日活跃奖励</div><div class="activity-hub__pill-desc">一键领取·活跃积分</div></div>');
                                     Util.fadeIn(yesterdayBtn);
                                 });
