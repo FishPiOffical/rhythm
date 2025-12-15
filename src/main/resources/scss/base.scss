@@ -511,6 +511,13 @@ a[class*=" icon-"]:hover {
   vertical-align: middle;
   background-color: rgba(0, 0, 0, .02);
 }
+.user-background{
+  width: 100%;
+  background-size: cover;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  height: 200px;
+}
 
 .avatar {
   height: 38px;
