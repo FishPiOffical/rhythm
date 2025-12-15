@@ -32,20 +32,26 @@
 <body>
 <#include "../header.ftl">
     <div class="container">
-        <div class="yuhu-main-title">鱼乎/YUHU</div>
+        <div class="yuhu-main-title">鱼乎-YUHU</div>
         <div class="yuhu-search">
             <input class="yuhu-search-input" type="text" placeholder="搜索鱼乎">
             <div class="yuhu-search-label">搜索</div>
         </div>
     </div>
-    <div class="yuhu-container">
-        <div class="yuhu-title">推荐</div>
-    </div>
-    <div class="yuhu-container">
-        <div class="yuhu-title">分类</div>
-    </div>
-    <div class="yuhu-container">
-        <div class="yuhu-title">我的收藏</div>
+    <div class="dashboard-container" style="width: 80%;margin: 20px 10%">
+        <div class="dashboard-left">
+            <div class="yuhu-container">
+                <div class="yuhu-title">推荐</div>
+            </div>
+            <div class="yuhu-container">
+                <div class="yuhu-title">分类</div>
+            </div>
+        </div>
+        <div class="dashboard-right">
+            <div class="yuhu-container">
+                <div class="yuhu-title">我的收藏</div>
+            </div>
+        </div>
     </div>
 <#include "../footer.ftl">
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>

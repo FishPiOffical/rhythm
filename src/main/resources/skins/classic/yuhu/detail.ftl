@@ -32,8 +32,35 @@
 <body>
 <#include "../header.ftl">
 <div class="container">
-    <h1>YuHu-鱼乎-合集详情</h1>
-    <h3>合集信息</h3>
+    这是书的详情
+
+</div>
+<div class="dashboard-container" style="width: 80%;margin: 20px 10%">
+    <div class="dashboard-left" style="width: 75%">
+        <div class="yuhu-container">
+            <div class="yuhu-title">简介</div>
+        </div>
+        <div class="yuhu-container">
+            <div class="yuhu-title">投票</div>
+        </div>
+        <div class="yuhu-container">
+            <div class="yuhu-title">目录</div>
+        </div>
+    </div >
+    <div class="dashboard-right" style="width: 24%;">
+        <div class="yuhu-container">
+            <div class="yuhu-title">荣誉</div>
+        </div>
+        <div class="yuhu-container">
+            <div class="yuhu-title">我的</div>
+        </div>
+        <div class="yuhu-container">
+            <div class="yuhu-title">推荐</div>
+        </div>
+        <div class="yuhu-container">
+            <div class="yuhu-title">书友榜</div>
+        </div>
+    </div>
 </div>
 <#include "../footer.ftl">
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>

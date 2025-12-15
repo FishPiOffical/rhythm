@@ -20,6 +20,7 @@ li {
 .container {
   box-sizing: border-box;
   margin: 20px 10%;
+  min-width: 1200px;
   background: white;
   padding: 20px;
   box-shadow: var(--dashboard-shadow);
@@ -64,7 +65,7 @@ li {
 }
 
 .yuhu-container {
-  margin: 20px 10%;
+  margin-bottom: 20px;
   padding: 20px;
   background-color: white;
   box-shadow: var(--dashboard-shadow);
