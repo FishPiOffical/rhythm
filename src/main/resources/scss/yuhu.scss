@@ -112,6 +112,14 @@ li {
       border-bottom: 1px solid rgba(0, 0, 0, 0.16);
       margin-bottom: 10px;
       padding: 8px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dashboard-content-btn {
+      font-size: 14px;
+      color: var(--primary-color);
+      cursor: pointer;
     }
   }
 
@@ -153,6 +161,48 @@ li {
     height: 140px;
     border: 1px solid rgba(0, 0, 0, 0.16);
     border-radius: 5px;
+  }
+}
+
+.dashboard-alert {
+  display: none;
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 5px;
+  background-color: white;
+  box-shadow: 0 1px 4px rgba(21, 26, 48, 0.18);
+  padding: 20px;
+  &.active{
+    display: block;
+  }
+  .dashboard-alert-close{
+    cursor: pointer;
+  }
+  .dashboard-alert-title{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+}
+
+.yuhu-input-item{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 10px;
+  .yuhu-input-label{
+    min-width: 80px;
+  }
+  input,textarea{
+    border: 1px solid rgba(0,0,0,0.16);
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 16px;
   }
 }
 

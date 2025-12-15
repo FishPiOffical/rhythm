@@ -5,14 +5,31 @@
  * @param showIndex 要显示的下标
  */
 function changeType(contentClass, tabClass, showIndex) {
-    let contentDomList = document.querySelectorAll(`.${contentClass}`);
-    let tabDomList = document.querySelectorAll(`.${tabClass}`);
-    contentDomList.forEach((item) => {
-        item.classList.remove('active');
-    })
-    tabDomList.forEach((item) => {
-        item.classList.remove('active');
-    })
-    contentDomList[showIndex].classList.add('active');
-    tabDomList[showIndex].classList.add('active');
+  let contentDomList = document.querySelectorAll(`.${contentClass}`);
+  let tabDomList = document.querySelectorAll(`.${tabClass}`);
+  contentDomList.forEach((item) => {
+    item.classList.remove("active");
+  });
+  tabDomList.forEach((item) => {
+    item.classList.remove("active");
+  });
+  contentDomList[showIndex].classList.add("active");
+  tabDomList[showIndex].classList.add("active");
+}
+
+function showAlert(alertClass) {
+  document.querySelectorAll(".dashboard-alert").forEach((item) => {
+    item.classList.remove("active");
+  });
+  document.querySelector(`.${alertClass}`).classList.add("active");
+}
+
+function hideAlert(alertClass) {
+  if (alertClass) {
+    document.querySelector(`.${alertClass}`).classList.remove("active");
+  } else {
+    document.querySelectorAll(".dashboard-alert").forEach((item) => {
+      item.classList.remove("active");
+    });
+  }
 }
