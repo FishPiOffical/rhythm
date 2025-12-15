@@ -46,6 +46,14 @@ public class LoginCheckMidware {
         } catch (NullPointerException ignored) {
         }
         if (null == currentUser) {
+            if (context.getRequest().getRequestURI().equals("/gen")) {
+                context.getResponse().setContentType("image/svg+xml");
+                context.getResponse().setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+                context.getResponse().setHeader("Pragma", "no-cache");
+                context.getResponse().setHeader("Expires", "0");
+                context.getResponse().sendBytes("<svg width=\"0\" height=\"0\" xmlns=\"http://www.w3.org/2000/svg\"></svg>".getBytes());
+                return;
+            }
             context.sendError(401);
             context.abort();
             return;
