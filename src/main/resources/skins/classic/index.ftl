@@ -129,10 +129,6 @@
             </div>
         </div>
         <div class="index-recent fn-flex-1">
-            <!--<div style="border-bottom: 1px solid #eee;margin:0px 10px ;">
-                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">活跃成员</div>
-                <div style="clear:both;"></div>
-            </div>-->
             <div class="module-panel">
                 <#if TGIF == '0'>
                     <div class="TGIF__item" style="margin-bottom: 17px; margin-top: 5px">
@@ -272,67 +268,103 @@
         </div>
     </div>
     <#if isLoggedIn>
-    <div class="wrapper index-full-size" id="goodNight" style="display: none"></div>
-
-    <div class="index-bottom" style="margin-top: 20px">
-        <div class="wrapper">
-            <div class="fn-flex-1">
-                <div class="metro-line fn-flex" style="align-items:center;">
-                    <div class="metro-item" style="flex:1.2;">
-                        <div class="calendar-container">
-                            <div class="canendar-body">
-                                <div class="calendar-head" id="vLine1">距离放假还有 🎉</div>
-                                <div class="calendar-content" id="vLine2"><span
-                                            id="vDay">?</span><span style="font-size: 30px"> 天</span></div>
-                            </div></div>
-                    </div>
-                    <div class="metro-item">
-                        <a class="preview" style="padding-top:70px;">
-                            <span id="checkedInStatus">
-                            </span>
-                            <div class="review" style="margin-bottom: 25px">
-                                <div class="progress">
-                                    <div class="progress-done" id="sp1"></div>
+        <div class="index-bottom" style="margin-top: 20px">
+            <div class="wrapper">
+                <section class="activity-hub">
+                    <div class="activity-hub__left">
+                        <article class="activity-hub__card activity-hub__card--holiday">
+                            <div class="activity-hub__card-main">
+                                <div class="activity-hub__card-title" id="vLine1">
+                                    距离放假还有 🎉
                                 </div>
-                                <span class="percent" id="sp2">0%</span>
                             </div>
-                            <p id="activityDesc" style="user-select:none">
-                            </p>
-                        </a>
-                    </div>
-                    <div class="metro-item">
-                        <a class="preview" target="_blank" href="https://market.time-pack.com/">
-                            <img style="border-radius: 0"
-                                 src="https://file.fishpi.cn/2025/11/市场点击-0698aad6.png">
-                            <b>交易市场</b>
-                        </a>
-                    </div>
-                    <div class="metro-item" style="cursor: pointer">
-                        <a class="preview" id="yesterday" onclick="yesterday()">
-                            <img style="border-radius: 0" id="yesterdayImg"
-                                 src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png"><b>领取昨日活跃奖励</b>
-                        </a>
-                    </div>
-                    <div class="metro-item">
-                        <a class="preview" href="${servePath}/activities">
-                            <img style="border-radius: 10px"
-                                 src="https://file.fishpi.cn/2021/10/psp-game-1a94ae64.png">
-                            <b>在线游戏</b>
-                        </a>
-                    </div>
-                </div>
+                            <div class="activity-hub__card-main">
+                                <div class="activity-hub__card-subtitle" id="vLine2">
+                                    <span class="activity-hub__day" id="vDay">?</span>
+                                    <span class="activity-hub__day-unit">天</span>
+                                </div>
+                            </div>
+                        </article>
 
-                <#--                <div class="metro-border fn-flex">-->
-                <#--                    <div style="background:transparent;;flex:1.2;"></div>-->
-                <#--                    <div class="green"></div>-->
-                <#--                    <div class="yellow"></div>-->
-                <#--                    <div class="red"></div>-->
-                <#--                    <div class="purple"></div>-->
-                <#--                </div>-->
+                        <article class="activity-hub__card activity-hub__card--liveness">
+                            <header class="activity-hub__card-header">
+                                <div class="activity-hub__status" id="checkedInStatus">
+                                </div>
+                                <div class="activity-hub__status-tag">
+                                    今日活跃进度
+                                </div>
+                            </header>
+                            <div class="activity-hub__progress-row">
+                                <div class="activity-hub__progress">
+                                    <div class="activity-hub__progress-done" id="sp1"></div>
+                                </div>
+                                <span class="activity-hub__progress-percent" id="sp2">0%</span>
+                            </div>
+                            <p class="activity-hub__desc" id="activityDesc">
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="activity-hub__right">
+                        <div class="activity-hub__actions">
+                            <button type="button"
+                                    class="activity-hub__pill activity-hub__pill--primary"
+                                    id="yesterday"
+                                    onclick="yesterday()">
+                                <div class="activity-hub__pill-icon">
+                                    <img id="yesterdayImg"
+                                         src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png"
+                                         alt="昨日活跃奖励">
+                                </div>
+                                <div class="activity-hub__pill-body">
+                                    <div class="activity-hub__pill-title">昨日活跃奖励</div>
+                                    <div class="activity-hub__pill-desc">一键领取·活跃积分</div>
+                                </div>
+                            </button>
+
+                            <a class="activity-hub__pill"
+                               target="_blank"
+                               href="https://market.time-pack.com/">
+                                <div class="activity-hub__pill-icon">
+                                    <img src="https://file.fishpi.cn/2025/11/市场点击-0698aad6.png"
+                                         alt="交易市场">
+                                </div>
+                                <div class="activity-hub__pill-body">
+                                    <div class="activity-hub__pill-title">交易市场</div>
+                                    <div class="activity-hub__pill-desc">积分交易·道具集市</div>
+                                </div>
+                            </a>
+
+                            <a class="activity-hub__pill"
+                               target="_blank"
+                               href="https://room.adventext.fun">
+                                <div class="activity-hub__pill-icon">
+                                    <img src="https://file.fishpi.cn/2025/12/国际象棋游戏-56ff09e8.png"
+                                         alt="摸鱼竞技大厅">
+                                </div>
+                                <div class="activity-hub__pill-body">
+                                    <div class="activity-hub__pill-title">摸鱼竞技大厅 测试服</div>
+                                    <div class="activity-hub__pill-desc">实时游戏房间·在线竞技</div>
+                                </div>
+                            </a>
+
+                            <a class="activity-hub__pill"
+                               href="${servePath}/activities">
+                                <div class="activity-hub__pill-icon">
+                                    <img src="https://file.fishpi.cn/2021/10/psp-game-1a94ae64.png"
+                                         alt="在线游戏">
+                                </div>
+                                <div class="activity-hub__pill-body">
+                                    <div class="activity-hub__pill-title">小游戏</div>
+                                    <div class="activity-hub__pill-desc">支持云存档·休闲小游戏</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
-    </div>
-</#if>
+    </#if>
 
     <div class="index-bottom" style="padding-top:20px;padding-bottom: 20px;">
         <div class="wrapper">
@@ -691,31 +723,19 @@
             }
             $("#vDay").html(vRest);
             if (vRest === 1) {
-                $("#vLine1").html("今天提桶！明天跑路！<br>" + vName + "马上就要到了！！！");
-                $("#vLine2").html("<span style='font-size:30px;width:100%;height:100%;color:#0cc958;'>🎉<br>明天放假</span>");
+                $("#vLine1").html("今天提桶!<br>明天跑路!<br>" + vName + "加载中...");
+                $("#vLine2").html("<span style='font-size:20px;width:100%;height:100%;color:#0cc958;font-weight:bold;'>🎉明天放假</span>");
                 $("#vLine2").css("line-height", "30px");
-                // $("#vLine3").css("display", "none");
             }
-            //$.ajax({
-            //    url: "https://v1.hitokoto.cn/",
-            //    type: "GET",
-            //    cache: false,
-            //    success: function (result) {
-            //      $("#vLine3").html(result.hitokoto);
-            //  }
-            //});
         } else if (type === 1 || type === 2) {
             let wRest = result.wRest;
             if (wRest === 1) {
                 $("#vLine1").html("😰 今天是" + dayName + "<br><b>假期余额严重不足❗❗❗️</b>");
                 $("#vLine2").html("<span style='font-size:30px;width:100%;height:100%;color:#c9320c;'>😭<br>明天上班</span>");
                 $("#vLine2").css("line-height", "30px");
-                // $("#vLine3").html("明天，你就可以见到久违的老板和可爱的同事们了！<b>你开心吗？</b>");
-                // $("#vLine3").css("padding-top", "15px");
             } else {
                 $("#vLine1").html("" + dayName + "快乐 🏖️<br><div>假期余额还有<b>" + wRest + "</b>天！</div>");
                 $("#vLine2").html("<span style='font-size:60px;height:100%;color:#63bf8a;'>放假</span>");
-                // $("#vLine3").html(randomPoem());
             }
         }
     });
@@ -748,21 +768,21 @@
                 }
                 setTimeout(function () {
                     if (result.sum === -1) {
-                        $("#yesterday").html("<img style='border-radius: 0' src='https://file.fishpi.cn/2021/09/embarrassed-4112bd37.png'><b>暂时没有昨日奖励可领取呦！<br>明天再来试试吧</b>");
+                        $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2025/12/notfound-d9c65204.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">没有未领取奖励喔!</div><div class="activity-hub__pill-desc">明天再来试试吧</div></div>');
                         Util.fadeIn(yesterdayBtn, function () {
                             setTimeout(function () {
                                 Util.fadeOut(yesterdayBtn, function () {
-                                    $("#yesterday").html('<img style="border-radius: 0" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="领取昨日活跃奖励"><b>领取昨日活跃奖励</b>');
+                                    $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">昨日活跃奖励</div><div class="activity-hub__pill-desc">一键领取·活跃积分</div></div>');
                                     Util.fadeIn(yesterdayBtn);
                                 });
                             }, 2000);
                         });
                     } else {
-                        $("#yesterday").html("<img style='border-radius: 0' src='https://file.fishpi.cn/2021/09/correct-1f5e3258.png'><b>昨日奖励已领取！<br>积分 +" + result.sum + "</b>");
+                        $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2021/09/correct-1f5e3258.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">昨日奖励已领取！</div><div class="activity-hub__pill-desc">积分 +' + result.sum + '</div></div>');
                         Util.fadeIn(yesterdayBtn, function () {
                             setTimeout(function () {
                                 Util.fadeOut(yesterdayBtn, function () {
-                                    $("#yesterday").html('<img style="border-radius: 0" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="领取昨日活跃奖励"><b>领取昨日活跃奖励</b>');
+                                    $("#yesterday").html('<div class="activity-hub__pill-icon"><img id="yesterdayImg" src="https://file.fishpi.cn/2021/10/coin-2-70217cc1.png" alt="昨日活跃奖励"></div><div class="activity-hub__pill-body"><div class="activity-hub__pill-title">昨日活跃奖励</div><div class="activity-hub__pill-desc">一键领取·活跃积分</div></div>');
                                     Util.fadeIn(yesterdayBtn);
                                 });
                             }, 2000);
@@ -778,23 +798,6 @@
 
     var loading = false;
     var rotate = new Rotate("randomArticlesRefreshSvg");
-</script>
-<script>
-    // 渐变输出
-    /*function elementFadeOut(element, speed) {
-        let fadePicList = $(element);
-        for (i = 0; i < fadePicList.length; i++) {
-            let element = $(fadePicList[i]);
-            setTimeout(function () {
-                element.css("display", "none");
-                element.removeClass("fn-hidden");
-                element.fadeIn(500);
-            }, speed * (i + 1));
-        }
-    }
-
-    elementFadeOut(".niceUsersElement", 20);
-    elementFadeOut(".topCheckInUsersElement", 90);*/
 </script>
 <script>
     //drawCalendar();
@@ -911,48 +914,6 @@
     <#if need2fa == "yes">
     Util.alert("⛔ 摸鱼派管理组成员，您好！<br>作为管理组的成员，您的账号需要更高的安全性，以确保社区的稳定运行。<br>请您收到此通知后，立即在个人设置-账户中启用两步验证，感谢你对社区的贡献！<br><br><button onclick='location.href=\"${servePath}/settings/account#mfaCode\"'>点击这里前往设置</button>", "致管理组成员的重要通知️")
     </#if>
-</script>
-<script>
-    /*let now = new Date().getHours();
-    let day = new Date().getDay();
-    if ((now >= 19 && now <= 23) || (now >= 0 && now <= 7)) {
-        $("head").append('<link rel="stylesheet" href="https://fonts.font.im/css2?family=Ma+Shan+Zheng&display=swap">');
-        //loadTips();
-        goodNight();
-    } else if (day === 0 || day === 6) {
-        $("head").append('<link rel="stylesheet" href="https://fonts.font.im/css2?family=Ma+Shan+Zheng&display=swap">');
-        //loadTips();
-    }
-
-    function goodNight() {
-        $("#goodNight").html('' +
-            '<div style="float: left; margin-left: 40px">' +
-            '    <svg style="width: 95px; height: 95px;"><use xlink:href="#moon"></use></svg>' +
-            '</div>' +
-            '<div style="margin: 20px 0 20px 30px;">' +
-            '   <div style="font-size: 25px;"><#if currentUser??>To ${currentUser.userName}: </#if>工作辛苦啦，请早点回家休息 :)</div>' +
-            '   <div style="font-size: 17px; margin-top: 10px">下班时间，我们认为专注于做自己喜欢的事会更有意义。</div>' +
-            '   <div style="font-size: 17px; margin-top: 9px">现在是摸鱼派的休息时间，但小派还在默默地陪伴你，请尽快完成工作回家吧~ <span class="ft-red">♥️</span></div>' +
-            '</div>');
-        setTimeout(function () {
-            $("#goodNight").slideDown(1500);
-        }, 2000)
-    }
-
-    function loadTips() {
-        $("#nightTips").html('' +
-            '<div style="float: left;margin: 16px 15px 0 55px;">' +
-            '    <svg style="width: 30px; height: 30px;"><use xlink:href="#coffee"></use></svg>' +
-            '</div>' +
-            '<div>' +
-            '   <div style="font-size: 17px; margin-top: 10px">送你一份「加班补助」</div>' +
-            '   <div style="font-size: 17px; margin-top: 9px">使用「加班小记」作为文章标签和标题(如提示标题重复可在后面加上日期)，经人工审核内容真实，发放500积分加班补助。</div>' +
-            '</div>' +
-            '');
-        setTimeout(function () {
-            $("#nightTips").slideDown(1500);
-        }, 500);
-    }*/
 </script>
 </body>
 </html>

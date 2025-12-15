@@ -111,9 +111,9 @@ var Util = {
                 opacity = +(opacity + 0.01).toFixed(2);
                 element.style.opacity = opacity;
                 if (i === 99) {
-                    setTimeout(callback, 200);
+                    setTimeout(callback, 10);
                 }
-            }, i * 5);
+            }, i * 2);
         }
     },
 
@@ -124,9 +124,9 @@ var Util = {
                 opacity = +(opacity - 0.01).toFixed(2);
                 element.style.opacity = opacity;
                 if (i === 99) {
-                    setTimeout(callback, 400);
+                    setTimeout(callback, 10);
                 }
-            }, i * 5);
+            }, i * 2);
         }
     },
 
