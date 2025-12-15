@@ -784,7 +784,7 @@
                             }, 2000);
                         });
                     }
-                }, 700);
+                }, 200);
             },
             error: function () {
                 Util.goLogin();
