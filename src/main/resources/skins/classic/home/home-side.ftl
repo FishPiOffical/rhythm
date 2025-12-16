@@ -19,8 +19,10 @@
 
 -->
 <div class="ft-center module profile-module">
+    <#if user.cardBg??>
+    <div class="user-background" id="userBackgroundDom" style="background-image: url('${user.cardBg}')"></div>
+    </#if>
     <div id="avatarURLDom"
-         class="avatar-big"
          aria-label="${user.userName}"
          style="background-image:url('${user.userAvatarURL210}')"></div>
     <div>
