@@ -19,8 +19,10 @@
 
 -->
 <div class="ft-center module profile-module">
-    <#if user.cardBg??>
+    <#if user.cardBg != "">
     <div class="user-background" id="userBackgroundDom" style="background-image: url('${user.cardBg}')"></div>
+    <#else>
+    <div style="height: 60px"></div>
     </#if>
     <div id="avatarURLDom"
          class="userCardBond"
