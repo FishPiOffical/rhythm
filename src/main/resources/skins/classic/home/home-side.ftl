@@ -69,7 +69,7 @@
                       onclick="$('#reportDialog').data('id', '${user.oId}').dialog('open')"
                 ><svg><use xlink:href="#icon-report"></use></svg></span>
             </div>
-
+            <span class="game-badge "  data-oid="${user.oId}"></span>
             <div>
                 <a href="https://fishpi.cn/article/1630575841478" target="_blank">
                     <img style="height: 26px;margin-top: 5px;" src="
@@ -212,6 +212,11 @@
 </div>
 
 <script>
+    window.onload = function() {
+        const gameEmbed = new GameEmbed();
+        gameEmbed.listen('.game-badge', 'oid');
+    };
+
     document.getElementById("userFollower").addEventListener("click", function () {
         window.location.href = "${servePath}/member/${user.userName}/followers";
     });

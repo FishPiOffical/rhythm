@@ -1566,6 +1566,7 @@ var Util = {
                     let cardBg = data.cardBg;
                     let canFollow = data.canFollow;
                     let userNo = data.userNo;
+                    let useroId = data.oId;
                     let userAppRole = data.userAppRole;
                     let sysMetal = JSON.parse(data.sysMetal);
                     let mbti = data.mbti;
@@ -1619,7 +1620,7 @@ var Util = {
                         html += '</div>';
                     }
                     html += '            <div class="user-card__icons fn__flex">\n' +
-                        '                <div class="fn__flex-1 user-card__icon-list">\n' +
+                        '                <div class="fn__flex-1 user-card__icon-list " >\n' +
                         '                    <a href="https://fishpi.cn/article/1630575841478" class="tooltipped__n tooltipped-new user-card__icon"\n' +
                         '                       aria-label="用户分组：' + userRole + '">\n';
                     switch (userRole) {
@@ -1678,11 +1679,14 @@ var Util = {
                     html += '' +
                         '                </div>\n';
 
+                    html += '<div class="fn_flex" style="align-items: center">'
                     if (userOnlineFlag === true) {
                         html += '<span class="user-card__status user-card__status--online" style="background-color:#d23f31;color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">在线</span>';
                     } else {
                         html += '<span class="user-card__status user-card__status--offline" style="background-color:rgba(0,0,0,0.54);color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">离线</span>';
                     }
+                    html += '<span class="card-game-badge" style="margin-top: 6px" data-oid="'+ useroId +'"></span>'
+                    html += '</div>'
                     html += '                <div class="fn__shrink user-card__actions">\n' +
                         '                    <a class="green small btn user-card__btn" href="' + Label.servePath + '/chat?toUser=' + userName + '" rel="nofollow">\n' +
                         '                        私信\n' +
@@ -1741,6 +1745,10 @@ var Util = {
                         });
                         isCardVisible = true;
                     }
+
+                    const gameEmbed = new GameEmbed();
+                    gameEmbed.listen('.card-game-badge', 'oid');
+
                 }
             }, 200);
         }, function (event) {
