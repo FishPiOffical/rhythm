@@ -23,6 +23,7 @@
     <div class="user-background" id="userBackgroundDom" style="background-image: url('${user.cardBg}')"></div>
     </#if>
     <div id="avatarURLDom"
+         class="userCardBond"
          aria-label="${user.userName}"
          style="background-image:url('${user.userAvatarURL210}')"></div>
     <div>

@@ -1512,9 +1512,9 @@ var Util = {
         var currentTarget = null;
         var isCardVisible = false; // 新增：追踪卡片是否可见
 
-        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at").unbind();
+        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at, .userCardBond").unbind();
 
-        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at").hover(function () {
+        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at, .userCardBond").hover(function () {
             var $this = $(this);
             currentTarget = this;
 
@@ -1752,6 +1752,8 @@ var Util = {
                 }
             }, 200);
         }, function (event) {
+            $(".card-game-badge").html("");
+
             if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
                 hoverTimeout = null;
