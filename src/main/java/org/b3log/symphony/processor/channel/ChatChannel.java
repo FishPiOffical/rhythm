@@ -178,9 +178,9 @@ public class ChatChannel implements WebSocketChannel {
         message.text = ReservedWords.processReservedWord(message.text);
         String content = message.text;
         content = StringUtils.trim(content);
-        if (StringUtils.isBlank(content) || content.length() > 1024) {
+        if (StringUtils.isBlank(content) || content.length() > 10240) {
             result.put("code", -1);
-            result.put("msg", "内容为空或大于1024个字，发送失败");
+            result.put("msg", "内容为空或大于10240个字，发送失败");
             message.session.sendText(result.toString());
             AdminProcessor.manager.onMessageSent(3, result.toString().length());
             return;

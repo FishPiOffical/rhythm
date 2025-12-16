@@ -71,7 +71,6 @@
                       onclick="$('#reportDialog').data('id', '${user.oId}').dialog('open')"
                 ><svg><use xlink:href="#icon-report"></use></svg></span>
             </div>
-            <span class="game-badge "  data-oid="${user.oId}"></span>
             <div>
                 <a href="https://fishpi.cn/article/1630575841478" target="_blank">
                     <img style="height: 26px;margin-top: 5px;" src="
@@ -91,6 +90,7 @@
                     "/>
                 </a>
             </div>
+            <span class="game-badge" data-oid="${user.oId}"></span>
 
             <#if isLoggedIn && (currentUser.userName != user.userName)>
                 <#if isFollowing>
@@ -216,7 +216,42 @@
 <script>
     window.onload = function() {
         const gameEmbed = new GameEmbed();
-        gameEmbed.listen('.game-badge', 'oid');
+        gameEmbed.listen('.game-badge', 'oid', function(el, data) {
+            var player = data.player;
+            var room = data.room;
+            var logo = data.logo;
+            var game = data.game;
+
+            if (!player || !room || !game) {
+                el.innerHTML = '';
+                return;
+            }
+
+            var roomPlayer = room.players.find(function(p) { return p.id === player.id; });
+            if (!roomPlayer) {
+                el.innerHTML = '';
+                return;
+            }
+
+            var isPlaying = roomPlayer.role === 'player';
+            var statusText = isPlaying ? '游戏中...' : '围观中...';
+            var statusIcon = isPlaying ? '🎮' : '👀';
+
+            var titleText = '正在房间 ' + room.name + ' ' + statusText;
+
+            el.innerHTML =
+                '<a class="badge" href="https://room.adventext.fun/#/r/' + room.id + '" target="_blank"' +
+                ' title="' + titleText + '">' +
+                '<img class="badge-logo" src="' + logo + '" alt="' + room.name + '" />' +
+                '<div class="badge-text">' +
+                '<span class="badge-room-name">' + game + '</span>' +
+                '<span class="badge-status">' +
+                '<span class="badge-status-text">' + statusText + '</span>' +
+                '<span class="badge-status-icon">' + statusIcon + '</span>' +
+                '</span>' +
+                '</div>' +
+                '</a>';
+        });
     };
 
     document.getElementById("userFollower").addEventListener("click", function () {
