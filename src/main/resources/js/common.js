@@ -1685,7 +1685,7 @@ var Util = {
                     } else {
                         html += '<span class="user-card__status user-card__status--offline" style="background-color:rgba(0,0,0,0.54);color:#fff;font-size:12px;line-height:20px;border-radius:3px;height:20px;display:inline-block;padding:0 5px;vertical-align:middle;box-sizing:border-box;">离线</span>';
                     }
-                    html += '<span class="card-game-badge" style="margin-top: 6px" data-oid="'+ useroId +'"></span>'
+                    html += '<span class="card-game-badge" style="margin-top: 7px" data-oid="'+ useroId +'"></span>'
                     html += '</div>'
                     html += '                <div class="fn__shrink user-card__actions">\n' +
                         '                    <a class="green small btn user-card__btn" href="' + Label.servePath + '/chat?toUser=' + userName + '" rel="nofollow">\n' +
