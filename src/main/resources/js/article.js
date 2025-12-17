@@ -1974,22 +1974,31 @@ var Article = {
   },
 
   renderMath: function () {
-      const latex_md = $('#articleMD').text()
-      Vditor.md2html(latex_md, {
-          mode: 'light',
-      }).then(latex_html => {
-          const container = document.getElementsByClassName('article-content')[0];
-          container.innerHTML = latex_html;
+      setTimeout(function () {
+          console.log('Processing LaTeX for articleId ' + Label.articleOId);
+          $.ajax({
+              url: Label.servePath + '/api/article/md/' + Label.articleOId,
+              method: 'get',
+              async: false,
+              success: function (latex_md) {
+                  Vditor.md2html(latex_md, {
+                      mode: 'light',
+                  }).then(latex_html => {
+                      const container = document.getElementsByClassName('article-content')[0];
+                      container.innerHTML = latex_html;
 
-          Vditor.mathRender(container, {
-              cdn: 'https://file.fishpi.cn/vditor/3.11.1',
-              math: {
-                  engine: 'KaTeX',
-                  inlineDigit: false,
-                  macros: {}
-              },
-          })
-      })
+                      Vditor.mathRender(container, {
+                          cdn: 'https://file.fishpi.cn/vditor/3.11.1',
+                          math: {
+                              engine: 'KaTeX',
+                              inlineDigit: false,
+                              macros: {}
+                          },
+                      })
+                  })
+              }
+          });
+      }, 1000);
   },
 }
 

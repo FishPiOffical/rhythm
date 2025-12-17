@@ -1768,7 +1768,6 @@ public class ArticleQueryService {
                 return;
             }
 
-            article.put(Article.ARTICLE_T_ORIGINAL_CONTENT, article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT));
             article.put(Article.ARTICLE_T_PREVIEW_CONTENT, article.optString(Article.ARTICLE_TITLE));
 
             String articleContent = article.optString(Article.ARTICLE_CONTENT);

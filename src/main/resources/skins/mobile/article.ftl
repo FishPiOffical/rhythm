@@ -191,7 +191,6 @@
                     </div>
                 </div>
                 </#if>
-                <span id="articleMD" style="display: none">${article.articleOriginalContent}</span>
                 <#if "" != article.articleAudioURL>
                     <div id="articleAudio" data-url="${article.articleAudioURL}"
                          data-author="${article.articleAuthorName}" class="aplayer article-content"></div>
