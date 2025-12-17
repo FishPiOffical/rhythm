@@ -985,6 +985,9 @@ var Article = {
     })
 
     this.initAudio()
+
+    // 初始化数学公式
+    Article.renderMath();
   },
   /**
    * 历史版本对比
@@ -1486,6 +1489,25 @@ var Article = {
       cache: false,
       data: JSON.stringify(requestJSONObject),
     })
+  },
+
+  renderMath: function () {
+      const latex_md = $('#articleMD').text()
+      Vditor.md2html(latex_md, {
+          mode: 'light',
+      }).then(latex_html => {
+          const container = document.getElementsByClassName('article-content')[0];
+          container.innerHTML = latex_html;
+
+          Vditor.mathRender(container, {
+              cdn: 'https://file.fishpi.cn/vditor/3.11.1',
+              math: {
+                  engine: 'KaTeX',
+                  inlineDigit: false,
+                  macros: {}
+              },
+          })
+      })
   },
 }
 

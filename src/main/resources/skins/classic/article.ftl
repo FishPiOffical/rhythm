@@ -86,6 +86,7 @@
         </div>
         </#if>
 
+        <span id="articleMD" style="display: none">${article.articleOriginalContent}</span>
 
         <#if "" != article.articleAudioURL>
             <div id="articleAudio" data-url="${article.articleAudioURL}"
