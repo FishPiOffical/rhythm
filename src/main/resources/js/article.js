@@ -24,6 +24,40 @@
  * @version 1.43.0.3, Apr 30, 2020
  */
 
+function isLetterOrDigit(ch) {
+    return /\p{L}|\p{N}/u.test(ch);
+}
+
+function normalizeHeadingIdFromString(rawId, caretChar) {
+    let id = rawId.replace(/^#+/, '');
+
+    if (caretChar) {
+        const reCaret = new RegExp(
+            caretChar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'g'
+        );
+        id = id.replace(reCaret, '');
+    }
+
+    let ret = '';
+    for (const ch of id) {
+        if (isLetterOrDigit(ch)) {
+            ret += ch;
+        } else {
+            ret += '-';
+        }
+    }
+
+    ret = ret.replace(/-{3,}/g, '--');
+    if (ret.startsWith('--')) {
+        ret = '-' + ret.slice(2);
+    }
+    if (ret.endsWith('--')) {
+        ret = ret.slice(0, -2) + '-';
+    }
+    return ret;
+}
+
 /**
  * @description Add comment function.
  * @static
@@ -1868,6 +1902,9 @@ var Article = {
     // 目录点击
     $articleToc.find('li').click(function () {
       var $it = $(this)
+      let elem = $(this).find('a').text()
+      elem = normalizeHeadingIdFromString(elem)
+      document.getElementById(elem).scrollIntoView({ behavior: 'smooth' })
       setTimeout(function () {
         $articleToc.find('li').removeClass('current')
         $it.addClass('current')
