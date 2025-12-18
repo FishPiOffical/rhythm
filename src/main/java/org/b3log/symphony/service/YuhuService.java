@@ -105,7 +105,8 @@ public class YuhuService {
             query.setFilter(new PropertyFilter(YuhuBook.YUHU_BOOK_TITLE, FilterOperator.LIKE, q));
         }
         final JSONObject result = bookRepository.get(query);
-        final JSONArray arr = (JSONArray) result.opt(Keys.RESULTS);
+        JSONArray arr = result.optJSONArray(Keys.RESULTS);
+        if (arr == null) arr = new JSONArray();
         final JSONObject ret = new JSONObject();
         ret.put("list", arr);
         final JSONObject pagination = result.optJSONObject("pagination");

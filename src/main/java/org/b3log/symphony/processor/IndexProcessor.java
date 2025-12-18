@@ -52,6 +52,7 @@ import org.b3log.symphony.repository.SponsorRepository;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -605,6 +606,8 @@ public class IndexProcessor {
             final JSONObject ret = yuhuService.listBooks("", "", "", 1, 10);
             novels = Collections.singletonList(ret.getJSONObject("list"));
         } catch (RepositoryException e) {
+            novels = Collections.emptyList();
+        } catch (JSONException e) {
             novels = Collections.emptyList();
         }
         dataModel.put("novels", novels);
