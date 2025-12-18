@@ -1713,6 +1713,10 @@ var Util = {
                     $("#userCard").removeClass("user-card-show user-card-hide");
 
                     $("#userCard").html(html);
+
+                    const gameEmbed = new GameEmbed();
+                    gameEmbed.listen('.card-game-badge', 'oid');
+
                     if (cardBg !== "") {
                         $("#userCardContent").addClass("user-card--bg");
                         $("#userCardContent").css("background-image", "url(" + cardBg + ")");
@@ -1745,15 +1749,9 @@ var Util = {
                         });
                         isCardVisible = true;
                     }
-
-                    const gameEmbed = new GameEmbed();
-                    gameEmbed.listen('.card-game-badge', 'oid');
-
                 }
             }, 200);
         }, function (event) {
-            $(".card-game-badge").html("");
-
             if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
                 hoverTimeout = null;

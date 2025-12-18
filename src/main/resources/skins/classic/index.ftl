@@ -268,7 +268,7 @@
         </div>
     </div>
     <#if isLoggedIn>
-        <div class="index-bottom" style="margin-top: 20px">
+        <div style="margin-top: 20px">
             <div class="wrapper">
                 <section class="activity-hub">
                     <div class="activity-hub__left">
@@ -437,6 +437,8 @@
     </div>
 
     <div class="wrapper">
+    <div style="padding-top:20px;padding-bottom: 20px;">
+        <div class="wrapper">
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">聊天室（<span
