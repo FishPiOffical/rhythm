@@ -575,8 +575,6 @@ public class IndexProcessor {
                             && livenessQueryService.getYesterdayLiveness(userId) != null
                     ) ? 0 : 1);
 
-            dataModel.put("checkedIn", activityQueryService.isCheckedinToday(userId) ? 1 : 0);
-
             // 用户手机号
             dataModel.put("userPhone", currentUser.optString("userPhone"));
 
@@ -596,7 +594,6 @@ public class IndexProcessor {
             dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
             // 是否领取过昨日奖励
             dataModel.put("collectedYesterdayLivenessReward", 1);
-            dataModel.put("checkedIn", 0);
             dataModel.put("userPhone", "not-logged");
             // 提示绑定2FA
             dataModel.put("need2fa", "no");

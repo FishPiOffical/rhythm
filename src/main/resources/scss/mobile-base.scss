@@ -3796,3 +3796,58 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
     opacity: 0.8;
   }
 }
+
+.game-badge .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;        /* 胶囊形 */
+  background: #f5f5f7;
+  border: 1px solid #e0e0e4;
+  text-decoration: none;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  margin: 10px 0 0 0;
+}
+
+.game-badge .badge:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.game-badge .badge-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-right: 8px;
+}
+
+.game-badge .badge-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-badge .badge-room-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.game-badge .badge-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.game-badge .badge-status-text {
+  margin-right: 4px;
+}
+
+.game-badge .badge-status-icon {
+  font-size: 14px;
+}

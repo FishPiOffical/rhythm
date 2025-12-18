@@ -46,4 +46,5 @@ ${siteVisitStatCode}
 <script src="https://file.fishpi.cn/darkreader.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/color-mode.min.js?${staticResourceVersion}"></script>
 </#if>
+<script src="https://room.adventext.fun/embed.min.js?${staticResourceVersion}"></script>
 </#macro>

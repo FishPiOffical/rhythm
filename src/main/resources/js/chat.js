@@ -341,8 +341,8 @@ var Chat = {
 
     send() {
         let content = Chat.editor.getValue();
-        if (content.length > 1024) {
-            $('#chatContentTip').addClass('error').html('<ul><li>发送失败：超过 1024 字符，请修改后重试。</li></ul>');
+        if (content.length > 10240) {
+            $('#chatContentTip').addClass('error').html('<ul><li>发送失败：超过 10240 字符，请修改后重试。</li></ul>');
         } else {
             Chat.ws.send(content);
             Chat.editor.setValue('');

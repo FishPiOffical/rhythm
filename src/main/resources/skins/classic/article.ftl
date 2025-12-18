@@ -86,7 +86,6 @@
         </div>
         </#if>
 
-
         <#if "" != article.articleAudioURL>
             <div id="articleAudio" data-url="${article.articleAudioURL}"
                  data-author="${article.articleAuthorName}" class="aplayer"></div>

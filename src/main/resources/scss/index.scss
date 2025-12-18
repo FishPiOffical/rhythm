@@ -3494,3 +3494,360 @@ code .dec {
     opacity: 0.8;
   }
 }
+
+/* start activity-hub */
+/* 轻量的一体化活动栏：假期倒计时 + 签到活跃 + 按钮区 */
+.index-bottom > .wrapper {
+  /* 仅底部活动栏区域增加一点左右内边距，不影响其他 wrapper */
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+.activity-hub {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  box-sizing: border-box;
+  align-items: stretch;
+  padding: 6px 0; /* 增加上下留白，让整块看起来更「有高度」 */
+}
+
+/* 左侧：假期 + 活跃，略宽一点但别太偏 */
+.activity-hub__left {
+  flex: 1.2 1 0;
+  min-width: 0;
+  display: flex;
+  gap: 12px;
+  padding-left: 10px;
+}
+
+/* 右侧：按钮区，自适应宽度 */
+.activity-hub__right {
+  flex: 1.2 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* 通用卡片基底 */
+.activity-hub__card {
+  position: relative;
+  flex: 1 1 0;            /* 在父容器中自适应平分宽度 */
+  border-radius: 8px;
+  padding: 18px 28px 12px 28px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+/* 假期卡片：左文案右数字，压缩高度 */
+.activity-hub__card--holiday {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+
+  /* 顶部淡色条 */
+  &::before {
+    content: "";
+    position: absolute;
+    left: -20%;
+    top: 0;
+    width: 140%;
+    height: 3px;
+    background: linear-gradient(90deg, #e59230, #f97316, #fde68a);
+    opacity: 0.85;
+  }
+}
+
+.activity-hub__card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-hub__card-title {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.activity-hub__card-subtitle {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.activity-hub__day {
+  font-size: 33px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.activity-hub__day-unit {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 活跃度 / 签到卡片 */
+.activity-hub__card--liveness {
+  min-height: 60px;
+  display: grid;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: -25%;
+    top: 0;
+    width: 150%;
+    height: 3px;
+    background: linear-gradient(90deg, #22c55e, #0ea5e9);
+    opacity: 0.8;
+  }
+}
+
+.activity-hub__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* JS 会往里塞文本：今日已签到 / 今日未签到 */
+.activity-hub__status {
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+/* 如果 JS 插入“未签到”字样，可以简单用 contains selector 自定义颜色（渐进增强） */
+.activity-hub__status:has(span:contains('未签到')),
+.activity-hub__status:has(:contains('未签到')) {
+  color: #b45309;
+}
+
+.activity-hub__status-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.06);
+  color: #0f766e;
+  border: 1px solid rgba(45, 212, 191, 0.4);
+}
+
+/* 进度行：进度条 + 百分比 */
+.activity-hub__progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-hub__progress {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+/* 复用原 JS: sp1 控制宽度与渐变色；这里只定义基础形态 */
+.activity-hub__progress-done {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 0.4s ease-out;
+}
+
+.activity-hub__progress-percent {
+  font-size: 12px;
+  color: #111827;
+  min-width: 32px;
+  text-align: right;
+}
+
+.activity-hub__desc {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+/* 右侧按钮区：自适应 & 易扩展 */
+.activity-hub__actions {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: flex-end;
+  padding-right: 10px;
+  box-sizing: border-box;
+}
+
+/* 单个按钮卡片：上图标，下文字，整体居中 */
+.activity-hub__pill {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  min-width: 0;
+  flex: 0 1 180px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  text-decoration: none;
+  color: #111827;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease-out,
+    box-shadow 0.16s ease-out,
+    transform 0.12s ease-out,
+    border-color 0.16s ease-out;
+  box-sizing: border-box;
+  text-decoration: none !important;
+}
+
+/* 允许 button 和 a 共用 */
+.activity-hub__pill:focus {
+  outline: none;
+}
+
+.activity-hub__pill:hover {
+  transform: translateY(-1px);
+  background: #f9fafb;
+  border-color: rgba(171, 171, 171, 0.65);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+/* 主按钮（如“昨日活跃奖励”）稍微高亮一点 */
+.activity-hub__pill--primary {
+  border-color: rgba(234, 179, 8, 0.75);
+  background: linear-gradient(90deg, #fefce8, #fffbeb);
+}
+
+.activity-hub__pill--primary:hover {
+  background: linear-gradient(90deg, #fef9c3, #fef3c7);
+  border-color: rgba(234, 179, 8, 0.75);
+}
+
+/* 图标容器：正圆小图标，居中 */
+.activity-hub__pill-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.activity-hub__pill-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+}
+
+/* 文本区域：上下两行，整体居中 */
+.activity-hub__pill-body {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.activity-hub__pill-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.activity-hub__pill-desc {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 特例：yesterday 按钮保留蛋糕晃动动画，只把图片区域挂动画类 */
+#yesterdayImg.cake {
+  animation: move 3s 0s infinite;
+  transform-origin: bottom;
+}
+
+/* 修正 JS 修改 #yesterday 内容后图片过大问题：
+   无论内部是 <img> + <b> 还是原来的结构，都按小卡片布局处理 */
+#yesterday.activity-hub__pill {
+  /* 确保按钮始终为扁平小卡片 */
+  padding: 6px 8px;
+  gap: 6px;
+}
+
+/* JS 替换后的 img（不在 .activity-hub__pill-icon 里的情况） */
+#yesterday.activity-hub__pill > img {
+  flex: 0 0 auto;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 4px !important;
+  margin: 0;
+  object-fit: cover;
+}
+
+/* JS 替换后的文字 <b> */
+#yesterday.activity-hub__pill > b {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+}
+
+/* 响应式：窄屏下堆叠排列 */
+@media (max-width: 960px) {
+  .activity-hub {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .activity-hub__left,
+  .activity-hub__right {
+    flex: 1 1 auto;
+  }
+
+  .activity-hub__actions {
+    justify-content: flex-start;
+  }
+
+  .activity-hub__pill {
+    flex: 1 1 46%;
+  }
+}
+
+@media (max-width: 720px) {
+  .activity-hub__pill {
+    flex: 1 1 100%;
+  }
+}
+
+/* end activity-hub */

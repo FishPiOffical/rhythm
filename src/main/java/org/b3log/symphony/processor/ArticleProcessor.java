@@ -254,6 +254,7 @@ public class ArticleProcessor {
         Dispatcher.get("/api/article/{id}", articleProcessor::showArticleApi, loginCheck::handle);
         Dispatcher.get("/api/article/heat/{articleId}", articleProcessor::getArticleHeat);
         Dispatcher.get("/api/comment/{id}", articleProcessor::showCommentApi, loginCheck::handle);
+        Dispatcher.get("/api/article/md/{id}", articleProcessor::showArticleMdApi, loginCheck::handle);
     }
 
     public void getArticleHeat(final RequestContext context) {
@@ -405,6 +406,21 @@ public class ArticleProcessor {
         }
 
         context.renderData(result).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    public void showArticleMdApi(final RequestContext context) {
+        final String articleId = context.pathVar("id");
+
+        final JSONObject article = articleQueryService.getArticleById(articleId);
+        if (null == article) {
+            context.renderCodeMsg(404, "帖子不存在!");
+            return;
+        }
+
+        String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
+
+        context.getResponse().setContentType("text/html; charset=UTF-8");
+        context.getResponse().sendBytes(md.getBytes());
     }
 
     /**

@@ -88,7 +88,11 @@
 
 /* start home side */
 #avatarURLDom {
-  margin-top: 30px;
+  width: 120px;
+  height: 120px;
+  margin: -10% auto 0;
+  border-radius: 50%;
+  background-size: cover;
 }
 
 .user-name {
@@ -239,6 +243,7 @@
   float: left;
   display: inline-flex;
   align-items: center;
+
   input {
     margin-left: 5px;
   }
@@ -301,6 +306,7 @@
     position: inherit;
     white-space: pre-wrap;
   }
+
   .tags-wrap {
     position: relative;
   }
@@ -426,6 +432,7 @@
 .home-account {
   &__captch {
     position: relative;
+
     img {
       position: absolute;
       height: 31px;
@@ -504,6 +511,7 @@
 .form--admin {
   label {
     flex: 1;
+
     div {
       float: left;
       font-size: 12px;
@@ -529,6 +537,7 @@
       background-color: #fff;
       padding: 0;
       border-radius: 0;
+
       &:focus {
         border-width: 0;
         box-shadow: 0 0 0;
@@ -651,7 +660,7 @@
 
 .file__items .item {
   border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
   box-sizing: border-box;
   color: var(--text-gray-color);
   float: left;
@@ -670,11 +679,11 @@
   width: 100%;
 }
 
-.file__items .item--selected,.file__items .item:hover {
+.file__items .item--selected, .file__items .item:hover {
   box-shadow: var(--shadow-layer)
 }
 
-.file__items .item--selected .item__info,.file__items .item:hover .item__info {
+.file__items .item--selected .item__info, .file__items .item:hover .item__info {
   top: 0
 }
 
@@ -694,7 +703,7 @@
 }
 
 .file__items .item__info {
-  background-color: rgba(0,0,0,.86);
+  background-color: rgba(0, 0, 0, .86);
   box-sizing: border-box;
   color: #fff;
   height: 100%;

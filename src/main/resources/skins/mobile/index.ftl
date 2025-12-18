@@ -309,7 +309,7 @@
 </script>
 <script>
     var liveness = ${liveness};
-    var checkedIn = <#if checkedIn == 1>true<#else>false</#if>;
+    var checkedIn = false;
     function getCheckedInStatus() {
         $.ajax({
             url: Label.servePath + "/user/checkedIn",

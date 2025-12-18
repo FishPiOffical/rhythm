@@ -1486,7 +1486,7 @@ var Article = {
       cache: false,
       data: JSON.stringify(requestJSONObject),
     })
-  },
+  }
 }
 
 Article.init()

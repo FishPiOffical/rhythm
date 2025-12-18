@@ -254,6 +254,8 @@ public class SettingsProcessor {
         Dispatcher.get("/bag/2dayCheckin", settingsProcessor::use2dayCheckinCard, loginCheck::handle, csrfMidware::check);
         Dispatcher.get("/bag/patchCheckin", settingsProcessor::usePatchCheckinCard, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/bag/nameCard", settingsProcessor::useNameCard, loginCheck::handle, csrfMidware::check);
+        Dispatcher.post("/api/settings/profiles", settingsProcessor::updateProfiles, loginCheck::handle, updateProfilesValidationMidware::handle);
+        Dispatcher.post("/api/settings/avatar", settingsProcessor::updateAvatar, loginCheck::handle, updateProfilesValidationMidware::handle);
     }
 
     /**
