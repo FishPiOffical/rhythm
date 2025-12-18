@@ -268,7 +268,7 @@
         </div>
     </div>
     <#if isLoggedIn>
-        <div class="index-bottom" style="margin-top: 20px">
+        <div style="margin-top: 20px">
             <div class="wrapper">
                 <section class="activity-hub">
                     <div class="activity-hub__left">
@@ -366,7 +366,7 @@
         </div>
     </#if>
 
-    <div class="index-bottom" style="padding-top:20px;padding-bottom: 20px;">
+    <div style="padding-top:20px;padding-bottom: 20px;">
         <div class="wrapper">
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
