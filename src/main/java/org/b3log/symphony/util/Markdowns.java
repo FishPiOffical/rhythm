@@ -155,12 +155,14 @@ public final class Markdowns {
      * @param baseURI the specified base URI, the relative path value of href will starts with this URL
      * @return safe HTML content
      */
-    public static String clean(final String content, final String baseURI) {
+    public static String clean(String content, final String baseURI) {
         final Whitelist whitelist = Whitelist.relaxed().addAttributes(":all", "id", "target", "data-src", "aria-name", "aria-label");
         inputWhitelist(whitelist);
         final Document.OutputSettings outputSettings = new Document.OutputSettings();
         outputSettings.prettyPrint(false);
-        final String tmp = Markdowns.clean(content, baseURI, whitelist, outputSettings);
+        content = content.replaceAll("class=\"language-math\"", "><latex></latex");
+        String tmp = Markdowns.clean(content, baseURI, whitelist, outputSettings);
+        tmp = tmp.replaceAll("><latex></latex", " class=\"language-math\"");
         final Document doc = Jsoup.parseBodyFragment(tmp, baseURI);
         doc.outputSettings().prettyPrint(false);
 
@@ -398,7 +400,9 @@ public final class Markdowns {
             inputWhitelist(whitelist);
             Document.OutputSettings outputSettings = new Document.OutputSettings();
             outputSettings.prettyPrint(false);
+            html = html.replaceAll("class=\"language-math\"", "><latex></latex");
             html = Markdowns.clean(html, Latkes.getServePath(), whitelist, outputSettings);
+            html = html.replaceAll("><latex></latex", " class=\"language-math\"");
             final Document doc = Jsoup.parseBodyFragment(html);
             final List<org.jsoup.nodes.Node> toRemove = new ArrayList<>();
             doc.traverse(new NodeVisitor() {
@@ -573,7 +577,7 @@ public final class Markdowns {
     }
 
     private static void inputWhitelist(final Whitelist whitelist) {
-        whitelist.addTags("span", "hr", "kbd", "samp", "tt", "del", "s", "strike", "u", "details", "summary").
+        whitelist.addTags("span", "hr", "kbd", "samp", "tt", "del", "s", "strike", "u", "details", "summary", "latex").
                 addAttributes("sup", "id").
                 addAttributes("iframe", "src", "security", "sandbox", "width", "height", "border", "marginwidth", "marginheight").
                 addAttributes("audio", "controls", "src").
