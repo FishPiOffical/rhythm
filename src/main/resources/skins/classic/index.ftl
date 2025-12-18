@@ -366,7 +366,7 @@
         </div>
     </#if>
 
-    <div class="wrapper" style="padding-bottom: 20px">
+    <div class="wrapper" style="margin-top: 20px">
         <div class="index-recent fn-flex-1">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">鱼乎</div>
@@ -436,9 +436,7 @@
         </div>
     </div>
 
-    <div class="wrapper">
-    <div style="padding-top:20px;padding-bottom: 20px;">
-        <div class="wrapper">
+        <div class="wrapper" style="margin-top:20px;margin-bottom: 20px;">
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">聊天室（<span
@@ -655,7 +653,7 @@
                 </div>
             </div>
         </div>
-    </div>
+
 
 </div>
 <#include "footer.ftl">
