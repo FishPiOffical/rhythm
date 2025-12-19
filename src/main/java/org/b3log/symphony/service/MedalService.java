@@ -819,7 +819,7 @@ public class MedalService {
      * 1. 勋章定义：
      *    - medal_id：字符串形式的自增 ID，从 0 开始；
      *    - medal_name：旧字段 name；
-     *    - medal_type：固定为 "cloud"；
+     *    - medal_type：固定为 "普通"；
      *    - medal_description：旧字段 description；
      *    - medal_attr：旧字段 attr；
      *    - 同名勋章存在多条时，以 oId 最大的那条为准，其余同名记录忽略。
@@ -927,7 +927,7 @@ public class MedalService {
                         JSONObject newMedal = new JSONObject();
                         newMedal.put("medal_id", medalId);
                         newMedal.put("medal_name", name);
-                        newMedal.put("medal_type", "cloud");
+                        newMedal.put("medal_type", "普通");
                         newMedal.put("medal_description", description);
                         newMedal.put("medal_attr", attr);
                         String oId = medalRepository.add(newMedal);

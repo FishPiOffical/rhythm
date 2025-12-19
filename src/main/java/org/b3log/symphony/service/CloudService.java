@@ -364,7 +364,7 @@ public class CloudService {
         try {
             JSONObject medalDef = medalService.getMedalByExactName(name);
             if (medalDef == null) {
-                medalService.addMedal(name, "cloud", description, attr);
+                medalService.addMedal(name, "普通", description, attr);
                 medalDef = medalService.getMedalByExactName(name);
                 if (medalDef == null) {
                     return;
