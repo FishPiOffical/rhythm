@@ -44,6 +44,7 @@
         ownersTotal: 0,
         currentOwnersMedalId: null,
         keyword: '',
+        hasMore: true, // 列表是否还有下一页（仅在非搜索模式下使用）
 
         init: function () {
             var root = document.getElementById('medalAdminRoot');
@@ -108,6 +109,7 @@
                     var kw = (self.dom.searchInput && self.dom.searchInput.value || '').trim();
                     self.keyword = kw;
                     self.page = 1;
+                    self.hasMore = true;
                     self.loadMedals();
                 });
             }
@@ -119,6 +121,7 @@
                         self.dom.searchInput.value = '';
                     }
                     self.page = 1;
+                    self.hasMore = true;
                     self.loadMedals();
                 });
             }
@@ -131,6 +134,7 @@
                     }
                     if (self.page > 1) {
                         self.page -= 1;
+                        self.hasMore = true; // 向前翻后，后面肯定还有页
                         self.loadMedals();
                     }
                 });
@@ -139,6 +143,10 @@
                 this.dom.btnNext.addEventListener('click', function () {
                     if (self.keyword && self.keyword.trim()) {
                         // 搜索模式下忽略分页
+                        return;
+                    }
+                    // 没有更多数据时不再往后翻
+                    if (!self.hasMore) {
                         return;
                     }
                     self.page += 1;
@@ -219,7 +227,18 @@
                     alert('加载勋章失败：' + (ret ? ret.msg : '未知错误'));
                     return;
                 }
-                self.medals = ret.data || [];
+                var list = ret.data || [];
+                self.medals = list;
+
+                // 只有普通分页模式才判断是否还有下一页
+                if (!self.keyword || !self.keyword.trim()) {
+                    if (!list || list.length < self.pageSize) {
+                        self.hasMore = false;
+                    } else {
+                        self.hasMore = true;
+                    }
+                }
+
                 self.renderMedals();
             }).catch(function (e) {
                 alert('加载勋章失败：' + e);
