@@ -2371,6 +2371,87 @@
           "description": "是否公开"
         }
       ]
+    },
+    {
+      "name": "medal",
+      "description": "勋章定义表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "medal_id",
+          "type": "String",
+          "length": 128,
+          "description": "勋章唯一 ID"
+        },
+        {
+          "name": "medal_name",
+          "type": "String",
+          "length": 128,
+          "description": "勋章名称"
+        },
+        {
+          "name": "medal_type",
+          "type": "String",
+          "length": 128,
+          "description": "勋章类型"
+        },
+        {
+          "name": "medal_description",
+          "type": "String",
+          "length": 1024,
+          "description": "勋章描述"
+        },
+        {
+          "name": "medal_attr",
+          "type": "String",
+          "length": 4096,
+          "description": "勋章属性 JSON"
+        }
+      ]
+    },
+    {
+      "name": "user_medal",
+      "description": "用户勋章表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "user_id",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "medal_id",
+          "type": "String",
+          "length": 128,
+          "description": "勋章 ID（对应 medal.medal_id）"
+        },
+        {
+          "name": "expire_time",
+          "type": "long",
+          "description": "过期时间（毫秒时间戳，0 表示永久）"
+        },
+        {
+          "name": "display",
+          "type": "boolean",
+          "description": "是否在用户主页展示该勋章"
+        },
+        {
+          "name": "display_order",
+          "type": "int",
+          "description": "展示排序，数值越小越靠前"
+        }
+      ]
     }
   ]
 }

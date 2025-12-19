@@ -129,6 +129,8 @@ public final class Router {
         OpenIdProcessor.register();
         // 会员
         MembershipProcessor.register();
+        // medal
+        MedalTestProcessor.register();
 
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
