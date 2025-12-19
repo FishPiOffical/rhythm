@@ -546,7 +546,9 @@ public class MedalService {
                 medal.put("medal_type", medalType);
                 medal.put("medal_description", medalDescription);
                 medal.put("medal_attr", medalAttr);
+                Transaction transaction = medalRepository.beginTransaction();
                 medalRepository.update(oId, medal);
+                transaction.commit();
             }
         } catch (RepositoryException e) {
             LOGGER.log(Level.ERROR, "Failed to update medal [" + medalId + "]", e);
@@ -631,7 +633,9 @@ public class MedalService {
             for (JSONObject userMedal : userMedals) {
                 String oId = userMedal.optString("oId");
                 if (oId != null && !oId.isEmpty()) {
+                    Transaction transaction = userMedalRepository.beginTransaction();
                     userMedalRepository.remove(oId);
+                    transaction.commit();
                 }
             }
         } catch (RepositoryException e) {

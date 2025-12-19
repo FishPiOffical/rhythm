@@ -129,6 +129,7 @@ public final class Router {
         MembershipProcessor.register();
         // Medal test case
         //MedalTestProcessor.register();
+        MedalProcessor.register();
 
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
