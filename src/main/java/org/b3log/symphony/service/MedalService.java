@@ -77,6 +77,35 @@ public class MedalService {
     private CloudRepository cloudRepository;
 
     /**
+     * 如果 user_medal 记录已过期则删除.
+     */
+    private void removeExpiredUserMedalIfNeeded(final JSONObject userMedal) {
+        if (userMedal == null || userMedal.length() == 0) {
+            return;
+        }
+        long expireTime = userMedal.optLong("expire_time", 0L);
+        if (expireTime <= 0L) {
+            // 0 表示永久，不过期
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (expireTime > now) {
+            return;
+        }
+        String oId = userMedal.optString("oId");
+        if (oId == null || oId.isEmpty()) {
+            return;
+        }
+        try {
+            Transaction tx = userMedalRepository.beginTransaction();
+            userMedalRepository.remove(oId);
+            tx.commit();
+        } catch (RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Failed to remove expired user medal [" + oId + "]", e);
+        }
+    }
+
+    /**
      * 查询指定用户勋章列表
      * 调用方式：传入 userId，返回该用户已拥有的所有勋章信息列表（已自动关联 medal 表信息）
      *
@@ -85,6 +114,7 @@ public class MedalService {
      */
     public List<JSONObject> getUserMedals(final String userId) {
         try {
+            long now = System.currentTimeMillis();
             Query userMedalQuery = new Query()
                     .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId));
             List<JSONObject> userMedals = userMedalRepository.getList(userMedalQuery);
@@ -92,10 +122,18 @@ public class MedalService {
                 return new ArrayList<>();
             }
             List<String> medalIds = new ArrayList<>();
+            List<JSONObject> validUserMedals = new ArrayList<>();
             for (JSONObject userMedal : userMedals) {
+                long expireTime = userMedal.optLong("expire_time", 0L);
+                if (expireTime > 0L && expireTime <= now) {
+                    // 已过期，直接删除，不用返回
+                    removeExpiredUserMedalIfNeeded(userMedal);
+                    continue;
+                }
                 String medalId = userMedal.optString("medal_id");
                 if (medalId != null && !medalId.isEmpty()) {
                     medalIds.add(medalId);
+                    validUserMedals.add(userMedal);
                 }
             }
             if (medalIds.isEmpty()) {
@@ -108,7 +146,7 @@ public class MedalService {
                 List<JSONObject> medals = medalRepository.getList(medalQuery);
                 for (JSONObject medal : medals) {
                     JSONObject medalCopy = new JSONObject(medal.toString());
-                    for (JSONObject userMedal : userMedals) {
+                    for (JSONObject userMedal : validUserMedals) {
                         if (medalId.equals(userMedal.optString("medal_id"))) {
                             medalCopy.put("user_medal_oId", userMedal.optString("oId"));
                             medalCopy.put("user_id", userMedal.optString("user_id"));
@@ -286,6 +324,8 @@ public class MedalService {
             for (JSONObject userMedal : userMedals) {
                 long expireTime = userMedal.optLong("expire_time", 0L);
                 if (expireTime != 0L && expireTime <= now) {
+                    // 已过期的直接删除
+                    removeExpiredUserMedalIfNeeded(userMedal);
                     continue;
                 }
                 String medalId = userMedal.optString("medal_id");
@@ -695,12 +735,23 @@ public class MedalService {
                                                final int page,
                                                final int pageSize) throws ServiceException {
         try {
+            long now = System.currentTimeMillis();
             Query query = new Query()
                     .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId))
                     .setCurrentPageNum(page)
                     .setPageSize(pageSize)
                     .setPageCount(1);
-            return userMedalRepository.getList(query);
+            List<JSONObject> list = userMedalRepository.getList(query);
+            List<JSONObject> result = new ArrayList<>();
+            for (JSONObject um : list) {
+                long expireTime = um.optLong("expire_time", 0L);
+                if (expireTime > 0L && expireTime <= now) {
+                    removeExpiredUserMedalIfNeeded(um);
+                    continue;
+                }
+                result.add(um);
+            }
+            return result;
         } catch (RepositoryException e) {
             LOGGER.log(Level.ERROR, "Failed to list user medals paged for user [" + userId + "]", e);
             throw new ServiceException("Failed to list user medals paged");

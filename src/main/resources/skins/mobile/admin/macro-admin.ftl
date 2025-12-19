@@ -193,6 +193,7 @@
                     <#if permissions["ipManage"].permissionGrant>
                     <li<#if type == "ip"> class="fn-none"</#if>><a href="${servePath}/admin/ip">IP 管理</a></li>
                     </#if>
+                    <li><a href="${servePath}/admin/medal" target="_blank">勋章管理</a></li>
                 </ul>
             </div>
             <div class="fn-hr10"></div>

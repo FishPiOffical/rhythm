@@ -247,7 +247,7 @@
                             '<div class="medal-admin__list-actions">' +
                             '<button type="button" class="btn btn-primary" data-action="edit">编辑</button>' +
                             '<button type="button" class="btn btn-secondary" data-action="owners">拥有者</button>' +
-                            '<button type="button" class="btn btn-secondary" data-action="delete">删</button>' +
+                            '<button type="button" class="btn btn-secondary" data-action="delete">删除</button>' +
                             '</div>' +
                             '</div>';
                     }).join('');

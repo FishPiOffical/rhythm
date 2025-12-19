@@ -360,19 +360,54 @@ public class MedalProcessor {
             final int page = req.optInt("page", 1);
             final int pageSize = req.optInt("pageSize", 20);
 
-            // 统计总数
+            long now = System.currentTimeMillis();
+            // 统计总数（同时清理已过期记录）
             final Query countQuery = new Query()
                     .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
             final List<JSONObject> all = userMedalRepository.getList(countQuery);
-            final int total = all.size();
+            int total = 0;
+            for (final JSONObject um : all) {
+                long expireTime = um.optLong("expire_time", 0L);
+                if (expireTime > 0L && expireTime <= now) {
+                    // 过期则删除
+                    String oId = um.optString("oId");
+                    if (oId != null && !oId.isEmpty()) {
+                        try {
+                            Transaction tx = userMedalRepository.beginTransaction();
+                            userMedalRepository.remove(oId);
+                            tx.commit();
+                        } catch (RepositoryException ignored) {
+                        }
+                    }
+                    continue;
+                }
+                total++;
+            }
 
-            // 分页查询
+            // 分页查询（再次过滤过期记录，避免并发）
             final Query pageQuery = new Query()
                     .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId))
                     .setCurrentPageNum(page)
                     .setPageSize(pageSize)
                     .setPageCount(1);
-            final List<JSONObject> owners = userMedalRepository.getList(pageQuery);
+            final List<JSONObject> ownersRaw = userMedalRepository.getList(pageQuery);
+            final List<JSONObject> owners = new java.util.ArrayList<>();
+            for (final JSONObject um : ownersRaw) {
+                long expireTime = um.optLong("expire_time", 0L);
+                if (expireTime > 0L && expireTime <= now) {
+                    String oId = um.optString("oId");
+                    if (oId != null && !oId.isEmpty()) {
+                        try {
+                            Transaction tx = userMedalRepository.beginTransaction();
+                            userMedalRepository.remove(oId);
+                            tx.commit();
+                        } catch (RepositoryException ignored) {
+                        }
+                    }
+                    continue;
+                }
+                owners.add(um);
+            }
 
             // 附带用户基本信息
             final JSONArray dataArray = new JSONArray();

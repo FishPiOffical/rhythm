@@ -26,12 +26,11 @@
     <@head title="勋章管理 - ${symphonyLabel}">
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/base.css?${staticResourceVersion}"/>
-    <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
     <link rel="stylesheet" href="${staticServePath}/css/medal.css?${staticResourceVersion}"/>
 </head>
 <body>
 <#include "../header.ftl">
-<div class="main">
+<div class="main" style="padding: 25px 15px 20px 15px">
         <div class="medal-admin" id="medalAdminRoot">
             <div class="medal-admin__header">
                 <h1 class="medal-admin__title">勋章管理</h1>

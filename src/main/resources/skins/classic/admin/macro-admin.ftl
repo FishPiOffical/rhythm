@@ -146,6 +146,7 @@
                                 <#if permissions["ipManage"].permissionGrant>
                                     <a href="${servePath}/admin/ip"<#if type == "ip"> class="current"</#if>>IP 管理</a>
                                 </#if>
+                                <a href="${servePath}/admin/medal" target="_blank">勋章管理</a>
                             </nav>
                         </div>
                     </div>
