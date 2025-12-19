@@ -2437,6 +2437,12 @@
           "description": "勋章 ID（对应 medal.medal_id）"
         },
         {
+          "name": "data",
+          "type": "String",
+          "length": 128,
+          "description": "额外数据，提取description的时候渲染"
+        },
+        {
           "name": "expire_time",
           "type": "long",
           "description": "过期时间（毫秒时间戳，0 表示永久）"

@@ -68,22 +68,12 @@ var Util = {
         $("[name='warnBroadcastText']").val(model);
     },
 
-    genMetal(name, attr) {
-        if (attr !== undefined && attr !== '') {
-            attr = '&' + attr;
-        } else {
-            attr = '';
-        }
-        return 'https://fishpi.cn/gen?ver=0.1&scale=0.79&txt=' + name + attr;
+    genMetal(id) {
+        return Label.servePath + '/gen?id=' + id;
     },
 
-    genMiniMetal(attr) {
-        if (attr !== undefined && attr !== '') {
-            attr = '&' + attr;
-        } else {
-            attr = '';
-        }
-        return 'https://fishpi.cn/gen?ver=0.1&scale=0.79&txt=' + attr;
+    genMiniMetal(id) {
+        return Label.servePath + '/gen?mini=yes&id=' + id;
     },
 
     parseDom(arg) {
@@ -1615,7 +1605,7 @@ var Util = {
                         html += '<div class="user-card__info user-card__medals vditor-reset">';
                         for (let i = 0; i < list.length; i++) {
                             let m = list[i];
-                            html += "<img class='user-card__medal' title='" + m.description + "' src='" + Util.genMetal(m.name, m.attr) + "'/>";
+                            html += "<img class='user-card__medal' title='" + m.description + "' src='" + Util.genMetal(m.id) + "'/>";
                         }
                         html += '</div>';
                     }

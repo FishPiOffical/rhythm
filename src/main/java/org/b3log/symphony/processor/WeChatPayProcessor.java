@@ -65,17 +65,9 @@ public class WeChatPayProcessor {
 
     // 勋章信息
     final static String L1_NAME = "摸鱼派粉丝";
-    final static String L1_DESC = "捐助摸鱼派达16; 编号No.";
-    final static String L1_ATTR = "url=https://file.fishpi.cn/2021/12/ht1-d8149de4.jpg&backcolor=ffffff&fontcolor=ff3030";
     final static String L2_NAME = "摸鱼派忠粉";
-    final static String L2_DESC = "捐助摸鱼派达256; 编号No.";
-    final static String L2_ATTR = "url=https://file.fishpi.cn/2021/12/ht2-bea67b29.jpg&backcolor=87cefa&fontcolor=efffff";
     final static String L3_NAME = "摸鱼派铁粉";
-    final static String L3_DESC = "捐助摸鱼派达1024; 编号No.";
-    final static String L3_ATTR = "url=https://file.fishpi.cn/2021/12/ht3-b97ea102.jpg&backcolor=ee3a8c&fontcolor=ffffff";
     final static String L4_NAME = "Premium Sponsor";
-    final static String L4_DESC = "累计捐助摸鱼派{point}; 续命师榜{rank}; 编号No.";
-    final static String L4_ATTR = "url=https%3A%2F%2Ffile.fishpi.cn%2F2025%2F11%2Flovegif1762236700451-aea18b9a.gif&scale=0.79&backcolor=ff69b4%2Cffff1c%2C00c3ff&fontcolor=ff009e&way=left&anime=3&fontsize=19&barlen=141&font=T1RUTwAJAIAAAwAQQ0ZGIMFtpe4AAATYAAAFBE9TLzJqLmPvAAABAAAAAGBjbWFwAwsCpwAABDQAAACEaGVhZCz8cjkAAACcAAAANmhoZWEDKgIhAAAA1AAAACRobXR4FM8AAAAACdwAAAAwbWF4cAAMUAAAAAD4AAAABm5hbWXFrGfkAAABYAAAAtNwb3N0AAMAAAAABLgAAAAgAAEAAAABAAB0K1g8Xw889QADA%2BgAAAAA5VSXVgAAAADlVJdW%2F7H%2FjgOLAx8AAAADAAIAAAAAAAAAAQAAAyj%2FCQAAAwsAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAwAAFAAAAwAAAADAbwB9AAFAAACigK7AAAAjAKKArsAAAHfADEBAgAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAABYWFhYAEAAIAB1Ayj%2FCQAAAx8AcgAAAAEAAAAAAZQDHwAgACAAAAAAACIBngABAAAAAAAAAAEAUQABAAAAAAABAA8AAAABAAAAAAACAAcALQABAAAAAAADABkA6gABAAAAAAAEABcAQgABAAAAAAAFAAsAyQABAAAAAAAGABYAhwABAAAAAAAHAAEAUQABAAAAAAAIAAEAUQABAAAAAAAJAAEAUQABAAAAAAAKAAEAUQABAAAAAAALAAEAUQABAAAAAAAMAAEAUQABAAAAAAANAAEAUQABAAAAAAAOAAEAUQABAAAAAAAQAA8AAAABAAAAAAARAAcALQADAAEECQAAAAIAdwADAAEECQABAB4ADwADAAEECQACAA4ANAADAAEECQADADIBAwADAAEECQAEAC4AWQADAAEECQAFABYA1AADAAEECQAGACwAnQADAAEECQAHAAIAdwADAAEECQAIAAIAdwADAAEECQAJAAIAdwADAAEECQAKAAIAdwADAAEECQALAAIAdwADAAEECQAMAAIAdwADAAEECQANAAIAdwADAAEECQAOAAIAdwADAAEECQAQAB4ADwADAAEECQARAA4ANE1hbHZpZGVzLXN1YnNldABNAGEAbAB2AGkAZABlAHMALQBzAHUAYgBzAGUAdFJlZ3VsYXIAUgBlAGcAdQBsAGEAck1hbHZpZGVzLXN1YnNldCBSZWd1bGFyAE0AYQBsAHYAaQBkAGUAcwAtAHMAdQBiAHMAZQB0ACAAUgBlAGcAdQBsAGEAck1hbHZpZGVzLXN1YnNldFJlZ3VsYXIATQBhAGwAdgBpAGQAZQBzAC0AcwB1AGIAcwBlAHQAUgBlAGcAdQBsAGEAclZlcnNpb24gMC4xAFYAZQByAHMAaQBvAG4AIAAwAC4AMSA6TWFsdmlkZXMtc3Vic2V0IFJlZ3VsYXIAIAA6AE0AYQBsAHYAaQBkAGUAcwAtAHMAdQBiAHMAZQB0ACAAUgBlAGcAdQBsAGEAcgAAAAABAAMAAQAAAAwABAB4AAAAGgAQAAMACgAgAFAAUwBlAGkAbQBuAG8AcAByAHMAdf%2F%2FAAAAIABQAFMAZQBpAG0AbgBvAHAAcgBzAHX%2F%2F%2F%2Fg%2F7H%2Fr%2F%2Be%2F5v%2FmP%2BY%2F5j%2FmP%2BX%2F5f%2FlgABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEABAEAAQEBF01hbHZpZGVzLXN1YnNldFJlZ3VsYXIAAQEBKPgbAPgcAvgdA%2FgeBIv7Bvm8%2BZ8FHQAAAKMPHQAAALoRix0AAAUEEgAPAQEMIzI5Ojs8PT4%2FQEFCQ0RWZXJzaW9uIDAuMU1hbHZpZGVzLXN1YnNldCBSZWd1bGFyTWFsdmlkZXMtc3Vic2V0UmVndWxhclBTZWltbm9wcnN1AAAAAYsBjAGNAY4BjwGQAZEBkgGTAZQBlQAMAgABAAQAfgDxATkBggH5AloCsgMeA3MDzQQu9%2FgO%2BZ%2F33feOFZKylrOVsgiUs8z3h1GFCH6KgYGGgAhrSln7jnI1CIBmWfthypYIs5Kk9x%2BSrwj3Jrf3gMr3FfdICMXbit1Qwwj7FfcN%2FBiK%2Bzj7OgglJPdC%2BwawzgiZpVW2hKwI93j3QfhxT%2FsY%2B1cILfsg%2B1BS%2BzhUCA75N%2Fdt1hWFgQVd%2B0f4Dfcf5PdMCPcP95P8avsgI7kIcZeLnKClCOL3A%2Fee9y73EG4IT1BUeUNpCFhzk1Tgnwjrofd%2F9yX7CuUIc5xqjGmJCPvOffwe%2FA%2F3az8IznT3Zbn1gQjjg25VQ1QIOEz7Hl1IhAgO997v918V0ZXLuLbHCOj3FfuejEH7Zwh2T6BRxHwI3HX3Mu3KzQidnpGoZnkITW37cvsak%2BYIkcEVm7u%2Ftr2ICHtgTmpifwgO96b35feXFZqff5J6fggoSvs8%2Bxzg94wIlap8mHaMCF6MafsXjGsIi1%2Bga62ACN9w5ODT4Aj7efdMFYBazZGUvwiTtkyEgl4IDvjo%2BR73oBVMSkJNkfYIjKeNp4qmCIjVXJtGWghgbW5kaWUIl%2FcKXLT7Bi4Ii56JtHSHCFCBNPur4JUIxpKS5LXMCK%2FGrpl%2FRAiCU4dFuIoIroqv17fECLnIq56BOwiGZYNhlWIIqvsH90f3JJ%2FaCI%2Bef4x%2BfAgO%2BDj4eveMFZ2gh6hrbghVW2t3d7sIfLSbwGq7CFrQMUNDPAiYxgWUtWiRdWMIdGE1%2B3LgkgifjZyelJ0Il6SVoZWgCLft5%2FGS%2BzwIjGqOaZV1CJlurYKunQi2oq%2BwqLIIDvg399f3rRWf0WWfLoMIeoqGm3iMCIOLg4qDiAg4alr7CKNRCLEy9yio2%2FcMCMiYtZPIkQijjZikbI0IU49kiVKGCPs6tRWCZK9fxYoI%2B0T7H3%2F3PPLCCA73%2F%2Fg%2B944VoJiQq2J0CEVj%2BwFueJAIsp3lwZzMCJvHYJ5VhAhghWFyZm0IibJipHNaCFsoZPtRhTMIiWiZfJ6LCJ2LoJaWwAiXwZe%2FmcAIxXT3Jaz3ANMI%2Bxv1Fb97%2Bw03MmsIicbz3MODCA73tvcQ%2BAAVhI95k4KJCHuHh3iJfwh%2BU2oti1YIjG63iJmuCJmwkdClugijtqaVm2cIkICRgJKCCKJsvpicsAiUn4COe5MIhI%2BJkIaUCGnRgKwlNggO9%2BX3ove0FW2PbItrjQh3jGmLop4IqKO7mraLCKuLooWVqQir9wD7iztSLwh5bZJvp4EIrH%2B9krWKCMOJnXFEeAhUfEeSeW0IfnOkc5%2BICPdab%2FP3VfsTnwgO%2BHz3v%2FemFbn7QtCo9xv3Dwiko3uacnkIV2dVXGS6CHakia%2BJrAiJq36YanQIbHdvdHB1CCo%2BWWnU9ysImaiMpn%2BTCFmqQfsfhzAIiVOndrGPCMWRvMK8uwicm5qanJkIDgFkAAADCwAAAqMAAAFKAAABEgAAAlQAAAGkAAABowAAAWsAAAEiAAABUQAAAegAAA%3D%3D";
 
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
@@ -166,23 +158,21 @@ public class WeChatPayProcessor {
         cloudService.removeMedal(userId, L4_NAME);
         // 赋予勋章
         if (sum >= 4096) {
-            String l4desc = L4_DESC.replace("{point}", String.valueOf(sum));
             int rank = TopProcessor.getDonateRankByUserId(userId);
             String rankChinese = NumberChineseFormatter.format(rank, false);
-            l4desc = l4desc.replace("{rank}", rankChinese);
-            cloudService.giveMedal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
-            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L4_NAME, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 1024) {
-            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 256) {
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 16) {
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         }
 
         final Response response = context.getResponse();
@@ -232,23 +222,21 @@ public class WeChatPayProcessor {
         cloudService.removeMedal(userId, L4_NAME);
         // 赋予勋章
         if (sum >= 4096) {
-            String l4desc = L4_DESC.replace("{point}", String.valueOf(sum));
             int rank = TopProcessor.getDonateRankByUserId(userId);
             String rankChinese = NumberChineseFormatter.format(rank, false);
-            l4desc = l4desc.replace("{rank}", rankChinese);
-            cloudService.giveMedal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
-            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L4_NAME, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 1024) {
-            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 256) {
-            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         } else if (sum >= 16) {
-            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
         }
     }
 

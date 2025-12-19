@@ -236,7 +236,7 @@
                                 <#if article.sysMetal != "[]">
                                     <span class="article__cnt">作者勋章</span>
                                     <#list article.sysMetal?eval as metal>
-                                        <img title="${metal.description}" src="https://fishpi.cn/gen?ver=0.1&scale=0.79&txt=${metal.name}&${metal.attr}"/>
+                                        <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                                     </#list>
                                 </#if>
                             </div>
@@ -380,7 +380,7 @@
                                                                                                data-ua="${comment.commentUA}"></span></#if>
                                             </span>
                                             &nbsp;<#list comment.sysMetal?eval as metal>
-                                                <img title="${metal.description}" src="https://fishpi.cn/gen?ver=0.1&scale=0.79&txt=${metal.name}&${metal.attr}"/>
+                                                <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                                             </#list>
                                             <a class="ft-a-title fn-right tooltipped tooltipped-nw"
                                                aria-label="${goCommentLabel}"

@@ -170,7 +170,7 @@ public class MedalTestProcessor {
             final String userId = req.optString("userId");
             final String medalId = req.optString("medalId");
             final long expireTime = req.optLong("expireTime", 0L);
-            medalService.grantMedalToUser(userId, medalId, expireTime);
+            medalService.grantMedalToUser(userId, medalId, expireTime, "");
             context.renderJSON(StatusCodes.SUCC).renderMsg("granted");
         } catch (final Exception e) {
             context.renderJSON(StatusCodes.ERR).renderMsg("failed to grant: " + e.getMessage());

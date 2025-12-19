@@ -300,7 +300,7 @@ public class ChatroomProcessor {
         context.getResponse().sendBytes(body.getBytes());
     }
 
-    public String genMetalById(String id) {
+    public String genMetalById(String id, boolean mini, String name) {
         String ver = "0.1";
         String scale = "0.79";
         String txt = "";
@@ -319,7 +319,12 @@ public class ChatroomProcessor {
         String barradius = "";
 
         try {
-            final JSONObject medalDef = medalService.getMedalById(id);
+            JSONObject medalDef;
+            if (name != null && !name.isEmpty()) {
+                medalDef = medalService.getMedalByExactName(name);
+            } else {
+                medalDef = medalService.getMedalById(id);
+            }
             if (medalDef == null) {
                 return null;
             }
@@ -370,7 +375,7 @@ public class ChatroomProcessor {
 
         final String paramString = "?ver=" + ver
                 + "&scale=" + scale
-                + "&txt=" + txt
+                + "&txt=" + (mini ? "" : txt)
                 + "&url=" + url
                 + "&backcolor=" + backcolor
                 + "&fontcolor=" + fontcolor
@@ -441,19 +446,34 @@ public class ChatroomProcessor {
         String body = "";
         boolean readById = false;
 
+        String miniStr = "";
         String id = context.param("id");
+        String miniParam = context.param("mini");
+        boolean mini = false;
+        if (miniParam != null && !miniParam.isEmpty()) {
+            mini = miniParam.equals("yes");
+        }
+        if (mini) {
+            miniStr = "mini";
+        }
+        String name = context.param("name");
+        if (name == null) {
+            name = "";
+        } else {
+            id = "searchName";
+        }
         if (id != null && !id.isEmpty()) {
-            if (!metalCache.containsKey(id)) {
-                String result = genMetalById(id);
+            if (!metalCache.containsKey(id + miniStr + name)) {
+                String result = genMetalById(id, mini, name);
                 if (result != null) {
-                    metalCache.put(id, result);
+                    metalCache.put(id + miniStr + name, result);
                     body = result;
                     readById = true;
                 } else {
                     readById = false;
                 }
             } else {
-                body = metalCache.get(id);
+                body = metalCache.get(id + miniStr + name);
                 readById = true;
             }
         }
@@ -522,7 +542,7 @@ public class ChatroomProcessor {
             return value.replaceAll("[^\\u4e00-\\u9fa5a-zA-Z0-9\\s，。！？；：“”‘’（）【】《》…—~-]", "");
         } else if ("url".equals(type)) {
             String filtered = value.replaceAll("[^\\u4e00-\\u9fa5a-zA-Z0-9\\-._~:/?#@!$&'()*+,;=%]", "");
-            return filtered.startsWith("https://file.fishpi.cn") ? filtered : "";
+            return filtered.startsWith("https://file.fishpi.cn") || filtered.startsWith("https%3A%2F%2Ffile.fishpi.cn") ? filtered : "";
         } else if ("fontcolor".equals(type) || "backcolor".equals(type)) {
             String v = value.trim();
             if ("auto".equalsIgnoreCase(v)) {

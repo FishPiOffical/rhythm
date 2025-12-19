@@ -115,8 +115,6 @@ public final class Router {
         ShopProcessor.register();
         // 优惠券
         CouponProcessor.register();
-        // 支付宝
-        AlipayProcessor.register();
         // MFA
         MFAProcessor.register();
         // Chat
@@ -129,8 +127,8 @@ public final class Router {
         OpenIdProcessor.register();
         // 会员
         MembershipProcessor.register();
-        // medal
-        MedalTestProcessor.register();
+        // Medal test case
+        //MedalTestProcessor.register();
 
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);

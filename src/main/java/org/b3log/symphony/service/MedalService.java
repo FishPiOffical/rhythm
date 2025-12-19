@@ -115,6 +115,9 @@ public class MedalService {
                             medalCopy.put("expire_time", userMedal.optLong("expire_time"));
                             medalCopy.put("display", userMedal.optBoolean("display", true));
                             medalCopy.put("display_order", userMedal.optInt("display_order", 0));
+                            medalCopy.put("data", userMedal.optString("data", ""));
+                            // 渲染勋章
+                            renderMetal(medalCopy);
                             break;
                         }
                     }
@@ -307,6 +310,9 @@ public class MedalService {
                     medalCopy.put("expire_time", userMedal.optLong("expire_time"));
                     medalCopy.put("display", userMedal.optBoolean("display", true));
                     medalCopy.put("display_order", userMedal.optInt("display_order", 0));
+                    medalCopy.put("data", userMedal.optString("data", ""));
+                    // 渲染勋章
+                    renderMetal(medalCopy);
                     result.add(medalCopy);
                 }
             }
@@ -319,6 +325,23 @@ public class MedalService {
         } catch (Exception e) {
             LOGGER.log(Level.ERROR, "Failed to get displayed valid medals for user [" + userId + "]", e);
             return new ArrayList<>();
+        }
+    }
+    
+    public void renderMetal(JSONObject metal) {
+        String description = metal.optString("medal_description");
+        String data = metal.optString("data");
+        /**
+         * medal_description: 勋章描述 支持{var1} {var2} ... 零个或多个变量
+         * data: 勋章数据 每个值使用;分隔，分割后将数据填充到medal_description，然后保存回metal
+         */
+        if (description != null && !description.isEmpty() && data != null && !data.isEmpty()) {
+            String[] vars = data.split(";");
+            for (int i = 0; i < vars.length; i++) {
+                String var = vars[i];
+                description = description.replace("{var" + (i + 1) + "}", var);
+            }
+            metal.put("medal_description", description);
         }
     }
 
@@ -542,7 +565,8 @@ public class MedalService {
      */
     public void grantMedalToUser(final String userId,
                                  final String medalId,
-                                 final long expireTime) throws ServiceException {
+                                 final long expireTime,
+                                 final String data) throws ServiceException {
         Transaction transaction = userMedalRepository.beginTransaction();
         try {
             Query query = new Query()
@@ -554,6 +578,7 @@ public class MedalService {
             if (existing != null && existing.length() > 0) {
                 String oId = existing.optString("oId");
                 existing.put("expire_time", expireTime);
+                existing.put("data", data);
                 userMedalRepository.update(oId, existing);
             } else {
                 Query allMedalsQuery = new Query()
@@ -570,6 +595,7 @@ public class MedalService {
                 JSONObject userMedal = new JSONObject();
                 userMedal.put("user_id", userId);
                 userMedal.put("medal_id", medalId);
+                userMedal.put("data", data);
                 userMedal.put("expire_time", expireTime);
                 userMedal.put("display", true);
                 userMedal.put("display_order", nextOrder);
@@ -825,7 +851,7 @@ public class MedalService {
             List<JSONObject> cloudMedals = cloudRepository.getList(cloudQuery);
             int totalTasks = 0;
             for (JSONObject cloudRow : cloudMedals) {
-                String dataStr = cloudRow.optString("data", "{}");
+                String dataStr = cloudRow.optString("data", "");
                 try {
                     JSONObject data = new JSONObject(dataStr);
                     JSONArray list = data.optJSONArray("list");
@@ -840,7 +866,7 @@ public class MedalService {
             Map<String, Integer> userOrderCounter = new HashMap<>();
             for (JSONObject cloudRow : cloudMedals) {
                 String userId = cloudRow.optString("userId");
-                String dataStr = cloudRow.optString("data", "{}");
+                String dataStr = cloudRow.optString("data", "");
                 JSONObject data;
                 try {
                     data = new JSONObject(dataStr);
@@ -901,12 +927,16 @@ public class MedalService {
                         String oId = existingUserMedal.optString("oId");
                         existingUserMedal.put("expire_time", expireTime);
                         existingUserMedal.put("display", enabled);
+                        if (!existingUserMedal.has("data") || existingUserMedal.isNull("data")) {
+                            existingUserMedal.put("data", "");
+                        }
                         userMedalRepository.update(oId, existingUserMedal);
                     } else {
                         orderCounter++;
                         JSONObject userMedal = new JSONObject();
                         userMedal.put("user_id", userId);
                         userMedal.put("medal_id", medalId);
+                        userMedal.put("data", "");
                         userMedal.put("expire_time", expireTime);
                         userMedal.put("display", enabled);
                         userMedal.put("display_order", orderCounter);

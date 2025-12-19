@@ -340,6 +340,9 @@ public class CloudService {
                     expireDate = Dates.format(new java.util.Date(expireTime), Dates.PATTERN_DATE);
                 }
                 item.put("expireDate", expireDate);
+                item.put("id", medal.optString("medal_id"));
+                item.put("type", medal.optString("medal_type"));
+                item.put("order", medal.optInt("display_order"));
                 list.put(item);
             }
             JSONObject ret = new JSONObject();
@@ -374,7 +377,7 @@ public class CloudService {
                 expireTime = Dates.parseOrNull(date, Dates.PATTERN_DATE).getTime();
             } catch (Exception ignore) {
             }
-            medalService.grantMedalToUser(userId, medalId, expireTime);
+            medalService.grantMedalToUser(userId, medalId, expireTime, data);
         } catch (ServiceException e) {
             LOGGER.log(Level.ERROR, "Failed to give medal [" + name + "] to user [" + userId + "]", e);
         }
