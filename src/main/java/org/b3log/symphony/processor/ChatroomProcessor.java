@@ -268,7 +268,6 @@ public class ChatroomProcessor {
         Dispatcher.get("/chat-room/barrager/get", chatroomProcessor::getBarragerCost, loginCheck::handle);
 
         Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
-        Dispatcher.get("/gen/{id}", chatroomProcessor::genMetalById, loginCheck::handle);
         Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
     }
 
@@ -301,11 +300,9 @@ public class ChatroomProcessor {
         context.getResponse().sendBytes(body.getBytes());
     }
 
-    public void genMetalById(final RequestContext context) {
-        final String id = context.pathVar("id");
-
-        String ver = "";
-        String scale = "";
+    public String genMetalById(String id) {
+        String ver = "0.1";
+        String scale = "0.79";
         String txt = "";
         String url = "";
         String backcolor = "";
@@ -324,10 +321,10 @@ public class ChatroomProcessor {
         try {
             final JSONObject medalDef = medalService.getMedalById(id);
             if (medalDef == null) {
-                context.sendError(404);
-                return;
+                return null;
             }
             final String attr = medalDef.optString("medal_attr", "");
+            txt = medalDef.optString("medal_name");
             if (attr != null && !attr.isEmpty()) {
                 final String[] parts = attr.split("&");
                 for (final String part : parts) {
@@ -338,13 +335,7 @@ public class ChatroomProcessor {
                     final String key = kv[0];
                     final String val = kv[1];
                     // 只根据勋章配置覆盖，不再从 param 取
-                    if ("ver".equalsIgnoreCase(key)) {
-                        ver = safeParam(val, "ver");
-                    } else if ("scale".equalsIgnoreCase(key)) {
-                        scale = safeParam(val, "scale");
-                    } else if ("txt".equalsIgnoreCase(key)) {
-                        txt = safeParam(val, "txt");
-                    } else if ("url".equalsIgnoreCase(key)) {
+                    if ("url".equalsIgnoreCase(key)) {
                         url = safeParam(val, "url");
                     } else if ("backcolor".equalsIgnoreCase(key)) {
                         backcolor = safeParam(val, "backcolor");
@@ -374,8 +365,7 @@ public class ChatroomProcessor {
                 }
             }
         } catch (Exception e) {
-            context.sendError(500);
-            return;
+            return null;
         }
 
         final String paramString = "?ver=" + ver
@@ -402,8 +392,7 @@ public class ChatroomProcessor {
             final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
             res.close();
             if (200 != res.statusCode()) {
-                context.sendError(500);
-                return;
+                return null;
             }
             body = res.charset("utf-8").bodyText();
             metalCache.put(paramString, body);
@@ -411,9 +400,7 @@ public class ChatroomProcessor {
             body = metalCache.get(paramString);
         }
 
-        context.getResponse().setContentType("image/svg+xml");
-        context.getResponse().setHeader("Cache-Control", "max-age=604800");
-        context.getResponse().sendBytes(body.getBytes());
+        return body;
     }
 
     public void genMetalGif(final RequestContext context) {
@@ -452,19 +439,40 @@ public class ChatroomProcessor {
                 + (barradius != null && !barradius.isEmpty() ? "&barradius=" + barradius : "");
 
         String body = "";
-        if (!metalCache.containsKey(paramString)) {
-            String genUrl = Symphonys.get("gen.metal.url") + paramString;
-            final HttpRequest req = HttpRequest.get(genUrl).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT);
-            final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
-            res.close();
-            if (200 != res.statusCode()) {
-                context.sendError(500);
-                return;
+        boolean readById = false;
+
+        String id = context.param("id");
+        if (id != null && !id.isEmpty()) {
+            if (!metalCache.containsKey(id)) {
+                String result = genMetalById(id);
+                if (result != null) {
+                    metalCache.put(id, result);
+                    body = result;
+                    readById = true;
+                } else {
+                    readById = false;
+                }
+            } else {
+                body = metalCache.get(id);
+                readById = true;
             }
-            body = res.charset("utf-8").bodyText();
-            metalCache.put(paramString, body);
-        } else {
-            body = metalCache.get(paramString);
+        }
+
+        if (!readById) {
+            if (!metalCache.containsKey(paramString)) {
+                String genUrl = Symphonys.get("gen.metal.url") + paramString;
+                final HttpRequest req = HttpRequest.get(genUrl).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT);
+                final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
+                res.close();
+                if (200 != res.statusCode()) {
+                    context.sendError(500);
+                    return;
+                }
+                body = res.charset("utf-8").bodyText();
+                metalCache.put(paramString, body);
+            } else {
+                body = metalCache.get(paramString);
+            }
         }
 
         context.getResponse().setContentType("image/svg+xml");
