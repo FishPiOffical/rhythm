@@ -35,6 +35,10 @@
             <div class="medal-admin__header">
                 <h1 class="medal-admin__title">勋章管理</h1>
                 <div class="medal-admin__actions">
+                    <input type="text" id="medalSearchInput" class="form-control form-control--inline"
+                           placeholder="搜索勋章"/>
+                    <button type="button" class="btn btn-secondary" id="btnSearchMedal">搜索</button>
+                    <button type="button" class="btn btn-secondary" id="btnResetSearchMedal">重置</button>
                     <button type="button" class="btn btn-primary" id="btnCreateMedal">新建</button>
                 </div>
             </div>

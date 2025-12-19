@@ -43,6 +43,7 @@
         ownersPageSize: 20,
         ownersTotal: 0,
         currentOwnersMedalId: null,
+        keyword: '',
 
         init: function () {
             var root = document.getElementById('medalAdminRoot');
@@ -64,6 +65,10 @@
             this.dom.btnPrev = document.getElementById('medalPrevPage');
             this.dom.btnNext = document.getElementById('medalNextPage');
             this.dom.btnCreate = document.getElementById('btnCreateMedal');
+
+            this.dom.searchInput = document.getElementById('medalSearchInput');
+            this.dom.btnSearch = document.getElementById('btnSearchMedal');
+            this.dom.btnResetSearch = document.getElementById('btnResetSearchMedal');
 
             this.dom.modalEdit = document.getElementById('medalEditModal');
             this.dom.modalEditTitle = document.getElementById('medalEditModalTitle');
@@ -98,8 +103,32 @@
                 });
             }
 
+            if (this.dom.btnSearch) {
+                this.dom.btnSearch.addEventListener('click', function () {
+                    var kw = (self.dom.searchInput && self.dom.searchInput.value || '').trim();
+                    self.keyword = kw;
+                    self.page = 1;
+                    self.loadMedals();
+                });
+            }
+
+            if (this.dom.btnResetSearch) {
+                this.dom.btnResetSearch.addEventListener('click', function () {
+                    self.keyword = '';
+                    if (self.dom.searchInput) {
+                        self.dom.searchInput.value = '';
+                    }
+                    self.page = 1;
+                    self.loadMedals();
+                });
+            }
+
             if (this.dom.btnPrev) {
                 this.dom.btnPrev.addEventListener('click', function () {
+                    if (self.keyword && self.keyword.trim()) {
+                        // 搜索模式下忽略分页
+                        return;
+                    }
                     if (self.page > 1) {
                         self.page -= 1;
                         self.loadMedals();
@@ -108,6 +137,10 @@
             }
             if (this.dom.btnNext) {
                 this.dom.btnNext.addEventListener('click', function () {
+                    if (self.keyword && self.keyword.trim()) {
+                        // 搜索模式下忽略分页
+                        return;
+                    }
                     self.page += 1;
                     self.loadMedals();
                 });
@@ -168,10 +201,20 @@
         loadMedals: function () {
             var self = this;
             var body = this.apiPayloadBase();
-            body.page = this.page;
-            body.pageSize = this.pageSize;
 
-            postJSON('/api/medal/admin/list', body).then(function (ret) {
+            var url;
+            if (this.keyword && this.keyword.trim().length > 0) {
+                // 搜索模式：只按关键字查，不分页（也可以扩展分页参数）
+                url = '/api/medal/admin/search';
+                body.keyword = this.keyword.trim();
+            } else {
+                // 普通列表模式：分页
+                url = '/api/medal/admin/list';
+                body.page = this.page;
+                body.pageSize = this.pageSize;
+            }
+
+            postJSON(url, body).then(function (ret) {
                 if (!ret || ret.code !== 0) {
                     alert('加载勋章失败：' + (ret ? ret.msg : '未知错误'));
                     return;

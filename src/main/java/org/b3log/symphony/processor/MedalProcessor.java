@@ -79,6 +79,7 @@ public class MedalProcessor {
 
         // 管理侧
         Dispatcher.post("/api/medal/admin/list", medalProcessor::adminListMedals);
+        Dispatcher.post("/api/medal/admin/search", medalProcessor::adminSearchMedals);
         Dispatcher.post("/api/medal/admin/detail", medalProcessor::adminGetMedalDetail);
         Dispatcher.post("/api/medal/admin/delete", medalProcessor::adminDeleteMedal);
         Dispatcher.post("/api/medal/admin/edit", medalProcessor::adminEditMedal);
@@ -189,6 +190,42 @@ public class MedalProcessor {
             ret.put(Keys.DATA, new JSONArray(list));
             context.renderJSON(ret);
         } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+        }
+    }
+
+    /**
+     * 管理侧：按关键字搜索勋章列表.
+     *
+     * 请求: POST /api/medal/admin/search
+     * 请求体: {"keyword":"xxx"}
+     *
+     * 说明：在 medal_id、medal_name、medal_description 中模糊匹配。
+     */
+    public void adminSearchMedals(final RequestContext context) {
+        final JSONObject currentUser = requireAdmin(context);
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            final JSONObject req = context.requestJSON();
+            final String keyword = req.optString("keyword", "").trim();
+            if (keyword.isEmpty()) {
+                // 关键字为空时直接返回空列表或退回到 list 逻辑，这里返回空列表方便前端判断
+                final JSONObject ret = new JSONObject();
+                ret.put(Keys.CODE, StatusCodes.SUCC);
+                ret.put(Keys.MSG, "");
+                ret.put(Keys.DATA, new JSONArray());
+                context.renderJSON(ret);
+                return;
+            }
+            final List<JSONObject> list = medalService.searchMedals(keyword);
+            final JSONObject ret = new JSONObject();
+            ret.put(Keys.CODE, StatusCodes.SUCC);
+            ret.put(Keys.MSG, "");
+            ret.put(Keys.DATA, new JSONArray(list));
+            context.renderJSON(ret);
+        } catch (ServiceException e) {
             context.renderJSON(StatusCodes.ERR);
         }
     }
