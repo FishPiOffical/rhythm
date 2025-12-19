@@ -299,42 +299,215 @@ var Settings = {
     document.getElementById("bag").innerHTML = html;
   },
   /**
-   * 初始化勋章
+   * 初始化勋章（使用 MedalProcessor 用户侧接口）
    */
-  initMetal: function (metal) {
-    let html = '';
-    if (metal.list !== undefined) {
-      for (let i = 0; i < metal.list.length; i++) {
-        let m = metal.list[i];
-        let btn = '';
-        if (m.enabled === true) {
-          btn = '<button class="btn red" onclick="Settings.toggleMetal(\'' + m.name + '\', false)">卸下</button>';
+  initMetal: function () {
+    Settings.loadMyMedals();
+  },
+  /**
+   * 拉取当前用户的所有勋章
+   */
+  loadMyMedals: function () {
+    $.ajax({
+      url: Label.servePath + '/api/medal/my/list',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify({}),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result && result.code === 0) {
+          var list = result.data || [];
+          Settings.renderMyMedals(list);
         } else {
-          btn = '<button class="btn green" onclick="Settings.toggleMetal(\'' + m.name + '\', true)">佩戴</button>';
+          document.getElementById('metal').innerHTML = '加载勋章失败，请稍后再试。';
         }
-        html += '<div class="fn__flex" style="justify-content: space-between; margin-bottom: 10px">' +
+      },
+      error: function () {
+        document.getElementById('metal').innerHTML = '加载勋章失败，请检查网络。';
+      }
+    });
+  },
+  /**
+   * 渲染当前用户勋章列表
+   */
+  renderMyMedals: function (list) {
+    var html = '';
+    if (list && list.length > 0) {
+      // 按 display_order 升序排序，未设置的排后
+      list.sort(function (a, b) {
+        var oa = typeof a.display_order === 'number' ? a.display_order : 0;
+        var ob = typeof b.display_order === 'number' ? b.display_order : 0;
+        return oa - ob;
+      });
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i];
+        var medalId = m.medal_id || m.medalId || '';
+        var name = m.medal_name || m.name || '';
+        var desc = m.medal_description || m.description || '';
+        var display = (typeof m.display === 'boolean') ? m.display : true;
+        var order = (typeof m.display_order === 'number') ? m.display_order : 0;
+        var btn;
+        if (display) {
+          // 已佩戴 -> 卸下，用红色按钮
+          btn = '<button class="btn red" onclick="Settings.toggleMyMedalDisplay(\'' + medalId + '\', false)">卸下</button>';
+        } else {
+          // 未佩戴 -> 佩戴，用绿色按钮
+          btn = '<button class="btn green" onclick="Settings.toggleMyMedalDisplay(\'' + medalId + '\', true)">佩戴</button>';
+        }
+        // 排序按钮只用箭头表示：↑ 上移 / ↓ 下移
+        var orderBtns = '' +
+            '<button class="btn btn-secondary" style="margin-left:4px" onclick="Settings.changeMyMedalOrder(\'' + medalId + '\', \'up\')">↑</button>' +
+            '<button class="btn btn-secondary" style="margin-left:4px" onclick="Settings.changeMyMedalOrder(\'' + medalId + '\', \'down\')">↓</button>';
+
+        html += '' +
+          '<div class="fn__flex" style="justify-content: space-between; align-items: center; margin-bottom: 10px">' +
             '<div>' +
-            ' <label style="margin: 0 0 0 0">' +
-            '   <div><img src="' + Util.genMetal(m.id) + '"/><br><span style="font-size: 12px">' + m.name + ' (' + m.description + ')</span></div>' +
-            ' </label>' +
-            ' </div>' +
-            ' <div>' + btn + "</div>" +
-            "</div>";
+              '<label style="margin: 0">' +
+                '<div>' +
+                  '<img src="' + Util.genMetal(medalId) + '" style="border-radius:4px;object-fit:cover;"/>' +
+                  '<br>' +
+                  '<span style="font-size: 12px">' + name + ' (' + desc + ')</span>' +
+                '</div>' +
+              '</label>' +
+            '</div>' +
+            // 右边一行放所有操作按钮：佩戴/卸下 + 上移 + 下移
+            '<div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">' +
+              '<div style="display:flex; align-items:center; justify-content:flex-end;">' +
+                 btn +
+                 orderBtns +
+              '</div>' +
+            '</div>' +
+          '</div>';
       }
     }
     if (html === '') {
       html = '鱼战士，你还没有任何勋章！';
     }
-    document.getElementById("metal").innerHTML = html;
+    document.getElementById('metal').innerHTML = html;
   },
-  toggleMetal: function (name, enabled) {
+
+  /**
+   * 拉取指定用户展示中的勋章（用于主页侧边栏）
+   */
+  loadUserMedals: function (userId, userName) {
+    if (!document.getElementById('metal')) {
+      return;
+    }
+    var payload = {};
+    if (userId) {
+      payload.userId = userId;
+    } else if (userName) {
+      payload.userName = userName;
+    } else {
+      return;
+    }
     $.ajax({
-      url: Label.servePath + "/admin/user/toggle-metal",
-      method: "post",
-      data: "name=" + name + "&enabled=" + enabled,
-      async: false,
-      success: function () {
-        location.reload();
+      url: Label.servePath + '/api/medal/user/list',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify(payload),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result && result.code === 0) {
+          var list = result.data || [];
+          Settings.renderUserMedals(list);
+        } else {
+          // 主页侧边栏失败就简单忽略即可
+        }
+      },
+      error: function () {
+        // 忽略错误，避免打扰用户
+      }
+    });
+  },
+
+  /**
+   * 在主页侧边栏渲染指定用户的勋章（简单图标列表）
+   */
+  renderUserMedals: function (list) {
+    var el = document.getElementById('metal');
+    if (!el) {
+      return;
+    }
+    if (!list || list.length === 0) {
+      el.innerHTML = '';
+      return;
+    }
+    // 按 display_order 排序
+    list.sort(function (a, b) {
+      var oa = typeof a.display_order === 'number' ? a.display_order : 0;
+      var ob = typeof b.display_order === 'number' ? b.display_order : 0;
+      return oa - ob;
+    });
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i];
+      var medalId = m.medal_id || m.medalId || '';
+      var name = m.medal_name || m.name || '';
+      var desc = m.medal_description || m.description || '';
+      if (!medalId) {
+        continue;
+      }
+      html += '<img'
+           + ' title="' + (name + (desc ? ' - ' + desc : '')) + '"'
+           + ' src="' + Util.genMetal(medalId) + '"'
+           + ' />';
+    }
+    el.innerHTML = html;
+  },
+
+  /**
+   * 佩戴/卸下勋章 -> /api/medal/my/display
+   */
+  toggleMyMedalDisplay: function (medalId, display) {
+    $.ajax({
+      url: Label.servePath + '/api/medal/my/display',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify({
+        medalId: medalId,
+        display: display
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result && result.code === 0) {
+          Settings.loadMyMedals();
+        } else {
+          Util.alert('操作失败，请稍后再试');
+        }
+      },
+      error: function () {
+        Util.alert('网络错误，请稍后再试');
+      }
+    });
+  },
+  /**
+   * 修改勋章排序 -> /api/medal/my/reorder
+   * @param medalId 勋章ID
+   * @param direction "up" 或 "down"
+   */
+  changeMyMedalOrder: function (medalId, direction) {
+    if (direction !== 'up' && direction !== 'down') {
+      return;
+    }
+    $.ajax({
+      url: Label.servePath + '/api/medal/my/reorder',
+      type: 'POST',
+      cache: false,
+      data: JSON.stringify({
+        medalId: medalId,
+        direction: direction
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result && result.code === 0) {
+          Settings.loadMyMedals();
+        } else {
+          Util.alert('排序失败，请稍后再试');
+        }
+      },
+      error: function () {
+        Util.alert('网络错误，请稍后再试');
       }
     });
   },
@@ -1274,20 +1447,8 @@ var Settings = {
       'hideFooter': true,
     })
 
-    $.ajax({
-      url: Label.servePath + "/user/" + Label.userName + "/metal",
-      async: true,
-      method: "get",
-      success: function (result) {
-        let list = result.data.list;
-        if (list !== undefined) {
-          for (let i = 0; i < list.length; i++) {
-            let m = list[i];
-            $("#metal").append("<img title='" + m.description + "' src='" + Util.genMetal(m.id) + "'/>");
-          }
-        }
-      }
-    });
+    // 个人主页展示勋章：如果是当前登录用户自己的主页，可考虑使用新接口展示更多信息。
+    // 对于设置页 account.ftl，直接在页面脚本中调用 Settings.initMetal() 即可。
 
     if ($.ua.device.type !== 'mobile') {
       Settings.homeScroll()

@@ -240,63 +240,83 @@ public class MedalService {
     }
 
     /**
-     * 单个更新用户勋章显示顺序（自动排位）
-     * 调用方式：传入 userId、medalId 和 order，如果该用户已有勋章占用了该 order，则将此 order 及之后的勋章顺序整体顺延
+     * 单个更新用户勋章显示顺序（根据方向上移/下移，并重新整理顺序）.
      *
-     * @param userId  用户 ID
-     * @param medalId 勋章 ID
-     * @param order   期望展示顺序（数值越小越靠前）
-     * @throws ServiceException 操作失败时抛出
+     * @param userId    用户 ID
+     * @param medalId   勋章 ID
+     * @param direction "up" 或 "down"
      */
-    public void updateUserMedalOrderSingle(final String userId,
-                                           final String medalId,
-                                           final int order) throws ServiceException {
+    public void reorderUserMedalSingle(final String userId,
+                                       final String medalId,
+                                       final String direction) throws ServiceException {
         Transaction transaction = userMedalRepository.beginTransaction();
         try {
-            Query targetQuery = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
-                    ));
-            JSONObject target = userMedalRepository.getFirst(targetQuery);
-            if (target == null || target.length() == 0) {
-                transaction.commit();
-                return;
-            }
-            int targetOldOrder = target.optInt("display_order", 0);
-            if (targetOldOrder == order) {
-                transaction.commit();
-                return;
-            }
+            // 取出该用户所有勋章，按 display_order 升序
             Query allQuery = new Query()
                     .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId));
             List<JSONObject> allUserMedals = userMedalRepository.getList(allQuery);
-            for (JSONObject userMedal : allUserMedals) {
-                String oId = userMedal.optString("oId");
+            if (allUserMedals == null || allUserMedals.isEmpty()) {
+                transaction.commit();
+                return;
+            }
+            allUserMedals.sort((o1, o2) -> {
+                int o1Order = o1.optInt("display_order", 0);
+                int o2Order = o2.optInt("display_order", 0);
+                return Integer.compare(o1Order, o2Order);
+            });
+
+            // 找到目标 medal 在列表中的下标
+            int targetIndex = -1;
+            for (int i = 0; i < allUserMedals.size(); i++) {
+                JSONObject um = allUserMedals.get(i);
+                if (medalId.equals(um.optString("medal_id"))) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+            if (targetIndex == -1) {
+                transaction.commit();
+                return;
+            }
+
+            // 根据方向做一次相邻交换
+            if ("up".equals(direction)) {
+                if (targetIndex == 0) {
+                    // 已经在最前，不能再上移
+                } else {
+                    JSONObject tmp = allUserMedals.get(targetIndex - 1);
+                    allUserMedals.set(targetIndex - 1, allUserMedals.get(targetIndex));
+                    allUserMedals.set(targetIndex, tmp);
+                }
+            } else if ("down".equals(direction)) {
+                if (targetIndex >= allUserMedals.size() - 1) {
+                    // 已经在最后，不能再下移
+                } else {
+                    JSONObject tmp = allUserMedals.get(targetIndex + 1);
+                    allUserMedals.set(targetIndex + 1, allUserMedals.get(targetIndex));
+                    allUserMedals.set(targetIndex, tmp);
+                }
+            }
+
+            // 从 0 开始重新捋一遍 display_order
+            int order = 0;
+            for (JSONObject um : allUserMedals) {
+                String oId = um.optString("oId");
                 if (oId == null || oId.isEmpty()) {
                     continue;
                 }
-                String mid = userMedal.optString("medal_id");
-                if (medalId.equals(mid)) {
-                    continue;
-                }
-                int currentOrder = userMedal.optInt("display_order", 0);
-                if (currentOrder >= order) {
-                    userMedal.put("display_order", currentOrder + 1);
-                    userMedalRepository.update(oId, userMedal);
-                }
+                um.put("display_order", order++);
+                userMedalRepository.update(oId, um);
             }
-            String targetOId = target.optString("oId");
-            target.put("display_order", order);
-            userMedalRepository.update(targetOId, target);
+
             transaction.commit();
         } catch (RepositoryException e) {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
             LOGGER.log(Level.ERROR,
-                    "Failed to update single medal order (auto) for user [" + userId + "], medalId [" + medalId + "]", e);
-            throw new ServiceException("Failed to update single medal order");
+                    "Failed to reorder single medal for user [" + userId + "], medalId [" + medalId + "], direction [" + direction + "]", e);
+            throw new ServiceException("Failed to reorder single medal");
         }
     }
 
@@ -718,43 +738,6 @@ public class MedalService {
             }
             LOGGER.log(Level.ERROR, "Failed to set display for medal [" + medalId + "] of user [" + userId + "]", e);
             throw new ServiceException("Failed to set user medal display");
-        }
-    }
-
-    /**
-     * 分页查询指定用户的勋章绑定记录
-     * 调用方式：传入 userId、page（从 1 开始）、pageSize，返回 user_medal 表中对应页的数据
-     *
-     * @param userId   用户 ID
-     * @param page     页码，从 1 开始
-     * @param pageSize 每页条数
-     * @return 用户勋章绑定记录列表
-     * @throws ServiceException 查询失败时抛出
-     */
-    public List<JSONObject> getUserMedalsPaged(final String userId,
-                                               final int page,
-                                               final int pageSize) throws ServiceException {
-        try {
-            long now = System.currentTimeMillis();
-            Query query = new Query()
-                    .setFilter(new PropertyFilter("user_id", FilterOperator.EQUAL, userId))
-                    .setCurrentPageNum(page)
-                    .setPageSize(pageSize)
-                    .setPageCount(1);
-            List<JSONObject> list = userMedalRepository.getList(query);
-            List<JSONObject> result = new ArrayList<>();
-            for (JSONObject um : list) {
-                long expireTime = um.optLong("expire_time", 0L);
-                if (expireTime > 0L && expireTime <= now) {
-                    removeExpiredUserMedalIfNeeded(um);
-                    continue;
-                }
-                result.add(um);
-            }
-            return result;
-        } catch (RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Failed to list user medals paged for user [" + userId + "]", e);
-            throw new ServiceException("Failed to list user medals paged");
         }
     }
 

@@ -40,6 +40,7 @@ import org.b3log.symphony.repository.UserMedalRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.DataModelService;
 import org.b3log.symphony.service.MedalService;
+import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Symphonys;
@@ -63,6 +64,9 @@ public class MedalProcessor {
 
     @Inject
     private UserRepository userRepository;
+
+    @Inject
+    private UserQueryService userQueryService;
 
     /**
      * Data model service.
@@ -90,8 +94,10 @@ public class MedalProcessor {
 
         // 用户侧
         Dispatcher.post("/api/medal/my/list", medalProcessor::myListMedals);
-        Dispatcher.post("/api/medal/my/order", medalProcessor::myUpdateMedalOrder);
+        Dispatcher.post("/api/medal/my/reorder", medalProcessor::myReorderMedalSingle);
         Dispatcher.post("/api/medal/my/display", medalProcessor::mySetMedalDisplay);
+        // 按任意用户读取其展示中的勋章（用于主页侧边栏）
+        Dispatcher.post("/api/medal/user/list", medalProcessor::userListMedals);
 
         // HTML
         Dispatcher.get("/admin/medal", medalProcessor::showAdminMedal);
@@ -487,6 +493,47 @@ public class MedalProcessor {
     /* ========== 用户侧接口 ========== */
 
     /**
+     * 用户侧：读取指定用户当前展示中的勋章列表（用于主页展示）。
+     *
+     * 请求: POST /api/medal/user/list
+     * 请求体: {"userId":"xxx"} 或 {"userName":"xxx"}
+     */
+    public void userListMedals(final RequestContext context) {
+        final JSONObject currentUser = requireLogin(context);
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            final JSONObject req = context.requestJSON();
+            String userId = req.optString("userId", "");
+            final String userName = req.optString("userName", "");
+
+            // 如果没传 userId 但传了 userName，则通过 UserQueryService 按用户名查用户
+            if ((userId == null || userId.isEmpty()) && userName != null && !userName.isEmpty()) {
+                final JSONObject user = userQueryService.getUserByName(userName);
+                if (user != null && user.length() > 0) {
+                    userId = user.optString(Keys.OBJECT_ID);
+                }
+            }
+
+            if (userId == null || userId.isEmpty()) {
+                context.renderJSON(StatusCodes.ERR);
+                return;
+            }
+
+            // 只取 display=true 且未过期的勋章
+            final List<JSONObject> list = medalService.getUserDisplayedValidMedals(userId);
+            final JSONObject ret = new JSONObject();
+            ret.put(Keys.CODE, StatusCodes.SUCC);
+            ret.put(Keys.MSG, "");
+            ret.put(Keys.DATA, new JSONArray(list));
+            context.renderJSON(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+        }
+    }
+
+    /**
      * 用户侧：读取当前登录用户的所有勋章列表.
      *
      * 请求: POST /api/medal/my/list
@@ -511,12 +558,12 @@ public class MedalProcessor {
     }
 
     /**
-     * 用户侧：调整当前登录用户的单个勋章顺序.
+     * 用户侧：根据方向（上移/下移）调整单个勋章顺序，并重新整理顺序.
      *
-     * 请求: POST /api/medal/my/order
-     * 请求体: {"medalId":"0","order":5}
+     * 请求: POST /api/medal/my/reorder
+     * 请求体: {"medalId":"0","direction":"up"} 或 {"medalId":"0","direction":"down"}
      */
-    public void myUpdateMedalOrder(final RequestContext context) {
+    public void myReorderMedalSingle(final RequestContext context) {
         final JSONObject currentUser = requireLogin(context);
         if (currentUser == null) {
             return;
@@ -524,9 +571,14 @@ public class MedalProcessor {
         try {
             final JSONObject req = context.requestJSON();
             final String medalId = req.optString("medalId");
-            final int order = req.optInt("order", 0);
+            final String direction = req.optString("direction", "").toLowerCase();
+            if (medalId == null || medalId.isEmpty()
+                    || (!"up".equals(direction) && !"down".equals(direction))) {
+                context.renderJSON(StatusCodes.ERR);
+                return;
+            }
             final String userId = currentUser.optString(Keys.OBJECT_ID);
-            medalService.updateUserMedalOrderSingle(userId, medalId, order);
+            medalService.reorderUserMedalSingle(userId, medalId, direction);
             context.renderJSON(StatusCodes.SUCC);
         } catch (ServiceException e) {
             context.renderJSON(StatusCodes.ERR);
