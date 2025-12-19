@@ -365,10 +365,35 @@ var Settings = {
         var medalId = m.medal_id || m.medalId || '';
         var name = m.medal_name || m.name || '';
         var desc = m.medal_description || m.description || '';
+        var type = m.medal_type || m.type || '普通'; // 勋章类型
         var display = (typeof m.display === 'boolean') ? m.display : true;
         var order = (typeof m.display_order === 'number') ? m.display_order : 0;
         var expireTime = m.expire_time || m.expireTime || 0;
         var expireText = Settings._formatExpireTime(expireTime);
+
+        // 按类型选择样式：普通、精良、稀有、史诗、传说、神话
+        var typeStyle = '';
+        switch (type) {
+          case '精良':
+            typeStyle = 'color:#1d4ed8;'; // 蓝
+            break;
+          case '稀有':
+            typeStyle = 'color:#8b5cf6;'; // 紫
+            break;
+          case '史诗':
+            typeStyle = 'color:#ea580c;font-weight:600;'; // 橙+略加粗
+            break;
+          case '传说':
+            typeStyle = 'color:#facc15;font-weight:700;'; // 金+加粗
+            break;
+          case '神话':
+            typeStyle = 'color:#fbbf24;font-weight:700;text-shadow:0 0 4px rgba(251,191,36,.8);'; // 更亮的金色
+            break;
+          case '普通':
+          default:
+            typeStyle = 'color:#111827;'; // 默认黑
+            break;
+        }
         var btn;
         if (display) {
           // 已佩戴 -> 卸下，用红色按钮
@@ -389,7 +414,11 @@ var Settings = {
                 '<div>' +
                   '<img src="' + Util.genMetal(medalId) + '" style="border-radius:4px;object-fit:cover;"/>' +
                   '<br>' +
-                  '<span style="font-size: 12px">' + name + ' (' + desc + ')</span>' +
+                  '<span style="font-size: 12px;">' +
+                    name +
+                    ' <span style="font-size:11px;margin-left:4px;' + typeStyle + '">[' + type + ']</span>' +
+                    (desc ? ' (' + desc + ')' : '') +
+                  '</span>' +
                   '<br>' +
                   '<span style="font-size: 11px; color: rgba(0,0,0,0.54);">过期时间：' + expireText + '</span>' +
                 '</div>' +
