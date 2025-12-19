@@ -60,9 +60,26 @@
       margin-bottom: 8px;
       background: #fff;
 
+      .medal-admin__list-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+
+      .medal-admin__thumb {
+        width: auto;
+        border-radius: 4px;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+
       .medal-admin__list-title {
         font-weight: 600;
         margin-bottom: 4px;
+        font-size: 14px;
+        line-height: 1.3;
+        word-break: break-all;
       }
 
       .medal-admin__list-meta {
@@ -317,5 +334,14 @@
     .form-control--inline {
       margin-bottom: 4px;
     }
+  }
+
+  .medal-admin__list-header {
+    gap: 6px;
+  }
+
+  .medal-admin__thumb {
+    width: 40px;
+    height: 40px;
   }
 }

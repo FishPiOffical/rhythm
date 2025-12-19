@@ -48,12 +48,13 @@
                         <th>类型</th>
                         <th>描述</th>
                         <th>属性</th>
+                        <th>预览</th>
                         <th style="width: 160px;">操作</th>
                     </tr>
                     </thead>
                     <tbody id="medalTableBody">
                     <tr>
-                        <td colspan="6" class="medal-table__empty">加载中...</td>
+                        <td colspan="7" class="medal-table__empty">加载中...</td>
                     </tr>
                     </tbody>
                 </table>

@@ -195,13 +195,16 @@
                     var rows = this.medals.map(function (m) {
                         var desc = (m.medal_description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                         var attr = (m.medal_attr || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        var id = m.medal_id || '';
+                        var previewSrc = (window.Label && Label.servePath ? Label.servePath : '') + '/gen?id=' + encodeURIComponent(id);
                         return '' +
-                            '<tr data-medal-id="' + m.medal_id + '">' +
-                            '<td>' + (m.medal_id || '') + '</td>' +
+                            '<tr data-medal-id="' + id + '">' +
+                            '<td>' + id + '</td>' +
                             '<td>' + (m.medal_name || '') + '</td>' +
                             '<td>' + (m.medal_type || '') + '</td>' +
                             '<td>' + desc + '</td>' +
                             '<td><pre style="white-space:pre-wrap;max-width:200px;">' + attr + '</pre></td>' +
+                            '<td><img src="' + previewSrc + '" alt="预览" style="max-width:60px;max-height:60px;border-radius:4px;"/></td>' +
                             '<td class="medal-table__actions">' +
                             '<button type="button" class="btn btn-primary" data-action="edit">编辑</button>' +
                             '<button type="button" class="btn btn-secondary" data-action="owners">拥有者</button>' +
@@ -239,9 +242,14 @@
                 } else {
                     var items = this.medals.map(function (m) {
                         var desc = (m.medal_description || '');
+                        var id = m.medal_id || '';
+                        var previewSrc = (window.Label && Label.servePath ? Label.servePath : '') + '/gen?id=' + encodeURIComponent(id);
                         return '' +
-                            '<div class="medal-admin__list-item" data-medal-id="' + m.medal_id + '">' +
-                            '<div class="medal-admin__list-title">' + (m.medal_name || '') + '（ID: ' + (m.medal_id || '') + '）</div>' +
+                            '<div class="medal-admin__list-item" data-medal-id="' + id + '">' +
+                            '<div class="medal-admin__list-header">' +
+                                '<img class="medal-admin__thumb" src="' + previewSrc + '" alt="预览"/>' +
+                                '<div class="medal-admin__list-title">' + (m.medal_name || '') + '（ID: ' + id + '）</div>' +
+                            '</div>' +
                             '<div class="medal-admin__list-meta">类型：' + (m.medal_type || '') + '</div>' +
                             '<div class="medal-admin__list-desc">' + desc + '</div>' +
                             '<div class="medal-admin__list-actions">' +
