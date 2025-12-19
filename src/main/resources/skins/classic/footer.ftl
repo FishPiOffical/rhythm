@@ -99,7 +99,7 @@
                 <a href="${servePath}/privacy" target="_blank">隐私政策</a>
                 <a href="${servePath}/logs" target="_blank">日志公开</a>
                 <a href="${servePath}/article/1636516552191">开放 API</a>
-                <a href="${servePath}/article/1747804471928" target="_blank">接入 OAuth</a>
+                <a href="${servePath}/article/1766113414640">接入 OAuth</a>
             </div>
         </div>
     </div>
