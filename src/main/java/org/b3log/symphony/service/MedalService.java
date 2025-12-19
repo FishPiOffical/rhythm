@@ -95,6 +95,8 @@ public class MedalService {
                             medalCopy.put("user_medal_oId", userMedal.optString("oId"));
                             medalCopy.put("user_id", userMedal.optString("user_id"));
                             medalCopy.put("expire_time", userMedal.optLong("expire_time"));
+                            medalCopy.put("display", userMedal.optBoolean("display", true));
+                            medalCopy.put("display_order", userMedal.optInt("display_order", 0));
                             break;
                         }
                     }
@@ -657,6 +659,29 @@ public class MedalService {
         } catch (RepositoryException e) {
             LOGGER.log(Level.ERROR, "Failed to search medals by keyword [" + keyword + "]", e);
             throw new ServiceException("Failed to search medals");
+        }
+    }
+
+    /**
+     * 根据勋章名称精确查找勋章
+     * 调用方式：传入完整的勋章名称 medalName，只在 medal_name 字段上做等值匹配，返回第一条匹配记录
+     *
+     * @param medalName 勋章名称（精确）
+     * @return 勋章 JSON，如果不存在则返回 null
+     * @throws ServiceException 查询失败时抛出
+     */
+    public JSONObject getMedalByExactName(final String medalName) throws ServiceException {
+        try {
+            Query query = new Query()
+                    .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
+            List<JSONObject> medals = medalRepository.getList(query);
+            if (medals == null || medals.isEmpty()) {
+                return null;
+            }
+            return medals.get(0);
+        } catch (RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Failed to get medal by exact name [" + medalName + "]", e);
+            throw new ServiceException("Failed to get medal by exact name");
         }
     }
 

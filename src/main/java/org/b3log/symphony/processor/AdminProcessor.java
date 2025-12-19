@@ -725,7 +725,7 @@ public class AdminProcessor {
         final String expireDate = context.param("expireDate");
         final BeanManager beanManager = BeanManager.getInstance();
         final CloudService cloudService = beanManager.getReference(CloudService.class);
-        cloudService.giveMetal(userId, name, description, attr, data, Dates.calExpire(expireDate));
+        cloudService.giveMedal(userId, name, description, attr, data, Dates.calExpire(expireDate));
         context.sendRedirect(Latkes.getServePath() + "/admin/user/" + userId);
     }
 
@@ -745,7 +745,7 @@ public class AdminProcessor {
         final String name = context.param("name");
         final BeanManager beanManager = BeanManager.getInstance();
         final CloudService cloudService = beanManager.getReference(CloudService.class);
-        cloudService.removeMetal(userId, name);
+        cloudService.removeMedal(userId, name);
         context.sendRedirect(Latkes.getServePath() + "/admin/user/" + userId);
     }
 
@@ -760,7 +760,7 @@ public class AdminProcessor {
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
         final BeanManager beanManager = BeanManager.getInstance();
         final CloudService cloudService = beanManager.getReference(CloudService.class);
-        cloudService.toggleMetal(userId, name, enabled);
+        cloudService.toggleMedal(userId, name, enabled);
         context.renderJSON(StatusCodes.SUCC);
     }
 
@@ -1675,7 +1675,7 @@ public class AdminProcessor {
         dataModel.put(Role.ROLES, roles);
 
         dataModel.put("sysBag", cloudService.getBag(userId));
-        dataModel.put("sysMetal", cloudService.getMetal(userId));
+        dataModel.put("sysMetal", cloudService.getMedal(userId));
 
         final JSONObject systemSettings = settingsService.getByUsrId(userId);
         if (Objects.isNull(systemSettings)) {
@@ -1892,7 +1892,7 @@ public class AdminProcessor {
         }
 
         dataModel.put("sysBag", cloudService.getBag(userId));
-        dataModel.put("sysMetal", cloudService.getMetal(userId));
+        dataModel.put("sysMetal", cloudService.getMedal(userId));
 
         final JSONObject systemSettings = settingsService.getByUsrId(userId);
         if (Objects.isNull(systemSettings)) {

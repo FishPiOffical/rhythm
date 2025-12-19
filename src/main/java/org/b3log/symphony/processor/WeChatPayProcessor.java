@@ -160,29 +160,29 @@ public class WeChatPayProcessor {
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
         // 三清
-        cloudService.removeMetal(userId, L1_NAME);
-        cloudService.removeMetal(userId, L2_NAME);
-        cloudService.removeMetal(userId, L3_NAME);
-        cloudService.removeMetal(userId, L4_NAME);
+        cloudService.removeMedal(userId, L1_NAME);
+        cloudService.removeMedal(userId, L2_NAME);
+        cloudService.removeMedal(userId, L3_NAME);
+        cloudService.removeMedal(userId, L4_NAME);
         // 赋予勋章
         if (sum >= 4096) {
             String l4desc = L4_DESC.replace("{point}", String.valueOf(sum));
             int rank = TopProcessor.getDonateRankByUserId(userId);
             String rankChinese = NumberChineseFormatter.format(rank, false);
             l4desc = l4desc.replace("{rank}", rankChinese);
-            cloudService.giveMetal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
-            cloudService.giveMetal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 1024) {
-            cloudService.giveMetal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 256) {
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 16) {
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         }
 
         final Response response = context.getResponse();
@@ -226,29 +226,29 @@ public class WeChatPayProcessor {
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
         // 三清
-        cloudService.removeMetal(userId, L1_NAME);
-        cloudService.removeMetal(userId, L2_NAME);
-        cloudService.removeMetal(userId, L3_NAME);
-        cloudService.removeMetal(userId, L4_NAME);
+        cloudService.removeMedal(userId, L1_NAME);
+        cloudService.removeMedal(userId, L2_NAME);
+        cloudService.removeMedal(userId, L3_NAME);
+        cloudService.removeMedal(userId, L4_NAME);
         // 赋予勋章
         if (sum >= 4096) {
             String l4desc = L4_DESC.replace("{point}", String.valueOf(sum));
             int rank = TopProcessor.getDonateRankByUserId(userId);
             String rankChinese = NumberChineseFormatter.format(rank, false);
             l4desc = l4desc.replace("{rank}", rankChinese);
-            cloudService.giveMetal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
-            cloudService.giveMetal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L4_NAME, l4desc + getNo(userId, 4), L4_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 1024) {
-            cloudService.giveMetal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L3_NAME, L3_DESC + getNo(userId, 3), L3_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 256) {
-            cloudService.giveMetal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L2_NAME, L2_DESC + getNo(userId, 2), L2_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         } else if (sum >= 16) {
-            cloudService.giveMetal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
+            cloudService.giveMedal(userId, L1_NAME, L1_DESC + getNo(userId, 1), L1_ATTR, "");
         }
     }
 

@@ -454,7 +454,7 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_T_AUTHOR_INTRO, author.optString(UserExt.USER_INTRO));
         article.put("articleAuthorNickName", author.optString(UserExt.USER_NICKNAME));
 
-        String metal = cloudService.getEnabledMetal(articleAuthorId);
+        String metal = cloudService.getEnabledMedal(articleAuthorId);
         if (!metal.equals("{}")) {
             List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
             author.put("sysMetal", list);
@@ -1209,7 +1209,7 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_T_AUTHOR_INTRO, author.optString(UserExt.USER_INTRO));
         article.put("articleAuthorNickName", author.optString(UserExt.USER_NICKNAME));
 
-        String metal = cloudService.getEnabledMetal(articleAuthorId);
+        String metal = cloudService.getEnabledMedal(articleAuthorId);
         if (!metal.equals("{}")&&Article.ARTICLE_ANONYMOUS_C_ANONYMOUS!=article.optInt(Article.ARTICLE_ANONYMOUS)) {
             List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
             article.put("sysMetal", list);

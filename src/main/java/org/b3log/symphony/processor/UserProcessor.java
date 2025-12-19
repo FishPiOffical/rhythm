@@ -613,7 +613,7 @@ public class UserProcessor {
             JSONObject user = userQueryService.getUserByName(userName);
             final String userId = user.optString(Keys.OBJECT_ID);
             final String name = requestJSONObject.optString("name");
-            cloudService.removeMetal(userId, name);
+            cloudService.removeMedal(userId, name);
             // === 记录日志 ===
             LogsService.simpleLog(context, "移除勋章", "用户: " + userName + ", 勋章名称: " + name);
             // === 记录日志 ===
@@ -634,7 +634,7 @@ public class UserProcessor {
             JSONObject user = userQueryService.getUser(userId);
             String userName = user.optString(User.USER_NAME);
             final String name = requestJSONObject.optString("name");
-            cloudService.removeMetal(userId, name);
+            cloudService.removeMedal(userId, name);
             // === 记录日志 ===
             LogsService.simpleLog(context, "移除勋章(使用UserId)", "用户: " + userName + ", 勋章名称: " + name);
             // === 记录日志 ===
@@ -664,7 +664,7 @@ public class UserProcessor {
             final String attr = requestJSONObject.optString("attr");
             final String data = requestJSONObject.optString("data");
             final String expireDate = Dates.calExpire(requestJSONObject.optString("expireDate"));
-            cloudService.giveMetal(userId, name, description, attr, data, expireDate);
+            cloudService.giveMedal(userId, name, description, attr, data, expireDate);
             // === 记录日志 ===
             LogsService.simpleLog(context, "添加勋章", "用户: " + userName + ", 勋章名称: " + name + ", 勋章描述: " + description + ", 勋章属性: " + attr + ", 勋章有效期: " + expireDate);
             // === 记录日志 ===
@@ -710,7 +710,7 @@ public class UserProcessor {
         final String userName = context.pathVar("userName");
         final JSONObject user = userQueryService.getUserByName(userName);
         String userId = user.optString(Keys.OBJECT_ID);
-        JSONObject metal = new JSONObject(cloudService.getEnabledMetal(userId));
+        JSONObject metal = new JSONObject(cloudService.getEnabledMedal(userId));
         context.renderJSON(StatusCodes.SUCC).renderData(metal);
     }
 
@@ -784,8 +784,8 @@ public class UserProcessor {
         filteredUserProfile.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
         filteredUserProfile.put(UserExt.USER_NO, user.optString(UserExt.USER_NO));
         filteredUserProfile.put(UserExt.USER_APP_ROLE, user.optString(UserExt.USER_APP_ROLE));
-        filteredUserProfile.put("sysMetal", cloudService.getEnabledMetal(user.optString(Keys.OBJECT_ID)));
-        filteredUserProfile.put("allMetalOwned", cloudService.getMetal(user.optString(Keys.OBJECT_ID)));
+        filteredUserProfile.put("sysMetal", cloudService.getEnabledMedal(user.optString(Keys.OBJECT_ID)));
+        filteredUserProfile.put("allMetalOwned", cloudService.getMedal(user.optString(Keys.OBJECT_ID)));
         final String userId = user.optString(Keys.OBJECT_ID);
         final long followerCnt = followQueryService.getFollowerCount(userId, Follow.FOLLOWING_TYPE_C_USER);
         filteredUserProfile.put("followerCount", followerCnt);

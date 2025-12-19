@@ -260,7 +260,8 @@ public class ChatroomProcessor {
         Dispatcher.post("/chat-room/node/push", chatroomProcessor::nodePush);
         Dispatcher.get("/chat-room/barrager/get", chatroomProcessor::getBarragerCost, loginCheck::handle);
 
-        Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
+        //Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
+        Dispatcher.get("/gen", chatroomProcessor::genMetalGif);
         Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
     }
 
@@ -1159,7 +1160,7 @@ public class ChatroomProcessor {
             msg.put(Common.CONTENT, content);
             msg.put(Common.TIME, time);
             msg.put(UserExt.USER_NICKNAME, currentUser.optString(UserExt.USER_NICKNAME));
-            msg.put("sysMetal", cloudService.getEnabledMetal(currentUser.optString(Keys.OBJECT_ID)));
+            msg.put("sysMetal", cloudService.getEnabledMedal(currentUser.optString(Keys.OBJECT_ID)));
             msg.put("userOId", currentUser.optLong(Keys.OBJECT_ID));
             if (!source.isEmpty()) {
                 msg.put("client", source);

@@ -215,7 +215,7 @@ public class ArticleChannel implements WebSocketChannel {
 
                 final CloudService cloudService = beanManager.getReference(CloudService.class);
                 JSONObject comment = (JSONObject) dataModel.get("comment");
-                String metal = cloudService.getEnabledMetal(comment.optString("commentAuthorId"));
+                String metal = cloudService.getEnabledMedal(comment.optString("commentAuthorId"));
                 if (!metal.equals("{}")&&Comment.COMMENT_ANONYMOUS_C_ANONYMOUS!=comment.optInt(Comment.COMMENT_ANONYMOUS)) {
                     List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
                     comment.put("sysMetal", list);

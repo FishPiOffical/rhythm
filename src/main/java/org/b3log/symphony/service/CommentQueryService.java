@@ -635,7 +635,7 @@ public class CommentQueryService {
                 for (final JSONObject comment : ret) {
                     final String commentId = comment.optString(Keys.OBJECT_ID);
                     String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-                    String metal = cloudService.getEnabledMetal(commentAuthorId);
+                    String metal = cloudService.getEnabledMedal(commentAuthorId);
                     if (!metal.equals("{}")&&Comment.COMMENT_ANONYMOUS_C_ANONYMOUS!=comment.optInt(Comment.COMMENT_ANONYMOUS)) {
                         List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
                         comment.put("sysMetal", list);
@@ -875,7 +875,7 @@ public class CommentQueryService {
             comment.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, thumbnailURL);
 
             final String authorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-            String metal = cloudService.getEnabledMetal(authorId);
+            String metal = cloudService.getEnabledMedal(authorId);
 
             if (!metal.equals("{}")) {
                 List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
