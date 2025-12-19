@@ -328,6 +328,27 @@ var Settings = {
     });
   },
   /**
+   * 将 expire_time（毫秒）格式化为日期字符串
+   */
+  _formatExpireTime: function (ts) {
+    if (!ts || ts <= 0) {
+      return '永久';
+    }
+    try {
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) {
+        return String(ts);
+      }
+      var y = d.getFullYear();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var day = ('0' + d.getDate()).slice(-2);
+      return y + '-' + m + '-' + day;
+    } catch (e) {
+      return String(ts);
+    }
+  },
+
+  /**
    * 渲染当前用户勋章列表
    */
   renderMyMedals: function (list) {
@@ -346,6 +367,8 @@ var Settings = {
         var desc = m.medal_description || m.description || '';
         var display = (typeof m.display === 'boolean') ? m.display : true;
         var order = (typeof m.display_order === 'number') ? m.display_order : 0;
+        var expireTime = m.expire_time || m.expireTime || 0;
+        var expireText = Settings._formatExpireTime(expireTime);
         var btn;
         if (display) {
           // 已佩戴 -> 卸下，用红色按钮
@@ -367,6 +390,8 @@ var Settings = {
                   '<img src="' + Util.genMetal(medalId) + '" style="border-radius:4px;object-fit:cover;"/>' +
                   '<br>' +
                   '<span style="font-size: 12px">' + name + ' (' + desc + ')</span>' +
+                  '<br>' +
+                  '<span style="font-size: 11px; color: rgba(0,0,0,0.54);">过期时间：' + expireText + '</span>' +
                 '</div>' +
               '</label>' +
             '</div>' +
