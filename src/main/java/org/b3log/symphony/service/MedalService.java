@@ -774,25 +774,6 @@ public class MedalService {
     }
 
     /**
-     * 查询勋章迁移进度
-     * 调用方式：管理后台轮询调用，返回当前迁移总数、已处理数量和状态
-     *
-     * @return 进度信息 JSON：{total, current, percent, status, message}
-     */
-    public JSONObject getMedalMigrationProgress() {
-        JSONObject ret = new JSONObject();
-        int total = MEDAL_MIGRATION_PROGRESS.total;
-        int current = MEDAL_MIGRATION_PROGRESS.current;
-        double percent = total > 0 ? (current * 100.0 / total) : 0.0;
-        ret.put("total", total);
-        ret.put("current", current);
-        ret.put("percent", percent);
-        ret.put("status", MEDAL_MIGRATION_PROGRESS.status);
-        ret.put("message", MEDAL_MIGRATION_PROGRESS.message);
-        return ret;
-    }
-
-    /**
      * 从云存档迁移旧勋章数据到 medal / user_medal 表
      * 调用方式：在外部先清空 medal 和 user_medal 表，然后调用本方法完成一次全量迁移
      *
