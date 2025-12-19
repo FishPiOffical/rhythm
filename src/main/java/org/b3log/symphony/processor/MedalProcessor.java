@@ -132,6 +132,15 @@ public class MedalProcessor {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
         } catch (NullPointerException ignored) {
         }
+        try {
+            JSONObject requestJSONObject = context.requestJSON();
+            final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
+            final String metalKey = Symphonys.get("gold.finger.metal");
+            if (goldFingerKey.equals(metalKey)) {
+                currentUser = userRepository.getByName("admin");
+            }
+        } catch (RepositoryException ignored) {
+        }
         return currentUser;
     }
 
