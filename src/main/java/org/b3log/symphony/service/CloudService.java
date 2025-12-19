@@ -358,8 +358,7 @@ public class CloudService {
         try {
             JSONObject medalDef = medalService.getMedalByExactName(name);
             if (medalDef == null) {
-                String newMedalId = String.valueOf(System.currentTimeMillis());
-                medalService.addMedal(newMedalId, name, "cloud", description, attr);
+                medalService.addMedal(name, "cloud", description, attr);
                 medalDef = medalService.getMedalByExactName(name);
                 if (medalDef == null) {
                     return;

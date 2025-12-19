@@ -1,3 +1,21 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package org.b3log.symphony.service;
 
 import org.apache.logging.log4j.Level;
@@ -373,37 +391,58 @@ public class MedalService {
 
     /**
      * 增加勋章
-     * 调用方式：传入勋章 ID、名称、类型、描述、属性 JSON 字符串，创建一条新的勋章记录
+     * 调用方式：传入勋章名称、类型、描述、属性，系统自动计算勋章 ID（medal_id 自增），创建一条新的勋章记录
      *
-     * @param medalId          勋章唯一 ID
      * @param medalName        勋章名称
      * @param medalType        勋章类型
      * @param medalDescription 勋章描述
-     * @param medalAttr        勋章属性 JSON 字符串
+     * @param medalAttr        勋章属性 JSON 字符串或配置串
      * @return 新增记录的主键 oId
      * @throws ServiceException 新增失败时抛出
      */
-    public String addMedal(final String medalId,
-                           final String medalName,
+    public String addMedal(final String medalName,
                            final String medalType,
                            final String medalDescription,
                            final String medalAttr) throws ServiceException {
+        Transaction transaction = medalRepository.beginTransaction();
         try {
             Query nameQuery = new Query()
                     .setFilter(new PropertyFilter("medal_name", FilterOperator.EQUAL, medalName));
             List<JSONObject> existByName = medalRepository.getList(nameQuery);
             if (!existByName.isEmpty()) {
+                transaction.commit();
                 throw new ServiceException("勋章名称已存在：" + medalName);
             }
+
+            Query allQuery = new Query();
+            List<JSONObject> allMedals = medalRepository.getList(allQuery);
+            int maxMedalId = -1;
+            for (JSONObject medal : allMedals) {
+                String idStr = medal.optString("medal_id", "-1");
+                try {
+                    int id = Integer.parseInt(idStr);
+                    if (id > maxMedalId) {
+                        maxMedalId = id;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            String nextMedalId = String.valueOf(maxMedalId + 1);
+
             JSONObject medal = new JSONObject();
-            medal.put("medal_id", medalId);
+            medal.put("medal_id", nextMedalId);
             medal.put("medal_name", medalName);
             medal.put("medal_type", medalType);
             medal.put("medal_description", medalDescription);
             medal.put("medal_attr", medalAttr);
-            return medalRepository.add(medal);
+            String oId = medalRepository.add(medal);
+            transaction.commit();
+            return oId;
         } catch (RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Failed to add medal [" + medalId + "]", e);
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            LOGGER.log(Level.ERROR, "Failed to add medal [" + medalName + "]", e);
             throw new ServiceException("Failed to add medal");
         }
     }
@@ -682,6 +721,29 @@ public class MedalService {
         } catch (RepositoryException e) {
             LOGGER.log(Level.ERROR, "Failed to get medal by exact name [" + medalName + "]", e);
             throw new ServiceException("Failed to get medal by exact name");
+        }
+    }
+
+    /**
+     * 根据勋章 ID 精确查找勋章
+     * 调用方式：传入 medal_id，只在 medal_id 字段上做等值匹配，返回第一条匹配记录
+     *
+     * @param medalId 勋章 ID（精确）
+     * @return 勋章 JSON，如果不存在则返回 null
+     * @throws ServiceException 查询失败时抛出
+     */
+    public JSONObject getMedalById(final String medalId) throws ServiceException {
+        try {
+            Query query = new Query()
+                    .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
+            List<JSONObject> medals = medalRepository.getList(query);
+            if (medals == null || medals.isEmpty()) {
+                return null;
+            }
+            return medals.get(0);
+        } catch (RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Failed to get medal by id [" + medalId + "]", e);
+            throw new ServiceException("Failed to get medal by id");
         }
     }
 

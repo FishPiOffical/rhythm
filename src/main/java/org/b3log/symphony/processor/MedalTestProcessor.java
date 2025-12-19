@@ -1,3 +1,21 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package org.b3log.symphony.processor;
 
 import org.b3log.latke.http.Dispatcher;
@@ -104,13 +122,11 @@ public class MedalTestProcessor {
             if (items == null || items.length() == 0) {
                 items = new JSONArray();
                 items.put(new JSONObject()
-                        .put("id", "0")
                         .put("name", "测试勋章A")
                         .put("type", "test")
                         .put("description", "测试勋章A描述")
                         .put("attr", "color=red"));
                 items.put(new JSONObject()
-                        .put("id", "1")
                         .put("name", "测试勋章B")
                         .put("type", "test")
                         .put("description", "测试勋章B描述")
@@ -121,12 +137,11 @@ public class MedalTestProcessor {
                 if (item == null) {
                     continue;
                 }
-                final String id = item.optString("id");
                 final String name = item.optString("name");
                 final String type = item.optString("type", "test");
                 final String desc = item.optString("description", "");
                 final String attr = item.optString("attr", "");
-                medalService.addMedal(id, name, type, desc, attr);
+                medalService.addMedal(name, type, desc, attr);
             }
             tx.commit();
             context.renderJSON(StatusCodes.SUCC).renderMsg("init medals done");

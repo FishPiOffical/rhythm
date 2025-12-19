@@ -81,6 +81,7 @@ import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.AvatarQueryService;
 import org.b3log.symphony.service.ChatRoomService;
 import org.b3log.symphony.service.CloudService;
+import org.b3log.symphony.service.MedalService;
 import org.b3log.symphony.service.CommentMgmtService;
 import org.b3log.symphony.service.CommentQueryService;
 import org.b3log.symphony.service.DataModelService;
@@ -220,6 +221,12 @@ public class ChatroomProcessor {
     @Inject
     private CloudService cloudService;
 
+    /**
+     * Medal service.
+     */
+    @Inject
+    private MedalService medalService;
+
     @Inject
     private ChatroomChannel chatroomChannel;
 
@@ -260,8 +267,8 @@ public class ChatroomProcessor {
         Dispatcher.post("/chat-room/node/push", chatroomProcessor::nodePush);
         Dispatcher.get("/chat-room/barrager/get", chatroomProcessor::getBarragerCost, loginCheck::handle);
 
-        //Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
-        Dispatcher.get("/gen", chatroomProcessor::genMetalGif);
+        Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
+        Dispatcher.get("/gen/{id}", chatroomProcessor::genMetalById, loginCheck::handle);
         Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
     }
 
@@ -291,6 +298,121 @@ public class ChatroomProcessor {
         body = res.charset("utf-8").bodyText();
 
         context.getResponse().setContentType("text/html");
+        context.getResponse().sendBytes(body.getBytes());
+    }
+
+    public void genMetalById(final RequestContext context) {
+        final String id = context.pathVar("id");
+
+        String ver = "";
+        String scale = "";
+        String txt = "";
+        String url = "";
+        String backcolor = "";
+        String fontcolor = "";
+        String shadow = "";
+        String anime = "";
+        String way = "";
+        String fontway = "";
+        String size = "";
+        String border = "";
+        String barlen = "";
+        String font = "";
+        String fontsize = "";
+        String barradius = "";
+
+        try {
+            final JSONObject medalDef = medalService.getMedalById(id);
+            if (medalDef == null) {
+                context.sendError(404);
+                return;
+            }
+            final String attr = medalDef.optString("medal_attr", "");
+            if (attr != null && !attr.isEmpty()) {
+                final String[] parts = attr.split("&");
+                for (final String part : parts) {
+                    final String[] kv = part.split("=", 2);
+                    if (kv.length != 2) {
+                        continue;
+                    }
+                    final String key = kv[0];
+                    final String val = kv[1];
+                    // 只根据勋章配置覆盖，不再从 param 取
+                    if ("ver".equalsIgnoreCase(key)) {
+                        ver = safeParam(val, "ver");
+                    } else if ("scale".equalsIgnoreCase(key)) {
+                        scale = safeParam(val, "scale");
+                    } else if ("txt".equalsIgnoreCase(key)) {
+                        txt = safeParam(val, "txt");
+                    } else if ("url".equalsIgnoreCase(key)) {
+                        url = safeParam(val, "url");
+                    } else if ("backcolor".equalsIgnoreCase(key)) {
+                        backcolor = safeParam(val, "backcolor");
+                    } else if ("fontcolor".equalsIgnoreCase(key)) {
+                        fontcolor = safeParam(val, "fontcolor");
+                    } else if ("shadow".equalsIgnoreCase(key)) {
+                        shadow = safeParam(val, "shadow");
+                    } else if ("anime".equalsIgnoreCase(key)) {
+                        anime = safeParam(val, "anime");
+                    } else if ("way".equalsIgnoreCase(key)) {
+                        way = safeParam(val, "way");
+                    } else if ("fontway".equalsIgnoreCase(key)) {
+                        fontway = safeParam(val, "fontway");
+                    } else if ("size".equalsIgnoreCase(key)) {
+                        size = safeParam(val, "size");
+                    } else if ("border".equalsIgnoreCase(key)) {
+                        border = safeParam(val, "border");
+                    } else if ("barlen".equalsIgnoreCase(key)) {
+                        barlen = safeParam(val, "barlen");
+                    } else if ("font".equalsIgnoreCase(key)) {
+                        font = safeParam(val, "font");
+                    } else if ("fontsize".equalsIgnoreCase(key)) {
+                        fontsize = safeParam(val, "fontsize");
+                    } else if ("barradius".equalsIgnoreCase(key)) {
+                        barradius = safeParam(val, "barradius");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            context.sendError(500);
+            return;
+        }
+
+        final String paramString = "?ver=" + ver
+                + "&scale=" + scale
+                + "&txt=" + txt
+                + "&url=" + url
+                + "&backcolor=" + backcolor
+                + "&fontcolor=" + fontcolor
+                + (shadow != null && !shadow.isEmpty() ? "&shadow=" + shadow : "")
+                + (anime != null && !anime.isEmpty() ? "&anime=" + anime : "")
+                + (way != null && !way.isEmpty() ? "&way=" + way : "")
+                + (fontway != null && !fontway.isEmpty() ? "&fontway=" + fontway : "")
+                + (size != null && !size.isEmpty() ? "&size=" + size : "")
+                + (border != null && !border.isEmpty() ? "&border=" + border : "")
+                + (barlen != null && !barlen.isEmpty() ? "&barlen=" + barlen : "")
+                + (font != null && !font.isEmpty() ? "&font=" + font : "")
+                + (fontsize != null && !fontsize.isEmpty() ? "&fontsize=" + fontsize : "")
+                + (barradius != null && !barradius.isEmpty() ? "&barradius=" + barradius : "");
+
+        String body;
+        if (!metalCache.containsKey(paramString)) {
+            final String genUrl = Symphonys.get("gen.metal.url") + paramString;
+            final HttpRequest req = HttpRequest.get(genUrl).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT);
+            final HttpResponse res = req.connectionTimeout(3000).timeout(5000).send();
+            res.close();
+            if (200 != res.statusCode()) {
+                context.sendError(500);
+                return;
+            }
+            body = res.charset("utf-8").bodyText();
+            metalCache.put(paramString, body);
+        } else {
+            body = metalCache.get(paramString);
+        }
+
+        context.getResponse().setContentType("image/svg+xml");
+        context.getResponse().setHeader("Cache-Control", "max-age=604800");
         context.getResponse().sendBytes(body.getBytes());
     }
 
