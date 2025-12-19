@@ -1974,10 +1974,10 @@ var Util = {
                 $(this).addClass('current')
             } else if (location.pathname === '/register') {
                 // 注册没有使用 href，对其进行特殊处理
-                $('.user-nav a:last').addClass('current')
+                $($('.user-nav a')[1]).addClass('current')
             } else if (location.pathname === '/login') {
                 // 登录没有使用 href，对其进行特殊处理
-                $('.user-nav a:first').addClass('current')
+                $($('.user-nav a')[0]).addClass('current')
             } else if (href.indexOf(Label.servePath + '/settings') === 0 ||
                 href.indexOf($('#aPersonListPanel').data('url')) === 0) {
                 $('#aPersonListPanel').addClass('current')
