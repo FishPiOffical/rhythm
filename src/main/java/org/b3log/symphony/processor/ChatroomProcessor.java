@@ -742,7 +742,7 @@ public class ChatroomProcessor {
             // 按权重分配节点
             Map.Entry<String, Double> selectedNode = null;
             int totalWeight = NodeUtil.nodeWeights.values().stream().mapToInt(Integer::intValue).sum();
-            int totalClients = NodeUtil.wsOnline.size();
+            int totalClients = NodeUtil.wsOnline.values().stream().mapToInt(Integer::intValue).sum() + 1;
             for (Map.Entry<String, Integer> entry : NodeUtil.wsOnline.entrySet()) {
                 String node = entry.getKey();
                 int currentClients = entry.getValue();
@@ -750,8 +750,8 @@ public class ChatroomProcessor {
 
                 // 计算期望客户端数
                 double expectedClients = (double) totalClients * weight / totalWeight;
-                // 计算实际/期望比值
-                double ratio = currentClients / Math.max(1, expectedClients);
+                // 计算实际/期望比值（包含即将分配的这个客户端）
+                double ratio = (currentClients + 1) / Math.max(1, expectedClients);
 
                 // 选择比值最小的节点，比值相同时，选择权重更高的节点
                 if (selectedNode == null || ratio < selectedNode.getValue() ||
