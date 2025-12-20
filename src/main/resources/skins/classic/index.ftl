@@ -735,7 +735,7 @@
                 $("#vLine2").css("line-height", "30px");
             } else {
                 $("#vLine1").html("" + dayName + "快乐 🏖️<br><div>假期余额还有<b>" + wRest + "</b>天！</div>");
-                $("#vLine2").html("<span style='font-size:60px;height:100%;color:#63bf8a;'>放假</span>");
+                $("#vLine2").html("<span style='font-size:19px;height:100%;color:#63bf8a;'>今日休息 ⛺️</span>");
             }
         }
     });
