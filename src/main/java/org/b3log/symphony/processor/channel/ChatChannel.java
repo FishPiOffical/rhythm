@@ -99,7 +99,6 @@ public class ChatChannel implements WebSocketChannel {
      */
     @Override
     public void onConnect(final WebSocketSession session) {
-        System.out.println("Channel Join > Chat");
         JSONObject user = null;
         try {
             String apiKey = session.getParameter("apiKey");

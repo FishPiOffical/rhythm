@@ -40,7 +40,6 @@ public class LoginChannel implements WebSocketChannel {
 
     @Override
     public void onConnect(WebSocketSession webSocketSession) {
-        System.out.println("Channel Join > Login");
         // 把客户端存入Map,方便发信息
         sessions.put(webSocketSession.getId(), webSocketSession);
     }

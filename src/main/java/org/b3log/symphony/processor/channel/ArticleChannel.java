@@ -250,7 +250,6 @@ public class ArticleChannel implements WebSocketChannel {
      */
     @Override
     public void onConnect(final WebSocketSession session) {
-        System.out.println("Channel Join > Article");
         final String articleId = session.getParameter(Article.ARTICLE_T_ID);
         if (StringUtils.isBlank(articleId)) {
             return;
