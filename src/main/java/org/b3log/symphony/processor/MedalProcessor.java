@@ -47,6 +47,7 @@ import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -139,11 +140,24 @@ public class MedalProcessor {
         } catch (NullPointerException ignored) {
         }
         try {
+            List<String> readOnlyAPIS = new ArrayList<>();
+            readOnlyAPIS.add("/api/medal/admin/list");
+            readOnlyAPIS.add("/api/medal/admin/search");
+            readOnlyAPIS.add("/api/medal/admin/detail");
+            readOnlyAPIS.add("/api/medal/admin/owners");
             JSONObject requestJSONObject = context.requestJSON();
             final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
-            final String metalKey = Symphonys.get("gold.finger.metal");
-            if (goldFingerKey.equals(metalKey)) {
-                currentUser = userRepository.getByName("admin");
+            String requestURI = context.requestURI();
+            if (readOnlyAPIS.contains(requestURI)) {
+                String goldFingerRead = Symphonys.get("gold.finger.medal-admin-read");
+                if (goldFingerKey.equals(goldFingerRead)) {
+                    currentUser = userRepository.getByName("admin");
+                }
+            } else {
+                String goldFingerWrite = Symphonys.get("gold.finger.medal-admin-write");
+                if (goldFingerKey.equals(goldFingerWrite)) {
+                    currentUser = userRepository.getByName("admin");
+                }
             }
         } catch (RepositoryException ignored) {
         }
