@@ -145,21 +145,6 @@ public class UserChannel implements WebSocketChannel {
     @Override
     public void onMessage(final Message message) {
         AdminProcessor.manager.onMessageSent(8, message.text.length() + 350);
-        final Session session = message.session.getHttpSession();
-        JSONObject user = null;
-        try {
-            user = new JSONObject(session.getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            user = ApiProcessor.getUserByKey(message.session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        if (null == user) {
-            LOGGER.log(Level.INFO, "Received message from UserChannel: Message=" + message.text);
-            return;
-        }
-        LOGGER.log(Level.INFO, "Received message from UserChannel: UserName=" + user.optString(User.USER_NAME) + ", Message=" + message.text);
     }
 
     /**
