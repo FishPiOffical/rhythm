@@ -1885,12 +1885,10 @@ a[class*=" icon-"]:hover {
 .user-card__medal {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
               filter 0.2s ease;
-  pointer-events: none;
-  cursor: default;
 }
 
 .user-card__medal:hover {
-  transform: scale(1.12) translateY(-2px);
+  transform: scale(1.01) translateY(-0.5px);
   filter: brightness(1.08);
 }
 
