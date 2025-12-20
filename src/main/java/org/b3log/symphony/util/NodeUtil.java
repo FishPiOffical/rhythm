@@ -97,7 +97,6 @@ public class NodeUtil {
                 future.get(10, TimeUnit.SECONDS);
                 tmp_wsNodes.add(webSocket);
                 tmp_uriNodes.add(i);
-                LOGGER.log(Level.INFO, "Connected to node: " + serverUri);
             } catch (Exception e) {
                 LOGGER.log(Level.ERROR, "Failed to connect to node: " + serverUri, e);
             }
@@ -222,7 +221,6 @@ public class NodeUtil {
                     }
                     tmp_wsOnline.put(i, jsonArray.length());
                     webSocket.sendClose(1000, "Nornal Closure");
-                    LOGGER.log(Level.INFO, "Remote " + i + " online list updated. count=" + jsonArray.length());
                 } catch (Exception e) {
                     webSocket.sendClose(1000, "Nornal Closure");
                     LOGGER.log(Level.ERROR, serverUri + " No response within 10 seconds. giveup.", e);
@@ -295,7 +293,6 @@ public class NodeUtil {
                 try {
                     String response = responseFuture.get(10, TimeUnit.SECONDS);
                     webSocket.sendClose(1000, "Nornal Closure");
-                    LOGGER.log(Level.INFO, "Remote " + i + " has received the full online list.");
                 } catch (Exception e) {
                     webSocket.sendClose(1000, "Nornal Closure");
                     LOGGER.log(Level.ERROR,
