@@ -740,13 +740,9 @@ public class ChatroomProcessor {
             backupData.put(node);
         } else {
             // 按权重分配节点
-            StringBuilder logBuilder = new StringBuilder();
             Map.Entry<String, Double> selectedNode = null;
             int totalWeight = NodeUtil.nodeWeights.values().stream().mapToInt(Integer::intValue).sum();
             int totalClients = NodeUtil.wsOnline.size();
-            logBuilder.append("=== 分配日志开始 ===\n");
-            logBuilder.append("总客户端数: ").append(totalClients).append(", 总权重: ").append(totalWeight).append("\n");
-            logBuilder.append("节点状态:\n");
             for (Map.Entry<String, Integer> entry : NodeUtil.wsOnline.entrySet()) {
                 String node = entry.getKey();
                 int currentClients = entry.getValue();
@@ -756,12 +752,6 @@ public class ChatroomProcessor {
                 double expectedClients = (double) totalClients * weight / totalWeight;
                 // 计算实际/期望比值
                 double ratio = currentClients / Math.max(1, expectedClients);
-
-                logBuilder.append("节点: ").append(node)
-                        .append(", 当前客户端数: ").append(currentClients)
-                        .append(", 权重: ").append(weight)
-                        .append(", 期望客户端数: ").append(String.format("%.2f", expectedClients))
-                        .append(", 比值: ").append(String.format("%.2f", ratio)).append("\n");
 
                 // 选择比值最小的节点，比值相同时，选择权重更高的节点
                 if (selectedNode == null || ratio < selectedNode.getValue() ||
@@ -775,9 +765,6 @@ public class ChatroomProcessor {
             if (selectedNode != null) {
                 String allocatedNode = selectedNode.getKey();
                 NodeUtil.wsOnline.put(allocatedNode, NodeUtil.wsOnline.getOrDefault(allocatedNode, 0) + 1);
-                logBuilder.append("选中节点: ").append(allocatedNode).append("\n");
-                logBuilder.append("=== 分配日志结束 ===\n");
-                System.out.println(logBuilder);
                 // 返回节点信息
                 ret.put(Keys.DATA, allocatedNode + "?apiKey=" + key);
                 ret.put(Keys.MSG, NodeUtil.nodeNickNames.get(allocatedNode));
