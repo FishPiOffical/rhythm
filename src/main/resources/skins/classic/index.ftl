@@ -731,8 +731,7 @@
             let wRest = result.wRest;
             if (wRest === 1) {
                 $("#vLine1").html("😰 今天是" + dayName + "<br><b>假期余额严重不足❗❗❗️</b>");
-                $("#vLine2").html("<span style='font-size:30px;width:100%;height:100%;color:#c9320c;'>😭<br>明天上班</span>");
-                $("#vLine2").css("line-height", "30px");
+                $("#vLine2").html("<span style='font-size:19px;height:100%;color:#c9320c;'>明天上班 😭</span>");
             } else {
                 $("#vLine1").html("" + dayName + "快乐 🏖️<br><div>假期余额还有<b>" + wRest + "</b>天！</div>");
                 $("#vLine2").html("<span style='font-size:19px;height:100%;color:#63bf8a;'>今日休息 ⛺️</span>");
