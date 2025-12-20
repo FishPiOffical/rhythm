@@ -282,7 +282,7 @@ public class UserMgmtService {
             oldUser.put(User.USER_URL, requestJSONObject.optString(User.USER_URL));
             oldUser.put(UserExt.USER_QQ, requestJSONObject.optString(UserExt.USER_QQ));
             oldUser.put(UserExt.USER_INTRO, requestJSONObject.optString(UserExt.USER_INTRO));
-            oldUser.put(UserExt.USER_AVATAR_TYPE, requestJSONObject.optString(UserExt.USER_AVATAR_TYPE));
+            oldUser.put(UserExt.USER_AVATAR_TYPE, requestJSONObject.optInt(UserExt.USER_AVATAR_TYPE));
             oldUser.put(UserExt.USER_AVATAR_URL, requestJSONObject.optString(UserExt.USER_AVATAR_URL));
             oldUser.put(UserExt.USER_COMMENT_VIEW_MODE, requestJSONObject.optInt(UserExt.USER_COMMENT_VIEW_MODE));
             oldUser.put("mbti", requestJSONObject.optString("mbti"));

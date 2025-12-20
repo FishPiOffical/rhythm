@@ -1626,6 +1626,8 @@ public class ArticleQueryService {
         } else {
             author = userRepository.getAnonymousUser();
         }
+        int authorAvatarType = author.optInt(UserExt.USER_AVATAR_TYPE);
+        author.put(UserExt.USER_AVATAR_TYPE, authorAvatarType);
         article.put(Article.ARTICLE_T_AUTHOR, author);
         article.put(Article.ARTICLE_T_AUTHOR_NAME, author.optString(User.USER_NAME));
         article.put(Article.ARTICLE_T_AUTHOR_THUMBNAIL_URL + "210", avatarQueryService.getAvatarURLByUser(author, "210"));
