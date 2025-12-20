@@ -63,7 +63,7 @@ public class ArticlePostValidationMidware {
     /**
      * Max article content length.
      */
-    public static final int MAX_ARTICLE_CONTENT_LENGTH = 102400;
+    public static final int MAX_ARTICLE_CONTENT_LENGTH = 1024000;
 
     /**
      * Min article content length.
