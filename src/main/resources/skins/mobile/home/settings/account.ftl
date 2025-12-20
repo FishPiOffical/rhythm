@@ -149,11 +149,4 @@
                 onclick="Settings.getEmailCaptcha('${csrfToken}')">${getEmailCaptchaLabel}</button>
     </div>
 </div>
-<script>
-  $(function () {
-      if (typeof Settings !== 'undefined' && document.getElementById('metal')) {
-          Settings.initMetal();
-      }
-  });
-</script>
 </@home>
