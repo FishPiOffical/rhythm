@@ -261,11 +261,8 @@ public class UserChannel implements WebSocketChannel {
                 onlineMinute = onlineMinute + calcOnlineMinutes;
                 userMgmtService.setOnlineMinute(userId, onlineMinute);
                 userOnline.remove(userId);
-                LOGGER.log(Level.INFO, "All offline (" + calcOnlineMinutes +  " min) > " + user.optString(User.USER_NAME));
             }
             userMgmtService.updateOnlineStatus(userId, ip, false, true);
-        } else {
-            LOGGER.log(Level.INFO, "1 of " + (userSessions.size() + 1) + " offline > " + user.optString(User.USER_NAME));
         }
     }
 
