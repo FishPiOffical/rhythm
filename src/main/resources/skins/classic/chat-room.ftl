@@ -100,7 +100,7 @@
                                             批量撤回
                                         </button>
                                     </#if>
-                                    <button class="red" onclick="switchTheme()">切换样式：简约</button>
+                                    <button class="button" onclick="switchTheme()">切换样式：简约</button>
                                     <button class="button" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
                                     <button class="button" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
                                     <button class="button" onclick="ChatRoom.flashScreen()">清屏</button>
