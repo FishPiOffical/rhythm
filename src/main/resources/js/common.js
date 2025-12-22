@@ -1054,7 +1054,6 @@ var Util = {
                         if (0 === result.userNotifyStatus &&
                             window.localStorage.hadNotificate !== count.toString() &&
                             isSendMsg) {
-                            Util.notifyMsg(count)
                             window.localStorage.hadNotificate = count
                         }
 
