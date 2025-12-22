@@ -37,6 +37,14 @@
     ${HeaderBannerLabel}
 </#if>
 
+<#if esEnabled || algoliaEnabled>
+    <form class="form wrapper" style="margin-top: 10px" action="/search">
+        <input placeholder="搜索你感兴趣的内容" type="text" name="key"
+               value="<#if key??>${key}</#if>">
+        <input type="submit" class="fn-none" value=""/>
+    </form>
+</#if>
+
 <div class="main" >
     <ul>
         <#if recentArticlesMobile??>
