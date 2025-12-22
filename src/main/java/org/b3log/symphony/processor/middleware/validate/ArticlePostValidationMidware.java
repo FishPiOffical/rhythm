@@ -259,8 +259,8 @@ public class ArticlePostValidationMidware {
         JSONObject titleCensorResult = QiniuTextCensor.censor(articleTitle + " 标签：" + articleTags);
         JSONObject articleCensorResult = QiniuTextCensor.censor(articleContent);
         // 组合标题和文章的bannedWords数组（如果标题或文章没有则不显示额外字符），组成用于显示的字符串
-        String titleBannedWords = "标题" + QiniuTextCensor.showBannedWords(titleCensorResult) + "；";
-        String articleBannedWords = "内容和标签" + QiniuTextCensor.showBannedWords(articleCensorResult);
+        String titleBannedWords = "标题和标签" + QiniuTextCensor.showBannedWords(titleCensorResult) + "；";
+        String articleBannedWords = "内容" + QiniuTextCensor.showBannedWords(articleCensorResult);
         String bannedWords = titleBannedWords + articleBannedWords;
         if (titleCensorResult.optString("do").equals("block") || articleCensorResult.optString("do").equals("block")) {
             // 违规内容，不予显示
