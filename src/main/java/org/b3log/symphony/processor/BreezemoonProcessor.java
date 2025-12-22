@@ -237,12 +237,10 @@ public class BreezemoonProcessor {
         if (censorResult.optString("do").equals("block")) {
             // 违规内容，不予显示
             String bannedWords = "内容" + QiniuTextCensor.showBannedWords(censorResult);
-            ChatChannel.sendAdminMsg(user.optString(User.USER_NAME), "【AI审查】您由于上传违规清风明月，被处以 1 积分的处罚，请引以为戒。\n如误报请在此处回复我，审核后找回积分并获得补偿！");
-            ChatRoomBot.abusePoint(user.optString(Keys.OBJECT_ID), 1, "[AI审查] [如有误报请联系管理员追回积分] 机器人罚单-上传违规内容（清风明月）");
             // 记录日志
             LogsService.censorLog(context, user.optString(Keys.OBJECT_ID), "用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
             System.out.println("用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
-            context.renderMsg("您的内容存在违规内容，内容已被记录，管理员将会复审，请修改内容后重试。" + bannedWords);
+            context.renderMsg("您的内容经过AI审核存在违规内容，请修改内容后重试。" + bannedWords);
             context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
             return;
         }
@@ -331,12 +329,10 @@ public class BreezemoonProcessor {
             if (censorResult.optString("do").equals("block")) {
                 // 违规内容，不予显示
                 String bannedWords = "内容" + QiniuTextCensor.showBannedWords(censorResult);
-                ChatChannel.sendAdminMsg(user.optString(User.USER_NAME), "【AI审查】您由于上传违规清风明月，被处以 1 积分的处罚，请引以为戒。\n如误报请在此处回复我，审核后找回积分并获得补偿！");
-                ChatRoomBot.abusePoint(user.optString(Keys.OBJECT_ID), 1, "[AI审查] [如有误报请联系管理员追回积分] 机器人罚单-上传违规内容（清风明月）");
                 // 记录日志
                 LogsService.censorLog(context, user.optString(Keys.OBJECT_ID), "用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
                 System.out.println("用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
-                context.renderMsg("您的内容存在违规内容，内容已被记录，管理员将会复审，请修改内容后重试。" + bannedWords);
+                context.renderMsg("您的内容经过AI审核存在违规内容，请修改内容后重试。" + bannedWords);
                 context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
                 return;
             }

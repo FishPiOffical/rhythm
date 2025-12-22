@@ -264,9 +264,7 @@ public class ArticlePostValidationMidware {
         String bannedWords = titleBannedWords + articleBannedWords;
         if (titleCensorResult.optString("do").equals("block") || articleCensorResult.optString("do").equals("block")) {
             // 违规内容，不予显示
-            context.renderJSON(exception.put(Keys.MSG, "您的文章存在违规内容，内容已被记录，管理员将会复审，请修改内容后重试。" + bannedWords));
-            ChatChannel.sendAdminMsg(currentUser.optString(User.USER_NAME), "【AI审查】您由于上传违规帖子，被处以 1 积分的处罚，请引以为戒。\n如误报请在此处回复我，审核后找回积分并获得补偿！");
-            ChatRoomBot.abusePoint(currentUser.optString(Keys.OBJECT_ID), 1, "[AI审查] [如有误报请联系管理员追回积分] 机器人罚单-上传违规内容（帖子）");
+            context.renderJSON(exception.put(Keys.MSG, "您的文章经过AI审核存在违规内容，请修改内容后重试。" + bannedWords));
             // 记录日志
             LogsService.censorLog(context, currentUser.optString(Keys.OBJECT_ID), "用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);
             System.out.println("用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);

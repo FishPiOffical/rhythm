@@ -240,7 +240,7 @@ public class ApiProcessor {
                     }
                     break;
                 case "review":
-                    try {
+                    /**try {
                         String[] urls = new String[]{fileURL};
                         CdnManager c = new CdnManager(auth);
                         CdnResult.RefreshResult result = c.refreshUrls(urls);
@@ -251,7 +251,7 @@ public class ApiProcessor {
                         LogsService.censorLog(context, userName, "用户：" + userName + " 上传疑似违规图片：" + fileURL);
                     } catch (Exception e) {
                         LOGGER.error(e);
-                    }
+                    }**/
                     break;
                  default:
                     LOGGER.log(Level.INFO, "Normal file " + fileURL);

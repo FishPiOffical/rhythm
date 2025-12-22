@@ -576,7 +576,7 @@ public class AdminProcessor {
                 String picUserName = picture.optString("userName");
                 String picUserId = userQueryService.getUserByName(picUserName).optString(Keys.OBJECT_ID);
                 ChatRoomBot.sendBotMsg("犯罪嫌疑人 @" + picUserName + "  由于上传违法文件/图片，被处以 500 积分的处罚，请引以为戒。\n@" + uname + "  处理人\n@adlered  审批人");
-                ChatRoomBot.abusePoint(picUserId, 500, "机器人罚单-上传违法文件");
+                ChatRoomBot.abusePoint(picUserId, 500, "机器人罚单-上传违规文件");
             }
             String picData = picture.toString();
             if (picData.length() > 254) {
