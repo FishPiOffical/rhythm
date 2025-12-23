@@ -132,6 +132,17 @@
                 });
             }
 
+            // 允许在搜索框中按回车直接触发搜索
+            if (this.dom.searchInput && this.dom.btnSearch) {
+                this.dom.searchInput.addEventListener('keydown', function (e) {
+                    var evt = e || window.event;
+                    if (evt.key === 'Enter' || evt.keyCode === 13) {
+                        evt.preventDefault();
+                        self.dom.btnSearch.click();
+                    }
+                });
+            }
+
             if (this.dom.btnResetSearch) {
                 this.dom.btnResetSearch.addEventListener('click', function () {
                     self.keyword = '';
@@ -574,9 +585,21 @@
             var data = (this.dom.grantData.value || '').trim();
 
             if (!userId) {
-                alert('用户ID不能为空');
+                alert('用户名不能为空');
                 return;
             }
+
+            // userName转userId
+            $.ajax({
+                url: '/user/' +  userId + '?apiKey=' + apiKey,
+                type: 'GET',
+                dataType: 'json',
+                async: false,
+                success: function (result) {
+                    userId = result.oId;
+                }
+            });
+            console.log(userId);
 
             var body = this.apiPayloadBase();
             body.medalId = this.currentOwnersMedalId;

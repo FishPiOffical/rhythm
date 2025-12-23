@@ -371,29 +371,8 @@ var Settings = {
         var expireTime = m.expire_time || m.expireTime || 0;
         var expireText = Settings._formatExpireTime(expireTime);
 
-        // 按类型选择样式：普通、精良、稀有、史诗、传说、神话
-        var typeStyle = '';
-        switch (type) {
-          case '精良':
-            typeStyle = 'color:#1d4ed8;'; // 蓝
-            break;
-          case '稀有':
-            typeStyle = 'color:#8b5cf6;'; // 紫
-            break;
-          case '史诗':
-            typeStyle = 'color:#ea580c;font-weight:600;'; // 橙+略加粗
-            break;
-          case '传说':
-            typeStyle = 'color:#facc15;font-weight:700;'; // 金+加粗
-            break;
-          case '神话':
-            typeStyle = 'color:#fbbf24;font-weight:700;text-shadow:0 0 4px rgba(251,191,36,.8);'; // 更亮的金色
-            break;
-          case '普通':
-          default:
-            typeStyle = 'color:#111827;'; // 默认黑
-            break;
-        }
+        // 按类型选择样式：普通、精良、稀有、史诗、传说、神话、限定
+        var typeStyle = Util.renderMedalType(type);
         var btn;
         if (display) {
           // 已佩戴 -> 卸下，用红色按钮
@@ -496,16 +475,7 @@ var Settings = {
     var html = '';
     for (var i = 0; i < list.length; i++) {
       var m = list[i];
-      var medalId = m.medal_id || m.medalId || '';
-      var name = m.medal_name || m.name || '';
-      var desc = m.medal_description || m.description || '';
-      if (!medalId) {
-        continue;
-      }
-      html += '<img'
-           + ' title="' + (name + (desc ? ' - ' + desc : '')) + '"'
-           + ' src="' + Util.genMetal(medalId) + '"'
-           + ' />';
+      html += Util.genMedalTooltips("<img src='" + Util.genMetal(m.medal_id) + "'/>", m.medal_type, m.medal_name + ' - ' + m.medal_description);
     }
     el.innerHTML = html;
   },

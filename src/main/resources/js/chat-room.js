@@ -2009,9 +2009,9 @@ ${result.info.msg}
                     for (let i = 0; i < list.length; i++) {
                         let m = list[i];
                         if (m.name === "Premium Sponsor") {
-                            newHTML += "<img title='" + m.name + " - " + m.description + "' src='" + Util.genMetal(m.id) + "'/>";
+                            newHTML += Util.genMedalTooltips("<img src='" + Util.genMetal(m.id) + "'/>", m.type, m.name + ' - ' + m.description);
                         } else {
-                            newHTML += "<img title='" + m.name + " - " + m.description + "' src='" + Util.genMiniMetal(m.id) + "'/>";
+                            newHTML += Util.genMedalTooltips("<img src='" + Util.genMiniMetal(m.id) + "'/>", m.type, m.name + ' - ' + m.description);
                         }
                     }
                 }

@@ -75,7 +75,15 @@
 
                             <div class="form-group">
                                 <label for="medalType">类型</label>
-                                <input type="text" id="medalType" name="type" class="form-control"/>
+                                <select id="medalType" name="type" class="form-control">
+                                    <option value="普通">普通</option>
+                                    <option value="精良">精良</option>
+                                    <option value="稀有">稀有</option>
+                                    <option value="史诗">史诗</option>
+                                    <option value="传说">传说</option>
+                                    <option value="神话">神话</option>
+                                    <option value="限定">限定</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
@@ -108,7 +116,7 @@
                             <span>ID：<span id="ownersMedalIdLabel"></span></span>
                             <div class="medal-owners__actions">
                                 <input type="text" id="grantUserId" class="form-control form-control--inline"
-                                       placeholder="用户ID"/>
+                                       placeholder="用户名"/>
                                 <input type="text" id="grantExpireTime" class="form-control form-control--inline"
                                        placeholder="过期时间戳(毫秒)"/>
                                 <input type="text" id="grantData" class="form-control form-control--inline"

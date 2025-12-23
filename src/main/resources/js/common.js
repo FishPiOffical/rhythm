@@ -76,6 +76,45 @@ var Util = {
         return Label.servePath + '/gen?mini=yes&id=' + id;
     },
 
+    genMedalTooltips(inline, type, desc) {
+        return `
+<span class="tip-wrapper">
+  ${inline}
+  <span class="tip-text">
+    <span style="${Util.renderMedalType(type)}">[${type}]</span> ${desc}
+  </span>
+</span>`;
+    },
+
+    renderMedalType(type) {
+        var typeStyle = '';
+        switch (type) {
+            case '精良':
+                typeStyle = 'color:#1d4ed8;';
+                break;
+            case '稀有':
+                typeStyle = 'color:#8b5cf6;';
+                break;
+            case '史诗':
+                typeStyle = 'color:#ea580c;font-weight:600;';
+                break;
+            case '传说':
+                typeStyle = 'color:#eab308;font-weight:700;';
+                break;
+            case '神话':
+                typeStyle = 'color:#f59e0b;font-weight:700;text-shadow:0 0 3px rgba(245,158,11,0.8);';
+                break;
+            case '限定':
+                typeStyle = 'color:#ef4444;font-weight:700;text-shadow:0 0 6px rgba(239,68,68,0.9);';
+                break;
+            case '普通':
+            default:
+                typeStyle = 'color:#111827;';
+                break;
+        }
+        return typeStyle;
+    },
+
     parseDom(arg) {
         var objE = document.createElement("div");
         objE.innerHTML = arg;
@@ -1601,10 +1640,10 @@ var Util = {
                     }
                     let list = sysMetal.list;
                     if (list !== undefined && list.length !== 0) {
-                        html += '<div class="user-card__info user-card__medals vditor-reset">';
+                        html += '<div class="user-card__info user-card__medals" style="overflow: visible">';
                         for (let i = 0; i < list.length; i++) {
                             let m = list[i];
-                            html += "<img class='user-card__medal' title='" + m.description + "' src='" + Util.genMetal(m.id) + "'/>";
+                            html += Util.genMedalTooltips("<img class='user-card__medal' src='" + Util.genMetal(m.id) + "'/>", m.type, m.name + ' - ' + m.description);
                         }
                         html += '</div>';
                     }
