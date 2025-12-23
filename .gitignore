@@ -14,3 +14,4 @@ ChatRoom.tmp
 delegated-apnic-latest.tmp
 *.lock
 .fleet/
+deploy.ps1
