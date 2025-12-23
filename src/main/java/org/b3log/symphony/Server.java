@@ -314,7 +314,14 @@ public final class Server extends BaseServer {
         String staticResourceVersion = Symphonys.get("staticResourceVersion");
         STARTUP_STR = "<li>Rhythm 启动时间：" + startupTime + "</li><li>Rhythm 编译版本：" + staticResourceVersion + "</li>";
 
-        ChatRoomBot.sendBotMsg("#### 维护完毕:sparkles:\n社区已结束维护，可以开始聊天啦 :smile:\nRhythm 启动时间 " + ClockEmojiMapper.getClockEmojiCode(LocalTime.now()) + " " + startupTime + "\nRhythm 编译版本 :dart: " + staticResourceVersion);
+        Thread.startVirtualThread(() -> {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            ChatRoomBot.sendBotMsg("#### 维护完毕:sparkles:\n社区已结束维护，可以开始聊天啦 :smile:\nRhythm 启动时间 " + ClockEmojiMapper.getClockEmojiCode(LocalTime.now()) + " " + startupTime + "\nRhythm 编译版本 :dart: " + staticResourceVersion);
+        });
 
         System.out.println(">>> Quick boot mode requirements is ready!");
 
