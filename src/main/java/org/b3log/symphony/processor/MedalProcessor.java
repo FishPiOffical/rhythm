@@ -328,6 +328,11 @@ public class MedalProcessor {
             final String desc = req.optString("description", "");
             final String attr = req.optString("attr", "");
             medalService.updateMedal(medalId, name, type, desc, attr);
+
+            ChatroomProcessor.metalCache.remove(medalId + "mini");
+            ChatroomProcessor.metalCache.remove(medalId);
+            ChatroomProcessor.metalCache.remove("searchName" + "mini" + name);
+            ChatroomProcessor.metalCache.remove("searchName" + name);
             context.renderJSON(StatusCodes.SUCC);
         } catch (ServiceException e) {
             e.printStackTrace();
