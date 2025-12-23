@@ -962,14 +962,6 @@ public class ChatroomProcessor {
                 }*/
             }
 
-            if ("heartbeat".equals(redPacket.getString("type")) || "rockPaperScissors".equals(redPacket.getString("type"))) {
-                // 如果要抢石头剪刀布红包，先看账户余额是否大于平均数
-                if (currentUser.optInt(UserExt.USER_POINT) < redPacket.optInt("money")) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("抢红包失败！你的账户余额低于该红包金额。");
-                    return;
-                }
-            }
-
             // 开始领取红包
             int meGot = 0;
             if ("average".equals(redPacket.getString("type"))) {
@@ -1077,6 +1069,11 @@ public class ChatroomProcessor {
                     meGot = RED_PACKET_BUCKET.get(oId).packs.poll();
                 }
             } else if ("rockPaperScissors".equals(redPacket.getString("type"))) {
+                if (currentUser.optInt(UserExt.USER_POINT) < redPacket.optInt("money")) {
+                    context.renderJSON(StatusCodes.ERR).renderMsg("抢红包失败！你的账户余额低于该红包金额。");
+                    return;
+                }
+
                 if (redPacketIsOpened(who, userId)) {
                     context.renderJSON(new JSONObject().put("who", who).put("info", info));
                     return;
@@ -1103,6 +1100,10 @@ public class ChatroomProcessor {
                     meGot = -money;
                 }
             } else {
+                if (currentUser.optInt(UserExt.USER_POINT) < redPacket.optInt("money")) {
+                    context.renderJSON(StatusCodes.ERR).renderMsg("抢红包失败！你的账户余额低于该红包金额。");
+                    return;
+                }
                 if (redPacketIsOpened(who, userId)) {
                     context.renderJSON(new JSONObject().put("who", who).put("info", info));
                     return;
