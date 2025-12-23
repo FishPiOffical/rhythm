@@ -18,13 +18,8 @@
  */
 package org.b3log.symphony.processor;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.qiniu.cdn.CdnManager;
 import com.qiniu.cdn.CdnResult;
-import com.qiniu.storage.BucketManager;
-import com.qiniu.storage.Configuration;
-import com.qiniu.storage.Region;
 import com.qiniu.util.Auth;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
@@ -43,7 +38,6 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
-import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Crypts;
@@ -267,22 +261,10 @@ public class ApiProcessor {
      * @return userInfo
      * @throws NullPointerException if apiKey is null or not found in keymaps
      */
-    private static final Cache<String, JSONObject> apiKeyUserCache = Caffeine.newBuilder()
-            .expireAfterWrite(60, java.util.concurrent.TimeUnit.MINUTES)
-            .maximumSize(10000)
-            .build();
-
     public static JSONObject getUserByKey(String apiKey) {
         if (apiKey != null && apiKey.length() == 192) {
-            // 先查缓存
-            JSONObject user = apiKeyUserCache.getIfPresent(apiKey);
-            if (user != null) {
-                return user;
-            }
-            // 缓存没有，解密+查库
-            user = tryLogInWithApiKey(apiKey);
-            if (user != null) {
-                apiKeyUserCache.put(apiKey, user);
+            JSONObject user = tryLogInWithApiKey(apiKey);
+            if (null != user) {
                 return user;
             }
         }
