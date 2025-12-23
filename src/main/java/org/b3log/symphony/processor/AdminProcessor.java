@@ -51,6 +51,7 @@ import org.b3log.latke.util.CollectionUtils;
 import org.b3log.latke.util.Execs;
 import org.b3log.latke.util.Paginator;
 import org.b3log.latke.util.Strings;
+import org.b3log.symphony.Server;
 import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
@@ -1612,6 +1613,8 @@ public class AdminProcessor {
 
         final JSONObject statistic = optionQueryService.getStatistic();
         dataModel.put(Option.CATEGORY_C_STATISTIC, statistic);
+
+        dataModel.put("startup", Server.STARTUP_STR);
     }
 
     /**

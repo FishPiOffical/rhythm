@@ -23,6 +23,10 @@
 <div class="wrapper">
     <div class="fn-hr10"></div>
     <div class="vditor-reset">
+        <span style="padding: 0 0 7px 10px;display: block;font-weight: 550;">关于 Rhythm</span>
+        <ul>
+            ${startup}
+        </ul>
         <span style="padding: 0 0 7px 10px;display: block;font-weight: 550;">数据</span>
         <ul>
             <li>${onlineVisitorCountLabel} ${onlineVisitorCnt?c}</li>

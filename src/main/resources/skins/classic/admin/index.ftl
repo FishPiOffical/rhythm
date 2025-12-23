@@ -22,6 +22,10 @@
 <@admin "index">
 <div class="content admin-index">
     <div class="module fn-content vditor-reset">
+        <span style="padding: 0 0 7px 10px;display: block;font-weight: 550;">关于 Rhythm</span>
+        <ul>
+            ${startup}
+        </ul>
         <span style="padding: 0 0 7px 10px;display: block;font-weight: 550;">数据</span>
         <ul>
             <li>${onlineVisitorCountLabel} ${onlineVisitorCnt?c}</li>

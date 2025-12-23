@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -92,6 +94,11 @@ public final class Server extends BaseServer {
      * Fishing Pi version.
      */
     public static final String FISHING_PI_VERSION = "1.0.0";
+
+    /**
+     * Startup time && static version
+     */
+    public static String STARTUP_STR = "";
 
     /**
      * Main.
@@ -302,6 +309,10 @@ public final class Server extends BaseServer {
             NodeUtil.init();
             NodeUtil.initOnline();
         });
+
+        String startupTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        String staticResourceVersion = Symphonys.get("staticResourceVersion");
+        STARTUP_STR = "<li>Rhythm 启动时间：" + startupTime + "</li><li>Rhythm 编译版本：" + staticResourceVersion + "</li>";
 
         System.out.println(">>> Quick boot mode requirements is ready!");
 
