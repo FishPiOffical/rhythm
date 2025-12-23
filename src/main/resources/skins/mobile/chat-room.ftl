@@ -110,6 +110,8 @@
                             <br>
                         </#if>
                         <div class="fn-right" style="margin-top: 6px">
+                            <button class="button" onclick="switchTheme()">切换样式：简约</button>
+                            <button class="button" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
                             <button class="button" id="nodeButton" onclick="ChatRoom.switchNode()"><svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区</button>
                             <#if level3Permitted == true>
                                 <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button">
@@ -119,6 +121,12 @@
                             <button class="button" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
                             <button class="button" onclick="ChatRoom.flashScreen()">清屏</button>
                             <button class="green" onclick="ChatRoom.send()">发送</button>
+                            <script>
+                                function switchTheme() {
+                                    document.cookie = "theme=light; path=/; max-age=" + 60 * 60 * 24 * 365;
+                                    location.href = '/cr';
+                                }
+                            </script>
                         </div>
                     </div>
                     <div id="paintContent" style="display: none">
