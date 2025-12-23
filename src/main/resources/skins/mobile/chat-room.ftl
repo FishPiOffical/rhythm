@@ -180,7 +180,7 @@
                     </div>
                 </#if>
             </div>
-            <div class="list" style="height: 100%; margin: 0 -12px;">
+            <div class="list" style="overflow: visible; height: 100%; margin: 0 -12px;">
                 <div id="chats">
                 </div>
                 <#if !isLoggedIn>
