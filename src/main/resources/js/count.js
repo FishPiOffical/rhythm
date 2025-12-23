@@ -318,7 +318,7 @@ function injectCountCSS() {
 /* 浮窗样式 */
 #timeContent {
   position: fixed;
-  z-index: 5;
+  z-index: 31;
   left: 20px;
   top: 20px;
   pointer-events: auto;
