@@ -19,6 +19,7 @@
 package org.b3log.symphony;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
@@ -59,16 +60,13 @@ import org.b3log.symphony.event.CommentUpdateNotifier;
 import org.b3log.symphony.event.PrivateChatSendHandler;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.Router;
+import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.CronMgmtService;
 import org.b3log.symphony.service.InitMgmtService;
-import org.b3log.symphony.util.Markdowns;
-import org.b3log.symphony.util.NodeUtil;
-import org.b3log.symphony.util.ReservedWords;
-import org.b3log.symphony.util.Symphonys;
-import org.b3log.symphony.util.Vocation;
+import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
 /**
@@ -256,6 +254,8 @@ public final class Server extends BaseServer {
 
         final Server server = new Server();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // 提示聊天室的用户会短暂断开
+            ChatRoomBot.sendBotMsg("#### 维护模式 :wrench:\n社区进入维护模式，期间将无法发送聊天消息 :mute:\n请不要走开，完成后我会在当前频道广播，不需要刷新喔 :heart:");
             // 用户层 结算似乎不需要 暂时去掉
             UserChannel.settlement();
             // 框架
@@ -313,6 +313,8 @@ public final class Server extends BaseServer {
         String startupTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         String staticResourceVersion = Symphonys.get("staticResourceVersion");
         STARTUP_STR = "<li>Rhythm 启动时间：" + startupTime + "</li><li>Rhythm 编译版本：" + staticResourceVersion + "</li>";
+
+        ChatRoomBot.sendBotMsg("#### 维护完毕:sparkles:\n社区已结束维护，可以开始聊天啦 :smile:\nRhythm 启动时间 " + ClockEmojiMapper.getClockEmojiCode(LocalTime.now()) + " " + startupTime + "\nRhythm 编译版本 :dart: " + staticResourceVersion);
 
         System.out.println(">>> Quick boot mode requirements is ready!");
 
