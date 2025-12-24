@@ -156,6 +156,7 @@ public final class Markdowns {
      * @return safe HTML content
      */
     public static String clean(String content, final String baseURI) {
+        content = MdSanitizer.stripFormatChars(content);
         final Whitelist whitelist = Whitelist.relaxed().addAttributes(":all", "id", "target", "data-src", "aria-name", "aria-label");
         inputWhitelist(whitelist);
         final Document.OutputSettings outputSettings = new Document.OutputSettings();
