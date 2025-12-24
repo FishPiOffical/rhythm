@@ -78,7 +78,7 @@ public class BeforeRequestHandler implements Handler {
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 
         if (context.header(Common.USER_AGENT) == null) {
-            context.sendStatus(500);
+            context.sendStatus(418);
             return;
         }
 
