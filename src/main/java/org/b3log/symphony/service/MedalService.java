@@ -38,6 +38,9 @@ import org.b3log.symphony.util.Dates;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -512,12 +515,22 @@ public class MedalService {
             }
             String nextMedalId = String.valueOf(maxMedalId + 1);
 
+            // 对 medalAttr 进行 URL 解码
+            String decodedMedalAttr = medalAttr;
+            if (medalAttr != null && !medalAttr.isEmpty()) {
+                try {
+                    decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException e) {
+                    LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
+                }
+            }
+
             JSONObject medal = new JSONObject();
             medal.put("medal_id", nextMedalId);
             medal.put("medal_name", medalName);
             medal.put("medal_type", medalType);
             medal.put("medal_description", medalDescription);
-            medal.put("medal_attr", medalAttr);
+            medal.put("medal_attr", decodedMedalAttr);
             String oId = medalRepository.add(medal);
             transaction.commit();
             return oId;
@@ -597,6 +610,17 @@ public class MedalService {
             Query medalQuery = new Query()
                     .setFilter(new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId));
             List<JSONObject> medals = medalRepository.getList(medalQuery);
+            
+            // 对 medalAttr 进行 URL 解码
+            String decodedMedalAttr = medalAttr;
+            if (medalAttr != null && !medalAttr.isEmpty()) {
+                try {
+                    decodedMedalAttr = URLDecoder.decode(medalAttr, StandardCharsets.UTF_8.name());
+                } catch (UnsupportedEncodingException e) {
+                    LOGGER.log(Level.WARN, "Failed to decode medalAttr [" + medalAttr + "], using original value", e);
+                }
+            }
+            
             for (JSONObject medal : medals) {
                 String oId = medal.optString("oId");
                 if (oId == null || oId.isEmpty()) {
@@ -605,7 +629,7 @@ public class MedalService {
                 medal.put("medal_name", medalName);
                 medal.put("medal_type", medalType);
                 medal.put("medal_description", medalDescription);
-                medal.put("medal_attr", medalAttr);
+                medal.put("medal_attr", decodedMedalAttr);
                 Transaction transaction = medalRepository.beginTransaction();
                 medalRepository.update(oId, medal);
                 transaction.commit();
