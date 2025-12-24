@@ -39,7 +39,7 @@
 <#include "header.ftl">
 <div class="main" style="margin: 10px 0 0 0; padding: 0">
     <div class="wrapper">
-        <div class="content chat-room chat-room--qq-layout">
+        <div class="content chat-room chat-room--qq-layout" style="padding: 0 0 50px 0;">
             <#-- 顶部头部栏：与 module 同级，左标题 + 右按钮 -->
             <div class="chat-room__header">
                 <div class="chat-room__header-title">
@@ -69,7 +69,7 @@
             </div>
 
             <div class="module" style="margin-bottom: 0">
-                <div class="fn-content" style="padding-top: 0;">
+                <div class="fn-content" style="padding: 0;">
                     <div class="chat-room__layout">
                         <div class="chat-room__main">
                             <#-- 消息列表区域 -->
@@ -177,23 +177,6 @@
                         <#-- 右侧：话题 + 在线用户 -->
                         <div class="chat-room__side">
                             <#if isLoggedIn>
-                                <div class="chat-room__topic">
-                                    <div class="chat-room__topic-header">
-                                        <span class="chat-room__topic-label">当前话题</span>
-                                    </div>
-                                    <div class="chat-room__topic-body">
-                                        <span class="chat-room__topic-text"># <span id="discuss-title">加载中...</span> #</span>
-                                        <div class="chat-room__topic-actions">
-                                            <a onclick="ChatRoom.setDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="编辑话题" style="text-decoration: none;">
-                                                <svg><use xlink:href="#edit-discuss"></use></svg>
-                                            </a>
-                                            <a onclick="ChatRoom.useDiscuss()" class="ft-a-title tooltipped tooltipped-se" aria-label="引用话题" style="text-decoration: none;">
-                                                <svg><use xlink:href="#pound"></use></svg>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <div class="chat-room__online">
                                     <div class="chat-room__online-header">
                                         <span>${onlineVisitorCountLabel}</span>
@@ -213,76 +196,10 @@
         </div>
     </div>
 </div>
-<div id="goToTop" style="position:fixed;bottom:20px;right:10%;display:none;"><a href="#"><svg style="width:30px;height:30px;color:#626262;"><use xlink:href="#toTopIcon"></use></svg></a></div>
-<div id="musicBox">
-    <div class="music-box">
-        <div class="music-controller">
-            <div class="music-prev" onclick="ChatRoom.playSound.prev()">
-                <img src="${staticServePath}/images/music/circle_skip_previous.png" alt="">
-            </div>
-            <#--            <div class="music-play" onclick="ChatRoom.playSound.togglePlay()">-->
-            <#--                <img class="music-play-icon" src="${staticServePath}/images/music/circle_play.png" alt="">-->
-            <#--            </div>-->
-            <div class="music-next" onclick="ChatRoom.playSound.next()">
-                <img src="${staticServePath}/images/music/circle_skip_next.png" alt="">
-            </div>
-        </div>
-        <#--        <div class="music-img">-->
-        <#--            <img src="${staticServePath}/images/music/cat.gif" class="music-img-item" alt="" />-->
-        <#--        </div>-->
-        <div class="music-detail">
-            <#--            <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height="52" src="//music.163.com/outchain/player?type=2&id=2635209343&auto=0&height=32"></iframe>-->
-
-            <div class="music-title">摸鱼播放器v1.0</div>
-            <div class="music-time"><span class="music-current">00:00</span>-<span class="music-duration">00:00</span></div>
-        </div>
-        <div class="music-controller">
-            <#--            <div class="music-voice" style="padding: 2px;box-sizing: border-box">-->
-            <#--                <img class="music-voice-icon" src="${staticServePath}/images/music/volume_3.png" alt="">-->
-            <#--                <div class="music-voice-box">-->
-            <#--                    <input type="range" value="100" max="100" min="0" onchange="ChatRoom.playSound.changeVoice(this)">-->
-            <#--                </div>-->
-            <#--            </div>-->
-            <div class="music-mode" style="padding: 5px;box-sizing: border-box" onclick="ChatRoom.playSound.toggleMode()">
-                <img class="music-mode-icon" src="${staticServePath}/images/music/repeat.png" alt="">
-            </div>
-            <div class="music-list" style="padding: 5px;box-sizing: border-box" onclick="ChatRoom.playSound.toggleList()">
-                <img src="${staticServePath}/images/music/list.png" alt="">
-            </div>
-        </div>
-        <div class="music-close-btn" onclick="ChatRoom.playSound.toggleShow()">
-            <img class="music-close-icon" src="${staticServePath}/images/music/arrow_up.png" alt="" />
-        </div>
-    </div>
-    <div class="music-core">
-        <audio id="music-core-item" src=""></audio>
-    </div>
-</div>
-<div class="music-list-box"></div>
-<div id="robotBox" style="display: none;" class="">
-    <div class="robot-tool-bar">
-        <img src="https://www.iconninja.com/files/400/1008/1019/align-left-icon.png" class="robot-logo" alt="">
-        用户消息捕获
-        <div class="robot-toolbar-btn">
-            <svg id="robotClose" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-                <title>关闭</title>
-                <path d="M576 512l277.333333 277.333333-64 64-277.333333-277.333333L234.666667 853.333333 170.666667 789.333333l277.333333-277.333333L170.666667 234.666667 234.666667 170.666667l277.333333 277.333333L789.333333 170.666667 853.333333 234.666667 576 512z" fill="#ffffff"></path>' +
-            </svg>
-        </div>
-    </div>
-    <div class="robot-chat-box" style="position: relative; height: 30px">
-        <input id="catch-word" class="robot-catch-input" type="checkbox">捕获
-        <div id="changeCatchKeys" class="robot-keys-btn">修改口令</div>
-        <div id="changeCatchUsers" class="robot-change-btn">修改用户</div>
-        <div id="clearRobotMsg" class="robot-clear-btn">清屏</div>
-    </div>
-    <div id="robotMsgList"></div>
-</div>
 <script src="${staticServePath}/js/symbol-defs${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>
 <script src="https://file.fishpi.cn/vditor/3.11.1/dist/index.min.js"></script>
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
-<script src="${staticServePath}/js/count${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     var Label = {
         commentEditorPlaceholderLabel: '${commentEditorPlaceholderLabel}',
