@@ -74,7 +74,8 @@
         <div id="captcha"></div>
     </div>
     <div class="note">
-        登录后将不会再弹出验证
+        登录后将不会再弹出验证<br><br>
+        如果您使用火狐浏览器无法显示验证码，请尝试<br><a target="_blank" href="https://support.mozilla.org/zh-CN/kb/Firefox%20%E6%A1%8C%E9%9D%A2%E7%89%88%E7%9A%84%E5%A2%9E%E5%BC%BA%E8%B7%9F%E8%B8%AA%E4%BF%9D%E6%8A%A4#w_wang-zhan-you-wen-ti-ying-gai-zen-yao-zuo">关闭 Firefox 严格增强隐私保护</a>
     </div>
 </div>
 
