@@ -244,7 +244,7 @@ public class UserProcessor {
         Dispatcher.get("/user/{userName}", userProcessor::getUserInfo);
         Dispatcher.get("/user/liveness", userProcessor::getLiveness, loginCheck::handle);
         Dispatcher.post("/user/liveness", userProcessor::getUserLiveness);
-        Dispatcher.get("/user/{userName}/metal", userProcessor::getUserMetal, userCheckMidware::handle);
+        Dispatcher.get("/user/{userName}/medal", userProcessor::getUserMedal, userCheckMidware::handle);
         Dispatcher.get("/user/{userName}/point", userProcessor::getUserPoint);
         Dispatcher.post("/user/query/latest-login-ip", userProcessor::getLatestLoginIp);
         Dispatcher.post("/user/edit/give-metal", userProcessor::giveMetal);
@@ -707,7 +707,7 @@ public class UserProcessor {
      *
      * @param context
      */
-    public void getUserMetal(final RequestContext context) {
+    public void getUserMedal(final RequestContext context) {
         final String userName = context.pathVar("userName");
         final JSONObject user = userQueryService.getUserByName(userName);
         String userId = user.optString(Keys.OBJECT_ID);
