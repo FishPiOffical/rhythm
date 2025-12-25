@@ -1752,6 +1752,8 @@ var Util = {
                         $("#userCardContent > div > a > div").css("width", "105px");
                         $("#userCardContent > div > a > div").css("height", "105px");
                         $("#userCardContent > div > a > div").css("top", "80px");
+                    } else {
+                        $("#userCardContent").css("background-color", "#FFFFFF");
                     }
 
                     let left = $this.offset().left + 30;
