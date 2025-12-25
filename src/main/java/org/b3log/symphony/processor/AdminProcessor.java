@@ -70,6 +70,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static org.b3log.symphony.util.Symphonys.QN_ENABLED;
@@ -436,6 +437,7 @@ public class AdminProcessor {
         Dispatcher.post("/admin/pic", adminProcessor::markPic, middlewares);
         Dispatcher.post("/admin/user/{userId}/cardBg", adminProcessor::setCardBg, middlewares);
         Dispatcher.get("/admin/stats", adminProcessor::getStats, middlewares);
+        Dispatcher.post("/admin/pay-salary", adminProcessor::paySalary);
     }
 
     final public static ChannelStatsManager manager = new ChannelStatsManager();
@@ -2913,6 +2915,120 @@ public class AdminProcessor {
         operationMgmtService.addOperation(Operation.newOperation(context.getRequest(), Operation.OPERATION_CODE_C_REBUILD_ARTICLE_SEARCH, articleId));
 
         context.sendRedirect(Latkes.getServePath() + "/admin/articles");
+    }
+
+    /**
+     * Pays salary to employees.
+     *
+     * @param context the specified context
+     */
+    public void paySalary(final RequestContext context) {
+        final JSONObject requestJSON = context.requestJSON();
+        JSONObject currentUser = Sessions.getUser();
+        try {
+            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (NullPointerException ignored) {
+        }
+        try {
+            currentUser = ApiProcessor.getUserByKey(requestJSON.optString("apiKey"));
+        } catch (NullPointerException ignored) {
+        }
+        if (null == currentUser) {
+            context.sendError(401);
+            context.abort();
+            return;
+        }
+
+        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
+            context.sendError(401);
+            context.abort();
+            return;
+        }
+
+        final JSONArray employees = requestJSON.optJSONArray("employees");
+
+        if (null == employees || employees.length() == 0) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("员工列表不能为空");
+            return;
+        }
+
+        final StringBuilder logMessage = new StringBuilder("发工资详情：\n");
+        final long startTime = System.currentTimeMillis();
+        int successCount = 0;
+        int failCount = 0;
+        final StringBuilder failDetails = new StringBuilder();
+
+        for (int i = 0; i < employees.length(); i++) {
+            final JSONObject employee = employees.optJSONObject(i);
+            final String userName = employee.optString("userName");
+            final int amount = employee.optInt("amount");
+
+            if (StringUtils.isBlank(userName) || amount <= 0) {
+                failCount++;
+                failDetails.append("用户名：").append(userName).append("，工资数额无效\n");
+                continue;
+            }
+
+            try {
+                final JSONObject user = userQueryService.getUserByName(userName);
+                if (null == user) {
+                    failCount++;
+                    failDetails.append("用户名：").append(userName).append("，用户不存在\n");
+                    continue;
+                }
+
+                final String toId = user.optString(Keys.OBJECT_ID);
+                final String memo = "发放工资";
+                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, toId,
+                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, amount, toId,
+                        System.currentTimeMillis(), memo);
+                final JSONObject notification = new JSONObject();
+                notification.put(Notification.NOTIFICATION_USER_ID, toId);
+                notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
+                notificationMgmtService.addPointTransferNotification(notification);
+
+                if (null != transferId) {
+                    successCount++;
+                    logMessage.append(userName).append("：").append(amount).append(" 积分\n");
+                } else {
+                    failCount++;
+                    failDetails.append("用户名：").append(userName).append("，转账失败\n");
+                }
+            } catch (final Exception e) {
+                failCount++;
+                failDetails.append("用户名：").append(userName).append("，错误：").append(e.getMessage()).append("\n");
+                LOGGER.log(Level.ERROR, "Pay salary to [" + userName + "] failed", e);
+            }
+        }
+
+        final long endTime = System.currentTimeMillis();
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        final String completeTime = sdf.format(new Date(endTime));
+
+        logMessage.append("\n成功发放：").append(successCount).append(" 人\n");
+        if (failCount > 0) {
+            logMessage.append("发放失败：").append(failCount).append(" 人\n");
+            logMessage.append("失败详情：\n").append(failDetails);
+        }
+        logMessage.append("\n完成时间：").append(completeTime);
+
+        // 生成日志
+        LogsService.simpleLog(context, "发放工资", logMessage.toString());
+
+        // 返回结果
+        final JSONObject result = new JSONObject();
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("completeTime", completeTime);
+        result.put("logMessage", logMessage.toString());
+
+        if (failCount > 0) {
+            context.renderJSON(StatusCodes.SUCC).renderJSON(result);
+            context.renderMsg("部分员工发放失败");
+        } else {
+            context.renderJSON(StatusCodes.SUCC).renderJSON(result);
+            context.renderMsg("工资发放成功");
+        }
     }
 
     private void updateArticleSearchIndex(final JSONObject article) {
