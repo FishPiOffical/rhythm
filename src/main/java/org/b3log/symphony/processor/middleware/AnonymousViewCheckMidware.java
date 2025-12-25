@@ -191,8 +191,8 @@ public class AnonymousViewCheckMidware {
                             }
                         }
 
-                        // 之后每访问 3 次需要一次验证码
-                        if (!needCaptcha && count % 3 == 0) {
+                        // 之后每访问 10 次需要一次验证码
+                        if (!needCaptcha && count % 10 == 0) {
                             needCaptcha = true;
                         }
 
