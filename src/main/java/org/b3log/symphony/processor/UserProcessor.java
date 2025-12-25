@@ -245,6 +245,7 @@ public class UserProcessor {
         Dispatcher.get("/user/liveness", userProcessor::getLiveness, loginCheck::handle);
         Dispatcher.post("/user/liveness", userProcessor::getUserLiveness);
         Dispatcher.get("/user/{userName}/metal", userProcessor::getUserMetal, userCheckMidware::handle);
+        Dispatcher.get("/user/{userName}/point", userProcessor::getUserPoint);
         Dispatcher.post("/user/query/latest-login-ip", userProcessor::getLatestLoginIp);
         Dispatcher.post("/user/edit/give-metal", userProcessor::giveMetal);
         Dispatcher.post("/user/edit/remove-metal", userProcessor::removeMetal);
@@ -1577,6 +1578,24 @@ public class UserProcessor {
             avatarQueryService.fillUserAvatarURL(user);
         }
         result.put(Common.DATA, userNames);
+    }
+
+    /**
+     * 获取用户积分余额
+     *
+     * @param context the specified context
+     */
+    public void getUserPoint(final RequestContext context) {
+        final String userName = context.pathVar("userName");
+        final JSONObject user = userQueryService.getUserByName(userName);
+        if (null == user) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("用户不存在");
+            return;
+        }
+        final JSONObject result = new JSONObject();
+        result.put(User.USER_NAME, userName);
+        result.put(UserExt.USER_POINT, user.optInt(UserExt.USER_POINT));
+        context.renderJSON(StatusCodes.SUCC).renderData(result);
     }
 
     /**
