@@ -124,8 +124,10 @@ public class CaptchaProcessor {
         final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (CaptchaProcessor.jiyan(captcha)) {
+            // 验证通过：清理黑名单和访问计数，并记录最近一次通过验证码的时间
             AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
             AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
+            AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
             context.renderJSON(StatusCodes.SUCC);
             System.out.println(ip + " 验证成功");
         } else {

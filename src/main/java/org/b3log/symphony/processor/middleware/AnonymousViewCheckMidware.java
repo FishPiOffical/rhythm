@@ -103,6 +103,22 @@ public class AnonymousViewCheckMidware {
     // String类型的白名单
     public static final Set<String> whiteList = new HashSet<>();
 
+    /**
+     * IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）
+     */
+    public static final Cache<String, Long> ipFirstVisitTimeCache = Caffeine.newBuilder()
+            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
+            .maximumSize(100000)
+            .build();
+
+    /**
+     * IP 最近一次通过验证码的时间（通过后重置计数逻辑时使用）
+     */
+    public static final Cache<String, Long> ipLastCaptchaPassTimeCache = Caffeine.newBuilder()
+            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
+            .maximumSize(100000)
+            .build();
+
     private static Cookie getCookie(final Request request, final String name) {
         final Set<Cookie> cookies = request.getCookies();
         if (cookies.isEmpty()) {
@@ -144,22 +160,47 @@ public class AnonymousViewCheckMidware {
                 } else {
                     final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
                     if (!isSearchEngineBot(ua)) {
-                        // 计数逻辑
+                        // 初始化首次访问时间（用于 2 小时内首次访问逻辑）
+                        Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
+                        long now = System.currentTimeMillis();
+                        if (firstVisitTime == null) {
+                            firstVisitTime = now;
+                            ipFirstVisitTimeCache.put(ip, firstVisitTime);
+                        }
+
+                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 3 次一次）
                         Integer count = ipVisitCountCache.getIfPresent(ip);
                         if (count == null) count = 0;
                         count++;
                         ipVisitCountCache.put(ip, count);
                         System.out.println(ip + " 访问计数：" + count + " " + context.requestURI());
-                        if (count >= 300) {
+
+                        if (count >= 20) {
                             String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
                             System.out.println(ip + " 已封禁");
                         }
-                        if (count >= 5) {
-                            // 进入黑名单
+
+                        // 判断是否需要进入验证码流程
+                        boolean needCaptcha = false;
+
+                        // 2 小时内首次访问：第一次就需要验证码
+                        Long lastPassTime = ipLastCaptchaPassTimeCache.getIfPresent(ip);
+                        if (lastPassTime == null && (now - firstVisitTime) <= 2L * 60L * 60L * 1000L) {
+                            if (count == 1) {
+                                needCaptcha = true;
+                            }
+                        }
+
+                        // 之后每访问 3 次需要一次验证码
+                        if (!needCaptcha && count % 3 == 0) {
+                            needCaptcha = true;
+                        }
+
+                        if (needCaptcha) {
+                            // 进入黑名单并跳转验证码页面
                             ipBlacklistCache.put(ip, true);
-                            // 跳转到验证码页面
                             context.sendRedirect("/test");
-                            System.out.println(ip + " 进入黑名单");
+                            System.out.println(ip + " 触发验证码，进入黑名单");
                             return;
                         }
                     }
