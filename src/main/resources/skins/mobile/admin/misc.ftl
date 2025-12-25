@@ -84,5 +84,116 @@
         </div>
     </div>
     </#if>
+
+    <div class="module">
+        <div class="module-header">
+            <h2>发放工资</h2>
+        </div>
+        <div class="module-panel form fn-clear form--admin">
+            <label>员工工资列表</label><br><br>
+            <div id="salaryList"></div>
+            <button type="button" onclick="SalaryUtil.addEmployeeRow()" class="green" style="width:100%;margin:10px 0;">+ 添加员工</button>
+            <br/><br/>
+            <button type="button" onclick="SalaryUtil.paySalary()" class="green fn-right" style="width:100%;">发放工资</button>
+        </div>
+    </div>
 </div>
+
+<script>
+const SalaryUtil = {
+    STORAGE_KEY: 'admin_salary_list',
+    servePath: '${servePath}',
+
+    init: function() {
+        this.loadFromStorage();
+    },
+
+    addEmployeeRow: function(data) {
+        const container = document.getElementById('salaryList');
+        const row = document.createElement('div');
+        row.className = 'salary-row';
+        row.style.cssText = 'display:flex;gap:10px;margin:10px 0;align-items:center;';
+        const userName = data ? data.userName : '';
+        const amount = data ? data.amount : '';
+        row.innerHTML =
+            '<input type="text" class="salary-username" value="' + userName + '" placeholder="用户名" style="flex:1;padding:8px;" oninput="SalaryUtil.saveToStorage()">' +
+            '<input type="number" class="salary-amount" value="' + amount + '" placeholder="工资" min="1" style="width:100px;padding:8px;" oninput="SalaryUtil.saveToStorage()">' +
+            '<button type="button" onclick="SalaryUtil.removeEmployeeRow(this)" style="padding:8px 16px;">删除</button>';
+        container.appendChild(row);
+        this.saveToStorage();
+    },
+
+    removeEmployeeRow: function(btn) {
+        const row = btn.closest('.salary-row');
+        row.remove();
+        this.saveToStorage();
+    },
+
+    saveToStorage: function() {
+        const data = this.getEmployeeData();
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    },
+
+    loadFromStorage: function() {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (Array.isArray(data) && data.length > 0) {
+                    document.getElementById('salaryList').innerHTML = '';
+                    data.forEach(emp => this.addEmployeeRow(emp));
+                    return;
+                }
+            } catch (e) {
+                console.error('Failed to load salary list:', e);
+            }
+        }
+        // 默认添加一行
+        this.addEmployeeRow();
+    },
+
+    getEmployeeData: function() {
+        const rows = document.querySelectorAll('.salary-row');
+        const data = [];
+        rows.forEach(row => {
+            const userName = row.querySelector('.salary-username').value.trim();
+            const amount = parseInt(row.querySelector('.salary-amount').value);
+            if (userName && amount > 0) {
+                data.push({ userName: userName, amount: amount });
+            }
+        });
+        return data;
+    },
+
+    paySalary: function() {
+        const data = this.getEmployeeData();
+        if (data.length === 0) {
+            alert('请至少添加一名员工');
+            return;
+        }
+
+        if (!confirm('确认向 ' + data.length + ' 名员工发放工资？')) {
+            return;
+        }
+
+        fetch(this.servePath + '/admin/pay-salary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ employees: data })
+        })
+        .then(res => res.json())
+        .then(result => {
+            alert(result.msg + '\n\n' + result.logMessage);
+        })
+        .catch(err => {
+            alert('请求失败：' + err.message);
+        });
+    }
+};
+
+// 页面加载时初始化
+SalaryUtil.init();
+</script>
 </@admin>

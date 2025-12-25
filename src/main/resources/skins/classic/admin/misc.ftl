@@ -97,5 +97,128 @@
         </div>
     </div>
     </#if>
+
+    <div class="module">
+        <div class="module-header">
+            <h2>发放工资</h2>
+        </div>
+        <div class="module-panel form fn-clear form--admin">
+            <div class="fn__flex">
+                <label>
+                    <div>员工工资列表</div>
+                    <table id="salaryTable" class="table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>用户名</th>
+                                <th>工资数额</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salaryTableBody">
+                        </tbody>
+                    </table>
+                    <button type="button" onclick="SalaryUtil.addEmployeeRow()" class="green">+ 添加员工</button>
+                </label>
+            </div>
+            <br/>
+            <button type="button" onclick="SalaryUtil.paySalary()" class="green fn-right">发放工资</button>
+        </div>
+    </div>
 </div>
+
+<script>
+const SalaryUtil = {
+    STORAGE_KEY: 'admin_salary_list',
+    servePath: '${servePath}',
+
+    init: function() {
+        this.loadFromStorage();
+    },
+
+    addEmployeeRow: function(data) {
+        const tbody = document.getElementById('salaryTableBody');
+        const row = document.createElement('tr');
+        const userName = data ? data.userName : '';
+        const amount = data ? data.amount : '';
+        row.innerHTML =
+            '<td><input type="text" class="salary-username" value="' + userName + '" placeholder="请输入用户名" oninput="SalaryUtil.saveToStorage()"></td>' +
+            '<td><input type="number" class="salary-amount" value="' + amount + '" placeholder="请输入工资数额" min="1" oninput="SalaryUtil.saveToStorage()"></td>' +
+            '<td><button type="button" onclick="SalaryUtil.removeEmployeeRow(this)">删除</button></td>';
+        tbody.appendChild(row);
+        this.saveToStorage();
+    },
+
+    removeEmployeeRow: function(btn) {
+        const row = btn.closest('tr');
+        row.remove();
+        this.saveToStorage();
+    },
+
+    saveToStorage: function() {
+        const data = this.getEmployeeData();
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    },
+
+    loadFromStorage: function() {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (Array.isArray(data) && data.length > 0) {
+                    document.getElementById('salaryTableBody').innerHTML = '';
+                    data.forEach(emp => this.addEmployeeRow(emp));
+                    return;
+                }
+            } catch (e) {
+                console.error('Failed to load salary list:', e);
+            }
+        }
+        // 默认添加一行
+        this.addEmployeeRow();
+    },
+
+    getEmployeeData: function() {
+        const rows = document.querySelectorAll('#salaryTableBody tr');
+        const data = [];
+        rows.forEach(row => {
+            const userName = row.querySelector('.salary-username').value.trim();
+            const amount = parseInt(row.querySelector('.salary-amount').value);
+            if (userName && amount > 0) {
+                data.push({ userName: userName, amount: amount });
+            }
+        });
+        return data;
+    },
+
+    paySalary: function() {
+        const data = this.getEmployeeData();
+        if (data.length === 0) {
+            alert('请至少添加一名员工');
+            return;
+        }
+
+        if (!confirm('确认向 ' + data.length + ' 名员工发放工资？')) {
+            return;
+        }
+
+        fetch(this.servePath + '/admin/pay-salary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ employees: data })
+        })
+        .then(res => res.json())
+        .then(result => {
+            alert(result.msg + '\n\n' + result.logMessage);
+        })
+        .catch(err => {
+            alert('请求失败：' + err.message);
+        });
+    }
+};
+
+// 页面加载时初始化
+SalaryUtil.init();
+</script>
 </@admin>

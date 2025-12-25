@@ -3013,7 +3013,7 @@ public class AdminProcessor {
         logMessage.append("\n完成时间：").append(completeTime);
 
         // 生成日志
-        LogsService.simpleLog(context, "发放工资", logMessage.toString());
+        LogsService.simpleLog(context, "发放工资", "操作人员：" + currentUser.optString(User.USER_NAME) + " " + logMessage.toString());
 
         // 返回结果
         final JSONObject result = new JSONObject();
