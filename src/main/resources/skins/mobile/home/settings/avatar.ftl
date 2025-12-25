@@ -92,7 +92,7 @@
         </div>
     </div>
 </@home>
-<script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
+<script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
 <script src="${staticServePath}/js/lib/cropper/cropper.min.js"></script>
 <script>
     var URL = window.URL || window.webkitURL;

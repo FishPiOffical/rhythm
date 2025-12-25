@@ -136,7 +136,7 @@
 </html>
 <script src="${staticServePath}/js/chat${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
-<script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
+<script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
 <script>
     var Label = {
         commentEditorPlaceholderLabel: '${commentEditorPlaceholderLabel}',

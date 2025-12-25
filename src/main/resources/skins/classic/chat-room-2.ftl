@@ -380,7 +380,7 @@
     Label.membership = ${membership};
 </script>
 <script src="${staticServePath}/js/lib/echarts.min.js"></script>
-<script src="${staticServePath}/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.min.js"></script>
+<script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
 <script src="${staticServePath}/js/channel-2${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/chat-room-2${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/viewer.min.js?${staticResourceVersion}"></script>

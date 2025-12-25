@@ -20,7 +20,7 @@
 -->
 <!DOCTYPE html>
 <html lang="zh-hans">
-    <script type="text/javascript" src="../../../../js/lib/jquery/jquery-3.1.0.min.js"></script>
+    <script type="text/javascript" src="../../../../js/lib/jquery/jquery.min.js"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="keywords" content="Emoji真假小黄脸" />
     <link rel="stylesheet" type="text/css" href="../../../../games/emojiPair/dict-web.min.css">

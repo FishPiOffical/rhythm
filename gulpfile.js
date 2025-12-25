@@ -86,11 +86,11 @@ function minJS () {
 function minUpload () {
   // concat js
   var jsJqueryUpload = [
-    './src/main/resources/js/lib/jquery/file-upload-9.10.1/vendor/jquery.ui.widget.js',
-    './src/main/resources/js/lib/jquery/file-upload-9.10.1/jquery.iframe-transport.js',
-    './src/main/resources/js/lib/jquery/file-upload-9.10.1/jquery.fileupload.js',
-    './src/main/resources/js/lib/jquery/file-upload-9.10.1/jquery.fileupload-process.js',
-    './src/main/resources/js/lib/jquery/file-upload-9.10.1/jquery.fileupload-validate.js']
+    './src/main/resources/js/lib/jquery/file-upload/vendor/jquery.ui.widget.js',
+    './src/main/resources/js/lib/jquery/file-upload/jquery.iframe-transport.js',
+    './src/main/resources/js/lib/jquery/file-upload/jquery.fileupload.js',
+    './src/main/resources/js/lib/jquery/file-upload/jquery.fileupload-process.js',
+    './src/main/resources/js/lib/jquery/file-upload/jquery.fileupload-validate.js']
   return gulp.src(jsJqueryUpload).
     pipe(terser({
       format: {
@@ -98,12 +98,12 @@ function minUpload () {
       }
     })).
     pipe(concat('jquery.fileupload.min.js')).
-    pipe(gulp.dest('./src/main/resources/js/lib/jquery/file-upload-9.10.1/'))
+    pipe(gulp.dest('./src/main/resources/js/lib/jquery/file-upload/'))
 }
 
 function minLibs () {
   var jsCommonLib = [
-    './src/main/resources/js/lib/jquery/jquery-3.1.0.min.js',
+    './src/main/resources/js/lib/jquery/jquery.min.js',
     './src/main/resources/js/lib/md5.js',
     './src/main/resources/js/lib/reconnecting-websocket.min.js',
     './src/main/resources/js/lib/jquery/jquery.bowknot.min.js',
