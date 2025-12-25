@@ -168,7 +168,7 @@ public class AnonymousViewCheckMidware {
                             ipFirstVisitTimeCache.put(ip, firstVisitTime);
                         }
 
-                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 3 次一次）
+                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 10 次一次）
                         Integer count = ipVisitCountCache.getIfPresent(ip);
                         if (count == null) count = 0;
                         count++;
