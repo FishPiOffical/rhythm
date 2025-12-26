@@ -466,7 +466,7 @@ public class ArticleProcessor {
         final Request request = context.getRequest();
 
         if (hitArticleRateLimit(request)) {
-            context.renderCodeMsg(503, "访问过快，请稍候再试");
+            context.sendStatus(503);
             return;
         }
 
@@ -1216,7 +1216,7 @@ public class ArticleProcessor {
         final Request request = context.getRequest();
 
         if (hitArticleRateLimit(request)) {
-            context.sendError(503);
+            context.sendStatus(503);
             return;
         }
 
