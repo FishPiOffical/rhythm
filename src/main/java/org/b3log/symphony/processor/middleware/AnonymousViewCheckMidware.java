@@ -197,7 +197,7 @@ public class AnonymousViewCheckMidware {
                             ipFirstVisitTimeCache.put(ip, firstVisitTime);
                         }
 
-                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 10 次一次）
+                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 5 次一次）
                         Integer count = ipVisitCountCache.getIfPresent(ip);
                         if (count == null) count = 0;
                         count++;
@@ -217,8 +217,8 @@ public class AnonymousViewCheckMidware {
                             }
                         }
 
-                        // 之后每访问 10 次需要一次验证码
-                        if (!needCaptcha && count % 10 == 0) {
+                        // 之后每访问 5 次需要一次验证码
+                        if (!needCaptcha && count % 5 == 0) {
                             needCaptcha = true;
                         }
 
