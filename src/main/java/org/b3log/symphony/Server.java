@@ -323,6 +323,13 @@ public final class Server extends BaseServer {
             ChatRoomBot.sendBotMsg("#### 维护完毕:sparkles:\n社区已结束维护，可以开始聊天啦 :smile:\nRhythm 启动时间 " + ClockEmojiMapper.getClockEmojiCode(LocalTime.now()) + " " + startupTime + "\nRhythm 编译版本 :dart: " + staticResourceVersion);
         });
 
+        if (Latkes.getRuntimeMode() == Latkes.RuntimeMode.DEVELOPMENT) {
+            org.b3log.symphony.util.Firewall.setEnabled(false);
+            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setEnabled(false);
+            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(false);
+            LOGGER.warn("Development mode: CC firewall and verification shield are disabled.");
+        }
+
         System.out.println(">>> Quick boot mode requirements is ready!");
 
         final String unixDomainSocketPath = commandLine.getOptionValue("unix_domain_socket_path");
