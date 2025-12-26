@@ -379,7 +379,7 @@ public class ChatRoomBot {
                                         ChatroomChannel.removeSession(session);
                                     }
                                     JdbcRepository.dispose();
-                                }).start();
+                                });
                             } catch (Exception e) {
                                 sendBotMsg("参数错误。");
                             }
