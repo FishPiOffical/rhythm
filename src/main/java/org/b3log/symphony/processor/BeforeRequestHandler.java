@@ -96,23 +96,6 @@ public class BeforeRequestHandler implements Handler {
             return;
         }
 
-        /*try {
-            String method = context.getRequest().getMethod();
-            String uri = context.getRequest().getRequestURI();
-            String ip = Requests.getRemoteAddr(context.getRequest());
-            String union = ip + " " + method + " " + uri;
-            if (!whiteList.contains(ip)) {
-                if (!antiCCLimiter.access(union)) {
-                    context.sendStatus(503);
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            context.sendStatus(503);
-            return;
-        }*/
-
         Locales.setLocale(Latkes.getLocale());
 
         Sessions.setTemplateDir(Symphonys.SKIN_DIR_NAME);

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.util.Execs;
+import org.b3log.symphony.cache.UserCache;
 
 import java.util.Map;
 import java.util.Set;
@@ -84,6 +85,7 @@ public final class Firewall {
         }
 
         final long nowBucket = System.currentTimeMillis() / WINDOW_MILLIS;
+        final int effectiveThreshold = UserCache.hasUserByIP(ip) ? threshold : Math.min(threshold, 250);
         final Counter counter = COUNTERS.compute(ip, (key, existing) -> {
             if (existing == null || existing.bucket != nowBucket) {
                 return new Counter(nowBucket, 1);
@@ -97,7 +99,7 @@ public final class Firewall {
             cleanupOldBuckets(nowBucket);
         }
 
-        if (counter.count.sum() > threshold && BANNED.add(ip)) {
+        if (counter.count.sum() > effectiveThreshold && BANNED.add(ip)) {
             // Run ban asynchronously on a virtual thread to keep request path light.
             Thread.startVirtualThread(() -> {
                 try {
@@ -110,7 +112,7 @@ public final class Firewall {
             return false;
         }
 
-        System.out.println("CC firewall allowed " + ip + " [" + counter.count + "]");
+        System.out.println("CC firewall allowed " + ip + " [" + counter.count.sum() + "]");
 
         return !BANNED.contains(ip);
     }
