@@ -37,12 +37,7 @@ public class Tests {
         //MD_CACHE = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
             int finalI = i;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    TAGS.add(new JSONObject().put("hi", finalI + ""));
-                }
-            }).start();
+            Thread.startVirtualThread(() -> TAGS.add(new JSONObject().put("hi", finalI + "")));
         }
         Thread.sleep(2000);
         System.out.println(TAGS.size());
