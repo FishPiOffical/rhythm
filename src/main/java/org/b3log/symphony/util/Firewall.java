@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Lightweight CC firewall: if an IP exceeds {@link #THRESHOLD} requests within a minute, ban it via ipset.
@@ -87,7 +88,7 @@ public final class Firewall {
             if (existing == null || existing.bucket != nowBucket) {
                 return new Counter(nowBucket, 1);
             }
-            existing.count++;
+            existing.count.increment();
             return existing;
         });
 
@@ -96,7 +97,7 @@ public final class Firewall {
             cleanupOldBuckets(nowBucket);
         }
 
-        if (counter.count > threshold && BANNED.add(ip)) {
+        if (counter.count.sum() > threshold && BANNED.add(ip)) {
             // Run ban asynchronously on a virtual thread to keep request path light.
             Thread.startVirtualThread(() -> {
                 try {
@@ -114,7 +115,7 @@ public final class Firewall {
         return !BANNED.contains(ip);
     }
 
-    private static void cleanupOldBuckets(final long currentBucket) {
+    public static void cleanupOldBuckets(final long currentBucket) {
         COUNTERS.entrySet().removeIf(entry -> entry.getValue().bucket != currentBucket);
     }
 
@@ -150,11 +151,11 @@ public final class Firewall {
 
     private static final class Counter {
         private final long bucket;
-        private int count;
+        private final LongAdder count = new LongAdder();
 
         private Counter(final long bucket, final int count) {
             this.bucket = bucket;
-            this.count = count;
+            this.count.add(count);
         }
     }
 }

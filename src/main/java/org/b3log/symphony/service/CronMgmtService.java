@@ -308,6 +308,19 @@ public class CronMgmtService {
             }
         }, delay, 1 * 60 * 1000, TimeUnit.MILLISECONDS);
         delay += 2000;
+
+        // 清理防火墙计数过期桶，避免 Map/BANNED 长期膨胀
+        Symphonys.SCHEDULED_EXECUTOR_SERVICE.scheduleAtFixedRate(() -> {
+            try {
+                final long bucket = System.currentTimeMillis() / TimeUnit.MINUTES.toMillis(1);
+                org.b3log.symphony.util.Firewall.cleanupOldBuckets(bucket);
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, "Executes firewall cleanup failed", e);
+            } finally {
+                Stopwatchs.release();
+            }
+        }, delay, 5 * 60 * 1000, TimeUnit.MILLISECONDS);
+        delay += 2000;
     }
 
     /**

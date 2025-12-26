@@ -175,7 +175,7 @@ public class AnonymousViewCheckMidware {
 
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
-        final boolean firstVisitArticle = requestURI.startsWith(Latkes.getContextPath() + "/article/");
+        final boolean firstVisitArticle = requestURI.startsWith("/article/");
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
