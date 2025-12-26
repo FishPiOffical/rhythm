@@ -41,6 +41,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
@@ -83,6 +84,7 @@ public class BeforeRequestHandler implements Handler {
         }
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
+        Firewall.recordAndMaybeBan(ip);
         // 黑名单判断
         if (AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null && !context.requestURI().equals("/test") && !context.requestURI().equals("/validateCaptcha")) {
             // 已经在黑名单，强制跳转到验证码页面
