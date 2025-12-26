@@ -112,8 +112,6 @@ public final class Firewall {
             return false;
         }
 
-        System.out.println("CC firewall allowed " + ip + " [" + counter.count.sum() + "]");
-
         return !BANNED.contains(ip);
     }
 
