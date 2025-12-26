@@ -119,6 +119,19 @@ public class AnonymousViewCheckMidware {
             .maximumSize(100000)
             .build();
 
+    /**
+     * Runtime enable flag for captcha checks (temporary, resets on restart).
+     */
+    private static volatile boolean enabled = true;
+
+    public static void setEnabled(final boolean value) {
+        enabled = value;
+    }
+
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
     private static Cookie getCookie(final Request request, final String name) {
         final Set<Cookie> cookies = request.getCookies();
         if (cookies.isEmpty()) {
@@ -145,6 +158,8 @@ public class AnonymousViewCheckMidware {
     }
 
     public void handle(final RequestContext context) {
+        final boolean shieldEnabled = enabled;
+
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
         JSONObject currentUser = Sessions.getUser();
@@ -159,7 +174,7 @@ public class AnonymousViewCheckMidware {
                     whiteList.add(ip);
                 } else {
                     final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-                    if (!isSearchEngineBot(ua)) {
+                    if (shieldEnabled && !isSearchEngineBot(ua)) {
                         // 初始化首次访问时间（用于 2 小时内首次访问逻辑）
                         Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
                         long now = System.currentTimeMillis();

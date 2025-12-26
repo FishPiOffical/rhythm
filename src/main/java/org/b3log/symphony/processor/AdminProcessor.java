@@ -56,6 +56,7 @@ import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.*;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
 import org.b3log.symphony.processor.middleware.validate.UserRegister2ValidationMidware;
@@ -66,6 +67,7 @@ import org.b3log.symphony.repository.UploadRepository;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.Firewall;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -431,6 +433,8 @@ public class AdminProcessor {
         Dispatcher.post("/admin/search/index", adminProcessor::rebuildArticleSearchIndex, middlewares);
         Dispatcher.post("/admin/search-index-article", adminProcessor::rebuildOneArticleSearchIndex, middlewares);
         Dispatcher.post("/admin/broadcast/warn", adminProcessor::warnBroadcast, middlewares);
+        Dispatcher.post("/admin/security/firewall", adminProcessor::toggleFirewall, middlewares);
+        Dispatcher.post("/admin/security/verification", adminProcessor::toggleVerificationShield, middlewares);
         Dispatcher.get("/admin/ip", adminProcessor::showIp, middlewares);
         Dispatcher.post("/admin/ip", adminProcessor::modifyIp, middlewares);
         Dispatcher.get("/admin/pic", adminProcessor::showPic, middlewares);
@@ -2394,6 +2398,9 @@ public class AdminProcessor {
 
         final List<JSONObject> misc = optionQueryService.getMisc();
         dataModel.put(Option.OPTIONS, misc);
+        dataModel.put("firewallEnabled", Firewall.isEnabled());
+        dataModel.put("firewallThreshold", Firewall.getThreshold());
+        dataModel.put("verificationShieldEnabled", AnonymousViewCheckMidware.isEnabled());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2433,6 +2440,68 @@ public class AdminProcessor {
         dataModel.put(Option.OPTIONS, misc);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    /**
+     * Toggle CC firewall (temporary, resets on restart).
+     */
+    public void toggleFirewall(final RequestContext context) {
+        final JSONObject currentUser = getCurrentUser(context);
+        if (!isSecurityOperator(currentUser)) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+
+        final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
+        final String thresholdStr = context.param("threshold");
+        int threshold = Firewall.getThreshold();
+        if (StringUtils.isNotBlank(thresholdStr)) {
+            try {
+                threshold = Integer.parseInt(thresholdStr.trim());
+            } catch (final NumberFormatException ignored) {
+                threshold = Firewall.getThreshold();
+            }
+        }
+        Firewall.setEnabled(enabled);
+        Firewall.setThreshold(threshold);
+
+        final JSONObject data = new JSONObject();
+        data.put("enabled", Firewall.isEnabled());
+        data.put("threshold", Firewall.getThreshold());
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区CC防火墙已" + (enabled ? "开启" : "关闭"));
+    }
+
+    /**
+     * Toggle anonymous verification shield (temporary, resets on restart).
+     */
+    public void toggleVerificationShield(final RequestContext context) {
+        final JSONObject currentUser = getCurrentUser(context);
+        if (!isSecurityOperator(currentUser)) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+
+        final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
+        AnonymousViewCheckMidware.setEnabled(enabled);
+
+        final JSONObject data = new JSONObject();
+        data.put("enabled", AnonymousViewCheckMidware.isEnabled());
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
+    }
+
+    private JSONObject getCurrentUser(final RequestContext context) {
+        JSONObject currentUser = Sessions.getUser();
+        try {
+            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (final Exception ignored) {
+        }
+        return currentUser;
+    }
+
+    private boolean isSecurityOperator(final JSONObject currentUser) {
+        return currentUser != null && "adlered".equals(currentUser.optString(User.USER_NAME));
     }
 
     /**

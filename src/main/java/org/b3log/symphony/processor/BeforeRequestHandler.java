@@ -86,7 +86,10 @@ public class BeforeRequestHandler implements Handler {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         Firewall.recordAndMaybeBan(ip);
         // 黑名单判断
-        if (AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null && !context.requestURI().equals("/test") && !context.requestURI().equals("/validateCaptcha")) {
+        if (AnonymousViewCheckMidware.isEnabled()
+                && AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null
+                && !context.requestURI().equals("/test")
+                && !context.requestURI().equals("/validateCaptcha")) {
             // 已经在黑名单，强制跳转到验证码页面
             context.sendRedirect("/test");
             System.out.println(ip + " 已经在黑名单中");

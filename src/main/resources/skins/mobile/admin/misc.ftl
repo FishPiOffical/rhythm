@@ -83,7 +83,32 @@
             </form>
         </div>
     </div>
-    </#if>
+
+    <div class="module">
+        <div class="module-header">
+            <h2>社区安全开关（临时，重启恢复默认开启）</h2>
+        </div>
+        <div class="module-panel form fn-clear form--admin">
+            <label>社区 CC 防火墙</label><br><br>
+            <div class="fn__flex" style="align-items:center;gap:8px;">
+                <label style="margin-right:12px;">
+                    <input type="checkbox" id="firewallEnabled" <#if firewallEnabled?? && firewallEnabled>checked</#if>/> 启用
+                </label>
+                <input type="number" id="firewallThreshold" min="1" value="${firewallThreshold!400}" style="width:100px;padding:6px;" placeholder="阈值/分钟">
+                <button type="button" class="green" onclick="SecuritySwitches.updateFirewall()">保存</button>
+            </div><br><br>
+            <div class="ft-small">阈值=每分钟请求数，超过则 ipset 封禁；默认 400。</div>
+
+            <label style="margin-top:12px;">社区验证盾（验证码）</label><br><br><br>
+            <div class="fn__flex" style="align-items:center;gap:8px;">
+                <label style="margin-right:12px;">
+                    <input type="checkbox" id="verificationEnabled" <#if verificationShieldEnabled?? && verificationShieldEnabled>checked</#if>/> 启用
+                </label>
+                <button type="button" class="green" onclick="SecuritySwitches.updateVerification()">保存</button>
+            </div><br><br>
+            <div class="ft-small">关闭后匿名访问不再触发验证码；重启会恢复默认开启。</div>
+        </div>
+    </div>
 
     <div class="module">
         <div class="module-header">
@@ -97,6 +122,7 @@
             <button type="button" onclick="SalaryUtil.paySalary()" class="green fn-right" style="width:100%;">发放工资</button>
         </div>
     </div>
+    </#if>
 </div>
 
 <script>
@@ -195,5 +221,37 @@ const SalaryUtil = {
 
 // 页面加载时初始化
 SalaryUtil.init();
+
+const SecuritySwitches = {
+    servePath: '${servePath}',
+    updateFirewall() {
+        const enabled = document.getElementById('firewallEnabled').checked;
+        const threshold = document.getElementById('firewallThreshold').value;
+        fetch(this.servePath + '/admin/security/firewall', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'enabled=' + enabled + '&threshold=' + encodeURIComponent(threshold)
+        }).then(res => res.json()).then(res => {
+            alert(res.msg || '已更新');
+            if (res.data && res.data.threshold) {
+                document.getElementById('firewallThreshold').value = res.data.threshold;
+                document.getElementById('firewallEnabled').checked = !!res.data.enabled;
+            }
+        }).catch(err => alert('更新失败：' + err.message));
+    },
+    updateVerification() {
+        const enabled = document.getElementById('verificationEnabled').checked;
+        fetch(this.servePath + '/admin/security/verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'enabled=' + enabled
+        }).then(res => res.json()).then(res => {
+            alert(res.msg || '已更新');
+            if (res.data) {
+                document.getElementById('verificationEnabled').checked = !!res.data.enabled;
+            }
+        }).catch(err => alert('更新失败：' + err.message));
+    }
+};
 </script>
 </@admin>

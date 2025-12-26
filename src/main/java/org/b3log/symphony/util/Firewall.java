@@ -39,9 +39,19 @@ public final class Firewall {
     private static final Logger LOGGER = LogManager.getLogger(Firewall.class);
 
     /**
-     * Requests per minute threshold.
+     * Default requests-per-minute threshold.
      */
-    private static final int THRESHOLD = 400;
+    private static final int DEFAULT_THRESHOLD = 400;
+
+    /**
+     * Runtime threshold, adjustable and reset on restart.
+     */
+    private static volatile int threshold = DEFAULT_THRESHOLD;
+
+    /**
+     * Runtime enable flag, reset on restart.
+     */
+    private static volatile boolean enabled = true;
 
     /**
      * One-minute window length in milliseconds.
@@ -68,7 +78,7 @@ public final class Firewall {
      * @return {@code true} if the request is allowed, {@code false} if already banned or ban was triggered
      */
     public static boolean recordAndMaybeBan(final String ip) {
-        if (StringUtils.isBlank(ip)) {
+        if (StringUtils.isBlank(ip) || !enabled) {
             return true;
         }
 
@@ -86,7 +96,7 @@ public final class Firewall {
             cleanupOldBuckets(nowBucket);
         }
 
-        if (counter.count > THRESHOLD && BANNED.add(ip)) {
+        if (counter.count > threshold && BANNED.add(ip)) {
             // Run ban asynchronously on a virtual thread to keep request path light.
             Thread.startVirtualThread(() -> {
                 try {
@@ -106,6 +116,36 @@ public final class Firewall {
 
     private static void cleanupOldBuckets(final long currentBucket) {
         COUNTERS.entrySet().removeIf(entry -> entry.getValue().bucket != currentBucket);
+    }
+
+    /**
+     * Enables or disables the firewall (temporary, resets on restart).
+     */
+    public static void setEnabled(final boolean value) {
+        enabled = value;
+    }
+
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
+    /**
+     * Updates the runtime threshold (temporary, resets on restart).
+     */
+    public static void setThreshold(final int value) {
+        if (value <= 0) {
+            threshold = DEFAULT_THRESHOLD;
+        } else {
+            threshold = value;
+        }
+    }
+
+    public static int getThreshold() {
+        return threshold;
+    }
+
+    public static int getDefaultThreshold() {
+        return DEFAULT_THRESHOLD;
     }
 
     private static final class Counter {
