@@ -80,6 +80,10 @@ public class LoginProcessor {
      * </p>
      */
     public static final Map<String, JSONObject> WRONG_PWD_TRIES = new ConcurrentHashMap<>();
+    /**
+     * Login lock by IP: <ip, unlockAtMillis>.
+     */
+    private static final Map<String, Long> LOGIN_IP_LOCK = new ConcurrentHashMap<>();
 
     /**
      * Logger.
@@ -761,6 +765,18 @@ public class LoginProcessor {
         context.renderJSON(StatusCodes.ERR).renderMsg(langPropsService.get("loginFailLabel"));
         final JSONObject requestJSONObject = context.requestJSON();
         final String nameOrEmail = requestJSONObject.optString("nameOrEmail");
+        final String ip = Requests.getRemoteAddr(request);
+
+        // IP-level lock: 5 minutes after too many failures
+        final Long unlockAt = LOGIN_IP_LOCK.get(ip);
+        if (unlockAt != null) {
+            if (System.currentTimeMillis() < unlockAt) {
+                context.renderMsg("尝试次数过多，请 5 分钟后再试");
+                return;
+            } else {
+                LOGIN_IP_LOCK.remove(ip);
+            }
+        }
 
         try {
             JSONObject user = userQueryService.getUserByName(nameOrEmail);
@@ -772,9 +788,14 @@ public class LoginProcessor {
                 user = userQueryService.getUserByPhone(nameOrEmail);
             }
 
+            boolean userFound = true;
             if (null == user) {
-                context.renderMsg(langPropsService.get("notFoundUserLabel"));
-                return;
+                userFound = false;
+                // fabricate a dummy user object to unify flow and avoid timing leaks
+                user = new JSONObject();
+                user.put(Keys.OBJECT_ID, "DUMMY");
+                user.put(User.USER_PASSWORD, "");
+                user.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
             }
 
             if (UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)) {
@@ -784,14 +805,12 @@ public class LoginProcessor {
             }
 
             if (UserExt.USER_STATUS_C_NOT_VERIFIED == user.optInt(UserExt.USER_STATUS)) {
-                //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), "", false, true);
                 context.renderMsg(langPropsService.get("notVerifiedLabel"));
                 return;
             }
 
             if (UserExt.USER_STATUS_C_INVALID_LOGIN == user.optInt(UserExt.USER_STATUS)
                     || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
-                //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), "", false, true);
                 context.renderMsg(langPropsService.get("invalidLoginLabel"));
                 return;
             }
@@ -803,17 +822,9 @@ public class LoginProcessor {
             }
 
             final int wrongCount = wrong.optInt(Common.WRON_COUNT);
-            if (wrongCount > 3) {
-                final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
-                if (!StringUtils.equals(wrong.optString(CaptchaProcessor.CAPTCHA), captcha)) {
-                    context.renderMsg(langPropsService.get("captchaErrorLabel"));
-                    context.renderJSONValue(Common.NEED_CAPTCHA, userId);
-                    return;
-                }
-            }
 
             final String userPassword = user.optString(User.USER_PASSWORD);
-            if (userPassword.equals(requestJSONObject.optString(User.USER_PASSWORD))) {
+            if (userFound && userPassword.equals(requestJSONObject.optString(User.USER_PASSWORD))) {
                 long code;
                 try {
                     code = requestJSONObject.optLong("mfaCode");
@@ -827,24 +838,26 @@ public class LoginProcessor {
 
                 final String token = Sessions.login(response, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
 
-                final String ip = Requests.getRemoteAddr(request);
                 //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), ip, true, true);
 
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue(Keys.TOKEN, token);
 
                 WRONG_PWD_TRIES.remove(userId);
+                LOGIN_IP_LOCK.remove(ip);
                 return;
             }
 
-            if (wrongCount > 2) {
-                context.renderJSONValue(Common.NEED_CAPTCHA, userId);
-            }
-
-            wrong.put(Common.WRON_COUNT, wrongCount + 1);
+            final int newWrongCount = wrongCount + 1;
+            wrong.put(Common.WRON_COUNT, newWrongCount);
             WRONG_PWD_TRIES.put(userId, wrong);
 
-            context.renderMsg(langPropsService.get("wrongPwdLabel"));
+            if (newWrongCount > 2) {
+                LOGIN_IP_LOCK.put(ip, System.currentTimeMillis() + 5 * 60 * 1000);
+                context.renderMsg("尝试次数过多，已暂时锁定 5 分钟");
+            } else {
+                context.renderMsg(langPropsService.get("wrongPwdLabel"));
+            }
         } catch (final ServiceException e) {
             context.renderMsg(langPropsService.get("loginFailLabel"));
         }
