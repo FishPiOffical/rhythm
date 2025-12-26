@@ -65,6 +65,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Article processor.
@@ -98,6 +99,11 @@ public class ArticleProcessor {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(ArticleProcessor.class);
+
+    /**
+     * 文章访客限流：单 IP 每秒仅允许一次。
+     */
+    private static final ConcurrentHashMap<String, Long> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
 
     /**
      * Revision query service.
@@ -423,6 +429,30 @@ public class ArticleProcessor {
     }
 
     /**
+     * 简单的每 IP 1 秒一次限流，访客和登录用户共用。
+     *
+     * @param request the specified request
+     * @return true if limited
+     */
+    private boolean hitArticleRateLimit(final Request request) {
+        final String ip = Requests.getRemoteAddr(request);
+        final long now = System.currentTimeMillis();
+        final Long last = ARTICLE_RATE_LIMIT.get(ip);
+        if (null != last && now - last < 1000) {
+            return true;
+        }
+
+        ARTICLE_RATE_LIMIT.put(ip, now);
+
+        // 防止表过大，简单清理 60 秒前的记录
+        if (ARTICLE_RATE_LIMIT.size() > 10000) {
+            final long cutoff = now - 60_000;
+            ARTICLE_RATE_LIMIT.entrySet().removeIf(e -> e.getValue() < cutoff);
+        }
+        return false;
+    }
+
+    /**
      * api for get article details
      *
      * @param context the specified context
@@ -434,6 +464,11 @@ public class ArticleProcessor {
         final Map<String, Object> dataModel = new HashMap<>();
         final String articleId = context.pathVar("id");
         final Request request = context.getRequest();
+
+        if (hitArticleRateLimit(request)) {
+            context.renderCodeMsg(503, "访问过快，请稍候再试");
+            return;
+        }
 
         final JSONObject article = articleQueryService.getArticleById(articleId);
         if (null == article) {
@@ -1179,6 +1214,11 @@ public class ArticleProcessor {
     public void showArticle(final RequestContext context) {
         final String articleId = context.pathVar("articleId");
         final Request request = context.getRequest();
+
+        if (hitArticleRateLimit(request)) {
+            context.sendError(503);
+            return;
+        }
 
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "article.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
