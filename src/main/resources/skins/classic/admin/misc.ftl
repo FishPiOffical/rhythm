@@ -124,7 +124,13 @@
                         </label>
                         <button type="button" class="green" onclick="SecuritySwitches.updateVerification()">保存</button>
                     </div><br><br>
-                    <div class="ft-small">关闭后匿名访问不再触发验证码；重启会恢复默认开启。</div>
+                    <div class="ft-small">关闭后匿名访问不再触发验证码；重启会恢复默认开启。</div><br>
+                    <div class="fn__flex" style="margin-top:8px;">
+                        <label style="margin-right:12px;">
+                            <input type="checkbox" id="firstVisitCaptchaEnabled" <#if firstVisitCaptchaEnabled?? && firstVisitCaptchaEnabled>checked</#if>/> 首次访问（2 小时内）必需验证码
+                        </label>
+                        <button type="button" class="green" onclick="SecuritySwitches.updateFirstVisit()">保存</button>
+                    </div>
                 </label>
             </div>
         </div>
@@ -285,6 +291,21 @@ const SecuritySwitches = {
             alert(res.msg || '已更新');
             if (res.data) {
                 document.getElementById('verificationEnabled').checked = !!res.data.enabled;
+            }
+        }).catch(err => alert('更新失败：' + err.message));
+    },
+    updateFirstVisit() {
+        const enabled = document.getElementById('firstVisitCaptchaEnabled').checked;
+        fetch(this.servePath + '/admin/security/verification-first', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'enabled=' + enabled
+        }).then(res => res.json()).then(res => {
+            alert(res.msg || '已更新');
+            if (res.data) {
+                document.getElementById('firstVisitCaptchaEnabled').checked = !!res.data.enabled;
             }
         }).catch(err => alert('更新失败：' + err.message));
     }

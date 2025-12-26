@@ -124,12 +124,25 @@ public class AnonymousViewCheckMidware {
      */
     private static volatile boolean enabled = true;
 
+    /**
+     * Whether to force captcha on the first visit within 2 hours (temporary, resets on restart).
+     */
+    private static volatile boolean firstVisitCaptchaEnabled = true;
+
     public static void setEnabled(final boolean value) {
         enabled = value;
     }
 
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    public static void setFirstVisitCaptchaEnabled(final boolean value) {
+        firstVisitCaptchaEnabled = value;
+    }
+
+    public static boolean isFirstVisitCaptchaEnabled() {
+        return firstVisitCaptchaEnabled;
     }
 
     private static Cookie getCookie(final Request request, final String name) {
@@ -192,9 +205,9 @@ public class AnonymousViewCheckMidware {
                         // 判断是否需要进入验证码流程
                         boolean needCaptcha = false;
 
-                        // 2 小时内首次访问：第一次就需要验证码
+                        // 2 小时内首次访问：第一次就需要验证码（可单独开关）
                         Long lastPassTime = ipLastCaptchaPassTimeCache.getIfPresent(ip);
-                        if (lastPassTime == null && (now - firstVisitTime) <= 2L * 60L * 60L * 1000L) {
+                        if (firstVisitCaptchaEnabled && lastPassTime == null && (now - firstVisitTime) <= 2L * 60L * 60L * 1000L) {
                             if (count == 1) {
                                 needCaptcha = true;
                             }

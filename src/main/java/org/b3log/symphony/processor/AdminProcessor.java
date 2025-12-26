@@ -435,6 +435,7 @@ public class AdminProcessor {
         Dispatcher.post("/admin/broadcast/warn", adminProcessor::warnBroadcast, middlewares);
         Dispatcher.post("/admin/security/firewall", adminProcessor::toggleFirewall, middlewares);
         Dispatcher.post("/admin/security/verification", adminProcessor::toggleVerificationShield, middlewares);
+        Dispatcher.post("/admin/security/verification-first", adminProcessor::toggleFirstVisitCaptcha, middlewares);
         Dispatcher.get("/admin/ip", adminProcessor::showIp, middlewares);
         Dispatcher.post("/admin/ip", adminProcessor::modifyIp, middlewares);
         Dispatcher.get("/admin/pic", adminProcessor::showPic, middlewares);
@@ -2401,6 +2402,7 @@ public class AdminProcessor {
         dataModel.put("firewallEnabled", Firewall.isEnabled());
         dataModel.put("firewallThreshold", Firewall.getThreshold());
         dataModel.put("verificationShieldEnabled", AnonymousViewCheckMidware.isEnabled());
+        dataModel.put("firstVisitCaptchaEnabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2489,6 +2491,25 @@ public class AdminProcessor {
         final JSONObject data = new JSONObject();
         data.put("enabled", AnonymousViewCheckMidware.isEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
+    }
+
+    /**
+     * Toggle first-visit captcha rule (temporary, resets on restart).
+     */
+    public void toggleFirstVisitCaptcha(final RequestContext context) {
+        final JSONObject currentUser = getCurrentUser(context);
+        if (!isSecurityOperator(currentUser)) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+
+        final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
+        AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(enabled);
+
+        final JSONObject data = new JSONObject();
+        data.put("enabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
     }
 
     private JSONObject getCurrentUser(final RequestContext context) {
