@@ -759,7 +759,7 @@ public class ChatRoomBot {
             } catch (Exception e) {
                 LOGGER.log(Level.ERROR, "notify user failed", e);
             }
-        }).start();
+        });
     }
 
     // 扣除积分
