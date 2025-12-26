@@ -175,6 +175,7 @@ public class AnonymousViewCheckMidware {
 
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
+        final boolean firstVisitArticle = requestURI.startsWith(Latkes.getContextPath() + "/article/");
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
@@ -207,7 +208,10 @@ public class AnonymousViewCheckMidware {
 
                         // 2 小时内首次访问：第一次就需要验证码（可单独开关）
                         Long lastPassTime = ipLastCaptchaPassTimeCache.getIfPresent(ip);
-                        if (firstVisitCaptchaEnabled && lastPassTime == null && (now - firstVisitTime) <= 2L * 60L * 60L * 1000L) {
+                        if (firstVisitCaptchaEnabled
+                                && !firstVisitArticle
+                                && lastPassTime == null
+                                && (now - firstVisitTime) <= 2L * 60L * 60L * 1000L) {
                             if (count == 1) {
                                 needCaptcha = true;
                             }
