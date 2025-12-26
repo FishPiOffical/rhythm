@@ -203,6 +203,11 @@ public class AnonymousViewCheckMidware {
                         count++;
                         ipVisitCountCache.put(ip, count);
 
+                        if (count >= 100) {
+                            String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
+                            System.out.println(ip + " 已封禁");
+                        }
+
                         // 判断是否需要进入验证码流程
                         boolean needCaptcha = false;
 
