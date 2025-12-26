@@ -374,7 +374,7 @@ public final class Markdowns {
         final BeanManager beanManager = BeanManager.getInstance();
         final LangPropsService langPropsService = beanManager.getReference(LangPropsService.class);
         final UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
-        final ExecutorService pool = Executors.newSingleThreadExecutor();
+        final ExecutorService pool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
         final long[] threadId = new long[1];
 
         final Callable<String> call = () -> {

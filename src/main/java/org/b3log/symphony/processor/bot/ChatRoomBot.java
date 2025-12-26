@@ -358,7 +358,7 @@ public class ChatRoomBot {
                             try {
                                 String disconnectUser = cmd1.split("\\s")[1];
                                 sendBotMsg("@" + disconnectUser + "  你的连接被管理员断开，请重新连接。");
-                                new Thread(() -> {
+                                Thread.startVirtualThread(() -> {
                                     try {
                                         Thread.sleep(2000);
                                     } catch (InterruptedException e) {
@@ -668,7 +668,7 @@ public class ChatRoomBot {
         String message = jsonObject.toString();
         if (!refreshBarragerLock) {
             refreshBarragerLock = true;
-            new Thread(() -> {
+            Thread.startVirtualThread(() -> {
                 int i = 0;
                 for (WebSocketSession s : ChatroomChannel.SESSIONS) {
                     i++;
@@ -681,7 +681,7 @@ public class ChatRoomBot {
                     s.sendText(message);
                 }
                 refreshBarragerLock = false;
-            }).start();
+            });
         }
     }
 
@@ -692,7 +692,7 @@ public class ChatRoomBot {
         String message = jsonObject.toString();
         if (!clearScreenLock) {
             clearScreenLock = true;
-            new Thread(() -> {
+            Thread.startVirtualThread(() -> {
                 int i = 0;
                 for (WebSocketSession s : ChatroomChannel.SESSIONS) {
                     i++;
@@ -705,13 +705,13 @@ public class ChatRoomBot {
                     s.sendText(message);
                 }
                 clearScreenLock = false;
-            }).start();
+            });
         }
     }
     
     // 以人工智障的身份发送消息
     public static void sendBotMsg(String content) {
-        new Thread(() -> {
+        Thread.startVirtualThread(() -> {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {

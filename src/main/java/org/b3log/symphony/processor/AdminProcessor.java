@@ -649,7 +649,7 @@ public class AdminProcessor {
         String type = context.param("type");
         String ipListStr = context.param("ipList").replaceAll("\r\n", "\n");
         List<String> ipList = new ArrayList<>(Arrays.asList(ipListStr.split("\n")));
-        new Thread(() -> {
+        Thread.startVirtualThread(() -> {
             switch (type) {
                 case "unban":
                     for (String ip : ipList) {
@@ -664,7 +664,7 @@ public class AdminProcessor {
                     }
                     break;
             }
-        }).start();
+        });
         context.sendRedirect(Latkes.getServePath() + "/admin/ip");
     }
 
@@ -1809,7 +1809,7 @@ public class AdminProcessor {
                     }
                     if (!value.equals(String.valueOf(UserExt.USER_STATUS_C_VALID))) {
                         String disconnectUser = user.optString(User.USER_NAME);
-                        new Thread(() -> {
+                        Thread.startVirtualThread(() -> {
                             try {
                                 Thread.sleep(2000);
                             } catch (InterruptedException e) {
@@ -1830,7 +1830,7 @@ public class AdminProcessor {
                                 ChatroomChannel.removeSession(session);
                             }
                             ChatChannel.kickUser(userId);
-                        }).start();
+                        });
                         LOGGER.log(Level.INFO, "Kicked user from chatroom and chat [userName=" + user.optString(User.USER_NAME) + "]");
                     }
                 case UserExt.USER_POINT:

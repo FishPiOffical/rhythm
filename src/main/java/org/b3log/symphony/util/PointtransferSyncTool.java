@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PointtransferSyncTool {
@@ -42,7 +43,8 @@ public class PointtransferSyncTool {
             return;
         }
         int threadCount = 30; // 可根据实际情况调整
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        ExecutorService executor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
+        Semaphore limiter = new Semaphore(threadCount);
         CountDownLatch latch = new CountDownLatch(records.size() * 2); // 每条记录2个插入任务
         AtomicInteger count = new AtomicInteger(0);
         for (JSONObject record : records) {
@@ -50,6 +52,7 @@ public class PointtransferSyncTool {
             String fromId = record.optString("fromId");
             String toId = record.optString("toId");
             // fromId冗余插入
+            limiter.acquireUninterruptibly();
             executor.submit(() -> {
                 try {
                     PointtransferRedcRepository.addRecordAsync(fromId, oId);
@@ -58,9 +61,11 @@ public class PointtransferSyncTool {
                     e.printStackTrace();
                 } finally {
                     latch.countDown();
+                    limiter.release();
                 }
             });
             // toId冗余插入
+            limiter.acquireUninterruptibly();
             executor.submit(() -> {
                 try {
                     PointtransferRedcRepository.addRecordAsync(toId, oId);
@@ -69,6 +74,7 @@ public class PointtransferSyncTool {
                     e.printStackTrace();
                 } finally {
                     latch.countDown();
+                    limiter.release();
                 }
             });
         }

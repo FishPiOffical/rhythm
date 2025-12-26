@@ -235,7 +235,7 @@ public class ChatroomChannel implements WebSocketChannel {
         jsonObject.put("message", msg);
         String message = jsonObject.toString();
         NodeUtil.sendAll(message);
-        new Thread(() -> {
+        Thread.startVirtualThread(() -> {
             int i = 0;
             for (WebSocketSession s : ChatroomChannel.SESSIONS) {
                 i++;
@@ -248,7 +248,7 @@ public class ChatroomChannel implements WebSocketChannel {
                 sendText(s, message);
                 AdminProcessor.manager.onMessageSent(4, message.length());
             }
-        }).start();
+        });
     }
 
     /**
@@ -295,13 +295,7 @@ public class ChatroomChannel implements WebSocketChannel {
     public static int quickSleep = 50;
 
     //用于消息发送的线程池
-    private static final ThreadPoolExecutor MESSAGE_POOL = new ThreadPoolExecutor(
-            1,
-            1,
-            120L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>()
-            );
+    private static final ExecutorService MESSAGE_POOL = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
 
     public static void notifyChat(final JSONObject message) {
         final BeanManager beanManager = BeanManager.getInstance();
@@ -428,7 +422,7 @@ public class ChatroomChannel implements WebSocketChannel {
             }
         }
 
-        new Thread(() -> {
+        Thread.startVirtualThread(() -> {
             List<WebSocketSession> senderSessions = new ArrayList<>();
             for (Map.Entry<WebSocketSession, JSONObject> entry : onlineUsers.entrySet()) {
                 try {
@@ -444,7 +438,7 @@ public class ChatroomChannel implements WebSocketChannel {
                 removeSession(session);
             }
             JdbcRepository.dispose();
-        }).start();
+        });
 
         return needKickUsers;
     }
@@ -507,7 +501,7 @@ public class ChatroomChannel implements WebSocketChannel {
             onlineMsgLock = true;
             final String msgStr = getOnline().toString();
             NodeUtil.sendSlow(msgStr);
-            new Thread(() -> {
+            Thread.startVirtualThread(() -> {
                 int i = 0;
                 for (WebSocketSession s : SESSIONS) {
                     i++;
@@ -521,7 +515,7 @@ public class ChatroomChannel implements WebSocketChannel {
                     AdminProcessor.manager.onMessageSent(4, msgStr.length());
                 }
                 onlineMsgLock = false;
-            }).start();
+            });
         }
     }
 

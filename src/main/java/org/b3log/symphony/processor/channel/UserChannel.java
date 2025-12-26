@@ -43,9 +43,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * User channel.
@@ -183,13 +182,7 @@ public class UserChannel implements WebSocketChannel {
         }
     }
 
-    private static final ThreadPoolExecutor MESSAGE_POOL = new ThreadPoolExecutor(
-            1,
-            1,
-            120L,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>()
-    );
+    private static final ExecutorService MESSAGE_POOL = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
     public static void sendCmdToAll(final JSONObject message) {
         final String msgStr = message.toString();
         MESSAGE_POOL.submit(() -> {

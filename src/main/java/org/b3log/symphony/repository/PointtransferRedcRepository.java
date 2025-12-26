@@ -54,7 +54,7 @@ public class PointtransferRedcRepository extends AbstractRepository {
     /**
      * Single-thread executor for async redc insert.
      */
-    private static final ExecutorService ASYNC_EXECUTOR = Executors.newSingleThreadExecutor();
+    private static final ExecutorService ASYNC_EXECUTOR = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
 
     /**
      * Public constructor.

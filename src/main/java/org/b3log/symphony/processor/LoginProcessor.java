@@ -698,7 +698,7 @@ public class LoginProcessor {
 
                 // 天降红包
                 String userName = user.optString(User.USER_NAME);
-                new Thread(() -> {
+                Thread.startVirtualThread(() -> {
                     LOGGER.log(Level.INFO, "Red packet for joining matching...");
                     for (final String uId : UserChannel.SESSIONS.keySet()) {
                         // 获取活跃度
@@ -732,7 +732,7 @@ public class LoginProcessor {
                         }
                     }
                     LOGGER.log(Level.INFO, "Red packet for joining match done.");
-                }).start();
+                });
 
                 context.renderJSON(StatusCodes.SUCC);
                 LOGGER.log(Level.INFO, "Registered a user [name={}, phone={}]", name, phone);
