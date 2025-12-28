@@ -34,15 +34,6 @@
             </div>
             <div style="display: inline-block; width: 5px"></div>
             <div class="ft-smaller" style="display: inline-block">
-                <div onclick="window.open('https://www.svyun.com/')" style="text-align: center;padding: 8px 0px;color: #ff6000;background-color: #ffefc3c9;line-height: 20px;border-radius: 12px;width: 175px;margin-bottom: 15px;cursor: pointer;">
-                    <div>
-                        <img style="vertical-align:-3px;width: 14px;height: 14px;" src="https://file.fishpi.cn/2025/11/09fa5df84a83a0e2bf9edcfed93655e01760763018gwsy1-cea09de1.png">&nbsp;&nbsp;<span style="font-weight: 600">云集群由速维云支持</span><br>
-                        <span style="color: #323232;">速维云，安全可靠的云服务</span>
-                    </div>
-                </div>
-            </div>
-            <div style="display: inline-block; width: 5px"></div>
-            <div class="ft-smaller" style="display: inline-block">
                 <div onclick="window.open('https://zhuayuya.com/')" style="text-align: center;padding: 8px 0px;color: #39b362;background-color: #d9ffcfc9;line-height: 20px;border-radius: 12px;width: 175px;margin-bottom: 15px;cursor: pointer;">
                     <div>
                         <svg style="vertical-align: -2px;">
