@@ -39,6 +39,21 @@
                             <li>
                                 <div class='fn-flex'>
                                     <div class="avatar"
+                                         style="background-image:url('https://file.fishpi.cn/2025/12/国际象棋游戏-56ff09e8.png')"></div>
+                                    <div class="fn-flex-1">
+                                        <h2 class="ft-13">
+                                            <a href="https://room.adventext.fun">摸鱼竞技大厅</a>
+                                        </h2>
+                                        <span class="ft-fade vditor-reset">
+                                                摸鱼竞技大厅基于开源引擎 <a href="https://tiaoom.com/" target="_blank">Tiaoom</a> 开发，提供丰富的游戏玩法，支持多人游戏、对局聊天和观战模式<br>
+                                                支持象棋、UNO、俄罗斯方块、谁是卧底、药丸博弈、黑白棋、五子棋、斗地主、四子棋、象棋翻棋等游戏，并支持玩家自行开发贡献玩法
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class='fn-flex'>
+                                    <div class="avatar"
                                          style="background-image:url('https://file.fishpi.cn/evolve/evolved.ico')"></div>
                                     <div class="fn-flex-1">
                                         <h2 class="ft-13">
