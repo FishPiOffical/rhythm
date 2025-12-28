@@ -343,7 +343,7 @@
                                          alt="摸鱼竞技大厅">
                                 </div>
                                 <div class="activity-hub__pill-body">
-                                    <div class="activity-hub__pill-title">摸鱼竞技大厅 测试服</div>
+                                    <div class="activity-hub__pill-title">摸鱼竞技大厅</div>
                                     <div class="activity-hub__pill-desc">实时游戏房间·在线竞技</div>
                                 </div>
                             </a>

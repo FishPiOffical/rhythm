@@ -161,6 +161,7 @@
     </li>
     <li class="menu__item"><a class="title" href="${servePath}/top">🔥 排行榜</a></li>
     <li class="menu__item"><a class="title" href="https://market.time-pack.com/">🏪 交易市场</a></li>
+    <li class="menu__item"><a class="title" href="https://room.adventext.fun">🎮 摸鱼竞技大厅</a></li>
 </ul>
 </#if>
 <#if showSideAd && ADLabel != ''>
