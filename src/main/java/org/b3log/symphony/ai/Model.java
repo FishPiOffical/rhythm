@@ -23,22 +23,8 @@ public interface Model {
 
 	Provider getProvider();
 
-	interface Text {
-		Model.Message.Text text(String text);
-	}
-
-	interface Image {
-		Model.Message.Image data(String url);
-		Model.Message.Image data(byte[] image);
-	}
-
-	sealed interface Message permits Message.Text, Message.Image {
-		non-sealed interface Text extends Message {
-			String text();
-		}
-
-		non-sealed interface Image extends Message {
-			String url();
-		}
+	sealed interface Supported permits Supported.Text, Supported.Image {
+		non-sealed interface Text extends Supported {}
+		non-sealed interface Image extends Supported {}
 	}
 }

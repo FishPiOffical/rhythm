@@ -19,5 +19,5 @@
 package org.b3log.symphony.ai;
 
 public interface Provider {
-	public void Authorize(String token);
+	public String Authorize();
 }

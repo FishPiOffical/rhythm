@@ -18,8 +18,6 @@
  */
 package org.b3log.symphony.ai;
 
-import java.util.Base64;
-
 public sealed interface QwenModel permits QwenModel.Qwen3, QwenModel.Qwen {
 	sealed abstract class Base implements Model {
 		private Provider provider = new OpenAIProvider();
@@ -33,69 +31,19 @@ public sealed interface QwenModel permits QwenModel.Qwen3, QwenModel.Qwen {
 	}
 
 	sealed interface Qwen extends QwenModel {
-		final class VlOcr extends QwenModel.Base implements Qwen, Model.Image {
+		final class VlOcr extends QwenModel.Base implements Qwen, Model.Supported.Image {
 			@Override
 			public String getName() {
 				return "qwen3-vl-plus";
-			}
-
-			@Override
-			public Model.Message.Image data(String url) {
-				return new Model.Message.Image() {
-					@Override
-					public String url() {
-						return String.format("{'url': '%s'}", url);
-					};
-				};
-			}
-
-			@Override
-			public Model.Message.Image data(byte[] bin) {
-				return new Model.Message.Image() {
-					@Override
-					public String url() {
-						return String.format("{'url': '%s'}", Base64.getEncoder().encode(bin).toString());
-					};
-				};
 			}
 		}
 	}
 
 	sealed interface Qwen3 extends QwenModel {
-		final class VlPlus extends QwenModel.Base implements Qwen3, Model.Text, Model.Image {
+		final class VlPlus extends QwenModel.Base implements Qwen3, Model.Supported.Text, Model.Supported.Image {
 			@Override
 			public String getName() {
 				return "qwen3-vl-plus";
-			}
-
-			@Override
-			public Model.Message.Text text(String text) {
-				return new Model.Message.Text() {
-					@Override
-					public String text() {
-						return text;
-					}
-				};
-			}
-
-			@Override
-			public Model.Message.Image data(String url) {
-				return new Model.Message.Image() {
-					@Override
-					public String url() {
-						return String.format("{'url': '%s'}", url);
-					};
-				};
-			}
-
-			@Override
-			public Model.Message.Image data(byte[] bin) {
-				return new Model.Message.Image() {
-					@Override
-					public String url() {
-						return String.format("{'url': '%s'}", Base64.getEncoder().encode(bin).toString());
-					};
-				};
 			}
 		}
 	}

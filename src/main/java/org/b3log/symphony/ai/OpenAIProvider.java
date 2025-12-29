@@ -19,19 +19,42 @@
 package org.b3log.symphony.ai;
 
 public class OpenAIProvider implements Provider {
-	enum MessageType {
-		System("system"),
-		User("user"),
-		Assistant("assistant");
+	private String token;
 
-		private String value;
-		MessageType(String value) {
-			this.value = value;
-		}
+	public String Authorize() {
+		return "Bearer " + this.token;
+	}
 
-		@Override
-		public String toString() {
-			return this.value;
-		}
+	sealed interface MessageType permits MessageType.System, MessageType.User, MessageType.Assistant {
+		record System(String content) implements MessageType {
+			@Override
+			public String toString() {
+				return "system";
+			}
+		};
+
+		record User(String content) implements MessageType {
+			@Override
+			public String toString() {
+				return "user";
+			}
+		};
+
+		record Assistant() implements MessageType {
+			@Override
+			public String toString() {
+				return "assistant";
+			}
+		};
 	};
+
+	sealed interface ContentType permits ContentType.Text, ContentType.Image {
+		record Text(String text) implements ContentType {};
+		record Image(String data) implements ContentType {};
+	}
+
+	sealed interface Content permits Content.Text, Content.Array {
+		record Text(String text) implements Content {};
+		record Array(ContentType[] content) implements Content {};
+	}
 }
