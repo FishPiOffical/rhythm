@@ -54,11 +54,7 @@
             </div>
             <div class="footer-nav fn-clear ft-smaller">
                 <div style="font-weight: 500">摸鱼好站</div>
-                <a style="margin-right: 0px; padding-right: 0px" target="_blank" href="http://www.cxy521.com/">程序员导航</a>
-                &nbsp;｜&nbsp;
                 <a style="margin-right: 0px; padding-right: 0px" target="_blank" href="https://bbs.tampermonkey.net.cn/">油猴中文网</a>
-                &nbsp;｜&nbsp;
-                <a style="margin-right: 0px; padding-right: 0px" target="_blank" href="https://www.redian.me/">摸鱼热点</a>
                 &nbsp;｜&nbsp;
                 <a style="margin-right: 0px; padding-right: 0px" target="_blank" href="https://www.lundao.pub/">论道社区</a>
                 &nbsp;｜&nbsp;
@@ -69,7 +65,9 @@
             <div class="fn-clear ft-smaller">
                 <div style="margin-top: 5px; font-weight: 500">探索</div>
                 <div>
-                    <a href="https://github.com/orgs/FishPiOffical/repositories" target="_blank">摸鱼派开源项目</a><br>
+                    <a href="https://github.com/orgs/FishPiOffical/repositories" target="_blank">摸鱼派开源项目组</a>
+                    &nbsp;｜&nbsp;
+                    <a href="https://github.com/FishPiOffical/rhythm" target="_blank">Rhythm社区引擎</a><br>
                     <a href="${servePath}/download">摸鱼派客户端</a>&nbsp;&nbsp;
                     <span>
                         <a href="https://fishpi.cn/article/1653059669471" target="_blank" title="iOS 客户端"><svg style="vertical-align: -1px;"><use xlink:href="#ic-apple"></use></svg></a>&nbsp;
