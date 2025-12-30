@@ -21,6 +21,24 @@
 <#include "macro-head.ftl">
 <#include "macro-pagination-query.ftl">
 <#include "common/title-icon.ftl">
+<#function medalTypeStyle type>
+    <#switch type>
+        <#case "精良">
+            <#return "color:#1d4ed8;">
+        <#case "稀有">
+            <#return "color:#8b5cf6;">
+        <#case "史诗">
+            <#return "color:#ea580c;font-weight:600;">
+        <#case "传说">
+            <#return "color:#eab308;font-weight:700;">
+        <#case "神话">
+            <#return "color:#f59e0b;font-weight:700;text-shadow:0 0 3px rgba(245,158,11,0.8);">
+        <#case "限定">
+            <#return "color:#ef4444;font-weight:700;text-shadow:0 0 6px rgba(239,68,68,0.9);">
+        <#default>
+            <#return "color:#111827;">
+    </#switch>
+</#function>
 <!DOCTYPE html>
 <html>
 <head>
@@ -197,7 +215,7 @@
                     </a>
                 </div>
                 <div class="fn__flex-1">
-                    <div id="articleMeta" class="fn__clear" style="height: auto;">
+                    <div id="articleMeta" class="fn__clear" style="height: auto; overflow: visible">
                         <a rel="author" href="${servePath}/member/${article.articleAuthorName}"
                            class="article__stats article__stats--a tooltipped tooltipped-e"
                            aria-label="${article.oId?number?number_to_datetime}">
@@ -225,22 +243,35 @@
                             <div id="articleCollectCnt" class="article__stats usersInteracts article__stats--a">
                                 <span class="article__cnt">${article.articleCollectCnt}</span>
                                 收藏
-                            </div>
-                            <#if article.articleQnAOfferPoint?c != "0">
-                                <div id="articleQnAOfferCnt" class="article__stats usersInteracts article__stats--a">
-                                    <span class="article__cnt">${article.articleQnAOfferPoint?c}</span>
-                                    ${qnaOfferLabel}
-                                </div>
-                            </#if>
-                            <div class="article__stats usersInteracts article__stats--a">
-                                <#if article.sysMetal != "[]">
+                             </div>
+                             <#if article.articleQnAOfferPoint?c != "0">
+                                 <div id="articleQnAOfferCnt" class="article__stats usersInteracts article__stats--a">
+                                     <span class="article__cnt">${article.articleQnAOfferPoint?c}</span>
+                                     ${qnaOfferLabel}
+                                 </div>
+                             </#if>
+                             <div class="article__stats usersInteracts article__stats--a">
+                                <#assign articleMedals = (article.sysMetal?is_string)?then(article.sysMetal?eval, article.sysMetal)![]>
+                                <#if articleMedals?size != 0>
                                     <span class="article__cnt">作者勋章</span>
-                                    <#list article.sysMetal?eval as metal>
-                                        <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
+                                    <#list articleMedals as metal>
+                                        <#assign medalType = metal.type!''>
+                                        <#assign medalName = metal.name!''>
+                                        <#assign medalDesc = metal.description!''>
+                                        <span class="tip-wrapper">
+                                            <img src="${servePath}/gen?id=${metal.id}"/>
+                                            <span class="tip-text">
+                                                <#if medalType != "">
+                                                    <span style="${medalTypeStyle(medalType)}">[${medalType}]</span>
+                                                    <#if medalName != "" || medalDesc != "">&nbsp;</#if>
+                                                </#if>
+                                                <#if medalName != "">${medalName}<#if medalDesc != ""> - </#if></#if>${medalDesc}
+                                            </span>
+                                        </span>
                                     </#list>
                                 </#if>
-                            </div>
-                        </div>
+                             </div>
+                         </div>
                         <br>
                         <#if article.thankedCnt != 0>
                             <div class="fn-clear"></div>
@@ -366,24 +397,40 @@
                                                    href="${servePath}/member/${comment.commentAuthorName}"
                                                    class="ft-gray"><span
                                                             class="ft-gray"><#if comment.commentAuthorNickName != "">${comment.commentAuthorNickName} (${comment.commentAuthorName})<#else>${comment.commentAuthorName}</#if></span></a>
-                                                <span class="ft-fade">• ${comment.timeAgo}</span>
-
-                                                <#if comment.rewardedCnt gt 0>
-                                                    <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
-                                                    <span aria-label="<#if hasRewarded>${thankedLabel}<#else>${thankLabel} ${comment.rewardedCnt}</#if>"
+                                                 <span class="ft-fade">• ${comment.timeAgo}</span>
+ 
+                                                 <#if comment.rewardedCnt gt 0>
+                                                     <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
+                                                     <span aria-label="<#if hasRewarded>${thankedLabel}<#else>${thankLabel} ${comment.rewardedCnt}</#if>"
                                                           class="tooltipped tooltipped-n rewarded-cnt <#if hasRewarded>ft-red<#else>ft-fade</#if>">
                                                     <svg class="fn-text-top"><use
                                                                 xlink:href="#heart"></use></svg> ${comment.rewardedCnt}
                                                 </span>
-                                                </#if>
-                                                <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade"
-                                                                                               data-ua="${comment.commentUA}"></span></#if>
-                                            </span>
-                                            &nbsp;<#list comment.sysMetal?eval as metal>
-                                                <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
-                                            </#list>
-                                            <a class="ft-a-title fn-right tooltipped tooltipped-nw"
-                                               aria-label="${goCommentLabel}"
+                                                 </#if>
+                                                 <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade"
+                                                                                                    data-ua="${comment.commentUA}"></span></#if>
+                                             </span>
+                                             <#assign commentMedals = (comment.sysMetal?is_string)?then(comment.sysMetal?eval, comment.sysMetal)![]>
+                                             <#if commentMedals?size != 0>
+                                                 &nbsp;
+                                                 <#list commentMedals as metal>
+                                                     <#assign medalType = metal.type!''>
+                                                     <#assign medalName = metal.name!''>
+                                                     <#assign medalDesc = metal.description!''>
+                                                     <span class="tip-wrapper">
+                                                         <img src="${servePath}/gen?id=${metal.id}"/>
+                                                         <span class="tip-text">
+                                                             <#if medalType != "">
+                                                                 <span style="${medalTypeStyle(medalType)}">[${medalType}]</span>
+                                                                 <#if medalName != "" || medalDesc != "">&nbsp;</#if>
+                                                             </#if>
+                                                             <#if medalName != "">${medalName}<#if medalDesc != ""> - </#if></#if>${medalDesc}
+                                                         </span>
+                                                     </span>
+                                                 </#list>
+                                             </#if>
+                                             <a class="ft-a-title fn-right tooltipped tooltipped-nw"
+                                                aria-label="${goCommentLabel}"
                                                href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}#${comment.oId}')">
                                                 <svg>
                                                     <use xlink:href="#down"></use>

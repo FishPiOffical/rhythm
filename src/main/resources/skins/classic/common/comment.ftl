@@ -18,6 +18,24 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
+<#function medalTypeStyle type>
+    <#switch type>
+        <#case "精良">
+            <#return "color:#1d4ed8;">
+        <#case "稀有">
+            <#return "color:#8b5cf6;">
+        <#case "史诗">
+            <#return "color:#ea580c;font-weight:600;">
+        <#case "传说">
+            <#return "color:#eab308;font-weight:700;">
+        <#case "神话">
+            <#return "color:#f59e0b;font-weight:700;text-shadow:0 0 3px rgba(245,158,11,0.8);">
+        <#case "限定">
+            <#return "color:#ef4444;font-weight:700;text-shadow:0 0 6px rgba(239,68,68,0.9);">
+        <#default>
+            <#return "color:#111827;">
+    </#switch>
+</#function>
 <li id="${comment.oId}"
     class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if comment.commentReplyCnt != 0> cmt-selected</#if>">
     <div class="fn-flex">
@@ -29,12 +47,27 @@
         </div>
         <div class="fn-flex-1">
             <div class="comment-get-comment list"></div>
+            <#assign commentMedals = (comment.sysMetal?is_string)?then(comment.sysMetal?eval, comment.sysMetal)![]>
             <div class="fn-clear comment-info">
                 <span class="fn-left ft-smaller">
                     <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}" class="ft-gray"><span class="ft-gray"><#if comment.commentAuthorNickName != "">${comment.commentAuthorNickName} (${comment.commentAuthorName})<#else>${comment.commentAuthorName}</#if></span></a>
-                    <#list comment.sysMetal?eval as metal>
-                        <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
-                    </#list>
+                    <#if commentMedals?size != 0>
+                        <#list commentMedals as metal>
+                            <#assign medalType = metal.type!''>
+                            <#assign medalName = metal.name!''>
+                            <#assign medalDesc = metal.description!''>
+                            <span class="tip-wrapper">
+                                <img src="${servePath}/gen?id=${metal.id}"/>
+                                <span class="tip-text">
+                                    <#if medalType != "">
+                                        <span style="${medalTypeStyle(medalType)}">[${medalType}]</span>
+                                        <#if medalName != "" || medalDesc != "">&nbsp;</#if>
+                                    </#if>
+                                    <#if medalName != "">${medalName}<#if medalDesc != ""> - </#if></#if>${medalDesc}
+                                </span>
+                            </span>
+                        </#list>
+                    </#if>
                     <span class="ft-fade">• ${comment.timeAgo}</span>
                     <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade hover-show fn-hidden" data-ua="${comment.commentUA}"></span></#if>
                 </span>
