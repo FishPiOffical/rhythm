@@ -24,7 +24,7 @@ public interface Model {
 	Provider getProvider();
 
 	sealed interface Supported permits Supported.Text, Supported.Image {
-		non-sealed interface Text extends Supported {}
-		non-sealed interface Image extends Supported {}
+		non-sealed interface Text extends Model, Supported {}
+		non-sealed interface Image extends Model, Supported {}
 	}
 }

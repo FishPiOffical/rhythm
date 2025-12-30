@@ -18,6 +18,24 @@
  */
 package org.b3log.symphony.ai;
 
-public interface Provider {
-	public String Authorize();
+import java.util.List;
+
+import org.json.JSONString;
+
+public interface Provider extends JSONString {
+	sealed interface ContentType permits ContentType.Text, ContentType.Image {
+		final record Text(String text) implements ContentType {};
+		final record Image(String data, String mimetype) implements ContentType {};
+	}
+
+	sealed interface Content permits Content.Text, Content.Array {
+		final record Text(String text) implements Content {};
+		final record Array(List<ContentType> content) implements Content {};
+	}
+
+	sealed interface Authorize permits Authorize.Token {
+		final record Token(String token) implements Authorize {};
+	}
+
+	public String toJSONString();
 }

@@ -21,8 +21,12 @@ package org.b3log.symphony.ai;
 public class OpenAIProvider implements Provider {
 	private String token;
 
-	public String Authorize() {
-		return "Bearer " + this.token;
+	OpenAIProvider(String token) {
+		this.token = token;
+	}
+
+	public String toJSONString() {
+		return "Base " + this.token;
 	}
 
 	sealed interface MessageType permits MessageType.System, MessageType.User, MessageType.Assistant {
@@ -47,14 +51,4 @@ public class OpenAIProvider implements Provider {
 			}
 		};
 	};
-
-	sealed interface ContentType permits ContentType.Text, ContentType.Image {
-		record Text(String text) implements ContentType {};
-		record Image(String data) implements ContentType {};
-	}
-
-	sealed interface Content permits Content.Text, Content.Array {
-		record Text(String text) implements Content {};
-		record Array(ContentType[] content) implements Content {};
-	}
 }
