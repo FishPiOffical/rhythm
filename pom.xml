@@ -128,8 +128,6 @@
             <groupId>org.b3log</groupId>
             <artifactId>latke-core</artifactId>
             <version>${latke.version}</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/lib/latke-core.jar</systemPath>
         </dependency>
 
         <dependency>
@@ -211,8 +209,6 @@
             <groupId>org.patchca</groupId>
             <artifactId>patchca</artifactId>
             <version>0.5.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/lib/net/pusuo/patchca-0.5.0.jar</systemPath>
         </dependency>
 
         <dependency>
@@ -328,18 +324,50 @@
 
         <plugins>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <useSystemClassLoader>false</useSystemClassLoader>
-                </configuration>
-            </plugin>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-surefire-plugin</artifactId>
+                 <version>${maven-surefire-plugin.version}</version>
+                 <configuration>
+                     <useSystemClassLoader>false</useSystemClassLoader>
+                 </configuration>
+             </plugin>
 
-            <plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
+             <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-shade-plugin</artifactId>
+                 <version>3.5.1</version>
+                 <executions>
+                     <execution>
+                         <phase>package</phase>
+                         <goals>
+                             <goal>shade</goal>
+                         </goals>
+                         <configuration>
+                             <includeScope>system</includeScope>
+                             <transformers>
+                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                     <mainClass>org.b3log.symphony.Server</mainClass>
+                                 </transformer>
+                             </transformers>
+                             <filters>
+                                 <filter>
+                                     <artifact>*:*</artifact>
+                                     <excludes>
+                                         <exclude>META-INF/*.SF</exclude>
+                                         <exclude>META-INF/*.DSA</exclude>
+                                         <exclude>META-INF/*.RSA</exclude>
+                                     </excludes>
+                                 </filter>
+                             </filters>
+                         </configuration>
+                     </execution>
+                 </executions>
+             </plugin>
+
+             <plugin>
+                 <groupId>com.mycila</groupId>
+                 <artifactId>license-maven-plugin</artifactId>
                 <version>${license-maven-plugin.version}</version>
                 <configuration>
                     <basedir>${basedir}</basedir>
