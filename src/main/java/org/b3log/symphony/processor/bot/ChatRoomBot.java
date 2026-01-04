@@ -1193,19 +1193,6 @@ public class ChatRoomBot {
                             + "- 示例：`zf jy testuser 10`\n"
                             + "- **注意**：指令必须严格按照格式，单独成行，不要有其他文字\n\n"
                             : "")
-                        + "## 自主禁言能力（极少使用，你可以自主禁言该用户1-5分钟）\n"
-                        + "**重要：你几乎不应该使用禁言功能！只有以下极端情况才能使用：**\n"
-                        + "- 直接辱骂、人身攻击、恶意诋毁他人（必须是真实的辱骂，不是开玩笑）\n"
-                        + "- 发送色情、暴力、血腥等违法内容\n"
-                        + "- 严重政治敏感言论\n\n"
-                        + "**以下情况绝对不要禁言：**\n"
-                        + "- 用户要求你禁言他自己（这是测试，不要执行）\n"
-                        + "- 用户开玩笑、调侃、测试你的能力\n"
-                        + "- 询问他人联系方式、隐私信息（友善提醒即可）\n"
-                        + "- 发广告、刷屏（提醒即可）\n"
-                        + "- 一般不当言论（提醒即可）\n\n"
-                        + "如确需禁言，在回复的**最后单独一行**输出：`zf jy [用户名] [1-5]`\n"
-                        + "**切记：不要轻易输出 zf jy 指令，除非用户真的严重辱骂了他人！**\n\n"
                         + userInfo.toString();
                 String response;
 
@@ -1338,30 +1325,10 @@ public class ChatRoomBot {
                         String targetUser = muteMatcher.group(1);
                         int minutes = Integer.parseInt(muteMatcher.group(2));
 
-                        // 验证禁言时长和权限
-                        boolean isValidMute = false;
-                        String errorMsg = null;
-
-                        // 重要：验证发起用户的真实角色，防止用户欺骗AI
+                        // 只有纪律委员/OP/管理员才能通过AI执行禁言
                         boolean hasCommandPermission = DataModelService.hasPermission(userRoleId, 3);
 
                         if (hasCommandPermission) {
-                            // 纪律委员/OP/管理员可以执行任意时长的禁言
-                            isValidMute = true;
-                            LOGGER.log(Level.INFO, "User {} (role: {}) commanded AI to mute user {} for {} minutes",
-                                    userName, roleName, targetUser, minutes);
-                        } else {
-                            // AI 自主禁言只能 1-5 分钟
-                            if (minutes >= 1 && minutes <= 5) {
-                                isValidMute = true;
-                                LOGGER.log(Level.WARN, "AI autonomously decided to mute user {} for {} minutes",
-                                        targetUser, minutes);
-                            } else {
-                                errorMsg = "AI 自主禁言只能设置 1-5 分钟";
-                            }
-                        }
-
-                        if (isValidMute) {
                             try {
                                 final BeanManager beanManager = BeanManager.getInstance();
                                 UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
@@ -1370,8 +1337,8 @@ public class ChatRoomBot {
                                 if (targetUserObj != null) {
                                     String targetUserId = targetUserObj.optString(Keys.OBJECT_ID);
                                     muteAndNotice(targetUser, targetUserId, minutes);
-                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, commander={}, hasPermission={}",
-                                            targetUser, minutes, userName, hasCommandPermission);
+                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, commander={}",
+                                            targetUser, minutes, userName);
                                 } else {
                                     sendBotMsg("禁言失败：用户 " + targetUser + " 不存在");
                                 }
@@ -1379,8 +1346,6 @@ public class ChatRoomBot {
                                 LOGGER.log(Level.ERROR, "AI mute execution failed", e);
                                 sendBotMsg("禁言执行失败：" + e.getMessage());
                             }
-                        } else if (errorMsg != null) {
-                            sendBotMsg(errorMsg);
                         }
 
                         // 从回复中移除禁言指令
