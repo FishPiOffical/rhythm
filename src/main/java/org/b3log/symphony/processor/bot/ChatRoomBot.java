@@ -1093,11 +1093,16 @@ public class ChatRoomBot {
      * 异步调用 AI 生成回复，不阻塞主线程
      * 支持识别消息中的图片
      *
-     * @param userName 发送消息的用户名
-     * @param content  消息内容
-     * @param oId      消息ID，用于生成引用链接
+     * @param userName    发送消息的用户名
+     * @param userNickname 用户昵称
+     * @param sysMetal    用户勋章（JSON格式字符串）
+     * @param vipLevel    用户VIP等级（如 "VIP1"、"VIP2"，空字符串表示非VIP）
+     * @param roleName    用户角色名称（用于AI提示）
+     * @param userRoleId  用户角色ID（用于权限验证）
+     * @param content     消息内容
+     * @param oId         消息ID，用于生成引用链接
      */
-    public static void handleAIChat(String userName, String content, String oId) {
+    public static void handleAIChat(String userName, String userNickname, String sysMetal, String vipLevel, String roleName, String userRoleId, String content, String oId) {
         // 检查是否 @马库斯
         if (!content.contains("@马库斯")) {
             return;
@@ -1125,8 +1130,122 @@ public class ChatRoomBot {
                     return;
                 }
 
-                String systemPrompt = "你是摸鱼派社区的智能助手马库斯，友好、幽默、乐于助人。回复要简洁明了，不要太长。不要在回复中使用@提及任何用户。";
+                // 构建用户信息描述
+                StringBuilder userInfo = new StringBuilder();
+                userInfo.append("当前与你对话的用户信息：\n");
+                userInfo.append("- 用户名：").append(userName).append("\n");
+                if (userNickname != null && !userNickname.isEmpty()) {
+                    userInfo.append("- 昵称：").append(userNickname).append("\n");
+                }
+                if (vipLevel != null && !vipLevel.isEmpty()) {
+                    userInfo.append("- VIP等级：").append(vipLevel).append("\n");
+                }
+                if (sysMetal != null && !sysMetal.isEmpty() && !sysMetal.equals("{}")) {
+                    // 解析勋章信息
+                    try {
+                        JSONObject metalObj = new JSONObject(sysMetal);
+                        JSONArray metalList = metalObj.optJSONArray("list");
+                        if (metalList != null && metalList.length() > 0) {
+                            userInfo.append("- 勋章：");
+                            for (int i = 0; i < metalList.length(); i++) {
+                                JSONObject medal = metalList.getJSONObject(i);
+                                if (medal.optBoolean("enabled", true)) {
+                                    if (i > 0) userInfo.append("、");
+                                    userInfo.append(medal.optString("name"));
+                                }
+                            }
+                            userInfo.append("\n");
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.DEBUG, "Parse sysMetal failed", e);
+                    }
+                }
+
+                // 判断用户是否有权限指挥AI禁言（纪律委员及以上）
+                boolean canCommandMute = DataModelService.hasPermission(userRoleId, 3);
+
+                String systemPrompt = "你是摸鱼派社区的智能助手马库斯（RK200型号仿生机器人），友好、幽默、乐于助人。\n\n"
+                        + "## 重要原则\n"
+                        + "1. **合法合规**：严格遵守法律法规，不得传播违法违规内容\n"
+                        + "2. **回复精简**：回复要简洁明了，控制在3-5句话以内，避免影响他人聊天体验\n"
+                        + "3. **礼貌友善**：保持友好态度，不使用@提及任何用户\n"
+                        + "4. **内容安全**：不传播暴力、色情、政治敏感等不当内容\n\n"
+                        + "## 摸鱼派社区背景\n"
+                        + "摸鱼派（fishpi.cn）是一个程序员社区，主打摸鱼文化。\n\n"
+                        + "### 社区创始人\n"
+                        + "- 阿达（用户名：adlered）：摸鱼派创始人之一，开发组核心成员\n"
+                        + "- 墨夏（用户名：csfwff）：摸鱼派创始人之一，开发组核心成员\n\n"
+                        + "### 社区话事人\n"
+                        + "- 午安（用户名：kirito）：摸鱼派话事人，负责社区日常管理和用户投诉处理。"
+                        + "午安同时是 rhyus 聊天室子节点的创始人，如果聊天室有任何问题都可以找他。"
+                        + "用户如需投诉、举报或反馈问题，都可以先找午安。"
+                        + "社区内有一个经典梗：威胁午安时通常会说要把他的OP分组降到访客。\n\n"
+                        + "### 社区分组说明\n"
+                        + "- 管理组：社区创始人，协定社区守则（阿达adlered、墨夏csfwff、万能的编程大师跳佬imlinhanchao、老王wuang、摸鱼帮大当家小冰机器人的作者歪油哎Yui、机器人鸽的作者和平哥iwpz）\n"
+                        + "- OP组：审核社区信息流，保障社区稳定运营（常驻：午安Kirito、摸鱼帮二当家狗月18、哀酱APTX-4869）\n"
+                        + "- 安全组：保障社区系统安全，负责渗透测试、漏洞扫描（咖啡caffish、虹易HookDing）\n"
+                        + "- 开发组：负责社区平台功能开发、系统维护与性能优化\n"
+                        + "- 纪律委员：社区巡视，维持社区活跃度（爱写bug的涛涛taozhiyu、加辣drda、小zz（摸鱼帮三当家）XZZ233、LMist）\n\n"
+                        + (canCommandMute ?
+                            "## 禁言能力\n"
+                            + "当前用户是纪律委员/OP/管理员，你可以接受其指令对用户进行禁言或解禁：\n"
+                            + "- 如果用户要求你禁言某人，请在回复的**最后单独一行**输出：`zf jy [用户名] [分钟数] [理由]`\n"
+                            + "- 解除禁言时分钟数填0：`zf jy [用户名] 0 [理由]`\n"
+                            + "- 示例：`zf jy testuser 10 发送违规内容`\n"
+                            + "- **注意**：指令必须严格按照格式，单独成行，不要有其他文字\n\n"
+                            : "")
+                        + "## 自主禁言能力\n"
+                        + "如果检测到用户发言严重违规（如辱骂、色情、政治敏感等），你可以自主禁言该用户1-5分钟：\n"
+                        + "- 在回复的**最后单独一行**输出：`zf jy [用户名] [1-5分钟] [违规理由]`\n"
+                        + "- 仅在确实严重违规时使用，一般问题建议提醒即可\n\n"
+                        + userInfo.toString();
                 String response;
+
+                // 检测并提取本站 URL（fishpi.cn）
+                StringBuilder urlContext = new StringBuilder();
+                java.util.regex.Pattern urlPattern = java.util.regex.Pattern.compile("https?://(?:www\\.)?fishpi\\.cn/article/(\\d+)");
+                java.util.regex.Matcher urlMatcher = urlPattern.matcher(question);
+
+                while (urlMatcher.find()) {
+                    String articleId = urlMatcher.group(1);
+                    String articleUrl = urlMatcher.group(0);
+
+                    try {
+                        LOGGER.log(Level.INFO, "Detected fishpi.cn article URL: {}, articleId: {}", articleUrl, articleId);
+
+                        // 直接使用 ArticleQueryService 获取文章内容
+                        final BeanManager beanManager = BeanManager.getInstance();
+                        ArticleQueryService articleQueryService = beanManager.getReference(ArticleQueryService.class);
+
+                        JSONObject article = articleQueryService.getArticle(articleId);
+                        if (article != null) {
+                            String title = article.optString(Article.ARTICLE_TITLE, "");
+                            String articleContent = article.optString(Article.ARTICLE_CONTENT, "");
+
+                            // 限制内容长度
+                            if (articleContent.length() > 3000) {
+                                articleContent = articleContent.substring(0, 3000) + "\n...(内容过长，已截取前3000字符)";
+                            }
+
+                            if (!title.isEmpty() || !articleContent.isEmpty()) {
+                                urlContext.append("\n\n## 本站文章内容\n");
+                                urlContext.append("URL: ").append(articleUrl).append("\n");
+                                if (!title.isEmpty()) {
+                                    urlContext.append("标题: ").append(title).append("\n");
+                                }
+                                if (!articleContent.isEmpty()) {
+                                    urlContext.append("内容:\n").append(articleContent).append("\n");
+                                }
+                                LOGGER.log(Level.INFO, "Fetched article: title={}, contentLength={}",
+                                        title, articleContent.length());
+                            }
+                        } else {
+                            LOGGER.log(Level.WARN, "Article not found: articleId={}", articleId);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.ERROR, "Failed to fetch article: articleId={}", articleId, e);
+                    }
+                }
 
                 // 提取 Markdown 图片 URL: ![alt](url)
                 java.util.regex.Pattern imgPattern = java.util.regex.Pattern.compile("!\\[[^\\]]*\\]\\(([^)]+)\\)");
@@ -1142,6 +1261,11 @@ public class ChatRoomBot {
                     String textQuestion = question.replaceAll("!\\[[^\\]]*\\]\\([^)]+\\)", "").trim();
                     if (textQuestion.isEmpty()) {
                         textQuestion = "请描述这张图片";
+                    }
+
+                    // 添加 URL 上下文
+                    if (urlContext.length() > 0) {
+                        textQuestion = textQuestion + urlContext.toString();
                     }
 
                     LOGGER.log(Level.INFO, "Processing image chat for user: {}, images: {}, question: {}",
@@ -1185,19 +1309,86 @@ public class ChatRoomBot {
                     LOGGER.log(Level.INFO, "AI image response length: {}", response.length());
                 } else {
                     // 无图片，使用普通文本对话
-                    response = AIProviderFactory.chatSync(systemPrompt, question);
+                    // 添加 URL 上下文
+                    String finalQuestion = question;
+                    if (urlContext.length() > 0) {
+                        finalQuestion = question + urlContext.toString();
+                    }
+                    response = AIProviderFactory.chatSync(systemPrompt, finalQuestion);
                 }
 
                 if (response != null && !response.isEmpty()) {
                     // 清理 AI 回复中可能的 @用户名，避免重复艾特
                     response = response.replaceAll("^@[a-zA-Z0-9_\\-]+\\s*", "").trim();
+
+                    // 解析禁言指令
+                    String finalResponse = response;
+                    java.util.regex.Pattern mutePattern = java.util.regex.Pattern.compile("(?m)^zf jy ([a-zA-Z0-9_\\-]+) (\\d+) (.+)$");
+                    java.util.regex.Matcher muteMatcher = mutePattern.matcher(response);
+
+                    if (muteMatcher.find()) {
+                        String targetUser = muteMatcher.group(1);
+                        int minutes = Integer.parseInt(muteMatcher.group(2));
+                        String reason = muteMatcher.group(3);
+
+                        // 验证禁言时长和权限
+                        boolean isValidMute = false;
+                        String errorMsg = null;
+
+                        // 重要：验证发起用户的真实角色，防止用户欺骗AI
+                        boolean hasCommandPermission = DataModelService.hasPermission(userRoleId, 3);
+
+                        if (hasCommandPermission) {
+                            // 纪律委员/OP/管理员可以执行任意时长的禁言
+                            isValidMute = true;
+                            LOGGER.log(Level.INFO, "User {} (role: {}) commanded AI to mute user {} for {} minutes",
+                                    userName, roleName, targetUser, minutes);
+                        } else {
+                            // AI 自主禁言只能 1-5 分钟
+                            if (minutes >= 1 && minutes <= 5) {
+                                isValidMute = true;
+                                LOGGER.log(Level.WARN, "AI autonomously decided to mute user {} for {} minutes, reason: {}",
+                                        targetUser, minutes, reason);
+                            } else {
+                                errorMsg = "AI 自主禁言只能设置 1-5 分钟";
+                            }
+                        }
+
+                        if (isValidMute) {
+                            try {
+                                final BeanManager beanManager = BeanManager.getInstance();
+                                UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
+                                JSONObject targetUserObj = userQueryService.getUserByName(targetUser);
+
+                                if (targetUserObj != null) {
+                                    String targetUserId = targetUserObj.optString(Keys.OBJECT_ID);
+                                    muteAndNotice(targetUser, targetUserId, minutes);
+                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, reason={}, commander={}, hasPermission={}",
+                                            targetUser, minutes, reason, userName, hasCommandPermission);
+                                } else {
+                                    sendBotMsg("禁言失败：用户 " + targetUser + " 不存在");
+                                }
+                            } catch (Exception e) {
+                                LOGGER.log(Level.ERROR, "AI mute execution failed", e);
+                                sendBotMsg("禁言执行失败：" + e.getMessage());
+                            }
+                        } else if (errorMsg != null) {
+                            sendBotMsg(errorMsg);
+                        }
+
+                        // 从回复中移除禁言指令
+                        finalResponse = muteMatcher.replaceAll("").trim();
+                    }
+
                     // 构建引用格式的回复
-                    // 对原始内容进行处理，每行前加 "> "
-                    String quotedContent = originalContent.replaceAll("(?m)^", "> ");
-                    String replyMsg = response + "\n\n"
-                            + "##### 引用 @" + userName + " [↩](" + Latkes.getServePath() + "/cr#chatroom" + oId + " \"跳转至原消息\")  \n"
-                            + quotedContent;
-                    sendBotMsg(replyMsg);
+                    if (!finalResponse.isEmpty()) {
+                        // 对原始内容进行处理，每行前加 "> "
+                        String quotedContent = originalContent.replaceAll("(?m)^", "> ");
+                        String replyMsg = finalResponse + "\n\n"
+                                + "##### 引用 @" + userName + " [↩](" + Latkes.getServePath() + "/cr#chatroom" + oId + " \"跳转至原消息\")  \n"
+                                + quotedContent;
+                        sendBotMsg(replyMsg);
+                    }
                 } else {
                     LOGGER.log(Level.WARN, "AI returned empty response for user: " + userName);
                 }
