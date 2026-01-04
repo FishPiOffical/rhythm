@@ -32,6 +32,8 @@ import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.ai.AIProviderFactory;
+import org.b3log.symphony.ai.OpenAIProvider;
+import org.b3log.symphony.ai.Provider;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.ChatroomProcessor;
@@ -1089,6 +1091,7 @@ public class ChatRoomBot {
     /**
      * 处理 @马库斯 AI 回复
      * 异步调用 AI 生成回复，不阻塞主线程
+     * 支持识别消息中的图片
      *
      * @param userName 发送消息的用户名
      * @param content  消息内容
@@ -1121,9 +1124,70 @@ public class ChatRoomBot {
                     sendBotMsg("@" + userName + "  你的对话过于频繁，稍候再试吧~");
                     return;
                 }
-                // 调用 AI 生成回复
+
                 String systemPrompt = "你是摸鱼派社区的智能助手马库斯，友好、幽默、乐于助人。回复要简洁明了，不要太长。不要在回复中使用@提及任何用户。";
-                String response = AIProviderFactory.chatSync(systemPrompt, question);
+                String response;
+
+                // 提取 Markdown 图片 URL: ![alt](url)
+                java.util.regex.Pattern imgPattern = java.util.regex.Pattern.compile("!\\[[^\\]]*\\]\\(([^)]+)\\)");
+                java.util.regex.Matcher imgMatcher = imgPattern.matcher(question);
+                List<String> imageUrls = new ArrayList<>();
+                while (imgMatcher.find()) {
+                    imageUrls.add(imgMatcher.group(1));
+                }
+
+                if (!imageUrls.isEmpty()) {
+                    // 有图片，使用多模态消息
+                    // 移除图片标记，保留纯文本问题
+                    String textQuestion = question.replaceAll("!\\[[^\\]]*\\]\\([^)]+\\)", "").trim();
+                    if (textQuestion.isEmpty()) {
+                        textQuestion = "请描述这张图片";
+                    }
+
+                    LOGGER.log(Level.INFO, "Processing image chat for user: {}, images: {}, question: {}",
+                            userName, imageUrls.size(), textQuestion);
+
+                    // 构建多模态内容
+                    List<Provider.ContentType> contentTypes = new ArrayList<>();
+                    contentTypes.add(new Provider.ContentType.Text(textQuestion));
+                    for (String imageUrl : imageUrls) {
+                        LOGGER.log(Level.INFO, "Adding image URL: {}", imageUrl);
+                        contentTypes.add(new Provider.ContentType.Image(imageUrl, "image/jpeg"));
+                    }
+
+                    var messages = OpenAIProvider.Message.of(
+                            new OpenAIProvider.Message.System(systemPrompt),
+                            new OpenAIProvider.Message.User(new Provider.Content.Array(contentTypes))
+                    );
+
+                    // 使用自定义消息调用 AI
+                    var sb = new StringBuilder();
+                    var provider = AIProviderFactory.createProvider(messages);
+                    AIProviderFactory.send(provider).forEach(json -> {
+                        LOGGER.log(Level.DEBUG, "AI response chunk: {}", json.toString());
+                        var choices = json.optJSONArray("choices");
+                        if (choices != null && choices.length() > 0) {
+                            var delta = choices.getJSONObject(0).optJSONObject("delta");
+                            if (delta != null) {
+                                sb.append(delta.optString("content", ""));
+                            }
+                            var message = choices.getJSONObject(0).optJSONObject("message");
+                            if (message != null) {
+                                sb.append(message.optString("content", ""));
+                            }
+                        }
+                        // 检查是否有错误信息
+                        if (json.has("error")) {
+                            LOGGER.log(Level.ERROR, "AI API error: {}", json.optJSONObject("error"));
+                        }
+                    });
+                    response = sb.toString();
+                    LOGGER.log(Level.INFO, "AI image response length: {}", response.length());
+                } else {
+                    // 无图片，使用普通文本对话
+                    response = AIProviderFactory.chatSync(systemPrompt, question);
+                }
+
                 if (response != null && !response.isEmpty()) {
                     // 清理 AI 回复中可能的 @用户名，避免重复艾特
                     response = response.replaceAll("^@[a-zA-Z0-9_\\-]+\\s*", "").trim();
@@ -1134,9 +1198,12 @@ public class ChatRoomBot {
                             + "##### 引用 @" + userName + " [↩](" + Latkes.getServePath() + "/cr#chatroom" + oId + " \"跳转至原消息\")  \n"
                             + quotedContent;
                     sendBotMsg(replyMsg);
+                } else {
+                    LOGGER.log(Level.WARN, "AI returned empty response for user: " + userName);
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.ERROR, "AI chat failed for user: " + userName, e);
+                sendBotMsg("@" + userName + "  抱歉，AI 处理失败：" + e.getMessage());
             }
         });
     }
