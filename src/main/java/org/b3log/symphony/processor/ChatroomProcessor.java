@@ -1709,6 +1709,9 @@ public class ChatroomProcessor {
                     LOGGER.log(Level.ERROR, "notify user failed", e);
                 }
 
+                // 处理 @马库斯 AI 回复
+                ChatRoomBot.handleAIChat(userName, content, msg.optString("oId"));
+
                 try {
                     final JSONObject user = userQueryService.getUser(userId);
                     user.put(UserExt.USER_LATEST_CMT_TIME, System.currentTimeMillis());

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.BeanManager;
@@ -30,6 +31,7 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
 import org.b3log.latke.service.ServiceException;
+import org.b3log.symphony.ai.AIProviderFactory;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.ChatroomProcessor;
@@ -68,6 +70,10 @@ public class ChatRoomBot {
     private static final SimpleCurrentLimiter RECORD_POOL_5_IN_1M = new SimpleCurrentLimiter(60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_BARRAGER = new SimpleCurrentLimiter(60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_05_IN_1M = new SimpleCurrentLimiter(120, 1);
+    /**
+     * AI 对话限流器：每用户每分钟5次
+     */
+    private static final SimpleCurrentLimiter RECORD_POOL_AI_5_IN_1M = new SimpleCurrentLimiter(60, 5);
 
 
     /**
@@ -170,6 +176,9 @@ public class ChatRoomBot {
                             break;
                         case "jcts":
                             cmd2 = "进出提示";
+                            break;
+                        case "hs":
+                            cmd2 = "回溯";
                             break;
                     }
                     switch (cmd2) {
@@ -495,6 +504,21 @@ public class ChatRoomBot {
                                 sendBotMsg("参数错误。");
                             }
                             break;
+                        case "回溯":
+                            if (!AIProviderFactory.isChatroomRecapAvailable()) {
+                                sendBotMsg("回溯功能未启用。");
+                                break;
+                            }
+                            sendBotMsg("正在回溯近2小时的聊天记录，请稍候...");
+                            Thread.startVirtualThread(() -> {
+                                try {
+                                    generateChatRecap();
+                                } catch (Exception e) {
+                                    LOGGER.log(Level.ERROR, "Chat recap failed", e);
+                                    sendBotMsg("回溯失败，请稍后重试。");
+                                }
+                            });
+                            break;
                         default:
                             sendBotMsg("<details><summary>执法帮助菜单</summary>\n" +
                                     "如无特殊备注，则需要纪律委员及以上分组才可执行\n\n" +
@@ -510,7 +534,8 @@ public class ChatRoomBot {
                                     "* **进出提示恢复默认（未经管理员允许禁止使用）** 执法 进出提示 [用户名]\n" +
                                     "* **设置进出提示（详细变量列表请输入：执法 进出提示 帮助）** 执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]\n" +
                                     "* **查询进出提示** 执法 进出提示 查询 [用户名]\n" +
-                                    "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]</details>\n" +
+                                    "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]\n" +
+                                    "* **AI总结近2小时聊天内容** 执法 回溯</details>\n" +
                                     "<p></p>");
                     }
                     return true;
@@ -1058,6 +1083,209 @@ public class ChatRoomBot {
                 sendBotMsg("现在时间是 19:30 分，摸鱼派已进入宵禁模式，期间聊天消息将不会计为活跃度...\n" +
                         "感谢你的陪伴，我们明天再见，早点休息，晚安 \uD83D\uDCA4");
                 break;
+        }
+    }
+
+    /**
+     * 处理 @马库斯 AI 回复
+     * 异步调用 AI 生成回复，不阻塞主线程
+     *
+     * @param userName 发送消息的用户名
+     * @param content  消息内容
+     * @param oId      消息ID，用于生成引用链接
+     */
+    public static void handleAIChat(String userName, String content, String oId) {
+        // 检查是否 @马库斯
+        if (!content.contains("@马库斯")) {
+            return;
+        }
+        // 检查 AI 是否可用
+        if (!AIProviderFactory.isChatroomAIAvailable()) {
+            return;
+        }
+        // 保留原始内容用于引用显示
+        String originalContent = content;
+        // 提取问题内容（去除 @马库斯 及其后的空格，同时去除引用内容中的 @用户名 避免重复艾特）
+        String question = content
+                .replaceAll("@马库斯\\s*", "")
+                .replaceAll("@[a-zA-Z0-9_\\-]+\\s*", "")  // 去除其他 @用户名
+                .trim();
+        if (question.isEmpty()) {
+            return;
+        }
+        // 异步处理 AI 回复
+        Thread.startVirtualThread(() -> {
+            try {
+                // 检查限流
+                if (!RECORD_POOL_AI_5_IN_1M.access(userName)) {
+                    sendBotMsg("@" + userName + "  你的对话过于频繁，稍候再试吧~");
+                    return;
+                }
+                // 调用 AI 生成回复
+                String systemPrompt = "你是摸鱼派社区的智能助手马库斯，友好、幽默、乐于助人。回复要简洁明了，不要太长。不要在回复中使用@提及任何用户。";
+                String response = AIProviderFactory.chatSync(systemPrompt, question);
+                if (response != null && !response.isEmpty()) {
+                    // 清理 AI 回复中可能的 @用户名，避免重复艾特
+                    response = response.replaceAll("^@[a-zA-Z0-9_\\-]+\\s*", "").trim();
+                    // 构建引用格式的回复
+                    // 对原始内容进行处理，每行前加 "> "
+                    String quotedContent = originalContent.replaceAll("(?m)^", "> ");
+                    String replyMsg = response + "\n\n"
+                            + "##### 引用 @" + userName + " [↩](" + Latkes.getServePath() + "/cr#chatroom" + oId + " \"跳转至原消息\")  \n"
+                            + quotedContent;
+                    sendBotMsg(replyMsg);
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.ERROR, "AI chat failed for user: " + userName, e);
+            }
+        });
+    }
+
+    /**
+     * 生成聊天室回溯摘要
+     * 查询最近2小时的聊天记录，使用AI生成摘要
+     */
+    private static void generateChatRecap() {
+        try {
+            final BeanManager beanManager = BeanManager.getInstance();
+            ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
+
+            // 查询最近2小时的消息（oId 就是写入时的 System.currentTimeMillis）
+            long twoHoursAgo = System.currentTimeMillis() - 2 * 60 * 60 * 1000;
+            List<JSONObject> messages = chatRoomRepository.select(
+                    "SELECT * FROM `" + chatRoomRepository.getName() + "` WHERE oId >= ? ORDER BY oId ASC",
+                    twoHoursAgo
+            );
+
+            if (messages == null || messages.isEmpty()) {
+                sendBotMsg("最近2小时内没有聊天记录。");
+                return;
+            }
+
+            // 过滤并格式化消息
+            List<String[]> validMessages = new ArrayList<>(); // [userName, content]
+
+            for (JSONObject msgRow : messages) {
+                try {
+                    JSONObject msg = new JSONObject(msgRow.optString("content"));
+
+                    String userName = msg.optString(User.USER_NAME, "");
+                    String content = msg.optString(Common.CONTENT, "");
+
+                    // 跳过机器人消息
+                    if ("马库斯".equals(userName)) {
+                        continue;
+                    }
+
+                    // 跳过红包、天气、音乐等特殊消息
+                    if (content.startsWith("[redpacket]") || content.startsWith("{")) {
+                        try {
+                            JSONObject contentJson = new JSONObject(content);
+                            String msgType = contentJson.optString("msgType", "");
+                            if (!msgType.isEmpty()) {
+                                continue;
+                            }
+                        } catch (Exception ignored) {
+                            // 不是JSON，继续处理
+                        }
+                    }
+
+                    // 跳过弹幕消息
+                    if (content.startsWith("[barrager]")) {
+                        continue;
+                    }
+
+                    // 清理内容中的HTML和图片标签，保留纯文本
+                    content = content.replaceAll("<[^>]+>", "");
+                    content = content.replaceAll("!\\[[^\\]]*\\]\\([^)]+\\)", "[图片]");
+                    content = content.replaceAll("\\[[^\\]]*\\]\\([^)]+\\)", "");
+                    content = content.trim();
+
+                    if (content.isEmpty() || userName.isEmpty()) {
+                        continue;
+                    }
+
+                    validMessages.add(new String[]{userName, content});
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARN, "Parse chat message failed", e);
+                }
+            }
+
+            if (validMessages.isEmpty()) {
+                sendBotMsg("最近2小时内没有有效的聊天记录。");
+                return;
+            }
+
+            // 计算 tokens 分配策略
+            int maxTokens = AIProviderFactory.getMaxTokens();
+            // 预留 2000 tokens 给系统提示词和输出
+            int availableTokens = maxTokens - 2000;
+            // 中文约 2 字符/token
+            int availableChars = availableTokens * 2;
+
+            int totalMessages = validMessages.size();
+            // 每条消息格式 "userName: content\n"，userName 平均约 10 字符
+            int avgUserNameLen = 12; // "userName: " + "\n"
+
+            // 计算每条消息内容可用的字符数
+            int charsPerMessage = (availableChars / totalMessages) - avgUserNameLen;
+
+            // 最小每条消息至少 10 个字符才有意义
+            int minCharsPerMessage = 10;
+            int finalMessageCount = totalMessages;
+            boolean truncatedMessages = false;
+
+            if (charsPerMessage < minCharsPerMessage) {
+                // 消息太多，需要限制数量
+                finalMessageCount = availableChars / (minCharsPerMessage + avgUserNameLen);
+                charsPerMessage = minCharsPerMessage;
+                truncatedMessages = true;
+            }
+
+            // 构建聊天记录
+            StringBuilder chatLog = new StringBuilder();
+            int startIndex = truncatedMessages ? (totalMessages - finalMessageCount) : 0;
+            if (startIndex < 0) startIndex = 0;
+
+            int includedCount = 0;
+            for (int i = startIndex; i < totalMessages; i++) {
+                String userName = validMessages.get(i)[0];
+                String content = validMessages.get(i)[1];
+
+                // 截取内容
+                if (content.length() > charsPerMessage) {
+                    content = content.substring(0, charsPerMessage) + "...";
+                }
+
+                chatLog.append(userName).append(": ").append(content).append("\n");
+                includedCount++;
+            }
+
+            int skippedCount = totalMessages - includedCount;
+
+            // 调用AI生成摘要
+            String systemPrompt = "你是摸鱼派社区的智能助手马库斯。请根据以下聊天记录，生成一份简洁的摘要报告。" +
+                    "摘要应包括：1) 主要讨论话题；2) 活跃发言者；3) 重要信息或结论。" +
+                    "格式要求：使用 Markdown 格式，条理清晰，不要太长。";
+
+            String response = AIProviderFactory.chatSync(systemPrompt, chatLog.toString());
+
+            if (response != null && !response.isEmpty()) {
+                StringBuilder result = new StringBuilder();
+                result.append("### 聊天室回溯报告\n\n");
+                result.append("**统计信息**：共分析 ").append(includedCount).append(" 条消息");
+                if (skippedCount > 0) {
+                    result.append("（因长度限制，已忽略更早的 ").append(skippedCount).append(" 条消息）");
+                }
+                result.append("\n\n");
+                result.append(response);
+                sendBotMsg(result.toString());
+            } else {
+                sendBotMsg("回溯生成失败，AI未返回有效响应。");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "Generate chat recap failed", e);
+            sendBotMsg("回溯生成失败：" + e.getMessage());
         }
     }
 }

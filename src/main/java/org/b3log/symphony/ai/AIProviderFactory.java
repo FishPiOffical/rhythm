@@ -67,6 +67,10 @@ public final class AIProviderFactory {
     public static final boolean QWEN_STREAM = "true".equalsIgnoreCase(Symphonys.get("ai.qwen.stream"));
     public static final boolean QWEN_ENABLE_SEARCH = "true".equalsIgnoreCase(Symphonys.get("ai.qwen.enableSearch"));
 
+    // 聊天室 AI 功能配置
+    public static final boolean CHATROOM_AI_ENABLED = "true".equalsIgnoreCase(Symphonys.get("ai.chatroom.enabled"));
+    public static final boolean CHATROOM_RECAP_ENABLED = "true".equalsIgnoreCase(Symphonys.get("ai.chatroom.recap.enabled"));
+
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final AIClient AI_CLIENT = new AIClient(HTTP_CLIENT);
 
@@ -367,6 +371,31 @@ public final class AIProviderFactory {
         return switch (type) {
             case OPENAI -> OPENAI_API_KEY != null && !OPENAI_API_KEY.isBlank();
             case QWEN -> QWEN_API_KEY != null && !QWEN_API_KEY.isBlank();
+        };
+    }
+
+    /**
+     * 检查聊天室 AI 功能是否可用
+     */
+    public static boolean isChatroomAIAvailable() {
+        return isAvailable() && CHATROOM_AI_ENABLED;
+    }
+
+    /**
+     * 检查聊天室回溯功能是否可用
+     */
+    public static boolean isChatroomRecapAvailable() {
+        return isAvailable() && CHATROOM_RECAP_ENABLED;
+    }
+
+    /**
+     * 获取当前 Provider 的最大 tokens
+     */
+    public static int getMaxTokens() {
+        var type = getDefaultProviderType();
+        return switch (type) {
+            case OPENAI -> OPENAI_MAX_TOKENS;
+            case QWEN -> QWEN_MAX_TOKENS;
         };
     }
 
