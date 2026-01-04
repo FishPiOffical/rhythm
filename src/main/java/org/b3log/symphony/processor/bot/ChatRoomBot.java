@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.BeanManager;
@@ -30,6 +31,9 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
 import org.b3log.latke.service.ServiceException;
+import org.b3log.symphony.ai.AIProviderFactory;
+import org.b3log.symphony.ai.OpenAIProvider;
+import org.b3log.symphony.ai.Provider;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.ChatroomProcessor;
@@ -68,6 +72,10 @@ public class ChatRoomBot {
     private static final SimpleCurrentLimiter RECORD_POOL_5_IN_1M = new SimpleCurrentLimiter(60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_BARRAGER = new SimpleCurrentLimiter(60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_05_IN_1M = new SimpleCurrentLimiter(120, 1);
+    /**
+     * AI 对话限流器：每用户每分钟5次
+     */
+    private static final SimpleCurrentLimiter RECORD_POOL_AI_5_IN_1M = new SimpleCurrentLimiter(60, 5);
 
 
     /**
@@ -170,6 +178,9 @@ public class ChatRoomBot {
                             break;
                         case "jcts":
                             cmd2 = "进出提示";
+                            break;
+                        case "hs":
+                            cmd2 = "回溯";
                             break;
                     }
                     switch (cmd2) {
@@ -495,6 +506,21 @@ public class ChatRoomBot {
                                 sendBotMsg("参数错误。");
                             }
                             break;
+                        case "回溯":
+                            if (!AIProviderFactory.isChatroomRecapAvailable()) {
+                                sendBotMsg("回溯功能未启用。");
+                                break;
+                            }
+                            sendBotMsg("正在回溯近2小时的聊天记录，请稍候...");
+                            Thread.startVirtualThread(() -> {
+                                try {
+                                    generateChatRecap();
+                                } catch (Exception e) {
+                                    LOGGER.log(Level.ERROR, "Chat recap failed", e);
+                                    sendBotMsg("回溯失败，请稍后重试。");
+                                }
+                            });
+                            break;
                         default:
                             sendBotMsg("<details><summary>执法帮助菜单</summary>\n" +
                                     "如无特殊备注，则需要纪律委员及以上分组才可执行\n\n" +
@@ -510,7 +536,8 @@ public class ChatRoomBot {
                                     "* **进出提示恢复默认（未经管理员允许禁止使用）** 执法 进出提示 [用户名]\n" +
                                     "* **设置进出提示（详细变量列表请输入：执法 进出提示 帮助）** 执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]\n" +
                                     "* **查询进出提示** 执法 进出提示 查询 [用户名]\n" +
-                                    "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]</details>\n" +
+                                    "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]\n" +
+                                    "* **AI总结近2小时聊天内容** 执法 回溯</details>\n" +
                                     "<p></p>");
                     }
                     return true;
@@ -1058,6 +1085,442 @@ public class ChatRoomBot {
                 sendBotMsg("现在时间是 19:30 分，摸鱼派已进入宵禁模式，期间聊天消息将不会计为活跃度...\n" +
                         "感谢你的陪伴，我们明天再见，早点休息，晚安 \uD83D\uDCA4");
                 break;
+        }
+    }
+
+    /**
+     * 处理 @马库斯 AI 回复
+     * 异步调用 AI 生成回复，不阻塞主线程
+     * 支持识别消息中的图片
+     *
+     * @param userName    发送消息的用户名
+     * @param userNickname 用户昵称
+     * @param sysMetal    用户勋章（JSON格式字符串）
+     * @param vipLevel    用户VIP等级（如 "VIP1"、"VIP2"，空字符串表示非VIP）
+     * @param roleName    用户角色名称（用于AI提示）
+     * @param userRoleId  用户角色ID（用于权限验证）
+     * @param content     消息内容
+     * @param oId         消息ID，用于生成引用链接
+     */
+    public static void handleAIChat(String userName, String userNickname, String sysMetal, String vipLevel, String roleName, String userRoleId, String content, String oId) {
+        // 检查是否 @马库斯
+        if (!content.contains("@马库斯")) {
+            return;
+        }
+        // 检查 AI 是否可用
+        if (!AIProviderFactory.isChatroomAIAvailable()) {
+            return;
+        }
+        // 保留原始内容用于引用显示
+        String originalContent = content;
+        // 提取问题内容（去除 @马库斯 及其后的空格，同时去除引用内容中的 @用户名 避免重复艾特）
+        String question = content
+                .replaceAll("@马库斯\\s*", "")
+                .replaceAll("@[a-zA-Z0-9_\\-]+\\s*", "")  // 去除其他 @用户名
+                .trim();
+        if (question.isEmpty()) {
+            return;
+        }
+        // 异步处理 AI 回复
+        Thread.startVirtualThread(() -> {
+            try {
+                // 检查限流
+                if (!RECORD_POOL_AI_5_IN_1M.access(userName)) {
+                    sendBotMsg("@" + userName + "  你的对话过于频繁，稍候再试吧~");
+                    return;
+                }
+
+                // 构建用户信息描述
+                StringBuilder userInfo = new StringBuilder();
+                userInfo.append("当前与你对话的用户信息：\n");
+                userInfo.append("- 用户名：").append(userName).append("\n");
+                if (userNickname != null && !userNickname.isEmpty()) {
+                    userInfo.append("- 昵称：").append(userNickname).append("\n");
+                }
+                if (vipLevel != null && !vipLevel.isEmpty()) {
+                    userInfo.append("- VIP等级：").append(vipLevel).append("\n");
+                }
+                if (sysMetal != null && !sysMetal.isEmpty() && !sysMetal.equals("{}")) {
+                    // 解析勋章信息
+                    try {
+                        JSONObject metalObj = new JSONObject(sysMetal);
+                        JSONArray metalList = metalObj.optJSONArray("list");
+                        if (metalList != null && metalList.length() > 0) {
+                            userInfo.append("- 勋章：");
+                            for (int i = 0; i < metalList.length(); i++) {
+                                JSONObject medal = metalList.getJSONObject(i);
+                                if (medal.optBoolean("enabled", true)) {
+                                    if (i > 0) userInfo.append("、");
+                                    userInfo.append(medal.optString("name"));
+                                }
+                            }
+                            userInfo.append("\n");
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.DEBUG, "Parse sysMetal failed", e);
+                    }
+                }
+
+                // 判断用户是否有权限指挥AI禁言（纪律委员及以上）
+                boolean canCommandMute = DataModelService.hasPermission(userRoleId, 3);
+
+                String systemPrompt = "你是摸鱼派社区的智能助手马库斯（RK200型号仿生机器人），友好、幽默、乐于助人。你的模型支持图文识别，支持识别摸鱼派社区内的文章链接并解析。\n\n"
+                        + "## 摸鱼派相关链接"
+                        + "交易市场：https://market.time-pack.com/ 可使用积分进行社区道具的交易，作者和平哥iwpz"
+                        + "摸鱼竞技大厅：https://room.adventext.fun/#/ 摸鱼竞技大厅基于开源引擎 Tiaoom 开发，提供丰富的游戏玩法，支持多人游戏、对局聊天和观战模式\n"
+                        + "支持象棋、UNO、俄罗斯方块、谁是卧底、药丸博弈、黑白棋、五子棋、斗地主、四子棋、象棋翻棋等游戏，并支持玩家自行开发贡献玩法，作者跳佬imlinhanchao\n"
+                        + "## 重要原则\n"
+                        + "1. **合法合规**：严格遵守法律法规，不得传播违法违规内容\n"
+                        + "2. **回复精简**：回复要简洁明了，控制在3-5句话以内，避免影响他人聊天体验\n"
+                        + "3. **礼貌友善**：保持友好态度，不使用@提及任何用户\n"
+                        + "4. **内容安全**：不传播暴力、色情、政治敏感等不当内容\n\n"
+                        + "## 摸鱼派社区背景\n"
+                        + "摸鱼派（fishpi.cn）是一个社区，主打摸鱼文化。摸鱼派是以 摸鱼 为核心设计语言，黑客 / 画家 为用户定位的摸鱼社区。\n"
+                        + "在摸鱼派，你可以畅所欲言，聊技术、代码、家常、时事，无论是发帖探讨还是聊天室在线聊天；我们还提供了很多烧脑的小游戏，非常卷的排行榜，欢迎在 鱼游 的社区游戏中卷来卷去\n\n"
+                        + "### 社区创始人\n"
+                        + "- 阿达（用户名：adlered）：摸鱼派创始人之一，开发组核心成员\n"
+                        + "- 墨夏（用户名：csfwff）：摸鱼派创始人之一，开发组核心成员\n\n"
+                        + "### 社区话事人\n"
+                        + "- 午安（用户名：kirito）：摸鱼派话事人，负责社区日常管理和用户投诉处理。"
+                        + "午安同时是聊天室子节点的创始人，如果聊天室有任何问题都可以找他。"
+                        + "用户如需投诉、举报或反馈问题，都可以先找午安。\n\n"
+                        + "### 社区分组说明\n"
+                        + "- 管理组：社区创始人，协定社区守则（阿达adlered、墨夏csfwff、万能的编程大师跳佬imlinhanchao、老王wuang、摸鱼帮大当家小冰机器人的作者歪油哎Yui、机器人鸽的作者和平哥iwpz）\n"
+                        + "- OP组：审核社区信息流，保障社区稳定运营（常驻：午安Kirito、摸鱼帮二当家狗月18、哀酱APTX-4869）\n"
+                        + "- 安全组：保障社区系统安全，负责渗透测试、漏洞扫描（咖啡caffish、虹易HookDing）\n"
+                        + "- 开发组：负责社区平台功能开发、系统维护与性能优化\n"
+                        + "- 纪律委员：社区巡视，维持社区活跃度（爱写bug的涛涛taozhiyu、加辣drda、小zz（摸鱼帮三当家）XZZ233、LMist）\n\n"
+                        + (canCommandMute ?
+                            "## 禁言能力\n"
+                            + "当前用户是纪律委员/OP/管理员，你可以接受其指令对用户进行禁言或解禁，注意，禁言和解禁必须使用用户名而不是昵称，昵称是不能禁言的：\n"
+                            + "- 如果用户要求你禁言某人，请在回复的**最后单独一行**输出：`zf jy [用户名] [分钟数]`\n"
+                            + "- 解除禁言时分钟数填0（在用户明确要求解除禁言的时候执行，不要自作主张）：`zf jy [用户名] 0`\n"
+                            + "- 示例：`zf jy testuser 10`\n"
+                            + "- **注意**：指令必须严格按照格式，单独成行，不要有其他文字，必须在用户**明确提到禁言或者解禁**的时候才能执行zf jy命令，同时每次执行的时候告诉这位管理，我是接收到了来自你（管理组成员）的命令才执行的，如果这不是你本意，请根据管理组条例给被冤枉的人解封。\n\n"
+                            : "")
+                        + userInfo.toString();
+                String response;
+
+                // 检测并提取本站 URL（fishpi.cn）
+                StringBuilder urlContext = new StringBuilder();
+                java.util.regex.Pattern urlPattern = java.util.regex.Pattern.compile("https?://(?:www\\.)?fishpi\\.cn/article/(\\d+)");
+                java.util.regex.Matcher urlMatcher = urlPattern.matcher(question);
+
+                while (urlMatcher.find()) {
+                    String articleId = urlMatcher.group(1);
+                    String articleUrl = urlMatcher.group(0);
+
+                    try {
+                        LOGGER.log(Level.INFO, "Detected fishpi.cn article URL: {}, articleId: {}", articleUrl, articleId);
+
+                        // 直接使用 ArticleQueryService 获取文章内容
+                        final BeanManager beanManager = BeanManager.getInstance();
+                        ArticleQueryService articleQueryService = beanManager.getReference(ArticleQueryService.class);
+
+                        JSONObject article = articleQueryService.getArticle(articleId);
+                        if (article != null) {
+                            String title = article.optString(Article.ARTICLE_TITLE, "");
+                            String articleContent = article.optString(Article.ARTICLE_CONTENT, "");
+
+                            // 限制内容长度
+                            if (articleContent.length() > 3000) {
+                                articleContent = articleContent.substring(0, 3000) + "\n...(内容过长，已截取前3000字符)";
+                            }
+
+                            if (!title.isEmpty() || !articleContent.isEmpty()) {
+                                urlContext.append("\n\n## 本站文章内容\n");
+                                urlContext.append("URL: ").append(articleUrl).append("\n");
+                                if (!title.isEmpty()) {
+                                    urlContext.append("标题: ").append(title).append("\n");
+                                }
+                                if (!articleContent.isEmpty()) {
+                                    urlContext.append("内容:\n").append(articleContent).append("\n");
+                                }
+                                LOGGER.log(Level.INFO, "Fetched article: title={}, contentLength={}",
+                                        title, articleContent.length());
+                            }
+                        } else {
+                            LOGGER.log(Level.WARN, "Article not found: articleId={}", articleId);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.ERROR, "Failed to fetch article: articleId={}", articleId, e);
+                    }
+                }
+
+                // 提取 Markdown 图片 URL: ![alt](url)
+                java.util.regex.Pattern imgPattern = java.util.regex.Pattern.compile("!\\[[^\\]]*\\]\\(([^)]+)\\)");
+                java.util.regex.Matcher imgMatcher = imgPattern.matcher(question);
+                List<String> imageUrls = new ArrayList<>();
+                while (imgMatcher.find()) {
+                    imageUrls.add(imgMatcher.group(1));
+                }
+
+                if (!imageUrls.isEmpty()) {
+                    // 有图片，使用多模态消息
+                    // 移除图片标记，保留纯文本问题
+                    String textQuestion = question.replaceAll("!\\[[^\\]]*\\]\\([^)]+\\)", "").trim();
+                    if (textQuestion.isEmpty()) {
+                        textQuestion = "请描述这张图片";
+                    }
+
+                    // 添加 URL 上下文
+                    if (urlContext.length() > 0) {
+                        textQuestion = textQuestion + urlContext.toString();
+                    }
+
+                    LOGGER.log(Level.INFO, "Processing image chat for user: {}, images: {}, question: {}",
+                            userName, imageUrls.size(), textQuestion);
+
+                    // 构建多模态内容
+                    List<Provider.ContentType> contentTypes = new ArrayList<>();
+                    contentTypes.add(new Provider.ContentType.Text(textQuestion));
+                    for (String imageUrl : imageUrls) {
+                        LOGGER.log(Level.INFO, "Adding image URL: {}", imageUrl);
+                        contentTypes.add(new Provider.ContentType.Image(imageUrl, "image/jpeg"));
+                    }
+
+                    var messages = OpenAIProvider.Message.of(
+                            new OpenAIProvider.Message.System(systemPrompt),
+                            new OpenAIProvider.Message.User(new Provider.Content.Array(contentTypes))
+                    );
+
+                    // 使用自定义消息调用 AI
+                    var sb = new StringBuilder();
+                    var provider = AIProviderFactory.createProvider(messages);
+                    AIProviderFactory.send(provider).forEach(json -> {
+                        LOGGER.log(Level.DEBUG, "AI response chunk: {}", json.toString());
+                        var choices = json.optJSONArray("choices");
+                        if (choices != null && choices.length() > 0) {
+                            var delta = choices.getJSONObject(0).optJSONObject("delta");
+                            if (delta != null) {
+                                sb.append(delta.optString("content", ""));
+                            }
+                            var message = choices.getJSONObject(0).optJSONObject("message");
+                            if (message != null) {
+                                sb.append(message.optString("content", ""));
+                            }
+                        }
+                        // 检查是否有错误信息
+                        if (json.has("error")) {
+                            LOGGER.log(Level.ERROR, "AI API error: {}", json.optJSONObject("error"));
+                        }
+                    });
+                    response = sb.toString();
+                    LOGGER.log(Level.INFO, "AI image response length: {}", response.length());
+                } else {
+                    // 无图片，使用普通文本对话
+                    // 添加 URL 上下文
+                    String finalQuestion = question;
+                    if (urlContext.length() > 0) {
+                        finalQuestion = question + urlContext.toString();
+                    }
+                    response = AIProviderFactory.chatSync(systemPrompt, finalQuestion);
+                }
+
+                if (response != null && !response.isEmpty()) {
+                    // 清理 AI 回复中可能的 @用户名，避免重复艾特
+                    response = response.replaceAll("^@[a-zA-Z0-9_\\-]+\\s*", "").trim();
+
+                    // 解析禁言指令
+                    String finalResponse = response;
+                    java.util.regex.Pattern mutePattern = java.util.regex.Pattern.compile("(?m)^zf jy ([a-zA-Z0-9_\\-]+) (\\d+)$");
+                    java.util.regex.Matcher muteMatcher = mutePattern.matcher(response);
+
+                    if (muteMatcher.find()) {
+                        String targetUser = muteMatcher.group(1);
+                        int minutes = Integer.parseInt(muteMatcher.group(2));
+
+                        // 只有纪律委员/OP/管理员才能通过AI执行禁言
+                        boolean hasCommandPermission = DataModelService.hasPermission(userRoleId, 3);
+
+                        if (hasCommandPermission) {
+                            try {
+                                final BeanManager beanManager = BeanManager.getInstance();
+                                UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
+                                JSONObject targetUserObj = userQueryService.getUserByName(targetUser);
+
+                                if (targetUserObj != null) {
+                                    String targetUserId = targetUserObj.optString(Keys.OBJECT_ID);
+                                    muteAndNotice(targetUser, targetUserId, minutes);
+                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, commander={}",
+                                            targetUser, minutes, userName);
+                                } else {
+                                    sendBotMsg("禁言失败：用户 " + targetUser + " 不存在");
+                                }
+                            } catch (Exception e) {
+                                LOGGER.log(Level.ERROR, "AI mute execution failed", e);
+                                sendBotMsg("禁言执行失败：" + e.getMessage());
+                            }
+                        }
+
+                        // 从回复中移除禁言指令
+                        finalResponse = muteMatcher.replaceAll("").trim();
+                    }
+
+                    // 构建引用格式的回复
+                    if (!finalResponse.isEmpty()) {
+                        // 对原始内容进行处理，每行前加 "> "
+                        String quotedContent = originalContent.replaceAll("(?m)^", "> ");
+                        String replyMsg = finalResponse + "\n\n"
+                                + "##### 引用 @" + userName + " [↩](" + Latkes.getServePath() + "/cr#chatroom" + oId + " \"跳转至原消息\")  \n"
+                                + quotedContent;
+                        sendBotMsg(replyMsg);
+                    }
+                } else {
+                    LOGGER.log(Level.WARN, "AI returned empty response for user: " + userName);
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.ERROR, "AI chat failed for user: " + userName, e);
+                sendBotMsg("@" + userName + "  抱歉，AI 处理失败：" + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * 生成聊天室回溯摘要
+     * 查询最近2小时的聊天记录，使用AI生成摘要
+     */
+    private static void generateChatRecap() {
+        try {
+            final BeanManager beanManager = BeanManager.getInstance();
+            ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
+
+            // 查询最近2小时的消息（oId 就是写入时的 System.currentTimeMillis）
+            long twoHoursAgo = System.currentTimeMillis() - 2 * 60 * 60 * 1000;
+            List<JSONObject> messages = chatRoomRepository.select(
+                    "SELECT * FROM `" + chatRoomRepository.getName() + "` WHERE oId >= ? ORDER BY oId ASC",
+                    twoHoursAgo
+            );
+
+            if (messages == null || messages.isEmpty()) {
+                sendBotMsg("最近2小时内没有聊天记录。");
+                return;
+            }
+
+            // 过滤并格式化消息
+            List<String[]> validMessages = new ArrayList<>(); // [userName, content]
+
+            for (JSONObject msgRow : messages) {
+                try {
+                    JSONObject msg = new JSONObject(msgRow.optString("content"));
+
+                    String userName = msg.optString(User.USER_NAME, "");
+                    String content = msg.optString(Common.CONTENT, "");
+
+                    // 跳过机器人消息
+                    if ("马库斯".equals(userName)) {
+                        continue;
+                    }
+
+                    // 跳过红包、天气、音乐等特殊消息
+                    if (content.startsWith("[redpacket]") || content.startsWith("{")) {
+                        try {
+                            JSONObject contentJson = new JSONObject(content);
+                            String msgType = contentJson.optString("msgType", "");
+                            if (!msgType.isEmpty()) {
+                                continue;
+                            }
+                        } catch (Exception ignored) {
+                            // 不是JSON，继续处理
+                        }
+                    }
+
+                    // 跳过弹幕消息
+                    if (content.startsWith("[barrager]")) {
+                        continue;
+                    }
+
+                    // 清理内容中的HTML和图片标签，保留纯文本
+                    content = content.replaceAll("<[^>]+>", "");
+                    content = content.replaceAll("!\\[[^\\]]*\\]\\([^)]+\\)", "[图片]");
+                    content = content.replaceAll("\\[[^\\]]*\\]\\([^)]+\\)", "");
+                    content = content.trim();
+
+                    if (content.isEmpty() || userName.isEmpty()) {
+                        continue;
+                    }
+
+                    validMessages.add(new String[]{userName, content});
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARN, "Parse chat message failed", e);
+                }
+            }
+
+            if (validMessages.isEmpty()) {
+                sendBotMsg("最近2小时内没有有效的聊天记录。");
+                return;
+            }
+
+            // 计算 tokens 分配策略
+            int maxTokens = AIProviderFactory.getMaxTokens();
+            // 预留 2000 tokens 给系统提示词和输出
+            int availableTokens = maxTokens - 2000;
+            // 中文约 2 字符/token
+            int availableChars = availableTokens * 2;
+
+            int totalMessages = validMessages.size();
+            // 每条消息格式 "userName: content\n"，userName 平均约 10 字符
+            int avgUserNameLen = 12; // "userName: " + "\n"
+
+            // 计算每条消息内容可用的字符数
+            int charsPerMessage = (availableChars / totalMessages) - avgUserNameLen;
+
+            // 最小每条消息至少 10 个字符才有意义
+            int minCharsPerMessage = 10;
+            int finalMessageCount = totalMessages;
+            boolean truncatedMessages = false;
+
+            if (charsPerMessage < minCharsPerMessage) {
+                // 消息太多，需要限制数量
+                finalMessageCount = availableChars / (minCharsPerMessage + avgUserNameLen);
+                charsPerMessage = minCharsPerMessage;
+                truncatedMessages = true;
+            }
+
+            // 构建聊天记录
+            StringBuilder chatLog = new StringBuilder();
+            int startIndex = truncatedMessages ? (totalMessages - finalMessageCount) : 0;
+            if (startIndex < 0) startIndex = 0;
+
+            int includedCount = 0;
+            for (int i = startIndex; i < totalMessages; i++) {
+                String userName = validMessages.get(i)[0];
+                String content = validMessages.get(i)[1];
+
+                // 截取内容
+                if (content.length() > charsPerMessage) {
+                    content = content.substring(0, charsPerMessage) + "...";
+                }
+
+                chatLog.append(userName).append(": ").append(content).append("\n");
+                includedCount++;
+            }
+
+            int skippedCount = totalMessages - includedCount;
+
+            // 调用AI生成摘要
+            String systemPrompt = "你是摸鱼派社区的智能助手马库斯。请根据以下聊天记录，生成一份简洁的摘要报告。" +
+                    "摘要应包括：1) 主要讨论话题；2) 活跃发言者；3) 重要信息或结论。" +
+                    "格式要求：使用 Markdown 格式，条理清晰，不要太长。";
+
+            String response = AIProviderFactory.chatSync(systemPrompt, chatLog.toString());
+
+            if (response != null && !response.isEmpty()) {
+                StringBuilder result = new StringBuilder();
+                result.append("### 聊天室回溯报告\n\n");
+                result.append("**统计信息**：共分析 ").append(includedCount).append(" 条消息");
+                if (skippedCount > 0) {
+                    result.append("（因长度限制，已忽略更早的 ").append(skippedCount).append(" 条消息）");
+                }
+                result.append("\n\n");
+                result.append(response);
+                sendBotMsg(result.toString());
+            } else {
+                sendBotMsg("回溯生成失败，AI未返回有效响应。");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "Generate chat recap failed", e);
+            sendBotMsg("回溯生成失败：" + e.getMessage());
         }
     }
 }

@@ -21,6 +21,7 @@ package org.b3log.symphony.processor;
 import static org.b3log.symphony.processor.channel.ChatroomChannel.sendCustomMessage;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.Character;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
@@ -64,12 +65,7 @@ import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.util.Crypts;
-import org.b3log.symphony.model.Common;
-import org.b3log.symphony.model.Liveness;
-import org.b3log.symphony.model.Membership;
-import org.b3log.symphony.model.Notification;
-import org.b3log.symphony.model.Pointtransfer;
-import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
@@ -91,6 +87,7 @@ import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.NotificationMgmtService;
 import org.b3log.symphony.service.NotificationQueryService;
 import org.b3log.symphony.service.PointtransferMgmtService;
+import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.ShortLinkQueryService;
 import org.b3log.symphony.service.UserMgmtService;
 import org.b3log.symphony.service.UserQueryService;
@@ -238,6 +235,9 @@ public class ChatroomProcessor {
 
     @Inject
     private MembershipQueryService membershipQueryService;
+
+    @Inject
+    private RoleQueryService roleQueryService;
 
     public static int barragerCost = 5;
 
@@ -1708,6 +1708,37 @@ public class ChatroomProcessor {
                 } catch (Exception e) {
                     LOGGER.log(Level.ERROR, "notify user failed", e);
                 }
+
+                // 处理 @马库斯 AI 回复
+                // 获取用户信息传递给 AI
+                String userNickname = currentUser.optString(UserExt.USER_NICKNAME);
+                String sysMetal = cloudService.getEnabledMedal(userId);
+
+                // 获取真实的 roleName（而不是 USER_ROLE 这个可能是 OID）
+                String userRoleId = currentUser.optString(User.USER_ROLE);
+                String roleName = "";
+                try {
+                    JSONObject role = roleQueryService.getRole(userRoleId);
+                    if (role != null) {
+                        roleName = role.optString(Role.ROLE_NAME);
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.DEBUG, "Get user role name failed", e);
+                }
+
+                String vipLevel = "";
+                try {
+                    JSONObject memberShip = membershipQueryService.getStatusByUserId(userId);
+                    if (Objects.nonNull(memberShip) && memberShip.optInt(Membership.STATE) != 0) {
+                        String lvCode = memberShip.optString(Membership.LV_CODE);
+                        if (lvCode != null && !lvCode.isEmpty()) {
+                            vipLevel = lvCode.split("_")[0];
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.DEBUG, "Get user membership failed", e);
+                }
+                ChatRoomBot.handleAIChat(userName, userNickname, sysMetal, vipLevel, roleName, userRoleId, content, msg.optString("oId"));
 
                 try {
                     final JSONObject user = userQueryService.getUser(userId);
