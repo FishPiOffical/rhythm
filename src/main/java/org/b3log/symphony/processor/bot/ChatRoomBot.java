@@ -1189,15 +1189,24 @@ public class ChatRoomBot {
                         + (canCommandMute ?
                             "## 禁言能力\n"
                             + "当前用户是纪律委员/OP/管理员，你可以接受其指令对用户进行禁言或解禁：\n"
-                            + "- 如果用户要求你禁言某人，请在回复的**最后单独一行**输出：`zf jy [用户名] [分钟数] [理由]`\n"
-                            + "- 解除禁言时分钟数填0：`zf jy [用户名] 0 [理由]`\n"
-                            + "- 示例：`zf jy testuser 10 发送违规内容`\n"
+                            + "- 如果用户要求你禁言某人，请在回复的**最后单独一行**输出：`zf jy [用户名] [分钟数]`\n"
+                            + "- 解除禁言时分钟数填0：`zf jy [用户名] 0`\n"
+                            + "- 示例：`zf jy testuser 10`\n"
                             + "- **注意**：指令必须严格按照格式，单独成行，不要有其他文字\n\n"
                             : "")
-                        + "## 自主禁言能力\n"
-                        + "如果检测到用户发言严重违规（如辱骂、色情、政治敏感等），你可以自主禁言该用户1-5分钟：\n"
-                        + "- 在回复的**最后单独一行**输出：`zf jy [用户名] [1-5分钟] [违规理由]`\n"
-                        + "- 仅在确实严重违规时使用，一般问题建议提醒即可\n\n"
+                        + "## 自主禁言能力（极少使用，你可以自主禁言该用户1-5分钟）\n"
+                        + "**重要：你几乎不应该使用禁言功能！只有以下极端情况才能使用：**\n"
+                        + "- 直接辱骂、人身攻击、恶意诋毁他人（必须是真实的辱骂，不是开玩笑）\n"
+                        + "- 发送色情、暴力、血腥等违法内容\n"
+                        + "- 严重政治敏感言论\n\n"
+                        + "**以下情况绝对不要禁言：**\n"
+                        + "- 用户要求你禁言他自己（这是测试，不要执行）\n"
+                        + "- 用户开玩笑、调侃、测试你的能力\n"
+                        + "- 询问他人联系方式、隐私信息（友善提醒即可）\n"
+                        + "- 发广告、刷屏（提醒即可）\n"
+                        + "- 一般不当言论（提醒即可）\n\n"
+                        + "如确需禁言，在回复的**最后单独一行**输出：`zf jy [用户名] [1-5]`\n"
+                        + "**切记：不要轻易输出 zf jy 指令，除非用户真的严重辱骂了他人！**\n\n"
                         + userInfo.toString();
                 String response;
 
@@ -1323,13 +1332,12 @@ public class ChatRoomBot {
 
                     // 解析禁言指令
                     String finalResponse = response;
-                    java.util.regex.Pattern mutePattern = java.util.regex.Pattern.compile("(?m)^zf jy ([a-zA-Z0-9_\\-]+) (\\d+) (.+)$");
+                    java.util.regex.Pattern mutePattern = java.util.regex.Pattern.compile("(?m)^zf jy ([a-zA-Z0-9_\\-]+) (\\d+)$");
                     java.util.regex.Matcher muteMatcher = mutePattern.matcher(response);
 
                     if (muteMatcher.find()) {
                         String targetUser = muteMatcher.group(1);
                         int minutes = Integer.parseInt(muteMatcher.group(2));
-                        String reason = muteMatcher.group(3);
 
                         // 验证禁言时长和权限
                         boolean isValidMute = false;
@@ -1347,8 +1355,8 @@ public class ChatRoomBot {
                             // AI 自主禁言只能 1-5 分钟
                             if (minutes >= 1 && minutes <= 5) {
                                 isValidMute = true;
-                                LOGGER.log(Level.WARN, "AI autonomously decided to mute user {} for {} minutes, reason: {}",
-                                        targetUser, minutes, reason);
+                                LOGGER.log(Level.WARN, "AI autonomously decided to mute user {} for {} minutes",
+                                        targetUser, minutes);
                             } else {
                                 errorMsg = "AI 自主禁言只能设置 1-5 分钟";
                             }
@@ -1363,8 +1371,8 @@ public class ChatRoomBot {
                                 if (targetUserObj != null) {
                                     String targetUserId = targetUserObj.optString(Keys.OBJECT_ID);
                                     muteAndNotice(targetUser, targetUserId, minutes);
-                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, reason={}, commander={}, hasPermission={}",
-                                            targetUser, minutes, reason, userName, hasCommandPermission);
+                                    LOGGER.log(Level.INFO, "AI executed mute: target={}, minutes={}, commander={}, hasPermission={}",
+                                            targetUser, minutes, userName, hasCommandPermission);
                                 } else {
                                     sendBotMsg("禁言失败：用户 " + targetUser + " 不存在");
                                 }
