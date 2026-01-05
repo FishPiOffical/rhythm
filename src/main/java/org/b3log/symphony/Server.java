@@ -334,13 +334,19 @@ public final class Server extends BaseServer {
         System.out.println(">>> Quick boot mode requirements is ready!");
 
         if (AIProviderFactory.isAvailable()) {
-            System.out.println(">>> Test AI Provider status...");
-            AIProviderFactory.chatStream(
-                    "",
-                    "你的知识库截止日期是多少？你是什么模型？",
-                    token -> System.out.print(token),
-                    fullResponse -> System.out.println("\n >>> End of AI Provider response.")
-            );
+            Thread.startVirtualThread(() -> {
+                System.out.println(">>> Test AI Provider status...");
+                try {
+                    AIProviderFactory.chatStream(
+                            "",
+                            "你的知识库截止日期是多少？你是什么模型？",
+                            token -> System.out.print(token),
+                            fullResponse -> System.out.println("\n >>> End of AI Provider response.")
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
         }
 
         final String unixDomainSocketPath = commandLine.getOptionValue("unix_domain_socket_path");
