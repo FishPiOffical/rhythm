@@ -26,7 +26,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
-import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -47,11 +46,11 @@ import org.b3log.symphony.service.SponsorService;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.apache.logging.log4j.core.util.NameUtil.md5;
@@ -100,7 +99,7 @@ public class WeChatPayProcessor {
 
         // 校验签名
         String sign = paramsMap.get("sign");
-        Map <String, String> params2 = new HashMap<>();
+        Map<String, String> params2 = new HashMap<>();
         params2.put("code", paramsMap.get("code"));
         params2.put("timestamp", paramsMap.get("timestamp"));
         params2.put("mch_id", paramsMap.get("mch_id"));
@@ -151,30 +150,41 @@ public class WeChatPayProcessor {
         sponsorService.add(record);
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
-        // 三清
-        cloudService.removeMedal(userId, L1_NAME);
-        cloudService.removeMedal(userId, L2_NAME);
-        cloudService.removeMedal(userId, L3_NAME);
-        cloudService.removeMedal(userId, L4_NAME);
-        // 赋予勋章
-        if (sum >= 4096) {
-            int rank = TopProcessor.getDonateRankByUserId(userId);
-            String rankChinese = NumberChineseFormatter.format(rank, false);
-            cloudService.giveMedal(userId, L4_NAME, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 1024) {
-            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 256) {
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 16) {
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
+        // 获取用户当前已有的勋章
+        String enabledMedalsJson = cloudService.getEnabledMedal(userId);
+        JSONObject enabledMedals = new JSONObject(enabledMedalsJson);
+        JSONArray medalsList = enabledMedals.optJSONArray("list");
+        // 创建已拥有勋章名称的集合
+        Set<String> ownedMedals = new HashSet<>();
+        if (medalsList != null) {
+            for (int i = 0; i < medalsList.length(); i++) {
+                JSONObject medal = medalsList.optJSONObject(i);
+                if (medal != null) ownedMedals.add(medal.optString("name"));
+            }
         }
-
+        // 根据总捐赠金额计算应该获得的勋章
+        List<String> shouldHaveMedals = new ArrayList<>();
+        if (sum >= 16)      shouldHaveMedals.add(L1_NAME);
+        if (sum >= 256)     shouldHaveMedals.add(L2_NAME);
+        if (sum >= 1024)    shouldHaveMedals.add(L3_NAME);
+        if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
+        // 只授予用户还没有的勋章
+        for (String medalName : shouldHaveMedals) {
+            if (!ownedMedals.contains(medalName)) {
+                if (L4_NAME.equals(medalName)) {
+                    int rank = TopProcessor.getDonateRankByUserId(userId);
+                    String rankChinese = NumberChineseFormatter.format(rank, false);
+                    cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+                } else {
+                    int level = L1_NAME.equals(medalName) ? 1 :
+                                L2_NAME.equals(medalName) ? 2 :
+                                L3_NAME.equals(medalName) ? 3 : 0;
+                    if (level > 0) {
+                        cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
+                    }
+                }
+            }
+        }
         final Response response = context.getResponse();
         response.sendString("SUCCESS");
     }
@@ -215,28 +225,40 @@ public class WeChatPayProcessor {
         sponsorService.add(record);
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
-        // 三清
-        cloudService.removeMedal(userId, L1_NAME);
-        cloudService.removeMedal(userId, L2_NAME);
-        cloudService.removeMedal(userId, L3_NAME);
-        cloudService.removeMedal(userId, L4_NAME);
-        // 赋予勋章
-        if (sum >= 4096) {
-            int rank = TopProcessor.getDonateRankByUserId(userId);
-            String rankChinese = NumberChineseFormatter.format(rank, false);
-            cloudService.giveMedal(userId, L4_NAME, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 1024) {
-            cloudService.giveMedal(userId, L3_NAME, "", "", getNo(userId, 3) + "");
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 256) {
-            cloudService.giveMedal(userId, L2_NAME, "", "", getNo(userId, 2) + "");
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
-        } else if (sum >= 16) {
-            cloudService.giveMedal(userId, L1_NAME, "", "", getNo(userId, 1) + "");
+        // 获取用户当前已有的勋章
+        String enabledMedalsJson = cloudService.getEnabledMedal(userId);
+        JSONObject enabledMedals = new JSONObject(enabledMedalsJson);
+        JSONArray medalsList = enabledMedals.optJSONArray("list");
+        // 创建已拥有勋章名称的集合
+        Set<String> ownedMedals = new HashSet<>();
+        if (medalsList != null) {
+            for (int i = 0; i < medalsList.length(); i++) {
+                JSONObject medal = medalsList.optJSONObject(i);
+                if (medal != null) ownedMedals.add(medal.optString("name"));
+            }
+        }
+        // 根据总捐赠金额计算应该获得的勋章
+        List<String> shouldHaveMedals = new ArrayList<>();
+        if (sum >= 16)      shouldHaveMedals.add(L1_NAME);
+        if (sum >= 256)     shouldHaveMedals.add(L2_NAME);
+        if (sum >= 1024)    shouldHaveMedals.add(L3_NAME);
+        if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
+        // 只授予用户还没有的勋章
+        for (String medalName : shouldHaveMedals) {
+            if (!ownedMedals.contains(medalName)) {
+                if (L4_NAME.equals(medalName)) {
+                    int rank = TopProcessor.getDonateRankByUserId(userId);
+                    String rankChinese = NumberChineseFormatter.format(rank, false);
+                    cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+                } else {
+                    int level = L1_NAME.equals(medalName) ? 1 :
+                                L2_NAME.equals(medalName) ? 2 :
+                                L3_NAME.equals(medalName) ? 3 : 0;
+                    if (level > 0) {
+                        cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
+                    }
+                }
+            }
         }
     }
 
@@ -271,7 +293,7 @@ public class WeChatPayProcessor {
         String mchId = Symphonys.get("pay.wechat.mch_id");
         String key = Symphonys.get("pay.wechat.key");
 
-        Map <String, String> params = new HashMap<>();
+        Map<String, String> params = new HashMap<>();
         params.put("mch_id", mchId);
         params.put("out_trade_no", String.valueOf(time));
         params.put("total_fee", total_amount);
@@ -297,13 +319,13 @@ public class WeChatPayProcessor {
         context.renderJSON(new JSONObject().put("QRcode_url", ret.optJSONObject("data").optString("QRcode_url")));
     }
 
-    public static String packageSign(Map < String, String > params, boolean urlEncoder) {
+    public static String packageSign(Map<String, String> params, boolean urlEncoder) {
         // 先将参数以其参数名的字典序升序进行排序
-        TreeMap < String, String > sortedParams = new TreeMap< String, String >(params);
+        TreeMap<String, String> sortedParams = new TreeMap<String, String>(params);
         // 遍历排序后的字典，将所有参数按"key=value"格式拼接在一起
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (Map.Entry< String, String > param: sortedParams.entrySet()) {
+        for (Map.Entry<String, String> param : sortedParams.entrySet()) {
             String value = param.getValue();
             if (value.isEmpty()) {
                 continue;
@@ -328,7 +350,7 @@ public class WeChatPayProcessor {
         return URLEncoder.encode(src, Charsets.UTF_8.name()).replace("+", "%20");
     }
 
-    public static String createSign(Map < String, String > params, String partnerKey) {
+    public static String createSign(Map<String, String> params, String partnerKey) {
         // 生成签名前先去除sign
         params.remove("sign");
         String stringA = packageSign(params, false);
@@ -336,7 +358,7 @@ public class WeChatPayProcessor {
         return md5(stringSignTemp).toUpperCase();
     }
 
-    public static String getParam(Map < String, String > params, String partnerKey) {
+    public static String getParam(Map<String, String> params, String partnerKey) {
         String stringA = packageSign(params, false);
         return stringA;
     }
