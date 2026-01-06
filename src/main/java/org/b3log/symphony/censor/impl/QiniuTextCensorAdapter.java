@@ -31,7 +31,14 @@ public class QiniuTextCensorAdapter implements TextCensor {
 
     @Override
     public CensorResult censor(String text) {
-        JSONObject result = QiniuTextCensor.censor(text);
-        return CensorResult.fromQiniuResult(result);
+        System.out.println("[七牛文本审核] 输入: " + (text.length() > 100 ? text.substring(0, 100) + "..." : text));
+
+        JSONObject qiniuResult = QiniuTextCensor.censor(text);
+        System.out.println("[七牛文本审核] 七牛原始响应: " + qiniuResult);
+
+        CensorResult result = CensorResult.fromQiniuResult(qiniuResult);
+        System.out.println("[七牛文本审核] 解析结果: " + result);
+
+        return result;
     }
 }

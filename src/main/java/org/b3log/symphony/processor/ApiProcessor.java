@@ -190,7 +190,23 @@ public class ApiProcessor {
         Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
 
         JSONObject jsonObject = context.requestJSON();
-        LOGGER.log(Level.INFO, jsonObject.toString());
+        LOGGER.log(Level.INFO, "[七牛回调] " + jsonObject.toString());
+
+        // 检查七牛处理是否成功
+        int code = jsonObject.optInt("code", -1);
+        if (code != 0) {
+            LOGGER.log(Level.WARN, "[七牛回调] 七牛处理失败，code={}, desc={}", code, jsonObject.optString("desc"));
+            context.renderJSON(StatusCodes.SUCC);
+            return;
+        }
+
+        // 安全获取 suggestion
+        String suggestion = getSuggestionFromQiniuCallback(jsonObject);
+        if (suggestion == null) {
+            LOGGER.log(Level.WARN, "[七牛回调] 无法解析审核结果");
+            context.renderJSON(StatusCodes.SUCC);
+            return;
+        }
 
         String fileURL = Symphonys.get("callback.base.url") + jsonObject.optString("inputKey");
         String userName = "";
@@ -199,24 +215,22 @@ public class ApiProcessor {
             JSONObject uploadJSON = uploadRepository.getFirst(query);
             userName = uploadJSON.optString("userName");
         } catch (Exception e) {
-            String suggestion = jsonObject.optJSONArray("items").optJSONObject(0).optJSONObject("result").optJSONObject("result").optString("suggestion");
             if (suggestion.equals("block") || suggestion.equals("review")) {
                 try {
                     String[] urls = new String[]{fileURL};
                     CdnManager c = new CdnManager(auth);
                     CdnResult.RefreshResult result = c.refreshUrls(urls);
-                    LOGGER.log(Level.INFO, "CDN Refresh result: " + result.code);
-                    LOGGER.log(Level.WARN, "Avatar file " + fileURL);
+                    LOGGER.log(Level.INFO, "[七牛回调] CDN Refresh result: " + result.code);
+                    LOGGER.log(Level.WARN, "[七牛回调] Avatar file " + fileURL);
                 } catch (Exception f) {
                     LOGGER.error(f);
                 }
             } else {
-                LOGGER.log(Level.INFO, "Normal avatar file " + fileURL);
+                LOGGER.log(Level.INFO, "[七牛回调] Normal avatar file " + fileURL);
             }
         }
 
         if (!userName.isEmpty()) {
-            String suggestion = jsonObject.optJSONArray("items").optJSONObject(0).optJSONObject("result").optJSONObject("result").optString("suggestion");
             String userId = userQueryService.getUserByName(userName).optString(Keys.OBJECT_ID);
             switch (suggestion) {
                 case "block":
@@ -254,6 +268,34 @@ public class ApiProcessor {
         }
 
         context.renderJSON(StatusCodes.SUCC);
+    }
+
+    /**
+     * 安全地从七牛回调 JSON 中获取 suggestion
+     */
+    private String getSuggestionFromQiniuCallback(JSONObject jsonObject) {
+        try {
+            var items = jsonObject.optJSONArray("items");
+            if (items == null || items.length() == 0) {
+                return null;
+            }
+            var item = items.optJSONObject(0);
+            if (item == null) {
+                return null;
+            }
+            var result = item.optJSONObject("result");
+            if (result == null) {
+                return null;
+            }
+            var innerResult = result.optJSONObject("result");
+            if (innerResult == null) {
+                return null;
+            }
+            return innerResult.optString("suggestion", null);
+        } catch (Exception e) {
+            LOGGER.error("[七牛回调] 解析 suggestion 失败", e);
+            return null;
+        }
     }
 
     /**
