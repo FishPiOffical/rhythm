@@ -29,7 +29,10 @@ import org.b3log.symphony.censor.ImageCensor;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI 图片内容审核实现
@@ -38,6 +41,16 @@ import java.util.List;
 public class AIImageCensor implements ImageCensor {
 
     private static final Logger LOGGER = LogManager.getLogger(AIImageCensor.class);
+
+    /**
+     * 审核结果缓存（LRU，最多 500 条，图片 URL 作为 key）
+     */
+    private static final Map<String, CensorResult> cache = Collections.synchronizedMap(new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return size() > 500;
+        }
+    });
 
     /**
      * 系统提示词（从配置文件读取，支持热修改）
@@ -69,7 +82,7 @@ public class AIImageCensor implements ImageCensor {
             3. 如果图片内容存疑但不确定，返回 action 为 "review"
 
             直接返回纯JSON，不要使用markdown代码块，不要添加任何解释文字：
-            {"action":"pass/block/review","type":"违规类型","bannedWords":["违规描述"]}
+            {"action":"pass/block/review","type":"违规类型","bannedWords":["违规描述"],"analysis":"简要描述图片内容和判断理由"}
 
             违规类型可选值：正常、涉政、色情、暴恐、违禁、广告
             """;
@@ -78,6 +91,13 @@ public class AIImageCensor implements ImageCensor {
     public CensorResult censor(String imageUrl) {
         if (imageUrl == null || imageUrl.isEmpty()) {
             return CensorResult.pass();
+        }
+
+        // 检查缓存
+        if (cache.containsKey(imageUrl)) {
+            CensorResult cached = cache.get(imageUrl);
+            System.out.println("[AI图片审核] 命中缓存: " + imageUrl);
+            return cached;
         }
 
         try {
@@ -94,11 +114,8 @@ public class AIImageCensor implements ImageCensor {
                     )))
             );
 
-            // 使用支持视觉的模型（优先使用通义千问的视觉模型）
-            OpenAIProvider provider = AIProviderFactory.createProvider(
-                    AIProviderFactory.ProviderType.QWEN,
-                    messages
-            );
+            // 使用配置的 AI Provider（需要支持视觉模型）
+            OpenAIProvider provider = AIProviderFactory.createProvider(messages);
 
             // 发送请求并获取响应
             StringBuilder responseBuilder = new StringBuilder();
@@ -124,6 +141,9 @@ public class AIImageCensor implements ImageCensor {
                 System.out.println("[AI图片审核] JSON格式无效，默认通过");
                 return CensorResult.pass();
             }
+
+            // 缓存结果
+            cache.put(imageUrl, result);
 
             LOGGER.debug("AI image censor result for {}: {}", imageUrl, result);
             return result;

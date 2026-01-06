@@ -111,6 +111,8 @@ public final class Router {
         VoteProcessor.register();
         // API
         ApiProcessor.register();
+        // 内容审核测试
+        CensorTestProcessor.register();
         // 商店
         ShopProcessor.register();
         // 优惠券

@@ -143,12 +143,16 @@ public class AITextCensor implements TextCensor {
      */
     private CensorResult fallbackToQiniu(String text) {
         try {
+            System.out.println("[AI文本审核] 尝试 fallback 到七牛审核...");
             JSONObject qiniuResult = QiniuTextCensor.censor(text);
             CensorResult result = CensorResult.fromQiniuResult(qiniuResult);
+            System.out.println("[AI文本审核] 七牛审核结果: " + result);
             LOGGER.info("Qiniu text censor fallback result: {}", result);
             return result;
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // 捕获所有异常和错误，确保不会影响正常流程
             LOGGER.error("Qiniu text censor fallback error", e);
+            System.out.println("[AI文本审核] 七牛审核也失败: " + e.getMessage() + "，默认通过");
             return CensorResult.pass();
         }
     }
