@@ -114,8 +114,8 @@ public class AIImageCensor implements ImageCensor {
                     )))
             );
 
-            // 使用配置的 AI Provider（需要支持视觉模型）
-            OpenAIProvider provider = AIProviderFactory.createProvider(messages);
+            // 使用配置的 AI Provider（非流式模式，确保响应完整）
+            OpenAIProvider provider = AIProviderFactory.createProviderNoStream(messages);
 
             // 发送请求并获取响应
             StringBuilder responseBuilder = new StringBuilder();

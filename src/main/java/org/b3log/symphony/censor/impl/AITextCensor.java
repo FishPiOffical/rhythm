@@ -102,8 +102,8 @@ public class AITextCensor implements TextCensor {
         CensorResult result = null;
 
         try {
-            // 调用 AI 审核（从配置文件读取 prompt，支持热修改）
-            String response = AIProviderFactory.chatSync(getSystemPrompt(), text);
+            // 调用 AI 审核（使用非流式模式确保响应完整）
+            String response = AIProviderFactory.chatSyncNoStream(getSystemPrompt(), text);
             result = CensorResult.fromAIResponse(response);
 
             // 打印调试信息

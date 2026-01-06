@@ -163,6 +163,37 @@ public final class AIProviderFactory {
     }
 
     /**
+     * 创建非流式 Provider（用于审核等需要完整响应的场景）
+     */
+    public static OpenAIProvider createProviderNoStream(List<Message> messages) throws ModelNotSupportException {
+        return createProviderNoStream(getDefaultProviderType(), messages);
+    }
+
+    /**
+     * 创建指定类型的非流式 Provider
+     */
+    public static OpenAIProvider createProviderNoStream(ProviderType type, List<Message> messages) throws ModelNotSupportException {
+        return switch (type) {
+            case OPENAI -> new OpenAIProvider(
+                    URI.create(OPENAI_BASE_URL),
+                    new GenericModel(OPENAI_MODEL),
+                    new Authorize.Token(OPENAI_API_KEY),
+                    messages,
+                    new Options.Stream(false, true),
+                    new Options.MaxTokens(OPENAI_MAX_TOKENS)
+            );
+            case QWEN -> new OpenAIProvider(
+                    URI.create(QWEN_BASE_URL),
+                    new GenericModel(QWEN_MODEL),
+                    new Authorize.Token(QWEN_API_KEY),
+                    messages,
+                    new Options.Stream(false, true),
+                    new Options.MaxTokens(QWEN_MAX_TOKENS)
+            );
+        };
+    }
+
+    /**
      * 快捷方法：简单文本对话（使用默认 Provider）
      *
      * @param systemPrompt 系统提示词
@@ -218,6 +249,29 @@ public final class AIProviderFactory {
             throws ModelNotSupportException, IOException, InterruptedException {
         var sb = new StringBuilder();
         chat(systemPrompt, userMessage).forEach(json -> {
+            var content = extractContent(json);
+            sb.append(content);
+        });
+        return sb.toString();
+    }
+
+    /**
+     * 非流式对话（用于审核等需要完整响应的场景）
+     * 使用非流式 API 调用，确保响应完整
+     *
+     * @param systemPrompt 系统提示词
+     * @param userMessage 用户消息
+     * @return 完整响应文本
+     */
+    public static String chatSyncNoStream(String systemPrompt, String userMessage)
+            throws ModelNotSupportException, IOException, InterruptedException {
+        var messages = Message.of(
+                new Message.System(systemPrompt),
+                new Message.User(new Content.Text(userMessage))
+        );
+        var provider = createProviderNoStream(messages);
+        var sb = new StringBuilder();
+        AI_CLIENT.send(provider).forEach(json -> {
             var content = extractContent(json);
             sb.append(content);
         });
