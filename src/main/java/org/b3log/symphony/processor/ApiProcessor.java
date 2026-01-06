@@ -238,10 +238,9 @@ public class ApiProcessor {
                         String[] urls = new String[]{fileURL};
                         CdnManager c = new CdnManager(auth);
                         CdnResult.RefreshResult result = c.refreshUrls(urls);
-                        LOGGER.log(Level.INFO, "CDN Refresh result: " + result.code);
-                        LOGGER.log(Level.WARN, "Block file " + fileURL);
-                        ChatChannel.sendAdminMsg(userName, "【AI审查】您由于上传违规文件/图片，被处以 100 积分的处罚，请引以为戒。\n如误报请在此处回复我，审核后找回积分并获得补偿！\n文件URL：" + fileURL);
-                        ChatRoomBot.abusePoint(userId, 100, "[AI审查] [如有误报请联系管理员追回积分] 机器人罚单-上传违规文件");
+                        LOGGER.log(Level.INFO, "[七牛回调] CDN Refresh result: " + result.code);
+                        LOGGER.log(Level.WARN, "[七牛回调] Block file " + fileURL);
+                        ChatChannel.sendAdminMsg(userName, "【AI审查】您上传的文件/图片可能违规，已被删除。\n如有疑问请在此处回复我。\n文件URL：" + fileURL);
                         LogsService.censorLog(context, userName, "用户：" + userName + " 上传违规图片：" + fileURL);
                     } catch (Exception e) {
                         LOGGER.error(e);

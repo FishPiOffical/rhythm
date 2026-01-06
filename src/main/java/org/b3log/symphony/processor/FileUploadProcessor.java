@@ -53,10 +53,12 @@ import org.b3log.latke.util.Strings;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.Server;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.processor.channel.ChatChannel;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.UploadRepository;
 import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
+import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONObject;
@@ -350,7 +352,7 @@ public class FileUploadProcessor {
                         CensorResult censorResult = CensorFactory.getImageCensor().censor(url);
                         if (censorResult != null && censorResult.isBlocked()) {
                             // 违规图片，从七牛删除并刷新 CDN
-                            LOGGER.log(Level.INFO, "Image blocked by AI censor: " + url + ", reason: " + censorResult.getType());
+                            LOGGER.log(Level.INFO, "[AI图片审核] 图片被拦截: " + url + ", 原因: " + censorResult.getType());
                             try {
                                 Auth deleteAuth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
                                 BucketManager bucketManager = new BucketManager(deleteAuth, new Configuration(Region.autoRegion()));
@@ -358,10 +360,13 @@ public class FileUploadProcessor {
                                 // 刷新 CDN 缓存
                                 CdnManager cdnManager = new CdnManager(deleteAuth);
                                 cdnManager.refreshUrls(new String[]{url});
-                                LOGGER.log(Level.INFO, "Deleted blocked image from Qiniu: " + fileName);
+                                LOGGER.log(Level.INFO, "[AI图片审核] 已从七牛删除: " + fileName);
                             } catch (Exception deleteEx) {
-                                LOGGER.log(Level.WARN, "Failed to delete blocked image from Qiniu: " + fileName, deleteEx);
+                                LOGGER.log(Level.WARN, "[AI图片审核] 删除失败: " + fileName, deleteEx);
                             }
+                            // 发送警告通知（不扣积分）
+                            ChatChannel.sendAdminMsg(userName, "【AI审查】您上传的图片可能违规，已被拦截删除。\n如有疑问请在此处回复我。\n原因：" + censorResult.getType());
+                            LogsService.censorLog(context, userName, "用户：" + userName + " 上传违规图片被AI拦截，原因：" + censorResult.getType());
                             errFiles.add(originalName);
                             continue;
                         }
@@ -383,12 +388,16 @@ public class FileUploadProcessor {
                         CensorResult censorResult = CensorFactory.getImageCensor().censor(url);
                         if (censorResult != null && censorResult.isBlocked()) {
                             // 违规图片，删除本地文件并记录
-                            LOGGER.log(Level.INFO, "Image blocked by AI censor: " + url + ", reason: " + censorResult.getType());
+                            LOGGER.log(Level.INFO, "[AI图片审核] 图片被拦截: " + url + ", 原因: " + censorResult.getType());
                             try {
                                 path.toFile().delete();
+                                LOGGER.log(Level.INFO, "[AI图片审核] 已删除本地文件: " + path);
                             } catch (Exception deleteEx) {
-                                LOGGER.log(Level.WARN, "Failed to delete blocked image: " + path, deleteEx);
+                                LOGGER.log(Level.WARN, "[AI图片审核] 删除失败: " + path, deleteEx);
                             }
+                            // 发送警告通知（不扣积分）
+                            ChatChannel.sendAdminMsg(userName, "【AI审查】您上传的图片可能违规，已被拦截删除。\n如有疑问请在此处回复我。\n原因：" + censorResult.getType());
+                            LogsService.censorLog(context, userName, "用户：" + userName + " 上传违规图片被AI拦截，原因：" + censorResult.getType());
                             errFiles.add(originalName);
                             continue;
                         }
