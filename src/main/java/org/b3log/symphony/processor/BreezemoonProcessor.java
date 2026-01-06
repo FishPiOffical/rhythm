@@ -43,6 +43,8 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONArray;
@@ -233,13 +235,12 @@ public class BreezemoonProcessor {
             return;
         }
         // 敏感词检测
-        JSONObject censorResult = QiniuTextCensor.censor(breezemoonContent);
-        if (censorResult.optString("do").equals("block")) {
+        CensorResult censorResult = CensorFactory.getTextCensor().censor(breezemoonContent);
+        if (censorResult.isBlocked()) {
             // 违规内容，不予显示
-            String bannedWords = "内容" + QiniuTextCensor.showBannedWords(censorResult);
+            String bannedWords = "内容" + censorResult.showBannedWords();
             // 记录日志
             LogsService.censorLog(context, user.optString(Keys.OBJECT_ID), "用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
-            System.out.println("用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
             context.renderMsg("您的内容经过AI审核存在违规内容，请修改内容后重试。" + bannedWords);
             context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
             return;
@@ -325,13 +326,12 @@ public class BreezemoonProcessor {
                 return;
             }
             // 敏感词检测
-            JSONObject censorResult = QiniuTextCensor.censor(breezemoonContent);
-            if (censorResult.optString("do").equals("block")) {
+            CensorResult censorResult = CensorFactory.getTextCensor().censor(breezemoonContent);
+            if (censorResult.isBlocked()) {
                 // 违规内容，不予显示
-                String bannedWords = "内容" + QiniuTextCensor.showBannedWords(censorResult);
+                String bannedWords = "内容" + censorResult.showBannedWords();
                 // 记录日志
                 LogsService.censorLog(context, user.optString(Keys.OBJECT_ID), "用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
-                System.out.println("用户：" + user.optString(User.USER_NAME) + " 违规上传清风明月：" + breezemoonContent + " 违规判定：" + censorResult);
                 context.renderMsg("您的内容经过AI审核存在违规内容，请修改内容后重试。" + bannedWords);
                 context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
                 return;

@@ -45,8 +45,9 @@ import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.validate.UserForgetPwdValidationMidware;
 import org.b3log.symphony.processor.middleware.validate.UserRegister2ValidationMidware;
 import org.b3log.symphony.processor.middleware.validate.UserRegisterValidationMidware;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
-import org.b3log.symphony.util.QiniuTextCensor;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
@@ -557,8 +558,8 @@ public class LoginProcessor {
         final String userPhone = requestJSONObject.optString("userPhone");
         if (verifySMSCodeLimiterOfIPLong.access(ip) && verifySMSCodeLimiterOfIP.access(ip) && verifySMSCodeLimiterOfName.access(name) && verifySMSCodeLimiterOfPhone.access(userPhone)) {
             // 敏感词检测
-            JSONObject censorResult = QiniuTextCensor.censor(name);
-            if (censorResult.optString("do").equals("block")) {
+            CensorResult censorResult = CensorFactory.getTextCensor().censor(name);
+            if (censorResult.isBlocked()) {
                 context.renderMsg("用户名含违规信息，请修改后重试。");
                 return;
             }

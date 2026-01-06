@@ -36,6 +36,8 @@ import org.b3log.symphony.processor.channel.ChatChannel;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.OptionQueryService;
 import org.b3log.symphony.service.TagQueryService;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -256,13 +258,13 @@ public class ArticlePostValidationMidware {
         }
 
         // 敏感词检测
-        JSONObject titleCensorResult = QiniuTextCensor.censor(articleTitle + " 标签：" + articleTags);
-        JSONObject articleCensorResult = QiniuTextCensor.censor(articleContent);
+        CensorResult titleCensorResult = CensorFactory.getTextCensor().censor(articleTitle + " 标签：" + articleTags);
+        CensorResult articleCensorResult = CensorFactory.getTextCensor().censor(articleContent);
         // 组合标题和文章的bannedWords数组（如果标题或文章没有则不显示额外字符），组成用于显示的字符串
-        String titleBannedWords = "标题和标签" + QiniuTextCensor.showBannedWords(titleCensorResult) + "；";
-        String articleBannedWords = "内容" + QiniuTextCensor.showBannedWords(articleCensorResult);
+        String titleBannedWords = "标题和标签" + titleCensorResult.showBannedWords() + "；";
+        String articleBannedWords = "内容" + articleCensorResult.showBannedWords();
         String bannedWords = titleBannedWords + articleBannedWords;
-        if (titleCensorResult.optString("do").equals("block") || articleCensorResult.optString("do").equals("block")) {
+        if (titleCensorResult.isBlocked() || articleCensorResult.isBlocked()) {
             // 违规内容，不予显示
             context.renderJSON(exception.put(Keys.MSG, "您的文章经过AI审核存在违规内容，请修改内容后重试。" + bannedWords));
             // 记录日志

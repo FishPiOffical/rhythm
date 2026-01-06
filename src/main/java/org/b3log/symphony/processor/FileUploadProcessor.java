@@ -19,6 +19,9 @@
 package org.b3log.symphony.processor;
 
 import com.idrsolutions.image.png.PngCompressor;
+import com.qiniu.cdn.CdnManager;
+import com.qiniu.cdn.CdnResult;
+import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.Configuration;
 import com.qiniu.storage.Region;
 import com.qiniu.storage.UploadManager;
@@ -52,6 +55,8 @@ import org.b3log.symphony.Server;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.UploadRepository;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONObject;
@@ -339,6 +344,29 @@ public class FileUploadProcessor {
                     JSONObject putRet = new JSONObject(response.bodyString());
                     countDownLatch.countDown();
                     url = Symphonys.UPLOAD_QINIU_DOMAIN + "/" + putRet.optString("key");
+
+                    // AI 图片审核（如果启用且是图片文件）
+                    if (!CensorFactory.isImageCallbackMode() && isImageFile(suffix)) {
+                        CensorResult censorResult = CensorFactory.getImageCensor().censor(url);
+                        if (censorResult != null && censorResult.isBlocked()) {
+                            // 违规图片，从七牛删除并刷新 CDN
+                            LOGGER.log(Level.INFO, "Image blocked by AI censor: " + url + ", reason: " + censorResult.getType());
+                            try {
+                                Auth deleteAuth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
+                                BucketManager bucketManager = new BucketManager(deleteAuth, new Configuration(Region.autoRegion()));
+                                bucketManager.delete(Symphonys.UPLOAD_QINIU_BUCKET, fileName);
+                                // 刷新 CDN 缓存
+                                CdnManager cdnManager = new CdnManager(deleteAuth);
+                                cdnManager.refreshUrls(new String[]{url});
+                                LOGGER.log(Level.INFO, "Deleted blocked image from Qiniu: " + fileName);
+                            } catch (Exception deleteEx) {
+                                LOGGER.log(Level.WARN, "Failed to delete blocked image from Qiniu: " + fileName, deleteEx);
+                            }
+                            errFiles.add(originalName);
+                            continue;
+                        }
+                    }
+
                     succMap.put(originalName, url);
                 } else {
                     bytes = fileBytes.get(i);
@@ -349,6 +377,23 @@ public class FileUploadProcessor {
                         countDownLatch.countDown();
                     }
                     url = Latkes.getServePath() + "/upload/" + fileName;
+
+                    // AI 图片审核（如果启用且是图片文件）
+                    if (!CensorFactory.isImageCallbackMode() && isImageFile(suffix)) {
+                        CensorResult censorResult = CensorFactory.getImageCensor().censor(url);
+                        if (censorResult != null && censorResult.isBlocked()) {
+                            // 违规图片，删除本地文件并记录
+                            LOGGER.log(Level.INFO, "Image blocked by AI censor: " + url + ", reason: " + censorResult.getType());
+                            try {
+                                path.toFile().delete();
+                            } catch (Exception deleteEx) {
+                                LOGGER.log(Level.WARN, "Failed to delete blocked image: " + path, deleteEx);
+                            }
+                            errFiles.add(originalName);
+                            continue;
+                        }
+                    }
+
                     succMap.put(originalName, url);
                 }
                 // 记录到Upload表
@@ -469,5 +514,19 @@ public class FileUploadProcessor {
         final String date = DateFormatUtils.format(System.currentTimeMillis(), "yyyy/MM");
 
         return date + "/" + fileName;
+    }
+
+    /**
+     * 判断文件后缀是否为图片类型
+     *
+     * @param suffix 文件后缀
+     * @return 是否为图片文件
+     */
+    private static boolean isImageFile(final String suffix) {
+        if (StringUtils.isBlank(suffix)) {
+            return false;
+        }
+        final String[] imageSuffixes = {"jpg", "jpeg", "png", "gif", "webp", "bmp"};
+        return Strings.containsIgnoreCase(suffix, imageSuffixes);
     }
 }

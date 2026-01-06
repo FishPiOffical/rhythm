@@ -16,19 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.b3log.symphony.ai;
+package org.b3log.symphony.censor;
 
-public class ModelNotSupportException extends Exception {
-	private String type;
-	private Model model;
+/**
+ * 文本内容审核接口
+ */
+public interface TextCensor {
 
-	ModelNotSupportException(Model model, String type) {
-		this.type = type;
-		this.model = model;
-	}
-
-	@Override
-	public String toString() {
-		return String.format("Model %s not support this %s content type", this.model.getName(), type);
-	}
+    /**
+     * 审核文本内容
+     *
+     * @param text 待审核的文本
+     * @return 审核结果
+     */
+    CensorResult censor(String text);
 }

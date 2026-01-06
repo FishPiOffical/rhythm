@@ -36,7 +36,8 @@ import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.CommentQueryService;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.OptionQueryService;
-import org.b3log.symphony.util.QiniuTextCensor;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.util.ReservedWords;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
@@ -123,10 +124,10 @@ public class CommentUpdateValidationMidware {
         }
 
         // 敏感词检测
-        JSONObject censorResult = QiniuTextCensor.censor(commentContent);
-        if (censorResult.optString("do").equals("block")) {
+        CensorResult censorResult = CensorFactory.getTextCensor().censor(commentContent);
+        if (censorResult.isBlocked()) {
             // 违规内容，不予显示
-            String bannedWords = "内容" + QiniuTextCensor.showBannedWords(censorResult);
+            String bannedWords = "内容" + censorResult.showBannedWords();
             context.renderJSON(exception.put(Keys.MSG, "您的评论经过AI审查存在违规内容，请修改内容后重试。" + bannedWords));
             // 记录日志
             LogsService.censorLog(context, currentUser.optString(Keys.OBJECT_ID), "用户：" + currentUser.optString(User.USER_NAME) + " 违规评论：" + commentContent + " 违规判定：" + censorResult);

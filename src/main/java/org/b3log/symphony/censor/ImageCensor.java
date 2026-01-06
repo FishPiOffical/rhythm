@@ -16,19 +16,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.b3log.symphony.ai;
+package org.b3log.symphony.censor;
 
-public class ModelNotSupportException extends Exception {
-	private String type;
-	private Model model;
+/**
+ * 图片内容审核接口
+ */
+public interface ImageCensor {
 
-	ModelNotSupportException(Model model, String type) {
-		this.type = type;
-		this.model = model;
-	}
+    /**
+     * 审核图片内容
+     *
+     * @param imageUrl 图片 URL
+     * @return 审核结果，如果是回调模式返回 null
+     */
+    CensorResult censor(String imageUrl);
 
-	@Override
-	public String toString() {
-		return String.format("Model %s not support this %s content type", this.model.getName(), type);
-	}
+    /**
+     * 是否是回调模式
+     * 七牛云图片审核采用回调模式，AI 审核采用主动模式
+     *
+     * @return true 表示回调模式，false 表示主动审核模式
+     */
+    boolean isCallbackMode();
 }

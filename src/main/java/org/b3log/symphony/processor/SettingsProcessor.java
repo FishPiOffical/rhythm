@@ -50,6 +50,8 @@ import org.b3log.symphony.processor.middleware.validate.UpdatePasswordValidation
 import org.b3log.symphony.processor.middleware.validate.UpdateProfilesValidationMidware;
 import org.b3log.symphony.processor.middleware.validate.UserRegisterValidationMidware;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
@@ -422,8 +424,8 @@ public class SettingsProcessor {
             }
 
             // 敏感词检测
-            JSONObject censorResult = QiniuTextCensor.censor(newName);
-            if (censorResult.optString("do").equals("block")) {
+            CensorResult censorResult = CensorFactory.getTextCensor().censor(newName);
+            if (censorResult.isBlocked()) {
                 context.renderMsg("用户名含违规信息，请修改后重试。");
                 context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
                 return;
@@ -1065,9 +1067,9 @@ public class SettingsProcessor {
 
         // 敏感词检测
         String content = userNickname + "\n" + userIntro + "\n" + userTags;
-        JSONObject censorResult = QiniuTextCensor.censor(content);
-        JSONObject censor2Result = QiniuTextCensor.censor(userURL);
-        if (censorResult.optString("do").equals("block") || censor2Result.optString("do").equals("block")) {
+        CensorResult censorResult = CensorFactory.getTextCensor().censor(content);
+        CensorResult censor2Result = CensorFactory.getTextCensor().censor(userURL);
+        if (censorResult.isBlocked() || censor2Result.isBlocked()) {
             context.renderMsg("个人信息中含违规信息，请修改后重试。");
             context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
             return;

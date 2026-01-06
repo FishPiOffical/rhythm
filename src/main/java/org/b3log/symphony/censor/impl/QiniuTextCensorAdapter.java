@@ -16,19 +16,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.b3log.symphony.ai;
+package org.b3log.symphony.censor.impl;
 
-public class ModelNotSupportException extends Exception {
-	private String type;
-	private Model model;
+import org.b3log.symphony.censor.CensorResult;
+import org.b3log.symphony.censor.TextCensor;
+import org.b3log.symphony.util.QiniuTextCensor;
+import org.json.JSONObject;
 
-	ModelNotSupportException(Model model, String type) {
-		this.type = type;
-		this.model = model;
-	}
+/**
+ * 七牛云文本审核适配器
+ * 包装现有的 QiniuTextCensor，不修改原有代码
+ */
+public class QiniuTextCensorAdapter implements TextCensor {
 
-	@Override
-	public String toString() {
-		return String.format("Model %s not support this %s content type", this.model.getName(), type);
-	}
+    @Override
+    public CensorResult censor(String text) {
+        JSONObject result = QiniuTextCensor.censor(text);
+        return CensorResult.fromQiniuResult(result);
+    }
 }
