@@ -54,13 +54,13 @@ public class OpenAIProvider implements Provider {
 					write = write.object();
 					write = switch (type) {
 						case ContentType.Text(String text) -> write
-								.key("type").value("text")
-								.key("text").value(text);
+							.key("type").value("text")
+							.key("text").value(text);
 						case ContentType.Image(String data, String _) -> write
-								.key("type").value("image_url")
-								.key("image_url").object()
-								.key("url").value(data)
-								.endObject();
+							.key("type").value("image_url")
+							.key("image_url").object()
+							.key("url").value(data)
+							.endObject();
 					};
 					write = write.endObject();
 				}

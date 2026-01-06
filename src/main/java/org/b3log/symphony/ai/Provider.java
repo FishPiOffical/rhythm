@@ -18,13 +18,30 @@
  */
 package org.b3log.symphony.ai;
 
+import java.net.URI;
 import java.net.http.HttpRequest;
+import java.util.Base64;
 import java.util.List;
 
 public interface Provider {
 	sealed interface ContentType permits ContentType.Text, ContentType.Image {
 		final record Text(String text) implements ContentType {};
-		final record Image(String data, String mimetype) implements ContentType {};
+		final record Image(String data, String mimetype) implements ContentType {
+			public Image(byte[] bytes, String mimetype) {
+				var data = new StringBuffer()
+					.append("data:")
+					.append(mimetype)
+					.append(";base64,")
+					.append(Base64.getEncoder().encodeToString(bytes))
+					.toString();
+
+				this(data, mimetype);
+			}
+
+			public Image(URI uri, String mimetype) {
+				this(uri.toString(), mimetype);
+			}
+		};
 	}
 
 	sealed interface Content permits Content.Text, Content.Array {
