@@ -1140,6 +1140,9 @@ public class ChatRoomBot {
                 if (vipLevel != null && !vipLevel.isEmpty()) {
                     userInfo.append("- VIP等级：").append(vipLevel).append("\n");
                 }
+                if (roleName != null && !roleName.isEmpty()) {
+                    userInfo.append("- 用户分组名称：").append(roleName).append("\n");
+                }
                 if (sysMetal != null && !sysMetal.isEmpty() && !sysMetal.equals("{}")) {
                     // 解析勋章信息
                     try {
