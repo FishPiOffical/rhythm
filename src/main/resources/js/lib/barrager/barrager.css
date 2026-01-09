@@ -1,5 +1,23 @@
-.barrage{position: fixed;bottom:70px;right:-500px;display: inline-block;width: 500px;z-index: 99999}
-.barrage_box{background-color: rgba(0,0,0,.2);padding-right: 8px; height: 40px;display: inline-block;border-radius: 25px;transition: all .3s;}
+.barrage {
+    position: fixed;
+    bottom: 70px;
+    right: -800px;
+    display: inline-block;
+    width: auto;
+    max-width: 800px;
+    z-index: 99999
+}
+
+.barrage_box {
+    background-color: rgba(0, 0, 0, .2);
+    padding-right: 8px;
+    height: 40px;
+    display: inline-block;
+    border-radius: 25px;
+    transition: all .3s;
+    white-space: nowrap;
+    overflow: visible;
+}
 .barrage_box .portrait{ display: inline-block;margin-top: 4px; margin-left: 4px; width: 32px;height: 32px;border-radius: 50%;overflow: hidden;}
 .barrage_box .portrait img{width: 100%;height: 100%;}
 .barrage_box div.p a{ margin-right: 8px; font-size: 14px;color: #fff;line-height: 40px;margin-left: 8px; }
