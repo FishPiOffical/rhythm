@@ -170,18 +170,17 @@ public class WeChatPayProcessor {
         if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
         // 只授予用户还没有的勋章
         for (String medalName : shouldHaveMedals) {
-            if (!ownedMedals.contains(medalName)) {
-                if (L4_NAME.equals(medalName)) {
-                    int rank = TopProcessor.getDonateRankByUserId(userId);
-                    String rankChinese = NumberChineseFormatter.format(rank, false);
-                    cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-                } else {
-                    int level = L1_NAME.equals(medalName) ? 1 :
-                                L2_NAME.equals(medalName) ? 2 :
-                                L3_NAME.equals(medalName) ? 3 : 0;
-                    if (level > 0) {
-                        cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
-                    }
+            if (L4_NAME.equals(medalName)) {
+                cloudService.removeMedal(userId, L4_NAME);
+                int rank = TopProcessor.getDonateRankByUserId(userId);
+                String rankChinese = NumberChineseFormatter.format(rank, false);
+                cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+            } else if (!ownedMedals.contains(medalName)) {
+                int level = L1_NAME.equals(medalName) ? 1 :
+                            L2_NAME.equals(medalName) ? 2 :
+                            L3_NAME.equals(medalName) ? 3 : 0;
+                if (level > 0) {
+                    cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
                 }
             }
         }
@@ -245,18 +244,17 @@ public class WeChatPayProcessor {
         if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
         // 只授予用户还没有的勋章
         for (String medalName : shouldHaveMedals) {
-            if (!ownedMedals.contains(medalName)) {
-                if (L4_NAME.equals(medalName)) {
-                    int rank = TopProcessor.getDonateRankByUserId(userId);
-                    String rankChinese = NumberChineseFormatter.format(rank, false);
-                    cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-                } else {
-                    int level = L1_NAME.equals(medalName) ? 1 :
-                                L2_NAME.equals(medalName) ? 2 :
-                                L3_NAME.equals(medalName) ? 3 : 0;
-                    if (level > 0) {
-                        cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
-                    }
+            if (L4_NAME.equals(medalName)) {
+                cloudService.removeMedal(userId, L4_NAME);
+                int rank = TopProcessor.getDonateRankByUserId(userId);
+                String rankChinese = NumberChineseFormatter.format(rank, false);
+                cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
+            } else if (!ownedMedals.contains(medalName)) {
+                int level = L1_NAME.equals(medalName) ? 1 :
+                            L2_NAME.equals(medalName) ? 2 :
+                            L3_NAME.equals(medalName) ? 3 : 0;
+                if (level > 0) {
+                    cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
                 }
             }
         }
