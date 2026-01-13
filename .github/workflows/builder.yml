@@ -41,7 +41,7 @@ jobs:
           mvn clean install
           mvn package -DskipTests -Pci -q
 
-      - name: List files in target/symphony
+      - name: List files in target
         run: |
-          echo "Files in target/symphony:"
-          ls -l target/symphony
+          echo "Files in target:"
+          ls -l target/
