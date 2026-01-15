@@ -32,6 +32,11 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.Response;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.repository.CompositeFilterOperator;
+import org.b3log.latke.repository.FilterOperator;
+import org.b3log.latke.repository.PropertyFilter;
+import org.b3log.latke.repository.Query;
+import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Pointtransfer;
@@ -39,10 +44,8 @@ import org.b3log.symphony.model.Sponsor;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.SponsorRepository;
-import org.b3log.symphony.service.CloudService;
-import org.b3log.symphony.service.NotificationMgmtService;
-import org.b3log.symphony.service.PointtransferMgmtService;
-import org.b3log.symphony.service.SponsorService;
+import org.b3log.symphony.repository.UserMedalRepository;
+import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
@@ -117,21 +120,45 @@ public class WeChatPayProcessor {
 
         String userId = paramsMap.get("attach");
         String total_amount = paramsMap.get("total_fee");
-        // 添加捐助信息
+
+        // 调用统一的捐助处理逻辑
+        processSponsor(userId, total_amount, note);
+
+        final Response response = context.getResponse();
+        response.sendString("SUCCESS");
+    }
+
+    // 手动捐助
+    public static void manual(String userId, String total_amount, String memo) {
+        // 调用统一的捐助处理逻辑
+        processSponsor(userId, total_amount, memo);
+    }
+
+    /**
+     * 统一的捐助处理逻辑：打积分、发通知、保存记录、发放勋章
+     *
+     * @param userId 用户ID
+     * @param total_amount 捐赠金额（字符串格式）
+     * @param note 备注信息
+     */
+    private static void processSponsor(String userId, String total_amount, String note) {
         final BeanManager beanManager = BeanManager.getInstance();
         PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
         NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
         SponsorService sponsorService = beanManager.getReference(SponsorService.class);
         CloudService cloudService = beanManager.getReference(CloudService.class);
+
         int point;
         double total = Double.parseDouble(total_amount);
         point = ((int) total) * 80;
         if (point == 0) {
             point = 1;
         }
+
         // 打积分
         final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
                 Pointtransfer.TRANSFER_TYPE_C_CHARGE, point, total_amount, System.currentTimeMillis(), "");
+
         // 通知
         try {
             final JSONObject notification = new JSONObject();
@@ -141,6 +168,7 @@ public class WeChatPayProcessor {
         } catch (ServiceException e) {
             LOGGER.error(e.getMessage());
         }
+
         // 保存捐赠记录
         final JSONObject record = new JSONObject();
         record.put(UserExt.USER_T_ID, userId);
@@ -148,12 +176,15 @@ public class WeChatPayProcessor {
         record.put(Sponsor.SPONSOR_MESSAGE, note);
         record.put(Sponsor.AMOUNT, total);
         sponsorService.add(record);
+
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
+
         // 获取用户当前已有的勋章
         String enabledMedalsJson = cloudService.getEnabledMedal(userId);
         JSONObject enabledMedals = new JSONObject(enabledMedalsJson);
         JSONArray medalsList = enabledMedals.optJSONArray("list");
+
         // 创建已拥有勋章名称的集合
         Set<String> ownedMedals = new HashSet<>();
         if (medalsList != null) {
@@ -162,104 +193,47 @@ public class WeChatPayProcessor {
                 if (medal != null) ownedMedals.add(medal.optString("name"));
             }
         }
+
         // 根据总捐赠金额计算应该获得的勋章
         List<String> shouldHaveMedals = new ArrayList<>();
         if (sum >= 16)      shouldHaveMedals.add(L1_NAME);
         if (sum >= 256)     shouldHaveMedals.add(L2_NAME);
         if (sum >= 1024)    shouldHaveMedals.add(L3_NAME);
         if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
-        // 只授予用户还没有的勋章
+
+        // 处理勋章授予和更新
         for (String medalName : shouldHaveMedals) {
-            if (L4_NAME.equals(medalName)) {
-                cloudService.removeMedal(userId, L4_NAME);
-                int rank = TopProcessor.getDonateRankByUserId(userId);
-                String rankChinese = NumberChineseFormatter.format(rank, false);
-                cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-            } else if (!ownedMedals.contains(medalName)) {
-                int level = L1_NAME.equals(medalName) ? 1 :
-                            L2_NAME.equals(medalName) ? 2 :
-                            L3_NAME.equals(medalName) ? 3 : 0;
-                if (level > 0) {
-                    cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
-                    // 重新计算并更新所有拥有该级别勋章的用户的排名
-                    updateAllMedalRanks(medalName, level);
+            int level = L1_NAME.equals(medalName) ? 1 :
+                        L2_NAME.equals(medalName) ? 2 :
+                        L3_NAME.equals(medalName) ? 3 :
+                        L4_NAME.equals(medalName) ? 4 : 0;
+
+            if (level == 0) continue;
+
+            boolean alreadyOwned = ownedMedals.contains(medalName);
+
+            if (level == 4) {
+                // L4 勋章特殊处理：需要更新完整信息（金额+全站排名+L4排名）
+                // 如果已有L4，只更新data；如果没有，则授予
+                if (alreadyOwned) {
+                    // 已拥有L4，通过 updateAllMedalRanks 来更新（会保留display等设置）
+                } else {
+                    // 首次获得L4，授予勋章
+                    int rank = TopProcessor.getDonateRankByUserId(userId);
+                    String rankChinese = NumberChineseFormatter.format(rank, false);
+                    String formattedSum = String.format("%.2f", sum);
+                    cloudService.giveMedal(userId, medalName, "", "", formattedSum + ";" + rankChinese + ";" + getNo(userId, 4));
                 }
-            }
-        }
-        final Response response = context.getResponse();
-        response.sendString("SUCCESS");
-    }
-
-    // 手动捐助
-    public static void manual(String userId, String total_amount, String memo) {
-        final BeanManager beanManager = BeanManager.getInstance();
-        PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
-        NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
-        SponsorService sponsorService = beanManager.getReference(SponsorService.class);
-        CloudService cloudService = beanManager.getReference(CloudService.class);
-
-        int point;
-        double total = Double.parseDouble(total_amount);
-        point = ((int) total) * 80;
-        if (point == 0) {
-            point = 1;
-        }
-
-        // 打积分
-        final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_CHARGE, point, total_amount, System.currentTimeMillis(), "");
-        // 通知
-        try {
-            final JSONObject notification = new JSONObject();
-            notification.put(Notification.NOTIFICATION_USER_ID, userId);
-            notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-            notificationMgmtService.addPointChargeNotification(notification);
-        } catch (ServiceException e) {
-            LOGGER.error(e.getMessage());
-        }
-        // 保存捐赠记录
-        final JSONObject record = new JSONObject();
-        record.put(UserExt.USER_T_ID, userId);
-        record.put("time", System.currentTimeMillis());
-        record.put(Sponsor.SPONSOR_MESSAGE, memo);
-        record.put(Sponsor.AMOUNT, total);
-        sponsorService.add(record);
-        // 统计用户总积分
-        double sum = sponsorService.getSum(userId);
-        // 获取用户当前已有的勋章
-        String enabledMedalsJson = cloudService.getEnabledMedal(userId);
-        JSONObject enabledMedals = new JSONObject(enabledMedalsJson);
-        JSONArray medalsList = enabledMedals.optJSONArray("list");
-        // 创建已拥有勋章名称的集合
-        Set<String> ownedMedals = new HashSet<>();
-        if (medalsList != null) {
-            for (int i = 0; i < medalsList.length(); i++) {
-                JSONObject medal = medalsList.optJSONObject(i);
-                if (medal != null) ownedMedals.add(medal.optString("name"));
-            }
-        }
-        // 根据总捐赠金额计算应该获得的勋章
-        List<String> shouldHaveMedals = new ArrayList<>();
-        if (sum >= 16)      shouldHaveMedals.add(L1_NAME);
-        if (sum >= 256)     shouldHaveMedals.add(L2_NAME);
-        if (sum >= 1024)    shouldHaveMedals.add(L3_NAME);
-        if (sum >= 4096)    shouldHaveMedals.add(L4_NAME);
-        // 只授予用户还没有的勋章
-        for (String medalName : shouldHaveMedals) {
-            if (L4_NAME.equals(medalName)) {
-                cloudService.removeMedal(userId, L4_NAME);
-                int rank = TopProcessor.getDonateRankByUserId(userId);
-                String rankChinese = NumberChineseFormatter.format(rank, false);
-                cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + getNo(userId, 4));
-            } else if (!ownedMedals.contains(medalName)) {
-                int level = L1_NAME.equals(medalName) ? 1 :
-                            L2_NAME.equals(medalName) ? 2 :
-                            L3_NAME.equals(medalName) ? 3 : 0;
-                if (level > 0) {
+                // 无论是否首次获得，都要更新所有L4用户的排名
+                updateAllMedalRanks(medalName, level);
+            } else {
+                // L1-L3 勋章：只在首次获得时授予
+                if (!alreadyOwned) {
                     cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
-                    // 重新计算并更新所有拥有该级别勋章的用户的排名
-                    updateAllMedalRanks(medalName, level);
                 }
+                // 无论是否首次获得，都要更新该等级所有用户的排名
+                // 因为新的捐赠记录可能改变排名顺序
+                updateAllMedalRanks(medalName, level);
             }
         }
     }
@@ -472,9 +446,18 @@ public class WeChatPayProcessor {
     private static void updateAllMedalRanks(String medalName, int level) {
         try {
             final BeanManager beanManager = BeanManager.getInstance();
-            final CloudService cloudService = beanManager.getReference(CloudService.class);
             final SponsorRepository sponsorRepository = beanManager.getReference(SponsorRepository.class);
             final SponsorService sponsorService = beanManager.getReference(SponsorService.class);
+            final MedalService medalService = beanManager.getReference(MedalService.class);
+            final UserMedalRepository userMedalRepository = beanManager.getReference(UserMedalRepository.class);
+
+            // 查找该勋章的定义
+            JSONObject medalDef = medalService.getMedalByExactName(medalName);
+            if (medalDef == null) {
+                LOGGER.warn("Medal [" + medalName + "] not found, skipping rank update...");
+                return;
+            }
+            String medalId = medalDef.optString("medal_id");
 
             // 获取所有捐助记录并计算达到该级别的用户顺序
             List<JSONObject> data = sponsorRepository.listAsc();
@@ -504,22 +487,37 @@ public class WeChatPayProcessor {
                 }
             }
 
-            // 更新每个用户的勋章data字段
+            // 更新每个用户的勋章data字段（不影响display、expire_time等其他字段）
             for (int i = 0; i < rank.size(); i++) {
                 String userId = rank.get(i);
                 int no = i + 1;
                 try {
-                    // 移除旧勋章并重新授予，确保排名更新
-                    cloudService.removeMedal(userId, medalName);
+                    // 查询用户勋章记录
+                    Query query = new Query()
+                            .setFilter(CompositeFilterOperator.and(
+                                    new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
+                                    new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
+                            ));
+                    JSONObject userMedal = userMedalRepository.getFirst(query);
 
-                    // L4勋章需要特殊处理，包含总金额和中文排名
-                    if (level == 4) {
-                        double sum = sponsorService.getSum(userId);
-                        int topRank = TopProcessor.getDonateRankByUserId(userId);
-                        String rankChinese = NumberChineseFormatter.format(topRank, false);
-                        cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + no);
-                    } else {
-                        cloudService.giveMedal(userId, medalName, "", "", String.valueOf(no));
+                    if (userMedal != null && userMedal.length() > 0) {
+                        // 只更新data字段，保留display、expire_time等其他字段
+                        String oId = userMedal.optString("oId");
+                        String newData;
+                        if (level == 4) {
+                            double sum = sponsorService.getSum(userId);
+                            int topRank = TopProcessor.getDonateRankByUserId(userId);
+                            String rankChinese = NumberChineseFormatter.format(topRank, false);
+                            String formattedSum = String.format("%.2f", sum);
+                            newData = formattedSum + ";" + rankChinese + ";" + no;
+                        } else {
+                            newData = String.valueOf(no);
+                        }
+                        userMedal.put("data", newData);
+
+                        Transaction transaction = userMedalRepository.beginTransaction();
+                        userMedalRepository.update(oId, userMedal);
+                        transaction.commit();
                     }
                 } catch (Exception e) {
                     LOGGER.log(Level.WARN, "Failed to update medal rank for user [" + userId + "] medal [" + medalName + "]", e);

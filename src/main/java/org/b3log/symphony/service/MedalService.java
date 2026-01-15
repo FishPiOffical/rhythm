@@ -1108,7 +1108,8 @@ public class MedalService {
                                 double sum = sponsorService.getSum(userId);
                                 int topRank = TopProcessor.getDonateRankByUserId(userId);
                                 String rankChinese = NumberChineseFormatter.format(topRank, false);
-                                userMedal.put("data", sum + ";" + rankChinese + ";" + no);
+                                String formattedSum = String.format("%.2f", sum);
+                                userMedal.put("data", formattedSum + ";" + rankChinese + ";" + no);
                             } else {
                                 userMedal.put("data", String.valueOf(no));
                             }
