@@ -92,6 +92,7 @@ public class MedalProcessor {
         Dispatcher.post("/api/medal/admin/grant", medalProcessor::adminGrantMedalToUser);
         Dispatcher.post("/api/medal/admin/revoke", medalProcessor::adminRevokeMedalFromUser);
         Dispatcher.post("/api/medal/admin/owners", medalProcessor::adminGetMedalOwners);
+        Dispatcher.post("/api/medal/admin/reorder", medalProcessor::adminReorderAllMedals);
 
         // 用户侧
         Dispatcher.post("/api/medal/my/list", medalProcessor::myListMedals);
@@ -505,6 +506,25 @@ public class MedalProcessor {
             ret.put(Keys.DATA, data);
             context.renderJSON(ret);
         } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+        }
+    }
+
+    /**
+     * 管理侧：手动触发重新排列所有捐赠勋章的排名.
+     *
+     * 请求: POST /api/medal/admin/reorder
+     * 请求体: {}
+     */
+    public void adminReorderAllMedals(final RequestContext context) {
+        final JSONObject currentUser = requireAdmin(context);
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            medalService.reorderAllSponsorMedals();
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (ServiceException e) {
             context.renderJSON(StatusCodes.ERR);
         }
     }

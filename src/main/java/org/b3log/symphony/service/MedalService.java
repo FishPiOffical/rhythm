@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.service;
 
+import cn.hutool.core.convert.NumberChineseFormatter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +35,8 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.MedalRepository;
 import org.b3log.symphony.repository.UserMedalRepository;
 import org.b3log.symphony.repository.CloudRepository;
+import org.b3log.symphony.repository.SponsorRepository;
+import org.b3log.symphony.processor.TopProcessor;
 import org.b3log.symphony.util.Dates;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -78,6 +81,12 @@ public class MedalService {
 
     @Inject
     private CloudRepository cloudRepository;
+
+    @Inject
+    private SponsorRepository sponsorRepository;
+
+    @Inject
+    private SponsorService sponsorService;
 
     /**
      * 如果 user_medal 记录已过期则删除.
@@ -1000,6 +1009,128 @@ public class MedalService {
             MEDAL_MIGRATION_PROGRESS.message = e.getMessage();
             LOGGER.log(Level.ERROR, "Failed to migrate cloud medals", e);
             throw new ServiceException("Failed to migrate cloud medals");
+        }
+    }
+
+    /**
+     * 重新计算并更新所有捐赠勋章的排名
+     * 此方法会按照捐助顺序重新计算一级到四级勋章的排名号码，并更新所有用户的勋章描述
+     *
+     * @throws ServiceException 操作失败时抛出
+     */
+    public void reorderAllSponsorMedals() throws ServiceException {
+        try {
+            LOGGER.info("Starting to reorder all sponsor medals...");
+
+            // 勋章名称
+            final String L1_NAME = "摸鱼派粉丝";
+            final String L2_NAME = "摸鱼派忠粉";
+            final String L3_NAME = "摸鱼派铁粉";
+            final String L4_NAME = "Premium Sponsor";
+
+            // 为每个级别重新计算排名
+            for (int level = 1; level <= 4; level++) {
+                String medalName;
+                double threshold;
+
+                switch (level) {
+                    case 1:
+                        medalName = L1_NAME;
+                        threshold = 16;
+                        break;
+                    case 2:
+                        medalName = L2_NAME;
+                        threshold = 256;
+                        break;
+                    case 3:
+                        medalName = L3_NAME;
+                        threshold = 1024;
+                        break;
+                    case 4:
+                        medalName = L4_NAME;
+                        threshold = 4096;
+                        break;
+                    default:
+                        continue;
+                }
+
+                // 查找该勋章的定义
+                JSONObject medalDef = getMedalByExactName(medalName);
+                if (medalDef == null) {
+                    LOGGER.warn("Medal [" + medalName + "] not found, skipping...");
+                    continue;
+                }
+
+                String medalId = medalDef.optString("medal_id");
+
+                // 获取所有捐助记录并计算达到该级别的用户顺序
+                List<JSONObject> data = sponsorRepository.listAsc();
+                HashMap<String, Double> map = new HashMap<>();
+                List<String> rank = new ArrayList<>();
+                List<String> ignores = new ArrayList<>();
+
+                for (JSONObject i : data) {
+                    String userId = i.optString("userId");
+                    double amount = i.optDouble("amount");
+                    if (!ignores.contains(userId)) {
+                        double currentSum = map.getOrDefault(userId, 0.0) + amount;
+                        if (currentSum >= threshold) {
+                            rank.add(userId);
+                            ignores.add(userId);
+                        } else {
+                            map.put(userId, currentSum);
+                        }
+                    }
+                }
+
+                LOGGER.info("Found " + rank.size() + " users for medal [" + medalName + "]");
+
+                // 更新每个用户的勋章data字段
+                for (int i = 0; i < rank.size(); i++) {
+                    String userId = rank.get(i);
+                    int no = i + 1;
+
+                    try {
+                        // 检查用户是否已拥有该勋章
+                        Query query = new Query()
+                                .setFilter(CompositeFilterOperator.and(
+                                        new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
+                                        new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
+                                ));
+                        JSONObject userMedal = userMedalRepository.getFirst(query);
+
+                        if (userMedal != null && userMedal.length() > 0) {
+                            // 用户已拥有该勋章，更新data字段
+                            String oId = userMedal.optString("oId");
+
+                            // L4勋章需要特殊处理，包含总金额和中文排名
+                            if (level == 4) {
+                                double sum = sponsorService.getSum(userId);
+                                int topRank = TopProcessor.getDonateRankByUserId(userId);
+                                String rankChinese = NumberChineseFormatter.format(topRank, false);
+                                userMedal.put("data", sum + ";" + rankChinese + ";" + no);
+                            } else {
+                                userMedal.put("data", String.valueOf(no));
+                            }
+
+                            Transaction transaction = userMedalRepository.beginTransaction();
+                            userMedalRepository.update(oId, userMedal);
+                            transaction.commit();
+                            LOGGER.info("Updated medal [" + medalName + "] for user [" + userId + "] with rank " + no);
+                        } else {
+                            // 用户还没有该勋章，可能需要授予（但这里只做重排，不授予新勋章）
+                            LOGGER.debug("User [" + userId + "] does not have medal [" + medalName + "], skipping...");
+                        }
+                    } catch (RepositoryException e) {
+                        LOGGER.log(Level.WARN, "Failed to update medal rank for user [" + userId + "] medal [" + medalName + "]", e);
+                    }
+                }
+            }
+
+            LOGGER.info("Finished reordering all sponsor medals.");
+        } catch (RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Failed to reorder all sponsor medals", e);
+            throw new ServiceException("Failed to reorder all sponsor medals");
         }
     }
 }

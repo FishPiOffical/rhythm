@@ -39,6 +39,7 @@
                            placeholder="按ID/名称/描述搜索"/>
                     <button type="button" class="btn btn-secondary" id="btnSearchMedal">搜索</button>
                     <button type="button" class="btn btn-secondary" id="btnResetSearchMedal">重置</button>
+                    <button type="button" class="btn btn-warning" id="btnReorderAllMedals">重排捐赠勋章</button>
                     <button type="button" class="btn btn-primary" id="btnCreateMedal">新建勋章</button>
                 </div>
             </div>

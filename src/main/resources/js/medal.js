@@ -84,6 +84,7 @@
             this.dom.btnPrev = document.getElementById('medalPrevPage');
             this.dom.btnNext = document.getElementById('medalNextPage');
             this.dom.btnCreate = document.getElementById('btnCreateMedal');
+            this.dom.btnReorderAll = document.getElementById('btnReorderAllMedals');
 
             this.dom.searchInput = document.getElementById('medalSearchInput');
             this.dom.btnSearch = document.getElementById('btnSearchMedal');
@@ -119,6 +120,12 @@
             if (this.dom.btnCreate) {
                 this.dom.btnCreate.addEventListener('click', function () {
                     self.openCreateModal();
+                });
+            }
+
+            if (this.dom.btnReorderAll) {
+                this.dom.btnReorderAll.addEventListener('click', function () {
+                    self.reorderAllMedals();
                 });
             }
 
@@ -638,6 +645,39 @@
                 self.loadMedalOwners(self.currentOwnersMedalId);
             }).catch(function (e) {
                 alert('收回失败：' + e);
+            });
+        },
+
+        reorderAllMedals: function () {
+            var self = this;
+            if (!window.confirm('确认重新排列所有捐赠勋章（一级到四级）的排名吗？\n此操作会更新所有用户的勋章排名信息。')) {
+                return;
+            }
+
+            var body = this.apiPayloadBase();
+
+            // 禁用按钮防止重复点击
+            if (this.dom.btnReorderAll) {
+                this.dom.btnReorderAll.disabled = true;
+                this.dom.btnReorderAll.textContent = '重排中...';
+            }
+
+            postJSON('/api/medal/admin/reorder', body).then(function (ret) {
+                if (self.dom.btnReorderAll) {
+                    self.dom.btnReorderAll.disabled = false;
+                    self.dom.btnReorderAll.textContent = '重排捐赠勋章';
+                }
+                if (!ret || ret.code !== 0) {
+                    alert('重排失败：' + (ret ? ret.msg : '未知错误'));
+                    return;
+                }
+                alert('重排成功！所有捐赠勋章的排名已更新。');
+            }).catch(function (e) {
+                if (self.dom.btnReorderAll) {
+                    self.dom.btnReorderAll.disabled = false;
+                    self.dom.btnReorderAll.textContent = '重排捐赠勋章';
+                }
+                alert('重排失败：' + e);
             });
         }
     };

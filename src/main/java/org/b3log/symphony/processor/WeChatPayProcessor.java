@@ -181,6 +181,8 @@ public class WeChatPayProcessor {
                             L3_NAME.equals(medalName) ? 3 : 0;
                 if (level > 0) {
                     cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
+                    // 重新计算并更新所有拥有该级别勋章的用户的排名
+                    updateAllMedalRanks(medalName, level);
                 }
             }
         }
@@ -255,6 +257,8 @@ public class WeChatPayProcessor {
                             L3_NAME.equals(medalName) ? 3 : 0;
                 if (level > 0) {
                     cloudService.giveMedal(userId, medalName, "", "", getNo(userId, level) + "");
+                    // 重新计算并更新所有拥有该级别勋章的用户的排名
+                    updateAllMedalRanks(medalName, level);
                 }
             }
         }
@@ -457,5 +461,72 @@ public class WeChatPayProcessor {
         }
 
         return -1;
+    }
+
+    /**
+     * 更新所有拥有指定级别勋章的用户的排名信息
+     *
+     * @param medalName 勋章名称
+     * @param level 勋章级别 (1-4)
+     */
+    private static void updateAllMedalRanks(String medalName, int level) {
+        try {
+            final BeanManager beanManager = BeanManager.getInstance();
+            final CloudService cloudService = beanManager.getReference(CloudService.class);
+            final SponsorRepository sponsorRepository = beanManager.getReference(SponsorRepository.class);
+            final SponsorService sponsorService = beanManager.getReference(SponsorService.class);
+
+            // 获取所有捐助记录并计算达到该级别的用户顺序
+            List<JSONObject> data = sponsorRepository.listAsc();
+            HashMap<String, Double> map = new HashMap<>();
+            List<String> rank = new ArrayList<>();
+            List<String> ignores = new ArrayList<>();
+
+            double threshold = 0;
+            switch (level) {
+                case 1: threshold = 16; break;
+                case 2: threshold = 256; break;
+                case 3: threshold = 1024; break;
+                case 4: threshold = 4096; break;
+            }
+
+            for (JSONObject i : data) {
+                String id = i.optString("userId");
+                double amount = i.optDouble("amount");
+                if (!ignores.contains(id)) {
+                    double currentSum = map.getOrDefault(id, 0.0) + amount;
+                    if (currentSum >= threshold) {
+                        rank.add(id);
+                        ignores.add(id);
+                    } else {
+                        map.put(id, currentSum);
+                    }
+                }
+            }
+
+            // 更新每个用户的勋章data字段
+            for (int i = 0; i < rank.size(); i++) {
+                String userId = rank.get(i);
+                int no = i + 1;
+                try {
+                    // 移除旧勋章并重新授予，确保排名更新
+                    cloudService.removeMedal(userId, medalName);
+
+                    // L4勋章需要特殊处理，包含总金额和中文排名
+                    if (level == 4) {
+                        double sum = sponsorService.getSum(userId);
+                        int topRank = TopProcessor.getDonateRankByUserId(userId);
+                        String rankChinese = NumberChineseFormatter.format(topRank, false);
+                        cloudService.giveMedal(userId, medalName, "", "", sum + ";" + rankChinese + ";" + no);
+                    } else {
+                        cloudService.giveMedal(userId, medalName, "", "", String.valueOf(no));
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARN, "Failed to update medal rank for user [" + userId + "] medal [" + medalName + "]", e);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "Failed to update all medal ranks for [" + medalName + "]", e);
+        }
     }
 }
