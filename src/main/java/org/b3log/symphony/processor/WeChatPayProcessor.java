@@ -66,10 +66,10 @@ public class WeChatPayProcessor {
     Map<String, String> tradeMap = new HashMap<>();
 
     // 勋章信息
-    final static String L1_NAME = "摸鱼派粉丝";
-    final static String L2_NAME = "摸鱼派忠粉";
-    final static String L3_NAME = "摸鱼派铁粉";
-    final static String L4_NAME = "Premium Sponsor";
+    final public static String L1_NAME = "摸鱼派粉丝";
+    final public static String L2_NAME = "摸鱼派忠粉";
+    final public static String L3_NAME = "摸鱼派铁粉";
+    final public static String L4_NAME = "Premium Sponsor";
 
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
@@ -443,7 +443,7 @@ public class WeChatPayProcessor {
      * @param medalName 勋章名称
      * @param level 勋章级别 (1-4)
      */
-    private static void updateAllMedalRanks(String medalName, int level) {
+    public static void updateAllMedalRanks(String medalName, int level) {
         try {
             final BeanManager beanManager = BeanManager.getInstance();
             final SponsorRepository sponsorRepository = beanManager.getReference(SponsorRepository.class);
@@ -508,6 +508,10 @@ public class WeChatPayProcessor {
                             double sum = sponsorService.getSum(userId);
                             int topRank = TopProcessor.getDonateRankByUserId(userId);
                             String rankChinese = NumberChineseFormatter.format(topRank, false);
+                            // 狗月定制
+                            if (userId.equals("1659773132440")) {
+                                rankChinese = "续命导师";
+                            }
                             String formattedSum = String.format("%.2f", sum);
                             newData = formattedSum + ";" + rankChinese + ";" + no;
                         } else {
