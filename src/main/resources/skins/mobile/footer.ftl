@@ -40,6 +40,7 @@
             <div>探索</div>
             <a href="https://github.com/orgs/FishPiOffical/repositories" target="_blank">摸鱼派开源项目组</a><br>
             <a href="https://github.com/FishPiOffical/rhythm" target="_blank">Rhythm社区引擎</a><br>
+            <a href="${servePath}/milestones">${milestoneLabel}</a><br>
             <a href="${servePath}/agreement" target="_blank">用户协议</a><br>
             <a href="${servePath}/privacy" target="_blank">隐私政策</a><br>
             <a href="${servePath}/logs" target="_blank">日志公开</a>

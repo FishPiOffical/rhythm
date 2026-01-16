@@ -95,6 +95,7 @@
                 <a href="${servePath}/domains">${domainLabel}</a>
                 <a href="${servePath}/tags">${tagLabel}</a>
                 <a href="${servePath}/statistic">${dataStatLabel}</a>
+                <a href="${servePath}/milestones">${milestoneLabel}</a>
                 <a href="${servePath}/agreement" target="_blank">用户协议</a>
                 <a href="${servePath}/privacy" target="_blank">隐私政策</a>
                 <a href="${servePath}/logs" target="_blank">日志公开</a>

@@ -87,6 +87,9 @@
         <#if type == "ip">
             <@head title="IP 管理 - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "milestones">
+            <@head title="大事记管理 - ${symphonyLabel}"></@head>
+        </#if>
         <link rel="stylesheet" href="${staticServePath}/css/home.css?${staticResourceVersion}" />
     </head>
     <body>
@@ -147,6 +150,9 @@
                                     <a href="${servePath}/admin/ip"<#if type == "ip"> class="current"</#if>>IP 管理</a>
                                 </#if>
                                 <a href="${servePath}/admin/medal" target="_blank">勋章管理</a>
+                                <#if permissions["menuAdminMilestone"].permissionGrant>
+                                    <a href="${servePath}/admin/milestones"<#if type == "milestones" || type == "milestone"> class="current"</#if>>大事记管理</a>
+                                </#if>
                             </nav>
                         </div>
                     </div>

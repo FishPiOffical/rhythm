@@ -310,6 +310,10 @@ public final class Operation {
      */
     public static final int OPERATION_CODE_C_DELETE_PICTURE = 46;
 
+    public static final int OPERATION_CODE_C_UPDATE_MILESTONE = 47;
+
+    public static final int OPERATION_CODE_C_DELETE_MILESTONE = 48;
+
 
     //// Transient ////
 
