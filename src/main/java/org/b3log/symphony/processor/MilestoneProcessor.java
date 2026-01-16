@@ -45,6 +45,7 @@ import org.b3log.symphony.service.MilestoneQueryService;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.b3log.symphony.cache.MilestoneCache;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -88,6 +89,9 @@ public class MilestoneProcessor {
     @Inject
     private DataModelService dataModelService;
 
+    @Inject
+    private MilestoneCache milestoneCache;
+
     /**
      * Register request handlers.
      */
@@ -98,7 +102,7 @@ public class MilestoneProcessor {
         final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
 
         // Public milestone list
-        Dispatcher.get("/milestones", milestoneProcessor::showMilestones);
+        Dispatcher.get("/milestones", milestoneProcessor::showMilestones,loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/milestones/submit", milestoneProcessor::showSubmitMilestone,loginCheck::handle, csrfMidware::fill);
         Dispatcher.post("/milestones/submit", milestoneProcessor::submitMilestone,loginCheck::handle, csrfMidware::fill);
 
@@ -112,43 +116,17 @@ public class MilestoneProcessor {
         final Map<String, Object> dataModel = renderer.getDataModel();
 
         try {
-            final List<JSONObject> milestones = milestoneQueryService.getAllMilestones();
+            // Try to get from cache first
+            List<JSONObject> timelineEvents = milestoneCache.getTimelineEvents();
 
-            final List<JSONObject> timelineEvents = new ArrayList<>();
-            final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            // If cache is empty, load from database and update cache
+            if (timelineEvents == null || timelineEvents.isEmpty()) {
+                LOGGER.info("Timeline events cache is empty, loading from database");
+                milestoneCache.loadTimelineEvents();
+                timelineEvents = milestoneCache.getTimelineEvents();
+            }
 
-            milestones.forEach(milestone -> {
-                final JSONObject event = new JSONObject();
-
-                event.put("id", milestone.optString(Milestone.MILESTONE_ID));
-                event.put("title", milestone.optString(Milestone.MILESTONE_TITLE));
-                event.put("date", dateFormat.format(new Date(milestone.optLong(Milestone.MILESTONE_DATE))));
-
-                // 如果有结束日期，添加为时间段
-                final long endDateLong = milestone.optLong(Milestone.MILESTONE_END_DATE);
-                if (endDateLong > 0) {
-                    event.put("end_date", dateFormat.format(new Date(endDateLong)));
-                }
-
-                event.put("content", milestone.optString(Milestone.MILESTONE_CONTENT));
-
-                final String mediaUrl = milestone.optString(Milestone.MILESTONE_MEDIA_URL);
-                if (!mediaUrl.isEmpty()) {
-                    event.put("media", new JSONObject()
-                            .put("url", mediaUrl)
-                            .put("caption",milestone.optString(Milestone.MILESTONE_MEDIA_CAPTION))
-                            .put("type", milestone.optString(Milestone.MILESTONE_MEDIA_TYPE, "image")));
-                }
-
-                final String link = milestone.optString(Milestone.MILESTONE_LINK);
-                if (!link.isEmpty()) {
-                    event.put("link", new JSONObject().put("url", link).put("text", "查看详情"));
-                }
-
-                timelineEvents.add(event);
-            });
-
-            dataModel.put("timelineEvents", timelineEvents);
+            dataModel.put("timelineEvents", timelineEvents != null ? timelineEvents : new JSONArray());
 
         } catch (final Exception e) {
             LOGGER.error("Failed to load milestones", e);

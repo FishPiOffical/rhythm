@@ -28,6 +28,7 @@ import org.b3log.latke.repository.annotation.Transactional;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Milestone;
 import org.b3log.symphony.repository.MilestoneRepository;
+import org.b3log.symphony.cache.MilestoneCache;
 import org.b3log.latke.service.ServiceException;
 import org.json.JSONObject;
 
@@ -49,6 +50,9 @@ public class MilestoneMgmtService {
     @Inject
     private MilestoneRepository milestoneRepository;
 
+    @Inject
+    private MilestoneCache milestoneCache;
+
     /**
      * Adds a milestone.
      *
@@ -62,6 +66,7 @@ public class MilestoneMgmtService {
             milestone.put(Milestone.MILESTONE_CREATE_TIME, System.currentTimeMillis());
             milestone.put(Milestone.MILESTONE_UPDATE_TIME, System.currentTimeMillis());
             milestoneRepository.add(milestone);
+            milestoneCache.clearTimelineEventsCache();
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Adds milestone failed", e);
             throw new ServiceException(e);
@@ -81,6 +86,7 @@ public class MilestoneMgmtService {
         try {
             milestone.put(Milestone.MILESTONE_UPDATE_TIME, System.currentTimeMillis());
             milestoneRepository.update(milestoneId, milestone);
+            milestoneCache.clearTimelineEventsCache();
         } catch (final RepositoryException e) {
 
             LOGGER.log(Level.ERROR, "Updates milestone failed", e);
@@ -98,47 +104,11 @@ public class MilestoneMgmtService {
     public void removeMilestone(final String milestoneId) throws ServiceException {
         try {
             milestoneRepository.remove(milestoneId);
+            milestoneCache.clearTimelineEventsCache();
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Removes milestone failed", e);
             throw new ServiceException(e);
         }
     }
 
-    /**
-     * Approves a milestone.
-     *
-     * @param milestoneId the specified milestone id
-     * @throws ServiceException service exception
-     */
-    @Transactional
-    public void approveMilestone(final String milestoneId) throws ServiceException {
-        try {
-            final JSONObject milestone = new JSONObject();
-            milestone.put(Milestone.MILESTONE_STATUS, Milestone.STATUS_C_APPROVED);
-            milestone.put(Milestone.MILESTONE_UPDATE_TIME, System.currentTimeMillis());
-            milestoneRepository.update(milestoneId, milestone);
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Approves milestone failed", e);
-            throw new ServiceException(e);
-        }
-    }
-
-    /**
-     * Rejects a milestone (sets status back to pending).
-     *
-     * @param milestoneId the specified milestone id
-     * @throws ServiceException service exception
-     */
-    @Transactional
-    public void rejectMilestone(final String milestoneId) throws ServiceException {
-        try {
-            final JSONObject milestone = new JSONObject();
-            milestone.put(Milestone.MILESTONE_STATUS, Milestone.STATUS_C_REJECTED);
-            milestone.put(Milestone.MILESTONE_UPDATE_TIME, System.currentTimeMillis());
-            milestoneRepository.update(milestoneId, milestone);
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Rejects milestone failed", e);
-            throw new ServiceException(e);
-        }
-    }
 }
