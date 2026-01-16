@@ -231,27 +231,6 @@ public class ActivityProcessor {
         final String userId = user.optString(Keys.OBJECT_ID);
     }
 
-
-    /**
-     * 2048 game.
-     *
-     * @param context
-     */
-    public void show2048(final RequestContext context) {
-        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "activity/2048.ftl");
-        final Map<String, Object> dataModel = renderer.getDataModel();
-        dataModelService.fillHeaderAndFooter(context, dataModel);
-        dataModelService.fillRandomArticles(dataModel);
-        dataModelService.fillSideHotArticles(dataModel);
-        dataModelService.fillSideTags(dataModel);
-        dataModelService.fillLatestCmts(dataModel);
-
-        final JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-    }
-
-
-
     /**
      * 上传摸鱼大闯关游戏成绩
      *
