@@ -48,10 +48,7 @@ import org.json.JSONObject;
 import org.b3log.symphony.cache.MilestoneCache;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Milestone processor.
@@ -126,7 +123,7 @@ public class MilestoneProcessor {
                 timelineEvents = milestoneCache.getTimelineEvents();
             }
 
-            dataModel.put("timelineEvents", timelineEvents != null ? timelineEvents : new JSONArray());
+            dataModel.put("timelineEvents", timelineEvents != null ? timelineEvents : Collections.emptyList());
 
         } catch (final Exception e) {
             LOGGER.error("Failed to load milestones", e);
