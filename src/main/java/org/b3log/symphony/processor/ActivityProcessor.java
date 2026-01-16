@@ -176,7 +176,6 @@ public class ActivityProcessor {
         Dispatcher.post("/api/games/emojiPair/score", activityProcessor::shareEmojiPairScore, loginCheck::handle, csrfMidware::check);
         Dispatcher.get("/activity/catch-the-cat", activityProcessor::showCatchTheCat, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/activity/daxigua", activityProcessor::showDaxigua, loginCheck::handle, csrfMidware::fill);
-        Dispatcher.get("/activity/2048", activityProcessor::show2048, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/api/activity/is-collected-liveness", activityProcessor::isCollectedYesterdayLivenessRewardApi, loginCheck::handle);
     }
 
