@@ -1411,7 +1411,11 @@ public class ChatRoomBot {
                     String content = msg.optString(Common.CONTENT, "");
 
                     // 跳过机器人消息
-                    if ("马库斯".equals(userName)) {
+                    if ("马库斯".equals(userName)
+                            || "xds".equals(userName)
+                            || "its21f".equals(userName)
+                            || "b".equals(userName)
+                            || "xiaoIce".equals(userName)) {
                         continue;
                     }
 
@@ -1430,6 +1434,15 @@ public class ChatRoomBot {
 
                     // 跳过弹幕消息
                     if (content.startsWith("[barrager]")) {
+                        continue;
+                    }
+
+                    // 跳过娱乐机器人指令消息
+                    if (content.startsWith("/ ")
+                            || content.startsWith("~ ")
+                            || content.startsWith("小斗士 ")
+                            || content.startsWith("冰冰 ")
+                            || content.startsWith("鸽 ")) {
                         continue;
                     }
 
