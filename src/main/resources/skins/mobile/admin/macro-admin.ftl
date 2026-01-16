@@ -83,9 +83,13 @@
         <#if type == "pic">
             <@head title="图片审核 - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "milestones">
+            <@head title="大事记管理 - ${symphonyLabel}"></@head>
+        </#if>
         <#if type == "ip">
             <@head title="IP 管理 - ${symphonyLabel}"></@head>
         </#if>
+
     </head>
     <body>
         <#include "../header.ftl">
@@ -141,6 +145,9 @@
                     <#if type == "ip"  && permissions["ipManage"].permissionGrant>
                         IP 管理
                     </#if>
+                    <#if type == "milestones"  && permissions["menuAdminMilestone"].permissionGrant>
+                        大事记管理
+                    </#if>
                     <svg class="fn-right"><use xlink:href="#chevron-down"></use></svg>
                 </div>
                 <div class="fn-hr5"></div>
@@ -194,6 +201,9 @@
                     <li<#if type == "ip"> class="fn-none"</#if>><a href="${servePath}/admin/ip">IP 管理</a></li>
                     </#if>
                     <li><a href="${servePath}/admin/medal" target="_blank">勋章管理</a></li>
+                    <#if permissions["menuAdminMilestone"].permissionGrant>
+                        <li<#if type == "pic"> class="fn-none"</#if>><a href="${servePath}/admin/milestones">大事记管理</a></li>
+                    </#if>
                 </ul>
             </div>
             <div class="fn-hr10"></div>

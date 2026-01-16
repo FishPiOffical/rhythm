@@ -326,6 +326,13 @@ public class AdminProcessor {
     @Inject
     private OperationQueryService operationQueryService;
 
+
+    @Inject
+    private MilestoneMgmtService milestoneMgmtService;
+
+    @Inject
+    private MilestoneQueryService milestoneQueryService;
+
     /**
      * Report repository.
      */
@@ -443,6 +450,11 @@ public class AdminProcessor {
         Dispatcher.post("/admin/user/{userId}/cardBg", adminProcessor::setCardBg, middlewares);
         Dispatcher.get("/admin/stats", adminProcessor::getStats, middlewares);
         Dispatcher.post("/admin/pay-salary", adminProcessor::paySalary);
+        Dispatcher.get("/admin/milestones", adminProcessor::showMilestones,middlewares);
+        Dispatcher.post("/admin/milestone/approveOrReject", adminProcessor::approveMilestone,middlewares);
+        Dispatcher.get("/admin/milestone/{milestoneId}", adminProcessor::showMilestone,middlewares);
+        Dispatcher.post("/admin/milestone/{milestoneId}", adminProcessor::updateMilestone,middlewares);
+        Dispatcher.post("/admin/remove-milestone", adminProcessor::removeMilestone, middlewares);
     }
 
     final public static ChannelStatsManager manager = new ChannelStatsManager();
@@ -3140,4 +3152,142 @@ public class AdminProcessor {
         final String articlePermalink = Latkes.getServePath() + article.optString(Article.ARTICLE_PERMALINK);
         ArticleBaiduSender.sendToBaidu(articlePermalink);
     }
+
+
+    // 显示大事记管理
+    public void showMilestones(final RequestContext context){
+        final Request request = context.getRequest();
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/milestones.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        final int pageNum = Paginator.getPage(request);
+        final int pageSize = PAGE_SIZE;
+        final int windowSize = WINDOW_SIZE;
+
+        final JSONObject requestJSONObject = new JSONObject();
+        requestJSONObject.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        requestJSONObject.put(Pagination.PAGINATION_PAGE_SIZE, pageSize);
+        requestJSONObject.put(Pagination.PAGINATION_WINDOW_SIZE, windowSize);
+        int status =0;
+        try {
+            status= Integer.parseInt(context.param("status"));
+        }catch (Exception e){
+
+        }
+
+        requestJSONObject.put("status", status);
+
+        final JSONObject result = milestoneQueryService.getMilestonesByStatus(requestJSONObject);
+
+        dataModel.put(Milestone.MILESTONES, result.opt(Milestone.MILESTONES));
+        dataModel.put("status", status);
+        final JSONObject pagination = result.optJSONObject(Pagination.PAGINATION);
+        final int pageCount = pagination.optInt(Pagination.PAGINATION_PAGE_COUNT);
+        final JSONArray pageNums = pagination.optJSONArray(Pagination.PAGINATION_PAGE_NUMS);
+        dataModel.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.opt(0));
+        dataModel.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.opt(pageNums.length() - 1));
+        dataModel.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        dataModel.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        dataModel.put(Pagination.PAGINATION_PAGE_NUMS, CollectionUtils.jsonArrayToList(pageNums));
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    // 显示大事记详情
+    public void showMilestone(final RequestContext context){
+        final String milestoneId = context.pathVar("milestoneId");
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/milestone.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        final JSONObject milestone = milestoneQueryService.getMilestoneById(milestoneId);
+        if(null == milestone){
+            context.setRenderer(renderer);
+            renderer.setTemplateName("admin/error.ftl");
+
+            dataModel.put(Keys.MSG, langPropsService.get("notFoundTagLabel"));
+            dataModelService.fillHeaderAndFooter(context, dataModel);
+            return;
+        }
+
+        dataModel.put(Milestone.MILESTONE,milestone);
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    // 通过或拒绝大事记
+    public void approveMilestone(final RequestContext context){
+        final String milestoneId = context.param("oId");
+        final int status = Integer.parseInt(context.param("status"));
+        final JSONObject milestone = new JSONObject();
+        milestone.put(Milestone.MILESTONE_ID, milestoneId);
+        milestone.put(Milestone.MILESTONE_STATUS, status);
+        try {
+            milestoneMgmtService.updateMilestone(milestoneId,milestone);
+        }catch (Exception e){
+            context.sendError(500);
+        }
+        context.renderJSON(StatusCodes.SUCC);
+        context.renderMsg("操作成功");
+    }
+
+    // 更新大事记
+    public void updateMilestone(final RequestContext context){
+        final String milestoneId = context.pathVar("milestoneId");
+
+        final Request request = context.getRequest();
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/milestone.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        JSONObject milestone = milestoneQueryService.getMilestoneById(milestoneId);
+
+        final Iterator<String> parameterNames = request.getParameterNames().iterator();
+        while (parameterNames.hasNext()) {
+            final String name = parameterNames.next();
+            String value = context.param(name);
+            milestone.put(name, value);
+
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+
+        try {
+            milestone.put(Milestone.MILESTONE_DATE,sdf.parse(milestone.optString(Milestone.MILESTONE_DATE)).getTime());
+            String endtime = milestone.optString(Milestone.MILESTONE_END_DATE);
+            if(null != endtime && !endtime.isBlank()){
+                milestone.put(Milestone.MILESTONE_END_DATE,sdf.parse(milestone.optString(Milestone.MILESTONE_END_DATE)).getTime());
+            }
+            milestoneMgmtService.updateMilestone(milestoneId,milestone);
+            operationMgmtService.addOperation(Operation.newOperation(request,Operation.OPERATION_CODE_C_UPDATE_MILESTONE,milestoneId));
+        }catch (Exception e){
+            context.sendError(500);
+            return;
+        }
+
+        milestone = milestoneQueryService.getMilestoneById(milestoneId);
+
+        dataModel.put(Milestone.MILESTONE,milestone);
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    // 删除大事记
+
+    public void removeMilestone(final RequestContext context){
+        final Request request = context.getRequest();
+
+        final String milestoneId = context.param("milestoneId");
+        try {
+            milestoneMgmtService.removeMilestone(milestoneId);
+            operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_DELETE_MILESTONE, milestoneId));
+        } catch (Exception e) {
+            context.sendError(500);
+            return;
+        }
+
+
+        context.sendRedirect(Latkes.getServePath() + "/admin/milestones");
+    }
+
+
 }

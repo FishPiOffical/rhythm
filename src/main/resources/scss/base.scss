@@ -614,6 +614,7 @@ a[class*=" icon-"]:hover {
 }
 
 .form input[type=text],
+.form input[type=date],
 .form input[type=datetime],
 .form input[type=datetime-local],
 .form input[type=password],
@@ -632,6 +633,7 @@ a[class*=" icon-"]:hover {
 }
 
 .form input[type=text]:not([readonly]):not([disabled]):hover,
+.form input[type=date]:not([readonly]):not([disabled]):hover,
 .form input[type=datetime]:not([readonly]):not([disabled]):hover,
 .form input[type=datetime-local]:not([readonly]):not([disabled]):hover,
 .form input[type=password]:not([readonly]):not([disabled]):hover,
@@ -648,6 +650,7 @@ a[class*=" icon-"]:hover {
 
 .form input[type=text]:focus,
 .form input[type=datetime]:focus,
+.form input[type=date]:focus,
 .form input[type=datetime-local]:focus,
 .form input[type=password]:focus,
 .form input[type=number]:focus,

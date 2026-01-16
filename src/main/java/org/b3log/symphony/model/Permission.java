@@ -434,6 +434,12 @@ public final class Permission {
      */
     public static final String PERMISSION_ID_C_MENU_ADMIN_REPORTS = "menuAdminReports";
 
+
+    /**
+     * Id - milestone - manage
+     */
+    public static final String PERMISSION_ID_C_MENU_MANAGE_MILESTONE = "menuAdminMilestone";
+
     /**
      * Id - menu - admin - misc.
      */
