@@ -176,7 +176,7 @@ public class FileUploadProcessor {
      *
      * @param context the specified context
      */
-    final private static SimpleCurrentLimiter uploadLimiter = new SimpleCurrentLimiter(30 * 60, 40);
+    final private static SimpleCurrentLimiter uploadLimiter = new SimpleCurrentLimiter(60 * 60 * 24, 200);
     public synchronized void uploadFile(final RequestContext context) {
         final JSONObject result = Results.newFail();
         context.renderJSONPretty(result);
