@@ -2458,6 +2458,85 @@
           "description": "展示排序，数值越小越靠前"
         }
       ]
+    },
+    {
+      "name": "milestone",
+      "description": "大事记表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "milestoneTitle",
+          "type": "String",
+          "length": 255,
+          "description": "大事记标题"
+        },
+        {
+          "name": "milestoneDate",
+          "type": "long",
+          "description": "大事记日期（时间戳）"
+        },
+        {
+          "name": "milestoneEndDate",
+          "type": "long",
+          "description": "大事记结束日期（时间戳，用于时间段）"
+        },
+        {
+          "name": "milestoneContent",
+          "type": "String",
+          "length": 102400,
+          "description": "大事记内容"
+        },
+        {
+          "name": "milestoneMediaUrl",
+          "type": "String",
+          "length": 1024,
+          "description": "媒体链接（图片/视频URL）"
+        },
+        {
+          "name": "milestoneMediaType",
+          "type": "String",
+          "length": 16,
+          "description": "媒体类型（image/video）"
+        },
+        {
+          "name": "milestoneMediaCaption",
+          "type": "String",
+          "length": 255,
+          "description": "媒体标题"
+        },
+        {
+          "name": "milestoneLink",
+          "type": "String",
+          "length": 1024,
+          "description": "相关链接"
+        },
+        {
+          "name": "milestoneStatus",
+          "type": "int",
+          "description": "状态（1：待审核，2：已通过，3：已拒绝）"
+        },
+        {
+          "name": "milestoneAuthorId",
+          "type": "String",
+          "length": 19,
+          "description": "作者 ID"
+        },
+        {
+          "name": "milestoneCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "milestoneUpdateTime",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
     }
   ]
 }

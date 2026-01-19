@@ -203,20 +203,6 @@
                             <li>
                                 <div class='fn-flex'>
                                     <div class="avatar"
-                                         style="background-image:url('${staticServePath}/images/activities/2048.png')"></div>
-                                    <div class="fn-flex-1">
-                                        <h2 class="ft-13">
-                                            <a href="${servePath}/activity/2048">2048</a>
-                                        </h2>
-                                        <span class="ft-fade vditor-reset">
-                                              加强版2048，来吧~
-                                            </span>
-                                    </div>
-                                </div>
-                            </li>
-                            <li>
-                                <div class='fn-flex'>
-                                    <div class="avatar"
                                          style="background-image:url('${staticServePath}/images/activities/daxigua.png')"></div>
                                     <div class="fn-flex-1">
                                         <h2>

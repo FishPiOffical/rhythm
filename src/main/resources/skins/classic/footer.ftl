@@ -84,7 +84,7 @@
             </div>
             <div class="footer-nav fn-clear" style="margin-top: 15px; margin-bottom: 15px">
                 <div class="ft-smaller">
-                    Copyright © 2021 - 2025 W&P Tech. All Rights Reserved. 北京白与画科技有限公司 版权所有
+                    Copyright © 2021 - 2026 W&P Tech. All Rights Reserved. 北京白与画科技有限公司 版权所有
                     <div class="ft-smaller fn-right">
                         <a href="https://beian.miit.gov.cn/" target="_blank" style="float: right">京ICP备2022000226号-1</a><br>
                         <a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11011302003886" style="display:inline-block;text-decoration:none;height:20px;line-height:20px;"><img src="https://mbdp01.bdstatic.com/static/landing-pc/img/icon_police.7296bdfd.png" style="float:left;"/><p style="float:left;height:20px;line-height:20px;margin: 0px 0px 0px 5px;">京公网安备 11011302003886号</p></a>
@@ -95,6 +95,7 @@
                 <a href="${servePath}/domains">${domainLabel}</a>
                 <a href="${servePath}/tags">${tagLabel}</a>
                 <a href="${servePath}/statistic">${dataStatLabel}</a>
+                <a href="${servePath}/milestones">${milestoneLabel}</a>
                 <a href="${servePath}/agreement" target="_blank">用户协议</a>
                 <a href="${servePath}/privacy" target="_blank">隐私政策</a>
                 <a href="${servePath}/logs" target="_blank">日志公开</a>
