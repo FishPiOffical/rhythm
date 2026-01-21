@@ -30,6 +30,7 @@
         </#if>
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/m-long-article.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${staticServePath}/js/lib/compress/m-article.min.css?${staticResourceVersion}">
 </head>
 
 <body class="m-long-article-body">
@@ -65,6 +66,24 @@
         </div>
     </div>
 
+    <div class="m-comments-panel">
+        <div class="m-comments-header">
+            <span>${article.articleCommentCount} ${cmtLabel}</span>
+        </div>
+        <#if isLoggedIn>
+            <div class="m-comment-reply" onclick="MComment._toggleReply();">
+                <span>请输入回帖内容...</span>
+            </div>
+        <#else>
+            <div class="m-comment-reply" onclick="Util.goLogin();">
+                <span>登录参与讨论...</span>
+            </div>
+        </#if>
+        <#list article.articleComments as comment>
+            <#include '../common/comment.ftl' />
+        </#list>
+    </div>
+
     <div class="m-settings-panel" id="mSettingsPanel">
         <div class="m-settings-item">
             <div class="m-settings-label">主题</div>
@@ -84,9 +103,16 @@
     </div>
 
 <#include "../footer.ftl">
+<script src="${staticServePath}/js/lib/compress/m-article-libs.min.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/m-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     Label.articleOId = "${article.oId}";
+    Label.userCommentViewMode = ${userCommentViewMode};
+    <#if isLoggedIn>
+    Label.currentUserName = '${currentUser.userName}';
+    </#if>
 </script>
 <script>
     MLongArticle.init();

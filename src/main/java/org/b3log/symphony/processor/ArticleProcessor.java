@@ -1297,13 +1297,67 @@ public class ArticleProcessor {
 
         articleQueryService.processArticleContent(article);
 
+        // 评论视图模式
+        String cmtViewModeStr = context.param("m");
         final boolean isLoggedIn = (Boolean) dataModel.get(Common.IS_LOGGED_IN);
         if (isLoggedIn) {
             final JSONObject currentUser = Sessions.getUser();
             final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
             final boolean isMyArticle = currentUserId.equals(articleAuthorId);
             article.put(Common.IS_MY_ARTICLE, isMyArticle);
+
+            if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
+                cmtViewModeStr = currentUser.optString(UserExt.USER_COMMENT_VIEW_MODE);
+            }
+        } else if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
+            cmtViewModeStr = "0";
         }
+
+        final int cmtViewMode = Integer.valueOf(cmtViewModeStr);
+        dataModel.put(UserExt.USER_COMMENT_VIEW_MODE, cmtViewMode);
+
+        // 评论分页
+        int pageNum = Paginator.getPage(request);
+        final int pageSize = Symphonys.ARTICLE_COMMENTS_CNT;
+        final int windowSize = Symphonys.ARTICLE_COMMENTS_WIN_SIZE;
+        final int commentCnt = article.optInt(Article.ARTICLE_COMMENT_CNT);
+        final int pageCount = (int) Math.ceil((double) commentCnt / (double) pageSize);
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL == cmtViewMode) {
+            if (0 < pageCount && pageNum > pageCount) {
+                pageNum = pageCount;
+            }
+        } else {
+            if (pageNum > pageCount) {
+                pageNum = 1;
+            }
+        }
+        final List<Integer> pageNums = Paginator.paginate(pageNum, pageSize, pageCount, windowSize);
+        if (!pageNums.isEmpty()) {
+            dataModel.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
+            dataModel.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
+        }
+        dataModel.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        dataModel.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
+
+        // 加载评论
+        final List<JSONObject> articleComments = commentQueryService.getArticleComments(articleId, pageNum, pageSize, cmtViewMode);
+        article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
+
+        // 处理评论者可见性
+        for (final JSONObject comment : articleComments) {
+            comment.remove("commentUA");
+            comment.remove("commentIP");
+            if (Comment.COMMENT_VISIBLE_C_AUTHOR == comment.optInt(Comment.COMMENT_VISIBLE)) {
+                final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
+                final String currentUserId = isLoggedIn ? ((JSONObject) dataModel.get("currentUser")).optString(Keys.OBJECT_ID) : null;
+                if (!isLoggedIn || (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
+                    comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
+                }
+            }
+        }
+
+        article.put("commentors", (Object) commentQueryService.getArticleCommentors(articleId));
     }
 
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {

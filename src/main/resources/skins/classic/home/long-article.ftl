@@ -31,6 +31,7 @@
         </#if>
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/long-article.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
     <link rel="canonical" href="${servePath}/long/${article.oId}">
 </head>
 
@@ -93,14 +94,123 @@
     </div>
 </div>
 
+<div class="wrapper" id="articleCommentsPanel">
+    <#if article.offered>
+        <div class="module nice">
+            <div class="module-header">
+                <svg class="ft-blue">
+                    <use xlink:href="#iconAdopt"></use>
+                </svg>
+                ${adoptLabel}
+            </div>
+            <div class="module-panel list comments">
+                <ul>
+                    <li>
+                        <div class="fn-flex">
+                            <a rel="nofollow"
+                               href="${servePath}/member/${article.articleOfferedComment.commentAuthorName}">
+                                <div class="avatar tooltipped tooltipped-se"
+                                     aria-label="${article.articleOfferedComment.commentAuthorName}"
+                                     style="background-image:url('${article.articleOfferedComment.commentAuthorThumbnailURL}')"></div>
+                                </a>
+                            <div class="fn-flex-1">
+                                <div class="fn-clear comment-info ft-smaller">
+                                        <span class="fn-left">
+                                            <a rel="nofollow"
+                                               href="${servePath}/member/${article.articleOfferedComment.commentAuthorName}"
+                                               class="ft-gray"><span
+                                                        class="ft-gray">${article.articleOfferedComment.commentAuthorName}</span></a>
+                                            <span class="ft-fade">• ${article.articleOfferedComment.timeAgo}</span>
+                                        </span>
+                                    <a class="ft-a-title fn-right tooltipped tooltipped-nw"
+                                       aria-label="${goCommentLabel}"
+                                       href="javascript:Comment.goComment('${servePath}/long/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}#${article.articleOfferedComment.oId}')">
+                                        <svg>
+                                            <use xlink:href="#down"></use>
+                                        </svg>
+                                    </a>
+                                </div>
+                                <div class="vditor-reset comment">
+                                    ${article.articleOfferedComment.commentContent}
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </#if>
+
+    <#if pjax><!---- pjax {#comments} start ----></#if>
+    <div class="module comments" id="comments">
+        <div class="comments-header module-header">
+            <span class="article-cmt-cnt">${article.articleCommentCount} ${cmtLabel}</span>
+            <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
+                        <a class="tooltipped tooltipped-nw"
+                           href="javascript:Comment.exchangeCmtSort(${userCommentViewMode})"
+                           aria-label="<#if 0 == userCommentViewMode>${changeToLabel}${realTimeLabel}${cmtViewModeLabel}<#else>${changeToLabel}${traditionLabel}${cmtViewModeLabel}</#if>"><span
+                                    class="icon-<#if 0 == userCommentViewMode>sortasc<#else>time</#if>"></span></a>&nbsp;
+                        <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
+                           aria-label="${jumpToBottomCommentLabel}"><svg><use
+                                        xlink:href="#chevron-down"></use></svg></a>
+                    </span>
+        </div>
+        <div class="list">
+            <div class="comment__reply">
+                <#if isLoggedIn>
+                    <div class="fn__flex">
+                        <span class="avatar"
+                              style="background-image: url('${currentUser.userAvatarURL48}');"></span>
+                        <span class="reply__text fn-flex-1 commentToggleEditorBtn"
+                              onclick="Comment._toggleReply();">请输入回帖内容
+                                    ...
+                                </span>
+                    </div>
+                <#else>
+                    <div class="reply__text fn-flex-1 commentToggleEditorBtn" onclick="Util.goLogin();">登录参与讨论
+                        ...
+                    </div>
+                </#if>
+            </div>
+            <ul>
+                <#assign notificationCmtIds = "">
+                <#list article.articleComments as comment>
+                    <#assign notificationCmtIds = notificationCmtIds + comment.oId>
+                    <#if comment_has_next><#assign notificationCmtIds = notificationCmtIds + ","></#if>
+                    <#include '../common/comment.ftl' />
+                </#list>
+            </ul>
+            <div id="bottomComment"></div>
+        </div>
+        <@pagination url="${servePath}/long/${article.oId}" query="m=${userCommentViewMode}#comments" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
+    </div>
+    <#if pjax><!---- pjax {#comments} end ----></#if>
+</div>
+
 <#include "../footer.ftl">
+<script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
+    Label.commentErrorLabel = "${commentErrorLabel}";
     Label.articleOId = "${article.oId}";
     Label.articleTitle = "${article.articleTitle}";
+    Label.csrfToken = "${csrfToken}";
+    Label.userCommentViewMode = ${userCommentViewMode};
+    Label.goCommentLabel = '${goCommentLabel}';
+    Label.commonAtUser = '${permissions["commonAtUser"].permissionGrant?c}';
+    Label.articleAuthorName = '${article.articleAuthorName}';
+    <#if isLoggedIn>
+    Label.currentUserName = '${currentUser.userName}';
+    Label.notificationCmtIds = '${notificationCmtIds}';
+    </#if>
 </script>
 <script>
     LongArticle.init();
+    setInterval(function () {
+        Util.listenUserCard();
+    }, 1000);
 </script>
 </body>
 </html>
