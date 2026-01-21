@@ -32,8 +32,11 @@
         </#if>
         </@head>
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
+        <#if 6 == article.articleType>
+        <link rel="stylesheet" href="${staticServePath}/css/m-long-article.css?${staticResourceVersion}">
+        </#if>
     </head>
-    <body itemscope itemtype="http://schema.org/Product">
+    <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
         <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
         <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
         <#include "header.ftl">
@@ -198,7 +201,7 @@
                          data-author="${article.articleAuthorName}" class="aplayer article-content"></div>
                 </#if>
                 <#if 3 != article.articleType>
-                <div class="vditor-reset article-content">${article.articleContent}</div>
+                <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">${article.articleContent}</div>
                 <#else>
                 <div id="thoughtProgress"><span class="bar"></span>
                     <svg class="icon-video">
@@ -539,11 +542,55 @@
                 <button onclick="Comment.report(this)" class="fn-right green">${reportLabel}</button>
             </div>
         </div>
+        <#if 6 == article.articleType>
+        <div class="m-long-article-bar">
+            <button class="m-long-article-bar-btn" onclick="MLongArticle.scrollToTop()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
+                </svg>
+                <span>顶部</span>
+            </button>
+            <button class="m-long-article-bar-btn" onclick="MLongArticle.toggleSettings()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+                </svg>
+                <span>设置</span>
+            </button>
+            <button class="m-long-article-bar-btn" onclick="MLongArticle.toggleNight()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M13.574 3.138a1.01 1.01 0 0 0-1.097 1.408a6 6 0 0 1-7.931 7.931a1.01 1.01 0 0 0-1.409 1.097A9 9 0 0 0 21 12a9 9 0 0 0-7.426-8.862"/>
+                </svg>
+                <span>夜间</span>
+            </button>
+        </div>
+
+        <div class="m-long-article-panel" id="mLongArticlePanel">
+            <h4>阅读设置</h4>
+            <div class="m-long-article-panel-row">
+                <span class="m-long-article-panel-label">主题</span>
+                <div class="m-long-article-theme-btns">
+                    <button class="m-long-article-theme-btn active" onclick="MLongArticle.setTheme('light')">浅色</button>
+                    <button class="m-long-article-theme-btn" onclick="MLongArticle.setTheme('night')">深色</button>
+                </div>
+            </div>
+            <div class="m-long-article-panel-row">
+                <span class="m-long-article-panel-label">字号</span>
+                <div class="m-long-article-font-btns">
+                    <button class="m-long-article-font-btn" onclick="MLongArticle.setFontSize(-2)">A-</button>
+                    <span id="mLongArticleFontSize">16px</span>
+                    <button class="m-long-article-font-btn" onclick="MLongArticle.setFontSize(2)">A+</button>
+                </div>
+            </div>
+        </div>
+        </#if>
         <#include "footer.ftl">
         <div id="thoughtProgressPreview"></div>
         <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
         <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/m-article${miniPostfix}.js?${staticResourceVersion}"></script>
+        <#if 6 == article.articleType>
+        <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+        </#if>
         <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
         <script>
             Label.commentErrorLabel = "${commentErrorLabel}";
@@ -599,6 +646,9 @@
             </#if>
             <#if 3 == article.articleType>
                 Article.playThought('${article.articleContent}');
+            </#if>
+            <#if 6 == article.articleType>
+                MLongArticle.init();
             </#if>
 
             $(".editor-bg").click(Comment._toggleReply)

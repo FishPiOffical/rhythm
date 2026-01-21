@@ -104,7 +104,7 @@ public class ArticleProcessor {
     /**
      * 文章访客限流：单 IP 每秒仅允许一次。
      */
-    private static final ConcurrentHashMap<String, long[]> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
 
     /**
      * Revision query service.
@@ -245,7 +245,6 @@ public class ArticleProcessor {
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
-        Dispatcher.get("/long/{id}", articleProcessor::showLongArticle, anonymousViewCheckMidware::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
@@ -432,7 +431,7 @@ public class ArticleProcessor {
     }
 
     /**
-     * 简单的每 IP 2 秒2次限流，访客和登录用户共用。
+     * 简单的每 IP 1 秒一次限流，访客和登录用户共用。
      *
      * @param request the specified request
      * @return true if limited
@@ -440,30 +439,17 @@ public class ArticleProcessor {
     private boolean hitArticleRateLimit(final Request request) {
         final String ip = Requests.getRemoteAddr(request);
         final long now = System.currentTimeMillis();
-        final long window = 2000; // 2秒窗口
-        final int maxCount = 2;   // 最多2次
-
-        final long[] data = ARTICLE_RATE_LIMIT.get(ip);
-        if (null != data) {
-            final long lastTime = data[0];
-            final int count = (int) data[1];
-            if (now - lastTime < window) {
-                if (count >= maxCount) {
-                    return true;
-                }
-                // 在窗口内，增加计数
-                data[1] = count + 1;
-                return false;
-            }
+        final Long last = ARTICLE_RATE_LIMIT.get(ip);
+        if (null != last && now - last < 1000) {
+            return true;
         }
 
-        // 新窗口，重置计数
-        ARTICLE_RATE_LIMIT.put(ip, new long[]{now, 1});
+        ARTICLE_RATE_LIMIT.put(ip, now);
 
         // 防止表过大，简单清理 60 秒前的记录
         if (ARTICLE_RATE_LIMIT.size() > 10000) {
             final long cutoff = now - 60_000;
-            ARTICLE_RATE_LIMIT.entrySet().removeIf(e -> e.getValue()[0] < cutoff);
+            ARTICLE_RATE_LIMIT.entrySet().removeIf(e -> e.getValue() < cutoff);
         }
         return false;
     }
@@ -1235,131 +1221,6 @@ public class ArticleProcessor {
         fillPostArticleRequisite(dataModel, currentUser);
     }
 
-    /**
-     * Shows long article page.
-     *
-     * @param context the specified context
-     */
-    public void showLongArticle(final RequestContext context) {
-        final String articleId = context.pathVar("id");
-        final Request request = context.getRequest();
-
-        if (hitArticleRateLimit(request)) {
-            context.sendStatus(503);
-            return;
-        }
-
-        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/long-article.ftl");
-        final Map<String, Object> dataModel = renderer.getDataModel();
-
-        final JSONObject article = articleQueryService.getArticleById(articleId);
-        if (null == article) {
-            context.sendError(404);
-            return;
-        }
-
-        if (article.optInt(Article.ARTICLE_STATUS) == Article.ARTICLE_STATUS_C_INVALID) {
-            context.sendError(404);
-            return;
-        }
-
-        // 验证是否为长文章类型
-        if (Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)) {
-            context.sendRedirect("/article/" + articleId);
-            return;
-        }
-
-        dataModelService.fillHeaderAndFooter(context, dataModel);
-
-        final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-        JSONObject author;
-        if (Article.ARTICLE_ANONYMOUS_C_PUBLIC == article.optInt(Article.ARTICLE_ANONYMOUS)) {
-            author = userQueryService.getUser(articleAuthorId);
-        } else {
-            author = userQueryService.getAnonymousUser();
-        }
-        Escapes.escapeHTML(author);
-        article.put(Article.ARTICLE_T_AUTHOR_NAME, author.optString(User.USER_NAME));
-        article.put(Article.ARTICLE_T_AUTHOR_URL, author.optString(User.USER_URL));
-        article.put(Article.ARTICLE_T_AUTHOR_INTRO, author.optString(UserExt.USER_INTRO));
-        article.put("articleAuthorNickName", author.optString(UserExt.USER_NICKNAME));
-
-        String metal = cloudService.getEnabledMedal(articleAuthorId);
-        if (!metal.equals("{}") && Article.ARTICLE_ANONYMOUS_C_ANONYMOUS != article.optInt(Article.ARTICLE_ANONYMOUS)) {
-            List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
-            article.put("sysMetal", list);
-        } else {
-            article.put("sysMetal", new ArrayList<>());
-        }
-
-        dataModel.put(Article.ARTICLE, article);
-        dataModel.put(Article.ARTICLE_TYPE, article.optInt(Article.ARTICLE_TYPE));
-
-        articleQueryService.processArticleContent(article);
-
-        // 评论视图模式
-        String cmtViewModeStr = context.param("m");
-        final boolean isLoggedIn = (Boolean) dataModel.get(Common.IS_LOGGED_IN);
-        if (isLoggedIn) {
-            final JSONObject currentUser = Sessions.getUser();
-            final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
-            final boolean isMyArticle = currentUserId.equals(articleAuthorId);
-            article.put(Common.IS_MY_ARTICLE, isMyArticle);
-
-            if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
-                cmtViewModeStr = currentUser.optString(UserExt.USER_COMMENT_VIEW_MODE);
-            }
-        } else if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
-            cmtViewModeStr = "0";
-        }
-
-        final int cmtViewMode = Integer.valueOf(cmtViewModeStr);
-        dataModel.put(UserExt.USER_COMMENT_VIEW_MODE, cmtViewMode);
-
-        // 评论分页
-        int pageNum = Paginator.getPage(request);
-        final int pageSize = Symphonys.ARTICLE_COMMENTS_CNT;
-        final int windowSize = Symphonys.ARTICLE_COMMENTS_WIN_SIZE;
-        final int commentCnt = article.optInt(Article.ARTICLE_COMMENT_CNT);
-        final int pageCount = (int) Math.ceil((double) commentCnt / (double) pageSize);
-        if (UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL == cmtViewMode) {
-            if (0 < pageCount && pageNum > pageCount) {
-                pageNum = pageCount;
-            }
-        } else {
-            if (pageNum > pageCount) {
-                pageNum = 1;
-            }
-        }
-        final List<Integer> pageNums = Paginator.paginate(pageNum, pageSize, pageCount, windowSize);
-        if (!pageNums.isEmpty()) {
-            dataModel.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
-            dataModel.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
-        }
-        dataModel.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
-        dataModel.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
-        dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
-
-        // 加载评论
-        final List<JSONObject> articleComments = commentQueryService.getArticleComments(articleId, pageNum, pageSize, cmtViewMode);
-        article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
-
-        // 处理评论者可见性
-        for (final JSONObject comment : articleComments) {
-            comment.remove("commentUA");
-            comment.remove("commentIP");
-            if (Comment.COMMENT_VISIBLE_C_AUTHOR == comment.optInt(Comment.COMMENT_VISIBLE)) {
-                final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-                final String currentUserId = isLoggedIn ? ((JSONObject) dataModel.get("currentUser")).optString(Keys.OBJECT_ID) : null;
-                if (!isLoggedIn || (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
-                    comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
-                }
-            }
-        }
-
-        article.put("commentors", (Object) commentQueryService.getArticleCommentors(articleId));
-    }
-
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {
         boolean requisite = false;
         String requisiteMsg = "";
@@ -1393,12 +1254,6 @@ public class ArticleProcessor {
 
         if (article.optInt(Article.ARTICLE_STATUS)==Article.ARTICLE_STATUS_C_INVALID){
             context.sendError(404);
-            return;
-        }
-
-        // 长文章重定向到 /long/{id}
-        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
-            context.sendRedirect("/long/" + articleId);
             return;
         }
 

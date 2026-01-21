@@ -1,0 +1,175 @@
+/* 移动端长文章专用样式 */
+.long-article-page .article-content {
+    padding: 20px 15px !important;
+    font-size: 16px !important;
+    line-height: 1.8 !important;
+}
+
+/* 深色模式适配 */
+body.night.long-article-page .article-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+/* 移动端长文章设置栏 */
+.m-long-article-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+body.night.long-article-page .m-long-article-bar {
+    background: #2d2d2d;
+}
+
+.m-long-article-bar-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 5px 15px;
+    color: #666;
+}
+
+.m-long-article-bar-btn svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 2px;
+}
+
+.m-long-article-bar-btn span {
+    font-size: 11px;
+}
+
+body.night.long-article-page .m-long-article-bar-btn {
+    color: #999;
+}
+
+/* 移动端设置面板 */
+.m-long-article-panel {
+    position: fixed;
+    bottom: 60px;
+    left: 10px;
+    right: 10px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 101;
+    display: none;
+}
+
+.m-long-article-panel.show {
+    display: block;
+}
+
+body.night.long-article-page .m-long-article-panel {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.m-long-article-panel h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #333;
+}
+
+body.night.long-article-page .m-long-article-panel h4 {
+    color: #ccc;
+}
+
+.m-long-article-panel-row {
+    margin-bottom: 12px;
+}
+
+.m-long-article-panel-row:last-child {
+    margin-bottom: 0;
+}
+
+.m-long-article-panel-label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+}
+
+body.night.long-article-page .m-long-article-panel-label {
+    color: #888;
+}
+
+.m-long-article-theme-btns,
+.m-long-article-font-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.m-long-article-theme-btn,
+.m-long-article-font-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+}
+
+.m-long-article-theme-btn:hover,
+.m-long-article-font-btn:hover {
+    border-color: #999;
+}
+
+.m-long-article-theme-btn.active,
+.m-long-article-font-btn.active {
+    background: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+body.night.long-article-page .m-long-article-theme-btn,
+body.night.long-article-page .m-long-article-font-btn {
+    background: #3d3d3d;
+    border-color: #444;
+    color: #ccc;
+}
+
+body.night.long-article-page .m-long-article-theme-btn.active,
+body.night.long-article-page .m-long-article-font-btn.active {
+    background: #4a9eff;
+    border-color: #4a9eff;
+}
+
+/* 夜间模式适配 */
+body.night.long-article-page .long-article-content {
+    background-color: #1a1a1a;
+}
+
+body.night.long-article-page .long-article-content a {
+    color: #6bb3ff;
+}
+
+body.night.long-article-page .long-article-content blockquote {
+    border-color: #444;
+    color: #bbb;
+}
+
+body.night.long-article-page .long-article-content code {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.night.long-article-page .long-article-content pre {
+    background-color: #2d2d2d;
+}

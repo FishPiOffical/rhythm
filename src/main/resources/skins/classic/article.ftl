@@ -52,6 +52,9 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
+    <#if 6 == article.articleType>
+    <link rel="stylesheet" href="${staticServePath}/css/long-article.css?${staticResourceVersion}">
+    </#if>
     <link rel="canonical"
           href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
     <#if articlePrevious??>
@@ -79,7 +82,7 @@
     <meta name="twitter:site" content="@B3logOS"/>
     <meta name="twitter:creator" content="@B3logOS"/>
 </head>
-<body itemscope itemtype="http://schema.org/Product" class="article">
+<body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
 <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
 <#include "header.ftl">
@@ -109,7 +112,7 @@
                  data-author="${article.articleAuthorName}" class="aplayer"></div>
         </#if>
         <#if 3 != article.articleType>
-            <div class="vditor-reset article-content">
+            <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">
                 ${article.articleContent}
             </div>
         <#else>
@@ -695,6 +698,45 @@
     </div>
 </div>
 
+<#if 6 == article.articleType>
+<div class="long-article-settings">
+    <button class="long-article-settings-btn" onclick="LongArticle.scrollToTop()" title="回到顶部">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
+        </svg>
+    </button>
+    <button class="long-article-settings-btn" onclick="LongArticle.toggleSettings()" title="阅读设置">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+        </svg>
+    </button>
+    <button class="long-article-settings-btn" onclick="LongArticle.toggleNight()" title="夜间模式">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M13.574 3.138a1.01 1.01 0 0 0-1.097 1.408a6 6 0 0 1-7.931 7.931a1.01 1.01 0 0 0-1.409 1.097A9 9 0 0 0 21 12a9 9 0 0 0-7.426-8.862"/>
+        </svg>
+    </button>
+</div>
+
+<div class="long-article-panel" id="longArticlePanel">
+    <h4>阅读设置</h4>
+    <div class="long-article-panel-item">
+        <span class="long-article-panel-label">主题</span>
+        <div class="long-article-theme-btns">
+            <button class="long-article-theme-btn active" onclick="LongArticle.setTheme('light')">浅色</button>
+            <button class="long-article-theme-btn" onclick="LongArticle.setTheme('night')">深色</button>
+        </div>
+    </div>
+    <div class="long-article-panel-item">
+        <span class="long-article-panel-label">字号</span>
+        <div class="long-article-font-btns">
+            <button class="long-article-font-btn" onclick="LongArticle.setFontSize(-2)">A-</button>
+            <span id="longArticleFontSize">18px</span>
+            <button class="long-article-font-btn" onclick="LongArticle.setFontSize(2)">A+</button>
+        </div>
+    </div>
+</div>
+</#if>
+
 <#include "footer.ftl">
 <#if "" != article.articleToC && 3 != article.articleType>
     <div class="module" id="articleToC">
@@ -767,6 +809,9 @@
 <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
+<#if 6 == article.articleType>
+<script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+</#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
     Label.symphonyLabel = "${symphonyLabel}";
@@ -824,6 +869,10 @@
     </#if>
     <#if 3 == article.articleType>
     Article.playThought('${article.articleContent}');
+    </#if>
+
+    <#if 6 == article.articleType>
+    LongArticle.init();
     </#if>
 
     setInterval(function () {
