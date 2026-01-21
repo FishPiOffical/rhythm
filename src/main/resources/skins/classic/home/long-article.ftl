@@ -31,7 +31,7 @@
         </#if>
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/long-article.css?${staticResourceVersion}">
-    <link rel="canonical" href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
+    <link rel="canonical" href="${servePath}/long/${article.oId}">
 </head>
 
 <body class="long-article-body">

@@ -83,7 +83,7 @@
         </div>
     </div>
 
-<#include "footer.ftl">
+<#include "../footer.ftl">
 <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     Label.articleOId = "${article.oId}";

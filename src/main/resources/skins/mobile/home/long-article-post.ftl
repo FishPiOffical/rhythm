@@ -26,38 +26,49 @@
         <@head title="${postTitle} - ${symphonyLabel}">
         <meta name="robots" content="none" />
         </@head>
-        <link rel="stylesheet" href="${staticServePath}/css/m-post.css?${staticResourceVersion}" />
     </head>
     <body>
         <#include "../header.ftl">
-        <div class="main m-post">
-            <div class="m-post-item">
-                <input type="text" id="articleTitle" placeholder="${titleLabel}"
-                       <#if requisite> readonly disabled</#if>
-                       value="<#if article??>${article.articleTitle}</#if>"/>
-            </div>
-            <div class="m-post-item m-post-content">
-                <textarea id="articleContent" placeholder="${addLongArticleEditorPlaceholderLabel}"><#if article??>${article.articleContent?html}</#if></textarea>
-            </div>
-            <div class="m-post-item m-post-actions fn-clear">
-                <div class="fn-right">
-                    <#if article?? && permissions["commonRemoveArticle"].permissionGrant>
-                        <button class="m-btn red" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
-                    </#if>
-                    <#if article??>
-                        <#if permissions["commonUpdateArticle"].permissionGrant>
-                        <button class="m-btn green" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
+        <div class="main">
+            <div class="wrapper post">
+                <div class="fn-hr10"></div>
+                <div class="fn-flex-1 fn-clear">
+                    <div class="form">
+                        <input type="text" id="articleTitle" tabindex="1"
+                               value="<#if article??>${article.articleTitle}</#if>" placeholder="${titleLabel}" />
+                    </div>
+                    <div class="article-content">
+                        <div id="articleContent"
+                             data-placeholder="${addLongArticleEditorPlaceholderLabel}"></div>
+                        <textarea class="fn-none"><#if article??>${article.articleContent?html}</#if></textarea>
+                    </div>
+                    <div class="fn-hr10"></div>
+                    <div class="tip" id="addArticleTip"></div>
+                    <div class="fn-hr10"></div>
+                    <div class="fn-clear">
+                        <#if article??>
+                            <#if permissions["commonUpdateArticle"].permissionGrant>
+                                <button class="fn-right" tabindex="10" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
+                            </#if>
+                        <#else>
+                            <#if permissions["commonAddArticle"].permissionGrant>
+                                <button class="fn-right" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
+                            </#if>
                         </#if>
-                    <#else>
-                        <#if permissions["commonAddArticle"].permissionGrant>
-                        <button class="m-btn green" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
+                        <#if article?? && permissions["commonRemoveArticle"].permissionGrant>
+                            <button class="red fn-right" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
                         </#if>
-                    </#if>
+                    </div>
+                    <br/>
+                    <div class="fn-clear">
+                        <svg><use xlink:href="#book"></use></svg> ${longArticleLabel}
+                        <span class="ft-gray">${longArticleTipLabel}</span>
+                    </div>
                 </div>
             </div>
-            <div class="m-post-tip" id="addArticleTip"></div>
         </div>
-        <#include "../footer.ftl">
+        <#include "../footer.ftl"/>
+        <script src="${staticServePath}/js/lib/sound-recorder/SoundRecorder.js"></script>
         <script>
             Label.articleTitleErrorLabel = "${articleTitleErrorLabel}";
             Label.articleContentErrorLabel = "${articleContentErrorLabel}";
@@ -68,6 +79,9 @@
             Label.uploadLabel = "${uploadLabel}";
             Label.audioRecordingLabel = '${audioRecordingLabel}';
             Label.uploadingLabel = '${uploadingLabel}';
+            Label.articleRewardPointErrorLabel = '${articleRewardPointErrorLabel}';
+            Label.discussionLabel = '${discussionLabel}';
+            Label.insertEmojiLabel = '${insertEmojiLabel}';
             Label.addBoldLabel = '${addBoldLabel}';
             Label.addItalicLabel = '${addItalicLabel}';
             Label.insertQuoteLabel = '${insertQuoteLabel}';
@@ -80,8 +94,6 @@
             Label.helpLabel = '${helpLabel}';
             Label.fullscreenLabel = '${fullscreenLabel}';
             Label.uploadFileLabel = '${uploadFileLabel}';
-            Label.discussionLabel = '${discussionLabel}';
-            Label.insertEmojiLabel = '${insertEmojiLabel}';
             Label.commonAtUser = '${permissions["commonAtUser"].permissionGrant?c}';
             Label.requisite = ${requisite?c};
             <#if article??>Label.articleOId = '${article.oId}' ;</#if>
@@ -89,5 +101,6 @@
             Label.confirmRemoveLabel = '${confirmRemoveLabel}';
         </script>
         <script src="${staticServePath}/js/add-article${miniPostfix}.js?${staticResourceVersion}"></script>
+        <script src="${staticServePath}/js/lib/sweetalert2.all.min.js"></script>
     </body>
 </html>

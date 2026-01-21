@@ -104,7 +104,7 @@ public class ArticleProcessor {
     /**
      * 文章访客限流：单 IP 每秒仅允许一次。
      */
-    private static final ConcurrentHashMap<String, Long> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, long[]> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
 
     /**
      * Revision query service.
@@ -245,7 +245,7 @@ public class ArticleProcessor {
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
-        Dispatcher.get("/article/long/{articleId}", articleProcessor::showLongArticle, anonymousViewCheckMidware::handle, csrfMidware::fill);
+        Dispatcher.get("/long/{id}", articleProcessor::showLongArticle, anonymousViewCheckMidware::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
@@ -432,7 +432,7 @@ public class ArticleProcessor {
     }
 
     /**
-     * 简单的每 IP 1 秒一次限流，访客和登录用户共用。
+     * 简单的每 IP 2 秒2次限流，访客和登录用户共用。
      *
      * @param request the specified request
      * @return true if limited
@@ -440,17 +440,30 @@ public class ArticleProcessor {
     private boolean hitArticleRateLimit(final Request request) {
         final String ip = Requests.getRemoteAddr(request);
         final long now = System.currentTimeMillis();
-        final Long last = ARTICLE_RATE_LIMIT.get(ip);
-        if (null != last && now - last < 1000) {
-            return true;
+        final long window = 2000; // 2秒窗口
+        final int maxCount = 2;   // 最多2次
+
+        final long[] data = ARTICLE_RATE_LIMIT.get(ip);
+        if (null != data) {
+            final long lastTime = data[0];
+            final int count = (int) data[1];
+            if (now - lastTime < window) {
+                if (count >= maxCount) {
+                    return true;
+                }
+                // 在窗口内，增加计数
+                data[1] = count + 1;
+                return false;
+            }
         }
 
-        ARTICLE_RATE_LIMIT.put(ip, now);
+        // 新窗口，重置计数
+        ARTICLE_RATE_LIMIT.put(ip, new long[]{now, 1});
 
         // 防止表过大，简单清理 60 秒前的记录
         if (ARTICLE_RATE_LIMIT.size() > 10000) {
             final long cutoff = now - 60_000;
-            ARTICLE_RATE_LIMIT.entrySet().removeIf(e -> e.getValue() < cutoff);
+            ARTICLE_RATE_LIMIT.entrySet().removeIf(e -> e.getValue()[0] < cutoff);
         }
         return false;
     }
@@ -1228,7 +1241,7 @@ public class ArticleProcessor {
      * @param context the specified context
      */
     public void showLongArticle(final RequestContext context) {
-        final String articleId = context.pathVar("articleId");
+        final String articleId = context.pathVar("id");
         final Request request = context.getRequest();
 
         if (hitArticleRateLimit(request)) {
@@ -1247,6 +1260,12 @@ public class ArticleProcessor {
 
         if (article.optInt(Article.ARTICLE_STATUS) == Article.ARTICLE_STATUS_C_INVALID) {
             context.sendError(404);
+            return;
+        }
+
+        // 验证是否为长文章类型
+        if (Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)) {
+            context.sendRedirect("/article/" + articleId);
             return;
         }
 
@@ -1320,6 +1339,12 @@ public class ArticleProcessor {
 
         if (article.optInt(Article.ARTICLE_STATUS)==Article.ARTICLE_STATUS_C_INVALID){
             context.sendError(404);
+            return;
+        }
+
+        // 长文章重定向到 /long/{id}
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            context.sendRedirect("/long/" + articleId);
             return;
         }
 
