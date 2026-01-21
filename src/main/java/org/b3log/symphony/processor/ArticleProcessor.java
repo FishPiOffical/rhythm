@@ -243,6 +243,7 @@ public class ArticleProcessor {
         Dispatcher.get("/article/{id}/revisions", articleProcessor::getArticleRevisions, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
+        Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
@@ -1196,6 +1197,27 @@ public class ArticleProcessor {
 
         fillPostArticleRequisite(dataModel, currentUser);
         fillDomainsWithTags(dataModel);
+    }
+
+    /**
+     * Shows add long article page.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticleAdd(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/long-article-post.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        final JSONObject currentUser = Sessions.getUser();
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+
+        String articleContentErrorLabel = langPropsService.get("articleContentErrorLabel");
+        articleContentErrorLabel = articleContentErrorLabel.replace("{maxArticleContentLength}",
+                String.valueOf(ArticlePostValidationMidware.MAX_ARTICLE_CONTENT_LENGTH));
+        dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
+
+        fillPostArticleRequisite(dataModel, currentUser);
     }
 
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {
