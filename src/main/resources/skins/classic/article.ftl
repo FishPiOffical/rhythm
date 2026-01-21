@@ -182,6 +182,7 @@
                     </a> &nbsp;
                 </#if>
             </div>
+            <#if 6 != article.articleType>
             <div class="fn-flex">
                 <ul class="tag-desc fn-flex-1 tag-desc--right">
                     <#list article.articleTagObjs as articleTag>
@@ -206,6 +207,7 @@
                     </#list>
                 </ul>
             </div>
+            </#if>
             <div id="articleActionPanel" class="comment__action"></div>
             <div class="article__meta">
                 <div>

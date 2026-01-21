@@ -153,9 +153,11 @@
                         <span id="articltVia" class="ft-fade" data-ua="${article.articleUA}"></span>
                         </#if>
                         <div class="article-tags">
+                        <#if 6 != article.articleType>
                         <#list article.articleTagObjs as articleTag>
                         <a rel="tag" class="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a>&nbsp;
                         </#list>
+                        </#if>
                         </div>
                     </div>
                     <div class="article-actions fn-clear" style="margin-top: 8px;">

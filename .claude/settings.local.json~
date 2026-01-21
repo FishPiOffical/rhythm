@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(nslookup:*)",
+      "Bash(mvn compile:*)",
+      "Bash(grep -rn \"test\\\\|验证码\" \"C:\\\\Users\\\\陈辉\\\\IdeaProjects\\\\rhythm\\\\src\\\\main\\\\java\\\\org\\\\b3log\\\\symphony\\\\processor\"\" | grep -i \"redirect|sendRedirect \")",
+      "Bash(find:*)"
+    ]
+  }
+}

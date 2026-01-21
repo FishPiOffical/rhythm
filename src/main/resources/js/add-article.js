@@ -200,11 +200,14 @@ var AddArticle = {
         })
       }
 
+      // 长文章使用 Label.articleType，否则从 radio 获取
+      var finalArticleType = articleTypeRadio.length > 0 ? articleType : Label.articleType;
+
       var requestJSONObject = {
         articleTitle: $('#articleTitle').val().replace(/(^\s*)|(\s*$)/g, ''),
         articleContent: this.editor.getValue(),
         articleTags: articleTags,
-        articleType: articleType,
+        articleType: finalArticleType,
       }
 
       // 长文章不需要这些选项
@@ -230,7 +233,7 @@ var AddArticle = {
         requestJSONObject.isGoodArticle = 'yes';
       }
 
-      if (articleType !== 5) {
+      if (finalArticleType !== 5) {
         if ($('#articleRewardContent').length > 0) {
           requestJSONObject.articleRewardContent = this.rewardEditor.getValue()
         }
