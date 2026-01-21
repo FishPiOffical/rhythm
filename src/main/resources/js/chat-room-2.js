@@ -1241,7 +1241,7 @@ border-bottom: none;
         // 如果有引用内容，拼接到消息前面
         if (ChatRoom.quoteData.userName && ChatRoom.quoteData.content) {
             let quoteMd = ChatRoom.quoteData.content.replace(/\n/g, "\n> ");
-            content = content + `\n\n##### 引用 @${ChatRoom.quoteData.userName} [↩](${Label.servePath}/cr#chatroom${ChatRoom.quoteData.messageId} "跳转至原消息")  \n> ${quoteMd}</span>\n`;
+            content = content + `\n\n##### 引用 @${ChatRoom.quoteData.userName} [↩](${Label.servePath}/cr#chatroom${ChatRoom.quoteData.messageId} "跳转至原消息")  \n> ${quoteMd}\n`;
         }
 
         var requestJSONObject = {
