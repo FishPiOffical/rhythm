@@ -245,6 +245,7 @@ public class ArticleProcessor {
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
+        Dispatcher.get("/article/long/{articleId}", articleProcessor::showLongArticle, anonymousViewCheckMidware::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
@@ -1219,6 +1220,71 @@ public class ArticleProcessor {
         dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
 
         fillPostArticleRequisite(dataModel, currentUser);
+    }
+
+    /**
+     * Shows long article page.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticle(final RequestContext context) {
+        final String articleId = context.pathVar("articleId");
+        final Request request = context.getRequest();
+
+        if (hitArticleRateLimit(request)) {
+            context.sendStatus(503);
+            return;
+        }
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/long-article.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        final JSONObject article = articleQueryService.getArticleById(articleId);
+        if (null == article) {
+            context.sendError(404);
+            return;
+        }
+
+        if (article.optInt(Article.ARTICLE_STATUS) == Article.ARTICLE_STATUS_C_INVALID) {
+            context.sendError(404);
+            return;
+        }
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+
+        final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
+        JSONObject author;
+        if (Article.ARTICLE_ANONYMOUS_C_PUBLIC == article.optInt(Article.ARTICLE_ANONYMOUS)) {
+            author = userQueryService.getUser(articleAuthorId);
+        } else {
+            author = userQueryService.getAnonymousUser();
+        }
+        Escapes.escapeHTML(author);
+        article.put(Article.ARTICLE_T_AUTHOR_NAME, author.optString(User.USER_NAME));
+        article.put(Article.ARTICLE_T_AUTHOR_URL, author.optString(User.USER_URL));
+        article.put(Article.ARTICLE_T_AUTHOR_INTRO, author.optString(UserExt.USER_INTRO));
+        article.put("articleAuthorNickName", author.optString(UserExt.USER_NICKNAME));
+
+        String metal = cloudService.getEnabledMedal(articleAuthorId);
+        if (!metal.equals("{}") && Article.ARTICLE_ANONYMOUS_C_ANONYMOUS != article.optInt(Article.ARTICLE_ANONYMOUS)) {
+            List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
+            article.put("sysMetal", list);
+        } else {
+            article.put("sysMetal", new ArrayList<>());
+        }
+
+        dataModel.put(Article.ARTICLE, article);
+        dataModel.put(Article.ARTICLE_TYPE, article.optInt(Article.ARTICLE_TYPE));
+
+        articleQueryService.processArticleContent(article);
+
+        final boolean isLoggedIn = (Boolean) dataModel.get(Common.IS_LOGGED_IN);
+        if (isLoggedIn) {
+            final JSONObject currentUser = Sessions.getUser();
+            final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
+            final boolean isMyArticle = currentUserId.equals(articleAuthorId);
+            article.put(Common.IS_MY_ARTICLE, isMyArticle);
+        }
     }
 
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {

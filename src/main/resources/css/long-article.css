@@ -1,0 +1,215 @@
+:root {
+    --la-bg-color: #f5f5f5;
+    --la-body-bg: #ffffff;
+    --la-text-color: #333333;
+    --la-meta-color: #999999;
+    --la-sidebar-bg: #e8e8e8;
+    --la-sidebar-hover: #d4d4d4;
+    --la-primary-color: #4a9c5d;
+    --la-border-color: #e0e0e0;
+    --la-content-width: 900px;
+    --la-font-size: 18px;
+}
+
+.long-article-body {
+    background-color: var(--la-bg-color);
+    min-height: 100vh;
+    padding: 0 !important;
+}
+
+.long-article-container {
+    margin: 0 auto;
+    padding: 60px 20px 100px;
+    width: var(--la-content-width);
+    max-width: 100%;
+    background-color: var(--la-body-bg);
+    box-sizing: border-box;
+    min-height: 100vh;
+    transition: width 0.3s ease;
+}
+
+.long-article-title {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0 0 16px;
+    line-height: 1.4;
+    color: var(--la-text-color);
+}
+
+.long-article-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    font-size: 14px;
+    color: var(--la-meta-color);
+}
+
+.long-article-meta a {
+    color: var(--la-primary-color);
+    text-decoration: none;
+}
+
+.long-article-meta a:hover {
+    text-decoration: underline;
+}
+
+.long-article-content {
+    font-size: var(--la-font-size);
+    line-height: 1.8;
+    color: var(--la-text-color);
+    text-indent: 2em;
+}
+
+.long-article-content p {
+    margin: 0 0 1em;
+}
+
+.long-article-sidebar {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-item {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--la-sidebar-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--la-text-color);
+}
+
+.sidebar-item:hover {
+    background-color: var(--la-sidebar-hover);
+    color: var(--la-primary-color);
+}
+
+.sidebar-item svg {
+    width: 20px;
+    height: 20px;
+}
+
+.settings-panel {
+    display: none;
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--la-body-bg);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 280px;
+}
+
+.settings-panel.active {
+    display: block;
+}
+
+.settings-item {
+    margin-bottom: 16px;
+}
+
+.settings-item:last-child {
+    margin-bottom: 0;
+}
+
+.settings-label {
+    font-size: 12px;
+    color: var(--la-meta-color);
+    margin-bottom: 8px;
+}
+
+.settings-options {
+    display: flex;
+    gap: 8px;
+}
+
+.theme-btn {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    background-color: var(--la-sidebar-bg);
+    transition: all 0.2s ease;
+}
+
+.theme-btn:hover,
+.theme-btn.active {
+    background-color: var(--la-primary-color);
+    color: white;
+}
+
+.font-size-ctrl,
+.width-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.font-size-ctrl span:first-child,
+.font-size-ctrl span:last-child,
+.width-ctrl .width-btn {
+    width: 50px;
+    padding: 8px;
+    text-align: center;
+    background-color: var(--la-sidebar-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.font-size-ctrl span:first-child:hover,
+.font-size-ctrl span:last-child:hover,
+.width-ctrl .width-btn:hover,
+.width-ctrl .width-btn.active {
+    background-color: var(--la-primary-color);
+    color: white;
+}
+
+.font-size-value {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* 夜间模式 */
+.long-article-body.night {
+    --la-bg-color: #1a1a1a;
+    --la-body-bg: #242424;
+    --la-text-color: #e0e0e0;
+    --la-meta-color: #888888;
+    --la-sidebar-bg: #333333;
+    --la-sidebar-hover: #444444;
+    --la-border-color: #333333;
+}
+
+.long-article-body.night .theme-btn.active,
+.long-article-body.night .font-size-ctrl span:first-child:hover,
+.long-article-body.night .font-size-ctrl span:last-child:hover,
+.long-article-body.night .width-ctrl .width-btn:hover,
+.long-article-body.night .width-ctrl .width-btn.active {
+    background-color: var(--la-primary-color);
+}
+
+@media (max-width: 1200px) {
+    .long-article-sidebar {
+        display: none;
+    }
+}

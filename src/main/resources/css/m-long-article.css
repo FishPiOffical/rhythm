@@ -1,0 +1,192 @@
+:root {
+    --mla-bg-color: #f5f5f5;
+    --mla-body-bg: #ffffff;
+    --mla-text-color: #333333;
+    --mla-meta-color: #999999;
+    --mla-primary-color: #4a9c5d;
+    --mla-border-color: #e0e0e0;
+    --mla-font-size: 16px;
+}
+
+.m-long-article-body {
+    background-color: var(--mla-bg-color);
+    min-height: 100vh;
+    padding: 0 !important;
+}
+
+.m-long-article-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background-color: var(--mla-body-bg);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--mla-text-color);
+    text-decoration: none;
+}
+
+.m-long-article-title {
+    flex: 1;
+    margin: 0 12px;
+    font-size: 17px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--mla-text-color);
+}
+
+.m-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.m-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    color: var(--mla-text-color);
+}
+
+.m-long-article-container {
+    padding: 70px 16px 40px;
+    background-color: var(--mla-body-bg);
+    min-height: 100vh;
+}
+
+.m-long-article-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--mla-meta-color);
+}
+
+.m-long-article-meta a {
+    color: var(--mla-primary-color);
+    text-decoration: none;
+}
+
+.m-long-article-content {
+    font-size: var(--mla-font-size);
+    line-height: 1.8;
+    color: var(--mla-text-color);
+    text-indent: 2em;
+}
+
+.m-long-article-content p {
+    margin: 0 0 1em;
+}
+
+.m-settings-panel {
+    display: none;
+    position: fixed;
+    top: 60px;
+    right: 12px;
+    background-color: var(--mla-body-bg);
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 200;
+}
+
+.m-settings-panel.active {
+    display: block;
+}
+
+.m-settings-item {
+    margin-bottom: 16px;
+}
+
+.m-settings-item:last-child {
+    margin-bottom: 0;
+}
+
+.m-settings-label {
+    font-size: 12px;
+    color: var(--mla-meta-color);
+    margin-bottom: 8px;
+}
+
+.m-settings-options {
+    display: flex;
+    gap: 8px;
+}
+
+.m-theme-btn {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    background-color: var(--mla-border-color);
+    transition: all 0.2s ease;
+}
+
+.m-theme-btn:hover,
+.m-theme-btn.active {
+    background-color: var(--mla-primary-color);
+    color: white;
+}
+
+.m-font-size-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.m-font-size-ctrl span:first-child,
+.m-font-size-ctrl span:last-child {
+    width: 50px;
+    padding: 8px;
+    text-align: center;
+    background-color: var(--mla-border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.m-font-size-ctrl span:first-child:hover,
+.m-font-size-ctrl span:last-child:hover {
+    background-color: var(--mla-primary-color);
+    color: white;
+}
+
+.m-font-size-value {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* 夜间模式 */
+.m-long-article-body.night {
+    --mla-bg-color: #1a1a1a;
+    --mla-body-bg: #242424;
+    --mla-text-color: #e0e0e0;
+    --mla-meta-color: #888888;
+    --mla-border-color: #333333;
+}
+
+.m-long-article-body.night .m-theme-btn.active,
+.m-long-article-body.night .m-font-size-ctrl span:first-child:hover,
+.m-long-article-body.night .m-font-size-ctrl span:last-child:hover {
+    background-color: var(--mla-primary-color);
+}
