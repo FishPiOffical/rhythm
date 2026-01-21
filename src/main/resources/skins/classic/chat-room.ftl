@@ -44,6 +44,15 @@
                 <div class="fn-content" style="padding-top: 0;">
                     <div class="reply">
                         <#if isLoggedIn>
+                            <div id="quotePreview" style="display: none; margin: 0 -15px 10px -15px; padding: 10px; background: #f5f5f5; border-left: 3px solid #4a9eff; border-radius: 4px; position: relative;">
+                                <div style="display: flex; align-items: start; justify-content: space-between;">
+                                    <div style="flex: 1; overflow: hidden;">
+                                        <div style="font-size: 12px; color: #999; margin-bottom: 5px;">引用 <span id="quoteUserName"></span></div>
+                                        <div id="quoteContent" style="font-size: 13px; color: #666; max-height: 60px; overflow: hidden; text-overflow: ellipsis;"></div>
+                                    </div>
+                                    <button onclick="ChatRoom.cancelQuote()" style="background: none; border: none; color: #999; cursor: pointer; padding: 0 5px; font-size: 18px; line-height: 1;" title="取消引用">×</button>
+                                </div>
+                            </div>
                             <div id="chatContent" style="margin: 0 -15px"> </div>
                             <div class="fn-clear" style="padding: 16px 0 8px 0;margin: 0 -4px;">
                                 <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">

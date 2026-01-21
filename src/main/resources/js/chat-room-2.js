@@ -57,6 +57,12 @@ try {
     isVip4 = false;
 }
 var ChatRoom = {
+    // 存储当前引用信息
+    quoteData: {
+        userName: null,
+        messageId: null,
+        content: null
+    },
     init: function () {
         if (window.localStorage['robot_list'] == undefined) {
             ChatRoom.changeCatchUser('xiaoIce,b,its21f,xds');
@@ -1231,6 +1237,13 @@ border-bottom: none;
         }
         ChatRoom.isSend = true;
         var content = ChatRoom.editor.getValue()
+
+        // 如果有引用内容，拼接到消息前面
+        if (ChatRoom.quoteData.userName && ChatRoom.quoteData.content) {
+            let quoteMd = ChatRoom.quoteData.content.replace(/\n/g, "\n> ");
+            content = `\n##### 引用 @${ChatRoom.quoteData.userName} [↩](${Label.servePath}/cr#chatroom${ChatRoom.quoteData.messageId} "跳转至原消息")  \n> ${quoteMd}</span>\n\n` + content;
+        }
+
         var requestJSONObject = {
             content: content,
             client: thisClient
@@ -1247,18 +1260,20 @@ border-bottom: none;
             success: function (result) {
                 if (0 === result.code) {
                     $('#chatContentTip').removeClass('error succ').html('');
+                    // 发送成功后清除引用
+                    ChatRoom.cancelQuote()
                     // 自己发送成功后，强制滚到最新
                     if (typeof ChatRoom.scrollToBottom === 'function') {
                         ChatRoom.scrollToBottom();
                     }
                 } else {
                     $('#chatContentTip').addClass('error').html('<ul><li>' + result.msg + '</li></ul>')
-                    ChatRoom.editor.setValue(content)
+                    ChatRoom.editor.setValue(ChatRoom.editor.getValue().replace(content.split('\n\n')[0] + '\n\n', ''))
                 }
             },
             error: function (result) {
                 $('#chatContentTip').addClass('error').html('<ul><li>' + result.statusText + '</li></ul>')
-                ChatRoom.editor.setValue(content)
+                ChatRoom.editor.setValue(ChatRoom.editor.getValue().replace(content.split('\n\n')[0] + '\n\n', ''))
             },
             complete: function (jqXHR, textStatus) {
                 ChatRoom.isSend = false;
@@ -1520,12 +1535,38 @@ border-bottom: none;
                 async: false,
                 success: function (result) {
                     md = result.replace(/(<!--).*/g, "");
-                    md = md.replace(/\n/g, "\n> ");
                 }
             });
-            ChatRoom.editor.insertValue(`\n##### 引用 @${userName} [↩](${Label.servePath}/cr#chatroom${id} "跳转至原消息")  \n> ${md}</span>\n`, !1);
+            // 存储引用信息
+            ChatRoom.quoteData.userName = userName;
+            ChatRoom.quoteData.messageId = id;
+            ChatRoom.quoteData.content = md;
+            // 显示引用预览
+            ChatRoom.showQuote();
         }
-        $(window).scrollTop(0);
+    },
+    /**
+     * 显示引用预览
+     */
+    showQuote: function () {
+        if (!ChatRoom.quoteData.userName || !ChatRoom.quoteData.content) {
+            return;
+        }
+        $('#quoteUserName').text('@' + ChatRoom.quoteData.userName);
+        // 显示纯文本预览（去除markdown格式）
+        let previewText = ChatRoom.quoteData.content.replace(/[#*>`\-\[\]()]/g, '').substring(0, 100);
+        $('#quoteContent').text(previewText);
+        $('#quotePreview').slideDown(200);
+    },
+    /**
+     * 取消引用
+     */
+    cancelQuote: function () {
+        ChatRoom.quoteData.userName = null;
+        ChatRoom.quoteData.messageId = null;
+        ChatRoom.quoteData.content = null;
+        $('#quotePreview').slideUp(200);
+        ChatRoom.editor.focus();
     },
     /**
      * 给用户添加备注
