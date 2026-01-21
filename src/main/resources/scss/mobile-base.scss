@@ -3887,3 +3887,181 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   visibility: visible;
   opacity: 1;
 }
+
+/* start long-article */
+.long-article-content {
+  padding: 20px 15px;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.long-article-meta {
+  text-align: left;
+  color: #888;
+  font-size: 13px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+
+  a {
+    color: #888;
+    text-decoration: none;
+
+    &:hover {
+      color: #4285f4;
+    }
+  }
+
+  .long-article-author {
+    margin-right: 15px;
+  }
+}
+
+// 长文章时，隐藏原有的文章操作按钮
+.long-article-page .article-actions .fn-right {
+  display: none !important;
+}
+
+.long-article-settings {
+  position: fixed;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 99;
+}
+
+.long-article-settings-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s;
+  gap: 1px;
+  position: relative;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  &.has-cnt {
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .count {
+      font-size: 10px;
+      line-height: 1;
+      font-weight: bold;
+    }
+  }
+
+  &.ft-red {
+    color: #f44336;
+  }
+
+  &.hide {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(60px);
+  }
+}
+
+.long-article-toggle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.3s;
+
+  &.active {
+    background: #4285f4;
+    color: #fff;
+  }
+}
+
+body.night {
+  .long-article-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+
+    a {
+      color: #6bb3ff;
+    }
+
+    blockquote {
+      border-color: #444;
+      color: #bbb;
+    }
+
+    code {
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+    }
+
+    pre {
+      background-color: #2d2d2d;
+    }
+  }
+
+  .long-article-meta {
+    color: #888;
+    border-color: #333;
+
+    a {
+      color: #888;
+
+      &:hover {
+        color: #6bb3ff;
+      }
+    }
+  }
+
+  .long-article-settings-btn,
+  .long-article-toggle-btn {
+    background: rgba(45, 45, 45, 0.95);
+    color: #999;
+
+    &:hover {
+      background: rgba(61, 61, 61, 0.95);
+      color: #fff;
+    }
+  }
+
+  .long-article-toggle-btn.active {
+    background: #4285f4;
+    color: #fff;
+  }
+}
+
+/* end long-article */

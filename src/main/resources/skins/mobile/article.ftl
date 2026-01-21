@@ -32,9 +32,6 @@
         </#if>
         </@head>
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
-        <#if 6 == article.articleType>
-        <link rel="stylesheet" href="${staticServePath}/css/m-long-article.css?${staticResourceVersion}">
-        </#if>
     </head>
     <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
         <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
@@ -120,6 +117,12 @@
                     </#if>
                 </div>
                 <div class="article-info">
+                    <#if 6 == article.articleType>
+                    <div class="long-article-meta">
+                        <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
+                        <span class="long-article-time">${article.timeAgo}</span>
+                    </div>
+                    <#else>
                     <a rel="author" href="${servePath}/member/${article.articleAuthorName}"
                        title="${article.articleAuthorName}"><div class="avatar" style="background-image:url('${article.articleAuthorThumbnailURL48}')"></div></a>
                     <div class="article-params">
@@ -156,13 +159,12 @@
                         <span id="articltVia" class="ft-fade" data-ua="${article.articleUA}"></span>
                         </#if>
                         <div class="article-tags">
-                        <#if 6 != article.articleType>
                         <#list article.articleTagObjs as articleTag>
                         <a rel="tag" class="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a>&nbsp;
                         </#list>
-                        </#if>
                         </div>
                     </div>
+                    </#if>
                     <div class="article-actions fn-clear" style="margin-top: 8px;">
                         <span class="fn-right">
                             <#if permissions["commonViewArticleHistory"].permissionGrant && article.articleRevisionCount &gt; 1>
@@ -464,6 +466,7 @@
             </div>
             </div>
             <div class="side wrapper">
+                <#if 6 != article.articleType>
                 <#if showSideAd>
                 <#if ADLabel!="">
                 <div class="module">
@@ -523,6 +526,7 @@
                     </div>
                 </div>
                 </#if>
+                </#if>
             </div>
         </div>
         <div id="heatBar">
@@ -543,54 +547,95 @@
             </div>
         </div>
         <#if 6 == article.articleType>
-        <div class="m-long-article-bar">
-            <button class="m-long-article-bar-btn" onclick="MLongArticle.scrollToTop()">
+        <div class="long-article-settings">
+            <button class="long-article-toggle-btn" onclick="document.querySelectorAll('.long-article-settings-btn').forEach(function(btn){btn.classList.toggle('hide')});this.classList.toggle('active')">
+                ···
+            </button>
+            <button class="long-article-settings-btn hide" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
                 </svg>
-                <span>顶部</span>
             </button>
-            <button class="m-long-article-bar-btn" onclick="MLongArticle.toggleSettings()">
+            <button class="long-article-settings-btn hide has-cnt" onclick="document.getElementById('comments').scrollIntoView({behavior:'smooth'})" title="评论">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
-                <span>设置</span>
+                <span class="count">${article.articleCommentCount}</span>
             </button>
-            <button class="m-long-article-bar-btn" onclick="MLongArticle.toggleNight()">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M13.574 3.138a1.01 1.01 0 0 0-1.097 1.408a6 6 0 0 1-7.931 7.931a1.01 1.01 0 0 0-1.409 1.097A9 9 0 0 0 21 12a9 9 0 0 0-7.426-8.862"/>
-                </svg>
-                <span>夜间</span>
+            <button class="long-article-settings-btn hide" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||16;s=Math.max(12,s-2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s)})()" title="减小字号">
+                <span>A-</span>
             </button>
+            <button class="long-article-settings-btn hide" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||16;s=Math.min(24,s+2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s)})()" title="增大字号">
+                <span>A+</span>
+            </button>
+            <#if permissions["commonThankArticle"].permissionGrant>
+            <button class="long-article-settings-btn hide has-cnt<#if article.thanked> ft-red</#if>" onclick="<#if !article.thanked>Article.thankArticle('${article.oId}', ${article.articleAnonymous})</#if>" title="${thankLabel}">
+                <svg><use xlink:href="#heart"></use></svg>
+                <span class="count">${article.thankedCnt}</span>
+            </button>
+            </#if>
+            <#if permissions["commonGoodArticle"].permissionGrant>
+            <button class="long-article-settings-btn hide has-cnt<#if isLoggedIn && 0 == article.articleVote> ft-red</#if>" onclick="Article.voteUp('${article.oId}', 'article', this)" title="${upLabel}">
+                <svg><use xlink:href="#thumbs-up"></use></svg>
+                <span class="count">${article.articleGoodCnt}</span>
+            </button>
+            </#if>
+            <#if permissions["commonBadArticle"].permissionGrant>
+            <button class="long-article-settings-btn hide has-cnt<#if isLoggedIn && 1 == article.articleVote> ft-red</#if>" onclick="Article.voteDown('${article.oId}', 'article', this)" title="${downLabel}">
+                <svg><use xlink:href="#thumbs-down"></use></svg>
+                <span class="count">${article.articleBadCnt}</span>
+            </button>
+            </#if>
+            <#if isLoggedIn && isFollowing>
+            <button class="long-article-settings-btn hide has-cnt ft-red" onclick="Util.unfollow(this, '${article.oId}', 'article')" title="${uncollectLabel}">
+                <svg><use xlink:href="#star"></use></svg>
+                <span class="count">${article.articleCollectCnt}</span>
+            </button>
+            <#else>
+            <button class="long-article-settings-btn hide has-cnt" onclick="Util.follow(this, '${article.oId}', 'article')" title="${collectLabel}">
+                <svg><use xlink:href="#star"></use></svg>
+                <span class="count">${article.articleCollectCnt}</span>
+            </button>
+            </#if>
+            <#if permissions["commonViewArticleHistory"].permissionGrant && article.articleRevisionCount &gt; 1>
+            <button class="long-article-settings-btn hide" onclick="Article.revision('${article.oId}')" title="${historyLabel}">
+                <svg class="icon-history"><use xlink:href="#history"></use></svg>
+            </button>
+            </#if>
+            <button class="long-article-settings-btn hide" onclick="$('#reportDialog').data('type', 0).data('id', '${article.oId}').dialog('open')" title="${reportLabel}">
+                <svg><use xlink:href="#icon-report"></use></svg>
+            </button>
+            <#if article.isMyArticle && 3 != article.articleType && permissions["commonUpdateArticle"].permissionGrant>
+            <button class="long-article-settings-btn hide" onclick="location.href='${servePath}/update?id=${article.oId}'" title="${editLabel}">
+                <svg><use xlink:href="#edit"></use></svg>
+            </button>
+            </#if>
+            <#if article.isMyArticle && permissions["commonStickArticle"].permissionGrant>
+            <button class="long-article-settings-btn hide" onclick="Article.stick('${article.oId}')" title="${stickLabel}">
+                <svg><use xlink:href="#chevron-up"></use></svg>
+            </button>
+            </#if>
+            <#if permissions["articleUpdateArticleBasic"].permissionGrant>
+            <button class="long-article-settings-btn hide" onclick="location.href='${servePath}/admin/article/${article.oId}'" title="${adminLabel}">
+                <svg><use xlink:href="#setting"></use></svg>
+            </button>
+            </#if>
         </div>
-
-        <div class="m-long-article-panel" id="mLongArticlePanel">
-            <h4>阅读设置</h4>
-            <div class="m-long-article-panel-row">
-                <span class="m-long-article-panel-label">主题</span>
-                <div class="m-long-article-theme-btns">
-                    <button class="m-long-article-theme-btn active" onclick="MLongArticle.setTheme('light')">浅色</button>
-                    <button class="m-long-article-theme-btn" onclick="MLongArticle.setTheme('night')">深色</button>
-                </div>
-            </div>
-            <div class="m-long-article-panel-row">
-                <span class="m-long-article-panel-label">字号</span>
-                <div class="m-long-article-font-btns">
-                    <button class="m-long-article-font-btn" onclick="MLongArticle.setFontSize(-2)">A-</button>
-                    <span id="mLongArticleFontSize">16px</span>
-                    <button class="m-long-article-font-btn" onclick="MLongArticle.setFontSize(2)">A+</button>
-                </div>
-            </div>
-        </div>
+        <script>
+        (function(){
+            var fontSize = localStorage.getItem('longArticleFontSize');
+            if (fontSize) {
+                var content = document.querySelector('.long-article-content');
+                if (content) content.style.fontSize = fontSize + 'px';
+            }
+        })();
+        </script>
         </#if>
         <#include "footer.ftl">
         <div id="thoughtProgressPreview"></div>
         <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
         <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/m-article${miniPostfix}.js?${staticResourceVersion}"></script>
-        <#if 6 == article.articleType>
-        <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
-        </#if>
         <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
         <script>
             Label.commentErrorLabel = "${commentErrorLabel}";

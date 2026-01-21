@@ -52,9 +52,6 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
-    <#if 6 == article.articleType>
-    <link rel="stylesheet" href="${staticServePath}/css/long-article.css?${staticResourceVersion}">
-    </#if>
     <link rel="canonical"
           href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
     <#if articlePrevious??>
@@ -212,6 +209,12 @@
             </div>
             </#if>
             <div id="articleActionPanel" class="comment__action"></div>
+            <#if 6 == article.articleType>
+            <div class="long-article-meta">
+                <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
+                <span class="long-article-time">${article.timeAgo}</span>
+            </div>
+            <#else>
             <div class="article__meta">
                 <div>
                     <a rel="author" href="${servePath}/member/${article.articleAuthorName}">
@@ -316,6 +319,7 @@
                 </div>
             </div>
         </div>
+        </#if>
     </div>
 </div>
 <div class="main">
@@ -501,6 +505,7 @@
     </div>
 </div>
 <div class="wrapper article-footer">
+    <#if 6 != article.articleType>
     <#if sideRelevantArticles?size != 0>
         <div class="module">
             <div class="module-header">
@@ -549,6 +554,7 @@
                 </ul>
             </div>
         </div>
+    </#if>
     </#if>
 
     <#if showSideAd>
@@ -700,41 +706,35 @@
 
 <#if 6 == article.articleType>
 <div class="long-article-settings">
-    <button class="long-article-settings-btn" onclick="LongArticle.scrollToTop()" title="回到顶部">
+    <button class="long-article-settings-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
     </button>
-    <button class="long-article-settings-btn" onclick="LongArticle.toggleSettings()" title="阅读设置">
+    <button class="long-article-settings-btn" onclick="document.getElementById('comments').scrollIntoView({behavior:'smooth'})" title="评论 ${article.articleCommentCount}">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+            <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
+        <#if article.articleCommentCount gt 0>
+        <span style="position:absolute;top:-4px;right:-4px;background:#f44336;color:#fff;border-radius:10px;padding:2px 5px;font-size:10px;min-width:18px;text-align:center;">${article.articleCommentCount}</span>
+        </#if>
     </button>
-    <button class="long-article-settings-btn" onclick="LongArticle.toggleNight()" title="夜间模式">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M13.574 3.138a1.01 1.01 0 0 0-1.097 1.408a6 6 0 0 1-7.931 7.931a1.01 1.01 0 0 0-1.409 1.097A9 9 0 0 0 21 12a9 9 0 0 0-7.426-8.862"/>
-        </svg>
+    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.max(12,s-2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="减小字号">
+        A-
+    </button>
+    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.min(28,s+2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="增大字号">
+        A+
     </button>
 </div>
-
-<div class="long-article-panel" id="longArticlePanel">
-    <h4>阅读设置</h4>
-    <div class="long-article-panel-item">
-        <span class="long-article-panel-label">主题</span>
-        <div class="long-article-theme-btns">
-            <button class="long-article-theme-btn active" onclick="LongArticle.setTheme('light')">浅色</button>
-            <button class="long-article-theme-btn" onclick="LongArticle.setTheme('night')">深色</button>
-        </div>
-    </div>
-    <div class="long-article-panel-item">
-        <span class="long-article-panel-label">字号</span>
-        <div class="long-article-font-btns">
-            <button class="long-article-font-btn" onclick="LongArticle.setFontSize(-2)">A-</button>
-            <span id="longArticleFontSize">18px</span>
-            <button class="long-article-font-btn" onclick="LongArticle.setFontSize(2)">A+</button>
-        </div>
-    </div>
-</div>
+<script>
+(function(){
+    var fontSize = localStorage.getItem('longArticleFontSize');
+    if (fontSize) {
+        var content = document.querySelector('.long-article-content');
+        if (content) content.style.fontSize = fontSize + 'px';
+    }
+})();
+</script>
 </#if>
 
 <#include "footer.ftl">
@@ -809,9 +809,6 @@
 <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
-<#if 6 == article.articleType>
-<script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
-</#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
     Label.symphonyLabel = "${symphonyLabel}";
