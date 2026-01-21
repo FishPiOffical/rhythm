@@ -40,34 +40,6 @@
 <div class="main" style="margin: 10px 0 0 0; padding: 0">
     <div class="wrapper">
         <div class="content chat-room chat-room--qq-layout" style="padding: 0 0 50px 0;">
-            <#-- 顶部头部栏：与 module 同级，左标题 + 右按钮 -->
-            <div class="chat-room__header">
-                <div class="chat-room__header-title">
-                    <button class="button chat-room__top-btn" id="nodeButton" onclick="ChatRoom.switchNode()">
-                        <svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区
-                    </button>
-                </div>
-                <#if isLoggedIn>
-                    <div class="chat-room__header-actions">
-                        <#if level3Permitted == true>
-                            <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button chat-room__top-btn">
-                                批量撤回
-                            </button>
-                        </#if>
-                        <button class="button chat-room__top-btn" onclick="switchTheme()">切换样式：经典</button>
-                        <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
-                        <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
-                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">返回底部并清屏</button>
-                        <script>
-                            function switchTheme() {
-                                document.cookie = "theme=classic; path=/; max-age=" + 60 * 60 * 24 * 365;
-                                location.href = '/cr';
-                            }
-                        </script>
-                    </div>
-                </#if>
-            </div>
-
             <div class="module" style="margin-bottom: 0">
                 <div class="fn-content" style="padding: 0;">
                     <div class="chat-room__layout">
@@ -87,6 +59,15 @@
                             <div class="chat-room__input">
                                 <div class="reply">
                                     <#if isLoggedIn>
+                                        <div id="quotePreview" style="display: none; margin: 0 0 10px 0; padding: 10px; background: #f5f5f5; border-left: 3px solid #4a9eff; border-radius: 4px; position: relative;">
+                                            <div style="display: flex; align-items: start; justify-content: space-between;">
+                                                <div style="flex: 1; overflow: hidden;">
+                                                    <div style="font-size: 12px; color: #999; margin-bottom: 5px;">引用 <span id="quoteUserName"></span></div>
+                                                    <div id="quoteContent" style="font-size: 13px; color: #666; max-height: 60px; overflow: hidden; text-overflow: ellipsis;"></div>
+                                                </div>
+                                                <button onclick="ChatRoom.cancelQuote()" style="background: none; border: none; color: #999; cursor: pointer; padding: 0 5px; font-size: 18px; line-height: 1;" title="取消引用">×</button>
+                                            </div>
+                                        </div>
                                         <div id="chatContent"> </div>
                                         <div class="fn-clear chat-room__toolbar" style="padding: 16px 0 8px 0;">
                                             <svg id="redPacketBtn" style="width: 30px; height: 30px; cursor:pointer;">
@@ -192,6 +173,34 @@
                         </div> <!-- .chat-room__side -->
                     </div> <!-- .chat-room__layout -->
                 </div>
+            </div>
+
+            <#-- 底部操作栏 -->
+            <div class="chat-room__header" style="margin-top: 10px;">
+                <div class="chat-room__header-title">
+                    <button class="button chat-room__top-btn" id="nodeButton" onclick="ChatRoom.switchNode()">
+                        <svg style='vertical-align: -2px;'><use xlink:href="#server"></use></svg> 选择大区
+                    </button>
+                </div>
+                <#if isLoggedIn>
+                    <div class="chat-room__header-actions">
+                        <#if level3Permitted == true>
+                            <button id="groupRevoke" onclick="ChatRoom.startGroupRevoke()" class="button chat-room__top-btn">
+                                批量撤回
+                            </button>
+                        </#if>
+                        <button class="button chat-room__top-btn" onclick="switchTheme()">切换样式：经典</button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.toggleSmoothMode()">流畅模式: <span id="smoothMode">关闭</span></button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.showSiGuoYar()">思过崖</button>
+                        <button class="button chat-room__top-btn" onclick="ChatRoom.flashScreen()">返回底部并清屏</button>
+                        <script>
+                            function switchTheme() {
+                                document.cookie = "theme=classic; path=/; max-age=" + 60 * 60 * 24 * 365;
+                                location.href = '/cr';
+                            }
+                        </script>
+                    </div>
+                </#if>
             </div>
         </div>
     </div>
