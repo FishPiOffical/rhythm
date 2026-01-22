@@ -267,6 +267,78 @@
             </div>
         </div>
     </div>
+
+    <#if longArticles?size != 0>
+    <div style="padding-top:20px;padding-bottom: 20px;background: #f8f9fa;">
+        <div class="wrapper">
+            <div class="index-head-title">
+                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">
+                    <svg style="width: 20px; height: 20px; vertical-align: -4px;"><use xlink:href="#book"></use></svg>
+                    长篇专区
+                </div>
+                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/recent/long">更多</a>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <div class="fn-clear">
+                <style>
+                    .long-article-card {
+                        float: left;
+                        width: 180px;
+                        margin-right: 15px;
+                        margin-bottom: 15px;
+                        background: #fff;
+                        border-radius: 4px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                        overflow: hidden;
+                        transition: transform 0.2s, box-shadow 0.2s;
+                        cursor: pointer;
+                    }
+                    .long-article-card:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                    }
+                    .long-article-card img {
+                        width: 100%;
+                        height: 100px;
+                        object-fit: cover;
+                    }
+                    .long-article-card-body {
+                        padding: 10px;
+                    }
+                    .long-article-card-title {
+                        font-size: 13px;
+                        line-height: 1.4;
+                        height: 36px;
+                        overflow: hidden;
+                        color: #333;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                    }
+                    .long-article-card-author {
+                        font-size: 12px;
+                        color: #999;
+                        margin-top: 6px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                </style>
+                <#list longArticles as article>
+                    <a class="long-article-card" href="${servePath}${article.articlePermalink}">
+                        <img src="<#if article.articleImg??>${article.articleImg}<#else>https://file.fishpi.cn/2021/12/book-8f767db5.png</#if>" alt="${article.articleTitleEmoj}" />
+                        <div class="long-article-card-body">
+                            <div class="long-article-card-title">${article.articleTitleEmoj}</div>
+                            <div class="long-article-card-author">${article.articleAuthorName}</div>
+                        </div>
+                    </a>
+                </#list>
+            </div>
+        </div>
+    </div>
+    </#if>
+
     <#if isLoggedIn>
         <div style="margin-top: 20px">
             <div class="wrapper">
