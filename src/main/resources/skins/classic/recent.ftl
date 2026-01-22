@@ -58,7 +58,7 @@
                                 /
                                 <a pjax-title="${recentCommentLabel} - ${symphonyLabel}"  class="<#if "/reply" == current>ft-gray</#if>" href="${servePath}/recent/reply">${recentCommentLabel}</a>
                                 /
-                                <a pjax-title="长篇文章 - ${symphonyLabel}"  class="<#if "/long" == current>ft-gray</#if>" href="${servePath}/recent/long"><svg class="fn-text-top"><use xlink:href="#book"></use></svg> 长篇</a>
+                                <a pjax-title="长篇文章 - ${symphonyLabel}" class="<#if "long" == current>ft-gray</#if>" href="${servePath}/recent/long"><svg class="fn-text-top"><use xlink:href="#book"></use></svg> 长篇</a>
                             <a class="recent-rss" href="${servePath}/rss/recent.xml">
                               <svg><use xlink:href="#iconRss"></use></svg>
                             </a>

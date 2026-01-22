@@ -269,48 +269,44 @@
     </div>
 
     <#if longArticles?size != 0>
-    <div style="padding-top:20px;padding-bottom: 20px;background: #f8f9fa;">
+    <div style="padding-top:15px;padding-bottom: 15px;background: #f8f9fa;">
         <div class="wrapper">
             <div class="index-head-title">
-                <svg style="width: 20px; height: 20px; vertical-align: -4px; float: left; margin-right: 5px;"><use xlink:href="#book"></use></svg>
+                <svg style="width: 18px; height: 18px; vertical-align: -3px; float: left; margin-right: 5px;"><use xlink:href="#book"></use></svg>
                 <span style="float:left;font-size:13px;font-weight:bold;">长篇专区</span>
-                <span class="fn-right" style="font-size:13px;"><a href="${servePath}/recent/long">更多</a></span>
+                <span class="fn-right" style="font-size:12px;"><a href="${servePath}/recent/long">更多</a></span>
                 <div style="clear:both;"></div>
             </div>
-            <div class="fn-clear" style="margin-top: 10px;">
+            <div class="fn-clear" style="margin-top: 8px;">
                 <style>
-                    .long-article-item {
+                    .long-article-inline {
                         float: left;
-                        width: 100%;
+                        margin-right: 15px;
                         margin-bottom: 8px;
-                        padding: 8px 0;
-                        border-bottom: 1px dashed #eee;
+                        max-width: 280px;
                         cursor: pointer;
-                        transition: background 0.2s;
+                        transition: opacity 0.2s;
                     }
-                    .long-article-item:hover {
-                        background: #f0f0f0;
+                    .long-article-inline:hover {
+                        opacity: 0.8;
                     }
-                    .long-article-item:last-child {
-                        border-bottom: none;
-                    }
-                    .long-article-title {
-                        font-size: 14px;
+                    .long-article-inline-title {
+                        font-size: 13px;
                         color: #333;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
                     }
-                    .long-article-author {
+                    .long-article-inline-author {
                         font-size: 12px;
                         color: #999;
-                        margin-top: 4px;
+                        margin-top: 2px;
                     }
                 </style>
                 <#list longArticles as article>
-                    <a class="long-article-item" href="${servePath}${article.articlePermalink}">
-                        <div class="long-article-title">${article.articleTitleEmoj}</div>
-                        <div class="long-article-author">${article.articleAuthorName}</div>
+                    <a class="long-article-inline" href="${servePath}${article.articlePermalink}">
+                        <div class="long-article-inline-title">${article.articleTitleEmoj}</div>
+                        <div class="long-article-inline-author">${article.articleAuthorName}</div>
                     </a>
                 </#list>
             </div>
