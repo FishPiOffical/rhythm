@@ -37,12 +37,14 @@
 
     </div>
     <div style="height: 74px;width: 1px;" ></div>
+    <#assign currentPath = current!''>
     <div class="recent__nav">
         <a pjax-title="${latestLabel} - ${symphonyLabel}" href="${servePath}/recent" class="recent__nav-item ">默认</a>
         <a pjax-title="${latestLabel} - ${symphonyLabel}" href="${servePath}/recent/hot" class="recent__nav-item ">热议</a>
         <a pjax-title="${goodCmtsLabel} - ${symphonyLabel}"href="${servePath}/recent/good"class="recent__nav-item ">好评</a>
         <a pjax-title="${recentCommentLabel} - ${symphonyLabel}" href="${servePath}/recent/reply"class="recent__nav-item  ">最近回帖</a>
         <a pjax-title="${perfectLabel} - ${symphonyLabel}" href="${servePath}/perfect" class="recent__nav-item  recent__nav-check">优选</a>
+        <a pjax-title="长篇 - ${symphonyLabel}" href="${servePath}/recent/long" class="recent__nav-item  <#if '/long' == currentPath || 'long' == currentPath || currentPath?contains('long')>recent__nav-check</#if>">长篇</a>
     </div>
         <div class="main">
 <#--            <@subNav 'perfect' ''/>-->
