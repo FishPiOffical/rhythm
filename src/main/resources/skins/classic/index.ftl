@@ -270,53 +270,19 @@
 
     <#if longArticles?size != 0>
     <div style="padding-top:15px;padding-bottom: 15px;background: #f8f9fa;">
-        <div class="wrapper">
-            <div class="index-head-title">
+        <div class="wrapper" style="flex-direction: column;">
+            <div class="index-head-title" style="margin-bottom: 10px; clear: both;">
                 <svg style="width: 18px; height: 18px; vertical-align: -3px; float: left; margin-right: 5px;"><use xlink:href="#book"></use></svg>
                 <span style="float:left;font-size:13px;font-weight:bold;">长篇专区</span>
-                <span class="fn-right" style="font-size:12px;"><a href="${servePath}/recent/long">更多</a></span>
+                <span class="fn-right" style="font-size:12px;margin-left: 15px;"><a href="${servePath}/recent/long">更多</a></span>
                 <div style="clear:both;"></div>
             </div>
-            <div class="fn-clear" style="margin-top: 8px;">
-                <style>
-                    .long-article-col {
-                        float: left;
-                        width: 32%;
-                        margin-right: 2%;
-                        margin-bottom: 12px;
-                    }
-                    .long-article-col:nth-child(3n) {
-                        margin-right: 0;
-                    }
-                    .long-article-item {
-                        display: block;
-                        padding: 6px 0;
-                        cursor: pointer;
-                        transition: opacity 0.2s;
-                    }
-                    .long-article-item:hover {
-                        opacity: 0.7;
-                    }
-                    .long-article-title {
-                        font-size: 13px;
-                        color: #333;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    .long-article-author {
-                        font-size: 12px;
-                        color: #999;
-                        margin-top: 2px;
-                    }
-                </style>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
                 <#list longArticles as article>
-                    <div class="long-article-col">
-                        <a class="long-article-item" href="${servePath}${article.articlePermalink}">
-                            <div class="long-article-title">${article.articleTitleEmoj}</div>
-                            <div class="long-article-author">${article.articleAuthorName}</div>
-                        </a>
-                    </div>
+                    <a href="${servePath}${article.articlePermalink}" style="display: block; padding: 8px 10px; background: #fff; border-radius: 4px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='#e8e8e8'" onmouseout="this.style.background='#fff'">
+                        <div style="font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${article.articleTitleEmoj}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 2px;">${article.articleAuthorName}</div>
+                    </a>
                 </#list>
             </div>
         </div>
