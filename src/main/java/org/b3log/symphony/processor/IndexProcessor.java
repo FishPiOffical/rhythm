@@ -725,6 +725,7 @@ public class IndexProcessor {
         dataModelService.fillSideTags(dataModel);
         dataModelService.fillLatestCmts(dataModel);
 
+        dataModel.put("stickArticles", Collections.emptyList());
         dataModel.put(Common.SELECTED, "long");
         dataModel.put(Common.CURRENT, "long");
     }
