@@ -279,35 +279,44 @@
             </div>
             <div class="fn-clear" style="margin-top: 8px;">
                 <style>
-                    .long-article-inline {
+                    .long-article-col {
                         float: left;
-                        margin-right: 15px;
-                        margin-bottom: 8px;
-                        max-width: 280px;
+                        width: 32%;
+                        margin-right: 2%;
+                        margin-bottom: 12px;
+                    }
+                    .long-article-col:nth-child(3n) {
+                        margin-right: 0;
+                    }
+                    .long-article-item {
+                        display: block;
+                        padding: 6px 0;
                         cursor: pointer;
                         transition: opacity 0.2s;
                     }
-                    .long-article-inline:hover {
-                        opacity: 0.8;
+                    .long-article-item:hover {
+                        opacity: 0.7;
                     }
-                    .long-article-inline-title {
+                    .long-article-title {
                         font-size: 13px;
                         color: #333;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
                     }
-                    .long-article-inline-author {
+                    .long-article-author {
                         font-size: 12px;
                         color: #999;
                         margin-top: 2px;
                     }
                 </style>
                 <#list longArticles as article>
-                    <a class="long-article-inline" href="${servePath}${article.articlePermalink}">
-                        <div class="long-article-inline-title">${article.articleTitleEmoj}</div>
-                        <div class="long-article-inline-author">${article.articleAuthorName}</div>
-                    </a>
+                    <div class="long-article-col">
+                        <a class="long-article-item" href="${servePath}${article.articlePermalink}">
+                            <div class="long-article-title">${article.articleTitleEmoj}</div>
+                            <div class="long-article-author">${article.articleAuthorName}</div>
+                        </a>
+                    </div>
                 </#list>
             </div>
         </div>
