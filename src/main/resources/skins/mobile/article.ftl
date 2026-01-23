@@ -32,12 +32,45 @@
         </#if>
         </@head>
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
+        <#if 6 == article.articleType>
+        <style>
+            body.long-article-page { margin: 0; padding: 0; width: 100%; overflow-x: hidden; box-sizing: border-box; }
+            body.long-article-page .main {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 14px !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+            }
+            body.long-article-page .article-container,
+            body.long-article-page .wrapper,
+            body.long-article-page .article-body {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 14px !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+            }
+            .long-article-page .article-title {
+                padding-left: 0;
+                padding-right: 0;
+                box-sizing: border-box;
+            }
+            .long-article-page .long-article-content {
+                max-width: 100%;
+                padding: 20px 0;
+                box-sizing: border-box;
+            }
+        </style>
+        </#if>
     </head>
     <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
         <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
         <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
         <#include "header.ftl">
-        <div class="main">
+        <div class="main"<#if 6 == article.articleType> style="width:100%;max-width:100%;margin:0;padding:0 14px;box-sizing:border-box;overflow-x:hidden;"</#if>>
             <div class="article-actions fn-clear" style="margin-bottom: 10px;">
                     <span class="fn-right">
                         <span id="thankArticle" aria-label="${thankLabel}"
@@ -118,10 +151,6 @@
                 </div>
                 <div class="article-info">
                     <#if 6 == article.articleType>
-                    <div class="long-article-meta">
-                        <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
-                        <span class="long-article-time">${article.timeAgo}</span>
-                    </div>
                     <#else>
                     <a rel="author" href="${servePath}/member/${article.articleAuthorName}"
                        title="${article.articleAuthorName}"><div class="avatar" style="background-image:url('${article.articleAuthorThumbnailURL48}')"></div></a>
@@ -212,6 +241,13 @@
                 </div>
                 <div class="vditor-reset article-content" id="articleThought" data-author="${article.articleAuthorName}"
                      data-link="${servePath}${article.articlePermalink}"></div>
+                </#if>
+
+                <#if 6 == article.articleType>
+                <div class="long-article-meta">
+                    <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
+                    <span class="long-article-time">${article.timeAgo}</span>
+                </div>
                 </#if>
 
                 <#if 0 < article.articleRewardPoint>

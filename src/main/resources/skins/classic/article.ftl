@@ -85,7 +85,7 @@
 <#include "header.ftl">
 <div class="article-container">
 <div class="article-body">
-    <#if showTopAd>
+    <#if showTopAd && 6 != article.articleType>
         ${HeaderBannerLabel}
     </#if>
     <div class="wrapper">

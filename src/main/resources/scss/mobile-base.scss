@@ -3896,12 +3896,11 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
 }
 
 .long-article-meta {
-  text-align: left;
+  text-align: right;
   color: #888;
   font-size: 13px;
-  padding: 10px 15px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+  margin-bottom: 10px;
 
   a {
     color: #888;
