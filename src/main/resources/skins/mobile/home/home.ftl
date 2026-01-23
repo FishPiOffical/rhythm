@@ -63,7 +63,8 @@
         </#list>
     </ul>
 </div>
-<@pagination url="${servePath}/member/${user.userName}"/>
+<#assign homeUrl = servePath + '/member/' + user.userName + (type == "long")?string("/long", "")>
+<@pagination url=homeUrl/>
 <#else>
 <p class="ft-center ft-gray home-invisible">${setinvisibleLabel}</p>
 </#if>

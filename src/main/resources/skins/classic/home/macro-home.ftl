@@ -29,6 +29,10 @@
         <meta name="description"
               content="<#list userHomeArticles as article><#if article_index<3>${article.articleTitle},</#if></#list>"/>
             </@head>
+        <#elseif type == "long">
+            <@head title="${longArticleLabel} - ${user.userName} - ${symphonyLabel}">
+        <meta name="description" content="${user.userName}${deLabel}${longArticleLabel}"/>
+            </@head>
         <#elseif type == "comments">
             <@head title="${cmtLabel} - ${user.userName} - ${symphonyLabel}">
         <meta name="description" content="${user.userName}${deLabel}${cmtLabel}"/>
@@ -96,7 +100,7 @@
                 <div class="module-header"><h2>${goHomeLabel}</h2></div>
                 <div class="module-panel fn-oh">
                     <nav class="home-menu">
-                        <a pjax-title="${articleLabel} - ${user.userName} - ${symphonyLabel}" <#if type == "home" || type == "comments" || type == "articlesAnonymous" || type == "commentsAnonymous">
+                        <a pjax-title="${articleLabel} - ${user.userName} - ${symphonyLabel}" <#if type == "home" || type == "long" || type == "comments" || type == "articlesAnonymous" || type == "commentsAnonymous">
                                     class="current"</#if>
                            href="${servePath}/member/${user.userName}">
                             <svg>

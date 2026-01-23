@@ -23,6 +23,7 @@
 <@home "${type}">
 <div class="tabs-sub fn-clear">
     <a pjax-title="${articleLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}"<#if type == "home"> class="current"</#if>>${articleLabel}<#if type == "home"> &nbsp;<span class="count">${paginationRecordCount?c}</span></#if></a>
+    <a pjax-title="${longArticleLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}/long"<#if type == "long"> class="current"</#if>>${longArticleLabel}<#if type == "long"> &nbsp;<span class="count">${paginationRecordCount?c}</span></#if></a>
     <a pjax-title="${cmtLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}/comments"<#if type == "comments"> class="current"</#if>>${cmtLabel}</a>
     <#if currentUser?? && currentUser.userName == user.userName>
     <a pjax-title="${anonymousArticleLabel} - ${user.userName} - ${symphonyLabel}"<#if type == "articlesAnonymous"> class="current"</#if> href="${servePath}/member/${user.userName}/articles/anonymous">${anonymousArticleLabel}<#if type == "articlesAnonymous"> &nbsp;<span class="count">${paginationRecordCount?c}</span></#if></a>
@@ -76,7 +77,9 @@
         </#list>
     </ul>
 </div>
-<@pagination url="${servePath}/member/${user.userName}" pjaxTitle="${articleLabel} - ${user.userName} - ${symphonyLabel}"/>
+<#assign homeUrl = servePath + '/member/' + user.userName + (type == "long")?string("/long", "")>
+<#assign homeTitle = (type == "long")?string(longArticleLabel, articleLabel) + ' - ' + user.userName + ' - ' + symphonyLabel>
+<@pagination url=homeUrl pjaxTitle=homeTitle/>
 <#else>
 <p class="ft-center ft-gray home-invisible">${setinvisibleLabel}</p>
 </#if>

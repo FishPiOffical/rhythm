@@ -1062,6 +1062,43 @@ public class ArticleQueryService {
     }
 
     /**
+     * Gets the user long articles with the specified user id, page number and page size.
+     *
+     * @param userId         the specified user id
+     * @param anonymous      the specified article anonymous
+     * @param currentPageNum the specified page number
+     * @param pageSize       the specified page size
+     * @return user long articles, return an empty list if not found
+     */
+    public List<JSONObject> getUserLongArticles(final String userId, final int anonymous, final int currentPageNum, final int pageSize) {
+        final Query query = new Query().addSort(Article.ARTICLE_CREATE_TIME, SortDirection.DESCENDING).
+                setPage(currentPageNum, pageSize).
+                setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, userId),
+                        new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS, FilterOperator.EQUAL, anonymous),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.NOT_EQUAL, Article.ARTICLE_STATUS_C_INVALID)));
+        try {
+            final JSONObject result = articleRepository.get(query);
+            final List<JSONObject> ret = (List<JSONObject>) result.opt(Keys.RESULTS);
+            if (ret.isEmpty()) {
+                return ret;
+            }
+            final JSONObject pagination = result.optJSONObject(Pagination.PAGINATION);
+            final int recordCount = pagination.optInt(Pagination.PAGINATION_RECORD_COUNT);
+            final int pageCount = pagination.optInt(Pagination.PAGINATION_PAGE_COUNT);
+            final JSONObject first = ret.get(0);
+            first.put(Pagination.PAGINATION_RECORD_COUNT, recordCount);
+            first.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+            organizeArticles(ret);
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets user long articles failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Gets side hot articles.
      *
      * @return side hot articles, returns an empty list if not found
