@@ -183,7 +183,7 @@ public class LongArticleReadService {
 
                 if (reward > 0) {
                     final String authorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-                    pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, authorId,
+                    pointtransferMgmtService.transferInCurrentTransaction(Pointtransfer.ID_C_SYS, authorId,
                             Pointtransfer.TRANSFER_TYPE_C_LONG_ARTICLE_READ_REWARD, reward, articleId, now, "长文阅读奖励");
                 }
             }
@@ -235,13 +235,22 @@ public class LongArticleReadService {
                 ensureWindowSynced(articleId, windowStart, now);
                 return;
             }
-            final JSONObject record = new JSONObject();
-            record.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-            record.put(LongArticleRead.ARTICLE_ID, articleId);
-            record.put(LongArticleRead.USER_ID, userId);
-            record.put(LongArticleRead.FIRST_READ_AT, now);
-            userRepository.add(record);
-            updateStat(articleId, windowStart, 1, 0, now);
+            final Transaction tx = statRepository.beginTransaction();
+            try {
+                final JSONObject record = new JSONObject();
+                record.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+                record.put(LongArticleRead.ARTICLE_ID, articleId);
+                record.put(LongArticleRead.USER_ID, userId);
+                record.put(LongArticleRead.FIRST_READ_AT, now);
+                userRepository.add(record);
+                updateStat(articleId, windowStart, 1, 0, now, tx);
+                tx.commit();
+            } catch (final Exception e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
+            }
         } else {
             final String readerHash = buildReaderHash(ip, ua);
             if (StringUtils.isBlank(readerHash)) {
@@ -256,62 +265,67 @@ public class LongArticleReadService {
                 ensureWindowSynced(articleId, windowStart, now);
                 return;
             }
-            final JSONObject record = new JSONObject();
-            record.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-            record.put(LongArticleRead.ARTICLE_ID, articleId);
-            record.put(LongArticleRead.WINDOW_START, windowStart);
-            record.put(LongArticleRead.READER_HASH, readerHash);
-            record.put(LongArticleRead.FIRST_READ_AT, now);
-            anonRepository.add(record);
-            updateStat(articleId, windowStart, 0, 1, now);
+            final Transaction tx = statRepository.beginTransaction();
+            try {
+                final JSONObject record = new JSONObject();
+                record.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+                record.put(LongArticleRead.ARTICLE_ID, articleId);
+                record.put(LongArticleRead.WINDOW_START, windowStart);
+                record.put(LongArticleRead.READER_HASH, readerHash);
+                record.put(LongArticleRead.FIRST_READ_AT, now);
+                anonRepository.add(record);
+                updateStat(articleId, windowStart, 0, 1, now, tx);
+                tx.commit();
+            } catch (final Exception e) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
+            }
         }
     }
 
-    private void updateStat(final String articleId, final long windowStart, final int registeredInc, final int anonInc, final long now) throws RepositoryException {
-        final Transaction tx = statRepository.beginTransaction();
-        try {
-            final Query query = new Query().setFilter(new PropertyFilter(LongArticleRead.ARTICLE_ID, FilterOperator.EQUAL, articleId)).setPageCount(1);
-            JSONObject stat = statRepository.getFirst(query);
-            if (null == stat) {
-                stat = new JSONObject();
-                stat.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-                stat.put(LongArticleRead.ARTICLE_ID, articleId);
+    private void updateStat(final String articleId, final long windowStart, final int registeredInc, final int anonInc, final long now, final Transaction tx) throws RepositoryException {
+        final Query query = new Query().setFilter(new PropertyFilter(LongArticleRead.ARTICLE_ID, FilterOperator.EQUAL, articleId)).setPageCount(1);
+        JSONObject stat = statRepository.getFirst(query);
+        if (null == stat) {
+            stat = new JSONObject();
+            stat.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+            stat.put(LongArticleRead.ARTICLE_ID, articleId);
+            stat.put(LongArticleRead.WINDOW_START, windowStart);
+            stat.put(LongArticleRead.REGISTERED_UNSETTLED, registeredInc);
+            stat.put(LongArticleRead.ANON_UNSETTLED, anonInc);
+            stat.put(LongArticleRead.REGISTERED_TOTAL, registeredInc);
+            stat.put(LongArticleRead.ANON_TOTAL, anonInc);
+            stat.put(LongArticleRead.LAST_SETTLED_AT, 0L);
+            stat.put(LongArticleRead.CREATED_AT, now);
+            stat.put(LongArticleRead.UPDATED_AT, now);
+            statRepository.add(stat);
+        } else {
+            if (stat.optLong(LongArticleRead.WINDOW_START) != windowStart) {
                 stat.put(LongArticleRead.WINDOW_START, windowStart);
-                stat.put(LongArticleRead.REGISTERED_UNSETTLED, registeredInc);
-                stat.put(LongArticleRead.ANON_UNSETTLED, anonInc);
-                stat.put(LongArticleRead.REGISTERED_TOTAL, registeredInc);
-                stat.put(LongArticleRead.ANON_TOTAL, anonInc);
-                stat.put(LongArticleRead.LAST_SETTLED_AT, 0L);
-                stat.put(LongArticleRead.CREATED_AT, now);
-                stat.put(LongArticleRead.UPDATED_AT, now);
-                statRepository.add(stat);
-            } else {
-                if (stat.optLong(LongArticleRead.WINDOW_START) != windowStart) {
-                    stat.put(LongArticleRead.WINDOW_START, windowStart);
-                    stat.put(LongArticleRead.REGISTERED_UNSETTLED, 0);
-                    stat.put(LongArticleRead.ANON_UNSETTLED, 0);
-                }
-                stat.put(LongArticleRead.REGISTERED_UNSETTLED, stat.optInt(LongArticleRead.REGISTERED_UNSETTLED) + registeredInc);
-                stat.put(LongArticleRead.ANON_UNSETTLED, stat.optInt(LongArticleRead.ANON_UNSETTLED) + anonInc);
-                stat.put(LongArticleRead.REGISTERED_TOTAL, stat.optInt(LongArticleRead.REGISTERED_TOTAL) + registeredInc);
-                stat.put(LongArticleRead.ANON_TOTAL, stat.optInt(LongArticleRead.ANON_TOTAL) + anonInc);
-                stat.put(LongArticleRead.UPDATED_AT, now);
-                statRepository.update(stat.optString(Keys.OBJECT_ID), stat);
+                stat.put(LongArticleRead.REGISTERED_UNSETTLED, 0);
+                stat.put(LongArticleRead.ANON_UNSETTLED, 0);
             }
-            tx.commit();
-        } catch (final RepositoryException e) {
-            if (tx.isActive()) {
-                tx.rollback();
-            }
-            throw e;
+            stat.put(LongArticleRead.REGISTERED_UNSETTLED, stat.optInt(LongArticleRead.REGISTERED_UNSETTLED) + registeredInc);
+            stat.put(LongArticleRead.ANON_UNSETTLED, stat.optInt(LongArticleRead.ANON_UNSETTLED) + anonInc);
+            stat.put(LongArticleRead.REGISTERED_TOTAL, stat.optInt(LongArticleRead.REGISTERED_TOTAL) + registeredInc);
+            stat.put(LongArticleRead.ANON_TOTAL, stat.optInt(LongArticleRead.ANON_TOTAL) + anonInc);
+            stat.put(LongArticleRead.UPDATED_AT, now);
+            statRepository.update(stat.optString(Keys.OBJECT_ID), stat);
         }
     }
 
     private void ensureWindowSynced(final String articleId, final long windowStart, final long now) {
+        Transaction tx = null;
         try {
+            tx = statRepository.beginTransaction();
             final Query query = new Query().setFilter(new PropertyFilter(LongArticleRead.ARTICLE_ID, FilterOperator.EQUAL, articleId)).setPageCount(1);
             final JSONObject stat = statRepository.getFirst(query);
             if (null == stat) {
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
                 return;
             }
             if (stat.optLong(LongArticleRead.WINDOW_START) != windowStart) {
@@ -321,7 +335,13 @@ public class LongArticleReadService {
                 stat.put(LongArticleRead.UPDATED_AT, now);
                 statRepository.update(stat.optString(Keys.OBJECT_ID), stat);
             }
+            if (tx.isActive()) {
+                tx.commit();
+            }
         } catch (final Exception e) {
+            if (null != tx && tx.isActive()) {
+                tx.rollback();
+            }
             LOGGER.error("Sync long article stat window failed [articleId={}]", articleId, e);
         }
     }
