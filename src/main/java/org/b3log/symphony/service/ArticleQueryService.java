@@ -433,6 +433,67 @@ public class ArticleQueryService {
     }
 
     /**
+     * Gets previous long article of the same author.
+     */
+    public JSONObject getPreviousLongArticle(final String articleId, final String authorId) {
+        Stopwatchs.start("Get previous long");
+        try {
+            final Query query = new Query().setFilter(CompositeFilterOperator.and(
+                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, articleId),
+                    new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
+                    new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG)))
+                    .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
+                    .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                    .setPage(1, 1).setPageCount(1);
+            final JSONObject ret = articleRepository.getFirst(query);
+            if (null == ret) {
+                return null;
+            }
+            enrichNavArticle(ret);
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets previous long article failed", e);
+            return null;
+        } finally {
+            Stopwatchs.end();
+        }
+    }
+
+    /**
+     * Gets next long article of the same author.
+     */
+    public JSONObject getNextLongArticle(final String articleId, final String authorId) {
+        Stopwatchs.start("Get next long");
+        try {
+            final Query query = new Query().setFilter(CompositeFilterOperator.and(
+                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, articleId),
+                    new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
+                    new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG)))
+                    .addSort(Keys.OBJECT_ID, SortDirection.ASCENDING)
+                    .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                    .setPage(1, 1).setPageCount(1);
+            final JSONObject ret = articleRepository.getFirst(query);
+            if (null == ret) {
+                return null;
+            }
+            enrichNavArticle(ret);
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets next long article failed", e);
+            return null;
+        } finally {
+            Stopwatchs.end();
+        }
+    }
+
+    private void enrichNavArticle(final JSONObject article) {
+        final String title = Escapes.escapeHTML(article.optString(Article.ARTICLE_TITLE));
+        article.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(title));
+        article.put(Article.ARTICLE_T_TITLE_EMOJI_UNICODE, EmojiParser.parseToUnicode(title));
+        article.put(Article.ARTICLE_T_PREVIEW_CONTENT, StringUtils.defaultIfBlank(getArticleMetaDesc(article), title));
+    }
+
+    /**
      * Get an articles by the specified title.
      *
      * @param title the specified title

@@ -63,6 +63,13 @@
                 padding: 20px 0;
                 box-sizing: border-box;
             }
+            .long-article-nav{display:flex;flex-direction:column;gap:12px;margin:16px 0;}
+            .long-article-nav__link{display:block;padding:10px 12px;border:1px solid #eee;border-radius:8px;background:#fafafa;color:#111;line-height:1.5;text-decoration:none}
+            .long-article-nav__link:hover{text-decoration:none}
+            .long-article-nav__link--disabled{color:#999}
+            .long-article-nav__label{font-size:12px;color:#888;margin-bottom:4px}
+            .long-article-nav__title{font-weight:700;margin-bottom:4px}
+            .long-article-nav__preview{color:#555;font-size:13px;max-height:4.5em;overflow:hidden}
         </style>
         </#if>
     </head>
@@ -233,6 +240,38 @@
                 </#if>
                 <#if 3 != article.articleType>
                 <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">${article.articleContent}</div>
+                <#if 6 == article.articleType>
+                <div class="long-article-nav">
+                    <div class="long-article-nav__item">
+                        <#if longArticlePrevious??>
+                            <a href="${servePath}${longArticlePrevious.articlePermalink}" class="long-article-nav__link">
+                                <div class="long-article-nav__label">上一篇</div>
+                                <div class="long-article-nav__title">${longArticlePrevious.articleTitleEmoj}</div>
+                                <div class="long-article-nav__preview">${longArticlePrevious.articlePreviewContent}</div>
+                            </a>
+                        <#else>
+                            <div class="long-article-nav__link long-article-nav__link--disabled">
+                                <div class="long-article-nav__label">上一篇</div>
+                                <div class="long-article-nav__preview">没有更多了</div>
+                            </div>
+                        </#if>
+                    </div>
+                    <div class="long-article-nav__item">
+                        <#if longArticleNext??>
+                            <a href="${servePath}${longArticleNext.articlePermalink}" class="long-article-nav__link">
+                                <div class="long-article-nav__label">下一篇</div>
+                                <div class="long-article-nav__title">${longArticleNext.articleTitleEmoj}</div>
+                                <div class="long-article-nav__preview">${longArticleNext.articlePreviewContent}</div>
+                            </a>
+                        <#else>
+                            <div class="long-article-nav__link long-article-nav__link--disabled">
+                                <div class="long-article-nav__label">下一篇</div>
+                                <div class="long-article-nav__preview">没有更多了</div>
+                            </div>
+                        </#if>
+                    </div>
+                </div>
+                </#if>
                 <#else>
                 <div id="thoughtProgress"><span class="bar"></span>
                     <svg class="icon-video">

@@ -78,6 +78,17 @@
     <meta name="twitter:url" content="${servePath}${article.articlePermalink}"/>
     <meta name="twitter:site" content="@B3logOS"/>
     <meta name="twitter:creator" content="@B3logOS"/>
+    <style>
+        .long-article-nav{display:flex;gap:16px;margin:24px 0;padding:16px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;flex-wrap:wrap}
+        .long-article-nav__item{flex:1 1 300px;min-width:0}
+        .long-article-nav__item--right{text-align:right}
+        .long-article-nav__link{display:block;padding:12px 14px;border-radius:10px;border:1px solid #f0f0f0;background:#fafafa;transition:all .2s ease;color:#111;text-decoration:none}
+        .long-article-nav__link:hover{border-color:#d0d7de;background:#fff;text-decoration:none}
+        .long-article-nav__link--disabled{color:#999;cursor:default}
+        .long-article-nav__label{font-size:12px;color:#888;margin-bottom:6px}
+        .long-article-nav__title{font-weight:700;margin-bottom:6px;line-height:1.3}
+        .long-article-nav__preview{color:#555;font-size:13px;line-height:1.5;max-height:3.9em;overflow:hidden}
+    </style>
 </head>
 <body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
@@ -112,6 +123,38 @@
             <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">
                 ${article.articleContent}
             </div>
+            <#if 6 == article.articleType>
+                <div class="long-article-nav">
+                    <div class="long-article-nav__item">
+                        <#if longArticlePrevious??>
+                            <a href="${servePath}${longArticlePrevious.articlePermalink}" class="long-article-nav__link">
+                                <div class="long-article-nav__label">上一篇</div>
+                                <div class="long-article-nav__title">${longArticlePrevious.articleTitleEmoj}</div>
+                                <div class="long-article-nav__preview">${longArticlePrevious.articlePreviewContent}</div>
+                            </a>
+                        <#else>
+                            <div class="long-article-nav__link long-article-nav__link--disabled">
+                                <div class="long-article-nav__label">上一篇</div>
+                                <div class="long-article-nav__preview">没有更多了</div>
+                            </div>
+                        </#if>
+                    </div>
+                    <div class="long-article-nav__item long-article-nav__item--right">
+                        <#if longArticleNext??>
+                            <a href="${servePath}${longArticleNext.articlePermalink}" class="long-article-nav__link">
+                                <div class="long-article-nav__label">下一篇</div>
+                                <div class="long-article-nav__title">${longArticleNext.articleTitleEmoj}</div>
+                                <div class="long-article-nav__preview">${longArticleNext.articlePreviewContent}</div>
+                            </a>
+                        <#else>
+                            <div class="long-article-nav__link long-article-nav__link--disabled">
+                                <div class="long-article-nav__label">下一篇</div>
+                                <div class="long-article-nav__preview">没有更多了</div>
+                            </div>
+                        </#if>
+                    </div>
+                </div>
+            </#if>
         <#else>
             <div id="thoughtProgress"><span class="bar"></span>
                 <svg class="icon-video">

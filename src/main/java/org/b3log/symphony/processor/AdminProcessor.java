@@ -470,13 +470,19 @@ public class AdminProcessor {
      * @param context the specified context
      */
     public void settleLongArticleReward(final RequestContext context) {
-        final String articleId = StringUtils.trimToNull(context.param(Article.ARTICLE_T_ID));
-        try {
-            longArticleReadService.settle(articleId);
-            context.renderJSON(StatusCodes.SUCC).renderMsg("ok");
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Manual long article settle failed", e);
-            context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+        JSONObject currentUser = Sessions.getUser();
+        String userName = currentUser.optString(User.USER_NAME);
+        if (userName.equals("adlered")) {
+            final String articleId = StringUtils.trimToNull(context.param(Article.ARTICLE_T_ID));
+            try {
+                longArticleReadService.settle(articleId);
+                context.renderJSON(StatusCodes.SUCC).renderMsg("ok");
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, "Manual long article settle failed", e);
+                context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+            }
+        } else {
+            context.sendError(404);
         }
     }
 

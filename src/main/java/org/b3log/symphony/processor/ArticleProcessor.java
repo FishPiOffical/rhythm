@@ -1412,6 +1412,12 @@ public class ArticleProcessor {
         final JSONObject next = articleQueryService.getNextPermalink(articleId);
         dataModel.put(Article.ARTICLE_T_PREVIOUS, previous);
         dataModel.put(Article.ARTICLE_T_NEXT, next);
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject longPrev = articleQueryService.getPreviousLongArticle(articleId, articleAuthorId);
+            final JSONObject longNext = articleQueryService.getNextLongArticle(articleId, articleAuthorId);
+            dataModel.put("longArticlePrevious", longPrev);
+            dataModel.put("longArticleNext", longNext);
+        }
 
         String stickConfirmLabel = langPropsService.get("stickConfirmLabel");
         stickConfirmLabel = stickConfirmLabel.replace("{point}", Symphonys.POINT_STICK_ARTICLE + "");
