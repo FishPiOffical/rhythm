@@ -240,9 +240,12 @@
     position: fixed;
     top: -60px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
+    left: 0;
+    right: 0;
     width: 100%;
+    max-width: 100%;
     height: 58px;
     z-index: 83;
     line-height: 38px;
@@ -3863,12 +3866,10 @@ code .dec {
 }
 
 .long-article-meta {
-  text-align: left;
+  text-align: right;
   color: #888;
-  font-size: 14px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 30px;
+  font-size: 13px;
+  margin-bottom: 15px;
 
   a {
     color: #888;

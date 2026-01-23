@@ -141,6 +141,12 @@
         </#if>
 
         <div class="article-tail">
+            <#if 6 == article.articleType>
+                <div class="long-article-meta">
+                    <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
+                    <span class="long-article-time">${article.timeAgo}</span>
+                </div>
+            </#if>
             <div class="article-actions action-btns fn-right">
                 <#if "" != article.articleToC>
                     <span onclick="Article.toggleToc()" aria-label="${ToCLabel}"
@@ -210,10 +216,6 @@
             </#if>
             <div id="articleActionPanel" class="comment__action"></div>
             <#if 6 == article.articleType>
-            <div class="long-article-meta">
-                <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
-                <span class="long-article-time">${article.timeAgo}</span>
-            </div>
             <#else>
             <div class="article__meta">
                 <div>
@@ -610,9 +612,9 @@
 </div>
 </div>
 <div class="article-header">
-    <h1 aria-label="${symphonyLabel}" class="tooltipped tooltipped-s">
-        <a href="${servePath}">
-            <img src="https://file.fishpi.cn/logo_raw.png" style="width: 38px;height: 38px"/>
+    <h1 aria-label="返回上一页" class="tooltipped tooltipped-s" style="display: flex; align-items: center;">
+        <a href="javascript:history.back()">
+            <svg style="width: 26px;height: 26px;color: #666;display: block;"><use xlink:href="#arrow-left"></use></svg>
         </a>
     </h1>
     <h2 class="fn-ellipsis fn-pointer" id="bigTitle" style="transition: .5s;max-width: 600px" onclick="Util.goTop()">
