@@ -56,6 +56,8 @@ try {
 } catch (e) {
     isVip4 = false;
 }
+// md替换图片正确格式的关键字
+const IMG_MD_REPLACE_KEY = "!图片表情https:";
 var ChatRoom = {
     // 存储当前引用信息
     quoteData: {
@@ -1482,6 +1484,21 @@ border-bottom: none;
                 async: false,
                 success: function (result) {
                     md = result.replace(/(<!--).*/g, "");
+                    //多元素根据换行进行分割处理，主要处理图片的md正确格式（目前链接没法分辨 所以不处理链接的引用）
+                    if (md.includes(IMG_MD_REPLACE_KEY)) {
+                        let lines = md.split("\n");
+                        md = '';
+                        for (let i = 0; i < lines.length; i++) {
+                            if (lines[i].includes(IMG_MD_REPLACE_KEY)) {
+                                md += lines[i].replace(IMG_MD_REPLACE_KEY, "![图片表情](https:");
+                                md += ")\n";
+                            } else {
+                                md += lines[i];
+                                md += "\n";
+                            }
+                        }
+                    }
+
                 }
             });
             // 存储引用信息
