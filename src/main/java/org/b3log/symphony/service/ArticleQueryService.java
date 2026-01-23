@@ -1062,6 +1062,43 @@ public class ArticleQueryService {
     }
 
     /**
+     * Gets the user long articles with the specified user id, page number and page size.
+     *
+     * @param userId         the specified user id
+     * @param anonymous      the specified article anonymous
+     * @param currentPageNum the specified page number
+     * @param pageSize       the specified page size
+     * @return user long articles, return an empty list if not found
+     */
+    public List<JSONObject> getUserLongArticles(final String userId, final int anonymous, final int currentPageNum, final int pageSize) {
+        final Query query = new Query().addSort(Article.ARTICLE_CREATE_TIME, SortDirection.DESCENDING).
+                setPage(currentPageNum, pageSize).
+                setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, userId),
+                        new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS, FilterOperator.EQUAL, anonymous),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.NOT_EQUAL, Article.ARTICLE_STATUS_C_INVALID)));
+        try {
+            final JSONObject result = articleRepository.get(query);
+            final List<JSONObject> ret = (List<JSONObject>) result.opt(Keys.RESULTS);
+            if (ret.isEmpty()) {
+                return ret;
+            }
+            final JSONObject pagination = result.optJSONObject(Pagination.PAGINATION);
+            final int recordCount = pagination.optInt(Pagination.PAGINATION_RECORD_COUNT);
+            final int pageCount = pagination.optInt(Pagination.PAGINATION_PAGE_COUNT);
+            final JSONObject first = ret.get(0);
+            first.put(Pagination.PAGINATION_RECORD_COUNT, recordCount);
+            first.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+            organizeArticles(ret);
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets user long articles failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Gets side hot articles.
      *
      * @return side hot articles, returns an empty list if not found
@@ -1218,6 +1255,7 @@ public class ArticleQueryService {
                 Query query = new Query().
                         setFilter(CompositeFilterOperator.and(
                                 new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.NOT_EQUAL, Article.ARTICLE_TYPE_C_DISCUSSION),
+                                new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.NOT_EQUAL, Article.ARTICLE_TYPE_C_LONG),
                                 new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
                                 new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT),
                                 new PropertyFilter(Article.ARTICLE_CREATE_TIME, FilterOperator.GREATER_THAN_OR_EQUAL, String.valueOf(DateUtils.addDays(new Date(), -30).getTime())))).
@@ -1253,6 +1291,83 @@ public class ArticleQueryService {
 
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Gets the long articles (articleType=6) for index display.
+     *
+     * @param fetchSize the specified fetch size
+     * @return long articles, returns an empty list if not found
+     */
+    public List<JSONObject> getIndexLongArticles(int fetchSize) {
+        try {
+            Stopwatchs.start("Query index long articles");
+            try {
+                Query query = new Query().
+                        setFilter(CompositeFilterOperator.and(
+                                new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG),
+                                new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                                new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT))).
+                        setPageCount(1).setPage(1, fetchSize).
+                        addSort(Article.ARTICLE_CREATE_TIME, SortDirection.DESCENDING);
+                final List<JSONObject> ret = articleRepository.getList(query);
+
+                organizeArticles(ret);
+
+                return ret;
+            } finally {
+                Stopwatchs.end();
+            }
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets index long articles failed", e);
+
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Gets the long articles with pagination.
+     *
+     * @param currentPageNum the specified current page number
+     * @param pageSize       the specified page size
+     * @return result with pagination
+     */
+    public JSONObject getLongArticles(final int currentPageNum, final int pageSize) {
+        final JSONObject ret = new JSONObject();
+
+        final Query query = new Query().
+                addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).
+                setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT))).
+                setPage(currentPageNum, pageSize);
+        addListProjections(query);
+
+        JSONObject result = null;
+        try {
+            Stopwatchs.start("Query long articles");
+
+            result = articleRepository.get(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets long articles failed", e);
+        } finally {
+            Stopwatchs.end();
+        }
+
+        final int pageCount = result.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_PAGE_COUNT);
+        final JSONObject pagination = new JSONObject();
+        ret.put(Pagination.PAGINATION, pagination);
+        final int windowSize = Symphonys.ARTICLE_LIST_WIN_SIZE;
+        final List<Integer> pageNums = Paginator.paginate(currentPageNum, pageSize, pageCount, windowSize);
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        pagination.put(Pagination.PAGINATION_PAGE_NUMS, (Object) pageNums);
+
+        final List<JSONObject> articles = (List<JSONObject>) result.opt(Keys.RESULTS);
+        organizeArticles(articles);
+
+        ret.put(Article.ARTICLES, (Object) articles);
+        return ret;
     }
 
     /**

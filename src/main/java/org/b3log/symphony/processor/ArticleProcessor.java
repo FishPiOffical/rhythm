@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -128,6 +129,12 @@ public class ArticleProcessor {
      */
     @Inject
     private ArticleQueryService articleQueryService;
+
+    /**
+     * Long article read service.
+     */
+    @Inject
+    private LongArticleReadService longArticleReadService;
 
     /**
      * Comment query service.
@@ -243,6 +250,7 @@ public class ArticleProcessor {
         Dispatcher.get("/article/{id}/revisions", articleProcessor::getArticleRevisions, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
+        Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/article/{articleId}", "/article/{articleId}/comment/{commentId}"}).handler(articleProcessor::showArticle);
         Dispatcher.post("/article", articleProcessor::addArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
@@ -422,6 +430,12 @@ public class ArticleProcessor {
             return;
         }
 
+        final JSONObject viewer = Sessions.getUser();
+        final String viewerId = null == viewer ? null : viewer.optString(Keys.OBJECT_ID);
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        final String ua = Headers.getHeader(context.getRequest(), Common.USER_AGENT, "");
+        longArticleReadService.record(articleId, viewerId, ip, ua);
+
         String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
 
         context.getResponse().setContentType("text/html; charset=UTF-8");
@@ -506,6 +520,12 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
 
         articleQueryService.processArticleContent(article);
+
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject readStat = longArticleReadService.getStat(articleId);
+            article.put("longArticleReadStat", readStat);
+            dataModel.put("longArticleReadStat", readStat);
+        }
 
         final int cmtViewMode = 0;
         JSONObject currentUser = Sessions.getUser();
@@ -1198,6 +1218,27 @@ public class ArticleProcessor {
         fillDomainsWithTags(dataModel);
     }
 
+    /**
+     * Shows add long article page.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticleAdd(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/long-article-post.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        final JSONObject currentUser = Sessions.getUser();
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+
+        String articleContentErrorLabel = langPropsService.get("articleContentErrorLabel");
+        articleContentErrorLabel = articleContentErrorLabel.replace("{maxArticleContentLength}",
+                String.valueOf(ArticlePostValidationMidware.MAX_ARTICLE_CONTENT_LENGTH));
+        dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
+
+        fillPostArticleRequisite(dataModel, currentUser);
+    }
+
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {
         boolean requisite = false;
         String requisiteMsg = "";
@@ -1266,6 +1307,12 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
 
         articleQueryService.processArticleContent(article);
+
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject readStat = longArticleReadService.getStat(articleId);
+            article.put("longArticleReadStat", readStat);
+            dataModel.put("longArticleReadStat", readStat);
+        }
 
         String cmtViewModeStr = context.param("m");
         JSONObject currentUser;
@@ -1613,8 +1660,10 @@ public class ArticleProcessor {
                     long articleCreateTime = lastArticle.getLong(Keys.OBJECT_ID);
                     // 小于一小时间隔
                     if (nowTime - articleCreateTime < 60 * 60 * 1000){
-                        context.renderMsg("摸鱼派已进入宵禁模式, 充足的睡眠是摸鱼的关键, 良性的思考一定不会促使你高频的发帖, 为了你的身心健康，我们将调整发帖间隔为 1h (一小时)...感谢你的陪伴，我们明天再见，早点休息，(¦3[▓▓] 晚安");
-                        return;
+                        if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()){
+                            context.renderMsg("摸鱼派已进入宵禁模式, 充足的睡眠是摸鱼的关键, 良性的思考一定不会促使你高频的发帖, 为了你的身心健康，我们将调整发帖间隔为 1h (一小时)...感谢你的陪伴，我们明天再见，早点休息，(¦3[▓▓] 晚安");
+                            return;
+                        }
                     }
                 }
             }

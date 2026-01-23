@@ -176,6 +176,7 @@ public class IndexProcessor {
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/watch", "/watch/users"}).handler(indexProcessor::showWatch);
         Dispatcher.get("/", indexProcessor::showIndex, anonymousViewCheckMidware::handle);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/recent", "/recent/hot", "/recent/good", "/recent/reply"}).handler(indexProcessor::showRecent);
+        Dispatcher.get("/recent/long", indexProcessor::showLongArticles, loginCheck::handle);
         Dispatcher.get("/about", indexProcessor::showAbout);
         Dispatcher.get("/kill-browser", indexProcessor::showKillBrowser);
         Dispatcher.get("/hot", indexProcessor::showHotArticles, loginCheck::handle);
@@ -469,6 +470,10 @@ public class IndexProcessor {
         final List<JSONObject> recentArticles2 = articleQueryService.getIndexRecentArticles(18, 2);
         dataModel.put("recentArticles2", recentArticles2);
 
+        // 长篇文章专区
+        final List<JSONObject> longArticles = articleQueryService.getIndexLongArticles(10);
+        dataModel.put("longArticles", longArticles);
+
         // 最近文章（移动端）
         final List<JSONObject> recentArticlesMobile = articleQueryService.getIndexRecentArticles(15, 1);
         dataModel.put("recentArticlesMobile", recentArticlesMobile);
@@ -674,6 +679,55 @@ public class IndexProcessor {
         dataModelService.fillLatestCmts(dataModel);
 
         dataModel.put(Common.CURRENT, StringUtils.substringAfter(context.requestURI(), "/recent"));
+    }
+
+    /**
+     * Shows long articles.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticles(final RequestContext context) {
+        final Request request = context.getRequest();
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "recent.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        final int pageNum = Paginator.getPage(request);
+        int pageSize = Symphonys.ARTICLE_LIST_CNT;
+        final JSONObject user = Sessions.getUser();
+        if (null != user) {
+            pageSize = user.optInt(UserExt.USER_LIST_PAGE_SIZE);
+
+            if (!UserExt.finishedGuide(user)) {
+                context.sendRedirect(Latkes.getServePath() + "/guide");
+                return;
+            }
+        }
+
+        final JSONObject result = articleQueryService.getLongArticles(pageNum, pageSize);
+        final List<JSONObject> allArticles = (List<JSONObject>) result.get(Article.ARTICLES);
+        dataModel.put(Common.LATEST_ARTICLES, allArticles);
+
+        final JSONObject pagination = result.getJSONObject(Pagination.PAGINATION);
+        final int pageCount = pagination.optInt(Pagination.PAGINATION_PAGE_COUNT);
+        final List<Integer> pageNums = (List<Integer>) pagination.get(Pagination.PAGINATION_PAGE_NUMS);
+        if (!pageNums.isEmpty()) {
+            dataModel.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
+            dataModel.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
+        }
+
+        dataModel.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        dataModel.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+
+        dataModel.put("stickArticles", Collections.emptyList());
+        dataModel.put(Common.SELECTED, "long");
+        dataModel.put(Common.CURRENT, "long");
     }
 
     /**

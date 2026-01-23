@@ -48,19 +48,25 @@
 <div class="main" >
     <ul>
         <#if recentArticlesMobile??>
+            <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
+                <span>最新文章</span>
+                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent">更多</a>
+            </li>
         <#list recentArticlesMobile as article>
             <#include "common/list-item.ftl">
         </#list>
         </#if>
-    </ul>
 
-    <#if recentArticlesMobile??>
-        <div style="text-align: center; padding: 10px 0 0 0;">
-            <a href="${servePath}/recent" style="display: inline-block; padding: 8px 16px; border-radius: 4px; background-color: #fff; border: 1px solid #ddd; color: #333; text-decoration: none;">
-                查看更多最近文章
-            </a>
-        </div>
-    </#if>
+        <#if longArticles?size != 0>
+            <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
+                <span>长篇专区</span>
+                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent/long">更多</a>
+            </li>
+            <#list longArticles as article>
+                <#include "common/list-item.ftl">
+            </#list>
+        </#if>
+    </ul>
 </div>
 
 <#if tags?size != 0>

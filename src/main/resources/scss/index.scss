@@ -240,9 +240,12 @@
     position: fixed;
     top: -60px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
+    left: 0;
+    right: 0;
     width: 100%;
+    max-width: 100%;
     height: 58px;
     z-index: 83;
     line-height: 38px;
@@ -3852,3 +3855,253 @@ code .dec {
 }
 
 /* end activity-hub */
+
+/* start long-article */
+.long-article-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 60px;
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.long-article-meta {
+  text-align: right;
+  color: #888;
+  font-size: 13px;
+  margin-bottom: 15px;
+
+  a {
+    color: #888;
+    text-decoration: none;
+
+    &:hover {
+      color: #4285f4;
+    }
+  }
+
+  .long-article-author {
+    margin-right: 15px;
+  }
+}
+
+.long-article-settings {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.long-article-settings-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: all 0.2s;
+  font-size: 16px;
+  font-weight: bold;
+  position: relative;
+
+  &:hover {
+    background: #f0f0f0;
+    color: #333;
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+body.night {
+  .long-article-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+
+    a {
+      color: #6bb3ff;
+    }
+
+    blockquote {
+      border-color: #444;
+      color: #bbb;
+    }
+
+    code {
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+    }
+
+    pre {
+      background-color: #2d2d2d;
+    }
+  }
+
+  .long-article-meta {
+    color: #888;
+    border-color: #333;
+
+    a {
+      color: #888;
+
+      &:hover {
+        color: #6bb3ff;
+      }
+    }
+  }
+
+  .long-article-settings-btn {
+    background: #2d2d2d;
+    color: #999;
+
+    &:hover {
+      background: #3d3d3d;
+      color: #fff;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .long-article-content {
+    padding: 20px 15px;
+    font-size: 16px;
+  }
+
+  .long-article-meta {
+    font-size: 13px;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+  }
+
+  // 长文章时，将文章操作按钮移到右下角
+  .long-article-page .article-actions {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    margin: 0 !important;
+    z-index: 98;
+
+    .fn-right {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+
+      span, a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        margin: 0;
+      }
+    }
+  }
+
+  body.night.long-article-page .article-actions .fn-right {
+    background: rgba(45, 45, 45, 0.95);
+  }
+
+  .long-article-settings {
+    position: fixed;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 8px;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    z-index: 99;
+  }
+
+  .long-article-settings-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    flex-direction: row;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    span {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    &.hide {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(60px);
+    }
+  }
+
+  .long-article-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s;
+
+    &.active {
+      background: #4285f4;
+      color: #fff;
+    }
+  }
+
+  body.night {
+    .long-article-settings-btn {
+      background: rgba(45, 45, 45, 0.95);
+      color: #999;
+
+      &:hover {
+        background: rgba(61, 61, 61, 0.95);
+        color: #fff;
+      }
+    }
+
+    .long-article-toggle-btn {
+      background: rgba(45, 45, 45, 0.95);
+      color: #999;
+
+      &.active {
+        background: #4285f4;
+        color: #fff;
+      }
+    }
+  }
+}
+
+/* end long-article */

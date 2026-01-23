@@ -20,9 +20,11 @@
 -->
 <li>
     <div class="fn-clear ft-smaller list-info">
+        <#if 6 != article.articleType>
         <#list article.articleTagObjs as articleTag>
         <a rel="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a> &nbsp;
         </#list>
+        </#if>
 
         <span class="fn-right ft-fade">
             <#if article.articleCommentCount != 0>

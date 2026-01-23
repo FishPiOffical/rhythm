@@ -63,6 +63,12 @@
                     </a>
                     <div class="ft-fade">${addCityArticleTipLabel} <i>${broadcastPoint}</i> ${pointLabel}</div>
                 </div>
+                <div>
+                    <a href="${servePath}/post/long">
+                        <svg><use xlink:href="#book"></use></svg> ${longArticleLabel}
+                    </a>
+                    <div class="ft-fade">${longArticleTipLabel}</div>
+                </div>
             </div>
         </div>
         <#include "../footer.ftl">

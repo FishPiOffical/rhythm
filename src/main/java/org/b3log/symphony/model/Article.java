@@ -477,6 +477,11 @@ public final class Article {
      */
     public static final int ARTICLE_TYPE_C_QNA = 5;
 
+    /**
+     * Article type - long article (novels, long stories).
+     */
+    public static final int ARTICLE_TYPE_C_LONG = 6;
+
     // Show in list constants
     /**
      * Article show in list - not.
@@ -520,7 +525,7 @@ public final class Article {
      * @return {@code true} if it is invalid, otherwise returns {@code false}
      */
     public static boolean isInvalidArticleType(final int articleType) {
-        return articleType < 0 || articleType > Article.ARTICLE_TYPE_C_QNA;
+        return articleType < 0 || articleType > Article.ARTICLE_TYPE_C_LONG;
     }
 
     /**

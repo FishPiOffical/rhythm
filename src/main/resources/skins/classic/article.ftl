@@ -79,13 +79,13 @@
     <meta name="twitter:site" content="@B3logOS"/>
     <meta name="twitter:creator" content="@B3logOS"/>
 </head>
-<body itemscope itemtype="http://schema.org/Product" class="article">
+<body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
 <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
 <#include "header.ftl">
 <div class="article-container">
 <div class="article-body">
-    <#if showTopAd>
+    <#if showTopAd && 6 != article.articleType>
         ${HeaderBannerLabel}
     </#if>
     <div class="wrapper">
@@ -109,7 +109,7 @@
                  data-author="${article.articleAuthorName}" class="aplayer"></div>
         </#if>
         <#if 3 != article.articleType>
-            <div class="vditor-reset article-content">
+            <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">
                 ${article.articleContent}
             </div>
         <#else>
@@ -141,6 +141,28 @@
         </#if>
 
         <div class="article-tail">
+            <#if 6 == article.articleType>
+                <div class="long-article-meta">
+                    <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
+                    <span class="long-article-time">${article.timeAgo}</span>
+                </div>
+                <#if article.isMyArticle && article.longArticleReadStat??>
+                    <div class="fn__flex-column" style="gap:8px;margin:12px 0;padding:12px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
+                        <div class="ft__smaller ft__fade">长文阅读激励</div>
+                        <div class="fn__flex" style="gap:12px;flex-wrap:wrap;">
+                            <div class="fn__flex-1">
+                                <div class="ft__smaller ft__fade">未结算</div>
+                                <div>注册 ${article.longArticleReadStat.registeredUnsettledCnt} / 未注册 ${article.longArticleReadStat.anonymousUnsettledCnt}</div>
+                            </div>
+                            <div class="fn__flex-1">
+                                <div class="ft__smaller ft__fade">总计</div>
+                                <div>注册 ${article.longArticleReadStat.registeredTotalCnt} / 未注册 ${article.longArticleReadStat.anonymousTotalCnt}</div>
+                            </div>
+                        </div>
+                        <div class="ft__smaller ft__fade">未注册以 IP+UA 去重，当窗封顶 100</div>
+                    </div>
+                </#if>
+            </#if>
             <div class="article-actions action-btns fn-right">
                 <#if "" != article.articleToC>
                     <span onclick="Article.toggleToc()" aria-label="${ToCLabel}"
@@ -182,6 +204,7 @@
                     </a> &nbsp;
                 </#if>
             </div>
+            <#if 6 != article.articleType>
             <div class="fn-flex">
                 <ul class="tag-desc fn-flex-1 tag-desc--right">
                     <#list article.articleTagObjs as articleTag>
@@ -206,7 +229,10 @@
                     </#list>
                 </ul>
             </div>
+            </#if>
             <div id="articleActionPanel" class="comment__action"></div>
+            <#if 6 == article.articleType>
+            <#else>
             <div class="article__meta">
                 <div>
                     <a rel="author" href="${servePath}/member/${article.articleAuthorName}">
@@ -311,6 +337,7 @@
                 </div>
             </div>
         </div>
+        </#if>
     </div>
 </div>
 <div class="main">
@@ -496,6 +523,7 @@
     </div>
 </div>
 <div class="wrapper article-footer">
+    <#if 6 != article.articleType>
     <#if sideRelevantArticles?size != 0>
         <div class="module">
             <div class="module-header">
@@ -544,6 +572,7 @@
                 </ul>
             </div>
         </div>
+    </#if>
     </#if>
 
     <#if showSideAd>
@@ -599,9 +628,9 @@
 </div>
 </div>
 <div class="article-header">
-    <h1 aria-label="${symphonyLabel}" class="tooltipped tooltipped-s">
-        <a href="${servePath}">
-            <img src="https://file.fishpi.cn/logo_raw.png" style="width: 38px;height: 38px"/>
+    <h1 aria-label="返回上一页" class="tooltipped tooltipped-s" style="display: flex; align-items: center;">
+        <a href="javascript:history.back()">
+            <svg style="width: 26px;height: 26px;color: #666;display: block;"><use xlink:href="#arrow-left"></use></svg>
         </a>
     </h1>
     <h2 class="fn-ellipsis fn-pointer" id="bigTitle" style="transition: .5s;max-width: 600px" onclick="Util.goTop()">
@@ -692,6 +721,39 @@
         </#if>
     </div>
 </div>
+
+<#if 6 == article.articleType>
+<div class="long-article-settings">
+    <button class="long-article-settings-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
+        </svg>
+    </button>
+    <button class="long-article-settings-btn" onclick="document.getElementById('comments').scrollIntoView({behavior:'smooth'})" title="评论 ${article.articleCommentCount}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+        </svg>
+        <#if article.articleCommentCount gt 0>
+        <span style="position:absolute;top:-4px;right:-4px;background:#f44336;color:#fff;border-radius:10px;padding:2px 5px;font-size:10px;min-width:18px;text-align:center;">${article.articleCommentCount}</span>
+        </#if>
+    </button>
+    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.max(12,s-2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="减小字号">
+        A-
+    </button>
+    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.min(28,s+2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="增大字号">
+        A+
+    </button>
+</div>
+<script>
+(function(){
+    var fontSize = localStorage.getItem('longArticleFontSize');
+    if (fontSize) {
+        var content = document.querySelector('.long-article-content');
+        if (content) content.style.fontSize = fontSize + 'px';
+    }
+})();
+</script>
+</#if>
 
 <#include "footer.ftl">
 <#if "" != article.articleToC && 3 != article.articleType>
@@ -822,6 +884,10 @@
     </#if>
     <#if 3 == article.articleType>
     Article.playThought('${article.articleContent}');
+    </#if>
+
+    <#if 6 == article.articleType>
+    LongArticle.init();
     </#if>
 
     setInterval(function () {

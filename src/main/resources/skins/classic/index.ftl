@@ -267,6 +267,28 @@
             </div>
         </div>
     </div>
+
+    <#if longArticles?size != 0>
+    <div style="padding-top:15px;padding-bottom: 15px;background: #f8f9fa;">
+        <div class="wrapper" style="flex-direction: column;">
+            <div class="index-head-title" style="margin-bottom: 10px; clear: both;">
+                <svg style="width: 18px; height: 18px; vertical-align: -3px; float: left; margin-right: 5px;"><use xlink:href="#book"></use></svg>
+                <span style="float:left;font-size:13px;font-weight:bold;">长篇专区</span>
+                <span class="fn-right" style="font-size:12px;margin-left: 15px;"><a href="${servePath}/recent/long">更多</a></span>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                <#list longArticles as article>
+                    <a href="${servePath}${article.articlePermalink}" style="display: block; padding: 8px 10px; background: #fff; border-radius: 4px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='#e8e8e8'" onmouseout="this.style.background='#fff'">
+                        <div style="font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${article.articleTitleEmoj}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 2px;">${article.articleAuthorName}</div>
+                    </a>
+                </#list>
+            </div>
+        </div>
+    </div>
+    </#if>
+
     <#if isLoggedIn>
         <div style="margin-top: 20px">
             <div class="wrapper">

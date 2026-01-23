@@ -479,6 +479,11 @@ public final class Pointtransfer {
     public static final int TRANSFER_TYPE_C_ONLY_AUTHOR_VISIBLE_COMMENT = 53;
 
     /**
+     * Transfer type - Long article read reward.
+     */
+    public static final int TRANSFER_TYPE_C_LONG_ARTICLE_READ_REWARD = 54;
+
+    /**
      * Transfer sum - 摆龙门阵.
      */
     public static final int TRANSFER_SUM_C_BLMZ = 5;

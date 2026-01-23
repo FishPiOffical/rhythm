@@ -29,6 +29,10 @@
         <meta name="description"
               content="<#list userHomeArticles as article><#if article_index<3>${article.articleTitle},</#if></#list>"/>
             </@head>
+        <#elseif type == "long">
+            <@head title="${longArticleLabel} - ${user.userName} - ${symphonyLabel}">
+        <meta name="description" content="${user.userName}${deLabel}${longArticleLabel}"/>
+            </@head>
         <#elseif type == "comments">
             <@head title="${cmtLabel} - ${user.userName} - ${symphonyLabel}">
         <meta name="description" content="${user.userName}${deLabel}${cmtLabel}"/>
@@ -84,6 +88,8 @@
         <div onclick="$(this).next().next().slideToggle()">
                     <#if type == "home">
                         ${articleLabel}
+                    <#elseif type == "long">
+                        ${longArticleLabel}
                     <#elseif type == "comments">
                         ${cmtLabel}
                     <#elseif type == "followingUsers">
@@ -115,6 +121,9 @@
         <ul class="tab fn-clear fn-none">
             <li<#if type == "home"> class="fn-none"</#if>>
                 <a href="${servePath}/member/${user.userName}">${articleLabel}</a>
+            </li>
+            <li<#if type == "long"> class="fn-none"</#if>>
+                <a href="${servePath}/member/${user.userName}/long">${longArticleLabel}</a>
             </li>
             <li<#if type == "comments"> class="fn-none"</#if>>
                 <a href="${servePath}/member/${user.userName}/comments">${cmtLabel}</a>

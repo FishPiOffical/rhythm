@@ -30,5 +30,7 @@
     <span class="tooltipped tooltipped-e" aria-label="${thoughtLabel}"><svg><use xlink:href="#video"></use></svg></span>
 <#elseif 5 == type>
     <span class="tooltipped tooltipped-e" aria-label="${qnaLabel}"><svg><use xlink:href="#iconAsk"></use></svg></span>
+<#elseif 6 == type>
+    <span class="tooltipped tooltipped-e" aria-label="${longArticleTypeLabel}"><svg><use xlink:href="#book"></use></svg></span>
 </#if>
 </#macro>

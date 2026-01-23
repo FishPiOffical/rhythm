@@ -23,6 +23,7 @@
 <@home "${type}">
 <div class="tabs-sub fn-clear">
     <a pjax-title="${articleLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}"<#if type == "home"> class="current"</#if>>${articleLabel}</a>
+    <a pjax-title="${longArticleLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}/long"<#if type == "long"> class="current"</#if>>${longArticleLabel}</a>
     <a pjax-title="${cmtLabel} - ${user.userName} - ${symphonyLabel}" href="${servePath}/member/${user.userName}/comments"<#if type == "comments"> class="current"</#if>>${cmtLabel}<#if type == "comments"> &nbsp;<span class="count">${paginationRecordCount?c}</span></#if></a>
     <#if currentUser?? && currentUser.userName == user.userName>
     <a pjax-title="${anonymousArticleLabel} - ${user.userName} - ${symphonyLabel}"<#if type == "articlesAnonymous"> class="current"</#if> href="${servePath}/member/${user.userName}/articles/anonymous">${anonymousArticleLabel}<#if type == "articlesAnonymous"> &nbsp;<span class="count">${paginationRecordCount?c}</span></#if></a>
