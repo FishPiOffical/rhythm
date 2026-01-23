@@ -432,6 +432,18 @@ public class PointtransferQueryService {
                                 + Escapes.escapeHTML(article22.optString(Article.ARTICLE_TITLE)) + "</a>";
                         desTemplate = desTemplate.replace("{article}", articleLink22);
                         break;
+                    case Pointtransfer.TRANSFER_TYPE_C_LONG_ARTICLE_READ_REWARD:
+                        final JSONObject longArticle = articleRepository.get(dataId);
+                        if (null == longArticle) {
+                            desTemplate = langPropsService.get("removedLabel");
+                            break;
+                        }
+                        final String longArticleLink = "<a href=\""
+                                + longArticle.optString(Article.ARTICLE_PERMALINK) + "\">"
+                                + Escapes.escapeHTML(longArticle.optString(Article.ARTICLE_TITLE)) + "</a>";
+                        desTemplate = desTemplate.replace("{article}", longArticleLink);
+                        desTemplate = desTemplate.replace("{point}", String.valueOf(record.optInt(Pointtransfer.SUM)));
+                        break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);
                         final String newUserLink = UserExt.getUserLink(newUser);

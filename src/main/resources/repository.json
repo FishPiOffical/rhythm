@@ -2460,6 +2460,58 @@
       ]
     },
     {
+      "name": "article_long_read_stat",
+      "description": "长文阅读统计（当前窗口+累计）",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒，6 小时一轮）" },
+        { "name": "registeredUnsettledCnt", "type": "int", "description": "当前窗口已注册未结算阅读数" },
+        { "name": "anonymousUnsettledCnt", "type": "int", "description": "当前窗口未注册未结算阅读数" },
+        { "name": "registeredTotalCnt", "type": "int", "description": "累计已注册阅读数" },
+        { "name": "anonymousTotalCnt", "type": "int", "description": "累计未注册阅读数" },
+        { "name": "lastSettledAt", "type": "long", "description": "上次结算时间" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "article_long_read_history",
+      "description": "长文阅读结算历史",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒）" },
+        { "name": "windowEnd", "type": "long", "description": "窗口结束时间（毫秒）" },
+        { "name": "registeredCnt", "type": "int", "description": "窗口内已注册阅读数" },
+        { "name": "anonymousCnt", "type": "int", "description": "窗口内未注册阅读数" },
+        { "name": "anonymousCappedCnt", "type": "int", "description": "窗口内未注册计入封顶后的值" },
+        { "name": "rewardPoint", "type": "int", "description": "本次结算奖励积分" },
+        { "name": "settledAt", "type": "long", "description": "结算时间" }
+      ]
+    },
+    {
+      "name": "article_long_read_user",
+      "description": "长文阅读去重（注册用户）",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "firstReadAt", "type": "long", "description": "首次阅读时间" }
+      ]
+    },
+    {
+      "name": "article_long_read_anon",
+      "description": "长文阅读去重（未注册，按窗口）",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒）" },
+        { "name": "readerHash", "type": "String", "length": 64, "description": "IP+UA 哈希" },
+        { "name": "firstReadAt", "type": "long", "description": "首次阅读时间" }
+      ]
+    },
+    {
       "name": "milestone",
       "description": "大事记表",
       "keys": [

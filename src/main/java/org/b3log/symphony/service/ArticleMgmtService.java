@@ -162,6 +162,12 @@ public class ArticleMgmtService {
     private PointtransferMgmtService pointtransferMgmtService;
 
     /**
+     * Long article read service.
+     */
+    @Inject
+    private LongArticleReadService longArticleReadService;
+
+    /**
      * Reward management service.
      */
     @Inject
@@ -464,6 +470,9 @@ public class ArticleMgmtService {
                     }
                     return;
                 }
+
+                longArticleReadService.record(articleId, visit.optString(Visit.VISIT_USER_ID),
+                        visit.optString(Visit.VISIT_IP), visit.optString(Visit.VISIT_UA));
 
                 final int viewCnt = article.optInt(Article.ARTICLE_VIEW_CNT);
                 article.put(Article.ARTICLE_VIEW_CNT, viewCnt + 1);

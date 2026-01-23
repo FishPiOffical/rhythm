@@ -358,6 +358,12 @@ public class AdminProcessor {
     private SystemSettingsRepository settingsRepository;
 
     /**
+     * Long article read service.
+     */
+    @Inject
+    private LongArticleReadService longArticleReadService;
+
+    /**
      * Register request handlers.
      */
     public static void register() {
@@ -367,6 +373,7 @@ public class AdminProcessor {
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
         final Handler[] middlewares = new Handler[]{permissionMidware::check};
 
+        Dispatcher.get("/cron/long-article/settle", adminProcessor::settleLongArticleReward, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/admin/auditlog", adminProcessor::showAuditlog, middlewares);
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
@@ -455,6 +462,22 @@ public class AdminProcessor {
         Dispatcher.get("/admin/milestone/{milestoneId}", adminProcessor::showMilestone,middlewares);
         Dispatcher.post("/admin/milestone/{milestoneId}", adminProcessor::updateMilestone,middlewares);
         Dispatcher.post("/admin/remove-milestone", adminProcessor::removeMilestone, middlewares);
+    }
+
+    /**
+     * Trigger long article incentive settlement manually for test.
+     *
+     * @param context the specified context
+     */
+    public void settleLongArticleReward(final RequestContext context) {
+        final String articleId = StringUtils.trimToNull(context.param(Article.ARTICLE_T_ID));
+        try {
+            longArticleReadService.settle(articleId);
+            context.renderJSON(StatusCodes.SUCC).renderMsg("ok");
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Manual long article settle failed", e);
+            context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+        }
     }
 
     final public static ChannelStatsManager manager = new ChannelStatsManager();

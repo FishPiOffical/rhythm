@@ -146,6 +146,22 @@
                     <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
                     <span class="long-article-time">${article.timeAgo}</span>
                 </div>
+                <#if article.isMyArticle && article.longArticleReadStat??>
+                    <div class="fn__flex-column" style="gap:8px;margin:12px 0;padding:12px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
+                        <div class="ft__smaller ft__fade">长文阅读激励</div>
+                        <div class="fn__flex" style="gap:12px;flex-wrap:wrap;">
+                            <div class="fn__flex-1">
+                                <div class="ft__smaller ft__fade">未结算</div>
+                                <div>注册 ${article.longArticleReadStat.registeredUnsettledCnt} / 未注册 ${article.longArticleReadStat.anonymousUnsettledCnt}</div>
+                            </div>
+                            <div class="fn__flex-1">
+                                <div class="ft__smaller ft__fade">总计</div>
+                                <div>注册 ${article.longArticleReadStat.registeredTotalCnt} / 未注册 ${article.longArticleReadStat.anonymousTotalCnt}</div>
+                            </div>
+                        </div>
+                        <div class="ft__smaller ft__fade">未注册以 IP+UA 去重，当窗封顶 100</div>
+                    </div>
+                </#if>
             </#if>
             <div class="article-actions action-btns fn-right">
                 <#if "" != article.articleToC>

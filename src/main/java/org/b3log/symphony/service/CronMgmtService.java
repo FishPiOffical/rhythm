@@ -116,6 +116,12 @@ public class CronMgmtService {
     @Inject
     private ArticleQueryService articleQueryService;
 
+    /**
+     * Long article read service.
+     */
+    @Inject
+    private LongArticleReadService longArticleReadService;
+
 
     /**
      * Start all cron tasks.
@@ -307,6 +313,17 @@ public class CronMgmtService {
                 Stopwatchs.release();
             }
         }, delay, 1 * 60 * 1000, TimeUnit.MILLISECONDS);
+        delay += 2000;
+
+        Symphonys.SCHEDULED_EXECUTOR_SERVICE.scheduleAtFixedRate(() -> {
+            try {
+                longArticleReadService.settleAll();
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, "Executes cron failed", e);
+            } finally {
+                Stopwatchs.release();
+            }
+        }, delay, 6 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         delay += 2000;
 
         // 清理防火墙计数过期桶，避免 Map/BANNED 长期膨胀

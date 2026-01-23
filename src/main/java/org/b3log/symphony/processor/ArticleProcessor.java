@@ -131,6 +131,12 @@ public class ArticleProcessor {
     private ArticleQueryService articleQueryService;
 
     /**
+     * Long article read service.
+     */
+    @Inject
+    private LongArticleReadService longArticleReadService;
+
+    /**
      * Comment query service.
      */
     @Inject
@@ -424,6 +430,12 @@ public class ArticleProcessor {
             return;
         }
 
+        final JSONObject viewer = Sessions.getUser();
+        final String viewerId = null == viewer ? null : viewer.optString(Keys.OBJECT_ID);
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        final String ua = Headers.getHeader(context.getRequest(), Common.USER_AGENT, "");
+        longArticleReadService.record(articleId, viewerId, ip, ua);
+
         String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
 
         context.getResponse().setContentType("text/html; charset=UTF-8");
@@ -508,6 +520,12 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
 
         articleQueryService.processArticleContent(article);
+
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject readStat = longArticleReadService.getStat(articleId);
+            article.put("longArticleReadStat", readStat);
+            dataModel.put("longArticleReadStat", readStat);
+        }
 
         final int cmtViewMode = 0;
         JSONObject currentUser = Sessions.getUser();
@@ -1289,6 +1307,12 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
 
         articleQueryService.processArticleContent(article);
+
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject readStat = longArticleReadService.getStat(articleId);
+            article.put("longArticleReadStat", readStat);
+            dataModel.put("longArticleReadStat", readStat);
+        }
 
         String cmtViewModeStr = context.param("m");
         JSONObject currentUser;
