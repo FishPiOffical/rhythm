@@ -168,6 +168,12 @@ var Chat = {
                                 ],
                             },
                         ],
+                        upload: {
+                            url: Label.servePath + '/upload',
+                            data: {
+                                scene: 'chat'
+                            }
+                        },
                         ctrlEnter: function () {
                             Chat.send();
                         }

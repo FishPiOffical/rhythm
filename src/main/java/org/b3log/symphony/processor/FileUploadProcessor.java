@@ -408,9 +408,11 @@ public class FileUploadProcessor {
                 // 记录到Upload表
                 String ip = Requests.getRemoteAddr(request);
                 String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+                String scene = context.param("scene");
+                boolean isPublic = !"chat".equals(scene);
                 // 写入数据库
                 final Transaction transaction = uploadRepository.beginTransaction();
-                uploadRepository.add(suffix, userName, ip, time, url, md5, true);
+                uploadRepository.add(suffix, userName, ip, time, url, md5, isPublic);
                 transaction.commit();
             } catch (final Exception e) {
                 LOGGER.log(Level.ERROR, "Uploads file failed", e);
