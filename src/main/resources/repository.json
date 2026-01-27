@@ -2589,6 +2589,123 @@
           "description": "更新时间"
         }
       ]
+    },
+    {
+      "name": "emoji",
+      "description": "表情包表（存储表情图片URL，全局唯一）",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "emojiUrl",
+          "type": "String",
+          "length": 512,
+          "description": "表情图片URL"
+        },
+        {
+          "name": "emojiCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "emojiUploaderId",
+          "type": "String",
+          "length": 19,
+          "description": "上传者用户ID"
+        },
+        {
+          "name": "emojiStatus",
+          "type": "int",
+          "description": "状态（0：正常，1：已删除）"
+        }
+      ]
+    },
+    {
+      "name": "emoji_group",
+      "description": "表情分组表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "emojiGroupUserId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID"
+        },
+        {
+          "name": "emojiGroupName",
+          "type": "String",
+          "length": 64,
+          "description": "分组名称"
+        },
+        {
+          "name": "emojiGroupSort",
+          "type": "int",
+          "description": "分组排序"
+        },
+        {
+          "name": "emojiGroupCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "emojiGroupUpdateTime",
+          "type": "long",
+          "description": "更新时间"
+        },
+        {
+          "name": "emojiGroupType",
+          "type": "int",
+          "description": "分组类型（0：自定义分组，1：默认'全部'分组）"
+        }
+      ]
+    },
+    {
+      "name": "emoji_group_item",
+      "description": "表情分组项表（分组与表情的关联关系）",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "emojiGroupItemGroupId",
+          "type": "String",
+          "length": 19,
+          "description": "分组ID"
+        },
+        {
+          "name": "emojiGroupItemEmojiId",
+          "type": "String",
+          "length": 19,
+          "description": "表情ID"
+        },
+        {
+          "name": "emojiGroupItemSort",
+          "type": "int",
+          "description": "分组内排序"
+        },
+        {
+          "name": "emojiGroupItemName",
+          "type": "string",
+          "description": "分组内名称"
+        },
+        {
+          "name": "emojiGroupItemCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        }
+      ]
     }
   ]
 }
