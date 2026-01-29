@@ -92,6 +92,7 @@ public class MedalProcessor {
         Dispatcher.post("/api/medal/admin/grant", medalProcessor::adminGrantMedalToUser);
         Dispatcher.post("/api/medal/admin/revoke", medalProcessor::adminRevokeMedalFromUser);
         Dispatcher.post("/api/medal/admin/owners", medalProcessor::adminGetMedalOwners);
+        Dispatcher.post("/api/medal/admin/user-medals", medalProcessor::adminGetUserMedals);
         Dispatcher.post("/api/medal/admin/reorder", medalProcessor::adminReorderAllMedals);
 
         // 用户侧
@@ -146,6 +147,7 @@ public class MedalProcessor {
             readOnlyAPIS.add("/api/medal/admin/search");
             readOnlyAPIS.add("/api/medal/admin/detail");
             readOnlyAPIS.add("/api/medal/admin/owners");
+            readOnlyAPIS.add("/api/medal/admin/user-medals");
             JSONObject requestJSONObject = context.requestJSON();
             final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
             String requestURI = context.requestURI();
@@ -504,6 +506,46 @@ public class MedalProcessor {
             ret.put(Keys.CODE, StatusCodes.SUCC);
             ret.put(Keys.MSG, "");
             ret.put(Keys.DATA, data);
+            context.renderJSON(ret);
+        } catch (Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+        }
+    }
+
+    /**
+     * 管理侧：读取指定用户拥有的所有勋章列表（含已隐藏，过滤已过期）.
+     *
+     * 请求: POST /api/medal/admin/user-medals
+     * 请求体: {"userId":"123"} 或 {"userName":"someone"}
+     */
+    public void adminGetUserMedals(final RequestContext context) {
+        final JSONObject currentUser = requireAdmin(context);
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            final JSONObject req = context.requestJSON();
+            String userId = req.optString("userId", "");
+            final String userName = req.optString("userName", "");
+
+            // 如果没传 userId 但传了 userName，则按用户名查询
+            if ((userId == null || userId.isEmpty()) && userName != null && !userName.isEmpty()) {
+                final JSONObject user = userQueryService.getUserByName(userName);
+                if (user != null && user.length() > 0) {
+                    userId = user.optString(Keys.OBJECT_ID);
+                }
+            }
+
+            if (userId == null || userId.isEmpty()) {
+                context.renderJSON(StatusCodes.ERR);
+                return;
+            }
+
+            final List<JSONObject> list = medalService.getUserMedals(userId);
+            final JSONObject ret = new JSONObject();
+            ret.put(Keys.CODE, StatusCodes.SUCC);
+            ret.put(Keys.MSG, "");
+            ret.put(Keys.DATA, new JSONArray(list));
             context.renderJSON(ret);
         } catch (Exception e) {
             context.renderJSON(StatusCodes.ERR);
