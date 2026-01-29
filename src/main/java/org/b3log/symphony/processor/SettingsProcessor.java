@@ -155,6 +155,12 @@ public class SettingsProcessor {
     @Inject
     private EmotionMgmtService emotionMgmtService;
 
+    @Inject
+    private EmojiQueryService emojiQueryService;
+
+    @Inject
+    private EmojiMgmtService emojiMgmtService;
+
     /**
      * Data model service.
      */

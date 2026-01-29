@@ -26,6 +26,7 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
+import org.b3log.latke.repository.annotation.Transactional;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Emoji;
@@ -80,6 +81,7 @@ public class EmojiMgmtService {
      * @return group id
      * @throws ServiceException service exception
      */
+    @Transactional
     public String createAllGroup(final String userId) throws ServiceException {
         try {
             // Check if "all" group already exists
@@ -118,12 +120,13 @@ public class EmojiMgmtService {
      * @return group id
      * @throws ServiceException service exception
      */
+    @Transactional
     public String createGroup(final String userId, final String groupName, final int sort) throws ServiceException {
         try {
             // Check if group name already exists for this user
             JSONObject existingGroup = emojiGroupRepository.getByUserIdAndName(userId, groupName);
             if (existingGroup != null) {
-                throw new ServiceException("Group name already exists");
+                throw new ServiceException("分组名已存在");
             }
 
             JSONObject group = new JSONObject();
@@ -155,57 +158,60 @@ public class EmojiMgmtService {
      * @param newName the new name
      * @throws ServiceException service exception
      */
+    @Transactional
     public void updateGroupName(final String groupId, final String newName) throws ServiceException {
         try {
             JSONObject group = emojiGroupRepository.getById(groupId);
             if (group == null) {
-                throw new ServiceException("Group not found");
+                throw new ServiceException("分组不存在");
             }
 
             // Cannot rename "all" group
             if (group.optInt(EmojiGroup.EMOJI_GROUP_TYPE) == EmojiGroup.EMOJI_GROUP_TYPE_ALL) {
-                throw new ServiceException("Cannot rename 'all' group");
+                throw new ServiceException("不能更新 全部 分组");
             }
 
             // Check if new name already exists
             String userId = group.optString(EmojiGroup.EMOJI_GROUP_USER_ID);
             JSONObject existingGroup = emojiGroupRepository.getByUserIdAndName(userId, newName);
             if (existingGroup != null && !existingGroup.optString(EmojiGroup.EMOJI_GROUP_ID).equals(groupId)) {
-                throw new ServiceException("Group name already exists");
+                throw new ServiceException("分组名已存在");
             }
 
             group.put(EmojiGroup.EMOJI_GROUP_NAME, newName);
             group.put(EmojiGroup.EMOJI_GROUP_UPDATE_TIME, System.currentTimeMillis());
             emojiGroupRepository.update(group.optString(Keys.OBJECT_ID), group);
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Update group name failed", e);
+            LOGGER.log(Level.ERROR, "更新分组名失败", e);
             throw new ServiceException(e);
         }
     }
 
     // 更新分组排序
+    @Transactional
     public void updateGroupSort(final String groupId, final int newSort) throws ServiceException {
         try {
             JSONObject group = emojiGroupRepository.getById(groupId);
             if (group == null) {
-                throw new ServiceException("Group not found");
+                throw new ServiceException("分组不存在");
             }
 
             // Cannot rename "all" group
             if (group.optInt(EmojiGroup.EMOJI_GROUP_TYPE) == EmojiGroup.EMOJI_GROUP_TYPE_ALL) {
-                throw new ServiceException("Cannot update 'all' group");
+                throw new ServiceException("不能更新 全部 分组");
             }
 
             group.put(EmojiGroup.EMOJI_GROUP_SORT, newSort);
             group.put(EmojiGroup.EMOJI_GROUP_UPDATE_TIME, System.currentTimeMillis());
             emojiGroupRepository.update(group.optString(Keys.OBJECT_ID), group);
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Update group name failed", e);
+            LOGGER.log(Level.ERROR, "Update group sort failed", e);
             throw new ServiceException(e);
         }
     }
 
     // 批量修改分组排序
+    @Transactional
     public void batchUpdateGroupSort(final List<JSONObject> groups) throws ServiceException {
         try {
             for (JSONObject group : groups) {
@@ -228,6 +234,7 @@ public class EmojiMgmtService {
      * @param name the custom name for this emoji in the group (can be empty)
      * @throws ServiceException service exception
      */
+    @Transactional
     public void addEmojiToGroup(final String groupId, final String emojiId, final int sort, final String name) throws ServiceException {
         try {
             // Check if emoji already in group
@@ -251,6 +258,7 @@ public class EmojiMgmtService {
     }
 
     // 通过url 添加到emoji
+    @Transactional
     public String addEmojiByUrl( final String url,final String uploaderId ) throws ServiceException {
         try {
             // 检查url是否存在
@@ -276,6 +284,7 @@ public class EmojiMgmtService {
      * @param emojiId the emoji id
      * @throws ServiceException service exception
      */
+    @Transactional
     public void removeEmojiFromGroup(final String groupId, final String emojiId) throws ServiceException {
         try {
             emojiGroupItemRepository.removeByGroupIdAndEmojiId(groupId, emojiId);
@@ -291,16 +300,17 @@ public class EmojiMgmtService {
      * @param groupId the group id
      * @throws ServiceException service exception
      */
+    @Transactional
     public void deleteGroup(final String groupId) throws ServiceException {
         try {
             JSONObject group = emojiGroupRepository.getById(groupId);
             if (group == null) {
-                throw new ServiceException("Group not found");
+                throw new ServiceException("分组不存在");
             }
 
             // Cannot delete "all" group
             if (group.optInt(EmojiGroup.EMOJI_GROUP_TYPE) == EmojiGroup.EMOJI_GROUP_TYPE_ALL) {
-                throw new ServiceException("Cannot delete 'all' group");
+                throw new ServiceException("不能删除 全部 分组");
             }
 
             Transaction transaction = emojiGroupRepository.beginTransaction();
@@ -323,11 +333,12 @@ public class EmojiMgmtService {
     }
 
     //更新分组内emoji的名字
+    @Transactional
     public void updateEmojiName(final String groupId, final String groupEmojiId, final String newName) throws ServiceException {
         try {
             JSONObject groupItem = emojiGroupItemRepository.getByGroupIdAndEmojiId(groupId, groupEmojiId);
             if (groupItem == null) {
-                throw new ServiceException("Emoji not found");
+                throw new ServiceException("表情不存在");
             }
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_NAME, newName);
             emojiGroupItemRepository.update(groupItem.optString(Keys.OBJECT_ID), groupItem);
@@ -338,11 +349,12 @@ public class EmojiMgmtService {
     }
 
     // 更新分组内emoji的排序
+    @Transactional
     public void updateEmojiSort(final String groupId, final String groupEmojiId, final int newSort) throws ServiceException {
         try {
             JSONObject groupItem = emojiGroupItemRepository.getByGroupIdAndEmojiId(groupId, groupEmojiId);
             if (groupItem == null) {
-                throw new ServiceException("Emoji not found");
+                throw new ServiceException("表情不存在");
             }
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, newSort);
             emojiGroupItemRepository.update(groupItem.optString(Keys.OBJECT_ID), groupItem);
@@ -353,6 +365,7 @@ public class EmojiMgmtService {
     }
 
     // 批量更新分组内的表情排序
+    @Transactional
     public void batchUpdateEmojiSort(final List<JSONObject> groupItems) throws ServiceException {
         try {
             for (JSONObject groupItem : groupItems) {

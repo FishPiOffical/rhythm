@@ -30,7 +30,7 @@ public final class EmojiGroupItem {
     /**
      * EmojiGroupItem.
      */
-    public static final String EMOJI_GROUP_ITEM = "emojiGroupItem";
+    public static final String EMOJI_GROUP_ITEM = "emoji_group_item";
 
     /**
      * EmojiGroupItems.

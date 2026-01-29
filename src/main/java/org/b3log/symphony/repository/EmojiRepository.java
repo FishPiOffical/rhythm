@@ -23,6 +23,7 @@ import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.Emoji;
 import org.json.JSONObject;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -52,7 +53,7 @@ public class EmojiRepository extends AbstractRepository {
      */
     public List<JSONObject> getEmojisByIds(final String[] emojiIds) throws RepositoryException {
         final Query query = new Query().setFilter(
-            new PropertyFilter("oId", FilterOperator.IN, emojiIds)
+            new PropertyFilter("oId", FilterOperator.IN,  Arrays.asList(emojiIds))
         );
         return getList(query);
     }

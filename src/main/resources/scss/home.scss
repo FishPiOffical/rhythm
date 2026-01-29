@@ -721,4 +721,54 @@
   width: 100%
 }
 
+.emoji_group{
+  display: inline-block;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.emoji_group_select{
+  border-bottom: 2px solid #AAAAAA;
+}
+
+.emoji_item {
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  margin: 6px;
+}
+
+.emoji_img_wrap img {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+.emoji_overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.emoji_item:hover .emoji_overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.emoji_btn {
+  background: rgba(255,255,255,.9);
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
 /* end settings */

@@ -121,7 +121,28 @@
         <button class="fn-right" onclick="Settings.update('emotionList', '${csrfToken}')">${saveLabel}</button>
     </div>
 </div>
+
+<div class="module">
+    <div class="module-header">
+        <h2>表情包分组</h2>
+    </div>
+    <div class="module-panel form fn-clear">
+        <div class="fn__flex flex flex-wrap" style="align-items: center">
+            <div class="fn-clear" id="emojiGroupBox">
+
+            </div>
+            <button style="margin-left: 10px" onclick="Settings.createEmojiGroup()">添加分组</button>
+        </div>
+        <div onclick="Settings.addEmojiByUrl()">通过url添加表情</div>
+        <div class="fn__flex flex flex-wrap" id="groupEmojiList">
+
+        </div>
+
+    </div>
+</div>
+
 </@home>
 <script>
     Settings.initFunction();
+    Settings.initEmojiGroups();
 </script>
