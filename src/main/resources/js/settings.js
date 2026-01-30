@@ -1551,14 +1551,25 @@ var Settings = {
       var $groupEmojiList = $('#groupEmojiList');
       $groupEmojiList.on('click', '.btn_add', function (e) {
           e.stopPropagation()
-          const emojiId = $(this).closest('.emoji_item').data('id')
+          const emojiId = $(this).closest('.emoji_item').data('emoji-id')
+          const itemName = $(this).closest('.emoji_item').data('name')
           console.log('add emoji', emojiId)
+          Settings.showGroupSelectDialog(emojiId,itemName)
       })
 
       $groupEmojiList.on('click', '.btn_delete', function (e) {
           e.stopPropagation()
-          const emojiId = $(this).closest('.emoji_item').data('id')
+          const emojiId = $(this).closest('.emoji_item').data('emoji-id')
           console.log('delete emoji', emojiId)
+          Settings.removeEmojiFromGroup(emojiId)
+      })
+
+      $groupEmojiList.on('click', '.btn_rename', function (e) {
+          e.stopPropagation()
+          const itemId = $(this).closest('.emoji_item').data('id')
+          const itemName = $(this).closest('.emoji_item').data('name')
+          console.log('rename emoji', itemId, itemName)
+          Settings.renameEmojiItem(itemId, itemName)
       })
 
   },
@@ -1575,7 +1586,7 @@ var Settings = {
               var groups = result.data || [];
               Settings.emojiGroups = groups;
               for (let i = 0; i < groups.length; i++) {
-                  if (groups[i].emojiGroupType === 1){
+                  if (groups[i].type === 1){
                       Settings.currentEmojiGroupId = groups[i].oId;
                       break
                   }
@@ -1600,17 +1611,66 @@ var Settings = {
       $container.empty()
       for(let i=0;i<groups.length;i++){
           let group = groups[i];
-          let isAll = group.emojiGroupType === 1;
+          let isAll = group.type === 1;
           const $groupDiv = $('<div>', {
               class: 'emoji_group',
               id: 'emojiGroup_' + group.oId,
-              text: group.emojiGroupName
+              'data-id': group.oId,
+              'data-name': group.name,
+              'data-type': group.type
           })
 
-          $groupDiv.on('click', function () {
-              console.log(group.oId)
+          // 分组名称
+          const $nameSpan = $('<span>', {
+              class: 'group_name',
+              text: group.name
+          })
+
+          // 编辑按钮
+          const $btnEdit = $('<span>', {
+              class: 'group_btn btn_edit_group',
+              text: '✏️',
+              css: {
+                  'margin-left': '5px',
+                  'cursor': 'pointer'
+              }
+          })
+
+          // 删除按钮
+          const $btnDelete = $('<span>', {
+              class: 'group_btn btn_delete_group',
+              text: '🗑',
+              css: {
+                  'margin-left': '5px',
+                  'cursor': 'pointer'
+              }
+          })
+
+          // 默认分组不显示编辑和删除按钮
+          if (isAll) {
+              $groupDiv.append($nameSpan)
+          } else {
+              $groupDiv.append($nameSpan, $btnEdit, $btnDelete)
+          }
+
+          // 点击分组名称选择分组
+          $nameSpan.on('click', function (e) {
+              e.stopPropagation()
               Settings.selectEmojiGroup(group.oId);
           })
+
+          // 点击编辑按钮
+          $btnEdit.on('click', function (e) {
+              e.stopPropagation()
+              Settings.editEmojiGroupName(group.oId, group.name)
+          })
+
+          // 点击删除按钮
+          $btnDelete.on('click', function (e) {
+              e.stopPropagation()
+              Settings.deleteEmojiGroupById(group.oId, group.name)
+          })
+
           $container.append($groupDiv)
       }
   },
@@ -1666,7 +1726,9 @@ var Settings = {
           // 外层容器
           const $emojiItem = $('<div>', {
               class: 'emoji_item',
-              'data-id': item.oId
+              'data-id': item.oId,
+              'data-name': item.name || '',
+              'data-emoji-id': item.emojiId,
           })
 
           // 图片包裹
@@ -1675,7 +1737,7 @@ var Settings = {
           })
 
           const $img = $('<img>', {
-              src: item.emojiUrl,
+              src: item.url,
               alt: ''
           })
 
@@ -1695,70 +1757,56 @@ var Settings = {
               text: '🗑'
           })
 
+          const $btnRename = $('<span>', {
+              class: 'emoji_btn btn_rename',
+              text: '✏️'
+          })
+
+          // 表情名称
+          const $nameDiv = $('<div>', {
+              class: 'emoji_name',
+              text: item.name || ''
+          })
+
           // 组装
-          $overlay.append($btnAdd, $btnDelete)
+          $overlay.append($btnAdd, $btnRename, $btnDelete)
           $imgWrap.append($img)
-          $emojiItem.append($imgWrap, $overlay)
+          $emojiItem.append($imgWrap, $nameDiv, $overlay)
           $groupEmojiList.append($emojiItem)
       })
   },
   /**
-   * 创建新分组
+   * 编辑分组名称
+   * @param {string} groupId 分组ID
+   * @param {string} currentName 当前分组名称
    */
-  createEmojiGroup: function () {
-    var groupName = prompt('请输入分组名称：', '');
-    if (!groupName || groupName.trim() === '') {
-      return;
-    }
-    
-    $.ajax({
-      url: Label.servePath + '/emoji/group/create',
-      type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
-      data: JSON.stringify({
-        emojiGroupName: groupName.trim(),
-        emojiGroupSort: 0
-      }),
-      contentType: 'application/json;charset=UTF-8',
-      success: function (result) {
-          Util.alert('创建分组成功');
-          Settings.loadEmojiGroups();
-      },
-      error: function () {
-        Util.alert('创建分组失败，请检查网络');
-      }
-    });
-  },
-  /**
-   * 更新分组名称
-   */
-  updateEmojiGroupName: function () {
-    var groupId = $('#emojiGroupSelect').val();
-    var newName = $('#emojiGroupName').val().trim();
-    
+  editEmojiGroupName: function (groupId, currentName) {
     if (!groupId) {
-      Util.alert('请先选择一个分组');
+      Util.alert('分组ID不能为空');
       return;
     }
-    
-    if (!newName) {
+
+    var newName = prompt('请输入新的分组名称：', currentName);
+    if (newName === null) {
+      return;
+    }
+
+    if (!newName || newName.trim() === '') {
       Util.alert('分组名称不能为空');
       return;
     }
-    
-    var groupType = $('#emojiGroupSelect').find('option:selected').data('type');
-    if (groupType === 1) {
-      Util.alert('默认分组不能修改名称');
+
+    if (newName === currentName) {
       return;
     }
-    
+
     $.ajax({
       url: Label.servePath + '/emoji/group/update-name',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
-        emojiGroupId: groupId,
-        emojiGroupName: newName
+        groupId: groupId,
+        name: newName.trim()
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
@@ -1776,41 +1824,42 @@ var Settings = {
   },
   /**
    * 删除分组
+   * @param {string} groupId 分组ID
+   * @param {string} groupName 分组名称
    */
-  deleteEmojiGroup: function () {
-    var groupId = $('#emojiGroupSelect').val();
-    var groupType = $('#emojiGroupSelect').find('option:selected').data('type');
-    
+  deleteEmojiGroupById: function (groupId, groupName) {
     if (!groupId) {
-      Util.alert('请先选择一个分组');
+      Util.alert('分组ID不能为空');
       return;
     }
-    
-    if (groupType === 1) {
-      Util.alert('默认分组不能删除');
+
+    if (!confirm('确定要删除分组"' + groupName + '"吗？分组内的表情会同步被移除。')) {
       return;
     }
-    
-    if (!confirm('确定要删除这个分组吗？分组内的表情不会被删除。')) {
-      return;
-    }
-    
+
     $.ajax({
       url: Label.servePath + '/emoji/group/delete',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
-        emojiGroupId: groupId
+        groupId: groupId
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
           Util.alert('删除分组成功');
-          $('#emojiGroupSelect').val('');
-          $('#emojiGroupName').val('');
-          $('#emojiTableBody').html('<tr><td colspan="3" style="text-align: center; padding: 20px;">请先选择一个分组</td></tr>');
-          $('#deleteGroupBtn').prop('disabled', true);
           Settings.loadEmojiGroups();
+          // 如果删除的是当前选中的分组，则切换到全部分组
+          if (Settings.currentEmojiGroupId === groupId) {
+             let allGroupId = ""
+             Settings.emojiGroups.forEach(item =>{
+                if(item.type === 1){
+                    allGroupId = item.oId;
+                }
+              })
+              Settings.selectEmojiGroup(allGroupId);
+
+          }
         } else {
           Util.alert(result.msg || '删除分组失败');
         }
@@ -1821,17 +1870,84 @@ var Settings = {
     });
   },
   /**
-   * 通过URL添加表情到分组
+   * 创建新分组
+   */
+  createEmojiGroup: function () {
+    var groupName = prompt('请输入分组名称：', '');
+    if (!groupName || groupName.trim() === '') {
+      return;
+    }
+    
+    $.ajax({
+      url: Label.servePath + '/emoji/group/create',
+      type: 'POST',
+      headers: {'csrfToken': Label.csrfToken},
+      data: JSON.stringify({
+        name: groupName.trim(),
+        sort: 0
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+          if (0 !== result.code) {
+              Util.alert(result.msg || '创建分组失败');
+              return;
+          }
+          Util.alert('创建分组成功');
+          Settings.loadEmojiGroups();
+      },
+      error: function () {
+        Util.alert('创建分组失败，请检查网络');
+      }
+    });
+  },
+  /**
+   * 显示通过URL添加表情的弹窗
    */
   addEmojiByUrl: function () {
-      var url = prompt('请输入表情url：', '');
-      if (!url || url.trim() === '') {
-          Util.alert('请输入表情图片URL');
-          return;
-      }
+    // 生成弹窗HTML
+    var html = '<div class="form fn-clear" style="padding:0 20px;">';
+
+    html += '</select>';
+    html += '<label>表情URL：</label><br>';
+    html += '<input id="emojiUrl" type="text" placeholder="请输入表情图片URL" style="width: 100%; padding: 8px; margin-bottom: 10px;"/>';
+    html += '<label>表情别名（可选）：</label><br>';
+    html += '<input id="emojiAlias" type="text" placeholder="可选，输入表情别名" style="width: 100%; padding: 8px; margin-bottom: 10px;"/>';
+    html += '<br><br>';
+    html += '<button onclick="Settings.confirmAddUrlEmoji()" class="fn-right green">确定</button>';
+    html += '<button onclick="$(\'#addUrlEmojiDialog\').dialog(\'close\')" class="fn-right" style="margin-right: 10px;">取消</button>';
+    html += '</div>';
     
-      let groupId = Settings.currentEmojiGroupId;
-      let name = '';
+    // 检查弹窗是否存在，如果不存在则创建
+    if ($('#addUrlEmojiDialog').length === 0) {
+      $('body').append('<div id="addUrlEmojiDialog"></div>');
+    }
+    
+    $('#addUrlEmojiDialog').html(html);
+    
+    // 初始化弹窗
+    $('#addUrlEmojiDialog').dialog({
+      'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
+        'height':300,
+      'modal': true,
+      'hideFooter': true,
+      'title': '通过URL添加表情'
+    });
+    
+    $('#addUrlEmojiDialog').dialog('open');
+  },
+  /**
+   * 确认通过URL添加表情到分组
+   */
+  confirmAddUrlEmoji: function () {
+    let groupId = Settings.currentEmojiGroupId;
+    let url = $('#emojiUrl').val().trim();
+    let name = $('#emojiAlias').val().trim();
+    
+
+    if (!url) {
+      Util.alert('请输入表情图片URL');
+      return;
+    }
     
     $.ajax({
       url: Label.servePath + '/emoji/group/add-url-emoji',
@@ -1845,9 +1961,14 @@ var Settings = {
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
+        if (result.code === 0) {
           Util.alert('添加表情成功');
-          Settings.loadGroupEmojis(groupId);
-
+          $('#addUrlEmojiDialog').dialog('close');
+          // 如果当前正在查看该分组，则刷新表情列表
+            Settings.loadGroupEmojis(groupId);
+        } else {
+          Util.alert(result.msg || '添加表情失败');
+        }
       },
       error: function () {
         Util.alert('添加表情失败，请检查网络');
@@ -1855,10 +1976,51 @@ var Settings = {
     });
   },
   /**
+   * 重命名分组内表情
+   */
+  renameEmojiItem: function (itemId, currentName) {
+    var newName = prompt('请输入新的表情名称：', currentName || '');
+    if (newName === null) {
+      return;
+    }
+    
+    if (!newName || newName.trim() === '') {
+      Util.alert('表情名称不能为空');
+      return;
+    }
+    
+    if (newName === currentName) {
+      return;
+    }
+    
+    $.ajax({
+      url: Label.servePath + '/emoji/emoji/update-name',
+      type: 'POST',
+      headers: {'csrfToken': Label.csrfToken},
+      data: JSON.stringify({
+        oId: itemId,
+        groupId: Settings.currentEmojiGroupId,
+        name: newName.trim()
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (0 === result.code) {
+          Util.alert('重命名成功');
+          Settings.loadGroupEmojis(Settings.currentEmojiGroupId);
+        } else {
+          Util.alert(result.msg || '重命名失败');
+        }
+      },
+      error: function () {
+        Util.alert('重命名失败，请检查网络');
+      }
+    });
+  },
+  /**
    * 从分组移除表情
    */
-  removeEmojiFromGroup: function (groupId, emojiId) {
-    if (!groupId || !emojiId) {
+  removeEmojiFromGroup: function (emojiId) {
+    if (!emojiId) {
       return;
     }
     
@@ -1871,20 +2033,110 @@ var Settings = {
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
-        groupId: groupId,
+        groupId: Settings.currentEmojiGroupId,
         emojiId: emojiId
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
           Util.alert('移除表情成功');
-          Settings.loadGroupEmojis(groupId);
+          Settings.loadGroupEmojis(Settings.currentEmojiGroupId);
         } else {
           Util.alert(result.msg || '移除表情失败');
         }
       },
       error: function () {
         Util.alert('移除表情失败，请检查网络');
+      }
+    });
+  },
+
+  /**
+   * 显示分组选择弹窗
+   * @param {string} emojiId 表情id
+   * @param {array} groups 分组列表
+   */
+  showGroupSelectDialog: function (emojiId,name) {
+    let groups = Settings.emojiGroups;
+    
+    // 生成分组选择HTML
+    var html = '<div class="form fn-clear" style="padding:0 20px;">';
+    html += '<label>请选择要添加到的分组：</label><br><br>';
+    html += '<select id="groupSelect" style="width: 100%; padding: 8px; margin-bottom: 10px;">';
+    
+    for (var i = 0; i < groups.length; i++) {
+      var group = groups[i];
+      var selected = '';
+      if(group.type==1){
+          continue;
+      }
+      html += '<option value="' + group.oId + '" ' + selected + '>' + group.name + '</option>';
+    }
+    
+    html += '</select>';
+    html += '<label>表情别名（可选）：</label><br>';
+    html += '<input id="emojiName" type="text" placeholder="可选，输入表情别名" value="' + (name || '') + '" style="width: 100%; padding: 8px; margin-bottom: 10px;"/>';
+    html += '<br><br>';
+    html += '<button onclick="Settings.confirmAddEmojiToGroup(\'' + emojiId + '\')" class="fn-right green">确定</button>';
+    html += '<button onclick="$(\'#emojiGroupSelectDialog\').dialog(\'close\')" class="fn-right" style="margin-right: 10px;">取消</button>';
+    html += '</div>';
+    
+    // 检查弹窗是否存在，如果不存在则创建
+    if ($('#emojiGroupSelectDialog').length === 0) {
+      $('body').append('<div id="emojiGroupSelectDialog"></div>');
+    }
+    
+    $('#emojiGroupSelectDialog').html(html);
+    
+    // 初始化弹窗
+    $('#emojiGroupSelectDialog').dialog({
+      'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
+        'height':350,
+      'modal': true,
+      'hideFooter': true,
+      'title': '选择分组'
+    });
+    
+    $('#emojiGroupSelectDialog').dialog('open');
+  },
+  /**
+   * 确认添加表情到分组
+   * @param {string} emojiId 表情id
+   */
+  confirmAddEmojiToGroup: function (emojiId) {
+    var groupId = $('#groupSelect').val();
+    var name = $('#emojiName').val().trim();
+    
+    if (!groupId) {
+      Util.alert('请选择一个分组');
+      return;
+    }
+    
+    $.ajax({
+      url: Label.servePath + '/emoji/group/add-emoji',
+      type: 'POST',
+      headers: {'csrfToken': Label.csrfToken},
+      data: JSON.stringify({
+        groupId: groupId,
+        emojiId: emojiId,
+        sort: 0,
+        name: name
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result.code === 0) {
+          Util.alert('添加表情到分组成功');
+          $('#emojiGroupSelectDialog').dialog('close');
+          // 如果当前正在查看该分组，则刷新表情列表
+          // if (Settings.currentEmojiGroupId === groupId) {
+          //   Settings.loadGroupEmojis(groupId);
+          // }
+        } else {
+          Util.alert(result.msg || '添加表情失败');
+        }
+      },
+      error: function () {
+        Util.alert('添加表情失败，请检查网络');
       }
     });
   },

@@ -82,7 +82,7 @@ public class EmojiGroupItemRepository extends AbstractRepository {
     public JSONObject getByGroupIdAndEmojiId(final String groupId, final String emojiId) throws RepositoryException {
         final Query query = new Query().setFilter(CompositeFilterOperator.and(
             new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_GROUP_ID, FilterOperator.EQUAL, groupId),
-            new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_EMOJI_ID, FilterOperator.EQUAL, emojiId)
+            new PropertyFilter("oId", FilterOperator.EQUAL, emojiId)
         ));
         return getFirst(query);
     }

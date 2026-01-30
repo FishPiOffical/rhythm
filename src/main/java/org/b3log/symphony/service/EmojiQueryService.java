@@ -21,6 +21,7 @@ package org.b3log.symphony.service;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
@@ -123,14 +124,20 @@ public class EmojiQueryService {
             List<JSONObject> emojis = emojiRepository.getEmojisByIds(emojiIds);
 
             // Merge emoji info with group item name
+            List<JSONObject> result = new ArrayList<>();
             for (int i = 0; i < emojis.size(); i++) {
                 JSONObject emoji = emojis.get(i);
                 JSONObject groupItem = groupItems.get(i);
-                emoji.put(EmojiGroupItem.EMOJI_GROUP_ITEM_NAME, groupItem.optString(EmojiGroupItem.EMOJI_GROUP_ITEM_NAME, ""));
-                emoji.put(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, groupItem.optInt(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, 0));
+                JSONObject item = new JSONObject();
+                item.put("oId", groupItem.optString(Keys.OBJECT_ID));
+                item.put("emojiId", emoji.optString(Keys.OBJECT_ID));
+                item.put("name", groupItem.optString(EmojiGroupItem.EMOJI_GROUP_ITEM_NAME));
+                item.put("sort", groupItem.optInt(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT));
+                item.put("url",emoji.optString(Emoji.EMOJI_URL));
+                result.add(item);
             }
 
-            return emojis;
+            return result;
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Get group emojis failed", e);
             return new ArrayList<>();
