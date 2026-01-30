@@ -1762,16 +1762,27 @@ var Settings = {
               text: '✏️'
           })
 
-          // 表情名称
+          // 表情名称和排序
+          const $nameWrap = $('<div>', {
+              class: 'emoji_name_wrap'
+          })
+
           const $nameDiv = $('<div>', {
               class: 'emoji_name',
               text: item.name || ''
           })
 
+          const $sortDiv = $('<div>', {
+              class: 'emoji_sort',
+              text: '#' + (item.sort || 0)
+          })
+
+          $nameWrap.append($nameDiv, $sortDiv)
+
           // 组装
           $overlay.append($btnAdd, $btnRename, $btnDelete)
           $imgWrap.append($img)
-          $emojiItem.append($imgWrap, $nameDiv, $overlay)
+          $emojiItem.append($imgWrap, $nameWrap, $overlay)
           $groupEmojiList.append($emojiItem)
       })
   },
@@ -2106,12 +2117,12 @@ var Settings = {
   confirmAddEmojiToGroup: function (emojiId) {
     var groupId = $('#groupSelect').val();
     var name = $('#emojiName').val().trim();
-    
+
     if (!groupId) {
       Util.alert('请选择一个分组');
       return;
     }
-    
+
     $.ajax({
       url: Label.servePath + '/emoji/group/add-emoji',
       type: 'POST',
@@ -2137,6 +2148,33 @@ var Settings = {
       },
       error: function () {
         Util.alert('添加表情失败，请检查网络');
+      }
+    });
+  },
+  /**
+   * 迁移历史表情包
+   */
+  migrateEmojis: function () {
+    if (!confirm('确定要迁移历史表情包吗？')) {
+      return;
+    }
+
+    $.ajax({
+      url: Label.servePath + '/emoji/emoji/migrate',
+      type: 'POST',
+      headers: {'csrfToken': Label.csrfToken},
+      data: JSON.stringify({}),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (0 === result.code) {
+          Util.alert('迁移历史表情包成功');
+          Settings.loadEmojiGroups();
+        } else {
+          Util.alert(result.msg || '迁移历史表情包失败');
+        }
+      },
+      error: function () {
+        Util.alert('迁移历史表情包失败，请检查网络');
       }
     });
   },

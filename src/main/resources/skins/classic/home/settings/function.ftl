@@ -123,8 +123,10 @@
 </div>
 
 <div class="module">
-    <div class="module-header">
+    <div class="module-header fn__flex flex" style="align-items: center">
         <h2>表情包分组</h2>
+        <div style="flex:1"></div>
+        <button onclick="Settings.migrateEmojis()">迁移历史表情</button>
     </div>
     <div class="module-panel form fn-clear">
         <div class="fn__flex flex flex-wrap" style="align-items: center">
@@ -134,7 +136,7 @@
             <button style="margin-left: 10px" onclick="Settings.createEmojiGroup()">添加分组</button>
         </div>
         <div onclick="Settings.addEmojiByUrl()">通过url添加表情</div>
-        <div class="fn__flex flex flex-wrap" id="groupEmojiList">
+        <div class="fn__flex flex flex-wrap" id="groupEmojiList" style="flex-wrap: wrap;overflow: scroll;max-height: 300px">
 
         </div>
 

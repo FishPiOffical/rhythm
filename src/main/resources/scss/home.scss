@@ -736,13 +736,30 @@
   display: inline-block;
   width: 100px;
   height: 100px;
-  margin: 6px;
+  margin: 6px 6px 16px;
+
+}
+
+.emoji_img_wrap{
+  width: 100px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
 }
 
 .emoji_img_wrap img {
   width: 100%;
-  height: 100%;
   border-radius: 6px;
+}
+
+.emoji_name_wrap {
+  display: flex;
+  align-items: center;
+
+}
+
+.emoji_name{
+  flex: 1;
 }
 
 .emoji_overlay {

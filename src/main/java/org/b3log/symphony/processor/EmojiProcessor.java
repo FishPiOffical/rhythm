@@ -28,11 +28,11 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.service.ServiceException;
-import org.b3log.symphony.model.Emoji;
 import org.b3log.symphony.model.EmojiGroup;
 import org.b3log.symphony.model.EmojiGroupItem;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
+import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.EmojiMgmtService;
 import org.b3log.symphony.service.EmojiQueryService;
 import org.b3log.symphony.util.Sessions;
@@ -42,9 +42,7 @@ import org.json.JSONObject;
 import org.b3log.latke.http.Dispatcher;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Emoji processor.
@@ -82,6 +80,9 @@ public class EmojiProcessor {
      */
     @Inject
     private EmojiQueryService emojiQueryService;
+
+    @Inject
+    private CloudService cloudService;
 
     /**
      * Register request handlers.
@@ -122,6 +123,9 @@ public class EmojiProcessor {
         Dispatcher.post("/emoji/emoji/update-sort",emojiProcessor::updateEmojiItemSort, loginCheck::handle, csrfMidware::check);
         //批量排序用户表情
         Dispatcher.post("/emoji/emoji/batch-sort",emojiProcessor::batchUpdateEmojiItemSort, loginCheck::handle, csrfMidware::check);
+
+        //迁移历史表情包
+        Dispatcher.post("/emoji/emoji/migrate",emojiProcessor::migrateOldEmoji,loginCheck::handle,csrfMidware::check);
     }
 
     /**
@@ -458,12 +462,6 @@ public class EmojiProcessor {
                 return;
             }
 
-            //判断这个表情是否在这个分组里
-            if(emojiQueryService.isEmojiInGroup(groupId, emojiId) ){
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("已经在分组里了！");
-                return;
-            }
-
             emojiMgmtService.addEmojiToGroup(groupId, emojiId, sort, name);
 
             //如果这个分组不是全部分组，需要往全部分组也放一份
@@ -645,6 +643,41 @@ public class EmojiProcessor {
         }
     }
 
+    // 迁移历史表情包
+    public void migrateOldEmoji(final RequestContext context){
+        final JSONObject currentUser = Sessions.getUser();
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+        String emojiJson = cloudService.getFromCloud(userId,"emojis");
+        if (StringUtils.isBlank(emojiJson)) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("历史表情为空，无需迁移");
+            return;
+        }
+        try {
+            JSONArray array = new JSONArray(emojiJson);
+            // 找到这个用户的全部分组id
+            JSONObject groupAll = emojiQueryService.getAllGroup(userId);
+            if(groupAll==null){
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("获取分组失败");
+                return;
+            }
+            String groupAllId = groupAll.optString(Keys.OBJECT_ID);
+            for (int i = 0; i < array.length(); i++) {
+                String url = array.getString(i);
+                String emojiId = emojiMgmtService.addEmojiByUrl(url, userId);
+
+                //判断这个表情是否在这个分组里
+                if(emojiQueryService.isEmojiInGroup(groupAllId, emojiId) ){
+                    continue;
+                }
+
+                emojiMgmtService.addEmojiToGroup(groupAllId, emojiId, 0, "");
+            }
+            context.renderJSON(StatusCodes.SUCC);
+        }catch (Exception e){
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("表情迁移失败");
+        }
+
+    }
 
 
 }
