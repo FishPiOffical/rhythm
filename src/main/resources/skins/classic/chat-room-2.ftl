@@ -108,21 +108,25 @@
                                                 <use xlink:href="#danmu"></use>
                                             </svg>
                                 <#-- z-index 130 因为猜拳红包是128 会覆盖表情包 所以这里改成130 oh-yeh！ -->
-                                <div class="hide-list" id="emojiList" style="z-index: 130">
-                                    <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
+                                <div class="hide-list" id="emojiList" style="z-index: 130; width: 440px !important; max-width: 440px;">
+                                    <div style="display: flex;width: 440px">
+                                        <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
+                                        </div>
+                                        <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
+                                        </div>
                                     </div>
-                                    <div class="hide-list-emojis__tail">
-                                        <span>
-                                        <a onclick="ChatRoom.fromURL()">从URL导入表情包</a>
-                                        </span>
-                                        <span class="hide-list-emojis__tip"></span>
-                                        <span>
-                                            <a onclick="$('#uploadEmoji input').click()">上传表情包</a>
-                                        </span>
-                                        <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">
-                                            <input type="file" name="file">
-                                        </form>
-                                    </div>
+<#--                                    <div class="hide-list-emojis__tail">-->
+<#--                                        <span>-->
+<#--                                        <a onclick="ChatRoom.fromURL()">从URL导入表情包</a>-->
+<#--                                        </span>-->
+<#--                                        <span class="hide-list-emojis__tip"></span>-->
+<#--                                        <span>-->
+<#--                                            <a onclick="$('#uploadEmoji input').click()">上传表情包</a>-->
+<#--                                        </span>-->
+<#--                                        <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">-->
+<#--                                            <input type="file" name="file">-->
+<#--                                        </form>-->
+<#--                                    </div>-->
                                 </div>
                                 <#if nightDisableMode == true>
                                     <br>
@@ -390,6 +394,7 @@
 </script>
 <script src="${staticServePath}/js/lib/echarts.min.js"></script>
 <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
+<script src="${staticServePath}/js/emoji-groups.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel-2${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/chat-room-2${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/viewer.min.js?${staticResourceVersion}"></script>

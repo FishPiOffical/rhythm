@@ -2017,6 +2017,9 @@ $(document).ready(function () {
   // 加载表情
   Comment.listenUploadEmojis();
   Comment.loadEmojis();
+  // 加载新版表情包分组
+  EmojiGroups.init('Comment', 'New');
+  Comment.loadEmojiGroupsNew();
   // 监听表情包按钮
 
   (()=>{

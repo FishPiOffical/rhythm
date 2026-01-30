@@ -830,8 +830,10 @@
                             <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
                                 <use xlink:href="#emojiIcon"></use>
                             </svg>
-                            <div class="hide-list" id="emojiList">
-                                <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
+                            <div class="hide-list" id="emojiList" style="display: flex; width: 440px">
+                                <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
+                                </div>
+                                <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
                                 </div>
                                 <div class="hide-list-emojis__tail">
                                         <span>
@@ -868,6 +870,7 @@
 </#if>
 <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
 <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/emoji-groups.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>

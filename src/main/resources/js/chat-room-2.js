@@ -161,6 +161,9 @@ var ChatRoom = {
         // 加载表情
         ChatRoom.listenUploadEmojis();
         ChatRoom.loadEmojis();
+        // 加载新版表情包分组
+        EmojiGroups.init('ChatRoom', 'New');
+        ChatRoom.loadEmojiGroupsNew();
         // 加载VIP用户
         ChatRoom.getVipUserList();
         // 监听按钮
@@ -1228,6 +1231,7 @@ border-bottom: none;
         ret.reverse();
         return ret;
     },
+
     /**
      * 发送聊天内容
      * @returns {undefined}

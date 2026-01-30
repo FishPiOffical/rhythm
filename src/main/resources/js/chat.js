@@ -760,7 +760,9 @@ var Chat = {
         });
         ret.reverse();
         return ret;
-    }
+    },
+
+
 }
 
 function getQueryVariable(variable) {
@@ -817,6 +819,9 @@ $(document).ready(function () {
     // 加载表情
     Chat.listenUploadEmojis();
     Chat.loadEmojis();
+    // 加载新版表情包分组
+    EmojiGroups.init('Chat', 'New');
+    Chat.loadEmojiGroupsNew();
     // 监听表情包按钮
 
     (()=>{
