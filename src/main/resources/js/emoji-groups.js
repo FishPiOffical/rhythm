@@ -30,6 +30,7 @@ var EmojiGroups = {
         targetObject['selectEmojiGroup' + prefix] = EmojiGroups._createSelectMethod(targetObject, prefix);
         targetObject['loadGroupEmojis' + prefix] = EmojiGroups._createLoadEmojisMethod(targetObject, prefix, targetObjectName);
         targetObject['renderGroupEmojis' + prefix] = EmojiGroups._createRenderEmojisMethod(targetObject, prefix, targetObjectName);
+        targetObject['uploadEmojiToGroup' + prefix] = EmojiGroups._createUploadEmojiMethod(targetObject, prefix);
 
         console.log('表情包分组模块已挂载到对象:', targetObjectName);
     },
@@ -203,6 +204,37 @@ var EmojiGroups = {
                 }
             }
             $('#emojis' + prefix).html(html);
+        };
+    },
+
+    /**
+     * 创建上传表情到分组方法
+     */
+    _createUploadEmojiMethod: function (targetObject, prefix) {
+        return function (emojiUrl) {
+
+
+            $.ajax({
+                url: Label.servePath + '/emoji/upload',
+                type: 'POST',
+                data: {
+                    url: emojiUrl,
+                },
+                headers: {'csrfToken': Label.csrfToken},
+                cache: false,
+                success: function (result) {
+                    if (result.code == 0) {
+                        // alert('表情上传成功');
+                    } else {
+                        console.error('上传表情失败:', result.msg);
+                        alert('上传表情失败: ' + result.msg);
+                    }
+                },
+                error: function () {
+                    console.error('上传表情失败，请检查网络');
+                    alert('上传表情失败，请检查网络');
+                }
+            });
         };
     }
 };

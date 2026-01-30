@@ -98,6 +98,9 @@ public class EmojiProcessor {
         Dispatcher.get("/emoji/groups", emojiProcessor::getUserGroups, loginCheck::handle, csrfMidware::fill);
         //获取用户分组里的表情
         Dispatcher.get("/emoji/group/emojis", emojiProcessor::getGroupEmojis, loginCheck::handle, csrfMidware::fill);
+        //一键上传表情
+        Dispatcher.post("/emoji/upload", emojiProcessor::uploadEmoji, loginCheck::handle, csrfMidware::check);
+
 
         //用户添加分组
         Dispatcher.post("/emoji/group/create", emojiProcessor::createGroup, loginCheck::handle, csrfMidware::check);
@@ -105,8 +108,6 @@ public class EmojiProcessor {
         Dispatcher.post("/emoji/group/update", emojiProcessor::updateGroup, loginCheck::handle, csrfMidware::check);
         //用户删除分组
         Dispatcher.post("/emoji/group/delete",emojiProcessor::deleteGroup, loginCheck::handle, csrfMidware::check);
-        //批量排序用户分组
-        Dispatcher.post("/emoji/group/batch-sort",emojiProcessor::batchUpdateGroupSort, loginCheck::handle, csrfMidware::check);
 
 
         //用户添加表情到分组
@@ -117,8 +118,6 @@ public class EmojiProcessor {
         Dispatcher.post("/emoji/group/remove-emoji",emojiProcessor::removeEmojiFromGroup, loginCheck::handle, csrfMidware::check);
         //用户修改表情名字（全部分组里编辑的时候，问是否要同步修改别的分组的）
         Dispatcher.post("/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle, csrfMidware::check);
-        //批量排序用户表情
-        Dispatcher.post("/emoji/emoji/batch-sort",emojiProcessor::batchUpdateEmojiItemSort, loginCheck::handle, csrfMidware::check);
         //迁移历史表情包
         Dispatcher.post("/emoji/emoji/migrate",emojiProcessor::migrateOldEmoji,loginCheck::handle,csrfMidware::check);
     }
@@ -191,6 +190,31 @@ public class EmojiProcessor {
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Get group emojis failed", e);
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("获取分组表情失败");
+        }
+    }
+
+
+    // 一键上传表情，通过url上传，只传到全部分组
+    public void uploadEmoji(final RequestContext context) {
+        try {
+            final JSONObject currentUser = Sessions.getUser();
+            final String userId = currentUser.optString(Keys.OBJECT_ID);
+            final String url = context.param("url");
+
+            JSONObject group = emojiQueryService.getAllGroup(userId);
+            if(group == null){
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到分组");
+                return;
+            }
+            final String groupId = group.optString(Keys.OBJECT_ID);
+
+            String emojiId = emojiMgmtService.addEmojiByUrl(url, userId);
+
+            emojiMgmtService.addEmojiToGroup(groupId, emojiId, 0, "");
+
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (Exception e) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("一键上传失败");
         }
     }
 
