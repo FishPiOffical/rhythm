@@ -135,8 +135,8 @@
             </div>
             <button style="margin-left: 10px" onclick="Settings.createEmojiGroup()">添加分组</button>
         </div>
-        <div onclick="Settings.addEmojiByUrl()">通过url添加表情</div>
-        <div class="fn__flex flex flex-wrap" id="groupEmojiList" style="flex-wrap: wrap;overflow: scroll;max-height: 300px">
+        <button onclick="Settings.addEmojiByUrl()" style="margin: 4px 0px">通过url添加表情</button>
+        <div class="fn__flex flex flex-wrap" id="groupEmojiList" style="flex-wrap: wrap;overflow-y: scroll;max-height: 300px">
 
         </div>
 

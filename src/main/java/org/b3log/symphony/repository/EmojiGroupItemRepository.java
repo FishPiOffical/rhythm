@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.repository;
 
+import org.b3log.latke.Keys;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.EmojiGroupItem;
@@ -82,8 +83,25 @@ public class EmojiGroupItemRepository extends AbstractRepository {
     public JSONObject getByGroupIdAndEmojiId(final String groupId, final String emojiId) throws RepositoryException {
         final Query query = new Query().setFilter(CompositeFilterOperator.and(
             new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_GROUP_ID, FilterOperator.EQUAL, groupId),
-            new PropertyFilter("oId", FilterOperator.EQUAL, emojiId)
+            new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_EMOJI_ID, FilterOperator.EQUAL, emojiId)
         ));
+        return getFirst(query);
+    }
+
+    public JSONObject getByItemId(final String itemId) throws RepositoryException {
+        final Query query = new Query().setFilter(
+            new PropertyFilter(Keys.OBJECT_ID, FilterOperator.EQUAL, itemId)
+        );
+        return getFirst(query);
+    }
+
+    public JSONObject getByGroupIdAndItemId(final String groupId,final String itemId) throws RepositoryException {
+        final Query query = new Query().setFilter(
+                CompositeFilterOperator.and(
+                        new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_GROUP_ID, FilterOperator.EQUAL, groupId),
+                        new PropertyFilter(Keys.OBJECT_ID, FilterOperator.EQUAL, itemId)
+                )
+        );
         return getFirst(query);
     }
 

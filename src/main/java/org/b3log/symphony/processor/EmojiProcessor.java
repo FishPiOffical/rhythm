@@ -101,10 +101,8 @@ public class EmojiProcessor {
 
         //用户添加分组
         Dispatcher.post("/emoji/group/create", emojiProcessor::createGroup, loginCheck::handle, csrfMidware::check);
-        //用户修改分组名称
-        Dispatcher.post("/emoji/group/update-name",emojiProcessor::updateGroupName, loginCheck::handle, csrfMidware::check);
-        //用户修改分组排序
-        Dispatcher.post("/emoji/group/update-sort",emojiProcessor::updateGroupSort, loginCheck::handle, csrfMidware::check);
+        //用户修改分组（名称和排序）
+        Dispatcher.post("/emoji/group/update", emojiProcessor::updateGroup, loginCheck::handle, csrfMidware::check);
         //用户删除分组
         Dispatcher.post("/emoji/group/delete",emojiProcessor::deleteGroup, loginCheck::handle, csrfMidware::check);
         //批量排序用户分组
@@ -118,12 +116,9 @@ public class EmojiProcessor {
         //用户从分组删除表情(如果是全部分组删除，则所有的分组里都删，如果不是全部分组，只删除当前分组的)
         Dispatcher.post("/emoji/group/remove-emoji",emojiProcessor::removeEmojiFromGroup, loginCheck::handle, csrfMidware::check);
         //用户修改表情名字（全部分组里编辑的时候，问是否要同步修改别的分组的）
-        Dispatcher.post("/emoji/emoji/update-name",emojiProcessor::updateEmojiItemName, loginCheck::handle, csrfMidware::check);
-        //用户修改表情排序
-        Dispatcher.post("/emoji/emoji/update-sort",emojiProcessor::updateEmojiItemSort, loginCheck::handle, csrfMidware::check);
+        Dispatcher.post("/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle, csrfMidware::check);
         //批量排序用户表情
         Dispatcher.post("/emoji/emoji/batch-sort",emojiProcessor::batchUpdateEmojiItemSort, loginCheck::handle, csrfMidware::check);
-
         //迁移历史表情包
         Dispatcher.post("/emoji/emoji/migrate",emojiProcessor::migrateOldEmoji,loginCheck::handle,csrfMidware::check);
     }
@@ -237,11 +232,12 @@ public class EmojiProcessor {
      *
      * @param context the specified context
      */
-    public void updateGroupName(final RequestContext context) {
+    public void updateGroup(final RequestContext context) {
         try {
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
             final String newName = requestJSONObject.optString("name");
+            final int newSort = requestJSONObject.optInt("sort",0);
 
             if (StringUtils.isBlank(groupId) || StringUtils.isBlank(newName)) {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少参数");
@@ -257,7 +253,7 @@ public class EmojiProcessor {
                 return;
             }
 
-            emojiMgmtService.updateGroupName(groupId, newName);
+            emojiMgmtService.updateGroup(groupId, newName, newSort);
 
             context.renderJSON(StatusCodes.SUCC);
         } catch (final ServiceException e) {
@@ -268,38 +264,6 @@ public class EmojiProcessor {
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("更新分组失败");
         }
     }
-
-    // 修改分组排序
-    public void updateGroupSort(final RequestContext context) {
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            final String groupId = requestJSONObject.optString("groupId");
-            final int sort = requestJSONObject.optInt("sort", 0);
-            if (StringUtils.isBlank(groupId)) {
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("分组id不能为空");
-                return;
-            }
-            // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
-            final String userId = currentUser.optString(Keys.OBJECT_ID);
-            JSONObject group = emojiQueryService.getGroupById(groupId);
-            if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到分组");
-                return;
-            }
-
-
-            emojiMgmtService.updateGroupSort(groupId, sort);
-            context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            LOGGER.log(Level.ERROR, "Update group failed", e);
-            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg(e.getMessage());
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Update group failed", e);
-            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("更新分组失败");
-        }
-    }
-
 
     /**
      * Deletes an emoji group.
@@ -525,16 +489,24 @@ public class EmojiProcessor {
     }
 
     // 用户修改表情名字
-    public void updateEmojiItemName(final RequestContext context) {
+    /**
+     * Updates an emoji item (name and sort).
+     *
+     * @param context specified context
+     */
+    public void updateEmojiItem(final RequestContext context) {
         try {
             final JSONObject requestJSONObject = context.requestJSON();
             final String emojiItemId = requestJSONObject.optString("oId");
             final String emojiGroupId = requestJSONObject.optString("groupId");
             final String name = requestJSONObject.optString("name");
-            if (StringUtils.isBlank(emojiItemId) || StringUtils.isBlank(name)) {
+            final int sort = requestJSONObject.optInt("sort");
+
+            if (StringUtils.isBlank(emojiItemId) || StringUtils.isBlank(emojiGroupId)) {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少参数");
                 return;
             }
+
             // 先判断这个分组是不是这个用户的
             final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
@@ -544,60 +516,22 @@ public class EmojiProcessor {
                 return;
             }
 
+
+            JSONObject item = emojiQueryService.getGroupItemById(emojiGroupId,emojiItemId);
             // 判断这个表情项是否在这个分组里
-            JSONObject item = emojiQueryService.getEmojiItemById(emojiGroupId, emojiItemId);
-            if(item == null){
+            if (item==null) {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到表情");
                 return;
             }
+            emojiMgmtService.updateEmoji(emojiItemId, name,sort);
 
-            emojiMgmtService.updateEmojiName(emojiGroupId,emojiItemId, name);
             context.renderJSON(StatusCodes.SUCC);
         } catch (final ServiceException e) {
-            LOGGER.log(Level.ERROR, "Update emoji name failed", e);
+            LOGGER.log(Level.ERROR, "Update emoji failed", e);
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg(e.getMessage());
         } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Update emoji name failed", e);
-            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("更新表情名字失败");
-        }
-    }
-
-    // 更新分组里表情排序
-    public void updateEmojiItemSort(final RequestContext context) {
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            final String emojiItemId = requestJSONObject.optString("oId");
-            final String emojiGroupId = requestJSONObject.optString("groupId");
-            final int sort = requestJSONObject.optInt("sort");
-            if (StringUtils.isBlank(emojiItemId)) {
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少参数");
-                return;
-            }
-            // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
-            final String userId = currentUser.optString(Keys.OBJECT_ID);
-            JSONObject group = emojiQueryService.getGroupById(emojiGroupId);
-            if (group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))) {
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到分组");
-                return;
-            }
-
-            // 判断这个表情项是否在这个分组里
-            Boolean isInGroup = emojiQueryService.isEmojiInGroup(emojiGroupId, emojiItemId);
-            if (!isInGroup) {
-                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到表情");
-                return;
-            }
-
-
-            emojiMgmtService.updateEmojiSort(emojiGroupId, emojiItemId, sort);
-            context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            LOGGER.log(Level.ERROR, "Update emoji sort failed", e);
-            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg(e.getMessage());
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Update emoji sort failed", e);
-            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("更新排序失败");
+            LOGGER.log(Level.ERROR, "Update emoji failed", e);
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("更新表情失败");
         }
     }
 
@@ -628,7 +562,7 @@ public class EmojiProcessor {
                     context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到表情");
                     return;
                 }
-                JSONObject emojiItem = emojiQueryService.getEmojiItemById(emojiGroupId,groupItemIds.optString(i));
+                JSONObject emojiItem = emojiQueryService.getGroupItemById(emojiGroupId,groupItemIds.optString(i));
                 emojiItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, sorts.optInt(i));
                 emojiItems.add(emojiItem);
             }

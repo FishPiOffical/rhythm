@@ -116,17 +116,10 @@ public class EmojiQueryService {
                 return new ArrayList<>();
             }
 
-            String[] emojiIds = new String[groupItems.size()];
-            for (int i = 0; i < groupItems.size(); i++) {
-                emojiIds[i] = groupItems.get(i).optString(EmojiGroupItem.EMOJI_GROUP_ITEM_EMOJI_ID);
-            }
-
-            List<JSONObject> emojis = emojiRepository.getEmojisByIds(emojiIds);
-
             // Merge emoji info with group item name
             List<JSONObject> result = new ArrayList<>();
-            for (int i = 0; i < emojis.size(); i++) {
-                JSONObject emoji = emojis.get(i);
+            for (int i = 0; i < groupItems.size(); i++) {
+                JSONObject emoji = emojiRepository.getById(groupItems.get(i).optString(EmojiGroupItem.EMOJI_GROUP_ITEM_EMOJI_ID));
                 JSONObject groupItem = groupItems.get(i);
                 JSONObject item = new JSONObject();
                 item.put("oId", groupItem.optString(Keys.OBJECT_ID));
@@ -197,9 +190,9 @@ public class EmojiQueryService {
     }
 
     // 根据emojiItemId 获取emojiItem
-    public JSONObject getEmojiItemById(final String groupId,final String emojiItemId) {
+    public JSONObject getGroupItemById(final String groupId,final String emojiItemId) {
         try {
-            return emojiGroupItemRepository.getByGroupIdAndEmojiId(groupId,emojiItemId);
+            return emojiGroupItemRepository.getByGroupIdAndItemId(groupId,emojiItemId);
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Get emoji item by id failed", e);
             return null;

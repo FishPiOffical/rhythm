@@ -1568,8 +1568,8 @@ var Settings = {
           e.stopPropagation()
           const itemId = $(this).closest('.emoji_item').data('id')
           const itemName = $(this).closest('.emoji_item').data('name')
-          console.log('rename emoji', itemId, itemName)
-          Settings.renameEmojiItem(itemId, itemName)
+          const itemSort = $(this).closest('.emoji_item').data('sort') || 0
+          Settings.editEmojiItem(itemId, itemName, itemSort)
       })
 
   },
@@ -1609,6 +1609,7 @@ var Settings = {
   renderEmojiGroups: function (groups) {
      let $container = $('#emojiGroupBox')
       $container.empty()
+
       for(let i=0;i<groups.length;i++){
           let group = groups[i];
           let isAll = group.type === 1;
@@ -1662,7 +1663,7 @@ var Settings = {
           // 点击编辑按钮
           $btnEdit.on('click', function (e) {
               e.stopPropagation()
-              Settings.editEmojiGroupName(group.oId, group.name)
+              Settings.editEmojiGroup(group.oId, group.name, group.sort)
           })
 
           // 点击删除按钮
@@ -1716,12 +1717,12 @@ var Settings = {
   renderGroupEmojis: function (emojis) {
     var $groupEmojiList = $('#groupEmojiList');
       $groupEmojiList.empty();
-    
+
     if (emojis.length === 0) {
         $groupEmojiList.html('<div>暂无表情</div>');
         return;
     }
-
+    emojis.sort((b, a) => a.sort - b.sort)
       emojis.forEach(item => {
           // 外层容器
           const $emojiItem = $('<div>', {
@@ -1729,6 +1730,7 @@ var Settings = {
               'data-id': item.oId,
               'data-name': item.name || '',
               'data-emoji-id': item.emojiId,
+              'data-sort': item.sort || 0,
           })
 
           // 图片包裹
@@ -1787,49 +1789,90 @@ var Settings = {
       })
   },
   /**
-   * 编辑分组名称
+   * 编辑分组（名称和排序）
    * @param {string} groupId 分组ID
    * @param {string} currentName 当前分组名称
+   * @param {number} currentSort 当前排序值
    */
-  editEmojiGroupName: function (groupId, currentName) {
+  editEmojiGroup: function (groupId, currentName, currentSort) {
     if (!groupId) {
       Util.alert('分组ID不能为空');
       return;
     }
 
-    var newName = prompt('请输入新的分组名称：', currentName);
-    if (newName === null) {
-      return;
+    // 生成弹窗HTML
+    var html = '<div class="form fn-clear" style="padding: 20px;">';
+    html += '<div style="margin-bottom: 15px;">';
+    html += '<label style="display: block; margin-bottom: 8px;">分组名称：</label>';
+    html += '<input id="editGroupName" type="text" value="' + (currentName || '') + '" style="width: 100%; padding: 8px; box-sizing: border-box;"/>';
+    html += '</div>';
+    html += '<div style="margin-bottom: 15px;">';
+    html += '<label style="display: block; margin-bottom: 8px;">排序值：</label>';
+    html += '<input id="editGroupSort" type="number" value="' + (currentSort || 0) + '" style="width: 100%; padding: 8px; box-sizing: border-box;"/>';
+    html += '</div>';
+    html += '<br><br>';
+    html += '<button onclick="Settings.confirmEditGroup(\'' + groupId + '\')" class="fn-right green">确定</button>';
+    html += '<button onclick="$(\'#editGroupDialog\').dialog(\'close\')" class="fn-right" style="margin-right: 10px;">取消</button>';
+    html += '</div>';
+
+    // 检查弹窗是否存在，如果不存在则创建
+    if ($('#editGroupDialog').length === 0) {
+      $('body').append('<div id="editGroupDialog"></div>');
     }
 
-    if (!newName || newName.trim() === '') {
+    $('#editGroupDialog').html(html);
+
+    // 初始化弹窗
+    $('#editGroupDialog').dialog({
+      'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
+      'height': 'auto',
+      'modal': true,
+      'hideFooter': true,
+      'title': '编辑分组'
+    });
+
+    $('#editGroupDialog').dialog('open');
+  },
+
+  /**
+   * 确认编辑分组
+   * @param {string} groupId 分组ID
+   */
+  confirmEditGroup: function (groupId) {
+    var newName = $('#editGroupName').val().trim();
+    var newSort = parseInt($('#editGroupSort').val());
+
+    if (!newName) {
       Util.alert('分组名称不能为空');
       return;
     }
 
-    if (newName === currentName) {
+    if (isNaN(newSort)) {
+      Util.alert('排序值必须为数字');
       return;
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/group/update-name',
+      url: Label.servePath + '/emoji/group/update',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: groupId,
-        name: newName.trim()
+        name: newName,
+        sort: newSort
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('更新分组名称成功');
+          Util.alert('更新分组成功');
+          $('#editGroupDialog').dialog('close');
           Settings.loadEmojiGroups();
         } else {
-          Util.alert(result.msg || '更新分组名称失败');
+          Util.alert(result.msg || '更新分组失败');
         }
       },
       error: function () {
-        Util.alert('更新分组名称失败，请检查网络');
+        Util.alert('更新分组失败，请检查网络');
       }
     });
   },
@@ -1987,43 +2030,88 @@ var Settings = {
     });
   },
   /**
-   * 重命名分组内表情
+   * 编辑表情项（名称和排序）
    */
-  renameEmojiItem: function (itemId, currentName) {
-    var newName = prompt('请输入新的表情名称：', currentName || '');
-    if (newName === null) {
+  editEmojiItem: function (itemId, currentName, currentSort) {
+    if (!itemId) {
+      Util.alert('表情ID不能为空');
       return;
     }
-    
-    if (!newName || newName.trim() === '') {
+
+    // 生成弹窗HTML
+    var html = '<div class="form fn-clear" style="padding: 20px;">';
+    html += '<div style="margin-bottom: 15px;">';
+    html += '<label style="display: block; margin-bottom: 8px;">表情名称：</label>';
+    html += '<input id="editEmojiName" type="text" value="' + (currentName || '') + '" style="width: 100%; padding: 8px; box-sizing: border-box;"/>';
+    html += '</div>';
+    html += '<div style="margin-bottom: 15px;">';
+    html += '<label style="display: block; margin-bottom: 8px;">排序值：</label>';
+    html += '<input id="editEmojiSort" type="number" value="' + (currentSort || 0) + '" style="width: 100%; padding: 8px; box-sizing: border-box;"/>';
+    html += '</div>';
+    html += '<br><br>';
+    html += '<button onclick="Settings.confirmEditEmoji(\'' + itemId + '\')" class="fn-right green">确定</button>';
+    html += '<button onclick="$(\'#editEmojiDialog\').dialog(\'close\')" class="fn-right" style="margin-right: 10px;">取消</button>';
+    html += '</div>';
+
+    // 检查弹窗是否存在，如果不存在则创建
+    if ($('#editEmojiDialog').length === 0) {
+      $('body').append('<div id="editEmojiDialog"></div>');
+    }
+
+    $('#editEmojiDialog').html(html);
+
+    // 初始化弹窗
+    $('#editEmojiDialog').dialog({
+      'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
+      'height': 'auto',
+      'modal': true,
+      'hideFooter': true,
+      'title': '编辑表情'
+    });
+
+    $('#editEmojiDialog').dialog('open');
+  },
+
+  /**
+   * 确认编辑表情项
+   * @param {string} itemId 表情项ID
+   */
+  confirmEditEmoji: function (itemId) {
+    var newName = $('#editEmojiName').val().trim();
+    var newSort = parseInt($('#editEmojiSort').val());
+
+    if (!newName) {
       Util.alert('表情名称不能为空');
       return;
     }
-    
-    if (newName === currentName) {
+
+    if (isNaN(newSort)) {
+      Util.alert('排序值必须为数字');
       return;
     }
-    
+
     $.ajax({
-      url: Label.servePath + '/emoji/emoji/update-name',
+      url: Label.servePath + '/emoji/emoji/update',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         oId: itemId,
         groupId: Settings.currentEmojiGroupId,
-        name: newName.trim()
+        name: newName,
+        sort: newSort
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('重命名成功');
+          Util.alert('更新表情成功');
+          $('#editEmojiDialog').dialog('close');
           Settings.loadGroupEmojis(Settings.currentEmojiGroupId);
         } else {
-          Util.alert(result.msg || '重命名失败');
+          Util.alert(result.msg || '更新表情失败');
         }
       },
       error: function () {
-        Util.alert('重命名失败，请检查网络');
+        Util.alert('更新表情失败，请检查网络');
       }
     });
   },
