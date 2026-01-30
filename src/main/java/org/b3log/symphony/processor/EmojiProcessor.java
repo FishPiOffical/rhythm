@@ -129,7 +129,12 @@ public class EmojiProcessor {
      */
     public void getUserGroups(final RequestContext context) {
         try {
-            final JSONObject currentUser = Sessions.getUser();
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final String userId = currentUser.optString(Keys.OBJECT_ID);
 
             // Ensure user has "all" group
@@ -166,7 +171,12 @@ public class EmojiProcessor {
      */
     public void getGroupEmojis(final RequestContext context) {
         try {
-            final JSONObject currentUser = Sessions.getUser();
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             final String groupId = context.param("groupId");
 
@@ -197,7 +207,12 @@ public class EmojiProcessor {
     // 一键上传表情，通过url上传，只传到全部分组
     public void uploadEmoji(final RequestContext context) {
         try {
-            final JSONObject currentUser = Sessions.getUser();
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             final String url = context.param("url");
 
@@ -225,6 +240,12 @@ public class EmojiProcessor {
      */
     public void createGroup(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupName = requestJSONObject.optString("name");
             final int sort = requestJSONObject.optInt("sort", 0);
@@ -237,7 +258,6 @@ public class EmojiProcessor {
             //检查分组名称是否已存在
 
 
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
 
             emojiMgmtService.createGroup(userId, groupName, sort);
@@ -258,6 +278,12 @@ public class EmojiProcessor {
      */
     public void updateGroup(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
             final String newName = requestJSONObject.optString("name");
@@ -269,7 +295,6 @@ public class EmojiProcessor {
             }
 
             // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject group = emojiQueryService.getGroupById(groupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
@@ -296,6 +321,12 @@ public class EmojiProcessor {
      */
     public void deleteGroup(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
 
@@ -305,7 +336,6 @@ public class EmojiProcessor {
             }
 
             // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject group = emojiQueryService.getGroupById(groupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
@@ -328,6 +358,12 @@ public class EmojiProcessor {
     // 批量修改分组排序
     public void batchUpdateGroupSort(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final JSONArray groupIds = requestJSONObject.optJSONArray("ids");
             final JSONArray sorts = requestJSONObject.optJSONArray("sorts");
@@ -340,7 +376,6 @@ public class EmojiProcessor {
                 return;
             }
             // 判断这些分组都是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             List<JSONObject> groups = new ArrayList<>();
             for (int i = 0; i < groupIds.length(); i++) {
@@ -371,6 +406,12 @@ public class EmojiProcessor {
      */
     public void addEmojiToGroup(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
             final String emojiId = requestJSONObject.optString("emojiId");
@@ -383,7 +424,6 @@ public class EmojiProcessor {
             }
 
             // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject group = emojiQueryService.getGroupById(groupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
@@ -425,7 +465,12 @@ public class EmojiProcessor {
     // 添加url表情到分组，如果不是全部分组，需要往全部分组也放一份
     public void addUrlEmojiToGroup(final RequestContext context) {
         try {
-            final JSONObject currentUser = Sessions.getUser();
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
@@ -475,6 +520,12 @@ public class EmojiProcessor {
      */
     public void removeEmojiFromGroup(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String groupId = requestJSONObject.optString("groupId");
             final String emojiId = requestJSONObject.optString("emojiId");
@@ -484,7 +535,6 @@ public class EmojiProcessor {
                 return;
             }
             // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject group = emojiQueryService.getGroupById(groupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
@@ -520,6 +570,12 @@ public class EmojiProcessor {
      */
     public void updateEmojiItem(final RequestContext context) {
         try {
+            JSONObject currentUser = Sessions.getUser();
+            try {
+                final JSONObject requestJSONObject = context.requestJSON();
+                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
             final JSONObject requestJSONObject = context.requestJSON();
             final String emojiItemId = requestJSONObject.optString("oId");
             final String emojiGroupId = requestJSONObject.optString("groupId");
@@ -532,7 +588,6 @@ public class EmojiProcessor {
             }
 
             // 先判断这个分组是不是这个用户的
-            final JSONObject currentUser = Sessions.getUser();
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject group = emojiQueryService.getGroupById(emojiGroupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
@@ -603,7 +658,12 @@ public class EmojiProcessor {
 
     // 迁移历史表情包
     public void migrateOldEmoji(final RequestContext context){
-        final JSONObject currentUser = Sessions.getUser();
+        JSONObject currentUser = Sessions.getUser();
+        try {
+            final JSONObject requestJSONObject = context.requestJSON();
+            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
+        } catch (NullPointerException ignored) {
+        }
         final String userId = currentUser.optString(Keys.OBJECT_ID);
         String emojiJson = cloudService.getFromCloud(userId,"emojis");
         if (StringUtils.isBlank(emojiJson)) {
