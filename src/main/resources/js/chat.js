@@ -806,11 +806,7 @@ $(document).ready(function () {
     $("body").click(function () {
         $("details[open]").removeAttr("open");
     });
-    // 表情包初始化
-    // 加载表情
-    Chat.listenUploadEmojis();
-    Chat.loadEmojis();
-    // 加载新版表情包分组
+    // 表情包初始化（仅新版 v2）
     EmojiGroups.init('Chat', 'New');
     Chat.loadEmojiGroupsNew();
     // 监听表情包按钮

@@ -1484,11 +1484,7 @@ Article.init()
 $(document).ready(function () {
   Comment.init()
 
-  // 表情包初始化
-  // 加载表情
-  Comment.listenUploadEmojis();
-  Comment.loadEmojis();
-  // 加载新版表情包分组
+  // 表情包初始化（仅新版 v2）
   EmojiGroups.init('Comment', 'New');
   Comment.loadEmojiGroupsNew();
   // 监听表情包按钮

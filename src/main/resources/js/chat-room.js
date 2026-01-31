@@ -157,11 +157,7 @@ var ChatRoom = {
         if (userRemarkList) {
             ChatRoom.remarkList = JSON.parse(userRemarkList);
         }
-        // 表情包初始化
-        // 加载表情
-        ChatRoom.listenUploadEmojis();
-        ChatRoom.loadEmojis();
-        // 加载新版表情包分组
+        // 表情包初始化（仅新版 v2）
         EmojiGroups.init('ChatRoom', 'New');
         ChatRoom.loadEmojiGroupsNew();
         // 加载VIP用户
