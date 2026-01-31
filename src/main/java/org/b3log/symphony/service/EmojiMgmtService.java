@@ -262,13 +262,14 @@ public class EmojiMgmtService {
     @Transactional
     public String addEmojiByUrl( final String url,final String uploaderId ) throws ServiceException {
         try {
+            String url1 = url.split("\\?")[0];
             // 检查url是否存在
-            JSONObject existingEmoji = emojiRepository.getByUrl(url);
+            JSONObject existingEmoji = emojiRepository.getByUrl(url1);
             if (existingEmoji != null) {
                 return existingEmoji.optString(Keys.OBJECT_ID);
             }
             JSONObject object = new JSONObject();
-            object.put(Emoji.EMOJI_URL, url);
+            object.put(Emoji.EMOJI_URL, url1);
             object.put(Emoji.EMOJI_UPLOADER_ID, uploaderId);
             object.put(Emoji.EMOJI_CREATE_TIME, System.currentTimeMillis());
             return emojiRepository.add(object);

@@ -26,7 +26,6 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Emoji;
-import org.b3log.symphony.model.EmojiGroup;
 import org.b3log.symphony.model.EmojiGroupItem;
 import org.b3log.symphony.repository.EmojiGroupItemRepository;
 import org.b3log.symphony.repository.EmojiGroupRepository;
@@ -93,7 +92,7 @@ public class EmojiQueryService {
      * @param userId the user id
      * @return "all" group object, returns {@code null} if not found
      */
-    public JSONObject getAllGroup(final String userId) {
+    public JSONObject getTypeAllGroup(final String userId) {
         try {
             return emojiGroupRepository.getAllGroup(userId);
         } catch (final RepositoryException e) {

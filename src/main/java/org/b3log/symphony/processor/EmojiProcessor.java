@@ -138,7 +138,7 @@ public class EmojiProcessor {
             final String userId = currentUser.optString(Keys.OBJECT_ID);
 
             // Ensure user has "all" group
-            JSONObject allGroup = emojiQueryService.getAllGroup(userId);
+            JSONObject allGroup = emojiQueryService.getTypeAllGroup(userId);
             if (allGroup == null) {
                 emojiMgmtService.createAllGroup(userId);
             }
@@ -216,7 +216,7 @@ public class EmojiProcessor {
             final String userId = currentUser.optString(Keys.OBJECT_ID);
             final String url = context.param("url");
 
-            JSONObject group = emojiQueryService.getAllGroup(userId);
+            JSONObject group = emojiQueryService.getTypeAllGroup(userId);
             if(group == null){
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("未找到分组");
                 return;
@@ -447,7 +447,7 @@ public class EmojiProcessor {
 
             //如果这个分组不是全部分组，需要往全部分组也放一份
             if(group.optInt(EmojiGroup.EMOJI_GROUP_TYPE)!=EmojiGroup.EMOJI_GROUP_TYPE_ALL){
-                JSONObject groupAll = emojiQueryService.getAllGroup(userId);
+                JSONObject groupAll = emojiQueryService.getTypeAllGroup(userId);
                 emojiMgmtService.addEmojiToGroup(groupAll.optString(Keys.OBJECT_ID), emojiId, sort, name);
             }
 
@@ -499,7 +499,7 @@ public class EmojiProcessor {
 
             //如果这个分组不是全部分组，需要往全部分组也放一份
             if(group.optInt(EmojiGroup.EMOJI_GROUP_TYPE)!=EmojiGroup.EMOJI_GROUP_TYPE_ALL){
-                JSONObject groupAll = emojiQueryService.getAllGroup(userId);
+                JSONObject groupAll = emojiQueryService.getTypeAllGroup(userId);
                 emojiMgmtService.addEmojiToGroup(groupAll.optString(Keys.OBJECT_ID), emojiId, sort, name);
             }
 
@@ -673,7 +673,7 @@ public class EmojiProcessor {
         try {
             JSONArray array = new JSONArray(emojiJson);
             // 找到这个用户的全部分组id
-            JSONObject groupAll = emojiQueryService.getAllGroup(userId);
+            JSONObject groupAll = emojiQueryService.getTypeAllGroup(userId);
             if(groupAll==null){
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("获取分组失败");
                 return;
