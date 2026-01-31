@@ -197,16 +197,27 @@ var EmojiGroups = {
             }
 
             if (emojis.length === 0) {
-                html = '<div style="text-align: center; padding: 20px; color: #999;">该分组暂无表情</div>';
+                var manageUrl = Label.servePath + '/settings/function#emojiGroupBox';
+                html = '<div style="text-align: center; padding: 20px; color: #999; line-height: 1.6;">' +
+                    '该分组暂无表情<br>' +
+                    '<a style="color:#1890ff;" target="_blank" href="' + manageUrl + '">前往表情包管理迁移旧表情</a>' +
+                    '</div>';
             } else {
                 emojis.sort(function (b, a) { return a.sort - b.sort; });
                 for (let i = 0; i < emojis.length; i++) {
-                    html += '<button onclick="' + targetObjectName + '.editor.setValue(' + targetObjectName + '.editor.getValue() + \'![图片表情](' + emojis[i].url + ')\')">';
+                    var url = String(emojis[i].url || '').replace(/"/g, '&quot;');
+                    html += '<button class="emoji-insert-btn" data-url="' + url + '">';
                     html += '<img style="max-height: 50px" class="vditor-emojis__icon" src="' + emojis[i].url + '">';
                     html += '</button>';
                 }
             }
-            $('#emojis' + prefix).html(html);
+            var $box = $('#emojis' + prefix);
+            $box.html(html);
+            $box.off('click.emojiInsert').on('click.emojiInsert', 'button.emoji-insert-btn', function (e) {
+                e.preventDefault();
+                var url = $(this).data('url');
+                EmojiGroups.insertEmojiToEditor(targetObjectName, url);
+            });
         };
     },
 
@@ -239,5 +250,36 @@ var EmojiGroups = {
                 }
             });
         };
+    },
+
+    /**
+     * 将表情插入编辑器并立即收起弹层。
+     * @param {string} targetObjectName 宿主对象名称，例如 Comment/Chat/ChatRoom
+     * @param {string} emojiUrl 表情图片地址
+     */
+    insertEmojiToEditor: function (targetObjectName, emojiUrl) {
+        var target = window[targetObjectName];
+        if (!target || !target.editor) {
+            console.error('编辑器对象不存在');
+            return;
+        }
+        if (target.editor.focus) {
+            target.editor.focus();
+        }
+        target.editor.setValue(target.editor.getValue() + '![图片表情](' + emojiUrl + ')');
+        if (target.editor.focus) {
+            target.editor.focus();
+        }
+        EmojiGroups.closePanel();
+    },
+
+    /**
+     * 关闭表情列表弹层。
+     */
+    closePanel: function () {
+        var $list = $('#emojiList');
+        if ($list.length) {
+            $list.removeClass('showList');
+        }
     }
 };

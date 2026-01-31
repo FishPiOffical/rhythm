@@ -120,6 +120,19 @@ public class EmojiProcessor {
         Dispatcher.post("/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle, csrfMidware::check);
         //迁移历史表情包
         Dispatcher.post("/emoji/emoji/migrate",emojiProcessor::migrateOldEmoji,loginCheck::handle,csrfMidware::check);
+
+        // ====== 无需 CSRF 的 API 版（便于客户端带 apiKey 调用）======
+        Dispatcher.get("/api/emoji/groups", emojiProcessor::getUserGroups, loginCheck::handle);
+        Dispatcher.get("/api/emoji/group/emojis", emojiProcessor::getGroupEmojis, loginCheck::handle);
+        Dispatcher.post("/api/emoji/upload", emojiProcessor::uploadEmoji, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/create", emojiProcessor::createGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/update", emojiProcessor::updateGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/delete", emojiProcessor::deleteGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/add-emoji", emojiProcessor::addEmojiToGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/add-url-emoji", emojiProcessor::addUrlEmojiToGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/remove-emoji", emojiProcessor::removeEmojiFromGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle);
+        Dispatcher.post("/api/emoji/emoji/migrate", emojiProcessor::migrateOldEmoji, loginCheck::handle);
     }
 
     /**
