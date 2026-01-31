@@ -2252,7 +2252,10 @@ var Settings = {
       return;
     }
     const $btn = $('button:contains("迁移历史表情")').first();
+    const $loading = $('#emoji-migrate-loading').length ? $('#emoji-migrate-loading')
+      : $('<span id="emoji-migrate-loading" style="margin-left:8px;color:#1890ff;display:inline-flex;align-items:center;font-size:12px;">⏳ 迁移中...</span>').insertAfter($btn);
     $btn.prop('disabled', true).css('opacity', 0.6);
+    $loading.show();
     if (typeof NProgress !== 'undefined') { NProgress.start(); }
     Util.notice('info', 2000, '正在迁移，请稍候...');
 
@@ -2270,11 +2273,13 @@ var Settings = {
         }
         if (typeof NProgress !== 'undefined') { NProgress.done(); }
         $btn.prop('disabled', false).css('opacity', 1);
+        $loading.hide();
       },
       error: function () {
         Util.notice('warning', 2000, '迁移历史表情包失败，请检查网络');
         if (typeof NProgress !== 'undefined') { NProgress.done(); }
         $btn.prop('disabled', false).css('opacity', 1);
+        $loading.hide();
       }
     });
   },
