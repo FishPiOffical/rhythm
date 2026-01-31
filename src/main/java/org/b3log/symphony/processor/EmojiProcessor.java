@@ -30,7 +30,6 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.EmojiGroup;
 import org.b3log.symphony.model.EmojiGroupItem;
-import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.EmojiMgmtService;
@@ -95,38 +94,10 @@ public class EmojiProcessor {
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
-        final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
 
         final EmojiProcessor emojiProcessor = beanManager.getReference(EmojiProcessor.class);
 
-        //获取用户分组列表
-        Dispatcher.get("/emoji/groups", emojiProcessor::getUserGroups, loginCheck::handle, csrfMidware::fill);
-        //获取用户分组里的表情
-        Dispatcher.get("/emoji/group/emojis", emojiProcessor::getGroupEmojis, loginCheck::handle, csrfMidware::fill);
-        //一键上传表情
-        Dispatcher.post("/emoji/upload", emojiProcessor::uploadEmoji, loginCheck::handle, csrfMidware::check);
-
-
-        //用户添加分组
-        Dispatcher.post("/emoji/group/create", emojiProcessor::createGroup, loginCheck::handle, csrfMidware::check);
-        //用户修改分组（名称和排序）
-        Dispatcher.post("/emoji/group/update", emojiProcessor::updateGroup, loginCheck::handle, csrfMidware::check);
-        //用户删除分组
-        Dispatcher.post("/emoji/group/delete",emojiProcessor::deleteGroup, loginCheck::handle, csrfMidware::check);
-
-
-        //用户添加表情到分组
-        Dispatcher.post("/emoji/group/add-emoji",emojiProcessor::addEmojiToGroup, loginCheck::handle, csrfMidware::check);
-        //用户添加url表情进分组（需在全部分组里同步一份）
-        Dispatcher.post("/emoji/group/add-url-emoji",emojiProcessor::addUrlEmojiToGroup, loginCheck::handle, csrfMidware::check);
-        //用户从分组删除表情(如果是全部分组删除，则所有的分组里都删，如果不是全部分组，只删除当前分组的)
-        Dispatcher.post("/emoji/group/remove-emoji",emojiProcessor::removeEmojiFromGroup, loginCheck::handle, csrfMidware::check);
-        //用户修改表情名字（全部分组里编辑的时候，问是否要同步修改别的分组的）
-        Dispatcher.post("/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle, csrfMidware::check);
-        //迁移历史表情包
-        Dispatcher.post("/emoji/emoji/migrate",emojiProcessor::migrateOldEmoji,loginCheck::handle,csrfMidware::check);
-
-        // ====== 无需 CSRF 的 API 版（便于客户端带 apiKey 调用）======
+        // 统一使用 /api/emoji/**（无需 CSRF，支持 apiKey）
         Dispatcher.get("/api/emoji/groups", emojiProcessor::getUserGroups, loginCheck::handle);
         Dispatcher.get("/api/emoji/group/emojis", emojiProcessor::getGroupEmojis, loginCheck::handle);
         Dispatcher.post("/api/emoji/upload", emojiProcessor::uploadEmoji, loginCheck::handle);

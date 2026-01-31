@@ -2076,7 +2076,7 @@ Article.initCollectButtons = function () {
     const uniqueImgs = Array.from(new Set(imgs));
     if (!uniqueImgs.length) return;
     $actions.data('collect-inited', true);
-    const $btn = $('<span class="tooltipped tooltipped-n ft-a-title" aria-label="收藏表情" style="cursor:pointer;display:inline-flex;align-items:center;gap:2px;"></span>');
+    const $btn = $('<span class="tooltipped tooltipped-n ft-a-title" aria-label="收藏表情" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-right:8px;"></span>');
     $btn.append('<svg class="icon-heart"><use xlink:href="#emoji"></use></svg> 收藏表情');
     $btn.on('click', function (e) {
       e.stopPropagation();

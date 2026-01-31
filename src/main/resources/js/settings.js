@@ -173,7 +173,7 @@ var Settings = {
           alert(result.msg);
           location.reload();
         } else {
-          Util.alert(result.msg);
+          Util.notice('warning', 2000, result.msg);
         }
       }
     });
@@ -192,7 +192,7 @@ var Settings = {
           alert(result.msg);
           location.reload();
         } else {
-          Util.alert(result.msg);
+          Util.notice('warning', 2000, result.msg);
           $("#mfaVerifyCode").val("");
         }
       }
@@ -497,11 +497,11 @@ var Settings = {
         if (result && result.code === 0) {
           Settings.loadMyMedals();
         } else {
-          Util.alert('操作失败，请稍后再试');
+          Util.notice('warning', 2000, '操作失败，请稍后再试');
         }
       },
       error: function () {
-        Util.alert('网络错误，请稍后再试');
+        Util.notice('warning', 2000, '网络错误，请稍后再试');
       }
     });
   },
@@ -1578,7 +1578,7 @@ var Settings = {
    */
   loadEmojiGroups: function () {
     $.ajax({
-      url: Label.servePath + '/emoji/groups',
+      url: Label.servePath + '/api/emoji/groups',
       type: 'GET',
       cache: false,
       success: function (result) {
@@ -1594,12 +1594,12 @@ var Settings = {
               Settings.renderEmojiGroups(groups);
               Settings.selectEmojiGroup(Settings.currentEmojiGroupId, 1);
           }else {
-              Util.alert(result.msg);
+          Util.notice('warning', 2000, result.msg || '加载分组失败');
           }
 
       },
       error: function () {
-        Util.alert('加载分组失败，请检查网络');
+        Util.notice('warning', 2000, '加载分组失败，请检查网络');
       }
     });
   },
@@ -1707,7 +1707,7 @@ var Settings = {
    */
   loadGroupEmojis: function (groupId) {
     $.ajax({
-      url: Label.servePath + '/emoji/group/emojis?groupId=' + groupId,
+      url: Label.servePath + '/api/emoji/group/emojis?groupId=' + groupId,
       type: 'GET',
       cache: false,
       success: function (result) {
@@ -1715,11 +1715,11 @@ var Settings = {
               var emojis = result.data || [];
               Settings.renderGroupEmojis(emojis);
           }else {
-              Util.alert(result.msg);
+              Util.notice('warning', 2000, result.msg || '加载表情失败');
           }
       },
       error: function () {
-        Util.alert('加载表情失败，请检查网络');
+        Util.notice('warning', 2000, '加载表情失败，请检查网络');
       }
     });
   },
@@ -1808,7 +1808,7 @@ var Settings = {
    */
   editEmojiGroup: function (groupId, currentName, currentSort) {
     if (!groupId) {
-      Util.alert('分组ID不能为空');
+      Util.notice('warning', 2000, '分组ID不能为空');
       return;
     }
 
@@ -1855,17 +1855,17 @@ var Settings = {
     var newSort = parseInt($('#editGroupSort').val());
 
     if (!newName) {
-      Util.alert('分组名称不能为空');
+      Util.notice('warning', 2000, '分组名称不能为空');
       return;
     }
 
     if (isNaN(newSort)) {
-      Util.alert('排序值必须为数字');
+      Util.notice('warning', 2000, '排序值必须为数字');
       return;
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/group/update',
+      url: Label.servePath + '/api/emoji/group/update',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
@@ -1876,15 +1876,15 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('更新分组成功');
+          Util.notice('success', 1200, '更新分组成功');
           $('#editGroupDialog').dialog('close');
           Settings.loadEmojiGroups();
         } else {
-          Util.alert(result.msg || '更新分组失败');
+          Util.notice('warning', 2000, result.msg || '更新分组失败');
         }
       },
       error: function () {
-        Util.alert('更新分组失败，请检查网络');
+        Util.notice('warning', 2000, '更新分组失败，请检查网络');
       }
     });
   },
@@ -1895,7 +1895,7 @@ var Settings = {
    */
   deleteEmojiGroupById: function (groupId, groupName) {
     if (!groupId) {
-      Util.alert('分组ID不能为空');
+      Util.notice('warning', 2000, '分组ID不能为空');
       return;
     }
 
@@ -1904,7 +1904,7 @@ var Settings = {
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/group/delete',
+      url: Label.servePath + '/api/emoji/group/delete',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
@@ -1927,7 +1927,7 @@ var Settings = {
 
           }
         } else {
-          Util.alert(result.msg || '删除分组失败');
+          Util.notice('warning', 2000, result.msg || '删除分组失败');
         }
       },
       error: function () {
@@ -1945,7 +1945,7 @@ var Settings = {
     }
     
     $.ajax({
-      url: Label.servePath + '/emoji/group/create',
+      url: Label.servePath + '/api/emoji/group/create',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
@@ -1955,14 +1955,14 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
           if (0 !== result.code) {
-              Util.alert(result.msg || '创建分组失败');
+              Util.notice('warning', 2000, result.msg || '创建分组失败');
               return;
           }
-          Util.alert('创建分组成功');
+          Util.notice('success', 1200, '创建分组成功');
           Settings.loadEmojiGroups();
       },
       error: function () {
-        Util.alert('创建分组失败，请检查网络');
+        Util.notice('warning', 2000, '创建分组失败，请检查网络');
       }
     });
   },
@@ -2011,14 +2011,13 @@ var Settings = {
     
 
     if (!url) {
-      Util.alert('请输入表情图片URL');
+      Util.notice('warning', 2000, '请输入表情图片URL');
       return;
     }
     
     $.ajax({
-      url: Label.servePath + '/emoji/group/add-url-emoji',
+      url: Label.servePath + '/api/emoji/group/add-url-emoji',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: groupId,
         url: url,
@@ -2028,16 +2027,16 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (result.code === 0) {
-          Util.alert('添加表情成功');
+          Util.notice('success', 1200, '添加表情成功');
           $('#addUrlEmojiDialog').dialog('close');
           // 如果当前正在查看该分组，则刷新表情列表
             Settings.loadGroupEmojis(groupId);
         } else {
-          Util.alert(result.msg || '添加表情失败');
+          Util.notice('warning', 2000, result.msg || '添加表情失败');
         }
       },
       error: function () {
-        Util.alert('添加表情失败，请检查网络');
+        Util.notice('warning', 2000, '添加表情失败，请检查网络');
       }
     });
   },
@@ -2093,19 +2092,18 @@ var Settings = {
     var newSort = parseInt($('#editEmojiSort').val());
 
     if (!newName) {
-      Util.alert('表情名称不能为空');
+      Util.notice('warning', 2000, '表情名称不能为空');
       return;
     }
 
     if (isNaN(newSort)) {
-      Util.alert('排序值必须为数字');
+      Util.notice('warning', 2000, '排序值必须为数字');
       return;
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/emoji/update',
+      url: Label.servePath + '/api/emoji/emoji/update',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         oId: itemId,
         groupId: Settings.currentEmojiGroupId,
@@ -2115,15 +2113,15 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('更新表情成功');
+          Util.notice('success', 1200, '更新表情成功');
           $('#editEmojiDialog').dialog('close');
           Settings.loadGroupEmojis(Settings.currentEmojiGroupId);
         } else {
-          Util.alert(result.msg || '更新表情失败');
+          Util.notice('warning', 2000, result.msg || '更新表情失败');
         }
       },
       error: function () {
-        Util.alert('更新表情失败，请检查网络');
+        Util.notice('warning', 2000, '更新表情失败，请检查网络');
       }
     });
   },
@@ -2140,7 +2138,7 @@ var Settings = {
     }
     
     $.ajax({
-      url: Label.servePath + '/emoji/group/remove-emoji',
+      url: Label.servePath + '/api/emoji/group/remove-emoji',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
@@ -2150,14 +2148,14 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('移除表情成功');
+          Util.notice('success', 1200, '移除表情成功');
           Settings.loadGroupEmojis(Settings.currentEmojiGroupId);
         } else {
-          Util.alert(result.msg || '移除表情失败');
+          Util.notice('warning', 2000, result.msg || '移除表情失败');
         }
       },
       error: function () {
-        Util.alert('移除表情失败，请检查网络');
+        Util.notice('warning', 2000, '移除表情失败，请检查网络');
       }
     });
   },
@@ -2224,7 +2222,7 @@ var Settings = {
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/group/add-emoji',
+      url: Label.servePath + '/api/emoji/group/add-emoji',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
@@ -2236,18 +2234,18 @@ var Settings = {
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (result.code === 0) {
-          Util.alert('添加表情到分组成功');
+          Util.notice('success', 1200, '添加表情到分组成功');
           $('#emojiGroupSelectDialog').dialog('close');
           // 如果当前正在查看该分组，则刷新表情列表
           // if (Settings.currentEmojiGroupId === groupId) {
           //   Settings.loadGroupEmojis(groupId);
           // }
         } else {
-          Util.alert(result.msg || '添加表情失败');
+          Util.notice('warning', 2000, result.msg || '添加表情失败');
         }
       },
       error: function () {
-        Util.alert('添加表情失败，请检查网络');
+        Util.notice('warning', 2000, '添加表情失败，请检查网络');
       }
     });
   },
@@ -2260,21 +2258,21 @@ var Settings = {
     }
 
     $.ajax({
-      url: Label.servePath + '/emoji/emoji/migrate',
+      url: Label.servePath + '/api/emoji/emoji/migrate',
       type: 'POST',
       headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({}),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('迁移历史表情包成功');
+          Util.notice('success', 1200, '迁移历史表情包成功');
           Settings.loadEmojiGroups();
         } else {
-          Util.alert(result.msg || '迁移历史表情包失败');
+          Util.notice('warning', 2000, result.msg || '迁移历史表情包失败');
         }
       },
       error: function () {
-        Util.alert('迁移历史表情包失败，请检查网络');
+        Util.notice('warning', 2000, '迁移历史表情包失败，请检查网络');
       }
     });
   },
