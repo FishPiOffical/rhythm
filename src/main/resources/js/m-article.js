@@ -169,33 +169,10 @@ var Comment = {
   addEmoji: function () {
     for (let i = 0; i < arguments.length; i++) {
       let url = arguments[i];
-      let emojis = Comment.getEmojis();
-      emojis.reverse();
-      for (let i = 0; i < emojis.length; i++) {
-        if (emojis[i] === url) {
-          emojis.splice(i, 1);
-        }
-      }
-      emojis.push(url);
-      $.ajax({
-        url: Label.servePath + "/api/cloud/sync",
-        method: "POST",
-        data: JSON.stringify({
-          gameId: "emojis",
-          data: emojis
-        }),
-        headers: {'csrfToken': Label.csrfToken},
-        async: false,
-        success: function (result) {
-          if (result.code !== 0) {
-            Util.notice("warning", 1500, "表情包上传失败：" + result.msg);
-          }
-        }
-      });
+      Comment.uploadEmojiToGroupNew(url);
     }
     Util.notice("success", 1500, "表情包上传成功。");
     $("details[open]").removeAttr("open");
-    Comment.loadEmojis();
   },
   /**
    * 获取表情包
@@ -1494,11 +1471,13 @@ Article.init()
 $(document).ready(function () {
   Comment.init()
 
-
   // 表情包初始化
   // 加载表情
   Comment.listenUploadEmojis();
   Comment.loadEmojis();
+  // 加载新版表情包分组
+  EmojiGroups.init('Comment', 'New');
+  Comment.loadEmojiGroupsNew();
   // 监听表情包按钮
   $("#emojiBtn").on('click', function () {
     if ($("#emojiList").hasClass("showList")) {

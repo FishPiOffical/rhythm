@@ -423,21 +423,25 @@
                             <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
                                 <use xlink:href="#emojiIcon"></use>
                             </svg>
-                            <div class="hide-list" id="emojiList">
-                                <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
+                            <div class="hide-list" id="emojiList" style="width: 440px; max-width: 440px;">
+                                <div style="display: flex;width: 440px">
+                                    <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
+                                    </div>
+                                    <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
+                                    </div>
                                 </div>
-                                <div class="hide-list-emojis__tail">
-                                            <span>
-                                            <a onclick="Comment.fromURL()">从URL导入表情包</a>
-                                            </span>
-                                    <span class="hide-list-emojis__tip"></span>
-                                    <span>
-                                                <a onclick="$('#uploadEmoji input').click()">上传表情包</a>
-                                            </span>
-                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">
-                                        <input type="file" name="file">
-                                    </form>
-                                </div>
+<#--                                <div class="hide-list-emojis__tail">-->
+<#--                                    <span>-->
+<#--                                        <a onclick="Comment.fromURL()">从URL导入表情包</a>-->
+<#--                                    </span>-->
+<#--                                    <span class="hide-list-emojis__tip"></span>-->
+<#--                                    <span>-->
+<#--                                        <a onclick="$('#uploadEmoji input').click()">上传表情包</a>-->
+<#--                                    </span>-->
+<#--                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">-->
+<#--                                        <input type="file" name="file">-->
+<#--                                    </form>-->
+<#--                                </div>-->
                             </div>
                         </div>
                         <#if permissions["commonAddCommentAnonymous"].permissionGrant>
@@ -497,21 +501,25 @@
                                             <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
                                                 <use xlink:href="#emojiIcon"></use>
                                             </svg>
-                                            <div class="hide-list" id="emojiList">
-                                                <div class="hide-list-emojis" id="emojis" style="max-height: 200px">
+                                            <div class="hide-list" id="emojiList" style="width: 440px; max-width: 440px;">
+                                                <div style="display: flex;width: 440px">
+                                                    <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
+                                                    </div>
+                                                    <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
+                                                    </div>
                                                 </div>
-                                                <div class="hide-list-emojis__tail">
-                                            <span>
-                                            <a onclick="Comment.fromURL()">从URL导入表情包</a>
-                                            </span>
-                                                    <span class="hide-list-emojis__tip"></span>
-                                                    <span>
-                                                <a onclick="$('#uploadEmoji input').click()">上传表情包</a>
-                                            </span>
-                                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">
-                                                        <input type="file" name="file">
-                                                    </form>
-                                                </div>
+<#--                                                <div class="hide-list-emojis__tail">-->
+<#--                                                    <span>-->
+<#--                                                        <a onclick="Comment.fromURL()">从URL导入表情包</a>-->
+<#--                                                    </span>-->
+<#--                                                    <span class="hide-list-emojis__tip"></span>-->
+<#--                                                    <span>-->
+<#--                                                        <a onclick="$('#uploadEmoji input').click()">上传表情包</a>-->
+<#--                                                    </span>-->
+<#--                                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">-->
+<#--                                                        <input type="file" name="file">-->
+<#--                                                    </form>-->
+<#--                                                </div>-->
                                             </div>
                                         </div>
                                         <#if permissions["commonAddCommentAnonymous"].permissionGrant>
@@ -728,6 +736,7 @@
         <div id="thoughtProgressPreview"></div>
         <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
         <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
+        <script src="${staticServePath}/js/emoji-groups.js${miniPostfix}?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/m-article${miniPostfix}.js?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
         <script>

@@ -1989,7 +1989,6 @@ Article.init()
 
 $(document).ready(function () {
   Comment.init()
-
   // 表情包初始化
   // 加载表情
   Comment.listenUploadEmojis();

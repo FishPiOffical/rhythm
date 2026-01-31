@@ -53,7 +53,10 @@ var EmojiGroups = {
                         for (let i = 0; i < groups.length; i++) {
                             if (groups[i].type === 1) {
                                 targetObject['currentEmojiGroupId' + prefix] = groups[i].oId;
-                                targetObject['selectEmojiGroup' + prefix](groups[i].oId);
+                                // 延迟一下，确保DOM已经渲染完成
+                                setTimeout(function() {
+                                    targetObject['selectEmojiGroup' + prefix](groups[i].oId);
+                                }, 50);
                                 break;
                             }
                         }
