@@ -2057,3 +2057,36 @@ $(document).ready(function () {
     }, 1000)
   }
 })
+
+// 为评论中的图片添加“收藏表情”按钮
+Article.initCollectButtons = function () {
+  $('.comment-action .action-btns').each(function () {
+    const $actions = $(this);
+    if ($actions.data('collect-inited')) {
+      return;
+    }
+    const $content = $actions.closest('li').find('.vditor-reset.comment').first();
+    if (!$content.length) return;
+    const imgs = $content.find('img').filter(function () {
+      return !$(this).hasClass('emoji') &&
+          $(this).closest('.editor-panel, .ad').length === 0;
+    }).map(function () {
+      return $(this).attr('src');
+    }).get().filter(Boolean);
+    const uniqueImgs = Array.from(new Set(imgs));
+    if (!uniqueImgs.length) return;
+    $actions.data('collect-inited', true);
+    const $btn = $('<span class="tooltipped tooltipped-n ft-a-title" aria-label="收藏表情" style="cursor:pointer;display:inline-flex;align-items:center;gap:2px;"></span>');
+    $btn.append('<svg class="icon-heart"><use xlink:href="#emoji"></use></svg> 收藏表情');
+    $btn.on('click', function (e) {
+      e.stopPropagation();
+      EmojiGroups.openCollectDialog(uniqueImgs);
+    });
+    $actions.prepend($btn).prepend('&nbsp;');
+  });
+};
+
+// 初次加载时初始化评论收藏按钮
+$(function () {
+  Article.initCollectButtons();
+});
