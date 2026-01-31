@@ -781,11 +781,20 @@
 }
 
 .emoji_btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 24px;      /* 固定宽 */
+  height: 24px;     /* 固定高 */
+
   background: rgba(255,255,255,.9);
   border-radius: 4px;
-  padding: 4px 6px;
   cursor: pointer;
-  font-size: 12px;
+
+  font-size: 14px;  /* emoji/文字统一尺寸 */
+  line-height: 1;  /* 防止 emoji 撑高 */
 }
+
 
 /* end settings */

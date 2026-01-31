@@ -1624,16 +1624,9 @@ var Settings = {
           // 分组名称
           const $nameSpan = $('<span>', {
               class: 'group_name',
-              text: group.name
-          })
-
-          // 编辑按钮
-          const $btnEdit = $('<span>', {
-              class: 'group_btn btn_edit_group',
-              text: '✏️',
+              text: group.name,
               css: {
-                  'margin-left': '5px',
-                  'cursor': 'pointer'
+                  'cursor': isAll ? 'default' : 'pointer'
               }
           })
 
@@ -1651,20 +1644,22 @@ var Settings = {
           if (isAll) {
               $groupDiv.append($nameSpan)
           } else {
-              $groupDiv.append($nameSpan, $btnEdit, $btnDelete)
+              $groupDiv.append($nameSpan, $btnDelete)
           }
 
-          // 点击分组名称选择分组
+          // 单击分组名称选择分组
           $nameSpan.on('click', function (e) {
               e.stopPropagation()
               Settings.selectEmojiGroup(group.oId);
           })
 
-          // 点击编辑按钮
-          $btnEdit.on('click', function (e) {
-              e.stopPropagation()
-              Settings.editEmojiGroup(group.oId, group.name, group.sort)
-          })
+          // 双击分组名称编辑分组（非默认分组）
+          if (!isAll) {
+              $nameSpan.on('dblclick', function (e) {
+                  e.stopPropagation()
+                  Settings.editEmojiGroup(group.oId, group.name, group.sort)
+              })
+          }
 
           // 点击删除按钮
           $btnDelete.on('click', function (e) {
@@ -1751,7 +1746,7 @@ var Settings = {
           // 操作按钮（示例）
           const $btnAdd = $('<span>', {
               class: 'emoji_btn btn_add',
-              text: '+'
+              text: '✚'
           })
 
           const $btnDelete = $('<span>', {
@@ -1761,7 +1756,7 @@ var Settings = {
 
           const $btnRename = $('<span>', {
               class: 'emoji_btn btn_rename',
-              text: '✏️'
+              text: '✎'
           })
 
           // 表情名称和排序
@@ -1825,7 +1820,7 @@ var Settings = {
     // 初始化弹窗
     $('#editGroupDialog').dialog({
       'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
-      'height': 'auto',
+      'height': 350,
       'modal': true,
       'hideFooter': true,
       'title': '编辑分组'
@@ -2063,7 +2058,7 @@ var Settings = {
     // 初始化弹窗
     $('#editEmojiDialog').dialog({
       'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
-      'height': 'auto',
+      'height': 350,
       'modal': true,
       'hideFooter': true,
       'title': '编辑表情'

@@ -2664,7 +2664,7 @@
         {
           "name": "emojiGroupType",
           "type": "int",
-          "description": "分组类型（0：自定义分组，1：默认'全部'分组）"
+          "description": "分组类型（0：自定义分组，1：默认全部分组）"
         }
       ]
     },
@@ -2697,7 +2697,7 @@
         },
         {
           "name": "emojiGroupItemName",
-          "type": "string",
+          "type": "String",
           "description": "分组内名称"
         },
         {
