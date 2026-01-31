@@ -693,9 +693,8 @@ public class EmojiProcessor {
                     continue;
                 }
 
-                // 迁移时保持原有顺序：按旧列表顺序赋增量排序
-                int sort = i + 1; // 从 1 开始
-                emojiMgmtService.addEmojiToGroup(groupAllId, emojiId, sort, "");
+                // 使用 0 触发后端自动取当前分组最大排序+1（兼容已有表情）
+                emojiMgmtService.addEmojiToGroup(groupAllId, emojiId, 0, "");
             }
             context.renderJSON(StatusCodes.SUCC);
         }catch (Exception e){

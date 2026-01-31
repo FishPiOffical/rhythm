@@ -1867,7 +1867,6 @@ var Settings = {
     $.ajax({
       url: Label.servePath + '/api/emoji/group/update',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: groupId,
         name: newName,
@@ -1906,14 +1905,13 @@ var Settings = {
     $.ajax({
       url: Label.servePath + '/api/emoji/group/delete',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: groupId
       }),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (0 === result.code) {
-          Util.alert('删除分组成功');
+          Util.notice('success', 1200, '删除分组成功');
           Settings.loadEmojiGroups();
           // 如果删除的是当前选中的分组，则切换到全部分组
           if (Settings.currentEmojiGroupId === groupId) {
@@ -1931,7 +1929,7 @@ var Settings = {
         }
       },
       error: function () {
-        Util.alert('删除分组失败，请检查网络');
+        Util.notice('warning', 2000, '删除分组失败，请检查网络');
       }
     });
   },
@@ -1947,7 +1945,6 @@ var Settings = {
     $.ajax({
       url: Label.servePath + '/api/emoji/group/create',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         name: groupName.trim(),
         sort: 0
@@ -2045,7 +2042,7 @@ var Settings = {
    */
   editEmojiItem: function (itemId, currentName, currentSort) {
     if (!itemId) {
-      Util.alert('表情ID不能为空');
+      Util.notice('warning', 2000, '表情ID不能为空');
       return;
     }
 
@@ -2140,7 +2137,6 @@ var Settings = {
     $.ajax({
       url: Label.servePath + '/api/emoji/group/remove-emoji',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: Settings.currentEmojiGroupId,
         emojiId: emojiId
@@ -2217,14 +2213,13 @@ var Settings = {
     var name = $('#emojiName').val().trim();
 
     if (!groupId) {
-      Util.alert('请选择一个分组');
+      Util.notice('warning', 2000, '请选择一个分组');
       return;
     }
 
     $.ajax({
       url: Label.servePath + '/api/emoji/group/add-emoji',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({
         groupId: groupId,
         emojiId: emojiId,
@@ -2256,11 +2251,14 @@ var Settings = {
     if (!confirm('确定要迁移历史表情包吗？')) {
       return;
     }
+    const $btn = $('button:contains("迁移历史表情")').first();
+    $btn.prop('disabled', true).css('opacity', 0.6);
+    if (typeof NProgress !== 'undefined') { NProgress.start(); }
+    Util.notice('info', 2000, '正在迁移，请稍候...');
 
     $.ajax({
       url: Label.servePath + '/api/emoji/emoji/migrate',
       type: 'POST',
-      headers: {'csrfToken': Label.csrfToken},
       data: JSON.stringify({}),
       contentType: 'application/json;charset=UTF-8',
       success: function (result) {
@@ -2270,9 +2268,13 @@ var Settings = {
         } else {
           Util.notice('warning', 2000, result.msg || '迁移历史表情包失败');
         }
+        if (typeof NProgress !== 'undefined') { NProgress.done(); }
+        $btn.prop('disabled', false).css('opacity', 1);
       },
       error: function () {
         Util.notice('warning', 2000, '迁移历史表情包失败，请检查网络');
+        if (typeof NProgress !== 'undefined') { NProgress.done(); }
+        $btn.prop('disabled', false).css('opacity', 1);
       }
     });
   },

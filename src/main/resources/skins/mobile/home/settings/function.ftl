@@ -114,6 +114,33 @@
                 max-width:100%;
                 box-sizing:border-box;
             }
+            #emojiGroupBox .emoji_group{
+                display:inline-flex;
+                align-items:center;
+                gap:6px;
+                padding:6px 10px;
+                border:1px solid #e5e5e5;
+                border-radius:8px;
+                background:#fff;
+                box-shadow:0 2px 6px rgba(0,0,0,0.06);
+                max-width:160px;
+            }
+            #emojiGroupBox .emoji_group_select{
+                border-color:#1890ff;
+                box-shadow:0 3px 10px rgba(24,144,255,0.18);
+                background:#f0f7ff;
+            }
+            #emojiGroupBox .group_name{
+                white-space:nowrap;
+                overflow:hidden;
+                text-overflow:ellipsis;
+                max-width:120px;
+            }
+            #emojiGroupBox .btn_delete_group{
+                color:#ff4d4f;
+                font-size:14px;
+                margin-left:2px;
+            }
             #groupEmojiList{
                 display:flex;
                 flex-wrap:wrap;
@@ -133,14 +160,37 @@
                 height:auto;
                 display:block;
             }
+            .emoji-ops{
+                display:flex;
+                flex-wrap:wrap;
+                gap:10px;
+                margin:10px 0 12px;
+            }
+            .emoji-ops button{
+                padding:6px 12px;
+                border-radius:8px;
+                border:1px solid #1890ff;
+                background:#1890ff;
+                color:#fff;
+                box-shadow:0 2px 6px rgba(24,144,255,0.18);
+                cursor:pointer;
+            }
+            .emoji-ops button.secondary{
+                border-color:#d9d9d9;
+                background:#fafafa;
+                color:#333;
+                box-shadow:none;
+            }
         </style>
+        <div class="emoji-ops">
+            <button onclick="Settings.createEmojiGroup()">添加分组</button>
+            <button class="secondary" onclick="Settings.addEmojiByUrl()">通过URL添加表情</button>
+        </div>
         <div class="fn__flex flex flex-wrap" style="align-items: center;margin-top: 10px">
             <div class="fn-clear" id="emojiGroupBox">
 
             </div>
-            <button style="margin-left: 10px" onclick="Settings.createEmojiGroup()">添加分组</button>
         </div>
-        <button onclick="Settings.addEmojiByUrl()" style="margin: 4px 0px">通过url添加表情</button>
         <div class="fn__flex flex flex-wrap" id="groupEmojiList" style="flex-wrap: wrap;overflow-y: scroll;max-height: 300px">
 
         </div>
