@@ -1653,11 +1653,28 @@ var Settings = {
               Settings.selectEmojiGroup(group.oId);
           })
 
-          // 双击分组名称编辑分组（非默认分组）
+          // 双击分组名称编辑分组（非默认分组）- 桌面端
           if (!isAll) {
               $nameSpan.on('dblclick', function (e) {
                   e.stopPropagation()
                   Settings.editEmojiGroup(group.oId, group.name, group.sort)
+              })
+
+              // 长按分组名称编辑分组（非默认分组）- 移动端
+              let longPressTimer;
+              $nameSpan.on('touchstart', function (e) {
+                  longPressTimer = setTimeout(function () {
+                      e.preventDefault()
+                      Settings.editEmojiGroup(group.oId, group.name, group.sort)
+                  }, 500)
+              })
+
+              $nameSpan.on('touchend', function () {
+                  clearTimeout(longPressTimer)
+              })
+
+              $nameSpan.on('touchmove', function () {
+                  clearTimeout(longPressTimer)
               })
           }
 
