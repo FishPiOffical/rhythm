@@ -139,7 +139,7 @@
 <#include "footer.ftl">
 </body>
 </html>
-<script src="${staticServePath}/js/emoji-groups.js${miniPostfix}?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/emoji-groups${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/chat${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>

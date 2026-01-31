@@ -872,7 +872,7 @@
 </#if>
 <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
 <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
-<script src="${staticServePath}/js/emoji-groups.js${miniPostfix}?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/emoji-groups${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>

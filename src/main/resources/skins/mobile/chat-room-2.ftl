@@ -211,7 +211,7 @@
         </div>
     </div>
 </div>
-<script src="${staticServePath}/js/emoji-groups.js${miniPostfix}?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/emoji-groups${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/symbol-defs${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>
 <script src="https://file.fishpi.cn/vditor/3.11.1/dist/index.min.js"></script>
