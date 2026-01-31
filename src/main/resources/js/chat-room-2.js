@@ -203,6 +203,7 @@ var ChatRoom = {
                     timeoutId = 0
                 }
                 time_out = new Date().getTime()
+                EmojiGroups.ensureCurrentFresh(ChatRoom, 'New')
                 setTimeout(() => 0 !== $("#emojiBtn:hover").length && $("#emojiList").addClass("showList"), 300)
             }, closeEmoji)
             $("#emojiList").hover(function () {
@@ -1177,11 +1178,24 @@ border-bottom: none;
         });
     },
     addEmoji: function () {
-        for (let i = 0; i < arguments.length; i++) {
-            let url = arguments[i];
-            ChatRoom.uploadEmojiToGroupNew(url);
+        if (arguments.length === 0) {
+            return;
         }
-        Util.notice("success", 1500, "表情包上传成功。");
+        var urls = [];
+        if (arguments.length === 1 && Array.isArray(arguments[0])) {
+            urls = arguments[0];
+        } else {
+            for (var i = 0; i < arguments.length; i++) {
+                if (arguments[i]) {
+                    urls.push(arguments[i]);
+                }
+            }
+        }
+        urls = urls.map(function (u) { return String(u || '').trim(); }).filter(Boolean);
+        if (!urls.length) {
+            return;
+        }
+        EmojiGroups.openCollectDialog(urls);
         $("details[open]").removeAttr("open");
     },
     /**
@@ -2077,7 +2091,7 @@ ${result.info.msg}
                     }
                 }
                 if (canCollect) {
-                    meTag2 += "<a onclick=\"ChatRoom.addEmoji(" + srcs + ")\" class=\"item\">一键收藏表情</a>";
+                    meTag2 += "<a onclick=\"ChatRoom.addEmoji(" + srcs + ")\" class=\"item\">收藏表情</a>";
                 }
             } catch (err) {
             }

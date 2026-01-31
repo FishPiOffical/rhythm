@@ -167,11 +167,24 @@ var Comment = {
     });
   },
   addEmoji: function () {
-    for (let i = 0; i < arguments.length; i++) {
-      let url = arguments[i];
-      Comment.uploadEmojiToGroupNew(url);
+    if (arguments.length === 0) {
+      return;
     }
-    Util.notice("success", 1500, "表情包上传成功。");
+    var urls = [];
+    if (arguments.length === 1 && Array.isArray(arguments[0])) {
+      urls = arguments[0];
+    } else {
+      for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i]) {
+          urls.push(arguments[i]);
+        }
+      }
+    }
+    urls = urls.map(function (u) { return String(u || '').trim(); }).filter(Boolean);
+    if (!urls.length) {
+      return;
+    }
+    EmojiGroups.openCollectDialog(urls);
     $("details[open]").removeAttr("open");
   },
   /**

@@ -244,10 +244,16 @@ public class EmojiMgmtService {
                 return; // Already in group
             }
 
+            int finalSort = sort;
+            if (sort <= 0) {
+                Integer maxSort = emojiGroupItemRepository.getMaxSortInGroup(groupId);
+                finalSort = maxSort == null ? 1 : maxSort + 1;
+            }
+
             JSONObject groupItem = new JSONObject();
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_GROUP_ID, groupId);
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_EMOJI_ID, emojiId);
-            groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, sort);
+            groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, finalSort);
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_NAME, name);
             groupItem.put(EmojiGroupItem.EMOJI_GROUP_ITEM_CREATE_TIME, System.currentTimeMillis());
 

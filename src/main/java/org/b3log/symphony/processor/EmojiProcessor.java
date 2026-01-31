@@ -43,6 +43,7 @@ import org.b3log.latke.http.Dispatcher;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Emoji processor.
@@ -68,6 +69,10 @@ public class EmojiProcessor {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(EmojiProcessor.class);
+
+    // 仅允许中英文、数字、空格、下划线、短横线、常用中英文标点（不含引号/尖括号/斜杠），最大 20
+    private static final int NAME_MAX_LEN = 20;
+    private static final Pattern SAFE_NAME_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s_\\-。，！？!?:：；;（）()\\[\\]{}·]+$");
 
     /**
      * Emoji management service.
@@ -267,6 +272,10 @@ public class EmojiProcessor {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请填写分组名称");
                 return;
             }
+            if (!isSafeName(groupName)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("分组名称含非法字符或过长");
+                return;
+            }
 
             //检查分组名称是否已存在
 
@@ -304,6 +313,10 @@ public class EmojiProcessor {
 
             if (StringUtils.isBlank(groupId) || StringUtils.isBlank(newName)) {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少参数");
+                return;
+            }
+            if (!isSafeName(newName)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("分组名称含非法字符或过长");
                 return;
             }
 
@@ -435,6 +448,10 @@ public class EmojiProcessor {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少参数");
                 return;
             }
+            if (StringUtils.isNotBlank(name) && !isSafeName(name)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("表情名称含非法字符或过长");
+                return;
+            }
 
             // 先判断这个分组是不是这个用户的
             final String userId = currentUser.optString(Keys.OBJECT_ID);
@@ -496,6 +513,10 @@ public class EmojiProcessor {
             JSONObject group = emojiQueryService.getGroupById(groupId);
             if(group == null || !userId.equals(group.optString(EmojiGroup.EMOJI_GROUP_USER_ID))){
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("分组未找到");
+                return;
+            }
+            if (StringUtils.isNotBlank(name) && !isSafeName(name)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("表情名称含非法字符或过长");
                 return;
             }
             // 根据url 获取图片
@@ -701,13 +722,29 @@ public class EmojiProcessor {
                     continue;
                 }
 
-                emojiMgmtService.addEmojiToGroup(groupAllId, emojiId, 0, "");
+                // 迁移时保持原有顺序：按旧列表顺序赋增量排序
+                int sort = i + 1; // 从 1 开始
+                emojiMgmtService.addEmojiToGroup(groupAllId, emojiId, sort, "");
             }
             context.renderJSON(StatusCodes.SUCC);
         }catch (Exception e){
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("表情迁移失败");
         }
 
+    }
+
+    /**
+     * 校验名称：允许中英文、数字、常用符号，长度≤30。
+     * 允许空（空表示未填写）。
+     */
+    private boolean isSafeName(final String name) {
+        if (StringUtils.isBlank(name)) {
+            return true;
+        }
+        if (name.length() > NAME_MAX_LEN) {
+            return false;
+        }
+        return SAFE_NAME_PATTERN.matcher(name).matches();
     }
 
 

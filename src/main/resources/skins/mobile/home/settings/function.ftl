@@ -105,6 +105,35 @@
         <button onclick="Settings.migrateEmojis()">迁移历史表情</button>
     </div>
     <div class="module-panel form fn-clear">
+        <style>
+            /* 移动端表情管理，防止横向溢出 */
+            #emojiGroupBox{
+                display:flex;
+                flex-wrap:wrap;
+                gap:8px;
+                max-width:100%;
+                box-sizing:border-box;
+            }
+            #groupEmojiList{
+                display:flex;
+                flex-wrap:wrap;
+                gap:8px;
+                overflow:hidden;
+                max-width:100%;
+                box-sizing:border-box;
+            }
+            #groupEmojiList .emoji_item{
+                width:22vw;
+                max-width:120px;
+                min-width:82px;
+                box-sizing:border-box;
+            }
+            #groupEmojiList .emoji_img_wrap img{
+                width:100%;
+                height:auto;
+                display:block;
+            }
+        </style>
         <div class="fn__flex flex flex-wrap" style="align-items: center;margin-top: 10px">
             <div class="fn-clear" id="emojiGroupBox">
 

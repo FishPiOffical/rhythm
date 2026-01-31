@@ -58,6 +58,25 @@ public class EmojiGroupItemRepository extends AbstractRepository {
     }
 
     /**
+     * Gets the max sort value in a group.
+     *
+     * @param groupId the group id
+     * @return max sort, or {@code null} if group is empty
+     * @throws RepositoryException repository exception
+     */
+    public Integer getMaxSortInGroup(final String groupId) throws RepositoryException {
+        final Query query = new Query().setFilter(
+            new PropertyFilter(EmojiGroupItem.EMOJI_GROUP_ITEM_GROUP_ID, FilterOperator.EQUAL, groupId)
+        ).addSort(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT, SortDirection.DESCENDING)
+         .setPage(1, 1);
+        final List<JSONObject> list = getList(query);
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.get(0).optInt(EmojiGroupItem.EMOJI_GROUP_ITEM_SORT);
+    }
+
+    /**
      * Removes an emoji from a group.
      *
      * @param groupId the group id
