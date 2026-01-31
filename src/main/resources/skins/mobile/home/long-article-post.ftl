@@ -44,6 +44,13 @@
                     </div>
                     <div class="fn-hr10"></div>
                     <div class="tip" id="addArticleTip"></div>
+                    <div class="tip" style="margin:10px 4px;padding:12px;border-radius:12px;background:linear-gradient(135deg,#f8fbff 0%,#f1f6ff 100%);border:1px solid #dce8ff;color:#304050;box-shadow:0 6px 18px rgba(0,40,120,0.06);">
+                        <div style="font-weight:600;font-size:14px;margin-bottom:6px;">长文章奖励提示</div>
+                        <div style="line-height:1.55;font-size:13px;">
+                            · 默认计入好帖奖励：45% 活跃度（每日首篇有效）<br>
+                            · 如为非原创或 AI 生成，审核后将撤回奖励并降级为普通帖子
+                        </div>
+                    </div>
                     <div class="fn-hr10"></div>
                     <div class="fn-clear">
                         <#if article??>

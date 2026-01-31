@@ -135,7 +135,16 @@ var AddArticle = {
       $('#addArticleTip').
       addClass('error').
       html('<ul><li>为了让你的文章更好地被归类和展示，请至少填写一个标签哦 :)</li></ul>')
-    } else if ($('.tags-input').length === 0 || ($('.tags-input .tag .text').text().indexOf('新人报道') != -1 || $('.tags-input .tag .text').text().indexOf('新人报到') != -1)) {
+      return
+    }
+
+    // 长文章（articleType=6）默认视为好帖，直接发放奖励
+    if (Label.articleType === 6) {
+      AddArticle.add(csrfToken, it, true)
+      return
+    }
+
+    if ($('.tags-input').length === 0 || ($('.tags-input .tag .text').text().indexOf('新人报道') != -1 || $('.tags-input .tag .text').text().indexOf('新人报到') != -1)) {
       AddArticle.add(csrfToken, it)
     } else {
       Swal.fire({
