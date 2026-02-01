@@ -284,7 +284,7 @@
                     </a>
                 </div>
                 <div class="fn__flex-1">
-                    <div id="articleMeta" class="fn__clear" style="height: auto; overflow: visible">
+                    <div id="articleMeta" class="fn__clear" style="height: auto; overflow: visible; display: flow-root;">
                         <a rel="author" href="${servePath}/member/${article.articleAuthorName}"
                            class="article__stats article__stats--a tooltipped tooltipped-e"
                            aria-label="${article.oId?number?number_to_datetime}">
