@@ -228,7 +228,8 @@ var EmojiGroups = {
                 for (let i = 0; i < emojis.length; i++) {
                     var url = String(emojis[i].url || '').replace(/"/g, '&quot;');
                     var emojiId = emojis[i].emojiId || '';
-                    html += '<button class="emoji-insert-btn" data-url="' + url + '" data-emoji-id="' + emojiId + '" style="position:relative;">';
+                    var emojiName = emojis[i].name || '';
+                    html += '<button class="emoji-insert-btn" data-url="' + url + '" data-emoji-id="' + emojiId + '" data-emoji-name="' + emojiName + '"  style="position:relative;">';
                     html += '<span class="emoji-del-btn" style="position:absolute;top:0;right:0;background:rgba(0,0,0,0.45);color:#fff;border-radius:50%;width:16px;height:16px;line-height:16px;font-size:12px;display:flex;align-items:center;justify-content:center;">×</span>';
                     html += '<img style="max-height: 50px" class="vditor-emojis__icon" src="' + emojis[i].url + '">';
                     html += '</button>';
