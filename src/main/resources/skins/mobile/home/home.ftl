@@ -32,10 +32,12 @@
                     <a rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
                 </h2>
                 <span class="ft-gray">
-                    <#list article.articleTagObjs as articleTag>
-                    <a rel="tag" class="tag" href="${servePath}/tag/${articleTag.tagURI}">
-                        ${articleTag.tagTitle}</a>
-                    </#list><br/>
+                    <#if 6 != article.articleType>
+                        <#list article.articleTagObjs as articleTag>
+                        <a rel="tag" class="tag" href="${servePath}/tag/${articleTag.tagURI}">
+                            ${articleTag.tagTitle}</a>
+                        </#list><br/>
+                    </#if>
                        <span class="ft-smaller ft__fade">
                                <a rel="nofollow" class="ft-a-title" href="${servePath}${article.articlePermalink}#comments">
                                     <span class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</span> 回帖</a>

@@ -852,7 +852,8 @@ public class ArticleQueryService {
             final StringBuilder queryCount = new StringBuilder("select count(0) ").append(" from ");
             final StringBuilder queryList = new StringBuilder("select symphony_article.oId").append(" from ");
             final StringBuilder queryStr = new StringBuilder(articleRepository.getName() + " symphony_article, ").append(tagArticleRepository.getName() + " symphony_tag_article ");
-            queryStr.append("where symphony_article.oId=symphony_tag_article.article_oId and symphony_article.articleShowInList != ? ");
+            queryStr.append("where symphony_article.oId=symphony_tag_article.article_oId and symphony_article.articleShowInList != ? ")
+                    .append(" and symphony_article.articleType!=").append(Article.ARTICLE_TYPE_C_LONG).append(' ');
             switch (sortMode) {
                 case 0:
                     queryStr.append(" and ").append("symphony_tag_article." + Tag.TAG + '_' + Keys.OBJECT_ID).append("=").append(tag.optString(Keys.OBJECT_ID)).

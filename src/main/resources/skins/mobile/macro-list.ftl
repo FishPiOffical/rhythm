@@ -24,18 +24,19 @@
     <ul>
         <#assign articleIds = "">
         <#list listData as article>
+        <#assign articleType = article.articleType!0>
         <#assign articleIds = articleIds + article.oId>
         <#if article_has_next><#assign articleIds = articleIds + ","></#if>
         <li<#if article.articleStickRemains gt 0 && articleStickCheck??> class="stick"</#if>>
             <div class="fn-flex">
                 <a rel="nofollow" class="ft-gray"
                    href="${servePath}/member/${article.articleAuthorName}"><div class="avatar" style="background-image:url('${article.articleAuthorThumbnailURL48}')"></div></a>
-                <div class="fn-flex-1 has-view">
-                    <h2 class="fn-ellipsis">
-                        <@icon article.articlePerfect article.articleType></@icon>
-                        <a data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark"
-                           href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
-                        </a>
+            <div class="fn-flex-1 has-view">
+                <h2 class="fn-ellipsis">
+                    <@icon article.articlePerfect articleType></@icon>
+                    <a data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark"
+                       href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
+                    </a>
                         <#if article.offered>
                             <a href="${servePath}${article.articlePermalink}#comments">
                                 <svg style="color: green" fill="currentColor;" width="14px" height="14px" display="inline" stroke="currentColor;" stroke-width="0">

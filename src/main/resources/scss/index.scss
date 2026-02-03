@@ -411,7 +411,10 @@
 
   .editor-panel {
     position: fixed;
-    width: 100%;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: 100vw;
     z-index: 120;
     height: 100%;
     box-sizing: border-box;
@@ -423,6 +426,8 @@
       position: absolute;
       top: 0;
       width: 100%;
+      left: 0;
+      right: 0;
     }
 
     .wrapper {
@@ -434,6 +439,8 @@
       box-sizing: border-box;
       width: 100%;
       max-width: initial;
+      left: 0;
+      right: 0;
 
       #commentContent {
         max-height: 600px;

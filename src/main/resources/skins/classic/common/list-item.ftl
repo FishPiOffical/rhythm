@@ -18,34 +18,42 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
+<#macro articleStats article>
+    <#if article?has_content && article.articleCommentCount != 0>
+        <a class="ft-fade" href="${servePath}${article.articlePermalink}#comments"><b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a> &nbsp;•&nbsp;
+    </#if>
+
+    <#if article?has_content && article.articleViewCount != 0>
+        <a class="ft-fade" href="${servePath}${article.articlePermalink}"><span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>"><#if article.articleViewCount < 1000>${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></span> ${viewLabel}</a>
+    </#if>
+
+    <#if article?has_content && article.articleQnAOfferPoint != 0>
+        &nbsp;•&nbsp;
+        <a class="ft-fade" href="${servePath}${article.articlePermalink}">
+        <span class="article-level<#if article.articleQnAOfferPoint lt 400>${(article.articleQnAOfferPoint/100)?int}<#else>4</#if>">${article.articleQnAOfferPoint?c}</span>
+            ${qnaOfferLabel}
+        </a>
+    </#if>
+</#macro>
+
+<#assign articleType = article.articleType!0>
 <li>
+    <#if article.articleType?? && 6 != articleType>
     <div class="fn-clear ft-smaller list-info">
-        <#if 6 != article.articleType>
         <#list article.articleTagObjs as articleTag>
         <a rel="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a> &nbsp;
         </#list>
-        </#if>
 
         <span class="fn-right ft-fade">
-            <#if article.articleCommentCount != 0>
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}#comments"><b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a> &nbsp;•&nbsp;
-            </#if>
-
-            <#if article.articleViewCount != 0>
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}"><span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>"><#if article.articleViewCount < 1000>${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></span> ${viewLabel}</a>
-            </#if>
-
-            <#if article.articleQnAOfferPoint != 0>
-                &nbsp;•&nbsp;
-                <a class="ft-fade" href="${servePath}${article.articlePermalink}">
-                <span class="article-level<#if article.articleQnAOfferPoint lt 400>${(article.articleQnAOfferPoint/100)?int}<#else>4</#if>">${article.articleQnAOfferPoint?c}</span>
-                    ${qnaOfferLabel}
-                </a>
-            </#if>
+            <@articleStats article=article />
         </span>
     </div>
+    </#if>
     <h2 class="fn-ellipsis">
-        <@icon article.articlePerfect article.articleType></@icon>
+        <#if article.articleType?? && 6 == articleType>
+            <span class="fn-right ft-fade ft-smaller"><@articleStats article=article /></span>
+        </#if>
+        <@icon article.articlePerfect articleType></@icon>
         <a class="ft-a-title" data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
         </a>
         <#if article.offered>

@@ -1740,16 +1740,27 @@ public class ArticleProcessor {
             return;
         }
 
-        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/post.ftl");
+        final int articleType = article.optInt(Article.ARTICLE_TYPE);
+        final String updateTemplate = Article.ARTICLE_TYPE_C_LONG == articleType ? "home/long-article-post.ftl" : "home/post.ftl";
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, updateTemplate);
         final Map<String, Object> dataModel = renderer.getDataModel();
 
         String title = article.optString(Article.ARTICLE_TITLE);
         title = Escapes.escapeHTML(title);
         article.put(Article.ARTICLE_TITLE, title);
         dataModel.put(Article.ARTICLE, article);
-        dataModel.put(Article.ARTICLE_TYPE, article.optInt(Article.ARTICLE_TYPE));
+        dataModel.put(Article.ARTICLE_TYPE, articleType);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+
+        if (Article.ARTICLE_TYPE_C_LONG == articleType) {
+            String articleContentErrorLabel = langPropsService.get("articleContentErrorLabel");
+            articleContentErrorLabel = articleContentErrorLabel.replace("{maxArticleContentLength}",
+                    String.valueOf(ArticlePostValidationMidware.MAX_ARTICLE_CONTENT_LENGTH));
+            dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
+            fillPostArticleRequisite(dataModel, currentUser);
+            return;
+        }
 
         fillDomainsWithTags(dataModel);
 
