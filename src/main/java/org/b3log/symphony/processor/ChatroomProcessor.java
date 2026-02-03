@@ -1738,7 +1738,7 @@ public class ChatroomProcessor {
                 } catch (Exception e) {
                     LOGGER.log(Level.DEBUG, "Get user membership failed", e);
                 }
-                ChatRoomBot.handleAIChat(userName, userNickname, sysMetal, vipLevel, roleName, userRoleId, content, msg.optString("oId"));
+                ChatRoomBot.handleAIChat(userId, userName, userNickname, sysMetal, vipLevel, roleName, userRoleId, content, msg.optString("oId"));
 
                 try {
                     final JSONObject user = userQueryService.getUser(userId);

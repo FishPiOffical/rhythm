@@ -60,6 +60,10 @@ public class CloudService {
     final public static String SYS_MEDAL = "sys-medal";
     final public static String SYS_MUTE = "sys-mute";
     final public static String SYS_RISK = "sys-risk";
+    /** AI 记忆存储 gameId. */
+    public static final String AI_MEMORY = "ai_memory";
+    /** 马库斯的全局记忆使用的特殊 userId. */
+    public static final String AI_MEMORY_GLOBAL_UID = "13800138000";
 
     /**
      * 上传存档
@@ -406,6 +410,202 @@ public class CloudService {
             medalService.setUserMedalDisplay(userId, medalId, enabled);
         } catch (ServiceException e) {
             LOGGER.log(Level.ERROR, "Failed to toggle medal [" + name + "] for user [" + userId + "]", e);
+        }
+    }
+
+    /**
+     * 获取指定用户的 AI 记忆（JSONArray 字符串存储，返回顺序为时间顺序，可能为空）.
+     */
+    synchronized public JSONArray getAiMemory(String userId) {
+        try {
+            Query cloudQuery = new Query()
+                    .setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
+                            new PropertyFilter("gameId", FilterOperator.EQUAL, AI_MEMORY)
+                    ));
+            JSONObject result = cloudRepository.getFirst(cloudQuery);
+            if (result == null) {
+                return new JSONArray();
+            }
+            String data = result.optString("data", "[]");
+            return new JSONArray(data);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARN, "Get AI memory failed for userId {}", userId, e);
+            return new JSONArray();
+        }
+    }
+
+    /**
+     * 追加一条 AI 记忆，超出 100 条则删除最旧的，单条截断为 200 字符。
+     */
+    synchronized public void addAiMemory(String userId, String memory) {
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(memory)) {
+            return;
+        }
+        memory = memory.trim();
+        if (memory.length() > 200) {
+            memory = memory.substring(0, 200);
+        }
+        JSONArray memories = getAiMemory(userId);
+        memories.put(memory);
+        final List<String> removed = new ArrayList<>();
+        if (memories.length() > 100) {
+            int overflow = memories.length() - 100;
+            for (int i = 0; i < overflow; i++) {
+                removed.add(memories.optString(i));
+            }
+            JSONArray trimmed = new JSONArray();
+            for (int i = overflow; i < memories.length(); i++) {
+                trimmed.put(memories.get(i));
+            }
+            memories = trimmed;
+        }
+        saveAiMemory(userId, memories);
+        LOGGER.log(Level.INFO, "AI memory add " + label(userId)
+                + ", added=\"" + memory + "\""
+                + ", removed=" + removed
+                + ", finalCount=" + memories.length()
+                + ", finalChars=" + calcChars(memories)
+                + ", memories=" + memories.toList());
+    }
+
+    /**
+     * 按文本删除记忆（按出现顺序删除一次）。
+     */
+    synchronized public void removeAiMemory(String userId, JSONArray targets) {
+        if (Objects.equals(AI_MEMORY_GLOBAL_UID, userId)) {
+            LOGGER.log(Level.INFO, "Skip removing global AI memory by request, user=" + label(userId));
+            return;
+        }
+        if (StringUtils.isBlank(userId) || targets == null || targets.length() == 0) {
+            return;
+        }
+        JSONArray memories = getAiMemory(userId);
+        List<String> removed = new ArrayList<>();
+        for (int t = 0; t < targets.length(); t++) {
+            String target = targets.optString(t, "").trim();
+            if (target.isEmpty()) {
+                continue;
+            }
+            JSONArray rebuilt = new JSONArray();
+            boolean hit = false;
+            for (int i = 0; i < memories.length(); i++) {
+                String mem = memories.optString(i);
+                if (!hit && Objects.equals(mem, target)) {
+                    hit = true;
+                    removed.add(mem);
+                    continue;
+                }
+                rebuilt.put(mem);
+            }
+            memories = rebuilt;
+        }
+        saveAiMemory(userId, memories);
+        if (!removed.isEmpty()) {
+            LOGGER.log(Level.INFO, "AI memory remove " + label(userId)
+                    + ", targets=" + targets.toList()
+                    + ", removed=" + removed
+                    + ", finalCount=" + memories.length()
+                    + ", finalChars=" + calcChars(memories)
+                    + ", memories=" + memories.toList());
+        }
+    }
+
+    /**
+     * 清空用户记忆（不允许清空全局记忆）。
+     */
+    synchronized public void clearAiMemory(String userId) {
+        if (StringUtils.isBlank(userId) || Objects.equals(AI_MEMORY_GLOBAL_UID, userId)) {
+            LOGGER.log(Level.INFO, "Skip clearing AI memory for user=" + label(userId));
+            return;
+        }
+        saveAiMemory(userId, new JSONArray());
+        LOGGER.log(Level.INFO, "AI memory cleared for user=" + label(userId));
+    }
+
+    /**
+     * 限制单个用户和马库斯全局记忆的总字符数不超过 2000，多余的从最旧开始删除。
+     */
+    synchronized public void enforceAiMemoryTotalLimit(String userId) {
+        JSONArray userMem = getAiMemory(userId);
+        JSONArray globalMem = getAiMemory(AI_MEMORY_GLOBAL_UID);
+
+        final List<String> removedUser = new ArrayList<>();
+        final List<String> removedGlobal = new ArrayList<>();
+
+        while (calcChars(userMem) + calcChars(globalMem) > 2000) {
+            int userChars = calcChars(userMem);
+            int globalChars = calcChars(globalMem);
+            if ((userChars >= globalChars && userMem.length() > 0) || globalMem.length() == 0) {
+                removedUser.add(userMem.optString(0));
+                userMem = sliceFrom(userMem, 1);
+            } else if (globalMem.length() > 0) {
+                removedGlobal.add(globalMem.optString(0));
+                globalMem = sliceFrom(globalMem, 1);
+            } else {
+                break;
+            }
+        }
+
+        if (!removedUser.isEmpty()) {
+            saveAiMemory(userId, userMem);
+        }
+        if (!removedGlobal.isEmpty()) {
+            saveAiMemory(AI_MEMORY_GLOBAL_UID, globalMem);
+        }
+        if (!removedUser.isEmpty() || !removedGlobal.isEmpty()) {
+            LOGGER.log(Level.INFO, "AI memory total trim user=" + label(userId)
+                    + ", removedUser=" + removedUser
+                    + ", removedGlobal=" + removedGlobal
+                    + ", finalChars user=" + calcChars(userMem)
+                    + ", global=" + calcChars(globalMem)
+                    + ", total=" + (calcChars(userMem) + calcChars(globalMem))
+                    + ", userMem=" + userMem.toList()
+                    + ", globalMem=" + globalMem.toList());
+        }
+    }
+
+    private String label(String userId) {
+        return Objects.equals(AI_MEMORY_GLOBAL_UID, userId) ? "global(AI_MEMORY_GLOBAL_UID)" : "user(" + userId + ")";
+    }
+
+    private int calcChars(JSONArray arr) {
+        int len = 0;
+        for (int i = 0; i < arr.length(); i++) {
+            len += arr.optString(i, "").length();
+        }
+        return len;
+    }
+
+    private JSONArray sliceFrom(JSONArray arr, int start) {
+        JSONArray res = new JSONArray();
+        for (int i = start; i < arr.length(); i++) {
+            res.put(arr.get(i));
+        }
+        return res;
+    }
+
+    /**
+     * 覆盖保存 AI 记忆。
+     */
+    synchronized private void saveAiMemory(String userId, JSONArray memories) {
+        try {
+            final Transaction transaction = cloudRepository.beginTransaction();
+            Query cloudDeleteQuery = new Query()
+                    .setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
+                            new PropertyFilter("gameId", FilterOperator.EQUAL, AI_MEMORY)
+                    ));
+            cloudRepository.remove(cloudDeleteQuery);
+
+            JSONObject cloudJSON = new JSONObject();
+            cloudJSON.put("userId", userId)
+                    .put("gameId", AI_MEMORY)
+                    .put("data", memories.toString());
+            cloudRepository.add(cloudJSON);
+            transaction.commit();
+        } catch (RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Cannot save AI memory for userId " + userId, e);
         }
     }
 }

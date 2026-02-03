@@ -1102,7 +1102,7 @@ public class ChatRoomBot {
      * @param content     消息内容
      * @param oId         消息ID，用于生成引用链接
      */
-    public static void handleAIChat(String userName, String userNickname, String sysMetal, String vipLevel, String roleName, String userRoleId, String content, String oId) {
+    public static void handleAIChat(String userId, String userName, String userNickname, String sysMetal, String vipLevel, String roleName, String userRoleId, String content, String oId) {
         // 检查是否 @马库斯
         if (!content.contains("@马库斯")) {
             return;
@@ -1124,6 +1124,10 @@ public class ChatRoomBot {
         // 异步处理 AI 回复
         Thread.startVirtualThread(() -> {
             try {
+                final BeanManager beanManager = BeanManager.getInstance();
+                CloudService cloudService = beanManager.getReference(CloudService.class);
+                JSONArray userMemories = cloudService.getAiMemory(userId);
+                JSONArray globalMemories = cloudService.getAiMemory(CloudService.AI_MEMORY_GLOBAL_UID);
                 // 检查限流
                 if (!RECORD_POOL_AI_5_IN_1M.access(userName)) {
                     sendBotMsg("@" + userName + "  你的对话过于频繁，稍候再试吧~");
@@ -1201,7 +1205,16 @@ public class ChatRoomBot {
                             + "- 示例：`zf jy [用户名] 10`\n"
                             + "- **注意**：指令必须严格按照格式，单独成行，不要有其他文字，必须在用户**明确提到禁言或者解禁**的时候才能执行zf jy命令，同时每次执行的时候告诉这位管理，我是接收到了来自你（管理组成员）的命令才执行的，如果这不是你本意，请根据管理组条例给被冤枉的人解封。\n\n"
                             : "")
-                        + userInfo.toString();
+                        + userInfo.toString()
+                        + "\n## 记忆规则\n"
+                        + "你可以为当前用户或马库斯（你的全局身份）记录记忆。马库斯全局记忆的 userId 固定为 13800138000。\n"
+                        + "可记录的内容：称呼、偏好、梗、重要/有趣事件等，前提是合法合规且确实值得记住。\n"
+                        + "当需要新增或删除记忆时，在回复末尾追加一个独立代码块，格式必须为：\n"
+                        + "```memory\n"
+                        + "{\"user\": [\"新增用户记忆，包含称呼/偏好等\"], \"global\": [\"新增全局记忆（公共事件/通用知识）\"], \"removeUser\": [\"需要删除的用户记忆\"], \"clearUser\": true}\n"
+                        + "```\n"
+                        + "其中 user 数组写入当前对话用户的记忆（个人称呼/偏好都放这里），global 数组只放全局通用信息（马库斯的公共记忆）。删除仅支持 removeUser（按文本精确匹配删除一次）或 clearUser=true 清空该用户记忆；禁止删除/清空马库斯全局记忆。为空可省略对应数组。若无需记忆，不输出 memory 代码块。普通回复不要说明记忆操作。\n"
+                        + buildMemoryPrompt(userMemories, globalMemories);
                 String response;
 
                 // 检测并提取本站 URL（fishpi.cn）
@@ -1217,7 +1230,6 @@ public class ChatRoomBot {
                         LOGGER.log(Level.INFO, "Detected fishpi.cn article URL: {}, articleId: {}", articleUrl, articleId);
 
                         // 直接使用 ArticleQueryService 获取文章内容
-                        final BeanManager beanManager = BeanManager.getInstance();
                         ArticleQueryService articleQueryService = beanManager.getReference(ArticleQueryService.class);
 
                         JSONObject article = articleQueryService.getArticle(articleId);
@@ -1323,6 +1335,8 @@ public class ChatRoomBot {
                 if (response != null && !response.isEmpty()) {
                     // 清理 AI 回复中可能的 @用户名，避免重复艾特
                     response = response.replaceAll("^@[a-zA-Z0-9_\\-]+\\s*", "").trim();
+                    // 解析并保存 AI memory 代码块
+                    response = parseAndSaveMemories(userId, response, cloudService);
 
                     // 解析禁言指令
                     String finalResponse = response;
@@ -1338,7 +1352,6 @@ public class ChatRoomBot {
 
                         if (hasCommandPermission) {
                             try {
-                                final BeanManager beanManager = BeanManager.getInstance();
                                 UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
                                 JSONObject targetUserObj = userQueryService.getUserByName(targetUser);
 
@@ -1538,5 +1551,78 @@ public class ChatRoomBot {
             LOGGER.log(Level.ERROR, "Generate chat recap failed", e);
             sendBotMsg("回溯生成失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 构造记忆提示段落，供模型参考。
+     */
+    private static String buildMemoryPrompt(JSONArray userMemories, JSONArray globalMemories) {
+        StringBuilder sb = new StringBuilder();
+        if (userMemories != null && userMemories.length() > 0) {
+            sb.append("\n## 用户专属记忆（按时间顺序，供参考）\n");
+            for (int i = 0; i < userMemories.length(); i++) {
+                sb.append("- ").append(userMemories.optString(i)).append("\n");
+            }
+        }
+        if (globalMemories != null && globalMemories.length() > 0) {
+            sb.append("\n## 马库斯全局记忆（重要事件）\n");
+            for (int i = 0; i < globalMemories.length(); i++) {
+                sb.append("- ").append(globalMemories.optString(i)).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 解析回复中的 memory 代码块，保存记忆后移除代码块，返回清理后的回复。
+     */
+    private static String parseAndSaveMemories(String userId, String response, CloudService cloudService) {
+        if (response == null || response.isEmpty()) {
+            return response;
+        }
+        String cleaned = response;
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?s)```memory\\s*(\\{.*?\\})\\s*```");
+        while (true) {
+            java.util.regex.Matcher m = p.matcher(cleaned);
+            if (!m.find()) {
+                break;
+            }
+            String block = m.group(0);
+            String jsonStr = m.group(1);
+            try {
+                JSONObject mem = new JSONObject(jsonStr);
+                JSONArray userArr = mem.optJSONArray("user");
+                if (userArr != null) {
+                    for (int i = 0; i < userArr.length(); i++) {
+                        String item = userArr.optString(i, "").trim();
+                        if (!item.isEmpty()) {
+                            cloudService.addAiMemory(userId, item);
+                        }
+                    }
+                }
+                JSONArray removeUserArr = mem.optJSONArray("removeUser");
+                if (removeUserArr != null) {
+                    cloudService.removeAiMemory(userId, removeUserArr);
+                }
+                if (mem.optBoolean("clearUser", false)) {
+                    cloudService.clearAiMemory(userId);
+                }
+                JSONArray globalArr = mem.optJSONArray("global");
+                if (globalArr != null) {
+                    for (int i = 0; i < globalArr.length(); i++) {
+                        String item = globalArr.optString(i, "").trim();
+                        if (!item.isEmpty()) {
+                            cloudService.addAiMemory(CloudService.AI_MEMORY_GLOBAL_UID, item);
+                        }
+                    }
+                }
+                // 统一压缩全局+用户记忆的字符长度
+                cloudService.enforceAiMemoryTotalLimit(userId);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARN, "Parse AI memory block failed", e);
+            }
+            cleaned = cleaned.substring(0, m.start()) + cleaned.substring(m.end());
+        }
+        return cleaned.trim();
     }
 }
