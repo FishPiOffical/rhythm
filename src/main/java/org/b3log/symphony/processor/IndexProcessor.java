@@ -471,7 +471,7 @@ public class IndexProcessor {
         dataModel.put("recentArticles2", recentArticles2);
 
         // 长篇文章专区
-        final List<JSONObject> longArticles = articleQueryService.getIndexLongArticles(10);
+        final List<JSONObject> longArticles = articleQueryService.getIndexLongArticles(12);
         dataModel.put("longArticles", longArticles);
 
         // 最近文章（移动端）
@@ -727,7 +727,8 @@ public class IndexProcessor {
 
         dataModel.put("stickArticles", Collections.emptyList());
         dataModel.put(Common.SELECTED, "long");
-        dataModel.put(Common.CURRENT, "long");
+        // 其他 recent* 页面 current 值形如 "/hot"、"/good"，保持一致以生成正确分页链接
+        dataModel.put(Common.CURRENT, "/long");
     }
 
     /**
