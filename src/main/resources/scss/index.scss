@@ -4307,16 +4307,19 @@ body.night {
 
 .long-book--no-cover {
   border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 
   &:hover {
     border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   }
 }
 
 .long-book--with-cover {
   flex: 0 0 180px;
   height: auto;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 
   .long-book__cover {
     width: 100%;
@@ -4328,6 +4331,11 @@ body.night {
 
   .long-book__info {
     border-radius: 0 0 12px 12px;
+  }
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   }
 }
 
@@ -4404,15 +4412,16 @@ body.night {
 
 .long-book__summary {
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.55;
   color: #6b7280;
-  margin-bottom: 10px;
-  flex: 1;
+  margin-bottom: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
+  max-height: calc(1.55em * 6 + 2px);
+  padding-bottom: 2px;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
