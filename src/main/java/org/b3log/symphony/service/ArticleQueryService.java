@@ -1372,9 +1372,11 @@ public class ArticleQueryService {
                                 new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT))).
                         setPageCount(1).setPage(1, fetchSize).
                         addSort(Article.ARTICLE_CREATE_TIME, SortDirection.DESCENDING);
+                addListProjections(query);
                 final List<JSONObject> ret = articleRepository.getList(query);
 
                 organizeArticles(ret);
+                fillLongArticleCovers(ret);
 
                 return ret;
             } finally {
@@ -1385,6 +1387,96 @@ public class ArticleQueryService {
 
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Gets the hot long articles for index display.
+     *
+     * @param fetchSize the specified fetch size
+     * @return hot long articles, returns an empty list if not found
+     */
+    public List<JSONObject> getIndexHotLongArticles(int fetchSize) {
+        try {
+            Stopwatchs.start("Query index hot long articles");
+            try {
+                final String sql = "SELECT *, " +
+                        "(IFNULL(articleGoodCnt, 0) + IFNULL(articleThankCnt, 0) * 3 + IFNULL(articleCommentCount, 0) * 2) AS " +
+                        Article.ARTICLE_T_LONG_HOT_SCORE +
+                        " FROM symphony_article " +
+                        "WHERE articleType = " + Article.ARTICLE_TYPE_C_LONG +
+                        " AND articleStatus = " + Article.ARTICLE_STATUS_C_VALID +
+                        " AND articleShowInList <> " + Article.ARTICLE_SHOW_IN_LIST_C_NOT +
+                        " ORDER BY " + Article.ARTICLE_T_LONG_HOT_SCORE + " DESC " +
+                        "LIMIT " + fetchSize;
+                final List<JSONObject> ret = articleRepository.select(sql);
+                organizeArticles(ret);
+                fillLongArticleCovers(ret);
+
+                return ret;
+            } finally {
+                Stopwatchs.end();
+            }
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Gets index hot long articles failed", e);
+
+            return Collections.emptyList();
+        }
+    }
+
+    private void fillLongArticleCovers(final List<JSONObject> articles) {
+        for (final JSONObject article : articles) {
+            String cover = article.optString(Article.ARTICLE_T_THUMBNAIL_URL);
+            if (StringUtils.isBlank(cover)) {
+                cover = getArticleCoverRelaxed(article);
+            }
+            if (StringUtils.isNotBlank(cover)) {
+                article.put(Article.ARTICLE_T_LONG_COVER_URL, cover);
+            }
+        }
+    }
+
+    private String getArticleCoverRelaxed(final JSONObject article) {
+        final int articleType = article.optInt(Article.ARTICLE_TYPE);
+        if (Article.ARTICLE_TYPE_C_THOUGHT == articleType) {
+            return "";
+        }
+
+        final String content = article.optString(Article.ARTICLE_CONTENT);
+        if (StringUtils.isBlank(content)) {
+            return "";
+        }
+
+        final String html = Markdowns.toHTML(content);
+        final String[] imgs = StringUtils.substringsBetween(html, "<img", ">");
+        if (null == imgs || 0 == imgs.length) {
+            return "";
+        }
+
+        String ret = null;
+        for (int i = 0; i < imgs.length; i++) {
+            ret = StringUtils.substringBetween(imgs[i], "data-src=\"", "\"");
+            if (StringUtils.isBlank(ret)) {
+                ret = StringUtils.substringBetween(imgs[i], "src=\"", "\"");
+            }
+            if (StringUtils.isBlank(ret)) {
+                continue;
+            }
+            if (!StringUtils.containsIgnoreCase(ret, ".ico")) {
+                break;
+            }
+        }
+
+        if (StringUtils.isBlank(ret)) {
+            return "";
+        }
+
+        if (StringUtils.startsWith(ret, "//")) {
+            ret = "https:" + ret;
+        } else if (StringUtils.startsWith(ret, "/") && !StringUtils.startsWith(ret, Latkes.getServePath())) {
+            ret = Latkes.getServePath() + ret;
+        }
+
+        return ret;
     }
 
     /**
@@ -1464,7 +1556,8 @@ public class ArticleQueryService {
                     return 1;
                 }
             });
-            organizeArticles(ret);
+                organizeArticles(ret);
+                fillLongArticleCovers(ret);
             Collections.shuffle(ret);
             hotArticlesCache = Collections.synchronizedList(new ArrayList<>(ret));
             System.out.println(">>> Refreshed hot articles cache.");

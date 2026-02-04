@@ -268,25 +268,107 @@
         </div>
     </div>
 
-    <#if longArticles?size != 0>
-    <div style="padding-top:15px;padding-bottom: 15px;background: #f8f9fa;">
-        <div class="wrapper" style="flex-direction: column;">
-            <div class="index-head-title" style="margin-bottom: 10px; clear: both;">
-                <svg style="width: 18px; height: 18px; vertical-align: -3px; float: left; margin-right: 5px;"><use xlink:href="#book"></use></svg>
-                <span style="float:left;font-size:13px;font-weight:bold;">长篇专区</span>
-                <span class="fn-right" style="font-size:12px;margin-left: 15px;"><a href="${servePath}/recent/long">更多</a></span>
-                <div style="clear:both;"></div>
+    <#if (recentLongArticles?? && recentLongArticles?size != 0) || (hotLongArticles?? && hotLongArticles?size != 0)>
+    <section class="long-read-zone">
+        <div class="wrapper long-read-zone__wrapper">
+            <div class="long-read-zone__head">
+                <div class="long-read-zone__title">
+                    <svg><use xlink:href="#book"></use></svg>
+                    <span>长篇专区</span>
+                </div>
+                <a class="long-read-zone__more" href="${servePath}/recent/long">更多</a>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                <#list longArticles as article>
-                    <a href="${servePath}${article.articlePermalink}" style="display: block; padding: 8px 10px; background: #fff; border-radius: 4px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='#e8e8e8'" onmouseout="this.style.background='#fff'">
-                        <div style="font-size: 13px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${article.articleTitleEmoj}</div>
-                        <div style="font-size: 12px; color: #999; margin-top: 2px;">${article.articleAuthorName}</div>
-                    </a>
-                </#list>
+
+            <#if recentLongArticles?? && recentLongArticles?size != 0>
+            <div class="long-read-zone__row">
+                <div class="long-read-zone__row-head">
+                    <div class="long-read-zone__row-title">
+                        <span class="long-read-zone__badge">最近长篇</span>
+                    </div>
+                    <div class="long-read-zone__row-actions">
+                        <button class="long-read-zone__nav" type="button" aria-label="向左滚动" onclick="scrollLongShelf('long-recent', -1)">
+                            <svg><use xlink:href="#chevron-left"></use></svg>
+                        </button>
+                        <button class="long-read-zone__nav" type="button" aria-label="向右滚动" onclick="scrollLongShelf('long-recent', 1)">
+                            <svg><use xlink:href="#chevron-right"></use></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="long-read-zone__carousel" id="long-recent">
+                    <#list recentLongArticles as article>
+                        <#assign coverUrl = "">
+                        <#if article.articleLongCoverURL?has_content>
+                            <#assign coverUrl = article.articleLongCoverURL>
+                        <#elseif article.articleThumbnailURL?has_content>
+                            <#assign coverUrl = article.articleThumbnailURL>
+                        </#if>
+                        <a class="long-book <#if !coverUrl?has_content>long-book--no-cover</#if> <#if coverUrl?has_content>long-book--with-cover</#if>" href="${servePath}${article.articlePermalink}">
+                            <#if coverUrl?has_content>
+                            <div class="long-book__cover" style="background-image: url('${coverUrl}')"></div>
+                            </#if>
+                            <div class="long-book__info">
+                                <div class="long-book__title">${article.articleTitleEmoj}</div>
+                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
+                                <div class="long-book__summary">${article.articlePreviewContent}</div>
+                                </#if>
+                                <div class="long-book__meta">
+                                    <span>${article.timeAgo}</span>
+                                    <span>${article.articleCommentCount} 评论</span>
+                                </div>
+                            </div>
+                        </a>
+                    </#list>
+                </div>
             </div>
+            </#if>
+
+            <#if hotLongArticles?? && hotLongArticles?size != 0>
+            <div class="long-read-zone__row long-read-zone__row--hot">
+                <div class="long-read-zone__row-head">
+                    <div class="long-read-zone__row-title">
+                        <span class="long-read-zone__badge long-read-zone__badge--hot">热门长篇</span>
+                    </div>
+                    <div class="long-read-zone__row-actions">
+                        <button class="long-read-zone__nav" type="button" aria-label="向左滚动" onclick="scrollLongShelf('long-hot', -1)">
+                            <svg><use xlink:href="#chevron-left"></use></svg>
+                        </button>
+                        <button class="long-read-zone__nav" type="button" aria-label="向右滚动" onclick="scrollLongShelf('long-hot', 1)">
+                            <svg><use xlink:href="#chevron-right"></use></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="long-read-zone__carousel" id="long-hot">
+                    <#list hotLongArticles as article>
+                        <#assign coverUrl = "">
+                        <#if article.articleLongCoverURL?has_content>
+                            <#assign coverUrl = article.articleLongCoverURL>
+                        <#elseif article.articleThumbnailURL?has_content>
+                            <#assign coverUrl = article.articleThumbnailURL>
+                        </#if>
+                        <a class="long-book <#if !coverUrl?has_content>long-book--no-cover</#if> <#if coverUrl?has_content>long-book--with-cover</#if>" href="${servePath}${article.articlePermalink}">
+                            <#if coverUrl?has_content>
+                            <div class="long-book__cover" style="background-image: url('${coverUrl}')"></div>
+                            </#if>
+                            <div class="long-book__info">
+                                <div class="long-book__title">${article.articleTitleEmoj}</div>
+                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
+                                <div class="long-book__summary">${article.articlePreviewContent}</div>
+                                </#if>
+                                <div class="long-book__meta">
+                                    <span>${article.timeAgo}</span>
+                                    <span>${article.articleCommentCount} 评论</span>
+                                    <span class="long-book__score">热度 ${article.articleLongHotScore?c}</span>
+                                </div>
+                            </div>
+                        </a>
+                    </#list>
+                </div>
+            </div>
+            </#if>
         </div>
-    </div>
+    </section>
     </#if>
 
     <#if isLoggedIn>
@@ -936,6 +1018,67 @@
     <#if need2fa == "yes">
     Util.alert("⛔ 摸鱼派管理组成员，您好！<br>作为管理组的成员，您的账号需要更高的安全性，以确保社区的稳定运行。<br>请您收到此通知后，立即在个人设置-账户中启用两步验证，感谢你对社区的贡献！<br><br><button onclick='location.href=\"${servePath}/settings/account#mfaCode\"'>点击这里前往设置</button>", "致管理组成员的重要通知️")
     </#if>
+
+    function scrollLongShelf(targetId, direction) {
+        var shelf = document.getElementById(targetId);
+        if (!shelf) {
+            return;
+        }
+        var card = shelf.querySelector('.long-book');
+        var offset = card ? (card.offsetWidth + 14) : 320;
+        shelf.scrollBy({left: direction * offset * 2, behavior: 'smooth'});
+    }
+
+    function initLongShelfAuto(targetId, intervalMs) {
+        var shelf = document.getElementById(targetId);
+        if (!shelf) {
+            return;
+        }
+        var timer = null;
+        var gap = 14;
+        var step = function () {
+            var card = shelf.querySelector('.long-book');
+            if (!card) {
+                return;
+            }
+            var offset = card.offsetWidth + gap;
+            var maxScroll = shelf.scrollWidth - shelf.clientWidth;
+            if (maxScroll <= 0) {
+                return;
+            }
+            var next = shelf.scrollLeft + offset;
+            if (next >= maxScroll - 2) {
+                shelf.scrollTo({left: 0, behavior: 'smooth'});
+            } else {
+                shelf.scrollBy({left: offset, behavior: 'smooth'});
+            }
+        };
+        var start = function () {
+            if (timer) {
+                return;
+            }
+            timer = setInterval(step, intervalMs || 3600);
+        };
+        var stop = function () {
+            if (!timer) {
+                return;
+            }
+            clearInterval(timer);
+            timer = null;
+        };
+        var row = shelf.closest('.long-read-zone__row');
+        var hoverTarget = row || shelf;
+        hoverTarget.addEventListener('mouseenter', stop);
+        hoverTarget.addEventListener('mouseleave', start);
+        hoverTarget.addEventListener('touchstart', stop, {passive: true});
+        hoverTarget.addEventListener('touchend', start);
+        start();
+    }
+
+    $(function () {
+        initLongShelfAuto('long-recent', 3600);
+        initLongShelfAuto('long-hot', 3600);
+    });
 </script>
 </body>
 </html>

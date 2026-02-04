@@ -470,8 +470,17 @@ public class IndexProcessor {
         final List<JSONObject> recentArticles2 = articleQueryService.getIndexRecentArticles(18, 2);
         dataModel.put("recentArticles2", recentArticles2);
 
-        // 长篇文章专区
-        final List<JSONObject> longArticles = articleQueryService.getIndexLongArticles(12);
+        // 长篇文章专区（最近 & 热门）
+        final List<JSONObject> recentLongArticles = articleQueryService.getIndexLongArticles(50);
+        dataModel.put("recentLongArticles", recentLongArticles);
+
+        final List<JSONObject> hotLongArticles = articleQueryService.getIndexHotLongArticles(50);
+        dataModel.put("hotLongArticles", hotLongArticles);
+
+        List<JSONObject> longArticles = recentLongArticles;
+        if (longArticles.size() > 12) {
+            longArticles = longArticles.subList(0, 12);
+        }
         dataModel.put("longArticles", longArticles);
 
         // 最近文章（移动端）

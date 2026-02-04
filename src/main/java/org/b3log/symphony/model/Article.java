@@ -288,6 +288,16 @@ public final class Article {
     public static final String ARTICLE_T_THUMBNAIL_URL = "articleThumbnailURL";
 
     /**
+     * Key of long article hot score.
+     */
+    public static final String ARTICLE_T_LONG_HOT_SCORE = "articleLongHotScore";
+
+    /**
+     * Key of long article cover URL.
+     */
+    public static final String ARTICLE_T_LONG_COVER_URL = "articleLongCoverURL";
+
+    /**
      * Key of article view count display format.
      */
     public static final String ARTICLE_T_VIEW_CNT_DISPLAY_FORMAT = "articleViewCntDisplayFormat";
