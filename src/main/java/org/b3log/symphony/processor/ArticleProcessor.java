@@ -584,7 +584,9 @@ public class ArticleProcessor {
             visit.put(Visit.VISIT_UA, ua);
             visit.put(Visit.VISIT_URL, "/article/" + articleId);
             visit.put(Visit.VISIT_USER_ID, "");
-            visit.put(Visit.VISIT_USER_ID, currentUser);
+            if (null != currentUser) {
+                visit.put(Visit.VISIT_USER_ID, currentUser.optString(Keys.OBJECT_ID));
+            }
 
             articleMgmtService.incArticleViewCount(visit);
         }

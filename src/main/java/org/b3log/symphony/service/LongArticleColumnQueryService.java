@@ -90,7 +90,12 @@ public class LongArticleColumnQueryService {
                     .addSort(LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING)
                     .setPageCount(1)
                     .setPage(1, fetchSize);
-            return longArticleColumnRepository.getList(query);
+            final List<JSONObject> columns = longArticleColumnRepository.getList(query);
+            for (final JSONObject column : columns) {
+                column.put(LongArticleColumn.COLUMN_TITLE,
+                        Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
+            }
+            return columns;
         } catch (final Exception e) {
             LOGGER.error("Gets user long article columns failed [userId={}]", userId, e);
             return Collections.emptyList();
@@ -121,7 +126,7 @@ public class LongArticleColumnQueryService {
 
             final JSONObject ret = new JSONObject();
             ret.put(LongArticleColumn.COLUMN_ID, column.optString(Keys.OBJECT_ID));
-            ret.put(LongArticleColumn.COLUMN_TITLE, column.optString(LongArticleColumn.COLUMN_TITLE));
+            ret.put(LongArticleColumn.COLUMN_TITLE, Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
             ret.put(LongArticleColumn.CHAPTER_NO, chapter.optInt(LongArticleColumn.CHAPTER_NO));
             ret.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, column.optInt(LongArticleColumn.COLUMN_ARTICLE_COUNT));
             return ret;
@@ -187,8 +192,11 @@ public class LongArticleColumnQueryService {
             }
 
             final JSONObject ret = new JSONObject();
-            column.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
-            ret.put("column", column);
+            final JSONObject safeColumn = new JSONObject(column.toString());
+            safeColumn.put(LongArticleColumn.COLUMN_TITLE,
+                    Escapes.escapeHTML(safeColumn.optString(LongArticleColumn.COLUMN_TITLE)));
+            safeColumn.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
+            ret.put("column", safeColumn);
             ret.put("chapters", (Object) chapterViews);
             ret.put(LongArticleColumn.CHAPTER_NO, chapterViews.get(currentIndex).optInt(LongArticleColumn.CHAPTER_NO));
             if (currentIndex > 0) {
@@ -246,8 +254,11 @@ public class LongArticleColumnQueryService {
             }
 
             final JSONObject ret = new JSONObject();
-            column.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
-            ret.put("column", column);
+            final JSONObject safeColumn = new JSONObject(column.toString());
+            safeColumn.put(LongArticleColumn.COLUMN_TITLE,
+                    Escapes.escapeHTML(safeColumn.optString(LongArticleColumn.COLUMN_TITLE)));
+            safeColumn.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
+            ret.put("column", safeColumn);
             ret.put("chapters", (Object) chapterViews);
             return ret;
         } catch (final Exception e) {
@@ -386,6 +397,8 @@ public class LongArticleColumnQueryService {
 
                 final JSONObject card = new JSONObject(column.toString());
                 card.put(LongArticleColumn.COLUMN_ID, columnId);
+                card.put(LongArticleColumn.COLUMN_TITLE,
+                        Escapes.escapeHTML(card.optString(LongArticleColumn.COLUMN_TITLE)));
 
                 final JSONObject latestChapter = getLatestChapterView(columnId);
                 if (null != latestChapter) {

@@ -2281,9 +2281,9 @@ public class AdminProcessor {
 
         final String articleId = context.pathVar("articleId");
         final JSONObject article = articleQueryService.getArticle(articleId);
+        Escapes.escapeHTML(article);
         fillLongArticleChapterMeta(article);
         fillLongArticleColumnsForAdmin(article, dataModel);
-        Escapes.escapeHTML(article);
         dataModel.put(Article.ARTICLE, article);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
