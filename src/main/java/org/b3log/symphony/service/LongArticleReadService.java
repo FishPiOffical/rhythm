@@ -69,6 +69,10 @@ public class LongArticleReadService {
 
     private static final int ANON_CAP = 100;
 
+    private static final int REGISTERED_READ_REWARD = 10;
+
+    private static final int ANON_READ_REWARD = 8;
+
     @Inject
     private ArticleRepository articleRepository;
 
@@ -180,7 +184,7 @@ public class LongArticleReadService {
         final int registeredCnt = stat.optInt(LongArticleRead.REGISTERED_UNSETTLED, 0);
         final int anonCnt = stat.optInt(LongArticleRead.ANON_UNSETTLED, 0);
         final int cappedAnon = Math.min(anonCnt, ANON_CAP);
-        final int reward = registeredCnt * 2 + cappedAnon;
+        final int reward = registeredCnt * REGISTERED_READ_REWARD + cappedAnon * ANON_READ_REWARD;
         final long windowStart = stat.optLong(LongArticleRead.WINDOW_START);
         final long windowEnd = windowStart + WINDOW_MILLIS;
 
