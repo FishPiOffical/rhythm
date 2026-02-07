@@ -1459,18 +1459,14 @@ public class ArticleProcessor {
         dataModel.put(Article.ARTICLE_T_PREVIOUS, previous);
         dataModel.put(Article.ARTICLE_T_NEXT, next);
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
-            JSONObject longPrev = null;
-            JSONObject longNext = null;
+            JSONObject longPrev;
+            JSONObject longNext;
             final JSONObject longColumnView = (JSONObject) dataModel.get("longArticleColumnView");
             if (null != longColumnView) {
                 longPrev = longColumnView.optJSONObject("previous");
                 longNext = longColumnView.optJSONObject("next");
-            }
-
-            if (null == longPrev) {
+            } else {
                 longPrev = articleQueryService.getPreviousLongArticle(articleId, articleAuthorId);
-            }
-            if (null == longNext) {
                 longNext = articleQueryService.getNextLongArticle(articleId, articleAuthorId);
             }
 

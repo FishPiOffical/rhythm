@@ -308,6 +308,7 @@ public class LongArticleColumnQueryService {
             final Query query = new Query().setFilter(new PropertyFilter(LongArticleRead.USER_ID,
                     FilterOperator.EQUAL, userId))
                     .addSort(LongArticleRead.FIRST_READ_AT, SortDirection.DESCENDING)
+                    .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
                     .setPageCount(1)
                     .setPage(1, Math.max(fetchSize * 4, fetchSize));
             final List<JSONObject> records = longArticleReadUserRepository.getList(query);

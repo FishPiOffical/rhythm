@@ -2282,6 +2282,7 @@ public class AdminProcessor {
         final String articleId = context.pathVar("articleId");
         final JSONObject article = articleQueryService.getArticle(articleId);
         fillLongArticleChapterMeta(article);
+        fillLongArticleColumnsForAdmin(article, dataModel);
         Escapes.escapeHTML(article);
         dataModel.put(Article.ARTICLE, article);
 
@@ -2302,9 +2303,23 @@ public class AdminProcessor {
 
         JSONObject article = articleQueryService.getArticle(articleId);
 
+        final JSONObject longArticleColumnRequest = new JSONObject();
+        longArticleColumnRequest.put(LongArticleColumn.COLUMN_ID,
+                StringUtils.trimToEmpty(context.param(LongArticleColumn.COLUMN_ID)));
+        longArticleColumnRequest.put(LongArticleColumn.COLUMN_TITLE,
+                StringUtils.trimToEmpty(context.param(LongArticleColumn.COLUMN_TITLE)));
+        longArticleColumnRequest.put(LongArticleColumn.CHAPTER_NO,
+                StringUtils.trimToEmpty(context.param(LongArticleColumn.CHAPTER_NO)));
+
         final Iterator<String> parameterNames = request.getParameterNames().iterator();
         while (parameterNames.hasNext()) {
             final String name = parameterNames.next();
+            if (name.equals(LongArticleColumn.COLUMN_ID)
+                    || name.equals(LongArticleColumn.COLUMN_TITLE)
+                    || name.equals(LongArticleColumn.CHAPTER_NO)) {
+                continue;
+            }
+
             final String value = context.param(name);
             if (name.equals(Article.ARTICLE_REWARD_POINT)
                     || name.equals(Article.ARTICLE_QNA_OFFER_POINT)
@@ -2326,11 +2341,12 @@ public class AdminProcessor {
         final String articleTags = Tag.formatTags(article.optString(Article.ARTICLE_TAGS));
         article.put(Article.ARTICLE_TAGS, articleTags);
 
-        articleMgmtService.updateArticleByAdmin(articleId, article);
+        articleMgmtService.updateArticleByAdmin(articleId, article, longArticleColumnRequest);
         operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_UPDATE_ARTICLE, articleId));
 
         article = articleQueryService.getArticle(articleId);
         fillLongArticleChapterMeta(article);
+        fillLongArticleColumnsForAdmin(article, dataModel);
         String title = article.optString(Article.ARTICLE_TITLE);
         title = Escapes.escapeHTML(title);
         article.put(Article.ARTICLE_TITLE, title);
@@ -2357,6 +2373,21 @@ public class AdminProcessor {
         article.put(LongArticleColumn.COLUMN_ID, chapterMeta.optString(LongArticleColumn.COLUMN_ID));
         article.put(LongArticleColumn.COLUMN_TITLE, chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
         article.put(LongArticleColumn.CHAPTER_NO, chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
+    }
+
+    private void fillLongArticleColumnsForAdmin(final JSONObject article, final Map<String, Object> dataModel) {
+        if (null == article) {
+            dataModel.put("longArticleColumns", Collections.emptyList());
+            return;
+        }
+
+        final String authorId = article.optString(Article.ARTICLE_AUTHOR_ID);
+        if (StringUtils.isBlank(authorId)) {
+            dataModel.put("longArticleColumns", Collections.emptyList());
+            return;
+        }
+
+        dataModel.put("longArticleColumns", longArticleColumnQueryService.getUserColumns(authorId, 200));
     }
 
     /**

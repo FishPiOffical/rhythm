@@ -1035,6 +1035,21 @@ public class ArticleMgmtService {
      * @param article   the specified article
      */
     public void updateArticleByAdmin(final String articleId, final JSONObject article) {
+        updateArticleByAdmin(articleId, article, null);
+    }
+
+    /**
+     * Updates the specified article by the given article id.
+     * <p>
+     * <b>Note</b>: This method just for admin console.
+     * </p>
+     *
+     * @param articleId                 the given article id
+     * @param article                   the specified article
+     * @param longArticleColumnRequest  long article column request, {@code null} for no column change
+     */
+    public void updateArticleByAdmin(final String articleId, final JSONObject article,
+                                     final JSONObject longArticleColumnRequest) {
         final Transaction transaction = articleRepository.beginTransaction();
 
         try {
@@ -1042,7 +1057,7 @@ public class ArticleMgmtService {
             final JSONObject author = userRepository.get(authorId);
 
             article.put(Article.ARTICLE_COMMENTABLE, Boolean.valueOf(article.optBoolean(Article.ARTICLE_COMMENTABLE)));
-            article.put(Article.ARTICLE_STATEMENT, Integer.valueOf(article.optInt(Article.ARTICLE_STATEMENT,0)));
+            article.put(Article.ARTICLE_STATEMENT, Integer.valueOf(article.optInt(Article.ARTICLE_STATEMENT, 0)));
 
             final JSONObject oldArticle = articleRepository.get(articleId);
 
@@ -1083,6 +1098,11 @@ public class ArticleMgmtService {
 
             userRepository.update(authorId, author);
             articleRepository.update(articleId, article);
+
+            if (null != longArticleColumnRequest) {
+                article.put(Keys.OBJECT_ID, articleId);
+                longArticleColumnMgmtService.syncChapterInCurrentTransaction(article, longArticleColumnRequest);
+            }
 
             transaction.commit();
 

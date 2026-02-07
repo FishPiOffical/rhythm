@@ -268,8 +268,20 @@ public class LongArticleReadService {
                     new PropertyFilter(LongArticleRead.ARTICLE_ID, FilterOperator.EQUAL, articleId),
                     new PropertyFilter(LongArticleRead.USER_ID, FilterOperator.EQUAL, userId)))
                     .setPageCount(1);
-            if (userRepository.count(existed) > 0) {
-                // already recorded
+            final JSONObject existedRecord = userRepository.getFirst(existed);
+            if (null != existedRecord) {
+                final Transaction userTx = userRepository.beginTransaction();
+                try {
+                    existedRecord.put(LongArticleRead.FIRST_READ_AT, now);
+                    userRepository.update(existedRecord.optString(Keys.OBJECT_ID), existedRecord);
+                    userTx.commit();
+                } catch (final Exception e) {
+                    if (userTx.isActive()) {
+                        userTx.rollback();
+                    }
+                    throw e;
+                }
+
                 ensureWindowSynced(articleId, windowStart, now);
                 return;
             }

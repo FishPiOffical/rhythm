@@ -207,6 +207,50 @@
                         <input type="text" id="articleGoodCnt" name="articleGoodCnt" value="${article.articleGoodCnt}"/>
                     </label>
                 </div>
+                <div class="fn__flex" id="adminLongArticleColumnWrap"<#if 6 != article.articleType> style="display:none"</#if>>
+                    <#assign adminLongColumns = longArticleColumns![]>
+                    <#assign adminSelectedColumnId = article.columnId!"">
+                    <#assign adminSelectedColumnTitle = article.columnTitle!"">
+                    <#assign adminShowCreateColumnInput = !adminSelectedColumnId?has_content && adminSelectedColumnTitle?has_content>
+                    <#assign adminHasSelectedColumn = false>
+                    <#list adminLongColumns as longColumn>
+                        <#if adminSelectedColumnId == longColumn.oId>
+                            <#assign adminHasSelectedColumn = true>
+                        </#if>
+                    </#list>
+                    <label>
+                        <div>专栏归属</div>
+                        <select id="adminLongArticleColumnId" name="columnId">
+                            <option value="">不归属专栏（下架专栏）</option>
+                            <#if adminSelectedColumnId?has_content && !adminHasSelectedColumn>
+                                <option value="${adminSelectedColumnId}" selected>${article.columnTitle!adminSelectedColumnId}（当前专栏）</option>
+                            </#if>
+                            <#list adminLongColumns as longColumn>
+                                <option value="${longColumn.oId}"<#if adminSelectedColumnId == longColumn.oId> selected</#if>>
+                                    ${longColumn.columnTitle}<#if longColumn.columnArticleCount??>（${longColumn.columnArticleCount} 章）</#if>
+                                </option>
+                            </#list>
+                            <option value="__NEW__"<#if adminShowCreateColumnInput> selected</#if>>+ 新建专栏</option>
+                        </select>
+                    </label>
+                    <label class="mid" id="adminLongArticleColumnTitleWrap"<#if !adminShowCreateColumnInput> style="display:none"</#if>>
+                        <div>新专栏名称</div>
+                        <input type="text" id="adminLongArticleColumnTitle" name="columnTitle" maxlength="64"
+                               value="${adminSelectedColumnTitle}" placeholder="请输入新专栏名称"/>
+                    </label>
+                    <label id="adminLongArticleChapterNoWrap"<#if !adminSelectedColumnId?has_content && !adminShowCreateColumnInput> style="display:none"</#if>>
+                        <div>章节号</div>
+                        <input type="number" min="1" id="adminLongArticleChapterNo" name="chapterNo"
+                               <#if !adminSelectedColumnId?has_content && !adminShowCreateColumnInput>disabled</#if>
+                               value="<#if article.chapterNo??>${article.chapterNo?c}</#if>" placeholder="留空自动排在专栏末尾"/>
+                    </label>
+                </div>
+                <div class="fn__flex" id="adminLongArticleColumnTipWrap"<#if 6 != article.articleType> style="display:none"</#if>>
+                    <div class="ft-smaller ft-gray" style="margin-top:4px;line-height:1.6;">
+                        管理员可为该长文新建专栏、切换专栏，或选择“不归属专栏”进行下架。
+                    </div>
+                </div>
+
                 <div class="fn__flex">
                     <label>
                         <div>${badCntLabel}</div>
@@ -337,4 +381,78 @@
     </div>
     </#if>
 </div>
+<script>
+(function () {
+    var articleTypeEl = document.getElementById('articleType');
+    var columnWrap = document.getElementById('adminLongArticleColumnWrap');
+    var columnTipWrap = document.getElementById('adminLongArticleColumnTipWrap');
+    var columnSelect = document.getElementById('adminLongArticleColumnId');
+    var columnTitleWrap = document.getElementById('adminLongArticleColumnTitleWrap');
+    var columnTitleInput = document.getElementById('adminLongArticleColumnTitle');
+    var chapterWrap = document.getElementById('adminLongArticleChapterNoWrap');
+    var chapterInput = document.getElementById('adminLongArticleChapterNo');
+
+    if (!articleTypeEl || !columnSelect || !columnWrap || !columnTitleWrap || !chapterWrap) {
+        return;
+    }
+
+    var toggleColumnForm = function () {
+        var selectedColumnId = columnSelect.value || '';
+        var isCreate = selectedColumnId === '__NEW__';
+        var isBound = selectedColumnId !== '';
+
+        if (isCreate) {
+            columnTitleWrap.style.display = '';
+            if (columnTitleInput) {
+                columnTitleInput.disabled = false;
+            }
+        } else {
+            columnTitleWrap.style.display = 'none';
+            if (columnTitleInput) {
+                columnTitleInput.disabled = true;
+            }
+        }
+
+        if (isBound) {
+            chapterWrap.style.display = '';
+            if (chapterInput) {
+                chapterInput.disabled = false;
+            }
+        } else {
+            chapterWrap.style.display = 'none';
+            if (chapterInput) {
+                chapterInput.disabled = true;
+                chapterInput.value = '';
+            }
+            if (columnTitleInput) {
+                columnTitleInput.value = '';
+            }
+        }
+    };
+
+    var toggleByType = function () {
+        var isLongArticle = articleTypeEl.value === '6';
+        columnWrap.style.display = isLongArticle ? '' : 'none';
+        if (columnTipWrap) {
+            columnTipWrap.style.display = isLongArticle ? '' : 'none';
+        }
+
+        if (!isLongArticle) {
+            columnSelect.value = '';
+            if (columnTitleInput) {
+                columnTitleInput.value = '';
+            }
+            if (chapterInput) {
+                chapterInput.value = '';
+            }
+        }
+
+        toggleColumnForm();
+    };
+
+    columnSelect.addEventListener('change', toggleColumnForm);
+    articleTypeEl.addEventListener('change', toggleByType);
+    toggleByType();
+})();
+</script>
 </@admin>
