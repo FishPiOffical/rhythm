@@ -4410,7 +4410,7 @@ body.night {
 .long-book__author {
   font-size: 12px;
   color: #6b7280;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -4428,6 +4428,26 @@ body.night {
 .long-book--with-cover .long-book__author {
   color: #6b7280;
 }
+
+.long-book__column {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  max-width: 100%;
+  margin: -2px 0 8px;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 11px;
+  background: #eef4ff;
+  color: #2b5db9;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
 
 .long-book__summary {
   font-size: 12px;

@@ -318,11 +318,10 @@
                             </#if>
                             <div class="long-book__info">
                                 <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}
-                                    <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
-                                    <span style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
-                                    </#if>
-                                </div>
+                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                <div class="long-book__column" title="专栏 · ${article.columnTitle}" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</div>
+                                </#if>
                                 <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
                                 <div class="long-book__summary">${article.articlePreviewContent}</div>
                                 </#if>
@@ -366,11 +365,10 @@
                             </#if>
                             <div class="long-book__info">
                                 <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}
-                                    <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
-                                    <span style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
-                                    </#if>
-                                </div>
+                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                <div class="long-book__column" title="专栏 · ${article.columnTitle}" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</div>
+                                </#if>
                                 <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
                                 <div class="long-book__summary">${article.articlePreviewContent}</div>
                                 </#if>
