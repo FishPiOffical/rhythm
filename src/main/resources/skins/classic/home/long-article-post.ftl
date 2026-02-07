@@ -45,7 +45,7 @@
                 <#assign longArticleColumnList = longArticleColumns![]>
                 <#assign showCreateColumnInput = (selectedColumnId == "__NEW__")>
                 <#assign showChapterInput = selectedColumnId?has_content>
-                <div class="wrapper long-article-column-form">
+                <div class="long-article-column-form">
                     <div class="tip">专栏设置（可选）：可将长文归入已有专栏，或新建专栏进行章节连载。</div>
                     <div class="form">
                         <label for="longArticleColumnId">所属专栏</label>
