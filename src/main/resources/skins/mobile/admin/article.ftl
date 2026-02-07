@@ -56,6 +56,17 @@
             <label for="articleUA">UA</label>
             <input type="text" id="articleUA" name="articleUA" value="${article.articleUA}" readonly="readonly" />
 
+            <#if article.articleType?? && 6 == article.articleType>
+            <label for="articleColumnTitle">专栏</label>
+            <input type="text" id="articleColumnTitle" name="articleColumnTitle" value="${article.columnTitle!'-'}" readonly="readonly" />
+
+            <label for="articleColumnId">专栏ID</label>
+            <input type="text" id="articleColumnId" name="articleColumnId" value="${article.columnId!'-'}" readonly="readonly" />
+
+            <label for="articleChapterNo">章节号</label>
+            <input type="text" id="articleChapterNo" name="articleChapterNo" value="${article.chapterNo!'-'}" readonly="readonly" />
+            </#if>
+
             <label for"articleStick">${stickLabel}</label>
             <input type="text" id="articleStick" name="articleStick" value="${article.articleStick?c}" readonly="readonly" />
 

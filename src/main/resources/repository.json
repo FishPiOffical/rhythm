@@ -2512,6 +2512,31 @@
       ]
     },
     {
+      "name": "long_article_column",
+      "description": "长文专栏",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "columnTitle", "type": "String", "length": 64, "description": "专栏名称" },
+        { "name": "columnAuthorId", "type": "String", "length": 19, "description": "专栏作者 ID" },
+        { "name": "columnArticleCount", "type": "int", "description": "专栏文章数" },
+        { "name": "columnStatus", "type": "int", "description": "状态：0 有效，1 无效" },
+        { "name": "columnCreateTime", "type": "long", "description": "创建时间" },
+        { "name": "columnUpdateTime", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "long_article_column_chapter",
+      "description": "长文专栏章节映射",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "columnId", "type": "String", "length": 19, "description": "专栏 ID" },
+        { "name": "chapterNo", "type": "int", "description": "章节号" },
+        { "name": "chapterCreateTime", "type": "long", "description": "创建时间" },
+        { "name": "chapterUpdateTime", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
       "name": "milestone",
       "description": "大事记表",
       "keys": [

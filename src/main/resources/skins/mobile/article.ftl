@@ -70,6 +70,12 @@
             .long-article-nav__label{font-size:12px;color:#888;margin-bottom:4px}
             .long-article-nav__title{font-weight:700;margin-bottom:4px}
             .long-article-nav__preview{color:#555;font-size:13px;max-height:4.5em;overflow:hidden}
+            .long-column-card{margin:12px 0;padding:10px;border:1px solid #e8edf5;border-radius:10px;background:#fbfdff}
+            .long-column-card__title{font-weight:600;color:#2b3a55}
+            .long-column-card__meta{margin-top:4px;font-size:12px;color:#7b8798}
+            .long-column-card__chapters{margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed #e6eaf0;padding-top:6px}
+            .long-column-card__chapter{display:block;padding:6px 8px;border-radius:8px;color:#3d4a5c;text-decoration:none}
+            .long-column-card__chapter--active{background:#e8f0ff;color:#1d4ed8;font-weight:600}
         </style>
         </#if>
     </head>
@@ -271,6 +277,19 @@
                         </#if>
                     </div>
                 </div>
+                <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
+                    <div class="long-column-card">
+                        <div class="long-column-card__title">所属专栏：${longArticleColumn.columnTitle}</div>
+                        <div class="long-column-card__meta">当前第 ${article.longArticleChapterNo?c} 章 · 共 ${longArticleColumn.columnArticleCount?c} 章</div>
+                        <div class="long-column-card__chapters">
+                            <#list longArticleChapters as chapter>
+                                <a href="${servePath}${chapter.articlePermalink}" class="long-column-card__chapter<#if chapter.articleId == article.oId> long-column-card__chapter--active</#if>">
+                                    第 ${chapter.chapterNo?c} 章 · ${chapter.articleTitleEmoj}
+                                </a>
+                            </#list>
+                        </div>
+                    </div>
+                </#if>
                 </#if>
                 <#else>
                 <div id="thoughtProgress"><span class="bar"></span>

@@ -189,6 +189,12 @@ public class AdminProcessor {
     private ArticleMgmtService articleMgmtService;
 
     /**
+     * Long article column query service.
+     */
+    @Inject
+    private LongArticleColumnQueryService longArticleColumnQueryService;
+
+    /**
      * Comment query service.
      */
     @Inject
@@ -2275,6 +2281,7 @@ public class AdminProcessor {
 
         final String articleId = context.pathVar("articleId");
         final JSONObject article = articleQueryService.getArticle(articleId);
+        fillLongArticleChapterMeta(article);
         Escapes.escapeHTML(article);
         dataModel.put(Article.ARTICLE, article);
 
@@ -2323,6 +2330,7 @@ public class AdminProcessor {
         operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_UPDATE_ARTICLE, articleId));
 
         article = articleQueryService.getArticle(articleId);
+        fillLongArticleChapterMeta(article);
         String title = article.optString(Article.ARTICLE_TITLE);
         title = Escapes.escapeHTML(title);
         article.put(Article.ARTICLE_TITLE, title);
@@ -2331,6 +2339,24 @@ public class AdminProcessor {
         updateArticleSearchIndex(article);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    private void fillLongArticleChapterMeta(final JSONObject article) {
+        if (null == article || Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)) {
+            return;
+        }
+
+        final JSONObject chapterMeta = longArticleColumnQueryService.getArticleChapterMeta(article.optString(Keys.OBJECT_ID));
+        if (null == chapterMeta) {
+            article.remove(LongArticleColumn.COLUMN_ID);
+            article.remove(LongArticleColumn.COLUMN_TITLE);
+            article.remove(LongArticleColumn.CHAPTER_NO);
+            return;
+        }
+
+        article.put(LongArticleColumn.COLUMN_ID, chapterMeta.optString(LongArticleColumn.COLUMN_ID));
+        article.put(LongArticleColumn.COLUMN_TITLE, chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
+        article.put(LongArticleColumn.CHAPTER_NO, chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
     }
 
     /**

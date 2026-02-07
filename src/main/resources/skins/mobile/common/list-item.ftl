@@ -58,6 +58,9 @@
                 <a rel="bookmark" href="${servePath}${article.articlePermalink}">
                     ${article.articleTitleEmoj}
                 </a>
+                <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                    <span class="ft__smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                </#if>
             </h2>
             <div class="fn__5"></div>
             <div class="fn__flex">

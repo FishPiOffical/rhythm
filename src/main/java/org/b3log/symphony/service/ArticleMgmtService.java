@@ -168,6 +168,12 @@ public class ArticleMgmtService {
     private LongArticleReadService longArticleReadService;
 
     /**
+     * Long article column management service.
+     */
+    @Inject
+    private LongArticleColumnMgmtService longArticleColumnMgmtService;
+
+    /**
      * Reward management service.
      */
     @Inject
@@ -394,6 +400,8 @@ public class ArticleMgmtService {
             articleCntOption.put(Option.OPTION_VALUE, articleCntOption.optInt(Option.OPTION_VALUE) - 1);
             optionRepository.update(Option.ID_C_STATISTIC_ARTICLE_COUNT, articleCntOption);
 
+            longArticleColumnMgmtService.removeChapterInCurrentTransaction(articleId);
+
             articleRepository.remove(articleId);
 
             // Remove article revisions
@@ -434,7 +442,7 @@ public class ArticleMgmtService {
             if (StringUtils.isNotBlank(audioURL)) {
                 audioMgmtService.removeAudioFile(audioURL);
             }
-        } catch (final RepositoryException e) {
+        } catch (final RepositoryException | ServiceException e) {
             LOGGER.log(Level.ERROR, "Removes an article error [id=" + articleId + "]", e);
         }
     }
@@ -737,6 +745,8 @@ public class ArticleMgmtService {
 
             final String articleId = articleRepository.add(article);
 
+            longArticleColumnMgmtService.syncChapterInCurrentTransaction(article.put(Keys.OBJECT_ID, articleId), requestJSONObject);
+
             if (Article.ARTICLE_TYPE_C_THOUGHT != articleType) {
                 final JSONObject revision = new JSONObject();
                 revision.put(Revision.REVISION_AUTHOR_ID, authorId);
@@ -962,6 +972,7 @@ public class ArticleMgmtService {
             articleToUpdate.put(Article.ARTICLE_AUDIO_URL, ""); // 小薇语音预览更新 https://github.com/b3log/symphony/issues/791
 
             articleRepository.update(articleId, articleToUpdate);
+            longArticleColumnMgmtService.syncChapterInCurrentTransaction(articleToUpdate, requestJSONObject);
 
             final boolean titleChanged = !oldTitle.replaceAll("\\s+", "").equals(articleTitle.replaceAll("\\s+", ""));
             final boolean contentChanged = !oldContent.replaceAll("\\s+", "").equals(articleContent.replaceAll("\\s+", ""));

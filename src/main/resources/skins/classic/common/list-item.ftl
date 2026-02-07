@@ -56,6 +56,9 @@
         <@icon article.articlePerfect articleType></@icon>
         <a class="ft-a-title" data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
         </a>
+        <#if article.articleType?? && 6 == articleType && article.columnTitle?? && article.columnTitle?has_content>
+            <span class="ft-smaller" style="display:inline-block;margin-left:8px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:20px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+        </#if>
         <#if article.offered>
             <a href="${servePath}${article.articlePermalink}#comments">
                 <svg style="color: green" fill="currentColor;" width="14px" height="14px" display="inline" stroke="currentColor;" stroke-width="0">

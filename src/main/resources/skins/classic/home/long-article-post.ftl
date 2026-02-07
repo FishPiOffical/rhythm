@@ -30,7 +30,7 @@
     </head>
     <body>
         <#include "../header.ftl">
-        <div class="main post" style="padding-bottom: 20px">
+        <div class="main post long-article-post-page" style="padding-bottom: 20px">
             <div class="fn-flex-1 fn-clear">
                 <input type="text" id="articleTitle" autocomplete="off" tabindex="1"<#if requisite> readonly disabled</#if>
                        value="<#if article??>${article.articleTitle}</#if>" placeholder="${titleLabel}" />
@@ -38,6 +38,36 @@
                     <div id="articleContent"
                          data-placeholder="${addLongArticleEditorPlaceholderLabel}"></div>
                     <textarea class="fn-none"><#if article??>${article.articleContent?html}</#if><#if at??>@${at}</#if></textarea>
+                </div>
+
+                <#assign selectedColumnId = longArticleColumnId!"">
+                <#assign selectedColumnTitle = longArticleColumnTitle!"">
+                <#assign longArticleColumnList = longArticleColumns![]>
+                <#assign showCreateColumnInput = (selectedColumnId == "__NEW__")>
+                <#assign showChapterInput = selectedColumnId?has_content>
+                <div class="wrapper long-article-column-form">
+                    <div class="tip">专栏设置（可选）：可将长文归入已有专栏，或新建专栏进行章节连载。</div>
+                    <div class="form">
+                        <label for="longArticleColumnId">所属专栏</label>
+                        <select id="longArticleColumnId">
+                            <option value="">不归属专栏（独立长文）</option>
+                            <#list longArticleColumnList as longColumn>
+                                <option value="${longColumn.oId}"<#if selectedColumnId == longColumn.oId> selected</#if>>
+                                    ${longColumn.columnTitle}<#if longColumn.columnArticleCount??>（${longColumn.columnArticleCount} 章）</#if>
+                                </option>
+                            </#list>
+                            <option value="__NEW__"<#if selectedColumnId == "__NEW__"> selected</#if>>+ 新建专栏</option>
+                        </select>
+                    </div>
+                    <div class="form" id="longArticleColumnTitleWrap"<#if !showCreateColumnInput> style="display:none"</#if>>
+                        <label for="longArticleColumnTitle">新专栏名称</label>
+                        <input type="text" id="longArticleColumnTitle" maxlength="64" value="${selectedColumnTitle}" placeholder="请输入专栏名称（例如：《三体》）"/>
+                    </div>
+                    <div class="form" id="longArticleChapterWrap"<#if !showChapterInput> style="display:none"</#if>>
+                        <label for="longArticleChapterNo">章节号</label>
+                        <input type="number" min="1" id="longArticleChapterNo"<#if !showChapterInput> disabled</#if> value="<#if longArticleChapterNo??>${longArticleChapterNo}</#if>" placeholder="可选，留空自动排在该专栏末尾"/>
+                    </div>
+                    <div class="tip">同一专栏按章节号排序，阅读页将自动显示章节目录与上下章跳转。</div>
                 </div>
 
                 <div class="wrapper">

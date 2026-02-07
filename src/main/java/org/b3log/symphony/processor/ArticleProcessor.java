@@ -137,6 +137,12 @@ public class ArticleProcessor {
     private LongArticleReadService longArticleReadService;
 
     /**
+     * Long article column query service.
+     */
+    @Inject
+    private LongArticleColumnQueryService longArticleColumnQueryService;
+
+    /**
      * Comment query service.
      */
     @Inject
@@ -525,6 +531,14 @@ public class ArticleProcessor {
             final JSONObject readStat = longArticleReadService.getStat(articleId);
             article.put("longArticleReadStat", readStat);
             dataModel.put("longArticleReadStat", readStat);
+
+            final JSONObject columnView = longArticleColumnQueryService.getArticleColumnView(articleId);
+            if (null != columnView) {
+                dataModel.put("longArticleColumn", columnView.optJSONObject("column"));
+                dataModel.put("longArticleChapters", columnView.opt("chapters"));
+                article.put("longArticleChapterNo", columnView.optInt(LongArticleColumn.CHAPTER_NO));
+                dataModel.put("longArticleColumnView", columnView);
+            }
         }
 
         final int cmtViewMode = 0;
@@ -1237,6 +1251,7 @@ public class ArticleProcessor {
         dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
 
         fillPostArticleRequisite(dataModel, currentUser);
+        fillLongArticleColumnRequisite(dataModel, currentUser, null);
     }
 
     private void fillPostArticleRequisite(final Map<String, Object> dataModel, final JSONObject currentUser) {
@@ -1245,6 +1260,29 @@ public class ArticleProcessor {
 
         dataModel.put(Common.REQUISITE, requisite);
         dataModel.put(Common.REQUISITE_MSG, requisiteMsg);
+    }
+
+    private void fillLongArticleColumnRequisite(final Map<String, Object> dataModel, final JSONObject currentUser, final String articleId) {
+        if (null == currentUser) {
+            dataModel.put("longArticleColumns", Collections.emptyList());
+            return;
+        }
+
+        final List<JSONObject> columns = longArticleColumnQueryService.getUserColumns(currentUser.optString(Keys.OBJECT_ID), 100);
+        dataModel.put("longArticleColumns", columns);
+
+        if (StringUtils.isBlank(articleId)) {
+            return;
+        }
+
+        final JSONObject chapterMeta = longArticleColumnQueryService.getArticleChapterMeta(articleId);
+        if (null == chapterMeta) {
+            return;
+        }
+
+        dataModel.put("longArticleColumnId", chapterMeta.optString(LongArticleColumn.COLUMN_ID));
+        dataModel.put("longArticleChapterNo", chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
+        dataModel.put("longArticleColumnTitle", chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
     }
 
     /**
@@ -1312,6 +1350,14 @@ public class ArticleProcessor {
             final JSONObject readStat = longArticleReadService.getStat(articleId);
             article.put("longArticleReadStat", readStat);
             dataModel.put("longArticleReadStat", readStat);
+
+            final JSONObject columnView = longArticleColumnQueryService.getArticleColumnView(articleId);
+            if (null != columnView) {
+                dataModel.put("longArticleColumn", columnView.optJSONObject("column"));
+                dataModel.put("longArticleChapters", columnView.opt("chapters"));
+                article.put("longArticleChapterNo", columnView.optInt(LongArticleColumn.CHAPTER_NO));
+                dataModel.put("longArticleColumnView", columnView);
+            }
         }
 
         String cmtViewModeStr = context.param("m");
@@ -1413,8 +1459,21 @@ public class ArticleProcessor {
         dataModel.put(Article.ARTICLE_T_PREVIOUS, previous);
         dataModel.put(Article.ARTICLE_T_NEXT, next);
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
-            final JSONObject longPrev = articleQueryService.getPreviousLongArticle(articleId, articleAuthorId);
-            final JSONObject longNext = articleQueryService.getNextLongArticle(articleId, articleAuthorId);
+            JSONObject longPrev = null;
+            JSONObject longNext = null;
+            final JSONObject longColumnView = (JSONObject) dataModel.get("longArticleColumnView");
+            if (null != longColumnView) {
+                longPrev = longColumnView.optJSONObject("previous");
+                longNext = longColumnView.optJSONObject("next");
+            }
+
+            if (null == longPrev) {
+                longPrev = articleQueryService.getPreviousLongArticle(articleId, articleAuthorId);
+            }
+            if (null == longNext) {
+                longNext = articleQueryService.getNextLongArticle(articleId, articleAuthorId);
+            }
+
             dataModel.put("longArticlePrevious", longPrev);
             dataModel.put("longArticleNext", longNext);
         }
@@ -1597,6 +1656,9 @@ public class ArticleProcessor {
         final boolean articleNotifyFollowers = requestJSONObject.optBoolean(Article.ARTICLE_T_NOTIFY_FOLLOWERS);
         final Integer articleShowInList = requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES);
         final String isGoodArticle = requestJSONObject.optString("isGoodArticle");
+        final String longArticleColumnId = requestJSONObject.optString(LongArticleColumn.COLUMN_ID);
+        final String longArticleColumnTitle = requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE);
+        final String longArticleChapterNo = requestJSONObject.optString(LongArticleColumn.CHAPTER_NO);
 
         final JSONObject article = new JSONObject();
         article.put(Article.ARTICLE_TITLE, articleTitle);
@@ -1616,6 +1678,9 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_ANONYMOUS, articleAnonymous);
         article.put(Article.ARTICLE_T_NOTIFY_FOLLOWERS, articleNotifyFollowers);
         article.put(Article.ARTICLE_SHOW_IN_LIST, articleShowInList);
+        article.put(LongArticleColumn.COLUMN_ID, longArticleColumnId);
+        article.put(LongArticleColumn.COLUMN_TITLE, longArticleColumnTitle);
+        article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
         try {
             JSONObject currentUser = Sessions.getUser();
             try {
@@ -1759,6 +1824,7 @@ public class ArticleProcessor {
                     String.valueOf(ArticlePostValidationMidware.MAX_ARTICLE_CONTENT_LENGTH));
             dataModel.put("articleContentErrorLabel", articleContentErrorLabel);
             fillPostArticleRequisite(dataModel, currentUser);
+            fillLongArticleColumnRequisite(dataModel, currentUser, articleId);
             return;
         }
 
@@ -1836,6 +1902,9 @@ public class ArticleProcessor {
         final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
         final boolean articleNotifyFollowers = requestJSONObject.optBoolean(Article.ARTICLE_T_NOTIFY_FOLLOWERS);
         final Integer articleShowInList = requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES);
+        final String longArticleColumnId = requestJSONObject.optString(LongArticleColumn.COLUMN_ID);
+        final String longArticleColumnTitle = requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE);
+        final String longArticleChapterNo = requestJSONObject.optString(LongArticleColumn.CHAPTER_NO);
         final JSONObject article = new JSONObject();
         article.put(Keys.OBJECT_ID, id);
         article.put(Article.ARTICLE_TITLE, articleTitle);
@@ -1854,6 +1923,9 @@ public class ArticleProcessor {
         article.put(Article.ARTICLE_UA, ua);
         article.put(Article.ARTICLE_T_NOTIFY_FOLLOWERS, articleNotifyFollowers);
         article.put(Article.ARTICLE_SHOW_IN_LIST, articleShowInList);
+        article.put(LongArticleColumn.COLUMN_ID, longArticleColumnId);
+        article.put(LongArticleColumn.COLUMN_TITLE, longArticleColumnTitle);
+        article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));

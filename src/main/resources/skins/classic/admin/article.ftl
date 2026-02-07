@@ -106,6 +106,28 @@
                            readonly="readonly"/>
                 </label>
             </div>
+            <#if article.articleType?? && 6 == article.articleType>
+            <div class="fn__flex">
+                <label>
+                    <div>专栏</div>
+                    <input onfocus="this.select()" type="text" id="articleColumnTitle" name="articleColumnTitle"
+                           value="${article.columnTitle!'-'}"
+                           readonly="readonly"/>
+                </label>
+                <label>
+                    <div>专栏ID</div>
+                    <input onfocus="this.select()" type="text" id="articleColumnId" name="articleColumnId"
+                           value="${article.columnId!'-'}"
+                           readonly="readonly"/>
+                </label>
+                <label>
+                    <div>章节号</div>
+                    <input onfocus="this.select()" type="text" id="articleChapterNo" name="articleChapterNo"
+                           value="${article.chapterNo!'-'}"
+                           readonly="readonly"/>
+                </label>
+            </div>
+            </#if>
         </div>
     </div>
 

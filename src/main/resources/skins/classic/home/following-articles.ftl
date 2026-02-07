@@ -46,6 +46,9 @@
                 <h2>
                     <@icon article.articlePerfect article.articleType></@icon>
                     <a rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                    <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                        <span class="ft-smaller" style="display:inline-block;margin-left:8px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:20px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                    </#if>
                 </h2>
                 <span class="ft-fade ft-smaller">
                     <#list article.articleTagObjs as articleTag>

@@ -87,7 +87,12 @@
                                           style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
                             </a>
                             <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
-                               href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                               href="${servePath}${article.articlePermalink}">
+                                ${article.articleTitleEmoj}
+                                <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                </#if>
+                            </a>
                             <a class="fn-right count ft-gray ft-smaller"
                                href="${servePath}${article.articlePermalink}"><#if article.articleViewCount < 1000>
                                     ${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></a>
@@ -119,7 +124,12 @@
                                           style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
                             </a>
                             <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
-                               href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                               href="${servePath}${article.articlePermalink}">
+                                ${article.articleTitleEmoj}
+                                <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                </#if>
+                            </a>
                             <a class="fn-right count ft-gray ft-smaller"
                                href="${servePath}${article.articlePermalink}"><#if article.articleViewCount < 1000>
                                     ${article.articleViewCount}<#else>${article.articleViewCntDisplayFormat}</#if></a>
@@ -553,7 +563,12 @@
                                       style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
                                 </a>
                                 <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
-                                   href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                                   href="${servePath}${article.articlePermalink}">
+                                    ${article.articleTitleEmoj}
+                                    <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                                        <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                    </#if>
+                                </a>
                                 <a class="fn-right count ft-gray ft-smaller"
                                    href="${servePath}${article.articlePermalink}">
                                     <svg style="padding-top: 1px;vertical-align: -2px;">
@@ -582,7 +597,12 @@
                                           style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
                                     </a>
                                     <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
-                                       href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}</a>
+                                       href="${servePath}${article.articlePermalink}">
+                                        ${article.articleTitleEmoj}
+                                        <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
+                                            <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                        </#if>
+                                    </a>
                                     <a class="fn-right count ft-gray ft-smaller"
                                        href="${servePath}${article.articlePermalink}">
                                         <svg style="padding-top: 1px;vertical-align: -2px;">

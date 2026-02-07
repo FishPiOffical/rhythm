@@ -166,6 +166,12 @@ public class ArticleQueryService {
     private TagQueryService tagQueryService;
 
     /**
+     * Long article column query service.
+     */
+    @Inject
+    private LongArticleColumnQueryService longArticleColumnQueryService;
+
+    /**
      * Gets the question articles with the specified fetch size.
      *
      * @param sortMode       the specified sort mode, 0: default, 1: unanswered, 2: reward, 3: hot
@@ -1796,11 +1802,34 @@ public class ArticleQueryService {
         final List<JSONObject> tags = tagQueryService.buildTagObjs(tagsStr);
         article.put(Article.ARTICLE_T_TAG_OBJS, (Object) tags);
 
+        if (Article.ARTICLE_TYPE_C_LONG == articleType) {
+            fillLongArticleChapterMeta(article);
+        }
+
         // q&a status
         if (Article.ARTICLE_TYPE_C_QNA == article.optInt(Article.ARTICLE_TYPE)) {
             final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
             article.put(Common.OFFERED, rewardQueryService.isRewarded(articleAuthorId, articleId, Reward.TYPE_C_ACCEPT_COMMENT));
         }
+    }
+
+    private void fillLongArticleChapterMeta(final JSONObject article) {
+        final String articleId = article.optString(Keys.OBJECT_ID);
+        if (StringUtils.isBlank(articleId)) {
+            return;
+        }
+
+        final JSONObject chapterMeta = longArticleColumnQueryService.getArticleChapterMeta(articleId);
+        if (null == chapterMeta) {
+            article.remove(LongArticleColumn.COLUMN_ID);
+            article.remove(LongArticleColumn.COLUMN_TITLE);
+            article.remove(LongArticleColumn.CHAPTER_NO);
+            return;
+        }
+
+        article.put(LongArticleColumn.COLUMN_ID, chapterMeta.optString(LongArticleColumn.COLUMN_ID));
+        article.put(LongArticleColumn.COLUMN_TITLE, chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
+        article.put(LongArticleColumn.CHAPTER_NO, chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
     }
 
     /**

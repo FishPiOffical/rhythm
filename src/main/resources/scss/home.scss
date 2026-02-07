@@ -272,6 +272,33 @@
     border-radius: 0;
   }
 
+  &.long-article-post-page .long-article-column-form {
+    .form input[type=text],
+    .form input[type=number],
+    .form select {
+      line-height: 17px;
+      padding: 7px 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 0.3rem;
+      background-color: #fff;
+      box-shadow: none;
+    }
+
+    .form input[type=text]:not([readonly]):not([disabled]):hover,
+    .form input[type=number]:not([readonly]):not([disabled]):hover,
+    .form select:not([readonly]):not([disabled]):hover {
+      border-color: rgba(25, 140, 255, 0.5);
+    }
+
+    .form input[type=text]:focus,
+    .form input[type=number]:focus,
+    .form select:focus {
+      color: #198cff;
+      box-shadow: 0 0 0 0.1rem rgba(25, 140, 255, 0.2);
+      border-color: rgba(25, 140, 255, 0.5) !important;
+    }
+  }
+
   #articleTitle {
     font-size: 26px;
     padding: 20px 10px 10px;

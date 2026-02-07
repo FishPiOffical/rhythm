@@ -27,6 +27,7 @@ import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.symphony.model.Article;
+import org.b3log.symphony.model.LongArticleColumn;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.Tag;
 import org.b3log.symphony.model.UserExt;
@@ -111,6 +112,27 @@ public class ArticlePostValidationMidware {
             context.renderJSON(exception.put(Keys.MSG, langPropsService.get("articleTypeErrorLabel")));
             context.abort();
             return;
+        }
+
+        if (Article.ARTICLE_TYPE_C_LONG == articleType) {
+            final String columnId = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.COLUMN_ID));
+            final String columnTitle = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE));
+            final String chapterNo = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.CHAPTER_NO));
+            requestJSONObject.put(LongArticleColumn.COLUMN_ID, columnId);
+            requestJSONObject.put(LongArticleColumn.COLUMN_TITLE, columnTitle);
+            requestJSONObject.put(LongArticleColumn.CHAPTER_NO, chapterNo);
+
+            if (columnTitle.length() > LongArticleColumn.MAX_COLUMN_TITLE_LENGTH) {
+                context.renderJSON(exception.put(Keys.MSG, "专栏名称长度不能超过 " + LongArticleColumn.MAX_COLUMN_TITLE_LENGTH + " 个字符"));
+                context.abort();
+                return;
+            }
+
+            if (StringUtils.isNotBlank(chapterNo) && !chapterNo.matches("^[1-9]\\d*$")) {
+                context.renderJSON(exception.put(Keys.MSG, "章节号必须是正整数"));
+                context.abort();
+                return;
+            }
         }
 
         requestJSONObject.put(Article.ARTICLE_TAGS, ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_TAGS)));
