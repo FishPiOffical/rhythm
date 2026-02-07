@@ -50,6 +50,11 @@
             <svg>
                 <use xlink:href="#refresh"></use>
             </svg> ${latestLabel}</a>
+        <a pjax-title="专栏 - ${symphonyLabel}"
+           href="${servePath}/column"<#if selected?? && 'column' == selected> class="current"</#if>>
+            <svg>
+                <use xlink:href="#book"></use>
+            </svg> 专栏</a>
         <a pjax-title="${hotLabel} - ${symphonyLabel}"
            href="${servePath}/hot"<#if selected?? && 'hot' == selected> class="current"</#if>>
             <svg>

@@ -163,7 +163,7 @@
                 </div>
                 <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
                     <div class="long-column-card">
-                        <div class="long-column-card__title">所属专栏：${longArticleColumn.columnTitle}</div>
+                        <div class="long-column-card__title">所属专栏：<a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}" style="color:inherit;text-decoration:none;">${longArticleColumn.columnTitle}</a></div>
                         <div class="long-column-card__meta">当前第 ${article.longArticleChapterNo?c} 章 · 共 ${longArticleColumn.columnArticleCount?c} 章</div>
                         <div class="long-column-card__chapters">
                             <#list longArticleChapters as chapter>

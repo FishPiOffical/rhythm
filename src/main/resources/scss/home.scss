@@ -272,12 +272,56 @@
     border-radius: 0;
   }
 
+  &.long-article-post-page .post-article-content {
+    margin-bottom: 16px;
+  }
+
   &.long-article-post-page .long-article-column-form {
+    margin: 0 8px 16px;
+    padding: 14px 14px 12px;
+    border: 1px solid #edf1f7;
+    border-radius: 10px;
+    background: #fafcff;
+
+    .tip {
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    .tip:first-child {
+      margin-bottom: 10px;
+    }
+
+    .form {
+      margin-top: 10px;
+    }
+
+    .form label {
+      display: block;
+      margin-bottom: 7px;
+      color: #5d6b7a;
+      font-size: 12px;
+    }
+
+    .form:first-of-type {
+      margin-top: 0;
+    }
+
+    .form:last-of-type {
+      margin-bottom: 8px;
+    }
+
+    .form + .tip {
+      margin-top: 10px;
+    }
+
     .form input[type=text],
     .form input[type=number],
     .form select {
       line-height: 17px;
       padding: 7px 8px;
+      width: 100%;
+      box-sizing: border-box;
       border: 1px solid #e0e0e0;
       border-radius: 0.3rem;
       background-color: #fff;

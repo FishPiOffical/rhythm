@@ -37,6 +37,9 @@
                     <a data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark"
                        href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
                     </a>
+                    <#if article.articleType?? && 6 == article.articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                        <a class="ft-smaller" href="${servePath}/column/${article.columnId}" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;text-decoration:none;">专栏 · ${article.columnTitle}</a>
+                    </#if>
                         <#if article.offered>
                             <a href="${servePath}${article.articlePermalink}#comments">
                                 <svg style="color: green" fill="currentColor;" width="14px" height="14px" display="inline" stroke="currentColor;" stroke-width="0">

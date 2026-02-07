@@ -51,7 +51,7 @@
             <div class="content fn-clear">
                 <@list listData=stickArticles/>
                 <@list listData=latestArticles/>
-                <@pagination url="${servePath}/recent"/>
+                <@pagination url="${servePath}/recent${currentPath}"/>
                 <#if domains?size != 0>
                 <div class="wrapper">
                     <div class="module">

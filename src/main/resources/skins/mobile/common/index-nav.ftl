@@ -22,6 +22,7 @@
     <div class="index-top__nav">
         <a href="${servePath}/recent"<#if 'recent' == type> class="item--current"</#if>>最新</a>
         <a href="${servePath}/hot"<#if 'hot' == type> class="item--current"</#if>>热门</a>
+        <a href="${servePath}/column"<#if 'column' == type> class="item--current"</#if>>专栏</a>
         <a href="${servePath}/cr"<#if 'cr' == type> class="item--current"</#if>>聊天室</a>
         <a href="${servePath}/qna"<#if 'qna' == type> class="item--current"</#if>>问答</a>
         <#if isLoggedIn && "" != currentUser.userCity>

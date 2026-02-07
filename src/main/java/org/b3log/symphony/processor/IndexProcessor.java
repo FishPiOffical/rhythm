@@ -97,6 +97,12 @@ public class IndexProcessor {
     private ArticleQueryService articleQueryService;
 
     /**
+     * Long article column query service.
+     */
+    @Inject
+    private LongArticleColumnQueryService longArticleColumnQueryService;
+
+    /**
      * User query service.
      */
     @Inject
@@ -177,6 +183,8 @@ public class IndexProcessor {
         Dispatcher.get("/", indexProcessor::showIndex, anonymousViewCheckMidware::handle);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/recent", "/recent/hot", "/recent/good", "/recent/reply"}).handler(indexProcessor::showRecent);
         Dispatcher.get("/recent/long", indexProcessor::showLongArticles, loginCheck::handle);
+        Dispatcher.get("/column", indexProcessor::showLongArticleColumns, loginCheck::handle);
+        Dispatcher.get("/column/{columnId}", indexProcessor::showLongArticleColumn, loginCheck::handle);
         Dispatcher.get("/about", indexProcessor::showAbout);
         Dispatcher.get("/kill-browser", indexProcessor::showKillBrowser);
         Dispatcher.get("/hot", indexProcessor::showHotArticles, loginCheck::handle);
@@ -483,6 +491,12 @@ public class IndexProcessor {
         }
         dataModel.put("longArticles", longArticles);
 
+        final List<JSONObject> latestLongColumns = longArticleColumnQueryService.getLatestColumns(12);
+        dataModel.put("latestLongColumns", latestLongColumns);
+
+        final List<JSONObject> hotLongColumns = longArticleColumnQueryService.getHotColumns(12);
+        dataModel.put("hotLongColumns", hotLongColumns);
+
         // 最近文章（移动端）
         final List<JSONObject> recentArticlesMobile = articleQueryService.getIndexRecentArticles(15, 1);
         dataModel.put("recentArticlesMobile", recentArticlesMobile);
@@ -567,10 +581,12 @@ public class IndexProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "index.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
         final JSONObject currentUser = Sessions.getUser();
+        String currentUserId = null;
         if (null != currentUser) {
             dataModel.put(UserExt.CHAT_ROOM_PICTURE_STATUS, currentUser.optInt(UserExt.CHAT_ROOM_PICTURE_STATUS));
             // 是否领取过昨日奖励
             final String userId = currentUser.optString(Keys.OBJECT_ID);
+            currentUserId = userId;
             dataModel.put("collectedYesterdayLivenessReward",
                     (
                             // 没领取过，返回true
@@ -604,6 +620,12 @@ public class IndexProcessor {
         }
 
         makeIndexData(dataModel);
+
+        if (StringUtils.isNotBlank(currentUserId)) {
+            dataModel.put("longColumnRecentReadHistory", longArticleColumnQueryService.getRecentReadHistory(currentUserId, 12));
+        } else {
+            dataModel.put("longColumnRecentReadHistory", Collections.emptyList());
+        }
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
 
@@ -738,6 +760,72 @@ public class IndexProcessor {
         dataModel.put(Common.SELECTED, "long");
         // 其他 recent* 页面 current 值形如 "/hot"、"/good"，保持一致以生成正确分页链接
         dataModel.put(Common.CURRENT, "/long");
+    }
+
+    /**
+     * Shows long article column recommendation page.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticleColumns(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "long-columns.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+
+        dataModel.put("latestLongColumns", longArticleColumnQueryService.getLatestColumns(30));
+        dataModel.put("hotLongColumns", longArticleColumnQueryService.getHotColumns(30));
+
+        final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            dataModel.put("longColumnRecentReadHistory",
+                    longArticleColumnQueryService.getRecentReadHistory(currentUser.optString(Keys.OBJECT_ID), 20));
+        } else {
+            dataModel.put("longColumnRecentReadHistory", Collections.emptyList());
+        }
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+
+        dataModel.put(Common.SELECTED, "column");
+    }
+
+    /**
+     * Shows long article column page.
+     *
+     * @param context the specified context
+     */
+    public void showLongArticleColumn(final RequestContext context) {
+        final String columnId = context.pathVar("columnId");
+        final JSONObject columnView = longArticleColumnQueryService.getColumnViewById(columnId);
+        if (null == columnView) {
+            context.sendError(404);
+            return;
+        }
+
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "long-column.ftl");
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        dataModel.put("longColumn", columnView.optJSONObject("column"));
+        dataModel.put("longColumnChapters", columnView.opt("chapters"));
+        dataModel.put("latestLongColumns", longArticleColumnQueryService.getLatestColumns(12));
+        dataModel.put("hotLongColumns", longArticleColumnQueryService.getHotColumns(12));
+
+        final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            dataModel.put("longColumnRecentReadHistory",
+                    longArticleColumnQueryService.getRecentReadHistory(currentUser.optString(Keys.OBJECT_ID), 12));
+        } else {
+            dataModel.put("longColumnRecentReadHistory", Collections.emptyList());
+        }
+
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+
+        dataModel.put(Common.SELECTED, "column");
     }
 
     /**

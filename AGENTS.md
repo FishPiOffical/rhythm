@@ -1,7 +1,9 @@
 ## 项目约定
 - 所有文件不要直接修改 `.css`，而是修改 `.scss`，然后执行 `yarn run build` 生成新的 CSS。js同理，请修改js，而不是min.js，然后同样是通过 `yarn run build` 编译min.js
+- 在 WSL 中执行 Maven 时，优先复用 Windows 本地仓库：`-Dmaven.repo.local=/mnt/c/.m2/repository`（对应 Windows 的 `C:\.m2\repository`），可避免依赖下载时的 SSL 握手失败；Java 版本固定使用 25。
 - 如果你的更改涉及到操作数据库，请注意在引用Repository类的时候不要加上包名org.b3log.latke.repository，如果没有请直接import，另外除了查询以外，增、删、改 所有写入的操作都需要用Transaction进行完整的事务commit，否则会无法正常写入。
 - 涉及到前端的更改，请不要只修改classic（PC端）皮肤，mobile（移动端）皮肤也要同步修改
+- 涉及到新增 Repository（新增表/集合）时，除了 SQL 建表外，必须同步更新 `src/main/resources/repository.json`，并且 Repository 的 `super("...")`/模型常量中不要写 `symphony_` 前缀（框架会根据 `jdbc.tablePrefix` 自动加前缀）。
 
 ## 项目基本结构
 - 后端 Java 代码：`src/main/java/org/b3log/symphony`

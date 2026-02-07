@@ -89,8 +89,8 @@
                             <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
                                href="${servePath}${article.articlePermalink}">
                                 ${article.articleTitleEmoj}
-                                <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
-                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                <#if article.articleType?? && 6 == article.articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
                                 </#if>
                             </a>
                             <a class="fn-right count ft-gray ft-smaller"
@@ -126,8 +126,8 @@
                             <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
                                href="${servePath}${article.articlePermalink}">
                                 ${article.articleTitleEmoj}
-                                <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
-                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+                                <#if article.articleType?? && 6 == article.articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
                                 </#if>
                             </a>
                             <a class="fn-right count ft-gray ft-smaller"
@@ -318,7 +318,11 @@
                             </#if>
                             <div class="long-book__info">
                                 <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <div class="long-book__author">${article.articleAuthorName}
+                                    <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
+                                    </#if>
+                                </div>
                                 <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
                                 <div class="long-book__summary">${article.articlePreviewContent}</div>
                                 </#if>
@@ -362,7 +366,11 @@
                             </#if>
                             <div class="long-book__info">
                                 <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}</div>
+                                <div class="long-book__author">${article.articleAuthorName}
+                                    <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
+                                    </#if>
+                                </div>
                                 <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
                                 <div class="long-book__summary">${article.articlePreviewContent}</div>
                                 </#if>
@@ -548,36 +556,82 @@
             </div>
             <div class="index-recent fn-flex-1">
                 <div class="index-head-title">
-                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">热议</div>
-                    <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/hot">更多</a>
+                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">
+                        <a href="javascript:void(0)" class="index-hot-switch" data-mode="hot" style="text-decoration:none;color:#333;" onclick="switchIndexHotPanel('hot', this)">热议</a>
+                        <span style="margin:0 6px;color:#bbb;">|</span>
+                        <a href="javascript:void(0)" class="index-hot-switch" data-mode="column" style="text-decoration:none;color:#999;" onclick="switchIndexHotPanel('column', this)">专栏</a>
+                    </div>
+                    <div style="float:right;font-size:13px;margin:5px 0 0 0;">
+                        <a id="indexHotMoreLink" href="${servePath}/hot">更多</a>
                     </div>
                     <div style="clear:both;"></div>
                 </div>
                 <div class="module-panel" style="padding: 0 0 15px 0">
-                    <ul class="module-list" id="hotArticles">
-                        <#list hot as article>
-                            <li class="fn-flex">
-                                <a rel="nofollow" href="${servePath}/member/${article.articleAuthorName}">
-                                <span class="avatar-small slogan"
-                                      aria-label="${article.articleAuthorName}"
-                                      style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
-                                </a>
-                                <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
-                                   href="${servePath}${article.articlePermalink}">
-                                    ${article.articleTitleEmoj}
-                                    <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
-                                        <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
-                                    </#if>
-                                </a>
-                                <a class="fn-right count ft-gray ft-smaller"
-                                   href="${servePath}${article.articlePermalink}">
-                                    <svg style="padding-top: 1px;vertical-align: -2px;">
-                                        <use xlink:href="#fire"></use>
-                                    </svg> ${article.total_score}
-                                </a>
-                            </li>
-                        </#list>
-                    </ul>
+                    <div id="indexHotPanel">
+                        <ul class="module-list" id="hotArticlesSide">
+                            <#list hot as article>
+                                <li class="fn-flex">
+                                    <a rel="nofollow" href="${servePath}/member/${article.articleAuthorName}">
+                                    <span class="avatar-small slogan"
+                                          aria-label="${article.articleAuthorName}"
+                                          style="background-image:url('${article.articleAuthorThumbnailURL48}')"></span>
+                                    </a>
+                                    <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
+                                       href="${servePath}${article.articlePermalink}">
+                                        ${article.articleTitleEmoj}
+                                        <#if article.articleType?? && 6 == article.articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                            <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
+                                        </#if>
+                                    </a>
+                                    <a class="fn-right count ft-gray ft-smaller"
+                                       href="${servePath}${article.articlePermalink}">
+                                        <svg style="padding-top: 1px;vertical-align: -2px;">
+                                            <use xlink:href="#fire"></use>
+                                        </svg> ${article.total_score}
+                                    </a>
+                                </li>
+                            </#list>
+                        </ul>
+                    </div>
+                    <div id="indexColumnPanel" style="display:none;">
+                        <#if latestLongColumns?? && latestLongColumns?size != 0>
+                            <div class="ft-smaller ft-gray" style="padding:8px 10px 4px;">最新专栏</div>
+                            <ul class="module-list">
+                                <#list latestLongColumns as column>
+                                    <#assign columnId = column.columnId!column.oId>
+                                    <li class="fn-flex">
+                                        <a class="title fn-ellipsis fn-flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                                        <span class="ft-gray ft-smaller">${column.columnArticleCount?c} 章</span>
+                                    </li>
+                                </#list>
+                            </ul>
+                        </#if>
+
+                        <#if hotLongColumns?? && hotLongColumns?size != 0>
+                            <div class="ft-smaller ft-gray" style="padding:10px 10px 4px;">热门专栏</div>
+                            <ul class="module-list">
+                                <#list hotLongColumns as column>
+                                    <#assign columnId = column.columnId!column.oId>
+                                    <li class="fn-flex">
+                                        <a class="title fn-ellipsis fn-flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                                        <span class="ft-gray ft-smaller">${column.columnArticleCount?c} 章</span>
+                                    </li>
+                                </#list>
+                            </ul>
+                        </#if>
+
+                        <#if isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0>
+                            <div class="ft-smaller ft-gray" style="padding:10px 10px 4px;">最近阅读</div>
+                            <ul class="module-list">
+                                <#list longColumnRecentReadHistory as history>
+                                    <li class="fn-flex">
+                                        <a class="title fn-ellipsis fn-flex-1" href="${servePath}${history.articlePermalink}">第 ${history.chapterNo?c} 章 · ${history.articleTitleEmoj}</a>
+                                        <a class="ft-smaller" style="color:#2b5db9;text-decoration:none;" href="${servePath}/column/${history.columnId}">${history.columnTitle}</a>
+                                    </li>
+                                </#list>
+                            </ul>
+                        </#if>
+                    </div>
                 </div>
 
                 <div class="index-head-title">
@@ -599,9 +653,9 @@
                                     <a rel="nofollow" class="title fn-ellipsis fn-flex-1"
                                        href="${servePath}${article.articlePermalink}">
                                         ${article.articleTitleEmoj}
-                                        <#if article.articleType?? && 6 == article.articleType && article.columnTitle?? && article.columnTitle?has_content>
-                                            <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
-                                        </#if>
+                                        <#if article.articleType?? && 6 == article.articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+                                    <span class="ft-smaller" style="display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:18px;vertical-align:middle;cursor:pointer;" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</span>
+                                </#if>
                                     </a>
                                     <a class="fn-right count ft-gray ft-smaller"
                                        href="${servePath}${article.articlePermalink}">
@@ -718,6 +772,26 @@
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script type="text/javascript">
     // tag click
+    function switchIndexHotPanel(mode, it) {
+        if (mode === 'column') {
+            $('#indexHotPanel').hide();
+            $('#indexColumnPanel').show();
+            $('#indexHotMoreLink').attr('href', '${servePath}/recent/long').text('更多');
+        } else {
+            $('#indexColumnPanel').hide();
+            $('#indexHotPanel').show();
+            $('#indexHotMoreLink').attr('href', '${servePath}/hot').text('更多');
+            mode = 'hot';
+        }
+
+        $('.index-hot-switch').css('color', '#999');
+        if (it) {
+            $(it).css('color', '#333');
+        } else {
+            $('.index-hot-switch[data-mode=' + "'" + mode + "'" + ']').css('color', '#333');
+        }
+    }
+
     $('.preview, .index-tabs > span').click(function (event) {
         var $it = $(this),
             maxLen = Math.max($it.width(), $it.height());

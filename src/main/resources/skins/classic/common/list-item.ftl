@@ -56,8 +56,8 @@
         <@icon article.articlePerfect articleType></@icon>
         <a class="ft-a-title" data-id="${article.oId}" data-type="${article.articleType}" rel="bookmark" href="${servePath}${article.articlePermalink}">${article.articleTitleEmoj}
         </a>
-        <#if article.articleType?? && 6 == articleType && article.columnTitle?? && article.columnTitle?has_content>
-            <span class="ft-smaller" style="display:inline-block;margin-left:8px;padding:0 6px;border-radius:10px;background:#eef4ff;color:#2b5db9;line-height:20px;vertical-align:middle;">专栏 · ${article.columnTitle}</span>
+        <#if article.articleType?? && 6 == articleType && article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
+            <a class="ft-smaller" href="${servePath}/column/${article.columnId}" style="display:inline-block;margin-left:6px;padding:0 4px;border-radius:7px;background:#eef4ff;color:#2b5db9;line-height:14px;font-size:12px;font-weight:400;vertical-align:middle;text-decoration:none;">专栏 · ${article.columnTitle}</a>
         </#if>
         <#if article.offered>
             <a href="${servePath}${article.articlePermalink}#comments">
