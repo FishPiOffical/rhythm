@@ -89,6 +89,9 @@
         <#if type == "ip">
             <@head title="IP 管理 - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "vipManage">
+            <@head title="VIP 管理 - ${symphonyLabel}"></@head>
+        </#if>
 
     </head>
     <body>
@@ -148,6 +151,9 @@
                     <#if type == "milestones"  && permissions["menuAdminMilestone"].permissionGrant>
                         大事记管理
                     </#if>
+                    <#if type == "vipManage">
+                        VIP 管理
+                    </#if>
                     <svg class="fn-right"><use xlink:href="#chevron-down"></use></svg>
                 </div>
                 <div class="fn-hr5"></div>
@@ -201,6 +207,7 @@
                     <li<#if type == "ip"> class="fn-none"</#if>><a href="${servePath}/admin/ip">IP 管理</a></li>
                     </#if>
                     <li><a href="${servePath}/admin/medal" target="_blank">勋章管理</a></li>
+                    <li<#if type == "vipManage"> class="fn-none"</#if>><a href="${servePath}/admin/vip">VIP 管理</a></li>
                     <#if permissions["menuAdminMilestone"].permissionGrant>
                         <li<#if type == "pic"> class="fn-none"</#if>><a href="${servePath}/admin/milestones">大事记管理</a></li>
                     </#if>

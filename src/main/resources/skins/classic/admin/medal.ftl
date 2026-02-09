@@ -139,6 +139,9 @@
                                        placeholder="用户名"/>
                                 <input type="text" id="grantExpireTime" class="form-control form-control--inline"
                                        placeholder="过期时间戳(毫秒,0=永久)"/>
+                                <button type="button" class="btn btn-secondary" id="btnFillVipExpireTime">
+                                    同步VIP到期
+                                </button>
                                 <input type="text" id="grantData" class="form-control form-control--inline"
                                        placeholder="数据(可选)"/>
                                 <button type="button" class="btn btn-primary" id="btnGrantMedalToUser">

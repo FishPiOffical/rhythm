@@ -1344,8 +1344,6 @@ public class ArticleQueryService {
                     }
 
                     ret.addAll(0, stickArticles);
-                    final int size = ret.size() < fetchSize ? ret.size() : fetchSize;
-                    ret = ret.subList(0, size);
                 }
             } finally {
                 Stopwatchs.end();
@@ -2457,7 +2455,7 @@ public class ArticleQueryService {
                         new PropertyFilter(Article.ARTICLE_STICK, FilterOperator.NOT_EQUAL, 0L),
                         new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.NOT_EQUAL, Article.ARTICLE_TYPE_C_DISCUSSION),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID))).
-                setPageCount(1).setPage(1, 5).
+                setPageCount(1).setPage(1, Integer.MAX_VALUE).
                 addSort(Article.ARTICLE_STICK, SortDirection.DESCENDING);
         try {
             return articleRepository.getList(query);

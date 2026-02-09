@@ -19,31 +19,36 @@
 package org.b3log.symphony.service;
 
 import java.util.Objects;
+import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.model.User;
+import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.FilterOperator;
+import org.b3log.latke.repository.SortDirection;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Ids;
-import org.b3log.latke.util.Strings;
 import org.b3log.latke.util.Times;
 import org.b3log.symphony.model.Membership;
 import org.b3log.symphony.model.MembershipActivation;
 import org.b3log.symphony.model.MembershipLevel;
+import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.Coupon;
 import org.b3log.symphony.repository.MembershipActivationRepository;
 import org.b3log.symphony.repository.MembershipLevelRepository;
 import org.b3log.symphony.repository.MembershipRepository;
 import org.b3log.symphony.repository.CouponRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.cache.MembershipCache;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -76,6 +81,9 @@ public class MembershipMgmtService {
     private PointtransferMgmtService pointtransferMgmtService;
 
     @Inject
+    private NotificationMgmtService notificationMgmtService;
+
+    @Inject
     private CouponRepository couponRepository;
 
     @Inject
@@ -83,6 +91,9 @@ public class MembershipMgmtService {
 
     @Inject
     private CloudService cloudService;
+
+    @Inject
+    private UserRepository userRepository;
 
     public String addLevel(final JSONObject level) throws ServiceException {
         final Transaction transaction = levelRepository.beginTransaction();
@@ -265,27 +276,7 @@ public class MembershipMgmtService {
             // Update cache with the latest active membership
             membershipCache.put(membership);
 
-            // 更新背包
-            switch (lvCode) {
-                case "VIP1_YEAR":
-                    // VIP1_YEAR 送20张免签卡
-                    cloudService.putBag(userId, "checkin1day", 20, Integer.MAX_VALUE);
-                    break;
-                case "VIP2_YEAR":
-                    // VIP2_YEAR 送50张免签卡
-                    cloudService.putBag(userId, "checkin1day", 50,  Integer.MAX_VALUE);
-                    break;
-                case "VIP3_YEAR":
-                    // VIP3_YEAR 送120张免签卡
-                    cloudService.putBag(userId, "checkin1day", 120,  Integer.MAX_VALUE);
-                    break;
-                case "VIP4_YEAR":
-                    // VIP4_YEAR 直接一年免签
-                    cloudService.putBag(userId, "sysCheckinRemain", 366,  Integer.MAX_VALUE);
-                    break;
-                default:
-                    break;
-            }
+            grantVipStarterBag(userId, lvCode);
 
             final JSONObject ret = new JSONObject();
             ret.put("membership", membership);
@@ -305,6 +296,420 @@ public class MembershipMgmtService {
         final long nextDayStart = Times.getDayStartTime(start) + 24L * 60L * 60L * 1000L;
         final long days = durationValue;
         return nextDayStart + days * 24L * 60L * 60L * 1000L;
+    }
+
+    /**
+     * 管理侧：分页查询会员记录（含用户名）。
+     */
+    public JSONObject adminListMemberships(final int page,
+                                           final int pageSize,
+                                           final String userName,
+                                           final String lvCode,
+                                           final Integer state) throws ServiceException {
+        try {
+            final int safePage = Math.max(page, 1);
+            final int safePageSize = pageSize <= 0 ? 20 : Math.min(pageSize, 200);
+            final Query query = new Query()
+                    .addSort(Membership.UPDATED_AT, SortDirection.DESCENDING)
+                    .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
+                    .setPageCount(1)
+                    .setPage(safePage, safePageSize);
+
+            PropertyFilter userFilter = null;
+            if (StringUtils.isNotBlank(userName)) {
+                final JSONObject user = userRepository.getByName(userName.trim());
+                if (null == user) {
+                    return new JSONObject()
+                            .put("total", 0)
+                            .put("page", safePage)
+                            .put("pageSize", safePageSize)
+                            .put("items", new JSONArray());
+                }
+                userFilter = new PropertyFilter(Membership.USER_ID, FilterOperator.EQUAL, user.optString(Keys.OBJECT_ID));
+            }
+
+            final PropertyFilter lvCodeFilter = StringUtils.isBlank(lvCode)
+                    ? null
+                    : new PropertyFilter(Membership.LV_CODE, FilterOperator.EQUAL, lvCode.trim());
+            final PropertyFilter stateFilter = null == state
+                    ? null
+                    : new PropertyFilter(Membership.STATE, FilterOperator.EQUAL, state);
+
+            if (null != userFilter && null != lvCodeFilter && null != stateFilter) {
+                query.setFilter(CompositeFilterOperator.and(userFilter, lvCodeFilter, stateFilter));
+            } else if (null != userFilter && null != lvCodeFilter) {
+                query.setFilter(CompositeFilterOperator.and(userFilter, lvCodeFilter));
+            } else if (null != userFilter && null != stateFilter) {
+                query.setFilter(CompositeFilterOperator.and(userFilter, stateFilter));
+            } else if (null != lvCodeFilter && null != stateFilter) {
+                query.setFilter(CompositeFilterOperator.and(lvCodeFilter, stateFilter));
+            } else if (null != userFilter) {
+                query.setFilter(userFilter);
+            } else if (null != lvCodeFilter) {
+                query.setFilter(lvCodeFilter);
+            } else if (null != stateFilter) {
+                query.setFilter(stateFilter);
+            }
+
+            final long total = membershipRepository.count(query);
+            final List<JSONObject> memberships = membershipRepository.getList(query);
+            final JSONArray items = new JSONArray();
+            final long now = System.currentTimeMillis();
+            for (final JSONObject membership : memberships) {
+                final JSONObject item = new JSONObject(membership.toString());
+                final String uid = item.optString(Membership.USER_ID);
+                final JSONObject user = userRepository.get(uid);
+                if (null != user) {
+                    item.put(User.USER_NAME, user.optString(User.USER_NAME));
+                }
+                final long expiresAt = item.optLong(Membership.EXPIRES_AT, 0L);
+                final int rowState = item.optInt(Membership.STATE, 0);
+                if (1 == rowState && expiresAt > 0L && expiresAt <= now) {
+                    item.put("runtimeState", "expired");
+                } else if (1 == rowState) {
+                    item.put("runtimeState", "active");
+                } else {
+                    item.put("runtimeState", "inactive");
+                }
+                items.put(item);
+            }
+
+            return new JSONObject()
+                    .put("total", total)
+                    .put("page", safePage)
+                    .put("pageSize", safePageSize)
+                    .put("items", items);
+        } catch (final RepositoryException e) {
+            LOGGER.error("Admin list memberships failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理侧：免费新增会员（不扣积分）。
+     */
+    public JSONObject adminAddMembershipNoCost(final String userId,
+                                               final String levelOId,
+                                               final String configJson) throws ServiceException {
+        final Transaction transaction = membershipRepository.beginTransaction();
+        try {
+            if (StringUtils.isBlank(userId) || StringUtils.isBlank(levelOId)) {
+                throw new ServiceException("参数不完整");
+            }
+
+            final JSONObject user = userRepository.get(userId);
+            if (null == user) {
+                throw new ServiceException("用户不存在");
+            }
+
+            final JSONObject level = levelRepository.getById(levelOId);
+            if (null == level) {
+                throw new ServiceException("等级不存在");
+            }
+
+            final long now = System.currentTimeMillis();
+            final String lvCode = level.optString(MembershipLevel.LV_CODE);
+            final String durationType = level.optString(MembershipLevel.DURATION_TYPE);
+            final int durationValue = level.optInt(MembershipLevel.DURATION_VALUE);
+            if (durationValue <= 0) {
+                throw new ServiceException("等级周期配置非法");
+            }
+
+            JSONObject membership = membershipRepository.getByUserId(userId);
+            final boolean isNewMembership = Objects.isNull(membership);
+            if (isNewMembership) {
+                membership = new JSONObject();
+                membership.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+                membership.put(Membership.USER_ID, userId);
+                membership.put(Membership.CREATED_AT, now);
+            } else {
+                final int state = membership.optInt(Membership.STATE, 0);
+                final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+                if (state == 1 && (expiresAt == 0L || expiresAt > now)) {
+                    throw new ServiceException("该用户已存在有效VIP");
+                }
+            }
+
+            final long expiresAt = calcExpires(now, durationType, durationValue);
+            membership.put(Membership.LV_CODE, lvCode);
+            membership.put(Membership.STATE, 1);
+            membership.put(Membership.EXPIRES_AT, expiresAt);
+            membership.put(Membership.CONFIG_JSON, StringUtils.defaultString(configJson));
+            membership.put(Membership.UPDATED_AT, now);
+
+            if (isNewMembership) {
+                membershipRepository.add(membership);
+            } else {
+                membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+            }
+
+            final JSONObject activation = new JSONObject();
+            activation.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+            activation.put(MembershipActivation.USER_ID, userId);
+            activation.put(MembershipActivation.LV_CODE, lvCode);
+            activation.put(MembershipActivation.PRICE, 0);
+            activation.put(MembershipActivation.DURATION_TYPE, durationType);
+            activation.put(MembershipActivation.DURATION_VALUE, durationValue);
+            activation.put(MembershipActivation.COUPON_CODE, "ADMIN_FREE");
+            activation.put(MembershipActivation.CONFIG_JSON, StringUtils.defaultString(configJson));
+            activation.put(MembershipActivation.CREATED_AT, now);
+            activation.put(MembershipActivation.UPDATED_AT, now);
+            activationRepository.add(activation);
+
+            transaction.commit();
+            membershipCache.put(membership);
+            grantVipStarterBag(userId, lvCode);
+
+            return new JSONObject()
+                    .put("membership", membership)
+                    .put("activation", activation);
+        } catch (final Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            LOGGER.error("Admin add membership without points failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理侧：维护会员信息。
+     */
+    public JSONObject adminUpdateMembership(final String userId,
+                                            final String lvCode,
+                                            final Integer state,
+                                            final Long expiresAt,
+                                            final String configJson) throws ServiceException {
+        final Transaction transaction = membershipRepository.beginTransaction();
+        try {
+            if (StringUtils.isBlank(userId)) {
+                throw new ServiceException("参数错误：userId 不能为空");
+            }
+
+            final JSONObject membership = membershipRepository.getByUserId(userId);
+            if (null == membership) {
+                throw new ServiceException("会员记录不存在");
+            }
+
+            if (StringUtils.isNotBlank(lvCode)) {
+                final Query levelQuery = new Query()
+                        .setFilter(new PropertyFilter(MembershipLevel.LV_CODE, FilterOperator.EQUAL, lvCode.trim()))
+                        .setPageCount(1)
+                        .setPage(1, 1);
+                final JSONObject level = levelRepository.getFirst(levelQuery);
+                if (null == level) {
+                    throw new ServiceException("会员等级代码不存在");
+                }
+                membership.put(Membership.LV_CODE, lvCode.trim());
+            }
+
+            if (null != state) {
+                membership.put(Membership.STATE, state);
+            }
+            if (null != expiresAt) {
+                membership.put(Membership.EXPIRES_AT, expiresAt);
+            }
+            if (null != configJson) {
+                membership.put(Membership.CONFIG_JSON, configJson);
+            }
+            membership.put(Membership.UPDATED_AT, System.currentTimeMillis());
+
+            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+            transaction.commit();
+
+            final int currentState = membership.optInt(Membership.STATE, 0);
+            final long currentExpiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+            final long now = System.currentTimeMillis();
+            if (1 == currentState && (0L == currentExpiresAt || currentExpiresAt > now)) {
+                membershipCache.put(membership);
+            } else {
+                membershipCache.remove(userId);
+            }
+
+            return membership;
+        } catch (final Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            LOGGER.error("Admin update membership failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理侧：延长会员到期时间（按天）。
+     */
+    public JSONObject adminExtendMembershipDays(final String userId, final int days) throws ServiceException {
+        final Transaction transaction = membershipRepository.beginTransaction();
+        try {
+            if (StringUtils.isBlank(userId)) {
+                throw new ServiceException("参数错误：userId 不能为空");
+            }
+            if (days <= 0) {
+                throw new ServiceException("参数错误：days 必须大于 0");
+            }
+            if (days > 36500) {
+                throw new ServiceException("参数错误：days 过大");
+            }
+
+            final JSONObject membership = membershipRepository.getByUserId(userId);
+            if (null == membership) {
+                throw new ServiceException("会员记录不存在");
+            }
+
+            final long now = System.currentTimeMillis();
+            final long oldExpiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+            if (oldExpiresAt <= 0L) {
+                throw new ServiceException("永久会员不支持延长操作");
+            }
+
+            final long dayMillis = 24L * 60L * 60L * 1000L;
+            final long base = Math.max(oldExpiresAt, now);
+            final long newExpiresAt = base + days * dayMillis;
+
+            membership.put(Membership.EXPIRES_AT, newExpiresAt);
+            membership.put(Membership.STATE, 1);
+            membership.put(Membership.UPDATED_AT, now);
+            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+
+            transaction.commit();
+            membershipCache.put(membership);
+
+            return new JSONObject()
+                    .put("userId", userId)
+                    .put("days", days)
+                    .put("oldExpiresAt", oldExpiresAt)
+                    .put("newExpiresAt", newExpiresAt)
+                    .put("membership", membership);
+        } catch (final Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            LOGGER.error("Admin extend membership days failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理侧：按天退款并使会员失效。
+     */
+    public JSONObject adminRefundMembershipByDays(final String userId) throws ServiceException {
+        final Transaction transaction = membershipRepository.beginTransaction();
+        try {
+            if (StringUtils.isBlank(userId)) {
+                throw new ServiceException("参数错误：userId 不能为空");
+            }
+
+            final JSONObject membership = membershipRepository.getActiveByUserId(userId);
+            if (null == membership) {
+                throw new ServiceException("当前无有效VIP可退款");
+            }
+
+            final long now = System.currentTimeMillis();
+            final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+            if (expiresAt <= 0L) {
+                throw new ServiceException("永久会员不支持按天退款");
+            }
+            if (expiresAt <= now) {
+                throw new ServiceException("VIP已过期，无法退款");
+            }
+
+            final String lvCode = membership.optString(Membership.LV_CODE);
+            final Query activationQuery = new Query()
+                    .setFilter(CompositeFilterOperator.and(
+                            new PropertyFilter(MembershipActivation.USER_ID, FilterOperator.EQUAL, userId),
+                            new PropertyFilter(MembershipActivation.LV_CODE, FilterOperator.EQUAL, lvCode)
+                    ))
+                    .addSort(MembershipActivation.CREATED_AT, SortDirection.DESCENDING)
+                    .setPageCount(1)
+                    .setPage(1, 1);
+            final JSONObject activation = activationRepository.getFirst(activationQuery);
+            if (null == activation) {
+                throw new ServiceException("未找到对应的开通记录，无法按天退款");
+            }
+
+            final int paidPoints = activation.optInt(MembershipActivation.PRICE, 0);
+            final int totalDays = activation.optInt(MembershipActivation.DURATION_VALUE, 0);
+            if (totalDays <= 0) {
+                throw new ServiceException("开通记录周期非法，无法退款");
+            }
+
+            final long dayMillis = 24L * 60L * 60L * 1000L;
+            final int remainingDays = (int) Math.max(0L, (expiresAt - now) / dayMillis);
+            final int refundPoints = (int) Math.floor((paidPoints * 1.0d / totalDays) * remainingDays);
+            String transferId = "";
+
+            if (refundPoints > 0) {
+                final String memo = "VIP按天退款（" + remainingDays + "天）";
+                transferId = pointtransferMgmtService.transferInCurrentTransaction(
+                        Pointtransfer.ID_C_SYS,
+                        userId,
+                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
+                        refundPoints,
+                        membership.optString(Keys.OBJECT_ID),
+                        now,
+                        memo
+                );
+                if (null == transferId) {
+                    throw new ServiceException("退款失败，积分转账未完成");
+                }
+            }
+
+            membership.put(Membership.STATE, 0);
+            membership.put(Membership.EXPIRES_AT, now);
+            membership.put(Membership.UPDATED_AT, now);
+            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+
+            transaction.commit();
+            membershipCache.remove(userId);
+
+            if (StringUtils.isNotBlank(transferId)) {
+                try {
+                    final JSONObject notification = new JSONObject();
+                    notification.put(Notification.NOTIFICATION_USER_ID, userId);
+                    notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
+                    notificationMgmtService.addPointTransferNotification(notification);
+                } catch (final Exception notificationException) {
+                    LOGGER.warn("Add refund transfer notification failed [userId=" + userId + ", transferId=" + transferId + "]", notificationException);
+                }
+            }
+
+            return new JSONObject()
+                    .put("userId", userId)
+                    .put("refundPoints", refundPoints)
+                    .put("remainingDays", remainingDays)
+                    .put("totalDays", totalDays)
+                    .put("paidPoints", paidPoints)
+                    .put("membership", membership);
+        } catch (final Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            LOGGER.error("Admin refund membership by days failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 开通会员后的赠送权益。
+     */
+    private void grantVipStarterBag(final String userId, final String lvCode) {
+        switch (lvCode) {
+            case "VIP1_YEAR":
+                cloudService.putBag(userId, "checkin1day", 20, Integer.MAX_VALUE);
+                break;
+            case "VIP2_YEAR":
+                cloudService.putBag(userId, "checkin1day", 50, Integer.MAX_VALUE);
+                break;
+            case "VIP3_YEAR":
+                cloudService.putBag(userId, "checkin1day", 120, Integer.MAX_VALUE);
+                break;
+            case "VIP4_YEAR":
+                cloudService.putBag(userId, "sysCheckinRemain", 366, Integer.MAX_VALUE);
+                break;
+            default:
+                break;
+        }
     }
 
     /**

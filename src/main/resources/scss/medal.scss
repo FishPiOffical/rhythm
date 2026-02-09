@@ -467,6 +467,17 @@ $shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
   }
 }
 
+.medal-owners__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+
+  .btn {
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 600px) {
   .medal-modal__content {
     width: 94%;

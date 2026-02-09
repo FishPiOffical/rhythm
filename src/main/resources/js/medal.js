@@ -53,6 +53,23 @@
         }
     }
 
+    function formatDateTime(ts) {
+        if (!ts || ts <= 0) {
+            return '永久';
+        }
+        var d = new Date(ts);
+        if (isNaN(d.getTime())) {
+            return String(ts);
+        }
+        var y = d.getFullYear();
+        var m = ('0' + (d.getMonth() + 1)).slice(-2);
+        var day = ('0' + d.getDate()).slice(-2);
+        var hh = ('0' + d.getHours()).slice(-2);
+        var mm = ('0' + d.getMinutes()).slice(-2);
+        var ss = ('0' + d.getSeconds()).slice(-2);
+        return y + '-' + m + '-' + day + ' ' + hh + ':' + mm + ':' + ss;
+    }
+
     var AdminMedalPage = {
         page: 1,
         pageSize: 20,
@@ -112,6 +129,7 @@
             this.dom.grantExpireTime = document.getElementById('grantExpireTime');
             this.dom.grantData = document.getElementById('grantData');
             this.dom.btnGrant = document.getElementById('btnGrantMedalToUser');
+            this.dom.btnFillVipExpireTime = document.getElementById('btnFillVipExpireTime');
         },
 
         bindEvents: function () {
@@ -232,6 +250,12 @@
             if (this.dom.btnGrant) {
                 this.dom.btnGrant.addEventListener('click', function () {
                     self.grantMedalToUser();
+                });
+            }
+
+            if (this.dom.btnFillVipExpireTime) {
+                this.dom.btnFillVipExpireTime.addEventListener('click', function () {
+                    self.fillVipExpireTime();
                 });
             }
         },
@@ -623,6 +647,80 @@
                 self.loadMedalOwners(self.currentOwnersMedalId);
             }).catch(function (e) {
                 alert('发放失败：' + e);
+            });
+        },
+
+        fillVipExpireTime: function () {
+            var self = this;
+            var userName = (this.dom.grantUserId && this.dom.grantUserId.value || '').trim();
+
+            if (!userName) {
+                alert('请先填写用户名');
+                return;
+            }
+
+            if (this.dom.btnFillVipExpireTime) {
+                this.dom.btnFillVipExpireTime.disabled = true;
+                this.dom.btnFillVipExpireTime.textContent = '同步中...';
+            }
+
+            $.ajax({
+                url: '/user/' + userName + '?apiKey=' + apiKey,
+                type: 'GET',
+                dataType: 'json',
+                success: function (userResult) {
+                    var userId = userResult && userResult.oId;
+                    if (!userId) {
+                        alert('未找到该用户：' + userName);
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '/api/membership/' + userId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function (vipResult) {
+                            if (!vipResult || vipResult.code !== 0) {
+                                alert('获取VIP状态失败：' + (vipResult ? vipResult.msg : '未知错误'));
+                                return;
+                            }
+
+                            var vipData = vipResult.data || {};
+                            var state = vipData.state;
+                            var expiresAt = vipData.expiresAt;
+
+                            if (state !== 1) {
+                                alert('该用户当前不是有效VIP，无法自动填充。');
+                                return;
+                            }
+
+                            if (!expiresAt || expiresAt <= 0) {
+                                self.dom.grantExpireTime.value = '0';
+                                alert('该用户VIP为永久有效，已填充勋章过期时间为 0（永久）。');
+                                return;
+                            }
+
+                            self.dom.grantExpireTime.value = String(expiresAt);
+                            alert('已填充勋章过期时间：' + formatDateTime(expiresAt));
+                        },
+                        error: function (xhr) {
+                            alert('获取VIP状态失败：' + (xhr && xhr.statusText ? xhr.statusText : '网络错误'));
+                        },
+                        complete: function () {
+                            if (self.dom.btnFillVipExpireTime) {
+                                self.dom.btnFillVipExpireTime.disabled = false;
+                                self.dom.btnFillVipExpireTime.textContent = '同步VIP到期';
+                            }
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    alert('查询用户失败：' + (xhr && xhr.statusText ? xhr.statusText : '网络错误'));
+                    if (self.dom.btnFillVipExpireTime) {
+                        self.dom.btnFillVipExpireTime.disabled = false;
+                        self.dom.btnFillVipExpireTime.textContent = '同步VIP到期';
+                    }
+                }
             });
         },
 
