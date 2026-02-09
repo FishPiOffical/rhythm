@@ -556,9 +556,13 @@ var ChatRoomChannel = {
         dom.innerHTML = content;
         let imgList = dom.querySelectorAll('img');
         imgList.forEach(ele=>{
-            //if(ele.src.startsWith('https://file.fishpi.cn')){
-            ele.src = ele.src + '?imageView2/0/w/150/h/150/interlace/0/q/90'
-            //}
+            const source = ele.src || '';
+            const sharpIndex = source.indexOf('#');
+            const hash = sharpIndex > -1 ? source.substring(sharpIndex) : '';
+            const withoutHash = sharpIndex > -1 ? source.substring(0, sharpIndex) : source;
+            const queryIndex = withoutHash.indexOf('?');
+            const base = queryIndex > -1 ? withoutHash.substring(0, queryIndex) : withoutHash;
+            ele.src = base + '?imageView2/0/w/150/h/150/interlace/0/q/90' + hash;
         })
         return dom.innerHTML;
     },

@@ -2785,14 +2785,13 @@ ${result.info.msg}
      */
     imgWaitting: false,
     /**
+     * 看图插件更新重试间隔
+     */
+    imgViewerUpdateDelay: 120,
+    /**
      * 全屏看图插件渲染
      */
     imageViewer: function () {
-        // console.log("新消息")
-        //没有新图片就不重载
-        if (this.imgViewer && $("div.vditor-reset.ft__smaller img:not(.ft__smaller,.emoji,.ext-emoji,*[src*='shield'],*[src*='/gen?'])").length === this.imgViewer.length)
-            return
-        // console.log("包含图片")
         this.imgViewer = this.imgViewer || new Viewer(document.querySelector('#chats'), {
             inline: false,
             className: "PWLimgViwer",
@@ -2804,23 +2803,35 @@ ${result.info.msg}
                 return "From @" + ele.querySelector(".avatar").getAttribute("aria-label")
             }
         });
-        const delayshow = function () {
-            setTimeout(() => {
-                    if (!ChatRoom.imgViewer.isShown) {
-                        ChatRoom.imgWaitting = false;
-                        // console.log("重载")
-                        ChatRoom.imgViewer.update()
-                    } else {
-                        // console.log("等待")
-                        delayshow()
-                    }
-                }
-                , 1000)
-            return true
+
+        if (!this.imgViewer.isShown) {
+            this.imgWaitting = false;
+            this.imgViewer.update();
+            return;
         }
-        // console.log("前", this.imgWaitting)
-        this.imgWaitting = this.imgWaitting || delayshow()
-        // console.log("后", this.imgWaitting)
+
+        if (this.imgWaitting) {
+            return;
+        }
+
+        const delayUpdateWhenHidden = function () {
+            setTimeout(() => {
+                if (!ChatRoom.imgViewer) {
+                    ChatRoom.imgWaitting = false;
+                    return;
+                }
+
+                if (!ChatRoom.imgViewer.isShown) {
+                    ChatRoom.imgWaitting = false;
+                    ChatRoom.imgViewer.update();
+                } else {
+                    delayUpdateWhenHidden();
+                }
+            }, ChatRoom.imgViewerUpdateDelay);
+        };
+
+        this.imgWaitting = true;
+        delayUpdateWhenHidden();
     },
 
     /**
