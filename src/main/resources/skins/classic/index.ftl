@@ -37,8 +37,8 @@
 </#if>
 <div class="main">
     <div class="wrapper index-full-size-white" id="nightTips" style="display: none"></div>
-    <div class="wrapper" style="padding-bottom: 20px">
-        <div class="index-recent fn-flex-1">
+    <div class="wrapper" id="indexTopWrapper" style="padding-bottom: 20px">
+        <div class="index-recent fn-flex-1" id="indexRecentColLeft">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">最新</div>
                 <div style="clear:both;"></div>
@@ -74,6 +74,7 @@
                         .rank {
                             padding: 7px 15px 7px 15px !important;
                         }
+
                     </style>
                     <#list recentArticles as article>
                         <li class="fn-flex">
@@ -102,7 +103,7 @@
             </div>
 
         </div>
-        <div class="index-recent fn-flex-1">
+        <div class="index-recent fn-flex-1" id="indexRecentColRight">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">&nbsp;</div>
                 <div style="float:right;font-size:13px;margin:5px 0 0 0;">
@@ -138,7 +139,7 @@
                 </ul>
             </div>
         </div>
-        <div class="index-recent fn-flex-1">
+        <div class="index-recent fn-flex-1" id="indexRankCol">
             <div class="module-panel">
                 <#if TGIF == '0'>
                     <div class="TGIF__item" style="margin-bottom: 17px; margin-top: 5px">
@@ -179,17 +180,21 @@
                 </#if>
             </div>
 
-            <div class="index-head-title">
-                <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">今日连签排行</div>
-                <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/top/checkin">更多</a>
+            <#assign checkinVisibleCount=(checkinVisibleCount!9)>
+            <#assign onlineVisibleCount=(onlineVisibleCount!8)>
+
+            <div>
+                <div class="index-head-title">
+                    <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">今日连签排行</div>
+                    <div style="float:right;font-size:13px;margin:5px 0 0 0;"><a href="${servePath}/top/checkin">更多</a>
+                    </div>
+                    <div style="clear:both;"></div>
                 </div>
-                <div style="clear:both;"></div>
-            </div>
-            <div class="module-panel">
-                <ul class="module-list">
-                    <#list topCheckinUsers as user>
-                        <#if user_index < 9>
-                            <li class="fn-flex rank topCheckInUsersElement">
+                <div class="module-panel">
+                    <ul class="module-list">
+                        <#list topCheckinUsers as user>
+                            <#if user_index lt checkinVisibleCount>
+                                <li class="fn-flex rank topCheckInUsersElement">
                                 <#if user_index == 0 || user_index == 1 || user_index == 2>
                                 <span
                                         <#if user_index == 0>
@@ -214,23 +219,23 @@
                                 <a class="tooltipped tooltipped-s fn-right count ft-gray ft-smaller"
                                    aria-label="${checkinStreakPart0Label}${user.userLongestCheckinStreak}${checkinStreakPart1Label}${user.userCurrentCheckinStreak}${checkinStreakPart2Label}"
                                    href="${servePath}/top/checkin">${user.userCurrentCheckinStreak}${checkinStreakPart2Label}</a>
-                            </li>
-                        </#if>
-                    </#list>
-                </ul>
-            </div>
-
-            <div class="index-head-title">
-                <div style="float:left;font-size:13px;margin:20px 0 10px 0; font-weight:bold;">在线时间排行</div>
-                <div style="float:right;font-size:13px;margin:20px 0 0 0;"><a href="${servePath}/top/online">更多</a>
+                                </li>
+                            </#if>
+                        </#list>
+                    </ul>
                 </div>
-                <div style="clear:both;"></div>
-            </div>
-            <div class="module-panel">
-                <ul class="module-list">
-                    <#list onlineTopUsers as user>
-                        <#if user_index < 8>
-                            <li class="fn-flex rank topCheckInUsersElement">
+
+                <div class="index-head-title">
+                    <div style="float:left;font-size:13px;margin:20px 0 10px 0; font-weight:bold;">在线时间排行</div>
+                    <div style="float:right;font-size:13px;margin:20px 0 0 0;"><a href="${servePath}/top/online">更多</a>
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+                <div class="module-panel">
+                    <ul class="module-list">
+                        <#list onlineTopUsers as user>
+                            <#if user_index lt onlineVisibleCount>
+                                <li class="fn-flex rank topCheckInUsersElement">
                                 <#if user_index == 0 || user_index == 1 || user_index == 2>
                                 <span
                                         <#if user_index == 0>
@@ -270,10 +275,11 @@
                                         ${user.onlineMinute} 分钟
                                     </#if>
                                 </a>
-                            </li>
-                        </#if>
-                    </#list>
-                </ul>
+                                </li>
+                            </#if>
+                        </#list>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -670,7 +676,7 @@
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;cursor: pointer">最新注册</div>
                     <#list recentRegUsers as user>
-                        <#if user_index = 0>
+                        <#if user_index == 0>
                             <a target="_blank" href="${servePath}/member/${user.userName}"
                                style="float: right; margin: 5px 0 10px 0; color: #646464; text-decoration: none">
                                 🎉 欢迎新人 <b>${user.userName}</b>
@@ -1171,6 +1177,7 @@
         initLongShelfAuto('long-recent', 3600);
         initLongShelfAuto('long-hot', 3600);
     });
+
 </script>
 </body>
 </html>

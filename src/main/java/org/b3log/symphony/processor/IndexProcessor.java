@@ -453,14 +453,6 @@ public class IndexProcessor {
     public synchronized void loadIndexData() {
         Map<String, Object> dataModel = new HashMap<>();
 
-        // 签到排行
-        final List<JSONObject> users = activityQueryService.getTopCheckinUsers(10);
-        dataModel.put(Common.TOP_CHECKIN_USERS, users);
-
-        // 在线时间排行
-        final List<JSONObject> onlineTopUsers = activityQueryService.getTopOnlineTimeUsers(9);
-        dataModel.put("onlineTopUsers", onlineTopUsers);
-
         // 热议
         final List<JSONObject> hotArticles = articleQueryService.getHotArticles(11);
         dataModel.put(Common.HOT, hotArticles);
@@ -470,13 +462,36 @@ public class IndexProcessor {
         final List<JSONObject> qaArticles = (List<JSONObject>) result.get(Article.ARTICLES);
         dataModel.put(Common.QNA,qaArticles);
 
+        final int recentFetchSize = 18;
+
         // 最近文章
-        final List<JSONObject> recentArticles = articleQueryService.getIndexRecentArticles(18, 1);
+        final List<JSONObject> recentArticles = articleQueryService.getIndexRecentArticles(recentFetchSize, 1);
         dataModel.put(Common.RECENT_ARTICLES, recentArticles);
 
         // 最近文章第二列
-        final List<JSONObject> recentArticles2 = articleQueryService.getIndexRecentArticles(18, 2);
+        final List<JSONObject> recentArticles2 = articleQueryService.getIndexRecentArticles(recentFetchSize, 2);
         dataModel.put("recentArticles2", recentArticles2);
+
+        // 右侧排行补偿行数（由首页置顶导致的额外文章行数决定）
+        final int maxRecentColumnRows = Math.max(recentArticles.size(), recentArticles2.size());
+        final int rankCompensateRows = Math.max(0, maxRecentColumnRows - recentFetchSize);
+        // 文章行高约 40px，排行行高约 34px，先换算为“右栏总补偿行数”后再分摊到两个排行，避免双倍补偿
+        final int totalRankExtraRows = (int) Math.round((double) rankCompensateRows * 40 / 34);
+        final int checkinExtraRows = (totalRankExtraRows + 1) / 2;
+        final int onlineExtraRows = totalRankExtraRows / 2;
+        final int checkinVisibleCount = 9 + checkinExtraRows;
+        final int onlineVisibleCount = 8 + onlineExtraRows;
+        dataModel.put("rankCompensateRows", rankCompensateRows);
+        dataModel.put("checkinVisibleCount", checkinVisibleCount);
+        dataModel.put("onlineVisibleCount", onlineVisibleCount);
+
+        // 签到排行
+        final List<JSONObject> users = activityQueryService.getTopCheckinUsers(checkinVisibleCount);
+        dataModel.put(Common.TOP_CHECKIN_USERS, users);
+
+        // 在线时间排行
+        final List<JSONObject> onlineTopUsers = activityQueryService.getTopOnlineTimeUsers(onlineVisibleCount);
+        dataModel.put("onlineTopUsers", onlineTopUsers);
 
         // 长篇文章专区（最近 & 热门）
         final List<JSONObject> recentLongArticles = articleQueryService.getIndexLongArticles(50);
