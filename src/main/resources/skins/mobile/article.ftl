@@ -156,7 +156,7 @@
                     </a>
                 </h1>
                 <div style="margin-bottom: 3px">
-                    <#if article.sysMetal != "[]">
+                    <#if 6 != article.articleType && article.sysMetal != "[]">
                         <#list article.sysMetal?eval as metal>
                             <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                         </#list>
