@@ -972,6 +972,9 @@ a[class*=" icon-"]:hover {
   }
 }
 
+$festival-nav-bg: #b52621;
+$festival-nav-text: #fff7e3;
+
 .nav {
   position: sticky;
   top: 0;
@@ -983,7 +986,7 @@ a[class*=" icon-"]:hover {
   height: 58px;
   padding: 5px 15px;
   box-sizing: border-box;
-  background-color: $theme-primary;
+  background-color: $festival-nav-bg;
   box-shadow: 0px 5px 40px 0px rgba(17,58,93,.1);
   font-weight: 500;
   overflow: visible;
@@ -1044,7 +1047,7 @@ a[class*=" icon-"]:hover {
     height: 100%;
     font-size: 14px;
     font-weight: 500;
-    color: #3b3e43;
+    color: $festival-nav-text;
     background: none;
     border: none;
     border-radius: 6px;
@@ -1060,13 +1063,13 @@ a[class*=" icon-"]:hover {
     }
 
     &:hover, &:focus {
-      color: #e59230;
+      color: #8f2a1f;
       background: #fff7ec;
       svg { opacity: 1; }
     }
 
     &.current {
-      color: #e59230;
+      color: #8f2a1f;
       font-weight: 600;
       background: #fff7ec;
       border-bottom: none !important;
@@ -1112,7 +1115,7 @@ a[class*=" icon-"]:hover {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: $theme-primary-text;
+    color: $festival-nav-text;
     text-decoration: none;
     text-align: center;
     padding: 14px 10px;
@@ -1159,7 +1162,7 @@ a[class*=" icon-"]:hover {
     width: 210px;
     line-height: 38px;
     height: 38px;
-    color: $theme-primary-text;
+    color: $festival-nav-text;
     box-sizing: border-box;
     position: relative;
     vertical-align: top;
@@ -1174,9 +1177,9 @@ a[class*=" icon-"]:hover {
   }
 
   .user-nav .pre-post {
-    background-color: rgb(203 202 202 / 29%);
+    background-color: rgba(255, 247, 227, 0.2);
     border-radius: 8px;
-    color: #3b3e43;
+    color: $festival-nav-text;
     padding: 7px 14px;
     margin: 14px 7px;
     line-height: 20px;
@@ -1185,9 +1188,9 @@ a[class*=" icon-"]:hover {
 
   .user-nav .no-msg,
   .user-nav .msg {
-    background-color: rgb(203 202 202 / 29%);
+    background-color: rgba(255, 247, 227, 0.2);
     border-radius: 3px;
-    color: #3b3e43;
+    color: $festival-nav-text;
     padding: 0px 6px;
     margin: 14px 7px;
     line-height: 20px;
@@ -1203,7 +1206,7 @@ a[class*=" icon-"]:hover {
 
   .user-nav .msg {
     background-color: $theme-accent;
-    color: #FFFFFF;
+    color: #7a2c14;
   }
 
   .user-nav a.current.no-msg,
@@ -2668,19 +2671,19 @@ a[class*=" icon-"]:hover {
 }
 .nav .user-nav .pre-post.current svg,
 .nav .user-nav .pre-post.current span {
-  color: #3B3E43 !important;
-  fill: #3B3E43 !important;
+  color: #7a2c14 !important;
+  fill: #7a2c14 !important;
 }
 
 // 主题色
-$theme-orange: #e59230;
+$theme-orange: $theme-accent;
 $theme-orange-light: #fff7ec;
 
 .nav .user-nav > a.nav-btn-admin,
 .nav .user-nav > a.nav-btn-activity {
   transition: background 0.18s, color 0.18s;
   border-radius: 6px;
-  color: #3b3e43;
+  color: $festival-nav-text;
   background: none;
   display: flex;
   align-items: center;
@@ -2693,15 +2696,15 @@ $theme-orange-light: #fff7ec;
 .nav .user-nav > a.nav-btn-activity:hover,
 .nav .user-nav > a.nav-btn-activity:focus {
   background: #fff7ec;
-  color: #e59230;
+  color: #8f2a1f;
 }
 
 .nav .user-nav > a.nav-btn-admin:hover svg,
 .nav .user-nav > a.nav-btn-admin:focus svg,
 .nav .user-nav > a.nav-btn-activity:hover svg,
 .nav .user-nav > a.nav-btn-activity:focus svg {
-  color: #e59230;
-  fill: #e59230;
+  color: #8f2a1f;
+  fill: #8f2a1f;
 }
 
 .nav .user-nav > a.nav-btn-admin svg,
@@ -2709,19 +2712,19 @@ $theme-orange-light: #fff7ec;
   transition: color 0.18s, fill 0.18s;
   width: 18px;
   height: 18px;
-  color: #3b3e43;
-  fill: #3b3e43;
+  color: $festival-nav-text;
+  fill: $festival-nav-text;
 }
 
 .nav .user-nav > a.nav-btn-admin.current,
 .nav .user-nav > a.nav-btn-activity.current {
   background: #fff7ec;
-  color: #e59230;
+  color: #8f2a1f;
 }
 .nav .user-nav > a.nav-btn-admin.current svg,
 .nav .user-nav > a.nav-btn-activity.current svg {
-  color: #e59230;
-  fill: #e59230;
+  color: #8f2a1f;
+  fill: #8f2a1f;
 }
 
 #aPersonListPanel {

@@ -516,7 +516,7 @@ a[class*=" icon-"]:hover {
   width: 100%;
   padding: 5px 0;
   z-index: 99;
-  background-color: rgba(217, 240, 255, 0.75);
+  background-color: rgba(181, 38, 33, 0.9);
   position: relative;
   overflow: visible;
 }
@@ -580,7 +580,7 @@ a[class*=" icon-"]:hover {
 }
 
 .nav div > a {
-  color: #3b3e43;
+  color: #fff7e3;
   text-decoration: none;
   margin: 0 3px;
   padding: 4px 5px;
@@ -613,9 +613,9 @@ a[class*=" icon-"]:hover {
 
 .nav .user-nav .no-msg,
 .nav .user-nav .msg {
-  background-color: rgba(203,202,202,.29);
+  background-color: rgba(255,247,227,.2);
   border-radius: 3px;
-  color: #3b3e43;
+  color: #fff7e3;
   font-size: 14px;
   padding: 0px 6px;
   margin: 5px 4px;
@@ -630,10 +630,10 @@ a[class*=" icon-"]:hover {
   -ms-animation: spaceboots 1s infinite;
   animation: spaceboots 1s infinite;
   background-color: $theme-accent;
-  color: #FFFFFF;
+  color: #7a2c14;
 }
 .nav .user-nav svg{
-  color: $theme-primary-text;
+  color: #fff7e3;
   height: 20px;
   width: 20px;
 }
@@ -642,6 +642,7 @@ a[class*=" icon-"]:hover {
 .nav .user-nav a.selected.msg {
   animation: none;
   background-color: $theme-accent;
+  color: #7a2c14;
   border-bottom: 0;
 }
 

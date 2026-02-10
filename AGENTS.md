@@ -38,6 +38,7 @@
 - 构建：后端 Maven（`pom.xml`），前端 Gulp（`gulpfile.js`、`package.json`）。
 
 ## 关键链路（持续维护）
+- 前端全局主题变量入口：`src/main/resources/scss/_variables.scss`；`$theme-primary` 会影响 `module`/首页卡片/聊天室等主区背景，深色会导致整站大面积染色；顶栏建议在 `base.scss`/`mobile-base.scss` 的 `.nav` 单独设色。
 - 勋章管理页：`/admin/medal`
   - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）
   - 前端：`src/main/resources/js/medal.js`
