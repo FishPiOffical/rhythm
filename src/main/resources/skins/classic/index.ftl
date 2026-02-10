@@ -35,6 +35,11 @@
 <#if showTopAd>
     ${HeaderBannerLabel}
 </#if>
+<div class="spring-festival-banner" aria-label="春节氛围装饰">
+    <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
+    <span class="spring-festival-banner__text">新春快乐 · 摸鱼大吉</span>
+    <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
+</div>
 <div class="main">
     <div class="wrapper index-full-size-white" id="nightTips" style="display: none"></div>
     <div class="wrapper" id="indexTopWrapper" style="padding-bottom: 20px">

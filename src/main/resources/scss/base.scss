@@ -961,6 +961,17 @@ a[class*=" icon-"]:hover {
 /* end framework */
 
 /* start header */
+@keyframes spring-lantern-swing {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
 .nav {
   position: sticky;
   top: 0;
@@ -975,6 +986,34 @@ a[class*=" icon-"]:hover {
   background-color: $theme-primary;
   box-shadow: 0px 5px 40px 0px rgba(17,58,93,.1);
   font-weight: 500;
+  overflow: visible;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    width: 18px;
+    height: 30px;
+    border-radius: 55% 55% 45% 45%;
+    background:
+      linear-gradient(#d9b260, #d9b260) center top / 2px 8px no-repeat,
+      radial-gradient(circle at 50% 30%, #ffd68a 0, #ffb05e 28%, #dd4a2d 68%, #a41f1a 100%);
+    box-shadow: 0 4px 10px rgba(164, 31, 26, 0.28);
+    pointer-events: none;
+    z-index: 2;
+    transform-origin: top center;
+    animation: spring-lantern-swing 2.8s ease-in-out infinite;
+  }
+
+  &::before {
+    left: 12px;
+  }
+
+  &::after {
+    right: 12px;
+    animation-delay: -1.4s;
+  }
 
   h1 {
     //margin-right: 20px;
@@ -1221,6 +1260,13 @@ a[class*=" icon-"]:hover {
 
   #notificationsPanel:after {
     right: 92px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .nav::before,
+  .nav::after {
+    display: none;
   }
 }
 

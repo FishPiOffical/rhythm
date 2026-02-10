@@ -36,6 +36,11 @@
 <#if showTopAd>
     ${HeaderBannerLabel}
 </#if>
+<div class="spring-festival-banner" aria-label="春节氛围装饰">
+    <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
+    <span class="spring-festival-banner__text">新春快乐 · 摸鱼大吉</span>
+    <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
+</div>
 
 <#if esEnabled || algoliaEnabled>
     <form class="form wrapper" style="margin-top: 10px" action="/search">

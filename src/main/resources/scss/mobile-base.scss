@@ -517,6 +517,34 @@ a[class*=" icon-"]:hover {
   padding: 5px 0;
   z-index: 99;
   background-color: rgba(217, 240, 255, 0.75);
+  position: relative;
+  overflow: visible;
+}
+
+.nav::before,
+.nav::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  width: 10px;
+  height: 14px;
+  border-radius: 55% 55% 45% 45%;
+  background:
+    linear-gradient(#d9b260, #d9b260) center top / 1px 4px no-repeat,
+    radial-gradient(circle at 50% 30%, #ffd68a 0, #ffb05e 28%, #dd4a2d 68%, #a41f1a 100%);
+  box-shadow: 0 2px 4px rgba(164, 31, 26, 0.2);
+  pointer-events: none;
+  transform-origin: top center;
+  animation: spring-lantern-swing-mobile 2.6s ease-in-out infinite;
+}
+
+.nav::before {
+  left: 6px;
+}
+
+.nav::after {
+  right: 6px;
+  animation-delay: -1.3s;
 }
 
 .nav .wrapper{
@@ -2033,6 +2061,17 @@ code .dec {
   color: #999;
 }
 
+@keyframes spring-lantern-swing-mobile {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
 .index {
   .module-list .title {
     margin-right: 30px;
@@ -2047,6 +2086,56 @@ code .dec {
       color: #fff;
     }
   }
+
+  .spring-festival-banner {
+    margin: 10px 10px 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(212, 73, 44, 0.22);
+    background: linear-gradient(90deg, #fff6e4 0%, #ffe7cf 100%);
+    box-shadow: 0 2px 8px rgba(177, 58, 42, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #b13a2a;
+  }
+
+  .spring-festival-banner__text {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .5px;
+  }
+
+  .spring-festival-banner__lantern {
+    position: relative;
+    width: 12px;
+    height: 16px;
+    border-radius: 55% 55% 45% 45%;
+    background:
+      linear-gradient(#d9b260, #d9b260) center top / 2px 5px no-repeat,
+      radial-gradient(circle at 50% 30%, #ffd68a 0, #ffb05e 28%, #dd4a2d 68%, #a41f1a 100%);
+    box-shadow: 0 2px 4px rgba(164, 31, 26, 0.22);
+    transform-origin: top center;
+    animation: spring-lantern-swing-mobile 2.6s ease-in-out infinite;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -5px;
+      width: 2px;
+      height: 5px;
+      border-radius: 2px;
+      background: linear-gradient(#f5d286, #d79b3b);
+      transform: translateX(-50%);
+    }
+  }
+
+  .spring-festival-banner__lantern:last-child {
+    animation-delay: -1.3s;
+  }
+
 }
 
 /* end index */
