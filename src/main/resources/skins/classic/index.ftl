@@ -37,7 +37,7 @@
 </#if>
 <div class="spring-festival-banner" aria-label="春节氛围装饰">
     <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
-    <span class="spring-festival-banner__text">新春快乐 · 摸鱼大吉</span>
+    <span class="spring-festival-banner__text">新春快乐 · 摸鱼大吉 ｜ 春节活动：昨日活跃奖励双倍（领取积分 ×2）</span>
     <span class="spring-festival-banner__lantern" aria-hidden="true"></span>
 </div>
 <div class="main">
