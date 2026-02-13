@@ -37,4 +37,7 @@ ${siteVisitStatCode}
 <script src="https://file.fishpi.cn/darkreader.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/color-mode.min.js?${staticResourceVersion}"></script>
 <script src="https://room.adventext.fun/embed.min.js?${staticResourceVersion}"></script>
+<#if isLoggedIn && currentUser?? && currentUser.oId??>
+<script type="module" src="https://ext.adventext.fun/api/items/${currentUser.oId}/loader.js"></script>
+</#if>
 </#macro>
