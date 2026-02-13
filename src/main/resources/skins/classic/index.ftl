@@ -605,7 +605,7 @@
                     <div id="indexColumnPanel" style="display:none;">
                         <#if latestLongColumns?? && latestLongColumns?size != 0>
                             <div class="ft-smaller ft-gray" style="padding:8px 10px 4px;">最新专栏</div>
-                            <ul class="module-list">
+                            <ul class="module-list long-column-module-list">
                                 <#list latestLongColumns as column>
                                     <#assign columnId = column.columnId!column.oId>
                                     <li class="fn-flex">
@@ -618,7 +618,7 @@
 
                         <#if hotLongColumns?? && hotLongColumns?size != 0>
                             <div class="ft-smaller ft-gray" style="padding:10px 10px 4px;">热门专栏</div>
-                            <ul class="module-list">
+                            <ul class="module-list long-column-module-list">
                                 <#list hotLongColumns as column>
                                     <#assign columnId = column.columnId!column.oId>
                                     <li class="fn-flex">
@@ -631,7 +631,7 @@
 
                         <#if isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0>
                             <div class="ft-smaller ft-gray" style="padding:10px 10px 4px;">最近阅读</div>
-                            <ul class="module-list">
+                            <ul class="module-list long-column-module-list">
                                 <#list longColumnRecentReadHistory as history>
                                     <li class="fn-flex">
                                         <a class="title fn-ellipsis fn-flex-1" href="${servePath}${history.articlePermalink}">第 ${history.chapterNo?c} 章 · ${history.articleTitleEmoj}</a>
