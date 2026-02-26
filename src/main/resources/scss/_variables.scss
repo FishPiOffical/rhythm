@@ -42,11 +42,11 @@ dialog 200~209
 
 // Table of Contents
 // Colors
-$blue: #cf2f25 !default;
-$blue-light: #ffe3de !default;
-$blue-lighter: #fff1ee !default;
-$red: #b4231c !default;
-$red-light: #ffe0db !default;
+$blue: #4285f4 !default;
+$blue-light: #dbedff !default;
+$blue-lighter: #f1f7fe !default;
+$red: #d23f31 !default;
+$red-light: #ffdce0 !default;
 $green: #569e3d !default;
 $fade: #878787!default;
 $gray: #787777 !default;
@@ -54,7 +54,7 @@ $black: #3b3e43 !default;
 $black-text: #2c2c2c !default;
 $black-light: #616161 !default;
 $white: #ffffff !default;
-$logo-orange: #f5b536 !default;
+$logo-orange: #e59230 !default;
 
 @font-face {
   font-family: HarmonyOS;
@@ -96,12 +96,12 @@ $font-family-code: mononoki, Consolas, "Liberation Mono", Menlo, Courier, monosp
 $shadow-tip: 0 1px 2px rgba(0,0,0,.2) !default;
 
 // theme
-$theme-primary: #fff6f3;
+$theme-primary: $white;
 $theme-accent: $logo-orange;
-$theme-secondary: #5a2320;
+$theme-secondary: $black-light;
 $theme-info: $blue-lighter;
 $theme-warning: undefined;
-$theme-error: #ffd9d2;
-$theme-success: #ffe7d4;
-$theme-primary-text: #4d2a23;
-$theme-background: #fff7f6;
+$theme-error: $red-light;
+$theme-success: $blue-light;
+$theme-primary-text: $black;
+$theme-background: #f6f6f6;

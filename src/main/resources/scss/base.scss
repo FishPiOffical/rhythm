@@ -961,20 +961,6 @@ a[class*=" icon-"]:hover {
 /* end framework */
 
 /* start header */
-@keyframes spring-lantern-swing {
-  0%,
-  100% {
-    transform: rotate(-6deg);
-  }
-
-  50% {
-    transform: rotate(6deg);
-  }
-}
-
-$festival-nav-bg: #b52621;
-$festival-nav-text: #fff7e3;
-
 .nav {
   position: sticky;
   top: 0;
@@ -986,37 +972,9 @@ $festival-nav-text: #fff7e3;
   height: 58px;
   padding: 5px 15px;
   box-sizing: border-box;
-  background-color: $festival-nav-bg;
+  background-color: $theme-primary;
   box-shadow: 0px 5px 40px 0px rgba(17,58,93,.1);
   font-weight: 500;
-  overflow: visible;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    top: 6px;
-    width: 18px;
-    height: 30px;
-    border-radius: 55% 55% 45% 45%;
-    background:
-      linear-gradient(#d9b260, #d9b260) center top / 2px 8px no-repeat,
-      radial-gradient(circle at 50% 30%, #ffd68a 0, #ffb05e 28%, #dd4a2d 68%, #a41f1a 100%);
-    box-shadow: 0 4px 10px rgba(164, 31, 26, 0.28);
-    pointer-events: none;
-    z-index: 2;
-    transform-origin: top center;
-    animation: spring-lantern-swing 2.8s ease-in-out infinite;
-  }
-
-  &::before {
-    left: 12px;
-  }
-
-  &::after {
-    right: 12px;
-    animation-delay: -1.4s;
-  }
 
   h1 {
     //margin-right: 20px;
@@ -1047,7 +1005,7 @@ $festival-nav-text: #fff7e3;
     height: 100%;
     font-size: 14px;
     font-weight: 500;
-    color: $festival-nav-text;
+    color: #3b3e43;
     background: none;
     border: none;
     border-radius: 6px;
@@ -1063,13 +1021,13 @@ $festival-nav-text: #fff7e3;
     }
 
     &:hover, &:focus {
-      color: #8f2a1f;
+      color: #e59230;
       background: #fff7ec;
       svg { opacity: 1; }
     }
 
     &.current {
-      color: #8f2a1f;
+      color: #e59230;
       font-weight: 600;
       background: #fff7ec;
       border-bottom: none !important;
@@ -1115,7 +1073,7 @@ $festival-nav-text: #fff7e3;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: $festival-nav-text;
+    color: $theme-primary-text;
     text-decoration: none;
     text-align: center;
     padding: 14px 10px;
@@ -1162,7 +1120,7 @@ $festival-nav-text: #fff7e3;
     width: 210px;
     line-height: 38px;
     height: 38px;
-    color: $festival-nav-text;
+    color: $theme-primary-text;
     box-sizing: border-box;
     position: relative;
     vertical-align: top;
@@ -1177,9 +1135,9 @@ $festival-nav-text: #fff7e3;
   }
 
   .user-nav .pre-post {
-    background-color: rgba(255, 247, 227, 0.2);
+    background-color: rgb(203 202 202 / 29%);
     border-radius: 8px;
-    color: $festival-nav-text;
+    color: #3b3e43;
     padding: 7px 14px;
     margin: 14px 7px;
     line-height: 20px;
@@ -1188,9 +1146,9 @@ $festival-nav-text: #fff7e3;
 
   .user-nav .no-msg,
   .user-nav .msg {
-    background-color: rgba(255, 247, 227, 0.2);
+    background-color: rgb(203 202 202 / 29%);
     border-radius: 3px;
-    color: $festival-nav-text;
+    color: #3b3e43;
     padding: 0px 6px;
     margin: 14px 7px;
     line-height: 20px;
@@ -1206,7 +1164,7 @@ $festival-nav-text: #fff7e3;
 
   .user-nav .msg {
     background-color: $theme-accent;
-    color: #7a2c14;
+    color: #FFFFFF;
   }
 
   .user-nav a.current.no-msg,
@@ -1263,13 +1221,6 @@ $festival-nav-text: #fff7e3;
 
   #notificationsPanel:after {
     right: 92px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .nav::before,
-  .nav::after {
-    display: none;
   }
 }
 
@@ -2671,19 +2622,19 @@ $festival-nav-text: #fff7e3;
 }
 .nav .user-nav .pre-post.current svg,
 .nav .user-nav .pre-post.current span {
-  color: #7a2c14 !important;
-  fill: #7a2c14 !important;
+  color: #3B3E43 !important;
+  fill: #3B3E43 !important;
 }
 
 // 主题色
-$theme-orange: $theme-accent;
+$theme-orange: #e59230;
 $theme-orange-light: #fff7ec;
 
 .nav .user-nav > a.nav-btn-admin,
 .nav .user-nav > a.nav-btn-activity {
   transition: background 0.18s, color 0.18s;
   border-radius: 6px;
-  color: $festival-nav-text;
+  color: #3b3e43;
   background: none;
   display: flex;
   align-items: center;
@@ -2696,15 +2647,15 @@ $theme-orange-light: #fff7ec;
 .nav .user-nav > a.nav-btn-activity:hover,
 .nav .user-nav > a.nav-btn-activity:focus {
   background: #fff7ec;
-  color: #8f2a1f;
+  color: #e59230;
 }
 
 .nav .user-nav > a.nav-btn-admin:hover svg,
 .nav .user-nav > a.nav-btn-admin:focus svg,
 .nav .user-nav > a.nav-btn-activity:hover svg,
 .nav .user-nav > a.nav-btn-activity:focus svg {
-  color: #8f2a1f;
-  fill: #8f2a1f;
+  color: #e59230;
+  fill: #e59230;
 }
 
 .nav .user-nav > a.nav-btn-admin svg,
@@ -2712,19 +2663,19 @@ $theme-orange-light: #fff7ec;
   transition: color 0.18s, fill 0.18s;
   width: 18px;
   height: 18px;
-  color: $festival-nav-text;
-  fill: $festival-nav-text;
+  color: #3b3e43;
+  fill: #3b3e43;
 }
 
 .nav .user-nav > a.nav-btn-admin.current,
 .nav .user-nav > a.nav-btn-activity.current {
   background: #fff7ec;
-  color: #8f2a1f;
+  color: #e59230;
 }
 .nav .user-nav > a.nav-btn-admin.current svg,
 .nav .user-nav > a.nav-btn-activity.current svg {
-  color: #8f2a1f;
-  fill: #8f2a1f;
+  color: #e59230;
+  fill: #e59230;
 }
 
 #aPersonListPanel {

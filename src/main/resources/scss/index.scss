@@ -1269,56 +1269,6 @@ code .dec {
 
 /* start index */
 .index {
-  .spring-festival-banner {
-    max-width: 1160px;
-    margin: 12px auto 0;
-    padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid rgba(212, 73, 44, 0.25);
-    background: linear-gradient(90deg, #fff7e0 0%, #ffe3c4 48%, #ffefd8 100%);
-    box-shadow: 0 4px 14px rgba(177, 58, 42, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    color: #b13a2a;
-  }
-
-  .spring-festival-banner__text {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 1px;
-  }
-
-  .spring-festival-banner__lantern {
-    position: relative;
-    width: 15px;
-    height: 21px;
-    border-radius: 55% 55% 45% 45%;
-    background:
-      linear-gradient(#d9b260, #d9b260) center top / 2px 6px no-repeat,
-      radial-gradient(circle at 50% 30%, #ffd68a 0, #ffb05e 28%, #dd4a2d 68%, #a41f1a 100%);
-    box-shadow: 0 2px 6px rgba(164, 31, 26, 0.25);
-    transform-origin: top center;
-    animation: spring-lantern-swing 2.8s ease-in-out infinite;
-
-    &::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: -7px;
-      width: 2px;
-      height: 7px;
-      border-radius: 2px;
-      background: linear-gradient(#f5d286, #d79b3b);
-      transform: translateX(-50%);
-    }
-  }
-
-  .spring-festival-banner__lantern:last-child {
-    animation-delay: -1.4s;
-  }
-
   .index-main {
     width: 60%;
   }

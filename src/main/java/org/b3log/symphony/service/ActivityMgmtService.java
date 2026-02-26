@@ -67,8 +67,6 @@ public class ActivityMgmtService {
      */
     private static final Logger LOGGER = LogManager.getLogger(ActivityMgmtService.class);
 
-    private static final int SPRING_FESTIVAL_YESTERDAY_LIVENESS_REWARD_MULTIPLIER = 2;
-
     /**
      * Character repository.
      */
@@ -579,9 +577,8 @@ public class ActivityMgmtService {
             return;
         }
 
-        final int rewardSum = sum * SPRING_FESTIVAL_YESTERDAY_LIVENESS_REWARD_MULTIPLIER;
         boolean succ = null != pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, rewardSum, userId, System.currentTimeMillis(), "");
+                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, sum, userId, System.currentTimeMillis(), "");
     }
 
     /**
@@ -605,14 +602,13 @@ public class ActivityMgmtService {
             return -1;
         }
 
-        final int rewardSum = sum * SPRING_FESTIVAL_YESTERDAY_LIVENESS_REWARD_MULTIPLIER;
         boolean succ = null != pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, rewardSum, userId, System.currentTimeMillis(), "");
+                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, sum, userId, System.currentTimeMillis(), "");
         if (!succ) {
             return -1;
         }
 
-        return rewardSum;
+        return sum;
     }
 
     /**
