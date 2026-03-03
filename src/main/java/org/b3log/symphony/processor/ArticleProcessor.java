@@ -267,7 +267,7 @@ public class ArticleProcessor {
         Dispatcher.post("/article/thank", articleProcessor::thankArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.post("/article/stick", articleProcessor::stickArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/article/random/{size}", articleProcessor::randomArticles);
-        Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/recent", "/api/articles/recent/hot", "/api/articles/recent/good", "/api/articles/recent/reply"}).handler(articleProcessor::getArticles);
+        Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/recent", "/api/articles/recent/hot", "/api/articles/recent/good", "/api/articles/recent/reply", "/api/articles/recent/long"}).handler(articleProcessor::getArticles);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/tag/{tagURI}", "/api/articles/tag/{tagURI}/hot", "/api/articles/tag/{tagURI}/good", "/api/articles/tag/{tagURI}/reply", "/api/articles/tag/{tagURI}/perfect"}).handler(articleProcessor::getTagArticles);
         Dispatcher.get("/api/articles/domain/{domainURI}", articleProcessor::getDomainArticles, loginCheck::handle);
         Dispatcher.get("/api/article/{id}", articleProcessor::showArticleApi, loginCheck::handle);
@@ -852,24 +852,29 @@ public class ArticleProcessor {
         pageSize = pageSize <= 0 ? Symphonys.ARTICLE_LIST_CNT : pageSize;
 
         String sortModeStr = StringUtils.substringAfter(context.requestURI(), "/recent");
-        int sortMode;
-        switch (sortModeStr) {
-            case "":
-                sortMode = 0;
-                break;
-            case "/hot":
-                sortMode = 1;
-                break;
-            case "/good":
-                sortMode = 2;
-                break;
-            case "/reply":
-                sortMode = 3;
-                break;
-            default:
-                sortMode = 0;
+        final JSONObject result;
+        if ("/long".equals(sortModeStr)) {
+            result = articleQueryService.getLongArticles(pageNum, pageSize);
+        } else {
+            int sortMode;
+            switch (sortModeStr) {
+                case "":
+                    sortMode = 0;
+                    break;
+                case "/hot":
+                    sortMode = 1;
+                    break;
+                case "/good":
+                    sortMode = 2;
+                    break;
+                case "/reply":
+                    sortMode = 3;
+                    break;
+                default:
+                    sortMode = 0;
+            }
+            result = articleQueryService.getRecentArticles(sortMode, pageNum, pageSize);
         }
-        final JSONObject result = articleQueryService.getRecentArticles(sortMode, pageNum, pageSize);
         final List<JSONObject> allArticles = (List<JSONObject>) result.get(Article.ARTICLES);
 
         final JSONObject pagination = result.getJSONObject(Pagination.PAGINATION);
