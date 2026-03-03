@@ -1302,6 +1302,38 @@ label.cmt-anonymous {
   line-height: 18px;
   height: 18px;
   margin: 5px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  &.reply-use-name--active {
+    visibility: visible;
+  }
+
+  .reply-use-name__target {
+    display: inline-flex;
+    align-items: center;
+    max-width: calc(100% - 26px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    svg {
+      margin-right: 2px;
+    }
+  }
+
+  .reply-use-name__cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    line-height: 14px;
+  }
 }
 
 #articleToC {

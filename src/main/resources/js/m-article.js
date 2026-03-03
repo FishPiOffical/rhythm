@@ -317,12 +317,14 @@ var Comment = {
       },
     })
 
-    $('#replyUseName').
+    Comment._getReplyUseName().
+      addClass('reply-use-name--active').
       html('<a href="javascript:void(0)" onclick="Comment._bgFade($(\'#' +
         id +
         '\'))" class="ft-a-title"><svg><use xlink:href="#edit"></use></svg> ' +
         Label.commonUpdateCommentPermissionLabel + '</a>').
-      data('commentId', id)
+      data('commentId', id).
+      removeData('commentOriginalCommentId')
   },
   /**
    * 背景渐变
@@ -378,6 +380,34 @@ var Comment = {
         $(this).html('via ' + name)
       }
     })
+  },
+  /**
+   * 获取当前可用的“回复指示”容器
+   * 移动端模板中存在隐藏占位节点，优先选择可见容器
+   * @returns {jQuery}
+   */
+  _getReplyUseName: function () {
+    var $replyUseName = $('#replyUseName').not('.fn-none').first()
+    if ($replyUseName.length === 0) {
+      $replyUseName = $('#replyUseName').first()
+    }
+    return $replyUseName
+  },
+  /**
+   * 清理回复/编辑目标指示
+   */
+  _clearReplyUseName: function () {
+    Comment._getReplyUseName().
+      removeClass('reply-use-name--active').
+      html('').
+      removeData('commentOriginalCommentId').
+      removeData('commentId')
+  },
+  /**
+   * 取消回复（恢复普通评论）
+   */
+  cancelReply: function () {
+    Comment._clearReplyUseName()
   },
   /**
    * 评论初始化
@@ -639,6 +669,7 @@ var Comment = {
    * @param {String} csrfToken CSRF 令牌
    */
   add: function (id, csrfToken) {
+    var $replyUseName = Comment._getReplyUseName()
 
     var requestJSONObject = {
       articleId: id,
@@ -648,14 +679,14 @@ var Comment = {
       userCommentViewMode: Label.userCommentViewMode,
     }
 
-    if ($('#replyUseName').data('commentOriginalCommentId')) {
-      requestJSONObject.commentOriginalCommentId = $('#replyUseName').
+    if ($replyUseName.data('commentOriginalCommentId')) {
+      requestJSONObject.commentOriginalCommentId = $replyUseName.
         data('commentOriginalCommentId')
     }
 
     var url = Label.servePath + '/comment',
       type = 'POST',
-      commentId = $('#replyUseName').data('commentId')
+      commentId = $replyUseName.data('commentId')
     if (commentId) {
       url = Label.servePath + '/comment/' + commentId
       type = 'PUT'
@@ -684,7 +715,7 @@ var Comment = {
           Comment.editor.setValue('')
 
           // clear reply comment
-          $('#replyUseName').text('').removeData()
+          Comment._clearReplyUseName()
 
           // clear local storage
           if (window.localStorage) {
@@ -724,7 +755,19 @@ var Comment = {
    * @param {String} userName 用户名称
    */
   reply: function (userName, id) {
-    $('#replyUseName').data('commentOriginalCommentId', id)
+    var safeUserName = String(userName).
+      replace(/&/g, '&amp;').
+      replace(/</g, '&lt;').
+      replace(/>/g, '&gt;'),
+      $replyUseName = Comment._getReplyUseName()
+
+    $replyUseName.
+      addClass('reply-use-name--active').
+      html('<a rel="nofollow" href="javascript:void(0)" class="ft-a-title reply-use-name__target fn-pointer" onclick="Comment.cancelReply()"><svg><use xlink:href="#reply-to"></use></svg> ' +
+        safeUserName +
+        '</a><span class="reply-use-name__cancel fn-pointer ft-fade" onclick="Comment.cancelReply()">×</span>').
+      data('commentOriginalCommentId', id).
+      removeData('commentId')
     Comment.editor.focus()
   },
 }
