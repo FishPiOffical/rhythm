@@ -48,6 +48,9 @@
             <a href="${servePath}/admin" title="${adminLabel}" class="last"><svg><use xlink:href="#manage"></use></svg></a>
             </#if>
             <a href="${servePath}/activities" title="${activityLabel}"><svg><use xlink:href="#playgame"></use></svg></a>
+            <a href="https://ext.adventext.fun/" target="_blank" rel="noopener noreferrer" title="插件市场">
+                <svg><use xlink:href="#ext-empty"></use></svg>
+            </a>
             <a href="javascript:void(0)" title="${colorModeLabel}" id="color-mode"><svg><use xlink:href="#color-sun"></use></svg></a>
             <#if permissions["commonAddArticle"].permissionGrant>
                 <a href="${servePath}/pre-post" title="${addArticleLabel}"><svg><use xlink:href="#addpost"></use></svg></a>

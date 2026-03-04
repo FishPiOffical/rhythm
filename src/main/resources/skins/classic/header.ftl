@@ -122,6 +122,12 @@
                     <use xlink:href="#playgame"></use>
                 </svg>
             </a>
+            <a href="https://ext.adventext.fun/" target="_blank" rel="noopener noreferrer"
+               aria-label="插件市场" class="tooltipped tooltipped-w nav-btn-admin">
+                <svg>
+                    <use xlink:href="#ext-empty"></use>
+                </svg>
+            </a>
             <a href="javascript:void(0)" title="${colorModeLabel}" id="color-mode">
                 <svg>
                     <use xlink:href="#color-sun"></use>
