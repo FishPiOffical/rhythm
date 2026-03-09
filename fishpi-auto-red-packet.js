@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FishPi 聊天室自动抢红包
 // @namespace    https://fishpi.cn/
-// @version      0.4.0
+// @version      0.4.1
 // @description  FishPi 聊天室自动抢红包脚本，支持经典/简约样式、悬浮拖拽设置面板、红包统计、自定义官方感谢文案与频控
 // @author       FishPi Offical
 // @match        https://fishpi.cn/cr*
@@ -9,6 +9,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
 // @run-at       document-end
 // @noframes
 // ==/UserScript==
@@ -21,12 +22,16 @@
         return;
     }
 
-    const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+    const pageWindow = resolvePageWindow();
     const STORAGE_KEY = 'fishpi-auto-red-packet-settings-v1';
     const STATS_STORAGE_KEY = 'fishpi-auto-red-packet-stats-v1';
     const PANEL_ID = 'arp-panel';
     const PANEL_BODY_ID = 'arp-panel-body';
     const LAUNCHER_ID = 'arp-launcher';
+    const PAGE_CONTEXT_EVENT = 'arp:page-context';
+    const PAGE_MESSAGE_EVENT = 'arp:page-message';
+    const PAGE_CONTEXT_REQUEST_EVENT = 'arp:page-context-request';
+    const PAGE_BRIDGE_SCRIPT_ID = 'arp-page-bridge';
     const DEFAULT_THANK_TEMPLATE = '我通过官方抢红包扩展抢到了{points}积分，谢谢老板~';
     const OFFICIAL_EXTENSION_QUOTE = '> 来自官方抢红包扩展，下载地址：https://ext.adventext.fun/market';
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -68,6 +73,13 @@
         lastGrabText: '暂无',
         renderPatched: false,
         readyTimer: null,
+        initialScanDone: false,
+        servePathResolved: false,
+        thisClient: '',
+        bridgeListenersBound: false,
+        chatObserver: null,
+        chatObserverBootstrapper: null,
+        rescanTimer: null,
         dragState: null,
         launcherDragState: null,
         launcherClickSuppress: false,
@@ -75,8 +87,115 @@
     };
 
 
+    function resolvePageWindow() {
+        if (typeof unsafeWindow !== 'undefined') {
+            return unsafeWindow;
+        }
+        if (typeof window.wrappedJSObject !== 'undefined') {
+            return window.wrappedJSObject;
+        }
+        return window;
+    }
+
     function clone(value) {
         return JSON.parse(JSON.stringify(value));
+    }
+
+    function decodeInlineString(value) {
+        return String(value || '')
+            .replace(/\\\\/g, '\\')
+            .replace(/\\'/g, '\'')
+            .replace(/\\"/g, '"');
+    }
+
+    function extractInlineScriptValue(pattern) {
+        const scripts = document.scripts || [];
+        for (const script of scripts) {
+            if (script.src) {
+                continue;
+            }
+            const match = (script.textContent || '').match(pattern);
+            if (match && match[1] !== undefined) {
+                return decodeInlineString(match[1]);
+            }
+        }
+        return null;
+    }
+
+    function syncContextFromLabel(label) {
+        if (!label || typeof label !== 'object') {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(label, 'servePath')) {
+            state.servePath = String(label.servePath || '');
+            state.servePathResolved = true;
+        }
+
+        const currentUserName = label.currentUser || label.currentUserName;
+        if (currentUserName) {
+            state.currentUserName = String(currentUserName);
+        }
+        if (label.currentUserId) {
+            state.currentUserId = String(label.currentUserId);
+        }
+        if (pageWindow.thisClient) {
+            state.thisClient = String(pageWindow.thisClient);
+        }
+    }
+
+    function hydrateContextFromInlineScripts() {
+        if (!state.servePathResolved) {
+            const servePath = extractInlineScriptValue(/servePath\s*:\s*["']([^"']*)["']/);
+            if (servePath !== null) {
+                state.servePath = servePath;
+                state.servePathResolved = true;
+            }
+        }
+
+        if (!state.currentUserName) {
+            const currentUserName = extractInlineScriptValue(/Label\.currentUser\s*=\s*'([^']*)'/)
+                || extractInlineScriptValue(/currentUserName\s*:\s*'([^']*)'/);
+            if (currentUserName) {
+                state.currentUserName = currentUserName;
+            }
+        }
+
+        if (!state.currentUserId) {
+            const currentUserId = extractInlineScriptValue(/Label\.currentUserId\s*=\s*'([^']*)'/);
+            if (currentUserId) {
+                state.currentUserId = currentUserId;
+            }
+        }
+    }
+
+    function parseJSONSafe(text) {
+        if (!text || typeof text !== 'string') {
+            return null;
+        }
+        try {
+            return JSON.parse(text);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function buildUrl(path) {
+        const base = String(state.servePath || '');
+        const targetPath = String(path || '');
+        if (!base) {
+            return targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
+        }
+        if (!targetPath) {
+            return base;
+        }
+        if (base.endsWith('/') && targetPath.startsWith('/')) {
+            return `${base.slice(0, -1)}${targetPath}`;
+        }
+        if (!base.endsWith('/') && !targetPath.startsWith('/')) {
+            return `${base}/${targetPath}`;
+        }
+        return `${base}${targetPath}`;
     }
 
     function mergeSettings(raw) {
@@ -272,11 +391,9 @@
     }
 
     function ensureUserContext() {
-        const label = pageWindow.Label || {};
-        state.currentUserId = String(label.currentUserId || '');
-        state.currentUserName = String(label.currentUser || '');
-        state.servePath = String(label.servePath || '');
-        return !!(state.currentUserId && state.currentUserName && state.servePath);
+        syncContextFromLabel(pageWindow.Label || {});
+        hydrateContextFromInlineScripts();
+        return !!state.currentUserName;
     }
 
     function injectStyles() {
@@ -1252,17 +1369,23 @@
     }
 
     function hasSelfOpened(packet) {
-        return Array.isArray(packet.who) && packet.who.some((item) => String(item.userId) === state.currentUserId);
+        return Array.isArray(packet.who) && packet.who.some((item) => {
+            const userId = String(item.userId || '');
+            const userName = String(item.userName || '');
+            return (state.currentUserId && userId === state.currentUserId)
+                || (state.currentUserName && userName === state.currentUserName);
+        });
     }
 
-    function isSupportedBySettings(packet) {
+    function isSupportedBySettings(packet, raw) {
         if (!state.settings.enabled) {
             return false;
         }
         if (!packet || !packet.type) {
             return false;
         }
-        if (String(packet.senderId) === state.currentUserId) {
+        if ((state.currentUserId && String(packet.senderId) === state.currentUserId)
+            || (state.currentUserName && String(raw && raw.userName || '') === state.currentUserName)) {
             return false;
         }
         if (Number(packet.got) >= Number(packet.count)) {
@@ -1331,7 +1454,7 @@
             return;
         }
 
-        if (!isSupportedBySettings(message.packet)) {
+        if (!isSupportedBySettings(message.packet, message.raw)) {
             return;
         }
 
@@ -1434,7 +1557,12 @@
         if (!Array.isArray(whoList)) {
             return null;
         }
-        return whoList.find((item) => String(item.userId) === state.currentUserId) || null;
+        return whoList.find((item) => {
+            const userId = String(item.userId || '');
+            const userName = String(item.userName || '');
+            return (state.currentUserId && userId === state.currentUserId)
+                || (state.currentUserName && userName === state.currentUserName);
+        }) || null;
     }
 
     async function grabPacket(oId) {
@@ -1445,7 +1573,7 @@
         }
 
         const packet = entry.message.packet;
-        if (!isSupportedBySettings(packet)) {
+        if (!isSupportedBySettings(packet, entry.message.raw)) {
             updateStatus(`已跳过红包 #${oId}：当前设置不允许抢这个类型`);
             return;
         }
@@ -1461,7 +1589,7 @@
 
         updateStatus(`正在尝试抢红包 #${oId}...`);
 
-        const result = await postJSON(`${state.servePath}/chat-room/red-packet/open`, payload);
+        const result = await postJSON(buildUrl('/chat-room/red-packet/open'), payload);
         if (!result || result.code === -1) {
             const message = result && result.msg ? result.msg : '未抢到';
             updateStatus(`红包 #${oId} 失败：${message}`, `失败：#${oId}`);
@@ -1499,10 +1627,10 @@
     async function sendThankYou(message, points) {
         const content = buildThankYouContent(points, message);
         const previewText = formatThankTemplate(points, message);
-        const client = String(pageWindow.thisClient || (pageWindow.ChatRoom && pageWindow.ChatRoom.isMobile && pageWindow.ChatRoom.isMobile() ? 'Mobile/移动网页端' : 'Web/PC网页端'));
+        const client = String(state.thisClient || pageWindow.thisClient || (pageWindow.ChatRoom && pageWindow.ChatRoom.isMobile && pageWindow.ChatRoom.isMobile() ? 'Mobile/移动网页端' : 'Web/PC网页端'));
 
         try {
-            const result = await postJSON(`${state.servePath}/chat-room/send`, {
+            const result = await postJSON(buildUrl('/chat-room/send'), {
                 content: content,
                 client: client
             });
@@ -1539,7 +1667,7 @@
         const latestOId = String(Math.max.apply(null, ids));
         const size = Math.max(40, ids.length + 5);
         try {
-            const result = await getJSON(`${state.servePath}/chat-room/getMessage?size=${size}&mode=1&type=md&oId=${latestOId}`);
+            const result = await getJSON(buildUrl(`/chat-room/getMessage?size=${size}&mode=1&type=md&oId=${latestOId}`));
             if (!result || !Array.isArray(result.data)) {
                 updateStatus('扫描失败：聊天记录接口返回异常');
                 return;
@@ -1558,7 +1686,7 @@
 
     function patchRenderMsg() {
         if (state.renderPatched || !pageWindow.ChatRoom || typeof pageWindow.ChatRoom.renderMsg !== 'function') {
-            return;
+            return false;
         }
 
         const original = pageWindow.ChatRoom.renderMsg;
@@ -1572,6 +1700,202 @@
         };
         state.renderPatched = true;
         updateStatus('已接管聊天室消息流，等待红包出现');
+        return true;
+    }
+
+    function bindBridgeEvents() {
+        if (state.bridgeListenersBound) {
+            return;
+        }
+
+        document.addEventListener(PAGE_CONTEXT_EVENT, function (event) {
+            const detail = parseJSONSafe(event.detail);
+            if (!detail) {
+                return;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(detail, 'servePath')) {
+                state.servePath = String(detail.servePath || '');
+                state.servePathResolved = true;
+            }
+            if (detail.currentUserName) {
+                state.currentUserName = String(detail.currentUserName);
+            }
+            if (detail.currentUserId) {
+                state.currentUserId = String(detail.currentUserId);
+            }
+            if (detail.thisClient) {
+                state.thisClient = String(detail.thisClient);
+            }
+            if (detail.chatRoomReady) {
+                state.renderPatched = true;
+            }
+        });
+
+        document.addEventListener(PAGE_MESSAGE_EVENT, function (event) {
+            const detail = parseJSONSafe(event.detail);
+            if (!detail || !detail.oId) {
+                return;
+            }
+            state.renderPatched = true;
+            handleMessageData(detail);
+        });
+
+        state.bridgeListenersBound = true;
+    }
+
+    function requestPageContext() {
+        document.dispatchEvent(new CustomEvent(PAGE_CONTEXT_REQUEST_EVENT));
+    }
+
+    function injectPageBridge() {
+        if (document.getElementById(PAGE_BRIDGE_SCRIPT_ID)) {
+            requestPageContext();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.id = PAGE_BRIDGE_SCRIPT_ID;
+        script.textContent = `
+            (function () {
+                if (window.__arpPageBridgeInstalled) {
+                    document.dispatchEvent(new CustomEvent('${PAGE_CONTEXT_EVENT}', {detail: JSON.stringify(window.__arpPageBridgeGetContext())}));
+                    return;
+                }
+
+                var safeString = function (value) {
+                    return value == null ? '' : String(value);
+                };
+
+                var getContext = function () {
+                    var label = window.Label || {};
+                    return {
+                        servePath: safeString(label.servePath || ''),
+                        currentUserId: safeString(label.currentUserId || ''),
+                        currentUserName: safeString(label.currentUser || label.currentUserName || ''),
+                        thisClient: safeString(window.thisClient || ''),
+                        chatRoomReady: !!(window.ChatRoom && typeof window.ChatRoom.renderMsg === 'function')
+                    };
+                };
+
+                var emitContext = function () {
+                    document.dispatchEvent(new CustomEvent('${PAGE_CONTEXT_EVENT}', {detail: JSON.stringify(getContext())}));
+                };
+
+                var emitMessage = function (data) {
+                    document.dispatchEvent(new CustomEvent('${PAGE_MESSAGE_EVENT}', {detail: JSON.stringify(data || null)}));
+                };
+
+                var installHook = function () {
+                    if (!window.ChatRoom || typeof window.ChatRoom.renderMsg !== 'function') {
+                        return false;
+                    }
+                    if (window.ChatRoom.__arpHooked) {
+                        emitContext();
+                        return true;
+                    }
+
+                    var original = window.ChatRoom.renderMsg;
+                    window.ChatRoom.renderMsg = function () {
+                        try {
+                            emitMessage(arguments[0]);
+                        } catch (error) {
+                        }
+                        return original.apply(this, arguments);
+                    };
+                    window.ChatRoom.__arpHooked = true;
+                    emitContext();
+                    return true;
+                };
+
+                window.__arpPageBridgeInstalled = true;
+                window.__arpPageBridgeGetContext = getContext;
+
+                emitContext();
+                if (!installHook()) {
+                    var timer = window.setInterval(function () {
+                        emitContext();
+                        if (installHook()) {
+                            window.clearInterval(timer);
+                        }
+                    }, 1000);
+
+                    document.addEventListener('${PAGE_CONTEXT_REQUEST_EVENT}', function () {
+                        emitContext();
+                        if (installHook()) {
+                            window.clearInterval(timer);
+                        }
+                    });
+                    return;
+                }
+
+                document.addEventListener('${PAGE_CONTEXT_REQUEST_EVENT}', emitContext);
+            })();
+        `;
+        (document.head || document.documentElement).appendChild(script);
+        script.remove();
+        requestPageContext();
+    }
+
+    function nodeContainsChatMessage(node) {
+        if (!node || node.nodeType !== 1) {
+            return false;
+        }
+        if (node.id && node.id.indexOf('chatroom') === 0) {
+            return true;
+        }
+        return !!(node.querySelector && node.querySelector('[id^="chatroom"]'));
+    }
+
+    function scheduleRescan() {
+        if (state.rescanTimer) {
+            window.clearTimeout(state.rescanTimer);
+        }
+
+        state.rescanTimer = window.setTimeout(function () {
+            state.rescanTimer = null;
+            if (ensureUserContext()) {
+                scanRecentMessages(false);
+            }
+        }, 350);
+    }
+
+    function ensureChatObserver() {
+        if (state.chatObserver || !document.body) {
+            return;
+        }
+
+        const startObserve = function () {
+            const chats = document.getElementById('chats');
+            if (!chats) {
+                return false;
+            }
+
+            state.chatObserver = new MutationObserver(function (mutations) {
+                const shouldScan = mutations.some((mutation) => Array.from(mutation.addedNodes || []).some(nodeContainsChatMessage));
+                if (shouldScan) {
+                    scheduleRescan();
+                }
+            });
+            state.chatObserver.observe(chats, {childList: true, subtree: true});
+
+            if (state.chatObserverBootstrapper) {
+                state.chatObserverBootstrapper.disconnect();
+                state.chatObserverBootstrapper = null;
+            }
+            return true;
+        };
+
+        if (startObserve()) {
+            return;
+        }
+
+        if (!state.chatObserverBootstrapper) {
+            state.chatObserverBootstrapper = new MutationObserver(function () {
+                startObserve();
+            });
+            state.chatObserverBootstrapper.observe(document.body, {childList: true, subtree: true});
+        }
     }
 
     function applySettingsChange() {
@@ -1586,16 +1910,38 @@
     function bootstrapWhenReady() {
         createUI();
         detectManualGrab();
+        bindBridgeEvents();
+        injectPageBridge();
+        ensureChatObserver();
 
         const tryReady = function () {
             createUI();
-            if (!ensureUserContext() || !pageWindow.ChatRoom || typeof pageWindow.ChatRoom.renderMsg !== 'function') {
-                updateStatus('等待聊天室脚本加载...');
+            ensureChatObserver();
+            requestPageContext();
+
+            const hasUserContext = ensureUserContext();
+            const hasChatList = !!document.getElementById('chats');
+            const directPatched = patchRenderMsg();
+
+            if (!hasUserContext) {
+                updateStatus('等待聊天室登录态/页面上下文加载...');
                 return;
             }
 
-            patchRenderMsg();
-            scanRecentMessages(false);
+            if (!state.initialScanDone && hasChatList) {
+                state.initialScanDone = true;
+                scanRecentMessages(false);
+            }
+
+            if (state.renderPatched || directPatched) {
+                updateStatus('已接管聊天室消息流，等待红包出现');
+            } else if (hasChatList) {
+                updateStatus('已启用聊天室补扫监听，等待红包出现');
+            } else {
+                updateStatus('等待聊天室消息列表加载...');
+                return;
+            }
+
             if (state.readyTimer) {
                 window.clearInterval(state.readyTimer);
                 state.readyTimer = null;
