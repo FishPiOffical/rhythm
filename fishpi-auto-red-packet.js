@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FishPi 聊天室自动抢红包
 // @namespace    https://fishpi.cn/
-// @version      0.4.1
+// @version      0.4.3
 // @description  FishPi 聊天室自动抢红包脚本，支持经典/简约样式、悬浮拖拽设置面板、红包统计、自定义官方感谢文案与频控
 // @author       FishPi Offical
 // @match        https://fishpi.cn/cr*
@@ -677,7 +677,7 @@
             }
             togglePanel();
         });
-        document.body.appendChild(launcher);
+        //document.body.appendChild(launcher);
 
         if (state.settings.launcherPosition && Number.isFinite(state.settings.launcherPosition.left) && Number.isFinite(state.settings.launcherPosition.top)) {
             applyLauncherPosition(state.settings.launcherPosition.left, state.settings.launcherPosition.top);
@@ -720,7 +720,7 @@
             GM_registerMenuCommand('打开抢红包设置', function () {
                 openPanel();
             });
-            GM_registerMenuCommand(state.settings.enabled ? '关闭自动抢红包' : '开启自动抢红包', function () {
+            GM_registerMenuCommand('开/关自动抢红包功能', function () {
                 state.settings.enabled = !state.settings.enabled;
                 saveSettings();
                 applySettingsChange();
