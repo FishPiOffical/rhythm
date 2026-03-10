@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FishPi 聊天室自动抢红包
 // @namespace    https://fishpi.cn/
-// @version      0.4.3
+// @version      0.4.4
 // @description  FishPi 聊天室自动抢红包脚本，支持经典/简约样式、悬浮拖拽设置面板、红包统计、自定义官方感谢文案与频控
 // @author       FishPi Offical
 // @match        https://fishpi.cn/cr*
@@ -841,7 +841,6 @@
                         <option value="2" ${settings.rockPaperScissors.fixedGesture === '2' ? 'selected' : ''}>布</option>
                     </select>
                 </div>
-                <div class="arp-note">摇骰子红包当前服务端本身就不支持领取，这里不提供开关；自己发的红包会自动跳过。</div>
             </div>
 
             <div class="arp-card">
@@ -849,7 +848,7 @@
                 <label class="arp-option">
                     <span>
                         抢到后自动致谢
-                        <span class="arp-sub">仅在抢到正积分时发送</span>
+                        <span class="arp-sub">仅在抢到≥256积分时发送</span>
                     </span>
                     <input type="checkbox" data-setting="autoReplyEnabled" ${settings.autoReplyEnabled ? 'checked' : ''}>
                 </label>
@@ -1614,7 +1613,7 @@
         updateStatus(`抢到红包：${grabText}`, grabText);
         notify(points >= 0 ? 'success' : 'error', `抢到 ${formatPoints(points, true)} 积分（${typeText}）`);
 
-        if (state.settings.autoReplyEnabled && points > 0) {
+        if (state.settings.autoReplyEnabled && points >= 256) {
             const thankDecision = canSendThankYou(entry.message);
             if (thankDecision.allowed) {
                 await sendThankYou(entry.message, points);
