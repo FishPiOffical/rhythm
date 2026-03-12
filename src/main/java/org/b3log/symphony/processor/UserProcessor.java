@@ -254,6 +254,7 @@ public class UserProcessor {
         Dispatcher.post("/user/query/items", userProcessor::getItem);
         Dispatcher.post("/user/edit/items", userProcessor::adjustItem);
         Dispatcher.post("/user/edit/points", userProcessor::adjustPoint);
+        Dispatcher.post("/user/edit/notification", userProcessor::sendSystemNotification);
         Dispatcher.post("/user/identify", userProcessor::submitIdentify, loginCheck::handle);
         Dispatcher.get("/api/user/{userName}/articles", userProcessor::userArticles, loginCheck::handle);
         Dispatcher.get("/api/user/{userName}/breezemoons", userProcessor::userBreezemoons, loginCheck::handle);
@@ -540,6 +541,59 @@ public class UserProcessor {
         }
         context.renderJSON(StatusCodes.ERR);
         context.renderMsg("转账失败。");
+    }
+
+    /**
+     * 金手指：给指定用户发送系统通知
+     */
+    public void sendSystemNotification(final RequestContext context) {
+        final JSONObject requestJSONObject = context.requestJSON();
+        final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
+        final String notificationKey = Symphonys.get("gold.finger.notification");
+        if (!StringUtils.equals(goldFingerKey, notificationKey)) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("金手指(notification类型)不正确。");
+            return;
+        }
+
+        final String userName = StringUtils.trimToEmpty(requestJSONObject.optString("userName"));
+        if (StringUtils.isBlank(userName)) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("发送失败：userName 不能为空。");
+            return;
+        }
+
+        String notification = StringUtils.trimToEmpty(requestJSONObject.optString("notification"));
+        notification = notification.replace("\r\n", "\n").replace("\r", "\n");
+        if (StringUtils.isBlank(notification)) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("发送失败：notification 不能为空。");
+            return;
+        }
+        if (notification.length() > 64) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("发送失败：notification 长度不能超过 64 个字符。");
+            return;
+        }
+
+        try {
+            final JSONObject user = userQueryService.getUserByName(userName);
+            if (null == user) {
+                context.renderJSON(StatusCodes.ERR);
+                context.renderMsg("发送失败：用户不存在，请检查用户名。");
+                return;
+            }
+
+            final String userId = user.optString(Keys.OBJECT_ID);
+            notificationMgmtService.addSysAnnounceCustomNotification(notification, userId);
+            LogsService.simpleLog(context, "发送系统通知", "用户: " + userName + ", 通知内容: " + notification);
+
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderMsg("系统通知发送成功。");
+        } catch (final Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("发送失败：" + e.getMessage());
+        }
     }
 
     /**
