@@ -1020,6 +1020,12 @@
           "description": "数据实体 id"
         },
         {
+          "name": "content",
+          "type": "String",
+          "length": 4096,
+          "description": "定制系统通知正文"
+        },
+        {
           "name": "dataType",
           "type": "int",
           "description": "数据类型"

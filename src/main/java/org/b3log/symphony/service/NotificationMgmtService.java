@@ -18,13 +18,16 @@
  */
 package org.b3log.symphony.service;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.*;
+import org.b3log.latke.repository.jdbc.util.Connections;
 import org.b3log.latke.repository.annotation.Transactional;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
@@ -34,9 +37,13 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.NotificationProcessor;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.NotificationRepository;
+import org.b3log.symphony.util.NotificationContents;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -53,6 +60,11 @@ public class NotificationMgmtService {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(NotificationMgmtService.class);
+
+    /**
+     * Whether the custom notification content column is available.
+     */
+    private volatile Boolean customSysContentColumnReady;
 
     /**
      * Notification repository.
@@ -432,17 +444,55 @@ public class NotificationMgmtService {
     @Transactional
     public void addSysAnnounceCustomNotification(String notification, String uid) throws ServiceException {
         try {
-            JSONObject requestJSONObject = new JSONObject();
+            final JSONObject requestJSONObject = new JSONObject();
             requestJSONObject.put(Notification.NOTIFICATION_USER_ID, uid);
-            requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, notification);
+            if (isCustomSysContentColumnReady()) {
+                final String rawContent = NotificationContents.normalizeCustomSysContent(notification);
+                final String safeContent = NotificationContents.sanitizeCustomSysContent(rawContent);
+                if (StringUtils.isBlank(safeContent)) {
+                    throw new ServiceException("发送失败：notification 清洗后为空，请至少保留文本或 http/https 链接。");
+                }
+                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, StringUtils.EMPTY);
+                requestJSONObject.put(Notification.NOTIFICATION_CONTENT, rawContent);
+            } else {
+                if (NotificationContents.requiresDedicatedContentColumn(notification)) {
+                    throw new ServiceException("当前数据库缺少 notification.content 列，请先执行 SQL：ALTER TABLE `"
+                            + Latkes.getLocalProperty("jdbc.tablePrefix") + "_notification` ADD COLUMN `content` TEXT;");
+                }
+                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID,
+                        NotificationContents.normalizeCustomSysContent(notification));
+            }
             requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_CUSTOM_SYS);
 
             addNotification(requestJSONObject);
+        } catch (final ServiceException e) {
+            throw e;
         } catch (final RepositoryException e) {
             final String msg = "Adds a notification [type=sys_announce_custom] failed";
             LOGGER.log(Level.ERROR, msg, e);
 
             throw new ServiceException(msg);
+        }
+    }
+
+    /**
+     * Returns whether the custom system notification content column is ready.
+     *
+     * @return {@code true} if ready
+     * @throws ServiceException service exception
+     */
+    public boolean isCustomSysContentColumnReady() throws ServiceException {
+        if (null != customSysContentColumnReady) {
+            return customSysContentColumnReady;
+        }
+
+        synchronized (this) {
+            if (null != customSysContentColumnReady) {
+                return customSysContentColumnReady;
+            }
+
+            customSysContentColumnReady = detectCustomSysContentColumn();
+            return customSysContentColumnReady;
         }
     }
 
@@ -988,6 +1038,9 @@ public class NotificationMgmtService {
         notification.put(Notification.NOTIFICATION_USER_ID, requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
         notification.put(Notification.NOTIFICATION_DATA_ID, requestJSONObject.optString(Notification.NOTIFICATION_DATA_ID));
         notification.put(Notification.NOTIFICATION_DATA_TYPE, requestJSONObject.optInt(Notification.NOTIFICATION_DATA_TYPE));
+        if (requestJSONObject.has(Notification.NOTIFICATION_CONTENT)) {
+            notification.put(Notification.NOTIFICATION_CONTENT, requestJSONObject.optString(Notification.NOTIFICATION_CONTENT));
+        }
 
         notificationRepository.add(notification);
 
@@ -998,5 +1051,23 @@ public class NotificationMgmtService {
 
             UserChannel.sendCmd(cmd);
         });
+    }
+
+    /**
+     * Detects whether the custom content column exists on the notification table.
+     *
+     * @return {@code true} if the column exists
+     * @throws ServiceException service exception
+     */
+    private boolean detectCustomSysContentColumn() throws ServiceException {
+        final String tableName = Latkes.getLocalProperty("jdbc.tablePrefix") + "_" + Notification.NOTIFICATION;
+        try (Connection connection = Connections.getConnection();
+             ResultSet resultSet = connection.getMetaData()
+                     .getColumns(connection.getCatalog(), null, tableName, Notification.NOTIFICATION_CONTENT)) {
+            return resultSet.next();
+        } catch (final SQLException e) {
+            LOGGER.log(Level.ERROR, "Detects notification.content column failed", e);
+            throw new ServiceException("检测 notification.content 列失败，请检查数据库连接。");
+        }
     }
 }

@@ -53,9 +53,19 @@ public final class Notification {
     public static final String NOTIFICATION_DATA_TYPE = "dataType";
 
     /**
+     * Key of content.
+     */
+    public static final String NOTIFICATION_CONTENT = "content";
+
+    /**
      * Key of has read.
      */
     public static final String NOTIFICATION_HAS_READ = "hasRead";
+
+    /**
+     * Max length of custom system notification content.
+     */
+    public static final int MAX_LENGTH_C_CUSTOM_SYS_CONTENT = 4096;
 
     // Data type constants
     /**

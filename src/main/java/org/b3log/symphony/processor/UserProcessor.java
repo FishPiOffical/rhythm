@@ -570,9 +570,9 @@ public class UserProcessor {
             context.renderMsg("发送失败：notification 不能为空。");
             return;
         }
-        if (notification.length() > 64) {
+        if (notification.length() > Notification.MAX_LENGTH_C_CUSTOM_SYS_CONTENT) {
             context.renderJSON(StatusCodes.ERR);
-            context.renderMsg("发送失败：notification 长度不能超过 64 个字符。");
+            context.renderMsg("发送失败：notification 长度不能超过 " + Notification.MAX_LENGTH_C_CUSTOM_SYS_CONTENT + " 个字符。");
             return;
         }
 

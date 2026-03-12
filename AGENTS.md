@@ -58,8 +58,8 @@
 - 积分变更统一走 `PointtransferMgmtService`：独立流程用 `transfer(...)`（方法内自带事务）；若外层已有事务，必须用 `transferInCurrentTransaction(...)` 避免事务冲突。
 - 发积分/扣积分约定：发积分用 `fromId=Pointtransfer.ID_C_SYS`、`toId=userId`；扣积分用 `fromId=userId`、`toId=Pointtransfer.ID_C_SYS`（常用类型 `Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT`）。
 - 需要给用户发“系统转账通知”时：在转账成功拿到 `transferId` 后，调用 `NotificationMgmtService#addPointTransferNotification`，并设置 `Notification.NOTIFICATION_USER_ID` 与 `Notification.NOTIFICATION_DATA_ID=transferId`。
-- 通知金手指：`POST /user/edit/notification`（`UserProcessor#sendSystemNotification`），使用 `gold.finger.notification` 校验；请求体使用 `userName` + `notification` + `goldFingerKey`，其中 `notification` 最大 64 字符（对应 `notification.dataId` 字段长度）。
-- 定制系统通知渲染：`Notification.DATA_TYPE_C_CUSTOM_SYS` 在 `NotificationQueryService#getSysAnnounceNotifications` 处理；`dataId=1` 为固定“水贴提醒”模板，其他 `dataId` 走 HTML 转义并将换行转为 `<br>`。
+- 通知金手指：`POST /user/edit/notification`（`UserProcessor#sendSystemNotification`），使用 `gold.finger.notification` 校验；请求体使用 `userName` + `notification` + `goldFingerKey`，新正文优先写 `notification.content`（最大 4096），老库未补 `content` 列时仅兼容旧 64 字纯文本 `dataId` 链路。
+- 定制系统通知渲染：`Notification.DATA_TYPE_C_CUSTOM_SYS` 在 `NotificationQueryService#getSysAnnounceNotifications` 处理；`dataId=1` 为固定“水贴提醒”模板，`content` 支持 Markdown 链接 `[文本](http/https://...)` 与换行，原始 HTML 会被转义后再清洗。
 - VIP 管理页配置项不再手填 JSON：前端依据等级 `benefits` 模板自动生成可视化表单，再序列化为 `configJson` 提交。
 - VIP 管理页样式需注意 `home.css` 的 `.form--admin label { flex: 1; }` 会影响布局；配置项行在 `vip-admin.scss` 中需显式改为整行（label/builder 100%）并对 checkbox 使用类型选择器，避免控件被放大。
 - 有效期字段：勋章 `expireTime`（毫秒，`0`=永久）；会员 `expiresAt`（可回填勋章到期）。

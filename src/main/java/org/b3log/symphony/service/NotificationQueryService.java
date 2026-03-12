@@ -36,6 +36,7 @@ import org.b3log.symphony.processor.ChatroomProcessor;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Escapes;
 import org.b3log.symphony.util.Emotions;
+import org.b3log.symphony.util.NotificationContents;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
@@ -278,7 +279,12 @@ public class NotificationQueryService {
                         desTemplate = desTemplate.replace("{oldRole}", oldRole.optString(Role.ROLE_NAME));
                         desTemplate = desTemplate.replace("{newRole}", newRole.optString(Role.ROLE_NAME));
                         break;
-                    case Notification.DATA_TYPE_C_CUSTOM_SYS:
+                    case Notification.DATA_TYPE_C_CUSTOM_SYS: {
+                        final String customContent = notification.optString(Notification.NOTIFICATION_CONTENT);
+                        if (StringUtils.isNotBlank(customContent)) {
+                            desTemplate = NotificationContents.sanitizeCustomSysContent(customContent);
+                            break;
+                        }
                         switch (dataId) {
                             case "1":
                                 desTemplate = "亲爱的用户，您好！<br> 我们检测到您刚刚发布的内容可能属于“水贴”或无意义发言。虽然本次发帖不会被拦截，但频繁发布此类内容会破坏社区的交流氛围，影响其他用户的体验。请您尽量发表有价值、有内容的观点或讨论，让我们的社区更加温暖和有趣。<br>需要特别提醒的是，无论是否通过特殊方式绕过系统检测，所有水贴内容都会被系统或人工审核查处，账号也可能因此受到相应处理。同时，本次发帖不会计入您的活跃度统计。感谢您的理解与配合，让我们一起维护良好的社区环境！";
@@ -291,6 +297,7 @@ public class NotificationQueryService {
                                 desTemplate = Escapes.escapeHTML(dataId).replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>");
                         }
                         break;
+                    }
                     default:
                         throw new AssertionError();
                 }
