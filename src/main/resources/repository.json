@@ -2737,6 +2737,63 @@
           "description": "创建时间"
         }
       ]
+    },
+    {
+      "name": "emoji_share",
+      "description": "表情集分享快照表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "emojiShareCode",
+          "type": "String",
+          "length": 16,
+          "description": "永久分享码"
+        },
+        {
+          "name": "emojiShareOwnerUserId",
+          "type": "String",
+          "length": 19,
+          "description": "分享者用户ID"
+        },
+        {
+          "name": "emojiShareGroupId",
+          "type": "String",
+          "length": 19,
+          "description": "来源分组ID"
+        },
+        {
+          "name": "emojiShareGroupName",
+          "type": "String",
+          "length": 64,
+          "description": "来源分组名称"
+        },
+        {
+          "name": "emojiShareSnapshot",
+          "type": "String",
+          "length": 102400,
+          "description": "分享时的表情快照 JSON"
+        },
+        {
+          "name": "emojiShareEmojiCount",
+          "type": "int",
+          "description": "快照内表情数量"
+        },
+        {
+          "name": "emojiShareImportedCount",
+          "type": "int",
+          "description": "被导入次数"
+        },
+        {
+          "name": "emojiShareCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        }
+      ]
     }
   ]
 }

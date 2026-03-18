@@ -44,6 +44,8 @@
 ## 关键链路（持续维护）
 - 前端全局主题变量入口：`src/main/resources/scss/_variables.scss`；`$theme-primary` 会影响 `module`/首页卡片/聊天室等主区背景，深色会导致整站大面积染色；顶栏建议在 `base.scss`/`mobile-base.scss` 的 `.nav` 单独设色。
 - 移动端文章页（`skins/mobile/article.ftl`）存在多个 `#replyUseName`（含隐藏占位 `.fn-none`）；`m-article.js` 处理回复目标时需优先选中非 `.fn-none` 节点，避免“回复对象已记录但指示未显示”。
+- 新版表情面板的入口与工具条统一由 `src/main/resources/js/emoji-groups.js` 渲染；文章页/聊天室 FTL 里旧的 `#uploadEmoji` 尾栏大多已注释，恢复“本地上传”优先改这里，不要分别恢复多套模板。
+- 表情集分享链路使用新表 `emoji_share` 保存“分组快照 + 永久分享码”；分享内容是静态快照，后续源分组变更不会实时同步，导入会在目标用户下新建自定义分组并同步补入其“全部”分组。
 - 首页右栏专栏列表（classic）需使用 `module-list long-column-module-list`（见 `skins/classic/index.ftl` 的“最新专栏/热门专栏/最近阅读”）；否则会命中 `.module-list .title` 默认 `margin-left: 30px` 产生左侧空白。
 - 勋章管理页：`/admin/medal`
   - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）

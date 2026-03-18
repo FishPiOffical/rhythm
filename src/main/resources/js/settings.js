@@ -1545,6 +1545,7 @@ var Settings = {
    */
   currentEmojiGroupId:'', // 当前选择的分组id
     emojiGroups:[],
+  emojiLocalUploadInitialized: false,
   initEmojiGroups: function () {
       Settings.currentEmojiGroupId="";
       Settings.loadEmojiGroups();
@@ -1960,6 +1961,277 @@ var Settings = {
       },
       error: function () {
         Util.notice('warning', 2000, '创建分组失败，请检查网络');
+      }
+    });
+  },
+  getCurrentEmojiGroupMeta: function () {
+    for (var i = 0; i < Settings.emojiGroups.length; i++) {
+      if (Settings.emojiGroups[i].oId === Settings.currentEmojiGroupId) {
+        return Settings.emojiGroups[i];
+      }
+    }
+    return null;
+  },
+  shareCurrentEmojiGroup: function () {
+    var currentGroup = Settings.getCurrentEmojiGroupMeta();
+    if (!currentGroup || !currentGroup.oId) {
+      Util.notice('warning', 2000, '请先选择一个分组');
+      return;
+    }
+    if (parseInt(currentGroup.type, 10) === 1) {
+      Util.notice('warning', 2000, '“全部”分组不支持直接分享，请切换到具体分类');
+      return;
+    }
+
+    $.ajax({
+      url: Label.servePath + '/api/emoji/group/share/create',
+      type: 'POST',
+      data: JSON.stringify({
+        groupId: currentGroup.oId
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result.code === 0) {
+          Settings.showEmojiShareResult(result.data || {});
+        } else {
+          Util.notice('warning', 2000, result.msg || '生成分享码失败');
+        }
+      },
+      error: function () {
+        Util.notice('warning', 2000, '生成分享码失败，请检查网络');
+      }
+    });
+  },
+  showEmojiShareResult: function (data) {
+    if ($('#emojiShareDialog').length === 0) {
+      $('body').append('<div id="emojiShareDialog"></div>');
+    }
+
+    var shareCode = data.shareCode || '';
+    var groupName = data.groupName || '当前分组';
+    var emojiCount = data.emojiCount || 0;
+    var html = '' +
+      '<div class="emoji-share-dialog fn-clear" style="padding: 18px 20px;">' +
+      '  <div style="margin-bottom: 12px; color: #666; line-height: 1.7;">' +
+      '    已为分组 <b>' + groupName + '</b> 生成永久分享码，当前快照共 ' + emojiCount + ' 个表情。<br>' +
+      '    该分享是静态快照，后续你再修改分组内容，不会实时影响这次分享。' +
+      '  </div>' +
+      '  <label style="display:block; margin: 0 0 8px; float:none; line-height: 1.6;">分享码：</label>' +
+      '  <div class="fn__flex" style="gap: 8px; align-items: center;">' +
+      '    <input id="emojiShareCodeValue" type="text" readonly value="' + shareCode + '" style="flex:1; padding:8px; box-sizing:border-box;" />' +
+      '    <button class="green" onclick="Settings.copyEmojiShareCode()">复制</button>' +
+      '  </div>' +
+      '  <div style="margin-top: 16px;">' +
+      '    <button class="fn-right green" onclick="$(\'#emojiShareDialog\').dialog(\'close\')">关闭</button>' +
+      '  </div>' +
+      '</div>';
+
+    $('#emojiShareDialog').html(html);
+    $('#emojiShareDialog').dialog({
+      'width': $(window).width() > 460 ? 460 : $(window).width() - 50,
+      'height': 270,
+      'modal': true,
+      'hideFooter': true,
+      'title': '表情集分享码'
+    });
+    $('#emojiShareDialog').dialog('open');
+    $('#emojiShareCodeValue').focus().select();
+  },
+  copyEmojiShareCode: function () {
+    var $input = $('#emojiShareCodeValue');
+    if ($input.length === 0) {
+      return;
+    }
+
+    var value = $input.val();
+    $input.focus().select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(function () {
+        Util.notice('success', 1200, '分享码已复制');
+      }).catch(function () {
+        document.execCommand('copy');
+        Util.notice('success', 1200, '分享码已复制');
+      });
+      return;
+    }
+
+    document.execCommand('copy');
+    Util.notice('success', 1200, '分享码已复制');
+  },
+  importEmojiShare: function () {
+    if ($('#emojiShareImportDialog').length === 0) {
+      $('body').append('<div id="emojiShareImportDialog"></div>');
+    }
+
+    var html = '' +
+      '<div class="emoji-share-dialog fn-clear" style="padding: 18px 20px;">' +
+      '  <div style="margin-bottom: 12px; color: #666; line-height: 1.7;">请输入别人分享给你的表情集分享码，导入后会在你的账号下新建一个分组。</div>' +
+      '  <label style="display:block; margin: 0 0 8px; float:none; line-height: 1.6;">分享码：</label>' +
+      '  <input id="emojiShareImportCode" type="text" placeholder="请输入分享码" style="width:100%; padding:8px; box-sizing:border-box;" />' +
+      '  <div style="margin-top: 16px;">' +
+      '    <button class="fn-right green" onclick="Settings.confirmImportEmojiShare()">导入</button>' +
+      '    <button class="fn-right" style="margin-right: 10px;" onclick="$(\'#emojiShareImportDialog\').dialog(\'close\')">取消</button>' +
+      '  </div>' +
+      '</div>';
+
+    $('#emojiShareImportDialog').html(html);
+    $('#emojiShareImportDialog').dialog({
+      'width': $(window).width() > 460 ? 460 : $(window).width() - 50,
+      'height': 270,
+      'modal': true,
+      'hideFooter': true,
+      'title': '导入表情集分享码'
+    });
+    $('#emojiShareImportDialog').dialog('open');
+    $('#emojiShareImportCode').focus();
+  },
+  confirmImportEmojiShare: function () {
+    var shareCode = $('#emojiShareImportCode').val().trim();
+    if (!shareCode) {
+      Util.notice('warning', 2000, '请输入分享码');
+      return;
+    }
+
+    $.ajax({
+      url: Label.servePath + '/api/emoji/group/share/import',
+      type: 'POST',
+      data: JSON.stringify({
+        shareCode: shareCode
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result.code === 0) {
+          var data = result.data || {};
+          Util.notice('success', 1800, '导入成功，已创建分组：' + (data.groupName || '未命名分组'));
+          $('#emojiShareImportDialog').dialog('close');
+          Settings.loadEmojiGroups();
+          if (data.groupId) {
+            setTimeout(function () {
+              Settings.selectEmojiGroup(data.groupId);
+            }, 300);
+          }
+        } else {
+          Util.notice('warning', 2000, result.msg || '导入分享码失败');
+        }
+      },
+      error: function () {
+        Util.notice('warning', 2000, '导入分享码失败，请检查网络');
+      }
+    });
+  },
+  initEmojiLocalUpload: function () {
+    if (Settings.emojiLocalUploadInitialized) {
+      return;
+    }
+
+    $(document).on('change.emojiLocalUpload', '#emojiLocalUploadInput', function () {
+      var file = this.files && this.files[0];
+      if (!file) {
+        return;
+      }
+
+      Settings.uploadLocalEmojiFile(file, this);
+    });
+
+    Settings.emojiLocalUploadInitialized = true;
+  },
+  openLocalEmojiUpload: function () {
+    var currentGroup = Settings.getCurrentEmojiGroupMeta();
+    if (!currentGroup || !currentGroup.oId) {
+      Util.notice('warning', 2000, '请先选择一个分组');
+      return;
+    }
+
+    Settings.initEmojiLocalUpload();
+    $('#emojiLocalUploadInput').val('');
+    $('#emojiLocalUploadInput').click();
+  },
+  uploadLocalEmojiFile: function (file, inputEl) {
+    if (!file) {
+      return;
+    }
+
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+      var reader = new FileReader();
+      reader.readAsArrayBuffer(file);
+      reader.onload = function (evt) {
+        var fileBuf = new Uint8Array(evt.target.result.slice(0, 11));
+        var isImg = isImage(fileBuf);
+
+        if (!isImg) {
+          Util.alert('只允许上传图片!');
+          $(inputEl).val('');
+          return;
+        }
+
+        if (evt.target.result.byteLength > 1024 * 1024 * 5) {
+          Util.alert('图片过大 (最大限制 5M)');
+          $(inputEl).val('');
+          return;
+        }
+
+        Settings.submitLocalEmojiUpload(file, inputEl);
+      };
+      return;
+    }
+
+    Settings.submitLocalEmojiUpload(file, inputEl);
+  },
+  submitLocalEmojiUpload: function (file, inputEl) {
+    var formData = new FormData();
+    formData.append('file[]', file);
+
+    $.ajax({
+      url: Label.servePath + '/upload',
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (result) {
+        var succMap = result && result.data ? result.data.succMap : null;
+        var keys = succMap ? Object.keys(succMap) : [];
+        if (keys.length === 0) {
+          Util.notice('warning', 2000, '上传成功，但未拿到表情地址');
+          $(inputEl).val('');
+          return;
+        }
+
+        Settings.addUploadedEmojiToCurrentGroup(succMap[keys[0]]);
+        $(inputEl).val('');
+      },
+      error: function (xhr) {
+        Util.alert('Upload error: ' + (xhr && xhr.statusText ? xhr.statusText : 'unknown'));
+        $(inputEl).val('');
+      }
+    });
+  },
+  addUploadedEmojiToCurrentGroup: function (url) {
+    var groupId = Settings.currentEmojiGroupId;
+    if (!groupId || !url) {
+      Util.notice('warning', 2000, '上传结果不完整');
+      return;
+    }
+
+    $.ajax({
+      url: Label.servePath + '/api/emoji/group/add-url-emoji',
+      type: 'POST',
+      data: JSON.stringify({
+        groupId: groupId,
+        url: url,
+        sort: 0,
+        name: ''
+      }),
+      contentType: 'application/json;charset=UTF-8',
+      success: function (result) {
+        if (result.code === 0) {
+          Util.notice('success', 1200, '上传并添加表情成功');
+          Settings.loadGroupEmojis(groupId);
+        } else {
+          Util.notice('warning', 2000, result.msg || '上传后添加表情失败');
+        }
+      },
+      error: function () {
+        Util.notice('warning', 2000, '上传后添加表情失败，请检查网络');
       }
     });
   },

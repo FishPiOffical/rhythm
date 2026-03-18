@@ -30,6 +30,7 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.EmojiGroup;
 import org.b3log.symphony.model.EmojiGroupItem;
+import org.b3log.latke.model.User;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.EmojiMgmtService;
@@ -107,6 +108,8 @@ public class EmojiProcessor {
         Dispatcher.post("/api/emoji/group/add-emoji", emojiProcessor::addEmojiToGroup, loginCheck::handle);
         Dispatcher.post("/api/emoji/group/add-url-emoji", emojiProcessor::addUrlEmojiToGroup, loginCheck::handle);
         Dispatcher.post("/api/emoji/group/remove-emoji", emojiProcessor::removeEmojiFromGroup, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/share/create", emojiProcessor::createGroupShare, loginCheck::handle);
+        Dispatcher.post("/api/emoji/group/share/import", emojiProcessor::importGroupShare, loginCheck::handle);
         Dispatcher.post("/api/emoji/emoji/update", emojiProcessor::updateEmojiItem, loginCheck::handle);
         Dispatcher.post("/api/emoji/emoji/migrate", emojiProcessor::migrateOldEmoji, loginCheck::handle);
     }
@@ -567,6 +570,58 @@ public class EmojiProcessor {
         }
     }
 
+    public void createGroupShare(final RequestContext context) {
+        try {
+            final JSONObject currentUser = getCurrentUser(context);
+            final JSONObject requestJSONObject = context.requestJSON();
+            final String groupId = requestJSONObject.optString("groupId");
+            if (StringUtils.isBlank(groupId)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("缺少分组参数");
+                return;
+            }
+
+            final JSONObject resultData = emojiMgmtService.createShareSnapshot(
+                    currentUser.optString(Keys.OBJECT_ID), groupId
+            );
+            final JSONObject result = new JSONObject();
+            result.put("code", StatusCodes.SUCC);
+            result.put("data", resultData);
+            context.renderJSON(result);
+        } catch (final ServiceException e) {
+            LOGGER.log(Level.WARN, "Create emoji group share failed", e);
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg(e.getMessage());
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Create emoji group share failed", e);
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("生成分享码失败");
+        }
+    }
+
+    public void importGroupShare(final RequestContext context) {
+        try {
+            final JSONObject currentUser = getCurrentUser(context);
+            final JSONObject requestJSONObject = context.requestJSON();
+            final String shareCode = requestJSONObject.optString("shareCode");
+            if (StringUtils.isBlank(shareCode)) {
+                context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请输入分享码");
+                return;
+            }
+
+            final JSONObject resultData = emojiMgmtService.importShareSnapshot(
+                    currentUser.optString(Keys.OBJECT_ID), shareCode
+            );
+            final JSONObject result = new JSONObject();
+            result.put("code", StatusCodes.SUCC);
+            result.put("data", resultData);
+            context.renderJSON(result);
+        } catch (final ServiceException e) {
+            LOGGER.log(Level.WARN, "Import emoji group share failed", e);
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg(e.getMessage());
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Import emoji group share failed", e);
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("导入分享码失败");
+        }
+    }
+
     // 用户修改表情名字
     /**
      * Updates an emoji item (name and sort).
@@ -715,6 +770,32 @@ public class EmojiProcessor {
             return false;
         }
         return SAFE_NAME_PATTERN.matcher(name).matches();
+    }
+
+    private JSONObject getCurrentUser(final RequestContext context) {
+        Object userObj = context.attr(User.USER);
+        if (userObj instanceof JSONObject) {
+            return (JSONObject) userObj;
+        }
+
+        JSONObject currentUser = Sessions.getUser();
+        if (currentUser != null) {
+            return currentUser;
+        }
+
+        try {
+            final JSONObject requestJSONObject = context.requestJSON();
+            final String apiKey = requestJSONObject.optString("apiKey");
+            if (StringUtils.isNotBlank(apiKey)) {
+                currentUser = ApiProcessor.getUserByKey(apiKey);
+                if (currentUser != null) {
+                    return currentUser;
+                }
+            }
+        } catch (final Exception ignored) {
+        }
+
+        return new JSONObject();
     }
 
 

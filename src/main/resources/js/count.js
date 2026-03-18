@@ -22,6 +22,16 @@ const Count = {
     data: {},
     t: -1,
     P: -1,
+    getDefaultPosition: function () {
+        const nav = document.querySelector(".nav");
+        const navBottom = nav ? Math.ceil(nav.getBoundingClientRect().bottom) : 0;
+        const top = Math.max(20, navBottom + 12);
+
+        return {
+            top: top,
+            right: 20
+        };
+    },
     changeLocation: function (t, P) {
         Count.t = t;
         Count.P = P;
@@ -51,10 +61,13 @@ const Count = {
     initHtml: function () {
         const wrap = document.createElement("div"), data = this.data;
         wrap.id = "timeContent";
-        if (data.left && data.top) {
+        if (Number.isFinite(data.left) && Number.isFinite(data.top)) {
             if (document.documentElement.clientHeight > data.top && document.documentElement.clientWidth > data.left) {
-                wrap.setAttribute("style", "left:" + data.left + "px;top:" + data.top + "px;");
+                wrap.setAttribute("style", "left:" + data.left + "px;top:" + data.top + "px;right:auto;");
             }
+        } else {
+            const defaultPosition = Count.getDefaultPosition();
+            wrap.setAttribute("style", "right:" + defaultPosition.right + "px;top:" + defaultPosition.top + "px;left:auto;");
         }
         wrap.innerHTML = "<a class='time_box' id='countRemainBox'><span id='countRemain'></span></a>";
         document.body.insertBefore(wrap, document.body.firstChild);
@@ -77,6 +90,7 @@ const Count = {
                 data.top = P;
                 Count.data = data
                 Count.save();
+                el.style.right = 'auto';
                 // 移动当前元素
                 if (t >= 0 && t <= window.innerWidth - el.offsetWidth) {
                     el.style.left = t + 'px';
@@ -319,8 +333,8 @@ function injectCountCSS() {
 #timeContent {
   position: fixed;
   z-index: 31;
-  left: 20px;
-  top: 20px;
+  right: 20px;
+  top: 78px;
   pointer-events: auto;
 }
 #countRemainBox {

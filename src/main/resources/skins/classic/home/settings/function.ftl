@@ -185,7 +185,8 @@
                 gap:10px;
                 margin:8px 0 12px;
             }
-            .emoji-ops button{
+            .emoji-ops button,
+            .emoji-ops a{
                 padding:6px 12px;
                 border-radius:8px;
                 border:1px solid #1890ff;
@@ -193,8 +194,13 @@
                 color:#fff;
                 box-shadow:0 2px 6px rgba(24,144,255,0.18);
                 cursor:pointer;
+                display:inline-flex;
+                align-items:center;
+                line-height:19px;
+                text-decoration:none;
             }
-            .emoji-ops button.secondary{
+            .emoji-ops button.secondary,
+            .emoji-ops a.secondary{
                 border-color:#d9d9d9;
                 background:#fafafa;
                 color:#333;
@@ -203,8 +209,13 @@
         </style>
         <div class="emoji-ops">
             <button onclick="Settings.createEmojiGroup()">添加分组</button>
+            <button onclick="Settings.shareCurrentEmojiGroup()">分享当前分组</button>
+            <button class="secondary" onclick="Settings.importEmojiShare()">导入分享码</button>
+            <a class="secondary" href="javascript:void(0)" onclick="Settings.openLocalEmojiUpload(); return false;">本地上传表情</a>
             <button class="secondary" onclick="Settings.addEmojiByUrl()">通过URL添加表情</button>
         </div>
+        <input id="emojiLocalUploadInput" type="file" accept="image/gif,image/png,image/jpeg,image/webp" class="fn-none" />
+        <div class="ft-gray" style="margin-bottom: 10px;">分享会保存当前分组的静态快照，后续修改不会实时同步到旧分享码。</div>
         <div class="fn__flex flex flex-wrap" style="align-items: center;gap:8px;margin-top: 10px">
             <div class="fn-clear" id="emojiGroupBox"></div>
         </div>

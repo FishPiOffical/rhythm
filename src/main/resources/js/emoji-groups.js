@@ -52,6 +52,7 @@ var EmojiGroups = {
         targetObject['loadGroupEmojis' + prefix] = EmojiGroups._createLoadEmojisMethod(targetObject, prefix, targetObjectName);
         targetObject['renderGroupEmojis' + prefix] = EmojiGroups._createRenderEmojisMethod(targetObject, prefix, targetObjectName);
         targetObject['uploadEmojiToGroup' + prefix] = EmojiGroups._createUploadEmojiMethod(targetObject, prefix);
+        targetObject['openEmojiUpload' + prefix] = EmojiGroups._createOpenUploadMethod(targetObject, prefix, targetObjectName);
 
         console.log('表情包分组模块已挂载到对象:', targetObjectName);
     },
@@ -215,7 +216,10 @@ var EmojiGroups = {
             var manageUrl = Label.servePath + '/settings/function#emojiGroupBox';
             html += '<div class="emoji_manage_bar" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #eee;">'
                 + '<span style="font-size:13px;color:#666;">表情包</span>'
-                + '<a style="font-size:12px;color:#1890ff;" target="_blank" href="' + manageUrl + '">管理/迁移</a>'
+                + '<div style="display:flex;align-items:center;gap:12px;">'
+                + '<a class="emoji-upload-trigger" href="javascript:void(0)" style="display:inline-block;font-size:12px;line-height:1.4;color:#1890ff;text-decoration:none;cursor:pointer;">本地上传</a>'
+                + '<a style="display:inline-block;font-size:12px;line-height:1.4;color:#1890ff;text-decoration:none;" target="_blank" href="' + manageUrl + '">管理/迁移</a>'
+                + '</div>'
                 + '</div>';
 
             if (emojis.length === 0) {
@@ -267,6 +271,17 @@ var EmojiGroups = {
                     targetObject['loadGroupEmojis' + prefix](groupId);
                 });
             });
+
+            $box.off('click.emojiUpload').on('click.emojiUpload', '.emoji-upload-trigger', function (e) {
+                e.preventDefault();
+                targetObject['openEmojiUpload' + prefix]();
+            });
+        };
+    },
+
+    _createOpenUploadMethod: function (targetObject, prefix, targetObjectName) {
+        return function () {
+            EmojiGroups.openLocalUpload(targetObject, prefix, targetObjectName);
         };
     },
 
@@ -298,6 +313,120 @@ var EmojiGroups = {
                 }
             });
         };
+    },
+
+    openLocalUpload: function (targetObject, prefix, targetObjectName) {
+        if (!targetObject) {
+            EmojiGroups._toast('表情上传宿主未初始化');
+            return;
+        }
+        EmojiGroups._pendingUploadContext = {
+            targetObject: targetObject,
+            prefix: prefix || 'New',
+            targetObjectName: targetObjectName || ''
+        };
+        if (!EmojiGroups._ensureUploadBinder()) {
+            return;
+        }
+        var $input = $('#emojiUploadInput');
+        if (!$input.length) {
+            EmojiGroups._toast('上传控件初始化失败');
+            return;
+        }
+        $input.val('');
+        $input.trigger('click');
+    },
+
+    _ensureUploadBinder: function () {
+        if (EmojiGroups._uploadBinderReady) {
+            return true;
+        }
+        if (!$.fn || !$.fn.fileupload) {
+            EmojiGroups._toast('上传组件未加载，请刷新页面重试');
+            return false;
+        }
+        if (!$('#emojiUploadForm').length) {
+            $('body').append('<form id="emojiUploadForm" style="display:none" method="POST" enctype="multipart/form-data"><input id="emojiUploadInput" type="file" name="file" accept="image/gif,image/jpeg,image/png,image/webp"></form>');
+        }
+        $('#emojiUploadForm').fileupload({
+            acceptFileTypes: /(\.|\/)(gif|jpe?g|png|webp)$/i,
+            maxFileSize: 5242880,
+            multipart: true,
+            pasteZone: null,
+            dropZone: null,
+            url: Label.servePath + '/upload',
+            paramName: 'file[]',
+            add: function (e, data) {
+                var file = data.files && data.files[0];
+                if (!file) {
+                    EmojiGroups._toast('未选择图片');
+                    return;
+                }
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    var reader = new FileReader();
+                    reader.readAsArrayBuffer(file);
+                    reader.onload = function (evt) {
+                        var fileBuf = new Uint8Array(evt.target.result.slice(0, 11));
+                        var isValidImage = typeof isImage === 'function' ? isImage(fileBuf) : /^image\//.test(file.type || '');
+                        if (!isValidImage) {
+                            EmojiGroups._toast('只允许上传图片');
+                            return;
+                        }
+                        if (evt.target.result.byteLength > 1024 * 1024 * 5) {
+                            EmojiGroups._toast('图片过大（最大 5M）');
+                            return;
+                        }
+                        data.submit();
+                    };
+                    reader.onerror = function () {
+                        EmojiGroups._toast('读取图片失败，请重试');
+                    };
+                    return;
+                }
+                data.submit();
+            },
+            formData: function (form) {
+                return form.serializeArray();
+            },
+            done: function (e, data) {
+                var succMap = data && data.result && data.result.data && data.result.data.succMap;
+                var firstKey = succMap ? Object.keys(succMap)[0] : null;
+                var url = firstKey ? succMap[firstKey] : '';
+                if (!url) {
+                    EmojiGroups._toast('上传失败，未获取到图片地址');
+                    return;
+                }
+                EmojiGroups._addUploadedEmoji(url);
+            },
+            fail: function (e, data) {
+                EmojiGroups._toast('上传失败: ' + (data && data.errorThrown ? data.errorThrown : '未知错误'));
+            }
+        });
+        EmojiGroups._uploadBinderReady = true;
+        return true;
+    },
+
+    _addUploadedEmoji: function (url) {
+        var ctx = EmojiGroups._pendingUploadContext;
+        if (!ctx || !ctx.targetObject) {
+            EmojiGroups.openCollectDialog(url);
+            return;
+        }
+        var prefix = ctx.prefix || 'New';
+        var targetObject = ctx.targetObject;
+        var groupId = targetObject['currentEmojiGroupId' + prefix] || EmojiGroups._findAllGroupId(targetObject, prefix);
+        if (!groupId) {
+            EmojiGroups.openCollectDialog(url);
+            return;
+        }
+        EmojiGroups._addUrlEmojiToGroup(groupId, url, '', function () {
+            if (typeof Util !== 'undefined' && Util.notice) {
+                Util.notice('success', 1200, '上传成功');
+            } else {
+                console.log('上传成功');
+            }
+            EmojiGroups._refreshGroupsCache(targetObject, prefix, [groupId, EmojiGroups._findAllGroupId(targetObject, prefix)]);
+        }, function () {});
     },
 
     /**
