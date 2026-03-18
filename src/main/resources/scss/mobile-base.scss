@@ -433,18 +433,35 @@ a[class*=" icon-"]:hover {
 }
 
 .dialog-header-bg {
-  padding: 10px;
-  font-size: 18px;
-  font-weight: normal;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 12px;
+  font-size: 16px;
+  font-weight: 600;
   border-bottom: 1px solid #eee;
   cursor: move;
   user-select: none;
 }
 
+.dialog-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  line-height: 1.4;
+}
+
 .dialog-header-bg .icon-close {
   color: rgba(0, 0, 0, 0.25);
-  font-size: 12px;
-  float: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  margin-left: 10px;
   font-weight: bold;
   -webkit-user-drag: none;
 }
@@ -455,8 +472,64 @@ a[class*=" icon-"]:hover {
 
 .dialog-main {
   min-width: 300px;
-  padding: 10px;
-  box-sizing: content-box;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.emoji-dialog {
+  padding: 4px 2px 8px;
+}
+
+.emoji-dialog__desc {
+  margin-bottom: 14px;
+  color: $theme-secondary;
+  line-height: 1.7;
+}
+
+.emoji-dialog__field + .emoji-dialog__field {
+  margin-top: 12px;
+}
+
+.emoji-dialog__label {
+  display: block;
+  margin-bottom: 8px;
+  color: $theme-secondary;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.emoji-dialog__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-dialog__input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8e1eb;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #222;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.emoji-dialog__input[readonly] {
+  background: #f6f8fb;
+  color: #2c3e50;
+}
+
+.emoji-dialog__input--code {
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.emoji-dialog__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* end dialog */

@@ -1934,20 +1934,76 @@ var Settings = {
       }
     });
   },
+  ensureDialogContainer: function (id) {
+    var $dialog = $('#' + id);
+    if ($dialog.length === 0) {
+      $('body').append('<div id="' + id + '"></div>');
+      $dialog = $('#' + id);
+    }
+    return $dialog;
+  },
+  openSettingsDialog: function (id, options) {
+    Settings.ensureDialogContainer(id).html(options.html);
+    $('#' + id).dialog({
+      'width': $(window).width() > options.width ? options.width : $(window).width() - 50,
+      'height': options.height,
+      'modal': true,
+      'hideFooter': true,
+      'title': options.title
+    });
+    $('#' + id).dialog('open');
+    return $('#' + id);
+  },
+  escapeDialogHTML: function (value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
   /**
    * 创建新分组
    */
   createEmojiGroup: function () {
-    var groupName = prompt('请输入分组名称：', '');
-    if (!groupName || groupName.trim() === '') {
+    var html = ''
+      + '<div class="emoji-dialog">'
+      + '  <div class="emoji-dialog__desc">创建后会立即出现在你的表情分组列表中，可继续添加、排序或分享。</div>'
+      + '  <div class="emoji-dialog__field">'
+      + '    <label class="emoji-dialog__label" for="createEmojiGroupName">分组名称</label>'
+      + '    <input id="createEmojiGroupName" class="emoji-dialog__input" type="text" maxlength="20" placeholder="请输入分组名称" />'
+      + '  </div>'
+      + '  <div class="emoji-dialog__actions">'
+      + '    <button type="button" onclick="$(\'#createEmojiGroupDialog\').dialog(\'close\')">取消</button>'
+      + '    <button type="button" class="green" onclick="Settings.confirmCreateEmojiGroup()">确定</button>'
+      + '  </div>'
+      + '</div>';
+
+    Settings.openSettingsDialog('createEmojiGroupDialog', {
+      html: html,
+      title: '添加表情分组',
+      width: 430,
+      height: 260
+    });
+
+    $('#createEmojiGroupName').focus().off('keydown').on('keydown', function (event) {
+      if (event.keyCode === 13) {
+        Settings.confirmCreateEmojiGroup();
+      }
+    });
+  },
+  confirmCreateEmojiGroup: function () {
+    var groupName = $('#createEmojiGroupName').val().trim();
+    if (!groupName) {
+      Util.notice('warning', 2000, '请输入分组名称');
       return;
     }
-    
+
     $.ajax({
       url: Label.servePath + '/api/emoji/group/create',
       type: 'POST',
       data: JSON.stringify({
-        name: groupName.trim(),
+        name: groupName,
         sort: 0
       }),
       contentType: 'application/json;charset=UTF-8',
@@ -1957,6 +2013,7 @@ var Settings = {
               return;
           }
           Util.notice('success', 1200, '创建分组成功');
+          $('#createEmojiGroupDialog').dialog('close');
           Settings.loadEmojiGroups();
       },
       error: function () {
@@ -2003,38 +2060,30 @@ var Settings = {
     });
   },
   showEmojiShareResult: function (data) {
-    if ($('#emojiShareDialog').length === 0) {
-      $('body').append('<div id="emojiShareDialog"></div>');
-    }
-
     var shareCode = data.shareCode || '';
     var groupName = data.groupName || '当前分组';
     var emojiCount = data.emojiCount || 0;
-    var html = '' +
-      '<div class="emoji-share-dialog fn-clear" style="padding: 18px 20px;">' +
-      '  <div style="margin-bottom: 12px; color: #666; line-height: 1.7;">' +
-      '    已为分组 <b>' + groupName + '</b> 生成永久分享码，当前快照共 ' + emojiCount + ' 个表情。<br>' +
-      '    该分享是静态快照，后续你再修改分组内容，不会实时影响这次分享。' +
-      '  </div>' +
-      '  <label style="display:block; margin: 0 0 8px; float:none; line-height: 1.6;">分享码：</label>' +
-      '  <div class="fn__flex" style="gap: 8px; align-items: center;">' +
-      '    <input id="emojiShareCodeValue" type="text" readonly value="' + shareCode + '" style="flex:1; padding:8px; box-sizing:border-box;" />' +
-      '    <button class="green" onclick="Settings.copyEmojiShareCode()">复制</button>' +
-      '  </div>' +
-      '  <div style="margin-top: 16px;">' +
-      '    <button class="fn-right green" onclick="$(\'#emojiShareDialog\').dialog(\'close\')">关闭</button>' +
-      '  </div>' +
-      '</div>';
+    var html = ''
+      + '<div class="emoji-dialog">'
+      + '  <div class="emoji-dialog__desc">已为分组 <b>' + Settings.escapeDialogHTML(groupName) + '</b> 生成永久分享码，当前快照共 ' + emojiCount + ' 个表情。<br>该分享是静态快照，后续你再修改分组内容，不会实时影响这次分享。</div>'
+      + '  <div class="emoji-dialog__field">'
+      + '    <label class="emoji-dialog__label" for="emojiShareCodeValue">分享码</label>'
+      + '    <div class="emoji-dialog__row">'
+      + '      <input id="emojiShareCodeValue" class="emoji-dialog__input emoji-dialog__input--code" type="text" readonly value="' + Settings.escapeDialogHTML(shareCode) + '" />'
+      + '      <button type="button" class="green" onclick="Settings.copyEmojiShareCode()">复制</button>'
+      + '    </div>'
+      + '  </div>'
+      + '  <div class="emoji-dialog__actions">'
+      + '    <button type="button" class="green" onclick="$(\'#emojiShareDialog\').dialog(\'close\')">关闭</button>'
+      + '  </div>'
+      + '</div>';
 
-    $('#emojiShareDialog').html(html);
-    $('#emojiShareDialog').dialog({
-      'width': $(window).width() > 460 ? 460 : $(window).width() - 50,
-      'height': 270,
-      'modal': true,
-      'hideFooter': true,
-      'title': '表情集分享码'
+    Settings.openSettingsDialog('emojiShareDialog', {
+      html: html,
+      title: '表情集分享码',
+      width: 460,
+      height: 292
     });
-    $('#emojiShareDialog').dialog('open');
     $('#emojiShareCodeValue').focus().select();
   },
   copyEmojiShareCode: function () {
@@ -2059,31 +2108,30 @@ var Settings = {
     Util.notice('success', 1200, '分享码已复制');
   },
   importEmojiShare: function () {
-    if ($('#emojiShareImportDialog').length === 0) {
-      $('body').append('<div id="emojiShareImportDialog"></div>');
-    }
+    var html = ''
+      + '<div class="emoji-dialog">'
+      + '  <div class="emoji-dialog__desc">请输入别人分享给你的表情集分享码，导入后会在你的账号下新建一个分组。</div>'
+      + '  <div class="emoji-dialog__field">'
+      + '    <label class="emoji-dialog__label" for="emojiShareImportCode">分享码</label>'
+      + '    <input id="emojiShareImportCode" class="emoji-dialog__input emoji-dialog__input--code" type="text" placeholder="请输入分享码" />'
+      + '  </div>'
+      + '  <div class="emoji-dialog__actions">'
+      + '    <button type="button" onclick="$(\'#emojiShareImportDialog\').dialog(\'close\')">取消</button>'
+      + '    <button type="button" class="green" onclick="Settings.confirmImportEmojiShare()">导入</button>'
+      + '  </div>'
+      + '</div>';
 
-    var html = '' +
-      '<div class="emoji-share-dialog fn-clear" style="padding: 18px 20px;">' +
-      '  <div style="margin-bottom: 12px; color: #666; line-height: 1.7;">请输入别人分享给你的表情集分享码，导入后会在你的账号下新建一个分组。</div>' +
-      '  <label style="display:block; margin: 0 0 8px; float:none; line-height: 1.6;">分享码：</label>' +
-      '  <input id="emojiShareImportCode" type="text" placeholder="请输入分享码" style="width:100%; padding:8px; box-sizing:border-box;" />' +
-      '  <div style="margin-top: 16px;">' +
-      '    <button class="fn-right green" onclick="Settings.confirmImportEmojiShare()">导入</button>' +
-      '    <button class="fn-right" style="margin-right: 10px;" onclick="$(\'#emojiShareImportDialog\').dialog(\'close\')">取消</button>' +
-      '  </div>' +
-      '</div>';
-
-    $('#emojiShareImportDialog').html(html);
-    $('#emojiShareImportDialog').dialog({
-      'width': $(window).width() > 460 ? 460 : $(window).width() - 50,
-      'height': 270,
-      'modal': true,
-      'hideFooter': true,
-      'title': '导入表情集分享码'
+    Settings.openSettingsDialog('emojiShareImportDialog', {
+      html: html,
+      title: '导入表情集分享码',
+      width: 460,
+      height: 284
     });
-    $('#emojiShareImportDialog').dialog('open');
-    $('#emojiShareImportCode').focus();
+    $('#emojiShareImportCode').focus().off('keydown').on('keydown', function (event) {
+      if (event.keyCode === 13) {
+        Settings.confirmImportEmojiShare();
+      }
+    });
   },
   confirmImportEmojiShare: function () {
     var shareCode = $('#emojiShareImportCode').val().trim();
@@ -2239,36 +2287,40 @@ var Settings = {
    * 显示通过URL添加表情的弹窗
    */
   addEmojiByUrl: function () {
-    // 生成弹窗HTML
-    var html = '<div class="form fn-clear" style="padding:0 20px;">';
-
-    html += '</select>';
-    html += '<label>表情URL：</label><br>';
-    html += '<input id="emojiUrl" type="text" placeholder="请输入表情图片URL" style="width: 100%; padding: 8px; margin-bottom: 10px;"/>';
-    html += '<label>表情别名（可选）：</label><br>';
-    html += '<input id="emojiAlias" type="text" placeholder="可选，输入表情别名" style="width: 100%; padding: 8px; margin-bottom: 10px;"/>';
-    html += '<br><br>';
-    html += '<button onclick="Settings.confirmAddUrlEmoji()" class="fn-right green">确定</button>';
-    html += '<button onclick="$(\'#addUrlEmojiDialog\').dialog(\'close\')" class="fn-right" style="margin-right: 10px;">取消</button>';
-    html += '</div>';
-    
-    // 检查弹窗是否存在，如果不存在则创建
-    if ($('#addUrlEmojiDialog').length === 0) {
-      $('body').append('<div id="addUrlEmojiDialog"></div>');
+    if (!Settings.currentEmojiGroupId) {
+      Util.notice('warning', 2000, '请先选择一个分组');
+      return;
     }
-    
-    $('#addUrlEmojiDialog').html(html);
-    
-    // 初始化弹窗
-    $('#addUrlEmojiDialog').dialog({
-      'width': $(window).width() > 400 ? 400 : $(window).width() - 50,
-        'height':300,
-      'modal': true,
-      'hideFooter': true,
-      'title': '通过URL添加表情'
+
+    var html = ''
+      + '<div class="emoji-dialog">'
+      + '  <div class="emoji-dialog__desc">粘贴可直接访问的图片地址，保存后会添加到当前选中的表情分组。</div>'
+      + '  <div class="emoji-dialog__field">'
+      + '    <label class="emoji-dialog__label" for="emojiUrl">表情 URL</label>'
+      + '    <input id="emojiUrl" class="emoji-dialog__input" type="text" placeholder="请输入表情图片 URL" />'
+      + '  </div>'
+      + '  <div class="emoji-dialog__field">'
+      + '    <label class="emoji-dialog__label" for="emojiAlias">表情别名（可选）</label>'
+      + '    <input id="emojiAlias" class="emoji-dialog__input" type="text" maxlength="20" placeholder="可选，输入表情别名" />'
+      + '  </div>'
+      + '  <div class="emoji-dialog__actions">'
+      + '    <button type="button" onclick="$(\'#addUrlEmojiDialog\').dialog(\'close\')">取消</button>'
+      + '    <button type="button" class="green" onclick="Settings.confirmAddUrlEmoji()">确定</button>'
+      + '  </div>'
+      + '</div>';
+
+    Settings.openSettingsDialog('addUrlEmojiDialog', {
+      html: html,
+      title: '通过URL添加表情',
+      width: 430,
+      height: 340
     });
-    
-    $('#addUrlEmojiDialog').dialog('open');
+
+    $('#emojiUrl').focus().off('keydown').on('keydown', function (event) {
+      if (event.keyCode === 13) {
+        Settings.confirmAddUrlEmoji();
+      }
+    });
   },
   /**
    * 确认通过URL添加表情到分组
