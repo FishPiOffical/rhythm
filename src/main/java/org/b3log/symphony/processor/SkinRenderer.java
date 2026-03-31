@@ -80,18 +80,18 @@ public final class SkinRenderer extends AbstractFreeMarkerRenderer {
     public Template getTemplate(final boolean isSearchEngineBot, final JSONObject user) {
         String templateDirName = Sessions.getTemplateDir();
         final String templateName = getTemplateName();
+        final String defaultTemplateDirName = Sessions.isMobile() ? Symphonys.MOBILE_SKIN_DIR_NAME : Symphonys.SKIN_DIR_NAME;
         try {
             Template ret;
             try {
                 ret = Templates.getTemplate(templateDirName + "/" + templateName);
             } catch (final Exception e) {
-                if (Symphonys.SKIN_DIR_NAME.equals(templateDirName) ||
-                        Symphonys.MOBILE_SKIN_DIR_NAME.equals(templateDirName)) {
+                if (defaultTemplateDirName.equals(templateDirName)) {
                     throw e;
                 }
 
-                // Try to load default template
-                ret = Templates.getTemplate(Symphonys.SKIN_DIR_NAME + "/" + templateName);
+                // Try to load the default template for the current device
+                ret = Templates.getTemplate(defaultTemplateDirName + "/" + templateName);
             }
 
             if (isSearchEngineBot) {

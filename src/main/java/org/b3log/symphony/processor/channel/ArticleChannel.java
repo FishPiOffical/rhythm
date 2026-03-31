@@ -42,6 +42,7 @@ import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.Templates;
 import org.json.JSONObject;
 
@@ -226,7 +227,7 @@ public class ArticleChannel implements WebSocketChannel {
 
                 String templateDirName = httpSession.getAttribute(Keys.TEMPLATE_DIR_NAME);
                 if (templateDirName == null) {
-                    templateDirName = "classic";
+                    templateDirName = Symphonys.SKIN_DIR_NAME;
                 }
                 final Template template = Templates.getTemplate(templateDirName + "/common/comment.ftl");
                 final StringWriter stringWriter = new StringWriter();

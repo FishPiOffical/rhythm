@@ -224,6 +224,9 @@ public class SettingsProcessor {
     @Inject
     private MembershipQueryService membershipQueryService;
 
+    @Inject
+    private SkinQueryService skinQueryService;
+
     final private static SimpleCurrentLimiter updateProfilesLimiter = new SimpleCurrentLimiter(60 * 60, 5);
 
     /**
@@ -250,6 +253,7 @@ public class SettingsProcessor {
         Dispatcher.post("/settings/privacy", settingsProcessor::updatePrivacy, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/settings/function", settingsProcessor::updateFunction, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/settings/system", settingsProcessor::updateSystem, loginCheck::handle, csrfMidware::check);
+        Dispatcher.post("/settings/skin", settingsProcessor::updateSkin, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/settings/profiles", settingsProcessor::updateProfiles, loginCheck::handle, csrfMidware::check, updateProfilesValidationMidware::handle);
         Dispatcher.post("/settings/avatar", settingsProcessor::updateAvatar, loginCheck::handle, csrfMidware::check, updateProfilesValidationMidware::handle);
         Dispatcher.post("/settings/password", settingsProcessor::updatePassword, loginCheck::handle, csrfMidware::check, updatePasswordValidationMidware::handle);
@@ -733,6 +737,12 @@ public class SettingsProcessor {
         avatarQueryService.fillUserAvatarURL(user);
 
         final String userId = user.optString(Keys.OBJECT_ID);
+        dataModel.put("desktopSkins", skinQueryService.getSkins(SkinQueryService.DEVICE_PC));
+        dataModel.put("mobileSkins", skinQueryService.getSkins(SkinQueryService.DEVICE_MOBILE));
+        dataModel.put("currentDesktopSkin",
+                skinQueryService.normalizeSkin(user.optString(UserExt.USER_SKIN), SkinQueryService.DEVICE_PC));
+        dataModel.put("currentMobileSkin",
+                skinQueryService.normalizeSkin(user.optString(UserExt.USER_MOBILE_SKIN), SkinQueryService.DEVICE_MOBILE));
 
         final int invitedUserCount = userQueryService.getInvitedUserCount(userId);
         dataModel.put(Common.INVITED_USER_COUNT, invitedUserCount);
@@ -950,6 +960,49 @@ public class SettingsProcessor {
             settingsService.setSystemSettings(settings);
             context.renderJSON(StatusCodes.SUCC);
         } catch (Exception e) {
+            context.renderMsg(e.getMessage());
+        }
+    }
+
+    /**
+     * Updates user skins.
+     *
+     * @param context the specified context
+     */
+    public void updateSkin(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
+
+        JSONObject requestJSONObject;
+        try {
+            requestJSONObject = context.requestJSON();
+        } catch (final Exception e) {
+            LOGGER.warn(e.getMessage());
+            requestJSONObject = new JSONObject();
+        }
+
+        final String desktopSkin = skinQueryService.canonicalizeSkin(
+                requestJSONObject.optString(UserExt.USER_SKIN), SkinQueryService.DEVICE_PC);
+        final String mobileSkin = skinQueryService.canonicalizeSkin(
+                requestJSONObject.optString(UserExt.USER_MOBILE_SKIN), SkinQueryService.DEVICE_MOBILE);
+        if (!skinQueryService.isValidSkin(desktopSkin, SkinQueryService.DEVICE_PC)) {
+            context.renderMsg("桌面端主题不存在或类型不匹配");
+            return;
+        }
+        if (!skinQueryService.isValidSkin(mobileSkin, SkinQueryService.DEVICE_MOBILE)) {
+            context.renderMsg("移动端主题不存在或类型不匹配");
+            return;
+        }
+
+        try {
+            JSONObject user = Sessions.getUser();
+            final String userId = user.optString(Keys.OBJECT_ID);
+            user = userQueryService.getUser(userId);
+            user.put(UserExt.USER_SKIN, desktopSkin);
+            user.put(UserExt.USER_MOBILE_SKIN, mobileSkin);
+
+            userMgmtService.updateUser(userId, user);
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ServiceException e) {
             context.renderMsg(e.getMessage());
         }
     }

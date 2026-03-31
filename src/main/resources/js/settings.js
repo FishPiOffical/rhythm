@@ -1198,6 +1198,12 @@ var Settings = {
           iconURL: iconURL
         }
         break
+      case 'skin':
+        requestJSONObject = {
+          userSkin: $('#userSkin').val(),
+          userMobileSkin: $('#userMobileSkin').val(),
+        }
+        break
       case 'deactivate':
         break
       default:
@@ -1230,6 +1236,10 @@ var Settings = {
             removeClass('error').
             html('<ul><li>' + Label.updateSuccLabel + '</li></ul>').
             show()
+          if (type === 'skin') {
+            window.location.reload()
+            return
+          }
           if (type === 'profiles') {
             $('#userNicknameDom').text(requestJSONObject.userNickname)
             $('#userTagsDom').text(requestJSONObject.userTags)

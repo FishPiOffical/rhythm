@@ -234,12 +234,12 @@ public final class Sessions {
     /**
      * Gets the current template dir from thread local data.
      *
-     * @return template dir, returns "classic" if not found
+     * @return template dir, returns default desktop skin if not found
      */
     public static String getTemplateDir() {
         JSONObject data = THREAD_LOCAL_DATA.get();
         if (null == data) {
-            return "classic";
+            return Symphonys.SKIN_DIR_NAME;
         }
 
         return data.optString(Keys.TEMPLATE_DIR_NAME);

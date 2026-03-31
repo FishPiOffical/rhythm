@@ -27,7 +27,7 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
     <link rel="stylesheet" href="${staticServePath}/css/home.css?${staticResourceVersion}"/>
-    <link rel="stylesheet" href="${staticServePath}/skins/classic/vip/css/vips.css?${staticResourceVersion}"/>
+<link rel="stylesheet" href="${staticServePath}/skins/classic/pc/vip/css/vips.css?${staticResourceVersion}"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -143,6 +143,6 @@
     var user = ${user};
     var membership = ${membership};
 </script>
-<script src="${staticServePath}/skins/classic/vip/js/vip.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/skins/classic/pc/vip/js/vip.js?${staticResourceVersion}"></script>
 </body>
 </html>

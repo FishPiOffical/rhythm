@@ -18,6 +18,9 @@
  */
 package org.b3log.symphony.util;
 
+import freemarker.cache.ClassTemplateLoader;
+import freemarker.cache.FileTemplateLoader;
+import freemarker.cache.TemplateLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
@@ -28,6 +31,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Templates utilities.
@@ -64,10 +70,11 @@ public final class Templates {
                 path = StringUtils.replace(path, "/target/test-classes/", "/src/main/resources/");
             }
             path += "skins";
-            TEMPLATE_CFG.setDirectoryForTemplateLoading(new File(path));
+            TEMPLATE_CFG.setTemplateLoader(new FallbackSkinTemplateLoader(new FileTemplateLoader(new File(path))));
             LOGGER.log(Level.INFO, "Loaded template from directory [" + path + "]");
         } catch (final Exception e) {
-            TEMPLATE_CFG.setClassForTemplateLoading(Templates.class, "/skins");
+            TEMPLATE_CFG.setTemplateLoader(new FallbackSkinTemplateLoader(
+                    new ClassTemplateLoader(Templates.class, "/skins")));
             LOGGER.log(Level.INFO, "Loaded template from classpath");
         }
         TEMPLATE_CFG.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
@@ -89,5 +96,114 @@ public final class Templates {
      * Private constructor.
      */
     private Templates() {
+    }
+
+    /**
+     * Skin template loader with same-device fallback.
+     *
+     * <p>When a custom skin misses some templates, it falls back to the default
+     * skin of the same device, such as {@code foo/pc/header.ftl -> classic/pc/header.ftl}.</p>
+     */
+    private static final class FallbackSkinTemplateLoader implements TemplateLoader {
+
+        /**
+         * Delegate template loader.
+         */
+        private final TemplateLoader delegate;
+
+        /**
+         * Constructs a fallback skin template loader.
+         *
+         * @param delegate the delegate loader
+         */
+        private FallbackSkinTemplateLoader(final TemplateLoader delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Object findTemplateSource(final String name) throws java.io.IOException {
+            final Object source = delegate.findTemplateSource(name);
+            if (null != source) {
+                return source;
+            }
+
+            for (final String fallbackName : buildFallbackNames(name)) {
+                final Object fallbackSource = delegate.findTemplateSource(fallbackName);
+                if (null != fallbackSource) {
+                    return fallbackSource;
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        public long getLastModified(final Object templateSource) {
+            return delegate.getLastModified(templateSource);
+        }
+
+        @Override
+        public Reader getReader(final Object templateSource, final String encoding) throws java.io.IOException {
+            return delegate.getReader(templateSource, encoding);
+        }
+
+        @Override
+        public void closeTemplateSource(final Object templateSource) throws java.io.IOException {
+            delegate.closeTemplateSource(templateSource);
+        }
+
+        /**
+         * Builds fallback template names for the specified template.
+         *
+         * @param name the specified template name
+         * @return fallback template names
+         */
+        private List<String> buildFallbackNames(final String name) {
+            final List<String> ret = new ArrayList<>();
+            final String normalizedName = StringUtils.removeStart(name, "/");
+            final String[] segments = StringUtils.split(normalizedName, '/');
+            if (null == segments || segments.length < 3) {
+                return ret;
+            }
+
+            for (int i = 0; i < segments.length - 1; i++) {
+                final String device = segments[i];
+                if (!StringUtils.equals(device, "pc") && !StringUtils.equals(device, "mobile")) {
+                    continue;
+                }
+
+                final String skinDir = joinSegments(segments, 0, i + 1);
+                final String defaultSkinDir = StringUtils.equals(device, "mobile")
+                        ? Symphonys.MOBILE_SKIN_DIR_NAME : Symphonys.SKIN_DIR_NAME;
+                if (StringUtils.equals(skinDir, defaultSkinDir)) {
+                    return ret;
+                }
+
+                final String relativePath = joinSegments(segments, i + 1, segments.length);
+                ret.add(defaultSkinDir + "/" + relativePath);
+                return ret;
+            }
+
+            return ret;
+        }
+
+        /**
+         * Joins the specified path segments.
+         *
+         * @param segments the specified segments
+         * @param start    the start index, inclusive
+         * @param end      the end index, exclusive
+         * @return joined path
+         */
+        private String joinSegments(final String[] segments, final int start, final int end) {
+            final StringBuilder builder = new StringBuilder();
+            for (int i = start; i < end; i++) {
+                if (builder.length() > 0) {
+                    builder.append('/');
+                }
+                builder.append(segments[i]);
+            }
+            return builder.toString();
+        }
     }
 }

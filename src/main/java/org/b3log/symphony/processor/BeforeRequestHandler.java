@@ -40,6 +40,7 @@ import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.OptionRepository;
+import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Sessions;
@@ -118,7 +119,10 @@ public class BeforeRequestHandler implements Handler {
 
         Stopwatchs.start("Resolve skin");
 
-        final String templateDirName = Sessions.isMobile() ? "mobile" : "classic";
+        final BeanManager beanManager = BeanManager.getInstance();
+        final SkinQueryService skinQueryService = beanManager.getReference(SkinQueryService.class);
+        final String device = Sessions.isMobile() ? SkinQueryService.DEVICE_MOBILE : SkinQueryService.DEVICE_PC;
+        final String templateDirName = skinQueryService.getDefaultSkin(device);
         Sessions.setTemplateDir(templateDirName);
 
         final Request request = context.getRequest();
@@ -126,7 +130,6 @@ public class BeforeRequestHandler implements Handler {
         httpSession.setAttribute(Keys.TEMPLATE_DIR_NAME, templateDirName);
 
         try {
-            final BeanManager beanManager = BeanManager.getInstance();
             final UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
             final OptionRepository optionRepository = beanManager.getReference(OptionRepository.class);
 
@@ -148,8 +151,9 @@ public class BeforeRequestHandler implements Handler {
             httpSession.setAttribute(User.USER, user.toString());
 
             final String skin = Sessions.isMobile() ? user.optString(UserExt.USER_MOBILE_SKIN) : user.optString(UserExt.USER_SKIN);
-            httpSession.setAttribute(Keys.TEMPLATE_DIR_NAME, skin);
-            Sessions.setTemplateDir(skin);
+            final String normalizedSkin = skinQueryService.normalizeSkin(skin, device);
+            httpSession.setAttribute(Keys.TEMPLATE_DIR_NAME, normalizedSkin);
+            Sessions.setTemplateDir(normalizedSkin);
             Sessions.setAvatarViewMode(user.optInt(UserExt.USER_AVATAR_VIEW_MODE));
             Sessions.setUser(user);
             Sessions.setLoggedIn(true);

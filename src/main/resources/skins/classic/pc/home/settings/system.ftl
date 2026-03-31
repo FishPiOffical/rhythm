@@ -21,6 +21,209 @@
 <#include "macro-settings.ftl">
 <@home "system">
     <div id="systemTip" class="tip"></div>
+    <div id="skinTip" class="tip"></div>
+
+    <div class="module">
+        <div class="module-header">
+            主题外观
+        </div>
+        <div class="module-panel form fn-clear">
+            <style>
+                .skin-picker-title {
+                    display: block;
+                    margin: 0 0 10px;
+                    width: 100%;
+                    flex: 0 0 100%;
+                    float: none;
+                    clear: both;
+                    padding: 0;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #7f5a2a;
+                    letter-spacing: .02em;
+                }
+
+                .skin-picker-section {
+                    display: block;
+                    width: 100%;
+                    clear: both;
+                    margin-bottom: 22px;
+                }
+
+                .skin-picker-grid {
+                    display: grid;
+                    width: 100%;
+                    grid-template-columns: repeat(auto-fit, minmax(232px, 280px));
+                    justify-content: flex-start;
+                    align-items: start;
+                    gap: 16px;
+                }
+
+                .skin-card {
+                    width: 100%;
+                    border: 1px solid #f2ddc2;
+                    border-radius: 16px;
+                    background-color: #fff;
+                    overflow: hidden;
+                    box-shadow: 0 6px 18px rgba(43, 47, 54, 0.05);
+                    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease, background-color .2s ease;
+                }
+
+                .skin-card.is-selected {
+                    border-color: #e9b15d;
+                    box-shadow: 0 8px 22px rgba(201, 122, 0, 0.10);
+                    background-color: #fffdf9;
+                    transform: translateY(-1px);
+                }
+
+                .skin-card__head {
+                    padding: 14px 14px 10px;
+                    text-align: left;
+                }
+
+                .skin-card__name {
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #2b2f36;
+                }
+
+                .skin-card__memo {
+                    margin-top: 7px;
+                    font-size: 12px;
+                    color: #8a9099;
+                    min-height: 36px;
+                    line-height: 1.6;
+                }
+
+                .skin-card__preview {
+                    display: block;
+                    width: 100%;
+                    aspect-ratio: 16 / 9;
+                    object-fit: fill;
+                    background-color: #f6f8fa;
+                    border-top: 1px solid #eef2f7;
+                    border-bottom: 1px solid #eef2f7;
+                }
+
+                .skin-card__preview--empty {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #8a9099;
+                    font-size: 13px;
+                }
+
+                .skin-card__preview--contain {
+                    object-fit: contain;
+                    background-color: #fff;
+                }
+
+                .skin-card__preview--portrait {
+                    width: auto;
+                    max-width: 100%;
+                    height: 158px;
+                    margin: 0 auto;
+                    object-fit: contain;
+                    border: 0;
+                }
+
+                .skin-card__preview-frame {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 158px;
+                    background-color: #fff;
+                    border-top: 1px solid #eef2f7;
+                    border-bottom: 1px solid #eef2f7;
+                }
+
+                .skin-card__foot {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    padding: 11px 12px;
+                }
+
+                .skin-card__action {
+                    min-width: 74px;
+                    border: 0;
+                    border-radius: 10px;
+                    padding: 6px 12px;
+                    font-size: 12px;
+                    color: #fff;
+                    background-color: #d0d6e0;
+                    cursor: pointer;
+                }
+
+                .skin-card.is-selected .skin-card__action {
+                    background-color: #e7a13a;
+                }
+
+                .skin-picker-help {
+                    padding: 6px 0;
+                    color: #8a9099;
+                    line-height: 1.6;
+                }
+            </style>
+
+            <input id="userSkin" type="hidden" value="${currentDesktopSkin}">
+            <input id="userMobileSkin" type="hidden" value="${currentMobileSkin}">
+
+            <div class="skin-picker-section">
+                <label class="skin-picker-title">桌面端主题</label>
+                <div class="skin-picker-grid" id="desktopSkinGrid">
+                    <#list desktopSkins as skin>
+                        <div class="skin-card <#if skin.dirName == currentDesktopSkin>is-selected</#if>" data-select="#userSkin" data-value="${skin.dirName}">
+                            <div class="skin-card__head">
+                                <div class="skin-card__name">${skin.name}</div>
+                                <div class="skin-card__memo">${skin.memo!''}</div>
+                            </div>
+                            <#if skin.previewUrl?? && skin.previewUrl?has_content>
+                                <img class="skin-card__preview" src="${skin.previewUrl}" alt="${skin.name}">
+                            <#else>
+                                <div class="skin-card__preview skin-card__preview--empty">暂无预览图</div>
+                            </#if>
+                            <div class="skin-card__foot">
+                                <button type="button" class="skin-card__action"><#if skin.dirName == currentDesktopSkin>当前使用<#else>启用</#if></button>
+                            </div>
+                        </div>
+                    </#list>
+                </div>
+            </div>
+
+            <div class="skin-picker-section">
+                <label class="skin-picker-title">移动端主题</label>
+                <div class="skin-picker-grid" id="mobileSkinGrid">
+                    <#list mobileSkins as skin>
+                        <div class="skin-card <#if skin.dirName == currentMobileSkin>is-selected</#if>" data-select="#userMobileSkin" data-value="${skin.dirName}">
+                            <div class="skin-card__head">
+                                <div class="skin-card__name">${skin.name}</div>
+                                <div class="skin-card__memo">${skin.memo!''}</div>
+                            </div>
+                            <#if skin.previewUrl?? && skin.previewUrl?has_content>
+                                <div class="skin-card__preview-frame">
+                                    <img class="skin-card__preview skin-card__preview--portrait" src="${skin.previewUrl}" alt="${skin.name}">
+                                </div>
+                            <#else>
+                                <div class="skin-card__preview skin-card__preview--empty">暂无预览图</div>
+                            </#if>
+                            <div class="skin-card__foot">
+                                <button type="button" class="skin-card__action"><#if skin.dirName == currentMobileSkin>当前使用<#else>启用</#if></button>
+                            </div>
+                        </div>
+                    </#list>
+                </div>
+            </div>
+
+            <label class="skin-picker-help">
+                保存后会刷新页面；当前设备会立即切换到你刚选择的主题。
+            </label>
+            <button class="fn-right" onclick="Settings.update('skin', '${csrfToken}')">${saveLabel}</button>
+        </div>
+    </div>
+
     <div class="module">
         <div class="module-header">
             自定义社区标题
@@ -194,4 +397,38 @@
         $("#userCardSettings > div > a > div").css("top", "80px");
         $("#userCardSettings").attr("bgUrl", currentCardBg);
     }
+
+    function bindSkinCards(containerSelector) {
+        const container = document.querySelector(containerSelector);
+        if (!container) {
+            return;
+        }
+
+        container.addEventListener('click', function (event) {
+            const card = event.target.closest('.skin-card');
+            if (!card) {
+                return;
+            }
+
+            const selectSelector = card.dataset.select;
+            const input = document.querySelector(selectSelector);
+            if (!input) {
+                return;
+            }
+
+            input.value = card.dataset.value || '';
+
+            container.querySelectorAll('.skin-card').forEach(function (item) {
+                const selected = item === card;
+                item.classList.toggle('is-selected', selected);
+                const action = item.querySelector('.skin-card__action');
+                if (action) {
+                    action.textContent = selected ? '当前使用' : '启用';
+                }
+            });
+        });
+    }
+
+    bindSkinCards('#desktopSkinGrid');
+    bindSkinCards('#mobileSkinGrid');
 </script>

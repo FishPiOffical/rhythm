@@ -22,28 +22,50 @@
 <meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-<#if hasSystemTitle>
-<title>${systemTitle}</title>
-<#else>
+<meta name="theme-color" content="#4285f4">
 <title>${title}</title>
-</#if>
 <#nested>
-<link rel="preconnect" href="${staticServePath}">
 <meta name="copyright" content="B3log" />
 <meta http-equiv="Window-target" content="_top" />
-<link rel="stylesheet" href="${staticServePath}/css/responsive.css?${staticResourceVersion}" />
-<link rel="stylesheet" href="${staticServePath}/css/base.css?${staticResourceVersion}" />
+<link rel="stylesheet" href="${staticServePath}/css/mobile-base.css?${staticResourceVersion}" />
 <link rel="icon" type="image/png" href="${iconURL}" />
 <link rel="apple-touch-icon" href="${staticServePath}/images/faviconH.png">
-<link rel="search" type="application/opensearchdescription+xml" title="Rym" href="/opensearch.xml">
 <link rel="stylesheet" href="${staticServePath}/js/lib/tooltips/tooltips.min.css?${staticResourceVersion}">
-<#--<link rel="stylesheet" href="${staticServePath}/css/theme/dark.css?${staticResourceVersion}" />-->
 ${siteVisitStatCode}
 <script type="text/javascript" charset="UTF-8" src="https://cdn.wwads.cn/js/makemoney.js"></script>
 <meta name="baidu-site-verification" content="codeva-wF3TNphcy6" />
 <script src="https://file.fishpi.cn/darkreader.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/color-mode.min.js?${staticResourceVersion}"></script>
-<script src="https://room.adventext.fun/embed.min.js?${staticResourceVersion}"></script>
+<script>
+    (function () {
+        var loadEmbedScript = function () {
+            if (document.getElementById('adventext-embed-script')) {
+                return;
+            }
+
+            var script = document.createElement('script');
+            script.id = 'adventext-embed-script';
+            script.src = 'https://room.adventext.fun/embed.min.js?${staticResourceVersion}';
+            script.async = true;
+            document.head.appendChild(script);
+        };
+
+        var scheduleLoad = function () {
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(loadEmbedScript, {timeout: 3000});
+                return;
+            }
+            window.setTimeout(loadEmbedScript, 0);
+        };
+
+        if (document.readyState === 'complete') {
+            scheduleLoad();
+            return;
+        }
+
+        window.addEventListener('load', scheduleLoad, {once: true});
+    })();
+</script>
 <#if isLoggedIn && currentUser?? && currentUser.oId??>
 <script type="module" src="https://ext.adventext.fun/api/items/${currentUser.oId}/loader.js"></script>
 </#if>

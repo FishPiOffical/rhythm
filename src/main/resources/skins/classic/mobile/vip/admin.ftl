@@ -26,7 +26,7 @@
         <meta name="robots" content="none"/>
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/home.css?${staticResourceVersion}"/>
-    <link rel="stylesheet" href="${staticServePath}/skins/classic/vip/css/admin.css?${staticResourceVersion}"/>
+<link rel="stylesheet" href="${staticServePath}/skins/classic/pc/vip/css/admin.css?${staticResourceVersion}"/>
     <style>
 
     </style>
@@ -169,24 +169,6 @@
     </div>
 </div>
 <#include "../footer.ftl">
-<script src="${staticServePath}/skins/classic/vip/js/admin.js?${staticResourceVersion}"></script>
-<script>
-    var Label = {
-        servePath: "${servePath}",
-        makeAsReadLabel: '${makeAsReadLabel}',
-        notificationCommentedLabel: '${notificationCommentedLabel}',
-        notificationReplyLabel: '${notificationReplyLabel}',
-        notificationAtLabel: '${notificationAtLabel}',
-        notificationFollowingLabel: '${notificationFollowingLabel}',
-        pointLabel: '${pointLabel}',
-        sameCityLabel: '${sameCityLabel}',
-        systemLabel: '${systemLabel}',
-        newFollowerLabel: '${newFollowerLabel}',
-        <#if isLoggedIn>
-        currentUserName: '${currentUser.userName}',
-        </#if>
-
-    }
-</script>
+<script src="${staticServePath}/skins/classic/pc/vip/js/admin.js?${staticResourceVersion}"></script>
 </body>
 </html>
