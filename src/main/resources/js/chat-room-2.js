@@ -2423,7 +2423,7 @@ ${result.info.msg}
             }
             newHTML += '</div>';
 
-            newHTML += '        <div class="vditor-reset ft__smaller ' + Label.chatRoomPictureStatus + '" style="margin-top: 3px">\n' +
+            newHTML += '        <div class="vditor-reset ft__smaller ' + Label.chatRoomPictureStatus + '" style="margin-top: 6px">\n' +
                 '            ' + ChatRoom.filterContent(data.content, isAdmin) + '\n' +
                 '        </div>\n' +
                 (data.reactionDisabled ? '' : ChatRoom.renderReactionBar(data.oId, data.reactionSummary, data.currentUserReaction)) +
