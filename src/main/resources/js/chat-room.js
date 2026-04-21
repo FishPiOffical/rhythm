@@ -65,7 +65,311 @@ var ChatRoom = {
         messageId: null,
         content: null
     },
+    reactionOptions: [
+        {value: 'thumbsup', emoji: '👍'},
+        {value: 'thumbsdown', emoji: '👎'},
+        {value: 'heart', emoji: '❤️'},
+        {value: 'fire', emoji: '🔥'},
+        {value: 'party', emoji: '🎉'},
+        {value: 'laugh', emoji: '😂'},
+        {value: 'wow', emoji: '😮'},
+        {value: 'clap', emoji: '👏'},
+        {value: 'hundred', emoji: '💯'},
+        {value: 'rocket', emoji: '🚀'},
+        {value: 'salute', emoji: '🖖'},
+        {value: 'mindblown', emoji: '🤯'},
+        {value: 'thinking', emoji: '🤔'},
+        {value: 'eyes', emoji: '👀'},
+        {value: 'cry', emoji: '😢'},
+        {value: 'angry', emoji: '😡'},
+        {value: 'pray', emoji: '🙏'},
+        {value: 'brokenheart', emoji: '💔'},
+        {value: 'heartonfire', emoji: '❤️‍🔥'},
+        {value: 'skull', emoji: '💀'},
+        {value: 'clown', emoji: '🤡'},
+        {value: 'poop', emoji: '💩'}
+    ],
+    normalizeReactionSummary: function (summary) {
+        if (Array.isArray(summary)) {
+            return summary;
+        }
+        if (typeof summary !== 'string' || summary === '') {
+            return [];
+        }
+        try {
+            var parsed = JSON.parse(summary);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    },
+    getReactionMap: function (summary) {
+        summary = ChatRoom.normalizeReactionSummary(summary);
+        var map = {};
+        for (var i = 0; i < summary.length; i++) {
+            map[summary[i].value] = summary[i];
+        }
+        return map;
+    },
+    escapeReactionHtml: function (value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    },
+    getReactionUserDetails: function (item) {
+        if (!item || !Array.isArray(item.userDetails)) {
+            return [];
+        }
+        return item.userDetails;
+    },
+    renderReactionTip: function (item) {
+        var users = ChatRoom.getReactionUserDetails(item);
+        if (users.length === 0) {
+            return '';
+        }
+        var html = [];
+        for (var i = 0; i < users.length; i++) {
+            var user = users[i] || {};
+            var userName = user.userName || '';
+            var avatarURL = user.avatarURL || '';
+            if (userName === '' || avatarURL === '') {
+                continue;
+            }
+            var displayName = user.displayName || userName;
+            html.push('<a class="reaction-pill__tip-link" href="', Label.servePath, '/member/',
+                encodeURIComponent(userName), '" aria-label="', ChatRoom.escapeReactionHtml(displayName),
+                '" title="', ChatRoom.escapeReactionHtml(displayName), '">');
+            html.push('<img class="reaction-pill__tip-avatar" src="', ChatRoom.escapeReactionHtml(avatarURL),
+                '" alt="', ChatRoom.escapeReactionHtml(displayName), '">');
+            html.push('</a>');
+        }
+        if (html.length === 0) {
+            return '';
+        }
+        return '<span class="reaction-pill__tip tip-text">' + html.join('') + '</span>';
+    },
+    renderReactionSummaryItems: function (targetId, summary, currentUserReaction) {
+        var map = ChatRoom.getReactionMap(summary);
+        var html = [];
+        for (var i = 0; i < ChatRoom.reactionOptions.length; i++) {
+            var option = ChatRoom.reactionOptions[i];
+            var item = map[option.value] || {};
+            var count = item.count || 0;
+            if (count < 1) {
+                continue;
+            }
+            var selected = currentUserReaction === option.value ? ' selected' : '';
+            var tipHtml = ChatRoom.renderReactionTip(item);
+            if (tipHtml !== '') {
+                html.push('<span class="reaction-pill-wrapper tip-wrapper">');
+            }
+            html.push('<button type="button" class="reaction-pill reaction-pill--summary', selected,
+                '" data-reaction-value="', option.value, '"');
+            html.push(' onclick="ChatRoom.react(\'', targetId, '\', \'', option.value, '\', this)">');
+            html.push('<span class="reaction-pill__emoji">', option.emoji, '</span>');
+            html.push('<span class="reaction-pill__count">', count, '</span>');
+            html.push('</button>');
+            if (tipHtml !== '') {
+                html.push(tipHtml, '</span>');
+            }
+        }
+        return html.join('');
+    },
+    renderReactionPanel: function (targetId, currentUserReaction) {
+        var html = ['<div class="reaction-popover">'];
+        for (var i = 0; i < ChatRoom.reactionOptions.length; i++) {
+            var option = ChatRoom.reactionOptions[i];
+            var selected = currentUserReaction === option.value ? ' selected' : '';
+            html.push('<button type="button" class="reaction-option', selected,
+                '" onclick="ChatRoom.react(\'', targetId, '\', \'', option.value, '\', this)">');
+            html.push('<span class="reaction-option__emoji">', option.emoji, '</span>');
+            html.push('</button>');
+        }
+        html.push('</div>');
+        return html.join('');
+    },
+    getReactionEmoji: function (value) {
+        for (var i = 0; i < ChatRoom.reactionOptions.length; i++) {
+            if (ChatRoom.reactionOptions[i].value === value) {
+                return ChatRoom.reactionOptions[i].emoji;
+            }
+        }
+        return '';
+    },
+    renderReactionBar: function (targetId, summary, currentUserReaction, isOpen) {
+        var openClass = isOpen ? ' is-open' : '';
+        var summaryHtml = ChatRoom.renderReactionSummaryItems(targetId, summary, currentUserReaction);
+        if (summaryHtml === '') {
+            var emptyHtml = ['<div class="chat-reaction chat-reaction--empty', openClass, '" data-target-id="', targetId,
+                '" data-current-user-reaction="', currentUserReaction || '', '">'];
+            emptyHtml.push('<button type="button" class="reaction-trigger reaction-trigger--hover', openClass,
+                '" aria-label="添加反应" onclick="ChatRoom.toggleReactionPanel(this)">');
+            emptyHtml.push('<span class="reaction-trigger__icon">🙂</span>');
+            emptyHtml.push('</button>');
+            emptyHtml.push(ChatRoom.renderReactionPanel(targetId, currentUserReaction));
+            emptyHtml.push('</div>');
+            return emptyHtml.join('');
+        }
+        var html = ['<div class="chat-reaction', openClass, '" data-target-id="', targetId,
+            '" data-current-user-reaction="', currentUserReaction || '', '">'];
+        html.push('<div class="reaction-widget__summary">');
+        html.push('<div class="reaction-widget__items">', summaryHtml, '</div>');
+        html.push('<button type="button" class="reaction-trigger', openClass,
+            '" aria-label="添加反应" onclick="ChatRoom.toggleReactionPanel(this)">');
+        html.push('<span class="reaction-trigger__icon">🙂</span>');
+        html.push('</button></div>');
+        html.push(ChatRoom.renderReactionPanel(targetId, currentUserReaction));
+        html.push('</div>');
+        return html.join('');
+    },
+    closeReactionPanels: function () {
+        $('.chat-reaction.is-open').removeClass('is-open');
+    },
+    toggleReactionPanel: function (it) {
+        var $widget = $(it).closest('.chat-reaction');
+        var willOpen = !$widget.hasClass('is-open');
+        ChatRoom.closeReactionPanels();
+        if (willOpen) {
+            $widget.addClass('is-open');
+        }
+    },
+    bindReactionPanels: function () {
+        $(document).off('click.chatReaction').on('click.chatReaction', function (event) {
+            if ($(event.target).closest('.chat-reaction').length === 0) {
+                ChatRoom.closeReactionPanels();
+            }
+        });
+    },
+    isReactionVisible: function ($bars) {
+        var $content = $bars.first().closest('.chats__content');
+        if ($content.length === 0 || document.hidden) {
+            return false;
+        }
+        var rect = $content[0].getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
+    },
+    getReactionFlyStart: function ($bars) {
+        if (!ChatRoom.isReactionVisible($bars)) {
+            return null;
+        }
+        var $content = $bars.first().closest('.chats__content');
+        var $body = $content.find('.vditor-reset').first();
+        var source = $body.length > 0 ? $body[0] : $content[0];
+        var rect = source.getBoundingClientRect();
+        return {
+            x: rect.right - 18,
+            y: rect.top + Math.min(rect.height, 44) / 2 + 6
+        };
+    },
+    getReactionFlyEnd: function (targetId, reactionValue) {
+        var $target = $('.chat-reaction[data-target-id="' + targetId + '"] .reaction-pill[data-reaction-value="' + reactionValue + '"]').first();
+        if ($target.length === 0) {
+            $target = $('.chat-reaction[data-target-id="' + targetId + '"] .reaction-trigger').first();
+        }
+        if ($target.length === 0) {
+            return null;
+        }
+        var rect = $target[0].getBoundingClientRect();
+        return {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2
+        };
+    },
+    playReactionFly: function (targetId, reactionValue, startPoint) {
+        var endPoint = ChatRoom.getReactionFlyEnd(targetId, reactionValue);
+        var emoji = ChatRoom.getReactionEmoji(reactionValue);
+        if (!startPoint || !endPoint || emoji === '') {
+            return;
+        }
+        var node = document.createElement('span');
+        var deltaX = endPoint.x - startPoint.x;
+        var deltaY = endPoint.y - startPoint.y;
+        node.className = 'reaction-flyin';
+        node.textContent = emoji;
+        document.body.appendChild(node);
+        var animation = node.animate([
+            {transform: 'translate(' + startPoint.x + 'px,' + startPoint.y + 'px) scale(.42)', opacity: .2},
+            {
+                transform: 'translate(' + (startPoint.x + deltaX * .72) + 'px,' + (startPoint.y + deltaY * .72 - 10) + 'px) scale(1.08)',
+                opacity: 1,
+                offset: .78
+            },
+            {transform: 'translate(' + endPoint.x + 'px,' + endPoint.y + 'px) scale(.82)', opacity: 0}
+        ], {
+            duration: 360,
+            easing: 'cubic-bezier(.22,1,.36,1)'
+        });
+        animation.onfinish = function () {
+            node.remove();
+        };
+    },
+    replaceReactionBar: function (targetId, summary, currentUserReaction, forceOpen) {
+        var $bars = $('.chat-reaction[data-target-id="' + targetId + '"]');
+        var html = ChatRoom.renderReactionBar(targetId, summary, currentUserReaction,
+            typeof forceOpen === 'boolean' ? forceOpen : $bars.first().hasClass('is-open'));
+        $bars.each(function () {
+            $(this).replaceWith(html);
+        });
+    },
+    updateReaction: function (data) {
+        var targetId = data.targetId || data.oId;
+        if (!targetId) {
+            return;
+        }
+        var $bars = $('.chat-reaction[data-target-id="' + targetId + '"]');
+        if ($bars.length === 0) {
+            return;
+        }
+        var shouldAnimate = !!data.actorReaction;
+        var startPoint = shouldAnimate ? ChatRoom.getReactionFlyStart($bars) : null;
+        var currentUserReaction = '';
+        if (data.actorUserId === Label.currentUserId) {
+            currentUserReaction = data.actorReaction || '';
+        } else {
+            currentUserReaction = $bars.first().attr('data-current-user-reaction') || '';
+        }
+        ChatRoom.replaceReactionBar(targetId, data.summary || [], currentUserReaction);
+        if (startPoint) {
+            ChatRoom.playReactionFly(targetId, data.actorReaction, startPoint);
+        }
+    },
+    react: function (id, value, it) {
+        if (!Label.isLoggedIn) {
+            Util.needLogin();
+            return false;
+        }
+        var $bar = $(it).closest('.chat-reaction');
+        if ($bar.attr('data-loading') === 'true') {
+            return false;
+        }
+        $.ajax({
+            url: Label.servePath + '/chat-room/reaction',
+            type: 'POST',
+            data: JSON.stringify({oId: id, groupType: 'emoji', value: value}),
+            beforeSend: function () {
+                $bar.attr('data-loading', 'true').addClass('reaction-loading');
+            },
+            success: function (result) {
+                if (0 !== result.code) {
+                    Util.alert(result.msg);
+                    return;
+                }
+                ChatRoom.replaceReactionBar(result.data.targetId, result.data.summary,
+                    result.data.currentUserReaction, false);
+            },
+            error: function (result) {
+                Util.alert(result.statusText);
+            },
+            complete: function () {
+                $bar.removeAttr('data-loading').removeClass('reaction-loading');
+            }
+        });
+    },
     init: function () {
+        ChatRoom.bindReactionPanels();
         if (window.localStorage['robot_list'] == undefined) {
             ChatRoom.changeCatchUser('xiaoIce,b,its21f,xds');
         }
@@ -2070,6 +2374,8 @@ ${result.info.msg}
             newHTML += '        <div class="vditor-reset ft__smaller ' + Label.chatRoomPictureStatus + '" style="margin-top: 3px">\n' +
                 '            ' + ChatRoom.filterContent(data.content, isAdmin) + '\n' +
                 '        </div>\n' +
+                (data.reactionDisabled ? '' : ChatRoom.renderReactionBar(data.oId, data.reactionSummary, data.currentUserReaction)) +
+                '\n' +
                 '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
                 '            ' + data.time + '\n' +
                 '                <span class="fn__space5"></span>\n';
@@ -3055,4 +3361,3 @@ ${result.info.msg}
         }, 1000);
     }
 }
-

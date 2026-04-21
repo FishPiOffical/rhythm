@@ -207,6 +207,10 @@
                         </div>
                     </div>
                     </#if>
+                    <div class="article-reaction-shell"
+                         data-target-id="${article.oId}"
+                         data-current-user-reaction="${article.currentUserReaction!''}"
+                         data-summary='${(article.reactionSummary!'[]')?html}'></div>
                     <div class="article-actions fn-clear" style="margin-top: 8px;">
                         <span class="fn-right">
                             <#if permissions["commonViewArticleHistory"].permissionGrant && article.articleRevisionCount &gt; 1>

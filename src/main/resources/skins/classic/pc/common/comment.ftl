@@ -104,50 +104,49 @@
                 ${comment.commentContent}
             </div>
             <div class="comment-action">
-                <div class="ft-fade fn-clear">
-                    <#if comment.commentReplyCnt != 0>
-                        <span class="fn-pointer ft-smaller fn-left" onclick="Comment.showReply('${comment.oId}', this, 'comment-replies')">
+                <div class="ft-fade fn-clear comment-action__bar"><div class="comment-action__left"><#if comment.commentReplyCnt != 0><span class="comment-action__reply fn-pointer ft-smaller" onclick="Comment.showReply('${comment.oId}', this, 'comment-replies')">
                             ${comment.commentReplyCnt} ${replyLabel} <svg class="icon-chevron-down fn-text-top"><use xlink:href="#chevron-down"></use></svg>
-                        </span>
-                    </#if>
-                    <span class="fn-right fn-hidden hover-show action-btns">
+                        </span></#if><div class="comment-reaction-shell"
+                             data-target-id="${comment.oId}"
+                             data-current-user-reaction="${comment.currentUserReaction!''}"
+                             data-summary='${(comment.reactionSummary!'[]')?html}'></div></div><!--
+                 --><span class="fn-hidden hover-show action-btns">
                         <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
                         <span class="tooltipped tooltipped-n <#if hasRewarded>ft-red</#if>" aria-label="${thankLabel}"
                         <#if !hasRewarded && permissions["commonThankComment"].permissionGrant>
                             onclick="Comment.thank('${comment.oId}', '${csrfToken}', '${comment.commentThankLabel}', ${comment.commentAnonymous}, this)"
                         <#elseif !hasRewarded>
                               onclick="Article.permissionTip(Label.noPermissionLabel)"
-                        </#if>><svg class="fn-text-top icon-heart"><use xlink:href="#heart"></use></svg> ${comment.rewardedCnt}</span> &nbsp;
+                        </#if>><svg class="fn-text-top icon-heart"><use xlink:href="#heart"></use></svg> ${comment.rewardedCnt}</span>
                     <span class="tooltipped tooltipped-n<#if isLoggedIn && 0 == comment.commentVote> ft-red</#if>"
                           aria-label="${upLabel}"
                     <#if permissions["commonGoodComment"].permissionGrant>
                           onclick="Article.voteUp('${comment.oId}', 'comment', this)"
                         <#else>
                             onclick="Article.permissionTip(Label.noPermissionLabel)"
-                    </#if>><svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ${comment.commentGoodCnt}</span> &nbsp;
+                    </#if>><svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ${comment.commentGoodCnt}</span>
                     <span class="tooltipped tooltipped-n<#if isLoggedIn && 1 == comment.commentVote> ft-red</#if>"
                           aria-label="${downLabel}"
                     <#if permissions["commonBadComment"].permissionGrant>
                           onclick="Article.voteDown('${comment.oId}', 'comment', this)"
                         <#else>
                             onclick="Article.permissionTip(Label.noPermissionLabel)"
-                    </#if>><svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ${comment.commentBadCnt}</span> &nbsp;
+                    </#if>><svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ${comment.commentBadCnt}</span>
 
                    <#if isLoggedIn && !article.offered && article.articleAuthorId == currentUser.oId && comment.commentAuthorName != currentUser.userName && article.articleQnAOfferPoint != 0>
                     <span aria-label="${adoptLabel}" class="icon-reply-btn tooltipped tooltipped-n"
                           onclick="Comment.accept('${adoptTipLabel?replace('{point}', article.articleQnAOfferPoint)}', '${comment.oId}', this)"
-                    ><svg><use xlink:href="#icon-accept"></use></svg></span> &nbsp;
+                    ><svg><use xlink:href="#icon-accept"></use></svg></span>
                    </#if>
                     <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
                           onclick="$('#reportDialog').data('type', 1).data('id', '${comment.oId}').dialog('open')"
-                    ><svg><use xlink:href="#icon-report"></use></svg></span> &nbsp;
+                    ><svg><use xlink:href="#icon-report"></use></svg></span>
                     <#if isLoggedIn && comment.commentAuthorName != currentUser.userName && permissions["commonAddComment"].permissionGrant>
                         <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
                               onclick="Comment.reply('${comment.commentAuthorName}', '${comment.oId}')">
                         <svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>
                     </#if>
-                    </span>
-                </div>
+                    </span></div>
                 <div class="comment-replies list"></div>
             </div>
         </div>

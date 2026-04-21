@@ -2794,6 +2794,58 @@
           "description": "创建时间"
         }
       ]
+    },
+    {
+      "name": "reaction",
+      "description": "通用 reaction 表（评论/聊天室）",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "reactionUserId",
+          "type": "String",
+          "length": 19,
+          "description": "反应用户 ID"
+        },
+        {
+          "name": "reactionTargetType",
+          "type": "String",
+          "length": 16,
+          "description": "目标类型（comment/chat）"
+        },
+        {
+          "name": "reactionTargetId",
+          "type": "String",
+          "length": 19,
+          "description": "目标 ID"
+        },
+        {
+          "name": "reactionGroup",
+          "type": "String",
+          "length": 16,
+          "description": "分组类型（一期固定 emoji）"
+        },
+        {
+          "name": "reactionValue",
+          "type": "String",
+          "length": 32,
+          "description": "reaction 值"
+        },
+        {
+          "name": "reactionCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "reactionUpdatedTime",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
     }
   ]
 }

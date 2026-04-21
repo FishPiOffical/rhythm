@@ -78,6 +78,7 @@ var ArticleChannel = {
                     } else {
                         $('#comments > .list > ul').prepend(data.cmtTpl)
                     }
+                    Comment.initReactionWidgets($('#' + data.commentId))
 
                     // ua
                     $('#' + data.commentId + ' .cmt-via').text('via ' + Util.getDeviceByUa(data.commentUA))
@@ -130,6 +131,16 @@ var ArticleChannel = {
                         }, 2000)
                     }
 
+                    break
+                case 'commentReaction':
+                    if (typeof Comment !== 'undefined' && Comment.updateReactionFromChannel) {
+                        Comment.updateReactionFromChannel(data)
+                    }
+                    break
+                case 'articleReaction':
+                    if (typeof ArticleReaction !== 'undefined' && ArticleReaction.updateReactionFromChannel) {
+                        ArticleReaction.updateReactionFromChannel(data)
+                    }
                     break
                 default:
                     console.error('Wrong data [type=' + data.type + ']')
@@ -520,6 +531,12 @@ var ChatRoomChannel = {
                     $("#chatRoomIndex li:first").slideDown(200);
                     Util.listenUserCard();
                     typeof ChatRoom==="object"&&ChatRoom.imageViewer()
+                    break;
+                case 'chatReaction':
+                    if (typeof ChatRoom === 'object' &&
+                        typeof ChatRoom.updateReaction === 'function') {
+                        ChatRoom.updateReaction(data);
+                    }
                     break;
             }
         }

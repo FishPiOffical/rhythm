@@ -148,6 +148,9 @@ public class ArticleProcessor {
     @Inject
     private CommentQueryService commentQueryService;
 
+    @Inject
+    private ReactionQueryService reactionQueryService;
+
     /**
      * User query service.
      */
@@ -424,6 +427,9 @@ public class ArticleProcessor {
             }
         }
 
+        reactionQueryService.fillCommentReactions(niceComments, currentUserId);
+        reactionQueryService.fillCommentReactions(articleComments, currentUserId);
+
         context.renderData(result).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
@@ -639,6 +645,7 @@ public class ArticleProcessor {
         pagination.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
         dataModel.put("pagination", pagination);
 
+        reactionQueryService.fillArticleReaction(article, currentUserId);
         if (!article.optBoolean(Common.DISCUSSION_VIEWABLE)) {
             article.put(Article.ARTICLE_T_COMMENTS, (Object) Collections.emptyList());
             article.put(Article.ARTICLE_T_NICE_COMMENTS, (Object) Collections.emptyList());
@@ -728,6 +735,8 @@ public class ArticleProcessor {
         } finally {
             Stopwatchs.end();
         }
+        reactionQueryService.fillCommentReactions(niceComments, currentUserId);
+        reactionQueryService.fillCommentReactions(articleComments, currentUserId);
         dataModel.put(Article.ARTICLE, DesensitizeUtil.articleDesensitize(article));
         context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
     }
@@ -1513,6 +1522,7 @@ public class ArticleProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
         dataModel.put(Common.ARTICLE_COMMENTS_PAGE_SIZE, pageSize);
 
+        reactionQueryService.fillArticleReaction(article, currentUserId);
         dataModel.put(Common.DISCUSSION_VIEWABLE, article.optBoolean(Common.DISCUSSION_VIEWABLE));
         if (!article.optBoolean(Common.DISCUSSION_VIEWABLE)) {
             article.put(Article.ARTICLE_T_COMMENTS, (Object) Collections.emptyList());
@@ -1590,6 +1600,9 @@ public class ArticleProcessor {
         } finally {
             Stopwatchs.end();
         }
+
+        reactionQueryService.fillCommentReactions(niceComments, currentUserId);
+        reactionQueryService.fillCommentReactions(articleComments, currentUserId);
 
         // Referral statistic
         final String referralUserName = context.param("r");

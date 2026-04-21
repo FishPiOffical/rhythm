@@ -293,6 +293,10 @@
                 </ul>
             </div>
             </#if>
+            <div class="article-reaction-shell"
+                 data-target-id="${article.oId}"
+                 data-current-user-reaction="${article.currentUserReaction!''}"
+                 data-summary='${(article.reactionSummary!'[]')?html}'></div>
             <div id="articleActionPanel" class="comment__action"></div>
             <#if 6 == article.articleType>
             <#else>

@@ -95,6 +95,9 @@ public class CommentProcessor {
     @Inject
     private CommentQueryService commentQueryService;
 
+    @Inject
+    private ReactionQueryService reactionQueryService;
+
     /**
      * Article query service.
      */
@@ -390,6 +393,8 @@ public class CommentProcessor {
                             originalCmtId, Reward.TYPE_C_COMMENT));
         }
 
+        reactionQueryService.fillCommentReaction(originalCmt, currentUserId);
+
         context.renderJSON(StatusCodes.SUCC).renderJSONValue(Comment.COMMENT_T_REPLIES, originalCmt);
     }
 
@@ -428,6 +433,8 @@ public class CommentProcessor {
             final int rewardCount = reply.optInt(Comment.COMMENT_THANK_CNT);
             reply.put(Common.REWARED_COUNT, rewardCount);
         }
+
+        reactionQueryService.fillCommentReactions(replies, currentUserId);
 
         context.renderJSON(StatusCodes.SUCC).renderJSONValue(Comment.COMMENT_T_REPLIES, replies);
     }

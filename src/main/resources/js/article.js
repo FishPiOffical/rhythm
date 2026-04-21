@@ -64,6 +64,302 @@ function normalizeHeadingIdFromString(rawId, caretChar) {
  */
 var Comment = {
   editor: undefined,
+  reactionOptions: [
+    {value: 'thumbsup', emoji: '👍'},
+    {value: 'thumbsdown', emoji: '👎'},
+    {value: 'heart', emoji: '❤️'},
+    {value: 'fire', emoji: '🔥'},
+    {value: 'party', emoji: '🎉'},
+    {value: 'laugh', emoji: '😂'},
+    {value: 'wow', emoji: '😮'},
+    {value: 'clap', emoji: '👏'},
+    {value: 'hundred', emoji: '💯'},
+    {value: 'rocket', emoji: '🚀'},
+    {value: 'salute', emoji: '🖖'},
+    {value: 'mindblown', emoji: '🤯'},
+    {value: 'thinking', emoji: '🤔'},
+    {value: 'eyes', emoji: '👀'},
+    {value: 'cry', emoji: '😢'},
+    {value: 'angry', emoji: '😡'},
+    {value: 'pray', emoji: '🙏'},
+    {value: 'brokenheart', emoji: '💔'},
+    {value: 'heartonfire', emoji: '❤️‍🔥'},
+    {value: 'skull', emoji: '💀'},
+    {value: 'clown', emoji: '🤡'},
+    {value: 'poop', emoji: '💩'},
+  ],
+  normalizeReactionSummary: function (summary) {
+    if (Array.isArray(summary)) {
+      return summary
+    }
+    if (typeof summary !== 'string' || summary === '') {
+      return []
+    }
+    try {
+      var parsed = JSON.parse(summary)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      return []
+    }
+  },
+  getReactionMap: function (summary) {
+    summary = Comment.normalizeReactionSummary(summary)
+    var map = {}
+    for (var i = 0; i < summary.length; i++) {
+      map[summary[i].value] = summary[i]
+    }
+    return map
+  },
+  escapeReactionHtml: function (value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  },
+  getReactionUserDetails: function (item) {
+    if (!item || !Array.isArray(item.userDetails)) {
+      return []
+    }
+    return item.userDetails
+  },
+  renderReactionTip: function (item) {
+    var users = Comment.getReactionUserDetails(item)
+    if (users.length === 0) {
+      return ''
+    }
+    var html = []
+    for (var i = 0; i < users.length; i++) {
+      var user = users[i] || {}
+      var userName = user.userName || ''
+      var avatarURL = user.avatarURL || ''
+      if (userName === '' || avatarURL === '') {
+        continue
+      }
+      var displayName = user.displayName || userName
+      html.push('<a class="reaction-pill__tip-link" href="', Label.servePath, '/member/',
+        encodeURIComponent(userName), '" aria-label="', Comment.escapeReactionHtml(displayName),
+        '" title="', Comment.escapeReactionHtml(displayName), '">')
+      html.push('<img class="reaction-pill__tip-avatar" src="', Comment.escapeReactionHtml(avatarURL),
+        '" alt="', Comment.escapeReactionHtml(displayName), '">')
+      html.push('</a>')
+    }
+    if (html.length === 0) {
+      return ''
+    }
+    return '<span class="reaction-pill__tip tip-text">' + html.join('') + '</span>'
+  },
+  renderReactionSummaryItems: function (id, summary, currentUserReaction) {
+    var map = Comment.getReactionMap(summary)
+    var html = []
+    for (var i = 0; i < Comment.reactionOptions.length; i++) {
+      var option = Comment.reactionOptions[i]
+      var item = map[option.value] || {}
+      var count = item.count || 0
+      if (count < 1) {
+        continue
+      }
+      var selected = currentUserReaction === option.value ? ' selected' : ''
+      var tipHtml = Comment.renderReactionTip(item)
+      if (tipHtml !== '') {
+        html.push('<span class="reaction-pill-wrapper tip-wrapper">')
+      }
+      html.push('<button type="button" class="reaction-pill reaction-pill--summary', selected,
+        '" data-reaction-value="', option.value, '"')
+      html.push(' onclick="Comment.react(\'', id, '\', \'', option.value, '\', this)">')
+      html.push('<span class="reaction-pill__emoji">', option.emoji, '</span>')
+      html.push('<span class="reaction-pill__count">', count, '</span>')
+      html.push('</button>')
+      if (tipHtml !== '') {
+        html.push(tipHtml, '</span>')
+      }
+    }
+    return html.join('')
+  },
+  renderReactionPanel: function (id, currentUserReaction) {
+    var html = ['<div class="reaction-popover">']
+    for (var i = 0; i < Comment.reactionOptions.length; i++) {
+      var option = Comment.reactionOptions[i]
+      var selected = currentUserReaction === option.value ? ' selected' : ''
+      html.push('<button type="button" class="reaction-option', selected,
+        '" onclick="Comment.react(\'', id, '\', \'', option.value, '\', this)">')
+      html.push('<span class="reaction-option__emoji">', option.emoji, '</span>')
+      html.push('</button>')
+    }
+    html.push('</div>')
+    return html.join('')
+  },
+  renderReactionSummaryWidget: function (id, summary, currentUserReaction) {
+    var summaryHtml = Comment.renderReactionSummaryItems(id, summary, currentUserReaction)
+    var html = ['<div class="comment-reaction comment-reaction--summary" data-target-id="', id,
+      '" data-current-user-reaction="', currentUserReaction || '', '">']
+    html.push('<div class="reaction-widget__summary">')
+    html.push('<div class="reaction-widget__items">', summaryHtml, '</div></div></div>')
+    return html.join('')
+  },
+  renderReactionTriggerWidget: function (id, currentUserReaction, isOpen) {
+    var openClass = isOpen ? ' is-open' : ''
+    var html = ['<div class="comment-reaction comment-reaction--trigger', openClass,
+      '" data-target-id="', id, '" data-current-user-reaction="', currentUserReaction || '', '">']
+    html.push('<button type="button" class="reaction-trigger', openClass,
+      '" aria-label="添加反应" onclick="Comment.toggleReactionPanel(this)">')
+    html.push('<span class="reaction-trigger__icon">🙂</span>')
+    html.push('</button>')
+    html.push(Comment.renderReactionPanel(id, currentUserReaction))
+    html.push('</div>')
+    return html.join('')
+  },
+  renderReactionBar: function (id, summary, currentUserReaction, isOpen, mode) {
+    if (mode === 'summary') {
+      return Comment.renderReactionSummaryWidget(id, summary, currentUserReaction)
+    }
+    if (mode === 'trigger') {
+      return Comment.renderReactionTriggerWidget(id, currentUserReaction, isOpen)
+    }
+    var openClass = isOpen ? ' is-open' : ''
+    var summaryHtml = Comment.renderReactionSummaryItems(id, summary, currentUserReaction)
+    var html = ['<div class="comment-reaction comment-reaction--combined', openClass, '" data-target-id="', id,
+      '" data-current-user-reaction="', currentUserReaction || '', '">']
+    html.push('<div class="reaction-widget__summary">')
+    html.push('<div class="reaction-widget__items">', summaryHtml, '</div>')
+    html.push('<button type="button" class="reaction-trigger', openClass,
+      '" aria-label="添加反应" onclick="Comment.toggleReactionPanel(this)">')
+    html.push('<span class="reaction-trigger__icon">🙂</span>')
+    html.push('</button></div>')
+    html.push(Comment.renderReactionPanel(id, currentUserReaction))
+    html.push('</div>')
+    return html.join('')
+  },
+  getReactionWidgets: function (targetId) {
+    return $('.comment-reaction[data-target-id="' + targetId + '"]')
+  },
+  getInteractiveReactionWidgets: function (targetId) {
+    return $('.comment-reaction--combined[data-target-id="' + targetId + '"], ' +
+      '.comment-reaction--trigger[data-target-id="' + targetId + '"]')
+  },
+  mountReactionTrigger: function ($actionBtns, targetId, currentUserReaction, isOpen) {
+    if ($actionBtns.length === 0) {
+      return
+    }
+    var html = Comment.renderReactionBar(targetId, [], currentUserReaction, isOpen, 'trigger')
+    var $trigger = $actionBtns.find('.comment-reaction--trigger[data-target-id="' + targetId + '"]')
+    if ($trigger.length > 0) {
+      $trigger.replaceWith(html)
+      return
+    }
+    $actionBtns.prepend(html)
+  },
+  collectReactionShells: function (context) {
+    var $context = context ? $(context) : $(document)
+    if ($context.hasClass('comment-reaction-shell')) {
+      return $context.add($context.find('.comment-reaction-shell'))
+    }
+    return $context.find('.comment-reaction-shell')
+  },
+  initReactionWidgets: function (context) {
+    Comment.collectReactionShells(context).each(function () {
+      var $shell = $(this)
+      var targetId = $shell.attr('data-target-id')
+      var summary = $shell.attr('data-summary')
+      var currentUserReaction = $shell.attr('data-current-user-reaction') || ''
+      var $actionBtns = $shell.closest('.comment-action__bar').find('.action-btns').first()
+      var useActionButtons = $shell.closest('.comment-action__left').length > 0 &&
+        $actionBtns.length > 0
+      var html = Comment.renderReactionBar(targetId, summary, currentUserReaction, false,
+        useActionButtons ? 'summary' : 'combined')
+      $shell.replaceWith(html)
+      if (useActionButtons) {
+        Comment.mountReactionTrigger($actionBtns, targetId, currentUserReaction, false)
+      }
+    })
+  },
+  closeReactionPanels: function (context) {
+    var $context = context ? $(context) : $(document)
+    var selector = '.comment-reaction--combined, .comment-reaction--trigger'
+    var $widgets = $context.is(selector)
+      ? $context.add($context.find(selector))
+      : $context.find(selector)
+    $widgets.removeClass('is-open')
+  },
+  toggleReactionPanel: function (it) {
+    var $widget = $(it).closest('.comment-reaction')
+    var targetId = $widget.attr('data-target-id')
+    var willOpen = !$widget.hasClass('is-open')
+    Comment.closeReactionPanels()
+    if (willOpen) {
+      Comment.getInteractiveReactionWidgets(targetId).addClass('is-open')
+    }
+  },
+  bindReactionPanels: function () {
+    $(document).off('click.commentReaction').on('click.commentReaction', function (event) {
+      if ($(event.target).closest('.comment-reaction').length === 0) {
+        Comment.closeReactionPanels()
+      }
+    })
+  },
+  updateReactionBars: function (targetId, summary, currentUserReaction, forceOpen) {
+    var $bars = Comment.getReactionWidgets(targetId)
+    var willOpen = typeof forceOpen === 'boolean'
+      ? forceOpen
+      : Comment.getInteractiveReactionWidgets(targetId).first().hasClass('is-open')
+    $bars.each(function () {
+      var $bar = $(this)
+      var mode = 'combined'
+      if ($bar.hasClass('comment-reaction--summary')) {
+        mode = 'summary'
+      } else if ($bar.hasClass('comment-reaction--trigger')) {
+        mode = 'trigger'
+      }
+      $bar.replaceWith(Comment.renderReactionBar(targetId, summary, currentUserReaction, willOpen, mode))
+    })
+  },
+  updateReactionFromChannel: function (data) {
+    var targetId = data.targetId || data.commentId
+    if (!targetId) {
+      return
+    }
+    var $bars = Comment.getReactionWidgets(targetId)
+    if ($bars.length === 0) {
+      return
+    }
+    var currentUserReaction = data.actorUserId === Label.currentUserId
+      ? (data.actorReaction || '')
+      : ($bars.first().attr('data-current-user-reaction') || '')
+    Comment.updateReactionBars(targetId, data.summary || [], currentUserReaction, false)
+  },
+  react: function (id, value, it) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    var $bar = $(it).closest('.comment-reaction')
+    if ($bar.attr('data-loading') === 'true') {
+      return false
+    }
+    $.ajax({
+      url: Label.servePath + '/comment/reaction',
+      type: 'POST',
+      data: JSON.stringify({commentId: id, groupType: 'emoji', value: value}),
+      beforeSend: function () {
+        $bar.attr('data-loading', 'true').addClass('reaction-loading')
+      },
+      success: function (result) {
+        if (0 !== result.code) {
+          Util.alert(result.msg)
+          return
+        }
+        Comment.updateReactionBars(result.data.targetId, result.data.summary,
+          result.data.currentUserReaction, false)
+      },
+      error: function (result) {
+        Util.alert(result.statusText)
+      },
+      complete: function () {
+        $bar.removeAttr('data-loading').removeClass('reaction-loading')
+      },
+    })
+  },
   /**
    * 举报
    * @param it
@@ -662,6 +958,7 @@ var Comment = {
       storage: true,
       titleSuffix: '',
       callback: function () {
+        Comment.initReactionWidgets($('#comments'))
         Util.parseMarkdown()
         Util.parseHljs()
         Util.listenUserCard()
@@ -674,6 +971,10 @@ var Comment = {
     $('#comments').bind('pjax.end', function () {
       NProgress.done()
     })
+    ArticleReaction.bindPanels()
+    ArticleReaction.initWidgets()
+    Comment.bindReactionPanels()
+    Comment.initReactionWidgets($('#comments'))
 
     if (!Label.isLoggedIn || !document.getElementById('commentContent')) {
       return false
@@ -867,7 +1168,10 @@ var Comment = {
             + '&m=' + Label.userCommentViewMode + '#' + data.oId
             +
             '\')"><svg><use xlink:href="#quote"></use></svg></a></div><div class="vditor-reset comment">'
-            + data.commentContent + '</div></div></div></li>'
+            + data.commentContent + '</div>'
+            + Comment.renderReactionBar(data.oId, data.reactionSummary,
+              data.currentUserReaction)
+            + '</div></div></li>'
         }
         $commentReplies.html('<ul>' + template + '</ul>')
         Util.parseHljs()
@@ -1014,6 +1318,172 @@ var Comment = {
     }
 
     $('#replyUseName').html(replyUserHTML).data('commentOriginalCommentId', id)
+  },
+}
+
+var ArticleReaction = {
+  renderSummaryItems: function (id, summary, currentUserReaction) {
+    var map = Comment.getReactionMap(summary)
+    var html = []
+    for (var i = 0; i < Comment.reactionOptions.length; i++) {
+      var option = Comment.reactionOptions[i]
+      var item = map[option.value] || {}
+      var count = item.count || 0
+      if (count < 1) {
+        continue
+      }
+      var selected = currentUserReaction === option.value ? ' selected' : ''
+      var tipHtml = Comment.renderReactionTip(item)
+      if (tipHtml !== '') {
+        html.push('<span class="reaction-pill-wrapper tip-wrapper">')
+      }
+      html.push('<button type="button" class="reaction-pill reaction-pill--summary', selected,
+        '" data-reaction-value="', option.value, '"')
+      html.push(' onclick="ArticleReaction.react(\'', id, '\', \'', option.value, '\', this)">')
+      html.push('<span class="reaction-pill__emoji">', option.emoji, '</span>')
+      html.push('<span class="reaction-pill__count">', count, '</span>')
+      html.push('</button>')
+      if (tipHtml !== '') {
+        html.push(tipHtml, '</span>')
+      }
+    }
+    return html.join('')
+  },
+  renderPanel: function (id, currentUserReaction) {
+    var html = ['<div class="reaction-popover">']
+    for (var i = 0; i < Comment.reactionOptions.length; i++) {
+      var option = Comment.reactionOptions[i]
+      var selected = currentUserReaction === option.value ? ' selected' : ''
+      html.push('<button type="button" class="reaction-option', selected,
+        '" onclick="ArticleReaction.react(\'', id, '\', \'', option.value, '\', this)">')
+      html.push('<span class="reaction-option__emoji">', option.emoji, '</span>')
+      html.push('</button>')
+    }
+    html.push('</div>')
+    return html.join('')
+  },
+  renderBar: function (id, summary, currentUserReaction, isOpen) {
+    var openClass = isOpen ? ' is-open' : ''
+    var html = ['<div class="article-reaction', openClass, '" data-target-id="', id,
+      '" data-current-user-reaction="', currentUserReaction || '', '">']
+    html.push('<div class="reaction-widget__summary">')
+    html.push('<div class="reaction-widget__items">',
+      ArticleReaction.renderSummaryItems(id, summary, currentUserReaction), '</div>')
+    html.push('<button type="button" class="reaction-trigger', openClass,
+      '" aria-label="添加反应" onclick="ArticleReaction.togglePanel(this)">')
+    html.push('<span class="reaction-trigger__icon">🙂</span>')
+    html.push('</button></div>')
+    html.push(ArticleReaction.renderPanel(id, currentUserReaction))
+    html.push('</div>')
+    return html.join('')
+  },
+  collectShells: function (context) {
+    var $context = context ? $(context) : $(document)
+    if ($context.hasClass('article-reaction-shell')) {
+      return $context.add($context.find('.article-reaction-shell'))
+    }
+    return $context.find('.article-reaction-shell')
+  },
+  ensureShell: function () {
+    if ($('.article-reaction-shell, .article-reaction').length > 0 || !Label.articleOId) {
+      return
+    }
+    var $anchor = $('.article-main .tag-desc').first().closest('.fn-flex')
+    if ($anchor.length === 0) {
+      $anchor = $('.article-main .article-actions.action-btns').first()
+    }
+    if ($anchor.length === 0) {
+      return
+    }
+    $('<div class="article-reaction-shell" data-target-id="' + Label.articleOId +
+      '" data-current-user-reaction="" data-summary="[]"></div>').insertAfter($anchor)
+  },
+  getWidgets: function (targetId) {
+    return $('.article-reaction[data-target-id="' + targetId + '"]')
+  },
+  initWidgets: function (context) {
+    if (!context) {
+      ArticleReaction.ensureShell()
+    }
+    ArticleReaction.collectShells(context).each(function () {
+      var $shell = $(this)
+      $shell.replaceWith(ArticleReaction.renderBar(
+        $shell.attr('data-target-id'),
+        $shell.attr('data-summary'),
+        $shell.attr('data-current-user-reaction') || '',
+        false
+      ))
+    })
+  },
+  closePanels: function () {
+    $('.article-reaction.is-open').removeClass('is-open')
+  },
+  togglePanel: function (it) {
+    var $widget = $(it).closest('.article-reaction')
+    var willOpen = !$widget.hasClass('is-open')
+    ArticleReaction.closePanels()
+    if (willOpen) {
+      $widget.addClass('is-open')
+    }
+  },
+  bindPanels: function () {
+    $(document).off('click.articleReaction').on('click.articleReaction', function (event) {
+      if ($(event.target).closest('.article-reaction').length === 0) {
+        ArticleReaction.closePanels()
+      }
+    })
+  },
+  updateBars: function (targetId, summary, currentUserReaction, forceOpen) {
+    var $bars = ArticleReaction.getWidgets(targetId)
+    var willOpen = typeof forceOpen === 'boolean'
+      ? forceOpen
+      : $bars.first().hasClass('is-open')
+    $bars.each(function () {
+      $(this).replaceWith(ArticleReaction.renderBar(targetId, summary, currentUserReaction, willOpen))
+    })
+  },
+  updateReactionFromChannel: function (data) {
+    var targetId = data.targetId
+    var $bars = ArticleReaction.getWidgets(targetId)
+    if (!targetId || $bars.length === 0) {
+      return
+    }
+    var currentUserReaction = data.actorUserId === Label.currentUserId
+      ? (data.actorReaction || '')
+      : ($bars.first().attr('data-current-user-reaction') || '')
+    ArticleReaction.updateBars(targetId, data.summary || [], currentUserReaction, false)
+  },
+  react: function (id, value, it) {
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    var $bar = $(it).closest('.article-reaction')
+    if ($bar.attr('data-loading') === 'true') {
+      return false
+    }
+    $.ajax({
+      url: Label.servePath + '/article/reaction',
+      type: 'POST',
+      data: JSON.stringify({articleId: id, groupType: 'emoji', value: value}),
+      beforeSend: function () {
+        $bar.attr('data-loading', 'true').addClass('reaction-loading')
+      },
+      success: function (result) {
+        if (0 !== result.code) {
+          Util.alert(result.msg)
+          return
+        }
+        ArticleReaction.updateBars(result.data.targetId, result.data.summary,
+          result.data.currentUserReaction, false)
+      },
+      error: function (result) {
+        Util.alert(result.statusText)
+      },
+      complete: function () {
+        $bar.removeAttr('data-loading').removeClass('reaction-loading')
+      },
+    })
   },
 }
 

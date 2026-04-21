@@ -134,6 +134,8 @@ public final class Router {
         MilestoneProcessor.register();
         //表情包分组
         EmojiProcessor.register();
+        // reaction
+        ReactionProcessor.register();
 
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);

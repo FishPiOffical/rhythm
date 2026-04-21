@@ -87,6 +87,7 @@ import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.NotificationMgmtService;
 import org.b3log.symphony.service.NotificationQueryService;
 import org.b3log.symphony.service.PointtransferMgmtService;
+import org.b3log.symphony.service.ReactionQueryService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.ShortLinkQueryService;
 import org.b3log.symphony.service.UserMgmtService;
@@ -157,6 +158,9 @@ public class ChatroomProcessor {
      */
     @Inject
     private NotificationQueryService notificationQueryService;
+
+    @Inject
+    private ReactionQueryService reactionQueryService;
 
     /**
      * Notification management service.
@@ -1528,6 +1532,7 @@ public class ChatroomProcessor {
                     }
                     final JSONObject pushMsg = JSONs.clone(msg);
                     pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
+                    fillPushMessageReactions(pushMsg);
                     ChatroomChannel.notifyChat(pushMsg);
 
                     try {
@@ -1561,6 +1566,7 @@ public class ChatroomProcessor {
                 msg = msg.put("md", msg.optString(Common.CONTENT)).put(Common.CONTENT, processMarkdown(msg.optString(Common.CONTENT)));
                 final JSONObject pushMsg = JSONs.clone(msg);
                 pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
+                fillPushMessageReactions(pushMsg);
                 ChatroomChannel.notifyChat(pushMsg);
 
                 context.renderJSON(StatusCodes.SUCC);
@@ -1597,6 +1603,7 @@ public class ChatroomProcessor {
                 msg = msg.put("md", msg.optString(Common.CONTENT)).put(Common.CONTENT, processMarkdown(msg.optString(Common.CONTENT)));
                 final JSONObject pushMsg = JSONs.clone(msg);
                 pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
+                fillPushMessageReactions(pushMsg);
                 ChatroomChannel.notifyChat(pushMsg);
 
                 context.renderJSON(StatusCodes.SUCC);
@@ -1691,6 +1698,7 @@ public class ChatroomProcessor {
                 msg = msg.put("md", msg.optString(Common.CONTENT)).put(Common.CONTENT, processMarkdown(msg.optString(Common.CONTENT)));
                 final JSONObject pushMsg = JSONs.clone(msg);
                 pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
+                fillPushMessageReactions(pushMsg);
                 ChatroomChannel.notifyChat(pushMsg);
 
                 context.renderJSON(StatusCodes.SUCC);
@@ -2049,10 +2057,11 @@ public class ChatroomProcessor {
                 context.abort();
                 return;
             }
+            final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
             JSONObject ret = new JSONObject();
             ret.put(Keys.CODE, StatusCodes.SUCC);
             ret.put(Keys.MSG, "");
-            ret.put(Keys.DATA, getContext(oId, size, mode, type));
+            ret.put(Keys.DATA, getContext(oId, size, mode, type, currentUserId));
             context.renderJSON(ret);
         } catch (Exception e) {
             context.sendStatus(500);
@@ -2080,7 +2089,8 @@ public class ChatroomProcessor {
                 }
             }
             String type = context.param("type");
-            List<JSONObject> jsonObject = getMessages(page, type);
+            final String currentUserId = currentUser == null ? "" : currentUser.optString(Keys.OBJECT_ID);
+            List<JSONObject> jsonObject = getMessages(page, type, currentUserId);
             JSONObject ret = new JSONObject();
             ret.put(Keys.CODE, StatusCodes.SUCC);
             ret.put(Keys.MSG, "");
@@ -2189,10 +2199,15 @@ public class ChatroomProcessor {
      * @return
      */
     public static List<JSONObject> getMessages(int page, String type) {
+        return getMessages(page, type, "");
+    }
+
+    public static List<JSONObject> getMessages(int page, String type, String currentUserId) {
         try {
             final BeanManager beanManager = BeanManager.getInstance();
             final ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
             final AvatarQueryService avatarQueryService = beanManager.getReference(AvatarQueryService.class);
+            final ReactionQueryService reactionQueryService = beanManager.getReference(ReactionQueryService.class);
             int start = 0;
             int count = 25;
             if (page > 1) {
@@ -2208,6 +2223,7 @@ public class ChatroomProcessor {
             for (JSONObject msg : msgs) {
                 avatarQueryService.fillUserAvatarURL(msg);
             }
+            reactionQueryService.fillChatReactions(msgs, currentUserId);
             return msgs;
         } catch (RepositoryException e) {
             return new LinkedList<>();
@@ -2215,9 +2231,14 @@ public class ChatroomProcessor {
     }
 
     public static List<JSONObject> getContext(String oId, int size, int mode, String type) {
+        return getContext(oId, size, mode, type, "");
+    }
+
+    public static List<JSONObject> getContext(String oId, int size, int mode, String type, String currentUserId) {
         try {
             final BeanManager beanManager = BeanManager.getInstance();
             final ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
+            final ReactionQueryService reactionQueryService = beanManager.getReference(ReactionQueryService.class);
             List<JSONObject> msgs = null;
             /*
                mode = 0; 显示本条及之前之后消息
@@ -2253,10 +2274,15 @@ public class ChatroomProcessor {
             if (!"md".equals(type)) {
                 msgs = msgs.stream().map(msg -> JSONs.clone(msg.put("content", processMarkdown(msg.optString("content"))))).collect(Collectors.toList());
             }
+            reactionQueryService.fillChatReactions(msgs, currentUserId);
             return msgs;
         } catch (RepositoryException e) {
             return new LinkedList<>();
         }
+    }
+
+    private void fillPushMessageReactions(final JSONObject pushMsg) {
+        reactionQueryService.fillChatReaction(pushMsg, "");
     }
 
     public static String processMarkdown(String content) {
