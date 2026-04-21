@@ -31,6 +31,7 @@
 - `permissionMidware::check` 在 `permission.rule.url.*` 缺失时会直接放行（含匿名）；凡仅挂 `permissionMidware` 的路由必须同步补齐对应权限规则，避免后台能力裸露。
 - 处理方法取当前用户推荐顺序：`context.attr(User.USER)` -> `Sessions.getUser()` -> `ApiProcessor.getUserByKey(...)`；不要只依赖 `Sessions.getUser()`。
 - 聊天室 `/cr` 的两套样式分别走 `chat-room.js` 与 `chat-room-2.js`，但红包消息都通过 `/chat-room/getMessage` 返回原始 JSON（`msgType=redPacket`），领取统一走 `/chat-room/red-packet/open`。
+- 聊天室红包详情/打开后的弹层头部走前端通用 `Util.alert()`（`src/main/resources/js/common.js`），标题与关闭按钮布局异常优先排查这个公共弹层，而不是红包业务模板。
 - 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。

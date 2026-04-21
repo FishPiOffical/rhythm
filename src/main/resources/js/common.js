@@ -436,7 +436,7 @@ var Util = {
                 'px;display: block;" onclick="Util.closeAlertWithEffect()"></div>',
             alertContentHTML = '<div class="dialog-panel" id="alertDialogPanel" tabindex="0">'
                 +
-                '<div class="fn-clear dialog-header-bg"><span style="font-size: 14px;">' + title + '</span><a class="icon-close" href="javascript:void(0);" onclick="Util.closeAlert()"><svg><use xlink:href="#close"></use></svg></a></div>'
+                '<div class="fn-clear dialog-header-bg"><div class="dialog-title"><span style="font-size: 14px;">' + title + '</span></div><a class="icon-close" href="javascript:void(0);" onclick="Util.closeAlert()"><svg><use xlink:href="#close"></use></svg></a></div>'
                 +
                 '<div class="dialog-main" style="text-align:center;padding: 30px 10px 40px">' +
                 content + '</div></div>'
