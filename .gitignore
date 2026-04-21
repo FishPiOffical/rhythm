@@ -15,3 +15,4 @@ delegated-apnic-latest.tmp
 *.lock
 .fleet/
 scripts/deploy.ps1
+/.codex-tasks/
