@@ -785,12 +785,12 @@ label.cmt-anonymous {
 
 .chat-reaction--empty {
   position: absolute;
-  top: 50%;
+  top: 10px;
   right: -14px;
   z-index: 5;
   width: auto;
   margin: 0;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .reaction-widget__summary {
@@ -3107,7 +3107,8 @@ code .dec {
   .chat-reaction--empty {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-50%) scale(.92);
+    transform: scale(.92);
+    transform-origin: top right;
     transition: opacity .18s ease, transform .18s ease;
   }
 
@@ -3115,7 +3116,7 @@ code .dec {
   .chat-reaction--empty.is-open {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(-50%) scale(1);
+    transform: scale(1);
   }
 }
 
