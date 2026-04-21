@@ -284,7 +284,7 @@
         </div>
     </div>
 
-    <#if (recentLongArticles?? && recentLongArticles?size != 0) || (hotLongArticles?? && hotLongArticles?size != 0)>
+    <#if (latestLongColumns?? && latestLongColumns?size != 0) || (hotLongColumns?? && hotLongColumns?size != 0)>
     <section class="long-read-zone">
         <div class="wrapper long-read-zone__wrapper">
             <div class="long-read-zone__head">
@@ -292,14 +292,14 @@
                     <svg><use xlink:href="#book"></use></svg>
                     <span>长篇专区</span>
                 </div>
-                <a class="long-read-zone__more" href="${servePath}/recent/long">更多</a>
+                <a class="long-read-zone__more" href="${servePath}/column">更多</a>
             </div>
 
-            <#if recentLongArticles?? && recentLongArticles?size != 0>
+            <#if latestLongColumns?? && latestLongColumns?size != 0>
             <div class="long-read-zone__row">
                 <div class="long-read-zone__row-head">
                     <div class="long-read-zone__row-title">
-                        <span class="long-read-zone__badge">最近长篇</span>
+                        <span class="long-read-zone__badge">最近更新</span>
                     </div>
                     <div class="long-read-zone__row-actions">
                         <button class="long-read-zone__nav" type="button" aria-label="向左滚动" onclick="scrollLongShelf('long-recent', -1)">
@@ -311,42 +311,38 @@
                     </div>
                 </div>
                 <div class="long-read-zone__carousel" id="long-recent">
-                    <#list recentLongArticles as article>
-                        <#assign coverUrl = "">
-                        <#if article.articleLongCoverURL?has_content>
-                            <#assign coverUrl = article.articleLongCoverURL>
-                        <#elseif article.articleThumbnailURL?has_content>
-                            <#assign coverUrl = article.articleThumbnailURL>
-                        </#if>
-                        <a class="long-book <#if !coverUrl?has_content>long-book--no-cover</#if> <#if coverUrl?has_content>long-book--with-cover</#if>" href="${servePath}${article.articlePermalink}">
-                            <#if coverUrl?has_content>
-                            <div class="long-book__cover" style="background-image: url('${coverUrl}')"></div>
-                            </#if>
-                            <div class="long-book__info">
-                                <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}</div>
-                                <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
-                                <div class="long-book__column" title="专栏 · ${article.columnTitle}" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</div>
-                                </#if>
-                                <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
-                                <div class="long-book__summary">${article.articlePreviewContent}</div>
-                                </#if>
-                                <div class="long-book__meta">
-                                    <span>${article.timeAgo}</span>
-                                    <span>${article.articleCommentCount} 评论</span>
-                                </div>
+                    <#list latestLongColumns as column>
+                        <#assign columnId = column.columnId!column.oId>
+                        <article class="long-column-card">
+                            <div class="long-column-card__head">
+                                <a class="long-column-card__title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                                <span class="long-column-card__count">${column.columnArticleCount?c} 章</span>
                             </div>
-                        </a>
+                            <div class="long-column-card__chapters">
+                                <#if column.latestChapter??>
+                                <a class="long-column-card__chapter" href="${servePath}${column.latestChapter.articlePermalink}">
+                                    <span class="long-column-card__chapter-no">第 ${column.latestChapter.chapterNo?c} 章</span>
+                                    <span class="long-column-card__chapter-title">${column.latestChapter.articleTitleEmoj}</span>
+                                </a>
+                                </#if>
+                                <#if column.secondLatestChapter??>
+                                <a class="long-column-card__chapter" href="${servePath}${column.secondLatestChapter.articlePermalink}">
+                                    <span class="long-column-card__chapter-no">第 ${column.secondLatestChapter.chapterNo?c} 章</span>
+                                    <span class="long-column-card__chapter-title">${column.secondLatestChapter.articleTitleEmoj}</span>
+                                </a>
+                                </#if>
+                            </div>
+                        </article>
                     </#list>
                 </div>
             </div>
             </#if>
 
-            <#if hotLongArticles?? && hotLongArticles?size != 0>
+            <#if hotLongColumns?? && hotLongColumns?size != 0>
             <div class="long-read-zone__row long-read-zone__row--hot">
                 <div class="long-read-zone__row-head">
                     <div class="long-read-zone__row-title">
-                        <span class="long-read-zone__badge long-read-zone__badge--hot">热门长篇</span>
+                        <span class="long-read-zone__badge long-read-zone__badge--hot">热门专栏</span>
                     </div>
                     <div class="long-read-zone__row-actions">
                         <button class="long-read-zone__nav" type="button" aria-label="向左滚动" onclick="scrollLongShelf('long-hot', -1)">
@@ -358,33 +354,28 @@
                     </div>
                 </div>
                 <div class="long-read-zone__carousel" id="long-hot">
-                    <#list hotLongArticles as article>
-                        <#assign coverUrl = "">
-                        <#if article.articleLongCoverURL?has_content>
-                            <#assign coverUrl = article.articleLongCoverURL>
-                        <#elseif article.articleThumbnailURL?has_content>
-                            <#assign coverUrl = article.articleThumbnailURL>
-                        </#if>
-                        <a class="long-book <#if !coverUrl?has_content>long-book--no-cover</#if> <#if coverUrl?has_content>long-book--with-cover</#if>" href="${servePath}${article.articlePermalink}">
-                            <#if coverUrl?has_content>
-                            <div class="long-book__cover" style="background-image: url('${coverUrl}')"></div>
-                            </#if>
-                            <div class="long-book__info">
-                                <div class="long-book__title">${article.articleTitleEmoj}</div>
-                                <div class="long-book__author">${article.articleAuthorName}</div>
-                                <#if article.columnId?? && article.columnId?has_content && article.columnTitle?? && article.columnTitle?has_content>
-                                <div class="long-book__column" title="专栏 · ${article.columnTitle}" onclick="event.preventDefault();event.stopPropagation();window.location.href='${servePath}/column/${article.columnId}';">专栏 · ${article.columnTitle}</div>
-                                </#if>
-                                <#if article.articlePreviewContent?has_content && !coverUrl?has_content>
-                                <div class="long-book__summary">${article.articlePreviewContent}</div>
-                                </#if>
-                                <div class="long-book__meta">
-                                    <span>${article.timeAgo}</span>
-                                    <span>${article.articleCommentCount} 评论</span>
-                                    <span class="long-book__score">热度 ${article.articleLongHotScore?c}</span>
-                                </div>
+                    <#list hotLongColumns as column>
+                        <#assign columnId = column.columnId!column.oId>
+                        <article class="long-column-card long-column-card--hot">
+                            <div class="long-column-card__head">
+                                <a class="long-column-card__title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                                <span class="long-column-card__count">${column.columnArticleCount?c} 章</span>
                             </div>
-                        </a>
+                            <div class="long-column-card__chapters">
+                                <#if column.latestChapter??>
+                                <a class="long-column-card__chapter" href="${servePath}${column.latestChapter.articlePermalink}">
+                                    <span class="long-column-card__chapter-no">第 ${column.latestChapter.chapterNo?c} 章</span>
+                                    <span class="long-column-card__chapter-title">${column.latestChapter.articleTitleEmoj}</span>
+                                </a>
+                                </#if>
+                                <#if column.secondLatestChapter??>
+                                <a class="long-column-card__chapter" href="${servePath}${column.secondLatestChapter.articlePermalink}">
+                                    <span class="long-column-card__chapter-no">第 ${column.secondLatestChapter.chapterNo?c} 章</span>
+                                    <span class="long-column-card__chapter-title">${column.secondLatestChapter.articleTitleEmoj}</span>
+                                </a>
+                                </#if>
+                            </div>
+                        </article>
                     </#list>
                 </div>
             </div>
@@ -1122,7 +1113,7 @@
         if (!shelf) {
             return;
         }
-        var card = shelf.querySelector('.long-book');
+        var card = shelf.querySelector('.long-column-card');
         var offset = card ? (card.offsetWidth + 14) : 320;
         shelf.scrollBy({left: direction * offset * 2, behavior: 'smooth'});
     }
@@ -1135,7 +1126,7 @@
         var timer = null;
         var gap = 14;
         var step = function () {
-            var card = shelf.querySelector('.long-book');
+            var card = shelf.querySelector('.long-column-card');
             if (!card) {
                 return;
             }

@@ -57,31 +57,37 @@
         </#list>
         </#if>
 
-        <#if longArticles?size != 0>
+        <#if (latestLongColumns?? && latestLongColumns?size != 0) || (hotLongColumns?? && hotLongColumns?size != 0) || (isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0)>
             <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
                 <span>长篇专区</span>
-                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent/long">更多</a>
-            </li>
-            <#list longArticles as article>
-                <#include "common/list-item.ftl">
-            </#list>
-        </#if>
-
-        <#if (latestLongColumns?? && latestLongColumns?size != 0) || (hotLongColumns?? && hotLongColumns?size != 0)>
-            <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
-                <span>专栏推荐</span>
-                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent/long">更多</a>
+                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/column">更多</a>
             </li>
             <#if latestLongColumns?? && latestLongColumns?size != 0>
                 <li class="list__item fn__flex" style="padding-bottom:0;">
-                    <span class="ft__smaller ft__fade">最新专栏</span>
+                    <span class="ft__smaller ft__fade">最近更新</span>
                 </li>
                 <#list latestLongColumns as column>
-                    <#if column_index < 6>
+                    <#if column_index < 4>
                     <#assign columnId = column.columnId!column.oId>
-                    <li class="list__item fn__flex">
-                        <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                        <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
+                    <li class="list__item mobile-long-column">
+                        <div class="fn__flex">
+                            <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                            <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
+                        </div>
+                        <div class="mobile-long-column__chapters">
+                            <#if column.latestChapter??>
+                            <a class="mobile-long-column__chapter" href="${servePath}${column.latestChapter.articlePermalink}">
+                                <span class="mobile-long-column__chapter-no">第${column.latestChapter.chapterNo?c}章</span>
+                                <span class="mobile-long-column__chapter-title">${column.latestChapter.articleTitleEmoj}</span>
+                            </a>
+                            </#if>
+                            <#if column.secondLatestChapter??>
+                            <a class="mobile-long-column__chapter" href="${servePath}${column.secondLatestChapter.articlePermalink}">
+                                <span class="mobile-long-column__chapter-no">第${column.secondLatestChapter.chapterNo?c}章</span>
+                                <span class="mobile-long-column__chapter-title">${column.secondLatestChapter.articleTitleEmoj}</span>
+                            </a>
+                            </#if>
+                        </div>
                     </li>
                     </#if>
                 </#list>
@@ -91,11 +97,27 @@
                     <span class="ft__smaller ft__fade">热门专栏</span>
                 </li>
                 <#list hotLongColumns as column>
-                    <#if column_index < 6>
+                    <#if column_index < 4>
                     <#assign columnId = column.columnId!column.oId>
-                    <li class="list__item fn__flex">
-                        <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                        <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
+                    <li class="list__item mobile-long-column">
+                        <div class="fn__flex">
+                            <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
+                            <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
+                        </div>
+                        <div class="mobile-long-column__chapters">
+                            <#if column.latestChapter??>
+                            <a class="mobile-long-column__chapter" href="${servePath}${column.latestChapter.articlePermalink}">
+                                <span class="mobile-long-column__chapter-no">第${column.latestChapter.chapterNo?c}章</span>
+                                <span class="mobile-long-column__chapter-title">${column.latestChapter.articleTitleEmoj}</span>
+                            </a>
+                            </#if>
+                            <#if column.secondLatestChapter??>
+                            <a class="mobile-long-column__chapter" href="${servePath}${column.secondLatestChapter.articlePermalink}">
+                                <span class="mobile-long-column__chapter-no">第${column.secondLatestChapter.chapterNo?c}章</span>
+                                <span class="mobile-long-column__chapter-title">${column.secondLatestChapter.articleTitleEmoj}</span>
+                            </a>
+                            </#if>
+                        </div>
                     </li>
                     </#if>
                 </#list>
@@ -105,7 +127,7 @@
                     <span class="ft__smaller ft__fade">最近阅读</span>
                 </li>
                 <#list longColumnRecentReadHistory as history>
-                    <#if history_index < 6>
+                    <#if history_index < 4>
                     <li class="list__item">
                         <a class="list__title" href="${servePath}${history.articlePermalink}">第 ${history.chapterNo?c} 章 · ${history.articleTitleEmoj}</a>
                         <a class="ft__smaller" style="color:#2b5db9;text-decoration:none;" href="${servePath}/column/${history.columnId}">${history.columnTitle}</a>

@@ -89,6 +89,9 @@ public class IndexProcessor {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(IndexProcessor.class);
+    private static final int HOME_LONG_COLUMN_FETCH_SIZE = 12;
+    private static final int HOME_LONG_HOT_COLUMN_SCAN_SIZE = 96;
+    private static final int HOME_LONG_HOT_MIN_UNIQUE_SIZE = 4;
 
     /**
      * Article query service.
@@ -493,23 +496,18 @@ public class IndexProcessor {
         final List<JSONObject> onlineTopUsers = activityQueryService.getTopOnlineTimeUsers(onlineVisibleCount);
         dataModel.put("onlineTopUsers", onlineTopUsers);
 
-        // 长篇文章专区（最近 & 热门）
-        final List<JSONObject> recentLongArticles = articleQueryService.getIndexLongArticles(50);
-        dataModel.put("recentLongArticles", recentLongArticles);
-
-        final List<JSONObject> hotLongArticles = articleQueryService.getIndexHotLongArticles(50);
-        dataModel.put("hotLongArticles", hotLongArticles);
-
-        List<JSONObject> longArticles = recentLongArticles;
-        if (longArticles.size() > 12) {
-            longArticles = longArticles.subList(0, 12);
-        }
-        dataModel.put("longArticles", longArticles);
-
-        final List<JSONObject> latestLongColumns = longArticleColumnQueryService.getLatestColumns(12);
+        final List<JSONObject> latestLongColumns = longArticleColumnQueryService.getLatestColumns(
+                HOME_LONG_COLUMN_FETCH_SIZE);
         dataModel.put("latestLongColumns", latestLongColumns);
 
-        final List<JSONObject> hotLongColumns = longArticleColumnQueryService.getHotColumns(12);
+        final Set<String> latestLongColumnIds = collectLongColumnIds(latestLongColumns);
+        List<JSONObject> hotLongColumns = longArticleColumnQueryService.getHotColumns(
+                HOME_LONG_COLUMN_FETCH_SIZE,
+                latestLongColumnIds,
+                HOME_LONG_HOT_COLUMN_SCAN_SIZE);
+        if (hotLongColumns.size() < HOME_LONG_HOT_MIN_UNIQUE_SIZE) {
+            hotLongColumns = longArticleColumnQueryService.getHotColumns(HOME_LONG_COLUMN_FETCH_SIZE);
+        }
         dataModel.put("hotLongColumns", hotLongColumns);
 
         // 最近文章（移动端）
@@ -577,6 +575,25 @@ public class IndexProcessor {
         //indexModelCache.clear();
         indexModelCache.putAll(dataModel);
         LOGGER.log(Level.INFO, "Refreshed index model cache.");
+    }
+
+    private Set<String> collectLongColumnIds(final List<JSONObject> columns) {
+        final Set<String> ret = new LinkedHashSet<>();
+        for (final JSONObject column : columns) {
+            final String columnId = getLongColumnId(column);
+            if (StringUtils.isNotBlank(columnId)) {
+                ret.add(columnId);
+            }
+        }
+        return ret;
+    }
+
+    private String getLongColumnId(final JSONObject column) {
+        final String columnId = column.optString(LongArticleColumn.COLUMN_ID);
+        if (StringUtils.isNotBlank(columnId)) {
+            return columnId;
+        }
+        return column.optString(Keys.OBJECT_ID);
     }
 
     public synchronized void makeIndexData(Map<String, Object> dataModel) {

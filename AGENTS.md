@@ -50,6 +50,7 @@
 - Rhythm 当前“皮肤”本质是模板目录名：默认值来自 `symphony.properties` 的 `skinDirName=classic/pc`、`mobileSkinDirName=classic/mobile`；运行时先按 UA 分流 pc/mobile 默认皮肤，再按用户字段 `userSkin` / `userMobileSkin` 覆盖，设置页通过 `/settings/skin` 保存，`SkinQueryService` 负责扫描 `/skins/**/skin.properties` 识别可选主题。
 - Rhythm 侧 `SkinQueryService` 现已按 UTF-8 读取 `skin.properties`，皮肤名称/描述可直接写中文；但 `src/main/resources/lib/latke-core.jar` 内的 `Latkes#getSkinName` 仍是旧 `Properties.load`，若后续有代码依赖该方法读取皮肤元信息，需要同步改 Latke 并替换 jar。
 - 模板加载已支持“同设备 fallback”：若自定义皮肤缺少某个 FTL，`Templates` 会回退到默认皮肤的同路径模板（如 `foo/pc/header.ftl -> classic/pc/header.ftl`，`foo/mobile/common/comment.ftl -> classic/mobile/common/comment.ftl`）；因此新增皮肤可以按需覆盖，但至少要提供对应目录与 `skin.properties`。
+- Freemarker + `org.json` 兼容约束：顶层放进 dataModel 的 `List/JSONArray` 可直接 `#list`，但挂在 `JSONObject` 字段里的嵌套 `JSONArray/Iterable` 在 FTL 中可能被包装成非序列；这类数据优先展开成固定字段，或改为顶层列表再渲染。
 - 皮肤设置页预览图来自各皮肤目录下 `skin.properties` 的 `previewUrl`；新增皮肤若希望在设置页展示预览图，需要同步配置该字段。
 - 前端全局主题变量入口：`src/main/resources/scss/_variables.scss`；`$theme-primary` 会影响 `module`/首页卡片/聊天室等主区背景，深色会导致整站大面积染色；顶栏建议在 `base.scss`/`mobile-base.scss` 的 `.nav` 单独设色。
 - 移动端文章页（`skins/classic/mobile/article.ftl`）存在多个 `#replyUseName`（含隐藏占位 `.fn-none`）；`m-article.js` 处理回复目标时需优先选中非 `.fn-none` 节点，避免“回复对象已记录但指示未显示”。

@@ -47,6 +47,7 @@ import org.jsoup.safety.Whitelist;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Long article column query service.
@@ -58,6 +59,9 @@ import java.util.List;
 public class LongArticleColumnQueryService {
 
     private static final Logger LOGGER = LogManager.getLogger(LongArticleColumnQueryService.class);
+    private static final int INDEX_CARD_RECENT_CHAPTER_FETCH_SIZE = 2;
+    private static final int INDEX_CARD_RECENT_CHAPTER_SCAN_SIZE = 30;
+    private static final int CHAPTER_PREVIEW_MAX_LENGTH = 120;
 
     @Inject
     private LongArticleColumnRepository longArticleColumnRepository;
@@ -284,19 +288,20 @@ public class LongArticleColumnQueryService {
      * @return hot columns
      */
     public List<JSONObject> getHotColumns(final int fetchSize) {
+        return getHotColumns(fetchSize, Collections.emptySet(), fetchSize);
+    }
+
+    public List<JSONObject> getHotColumns(
+            final int fetchSize,
+            final Set<String> excludedColumnIds,
+            final int scanSize) {
         if (fetchSize <= 0) {
             return Collections.emptyList();
         }
 
         try {
-            final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_STATUS,
-                    FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID))
-                    .addSort(LongArticleColumn.COLUMN_ARTICLE_COUNT, SortDirection.DESCENDING)
-                    .addSort(LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING)
-                    .setPageCount(1)
-                    .setPage(1, fetchSize);
-            final List<JSONObject> columns = longArticleColumnRepository.getList(query);
-            return buildColumnCards(columns, fetchSize);
+            final List<JSONObject> columns = getHotColumnDocs(Math.max(fetchSize, scanSize));
+            return buildColumnCards(columns, fetchSize, excludedColumnIds);
         } catch (final Exception e) {
             LOGGER.error("Gets hot long article columns failed", e);
             return Collections.emptyList();
@@ -379,19 +384,32 @@ public class LongArticleColumnQueryService {
                     .setPageCount(1)
                     .setPage(1, fetchSize);
             final List<JSONObject> columns = longArticleColumnRepository.getList(query);
-            return buildColumnCards(columns, fetchSize);
+            return buildColumnCards(columns, fetchSize, Collections.emptySet());
         } catch (final Exception e) {
             LOGGER.error("Gets long article columns failed", e);
             return Collections.emptyList();
         }
     }
 
-    private List<JSONObject> buildColumnCards(final List<JSONObject> columns, final int fetchSize) {
+    private List<JSONObject> getHotColumnDocs(final int fetchSize) throws RepositoryException {
+        final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_STATUS,
+                FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID))
+                .addSort(LongArticleColumn.COLUMN_ARTICLE_COUNT, SortDirection.DESCENDING)
+                .addSort(LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING)
+                .setPageCount(1)
+                .setPage(1, fetchSize);
+        return longArticleColumnRepository.getList(query);
+    }
+
+    private List<JSONObject> buildColumnCards(
+            final List<JSONObject> columns,
+            final int fetchSize,
+            final Set<String> excludedColumnIds) {
         final List<JSONObject> ret = new ArrayList<>();
         for (final JSONObject column : columns) {
             try {
                 final String columnId = column.optString(Keys.OBJECT_ID);
-                if (StringUtils.isBlank(columnId)) {
+                if (StringUtils.isBlank(columnId) || excludedColumnIds.contains(columnId)) {
                     continue;
                 }
 
@@ -400,10 +418,13 @@ public class LongArticleColumnQueryService {
                 card.put(LongArticleColumn.COLUMN_TITLE,
                         Escapes.escapeHTML(card.optString(LongArticleColumn.COLUMN_TITLE)));
 
-                final JSONObject latestChapter = getLatestChapterView(columnId);
-                if (null != latestChapter) {
-                    card.put("latestChapter", latestChapter);
+                final List<JSONObject> recentChapters = getRecentChapterViews(
+                        columnId, INDEX_CARD_RECENT_CHAPTER_FETCH_SIZE);
+                if (recentChapters.isEmpty()) {
+                    continue;
                 }
+
+                attachRecentChapters(card, recentChapters);
                 ret.add(card);
 
                 if (ret.size() >= fetchSize) {
@@ -416,14 +437,28 @@ public class LongArticleColumnQueryService {
         return ret;
     }
 
-    private JSONObject getLatestChapterView(final String columnId) throws RepositoryException {
+    private void attachRecentChapters(final JSONObject card, final List<JSONObject> recentChapters) {
+        card.put("latestChapter", recentChapters.get(0));
+        if (recentChapters.size() > 1) {
+            card.put("secondLatestChapter", recentChapters.get(1));
+        }
+    }
+
+    private List<JSONObject> getRecentChapterViews(
+            final String columnId,
+            final int fetchSize) throws RepositoryException {
+        if (fetchSize <= 0) {
+            return Collections.emptyList();
+        }
+
         final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_ID,
                 FilterOperator.EQUAL, columnId))
                 .addSort(LongArticleColumn.CHAPTER_NO, SortDirection.DESCENDING)
                 .addSort(LongArticleColumn.CHAPTER_CREATE_TIME, SortDirection.DESCENDING)
                 .setPageCount(1)
-                .setPage(1, 30);
+                .setPage(1, INDEX_CARD_RECENT_CHAPTER_SCAN_SIZE);
         final List<JSONObject> relations = longArticleChapterRepository.getList(query);
+        final List<JSONObject> ret = new ArrayList<>();
         for (final JSONObject relation : relations) {
             final JSONObject chapterArticle = articleRepository.get(relation.optString(LongArticleColumn.ARTICLE_ID));
             if (null == chapterArticle || Article.ARTICLE_STATUS_C_VALID != chapterArticle.optInt(Article.ARTICLE_STATUS)) {
@@ -432,9 +467,12 @@ public class LongArticleColumnQueryService {
 
             final JSONObject chapterView = buildChapterView(chapterArticle, relation.optInt(LongArticleColumn.CHAPTER_NO));
             chapterView.put(LongArticleColumn.COLUMN_ID, columnId);
-            return chapterView;
+            ret.add(chapterView);
+            if (ret.size() >= fetchSize) {
+                break;
+            }
         }
-        return null;
+        return ret;
     }
 
     private JSONObject buildChapterView(final JSONObject article, final int chapterNo) {
@@ -451,8 +489,8 @@ public class LongArticleColumnQueryService {
         preview = StringUtils.replace(preview, "\n", " ");
         preview = StringUtils.replace(preview, "\r", " ");
         preview = StringUtils.normalizeSpace(preview);
-        if (preview.length() > 120) {
-            preview = StringUtils.substring(preview, 0, 120) + "...";
+        if (preview.length() > CHAPTER_PREVIEW_MAX_LENGTH) {
+            preview = StringUtils.substring(preview, 0, CHAPTER_PREVIEW_MAX_LENGTH) + "...";
         }
         chapterView.put(Article.ARTICLE_T_PREVIEW_CONTENT, preview);
         return chapterView;
