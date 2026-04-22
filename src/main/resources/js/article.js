@@ -66,7 +66,6 @@ var Comment = {
   editor: undefined,
   reactionOptions: [
     {value: 'thumbsup', emoji: '👍'},
-    {value: 'plus', emoji: '➕1️⃣'},
     {value: 'thumbsdown', emoji: '👎'},
     {value: 'check', emoji: '✅'},
     {value: 'cross', emoji: '❌'},
@@ -89,11 +88,15 @@ var Comment = {
     {value: 'angry', emoji: '😡'},
     {value: 'pray', emoji: '🙏'},
     {value: 'brokenheart', emoji: '💔'},
-    {value: 'heartonfire', emoji: '❤️‍🔥'},
     {value: 'skull', emoji: '💀'},
     {value: 'clown', emoji: '🤡'},
     {value: 'poop', emoji: '💩'},
+    {value: 'heartonfire', emoji: '❤️‍🔥'},
+    {value: 'plus', emoji: '➕1️⃣'},
   ],
+  isWideReactionOption: function (option) {
+    return option.value === 'plus' || option.value === 'heartonfire'
+  },
   normalizeReactionSummary: function (summary) {
     if (Array.isArray(summary)) {
       return summary
@@ -187,8 +190,9 @@ var Comment = {
     var html = ['<div class="reaction-popover">']
     for (var i = 0; i < Comment.reactionOptions.length; i++) {
       var option = Comment.reactionOptions[i]
+      var wideClass = Comment.isWideReactionOption(option) ? ' reaction-option--wide' : ''
       var selected = currentUserReaction === option.value ? ' selected' : ''
-      html.push('<button type="button" class="reaction-option', selected,
+      html.push('<button type="button" class="reaction-option', wideClass, selected,
         '" onclick="Comment.react(\'', id, '\', \'', option.value, '\', this)">')
       html.push('<span class="reaction-option__emoji">', option.emoji, '</span>')
       html.push('</button>')

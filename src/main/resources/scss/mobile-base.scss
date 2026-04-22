@@ -1616,6 +1616,17 @@ label.cmt-anonymous {
   box-shadow: inset 0 0 0 1px rgba(37,99,235,.12);
 }
 
+.reaction-option--wide {
+  grid-column: span 2;
+  width: auto;
+  white-space: nowrap;
+}
+
+.reaction-option--wide .reaction-option__emoji {
+  font-size: 18px;
+  letter-spacing: .02em;
+}
+
 .reaction-option__emoji {
   font-size: 20px;
   line-height: 1;
