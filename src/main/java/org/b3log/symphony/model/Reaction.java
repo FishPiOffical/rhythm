@@ -45,7 +45,11 @@ public final class Reaction {
     public static final String GROUP_EMOJI = "emoji";
 
     public static final String VALUE_THUMBS_UP = "thumbsup";
+    public static final String VALUE_PLUS = "plus";
     public static final String VALUE_THUMBS_DOWN = "thumbsdown";
+    public static final String VALUE_CHECK = "check";
+    public static final String VALUE_CROSS = "cross";
+    public static final String VALUE_STAR = "star";
     public static final String VALUE_HEART = "heart";
     public static final String VALUE_FIRE = "fire";
     public static final String VALUE_PARTY = "party";
@@ -61,6 +65,8 @@ public final class Reaction {
     public static final String VALUE_HUNDRED = "hundred";
     public static final String VALUE_ROCKET = "rocket";
     public static final String VALUE_SALUTE = "salute";
+    public static final String VALUE_HANDSHAKE = "handshake";
+    public static final String VALUE_RAISED_HANDS = "raisedhands";
     public static final String VALUE_MIND_BLOWN = "mindblown";
     public static final String VALUE_PRAY = "pray";
     public static final String VALUE_SKULL = "skull";
@@ -82,7 +88,11 @@ public final class Reaction {
     static {
         final Map<String, String> values = new LinkedHashMap<>();
         values.put(VALUE_THUMBS_UP, "👍");
+        values.put(VALUE_PLUS, "➕1️⃣");
         values.put(VALUE_THUMBS_DOWN, "👎");
+        values.put(VALUE_CHECK, "✅");
+        values.put(VALUE_CROSS, "❌");
+        values.put(VALUE_STAR, "⭐");
         values.put(VALUE_HEART, "❤️");
         values.put(VALUE_FIRE, "🔥");
         values.put(VALUE_PARTY, "🎉");
@@ -98,6 +108,8 @@ public final class Reaction {
         values.put(VALUE_HUNDRED, "💯");
         values.put(VALUE_ROCKET, "🚀");
         values.put(VALUE_SALUTE, "🖖");
+        values.put(VALUE_HANDSHAKE, "🤝");
+        values.put(VALUE_RAISED_HANDS, "🙌");
         values.put(VALUE_MIND_BLOWN, "🤯");
         values.put(VALUE_PRAY, "🙏");
         values.put(VALUE_SKULL, "💀");
