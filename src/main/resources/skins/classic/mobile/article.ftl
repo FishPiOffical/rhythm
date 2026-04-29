@@ -170,7 +170,7 @@
                     <div class="article-params">
                         <a rel="author" href="${servePath}/member/${article.articleAuthorName}" class="ft-gray"
                            title="${article.articleAuthorName}"><strong><#if article.articleAuthorNickName != "">${article.articleAuthorNickName}<#else>${article.articleAuthorName}</#if></strong></a>
-                        <span class="ft-gray">
+                        <span class="ft-gray article-meta-line">
                         <#if article.articleCity != "">
                         &nbsp;•&nbsp;
                         <a href="${servePath}/city/${article.articleCity}" class="ft-gray">
@@ -181,16 +181,6 @@
                         <a rel="nofollow" class="ft-gray" href="#comments">
                             <b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a>
                         &nbsp;•&nbsp;
-                        <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
-                        <span class="article-visit-sources">
-                            <#list articleVisitSourceStats as sourceStat>
-                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" aria-label="${sourceStat.sourceName}">
-                                <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>${sourceStat.visitCount}
-                            </span>
-                            </#list>
-                        </span>
-                        &nbsp;•&nbsp;
-                        </#if>
                         <span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>">
                         <#if article.articleViewCount < 1000>
                         ${article.articleViewCount}
@@ -207,6 +197,15 @@
                         &nbsp;•&nbsp;
                         ${article.timeAgo}
                     </span>
+                        <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
+                        <span class="article-visit-sources">
+                            <#list articleVisitSourceStats as sourceStat>
+                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" aria-label="${sourceStat.sourceName}">
+                                <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>${sourceStat.visitCount}
+                            </span>
+                            </#list>
+                        </span>
+                        </#if>
                         <#if 0 == article.articleAuthor.userUAStatus>
                         <span id="articltVia" class="ft-fade" data-ua="${article.articleUA}"></span>
                         </#if>
