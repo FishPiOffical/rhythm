@@ -20,9 +20,7 @@
  * @fileoverview article page and add comment.
  *
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @author <a href="http://88250.b3log.org">Liang Ding</a>
- * @version 0.5.0.3, Apr 30, 2020
- * @since 2.1.0
+ * @author <a href="http://88250.b3log.org">Liang Ding</a> * @since 2.1.0
  */
 
 /**

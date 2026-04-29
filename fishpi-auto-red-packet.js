@@ -1,7 +1,6 @@
 // ==UserScript==
 // @name         FishPi 聊天室自动抢红包
 // @namespace    https://fishpi.cn/
-// @version      0.4.4
 // @description  FishPi 聊天室自动抢红包脚本，支持经典/简约样式、悬浮拖拽设置面板、红包统计、自定义官方感谢文案与频控
 // @author       FishPi Offical
 // @match        https://fishpi.cn/cr*

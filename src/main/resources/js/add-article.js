@@ -23,7 +23,6 @@
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
  * @author <a href="https://ld246.com/member/ZephyrJung">Zephyr</a>
  * @author <a href="https://qiankunpingtai.cn">qiankunpingtai</a>
- * @version 2.26.2.1, Apr 30, 2020
  */
 
 /**

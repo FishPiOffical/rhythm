@@ -22,9 +22,7 @@
  * @author Zephyr
  * @author Alexar
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
- * @author zonghua
- * @version 1.1.0.2, Jul 29, 2016
- */
+ * @author zonghua */
 var EatingSnake = {
     dir: null,
     lastDir: null,

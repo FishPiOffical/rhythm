@@ -20,9 +20,7 @@
  * @file frontend tool.
  *
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @author <a href="http://88250.b3log.org">Liang Ding</a>
- * @version 1.8.0.2, Mar 17, 2019
- */
+ * @author <a href="http://88250.b3log.org">Liang Ding</a> */
 
 'use strict'
 

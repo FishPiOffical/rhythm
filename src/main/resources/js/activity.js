@@ -21,9 +21,7 @@
  *
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @author <a href="https://ld246.com/member/ZephyrJung">Zephyr</a>
- * @version 1.4.2.6, Jul 29, 2017
- */
+ * @author <a href="https://ld246.com/member/ZephyrJung">Zephyr</a> */
 
 /**
  * @description Activity

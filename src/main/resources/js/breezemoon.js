@@ -19,9 +19,7 @@
 /**
  * @fileoverview Breezemoon.
  *
- * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @version 0.1.0.2, Mar 17, 2019
- */
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a> */
 
 /**
  * @description Breezemoon

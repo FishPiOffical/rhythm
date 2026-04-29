@@ -19,9 +19,7 @@
 /**
  * @shop controller.
  *
- * @author <a href="https://github.com/adlered">adlered</a>
- * @version 1.0.0.0, May 15, 2022
- */
+ * @author <a href="https://github.com/adlered">adlered</a> */
 
 /**
  * @description Shop

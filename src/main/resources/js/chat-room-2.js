@@ -20,7 +20,6 @@
  * @fileoverview 聊天室
  *
  * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @version 1.3.0.2, Apr 30, 2020
  */
 
 /**

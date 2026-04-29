@@ -20,9 +20,7 @@
  * @fileOverview
  *
  * @author <a href="https://ld246.com/member/ZephyrJung">Zephyr</a>
- * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
- * @version 1.0.0.3, Jul 29, 2017
- * @since 2.1.0
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a> * @since 2.1.0
  */
 var Gobang = {
     unitSize: 30,
