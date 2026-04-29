@@ -82,12 +82,14 @@ public class BeforeRequestHandler implements Handler {
 
         if (context.header(Common.USER_AGENT) == null) {
             context.sendStatus(418);
+            context.abort();
             return;
         }
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!Firewall.recordAndMaybeBan(ip)) {
             context.sendStatus(429);
+            context.abort();
             return;
         }
         // 黑名单判断
@@ -97,6 +99,7 @@ public class BeforeRequestHandler implements Handler {
                 && !context.requestURI().equals("/validateCaptcha")) {
             // 已经在黑名单，强制跳转到验证码页面
             context.sendRedirect("/test");
+            context.abort();
             System.out.println(ip + " 已经在黑名单中");
             return;
         }

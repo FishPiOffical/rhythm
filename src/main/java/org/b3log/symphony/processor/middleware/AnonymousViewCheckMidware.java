@@ -68,6 +68,8 @@ public class AnonymousViewCheckMidware {
      */
     private static final Logger LOGGER = LogManager.getLogger(AnonymousViewCheckMidware.class);
 
+    private static final String ARTICLE_RANDOM_PATH = "random";
+
     /**
      * Article repository.
      */
@@ -182,7 +184,8 @@ public class AnonymousViewCheckMidware {
 
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
-        final boolean firstVisitArticle = requestURI.startsWith("/article/");
+        final String articleId = getArticleId(requestURI);
+        final boolean firstVisitArticle = StringUtils.isNotBlank(articleId);
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
@@ -239,6 +242,7 @@ public class AnonymousViewCheckMidware {
                             // 进入黑名单并跳转验证码页面
                             ipBlacklistCache.put(ip, true);
                             context.sendRedirect("/test");
+                            context.abort();
                             System.out.println(ip + " 触发验证码，进入黑名单");
                             return;
                         }
@@ -262,9 +266,7 @@ public class AnonymousViewCheckMidware {
             }
         }
 
-        if (requestURI.startsWith(Latkes.getContextPath() + "/article/")) {
-            final String articleId = StringUtils.substringAfter(requestURI, Latkes.getContextPath() + "/article/");
-
+        if (StringUtils.isNotBlank(articleId)) {
             try {
                 final JSONObject article = articleRepository.get(articleId);
                 if (null == article) {
@@ -337,6 +339,21 @@ public class AnonymousViewCheckMidware {
         }
 
         context.handle();
+    }
+
+    private static String getArticleId(final String requestURI) {
+        final String articlePrefix = Latkes.getContextPath() + "/article/";
+        if (!requestURI.startsWith(articlePrefix)) {
+            return "";
+        }
+
+        final String articlePath = StringUtils.substringAfter(requestURI, articlePrefix);
+        final String articleId = StringUtils.substringBefore(articlePath, "/");
+        if (StringUtils.isBlank(articleId) || ARTICLE_RANDOM_PATH.equals(articleId)) {
+            return "";
+        }
+
+        return articleId;
     }
 
 }

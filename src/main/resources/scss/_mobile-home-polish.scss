@@ -1,0 +1,220 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+body.index {
+  background-color: $mobile-page-bg !important;
+}
+
+.mobile-head {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.86);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.index-top__nav {
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+  height: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 8px;
+  scrollbar-width: none;
+  white-space: nowrap;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  a {
+    box-sizing: border-box;
+    flex: 1 1 0;
+    line-height: 34px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 4px;
+    text-overflow: ellipsis;
+  }
+
+  .item--current {
+    border-bottom-color: $mobile-accent;
+    color: $mobile-accent;
+    font-weight: 600;
+  }
+}
+
+body.index .main {
+  background: transparent;
+  box-shadow: none;
+  margin: 10px 10px 12px;
+  padding: 0;
+
+  > ul {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+body.index .main > ul > .module__title {
+  border: 0;
+  color: $mobile-muted !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0;
+  margin: 14px 0 8px;
+  padding: 0 2px !important;
+}
+
+body.index .list__item {
+  background: $mobile-surface;
+  border: 1px solid $mobile-border;
+  border-radius: 8px;
+  box-shadow: $mobile-shadow;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 12px !important;
+}
+
+body.index .list__item.fn__flex:not(.mobile-long-column) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: $mobile-muted;
+  margin: 12px 0 4px;
+  padding: 0 2px !important;
+}
+
+body.index .list__meta {
+  align-items: center;
+  color: $mobile-muted;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 20px;
+  min-height: 28px;
+}
+
+body.index .list-avatar {
+  border-radius: 8px;
+  height: 28px;
+  margin-right: 4px;
+  width: 28px;
+}
+
+body.index .list__title {
+  display: block;
+
+  a[rel="bookmark"] {
+    color: $mobile-text;
+    font-size: 17px;
+    font-weight: 650;
+    line-height: 23px;
+    max-height: 46px;
+    word-break: break-word;
+  }
+}
+
+body.index .list__content {
+  color: #4b5563;
+  line-height: 22px;
+  max-height: 44px;
+  word-break: break-word;
+}
+
+body.index .list__img {
+  border-radius: 8px;
+  margin-left: 10px;
+  max-height: none;
+  overflow: hidden;
+  width: 30%;
+
+  img {
+    aspect-ratio: 1;
+    display: block;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+body.index .list__tag,
+body.index .mobile-long-column__chapter-no {
+  background: $mobile-accent-soft;
+  border-radius: 999px;
+  color: #315fbd;
+  line-height: 20px;
+  padding: 0 8px;
+}
+
+.module_new {
+  margin: 14px 10px 8px;
+  padding: 0;
+}
+
+.module__title {
+  color: $mobile-muted;
+  font-weight: 600;
+}
+
+.tags {
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 10px 10px;
+
+  .tag {
+    align-items: center;
+    background: $mobile-surface;
+    border: 1px solid $mobile-border;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    color: $mobile-text;
+    display: inline-flex;
+    float: none;
+    line-height: 20px;
+    margin: 0;
+    min-height: 36px;
+    padding: 0 12px;
+  }
+}
+
+.menu,
+.module__body,
+.TGIF__item {
+  border: 1px solid $mobile-border;
+  border-radius: 8px;
+  box-shadow: $mobile-shadow;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.module__body {
+  width: auto;
+}
+
+.menu__item {
+  padding: 0;
+
+  .title {
+    align-items: center;
+    color: $mobile-text;
+    display: flex;
+    min-height: 44px;
+    text-decoration: none;
+  }
+}

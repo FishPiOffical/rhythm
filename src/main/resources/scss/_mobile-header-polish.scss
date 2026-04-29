@@ -1,0 +1,164 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.mobile-head + div[style*="height: 74px"] {
+  height: 84px !important;
+}
+
+.nav {
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid $mobile-border;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0;
+}
+
+.nav .wrapper {
+  align-items: center;
+  box-sizing: border-box;
+  height: 48px;
+  margin: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.nav .head-fn {
+  flex: 0 0 auto;
+
+  h1 {
+    line-height: 0;
+    margin: 0;
+  }
+}
+
+.nav .head-fn h1 a {
+  align-items: center;
+  display: flex;
+  height: 40px;
+  justify-content: center;
+  width: 44px;
+}
+
+#logo-animate {
+  height: 34px !important;
+  width: 34px !important;
+}
+
+#logo-animate svg {
+  display: block;
+  float: none;
+  margin: 0;
+}
+
+.nav .user-nav {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.nav div > a,
+.nav .user-nav .no-msg,
+.nav .user-nav .msg {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  box-sizing: border-box;
+  color: $mobile-muted;
+  display: inline-flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+  width: 34px;
+}
+
+.nav div > a:hover,
+.nav div > a:active {
+  background: $mobile-accent-soft;
+  color: $mobile-accent;
+}
+
+.nav .user-nav .no-msg,
+.nav .user-nav .msg {
+  font-size: 15px;
+}
+
+.nav .user-nav .msg {
+  background: #fff1f0;
+  color: #d92d20;
+}
+
+.nav .user-nav svg {
+  color: currentColor;
+  height: 21px;
+  width: 21px;
+}
+
+.nav .user-nav #aChat svg {
+  height: 19px !important;
+  vertical-align: 0 !important;
+  width: 19px;
+}
+
+.nav .avatar-small {
+  border-radius: 8px;
+  height: 28px;
+  width: 28px;
+}
+
+.recent__nav {
+  background: $mobile-surface-soft;
+  box-sizing: border-box;
+  display: flex;
+  gap: 4px;
+  min-height: 38px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 10px;
+  scrollbar-width: none;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.recent__nav::-webkit-scrollbar {
+  display: none;
+}
+
+.recent__nav .recent__nav-item {
+  align-items: center;
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  line-height: 26px;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.recent__nav .recent__nav-check {
+  background: $mobile-surface;
+  box-shadow: inset 0 0 0 1px $mobile-border;
+}

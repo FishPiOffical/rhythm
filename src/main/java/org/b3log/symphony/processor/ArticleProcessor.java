@@ -279,11 +279,11 @@ public class ArticleProcessor {
         Dispatcher.get("/update", articleProcessor::showUpdateArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.put("/article/{id}", articleProcessor::updateArticle, loginCheck::handle, permissionMidware::check, articlePostValidationMidware::handle);
         Dispatcher.post("/markdown", articleProcessor::markdown2HTML);
-        Dispatcher.get("/article/{articleId}/preview", articleProcessor::getArticlePreviewContent);
+        Dispatcher.get("/article/{articleId}/preview", articleProcessor::getArticlePreviewContent, anonymousViewCheckMidware::handle);
         Dispatcher.post("/article/reward", articleProcessor::rewardArticle, loginCheck::handle);
         Dispatcher.post("/article/thank", articleProcessor::thankArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.post("/article/stick", articleProcessor::stickArticle, loginCheck::handle, permissionMidware::check);
-        Dispatcher.get("/article/random/{size}", articleProcessor::randomArticles);
+        Dispatcher.get("/article/random/{size}", articleProcessor::randomArticles, anonymousViewCheckMidware::handle);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/recent", "/api/articles/recent/hot", "/api/articles/recent/good", "/api/articles/recent/reply", "/api/articles/recent/long"}).handler(articleProcessor::getArticles);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/tag/{tagURI}", "/api/articles/tag/{tagURI}/hot", "/api/articles/tag/{tagURI}/good", "/api/articles/tag/{tagURI}/reply", "/api/articles/tag/{tagURI}/perfect"}).handler(articleProcessor::getTagArticles);
         Dispatcher.get("/api/articles/domain/{domainURI}", articleProcessor::getDomainArticles, loginCheck::handle);

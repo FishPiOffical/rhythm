@@ -5068,3 +5068,8 @@ body.night {
   font-size: 14px;  /* emoji/文字统一尺寸 */
   line-height: 1;  /* 防止 emoji 撑高 */
 }
+
+@import "mobile-polish-vars";
+@import "mobile-header-polish";
+@import "mobile-home-polish";
+@import "mobile-article-polish";

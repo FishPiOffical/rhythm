@@ -1,0 +1,234 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.main > .article-actions {
+  margin-bottom: 10px !important;
+  padding: 0 2px;
+}
+
+.article-actions .fn-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.article-actions .fn-right > a,
+.article-actions .fn-right > span {
+  align-items: center;
+  background: $mobile-surface-soft;
+  border: 1px solid $mobile-border;
+  border-radius: 999px;
+  box-sizing: border-box;
+  color: $mobile-muted;
+  display: inline-flex;
+  float: none;
+  justify-content: center;
+  line-height: 20px;
+  margin-top: 0;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+}
+
+.article-actions .fn-right > a.ft-red,
+.article-actions .fn-right > span.ft-red,
+.article-actions .fn-right > a.ft-red:hover,
+.article-actions .fn-right > span.ft-red:hover {
+  background: $mobile-warm-soft;
+  border-color: rgba(180, 83, 9, 0.34);
+  box-shadow: 0 8px 20px rgba(180, 83, 9, 0.12);
+  color: #b45309;
+}
+
+.article-actions .fn-right > a.ft-blue,
+.article-actions .fn-right > span.ft-blue,
+.article-actions .fn-right > a.ft-blue:hover,
+.article-actions .fn-right > span.ft-blue:hover {
+  background: $mobile-accent-soft;
+  border-color: rgba(47, 111, 237, 0.28);
+  color: $mobile-accent;
+}
+
+.article-actions .fn-right > a.ft-green,
+.article-actions .fn-right > span.ft-green,
+.article-actions .fn-right > a.ft-green:hover,
+.article-actions .fn-right > span.ft-green:hover {
+  background: #f0fdf4;
+  border-color: rgba(22, 101, 52, 0.26);
+  color: #166534;
+}
+
+.main > .article-main {
+  background: $mobile-surface;
+  border: 1px solid $mobile-border;
+  border-radius: 8px;
+  box-shadow: $mobile-shadow;
+  box-sizing: border-box;
+  padding: 16px 12px 18px;
+  width: 100%;
+
+  > .wrapper {
+    margin: 0;
+  }
+}
+
+h1.article-title {
+  color: $mobile-text;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 14px;
+  word-break: break-word;
+
+  > a {
+    color: $mobile-text;
+  }
+}
+
+.article-title + div {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px !important;
+
+  img {
+    color: transparent;
+    display: block;
+    flex: 0 0 auto;
+    font-size: 0;
+    height: 22px;
+    line-height: 0;
+    max-width: calc(100vw - 48px);
+    width: auto;
+  }
+}
+
+.article-info {
+  grid-template-columns: 34px minmax(0, 1fr);
+  margin-bottom: 18px;
+  row-gap: 10px;
+}
+
+.article-info > a[rel="author"] {
+  height: 32px;
+  width: 32px;
+
+  .avatar {
+    border-radius: 10px;
+    height: 32px;
+    margin: 0;
+    width: 32px;
+  }
+}
+
+.article-info > div.article-params {
+  color: $mobile-muted;
+  line-height: 20px;
+
+  strong {
+    color: $mobile-text;
+    font-size: 14px;
+  }
+}
+
+.article-info > .article-reaction,
+.article-info > .article-reaction-shell {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 2px 0 0;
+}
+
+.article-info > .article-actions {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: start;
+  margin-top: 0 !important;
+}
+
+.article-info > .article-actions .fn-right {
+  justify-content: flex-start;
+}
+
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+
+  .tag {
+    background: $mobile-warm-soft;
+    border-radius: 999px;
+    color: #9a4f00;
+    line-height: 22px;
+    padding: 0 9px;
+  }
+}
+
+.article-visit-sources {
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.article-visit-source {
+  background: $mobile-surface-soft;
+  border-radius: 999px;
+  line-height: 22px;
+  padding: 0 7px;
+}
+
+.article-content {
+  color: #24292f;
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+
+  p {
+    margin: 0 0 14px;
+  }
+
+  img {
+    border-radius: 8px;
+  }
+}
+
+#comments {
+  margin-top: 14px;
+}
+
+.comments > ul > li {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid $mobile-border;
+  border-radius: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  padding: 16px 0 !important;
+}
+
+.comments img[src*="/gen"] {
+  color: transparent;
+  font-size: 0;
+  height: 20px;
+  line-height: 0;
+  object-fit: contain;
+  vertical-align: -5px;
+  width: 20px;
+}

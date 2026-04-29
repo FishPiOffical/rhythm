@@ -146,7 +146,7 @@ public final class Router {
         Dispatcher.get("/search", searchProcessor::search, loginCheck::handle);
         // Sitemap
         final SitemapProcessor sitemapProcessor = beanManager.getReference(SitemapProcessor.class);
-        Dispatcher.get("/sitemap.xml", sitemapProcessor::sitemap);
+        Dispatcher.get("/sitemap.xml", sitemapProcessor::sitemap, anonymousViewCheckMidware::handle);
         // 统计
         final StatisticProcessor statisticProcessor = beanManager.getReference(StatisticProcessor.class);
         Dispatcher.get("/statistic", statisticProcessor::showStatistic, loginCheck::handle);
