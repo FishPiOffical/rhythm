@@ -81,7 +81,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>Rewards an article (/article/reward), POST</li>
  * <li>Gets an article preview content (/article/{articleId}/preview), GET</li>
  * <li>Sticks an article (/article/stick), POST</li>
- * <li>Gets an article's revisions (/article/{id}/revisions), GET</li>
+ * <li>Gets an article's revision list (/article/{id}/revisions/list), GET</li>
+ * <li>Gets an article revision (/article/{id}/revisions/{revisionId}), GET</li>
  * <li>Gets article image (/article/{articleId}/image), GET</li>
  * <li>Checks article title (/article/check-title), POST</li>
  * <li>Removes an article (/article/{id}/remove), POST</li>
@@ -111,6 +112,12 @@ public class ArticleProcessor {
      */
     @Inject
     private RevisionQueryService revisionQueryService;
+
+    /**
+     * 文章历史版本查询服务。
+     */
+    @Inject
+    private ArticleRevisionQueryService articleRevisionQueryService;
 
     /**
      * Short link query service.
@@ -256,7 +263,8 @@ public class ArticleProcessor {
         Dispatcher.post("/article/{id}/remove", articleProcessor::removeArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.post("/article/check-title", articleProcessor::checkArticleTitle, loginCheck::handle);
         Dispatcher.get("/article/{articleId}/image", articleProcessor::getArticleImage, loginCheck::handle);
-        Dispatcher.get("/article/{id}/revisions", articleProcessor::getArticleRevisions, loginCheck::handle, permissionMidware::check);
+        Dispatcher.get("/article/{id}/revisions/list", articleProcessor::getArticleRevisionMetas, loginCheck::handle, permissionMidware::check);
+        Dispatcher.get("/article/{id}/revisions/{revisionId}", articleProcessor::getArticleRevision, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/pre-post", articleProcessor::showPreAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post", articleProcessor::showAddArticle, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/post/long", articleProcessor::showLongArticleAdd, loginCheck::handle, csrfMidware::fill);
@@ -1088,16 +1096,50 @@ public class ArticleProcessor {
     }
 
     /**
-     * Gets an article's revisions.
+     * 获取文章历史版本元数据。
      *
      * @param context the specified context
      */
-    public void getArticleRevisions(final RequestContext context) {
-        final String id = context.pathVar("id");
-        final List<JSONObject> revisions = revisionQueryService.getArticleRevisions(id);
+    public void getArticleRevisionMetas(final RequestContext context) {
         final JSONObject ret = new JSONObject();
-        ret.put(Keys.CODE, StatusCodes.SUCC);
-        ret.put(Revision.REVISIONS, (Object) revisions);
+        try {
+            final String id = context.pathVar("id");
+            final List<JSONObject> revisions = articleRevisionQueryService.getArticleRevisionMetas(id);
+            ret.put(Keys.CODE, StatusCodes.SUCC);
+            ret.put(Revision.REVISIONS, (Object) revisions);
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Gets article revision list failed", e);
+            ret.put(Keys.CODE, StatusCodes.ERR);
+            ret.put(Keys.MSG, e.getMessage());
+        }
+        context.renderJSON(ret);
+    }
+
+    /**
+     * 获取指定文章历史版本。
+     *
+     * @param context the specified context
+     */
+    public void getArticleRevision(final RequestContext context) {
+        final JSONObject ret = new JSONObject();
+        try {
+            final String id = context.pathVar("id");
+            final String revisionId = context.pathVar("revisionId");
+            if ("list".equals(revisionId)) {
+                final List<JSONObject> revisions = articleRevisionQueryService.getArticleRevisionMetas(id);
+                ret.put(Keys.CODE, StatusCodes.SUCC);
+                ret.put(Revision.REVISIONS, (Object) revisions);
+                context.renderJSON(ret);
+                return;
+            }
+            final JSONObject revision = articleRevisionQueryService.getArticleRevision(id, revisionId);
+            ret.put(Keys.CODE, StatusCodes.SUCC);
+            ret.put(Revision.REVISION, revision);
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Gets article revision failed", e);
+            ret.put(Keys.CODE, StatusCodes.ERR);
+            ret.put(Keys.MSG, e.getMessage());
+        }
         context.renderJSON(ret);
     }
 

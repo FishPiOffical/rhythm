@@ -1728,15 +1728,6 @@ var Article = {
       $('#articltVia').text('via ' + name)
     }
 
-    // his
-    $('#revision').dialog({
-      'width': Math.min($(window).width() - 50, 1000, $(window).width() * 0.8),
-      // 'width': $(window).width() > 500 ? 500 : $(window).width() - 50,
-      'height': $(window).height() - 50,
-      'modal': true,
-      'hideFooter': true,
-    })
-
     // report
     $('#reportDialog').dialog({
       'width': $(window).width() > 500 ? 500 : $(window).width() - 50,
@@ -1865,9 +1856,72 @@ var Article = {
       Util.needLogin()
       return false
     }
+
     if (!type) {
       type = 'article'
     }
+
+    Article._revisionDialogOpen(type === 'comment' ? '评论历史' : '文章历史')
+    if (type === 'comment') {
+      Article._legacyRevision(id, type)
+    } else {
+      Article._articleRevision(id)
+    }
+  },
+  /**
+   * 初始化历史版本专用弹窗
+   * @returns {undefined}
+   */
+  _revisionDialogInit: function () {
+    if ($('#revisionDialog').length > 0) {
+      return
+    }
+
+    $('body').append('<div class="revision-modal" id="revisionDialog" aria-hidden="true">' +
+      '<div class="revision-modal__overlay"></div>' +
+      '<section class="revision-modal__panel" role="dialog" aria-modal="true" aria-labelledby="revisionDialogTitle">' +
+      '<header class="revision-modal__header">' +
+      '<div class="revision-modal__title" id="revisionDialogTitle"></div>' +
+      '<button class="revision-modal__close" type="button" aria-label="关闭"><span aria-hidden="true">&times;</span></button>' +
+      '</header><div class="revision-modal__body"></div></section></div>')
+    $('#revisionDialog .revision-modal__body').append($('#revision'))
+    $('#revisionDialog .revision-modal__overlay, #revisionDialog .revision-modal__close').
+      click(function () {
+        Article._revisionDialogClose()
+      })
+    $(document).off('keydown.revisionDialog').on('keydown.revisionDialog', function (event) {
+      if (event.key === 'Escape' && $('#revisionDialog').hasClass('is-open')) {
+        Article._revisionDialogClose()
+      }
+    })
+  },
+  /**
+   * 打开历史版本专用弹窗
+   * @param {string} title 标题
+   * @returns {undefined}
+   */
+  _revisionDialogOpen: function (title) {
+    Article._revisionDialogInit()
+    $('#revisionDialogTitle').text(title || '历史版本')
+    $('#revisionDialog').addClass('is-open').attr('aria-hidden', 'false')
+    $('body').addClass('revision-modal-open')
+    $('#revisionDialog .revision-modal__close').focus()
+  },
+  /**
+   * 关闭历史版本专用弹窗
+   * @returns {undefined}
+   */
+  _revisionDialogClose: function () {
+    $('#revisionDialog').removeClass('is-open').attr('aria-hidden', 'true')
+    $('body').removeClass('revision-modal-open')
+  },
+  /**
+   * 旧版评论历史对比
+   * @param {string} id 评论 id
+   * @param {string} type 类型
+   * @returns {undefined}
+   */
+  _legacyRevision: function (id, type) {
 
     $.ajax({
       url: Label.servePath + '/' + type + '/' + id + '/revisions',
@@ -1924,7 +1978,6 @@ var Article = {
         Util.alert(result.msg)
       },
     })
-    $('#revision').dialog('open')
   },
   /**
    * 上一版本，下一版本对比
@@ -2004,6 +2057,267 @@ var Article = {
         synchronisedScroll: true,
       })
     })
+  },
+  /**
+   * 文章历史版本对比
+   * @param {string} id 文章 id
+   * @returns {undefined}
+   */
+  _articleRevision: function (id) {
+    $('#revision > .revisions').remove()
+    $('#revisions').
+      removeData('revisions').
+      removeData('revisionDetails').
+      html('<b>加载中</b>')
+    $.ajax({
+      url: Label.servePath + '/article/' + id + '/revisions/list',
+      cache: false,
+      success: function (result) {
+        if (result.code !== 0) {
+          $('#revisions').html('<b>' +
+            Article._revisionEscapeHTML(result.msg || '加载失败') + '</b>')
+          return
+        }
+
+        var revisions = result.revisions || []
+        if (revisions.length < 2) {
+          $('#revisions').html('<b>' + Label.noRevisionLabel + '</b>')
+          return
+        }
+
+        $('#revisions').
+          data('revisions', revisions).
+          data('revisionDetails', {}).
+          html(Article._revisionPickerHtml(revisions))
+        Article._revisionBindPicker(id)
+        Article._revisionCompare(id)
+      },
+      error: function () {
+        $('#revisions').html('<b>加载失败</b>')
+      },
+    })
+  },
+  /**
+   * 构建版本选择器
+   * @param {Array} revisions 版本列表
+   * @returns {string} HTML
+   */
+  _revisionPickerHtml: function (revisions) {
+    var fromIndex = revisions.length - 2
+    var toIndex = revisions.length - 1
+    var fromOptions = ''
+    var toOptions = ''
+    for (var i = 0; i < revisions.length; i++) {
+      fromOptions += Article._revisionOptionHtml(revisions[i], i === fromIndex)
+      toOptions += Article._revisionOptionHtml(revisions[i], i === toIndex)
+    }
+
+    return '<div class="revision-picker">' +
+      '<label>原版本<select class="revision-picker__base">' + fromOptions + '</select></label>' +
+      '<label>新版本<select class="revision-picker__target">' + toOptions + '</select></label>' +
+      '<label class="revision-picker__toggle"><input class="revision-picker__diff-only" type="checkbox" checked>只看差异</label>' +
+      '<button class="green revision-picker__compare">对比</button>' +
+      '</div><div class="revision-diff"></div>'
+  },
+  /**
+   * 构建版本下拉项
+   * @param {Object} revision 版本元数据
+   * @param {boolean} selected 是否选中
+   * @returns {string} HTML
+   */
+  _revisionOptionHtml: function (revision, selected) {
+    return '<option value="' + Article._revisionEscapeHTML(revision.revisionId) + '"' +
+      (selected ? ' selected' : '') + '>' +
+      Article._revisionEscapeHTML(Article._revisionVersionLabel(revision)) +
+      '</option>'
+  },
+  /**
+   * 版本显示名
+   * @param {Object} revision 版本元数据
+   * @returns {string} 显示名
+   */
+  _revisionVersionLabel: function (revision) {
+    if (revision.current) {
+      return '当前 ' + revision.revisionTimeStr
+    }
+    return revision.revisionTimeStr
+  },
+  /**
+   * 绑定版本选择器
+   * @param {string} id 文章 id
+   * @returns {undefined}
+   */
+  _revisionBindPicker: function (id) {
+    $('#revision .revision-picker__compare').click(function () {
+      Article._revisionCompare(id)
+    })
+    $('#revision .revision-picker__diff-only').change(function () {
+      Article._revisionCompare(id)
+    })
+  },
+  /**
+   * revisionCompare: 对比两个选中版本
+   * @param {string} id 文章 id
+   * @returns {undefined}
+   */
+  _revisionCompare: function (id) {
+    var baseId = $('#revision .revision-picker__base').val()
+    var targetId = $('#revision .revision-picker__target').val()
+    var onlyDiff = $('#revision .revision-picker__diff-only').is(':checked')
+    $('#revisions .revision-diff').html('<b>加载中</b>')
+
+    $.when(Article._revisionFetch(id, baseId), Article._revisionFetch(id, targetId)).
+      done(function (baseRevision, targetRevision) {
+        Article._revisionRenderCompare(baseRevision, targetRevision, onlyDiff)
+      }).
+      fail(function (msg) {
+        $('#revisions .revision-diff').html('<b>' +
+          Article._revisionEscapeHTML(msg || '加载失败') + '</b>')
+      })
+  },
+  /**
+   * 获取单个版本
+   * @param {string} id 文章 id
+   * @param {string} revisionId 版本 id
+   * @returns {Object} jQuery Promise
+   */
+  _revisionFetch: function (id, revisionId) {
+    var cache = $('#revisions').data('revisionDetails') || {}
+    var deferred = $.Deferred()
+    if (cache[revisionId]) {
+      deferred.resolve(cache[revisionId])
+      return deferred.promise()
+    }
+
+    $.ajax({
+      url: Label.servePath + '/article/' + id + '/revisions/' + encodeURIComponent(revisionId),
+      cache: false,
+      success: function (result) {
+        if (result.code !== 0) {
+          deferred.reject(result.msg)
+          return
+        }
+        cache[revisionId] = result.revision
+        $('#revisions').data('revisionDetails', cache)
+        deferred.resolve(result.revision)
+      },
+      error: function () {
+        deferred.reject('加载失败')
+      },
+    })
+    return deferred.promise()
+  },
+  /**
+   * 渲染两个版本的差异
+   * @param {Object} baseRevision 原版本
+   * @param {Object} targetRevision 新版本
+   * @param {boolean} onlyDiff 是否只看差异
+   * @returns {undefined}
+   */
+  _revisionRenderCompare: function (baseRevision, targetRevision, onlyDiff) {
+    var baseData = baseRevision.revisionData || {}
+    var targetData = targetRevision.revisionData || {}
+    var html = Article._revisionRenderInlineDiff(
+      '标题', baseData.articleTitle || '', targetData.articleTitle || '', onlyDiff)
+    html += Article._revisionRenderLineDiff(
+      '内容', baseData.articleContent || '', targetData.articleContent || '', onlyDiff)
+    $('#revisions .revision-diff').html(html || '<b>无差异</b>')
+  },
+  /**
+   * 渲染标题差异
+   * @param {string} title 分区标题
+   * @param {string} baseText 原文本
+   * @param {string} targetText 新文本
+   * @param {boolean} onlyDiff 是否只看差异
+   * @returns {string} HTML
+   */
+  _revisionRenderInlineDiff: function (title, baseText, targetText, onlyDiff) {
+    var diff = JsDiff.diffWordsWithSpace ?
+      JsDiff.diffWordsWithSpace(baseText, targetText) :
+      JsDiff.diffWords(baseText, targetText)
+    var changed = false
+    var body = ''
+    for (var i = 0; i < diff.length; i++) {
+      var type = diff[i].added ? 'add' : diff[i].removed ? 'remove' : 'same'
+      changed = changed || type !== 'same'
+      if (onlyDiff && type === 'same') {
+        continue
+      }
+      body += '<span class="revision-diff-word revision-diff-word--' + type + '">' +
+        Article._revisionEscapeHTML(diff[i].value) + '</span>'
+    }
+    if (onlyDiff && !changed) {
+      return ''
+    }
+    return '<section class="revision-diff-section"><h3>' + title + '</h3>' +
+      '<div class="revision-diff-title">' + body + '</div></section>'
+  },
+  /**
+   * 渲染正文差异
+   * @param {string} title 分区标题
+   * @param {string} baseText 原正文
+   * @param {string} targetText 新正文
+   * @param {boolean} onlyDiff 是否只看差异
+   * @returns {string} HTML
+   */
+  _revisionRenderLineDiff: function (title, baseText, targetText, onlyDiff) {
+    var diff = JsDiff.diffLines(baseText, targetText)
+    var changed = false
+    var body = ''
+    for (var i = 0; i < diff.length; i++) {
+      var type = diff[i].added ? 'add' : diff[i].removed ? 'remove' : 'same'
+      changed = changed || type !== 'same'
+      if (onlyDiff && type === 'same') {
+        continue
+      }
+      body += Article._revisionLineHtml(diff[i].value, type)
+    }
+    if (onlyDiff && !changed) {
+      return ''
+    }
+    return '<section class="revision-diff-section"><h3>' + title + '</h3>' +
+      '<div class="revision-diff-lines">' + body + '</div></section>'
+  },
+  /**
+   * 渲染差异行
+   * @param {string} value 文本
+   * @param {string} type 差异类型
+   * @returns {string} HTML
+   */
+  _revisionLineHtml: function (value, type) {
+    var lines = Article._revisionSplitLines(value)
+    var html = ''
+    for (var i = 0; i < lines.length; i++) {
+      html += '<div class="revision-diff-line revision-diff-line--' + type + '">' +
+        '<span class="revision-diff-line__text">' +
+        Article._revisionEscapeHTML(lines[i]) + '</span></div>'
+    }
+    return html
+  },
+  /**
+   * 按行拆分，去掉 diff 片段末尾的分隔空行
+   * @param {string} value 文本
+   * @returns {Array} 行列表
+   */
+  _revisionSplitLines: function (value) {
+    var lines = value.split('\n')
+    if (lines[lines.length - 1] === '') {
+      lines.pop()
+    }
+    return lines
+  },
+  /**
+   * 转义 HTML
+   * @param {string} text 原文
+   * @returns {string} 转义结果
+   */
+  _revisionEscapeHTML: function (text) {
+    return String(text).
+      replace(/&/g, '&amp;').
+      replace(/</g, '&lt;').
+      replace(/>/g, '&gt;').
+      replace(/"/g, '&quot;').
+      replace(/'/g, '&#39;')
   },
   /**
    * @description 分享按钮

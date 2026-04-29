@@ -428,6 +428,109 @@
     }
   }
 
+  #revision {
+    .revision-picker {
+      align-items: center;
+      border-bottom: 1px solid #e6e6e6;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+
+      label {
+        align-items: center;
+        color: $black-light;
+        display: flex;
+        gap: 6px;
+      }
+
+      select {
+        border: 1px solid #d9d9d9;
+        border-radius: 3px;
+        box-sizing: border-box;
+        height: 30px;
+        max-width: 220px;
+        padding: 0 6px;
+      }
+
+      .revision-picker__toggle {
+        white-space: nowrap;
+      }
+
+      .revision-picker__compare {
+        height: 30px;
+        line-height: 28px;
+        padding: 0 12px;
+      }
+    }
+
+    .revision-diff {
+      max-height: 60vh;
+      overflow: auto;
+    }
+
+    .revision-diff-section {
+      margin-top: 14px;
+
+      h3 {
+        color: $black-text;
+        font-size: 14px;
+        line-height: 20px;
+        margin: 0 0 6px;
+      }
+    }
+
+    .revision-diff-title,
+    .revision-diff-lines {
+      background: #fff;
+      border: 1px solid #e6e6e6;
+      border-radius: 4px;
+    }
+
+    .revision-diff-title {
+      line-height: 1.8;
+      padding: 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .revision-diff-word--add {
+      background: #e9f7ec;
+      color: $green;
+    }
+
+    .revision-diff-word--remove {
+      background: #ffeded;
+      color: $red;
+      text-decoration: line-through;
+    }
+
+    .revision-diff-line {
+      border-left: 3px solid transparent;
+      box-sizing: border-box;
+      line-height: 1.7;
+      min-height: 28px;
+      padding: 4px 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      & + .revision-diff-line {
+        border-top: 1px solid #f0f0f0;
+      }
+    }
+
+    .revision-diff-line--add {
+      background: #f0fbf2;
+      border-left-color: $green;
+    }
+
+    .revision-diff-line--remove {
+      background: #fff1f1;
+      border-left-color: $red;
+    }
+  }
+
   .editor-panel {
     position: fixed;
     left: 0;
@@ -1138,6 +1241,230 @@ label.cmt-anonymous {
 }
 
 /* end article */
+
+body.revision-modal-open {
+  overflow: hidden;
+}
+
+.revision-modal {
+  align-items: center;
+  display: none;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 260;
+}
+
+.revision-modal.is-open {
+  display: flex;
+}
+
+.revision-modal__overlay {
+  background: rgba(15, 23, 42, 0.58);
+  inset: 0;
+  position: absolute;
+}
+
+.revision-modal__panel {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: flex;
+  flex-direction: column;
+  height: min(82vh, 860px);
+  max-width: calc(100vw - 48px);
+  overflow: hidden;
+  position: relative;
+  width: min(1080px, 86vw);
+}
+
+.revision-modal__header {
+  align-items: center;
+  border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 18px;
+}
+
+.revision-modal__title {
+  color: $black-text;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.revision-modal__close {
+  align-items: center;
+  background: #f6f8fa;
+  border: 1px solid #e6e6e6;
+  border-radius: 50%;
+  color: $black-light;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 24px;
+  height: 34px;
+  justify-content: center;
+  line-height: 32px;
+  padding: 0;
+  width: 34px;
+
+  &:hover {
+    background: #fff;
+    color: $black-text;
+  }
+}
+
+.revision-modal__body {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px;
+}
+
+.revision-modal #revision {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.revision-modal #revisions {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.revision-modal #revision .revisions {
+  margin: 5px 0 15px;
+  text-align: center;
+
+  a {
+    color: $black-light;
+    vertical-align: middle;
+
+    &:hover {
+      color: $black-text;
+    }
+
+    &.disabled {
+      color: $fade;
+      cursor: default;
+    }
+  }
+
+  span {
+    margin: 0 10px 0 10px;
+  }
+}
+
+.revision-modal #revision .revision-picker {
+  align-items: center;
+  border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+
+  label {
+    align-items: center;
+    color: $black-light;
+    display: flex;
+    gap: 6px;
+  }
+
+  select {
+    border: 1px solid #d9d9d9;
+    border-radius: 3px;
+    box-sizing: border-box;
+    height: 32px;
+    max-width: 240px;
+    padding: 0 8px;
+  }
+
+  .revision-picker__toggle {
+    white-space: nowrap;
+  }
+
+  .revision-picker__compare {
+    height: 32px;
+    line-height: 30px;
+    padding: 0 14px;
+  }
+}
+
+.revision-modal #revision .revision-diff {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.revision-modal #revision .revision-diff-section {
+  margin-top: 14px;
+
+  h3 {
+    color: $black-text;
+    font-size: 14px;
+    line-height: 20px;
+    margin: 0 0 6px;
+  }
+}
+
+.revision-modal #revision .revision-diff-title,
+.revision-modal #revision .revision-diff-lines {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+}
+
+.revision-modal #revision .revision-diff-title {
+  line-height: 1.8;
+  padding: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.revision-modal #revision .revision-diff-word--add {
+  background: #e9f7ec;
+  color: $green;
+}
+
+.revision-modal #revision .revision-diff-word--remove {
+  background: #ffeded;
+  color: $red;
+  text-decoration: line-through;
+}
+
+.revision-modal #revision .revision-diff-line {
+  border-left: 3px solid transparent;
+  box-sizing: border-box;
+  line-height: 1.7;
+  min-height: 28px;
+  padding: 4px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  & + .revision-diff-line {
+    border-top: 1px solid #f0f0f0;
+  }
+}
+
+.revision-modal #revision .revision-diff-line--add {
+  background: #f0fbf2;
+  border-left-color: $green;
+}
+
+.revision-modal #revision .revision-diff-line--remove {
+  background: #fff1f1;
+  border-left-color: $red;
+}
 
 /* start article list */
 .article-list {
