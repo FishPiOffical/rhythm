@@ -85,7 +85,10 @@ public class BeforeRequestHandler implements Handler {
         }
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        Firewall.recordAndMaybeBan(ip);
+        if (!Firewall.recordAndMaybeBan(ip)) {
+            context.sendStatus(429);
+            return;
+        }
         // 黑名单判断
         if (AnonymousViewCheckMidware.isEnabled()
                 && AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null

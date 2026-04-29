@@ -45,6 +45,12 @@ public final class Firewall {
      */
     private static final int DEFAULT_THRESHOLD = 400;
 
+    private static final int IPSET_TIMEOUT_MILLIS = 3000;
+
+    private static final String IPSET_NAME = "fishpi";
+
+    private static final String IPSET_SHELL_COMMAND = "ipset \"$1\" \"$2\" \"$3\"";
+
     /**
      * Runtime threshold, adjustable and reset on restart.
      */
@@ -99,20 +105,45 @@ public final class Firewall {
             cleanupOldBuckets(nowBucket);
         }
 
-        if (counter.count.sum() > effectiveThreshold && BANNED.add(ip)) {
-            // Run ban asynchronously on a virtual thread to keep request path light.
-            Thread.startVirtualThread(() -> {
-                try {
-                    final String result = Execs.exec(new String[]{"sh", "-c", "ipset add fishpi " + ip}, 1000 * 3);
-                    LOGGER.log(Level.WARN, "CC firewall banned [{}], result: {}", ip, result);
-                } catch (final Exception e) {
-                    LOGGER.log(Level.ERROR, "CC firewall ban failed for [" + ip + "]", e);
-                }
-            });
+        if (counter.count.sum() > effectiveThreshold) {
+            banIpIfAbsent(ip, "CC firewall");
             return false;
         }
 
         return !BANNED.contains(ip);
+    }
+
+    public static boolean banIpIfAbsent(final String ip, final String reason) {
+        if (StringUtils.isBlank(ip) || !BANNED.add(ip)) {
+            return false;
+        }
+
+        Thread.startVirtualThread(() -> {
+            try {
+                final String result = runIpset("add", ip);
+                LOGGER.log(Level.WARN, "{} banned [{}], result: {}", reason, ip, result);
+            } catch (final Exception e) {
+                LOGGER.log(Level.ERROR, reason + " ban failed for [" + ip + "]", e);
+            }
+        });
+        return true;
+    }
+
+    public static String banIp(final String ip) {
+        BANNED.add(ip);
+        return runIpset("add", ip);
+    }
+
+    public static String unbanIp(final String ip) {
+        BANNED.remove(ip);
+        return runIpset("del", ip);
+    }
+
+    private static String runIpset(final String operation, final String ip) {
+        if (StringUtils.isBlank(operation) || StringUtils.isBlank(ip)) {
+            throw new IllegalArgumentException("ipset operation and IP must not be blank");
+        }
+        return Execs.exec(new String[]{"sh", "-c", IPSET_SHELL_COMMAND, "ipset", operation, IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
     }
 
     public static void cleanupOldBuckets(final long currentBucket) {

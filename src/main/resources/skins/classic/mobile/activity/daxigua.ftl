@@ -255,7 +255,7 @@
 
         var cocos2d = document.createElement('script');
         cocos2d.async = true;
-        cocos2d.src = window._CCSettings.debug ? 'https://file.fishpi.cn/daxigua/cocos2d-js.js' : 'https://file.fishpi.cn/daxigua/cocos2d-js-min.js';
+        cocos2d.src = 'https://file.fishpi.cn/daxigua/cocos2d-js-min.js';
 
         var engineLoaded = function() {
             document.body.removeChild(cocos2d);

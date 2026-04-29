@@ -74,7 +74,7 @@ curl -X GET -H "Content-Type: application/json" \
 
 # 将远程图片收藏到指定分组
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"apiKey":"YOUR_API_KEY","groupId":"g1","url":"https://file.fishpi.cn/emoji/demo.png","name":"demo","sort":0}' \
+  -d '{"apiKey":"YOUR_API_KEY","groupId":"g1","url":"https://file.fishpi.cn/emoji/graphics/heart.png","name":"demo","sort":0}' \
   "${SERVE_PATH}/api/emoji/group/add-url-emoji"
 
 # 迁移旧表情

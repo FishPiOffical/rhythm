@@ -268,7 +268,8 @@ const SecuritySwitches = {
         fetch(this.servePath + '/admin/security/firewall', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'csrfToken': '${csrfToken}'
             },
             body: 'enabled=' + enabled + '&threshold=' + encodeURIComponent(threshold)
         }).then(res => res.json()).then(res => {
@@ -284,7 +285,8 @@ const SecuritySwitches = {
         fetch(this.servePath + '/admin/security/verification', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'csrfToken': '${csrfToken}'
             },
             body: 'enabled=' + enabled
         }).then(res => res.json()).then(res => {
@@ -299,7 +301,8 @@ const SecuritySwitches = {
         fetch(this.servePath + '/admin/security/verification-first', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'csrfToken': '${csrfToken}'
             },
             body: 'enabled=' + enabled
         }).then(res => res.json()).then(res => {

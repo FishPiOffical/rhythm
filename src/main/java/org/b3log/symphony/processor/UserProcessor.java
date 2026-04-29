@@ -231,8 +231,8 @@ public class UserProcessor {
         Dispatcher.get("/member/{userName}", userProcessor::showHome, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/long", userProcessor::showHomeLong, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.group().middlewares(anonymousViewCheckMidware::handle, userCheckMidware::handle, csrfMidware::fill).router().get().uris(new String[]{"/member/{userName}/breezemoons", "/member/{userName}/breezemoons/{breezemoonId}"}).handler(userProcessor::showHomeBreezemoons);
-        Dispatcher.get("/member/{userName}/comments/anonymous", userProcessor::showHomeAnonymousComments, userCheckMidware::handle);
-        Dispatcher.get("/member/{userName}/articles/anonymous", userProcessor::showAnonymousArticles, userCheckMidware::handle);
+        Dispatcher.get("/member/{userName}/comments/anonymous", userProcessor::showHomeAnonymousComments, anonymousViewCheckMidware::handle, userCheckMidware::handle);
+        Dispatcher.get("/member/{userName}/articles/anonymous", userProcessor::showAnonymousArticles, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/comments", userProcessor::showHomeComments, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/following/users", userProcessor::showHomeFollowingUsers, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/following/tags", userProcessor::showHomeFollowingTags, anonymousViewCheckMidware::handle, userCheckMidware::handle);
