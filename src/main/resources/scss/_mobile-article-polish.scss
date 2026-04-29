@@ -223,12 +223,14 @@ h1.article-title {
   padding: 16px 0 !important;
 }
 
-.comments img[src*="/gen"] {
+.comments .comment-info img[src*="/gen"] {
   color: transparent;
+  display: inline-block;
   font-size: 0;
-  height: 20px;
+  height: 18px;
   line-height: 0;
+  max-width: calc(100vw - 120px);
   object-fit: contain;
-  vertical-align: -5px;
-  width: 20px;
+  vertical-align: -4px;
+  width: auto;
 }

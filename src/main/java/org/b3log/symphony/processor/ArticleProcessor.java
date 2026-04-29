@@ -544,10 +544,6 @@ public class ArticleProcessor {
         article.put(Common.REWARDED, false);
         article.put(Common.REWARED_COUNT, rewardQueryService.rewardedCount(articleId, Reward.TYPE_C_ARTICLE));
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
-        final List<JSONObject> articleVisitSourceStats = articleSearchVisitStatQueryService.getStats(articleId);
-        article.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
-        dataModel.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
-
         articleQueryService.processArticleContent(article);
 
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
