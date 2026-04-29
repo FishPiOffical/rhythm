@@ -16,3 +16,4 @@ delegated-apnic-latest.tmp
 .fleet/
 scripts/deploy.ps1
 /.codex-tasks/
+/cdn-version-replacements/
