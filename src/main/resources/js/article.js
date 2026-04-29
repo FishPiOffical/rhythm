@@ -1363,8 +1363,9 @@ var ArticleReaction = {
     var html = ['<div class="reaction-popover">']
     for (var i = 0; i < Comment.reactionOptions.length; i++) {
       var option = Comment.reactionOptions[i]
+      var wideClass = Comment.isWideReactionOption(option) ? ' reaction-option--wide' : ''
       var selected = currentUserReaction === option.value ? ' selected' : ''
-      html.push('<button type="button" class="reaction-option', selected,
+      html.push('<button type="button" class="reaction-option', wideClass, selected,
         '" onclick="ArticleReaction.react(\'', id, '\', \'', option.value, '\', this)">')
       html.push('<span class="reaction-option__emoji">', option.emoji, '</span>')
       html.push('</button>')
