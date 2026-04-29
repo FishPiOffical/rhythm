@@ -392,6 +392,15 @@
                         </#if>
                     </div>
                     <div class="fn__clear article__view">
+                        <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
+                            <#list articleVisitSourceStats as sourceStat>
+                                <span class="fn__flex-inline article-visit-source article-visit-source--${sourceStat.sourceCss} tooltipped__n tooltipped-n tooltipped"
+                                      aria-label="${sourceStat.sourceName}">
+                                    <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>
+                                    ${sourceStat.visitCount}
+                                </span>
+                            </#list>
+                        </#if>
                         <span class="fn__flex-inline tooltipped__n tooltipped-n tooltipped" aria-label="总访问计数">
                             <svg><use xlink:href="#iconTop"></use></svg>
                             <#if article.articleViewCount < 1000>

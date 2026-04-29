@@ -131,6 +131,12 @@ public class ArticleProcessor {
     @Inject
     private ArticleMgmtService articleMgmtService;
 
+    @Inject
+    private ArticleSearchVisitStatMgmtService articleSearchVisitStatMgmtService;
+
+    @Inject
+    private ArticleSearchVisitStatQueryService articleSearchVisitStatQueryService;
+
     /**
      * Article query service.
      */
@@ -538,6 +544,9 @@ public class ArticleProcessor {
         article.put(Common.REWARDED, false);
         article.put(Common.REWARED_COUNT, rewardQueryService.rewardedCount(articleId, Reward.TYPE_C_ARTICLE));
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
+        final List<JSONObject> articleVisitSourceStats = articleSearchVisitStatQueryService.getStats(articleId);
+        article.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
+        dataModel.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
 
         articleQueryService.processArticleContent(article);
 
@@ -582,7 +591,10 @@ public class ArticleProcessor {
         livenessMgmtService.incLiveness(currentUserId, Liveness.LIVENESS_PV);
 
 
-        if (!Sessions.isBot()) {
+        if (Sessions.isBot()) {
+            articleSearchVisitStatMgmtService.recordCrawler(articleId, Requests.getRemoteAddr(request),
+                    Headers.getHeader(request, Common.USER_AGENT, ""));
+        } else {
             final long created = System.currentTimeMillis();
             final long expired = DateUtils.addMonths(new Date(created), 1).getTime();
             final String ip = Requests.getRemoteAddr(request);
@@ -1401,6 +1413,9 @@ public class ArticleProcessor {
         article.put(Common.REWARDED, false);
         article.put(Common.REWARED_COUNT, rewardQueryService.rewardedCount(articleId, Reward.TYPE_C_ARTICLE));
         article.put(Article.ARTICLE_REVISION_COUNT, revisionQueryService.count(articleId, Revision.DATA_TYPE_C_ARTICLE));
+        final List<JSONObject> articleVisitSourceStats = articleSearchVisitStatQueryService.getStats(articleId);
+        article.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
+        dataModel.put(ArticleSearchVisitStat.ARTICLE_VISIT_SOURCE_STATS, articleVisitSourceStats);
 
         articleQueryService.processArticleContent(article);
 
@@ -1458,7 +1473,10 @@ public class ArticleProcessor {
             livenessMgmtService.incLiveness(viewer.optString(Keys.OBJECT_ID), Liveness.LIVENESS_PV);
         }
 
-        if (!Sessions.isBot()) {
+        if (Sessions.isBot()) {
+            articleSearchVisitStatMgmtService.recordCrawler(articleId, Requests.getRemoteAddr(request),
+                    Headers.getHeader(request, Common.USER_AGENT, ""));
+        } else {
             final long created = System.currentTimeMillis();
             final long expired = DateUtils.addMonths(new Date(created), 1).getTime();
             final String ip = Requests.getRemoteAddr(request);

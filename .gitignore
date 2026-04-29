@@ -17,3 +17,4 @@ delegated-apnic-latest.tmp
 scripts/deploy.ps1
 /.codex-tasks/
 /cdn-version-replacements/
+/scripts/update-duckduckgo-bot-prefixes.ps1

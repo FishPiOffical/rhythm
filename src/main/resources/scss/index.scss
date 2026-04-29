@@ -2537,24 +2537,107 @@ code .dec {
 }
 
 .article__view {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   line-height: 16px;
   color: #8b8b8b;
   margin: 15px 0 15px 5px;
   text-align: right;
   border-top: 1px solid #eee;
-  padding: 15px 0 0;
+  padding: 15px 15px 0 0;
 
   .tooltipped__n {
-    margin-right: 15px;
+    margin-right: 0;
   }
 
-  svg {
+  > .tooltipped__n > svg {
     margin-right: 3px;
   }
 
   .tooltipped__n:hover {
     color: var(--text-gray-color);
   }
+}
+
+.article-visit-source {
+  display: inline-flex;
+  align-items: center;
+  color: #8b8b8b;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.article-visit-source__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  color: #8b8b8b;
+  flex: 0 0 auto;
+
+  svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    margin-right: 0;
+  }
+}
+
+.article-visit-source--google .article-visit-source__icon,
+.article-visit-source--chrome .article-visit-source__icon {
+  color: #4285f4;
+}
+
+.article-visit-source--baidu .article-visit-source__icon {
+  color: #3355ff;
+}
+
+.article-visit-source--bing .article-visit-source__icon,
+.article-visit-source--edge .article-visit-source__icon {
+  color: #0078d7;
+}
+
+.article-visit-source--sogou .article-visit-source__icon {
+  color: #fa4f00;
+}
+
+.article-visit-source--yandex .article-visit-source__icon {
+  color: #fc3f1d;
+}
+
+.article-visit-source--360 .article-visit-source__icon,
+.article-visit-source--android .article-visit-source__icon {
+  color: #2fa866;
+}
+
+.article-visit-source--duckduckgo .article-visit-source__icon {
+  color: #de5833;
+}
+
+.article-visit-source--safari .article-visit-source__icon {
+  color: #0a84ff;
+}
+
+.article-visit-source--firefox .article-visit-source__icon {
+  color: #ff7139;
+}
+
+.article-visit-source--opera .article-visit-source__icon {
+  color: #ff1b2d;
+}
+
+.article-visit-source--samsung .article-visit-source__icon {
+  color: #1428a0;
+}
+
+.article-visit-source--iphone .article-visit-source__icon {
+  color: #6e6e73;
 }
 
 .article__cnt {

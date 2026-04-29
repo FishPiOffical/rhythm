@@ -181,6 +181,16 @@
                         <a rel="nofollow" class="ft-gray" href="#comments">
                             <b class="article-level<#if article.articleCommentCount lt 40>${(article.articleCommentCount/10)?int}<#else>4</#if>">${article.articleCommentCount}</b> ${cmtLabel}</a>
                         &nbsp;•&nbsp;
+                        <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
+                        <span class="article-visit-sources">
+                            <#list articleVisitSourceStats as sourceStat>
+                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" aria-label="${sourceStat.sourceName}">
+                                <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>${sourceStat.visitCount}
+                            </span>
+                            </#list>
+                        </span>
+                        &nbsp;•&nbsp;
+                        </#if>
                         <span class="article-level<#if article.articleViewCount lt 400>${(article.articleViewCount/100)?int}<#else>4</#if>">
                         <#if article.articleViewCount < 1000>
                         ${article.articleViewCount}

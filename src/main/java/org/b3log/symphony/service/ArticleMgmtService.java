@@ -167,6 +167,9 @@ public class ArticleMgmtService {
     @Inject
     private LongArticleReadService longArticleReadService;
 
+    @Inject
+    private ArticleSearchVisitStatMgmtService articleSearchVisitStatMgmtService;
+
     /**
      * Long article column management service.
      */
@@ -489,6 +492,8 @@ public class ArticleMgmtService {
                 articleRepository.update(articleId, article, Article.ARTICLE_VIEW_CNT, Article.ARTICLE_RANDOM_DOUBLE);
 
                 transaction.commit();
+                articleSearchVisitStatMgmtService.recordReferer(articleId, visit.optString(Visit.VISIT_REFERER_URL));
+                articleSearchVisitStatMgmtService.recordClient(articleId, visit.optString(Visit.VISIT_UA));
             } catch (final RepositoryException e) {
                 if (transaction.isActive()) {
                     transaction.rollback();

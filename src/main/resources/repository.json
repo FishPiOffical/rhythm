@@ -2796,6 +2796,45 @@
       ]
     },
     {
+      "name": "article_search_visit_stat",
+      "description": "帖子访问来源统计表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "帖子 id"
+        },
+        {
+          "name": "searchEngine",
+          "type": "String",
+          "length": 32,
+          "description": "来源键"
+        },
+        {
+          "name": "crawlerVisitCount",
+          "type": "int",
+          "description": "搜索引擎抓取次数"
+        },
+        {
+          "name": "refererVisitCount",
+          "type": "int",
+          "description": "来源访问次数"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
+    },
+    {
       "name": "reaction",
       "description": "通用 reaction 表（评论/聊天室）",
       "keys": [

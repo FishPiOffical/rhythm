@@ -44,6 +44,7 @@ import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
@@ -172,6 +173,14 @@ public class BeforeRequestHandler implements Handler {
 
     private static void fillBotAttrs(final RequestContext context) {
         final String userAgentStr = context.header(Common.USER_AGENT);
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
+        if (null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr)) {
+            LOGGER.log(Level.DEBUG, "Verified search engine crawler [{}] [User-Agent={}]", claimedEngine.key(), userAgentStr);
+            Sessions.setBot(true);
+            return;
+        }
+
         final UserAgent userAgent = UserAgent.parseUserAgentString(userAgentStr);
         BrowserType browserType = userAgent.getBrowser().getBrowserType();
         if (StringUtils.containsIgnoreCase(userAgentStr, "mobile")
@@ -182,7 +191,6 @@ public class BeforeRequestHandler implements Handler {
                 || StringUtils.containsIgnoreCase(userAgentStr, "Android")) {
             browserType = BrowserType.MOBILE_BROWSER;
         } else if (StringUtils.containsIgnoreCase(userAgentStr, "Iframely")
-                || StringUtils.containsIgnoreCase(userAgentStr, "Google")
                 || StringUtils.containsIgnoreCase(userAgentStr, "BUbiNG")
                 || StringUtils.containsIgnoreCase(userAgentStr, "ltx71")) {
             browserType = BrowserType.ROBOT;
@@ -199,6 +207,10 @@ public class BeforeRequestHandler implements Handler {
                 LOGGER.log(Level.WARN, "Unknown client [UA=" + userAgentStr + ", remoteAddr="
                         + Requests.getRemoteAddr(context.getRequest()) + ", URI=" + context.requestURI() + "]");
             }
+        }
+
+        if (null != claimedEngine && BrowserType.ROBOT == browserType) {
+            browserType = BrowserType.UNKNOWN;
         }
 
         if (BrowserType.ROBOT == browserType) {

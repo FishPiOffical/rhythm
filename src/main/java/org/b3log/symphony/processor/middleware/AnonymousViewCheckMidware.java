@@ -46,6 +46,7 @@ import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Headers;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -194,7 +195,7 @@ public class AnonymousViewCheckMidware {
                     whiteList.add(ip);
                 } else {
                     final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-                    if (shieldEnabled && !isSearchEngineBot(ua)) {
+                    if (shieldEnabled && !SearchEngines.isVerifiedCrawler(ip, ua)) {
                         // 初始化首次访问时间（用于 2 小时内首次访问逻辑）
                         Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
                         long now = System.currentTimeMillis();
@@ -336,18 +337,6 @@ public class AnonymousViewCheckMidware {
         }
 
         context.handle();
-    }
-
-    private static final List<String> SEARCH_ENGINE_BOTS = Arrays.asList(
-            "Googlebot", "Bingbot", "Baiduspider", "Sogou", "360Spider", "YandexBot", "DuckDuckBot"
-    );
-
-    public static boolean isSearchEngineBot(String ua) {
-        if (ua == null) return false;
-        for (String bot : SEARCH_ENGINE_BOTS) {
-            if (ua.contains(bot)) return true;
-        }
-        return false;
     }
 
 }
