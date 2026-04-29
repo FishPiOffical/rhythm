@@ -60,7 +60,7 @@
                                             </h2>
                                             <span class="ft-fade vditor-reset">
                                                 在本游戏中，您首先由原生质选择进化为某种智慧生物，然后带领他们走向繁荣昌盛，最后迈向星空，征服宇宙。<br>
-                                                支持第三方存档云同步（需手动在游戏设定中开启），参与 <a href="${servePath}/top/evolve">进化排行榜</a>
+                                                内置鱼排云存档，左下角可开关自动保存，参与 <a href="${servePath}/top/evolve">进化排行榜</a>
                                             </span>
                                         </div>
                                     </div>

@@ -33,26 +33,19 @@
     <link href="https://file.fishpi.cn/evolve/lib/googlelato.css" rel="stylesheet">
     <link rel="stylesheet" href="https://file.fishpi.cn/evolve/lib/buefy.min.css">
     <link rel="stylesheet" type="text/css" href="https://file.fishpi.cn/evolve/lib/weather-icons.min.css">
+    <link rel="stylesheet" type="text/css" href="https://file.fishpi.cn/evolve/evolve/evolve.css">
 
     <script src="https://file.fishpi.cn/evolve/lib/jquery.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/vue.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/buefy.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/popper.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/Sortable.min.js"></script>
-    <script src="https://file.fishpi.cn/evolve/lib/lodash.min.js"></script>
-    <script src="https://file.fishpi.cn/evolve/lib/PlayFabClientApi.js"></script>
-    <script src="https://file.fishpi.cn/evolve/lib/moment.js"></script>
-    <!--
-        <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-        <script src="https://unpkg.com/vue@2.6.11/dist/vue.min.js"></script>
-        <script src="https://unpkg.com/buefy@0.9.3/dist/buefy.min.js"></script>
-        <script src="https://unpkg.com/popper.js@1.16.1-lts/dist/umd/popper.min.js"></script>
-        <script src="https://unpkg.com/sortablejs@1.10.2/Sortable.min.js"></script>
-        <script src="https://unpkg.com/lodash@4.17.15/lodash.min.js"></script>
-    -->
-    <link rel="stylesheet" type="text/css" href="https://file.fishpi.cn/evolve/evolve/evolve.css?r=20210605">
+    <script src="https://file.fishpi.cn/evolve/lib/chart.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/lz-string.min.js"></script>
-    <script src="https://file.fishpi.cn/main.js" type="module"></script>
+    <script>
+        window.fishpiEvolveAssetBase = 'https://file.fishpi.cn/evolve/'
+    </script>
+    <script src="https://file.fishpi.cn/evolve/evolve/main.js?${staticResourceVersion}&cdn=worker" type="module"></script>
 </head>
 <body>
 <!--          <script src="zh/core.js"></script> -->

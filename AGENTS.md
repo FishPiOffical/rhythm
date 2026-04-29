@@ -35,7 +35,7 @@
 - 聊天室红包详情/打开后的弹层头部走前端通用 `Util.alert()`（`src/main/resources/js/common.js`），标题与关闭按钮布局异常优先排查这个公共弹层，而不是红包业务模板。
 - 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
-- Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；当前主体脚本与样式仍主要走 `https://file.fishpi.cn` CDN，本地 `src/main/resources/games/evolve` 只保留部分资源与翻译，排行榜依赖 `cloud` 表 `gameId=40` 里的 `data.top`。
+- Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
 - 字符串输入必须做限制与校验：长度上限、空白处理、字符白名单/黑名单、格式校验（如用户名/URL/JSON）、必要的转义或编码；禁止直接信任前端传参。
 - 涉及业务规则（可用字符、最大长度、是否允许 HTML/Markdown、过滤策略）不明确时，先与用户确认规则再实现，避免误伤或放漏。
