@@ -26,6 +26,7 @@
 /**
 z-index rule
 footer 40~59
+reaction-popover 70
 article-toc 79
 article-editor-preview 81
 add article tag tip 82
@@ -43,6 +44,7 @@ dialog 200~209
 // Table of Contents
 // Colors
 $blue: #4285f4 !default;
+$z-index-reaction-popover: 70 !default;
 $blue-light: #dbedff !default;
 $blue-lighter: #f1f7fe !default;
 $red: #d23f31 !default;

@@ -1816,7 +1816,7 @@ label.cmt-anonymous {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: 3;
+  z-index: $z-index-reaction-popover;
   display: none;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
@@ -1828,6 +1828,12 @@ label.cmt-anonymous {
   background: rgba(255,255,255,.96);
   box-shadow: 0 18px 38px rgba(15,23,42,.16);
   backdrop-filter: blur(16px);
+}
+
+.article-reaction.is-open,
+.comment-reaction.is-open,
+.chat-reaction.is-open {
+  z-index: $z-index-reaction-popover;
 }
 
 .article-reaction.is-open .reaction-popover,
