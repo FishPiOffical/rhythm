@@ -75,6 +75,10 @@ public class ArticleQueryService {
      */
     private static final Logger LOGGER = LogManager.getLogger(ArticleQueryService.class);
 
+    private static final int INDEX_FIRST_PAGE = 1;
+
+    private static final int INDEX_SECOND_PAGE = 2;
+
     /**
      * Article repository.
      */
@@ -1321,38 +1325,14 @@ public class ArticleQueryService {
         try {
             Stopwatchs.start("Query index recent articles");
             try {
-                final int normalizedPage = Math.max(page, 1);
+                final int normalizedPage = Math.max(page, INDEX_FIRST_PAGE);
                 final List<JSONObject> stickArticles = getStickArticles();
                 final Set<String> stickArticleIds = buildArticleIdSet(stickArticles);
 
-                if (1 == normalizedPage) {
-                    final Query query = buildIndexRecentArticlesQuery(1, fetchSize);
-                    ret = articleRepository.getList(query);
-
-                    if (!stickArticles.isEmpty()) {
-                        final Iterator<JSONObject> iterator = ret.iterator();
-                        while (iterator.hasNext()) {
-                            final JSONObject article = iterator.next();
-                            if (stickArticleIds.contains(article.optString(Keys.OBJECT_ID))) {
-                                iterator.remove();
-                            }
-                        }
-
-                        ret.addAll(0, stickArticles);
-                    }
+                if (INDEX_FIRST_PAGE == normalizedPage) {
+                    ret = getFirstIndexRecentArticles(fetchSize, stickArticles, stickArticleIds);
                 } else {
-                    final int extraSize = calcIndexRecentExtraSize(fetchSize, stickArticleIds);
-                    final int actualFetchSize = fetchSize + extraSize;
-                    final int fromIndex = (normalizedPage - 1) * fetchSize + (normalizedPage - 2) * extraSize;
-                    final int toIndex = fromIndex + actualFetchSize;
-
-                    final Query query = buildIndexRecentArticlesQuery(1, toIndex);
-                    final List<JSONObject> queried = articleRepository.getList(query);
-                    if (queried.size() <= fromIndex) {
-                        ret = new ArrayList<>();
-                    } else {
-                        ret = new ArrayList<>(queried.subList(fromIndex, Math.min(queried.size(), toIndex)));
-                    }
+                    ret = getLaterIndexRecentArticles(fetchSize, normalizedPage, stickArticleIds);
                 }
             } finally {
                 Stopwatchs.end();
@@ -1366,6 +1346,33 @@ public class ArticleQueryService {
 
             return Collections.emptyList();
         }
+    }
+
+    private List<JSONObject> getFirstIndexRecentArticles(final int fetchSize, final List<JSONObject> stickArticles,
+                                                         final Set<String> stickArticleIds) throws RepositoryException {
+        final Query query = buildIndexRecentArticlesQuery(INDEX_FIRST_PAGE, fetchSize);
+        final List<JSONObject> articles = articleRepository.getList(query);
+        final List<JSONObject> ordinaryArticles = excludeArticleIds(articles, stickArticleIds);
+        final List<JSONObject> ret = new ArrayList<>(stickArticles.size() + ordinaryArticles.size());
+        ret.addAll(stickArticles);
+        ret.addAll(ordinaryArticles);
+
+        return ret;
+    }
+
+    private List<JSONObject> getLaterIndexRecentArticles(final int fetchSize, final int page,
+                                                         final Set<String> stickArticleIds) throws RepositoryException {
+        final int duplicatedCount = countFirstPageStickArticles(fetchSize, stickArticleIds);
+        final int extraSize = Math.max(0, stickArticleIds.size() - duplicatedCount);
+        final int pageSize = fetchSize + extraSize;
+        final int fromIndex = fetchSize - duplicatedCount + (page - INDEX_SECOND_PAGE) * pageSize;
+        final int toIndex = fromIndex + pageSize;
+        final List<JSONObject> articles = getIndexRecentArticlesWithoutSticks(toIndex, stickArticleIds);
+        if (articles.size() <= fromIndex) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(articles.subList(fromIndex, Math.min(articles.size(), toIndex)));
     }
 
     private Query buildIndexRecentArticlesQuery(final int page, final int fetchSize) {
@@ -1389,21 +1396,47 @@ public class ArticleQueryService {
         return articleIds;
     }
 
-    private int calcIndexRecentExtraSize(final int fetchSize, final Set<String> stickArticleIds) throws RepositoryException {
+    private int countFirstPageStickArticles(final int fetchSize, final Set<String> stickArticleIds) throws RepositoryException {
         if (stickArticleIds.isEmpty()) {
             return 0;
         }
 
-        final Query firstPageQuery = buildIndexRecentArticlesQuery(1, fetchSize);
+        final Query firstPageQuery = buildIndexRecentArticlesQuery(INDEX_FIRST_PAGE, fetchSize);
         final List<JSONObject> firstPageArticles = articleRepository.getList(firstPageQuery);
-        int duplicatedCount = 0;
-        for (final JSONObject article : firstPageArticles) {
-            if (stickArticleIds.contains(article.optString(Keys.OBJECT_ID))) {
-                duplicatedCount++;
+        return countArticleIds(firstPageArticles, stickArticleIds);
+    }
+
+    private int countArticleIds(final List<JSONObject> articles, final Set<String> articleIds) {
+        int count = 0;
+        for (final JSONObject article : articles) {
+            if (articleIds.contains(article.optString(Keys.OBJECT_ID))) {
+                count++;
             }
         }
 
-        return Math.max(0, stickArticleIds.size() - duplicatedCount);
+        return count;
+    }
+
+    private List<JSONObject> getIndexRecentArticlesWithoutSticks(final int fetchSize,
+                                                                 final Set<String> stickArticleIds) throws RepositoryException {
+        final Query query = buildIndexRecentArticlesQuery(INDEX_FIRST_PAGE, fetchSize + stickArticleIds.size());
+        final List<JSONObject> articles = articleRepository.getList(query);
+        return excludeArticleIds(articles, stickArticleIds);
+    }
+
+    private List<JSONObject> excludeArticleIds(final List<JSONObject> articles, final Set<String> excludedIds) {
+        if (excludedIds.isEmpty()) {
+            return new ArrayList<>(articles);
+        }
+
+        final List<JSONObject> ret = new ArrayList<>(articles.size());
+        for (final JSONObject article : articles) {
+            if (!excludedIds.contains(article.optString(Keys.OBJECT_ID))) {
+                ret.add(article);
+            }
+        }
+
+        return ret;
     }
 
     private void fillLongArticleCovers(final List<JSONObject> articles) {
