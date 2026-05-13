@@ -67,6 +67,36 @@ ${siteVisitStatCode}
     })();
 </script>
 <#if isLoggedIn && currentUser?? && currentUser.oId??>
-<script type="module" src="https://ext.adventext.fun/api/items/${currentUser.oId}/loader.js"></script>
+<script>
+    (function () {
+        var extensionLoaded = false;
+
+        var loadExtensionScript = function () {
+            if (extensionLoaded) {
+                return;
+            }
+
+            extensionLoaded = true;
+            import('https://ext.adventext.fun/api/items/${currentUser.oId}/loader.js').catch(function () {
+                console.warn('Adventext extension loader failed');
+            });
+        };
+
+        var scheduleLoad = function () {
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(loadExtensionScript, {timeout: 3000});
+                return;
+            }
+            window.setTimeout(loadExtensionScript, 1000);
+        };
+
+        if (document.readyState !== 'loading') {
+            scheduleLoad();
+            return;
+        }
+
+        document.addEventListener('DOMContentLoaded', scheduleLoad, {once: true});
+    })();
+</script>
 </#if>
 </#macro>

@@ -404,12 +404,12 @@ var Chat = {
                 '        <div class="avatar tooltipped__user" aria-label="' + userName + '"\n' +
                 '             style="background-image: url(' + avatarURL + ');"></div>\n' +
                 '    </a>\n' +
-                '    <div class="chats__content">\n' +
+                '    <div class="chats__content chats__content--private">\n' +
                 '        <div class="chats__arrow"></div>\n' +
-                '        <div style="margin-top: 4px" class="vditor-reset ft__smaller ">\n' +
+                '        <div class="vditor-reset ft__smaller chats__message">\n' +
                 '            ' + content + '\n' +
                 '        </div>\n' +
-                '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
+                '        <div class="ft__smaller ft__fade fn__right date-bar chats__meta">\n' +
                 '            ' + time + '\n' +
                 '        <span class="fn__space5"></span>' +
                 '            <details class="details action__item fn__flex-center">\n' +
@@ -430,12 +430,12 @@ var Chat = {
                 '        <div class="avatar tooltipped__user" aria-label="' + userName + '"\n' +
                 '             style="background-image: url(' + avatarURL + ');"></div>\n' +
                 '    </a>\n' +
-                '    <div class="chats__content">\n' +
+                '    <div class="chats__content chats__content--private">\n' +
                 '        <div class="chats__arrow"></div>\n' +
-                '        <div style="margin-top: 4px" class="vditor-reset ft__smaller ">\n' +
+                '        <div class="vditor-reset ft__smaller chats__message">\n' +
                 '            ' + content + '\n' +
                 '        </div>\n' +
-                '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
+                '        <div class="ft__smaller ft__fade fn__right date-bar chats__meta">\n' +
                 '            ' + time + '\n' +
                 '        <span class="fn__space5"></span>' +
                 '            <details class="details action__item fn__flex-center">\n' +
@@ -500,12 +500,12 @@ var Chat = {
                 '        <div class="avatar tooltipped__user" aria-label="' + userName + '"\n' +
                 '             style="background-image: url(' + avatarURL + ');"></div>\n' +
                 '    </a>\n' +
-                '    <div class="chats__content">\n' +
+                '    <div class="chats__content chats__content--private">\n' +
                 '        <div class="chats__arrow"></div>\n' +
-                '        <div style="margin-top: 4px" class="vditor-reset ft__smaller ">\n' +
+                '        <div class="vditor-reset ft__smaller chats__message">\n' +
                 '            ' + content + '\n' +
                 '        </div>\n' +
-                '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
+                '        <div class="ft__smaller ft__fade fn__right date-bar chats__meta">\n' +
                 '            ' + time + '\n' + m +
                 '        </div>\n' +
                 '    </div>\n' +
@@ -517,12 +517,12 @@ var Chat = {
                 '        <div class="avatar tooltipped__user" aria-label="' + userName + '"\n' +
                 '             style="background-image: url(' + avatarURL + ');"></div>\n' +
                 '    </a>\n' +
-                '    <div class="chats__content">\n' +
+                '    <div class="chats__content chats__content--private">\n' +
                 '        <div class="chats__arrow"></div>\n' +
-                '        <div style="margin-top: 4px" class="vditor-reset ft__smaller ">\n' +
+                '        <div class="vditor-reset ft__smaller chats__message">\n' +
                 '            ' + content + '\n' +
                 '        </div>\n' +
-                '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
+                '        <div class="ft__smaller ft__fade fn__right date-bar chats__meta">\n' +
                 '            ' + time + '\n' + m +
                 '        </div>\n' +
                 '    </div>\n' +

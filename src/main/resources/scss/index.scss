@@ -3446,6 +3446,28 @@ code .dec {
   position: relative;
 }
 
+.chats__content--private {
+  padding-top: 8px;
+  padding-bottom: 6px;
+}
+
+.chats__message {
+  margin: 0;
+  line-height: 18px;
+}
+
+.chats__content--private > .chats__meta {
+  margin-top: 3px;
+  min-height: 15px;
+  line-height: 15px;
+}
+
+.chats__content--private > .chats__meta .details,
+.chats__content--private > .chats__meta .details > summary {
+  height: 15px;
+  line-height: 15px;
+}
+
 .chats__content .vditor-reset::-webkit-scrollbar {
   display: none;
 }
