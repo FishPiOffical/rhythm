@@ -36,8 +36,11 @@
             <#return "color:#111827;">
     </#switch>
 </#function>
+<#assign threadReplyCount = comment.commentThreadReplyCount!comment.commentReplyCnt>
 <li id="${comment.oId}"
-    class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if comment.commentReplyCnt != 0> cmt-selected</#if>">
+    data-author="${comment.commentAuthorName}"
+    data-is-author="<#if comment.commentAuthorId == article.articleAuthorId>true<#else>false</#if>"
+    class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if threadReplyCount != 0> cmt-selected</#if>">
     <div class="fn-flex">
         <div>
             <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}">
@@ -92,10 +95,13 @@
                        aria-label="${adminLabel}"><svg class="icon-setting"><use xlink:href="#setting"></use></svg></a> &nbsp;
                     </#if>
                     <#if comment.commentOriginalCommentId != ''>
-                        <span class="fn-pointer ft-a-title tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
-                              onclick="Comment.showReply('${comment.commentOriginalCommentId}', this, 'comment-get-comment')"><svg class="icon-reply-to"><use xlink:href="#reply-to"></use></svg>
-                        <div class="avatar-small" style="background-image:url('${comment.commentOriginalAuthorThumbnailURL}')"></div>
-                    </span>
+                        <#assign originalAuthorLabel = comment.commentOriginalAuthorNickName!''>
+                        <#if originalAuthorLabel == ''><#assign originalAuthorLabel = comment.commentOriginalAuthorName!'原评论'></#if>
+                        <span class="comment-origin fn-pointer ft-a-title tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
+                              onclick="Comment.showReply('${comment.commentOriginalCommentId}', this, 'comment-get-comment')">
+                            <svg class="icon-reply-to"><use xlink:href="#reply-to"></use></svg>
+                            <span>回复 @${originalAuthorLabel?html}</span>
+                        </span>
                     </#if>
 
                 </span>
@@ -103,10 +109,80 @@
             <div class="vditor-reset comment">
                 ${comment.commentContent}
             </div>
+            <#if threadReplyCount gt 0>
+                <div class="comment-thread" data-root-id="${comment.oId}">
+                    <div class="comment-thread__list">
+                        <#list comment.commentThreadReplies![] as threadReply>
+                            <#assign threadAuthorLabel = threadReply.commentAuthorNickName!''>
+                            <#if threadAuthorLabel != ''><#assign threadAuthorLabel = threadAuthorLabel + ' (' + threadReply.commentAuthorName + ')'><#else><#assign threadAuthorLabel = threadReply.commentAuthorName></#if>
+                            <#assign threadOriginalAuthorLabel = threadReply.commentOriginalAuthorNickName!''>
+                            <#if threadOriginalAuthorLabel == ''><#assign threadOriginalAuthorLabel = threadReply.commentOriginalAuthorName!'原评论'></#if>
+                            <#assign threadDepth = threadReply.commentThreadDepth!0>
+                            <div id="${threadReply.oId}" class="comment-thread__reply<#if threadDepth gt 0> comment-thread__reply--nested</#if>"
+                                 data-thread-depth="${threadDepth}" style="--comment-thread-indent:${threadDepth * 28}px">
+                                <a rel="nofollow" href="${servePath}/member/${threadReply.commentAuthorName}" class="comment-thread__avatar"
+                                   aria-label="${threadReply.commentAuthorName}"
+                                   style="background-image:url('${threadReply.commentAuthorThumbnailURL}')"></a>
+                                <div class="comment-thread__body">
+                                    <div class="comment-thread__meta">
+                                        <a rel="nofollow" href="${servePath}/member/${threadReply.commentAuthorName}">${threadAuthorLabel?html}</a>
+                                        <span class="comment-origin-inline">回复 @${threadOriginalAuthorLabel?html}</span>
+                                        <span class="ft-fade">• ${threadReply.timeAgo}</span>
+                                    </div>
+                                    <div class="comment-thread__content vditor-reset">${threadReply.commentContent}</div>
+                                    <div class="comment-thread__actions comment-action__bar">
+                                        <div class="comment-action__left">
+                                            <div class="comment-reaction-shell"
+                                                 data-target-id="${threadReply.oId}"
+                                                 data-current-user-reaction="${threadReply.currentUserReaction!''}"
+                                                 data-summary='${(threadReply.reactionSummary!'[]')?html}'></div>
+                                        </div>
+                                        <span class="action-btns">
+                                            <#assign threadHasRewarded = isLoggedIn && threadReply.commentAuthorId != currentUser.oId && (threadReply.rewarded!false)>
+                                            <span class="tooltipped tooltipped-n<#if threadHasRewarded> ft-red</#if>" aria-label="${thankLabel}"
+                                            <#if !threadHasRewarded && permissions["commonThankComment"].permissionGrant>
+                                                onclick="Comment.thank('${threadReply.oId}', '${csrfToken}', '${threadReply.commentThankLabel!''}', ${threadReply.commentAnonymous!0}, this)"
+                                            <#elseif !threadHasRewarded>
+                                                onclick="Article.permissionTip(Label.noPermissionLabel)"
+                                            </#if>><svg class="fn-text-top icon-heart"><use xlink:href="#heart"></use></svg> ${threadReply.rewardedCnt!0}</span>
+                                            <span class="tooltipped tooltipped-n<#if isLoggedIn && 0 == (threadReply.commentVote!-1)> ft-red</#if>"
+                                                  aria-label="${upLabel}"
+                                            <#if permissions["commonGoodComment"].permissionGrant>
+                                                onclick="Article.voteUp('${threadReply.oId}', 'comment', this)"
+                                            <#else>
+                                                onclick="Article.permissionTip(Label.noPermissionLabel)"
+                                            </#if>><svg class="icon-thumbs-up"><use xlink:href="#thumbs-up"></use></svg> ${threadReply.commentGoodCnt!0}</span>
+                                            <span class="tooltipped tooltipped-n<#if isLoggedIn && 1 == (threadReply.commentVote!-1)> ft-red</#if>"
+                                                  aria-label="${downLabel}"
+                                            <#if permissions["commonBadComment"].permissionGrant>
+                                                onclick="Article.voteDown('${threadReply.oId}', 'comment', this)"
+                                            <#else>
+                                                onclick="Article.permissionTip(Label.noPermissionLabel)"
+                                            </#if>><svg class="icon-thumbs-down"><use xlink:href="#thumbs-down"></use></svg> ${threadReply.commentBadCnt!0}</span>
+                                            <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
+                                                  onclick="$('#reportDialog').data('type', 1).data('id', '${threadReply.oId}').dialog('open')"
+                                            ><svg><use xlink:href="#icon-report"></use></svg></span>
+                                            <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
+                                                <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
+                                                      onclick="Comment.reply('${threadReply.commentAuthorName}', '${threadReply.oId}')">
+                                                    <svg class="icon-reply"><use xlink:href="#reply"></use></svg>
+                                                </span>
+                                            </#if>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </#list>
+                    </div>
+                    <#if comment.commentThreadHasMore!false>
+                        <button type="button" class="comment-thread__more" onclick="Comment.showThreadReplies('${comment.oId}', this)">
+                            查看全部 ${threadReplyCount} 条回复
+                        </button>
+                    </#if>
+                </div>
+            </#if>
             <div class="comment-action">
-                <div class="ft-fade fn-clear comment-action__bar"><div class="comment-action__left"><#if comment.commentReplyCnt != 0><span class="comment-action__reply fn-pointer ft-smaller" onclick="Comment.showReply('${comment.oId}', this, 'comment-replies')">
-                            ${comment.commentReplyCnt} ${replyLabel} <svg class="icon-chevron-down fn-text-top"><use xlink:href="#chevron-down"></use></svg>
-                        </span></#if><div class="comment-reaction-shell"
+                <div class="ft-fade fn-clear comment-action__bar"><div class="comment-action__left"><div class="comment-reaction-shell"
                              data-target-id="${comment.oId}"
                              data-current-user-reaction="${comment.currentUserReaction!''}"
                              data-summary='${(comment.reactionSummary!'[]')?html}'></div></div><!--
@@ -141,7 +217,7 @@
                     <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
                           onclick="$('#reportDialog').data('type', 1).data('id', '${comment.oId}').dialog('open')"
                     ><svg><use xlink:href="#icon-report"></use></svg></span>
-                    <#if isLoggedIn && comment.commentAuthorName != currentUser.userName && permissions["commonAddComment"].permissionGrant>
+                    <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
                         <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
                               onclick="Comment.reply('${comment.commentAuthorName}', '${comment.oId}')">
                         <svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>

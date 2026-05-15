@@ -78,24 +78,6 @@
     <meta name="twitter:url" content="${servePath}${article.articlePermalink}"/>
     <meta name="twitter:site" content="@B3logOS"/>
     <meta name="twitter:creator" content="@B3logOS"/>
-    <style>
-        .long-article-nav{display:flex;gap:16px;margin:24px 0;padding:16px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;flex-wrap:wrap}
-        .long-article-nav__item{flex:1 1 300px;min-width:0}
-        .long-article-nav__item--right{text-align:right}
-        .long-article-nav__link{display:block;padding:12px 14px;border-radius:10px;border:1px solid #f0f0f0;background:#fafafa;transition:all .2s ease;color:#111;text-decoration:none}
-        .long-article-nav__link:hover{border-color:#d0d7de;background:#fff;text-decoration:none}
-        .long-article-nav__link--disabled{color:#999;cursor:default}
-        .long-article-nav__label{font-size:12px;color:#888;margin-bottom:6px}
-        .long-article-nav__title{font-weight:700;margin-bottom:6px;line-height:1.3}
-        .long-article-nav__preview{color:#555;font-size:13px;line-height:1.5;max-height:3.9em;overflow:hidden}
-        .long-column-card{margin:16px 0;padding:12px;border:1px solid #eceff5;border-radius:10px;background:#fbfdff}
-        .long-column-card__title{font-weight:600;color:#2b3a55}
-        .long-column-card__meta{margin-top:4px;font-size:12px;color:#7b8798}
-        .long-column-card__chapters{margin-top:10px;max-height:260px;overflow:auto;border-top:1px dashed #e6eaf0;padding-top:8px}
-        .long-column-card__chapter{display:block;padding:6px 8px;border-radius:8px;color:#3d4a5c;text-decoration:none}
-        .long-column-card__chapter:hover{background:#f1f6ff;text-decoration:none}
-        .long-column-card__chapter--active{background:#e8f0ff;color:#1d4ed8;font-weight:600}
-    </style>
 </head>
 <body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
@@ -130,51 +112,6 @@
             <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">
                 ${article.articleContent}
             </div>
-            <#if 6 == article.articleType>
-                <div class="long-article-nav">
-                    <div class="long-article-nav__item">
-                        <#if longArticlePrevious??>
-                            <a href="${servePath}${longArticlePrevious.articlePermalink}" class="long-article-nav__link">
-                                <div class="long-article-nav__label">上一篇</div>
-                                <div class="long-article-nav__title">${longArticlePrevious.articleTitleEmoj}</div>
-                                <div class="long-article-nav__preview">${longArticlePrevious.articlePreviewContent}</div>
-                            </a>
-                        <#else>
-                            <div class="long-article-nav__link long-article-nav__link--disabled">
-                                <div class="long-article-nav__label">上一篇</div>
-                                <div class="long-article-nav__preview">没有更多了</div>
-                            </div>
-                        </#if>
-                    </div>
-                    <div class="long-article-nav__item long-article-nav__item--right">
-                        <#if longArticleNext??>
-                            <a href="${servePath}${longArticleNext.articlePermalink}" class="long-article-nav__link">
-                                <div class="long-article-nav__label">下一篇</div>
-                                <div class="long-article-nav__title">${longArticleNext.articleTitleEmoj}</div>
-                                <div class="long-article-nav__preview">${longArticleNext.articlePreviewContent}</div>
-                            </a>
-                        <#else>
-                            <div class="long-article-nav__link long-article-nav__link--disabled">
-                                <div class="long-article-nav__label">下一篇</div>
-                                <div class="long-article-nav__preview">没有更多了</div>
-                            </div>
-                        </#if>
-                    </div>
-                </div>
-                <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
-                    <div class="long-column-card">
-                        <div class="long-column-card__title">所属专栏：<a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}" style="color:inherit;text-decoration:none;">${longArticleColumn.columnTitle}</a></div>
-                        <div class="long-column-card__meta">当前第 ${article.longArticleChapterNo?c} 章 · 共 ${longArticleColumn.columnArticleCount?c} 章</div>
-                        <div class="long-column-card__chapters">
-                            <#list longArticleChapters as chapter>
-                                <a href="${servePath}${chapter.articlePermalink}" class="long-column-card__chapter<#if chapter.articleId == article.oId> long-column-card__chapter--active</#if>">
-                                    第 ${chapter.chapterNo?c} 章 · ${chapter.articleTitleEmoj}
-                                </a>
-                            </#list>
-                        </div>
-                    </div>
-                </#if>
-            </#if>
         <#else>
             <div id="thoughtProgress"><span class="bar"></span>
                 <svg class="icon-video">
@@ -184,6 +121,7 @@
             <div class="vditor-reset article-content" id="articleThought" data-author="${article.articleAuthorName}"
                  data-link="${servePath}${article.articlePermalink}"></div>
         </#if>
+        <#include "common/article-adjacent-nav.ftl">
 
         <#if 0 < article.articleRewardPoint>
             <div id="articleRewardContent">
@@ -459,7 +397,7 @@
                                             </span>
                                         <a class="ft-a-title fn-right tooltipped tooltipped-nw"
                                            aria-label="${goCommentLabel}"
-                                           href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}#${article.articleOfferedComment.oId}')">
+                                           href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${article.articleOfferedComment.oId}')">
                                             <svg>
                                                 <use xlink:href="#down"></use>
                                             </svg>
@@ -534,7 +472,7 @@
                                              </#if>
                                              <a class="ft-a-title fn-right tooltipped tooltipped-nw"
                                                 aria-label="${goCommentLabel}"
-                                               href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}#${comment.oId}')">
+                                               href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${comment.oId}')">
                                                 <svg>
                                                     <use xlink:href="#down"></use>
                                                 </svg>
@@ -555,16 +493,32 @@
         <#if pjax><!---- pjax {#comments} start ----></#if>
         <div class="module comments" id="comments">
             <div class="comments-header module-header">
-                <span class="article-cmt-cnt">${article.articleCommentCount} ${cmtLabel}</span>
-                <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
-                            <a class="tooltipped tooltipped-nw"
-                               href="javascript:Comment.exchangeCmtSort(${userCommentViewMode})"
-                               aria-label="<#if 0 == userCommentViewMode>${changeToLabel}${realTimeLabel}${cmtViewModeLabel}<#else>${changeToLabel}${traditionLabel}${cmtViewModeLabel}</#if>"><span
-                                        class="icon-<#if 0 == userCommentViewMode>sortasc<#else>time</#if>"></span></a>&nbsp;
-                            <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
-                               aria-label="${jumpToBottomCommentLabel}"><svg><use
-                                            xlink:href="#chevron-down"></use></svg></a>
-                        </span>
+                <div class="comments-header__main">
+                    <span class="article-cmt-cnt">${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</span>
+                    <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
+                        <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
+                           aria-label="${jumpToBottomCommentLabel}"><svg><use
+                                        xlink:href="#chevron-down"></use></svg></a>
+                    </span>
+                </div>
+                <#if article.articleCommentCount != 0>
+                    <div class="comment-filterbar">
+                        <div class="comment-segment">
+                            <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
+                               href="${servePath}${article.articlePermalink}?${commentAllQuery}">全部</a>
+                            <a class="comment-segment__item<#if commentAuthorFilter> comment-segment__item--active</#if>"
+                               href="${servePath}${article.articlePermalink}?${commentAuthorQuery}">楼主</a>
+                        </div>
+                        <div class="comment-segment">
+                            <a class="comment-segment__item<#if commentSort == 'hot'> comment-segment__item--active</#if>"
+                               href="${servePath}${article.articlePermalink}?${commentHotQuery}">热门</a>
+                            <a class="comment-segment__item<#if commentSort != 'hot' && 0 == userCommentViewMode> comment-segment__item--active</#if>"
+                               href="${servePath}${article.articlePermalink}?${commentAscQuery}">正序</a>
+                            <a class="comment-segment__item<#if commentSort != 'hot' && 1 == userCommentViewMode> comment-segment__item--active</#if>"
+                               href="${servePath}${article.articlePermalink}?${commentDescQuery}">倒序</a>
+                        </div>
+                    </div>
+                </#if>
             </div>
             <div class="list">
                 <div class="comment__reply">
@@ -593,7 +547,7 @@
                 </ul>
                 <div id="bottomComment"></div>
             </div>
-            <@pagination url="${servePath}${article.articlePermalink}" query="m=${userCommentViewMode}#comments" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
+            <@pagination url="${servePath}${article.articlePermalink}" query="${commentPaginationQuery}" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
         </div>
         <#if pjax><!---- pjax {#comments} end ----></#if>
     </div>
@@ -893,7 +847,7 @@
                             <div class="tip fn-left" id="addCommentTip"></div> &nbsp; &nbsp;
                             <a class="fn-pointer ft-a-title" href="javascript:Comment._toggleReply()">${cancelLabel}</a>
                             &nbsp; &nbsp;
-                            <button id="articleCommentBtn" class="green"
+                            <button id="articleCommentBtn" type="button" class="green"
                                     onclick="Comment.add('${article.oId}', '${csrfToken}', this)">${submitLabel}</button>
                         </div>
                     </div>
@@ -926,6 +880,9 @@
     Label.removedLabel = "${removedLabel}";
     Label.uploadLabel = "${uploadLabel}";
     Label.userCommentViewMode = ${userCommentViewMode};
+    Label.commentSort = '${commentSort}';
+    Label.commentAuthorFilter = ${commentAuthorFilter?c};
+    Label.commentQueryExtra = '<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>';
     Label.stickConfirmLabel = "${stickConfirmLabel}";
     Label.audioRecordingLabel = '${audioRecordingLabel}';
     Label.uploadingLabel = '${uploadingLabel}';
@@ -939,6 +896,7 @@
     Label.thankSelfLabel = '${thankSelfLabel}';
     Label.replyLabel = '${replyLabel}';
     Label.articleAuthorName = '${article.articleAuthorName}';
+    Label.articleAuthorId = '${article.articleAuthorId}';
     Label.referenceLabel = '${referenceLabel}';
     Label.goCommentLabel = '${goCommentLabel}';
     Label.addBoldLabel = '${addBoldLabel}';
@@ -958,9 +916,15 @@
     Label.commonAtUser = '${permissions["commonAtUser"].permissionGrant?c}';
     Label.noPermissionLabel = '${noPermissionLabel}';
     Label.rewardLabel = '${rewardLabel}';
+    Label.reportLabel = '${reportLabel}';
+    Label.canThankComment = ${permissions["commonThankComment"].permissionGrant?c};
+    Label.canGoodComment = ${permissions["commonGoodComment"].permissionGrant?c};
+    Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
+    Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
     Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
     <#if isLoggedIn>
     Label.currentUserName = '${currentUser.userName}';
+    Label.currentUserId = '${currentUser.oId}';
     Label.notificationCmtIds = '${notificationCmtIds}';
     </#if>
     <#if 3 == article.articleType>

@@ -177,6 +177,11 @@ public final class Article {
     public static final String ARTICLE_WATCH_CNT = "articleWatchCnt";
 
     /**
+     * Key of article hot score.
+     */
+    public static final String ARTICLE_HOT_SCORE = "articleHotScore";
+
+    /**
      * Key of reddit score.
      */
     public static final String REDDIT_SCORE = "redditScore";

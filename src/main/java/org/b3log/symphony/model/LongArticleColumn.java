@@ -50,6 +50,11 @@ public final class LongArticleColumn {
     public static final String COLUMN_AUTHOR_ID = "columnAuthorId";
 
     /**
+     * 专栏作者用户名视图字段。
+     */
+    public static final String COLUMN_T_AUTHOR_NAME = "columnAuthorName";
+
+    /**
      * Column chapter count key.
      */
     public static final String COLUMN_ARTICLE_COUNT = "columnArticleCount";
@@ -63,6 +68,16 @@ public final class LongArticleColumn {
      * Column update time key.
      */
     public static final String COLUMN_UPDATE_TIME = "columnUpdateTime";
+
+    /**
+     * 专栏更新时间文本视图字段。
+     */
+    public static final String COLUMN_T_UPDATE_TIME_STR = "columnUpdateTimeStr";
+
+    /**
+     * 专栏相对更新时间视图字段。
+     */
+    public static final String COLUMN_T_UPDATE_TIME_AGO = "columnUpdateTimeAgo";
 
     /**
      * Column status key.

@@ -102,6 +102,10 @@
                             </#if>
                         <#else>
                             <#if permissions["commonAddArticle"].permissionGrant>
+                            <button type="button" class="article-draft-action" tabindex="12"
+                                    onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
+                            <button type="button" class="article-draft-action" tabindex="11"
+                                    onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
                             <button class="green" id="addArticleBtn" tabindex="10"<#if requisite> readonly disabled</#if>
                                     onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
                             </#if>

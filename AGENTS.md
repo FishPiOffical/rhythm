@@ -16,6 +16,7 @@
 ## 开发硬约束
 - 前端改动只改源码：`.scss` 与非 `min.js`；执行 `yarn run build` 生成产物；PC/移动端经典皮肤当前目录分别为 `skins/classic/pc` 与 `skins/classic/mobile`，改动需同步评估两端。
 - JS 版本号暴露排查使用 `tools/js-version-audit.mjs`；清理后执行 `yarn run build` 并复查，生产静态资源不要发布可泄露依赖信息的 source map。
+- 发布前检查基线：先看 `git status --short` 与未提交 diff，按新增/修改路由、模板、JS/CSS、SQL/Repository 分类；所有新增或改造的匿名入口必须确认会经过 `AnonymousViewCheckMidware` 或明确要求登录，不能让新 IP 直接访问新功能接口绕过 `/test` 极验；复核 `BeforeRequestHandler` 黑名单重定向、`AnonymousViewCheckMidware` 首访/每 5 次验证码、`CaptchaProcessor#validateCaptcha` 解封链路未被绕过；扫描新增公网静态资源和 CDN URL 是否暴露版本号、`sourceMappingURL` 或可枚举目录；接口按未鉴权访问、越权、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露逐项给结论。
 - CDN 防漏扫排查：当用户要求“CDN 防漏扫/刷新列表/替换目录”时，扫描项目内 `https://file.fishpi.cn/...` 具体资源（排除 `.codex-tasks`、`target`、`node_modules`、`cdn-version-replacements`），下载可访问资源，检测路径/查询参数/内容中的版本号与 `sourceMappingURL`；命中资源按 CDN 路径镜像到 `cdn-version-replacements/files/`，但路径版本号目录改为稳定目录名（如 `vditor/3.11.1/dist -> vditor/latest/dist`），文件名版本号去掉（如 `jquery.color-2.1.2.min.js -> jquery.color.min.js`），源码引用也同步改成新 URL；版本目录型库必须在 CDN 侧保留原目录并复制完整目录树到稳定目录，不能只上传入口文件；生成 `report.md`、`version-findings.json`、`replacement-validation.json` 和一行一个的 `refresh-urls.txt`；替换副本需复扫并对 JS 执行 `node --check`，下载失败或动态拼接 URL 单独记录，不伪造结果。
 - 鱼排扩展独立脚本需包含标准 `UserScript` 头（至少 `@name`、`@match`、`@grant`、`@run-at`）；聊天室联调脚本建议同时匹配 `https://fishpi.cn/cr*` 与 `http://localhost:8080/cr*`。
 - WSL 执行 Maven 优先使用：`-Dmaven.repo.local=/mnt/c/.m2/repository`；Java 固定 25。
@@ -39,6 +40,7 @@
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
+- 对外接口文档维护：只要新增、修改或删除接口，最终回复必须提醒用户同步更新 API 文档文章 `https://fishpi.cn/article/1636516552191`，并按该文章 Markdown 风格给出可直接粘贴内容和插入位置：模块用 `## 模块名`，接口用 `### 接口名`；接口行使用反引号包裹的 `METHOD /path`；包含简短用途说明、`请求:`/`请求：`、`| Key | 说明 | 示例 |` 表格、`请求示例：` 的 `bash` curl 代码块、`响应：` 表格；嵌套字段用 `-`、`--`、`---` 前缀；注意事项用 `>` 引用块；不要改成 OpenAPI/schema 或纯文本表格风格；若整段作为可复制代码块输出且内部含 ```bash，用四反引号或更长外层围栏，避免内部代码块提前结束外层。
 - 字符串输入必须做限制与校验：长度上限、空白处理、字符白名单/黑名单、格式校验（如用户名/URL/JSON）、必要的转义或编码；禁止直接信任前端传参。
 - 涉及业务规则（可用字符、最大长度、是否允许 HTML/Markdown、过滤策略）不明确时，先与用户确认规则再实现，避免误伤或放漏。
 
@@ -60,6 +62,8 @@
 - 移动端文章页（`skins/classic/mobile/article.ftl`）存在多个 `#replyUseName`（含隐藏占位 `.fn-none`）；`m-article.js` 处理回复目标时需优先选中非 `.fn-none` 节点，避免“回复对象已记录但指示未显示”。
 - 评论区交互不是单点模板：首屏评论列表由 `ArticleProcessor` + `CommentQueryService#getArticleComments` 组装，展开“原评论/回复”走 `CommentProcessor#getOriginalComment/getReplies`，实时新评论卡片由 `processor/channel/ArticleChannel` 渲染 `skins/**/common/comment.ftl`；改评论动作区时需同步评估 PC/移动模板、`article.js`/`m-article.js` 以及实时插入链路。
 - 文章历史版本链路：前端通过 `/article/{id}/revisions/list` 获取轻量版本列表，再按需调用 `/article/{id}/revisions/{revisionId}` 获取单个版本正文；旧 `/article/{id}/revisions` 已删除；两个新接口都挂 `loginCheck` + `permissionMidware` 并兼容 `apiKey`。
+- 文章上下篇链路：`ArticleProcessor` 统一填充时间、作者、热门三组导航数据及小窗口列表；PC/移动模板共用 `skins/classic/*/common/article-adjacent-nav.ftl`；“全部文章”排序选择由 `article.js`/`m-article.js` 写入 `localStorage.articleAdjacentSort`。
+- 发帖草稿箱链路：前端入口在 classic PC/移动 `home/post.ftl`、`home/long-article-post.ftl` + `add-article.js`，后端为 `ArticleDraftProcessor` + `ArticleDraftMgmtService` + `article_draft`；接口 `/api/article-drafts*` 挂 `loginCheck` 并支持 `apiKey`，不挂 CSRF；普通文章与长文章共用同一组草稿接口，长文章通过 `articleType=6` 和 `columnId/columnTitle/chapterNo` 区分；思绪帖草稿必须同时保存编辑器正文与 `articleDraftThoughtContent`。
 - 新版表情面板的入口与工具条统一由 `src/main/resources/js/emoji-groups.js` 渲染；文章页/聊天室 FTL 里旧的 `#uploadEmoji` 尾栏大多已注释，恢复“本地上传”优先改这里，不要分别恢复多套模板。
 - 表情集分享链路使用新表 `emoji_share` 保存“分组快照 + 永久分享码”；分享内容是静态快照，后续源分组变更不会实时同步，导入会在目标用户下新建自定义分组并同步补入其“全部”分组。
 - 首页右栏专栏列表（classic/pc）需使用 `module-list long-column-module-list`（见 `skins/classic/pc/index.ftl` 的“最新专栏/热门专栏/最近阅读”）；否则会命中 `.module-list .title` 默认 `margin-left: 30px` 产生左侧空白。
@@ -77,7 +81,7 @@
 - 发积分/扣积分约定：发积分用 `fromId=Pointtransfer.ID_C_SYS`、`toId=userId`；扣积分用 `fromId=userId`、`toId=Pointtransfer.ID_C_SYS`（常用类型 `Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT`）。
 - 需要给用户发“系统转账通知”时：在转账成功拿到 `transferId` 后，调用 `NotificationMgmtService#addPointTransferNotification`，并设置 `Notification.NOTIFICATION_USER_ID` 与 `Notification.NOTIFICATION_DATA_ID=transferId`。
 - 通知金手指：`POST /user/edit/notification`（`UserProcessor#sendSystemNotification`），使用 `gold.finger.notification` 校验；请求体使用 `userName` + `notification` + `goldFingerKey`，新正文优先写 `notification.content`（最大 4096），老库未补 `content` 列时仅兼容旧 64 字纯文本 `dataId` 链路。
-- 定制系统通知渲染：`Notification.DATA_TYPE_C_CUSTOM_SYS` 在 `NotificationQueryService#getSysAnnounceNotifications` 处理；`dataId=1` 为固定“水贴提醒”模板，`content` 支持 Markdown 链接 `[文本](http/https://...)` 与换行，原始 HTML 会被转义后再清洗。
+- 定制系统通知渲染：`Notification.DATA_TYPE_C_CUSTOM_SYS` 在 `NotificationQueryService#getSysAnnounceNotifications` 处理；`dataId=1` 为固定“水贴提醒”模板，水贴检测新增通知需调用 `NotificationMgmtService#addSysAnnounceShuiTieNotification`，不要把 `"1"` 作为正文传给 `addSysAnnounceCustomNotification`；`content` 支持 Markdown 链接 `[文本](http/https://...)` 与换行，原始 HTML 会被转义后再清洗。
 - VIP 管理页配置项不再手填 JSON：前端依据等级 `benefits` 模板自动生成可视化表单，再序列化为 `configJson` 提交。
 - VIP 管理页样式需注意 `home.css` 的 `.form--admin label { flex: 1; }` 会影响布局；配置项行在 `vip-admin.scss` 中需显式改为整行（label/builder 100%）并对 checkbox 使用类型选择器，避免控件被放大。
 - 有效期字段：勋章 `expireTime`（毫秒，`0`=永久）；会员 `expiresAt`（可回填勋章到期）。

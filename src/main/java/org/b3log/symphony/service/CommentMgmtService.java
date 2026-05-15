@@ -587,8 +587,8 @@ public class CommentMgmtService {
                             commentId, System.currentTimeMillis(), "");
                 }
                 // 检测是否水贴
-                if (ShuiTieDetector.isShuiTie(content)){
-                    notificationMgmtService.addSysAnnounceCustomNotification("1", commentAuthorId);
+                if (ShuiTieDetector.isShuiTie(content)) {
+                    notificationMgmtService.addSysAnnounceShuiTieNotification(commentAuthorId);
                 } else {
                     livenessMgmtService.incLiveness(commentAuthorId, Liveness.LIVENESS_COMMENT);
                 }

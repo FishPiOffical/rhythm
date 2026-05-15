@@ -32,58 +32,12 @@
         </#if>
         </@head>
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
-        <#if 6 == article.articleType>
-        <style>
-            body.long-article-page { margin: 0; padding: 0; width: 100%; overflow-x: hidden; box-sizing: border-box; }
-            body.long-article-page .main {
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 14px !important;
-                box-sizing: border-box !important;
-                overflow-x: hidden !important;
-            }
-            body.long-article-page .article-container,
-            body.long-article-page .wrapper,
-            body.long-article-page .article-body {
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 14px !important;
-                box-sizing: border-box !important;
-                overflow-x: hidden !important;
-            }
-            .long-article-page .article-title {
-                padding-left: 0;
-                padding-right: 0;
-                box-sizing: border-box;
-            }
-            .long-article-page .long-article-content {
-                max-width: 100%;
-                padding: 20px 0;
-                box-sizing: border-box;
-            }
-            .long-article-nav{display:flex;flex-direction:column;gap:12px;margin:16px 0;}
-            .long-article-nav__link{display:block;padding:10px 12px;border:1px solid #eee;border-radius:8px;background:#fafafa;color:#111;line-height:1.5;text-decoration:none}
-            .long-article-nav__link:hover{text-decoration:none}
-            .long-article-nav__link--disabled{color:#999}
-            .long-article-nav__label{font-size:12px;color:#888;margin-bottom:4px}
-            .long-article-nav__title{font-weight:700;margin-bottom:4px}
-            .long-article-nav__preview{color:#555;font-size:13px;max-height:4.5em;overflow:hidden}
-            .long-column-card{margin:12px 0;padding:10px;border:1px solid #e8edf5;border-radius:10px;background:#fbfdff}
-            .long-column-card__title{font-weight:600;color:#2b3a55}
-            .long-column-card__meta{margin-top:4px;font-size:12px;color:#7b8798}
-            .long-column-card__chapters{margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed #e6eaf0;padding-top:6px}
-            .long-column-card__chapter{display:block;padding:6px 8px;border-radius:8px;color:#3d4a5c;text-decoration:none}
-            .long-column-card__chapter--active{background:#e8f0ff;color:#1d4ed8;font-weight:600}
-        </style>
-        </#if>
     </head>
     <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
         <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
         <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
         <#include "header.ftl">
-        <div class="main"<#if 6 == article.articleType> style="width:100%;max-width:100%;margin:0;padding:0 14px;box-sizing:border-box;overflow-x:hidden;"</#if>>
+        <div class="main">
             <div class="article-actions fn-clear" style="margin-bottom: 10px;">
                     <span class="fn-right">
                         <span id="thankArticle" aria-label="${thankLabel}"
@@ -259,51 +213,6 @@
                 </#if>
                 <#if 3 != article.articleType>
                 <div class="vditor-reset article-content<#if 6 == article.articleType> long-article-content</#if>">${article.articleContent}</div>
-                <#if 6 == article.articleType>
-                <div class="long-article-nav">
-                    <div class="long-article-nav__item">
-                        <#if longArticlePrevious??>
-                            <a href="${servePath}${longArticlePrevious.articlePermalink}" class="long-article-nav__link">
-                                <div class="long-article-nav__label">上一篇</div>
-                                <div class="long-article-nav__title">${longArticlePrevious.articleTitleEmoj}</div>
-                                <div class="long-article-nav__preview">${longArticlePrevious.articlePreviewContent}</div>
-                            </a>
-                        <#else>
-                            <div class="long-article-nav__link long-article-nav__link--disabled">
-                                <div class="long-article-nav__label">上一篇</div>
-                                <div class="long-article-nav__preview">没有更多了</div>
-                            </div>
-                        </#if>
-                    </div>
-                    <div class="long-article-nav__item">
-                        <#if longArticleNext??>
-                            <a href="${servePath}${longArticleNext.articlePermalink}" class="long-article-nav__link">
-                                <div class="long-article-nav__label">下一篇</div>
-                                <div class="long-article-nav__title">${longArticleNext.articleTitleEmoj}</div>
-                                <div class="long-article-nav__preview">${longArticleNext.articlePreviewContent}</div>
-                            </a>
-                        <#else>
-                            <div class="long-article-nav__link long-article-nav__link--disabled">
-                                <div class="long-article-nav__label">下一篇</div>
-                                <div class="long-article-nav__preview">没有更多了</div>
-                            </div>
-                        </#if>
-                    </div>
-                </div>
-                <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
-                    <div class="long-column-card">
-                        <div class="long-column-card__title">所属专栏：<a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}" style="color:inherit;text-decoration:none;">${longArticleColumn.columnTitle}</a></div>
-                        <div class="long-column-card__meta">当前第 ${article.longArticleChapterNo?c} 章 · 共 ${longArticleColumn.columnArticleCount?c} 章</div>
-                        <div class="long-column-card__chapters">
-                            <#list longArticleChapters as chapter>
-                                <a href="${servePath}${chapter.articlePermalink}" class="long-column-card__chapter<#if chapter.articleId == article.oId> long-column-card__chapter--active</#if>">
-                                    第 ${chapter.chapterNo?c} 章 · ${chapter.articleTitleEmoj}
-                                </a>
-                            </#list>
-                        </div>
-                    </div>
-                </#if>
-                </#if>
                 <#else>
                 <div id="thoughtProgress"><span class="bar"></span>
                     <svg class="icon-video">
@@ -313,6 +222,7 @@
                 <div class="vditor-reset article-content" id="articleThought" data-author="${article.articleAuthorName}"
                      data-link="${servePath}${article.articlePermalink}"></div>
                 </#if>
+                <#include "common/article-adjacent-nav.ftl">
 
                 <#if 6 == article.articleType>
                 <div class="long-article-meta">
@@ -381,7 +291,7 @@
                                                 <#if 0 == article.articleOfferedComment.commenter.userUAStatus><span class="cmt-via ft-fade" data-ua="${article.articleOfferedComment.commentUA}"></span></#if>
                                             </span>
                                             <a class="ft-a-title fn-right tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
-                                               href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}#${article.articleOfferedComment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
+                                               href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${article.articleOfferedComment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
                                         </div>
                                         <div class="vditor-reset comment">
                                             ${article.articleOfferedComment.commentContent}
@@ -427,7 +337,7 @@
                                                 <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                                                 </#list>
                                                 <a class="ft-a-title fn-right tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
-                                                   href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}#${comment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
+                                                   href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${comment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
                                             </div>
                                             <div class="vditor-reset comment">
                                                 ${comment.commentContent}
@@ -441,70 +351,50 @@
                     </div>
                     </#if>
 
-                <#if article.articleComments?size != 0>
-                <#if 1 == userCommentViewMode>
-                <#if isLoggedIn>
-                <#if discussionViewable && article.articleCommentable && permissions["commonAddComment"].permissionGrant>
-                <div class="fn-clear comment-wrap">
-                    <div id="replyUseName"> </div>
-                    <div id="commentContent"></div>
-                    <div class="tip" id="addCommentTip"></div>
-
-                    <div class="fn-clear comment-submit">
-                        <div>
-                            <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                <use xlink:href="#emojiIcon"></use>
-                            </svg>
-                            <div class="hide-list" id="emojiList" style="width: 440px; max-width: 440px;">
-                                <div style="display: flex;width: 440px">
-                                    <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
-                                    </div>
-                                    <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
-                                    </div>
-                                </div>
-<#--                                <div class="hide-list-emojis__tail">-->
-<#--                                    <span>-->
-<#--                                        <a onclick="Comment.fromURL()">从URL导入表情包</a>-->
-<#--                                    </span>-->
-<#--                                    <span class="hide-list-emojis__tip"></span>-->
-<#--                                    <span>-->
-<#--                                        <a onclick="$('#uploadEmoji input').click()">上传表情包</a>-->
-<#--                                    </span>-->
-<#--                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">-->
-<#--                                        <input type="file" name="file">-->
-<#--                                    </form>-->
-<#--                                </div>-->
-                            </div>
-                        </div>
-                        <#if permissions["commonAddCommentAnonymous"].permissionGrant>
-                        <label class="anonymous-check">${anonymousLabel}<input type="checkbox" id="commentAnonymous"></label>
-                        </#if>
-                        <label class="anonymous-check">${onlyArticleAuthorVisibleLabel}<input type="checkbox" id="commentVisible"></label>
-                        <div class="fn-flex-1"></div>
-                        <button id="articleCommentBtn" class="red fn-right" onclick="Comment.add('${article.oId}', '${csrfToken}'), this">${submitLabel}</button>
-                    </div>
-                </div>
-                </#if>
-                <#else>
-                <div class="comment-login">
-                    <a rel="nofollow" href="javascript:Util.needLogin();">${loginDiscussLabel}</a>
-                </div>
-                </#if>
-                </#if>
-                </#if>
             </div>
             <div>
                 <#if pjax><!---- pjax {#comments} start ----></#if>
                 <div class="fn-clear" id="comments">
                     <div class="list comments">
-                            <span id="replyUseName" class="fn-none"></span>
+                            <#if discussionViewable && article.articleCommentable>
+                                <div class="comment__reply">
+                                    <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
+                                        <div class="fn-flex">
+                                            <span class="avatar"
+                                                  style="background-image: url('${currentUser.userAvatarURL48}');"></span>
+                                            <span class="reply__text fn-flex-1 commentToggleEditorBtn"
+                                                  onclick="Comment._toggleReply();">请输入回帖内容 ...</span>
+                                        </div>
+                                    <#else>
+                                        <div class="reply__text fn-flex-1 commentToggleEditorBtn" onclick="Util.goLogin();">${loginDiscussLabel}</div>
+                                    </#if>
+                                </div>
+                            </#if>
                             <div class="comments-header fn-clear">
-                            <span class="article-cmt-cnt">${article.articleCommentCount} ${cmtLabel}</span>
-                            <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
-                                <a class="tooltipped tooltipped-nw" href="javascript:Comment.exchangeCmtSort(${userCommentViewMode})"
-                                   aria-label="<#if 0 == userCommentViewMode>${changeToLabel}${realTimeLabel}${cmtViewModeLabel}<#else>${changeToLabel}${traditionLabel}${cmtViewModeLabel}</#if>"><span class="icon-<#if 0 == userCommentViewMode>sortasc<#else>time</#if>"></span></a>&nbsp;
-                                <a class="tooltipped tooltipped-nw" href="#bottomComment" aria-label="${jumpToBottomCommentLabel}"><svg><use xlink:href="#chevron-down"</svg></a>
-                            </span>
+                                <div class="comments-header__main">
+                                    <span class="article-cmt-cnt">${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</span>
+                                    <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
+                                        <a class="tooltipped tooltipped-nw" href="#bottomComment" aria-label="${jumpToBottomCommentLabel}"><svg><use xlink:href="#chevron-down"></use></svg></a>
+                                    </span>
+                                </div>
+                                <#if article.articleCommentCount != 0>
+                                    <div class="comment-filterbar">
+                                        <div class="comment-segment">
+                                            <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
+                                               href="${servePath}${article.articlePermalink}?${commentAllQuery}">全部</a>
+                                            <a class="comment-segment__item<#if commentAuthorFilter> comment-segment__item--active</#if>"
+                                               href="${servePath}${article.articlePermalink}?${commentAuthorQuery}">楼主</a>
+                                        </div>
+                                        <div class="comment-segment">
+                                            <a class="comment-segment__item<#if commentSort == 'hot'> comment-segment__item--active</#if>"
+                                               href="${servePath}${article.articlePermalink}?${commentHotQuery}">热门</a>
+                                            <a class="comment-segment__item<#if commentSort != 'hot' && 0 == userCommentViewMode> comment-segment__item--active</#if>"
+                                               href="${servePath}${article.articlePermalink}?${commentAscQuery}">正序</a>
+                                            <a class="comment-segment__item<#if commentSort != 'hot' && 1 == userCommentViewMode> comment-segment__item--active</#if>"
+                                               href="${servePath}${article.articlePermalink}?${commentDescQuery}">倒序</a>
+                                        </div>
+                                    </div>
+                                </#if>
                             </div>
                             <ul>
                                 <#assign notificationCmtIds = "">
@@ -516,86 +406,9 @@
                                 <div id="bottomComment"></div>
                             </ul>
                         </div>
-                    <@pagination url=article.articlePermalink query="m=${userCommentViewMode}" />
+                    <@pagination url=article.articlePermalink query="${commentPaginationQuery}" />
                 </div>
                 <#if pjax><!---- pjax {#comments} end ----></#if>
-                <#if article.articleComments?size == 0>
-                    <#if 1 == userCommentViewMode>
-                        <#if isLoggedIn>
-                            <#if discussionViewable && article.articleCommentable && permissions["commonAddComment"].permissionGrant>
-                                <div class="fn-clear comment-wrap" style="margin: 0px 10px">
-                                    <div id="replyUseName"> </div>
-                                    <div id="commentContent"></div>
-                                    <div class="tip" id="addCommentTip"></div>
-
-                                    <div class="fn-clear comment-submit">
-                                        <div>
-                                            <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
-                                                <use xlink:href="#emojiIcon"></use>
-                                            </svg>
-                                            <div class="hide-list" id="emojiList" style="width: 440px; max-width: 440px;">
-                                                <div style="display: flex;width: 440px">
-                                                    <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
-                                                    </div>
-                                                    <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
-                                                    </div>
-                                                </div>
-<#--                                                <div class="hide-list-emojis__tail">-->
-<#--                                                    <span>-->
-<#--                                                        <a onclick="Comment.fromURL()">从URL导入表情包</a>-->
-<#--                                                    </span>-->
-<#--                                                    <span class="hide-list-emojis__tip"></span>-->
-<#--                                                    <span>-->
-<#--                                                        <a onclick="$('#uploadEmoji input').click()">上传表情包</a>-->
-<#--                                                    </span>-->
-<#--                                                    <form style="display: none" id="uploadEmoji" method="POST" enctype="multipart/form-data">-->
-<#--                                                        <input type="file" name="file">-->
-<#--                                                    </form>-->
-<#--                                                </div>-->
-                                            </div>
-                                        </div>
-                                        <#if permissions["commonAddCommentAnonymous"].permissionGrant>
-                                            <label class="anonymous-check">${anonymousLabel}<input type="checkbox" id="commentAnonymous"></label>
-                                        </#if>
-                                        <label class="anonymous-check">${onlyArticleAuthorVisibleLabel}<input type="checkbox" id="commentVisible"></label>
-                                        <div class="fn-flex-1"></div>
-                                        <button id="articleCommentBtn" class="red fn-right" onclick="Comment.add('${article.oId}', '${csrfToken}'), this">${submitLabel}</button>
-                                    </div>
-                                </div>
-                            </#if>
-                        <#else>
-                            <div class="comment-login">
-                                <a rel="nofollow" href="javascript:Util.needLogin();">${loginDiscussLabel}</a>
-                            </div>
-                        </#if>
-                    </#if>
-                </#if>
-                <#if 0 == userCommentViewMode>
-                <#if isLoggedIn>
-                <#if discussionViewable && article.articleCommentable && permissions["commonAddComment"].permissionGrant>
-                <div class="form fn-clear wrapper">
-                    <div id="replyUseName"> </div>
-                    <div id="commentContent"></div>
-                    <br><br>
-                    <div class="tip" id="addCommentTip"></div>
-
-                    <div class="fn-clear comment-submit">
-                        <#if permissions["commonAddCommentAnonymous"].permissionGrant>
-                        <label class="anonymous-check">${anonymousLabel}<input type="checkbox" id="commentAnonymous"></label>
-                        </#if>
-                        <button class="red fn-right" onclick="Comment.add('${article.oId}', '${csrfToken}')">${submitLabel}</button>
-                    </div>
-                    <div class="fn-hr10"></div>
-                    <div class="fn-hr10"></div>
-                </div>
-                </#if>
-                <#else>
-                <div class="comment-login wrapper">
-                    <a rel="nofollow" href="javascript:Util.needLogin();">${loginDiscussLabel}</a>
-                </div>
-                <div class="fn-hr10"></div>
-                </#if>
-                </#if>
             </div>
             </div>
             <div class="side wrapper">
@@ -765,6 +578,43 @@
         </script>
         </#if>
         <#include "footer.ftl">
+        <#if isLoggedIn && discussionViewable && article.articleCommentable && permissions["commonAddComment"].permissionGrant>
+            <div class="editor-panel">
+                <div class="editor-bg"></div>
+                <div class="wrapper">
+                    <div class="editor-panel__head fn-flex">
+                        <div id="replyUseName" class="fn-flex-1 fn-ellipsis"></div>
+                        <span class="tooltipped tooltipped-w fn-pointer editor-hide" onclick="Comment._toggleReply()"
+                              aria-label="${cancelLabel}"> <svg><use xlink:href="#chevron-down"></use></svg></span>
+                    </div>
+                    <div class="article-comment-content">
+                        <div id="commentContent"></div>
+                        <div class="tip" id="addCommentTip"></div>
+                        <div class="comment-submit fn-clear">
+                            <div>
+                                <svg id="emojiBtn" style="width: 30px; height: 30px; cursor:pointer;">
+                                    <use xlink:href="#emojiIcon"></use>
+                                </svg>
+                                <div class="hide-list" id="emojiList">
+                                    <div style="display: flex;">
+                                        <div id="emojiGroupBoxNew" style="width: 100px; border-right: 1px solid #eee; overflow-y: auto;">
+                                        </div>
+                                        <div class="hide-list-emojis" id="emojisNew" style="max-height: 250px; flex: 1; padding: 10px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <#if permissions["commonAddCommentAnonymous"].permissionGrant>
+                                <label class="anonymous-check">${anonymousLabel}<input type="checkbox" id="commentAnonymous"></label>
+                            </#if>
+                            <label class="anonymous-check">${onlyArticleAuthorVisibleLabel}<input type="checkbox" id="commentVisible"></label>
+                            <div class="fn-flex-1"></div>
+                            <button id="articleCommentBtn" type="button" class="red fn-right" onclick="Comment.add('${article.oId}', '${csrfToken}', this)">${submitLabel}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </#if>
         <div id="thoughtProgressPreview"></div>
         <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
         <script src="${staticServePath}/js/lib/compress/article-libs.min.js?${staticResourceVersion}"></script>
@@ -788,6 +638,9 @@
             Label.removedLabel = "${removedLabel}";
             Label.uploadLabel = "${uploadLabel}";
             Label.userCommentViewMode = ${userCommentViewMode};
+            Label.commentSort = '${commentSort}';
+            Label.commentAuthorFilter = ${commentAuthorFilter?c};
+            Label.commentQueryExtra = '<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>';
             Label.stickConfirmLabel = "${stickConfirmLabel}";
             Label.audioRecordingLabel = '${audioRecordingLabel}';
             Label.uploadingLabel = '${uploadingLabel}';
@@ -800,6 +653,7 @@
             Label.adminLabel = '${adminLabel}';
             Label.thankSelfLabel = '${thankSelfLabel}';
             Label.articleAuthorName = '${article.articleAuthorName}';
+            Label.articleAuthorId = '${article.articleAuthorId}';
             Label.replyLabel = '${replyLabel}';
             Label.referenceLabel = '${referenceLabel}';
             Label.goCommentLabel = '${goCommentLabel}';
@@ -818,9 +672,16 @@
             Label.insertEmojiLabel = '${insertEmojiLabel}';
             Label.commonAtUser = '${permissions["commonAtUser"].permissionGrant?c}';
             Label.noPermissionLabel = '${noPermissionLabel}';
+            Label.commonUpdateCommentPermissionLabel = '${commonUpdateCommentPermissionLabel}';
+            Label.reportLabel = '${reportLabel}';
+            Label.canThankComment = ${permissions["commonThankComment"].permissionGrant?c};
+            Label.canGoodComment = ${permissions["commonGoodComment"].permissionGrant?c};
+            Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
+            Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
             Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
             <#if isLoggedIn>
                 Label.currentUserName = '${currentUser.userName}';
+                Label.currentUserId = '${currentUser.oId}';
                 Label.notificationCmtIds = '${notificationCmtIds}';
             </#if>
             <#if 3 == article.articleType>

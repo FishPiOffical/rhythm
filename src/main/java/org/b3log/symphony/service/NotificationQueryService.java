@@ -286,7 +286,7 @@ public class NotificationQueryService {
                             break;
                         }
                         switch (dataId) {
-                            case "1":
+                            case Notification.DATA_ID_C_SHUI_TIE_NOTICE:
                                 desTemplate = "亲爱的用户，您好！<br> 我们检测到您刚刚发布的内容可能属于“水贴”或无意义发言。虽然本次发帖不会被拦截，但频繁发布此类内容会破坏社区的交流氛围，影响其他用户的体验。请您尽量发表有价值、有内容的观点或讨论，让我们的社区更加温暖和有趣。<br>需要特别提醒的是，无论是否通过特殊方式绕过系统检测，所有水贴内容都会被系统或人工审核查处，账号也可能因此受到相应处理。同时，本次发帖不会计入您的活跃度统计。感谢您的理解与配合，让我们一起维护良好的社区环境！";
                                 break;
                             default:
@@ -741,10 +741,7 @@ public class NotificationQueryService {
                 commentedNotification.put(Comment.COMMENT_CREATE_TIME, comment.opt(Comment.COMMENT_CREATE_TIME));
                 commentedNotification.put(Notification.NOTIFICATION_HAS_READ, notification.optBoolean(Notification.NOTIFICATION_HAS_READ));
                 commentedNotification.put(Comment.COMMENT_T_ARTICLE_PERFECT, articlePerfect);
-                final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
-                final int cmtPage = commentQueryService.getCommentPage(articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
-                commentedNotification.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?p=" + cmtPage
-                        + "&m=" + cmtViewMode + "#" + commentId);
+                commentedNotification.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, cmtViewMode));
 
                 rslts.add(commentedNotification);
             }
@@ -793,6 +790,9 @@ public class NotificationQueryService {
                 addSort(Notification.NOTIFICATION_HAS_READ, SortDirection.ASCENDING).
                 addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
         try {
+            final JSONObject user = userRepository.get(userId);
+            final int cmtViewMode = user.optInt(UserExt.USER_COMMENT_VIEW_MODE);
+
             final JSONObject queryResult = notificationRepository.get(query);
             final List<JSONObject> results = (List<JSONObject>) queryResult.opt(Keys.RESULTS);
             ret.put(Pagination.PAGINATION_RECORD_COUNT, queryResult.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT));
@@ -815,7 +815,7 @@ public class NotificationQueryService {
                 replyNotification.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
                 replyNotification.put(Comment.COMMENT_T_ARTICLE_TITLE, Emotions.convert(articleTitle));
                 replyNotification.put(Comment.COMMENT_T_ARTICLE_TYPE, articleType);
-                replyNotification.put(Comment.COMMENT_SHARP_URL, comment.optString(Comment.COMMENT_SHARP_URL));
+                replyNotification.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, cmtViewMode));
                 replyNotification.put(Comment.COMMENT_CREATE_TIME, comment.opt(Comment.COMMENT_CREATE_TIME));
                 replyNotification.put(Notification.NOTIFICATION_HAS_READ, notification.optBoolean(Notification.NOTIFICATION_HAS_READ));
                 replyNotification.put(Comment.COMMENT_T_ARTICLE_PERFECT, articlePerfect);
@@ -833,6 +833,14 @@ public class NotificationQueryService {
 
             return null;
         }
+    }
+
+    private String buildCommentSharpURL(final JSONObject comment, final int cmtViewMode) {
+        final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
+        final String commentId = comment.optString(Keys.OBJECT_ID);
+        final int cmtPage = commentQueryService.getCommentThreadPage(
+                articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
+        return "/article/" + articleId + "?p=" + cmtPage + "&m=" + cmtViewMode + "#" + commentId;
     }
 
     /**
@@ -886,6 +894,9 @@ public class NotificationQueryService {
                 addSort(Notification.NOTIFICATION_HAS_READ, SortDirection.ASCENDING).
                 addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
         try {
+            final JSONObject currentUser = userRepository.get(userId);
+            final int currentUserCommentViewMode = currentUser.optInt(UserExt.USER_COMMENT_VIEW_MODE);
+
             final JSONObject queryResult = notificationRepository.get(query);
             final List<JSONObject> results = (List<JSONObject>) queryResult.opt(Keys.RESULTS);
             ret.put(Pagination.PAGINATION_RECORD_COUNT, queryResult.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT));
@@ -949,7 +960,7 @@ public class NotificationQueryService {
                                     comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
                             atNotification.put(Article.ARTICLE_TITLE, Emotions.convert(articleTitle));
                             atNotification.put(Article.ARTICLE_TYPE, articleType);
-                            atNotification.put(Common.URL, comment.optString(Comment.COMMENT_SHARP_URL));
+                            atNotification.put(Common.URL, buildCommentSharpURL(comment, currentUserCommentViewMode));
                             atNotification.put(Common.CREATE_TIME, comment.opt(Comment.COMMENT_CREATE_TIME));
                             atNotification.put(Notification.NOTIFICATION_T_AT_IN_ARTICLE, false);
                             atNotification.put(Article.ARTICLE_PERFECT, articlePerfect);
@@ -1161,6 +1172,9 @@ public class NotificationQueryService {
                 addSort(Notification.NOTIFICATION_HAS_READ, SortDirection.ASCENDING).
                 addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
         try {
+            final JSONObject currentUser = userRepository.get(userId);
+            final int currentUserCommentViewMode = currentUser.optInt(UserExt.USER_COMMENT_VIEW_MODE);
+
             final JSONObject queryResult = notificationRepository.get(query);
             final List<JSONObject> results = (List<JSONObject>) queryResult.opt(Keys.RESULTS);
             ret.put(Pagination.PAGINATION_RECORD_COUNT, queryResult.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT));
@@ -1189,7 +1203,7 @@ public class NotificationQueryService {
                                 comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
                         followingNotification.put(Article.ARTICLE_TITLE, Emotions.convert(articleTitle));
                         followingNotification.put(Article.ARTICLE_TYPE, articleType);
-                        followingNotification.put(Common.URL, comment.optString(Comment.COMMENT_SHARP_URL));
+                        followingNotification.put(Common.URL, buildCommentSharpURL(comment, currentUserCommentViewMode));
                         followingNotification.put(Common.CREATE_TIME, comment.opt(Comment.COMMENT_CREATE_TIME));
                         followingNotification.put(Notification.NOTIFICATION_HAS_READ, notification.optBoolean(Notification.NOTIFICATION_HAS_READ));
                         followingNotification.put(Notification.NOTIFICATION_T_IS_COMMENT, true);

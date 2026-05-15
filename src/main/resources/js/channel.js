@@ -58,6 +58,16 @@ var ArticleChannel = {
 
             switch (data.type) {
                 case 'comment':
+                    if (Label.commentAuthorFilter &&
+                        data.commentAuthorId !== Label.articleAuthorId) {
+                        return
+                    }
+
+                    if (data.commentOriginalCommentId !== '') {
+                        ArticleChannel.insertThreadReply(data)
+                        break
+                    }
+
                     var cmtCount = parseInt(
                         $('.comments-header .article-cmt-cnt').text()) + 1
                     // 总帖数更新
@@ -84,31 +94,9 @@ var ArticleChannel = {
 
                     // 回帖高亮，他人回帖不定位，只有自己回帖才定位
                     if (Label.currentUserName === data.commentAuthorName) {
-                        Comment._bgFade($('#' + data.commentId))
+                        Comment._bgFade($('#' + data.commentId), {scroll: false})
                     }
 
-                    // 更新回复的回帖
-                    if (data.commentOriginalCommentId !== '') {
-                        var $originalComment = $('#' + data.commentOriginalCommentId),
-                            $replyBtn = $originalComment.find(
-                                '.comment-action > .ft-fade > .fn-pointer')
-                        if ($replyBtn.length === 1) {
-                            $replyBtn.html(' ' + (parseInt($.trim($replyBtn.text())) + 1)
-                                + ' ' + Label.replyLabel + ' <span class="'
-                                + $replyBtn.find('span').attr('class') + '"></span>')
-
-                            if ($replyBtn.find('svg').attr('class') === 'icon-chevron-up') {
-                                $replyBtn.find('svg').removeClass('icon-chevron-up').addClass('icon-chevron-down').find('use').attr('xlink:href', '#chevron-down')
-                                $replyBtn.click()
-                            }
-                        } else {
-                            $originalComment.find('.comment-action > .ft-fade').prepend('<span class="fn-pointer ft-smaller fn-left" onclick="Comment.showReply(\''
-                                + data.commentOriginalCommentId +
-                                '\', this, \'comment-replies\')" style="opacity: 1;"> 1 '
-                                + Label.replyLabel +
-                                ' <svg class="icon-chevron-down"><use xlink:href="#chevron-down"></use></svg>')
-                        }
-                    }
                     Util.parseHljs()
                     Util.parseMarkdown()
                     break
@@ -154,6 +142,64 @@ var ArticleChannel = {
         ArticleChannel.ws.onerror = function (err) {
             console.log(err)
         }
+    },
+    insertThreadReply: function (data) {
+        if (typeof Comment === 'undefined' || !Comment.renderThreadReply) {
+            return
+        }
+
+        var rootId = data.commentThreadRootId || data.commentOriginalCommentId,
+            $rootComment = $('#' + rootId)
+        if ($rootComment.length === 0) {
+            return
+        }
+
+        var $thread = $rootComment.find('.comment-thread').first()
+        if ($thread.length === 0) {
+            $thread = $('<div class="comment-thread" data-root-id="' + rootId
+                + '"><div class="comment-thread__list"></div></div>')
+            $rootComment.find('.comment-action').before($thread)
+        }
+
+        var $reply = $(Comment.renderThreadReply(data))
+        ArticleChannel.insertThreadReplyElement($thread, $reply, data.commentOriginalCommentId)
+        $rootComment.addClass('cmt-selected')
+        ArticleChannel.updateThreadMore($thread, rootId)
+        Comment.initReactionWidgets($reply)
+        Util.parseHljs()
+        Util.parseMarkdown()
+        if (Label.currentUserName === data.commentAuthorName) {
+            Comment._bgFade($('#' + (data.oId || data.commentId)), {scroll: false})
+        }
+    },
+    insertThreadReplyElement: function ($thread, $reply, parentId) {
+        var $list = $thread.find('.comment-thread__list')
+        var $parent = $('#' + parentId)
+        if ($parent.length === 0 || !$parent.hasClass('comment-thread__reply')) {
+            $list.append($reply)
+            return
+        }
+
+        var parentDepth = parseInt($parent.attr('data-thread-depth'), 10)
+        var $insertAfter = $parent
+        $parent.nextAll('.comment-thread__reply').each(function () {
+            var depth = parseInt($(this).attr('data-thread-depth'), 10)
+            if (isNaN(depth) || depth <= parentDepth) {
+                return false
+            }
+            $insertAfter = $(this)
+        })
+        $insertAfter.after($reply)
+    },
+    updateThreadMore: function ($thread, rootId) {
+        var $more = $thread.find('.comment-thread__more')
+        if ($more.length === 0) {
+            return
+        }
+
+        var currentCount = parseInt(($more.text().match(/\d+/) || ['0'])[0])
+        $more.text('查看全部 ' + (currentCount + 1) + ' 条回复')
+        $more.attr('onclick', 'Comment.showThreadReplies(\'' + rootId + '\', this)')
     },
 }
 

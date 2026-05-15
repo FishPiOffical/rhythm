@@ -32,6 +32,7 @@ import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.service.LangPropsService;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.channel.ArticleChannel;
 import org.b3log.symphony.processor.channel.ArticleListChannel;
@@ -167,39 +168,25 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             chData.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalCmtId);
 
             String originalCmtAuthorId = null;
+            String threadRootCommentId = "";
             if (StringUtils.isNotBlank(originalCmtId)) {
-                final Query numQuery = new Query().setPage(1, Integer.MAX_VALUE).setPageCount(1);
+                threadRootCommentId = commentQueryService.getCommentThreadRootId(originalCmtId);
+                chData.put("commentThreadRootId", threadRootCommentId);
+                chData.put("commentThreadDepth", commentQueryService.getCommentThreadDepth(originalCmtId));
 
-                switch (commentViewMode) {
-                    case UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL:
-                        numQuery.setFilter(CompositeFilterOperator.and(
-                                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
-                                new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN_OR_EQUAL, originalCmtId)
-                        )).addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
-                        break;
-                    case UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME:
-                        numQuery.setFilter(CompositeFilterOperator.and(
-                                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
-                                new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN_OR_EQUAL, originalCmtId)
-                        )).addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
-                        break;
-                }
-
-                final long num = commentRepository.count(numQuery);
-                final int page = (int) ((num / Symphonys.ARTICLE_COMMENTS_CNT) + 1);
+                final int page = commentQueryService.getCommentThreadPage(
+                        articleId, originalCmtId, commentViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
                 chData.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, page);
 
                 final JSONObject originalCmt = commentRepository.get(originalCmtId);
                 originalCmtAuthorId = originalCmt.optString(Comment.COMMENT_AUTHOR_ID);
-                final JSONObject originalCmtAuthor = userRepository.get(originalCmtAuthorId);
-
-                if (Comment.COMMENT_ANONYMOUS_C_PUBLIC == originalCmt.optInt(Comment.COMMENT_ANONYMOUS)) {
-                    chData.put(Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL,
-                            avatarQueryService.getAvatarURLByUser(originalCmtAuthor, "20"));
-                } else {
-                    chData.put(Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL,
-                            avatarQueryService.getDefaultAvatarURL("20"));
-                }
+                final JSONObject originalCmtAuthor = Comment.COMMENT_ANONYMOUS_C_PUBLIC == originalCmt.optInt(Comment.COMMENT_ANONYMOUS)
+                        ? userRepository.get(originalCmtAuthorId)
+                        : userRepository.getAnonymousUser();
+                chData.put("commentOriginalAuthorName", originalCmtAuthor.optString(User.USER_NAME));
+                chData.put("commentOriginalAuthorNickName", originalCmtAuthor.optString(UserExt.USER_NICKNAME));
+                chData.put(Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL,
+                        avatarQueryService.getAvatarURLByUser(originalCmtAuthor, "20"));
             }
 
 
@@ -304,13 +291,13 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             // 3. 'Reply' Notification
             final Set<String> repliedIds = new HashSet<>();
             if (StringUtils.isNotBlank(originalCmtId)) {
-                if (!articleAuthorId.equals(originalCmtAuthorId)) {
-                    final JSONObject requestJSONObject = new JSONObject();
-                    requestJSONObject.put(Notification.NOTIFICATION_USER_ID, originalCmtAuthorId);
-                    requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                    notificationMgmtService.addReplyNotification(requestJSONObject);
-
-                    repliedIds.add(originalCmtAuthorId);
+                notifyReplyRecipient(originalCmtAuthorId, commenterId, articleAuthorId, commentId, repliedIds);
+                if (StringUtils.isNotBlank(threadRootCommentId) && !StringUtils.equals(threadRootCommentId, originalCmtId)) {
+                    final JSONObject rootComment = commentRepository.get(threadRootCommentId);
+                    if (null != rootComment) {
+                        notifyReplyRecipient(rootComment.optString(Comment.COMMENT_AUTHOR_ID),
+                                commenterId, articleAuthorId, commentId, repliedIds);
+                    }
                 }
             }
 
@@ -372,6 +359,21 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Sends the comment notification failed", e);
         }
+    }
+
+    private void notifyReplyRecipient(final String recipientId, final String commenterId,
+                                      final String articleAuthorId, final String commentId,
+                                      final Set<String> repliedIds) throws ServiceException {
+        if (StringUtils.isBlank(recipientId) || StringUtils.equals(recipientId, commenterId)
+                || StringUtils.equals(recipientId, articleAuthorId) || repliedIds.contains(recipientId)) {
+            return;
+        }
+
+        final JSONObject requestJSONObject = new JSONObject();
+        requestJSONObject.put(Notification.NOTIFICATION_USER_ID, recipientId);
+        requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
+        notificationMgmtService.addReplyNotification(requestJSONObject);
+        repliedIds.add(recipientId);
     }
 
     /**

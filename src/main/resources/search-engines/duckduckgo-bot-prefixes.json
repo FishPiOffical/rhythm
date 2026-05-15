@@ -3,14 +3,14 @@
                     {
                         "name":  "DuckDuckBot",
                         "url":  "https://duckduckgo.com/duckduckbot.json",
-                        "creationTime":  "2026-03-26T12:00:00.000000",
-                        "prefixCount":  319
+                        "creationTime":  "2026-05-12T12:00:00.000000",
+                        "prefixCount":  320
                     },
                     {
                         "name":  "DuckAssistBot",
                         "url":  "https://duckduckgo.com/duckassistbot.json",
-                        "creationTime":  "2026-03-26T12:00:00.000000",
-                        "prefixCount":  319
+                        "creationTime":  "2026-05-12T12:00:00.000000",
+                        "prefixCount":  320
                     }
                 ],
     "prefixes":  [
@@ -457,6 +457,9 @@
                      },
                      {
                          "ipv4Prefix":  "20.93.28.24/32"
+                     },
+                     {
+                         "ipv4Prefix":  "20.99.154.113/32"
                      },
                      {
                          "ipv4Prefix":  "20.99.255.235/32"

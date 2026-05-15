@@ -107,6 +107,10 @@ public class ArticleProcessor {
      */
     private static final ConcurrentHashMap<String, Long> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
 
+    private static final String COMMENT_SORT_HOT = "hot";
+
+    private static final String COMMENT_AUTHOR_FILTER = "1";
+
     /**
      * Revision query service.
      */
@@ -130,6 +134,9 @@ public class ArticleProcessor {
      */
     @Inject
     private ArticleMgmtService articleMgmtService;
+
+    @Inject
+    private ArticleDraftMgmtService articleDraftMgmtService;
 
     @Inject
     private ArticleSearchVisitStatMgmtService articleSearchVisitStatMgmtService;
@@ -1351,6 +1358,35 @@ public class ArticleProcessor {
         dataModel.put("longArticleColumnTitle", chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
     }
 
+    private String normalizeCommentSort(final String sort) {
+        if (COMMENT_SORT_HOT.equals(sort)) {
+            return COMMENT_SORT_HOT;
+        }
+        return "";
+    }
+
+    private String buildCommentQuery(final int viewMode, final String sort, final boolean authorFilter) {
+        final StringBuilder query = new StringBuilder("m=").append(viewMode);
+        if (COMMENT_SORT_HOT.equals(sort)) {
+            query.append("&sort=").append(COMMENT_SORT_HOT);
+        }
+        if (authorFilter) {
+            query.append("&author=").append(COMMENT_AUTHOR_FILTER);
+        }
+        query.append("#comments");
+        return query.toString();
+    }
+
+    private void fillCommentViewQueries(final Map<String, Object> dataModel, final int viewMode,
+                                        final String sort, final boolean authorFilter) {
+        dataModel.put("commentPaginationQuery", buildCommentQuery(viewMode, sort, authorFilter));
+        dataModel.put("commentAllQuery", buildCommentQuery(viewMode, sort, false));
+        dataModel.put("commentAuthorQuery", buildCommentQuery(viewMode, sort, true));
+        dataModel.put("commentHotQuery", buildCommentQuery(viewMode, COMMENT_SORT_HOT, authorFilter));
+        dataModel.put("commentAscQuery", buildCommentQuery(UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL, "", authorFilter));
+        dataModel.put("commentDescQuery", buildCommentQuery(UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME, "", authorFilter));
+    }
+
     /**
      * Shows article with the specified article id.
      *
@@ -1463,6 +1499,12 @@ public class ArticleProcessor {
 
         final int cmtViewMode = Integer.valueOf(cmtViewModeStr);
         dataModel.put(UserExt.USER_COMMENT_VIEW_MODE, cmtViewMode);
+        final String commentSort = normalizeCommentSort(context.param("sort"));
+        final boolean commentAuthorFilter = COMMENT_AUTHOR_FILTER.equals(context.param("author"));
+        final String filteredCommentAuthorId = commentAuthorFilter ? articleAuthorId : "";
+        dataModel.put("commentSort", commentSort);
+        dataModel.put("commentAuthorFilter", commentAuthorFilter);
+        fillCommentViewQueries(dataModel, cmtViewMode, commentSort, commentAuthorFilter);
 
         final JSONObject viewer = Sessions.getUser();
         if (null != viewer) {
@@ -1526,24 +1568,24 @@ public class ArticleProcessor {
         }
 
         // Fill previous/next article
-        final JSONObject previous = articleQueryService.getPreviousPermalink(articleId);
-        final JSONObject next = articleQueryService.getNextPermalink(articleId);
-        dataModel.put(Article.ARTICLE_T_PREVIOUS, previous);
-        dataModel.put(Article.ARTICLE_T_NEXT, next);
+        final List<JSONObject> timeNavArticles = articleQueryService.getTimeNavArticles(article);
+        final List<JSONObject> authorNavArticles = articleQueryService.getAuthorNavArticles(article);
+        final List<JSONObject> hotNavArticles = articleQueryService.getHotNavArticles(article);
+        dataModel.put("articleTimeNavArticles", timeNavArticles);
+        dataModel.put("articleAuthorNavArticles", authorNavArticles);
+        dataModel.put("articleHotNavArticles", hotNavArticles);
+        dataModel.put(Article.ARTICLE_T_PREVIOUS, getNavListArticle(timeNavArticles, articleId, 1));
+        dataModel.put(Article.ARTICLE_T_NEXT, getNavListArticle(timeNavArticles, articleId, -1));
+        dataModel.put("articleAuthorPrevious", getNavListArticle(authorNavArticles, articleId, 1));
+        dataModel.put("articleAuthorNext", getNavListArticle(authorNavArticles, articleId, -1));
+        dataModel.put("articleHotPrevious", getNavListArticle(hotNavArticles, articleId, -1));
+        dataModel.put("articleHotNext", getNavListArticle(hotNavArticles, articleId, 1));
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
-            JSONObject longPrev;
-            JSONObject longNext;
             final JSONObject longColumnView = (JSONObject) dataModel.get("longArticleColumnView");
             if (null != longColumnView) {
-                longPrev = longColumnView.optJSONObject("previous");
-                longNext = longColumnView.optJSONObject("next");
-            } else {
-                longPrev = articleQueryService.getPreviousLongArticle(articleId, articleAuthorId);
-                longNext = articleQueryService.getNextLongArticle(articleId, articleAuthorId);
+                dataModel.put("longArticlePrevious", longColumnView.optJSONObject("previous"));
+                dataModel.put("longArticleNext", longColumnView.optJSONObject("next"));
             }
-
-            dataModel.put("longArticlePrevious", longPrev);
-            dataModel.put("longArticleNext", longNext);
         }
 
         String stickConfirmLabel = langPropsService.get("stickConfirmLabel");
@@ -1555,7 +1597,16 @@ public class ArticleProcessor {
         int pageNum = Paginator.getPage(request);
         final int pageSize = Symphonys.ARTICLE_COMMENTS_CNT;
         final int windowSize = Symphonys.ARTICLE_COMMENTS_WIN_SIZE;
-        final int commentCnt = article.getInt(Article.ARTICLE_COMMENT_CNT);
+        final JSONObject commentThreadOptions = new JSONObject();
+        commentThreadOptions.put(Article.ARTICLE_T_ID, articleId);
+        commentThreadOptions.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        commentThreadOptions.put(Pagination.PAGINATION_PAGE_SIZE, pageSize);
+        commentThreadOptions.put(UserExt.USER_COMMENT_VIEW_MODE, cmtViewMode);
+        commentThreadOptions.put(Comment.COMMENT_AUTHOR_ID, filteredCommentAuthorId);
+        commentThreadOptions.put("commentSort", commentSort);
+        commentThreadOptions.put(Keys.OBJECT_ID, currentUserId);
+        final int commentCnt = commentQueryService.countArticleThreadParentComments(commentThreadOptions);
+        dataModel.put("commentDisplayCount", commentCnt);
         final int pageCount = (int) Math.ceil((double) commentCnt / (double) pageSize);
         // 回帖分页 SEO https://github.com/b3log/symphony/issues/813
         if (UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL == cmtViewMode) {
@@ -1568,6 +1619,7 @@ public class ArticleProcessor {
             }
         }
         final List<Integer> pageNums = Paginator.paginate(pageNum, pageSize, pageCount, windowSize);
+        commentThreadOptions.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
         if (!pageNums.isEmpty()) {
             dataModel.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
             dataModel.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
@@ -1619,7 +1671,7 @@ public class ArticleProcessor {
         }
 
         // Load comments
-        final List<JSONObject> articleComments = commentQueryService.getArticleComments(articleId, pageNum, pageSize, cmtViewMode);
+        final List<JSONObject> articleComments = commentQueryService.getArticleThreadParentComments(commentThreadOptions);
         article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
         article.put("commentors", (Object) commentQueryService.getArticleCommentors(articleId));
 
@@ -1683,6 +1735,21 @@ public class ArticleProcessor {
         if (StringUtils.isBlank(article.optString(Article.ARTICLE_AUDIO_URL))) {
             articleMgmtService.genArticleAudio(article);
         }
+    }
+
+    private JSONObject getNavListArticle(final List<JSONObject> articles, final String articleId, final int offset) {
+        for (int i = 0; i < articles.size(); i++) {
+            if (!StringUtils.equals(articleId, articles.get(i).optString(Keys.OBJECT_ID))) {
+                continue;
+            }
+
+            final int targetIndex = i + offset;
+            if (targetIndex < 0 || targetIndex >= articles.size()) {
+                return null;
+            }
+            return articles.get(targetIndex);
+        }
+        return null;
     }
 
     /**
@@ -1841,14 +1908,31 @@ public class ArticleProcessor {
 
             article.put("isGoodArticle", isGoodArticle);
             final String articleId = articleMgmtService.addArticle(article);
+            final String draftRemoveMsg = removePublishedDraft(currentUser.optString(Keys.OBJECT_ID), requestJSONObject);
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
             context.renderJSONValue(Article.ARTICLE_T_ID, articleId);
+            if (StringUtils.isNotBlank(draftRemoveMsg)) {
+                context.renderJSONValue("draftRemoveMsg", draftRemoveMsg);
+            }
         } catch (final ServiceException e) {
             final String msg = e.getMessage();
             LOGGER.log(Level.ERROR, "Adds article [title=" + articleTitle + "] failed: {}", e.getMessage());
             context.renderMsg(msg);
             context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
+        }
+    }
+
+    private String removePublishedDraft(final String userId, final JSONObject requestJSONObject) {
+        final String draftId = StringUtils.trimToEmpty(requestJSONObject.optString(ArticleDraft.ARTICLE_DRAFT_ID));
+        if (StringUtils.isBlank(draftId)) {
+            return "";
+        }
+        try {
+            articleDraftMgmtService.removeDraft(userId, draftId);
+            return "";
+        } catch (final ServiceException e) {
+            return "帖子已发布，但草稿删除失败：" + e.getMessage();
         }
     }
 

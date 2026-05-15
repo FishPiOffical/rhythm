@@ -29,6 +29,20 @@
 </head>
 <body>
 <#include "header.ftl">
+<#macro columnMeta column showLatestChapter>
+    <div class="ft-smaller ft-gray" style="margin-top:6px;">
+        <#if column.columnAuthorName?? && column.columnAuthorName?has_content>
+            作者 <a href="${servePath}/member/${column.columnAuthorName}">${column.columnAuthorName}</a> ·
+        </#if>
+        <#if column.columnUpdateTimeAgo?? && column.columnUpdateTimeAgo?has_content>
+            更新时间 <span title="${column.columnUpdateTimeStr!}">${column.columnUpdateTimeAgo}</span> ·
+        </#if>
+        共 ${column.columnArticleCount?c} 章
+        <#if showLatestChapter && column.latestChapter?? && column.latestChapter.articlePermalink??>
+            · 最新：<a href="${servePath}${column.latestChapter.articlePermalink}">第 ${column.latestChapter.chapterNo?c} 章</a>
+        </#if>
+    </div>
+</#macro>
 <div class="main">
     <div class="wrapper">
         <div class="content fn-clear">
@@ -41,12 +55,7 @@
                                 <#assign columnId = column.columnId!column.oId>
                                 <li>
                                     <a class="title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                                    <div class="ft-smaller ft-gray" style="margin-top:6px;">
-                                        共 ${column.columnArticleCount?c} 章
-                                        <#if column.latestChapter?? && column.latestChapter.articlePermalink??>
-                                            · 最新：<a href="${servePath}${column.latestChapter.articlePermalink}">第 ${column.latestChapter.chapterNo?c} 章</a>
-                                        </#if>
-                                    </div>
+                                    <@columnMeta column true />
                                 </li>
                             </#list>
                         </ul>
@@ -65,7 +74,7 @@
                                 <#assign columnId = column.columnId!column.oId>
                                 <li>
                                     <a class="title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                                    <div class="ft-smaller ft-gray" style="margin-top:6px;">共 ${column.columnArticleCount?c} 章</div>
+                                    <@columnMeta column false />
                                 </li>
                             </#list>
                         </ul>

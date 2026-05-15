@@ -67,6 +67,11 @@ public final class Notification {
      */
     public static final int MAX_LENGTH_C_CUSTOM_SYS_CONTENT = 4096;
 
+    /**
+     * 定制系统通知：水贴提醒。
+     */
+    public static final String DATA_ID_C_SHUI_TIE_NOTICE = "1";
+
     // Data type constants
     /**
      * Data type - article.

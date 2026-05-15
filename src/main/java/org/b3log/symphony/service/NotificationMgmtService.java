@@ -476,6 +476,29 @@ public class NotificationMgmtService {
     }
 
     /**
+     * 添加水贴提醒系统通知。
+     *
+     * @param userId 用户 id
+     * @throws ServiceException 服务异常
+     */
+    @Transactional
+    public void addSysAnnounceShuiTieNotification(final String userId) throws ServiceException {
+        try {
+            final JSONObject requestJSONObject = new JSONObject();
+            requestJSONObject.put(Notification.NOTIFICATION_USER_ID, userId);
+            requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, Notification.DATA_ID_C_SHUI_TIE_NOTICE);
+            requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_CUSTOM_SYS);
+
+            addNotification(requestJSONObject);
+        } catch (final RepositoryException e) {
+            final String msg = "Adds a notification [type=sys_announce_shui_tie] failed";
+            LOGGER.log(Level.ERROR, msg, e);
+
+            throw new ServiceException(msg);
+        }
+    }
+
+    /**
      * Returns whether the custom system notification content column is ready.
      *
      * @return {@code true} if ready

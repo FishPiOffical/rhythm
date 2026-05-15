@@ -150,6 +150,12 @@
                             </#if>
                         <#else>
                             <#if permissions["commonAddArticle"].permissionGrant>
+                                <button type="button" class="fn-right article-draft-action" tabindex="12"
+                                        onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
+                                <span class="fn-right">&nbsp; &nbsp;</span>
+                                <button type="button" class="fn-right article-draft-action" tabindex="11"
+                                        onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
+                                <span class="fn-right">&nbsp; &nbsp;</span>
                                 <button class="fn-right" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
                             </#if>
                         </#if>

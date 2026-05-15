@@ -1935,6 +1935,11 @@
           "description": "帖子关注计数"
         },
         {
+          "name": "articleHotScore",
+          "type": "int",
+          "description": "帖子热度分数生成列"
+        },
+        {
           "name": "redditScore",
           "type": "double",
           "description": "帖子 Reddit 算法评分"
@@ -2003,6 +2008,128 @@
           "name": "articleShowInList",
           "type": "int",
           "description": "帖子是否在列表展示：0 不展示，1 展示 https://github.com/b3log/symphony/issues/927"
+        }
+      ]
+    },
+    {
+      "name": "article_draft",
+      "description": "帖子草稿表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleDraftUserId",
+          "type": "String",
+          "length": 19,
+          "description": "草稿作者 id"
+        },
+        {
+          "name": "articleDraftTitle",
+          "type": "String",
+          "length": 255,
+          "description": "草稿标题"
+        },
+        {
+          "name": "articleDraftSummary",
+          "type": "String",
+          "length": 160,
+          "description": "草稿摘要"
+        },
+        {
+          "name": "articleDraftContent",
+          "type": "String",
+          "length": 1024000,
+          "description": "草稿正文"
+        },
+        {
+          "name": "articleDraftThoughtContent",
+          "type": "String",
+          "length": 1024000,
+          "description": "草稿思绪过程"
+        },
+        {
+          "name": "articleDraftTags",
+          "type": "String",
+          "length": 255,
+          "description": "草稿标签"
+        },
+        {
+          "name": "articleDraftType",
+          "type": "int",
+          "description": "草稿帖子类型"
+        },
+        {
+          "name": "articleDraftColumnId",
+          "type": "String",
+          "length": 19,
+          "description": "长文章草稿专栏 id"
+        },
+        {
+          "name": "articleDraftColumnTitle",
+          "type": "String",
+          "length": 64,
+          "description": "长文章草稿新专栏名称"
+        },
+        {
+          "name": "articleDraftChapterNo",
+          "type": "String",
+          "length": 32,
+          "description": "长文章草稿章节号"
+        },
+        {
+          "name": "articleDraftRewardContent",
+          "type": "String",
+          "length": 102400,
+          "description": "草稿打赏区内容"
+        },
+        {
+          "name": "articleDraftRewardPoint",
+          "type": "int",
+          "description": "草稿打赏积分"
+        },
+        {
+          "name": "articleDraftQnAOfferPoint",
+          "type": "int",
+          "description": "草稿问答悬赏积分"
+        },
+        {
+          "name": "articleDraftCommentable",
+          "type": "boolean",
+          "description": "草稿是否可回帖"
+        },
+        {
+          "name": "articleDraftAnonymous",
+          "type": "boolean",
+          "description": "草稿是否匿名"
+        },
+        {
+          "name": "articleDraftNotifyFollowers",
+          "type": "boolean",
+          "description": "草稿是否通知关注者"
+        },
+        {
+          "name": "articleDraftShowInList",
+          "type": "int",
+          "description": "草稿是否在列表展示"
+        },
+        {
+          "name": "articleDraftStatement",
+          "type": "int",
+          "description": "草稿声明"
+        },
+        {
+          "name": "articleDraftCreatedTime",
+          "type": "long",
+          "description": "草稿创建时间"
+        },
+        {
+          "name": "articleDraftUpdatedTime",
+          "type": "long",
+          "description": "草稿更新时间"
         }
       ]
     },

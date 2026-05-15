@@ -28,11 +28,14 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.service.ServiceException;
+import org.b3log.latke.util.Paginator;
 import org.b3log.latke.util.Requests;
 import org.b3log.symphony.model.*;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
@@ -70,6 +73,26 @@ public class CommentProcessor {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(CommentProcessor.class);
+
+    private static final String COMMENT_SORT_HOT = "hot";
+
+    private static final String COMMENT_AUTHOR_FILTER = "1";
+
+    private static final String COMMENT_THREAD_PARENTS = "commentThreadParents";
+
+    private static final String COMMENT_THREAD_REPLIES = "commentThreadReplies";
+
+    private static final String COMMENT_THREAD_REPLY_COUNT = "commentThreadReplyCount";
+
+    private static final String COMMENT_THREAD_ROOT_ID = "commentThreadRootId";
+
+    private static final String ANCHOR_COMMENT_ID = "anchorCommentId";
+
+    private static final String THREAD_REPLY_PAGE = "page";
+
+    private static final int COMMENT_THREAD_REPLY_PAGE_SIZE = 20;
+
+    private static final int COMMENT_THREAD_REPLY_WINDOW_SIZE = 5;
 
     /**
      * Revision query service.
@@ -116,6 +139,9 @@ public class CommentProcessor {
     @Inject
     private RewardQueryService rewardQueryService;
 
+    @Inject
+    private VoteQueryService voteQueryService;
+
     /**
      * Short link query service.
      */
@@ -139,6 +165,7 @@ public class CommentProcessor {
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
         final PermissionMidware permissionMidware = beanManager.getReference(PermissionMidware.class);
         final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
+        final AnonymousViewCheckMidware anonymousViewCheckMidware = beanManager.getReference(AnonymousViewCheckMidware.class);
         final CommentUpdateValidationMidware commentUpdateValidationMidware = beanManager.getReference(CommentUpdateValidationMidware.class);
         final CommentAddValidationMidware commentAddValidationMidware = beanManager.getReference(CommentAddValidationMidware.class);
 
@@ -150,6 +177,8 @@ public class CommentProcessor {
         Dispatcher.put("/comment/{id}", commentProcessor::updateComment, loginCheck::handle, permissionMidware::check, commentUpdateValidationMidware::handle);
         Dispatcher.post("/comment/original", commentProcessor::getOriginalComment);
         Dispatcher.post("/comment/replies", commentProcessor::getReplies);
+        Dispatcher.post("/comment/thread/parents", commentProcessor::getThreadParentComments, anonymousViewCheckMidware::handle);
+        Dispatcher.post("/comment/thread/replies", commentProcessor::getThreadReplies, anonymousViewCheckMidware::handle);
         Dispatcher.post("/comment", commentProcessor::addComment, loginCheck::handle, permissionMidware::check, commentAddValidationMidware::handle);
         Dispatcher.post("/comment/thank", commentProcessor::thankComment, loginCheck::handle, permissionMidware::check);
     }
@@ -437,6 +466,263 @@ public class CommentProcessor {
         reactionQueryService.fillCommentReactions(replies, currentUserId);
 
         context.renderJSON(StatusCodes.SUCC).renderJSONValue(Comment.COMMENT_T_REPLIES, replies);
+    }
+
+    public void getThreadParentComments(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
+        final JSONObject requestJSONObject = context.requestJSON();
+        final String articleId = requestJSONObject.optString(Article.ARTICLE_T_ID);
+        final JSONObject article = getViewableArticle(articleId);
+        if (null == article) {
+            context.renderMsg("文章不存在或不可查看");
+            return;
+        }
+
+        final int pageNum = requestJSONObject.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM, 1);
+        if (pageNum < 1) {
+            context.renderMsg("页码无效");
+            return;
+        }
+
+        final int commentViewMode = normalizeCommentViewMode(requestJSONObject);
+        final JSONObject options = buildThreadParentOptions(requestJSONObject, article, pageNum, commentViewMode);
+        final int commentCnt = commentQueryService.countArticleThreadParentComments(options);
+        final int pageCount = (int) Math.ceil((double) commentCnt / Symphonys.ARTICLE_COMMENTS_CNT);
+        final int currentPage = normalizeThreadPage(pageNum, pageCount, commentViewMode);
+        options.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, currentPage);
+
+        final List<JSONObject> comments = commentQueryService.getArticleThreadParentComments(options);
+        fillThreadParentViewState(comments, article, Sessions.getUser(), commentViewMode);
+        context.renderJSON(StatusCodes.SUCC).
+                renderJSONValue(COMMENT_THREAD_PARENTS, comments).
+                renderJSONValue(Pagination.PAGINATION, buildThreadPagination(currentPage, pageCount, commentCnt));
+    }
+
+    public void getThreadReplies(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
+        final JSONObject requestJSONObject = context.requestJSON();
+        final String commentId = requestJSONObject.optString(Comment.COMMENT_T_ID);
+        if (StringUtils.isBlank(commentId)) {
+            context.renderMsg("评论不存在");
+            return;
+        }
+
+        final String rootCommentId = commentQueryService.getCommentThreadRootId(commentId);
+        final JSONObject rootComment = commentQueryService.getComment(rootCommentId);
+        if (null == rootComment || null == getViewableArticle(rootComment.optString(Comment.COMMENT_ON_ARTICLE_ID))) {
+            context.renderMsg("评论不存在或不可查看");
+            return;
+        }
+
+        final String currentUserId = getCurrentUserId();
+        final List<JSONObject> allReplies;
+        try {
+            allReplies = commentQueryService.getCommentThreadReplies(currentUserId, rootCommentId);
+        } catch (final CommentQueryService.CommentThreadTooLargeException e) {
+            context.renderMsg(e.getMessage());
+            return;
+        }
+        final int replyCount = allReplies.size();
+        final int pageCount = (int) Math.ceil((double) replyCount / COMMENT_THREAD_REPLY_PAGE_SIZE);
+        final int requestedPage = getRequestedThreadReplyPage(requestJSONObject);
+        final int anchorPage = getAnchorThreadReplyPage(
+                allReplies, requestJSONObject.optString(ANCHOR_COMMENT_ID), requestedPage);
+        final int currentPage = normalizeThreadReplyPage(anchorPage, pageCount);
+        final List<JSONObject> replies = getThreadReplyPageReplies(allReplies, currentPage);
+        reactionQueryService.fillCommentReactions(replies, currentUserId);
+        context.renderJSON(StatusCodes.SUCC).
+                renderJSONValue(COMMENT_THREAD_REPLIES, replies).
+                renderJSONValue(COMMENT_THREAD_REPLY_COUNT, replyCount).
+                renderJSONValue(COMMENT_THREAD_ROOT_ID, rootCommentId).
+                renderJSONValue(Pagination.PAGINATION, buildThreadReplyPagination(currentPage, pageCount, replyCount));
+    }
+
+    private int getRequestedThreadReplyPage(final JSONObject requestJSONObject) {
+        final int currentPageNum = requestJSONObject.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM, 0);
+        if (currentPageNum > 0) {
+            return currentPageNum;
+        }
+        return requestJSONObject.optInt(THREAD_REPLY_PAGE, 1);
+    }
+
+    private int getAnchorThreadReplyPage(final List<JSONObject> replies, final String anchorCommentId,
+                                         final int requestedPage) {
+        if (StringUtils.isBlank(anchorCommentId)) {
+            return requestedPage;
+        }
+        for (int i = 0; i < replies.size(); i++) {
+            if (StringUtils.equals(anchorCommentId, replies.get(i).optString(Keys.OBJECT_ID))) {
+                return (i / COMMENT_THREAD_REPLY_PAGE_SIZE) + 1;
+            }
+        }
+        return requestedPage;
+    }
+
+    private int normalizeThreadReplyPage(final int pageNum, final int pageCount) {
+        if (pageCount < 1) {
+            return 1;
+        }
+        if (pageNum < 1) {
+            return 1;
+        }
+        return Math.min(pageNum, pageCount);
+    }
+
+    private List<JSONObject> getThreadReplyPageReplies(final List<JSONObject> replies, final int currentPage) {
+        final int fromIndex = Math.max((currentPage - 1) * COMMENT_THREAD_REPLY_PAGE_SIZE, 0);
+        if (fromIndex >= replies.size()) {
+            return Collections.emptyList();
+        }
+        final int toIndex = Math.min(fromIndex + COMMENT_THREAD_REPLY_PAGE_SIZE, replies.size());
+        return new java.util.ArrayList<>(replies.subList(fromIndex, toIndex));
+    }
+
+    private JSONObject buildThreadReplyPagination(final int pageNum, final int pageCount, final int replyCount) {
+        final List<Integer> pageNums = Paginator.paginate(
+                pageNum, COMMENT_THREAD_REPLY_PAGE_SIZE, pageCount, COMMENT_THREAD_REPLY_WINDOW_SIZE);
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        pagination.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
+        pagination.put(Pagination.PAGINATION_PAGE_SIZE, COMMENT_THREAD_REPLY_PAGE_SIZE);
+        pagination.put(Pagination.PAGINATION_RECORD_COUNT, replyCount);
+        if (!pageNums.isEmpty()) {
+            pagination.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
+            pagination.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
+        }
+        return pagination;
+    }
+
+    private JSONObject buildThreadParentOptions(final JSONObject requestJSONObject, final JSONObject article,
+                                                final int pageNum, final int commentViewMode) {
+        final JSONObject options = new JSONObject();
+        options.put(Article.ARTICLE_T_ID, article.optString(Keys.OBJECT_ID));
+        options.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        options.put(Pagination.PAGINATION_PAGE_SIZE, Symphonys.ARTICLE_COMMENTS_CNT);
+        options.put(UserExt.USER_COMMENT_VIEW_MODE, commentViewMode);
+        options.put(Comment.COMMENT_AUTHOR_ID, getThreadAuthorFilter(requestJSONObject, article));
+        options.put("commentSort", normalizeCommentSort(requestJSONObject.optString("sort")));
+        options.put(Keys.OBJECT_ID, getCurrentUserId());
+        return options;
+    }
+
+    private String getThreadAuthorFilter(final JSONObject requestJSONObject, final JSONObject article) {
+        if (COMMENT_AUTHOR_FILTER.equals(requestJSONObject.optString("author"))) {
+            return article.optString(Article.ARTICLE_AUTHOR_ID);
+        }
+        return requestJSONObject.optString(Comment.COMMENT_AUTHOR_ID);
+    }
+
+    private int normalizeThreadPage(final int pageNum, final int pageCount, final int commentViewMode) {
+        if (pageCount < 1) {
+            return 1;
+        }
+        if (pageNum <= pageCount) {
+            return pageNum;
+        }
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL == commentViewMode) {
+            return pageCount;
+        }
+        return 1;
+    }
+
+    private JSONObject buildThreadPagination(final int pageNum, final int pageCount, final int commentCnt) {
+        final List<Integer> pageNums = Paginator.paginate(
+                pageNum, Symphonys.ARTICLE_COMMENTS_CNT, pageCount, Symphonys.ARTICLE_COMMENTS_WIN_SIZE);
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        pagination.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
+        pagination.put(Pagination.PAGINATION_PAGE_SIZE, Symphonys.ARTICLE_COMMENTS_CNT);
+        pagination.put(Pagination.PAGINATION_RECORD_COUNT, commentCnt);
+        if (!pageNums.isEmpty()) {
+            pagination.put(Pagination.PAGINATION_FIRST_PAGE_NUM, pageNums.get(0));
+            pagination.put(Pagination.PAGINATION_LAST_PAGE_NUM, pageNums.get(pageNums.size() - 1));
+        }
+        return pagination;
+    }
+
+    private void fillThreadParentViewState(final List<JSONObject> comments, final JSONObject article,
+                                           final JSONObject currentUser, final int commentViewMode) {
+        final String currentUserId = null == currentUser ? "" : currentUser.optString(Keys.OBJECT_ID);
+        final double niceScore = getThreadNiceScore(article.optString(Keys.OBJECT_ID), commentViewMode);
+        final String thankTemplate = langPropsService.get("thankConfirmLabel");
+        for (final JSONObject comment : comments) {
+            fillSingleThreadParentState(comment, article, currentUserId, niceScore, thankTemplate);
+        }
+        reactionQueryService.fillCommentReactions(comments, currentUserId);
+    }
+
+    private void fillSingleThreadParentState(final JSONObject comment, final JSONObject article,
+                                             final String currentUserId, final double niceScore,
+                                             final String thankTemplate) {
+        final String commentId = comment.optString(Keys.OBJECT_ID);
+        final JSONObject commenter = comment.optJSONObject(Comment.COMMENT_T_COMMENTER);
+        final String commenterName = null == commenter
+                ? comment.optString(Comment.COMMENT_T_AUTHOR_NAME) : commenter.optString(User.USER_NAME);
+        comment.put(Comment.COMMENT_T_NICE, comment.optDouble(Comment.COMMENT_SCORE, 0D) >= niceScore);
+        comment.put(Comment.COMMENT_T_THANK_LABEL, thankTemplate.
+                replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT)).
+                replace("{user}", commenterName));
+        comment.put(Common.REWARED_COUNT, comment.optInt(Comment.COMMENT_THANK_CNT));
+        if (StringUtils.isNotBlank(currentUserId)) {
+            comment.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
+            comment.put(Comment.COMMENT_T_VOTE, voteQueryService.isVoted(currentUserId, commentId));
+        }
+        filterOnlyAuthorVisibleContent(comment, article, currentUserId);
+    }
+
+    private void filterOnlyAuthorVisibleContent(final JSONObject comment, final JSONObject article,
+                                                final String currentUserId) {
+        if (Comment.COMMENT_VISIBLE_C_AUTHOR != comment.optInt(Comment.COMMENT_VISIBLE)) {
+            return;
+        }
+        final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
+        final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
+        if (StringUtils.isBlank(currentUserId) ||
+                (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
+            comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
+        }
+    }
+
+    private double getThreadNiceScore(final String articleId, final int commentViewMode) {
+        final List<JSONObject> niceComments = commentQueryService.getNiceComments(commentViewMode, articleId, 3);
+        if (niceComments.isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        return niceComments.get(niceComments.size() - 1).optDouble(Comment.COMMENT_SCORE, 0D);
+    }
+
+    private JSONObject getViewableArticle(final String articleId) {
+        if (StringUtils.isBlank(articleId)) {
+            return null;
+        }
+        final JSONObject article = articleQueryService.getArticleById(articleId);
+        if (null == article || Article.ARTICLE_STATUS_C_INVALID == article.optInt(Article.ARTICLE_STATUS)) {
+            return null;
+        }
+        articleQueryService.processArticleContent(article);
+        return article.optBoolean(Common.DISCUSSION_VIEWABLE, true) ? article : null;
+    }
+
+    private String getCurrentUserId() {
+        final JSONObject currentUser = Sessions.getUser();
+        return null == currentUser ? "" : currentUser.optString(Keys.OBJECT_ID);
+    }
+
+    private String normalizeCommentSort(final String sort) {
+        if (COMMENT_SORT_HOT.equals(sort)) {
+            return COMMENT_SORT_HOT;
+        }
+        return "";
+    }
+
+    private int normalizeCommentViewMode(final JSONObject requestJSONObject) {
+        final int mode = requestJSONObject.optInt(UserExt.USER_COMMENT_VIEW_MODE);
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == mode) {
+            return UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME;
+        }
+        return UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL;
     }
 
     /**

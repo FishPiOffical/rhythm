@@ -79,6 +79,10 @@ public class ArticleQueryService {
 
     private static final int INDEX_SECOND_PAGE = 2;
 
+    private static final int ARTICLE_NAV_SIDE_SIZE = 5;
+
+    private static final String HOT_SCORE_FIELD = Article.ARTICLE_HOT_SCORE;
+
     /**
      * Article repository.
      */
@@ -381,27 +385,8 @@ public class ArticleQueryService {
      * </pre>, returns {@code null} if not found
      */
     public JSONObject getNextPermalink(final String articleId) {
-        Stopwatchs.start("Get next");
-        try {
-            final Query query = new Query().setFilter(
-                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, articleId)).
-                    addSort(Keys.OBJECT_ID, SortDirection.ASCENDING).
-                    select(Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE).
-                    setPage(1, 1).setPageCount(1);
-            final JSONObject ret = articleRepository.getFirst(query);
-            if (null == ret) {
-                return null;
-            }
-            final String title = Escapes.escapeHTML(ret.optString(Article.ARTICLE_TITLE));
-            ret.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(title));
-            ret.put(Article.ARTICLE_T_TITLE_EMOJI_UNICODE, EmojiParser.parseToUnicode(title));
-            return ret;
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Gets next article permalink failed", e);
-            return null;
-        } finally {
-            Stopwatchs.end();
-        }
+        return getAdjacentPermalink("Get next", "Gets next article permalink failed",
+                buildAdjacentQuery(articleId, FilterOperator.GREATER_THAN, SortDirection.ASCENDING));
     }
 
     /**
@@ -418,43 +403,80 @@ public class ArticleQueryService {
      * </pre>, returns {@code null} if not found
      */
     public JSONObject getPreviousPermalink(final String articleId) {
-        Stopwatchs.start("Get previous");
+        return getAdjacentPermalink("Get previous", "Gets previous article permalink failed",
+                buildAdjacentQuery(articleId, FilterOperator.LESS_THAN, SortDirection.DESCENDING));
+    }
 
-        try {
-            final Query query = new Query().setFilter(
-                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, articleId)).
-                    addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).
-                    select(Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE).
-                    setPage(1, 1).setPageCount(1);
-            final JSONObject ret = articleRepository.getFirst(query);
-            if (null == ret) {
-                return null;
-            }
-            final String title = Escapes.escapeHTML(ret.optString(Article.ARTICLE_TITLE));
-            ret.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(title));
-            ret.put(Article.ARTICLE_T_TITLE_EMOJI_UNICODE, EmojiParser.parseToUnicode(title));
-            return ret;
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Gets previous article permalink failed", e);
+    public JSONObject getNextPermalinkByAuthor(final String articleId, final String authorId) {
+        if (StringUtils.isBlank(authorId)) {
             return null;
+        }
+
+        return getAdjacentPermalink("Get next by author", "Gets next article permalink by author failed",
+                buildAuthorNextQuery(articleId, authorId));
+    }
+
+    public JSONObject getPreviousPermalinkByAuthor(final String articleId, final String authorId) {
+        if (StringUtils.isBlank(authorId)) {
+            return null;
+        }
+
+        return getAdjacentPermalink("Get previous by author", "Gets previous article permalink by author failed",
+                buildAuthorPreviousQuery(articleId, authorId));
+    }
+
+    public JSONObject getPreviousHotPermalink(final String articleId) {
+        return getHotPermalink(articleId, true);
+    }
+
+    public JSONObject getNextHotPermalink(final String articleId) {
+        return getHotPermalink(articleId, false);
+    }
+
+    public List<JSONObject> getTimeNavArticles(final JSONObject article) {
+        Stopwatchs.start("Get time nav articles");
+        try {
+            return getOrderedNavArticles(article, "");
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets time nav articles failed", e);
+            return Collections.emptyList();
         } finally {
             Stopwatchs.end();
         }
     }
 
-    /**
-     * Gets previous long article of the same author.
-     */
-    public JSONObject getPreviousLongArticle(final String articleId, final String authorId) {
-        Stopwatchs.start("Get previous long");
+    public List<JSONObject> getAuthorNavArticles(final JSONObject article) {
+        Stopwatchs.start("Get author nav articles");
         try {
-            final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, articleId),
-                    new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
-                    new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG)))
-                    .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
-                    .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
-                    .setPage(1, 1).setPageCount(1);
+            final String authorId = article.optString(Article.ARTICLE_AUTHOR_ID);
+            return getOrderedNavArticles(article, authorId);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets author nav articles failed", e);
+            return Collections.emptyList();
+        } finally {
+            Stopwatchs.end();
+        }
+    }
+
+    public List<JSONObject> getHotNavArticles(final JSONObject article) {
+        Stopwatchs.start("Get hot nav articles");
+        try {
+            final String articleId = article.optString(Keys.OBJECT_ID);
+            final long score = getHotScore(article);
+            final List<JSONObject> higher = selectHotNavSide(articleId, score, true);
+            Collections.reverse(higher);
+            return mergeNavArticles(higher, article, selectHotNavSide(articleId, score, false));
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets hot nav articles failed", e);
+            return Collections.emptyList();
+        } finally {
+            Stopwatchs.end();
+        }
+    }
+
+    private JSONObject getAdjacentPermalink(final String stopwatchName, final String errorMessage, final Query query) {
+        Stopwatchs.start(stopwatchName);
+        try {
             final JSONObject ret = articleRepository.getFirst(query);
             if (null == ret) {
                 return null;
@@ -462,38 +484,155 @@ public class ArticleQueryService {
             enrichNavArticle(ret);
             return ret;
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Gets previous long article failed", e);
+            LOGGER.log(Level.ERROR, errorMessage, e);
             return null;
         } finally {
             Stopwatchs.end();
         }
     }
 
-    /**
-     * Gets next long article of the same author.
-     */
-    public JSONObject getNextLongArticle(final String articleId, final String authorId) {
-        Stopwatchs.start("Get next long");
+    private Query buildAdjacentQuery(final String articleId, final FilterOperator idOperator,
+                                     final SortDirection sortDirection) {
+        return new Query().setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Keys.OBJECT_ID, idOperator, articleId),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
+                .addSort(Keys.OBJECT_ID, sortDirection)
+                .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                .setPage(1, 1).setPageCount(1);
+    }
+
+    private Query buildAuthorNextQuery(final String articleId, final String authorId) {
+        return new Query().setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, articleId),
+                        new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
+                .addSort(Keys.OBJECT_ID, SortDirection.ASCENDING)
+                .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                .setPage(1, 1).setPageCount(1);
+    }
+
+    private Query buildAuthorPreviousQuery(final String articleId, final String authorId) {
+        return new Query().setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, articleId),
+                        new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
+                .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
+                .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                .setPage(1, 1).setPageCount(1);
+    }
+
+    private List<JSONObject> getOrderedNavArticles(final JSONObject article, final String authorId)
+            throws RepositoryException {
+        final String articleId = article.optString(Keys.OBJECT_ID);
+        final List<JSONObject> newer = articleRepository.getList(buildTimeNavQuery(articleId, authorId, true));
+        Collections.reverse(newer);
+        return mergeNavArticles(newer, article,
+                articleRepository.getList(buildTimeNavQuery(articleId, authorId, false)));
+    }
+
+    private Query buildTimeNavQuery(final String articleId, final String authorId, final boolean newer) {
+        final List<Filter> filters = new ArrayList<>();
+        filters.add(new PropertyFilter(Keys.OBJECT_ID, newer ? FilterOperator.GREATER_THAN : FilterOperator.LESS_THAN, articleId));
+        filters.add(new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID));
+        filters.add(new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES));
+        if (StringUtils.isNotBlank(authorId)) {
+            filters.add(new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+        }
+
+        final SortDirection direction = newer ? SortDirection.ASCENDING : SortDirection.DESCENDING;
+        return new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters))
+                .addSort(Keys.OBJECT_ID, direction)
+                .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
+                .setPage(1, ARTICLE_NAV_SIDE_SIZE).setPageCount(1);
+    }
+
+    private JSONObject getHotPermalink(final String articleId, final boolean previous) {
+        Stopwatchs.start(previous ? "Get previous by hot" : "Get next by hot");
         try {
-            final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, articleId),
-                    new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
-                    new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.EQUAL, Article.ARTICLE_TYPE_C_LONG)))
-                    .addSort(Keys.OBJECT_ID, SortDirection.ASCENDING)
-                    .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
-                    .setPage(1, 1).setPageCount(1);
-            final JSONObject ret = articleRepository.getFirst(query);
-            if (null == ret) {
+            final JSONObject article = articleRepository.get(articleId);
+            if (null == article) {
                 return null;
             }
+
+            final List<JSONObject> articles = selectHotAdjacentArticles(articleId, getHotScore(article), previous);
+            if (articles.isEmpty()) {
+                return null;
+            }
+
+            final JSONObject ret = articles.get(0);
             enrichNavArticle(ret);
             return ret;
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Gets next long article failed", e);
+            LOGGER.log(Level.ERROR, "Gets article permalink by hot failed", e);
             return null;
         } finally {
             Stopwatchs.end();
         }
+    }
+
+    private List<JSONObject> selectHotAdjacentArticles(final String articleId, final long score, final boolean previous)
+            throws RepositoryException {
+        final String operator = previous ? ">" : "<";
+        final String sortDirection = previous ? "ASC" : "DESC";
+        final String sql = "SELECT " + Keys.OBJECT_ID + ", " + Article.ARTICLE_PERMALINK + ", " + Article.ARTICLE_TITLE + ", "
+                + Article.ARTICLE_CONTENT + " FROM " + articleRepository.getName()
+                + " WHERE " + Article.ARTICLE_STATUS + " = ? AND " + Article.ARTICLE_SHOW_IN_LIST + " = ?"
+                + " AND (" + HOT_SCORE_FIELD + " " + operator + " ? OR (" + HOT_SCORE_FIELD + " = ? AND "
+                + Keys.OBJECT_ID + " " + operator + " ?))"
+                + " ORDER BY " + HOT_SCORE_FIELD + " " + sortDirection + ", "
+                + Keys.OBJECT_ID + " " + sortDirection + " LIMIT 1";
+        return articleRepository.select(sql, Article.ARTICLE_STATUS_C_VALID, Article.ARTICLE_SHOW_IN_LIST_C_YES,
+                score, score, articleId);
+    }
+
+    private List<JSONObject> selectHotNavSide(final String articleId, final long score, final boolean higher)
+            throws RepositoryException {
+        final String operator = higher ? ">" : "<";
+        final String sortDirection = higher ? "ASC" : "DESC";
+        final String sql = "SELECT " + Keys.OBJECT_ID + ", " + Article.ARTICLE_PERMALINK + ", "
+                + Article.ARTICLE_TITLE + ", " + Article.ARTICLE_CONTENT + " FROM " + articleRepository.getName()
+                + " WHERE " + Article.ARTICLE_STATUS + " = ? AND " + Article.ARTICLE_SHOW_IN_LIST + " = ?"
+                + " AND (" + HOT_SCORE_FIELD + " " + operator + " ? OR (" + HOT_SCORE_FIELD + " = ? AND "
+                + Keys.OBJECT_ID + " " + operator + " ?))"
+                + " ORDER BY " + HOT_SCORE_FIELD + " " + sortDirection + ", "
+                + Keys.OBJECT_ID + " " + sortDirection + " LIMIT " + ARTICLE_NAV_SIDE_SIZE;
+        return articleRepository.select(sql, Article.ARTICLE_STATUS_C_VALID, Article.ARTICLE_SHOW_IN_LIST_C_YES,
+                score, score, articleId);
+    }
+
+    private List<JSONObject> mergeNavArticles(final List<JSONObject> before, final JSONObject current,
+                                              final List<JSONObject> after) {
+        final List<JSONObject> ret = new ArrayList<>();
+        ret.addAll(enrichNavArticles(before));
+        ret.add(toCurrentNavArticle(current));
+        ret.addAll(enrichNavArticles(after));
+        return ret;
+    }
+
+    private List<JSONObject> enrichNavArticles(final List<JSONObject> articles) {
+        for (final JSONObject article : articles) {
+            enrichNavArticle(article);
+        }
+        return articles;
+    }
+
+    private JSONObject toCurrentNavArticle(final JSONObject article) {
+        final JSONObject ret = new JSONObject();
+        ret.put(Keys.OBJECT_ID, article.optString(Keys.OBJECT_ID));
+        ret.put(Article.ARTICLE_PERMALINK, article.optString(Article.ARTICLE_PERMALINK));
+        ret.put(Article.ARTICLE_TITLE, article.optString(Article.ARTICLE_TITLE));
+        ret.put(Article.ARTICLE_CONTENT, article.optString(Article.ARTICLE_CONTENT));
+        enrichNavArticle(ret);
+        return ret;
+    }
+
+    private long getHotScore(final JSONObject article) {
+        return article.optLong(Article.ARTICLE_THANK_CNT) + article.optLong(Article.ARTICLE_GOOD_CNT)
+                + article.optLong(Article.ARTICLE_COLLECT_CNT) + article.optLong(Article.ARTICLE_WATCH_CNT)
+                - article.optLong(Article.ARTICLE_BAD_CNT);
     }
 
     private void enrichNavArticle(final JSONObject article) {

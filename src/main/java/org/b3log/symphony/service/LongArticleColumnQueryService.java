@@ -19,10 +19,12 @@
 package org.b3log.symphony.service;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.model.User;
 import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
@@ -30,6 +32,8 @@ import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.SortDirection;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.latke.util.Locales;
+import org.b3log.latke.util.Times;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.b3log.symphony.model.LongArticleRead;
@@ -62,6 +66,8 @@ public class LongArticleColumnQueryService {
     private static final int INDEX_CARD_RECENT_CHAPTER_FETCH_SIZE = 2;
     private static final int INDEX_CARD_RECENT_CHAPTER_SCAN_SIZE = 30;
     private static final int CHAPTER_PREVIEW_MAX_LENGTH = 120;
+    private static final long UNSET_TIME = 0L;
+    private static final String COLUMN_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     @Inject
     private LongArticleColumnRepository longArticleColumnRepository;
@@ -74,6 +80,9 @@ public class LongArticleColumnQueryService {
 
     @Inject
     private LongArticleReadUserRepository longArticleReadUserRepository;
+
+    @Inject
+    private UserQueryService userQueryService;
 
     /**
      * Gets user columns.
@@ -413,10 +422,7 @@ public class LongArticleColumnQueryService {
                     continue;
                 }
 
-                final JSONObject card = new JSONObject(column.toString());
-                card.put(LongArticleColumn.COLUMN_ID, columnId);
-                card.put(LongArticleColumn.COLUMN_TITLE,
-                        Escapes.escapeHTML(card.optString(LongArticleColumn.COLUMN_TITLE)));
+                final JSONObject card = buildColumnCard(column, columnId);
 
                 final List<JSONObject> recentChapters = getRecentChapterViews(
                         columnId, INDEX_CARD_RECENT_CHAPTER_FETCH_SIZE);
@@ -435,6 +441,48 @@ public class LongArticleColumnQueryService {
             }
         }
         return ret;
+    }
+
+    private JSONObject buildColumnCard(final JSONObject column, final String columnId) {
+        final JSONObject card = new JSONObject(column.toString());
+        card.put(LongArticleColumn.COLUMN_ID, columnId);
+        card.put(LongArticleColumn.COLUMN_TITLE,
+                Escapes.escapeHTML(card.optString(LongArticleColumn.COLUMN_TITLE)));
+
+        final String authorName = getColumnAuthorName(card);
+        if (StringUtils.isNotBlank(authorName)) {
+            card.put(LongArticleColumn.COLUMN_T_AUTHOR_NAME, authorName);
+        }
+
+        final long updateTime = card.optLong(LongArticleColumn.COLUMN_UPDATE_TIME);
+        if (updateTime <= UNSET_TIME) {
+            LOGGER.warn("Long article column misses update time [columnId={}]", columnId);
+            return card;
+        }
+
+        card.put(LongArticleColumn.COLUMN_T_UPDATE_TIME_STR,
+                DateFormatUtils.format(updateTime, COLUMN_TIME_FORMAT));
+        card.put(LongArticleColumn.COLUMN_T_UPDATE_TIME_AGO,
+                Times.getTimeAgo(updateTime, Locales.getLocale()));
+        return card;
+    }
+
+    private String getColumnAuthorName(final JSONObject card) {
+        final String authorId = card.optString(LongArticleColumn.COLUMN_AUTHOR_ID);
+        if (StringUtils.isBlank(authorId)) {
+            LOGGER.warn("Long article column misses author id [columnId={}]",
+                    card.optString(LongArticleColumn.COLUMN_ID));
+            return "";
+        }
+
+        final JSONObject author = userQueryService.getUser(authorId);
+        if (null == author) {
+            LOGGER.warn("Long article column author not found [columnId={}, authorId={}]",
+                    card.optString(LongArticleColumn.COLUMN_ID), authorId);
+            return "";
+        }
+
+        return Escapes.escapeHTML(author.optString(User.USER_NAME));
     }
 
     private void attachRecentChapters(final JSONObject card, final List<JSONObject> recentChapters) {

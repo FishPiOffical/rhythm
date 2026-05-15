@@ -62,6 +62,224 @@ var Comment = {
   isWideReactionOption: function (option) {
     return option.value === 'plus' || option.value === 'heartonfire'
   },
+  escapeHTML: function (text) {
+    return $('<div>').text(text || '').html()
+  },
+  renderCommentAuthorName: function (data) {
+    var userName = Comment.escapeHTML(data.commentAuthorName)
+    if (data.commentAuthorNickName) {
+      return Comment.escapeHTML(data.commentAuthorNickName) + ' (' + userName + ')'
+    }
+    return userName
+  },
+  renderOriginalAuthorLabel: function (data) {
+    var originalAuthorName = data.commentOriginalAuthorNickName ||
+      data.commentOriginalAuthorName
+    if (!originalAuthorName) {
+      return ''
+    }
+    return '<span class="comment-origin-inline">回复 @' +
+      Comment.escapeHTML(originalAuthorName) + '</span>'
+  },
+  escapeJSString: function (text) {
+    return String(text || '').
+      replace(/\\/g, '\\\\').
+      replace(/'/g, "\\'").
+      replace(/\r/g, '\\r').
+      replace(/\n/g, '\\n')
+  },
+  getCommentHashId: function (url) {
+    var hashIndex = String(url || '').indexOf('#')
+    if (hashIndex < 0) {
+      return ''
+    }
+    return String(url).substring(hashIndex + 1)
+  },
+  getCurrentPageNum: function () {
+    var match = window.location.search.match(/[?&]p=(\d+)/)
+    return match ? parseInt(match[1]) : 1
+  },
+  getSearchValue: function (search, key) {
+    var pairs = String(search || '').replace(/^\?/, '').split('&')
+    for (var i = 0; i < pairs.length; i++) {
+      var pair = pairs[i].split('=')
+      if (pair[0] === key) {
+        return pair.length > 1 ? pair[1] : ''
+      }
+    }
+    return ''
+  },
+  normalizeCommentSearch: function (search) {
+    var keys = ['p', 'm', 'sort', 'author'],
+      values = []
+    for (var i = 0; i < keys.length; i++) {
+      var value = Comment.getSearchValue(search, keys[i])
+      if (keys[i] === 'p' && value === '') {
+        value = '1'
+      }
+      if (keys[i] === 'm' && value === '') {
+        value = String(Label.userCommentViewMode)
+      }
+      values.push(keys[i] + '=' + value)
+    }
+    return values.join('&')
+  },
+  isSameCommentPage: function (url) {
+    var link = document.createElement('a')
+    link.href = url
+    return link.pathname === window.location.pathname &&
+      Comment.normalizeCommentSearch(link.search) ===
+      Comment.normalizeCommentSearch(window.location.search)
+  },
+  getCommentElement: function (id) {
+    var element = document.getElementById(id)
+    return element ? $(element) : $()
+  },
+  ensureThread: function ($rootComment, rootId) {
+    var $thread = $rootComment.find('.comment-thread').first()
+    if ($thread.length !== 0) {
+      return $thread
+    }
+    $thread = $('<div class="comment-thread" data-root-id="' +
+      Comment.escapeHTML(rootId) + '"><div class="comment-thread__list"></div></div>')
+    $rootComment.find('.comment-action').before($thread)
+    return $thread
+  },
+  renderThreadAction: function (data) {
+    return '<div class="comment-thread__actions comment-action__bar">'
+      + '<div class="comment-action__left">'
+      + Comment.renderReactionBar(data.oId, data.reactionSummary,
+        data.currentUserReaction)
+      + '</div><span class="action-btns">'
+      + Comment.renderThreadThankAction(data)
+      + Comment.renderThreadVoteAction(data, true)
+      + Comment.renderThreadVoteAction(data, false)
+      + Comment.renderThreadReportAction(data)
+      + Comment.renderThreadReplyAction(data)
+      + '</span></div>'
+  },
+  renderThreadThankAction: function (data) {
+    var id = Comment.escapeJSString(data.oId),
+      tip = Comment.escapeJSString(data.commentThankLabel),
+      anonymous = parseInt(data.commentAnonymous || 0),
+      count = parseInt(data.rewardedCnt || data.commentThankCnt || 0),
+      className = data.rewarded ? ' ft-red' : '',
+      onclick = ''
+    if (!data.rewarded) {
+      onclick = Label.canThankComment
+        ? ' onclick="Comment.thank(\'' + id + '\', \'' +
+        Comment.escapeJSString(Label.csrfToken) + '\', \'' + tip + '\', ' +
+        anonymous + ', this)"'
+        : ' onclick="Article.permissionTip(Label.noPermissionLabel)"'
+    }
+    return '<span class="tooltipped tooltipped-n' + className +
+      '" aria-label="' + Comment.escapeHTML(Label.thankLabel) + '"' +
+      onclick + '><svg class="fn-text-top icon-heart"><use xlink:href="#heart"></use></svg> ' +
+      count + '</span>'
+  },
+  renderThreadVoteAction: function (data, up) {
+    var id = Comment.escapeJSString(data.oId),
+      voted = parseInt(data.commentVote) === (up ? 0 : 1),
+      count = parseInt(up ? data.commentGoodCnt || 0 : data.commentBadCnt || 0),
+      label = up ? Label.upLabel : Label.downLabel,
+      icon = up ? 'thumbs-up' : 'thumbs-down',
+      method = up ? 'voteUp' : 'voteDown',
+      canVote = up ? Label.canGoodComment : Label.canBadComment,
+      onclick = canVote ? 'Article.' + method + '(\'' + id + '\', \'comment\', this)'
+        : 'Article.permissionTip(Label.noPermissionLabel)'
+    return '<span class="tooltipped tooltipped-n' + (voted ? ' ft-red' : '') +
+      '" aria-label="' + Comment.escapeHTML(label) + '" onclick="' + onclick +
+      '"><svg class="icon-' + icon + '"><use xlink:href="#' + icon +
+      '"></use></svg> ' + count + '</span>'
+  },
+  renderThreadReportAction: function (data) {
+    var id = Comment.escapeJSString(data.oId)
+    return '<span aria-label="' + Comment.escapeHTML(Label.reportLabel || '') +
+      '" class="tooltipped tooltipped-n" onclick="$(\'#reportDialog\').data(\'type\', 1).data(\'id\', \'' +
+      id + '\').dialog(\'open\')"><svg><use xlink:href="#icon-report"></use></svg></span>'
+  },
+  renderThreadReplyAction: function (data) {
+    if (!Label.isLoggedIn || !Label.canAddComment) {
+      return ''
+    }
+    return '<span aria-label="' + Comment.escapeHTML(Label.replyLabel) +
+      '" class="icon-reply-btn tooltipped tooltipped-n" onclick="Comment.reply(\'' +
+      Comment.escapeJSString(data.commentAuthorName) + '\', \'' +
+      Comment.escapeJSString(data.oId) +
+      '\')"><svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>'
+  },
+  getThreadReplyDepth: function (data) {
+    var depth = parseInt(data.commentThreadDepth, 10)
+    if (!isNaN(depth) && depth >= 0) {
+      return depth
+    }
+    var parent = document.getElementById(data.commentOriginalCommentId)
+    if (!parent || !$(parent).hasClass('comment-thread__reply')) {
+      return 0
+    }
+    depth = parseInt($(parent).attr('data-thread-depth'), 10)
+    return isNaN(depth) ? 1 : depth + 1
+  },
+  renderThreadReplyClass: function (depth) {
+    return 'comment-thread__reply' +
+      (depth > 0 ? ' comment-thread__reply--nested' : '')
+  },
+  renderThreadReplyStyle: function (depth) {
+    return ' data-thread-depth="' + depth +
+      '" style="--comment-thread-indent:' + (depth * 16) + 'px"'
+  },
+  renderThreadReply: function (data) {
+    var depth = Comment.getThreadReplyDepth(data)
+    return '<div id="' + Comment.escapeHTML(data.oId) + '" class="' +
+      Comment.renderThreadReplyClass(depth) + '"' +
+      Comment.renderThreadReplyStyle(depth) + '>'
+      + '<a rel="nofollow" href="' + Label.servePath + '/member/'
+      + Comment.escapeHTML(data.commentAuthorName) + '" class="comment-thread__avatar" aria-label="'
+      + Comment.escapeHTML(data.commentAuthorName) + '" style="background-image:url(\''
+      + Comment.escapeHTML(data.commentAuthorThumbnailURL) + '\')"></a>'
+      + '<div class="comment-thread__body"><div class="comment-thread__meta">'
+      + '<a rel="nofollow" href="' + Label.servePath + '/member/'
+      + Comment.escapeHTML(data.commentAuthorName) + '">'
+      + Comment.renderCommentAuthorName(data) + '</a>'
+      + Comment.renderOriginalAuthorLabel(data)
+      + '<span class="ft-fade"> • ' + Comment.escapeHTML(data.timeAgo) + '</span>'
+      + '</div><div class="comment-thread__content vditor-reset">'
+      + data.commentContent + '</div>' + Comment.renderThreadAction(data) +
+      '</div></div>'
+  },
+  renderThreadReplies: function (comments) {
+    var html = ''
+    for (var i = 0; i < comments.length; i++) {
+      html += Comment.renderThreadReply(comments[i])
+    }
+    return html
+  },
+  renderThreadPageButton: function (rootId, pageNum, label) {
+    return '<button type="button" onclick="Comment.showThreadReplies(\'' +
+      Comment.escapeJSString(rootId) + '\', this, ' + pageNum + ')">' +
+      Comment.escapeHTML(label) + '</button>'
+  },
+  renderThreadPagination: function ($thread, rootId, pagination) {
+    $thread.find('.comment-thread__pager').remove()
+    if (!pagination || parseInt(pagination.paginationPageCount || 0) <= 1) {
+      return
+    }
+    var pageNum = parseInt(pagination.paginationCurrentPageNum || 1),
+      pageCount = parseInt(pagination.paginationPageCount || 1),
+      html = ['<div class="comment-thread__pager">']
+    if (pageNum > 1) {
+      html.push(Comment.renderThreadPageButton(rootId, pageNum - 1, '上一页'))
+    }
+    html.push('<span class="comment-thread__page-info">', pageNum, '/', pageCount, '</span>')
+    if (pageNum < pageCount) {
+      html.push(Comment.renderThreadPageButton(rootId, pageNum + 1, '下一页'))
+    }
+    html.push('</div>')
+    $thread.append(html.join(''))
+  },
+  getCommentQueryExtra: function () {
+    return Label.commentQueryExtra || ''
+  },
   normalizeReactionSummary: function (summary) {
     if (Array.isArray(summary)) {
       return summary
@@ -601,7 +819,9 @@ var Comment = {
   exchangeCmtSort: function (mode) {
     mode = 0 === mode ? 1 : 0
 
-    window.location.href = window.location.pathname + '?m=' + mode
+    var extra = Comment.getCommentQueryExtra().replace('&sort=hot', '')
+    window.location.href = window.location.pathname + '?m=' + mode + extra +
+      '#comments'
   },
   /**
    * 编辑评论
@@ -629,48 +849,111 @@ var Comment = {
         Label.commonUpdateCommentPermissionLabel + '</a>').
       data('commentId', id).
       removeData('commentOriginalCommentId')
+    Comment._showReplyPanel(null, {keepAnonymousHidden: true})
   },
   /**
    * 背景渐变
    * @param {jQuery} $obj 背景渐变对象
    * @returns {undefined}
    */
-  _bgFade: function ($obj) {
+  _bgFade: function ($obj, options) {
     if ($obj.length === 0) {
       return false
     }
 
-    $(window).scrollTop($obj[0].offsetTop - 48)
+    options = options || {}
+    if (options.scroll !== false) {
+      $(window).scrollTop($obj[0].offsetTop - 48)
+    }
 
-    if ($obj.attr('id') === 'comments') {
+    if ($obj.attr('id') === 'comments' || options.highlight === false) {
       return false
     }
 
-    $obj.css({
-      'background-color': '#9bbee0',
-    })
+    $('.comment-focus-highlight').removeClass('comment-focus-highlight')
+    $obj.addClass('comment-focus-highlight')
     setTimeout(function () {
-      $obj.css({
-        'background-color': '#FFF',
-        'transition': 'all 3s cubic-bezier(0.56, -0.36, 0.58, 1)',
-      })
-    }, 100)
-    setTimeout(function () {
-      $obj.removeAttr('style')
-    }, 3100)
+      $obj.removeClass('comment-focus-highlight')
+    }, 1800)
+    return true
   },
   /**
    * 跳转到指定的评论处
    * @param {string} url 跳转的 url
    */
   goComment: function (url) {
-    if ($(url.substr(url.length - 14, 14)).length === 0) {
-      window.location = url
+    var commentId = Comment.getCommentHashId(url)
+    if (commentId && Comment.focusCommentById(commentId)) {
       return false
     }
-
-    $('#comments .list > ul > li').removeAttr('style')
-    Comment._bgFade($(url.substr(url.length - 14, 14)))
+    if (commentId && Comment.isSameCommentPage(url)) {
+      Comment.expandThreadForComment(commentId)
+      return false
+    }
+    window.location = url
+    return false
+  },
+  focusCommentElement: function ($comment, options) {
+    return Comment._bgFade($comment, options)
+  },
+  focusCommentById: function (id, options) {
+    var $comment = Comment.getCommentElement(id)
+    if ($comment.length !== 1) {
+      return false
+    }
+    return Comment.focusCommentElement($comment, options)
+  },
+  focusLocationHash: function () {
+    var commentId = Comment.getCommentHashId(window.location.hash)
+    if (!commentId) {
+      return false
+    }
+    if (Comment.focusCommentById(commentId)) {
+      return true
+    }
+    return Comment.expandThreadForComment(commentId)
+  },
+  expandThreadForComment: function (commentId) {
+    $.ajax({
+      url: Label.servePath + '/comment/thread/replies',
+      type: 'POST',
+      data: JSON.stringify({
+        commentId: commentId,
+        anchorCommentId: commentId,
+        userCommentViewMode: Label.userCommentViewMode,
+        sort: Label.commentSort,
+        author: Label.commentAuthorFilter ? '1' : '',
+      }),
+      success: function (result) {
+        if (0 !== result.code) {
+          return false
+        }
+        Comment.renderThreadResponse(result.commentThreadRootId,
+          result.commentThreadReplies || [], commentId, {
+            pagination: result.pagination,
+          })
+      },
+    })
+    return true
+  },
+  renderThreadResponse: function (rootId, replies, targetId, options) {
+    options = options || {}
+    var $rootComment = Comment.getCommentElement(rootId)
+    if ($rootComment.length !== 1) {
+      return false
+    }
+    var $thread = Comment.ensureThread($rootComment, rootId)
+    $thread.find('.comment-thread__list').html(Comment.renderThreadReplies(replies))
+    $thread.addClass('comment-thread--expanded')
+    $thread.find('.comment-thread__more').remove()
+    Comment.renderThreadPagination($thread, rootId, options.pagination)
+    Comment.initReactionWidgets($thread)
+    Util.parseHljs()
+    Util.parseMarkdown()
+    if (options.focus === false || !targetId) {
+      return true
+    }
+    return Comment.focusCommentById(targetId)
   },
   /**
    * 设置评论来源
@@ -712,17 +995,68 @@ var Comment = {
    */
   cancelReply: function () {
     Comment._clearReplyUseName()
+    Comment._setArticleReplyTarget()
+  },
+  _setArticleReplyTarget: function () {
+    var $replyUseName = Comment._getReplyUseName()
+    if ($replyUseName.data('commentOriginalCommentId') || $replyUseName.data('commentId')) {
+      return
+    }
+    $replyUseName.
+      addClass('reply-use-name--active').
+      html('<a href="javascript:void(0)" onclick="Comment._bgFade($(\'.article-content\'))" class="ft-a-title reply-use-name__target"><svg><use xlink:href="#reply-to"></use></svg> ' +
+        Comment.escapeHTML($('.article-title').text()) + '</a>')
+  },
+  _showReplyPanel: function (cb, options) {
+    options = options || {}
+    if (!Label.isLoggedIn) {
+      Util.needLogin()
+      return false
+    }
+    if ($('#commentContent').length === 0) {
+      Util.alert(Label.notAllowCmtLabel)
+      return false
+    }
+    if (options.keepAnonymousHidden !== true) {
+      $('.anonymous-check').show()
+    }
+    Comment.closeReactionPanels()
+    ArticleReaction.closePanels()
+    Comment._setArticleReplyTarget()
+    var $panel = $('.editor-panel')
+    if ($panel.length === 0) {
+      return false
+    }
+    if ($panel.hasClass('editor-panel--open')) {
+      Comment.editor.focus()
+      cb ? cb() : ''
+      return true
+    }
+    $panel.show().addClass('editor-panel--open').css('bottom', 0)
+    $panel.find('.wrapper').hide().slideDown(function () {
+      Comment.editor.focus()
+      cb ? cb() : ''
+    })
+    return true
+  },
+  _hideReplyPanel: function () {
+    $('.editor-panel .wrapper').slideUp(function () {
+      $('.editor-panel').removeClass('editor-panel--open').fadeOut(100)
+    })
+    return false
+  },
+  _toggleReply: function (cb) {
+    if ($('.editor-panel').hasClass('editor-panel--open')) {
+      return Comment._hideReplyPanel()
+    }
+    return Comment._showReplyPanel(cb)
   },
   /**
    * 评论初始化
    * @returns {Boolean}
    */
   init: function () {
-    if ($(window.location.hash).length === 1) {
-      // if (!isNaN(parseInt(window.location.hash.substr(1)))) {
-      Comment._bgFade($(window.location.hash))
-      //}
-    }
+    Comment.focusLocationHash()
 
     this._setCmtVia()
 
@@ -739,6 +1073,7 @@ var Comment = {
         Comment.initReactionWidgets($('#comments'))
         Util.parseMarkdown()
         Util.parseHljs()
+        Comment.focusLocationHash()
       },
     })
     NProgress.configure({showSpinner: false})
@@ -926,8 +1261,9 @@ var Comment = {
             + '<div class="comment-info ft-smaller">'
             template += '<a class="ft-gray" rel="nofollow" href="/member/' +
               data.commentAuthorName + '">'
-          template += data.commentAuthorNickName + ' (' + data.commentAuthorName + ')'
+          template += Comment.renderCommentAuthorName(data)
           template += '</a>'
+          template += Comment.renderOriginalAuthorLabel(data)
 
           template += '<span class="ft-fade"> • ' + data.timeAgo
           if (data.rewardedCnt > 0) {
@@ -942,13 +1278,7 @@ var Comment = {
 
           template += ' ' + Util.getDeviceByUa(data.commentUA) + '</span>'
 
-          template += '<a class="tooltipped tooltipped-nw ft-a-title fn-right" aria-label="' +
-            Label.referenceLabel + '" href="javascript:Comment.goComment(\''
-            + Label.servePath + '/article/' + Label.articleOId + '?p=' +
-            data.paginationCurrentPageNum
-            + '&m=' + Label.userCommentViewMode + '#' + data.oId
-            +
-            '\')"><svg><use xlink:href="#quote"></use></svg></a></div><div class="vditor-reset comment">'
+          template += '</div><div class="vditor-reset comment">'
             + data.commentContent + '</div>'
             + Comment.renderReactionBar(data.oId, data.reactionSummary,
               data.currentUserReaction)
@@ -965,6 +1295,42 @@ var Comment = {
           addClass('icon-chevron-up').
           find('use').
           attr('xlink:href', '#chevron-up')
+      },
+      error: function (result) {
+        Util.alert(result.statusText)
+      },
+      complete: function () {
+        $(it).css('opacity', '1')
+      },
+    })
+  }
+  ,
+  showThreadReplies: function (id, it, pageNum) {
+    if ($(it).css('opacity') === '0.3') {
+      return false
+    }
+
+    $.ajax({
+      url: Label.servePath + '/comment/thread/replies',
+      type: 'POST',
+      data: JSON.stringify({
+        commentId: id,
+        paginationCurrentPageNum: pageNum || 1,
+      }),
+      beforeSend: function () {
+        $(it).css('opacity', '0.3')
+      },
+      success: function (result) {
+        if (0 !== result.code) {
+          Util.alert(result.msg)
+          return false
+        }
+
+        Comment.renderThreadResponse(result.commentThreadRootId || id,
+          result.commentThreadReplies || [], null, {
+            focus: false,
+            pagination: result.pagination,
+          })
       },
       error: function (result) {
         Util.alert(result.statusText)
@@ -1026,6 +1392,9 @@ var Comment = {
           // reset comment editor
           Comment.editor.setValue('')
 
+          // hide comment panel
+          Comment._hideReplyPanel()
+
           // clear reply comment
           Comment._clearReplyUseName()
 
@@ -1038,12 +1407,11 @@ var Comment = {
             window.localStorage[Label.articleOId] = JSON.stringify(emptyContent)
           }
 
-          // 定为到回贴位置
-          if (Label.userCommentViewMode === 1) {
-            // 实时模式
-            Comment._bgFade($('#comments'))
-          } else {
-            Comment._bgFade($('#bottomComment'))
+          // 发送后不主动调整页面位置，避免评论框收起时跳动
+          if (requestJSONObject.commentOriginalCommentId) {
+            Comment.focusCommentById(requestJSONObject.commentOriginalCommentId, {
+              scroll: false,
+            })
           }
         } else {
           $('#addCommentTip').
@@ -1067,20 +1435,20 @@ var Comment = {
    * @param {String} userName 用户名称
    */
   reply: function (userName, id) {
-    var safeUserName = String(userName).
-      replace(/&/g, '&amp;').
-      replace(/</g, '&lt;').
-      replace(/>/g, '&gt;'),
+    var safeUserName = Comment.escapeHTML(userName),
       $replyUseName = Comment._getReplyUseName()
 
     $replyUseName.
       addClass('reply-use-name--active').
-      html('<a rel="nofollow" href="javascript:void(0)" class="ft-a-title reply-use-name__target fn-pointer" onclick="Comment.cancelReply()"><svg><use xlink:href="#reply-to"></use></svg> ' +
+      html('<a rel="nofollow" href="#' + Comment.escapeHTML(id) +
+        '" class="ft-a-title reply-use-name__target fn-pointer" onclick="Comment._bgFade($(\'#' +
+        Comment.escapeJSString(id) +
+        '\'))"><svg><use xlink:href="#reply-to"></use></svg> ' +
         safeUserName +
         '</a><span class="reply-use-name__cancel fn-pointer ft-fade" onclick="Comment.cancelReply()">×</span>').
       data('commentOriginalCommentId', id).
       removeData('commentId')
-    Comment.editor.focus()
+    Comment._showReplyPanel()
   },
 }
 
@@ -1252,6 +1620,12 @@ var ArticleReaction = {
 }
 
 var Article = {
+  imagePreviewClickDelay: 100,
+  imagePreviewTouchClickGuard: 600,
+  imagePreviewTapMaxDistance: 12,
+  commentImageLeftOffset: 15,
+  imagePreviewTouchAt: 0,
+  imagePreviewTouchStart: null,
   initAudio: function () {
     $('.content-audio').each(function () {
       var $it = $(this)
@@ -1424,6 +1798,64 @@ var Article = {
       $('.img-preview').width($(window).width())
     }, 300)
   },
+  isPreviewableImage: function ($img) {
+    return !$img.hasClass('emoji') &&
+      $img.closest('.editor-panel').length !== 1 &&
+      $img.closest('.ad').length !== 1
+  },
+  markImagePreviewTouchStart: function (event) {
+    var touch = event.originalEvent.changedTouches[0]
+    Article.imagePreviewTouchStart = {
+      x: touch.clientX,
+      y: touch.clientY,
+    }
+  },
+  isImagePreviewTap: function (event) {
+    if (Article.imagePreviewTouchStart === null) {
+      return false
+    }
+
+    var touch = event.originalEvent.changedTouches[0],
+      deltaX = touch.clientX - Article.imagePreviewTouchStart.x,
+      deltaY = touch.clientY - Article.imagePreviewTouchStart.y,
+      distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+    Article.imagePreviewTouchStart = null
+    return distance <= Article.imagePreviewTapMaxDistance
+  },
+  cancelImagePreviewEvent: function (event) {
+    if (!event) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+  },
+  openImagePreview: function ($it, imageElement) {
+    var top = imageElement.offsetTop,
+      left = imageElement.offsetLeft
+    if ($it.closest('.comments').length === 1) {
+      top = top + $it.closest('li')[0].offsetTop
+      left = left + $('.comments')[0].offsetLeft + Article.commentImageLeftOffset
+    }
+
+    var previewSrc = ($it.attr('src') || '').split('?imageView2')[0],
+      $preview = $('<div class="img-preview"></div>').on('click', function () {
+        $(this).remove()
+      }),
+      $img = $('<img>').css('transform', 'translate3d(' +
+        Math.max(0, left) + 'px, ' +
+        Math.max(0, (top - $(window).scrollTop())) + 'px, 0)').
+        attr('src', previewSrc).
+        on('load', Article.previewImgAfterLoading)
+
+    $preview.append($img)
+    $('body').append($preview)
+
+    $('.img-preview').css({
+      'background-color': '#fff',
+      'position': 'fixed',
+    })
+  },
   /**
    * @description 初始化文章
    */
@@ -1434,44 +1866,57 @@ var Article = {
 
     // img preview
     var fixDblclick = null
-    $('.article').on('dblclick', '.vditor-reset img', function () {
-      clearTimeout(fixDblclick)
-      if ($(this).hasClass('emoji') ||
-        $(this).closest('.editor-panel').length === 1 ||
-        $(this).closest('.ad').length === 1) {
-        return
-      }
-      window.open($(this).attr('src'))
-    }).on('click', '.vditor-reset img', function (event) {
-      clearTimeout(fixDblclick)
-      if ($(this).hasClass('emoji') ||
-        $(this).closest('.editor-panel').length === 1 ||
-        $(this).closest('.ad').length === 1) {
-        return
-      }
-      var $it = $(this),
-        it = this
-      fixDblclick = setTimeout(function () {
-        var top = it.offsetTop,
-          left = it.offsetLeft
-        if ($it.closest('.comments').length === 1) {
-          top = top + $it.closest('li')[0].offsetTop
-          left = left + $('.comments')[0].offsetLeft + 15
+    $('.main').
+      off('dblclick.articleImagePreview click.articleImagePreview ' +
+        'touchstart.articleImagePreview touchend.articleImagePreview ' +
+        'touchcancel.articleImagePreview',
+        '.vditor-reset img').
+      on('dblclick.articleImagePreview', '.vditor-reset img', function (event) {
+        clearTimeout(fixDblclick)
+        var $it = $(this)
+        if (!Article.isPreviewableImage($it)) {
+          return
         }
 
-        $('body').
-          append('<div class="img-preview" onclick="$(this).remove()"><img style="transform: translate3d(' +
-            Math.max(0, left) + 'px, ' +
-            Math.max(0, (top - $(window).scrollTop())) + 'px, 0)" src="' +
-            ($it.attr('src').split('?imageView2')[0]) +
-            '" onload="Article.previewImgAfterLoading()"></div>')
+        Article.cancelImagePreviewEvent(event)
+        window.open($it.attr('src'))
+      }).on('touchstart.articleImagePreview', '.vditor-reset img', function (event) {
+        if (!Article.isPreviewableImage($(this))) {
+          return
+        }
 
-        $('.img-preview').css({
-          'background-color': '#fff',
-          'position': 'fixed',
-        })
-      }, 100)
-    })
+        Article.markImagePreviewTouchStart(event)
+      }).on('touchcancel.articleImagePreview', '.vditor-reset img', function () {
+        Article.imagePreviewTouchStart = null
+      }).on('touchend.articleImagePreview', '.vditor-reset img', function (event) {
+        clearTimeout(fixDblclick)
+        var $it = $(this)
+        if (!Article.isPreviewableImage($it) || !Article.isImagePreviewTap(event)) {
+          return
+        }
+
+        Article.imagePreviewTouchAt = Date.now()
+        Article.cancelImagePreviewEvent(event)
+        Article.openImagePreview($it, this)
+      }).on('click.articleImagePreview', '.vditor-reset img', function (event) {
+        clearTimeout(fixDblclick)
+        if (Date.now() - Article.imagePreviewTouchAt <
+          Article.imagePreviewTouchClickGuard) {
+          Article.cancelImagePreviewEvent(event)
+          return
+        }
+
+        var $it = $(this),
+          it = this
+        if (!Article.isPreviewableImage($it)) {
+          return
+        }
+
+        Article.cancelImagePreviewEvent(event)
+        fixDblclick = setTimeout(function () {
+          Article.openImagePreview($it, it)
+        }, Article.imagePreviewClickDelay)
+      })
 
     // UA
     var ua = $('#articltVia').data('ua'),
@@ -2316,9 +2761,46 @@ var Article = {
   }
 }
 
+var ArticleAdjacentNav = {
+  storageKey: 'articleAdjacentSort',
+  sortValues: ['time', 'author', 'hot'],
+  init: function () {
+    var $root = $('[data-article-nav-sort]')
+    if ($root.length === 0) {
+      return
+    }
+
+    this.applySort($root, this.getStoredSort())
+    this.bindSortChange($root)
+  },
+  getStoredSort: function () {
+    var sort = window.localStorage.getItem(this.storageKey)
+    return this.isValidSort(sort) ? sort : 'time'
+  },
+  isValidSort: function (sort) {
+    return this.sortValues.indexOf(sort) !== -1
+  },
+  bindSortChange: function ($root) {
+    var that = this
+    $root.find('.article-nav-sort__input').on('change', function () {
+      if (!this.checked || !that.isValidSort(this.value)) {
+        return
+      }
+
+      window.localStorage.setItem(that.storageKey, this.value)
+      that.applySort($root, this.value)
+    })
+  },
+  applySort: function ($root, sort) {
+    $root.find('.article-nav-sort__input[value="' + sort + '"]').
+      prop('checked', true)
+  }
+}
+
 Article.init()
 
 $(document).ready(function () {
+  ArticleAdjacentNav.init()
   Comment.init()
 
   // 表情包初始化（仅新版 v2）

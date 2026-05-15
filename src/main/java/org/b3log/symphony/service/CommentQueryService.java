@@ -61,6 +61,57 @@ public class CommentQueryService {
      */
     private static final Logger LOGGER = LogManager.getLogger(CommentQueryService.class);
 
+    private static final String COMMENT_SORT_HOT = "hot";
+
+    private static final String COMMENT_ORIGINAL_AUTHOR_NAME = "commentOriginalAuthorName";
+
+    private static final String COMMENT_ORIGINAL_AUTHOR_NICKNAME = "commentOriginalAuthorNickName";
+
+    private static final int COMMENT_THREAD_PREVIEW_SIZE = 3;
+
+    private static final int COMMENT_THREAD_REPLY_SCAN_LIMIT = 500;
+
+    private static final String COMMENT_THREAD_REPLIES = "commentThreadReplies";
+
+    private static final String COMMENT_THREAD_REPLY_COUNT = "commentThreadReplyCount";
+
+    private static final String COMMENT_THREAD_HAS_MORE = "commentThreadHasMore";
+
+    private static final String COMMENT_THREAD_ROOT_ID = "commentThreadRootId";
+
+    private static final String COMMENT_THREAD_DEPTH = "commentThreadDepth";
+
+    private static final class ThreadQueryContext {
+        private final String currentUserId;
+        private final String rootCommentId;
+        private final String articleAuthorId;
+
+        private ThreadQueryContext(final String currentUserId, final String rootCommentId, final String articleAuthorId) {
+            this.currentUserId = currentUserId;
+            this.rootCommentId = rootCommentId;
+            this.articleAuthorId = articleAuthorId;
+        }
+    }
+
+    private static final class ThreadReplyContext {
+        private final ThreadQueryContext query;
+        private final JSONObject originalComment;
+        private final int depth;
+
+        private ThreadReplyContext(final ThreadQueryContext query, final JSONObject originalComment,
+                                   final int depth) {
+            this.query = query;
+            this.originalComment = originalComment;
+            this.depth = depth;
+        }
+    }
+
+    public static final class CommentThreadTooLargeException extends RuntimeException {
+        private CommentThreadTooLargeException() {
+            super("评论回复过多，请进入原评论查看");
+        }
+    }
+
     /**
      * Revision query service.
      */
@@ -115,6 +166,15 @@ public class CommentQueryService {
     @Inject
     private CloudService cloudService;
 
+    @Inject
+    private RewardQueryService rewardQueryService;
+
+    @Inject
+    private VoteQueryService voteQueryService;
+
+    @Inject
+    private ReactionQueryService reactionQueryService;
+
     /**
      * Gets the URL of a comment.
      *
@@ -137,7 +197,7 @@ public class CommentQueryService {
             }
             String title = Escapes.escapeHTML(article.optString(Article.ARTICLE_TITLE));
             title = Emotions.convert(title);
-            final int commentPage = getCommentPage(articleId, commentId, sortMode, pageSize);
+            final int commentPage = getCommentThreadPage(articleId, commentId, sortMode, pageSize);
 
             return "<a href=\"" + Latkes.getServePath() + "/article/" + articleId + "?p=" + commentPage
                     + "&m=" + sortMode + "#" + commentId + "\" target=\"_blank\">" + title + "</a>";
@@ -173,7 +233,7 @@ public class CommentQueryService {
                 organizeComment(ret);
 
                 final int pageSize = Symphonys.ARTICLE_COMMENTS_CNT;
-                ret.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentPage(
+                ret.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentThreadPage(
                         articleId, ret.optString(Keys.OBJECT_ID), commentViewMode, pageSize));
                 return ret;
             } catch (final RepositoryException e) {
@@ -257,7 +317,7 @@ public class CommentQueryService {
             ret.put(Common.REWARDED, comment.optBoolean(Common.REWARDED));
             ret.put(Keys.OBJECT_ID, commentId);
             ret.put(Comment.COMMENT_CONTENT, comment.optString(Comment.COMMENT_CONTENT));
-            ret.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentPage(
+            ret.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentThreadPage(
                     comment.optString(Comment.COMMENT_ON_ARTICLE_ID), commentId,
                     commentViewMode, pageSize));
 
@@ -290,6 +350,16 @@ public class CommentQueryService {
      * @return a list of replies, return an empty list if not found
      */
     public List<JSONObject> getReplies(final String currentUserId, final int commentViewMode, final String commentId) {
+        JSONObject originalComment = null;
+        try {
+            originalComment = commentRepository.get(commentId);
+            if (null != originalComment) {
+                organizeComment(originalComment);
+            }
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Get original comment for replies failed", e);
+        }
+
         final Query query = new Query().addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).
                 setPage(1, Integer.MAX_VALUE).setPageCount(1).
                 setFilter(CompositeFilterOperator.and(
@@ -317,8 +387,10 @@ public class CommentQueryService {
                 reply.put(Common.REWARED_COUNT, comment.optInt(Comment.COMMENT_THANK_CNT));
                 reply.put(Common.REWARDED, comment.optBoolean(Common.REWARDED));
                 reply.put(Keys.OBJECT_ID, comment.optString(Keys.OBJECT_ID));
+                reply.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID));
+                fillOriginalAuthor(reply, originalComment);
                 reply.put(Comment.COMMENT_CONTENT, comment.optString(Comment.COMMENT_CONTENT));
-                reply.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentPage(
+                reply.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentThreadPage(
                         comment.optString(Comment.COMMENT_ON_ARTICLE_ID), reply.optString(Keys.OBJECT_ID),
                         commentViewMode, pageSize));
                 reply.put(Comment.COMMENT_VISIBLE, comment.optInt(Comment.COMMENT_VISIBLE));
@@ -367,7 +439,7 @@ public class CommentQueryService {
                 organizeComments(ret);
                 final int pageSize = Symphonys.ARTICLE_COMMENTS_CNT;
                 for (final JSONObject comment : ret) {
-                    comment.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentPage(
+                    comment.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, getCommentThreadPage(
                             articleId, comment.optString(Keys.OBJECT_ID),
                             commentViewMode, pageSize));
                 }
@@ -546,7 +618,7 @@ public class CommentQueryService {
 
                 final String commentId = comment.optString(Keys.OBJECT_ID);
                 final int cmtViewMode = UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL;
-                final int cmtPage = getCommentPage(articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
+                final int cmtPage = getCommentThreadPage(articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
                 comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?p=" + cmtPage + "&m=" + cmtViewMode + "#" + commentId);
 
                 if (Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
@@ -608,16 +680,155 @@ public class CommentQueryService {
      * @return comments, return an empty list if not found
      */
     public List<JSONObject> getArticleComments(final String articleId, final int currentPageNum, final int pageSize, final int sortMode) {
+        return getArticleComments(articleId, currentPageNum, pageSize, sortMode, "", "");
+    }
+
+    public int getCommentThreadPage(final String articleId, final String commentId,
+                                    final int sortMode, final int pageSize) {
+        return getCommentThreadPage(articleId, commentId, sortMode, pageSize, "", "");
+    }
+
+    public int getCommentThreadPage(final String articleId, final String commentId,
+                                    final int sortMode, final int pageSize,
+                                    final String commentSort, final String authorId) {
+        Stopwatchs.start("Get comment thread page");
+        try {
+            final String rootCommentId = getCommentThreadRootId(commentId);
+            final JSONObject rootComment = commentRepository.get(rootCommentId);
+            if (null == rootComment) {
+                return 1;
+            }
+
+            final Query numQuery = new Query().setPage(1, Integer.MAX_VALUE).setPageCount(1);
+            numQuery.setFilter(buildThreadPageBeforeFilter(
+                    articleId, rootComment, sortMode, commentSort, authorId));
+            final long num = commentRepository.count(numQuery);
+            return (int) ((num / pageSize) + 1);
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Gets comment thread page failed", e);
+            return 1;
+        } finally {
+            Stopwatchs.end();
+        }
+    }
+
+    public int countArticleComments(final String articleId, final String authorId) {
+        final Query query = new Query().setFilter(buildArticleCommentFilter(articleId, authorId));
+        try {
+            return (int) commentRepository.count(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts article [" + articleId + "] comments failed", e);
+            throw new IllegalStateException("Counts article comments failed", e);
+        }
+    }
+
+    public int countArticleThreadParentComments(final JSONObject options) {
+        final String articleId = options.optString(Article.ARTICLE_T_ID, options.optString("articleId"));
+        final Query query = new Query().setFilter(buildThreadParentCommentFilter(articleId, options.optString(Comment.COMMENT_AUTHOR_ID)));
+        try {
+            return (int) commentRepository.count(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts article [" + articleId + "] parent comments failed", e);
+            throw new IllegalStateException("Counts article parent comments failed", e);
+        }
+    }
+
+    public List<JSONObject> getArticleThreadParentComments(final JSONObject options) {
+        final String articleId = options.optString(Article.ARTICLE_T_ID, options.optString("articleId"));
+        final Query query = buildThreadParentCommentQuery(options);
+        try {
+            final JSONObject result = commentRepository.get(query);
+            final List<JSONObject> comments = (List<JSONObject>) result.opt(Keys.RESULTS);
+            organizeComments(comments);
+            for (final JSONObject comment : comments) {
+                fillArticleCommentMetadata(comment, articleId, options.optInt(UserExt.USER_COMMENT_VIEW_MODE),
+                        options.optInt(Pagination.PAGINATION_PAGE_SIZE));
+                fillCommentThreadPreview(comment, options.optString(Keys.OBJECT_ID));
+            }
+            return comments;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets article [" + articleId + "] parent comments failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public List<JSONObject> getCommentThreadReplies(final String currentUserId, final String rootCommentId) {
+        return getCommentThreadReplies(currentUserId, rootCommentId, COMMENT_THREAD_REPLY_SCAN_LIMIT, true);
+    }
+
+    private List<JSONObject> getCommentThreadReplies(final String currentUserId, final String rootCommentId,
+                                                     final int limit, final boolean failOnLimit) {
+        try {
+            final JSONObject rootComment = commentRepository.get(rootCommentId);
+            if (null == rootComment) {
+                return Collections.emptyList();
+            }
+            organizeComment(rootComment);
+            final String articleId = rootComment.optString(Comment.COMMENT_ON_ARTICLE_ID);
+            final JSONObject article = articleRepository.get(articleId);
+            if (null == article) {
+                return Collections.emptyList();
+            }
+            final ThreadQueryContext context = new ThreadQueryContext(
+                    currentUserId, rootCommentId, article.optString(Article.ARTICLE_AUTHOR_ID));
+            final List<JSONObject> replies = new ArrayList<>();
+            collectThreadReplies(rootComment, context, 0, replies, limit, failOnLimit);
+            return replies;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets comment [" + rootCommentId + "] thread replies failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public String getCommentThreadRootId(final String commentId) {
+        String currentId = commentId;
+        try {
+            while (StringUtils.isNotBlank(currentId)) {
+                final JSONObject comment = commentRepository.get(currentId);
+                if (null == comment) {
+                    return commentId;
+                }
+                final String parentId = comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
+                if (StringUtils.isBlank(parentId)) {
+                    return currentId;
+                }
+                currentId = parentId;
+            }
+            return commentId;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets comment [" + commentId + "] thread root failed", e);
+            return commentId;
+        }
+    }
+
+    public int getCommentThreadDepth(final String commentId) {
+        String currentId = commentId;
+        int depth = 0;
+        try {
+            while (StringUtils.isNotBlank(currentId)) {
+                final JSONObject comment = commentRepository.get(currentId);
+                if (null == comment) {
+                    return 0;
+                }
+                final String parentId = comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
+                if (StringUtils.isBlank(parentId)) {
+                    return depth;
+                }
+                depth++;
+                currentId = parentId;
+            }
+            return 0;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets comment [" + commentId + "] thread depth failed", e);
+            return 0;
+        }
+    }
+
+    public List<JSONObject> getArticleComments(final String articleId, final int currentPageNum, final int pageSize,
+                                               final int sortMode, final String authorId, final String commentSort) {
         Stopwatchs.start("Get comments");
 
-        final Query query = new Query().setPageCount(1).setPage(currentPageNum, pageSize).
-                setFilter(new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId));
-
-        if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == sortMode) {
-            query.addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
-        } else {
-            query.addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
-        }
+        final Query query = buildArticleCommentQuery(articleId, currentPageNum, pageSize, sortMode, authorId, commentSort);
 
         try {
             Stopwatchs.start("Query comments");
@@ -633,41 +844,7 @@ public class CommentQueryService {
             Stopwatchs.start("Revision, paging, original");
             try {
                 for (final JSONObject comment : ret) {
-                    final String commentId = comment.optString(Keys.OBJECT_ID);
-                    String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-                    String metal = cloudService.getEnabledMedal(commentAuthorId);
-                    if (!metal.equals("{}")&&Comment.COMMENT_ANONYMOUS_C_ANONYMOUS!=comment.optInt(Comment.COMMENT_ANONYMOUS)) {
-                        List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
-                        comment.put("sysMetal", list);
-                    } else {
-                        comment.put("sysMetal", new ArrayList<>());
-                    }
-
-                    // Fill revision count
-                    comment.put(Comment.COMMENT_REVISION_COUNT, 0);
-                    if (Comment.COMMENT_STATUS_C_VALID == comment.optInt(Comment.COMMENT_STATUS)) {
-                        comment.put(Comment.COMMENT_REVISION_COUNT,
-                                revisionQueryService.count(commentId, Revision.DATA_TYPE_C_COMMENT));
-                    }
-
-                    final String originalCmtId = comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
-                    if (StringUtils.isBlank(originalCmtId)) {
-                        continue;
-                    }
-
-                    // Fill page number
-                    comment.put(Pagination.PAGINATION_CURRENT_PAGE_NUM,
-                            getCommentPage(articleId, originalCmtId, sortMode, pageSize));
-
-                    // Fill original comment
-                    final JSONObject originalCmt = commentRepository.get(originalCmtId);
-                    if (null != originalCmt) {
-                        organizeComment(originalCmt);
-                        comment.put(Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL,
-                                originalCmt.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
-                    } else {
-                        comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, "");
-                    }
+                    fillArticleCommentMetadata(comment, articleId, sortMode, pageSize);
                 }
             } finally {
                 Stopwatchs.end();
@@ -680,6 +857,239 @@ public class CommentQueryService {
             return Collections.emptyList();
         } finally {
             Stopwatchs.end();
+        }
+    }
+
+    private Query buildArticleCommentQuery(final String articleId, final int currentPageNum, final int pageSize,
+                                           final int sortMode, final String authorId, final String commentSort) {
+        final Query query = new Query().setPageCount(1).setPage(currentPageNum, pageSize).
+                setFilter(buildArticleCommentFilter(articleId, authorId));
+        if (COMMENT_SORT_HOT.equals(commentSort)) {
+            return query.addSort(Comment.COMMENT_SCORE, SortDirection.DESCENDING).
+                    addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        }
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == sortMode) {
+            return query.addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        }
+        return query.addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
+    }
+
+    private Filter buildArticleCommentFilter(final String articleId, final String authorId) {
+        final Filter articleFilter = new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId);
+        if (StringUtils.isBlank(authorId)) {
+            return articleFilter;
+        }
+        return CompositeFilterOperator.and(
+                articleFilter,
+                new PropertyFilter(Comment.COMMENT_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+    }
+
+    private Query buildThreadParentCommentQuery(final JSONObject options) {
+        final Query query = new Query().
+                setPageCount(1).
+                setPage(options.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM), options.optInt(Pagination.PAGINATION_PAGE_SIZE)).
+                setFilter(buildThreadParentCommentFilter(
+                        options.optString(Article.ARTICLE_T_ID, options.optString("articleId")),
+                        options.optString(Comment.COMMENT_AUTHOR_ID)));
+        if (COMMENT_SORT_HOT.equals(options.optString("commentSort"))) {
+            return query.addSort(Comment.COMMENT_SCORE, SortDirection.DESCENDING).
+                    addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        }
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == options.optInt(UserExt.USER_COMMENT_VIEW_MODE)) {
+            return query.addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        }
+        return query.addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
+    }
+
+    private Filter buildThreadParentCommentFilter(final String articleId, final String authorId) {
+        final Filter parentFilter = CompositeFilterOperator.and(
+                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""));
+        if (StringUtils.isBlank(authorId)) {
+            return parentFilter;
+        }
+        return CompositeFilterOperator.and(parentFilter,
+                new PropertyFilter(Comment.COMMENT_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+    }
+
+    private Filter buildThreadPageBeforeFilter(final String articleId, final JSONObject rootComment,
+                                               final int sortMode, final String commentSort,
+                                               final String authorId) {
+        final Filter parentFilter = buildThreadParentCommentFilter(articleId, authorId);
+        if (COMMENT_SORT_HOT.equals(commentSort)) {
+            return CompositeFilterOperator.and(parentFilter, buildHotThreadBeforeFilter(rootComment));
+        }
+        final String rootCommentId = rootComment.optString(Keys.OBJECT_ID);
+        if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == sortMode) {
+            return CompositeFilterOperator.and(parentFilter,
+                    new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, rootCommentId));
+        }
+        return CompositeFilterOperator.and(parentFilter,
+                new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, rootCommentId));
+    }
+
+    private Filter buildHotThreadBeforeFilter(final JSONObject rootComment) {
+        final double score = rootComment.optDouble(Comment.COMMENT_SCORE, 0D);
+        final String rootCommentId = rootComment.optString(Keys.OBJECT_ID);
+        return CompositeFilterOperator.or(
+                new PropertyFilter(Comment.COMMENT_SCORE, FilterOperator.GREATER_THAN, score),
+                CompositeFilterOperator.and(
+                        new PropertyFilter(Comment.COMMENT_SCORE, FilterOperator.EQUAL, score),
+                        new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, rootCommentId)));
+    }
+
+    private void fillArticleCommentMetadata(final JSONObject comment, final String articleId,
+                                            final int sortMode, final int pageSize) throws RepositoryException {
+        final String commentId = comment.optString(Keys.OBJECT_ID);
+        fillCommentMedals(comment);
+        comment.put(Comment.COMMENT_REVISION_COUNT, 0);
+        if (Comment.COMMENT_STATUS_C_VALID == comment.optInt(Comment.COMMENT_STATUS)) {
+            comment.put(Comment.COMMENT_REVISION_COUNT,
+                    revisionQueryService.count(commentId, Revision.DATA_TYPE_C_COMMENT));
+        }
+        fillOriginalCommentMetadata(comment, articleId, sortMode, pageSize);
+    }
+
+    private void fillCommentMedals(final JSONObject comment) {
+        final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
+        final String metal = cloudService.getEnabledMedal(commentAuthorId);
+        if (!metal.equals("{}") && Comment.COMMENT_ANONYMOUS_C_ANONYMOUS != comment.optInt(Comment.COMMENT_ANONYMOUS)) {
+            final List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
+            comment.put("sysMetal", list);
+            return;
+        }
+        comment.put("sysMetal", new ArrayList<>());
+    }
+
+    private void fillOriginalCommentMetadata(final JSONObject comment, final String articleId,
+                                             final int sortMode, final int pageSize) throws RepositoryException {
+        final String originalCmtId = comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
+        if (StringUtils.isBlank(originalCmtId)) {
+            return;
+        }
+        comment.put(Pagination.PAGINATION_CURRENT_PAGE_NUM,
+                getCommentThreadPage(articleId, comment.optString(Keys.OBJECT_ID), sortMode, pageSize));
+        final JSONObject originalCmt = commentRepository.get(originalCmtId);
+        if (null == originalCmt) {
+            comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, "");
+            return;
+        }
+        organizeComment(originalCmt);
+        comment.put(Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL,
+                originalCmt.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
+        fillOriginalAuthor(comment, originalCmt);
+    }
+
+    private void fillOriginalAuthor(final JSONObject target, final JSONObject originalComment) {
+        if (null == originalComment) {
+            target.put(COMMENT_ORIGINAL_AUTHOR_NAME, "");
+            target.put(COMMENT_ORIGINAL_AUTHOR_NICKNAME, "");
+            return;
+        }
+        target.put(COMMENT_ORIGINAL_AUTHOR_NAME, originalComment.optString(Comment.COMMENT_T_AUTHOR_NAME));
+        target.put(COMMENT_ORIGINAL_AUTHOR_NICKNAME, originalComment.optString("commentAuthorNickName"));
+    }
+
+    private void fillCommentThreadPreview(final JSONObject comment, final String currentUserId) throws RepositoryException {
+        final List<JSONObject> replies = getCommentThreadReplies(
+                currentUserId, comment.optString(Keys.OBJECT_ID), COMMENT_THREAD_PREVIEW_SIZE + 1, false);
+        final int endIndex = Math.min(COMMENT_THREAD_PREVIEW_SIZE, replies.size());
+        final List<JSONObject> preview = new ArrayList<>(replies.subList(0, endIndex));
+        reactionQueryService.fillCommentReactions(preview, currentUserId);
+        comment.put(COMMENT_THREAD_REPLIES, (Object) preview);
+        comment.put(COMMENT_THREAD_REPLY_COUNT,
+                Math.max(comment.optInt(Comment.COMMENT_REPLY_CNT), replies.size()));
+        comment.put(COMMENT_THREAD_HAS_MORE,
+                comment.optInt(Comment.COMMENT_REPLY_CNT) > COMMENT_THREAD_PREVIEW_SIZE
+                        || replies.size() > COMMENT_THREAD_PREVIEW_SIZE);
+    }
+
+    private boolean collectThreadReplies(final JSONObject parentComment, final ThreadQueryContext context,
+                                         final int depth, final List<JSONObject> replies, final int limit,
+                                         final boolean failOnLimit)
+            throws RepositoryException {
+        final Query query = new Query().
+                setPage(1, Math.max(1, limit - replies.size() + 1)).
+                setPageCount(1).
+                setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL,
+                                parentComment.optString(Keys.OBJECT_ID)),
+                        new PropertyFilter(Comment.COMMENT_STATUS, FilterOperator.EQUAL, Comment.COMMENT_STATUS_C_VALID))).
+                addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
+        final List<JSONObject> children = commentRepository.getList(query);
+        organizeComments(children);
+        for (final JSONObject child : children) {
+            if (replies.size() >= limit) {
+                if (failOnLimit) {
+                    throw new CommentThreadTooLargeException();
+                }
+                return false;
+            }
+            replies.add(buildThreadReply(child, new ThreadReplyContext(context, parentComment, depth)));
+            if (!collectThreadReplies(child, context, depth + 1, replies, limit, failOnLimit)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private JSONObject buildThreadReply(final JSONObject comment, final ThreadReplyContext context)
+            throws RepositoryException {
+        final JSONObject ret = new JSONObject();
+        ret.put(Keys.OBJECT_ID, comment.optString(Keys.OBJECT_ID));
+        ret.put(COMMENT_THREAD_ROOT_ID, context.query.rootCommentId);
+        ret.put(COMMENT_THREAD_DEPTH, context.depth);
+        ret.put(Comment.COMMENT_AUTHOR_ID, comment.optString(Comment.COMMENT_AUTHOR_ID));
+        ret.put(Comment.COMMENT_T_AUTHOR_NAME, comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
+        ret.put("commentAuthorNickName", comment.optString("commentAuthorNickName"));
+        ret.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
+        ret.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID));
+        ret.put(Comment.COMMENT_ON_ARTICLE_ID, comment.optString(Comment.COMMENT_ON_ARTICLE_ID));
+        ret.put(Common.TIME_AGO, comment.optString(Common.TIME_AGO));
+        ret.put(Comment.COMMENT_CREATE_TIME_STR, comment.optString(Comment.COMMENT_CREATE_TIME_STR));
+        ret.put(Comment.COMMENT_CONTENT, comment.optString(Comment.COMMENT_CONTENT));
+        ret.put(Comment.COMMENT_VISIBLE, comment.optInt(Comment.COMMENT_VISIBLE));
+        fillThreadReplyState(ret, comment, context.query.currentUserId);
+        fillOriginalAuthor(ret, context.originalComment);
+        filterThreadReplyContent(ret, comment, context.query);
+        return ret;
+    }
+
+    private void fillThreadReplyState(final JSONObject target, final JSONObject source,
+                                      final String currentUserId) throws RepositoryException {
+        final String commentId = source.optString(Keys.OBJECT_ID);
+        target.put(Comment.COMMENT_ANONYMOUS, source.optInt(Comment.COMMENT_ANONYMOUS));
+        target.put(Comment.COMMENT_GOOD_CNT, source.optInt(Comment.COMMENT_GOOD_CNT));
+        target.put(Comment.COMMENT_BAD_CNT, source.optInt(Comment.COMMENT_BAD_CNT));
+        target.put(Comment.COMMENT_THANK_CNT, source.optInt(Comment.COMMENT_THANK_CNT));
+        target.put(Common.REWARED_COUNT, source.optInt(Comment.COMMENT_THANK_CNT));
+        target.put(Common.REWARDED, false);
+        target.put(Comment.COMMENT_T_VOTE, -1);
+        target.put(Comment.COMMENT_UA, source.optString(Comment.COMMENT_UA));
+        target.put(Comment.COMMENT_T_THANK_LABEL, buildThreadThankLabel(target));
+        if (StringUtils.isBlank(currentUserId)) {
+            return;
+        }
+        target.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
+        target.put(Comment.COMMENT_T_VOTE, voteQueryService.isVoted(currentUserId, commentId));
+    }
+
+    private String buildThreadThankLabel(final JSONObject comment) {
+        return langPropsService.get("thankConfirmLabel").
+                replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT)).
+                replace("{user}", comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
+    }
+
+    private void filterThreadReplyContent(final JSONObject target, final JSONObject source,
+                                          final ThreadQueryContext context) {
+        if (Comment.COMMENT_VISIBLE_C_AUTHOR != source.optInt(Comment.COMMENT_VISIBLE)) {
+            return;
+        }
+        final String commentAuthorId = source.optString(Comment.COMMENT_AUTHOR_ID);
+        if (StringUtils.isBlank(context.currentUserId)
+                || (!StringUtils.equals(context.currentUserId, commentAuthorId)
+                && !StringUtils.equals(context.currentUserId, context.articleAuthorId))) {
+            target.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
         }
     }
 
