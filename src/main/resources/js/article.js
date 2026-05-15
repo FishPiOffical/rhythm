@@ -3060,10 +3060,22 @@ var Article = {
   /**
    * @description 标记消息通知为已读状态.
    */
+  getNotificationCommentIds: function (commentIds) {
+    var ids = []
+    var appendId = function (id) {
+      id = String(id || '').replace(/^#/, '').trim()
+      if (id && ids.indexOf(id) === -1) {
+        ids.push(id)
+      }
+    }
+    String(commentIds || '').split(',').forEach(appendId)
+    appendId(window.location.hash)
+    return ids.join(',')
+  },
   makeNotificationRead: function (articleId, commentIds) {
     var requestJSONObject = {
       articleId: articleId,
-      commentIds: commentIds,
+      commentIds: Article.getNotificationCommentIds(commentIds),
     }
 
     $.ajax({

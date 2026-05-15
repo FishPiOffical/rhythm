@@ -1547,15 +1547,19 @@ h1.article-title > a:hover {
   }
 
   #emojiList {
-    right: auto;
-    bottom: 40px;
-    left: 0;
-    width: min(440px, calc(100vw - 24px)) !important;
-    max-width: calc(100vw - 24px) !important;
+    position: fixed;
+    right: 12px;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto !important;
+    max-width: none !important;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   #emojiList > div {
     width: 100% !important;
+    min-width: 0;
   }
 
   #emojiGroupBoxNew {
@@ -1565,6 +1569,10 @@ h1.article-title > a:hover {
   }
 
   #emojisNew {
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
     max-height: min(250px, 38vh);
     max-height: min(250px, 38dvh);
   }

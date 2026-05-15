@@ -566,6 +566,23 @@ var Comment = {
     }
     $("#emojis").html(html);
   },
+  ensureEmojiPanelReady: function () {
+    if (!Comment.emojiGroupsNew || Comment.emojiGroupsNew.length === 0) {
+      Comment.loadEmojiGroupsNew()
+      return
+    }
+    if (!Comment.currentEmojiGroupIdNew) {
+      var allGroupId = EmojiGroups._findAllGroupId(Comment, 'New')
+      if (allGroupId) {
+        Comment.selectEmojiGroupNew(allGroupId)
+      }
+      return
+    }
+    EmojiGroups.ensureCurrentFresh(Comment, 'New')
+    if ($('#emojisNew').children().length === 0) {
+      Comment.loadGroupEmojisNew(Comment.currentEmojiGroupIdNew)
+    }
+  },
   /**
    * 删除表情包
    * @param url
@@ -2724,10 +2741,22 @@ var Article = {
   /**
    * @description 标记消息通知为已读状态.
    */
+  getNotificationCommentIds: function (commentIds) {
+    var ids = []
+    var appendId = function (id) {
+      id = String(id || '').replace(/^#/, '').trim()
+      if (id && ids.indexOf(id) === -1) {
+        ids.push(id)
+      }
+    }
+    String(commentIds || '').split(',').forEach(appendId)
+    appendId(window.location.hash)
+    return ids.join(',')
+  },
   makeNotificationRead: function (articleId, commentIds) {
     var requestJSONObject = {
       articleId: articleId,
-      commentIds: commentIds,
+      commentIds: Article.getNotificationCommentIds(commentIds),
     }
 
     $.ajax({
@@ -2789,6 +2818,7 @@ $(document).ready(function () {
     if ($("#emojiList").hasClass("showList")) {
       $("#emojiList").removeClass("showList");
     } else {
+      Comment.ensureEmojiPanelReady()
       $("#emojiList").addClass("showList");
       setTimeout(function () {
         $("body").unbind();
