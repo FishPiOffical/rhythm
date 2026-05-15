@@ -1518,8 +1518,7 @@ h1.article-title > a:hover {
   }
 
   #commentContent .vditor-toolbar {
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
     white-space: nowrap;
   }
 
@@ -6022,3 +6021,4 @@ body.night {
 @import "mobile-header-polish";
 @import "mobile-home-polish";
 @import "mobile-article-polish";
+@import "mobile-comment-actions";

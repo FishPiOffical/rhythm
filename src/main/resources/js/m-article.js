@@ -1106,11 +1106,46 @@ var Comment = {
       },
       height: 200,
       placeholder: Label.commentEditorPlaceholderLabel,
+      after: function () {
+        Comment.bindMobileVditorToolbarEmoji()
+      },
       ctrlEnter: function () {
         Comment.add(Label.articleOId, Label.csrfToken,
           document.getElementById('articleCommentBtn'))
       },
     })
+  },
+  bindMobileVditorToolbarEmoji: function () {
+    if (navigator.userAgent.indexOf('iPhone') === -1) {
+      return
+    }
+
+    var btn = document.querySelector(
+      '#commentContent .vditor-toolbar__item button[data-type="emoji"]')
+    if (!btn || btn.getAttribute('data-mobile-emoji-click-bound') === 'true') {
+      return
+    }
+
+    var CLICK_AFTER_TOUCH_DELAY = 700
+    var lastTouchTime = 0
+
+    btn.setAttribute('data-mobile-emoji-click-bound', 'true')
+    btn.addEventListener('touchstart', function () {
+      lastTouchTime = new Date().getTime()
+    }, true)
+    btn.addEventListener('click', function (event) {
+      if (new Date().getTime() - lastTouchTime < CLICK_AFTER_TOUCH_DELAY) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      // Vditor 3.8.12 在 iPhone UA 下只绑定 touchstart，点击事件需要转给原处理器。
+      btn.dispatchEvent(new Event('touchstart', {
+        bubbles: true,
+        cancelable: true,
+      }))
+    }, true)
   },
   /**
    * @description 感谢评论.

@@ -1,0 +1,67 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.comment-action > .comment-action__bar {
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.comment-action > .comment-action__bar > .comment-action__left {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  transform: none;
+}
+
+.comment-action > .comment-action__bar > .action-btns {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin-left: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-left: 0;
+  scrollbar-width: none;
+  visibility: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comment-action > .comment-action__bar > .action-btns::-webkit-scrollbar {
+  display: none;
+}
+
+.comment-action > .comment-action__bar > .action-btns > a,
+.comment-action > .comment-action__bar > .action-btns > span {
+  flex: 0 0 auto;
+}
+
+.comment-thread__actions .action-btns {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comment-thread__actions .action-btns::-webkit-scrollbar {
+  display: none;
+}
