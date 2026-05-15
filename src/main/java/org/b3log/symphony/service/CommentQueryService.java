@@ -303,11 +303,6 @@ public class CommentQueryService {
 
             final JSONObject ret = new JSONObject();
 
-            final JSONObject commentAuthor = comment.optJSONObject(Comment.COMMENT_T_COMMENTER);
-            if (UserExt.USER_XXX_STATUS_C_DISABLED == commentAuthor.optInt(UserExt.USER_UA_STATUS)) {
-                ret.put(Comment.COMMENT_UA, "");
-            }
-
             ret.put(Comment.COMMENT_T_AUTHOR_NAME, comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
             ret.put("commentAuthorNickName", comment.optString("commentAuthorNickName"));
             ret.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
@@ -373,11 +368,6 @@ public class CommentQueryService {
             for (final JSONObject comment : comments) {
                 final JSONObject reply = new JSONObject();
                 ret.add(reply);
-
-                final JSONObject commentAuthor = comment.optJSONObject(Comment.COMMENT_T_COMMENTER);
-                if (UserExt.USER_XXX_STATUS_C_DISABLED == commentAuthor.optInt(UserExt.USER_UA_STATUS)) {
-                    reply.put(Comment.COMMENT_UA, "");
-                }
 
                 reply.put(Comment.COMMENT_T_AUTHOR_NAME, comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
                 reply.put("commentAuthorNickName", comment.optString("commentAuthorNickName"));
@@ -740,12 +730,16 @@ public class CommentQueryService {
             final JSONObject result = commentRepository.get(query);
             final List<JSONObject> comments = (List<JSONObject>) result.opt(Keys.RESULTS);
             organizeComments(comments);
+            final ThreadQueryContext context = buildThreadQueryContext(
+                    options.optString(Keys.OBJECT_ID), "", articleId, options.optString(Article.ARTICLE_AUTHOR_ID));
+            final List<JSONObject> ret = new ArrayList<>();
             for (final JSONObject comment : comments) {
                 fillArticleCommentMetadata(comment, articleId, options.optInt(UserExt.USER_COMMENT_VIEW_MODE),
                         options.optInt(Pagination.PAGINATION_PAGE_SIZE));
                 fillCommentThreadPreview(comment, options.optString(Keys.OBJECT_ID));
+                ret.add(buildThreadParentComment(comment, context));
             }
-            return comments;
+            return ret;
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Gets article [" + articleId + "] parent comments failed", e);
             return Collections.emptyList();
@@ -769,8 +763,8 @@ public class CommentQueryService {
             if (null == article) {
                 return Collections.emptyList();
             }
-            final ThreadQueryContext context = new ThreadQueryContext(
-                    currentUserId, rootCommentId, article.optString(Article.ARTICLE_AUTHOR_ID));
+            final ThreadQueryContext context = buildThreadQueryContext(
+                    currentUserId, rootCommentId, articleId, article.optString(Article.ARTICLE_AUTHOR_ID));
             final List<JSONObject> replies = new ArrayList<>();
             collectThreadReplies(rootComment, context, 0, replies, limit, failOnLimit);
             return replies;
@@ -778,6 +772,17 @@ public class CommentQueryService {
             LOGGER.log(Level.ERROR, "Gets comment [" + rootCommentId + "] thread replies failed", e);
             return Collections.emptyList();
         }
+    }
+
+    private ThreadQueryContext buildThreadQueryContext(final String currentUserId, final String rootCommentId,
+                                                       final String articleId, final String knownAuthorId)
+            throws RepositoryException {
+        if (StringUtils.isNotBlank(knownAuthorId)) {
+            return new ThreadQueryContext(currentUserId, rootCommentId, knownAuthorId);
+        }
+        final JSONObject article = articleRepository.get(articleId);
+        final String articleAuthorId = null == article ? "" : article.optString(Article.ARTICLE_AUTHOR_ID);
+        return new ThreadQueryContext(currentUserId, rootCommentId, articleAuthorId);
     }
 
     public String getCommentThreadRootId(final String commentId) {
@@ -1035,29 +1040,70 @@ public class CommentQueryService {
 
     private JSONObject buildThreadReply(final JSONObject comment, final ThreadReplyContext context)
             throws RepositoryException {
-        final JSONObject ret = new JSONObject();
-        ret.put(Keys.OBJECT_ID, comment.optString(Keys.OBJECT_ID));
+        final JSONObject ret = buildThreadCommentBase(comment, context.query);
         ret.put(COMMENT_THREAD_ROOT_ID, context.query.rootCommentId);
         ret.put(COMMENT_THREAD_DEPTH, context.depth);
+        fillOriginalAuthor(ret, context.originalComment);
+        return ret;
+    }
+
+    private JSONObject buildThreadParentComment(final JSONObject comment, final ThreadQueryContext context)
+            throws RepositoryException {
+        final JSONObject ret = buildThreadCommentBase(comment, context);
+        ret.put(Comment.COMMENT_STATUS, comment.optInt(Comment.COMMENT_STATUS));
+        ret.put(Comment.COMMENT_SCORE, comment.optDouble(Comment.COMMENT_SCORE));
+        ret.put(Comment.COMMENT_REPLY_CNT, comment.optInt(Comment.COMMENT_REPLY_CNT));
+        ret.put(Comment.COMMENT_QNA_OFFERED, comment.optInt(Comment.COMMENT_QNA_OFFERED));
+        ret.put(Comment.COMMENT_REVISION_COUNT, comment.optInt(Comment.COMMENT_REVISION_COUNT));
+        ret.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, comment.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM));
+        ret.put(COMMENT_THREAD_REPLIES, comment.opt(COMMENT_THREAD_REPLIES));
+        ret.put(COMMENT_THREAD_REPLY_COUNT, comment.optInt(COMMENT_THREAD_REPLY_COUNT));
+        ret.put(COMMENT_THREAD_HAS_MORE, comment.optBoolean(COMMENT_THREAD_HAS_MORE));
+        ret.put("sysMetal", comment.opt("sysMetal"));
+        return ret;
+    }
+
+    private JSONObject buildThreadCommentBase(final JSONObject comment, final ThreadQueryContext context)
+            throws RepositoryException {
+        final JSONObject ret = new JSONObject();
+        ret.put(Keys.OBJECT_ID, comment.optString(Keys.OBJECT_ID));
+        ret.put(Comment.COMMENT_T_ID, comment.optString(Keys.OBJECT_ID));
         ret.put(Comment.COMMENT_AUTHOR_ID, comment.optString(Comment.COMMENT_AUTHOR_ID));
+        ret.put(Comment.COMMENT_T_COMMENTER, buildThreadCommenter(comment));
         ret.put(Comment.COMMENT_T_AUTHOR_NAME, comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
         ret.put("commentAuthorNickName", comment.optString("commentAuthorNickName"));
         ret.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, comment.optString(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL));
         ret.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, comment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID));
-        ret.put(Comment.COMMENT_ON_ARTICLE_ID, comment.optString(Comment.COMMENT_ON_ARTICLE_ID));
         ret.put(Common.TIME_AGO, comment.optString(Common.TIME_AGO));
         ret.put(Comment.COMMENT_CREATE_TIME_STR, comment.optString(Comment.COMMENT_CREATE_TIME_STR));
         ret.put(Comment.COMMENT_CONTENT, comment.optString(Comment.COMMENT_CONTENT));
         ret.put(Comment.COMMENT_VISIBLE, comment.optInt(Comment.COMMENT_VISIBLE));
-        fillThreadReplyState(ret, comment, context.query.currentUserId);
-        fillOriginalAuthor(ret, context.originalComment);
-        filterThreadReplyContent(ret, comment, context.query);
+        fillThreadCommentState(ret, comment, context);
+        fillOriginalAuthor(ret, null);
+        filterThreadCommentContent(ret, comment, context);
         return ret;
     }
 
-    private void fillThreadReplyState(final JSONObject target, final JSONObject source,
-                                      final String currentUserId) throws RepositoryException {
+    private JSONObject buildThreadCommenter(final JSONObject comment) {
+        final JSONObject ret = new JSONObject();
+        final JSONObject commenter = comment.optJSONObject(Comment.COMMENT_T_COMMENTER);
+        if (null == commenter) {
+            return ret;
+        }
+        ret.put(User.USER_NAME, commenter.optString(User.USER_NAME));
+        ret.put(UserExt.USER_NICKNAME, commenter.optString(UserExt.USER_NICKNAME));
+        ret.put(UserExt.USER_UA_STATUS, commenter.optInt(UserExt.USER_UA_STATUS));
+        return ret;
+    }
+
+    private void fillThreadCommentState(final JSONObject target, final JSONObject source,
+                                        final ThreadQueryContext context) throws RepositoryException {
         final String commentId = source.optString(Keys.OBJECT_ID);
+        final String commentAuthorId = source.optString(Comment.COMMENT_AUTHOR_ID);
+        target.put(Comment.COMMENT_T_IS_ARTICLE_AUTHOR,
+                StringUtils.equals(commentAuthorId, context.articleAuthorId));
+        target.put(Comment.COMMENT_T_IS_CURRENT_USER, StringUtils.isNotBlank(context.currentUserId)
+                && StringUtils.equals(commentAuthorId, context.currentUserId));
         target.put(Comment.COMMENT_ANONYMOUS, source.optInt(Comment.COMMENT_ANONYMOUS));
         target.put(Comment.COMMENT_GOOD_CNT, source.optInt(Comment.COMMENT_GOOD_CNT));
         target.put(Comment.COMMENT_BAD_CNT, source.optInt(Comment.COMMENT_BAD_CNT));
@@ -1065,13 +1111,12 @@ public class CommentQueryService {
         target.put(Common.REWARED_COUNT, source.optInt(Comment.COMMENT_THANK_CNT));
         target.put(Common.REWARDED, false);
         target.put(Comment.COMMENT_T_VOTE, -1);
-        target.put(Comment.COMMENT_UA, source.optString(Comment.COMMENT_UA));
         target.put(Comment.COMMENT_T_THANK_LABEL, buildThreadThankLabel(target));
-        if (StringUtils.isBlank(currentUserId)) {
+        if (StringUtils.isBlank(context.currentUserId)) {
             return;
         }
-        target.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
-        target.put(Comment.COMMENT_T_VOTE, voteQueryService.isVoted(currentUserId, commentId));
+        target.put(Common.REWARDED, rewardQueryService.isRewarded(context.currentUserId, commentId, Reward.TYPE_C_COMMENT));
+        target.put(Comment.COMMENT_T_VOTE, voteQueryService.isVoted(context.currentUserId, commentId));
     }
 
     private String buildThreadThankLabel(final JSONObject comment) {
@@ -1080,8 +1125,8 @@ public class CommentQueryService {
                 replace("{user}", comment.optString(Comment.COMMENT_T_AUTHOR_NAME));
     }
 
-    private void filterThreadReplyContent(final JSONObject target, final JSONObject source,
-                                          final ThreadQueryContext context) {
+    private void filterThreadCommentContent(final JSONObject target, final JSONObject source,
+                                            final ThreadQueryContext context) {
         if (Comment.COMMENT_VISIBLE_C_AUTHOR != source.optInt(Comment.COMMENT_VISIBLE)) {
             return;
         }

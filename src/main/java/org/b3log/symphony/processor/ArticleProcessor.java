@@ -384,17 +384,7 @@ public class ArticleProcessor {
         final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
 
         for (final JSONObject comment : niceComments) {
-            comment.remove("commentUA");
-            comment.remove("commentIP");
-            final JSONObject commenter = comment.optJSONObject("commenter");
-            commenter.remove("userPassword");
-            commenter.remove("userLatestLoginIP");
-            commenter.remove("userPhone");
-            commenter.remove("userQQ");
-            commenter.remove("userCity");
-            commenter.remove("userCountry");
-            commenter.remove("userEmail");
-            commenter.remove("secret2fa");
+            DesensitizeUtil.commentDesensitize(comment);
 
             String thankTemplate = langPropsService.get("thankConfirmLabel");
             thankTemplate = thankTemplate.replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT))
@@ -419,17 +409,7 @@ public class ArticleProcessor {
         }
 
         for (final JSONObject comment : articleComments) {
-            comment.remove("commentUA");
-            comment.remove("commentIP");
-            final JSONObject commenter = comment.optJSONObject("commenter");
-            commenter.remove("userPassword");
-            commenter.remove("userLatestLoginIP");
-            commenter.remove("userPhone");
-            commenter.remove("userQQ");
-            commenter.remove("userCity");
-            commenter.remove("userCountry");
-            commenter.remove("userEmail");
-            commenter.remove("secret2fa");
+            DesensitizeUtil.commentDesensitize(comment);
 
             final String commentId = comment.optString(Keys.OBJECT_ID);
 
@@ -683,17 +663,7 @@ public class ArticleProcessor {
             niceCmtScore = niceComments.get(niceComments.size() - 1).optDouble(Comment.COMMENT_SCORE, 0D);
 
             for (final JSONObject comment : niceComments) {
-                comment.remove("commentUA");
-                comment.remove("commentIP");
-                final JSONObject commenter = comment.optJSONObject("commenter");
-                commenter.remove("userPassword");
-                commenter.remove("userLatestLoginIP");
-                commenter.remove("userPhone");
-                commenter.remove("userQQ");
-                commenter.remove("userCity");
-                commenter.remove("userCountry");
-                commenter.remove("userEmail");
-                commenter.remove("secret2fa");
+                DesensitizeUtil.commentDesensitize(comment);
 
                 String thankTemplate = langPropsService.get("thankConfirmLabel");
                 thankTemplate = thankTemplate.replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT))
@@ -726,17 +696,7 @@ public class ArticleProcessor {
         Stopwatchs.start("Fills comment thank");
         try {
             for (final JSONObject comment : articleComments) {
-                comment.remove("commentUA");
-                comment.remove("commentIP");
-                final JSONObject commenter = comment.optJSONObject("commenter");
-                commenter.remove("userPassword");
-                commenter.remove("userLatestLoginIP");
-                commenter.remove("userPhone");
-                commenter.remove("userQQ");
-                commenter.remove("userCity");
-                commenter.remove("userCountry");
-                commenter.remove("userEmail");
-                commenter.remove("secret2fa");
+                DesensitizeUtil.commentDesensitize(comment);
                 comment.put(Comment.COMMENT_T_NICE, comment.optDouble(Comment.COMMENT_SCORE, 0D) >= niceCmtScore);
 
                 final String commentId = comment.optString(Keys.OBJECT_ID);
@@ -1599,6 +1559,7 @@ public class ArticleProcessor {
         final int windowSize = Symphonys.ARTICLE_COMMENTS_WIN_SIZE;
         final JSONObject commentThreadOptions = new JSONObject();
         commentThreadOptions.put(Article.ARTICLE_T_ID, articleId);
+        commentThreadOptions.put(Article.ARTICLE_AUTHOR_ID, articleAuthorId);
         commentThreadOptions.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
         commentThreadOptions.put(Pagination.PAGINATION_PAGE_SIZE, pageSize);
         commentThreadOptions.put(UserExt.USER_COMMENT_VIEW_MODE, cmtViewMode);
@@ -1698,10 +1659,9 @@ public class ArticleProcessor {
 
                 // https://github.com/b3log/symphony/issues/682
                 if (Comment.COMMENT_VISIBLE_C_AUTHOR == comment.optInt(Comment.COMMENT_VISIBLE)) {
-                    final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-                    if (!isLoggedIn || (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
+                    if (!isLoggedIn || (!comment.optBoolean(Comment.COMMENT_T_IS_CURRENT_USER)
+                            && !StringUtils.equals(currentUserId, articleAuthorId))) {
                         comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
-
                     }
                 }
             }

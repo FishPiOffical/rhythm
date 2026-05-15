@@ -59,7 +59,7 @@ var ArticleChannel = {
             switch (data.type) {
                 case 'comment':
                     if (Label.commentAuthorFilter &&
-                        data.commentAuthorId !== Label.articleAuthorId) {
+                        !data.commentIsArticleAuthor) {
                         return
                     }
 
@@ -88,9 +88,6 @@ var ArticleChannel = {
                         $('#comments > .list > ul').prepend(data.cmtTpl)
                     }
                     Comment.initReactionWidgets($('#' + data.commentId))
-
-                    // ua
-                    $('#' + data.commentId + ' .cmt-via').text('via ' + Util.getDeviceByUa(data.commentUA))
 
                     // 回帖高亮，他人回帖不定位，只有自己回帖才定位
                     if (Label.currentUserName === data.commentAuthorName) {

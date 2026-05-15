@@ -94,6 +94,8 @@ public class CommentProcessor {
 
     private static final int COMMENT_THREAD_REPLY_WINDOW_SIZE = 5;
 
+    private static final int API_KEY_LENGTH = 192;
+
     /**
      * Revision query service.
      */
@@ -402,16 +404,24 @@ public class CommentProcessor {
      * @param context the specified context
      */
     public void getOriginalComment(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
         final JSONObject requestJSONObject = context.requestJSON();
         final String commentId = requestJSONObject.optString(Comment.COMMENT_T_ID);
         int commentViewMode = requestJSONObject.optInt(UserExt.USER_COMMENT_VIEW_MODE);
-        final JSONObject currentUser = Sessions.getUser();
-        String currentUserId = null;
-        if (null != currentUser) {
-            currentUserId = currentUser.optString(Keys.OBJECT_ID);
+        final JSONObject currentUser = getCurrentUser(context, requestJSONObject);
+        final String currentUserId = getCurrentUserId(currentUser);
+
+        final JSONObject comment = commentQueryService.getComment(commentId);
+        if (null == comment || null == getViewableArticle(comment.optString(Comment.COMMENT_ON_ARTICLE_ID), currentUser)) {
+            context.renderMsg("评论不存在或不可查看");
+            return;
         }
 
         final JSONObject originalCmt = commentQueryService.getOriginalComment(currentUserId, commentViewMode, commentId);
+        if (null == originalCmt) {
+            context.renderMsg("评论不存在或不可查看");
+            return;
+        }
 
         // Fill thank
         final String originalCmtId = originalCmt.optString(Keys.OBJECT_ID);
@@ -436,14 +446,17 @@ public class CommentProcessor {
         final JSONObject requestJSONObject = context.requestJSON();
         final String commentId = requestJSONObject.optString(Comment.COMMENT_T_ID);
         int commentViewMode = requestJSONObject.optInt(UserExt.USER_COMMENT_VIEW_MODE);
-        final JSONObject currentUser = Sessions.getUser();
-        String currentUserId = null;
-        if (null != currentUser) {
-            currentUserId = currentUser.optString(Keys.OBJECT_ID);
-        }
+        final JSONObject currentUser = getCurrentUser(context, requestJSONObject);
+        final String currentUserId = getCurrentUserId(currentUser);
 
         if (StringUtils.isBlank(commentId)) {
             context.renderJSON(StatusCodes.SUCC).renderJSONValue(Comment.COMMENT_T_REPLIES, Collections.emptyList());
+            return;
+        }
+
+        final JSONObject comment = commentQueryService.getComment(commentId);
+        if (null == comment || null == getViewableArticle(comment.optString(Comment.COMMENT_ON_ARTICLE_ID), currentUser)) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("评论不存在或不可查看");
             return;
         }
 
@@ -472,7 +485,8 @@ public class CommentProcessor {
         context.renderJSON(StatusCodes.ERR);
         final JSONObject requestJSONObject = context.requestJSON();
         final String articleId = requestJSONObject.optString(Article.ARTICLE_T_ID);
-        final JSONObject article = getViewableArticle(articleId);
+        final JSONObject currentUser = getCurrentUser(context, requestJSONObject);
+        final JSONObject article = getViewableArticle(articleId, currentUser);
         if (null == article) {
             context.renderMsg("文章不存在或不可查看");
             return;
@@ -485,14 +499,16 @@ public class CommentProcessor {
         }
 
         final int commentViewMode = normalizeCommentViewMode(requestJSONObject);
-        final JSONObject options = buildThreadParentOptions(requestJSONObject, article, pageNum, commentViewMode);
+        final String currentUserId = getCurrentUserId(currentUser);
+        final JSONObject options = buildThreadParentOptions(
+                requestJSONObject, article, pageNum, commentViewMode, currentUserId);
         final int commentCnt = commentQueryService.countArticleThreadParentComments(options);
         final int pageCount = (int) Math.ceil((double) commentCnt / Symphonys.ARTICLE_COMMENTS_CNT);
         final int currentPage = normalizeThreadPage(pageNum, pageCount, commentViewMode);
         options.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, currentPage);
 
         final List<JSONObject> comments = commentQueryService.getArticleThreadParentComments(options);
-        fillThreadParentViewState(comments, article, Sessions.getUser(), commentViewMode);
+        fillThreadParentViewState(comments, article, currentUser, commentViewMode);
         context.renderJSON(StatusCodes.SUCC).
                 renderJSONValue(COMMENT_THREAD_PARENTS, comments).
                 renderJSONValue(Pagination.PAGINATION, buildThreadPagination(currentPage, pageCount, commentCnt));
@@ -509,12 +525,13 @@ public class CommentProcessor {
 
         final String rootCommentId = commentQueryService.getCommentThreadRootId(commentId);
         final JSONObject rootComment = commentQueryService.getComment(rootCommentId);
-        if (null == rootComment || null == getViewableArticle(rootComment.optString(Comment.COMMENT_ON_ARTICLE_ID))) {
+        final JSONObject currentUser = getCurrentUser(context, requestJSONObject);
+        if (null == rootComment || null == getViewableArticle(rootComment.optString(Comment.COMMENT_ON_ARTICLE_ID), currentUser)) {
             context.renderMsg("评论不存在或不可查看");
             return;
         }
 
-        final String currentUserId = getCurrentUserId();
+        final String currentUserId = getCurrentUserId(currentUser);
         final List<JSONObject> allReplies;
         try {
             allReplies = commentQueryService.getCommentThreadReplies(currentUserId, rootCommentId);
@@ -594,15 +611,17 @@ public class CommentProcessor {
     }
 
     private JSONObject buildThreadParentOptions(final JSONObject requestJSONObject, final JSONObject article,
-                                                final int pageNum, final int commentViewMode) {
+                                                final int pageNum, final int commentViewMode,
+                                                final String currentUserId) {
         final JSONObject options = new JSONObject();
         options.put(Article.ARTICLE_T_ID, article.optString(Keys.OBJECT_ID));
+        options.put(Article.ARTICLE_AUTHOR_ID, article.optString(Article.ARTICLE_AUTHOR_ID));
         options.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
         options.put(Pagination.PAGINATION_PAGE_SIZE, Symphonys.ARTICLE_COMMENTS_CNT);
         options.put(UserExt.USER_COMMENT_VIEW_MODE, commentViewMode);
         options.put(Comment.COMMENT_AUTHOR_ID, getThreadAuthorFilter(requestJSONObject, article));
         options.put("commentSort", normalizeCommentSort(requestJSONObject.optString("sort")));
-        options.put(Keys.OBJECT_ID, getCurrentUserId());
+        options.put(Keys.OBJECT_ID, currentUserId);
         return options;
     }
 
@@ -610,7 +629,7 @@ public class CommentProcessor {
         if (COMMENT_AUTHOR_FILTER.equals(requestJSONObject.optString("author"))) {
             return article.optString(Article.ARTICLE_AUTHOR_ID);
         }
-        return requestJSONObject.optString(Comment.COMMENT_AUTHOR_ID);
+        return "";
     }
 
     private int normalizeThreadPage(final int pageNum, final int pageCount, final int commentViewMode) {
@@ -677,10 +696,10 @@ public class CommentProcessor {
         if (Comment.COMMENT_VISIBLE_C_AUTHOR != comment.optInt(Comment.COMMENT_VISIBLE)) {
             return;
         }
-        final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
         final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
         if (StringUtils.isBlank(currentUserId) ||
-                (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
+                (!comment.optBoolean(Comment.COMMENT_T_IS_CURRENT_USER)
+                        && !StringUtils.equals(currentUserId, articleAuthorId))) {
             comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
         }
     }
@@ -693,7 +712,7 @@ public class CommentProcessor {
         return niceComments.get(niceComments.size() - 1).optDouble(Comment.COMMENT_SCORE, 0D);
     }
 
-    private JSONObject getViewableArticle(final String articleId) {
+    private JSONObject getViewableArticle(final String articleId, final JSONObject currentUser) {
         if (StringUtils.isBlank(articleId)) {
             return null;
         }
@@ -701,12 +720,58 @@ public class CommentProcessor {
         if (null == article || Article.ARTICLE_STATUS_C_INVALID == article.optInt(Article.ARTICLE_STATUS)) {
             return null;
         }
-        articleQueryService.processArticleContent(article);
-        return article.optBoolean(Common.DISCUSSION_VIEWABLE, true) ? article : null;
+        if (null == currentUser
+                && Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW == article.optInt(Article.ARTICLE_ANONYMOUS_VIEW)) {
+            return null;
+        }
+        return isDiscussionViewable(article, currentUser) ? article : null;
     }
 
-    private String getCurrentUserId() {
+    private boolean isDiscussionViewable(final JSONObject article, final JSONObject currentUser) {
+        if (Article.ARTICLE_TYPE_C_DISCUSSION != article.optInt(Article.ARTICLE_TYPE)) {
+            return true;
+        }
+        if (null == currentUser) {
+            return false;
+        }
+        if (StringUtils.equals(currentUser.optString(Keys.OBJECT_ID), article.optString(Article.ARTICLE_AUTHOR_ID))) {
+            return true;
+        }
+        if (Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
+            return true;
+        }
+        final String currentUserName = currentUser.optString(User.USER_NAME);
+        if (StringUtils.isBlank(currentUserName)) {
+            return false;
+        }
+        final Set<String> userNames = userQueryService.getUserNames(article.optString(Article.ARTICLE_CONTENT));
+        return userNames.contains(currentUserName);
+    }
+
+    private JSONObject getCurrentUser(final RequestContext context, final JSONObject requestJSONObject) {
         final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            return currentUser;
+        }
+        final JSONObject queryUser = getApiKeyUser(context.param("apiKey"));
+        if (null != queryUser) {
+            return queryUser;
+        }
+        return getApiKeyUser(requestJSONObject.optString("apiKey"));
+    }
+
+    private JSONObject getApiKeyUser(final String apiKey) {
+        if (StringUtils.isBlank(apiKey) || API_KEY_LENGTH != apiKey.length()) {
+            return null;
+        }
+        try {
+            return ApiProcessor.getUserByKey(apiKey);
+        } catch (final NullPointerException e) {
+            return null;
+        }
+    }
+
+    private String getCurrentUserId(final JSONObject currentUser) {
         return null == currentUser ? "" : currentUser.optString(Keys.OBJECT_ID);
     }
 

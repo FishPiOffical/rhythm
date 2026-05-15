@@ -956,19 +956,6 @@ var Comment = {
     return Comment.focusCommentById(targetId)
   },
   /**
-   * 设置评论来源
-   * @returns {Boolean}
-   */
-  _setCmtVia: function () {
-    $('.cmt-via').each(function () {
-      var ua = $(this).data('ua'),
-        name = Util.getDeviceByUa(ua)
-      if (name !== '') {
-        $(this).html('via ' + name)
-      }
-    })
-  },
-  /**
    * 获取当前可用的“回复指示”容器
    * 移动端模板中存在隐藏占位节点，优先选择可见容器
    * @returns {jQuery}
@@ -1057,8 +1044,6 @@ var Comment = {
    */
   init: function () {
     Comment.focusLocationHash()
-
-    this._setCmtVia()
 
     $.ua.set(navigator.userAgent)
 
@@ -1276,7 +1261,7 @@ var Comment = {
               data.rewardedCnt + '</span> '
           }
 
-          template += ' ' + Util.getDeviceByUa(data.commentUA) + '</span>'
+          template += '</span>'
 
           template += '</div><div class="vditor-reset comment">'
             + data.commentContent + '</div>'
@@ -1917,13 +1902,6 @@ var Article = {
           Article.openImagePreview($it, it)
         }, Article.imagePreviewClickDelay)
       })
-
-    // UA
-    var ua = $('#articltVia').data('ua'),
-      name = Util.getDeviceByUa(ua)
-    if (name !== '') {
-      $('#articltVia').text('via ' + name)
-    }
 
     // report
     $('#reportDialog').dialog({

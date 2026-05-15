@@ -147,6 +147,8 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             final String commentId = originalComment.optString(Keys.OBJECT_ID);
             final String originalCmtId = originalComment.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
             final String commenterId = originalComment.optString(Comment.COMMENT_AUTHOR_ID);
+            final String articleAuthorId = originalArticle.optString(Article.ARTICLE_AUTHOR_ID);
+            final boolean commenterIsArticleAuthor = articleAuthorId.equals(commenterId);
 
             final String commentContent = originalComment.optString(Comment.COMMENT_CONTENT);
             JSONObject commenter;
@@ -159,13 +161,24 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             final String commenterNickName = commenter.optString(UserExt.USER_NICKNAME);
 
             // 0. Data channel (WebSocket)
-            final JSONObject chData = JSONs.clone(originalComment);
+            final JSONObject chData = new JSONObject();
+            chData.put(Comment.COMMENT_AUTHOR_ID, commenterId);
             chData.put(Comment.COMMENT_T_COMMENTER, commenter);
             chData.put(Keys.OBJECT_ID, commentId);
             chData.put(Article.ARTICLE_T_ID, articleId);
             chData.put(Article.ARTICLE, originalArticle);
             chData.put(Comment.COMMENT_T_ID, commentId);
             chData.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalCmtId);
+            chData.put(Comment.COMMENT_ANONYMOUS, originalComment.optInt(Comment.COMMENT_ANONYMOUS));
+            chData.put(Comment.COMMENT_VISIBLE, originalComment.optInt(Comment.COMMENT_VISIBLE));
+            chData.put(Comment.COMMENT_GOOD_CNT, originalComment.optInt(Comment.COMMENT_GOOD_CNT));
+            chData.put(Comment.COMMENT_BAD_CNT, originalComment.optInt(Comment.COMMENT_BAD_CNT));
+            chData.put(Comment.COMMENT_THANK_CNT, originalComment.optInt(Comment.COMMENT_THANK_CNT));
+            chData.put(Comment.COMMENT_REPLY_CNT, originalComment.optInt(Comment.COMMENT_REPLY_CNT));
+            chData.put(Comment.COMMENT_QNA_OFFERED, originalComment.optInt(Comment.COMMENT_QNA_OFFERED));
+            chData.put(Comment.COMMENT_STATUS, originalComment.optInt(Comment.COMMENT_STATUS));
+            chData.put(Comment.COMMENT_CREATE_TIME, originalComment.optLong(Comment.COMMENT_CREATE_TIME));
+            chData.put(Comment.COMMENT_T_IS_ARTICLE_AUTHOR, commenterIsArticleAuthor);
 
             String originalCmtAuthorId = null;
             String threadRootCommentId = "";
@@ -209,7 +222,6 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             cc = MediaPlayers.renderVideo(cc);
 
             chData.put(Comment.COMMENT_CONTENT, cc);
-            chData.put(Comment.COMMENT_UA, originalComment.optString(Comment.COMMENT_UA));
 
             ArticleChannel.notifyComment(chData);
 
@@ -222,8 +234,6 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
             ArticleChannel.notifyHeat(articleHeat);
 
             final boolean isDiscussion = originalArticle.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_DISCUSSION;
-            final String articleAuthorId = originalArticle.optString(Article.ARTICLE_AUTHOR_ID);
-            final boolean commenterIsArticleAuthor = articleAuthorId.equals(commenterId);
 
             final Set<String> requisiteAtParticipantsPermissions = new HashSet<>();
             requisiteAtParticipantsPermissions.add(Permission.PERMISSION_ID_C_COMMON_AT_PARTICIPANTS);

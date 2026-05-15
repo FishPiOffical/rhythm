@@ -47,13 +47,6 @@ var Breezemoon = {
       Breezemoon.toggleUpdate($it, $it.closest('li').attr('id'))
     })
 
-    $breezemoonList.find('.ua').each(function () {
-      var ua = $(this).data('ua'),
-        name = Util.getDeviceByUa(ua);
-      if (name !== '') {
-        $(this).text('via ' + name);
-      }
-    })
   },
   add: function () {
     if (!Label.isLoggedIn) {

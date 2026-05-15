@@ -252,9 +252,6 @@
                            aria-label="${article.oId?number?number_to_datetime}">
                             <span class="article__cnt"><#if article.articleAuthorNickName != "">${article.articleAuthorNickName}<#else>${article.articleAuthorName}</#if></span>
                             <time>${article.timeAgo}</time>
-                            <#if 0 == article.articleAuthor.userUAStatus>
-                                <span id="articltVia" class="via" data-ua="${article.articleUA}"></span>
-                            </#if>
                         </a>
                         <#if article.articleCity != "">
                             <a href="${servePath}/city/${article.articleCity}" target="_blank" class="article__stats article__stats--a">
@@ -391,9 +388,6 @@
                                                                 xlink:href="#heart"></use></svg> ${article.articleOfferedComment.rewardedCnt}
                                                 </span>
                                                 </#if>
-                                                <#if 0 == article.articleOfferedComment.commenter.userUAStatus><span
-                                                    class="cmt-via ft-fade"
-                                                    data-ua="${article.articleOfferedComment.commentUA}"></span></#if>
                                             </span>
                                         <a class="ft-a-title fn-right tooltipped tooltipped-nw"
                                            aria-label="${goCommentLabel}"
@@ -448,8 +442,6 @@
                                                                 xlink:href="#heart"></use></svg> ${comment.rewardedCnt}
                                                 </span>
                                                  </#if>
-                                                 <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade"
-                                                                                                    data-ua="${comment.commentUA}"></span></#if>
                                              </span>
                                              <#assign commentMedals = (comment.sysMetal?is_string)?then(comment.sysMetal?eval, comment.sysMetal)![]>
                                              <#if commentMedals?size != 0>
@@ -896,7 +888,6 @@
     Label.thankSelfLabel = '${thankSelfLabel}';
     Label.replyLabel = '${replyLabel}';
     Label.articleAuthorName = '${article.articleAuthorName}';
-    Label.articleAuthorId = '${article.articleAuthorId}';
     Label.referenceLabel = '${referenceLabel}';
     Label.goCommentLabel = '${goCommentLabel}';
     Label.addBoldLabel = '${addBoldLabel}';

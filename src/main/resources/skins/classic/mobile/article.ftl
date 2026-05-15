@@ -160,9 +160,6 @@
                             </#list>
                         </span>
                         </#if>
-                        <#if 0 == article.articleAuthor.userUAStatus>
-                        <span id="articltVia" class="ft-fade" data-ua="${article.articleUA}"></span>
-                        </#if>
                         <div class="article-tags">
                         <#list article.articleTagObjs as articleTag>
                         <a rel="tag" class="tag" href="${servePath}/tag/${articleTag.tagURI}">${articleTag.tagTitle}</a>&nbsp;
@@ -288,7 +285,6 @@
                                                     <svg class="fn-text-top"><use xlink:href="#heart"></use></svg> ${article.articleOfferedComment.rewardedCnt}
                                                 </span>
                                                 </#if>
-                                                <#if 0 == article.articleOfferedComment.commenter.userUAStatus><span class="cmt-via ft-fade" data-ua="${article.articleOfferedComment.commentUA}"></span></#if>
                                             </span>
                                             <a class="ft-a-title fn-right tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
                                                href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${article.articleOfferedComment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${article.articleOfferedComment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
@@ -331,7 +327,6 @@
                                                         <svg class="fn-text-top"><use xlink:href="#heart"></use></svg> ${comment.rewardedCnt}
                                                     </span>
                                                     </#if>
-                                                    <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade" data-ua="${comment.commentUA}"></span></#if>
                                                 </span>
                                                 &nbsp;<#list comment.sysMetal?eval as metal>
                                                 <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
@@ -653,7 +648,6 @@
             Label.adminLabel = '${adminLabel}';
             Label.thankSelfLabel = '${thankSelfLabel}';
             Label.articleAuthorName = '${article.articleAuthorName}';
-            Label.articleAuthorId = '${article.articleAuthorId}';
             Label.replyLabel = '${replyLabel}';
             Label.referenceLabel = '${referenceLabel}';
             Label.goCommentLabel = '${goCommentLabel}';

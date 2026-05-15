@@ -229,6 +229,16 @@ public final class Comment {
     public static final String COMMENT_T_NICE = "commentNice";
 
     /**
+     * Key of whether the comment author is the article author.
+     */
+    public static final String COMMENT_T_IS_ARTICLE_AUTHOR = "commentIsArticleAuthor";
+
+    /**
+     * Key of whether the comment author is the current user.
+     */
+    public static final String COMMENT_T_IS_CURRENT_USER = "commentIsCurrentUser";
+
+    /**
      * Key of comment replies.
      */
     public static final String COMMENT_T_REPLIES = "commentReplies";

@@ -19,9 +19,11 @@
 
 -->
 <#assign threadReplyCount = comment.commentThreadReplyCount!comment.commentReplyCnt>
+<#assign isArticleAuthorComment = (comment.commentIsArticleAuthor!false) || (comment.commentAuthorId?? && article.articleAuthorId?? && comment.commentAuthorId == article.articleAuthorId)>
+<#assign isCurrentUserComment = (comment.commentIsCurrentUser!false) || (isLoggedIn && comment.commentAuthorId?? && comment.commentAuthorId == currentUser.oId)>
 <li id="${comment.oId}"
     data-author="${comment.commentAuthorName}"
-    data-is-author="<#if comment.commentAuthorId == article.articleAuthorId>true<#else>false</#if>"
+    data-is-author="<#if isArticleAuthorComment>true<#else>false</#if>"
     class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if threadReplyCount != 0> cmt-selected</#if>">
     <div class="fn-flex">
         <div>
@@ -39,7 +41,6 @@
                         <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                     </#list>
                     <span class="ft-fade">• ${comment.timeAgo}</span>
-                    <#if 0 == comment.commenter.userUAStatus><span class="cmt-via ft-fade hover-show fn-hidden" data-ua="${comment.commentUA}"></span></#if>
                 </span>
                 <span class="fn-right">
                     <#if isLoggedIn && comment.commentAuthorName == currentUser.userName && permissions["commonRemoveComment"].permissionGrant>
@@ -104,7 +105,8 @@
                                                  data-summary='${(threadReply.reactionSummary!'[]')?html}'></div>
                                         </div>
                                         <span class="action-btns">
-                                            <#assign threadHasRewarded = isLoggedIn && threadReply.commentAuthorId != currentUser.oId && (threadReply.rewarded!false)>
+                                            <#assign threadIsCurrentUserComment = (threadReply.commentIsCurrentUser!false) || (isLoggedIn && threadReply.commentAuthorId?? && threadReply.commentAuthorId == currentUser.oId)>
+                                            <#assign threadHasRewarded = isLoggedIn && !threadIsCurrentUserComment && (threadReply.rewarded!false)>
                                             <span class="tooltipped tooltipped-n<#if threadHasRewarded> ft-red</#if>" aria-label="${thankLabel}"
                                             <#if !threadHasRewarded && permissions["commonThankComment"].permissionGrant>
                                                 onclick="Comment.thank('${threadReply.oId}', '${csrfToken}', '${threadReply.commentThankLabel!''}', ${threadReply.commentAnonymous!0}, this)"
@@ -153,7 +155,7 @@
                              data-current-user-reaction="${comment.currentUserReaction!''}"
                              data-summary='${(comment.reactionSummary!'[]')?html}'></div></div><!--
                  --><span class="fn-hidden hover-show action-btns">
-                        <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
+                        <#assign hasRewarded = isLoggedIn && !isCurrentUserComment && comment.rewarded>
                         <span class="tooltipped tooltipped-n <#if hasRewarded>ft-red</#if>" aria-label="${thankLabel}"
                         <#if !hasRewarded && permissions["commonThankComment"].permissionGrant>
                             onclick="Comment.thank('${comment.oId}', '${csrfToken}', '${comment.commentThankLabel}', ${comment.commentAnonymous}, this)"

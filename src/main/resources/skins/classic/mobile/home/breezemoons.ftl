@@ -49,8 +49,6 @@
                             <span class="ft-smaller">
                                 ${item.timeAgo}
                             </span>
-                            <span class="ft-smaller ua" data-ua="${item.breezemoonUA}"></span>
-
                             <div class="fn-right">
                                 <#if isLoggedIn && permissions["commonRemoveBreezemoon"].permissionGrant && item.breezemoonAuthorName == currentUser.userName>
                                 <span class="tooltipped tooltipped-n ft-red rm" aria-label="${removeLabel}">

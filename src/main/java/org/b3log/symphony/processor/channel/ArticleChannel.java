@@ -32,6 +32,7 @@ import org.b3log.latke.http.WebSocketChannel;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.util.Locales;
@@ -179,6 +180,8 @@ public class ArticleChannel implements WebSocketChannel {
                 message.put(Comment.COMMENT_T_VOTE, -1);
                 message.put(Common.REWARDED, false);
                 message.put(Comment.COMMENT_REVISION_COUNT, 1);
+                message.put(Comment.COMMENT_T_IS_CURRENT_USER, null != user
+                        && user.optString(Keys.OBJECT_ID).equals(message.optString(Comment.COMMENT_AUTHOR_ID)));
                 final ReactionQueryService reactionQueryService = beanManager.getReference(ReactionQueryService.class);
                 reactionQueryService.fillCommentReaction(message, user == null ? "" : user.optString(Keys.OBJECT_ID));
 
@@ -237,14 +240,41 @@ public class ArticleChannel implements WebSocketChannel {
                 template.process(dataModel, stringWriter);
                 stringWriter.close();
 
-                message.put("cmtTpl", stringWriter.toString());
-                final String msgStr = message.toString();
+                final JSONObject payload = buildCommentPayload(message);
+                payload.put("cmtTpl", stringWriter.toString());
+                final String msgStr = payload.toString();
                 session.sendText(msgStr);
                 AdminProcessor.manager.onMessageSent(2, msgStr.length());
             } catch (final Exception e) {
                 LOGGER.log(Level.ERROR, "Notify comment failed", e);
             }
         }
+    }
+
+    private static JSONObject buildCommentPayload(final JSONObject message) {
+        final JSONObject ret = new JSONObject();
+        final String[] publicFields = {
+                Common.TYPE, Keys.OBJECT_ID, Article.ARTICLE_T_ID, Comment.COMMENT_T_ID,
+                Comment.COMMENT_ORIGINAL_COMMENT_ID, "commentThreadRootId", "commentThreadDepth",
+                Pagination.PAGINATION_CURRENT_PAGE_NUM, Comment.COMMENT_AUTHOR_ID,
+                Comment.COMMENT_T_AUTHOR_NAME, "commentAuthorNickName",
+                Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, "commentOriginalAuthorName",
+                "commentOriginalAuthorNickName",
+                Comment.COMMENT_T_ORIGINAL_AUTHOR_THUMBNAIL_URL, Common.TIME_AGO,
+                Comment.COMMENT_CREATE_TIME_STR, Comment.COMMENT_CONTENT, Comment.COMMENT_VISIBLE,
+                Comment.COMMENT_ANONYMOUS, Comment.COMMENT_GOOD_CNT, Comment.COMMENT_BAD_CNT,
+                Comment.COMMENT_THANK_CNT, Comment.COMMENT_REPLY_CNT, Comment.COMMENT_QNA_OFFERED,
+                Comment.COMMENT_STATUS, Common.REWARED_COUNT, Common.REWARDED,
+                Comment.COMMENT_T_VOTE, Comment.COMMENT_REVISION_COUNT, Comment.COMMENT_T_NICE,
+                Comment.COMMENT_T_THANK_LABEL, Comment.COMMENT_T_IS_ARTICLE_AUTHOR,
+                Comment.COMMENT_T_IS_CURRENT_USER, "sysMetal", "reactionSummary", "currentUserReaction"
+        };
+        for (final String field : publicFields) {
+            if (message.has(field)) {
+                ret.put(field, message.opt(field));
+            }
+        }
+        return ret;
     }
 
     public static void notifyCommentReaction(final JSONObject message) {

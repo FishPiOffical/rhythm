@@ -807,19 +807,6 @@ var Comment = {
     return Comment.focusCommentById(targetId)
   },
   /**
-   * 设置评论来源
-   * @returns {Boolean}
-   */
-  _setCmtVia: function () {
-    $('.cmt-via').each(function () {
-      var ua = $(this).data('ua'),
-        name = Util.getDeviceByUa(ua)
-      if (name !== '') {
-        $(this).html('via ' + name)
-      }
-    })
-  },
-  /**
    * 回复面板显示／隐藏
    * @param {function} cb 面板弹出后的回掉函数
    */
@@ -1233,7 +1220,6 @@ var Comment = {
 
     Comment.focusLocationHash()
 
-    this._setCmtVia()
     this._initHotKey()
 
     $.pjax({
@@ -1447,7 +1433,7 @@ var Comment = {
               data.rewardedCnt + '</span> '
           }
 
-          template += ' ' + Util.getDeviceByUa(data.commentUA) + '</span>'
+          template += '</span>'
 
           template += '</div><div class="vditor-reset comment">'
             + data.commentContent + '</div>'
@@ -2047,13 +2033,6 @@ var Article = {
       }, 100)
     })
 
-    // UA
-    var ua = $('#articltVia').data('ua'),
-      name = Util.getDeviceByUa(ua)
-    if (name !== '') {
-      $('#articltVia').text('via ' + name)
-    }
-
     // report
     $('#reportDialog').dialog({
       'width': $(window).width() > 500 ? 500 : $(window).width() - 50,
@@ -2116,29 +2095,7 @@ var Article = {
 //        }, false);
 
     $(window).resize(function () {
-      // var shareL = parseInt($('.article-footer').css('margin-left')) / 2 - 15
-      // $('.share').css('left', (shareL < 0 ? 0 : shareL) + 'px')
-
-      $('#articleToC > .module-panel').height($(window).height() - 48)
-
-      if ($(window).width() < 1024) {
-        // $('.article-header > h2').removeAttr('style')
-        if ($('#articleToC').length === 0) {
-          return false
-        }
-        $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
-          css('margin-right', 'auto')
-        return false
-      }
-
-      if ($('#articleToC').length === 1) {
-        var articleToCW = $('#articleToC').width(),
-          articleMR = ($(window).width() - articleToCW -
-            $('.article-info').width() - 30) / 3 + articleToCW
-        $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
-          css('margin-right', articleMR + 'px')
-      }
-      // $('.article-header > h2').css('margin-left', Math.max(20,($('.article-footer').offset().left - 58)) + 'px')
+      Article.syncTocLayout()
     })
 
     // set session storage
@@ -2976,28 +2933,27 @@ var Article = {
       html('')
   },
   /**
+   * @description 同步目录布局状态.
+   */
+  syncTocLayout: function () {
+    var hasToc = $('#articleToC').length === 1
+    $('body.article').toggleClass('article--has-toc', hasToc)
+    $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
+      css('margin-right', '')
+
+    if (hasToc) {
+      $('#articleToC > .module-panel').height($(window).height() - 48)
+    }
+
+    return hasToc
+  },
+  /**
    * @description 初始化目录.
    */
   initToc: function () {
-    if ($('#articleToC').length === 0) {
-      // $('.article-header > h2').
-      //   css('margin-left', Math.max(20,
-      //     ($('.article-footer').offset().left - 58)) + 'px')
-      $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
-        css('margin-right', 'auto')
+    if (!this.syncTocLayout()) {
       return false
     }
-
-    var articleToCW = $('#articleToC').width(),
-      articleMR = ($(window).width() - articleToCW -
-        $('.article-info').width() - 30) / 3 + articleToCW
-    $('.article-body .wrapper, #articleCommentsPanel, .article-footer').
-      css('margin-right', articleMR + 'px')
-
-    // $('.article-header > h2').
-    //   css('margin-left', Math.max(20,
-    //     ($('.article-footer').offset().left - 58)) + 'px')
-    $('#articleToC > .module-panel').height($(window).height() - 48)
 
     // 样式
     var $articleToc = $('#articleToC'),
