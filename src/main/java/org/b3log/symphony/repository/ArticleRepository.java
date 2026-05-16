@@ -24,6 +24,7 @@ import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.cache.ArticleCache;
 import org.b3log.symphony.model.Article;
+import org.b3log.symphony.util.JSONs;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -54,6 +55,11 @@ public class ArticleRepository extends AbstractRepository {
     }
 
     @Override
+    public String add(final JSONObject article) throws RepositoryException {
+        return super.add(toWritableArticle(article));
+    }
+
+    @Override
     public void remove(final String id) throws RepositoryException {
         super.remove(id);
 
@@ -79,10 +85,30 @@ public class ArticleRepository extends AbstractRepository {
 
     @Override
     public void update(final String id, final JSONObject article, final String... propertyNames) throws RepositoryException {
-        super.update(id, article, propertyNames);
+        ensureWritableProperties(propertyNames);
+        final JSONObject writableArticle = toWritableArticle(article);
+        super.update(id, writableArticle, propertyNames);
 
-        article.put(Keys.OBJECT_ID, id);
-        articleCache.putArticle(article);
+        writableArticle.put(Keys.OBJECT_ID, id);
+        articleCache.putArticle(writableArticle);
+    }
+
+    private JSONObject toWritableArticle(final JSONObject article) {
+        if (null == article) {
+            return null;
+        }
+
+        final JSONObject ret = JSONs.clone(article);
+        ret.remove(Article.ARTICLE_HOT_SCORE);
+        return ret;
+    }
+
+    private void ensureWritableProperties(final String... propertyNames) throws RepositoryException {
+        for (final String propertyName : propertyNames) {
+            if (Article.ARTICLE_HOT_SCORE.equals(propertyName)) {
+                throw new RepositoryException("Generated article field [articleHotScore] is read-only");
+            }
+        }
     }
 
     @Override
