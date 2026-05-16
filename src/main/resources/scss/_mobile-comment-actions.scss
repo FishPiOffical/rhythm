@@ -18,7 +18,7 @@
  */
 .comment-action > .comment-action__bar {
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 4px;
   max-width: 100%;
 }
 
@@ -30,6 +30,7 @@
 }
 
 .comment-action > .comment-action__bar > .action-btns {
+  display: none;
   flex: 1 1 auto;
   flex-wrap: nowrap;
   justify-content: flex-start;
@@ -39,8 +40,13 @@
   overflow-y: hidden;
   padding-left: 0;
   scrollbar-width: none;
-  visibility: visible;
   -webkit-overflow-scrolling: touch;
+}
+
+#comments .list.comments > ul > li.comment-actions-open > .fn-flex .comment-action > .comment-action__bar > .action-btns,
+#comments .list.comments > ul > li:hover > .fn-flex .comment-action > .comment-action__bar > .action-btns {
+  display: inline-flex;
+  visibility: visible;
 }
 
 .comment-action > .comment-action__bar > .action-btns::-webkit-scrollbar {
@@ -50,9 +56,12 @@
 .comment-action > .comment-action__bar > .action-btns > a,
 .comment-action > .comment-action__bar > .action-btns > span {
   flex: 0 0 auto;
+  padding-right: 8px;
+  padding-left: 8px;
 }
 
 .comment-thread__actions .action-btns {
+  display: none;
   flex-wrap: nowrap;
   max-width: 100%;
   min-width: 0;
@@ -62,6 +71,32 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.comment-thread__reply.comment-actions-open > .comment-thread__body > .comment-thread__actions .action-btns,
+.comment-thread__reply:hover > .comment-thread__body > .comment-thread__actions .action-btns {
+  display: inline-flex;
+  visibility: visible;
+}
+
 .comment-thread__actions .action-btns::-webkit-scrollbar {
   display: none;
+}
+
+.comment-thread__actions .action-btns > a,
+.comment-thread__actions .action-btns > span {
+  padding-right: 6px;
+  padding-left: 6px;
+}
+
+.action-btns .comment-reaction--trigger .reaction-popover {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  width: min(272px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  min-width: 240px;
+  z-index: 10020;
+}
+
+.comment-collect-emoji-btn {
+  cursor: pointer;
 }

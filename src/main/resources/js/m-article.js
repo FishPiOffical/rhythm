@@ -148,14 +148,14 @@ var Comment = {
   renderThreadAction: function (data) {
     return '<div class="comment-thread__actions comment-action__bar">'
       + '<div class="comment-action__left">'
-      + Comment.renderReactionBar(data.oId, data.reactionSummary,
+      + Comment.renderReactionShell(data.oId, data.reactionSummary,
         data.currentUserReaction)
-      + '</div><span class="action-btns">'
+      + '</div><span class="action-btns comment-thread__action-menu">'
+      + Comment.renderThreadReplyAction(data)
       + Comment.renderThreadThankAction(data)
       + Comment.renderThreadVoteAction(data, true)
       + Comment.renderThreadVoteAction(data, false)
       + Comment.renderThreadReportAction(data)
-      + Comment.renderThreadReplyAction(data)
       + '</span></div>'
   },
   renderThreadThankAction: function (data) {
@@ -207,6 +207,15 @@ var Comment = {
       Comment.escapeJSString(data.commentAuthorName) + '\', \'' +
       Comment.escapeJSString(data.oId) +
       '\')"><svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>'
+  },
+  renderReactionShell: function (id, summary, currentUserReaction) {
+    var summaryText = typeof summary === 'string'
+      ? summary
+      : JSON.stringify(summary || [])
+    return '<div class="comment-reaction-shell" data-target-id="' +
+      Comment.escapeHTML(id) + '" data-current-user-reaction="' +
+      Comment.escapeHTML(currentUserReaction || '') + '" data-summary=\'' +
+      Comment.escapeHTML(summaryText) + '\'></div>'
   },
   getThreadReplyDepth: function (data) {
     var depth = parseInt(data.commentThreadDepth, 10)
@@ -441,6 +450,11 @@ var Comment = {
       $trigger.replaceWith(html)
       return
     }
+    var $reply = $actionBtns.children('.icon-reply-btn').first()
+    if ($reply.length > 0) {
+      $reply.after(html)
+      return
+    }
     $actionBtns.prepend(html)
   },
   collectReactionShells: function (context) {
@@ -474,6 +488,39 @@ var Comment = {
       ? $context.add($context.find(selector))
       : $context.find(selector)
     $widgets.removeClass('is-open')
+    Comment.resetReactionPopoverStyle($widgets)
+  },
+  resetReactionPopoverStyle: function ($widgets) {
+    $widgets.find('.reaction-popover').removeAttr('style')
+  },
+  positionReactionPopover: function ($widget) {
+    if ($widget.closest('.action-btns').length === 0) {
+      return
+    }
+    var panel = $widget.find('.reaction-popover').get(0)
+    var trigger = $widget.find('.reaction-trigger').get(0)
+    if (!panel || !trigger) {
+      return
+    }
+
+    var gap = 12,
+      triggerRect = trigger.getBoundingClientRect(),
+      panelRect = panel.getBoundingClientRect(),
+      panelWidth = Math.min(Math.max(panelRect.width || 240, 240), window.innerWidth - gap * 2),
+      panelHeight = panelRect.height || 288,
+      left = Math.min(Math.max(triggerRect.left, gap), window.innerWidth - panelWidth - gap),
+      top = triggerRect.bottom + 8
+    if (top + panelHeight > window.innerHeight - gap) {
+      top = triggerRect.top - panelHeight - 8
+    }
+    if (top < gap) {
+      top = gap
+    }
+    $(panel).css({
+      left: left + 'px',
+      top: top + 'px',
+      width: panelWidth + 'px',
+    })
   },
   toggleReactionPanel: function (it) {
     var $widget = $(it).closest('.comment-reaction')
@@ -481,13 +528,57 @@ var Comment = {
     var willOpen = !$widget.hasClass('is-open')
     Comment.closeReactionPanels()
     if (willOpen) {
-      Comment.getInteractiveReactionWidgets(targetId).addClass('is-open')
+      Comment.getInteractiveReactionWidgets(targetId).addClass('is-open').each(function () {
+        Comment.positionReactionPopover($(this))
+      })
     }
   },
   bindReactionPanels: function () {
     $(document).off('click.commentReaction').on('click.commentReaction', function (event) {
       if ($(event.target).closest('.comment-reaction').length === 0) {
         Comment.closeReactionPanels()
+      }
+    })
+  },
+  shouldSkipActionToggle: function (target) {
+    return $(target).closest('a,button,input,textarea,select,label,' +
+      '.action-btns,.comment-reaction,.comment-origin,.comment-thread__more,' +
+      '.commentToggleEditorBtn,.editor-panel,.ui-dialog,img').length > 0
+  },
+  getActionToggleTarget: function (target) {
+    var $threadReply = $(target).closest('.comment-thread__reply')
+    if ($threadReply.length > 0) {
+      return $threadReply.first()
+    }
+
+    return $(target).closest('#comments .list.comments > ul > li').first()
+  },
+  closeCommentActionMenus: function (except) {
+    var $openMenus = $('#comments .comment-actions-open')
+    if (except && except.length > 0) {
+      $openMenus = $openMenus.not(except)
+    }
+    $openMenus.removeClass('comment-actions-open')
+  },
+  bindMobileCommentActions: function () {
+    $('#comments').off('click.mobileCommentActions').on('click.mobileCommentActions',
+      '.list.comments > ul > li,.comment-thread__reply', function (event) {
+        if (Comment.shouldSkipActionToggle(event.target)) {
+          return
+        }
+
+        var $target = Comment.getActionToggleTarget(event.target)
+        if ($target.length === 0 || $target[0] !== event.currentTarget) {
+          return
+        }
+
+        Comment.closeCommentActionMenus($target)
+        $target.toggleClass('comment-actions-open')
+      })
+
+    $(document).off('click.mobileCommentActions').on('click.mobileCommentActions', function (event) {
+      if ($(event.target).closest('#comments .comment-actions-open').length === 0) {
+        Comment.closeCommentActionMenus()
       }
     })
   },
@@ -506,6 +597,11 @@ var Comment = {
       }
       $bar.replaceWith(Comment.renderReactionBar(targetId, summary, currentUserReaction, willOpen, mode))
     })
+    if (willOpen) {
+      Comment.getInteractiveReactionWidgets(targetId).each(function () {
+        Comment.positionReactionPopover($(this))
+      })
+    }
   },
   updateReactionFromChannel: function (data) {
     var targetId = data.targetId || data.commentId
@@ -582,6 +678,34 @@ var Comment = {
     if ($('#emojisNew').children().length === 0) {
       Comment.loadGroupEmojisNew(Comment.currentEmojiGroupIdNew)
     }
+  },
+  openEmojiList: function () {
+    Comment.ensureEmojiPanelReady()
+    $('#emojiList').addClass('showList')
+  },
+  closeEmojiList: function () {
+    $('#emojiList').removeClass('showList')
+  },
+  bindMobileEmojiList: function () {
+    var $btn = $('#emojiBtn')
+    var $list = $('#emojiList')
+    if ($btn.length === 0 || $list.length === 0) {
+      return
+    }
+
+    $btn.off('click.commentEmoji').on('click.commentEmoji', function (event) {
+      event.preventDefault()
+      event.stopPropagation()
+      $list.hasClass('showList') ? Comment.closeEmojiList() : Comment.openEmojiList()
+    })
+    $list.off('click.commentEmoji').on('click.commentEmoji', function (event) {
+      event.stopPropagation()
+    })
+    $(document).off('click.commentEmoji').on('click.commentEmoji', function (event) {
+      if ($(event.target).closest('#emojiBtn,#emojiList,#emojiCollectOverlay').length === 0) {
+        Comment.closeEmojiList()
+      }
+    })
   },
   /**
    * 删除表情包
@@ -1073,6 +1197,8 @@ var Comment = {
       titleSuffix: '',
       callback: function () {
         Comment.initReactionWidgets($('#comments'))
+        Comment.bindMobileCommentActions()
+        Article.initCollectButtons()
         Util.parseMarkdown()
         Util.parseHljs()
         Comment.focusLocationHash()
@@ -1089,6 +1215,7 @@ var Comment = {
     ArticleReaction.initWidgets()
     Comment.bindReactionPanels()
     Comment.initReactionWidgets($('#comments'))
+    Comment.bindMobileCommentActions()
 
     if (!Label.isLoggedIn) {
       return false
@@ -2848,34 +2975,7 @@ $(document).ready(function () {
   // 表情包初始化（仅新版 v2）
   EmojiGroups.init('Comment', 'New');
   Comment.loadEmojiGroupsNew();
-  // 监听表情包按钮
-  $("#emojiBtn").on('click', function () {
-    if ($("#emojiList").hasClass("showList")) {
-      $("#emojiList").removeClass("showList");
-    } else {
-      Comment.ensureEmojiPanelReady()
-      $("#emojiList").addClass("showList");
-      setTimeout(function () {
-        $("body").unbind();
-        $('body').click(function (event) {
-          if ($(event.target).closest('a').attr('id') !== 'aPersonListPanel' &&
-              $(event.target).closest('.module').attr('id') !== 'personListPanel') {
-            $('#personListPanel').hide()
-          }
-        })
-        $("body").click(function() {
-          $("#emojiList").removeClass("showList");
-          $("body").unbind();
-          $('body').click(function (event) {
-            if ($(event.target).closest('a').attr('id') !== 'aPersonListPanel' &&
-                $(event.target).closest('.module').attr('id') !== 'personListPanel') {
-              $('#personListPanel').hide()
-            }
-          })
-        });
-      }, 100);
-    }
-  });
+  Comment.bindMobileEmojiList()
 
   // Init [Article] channel
   ArticleChannel.init(Label.articleChannel)
@@ -2906,13 +3006,21 @@ Article.initCollectButtons = function () {
     const uniqueImgs = Array.from(new Set(imgs));
     if (!uniqueImgs.length) return;
     $actions.data('collect-inited', true);
-    const $btn = $('<span class="tooltipped tooltipped-n ft-a-title" aria-label="收藏表情" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-right:8px;">' +
+    const $btn = $('<span class="comment-collect-emoji-btn tooltipped tooltipped-n ft-a-title" aria-label="收藏表情">' +
         '<svg class="icon-heart"><use xlink:href="#emoji"></use></svg> 收藏表情</span>');
     $btn.on('click', function (e) {
       e.stopPropagation();
       EmojiGroups.openCollectDialog(uniqueImgs);
     });
-    $actions.prepend($btn).prepend('&nbsp;');
+    const $reply = $actions.children('.icon-reply-btn').first();
+    const $reaction = $actions.children('.comment-reaction--trigger').first();
+    if ($reply.length) {
+      $btn.insertAfter($reply);
+    } else if ($reaction.length) {
+      $btn.insertAfter($reaction);
+    } else {
+      $actions.prepend($btn);
+    }
   });
 };
 

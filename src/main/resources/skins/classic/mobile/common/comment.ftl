@@ -104,9 +104,15 @@
                                                  data-current-user-reaction="${threadReply.currentUserReaction!''}"
                                                  data-summary='${(threadReply.reactionSummary!'[]')?html}'></div>
                                         </div>
-                                        <span class="action-btns">
+                                        <span class="action-btns comment-thread__action-menu">
                                             <#assign threadIsCurrentUserComment = (threadReply.commentIsCurrentUser!false) || (isLoggedIn && threadReply.commentAuthorId?? && threadReply.commentAuthorId == currentUser.oId)>
                                             <#assign threadHasRewarded = isLoggedIn && !threadIsCurrentUserComment && (threadReply.rewarded!false)>
+                                            <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
+                                                <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
+                                                      onclick="Comment.reply('${threadReply.commentAuthorName}', '${threadReply.oId}')">
+                                                    <svg class="icon-reply"><use xlink:href="#reply"></use></svg>
+                                                </span>
+                                            </#if>
                                             <span class="tooltipped tooltipped-n<#if threadHasRewarded> ft-red</#if>" aria-label="${thankLabel}"
                                             <#if !threadHasRewarded && permissions["commonThankComment"].permissionGrant>
                                                 onclick="Comment.thank('${threadReply.oId}', '${csrfToken}', '${threadReply.commentThankLabel!''}', ${threadReply.commentAnonymous!0}, this)"
@@ -130,12 +136,6 @@
                                             <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
                                                   onclick="$('#reportDialog').data('type', 1).data('id', '${threadReply.oId}').dialog('open')"
                                             ><svg><use xlink:href="#icon-report"></use></svg></span>
-                                            <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
-                                                <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
-                                                      onclick="Comment.reply('${threadReply.commentAuthorName}', '${threadReply.oId}')">
-                                                    <svg class="icon-reply"><use xlink:href="#reply"></use></svg>
-                                                </span>
-                                            </#if>
                                         </span>
                                     </div>
                                 </div>
@@ -154,7 +154,12 @@
                              data-target-id="${comment.oId}"
                              data-current-user-reaction="${comment.currentUserReaction!''}"
                              data-summary='${(comment.reactionSummary!'[]')?html}'></div></div><!--
-                 --><span class="fn-hidden hover-show action-btns">
+                 --><span class="fn-hidden hover-show action-btns comment-action-menu">
+                    <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
+                        <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
+                              onclick="Comment.reply('${comment.commentAuthorName}', '${comment.oId}')">
+                        <svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>
+                    </#if>
                         <#assign hasRewarded = isLoggedIn && !isCurrentUserComment && comment.rewarded>
                         <span class="tooltipped tooltipped-n <#if hasRewarded>ft-red</#if>" aria-label="${thankLabel}"
                         <#if !hasRewarded && permissions["commonThankComment"].permissionGrant>
@@ -185,11 +190,6 @@
                     <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
                           onclick="$('#reportDialog').data('type', 1).data('id', '${comment.oId}').dialog('open')"
                     ><svg><use xlink:href="#icon-report"></use></svg></span>
-                    <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
-                        <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
-                              onclick="Comment.reply('${comment.commentAuthorName}', '${comment.oId}')">
-                        <svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>
-                    </#if>
                     </span></div>
                 <div class="comment-replies list"></div>
             </div>
