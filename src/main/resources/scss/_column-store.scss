@@ -1,0 +1,321 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/* start column-store */
+.long-read-zone__actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.column-cover,
+.column-detail-hero__cover,
+.column-reading-book,
+.column-book__cover {
+  background-color: #cdd6e3;
+  background-position: center;
+  background-size: cover;
+  display: block;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none;
+}
+
+.column-cover::before,
+.column-detail-hero__cover::before,
+.column-reading-book::before {
+  background: linear-gradient(180deg, rgba(15, 23, 42, .12), rgba(15, 23, 42, .78));
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.column-cover--default,
+.column-detail-hero--default .column-detail-hero__cover,
+.column-book--default .column-book__cover {
+  background-blend-mode: multiply;
+  background-color: #8aa0bd;
+}
+
+.column-bookstore__panel {
+  padding: 16px;
+}
+
+.column-bookstore__sections {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.column-bookstore__section {
+  min-width: 0;
+}
+
+.column-bookstore__section h2,
+.column-bookstore__section h3 {
+  color: #263241;
+  font-size: 16px;
+  line-height: 1.4;
+  margin: 0 0 14px;
+}
+
+.column-bookstore__section h3 {
+  background: #e8f5d8;
+  border-radius: 999px;
+  display: inline-block;
+  padding: 4px 14px;
+}
+
+.column-bookstore__section--hot h2,
+.column-bookstore__section--hot h3 {
+  background: #ffe2df;
+  color: #c0392b;
+}
+
+.column-bookstore__grid {
+  display: grid;
+  gap: 18px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+}
+
+.column-book {
+  color: #263241;
+  display: block;
+  min-width: 0;
+  text-align: center;
+  text-decoration: none;
+}
+
+.column-book__cover {
+  aspect-ratio: 3 / 4;
+  border-radius: 3px 6px 6px 3px;
+  box-shadow: inset 7px 0 0 rgba(0, 0, 0, .14), 0 8px 18px rgba(31, 41, 55, .18);
+  transition: box-shadow .18s, transform .18s;
+}
+
+.column-book:hover .column-book__cover {
+  box-shadow: inset 7px 0 0 rgba(0, 0, 0, .18), 0 12px 24px rgba(31, 41, 55, .24);
+  transform: translateY(-2px);
+}
+
+.column-book__title {
+  display: -webkit-box;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 8px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.column-bookstore__empty {
+  color: #8a94a6;
+  padding: 18px 0;
+  text-align: center;
+}
+
+.column-detail-hero {
+  border-bottom: 1px solid #edf1f6;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 160px minmax(0, 1fr);
+  padding: 18px;
+}
+
+.column-detail-hero__cover {
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+}
+
+.column-cover span,
+.column-detail-hero__cover span,
+.column-reading-book span {
+  position: relative;
+  z-index: 1;
+}
+
+.column-detail-hero__cover span {
+  bottom: 14px;
+  color: #fff;
+  font-weight: 700;
+  left: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  position: absolute;
+  right: 14px;
+}
+
+.column-detail-hero__body h1 {
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.25;
+  margin: 6px 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.column-detail-hero__label,
+.column-detail-hero__meta {
+  color: #6b7280;
+}
+
+.column-reading-shelf {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.column-reading-book {
+  border-radius: 8px;
+  color: #fff;
+  min-height: 148px;
+}
+
+.column-reading-book__title,
+.column-reading-book__bookmark,
+.column-reading-book__chapter {
+  color: #fff;
+  left: 12px;
+  position: absolute;
+  right: 12px;
+}
+
+.column-reading-book__bookmark {
+  background: #d94848;
+  left: auto;
+  padding: 8px 0 10px;
+  text-align: center;
+  top: 0;
+  width: 58px;
+}
+
+.column-reading-book__title {
+  bottom: 42px;
+  font-weight: 700;
+}
+
+.column-reading-book__chapter {
+  bottom: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-manage__list {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.column-manage__item {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.column-manage__item--current {
+  background: #f8fbff;
+  border: 1px solid #cfe0fb;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.column-cover {
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+}
+
+.column-cover span {
+  bottom: 10px;
+  color: #fff;
+  font-weight: 700;
+  left: 10px;
+  line-height: 1.35;
+  position: absolute;
+  right: 10px;
+}
+
+.column-manage__title {
+  color: #1f2937;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.column-manage__meta {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.column-manage__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.column-manage__input {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+body.night .column-bookstore__section h2,
+body.night .column-book {
+  color: #e5e7eb;
+}
+
+body.night .column-bookstore__section h3 {
+  background: rgba(74, 222, 128, .16);
+  color: #bbf7d0;
+}
+
+body.night .column-bookstore__section--hot h2,
+body.night .column-bookstore__section--hot h3 {
+  background: rgba(248, 113, 113, .16);
+  color: #fecaca;
+}
+
+@media (max-width: 768px) {
+  .column-bookstore__sections {
+    grid-template-columns: 1fr;
+  }
+
+  .column-bookstore__grid {
+    gap: 16px 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0 10px 12px;
+  }
+
+  .column-bookstore__section {
+    margin-bottom: 10px;
+  }
+
+  .column-detail-hero,
+  .column-manage__item {
+    grid-template-columns: 104px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .column-detail-hero__body h1 {
+    font-size: 20px;
+  }
+}
+/* end column-store */

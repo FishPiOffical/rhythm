@@ -33,6 +33,16 @@
     <div class="wrapper">
         <div class="content fn-clear">
             <div class="module">
+                <div class="column-detail-hero<#if !(longColumn.columnHasCover!false)> column-detail-hero--default</#if>">
+                    <a class="column-detail-hero__cover" href="${servePath}/column/${longColumn.oId}" style="background-image:url('${longColumn.columnCoverURL?html}')">
+                        <span>${longColumn.columnTitle}</span>
+                    </a>
+                    <div class="column-detail-hero__body">
+                        <div class="column-detail-hero__label">专栏</div>
+                        <h1>${longColumn.columnTitle}</h1>
+                        <div class="column-detail-hero__meta">共 ${longColumn.columnArticleCount?c} 章</div>
+                    </div>
+                </div>
                 <div class="module-header fn-clear">
                     <h2>专栏：${longColumn.columnTitle}</h2>
                     <span class="fn-right ft-smaller ft-gray">共 ${longColumn.columnArticleCount?c} 章</span>

@@ -34,6 +34,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatChannel;
+import org.b3log.symphony.service.ColumnCoverMgmtService;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.OptionQueryService;
 import org.b3log.symphony.service.TagQueryService;
@@ -118,9 +119,19 @@ public class ArticlePostValidationMidware {
             final String columnId = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.COLUMN_ID));
             final String columnTitle = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE));
             final String chapterNo = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.CHAPTER_NO));
+            final String columnCoverURL;
+            try {
+                columnCoverURL = ColumnCoverMgmtService.normalizeCoverURL(
+                        requestJSONObject.optString(LongArticleColumn.COLUMN_COVER_URL));
+            } catch (final Exception e) {
+                context.renderJSON(exception.put(Keys.MSG, e.getMessage()));
+                context.abort();
+                return;
+            }
             requestJSONObject.put(LongArticleColumn.COLUMN_ID, columnId);
             requestJSONObject.put(LongArticleColumn.COLUMN_TITLE, columnTitle);
             requestJSONObject.put(LongArticleColumn.CHAPTER_NO, chapterNo);
+            requestJSONObject.put(LongArticleColumn.COLUMN_COVER_URL, columnCoverURL);
 
             if (columnTitle.length() > LongArticleColumn.MAX_COLUMN_TITLE_LENGTH) {
                 context.renderJSON(exception.put(Keys.MSG, "专栏名称长度不能超过 " + LongArticleColumn.MAX_COLUMN_TITLE_LENGTH + " 个字符"));

@@ -1316,6 +1316,7 @@ public class ArticleProcessor {
         dataModel.put("longArticleColumnId", chapterMeta.optString(LongArticleColumn.COLUMN_ID));
         dataModel.put("longArticleChapterNo", chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
         dataModel.put("longArticleColumnTitle", chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
+        dataModel.put("longArticleColumnCoverURL", chapterMeta.optString(LongArticleColumn.COLUMN_COVER_URL));
     }
 
     private String normalizeCommentSort(final String sort) {
@@ -1758,6 +1759,7 @@ public class ArticleProcessor {
         final String longArticleColumnId = requestJSONObject.optString(LongArticleColumn.COLUMN_ID);
         final String longArticleColumnTitle = requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE);
         final String longArticleChapterNo = requestJSONObject.optString(LongArticleColumn.CHAPTER_NO);
+        final String longArticleColumnCoverURL = requestJSONObject.optString(LongArticleColumn.COLUMN_COVER_URL);
 
         final JSONObject article = new JSONObject();
         article.put(Article.ARTICLE_TITLE, articleTitle);
@@ -1780,6 +1782,7 @@ public class ArticleProcessor {
         article.put(LongArticleColumn.COLUMN_ID, longArticleColumnId);
         article.put(LongArticleColumn.COLUMN_TITLE, longArticleColumnTitle);
         article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
+        article.put(LongArticleColumn.COLUMN_COVER_URL, longArticleColumnCoverURL);
         try {
             JSONObject currentUser = Sessions.getUser();
             try {
@@ -2021,6 +2024,7 @@ public class ArticleProcessor {
         final String longArticleColumnId = requestJSONObject.optString(LongArticleColumn.COLUMN_ID);
         final String longArticleColumnTitle = requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE);
         final String longArticleChapterNo = requestJSONObject.optString(LongArticleColumn.CHAPTER_NO);
+        final String longArticleColumnCoverURL = requestJSONObject.optString(LongArticleColumn.COLUMN_COVER_URL);
         final JSONObject article = new JSONObject();
         article.put(Keys.OBJECT_ID, id);
         article.put(Article.ARTICLE_TITLE, articleTitle);
@@ -2042,6 +2046,7 @@ public class ArticleProcessor {
         article.put(LongArticleColumn.COLUMN_ID, longArticleColumnId);
         article.put(LongArticleColumn.COLUMN_TITLE, longArticleColumnTitle);
         article.put(LongArticleColumn.CHAPTER_NO, longArticleChapterNo);
+        article.put(LongArticleColumn.COLUMN_COVER_URL, longArticleColumnCoverURL);
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));

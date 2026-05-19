@@ -1159,6 +1159,175 @@ curl -X POST -H "Content-Type: application/json" \
 | - succMap    | 上传成功的文件信息                | `{ ... }`          |
 | --`<文件名>` | 文件地址                          | https://...        |
 
+## 复读机转录站
+
+### 查询转录内容列表
+
+`GET /api/repeater/items`
+
+按类型查询复读机转录内容。传入 `apiKey` 时，响应会包含当前用户的点赞状态。
+
+请求：
+
+| Key                 | 说明                                      | 示例                             |
+| ------------------- | ----------------------------------------- | -------------------------------- |
+| repeaterContentType | 内容类型：`joke`/`kfc`/`fish`，不传查全部 | joke                             |
+| apiKey              | 通用密钥，可选                            | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterContentType=joke&apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS'
+```
+
+响应：
+
+| Key                              | 说明                         | 示例          |
+| -------------------------------- | ---------------------------- | ------------- |
+| code                             | 0成功/-1失败                 | 0             |
+| msg                              | 错误信息                     | 类型不合法    |
+| data                             | 响应数据                     | `{...}`       |
+| - items                          | 转录内容列表                 | `[ ... ]`     |
+| -- oId                           | 内容 Id                      | 1770000000000 |
+| -- repeaterContentType           | 内容类型                     | joke          |
+| -- repeaterContentTypeLabel      | 类型名称                     | 段子          |
+| -- repeaterContent               | 正文                         | 转录内容      |
+| -- repeaterContentAuthorId       | 作者 Id，系统种子内容为空    | 1770000000000 |
+| -- repeaterContentAuthorName     | 作者用户名，系统种子内容为空 | fishpi        |
+| -- repeaterContentSource         | 来源：`user`/`seed`          | user          |
+| -- repeaterContentLikeCount      | 点赞数                       | 10            |
+| -- repeaterContentLiked          | 当前用户是否已点赞           | true          |
+| -- repeaterContentCreatedTime    | 创建时间戳                   | 1770000000000 |
+| -- repeaterContentUpdatedTime    | 更新时间戳                   | 1770000000000 |
+
+### 随机获取转录内容
+
+`GET /api/repeater/next`
+
+按类型随机获取一条转录内容。传入 `excludeId` 时，会尽量避开当前内容。
+
+请求：
+
+| Key                 | 说明                                      | 示例                             |
+| ------------------- | ----------------------------------------- | -------------------------------- |
+| repeaterContentType | 内容类型：`joke`/`kfc`/`fish`，不传查全部 | joke                             |
+| excludeId           | 需要排除的内容 Id，可选                   | 1770000000000                    |
+| apiKey              | 通用密钥，可选                            | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/repeater/next?repeaterContentType=fish&excludeId=1770000000000'
+```
+
+响应：
+
+| Key    | 说明                         | 示例    |
+| ------ | ---------------------------- | ------- |
+| code   | 0成功/-1失败                 | 0       |
+| msg    | 错误信息                     |         |
+| data   | 响应数据                     | `{...}` |
+| - item | 单条转录内容，字段同列表接口 | `{...}` |
+
+### 上传转录内容
+
+`POST /api/repeater`
+
+登录用户上传一条复读机转录内容。
+
+请求：
+
+| Key                 | 说明                                  | 示例                             |
+| ------------------- | ------------------------------------- | -------------------------------- |
+| apiKey              | 通用密钥                              | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| repeaterContentType | 内容类型：`joke`/`kfc`/`fish`         | kfc                              |
+| repeaterContent     | 正文，2 到 500 字符，会清理 HTML 标签 | 今天疯狂星期四                   |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/repeater' \
+--header 'Content-Type: application/json' \
+--data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS","repeaterContentType":"kfc","repeaterContent":"今天疯狂星期四"}'
+```
+
+响应：
+
+| Key    | 说明                         | 示例    |
+| ------ | ---------------------------- | ------- |
+| code   | 0成功/-1失败                 | 0       |
+| msg    | 错误信息                     | 内容太短 |
+| data   | 响应数据                     | `{...}` |
+| - item | 已保存的转录内容，字段同列表 | `{...}` |
+
+### 点赞转录内容
+
+`POST /api/repeater/{id}/like`
+
+登录用户点赞或取消点赞一条转录内容。
+
+请求：
+
+| Key    | 说明                       | 示例                             |
+| ------ | -------------------------- | -------------------------------- |
+| id     | 内容 Id，本参数为 URL 参数 | 1770000000000                    |
+| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/like' \
+--header 'Content-Type: application/json' \
+--data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS"}'
+```
+
+响应：
+
+| Key                        | 说明                 | 示例 |
+| -------------------------- | -------------------- | ---- |
+| code                       | 0成功/-1失败         | 0    |
+| msg                        | 错误信息             |      |
+| data                       | 响应数据             | `{...}` |
+| - liked                    | 操作后是否已点赞     | true |
+| - repeaterContentLikeCount | 操作后的点赞数       | 11   |
+
+## 专栏
+
+### 更新专栏封面
+
+`POST /api/columns/{columnId}/cover`
+
+专栏作者更新自己专栏的封面图地址。传空字符串会清空封面，清空后页面使用默认封面。
+
+请求：
+
+| Key            | 说明                                             | 示例                             |
+| -------------- | ------------------------------------------------ | -------------------------------- |
+| columnId       | 专栏 Id，本参数为 URL 参数                       | 1770000000000                    |
+| apiKey         | 通用密钥                                         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| columnCoverURL | 封面图地址，支持站内路径或 HTTP/HTTPS，最长 1024 | https://file.fishpi.cn/demo.jpg  |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/columns/1770000000000/cover' \
+--header 'Content-Type: application/json' \
+--data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS","columnCoverURL":"https://file.fishpi.cn/demo.jpg"}'
+```
+
+响应：
+
+| Key                | 说明                 | 示例                       |
+| ------------------ | -------------------- | -------------------------- |
+| code               | 0成功/-1失败         | 0                          |
+| msg                | 错误信息             | 专栏不存在或无权限操作     |
+| data               | 响应数据             | `{...}`                    |
+| - column           | 更新后的专栏数据     | `{...}`                    |
+| -- oId             | 专栏 Id              | 1770000000000              |
+| -- columnTitle     | 专栏名称             | 我的专栏                   |
+| -- columnCoverURL  | 封面图地址           | https://file.fishpi.cn/... |
+| -- columnHasCover  | 是否设置了自定义封面 | true                       |
+
 ## 帖子
 
 ### 查询文章草稿列表

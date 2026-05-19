@@ -18,6 +18,7 @@
 - JS 版本号暴露排查使用 `tools/js-version-audit.mjs`；清理后执行 `yarn run build` 并复查，生产静态资源不要发布可泄露依赖信息的 source map。
 - 质量复盘约束：近期提交后多轮修 bug 的主要原因是只验证了局部代码，未按真实用户链路完整反查入口、模板、生成产物和浏览器行为。后续代码改动提交前必须完成对应层级闭环：读清调用链与数据形态；同步检查 PC/移动、源码/生成产物、权限/匿名/apiKey；前端改动执行 `yarn run build` 并用浏览器验证关键操作；Java/FTL 改动先提醒用户通过 IDEA 重新编译或重启服务端；无法验证的项必须在最终回复中明确列出，不能用猜测代替验证。
 - 发布前检查基线：先看 `git status --short` 与未提交 diff，按新增/修改路由、模板、JS/CSS、SQL/Repository 分类；所有新增或改造的匿名入口必须确认会经过 `AnonymousViewCheckMidware` 或明确要求登录，不能让新 IP 直接访问新功能接口绕过 `/test` 极验；复核 `BeforeRequestHandler` 黑名单重定向、`AnonymousViewCheckMidware` 首访/每 5 次验证码、`CaptchaProcessor#validateCaptcha` 解封链路未被绕过；扫描新增公网静态资源和 CDN URL 是否暴露版本号、`sourceMappingURL` 或可枚举目录；接口按未鉴权访问、越权、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露逐项给结论。
+- 反漏扫底线：任何未提交代码审查、发布前检查、公开入口新增或改造都必须检查反漏扫；至少覆盖匿名访问链路、黑名单/验证码链路、`anonymous.viewSkips`、公开 API 鉴权、静态资源/CDN 版本号、`sourceMappingURL`、目录枚举、上传/下载返回路径；无法实际验证的项必须在最终回复中列出，不能跳过或默认通过。
 - CDN 防漏扫排查：当用户要求“CDN 防漏扫/刷新列表/替换目录”时，扫描项目内 `https://file.fishpi.cn/...` 具体资源（排除 `.codex-tasks`、`target`、`node_modules`、`cdn-version-replacements`），下载可访问资源，检测路径/查询参数/内容中的版本号与 `sourceMappingURL`；命中资源按 CDN 路径镜像到 `cdn-version-replacements/files/`，但路径版本号目录改为稳定目录名（如 `vditor/3.11.1/dist -> vditor/latest/dist`），文件名版本号去掉（如 `jquery.color-2.1.2.min.js -> jquery.color.min.js`），源码引用也同步改成新 URL；版本目录型库必须在 CDN 侧保留原目录并复制完整目录树到稳定目录，不能只上传入口文件；生成 `report.md`、`version-findings.json`、`replacement-validation.json` 和一行一个的 `refresh-urls.txt`；替换副本需复扫并对 JS 执行 `node --check`，下载失败或动态拼接 URL 单独记录，不伪造结果。
 - 鱼排扩展独立脚本需包含标准 `UserScript` 头（至少 `@name`、`@match`、`@grant`、`@run-at`）；聊天室联调脚本建议同时匹配 `https://fishpi.cn/cr*` 与 `http://localhost:8080/cr*`。
 - WSL 执行 Maven 优先使用：`-Dmaven.repo.local=/mnt/c/.m2/repository`；Java 固定 25。
@@ -39,6 +40,7 @@
 - 聊天室红包详情/打开后的弹层头部走前端通用 `Util.alert()`（`src/main/resources/js/common.js`），标题与关闭按钮布局异常优先排查这个公共弹层，而不是红包业务模板。
 - 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
+- 用户在线时间结算链路在 `processor/channel/UserChannel`；`onlineMinute` 是分钟数整型字段，结算毫秒差必须先用 long/TimeUnit 转分钟，不能先强转 `int`，否则单次连接超过约 24.85 天会溢出为负数。
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
 - 评论/文章公开接口与 WebSocket 事件必须使用响应白名单；允许返回 `commentAuthorId`、`articleAuthorId` 这类公开用户 ID，但禁止返回 `commentIP`、`commentUA`、`articleIP`、`articleUA`、`userPassword`、`userLatestLoginIP`、`userPhone`、`userEmail`、`userQQ`、`secret2fa`、token/key 等高敏字段。完整 `Article` 或完整用户对象不得裸传，需先脱敏。
@@ -92,9 +94,11 @@
 - VIP 管理页样式需注意 `home.css` 的 `.form--admin label { flex: 1; }` 会影响布局；配置项行在 `vip-admin.scss` 中需显式改为整行（label/builder 100%）并对 checkbox 使用类型选择器，避免控件被放大。
 - 有效期字段：勋章 `expireTime`（毫秒，`0`=永久）；会员 `expiresAt`（可回填勋章到期）。
 - 首页最新文章链路：`IndexProcessor#loadIndexData` 通过 `ArticleQueryService#getIndexRecentArticles(fetchSize, page)` 组装 classic/pc 与 classic/mobile 首页“最新文章”；第一页置顶插入与数量行为在该方法维护。
+- 首页模块个性化链路：classic PC/移动首页模板引入 `home-personalize.js`、`home-modules.js`、`repeater-station.js`，配置状态保存在浏览器 `localStorage`；重置布局要按初始 DOM 锚点恢复，不能简单 append 到父容器末尾；复读机接口在 `RepeaterProcessor`，数据表为 `repeater_content`/`repeater_like`。
 - `/recent` 与 `/api/articles/recent*` 共用 `ArticleQueryService#getRecentArticles`；该链路已明确排除长篇（`articleType=6`），长篇列表请走 `/recent/long` 页面或 `GET /api/articles/recent/long`。
 - 首页两列对齐约束：`getIndexRecentArticles` 的第一页会插入全部置顶且不截断；第二页起需按第一页“置顶占位数”补偿 `fetchSize` 与分页偏移，并基于已排除置顶 ID 的普通文章序列取数，保证两列等高、不重复、不丢中间文章。
 - 首页右侧排行补偿（无前端延迟）：由 `IndexProcessor#loadIndexData` 按两列最新文章的最大行数计算 `rankCompensateRows`，先换算“右栏总补偿行数”再分摊到 `checkinVisibleCount/onlineVisibleCount`，Freemarker 直接按该数量渲染，不再依赖 JS 运行时增删行。
+- 专栏封面链路：封面字段是 `long_article_column.columnCoverURL`；默认封面在 `LongArticleColumnQueryService` 填充；作者管理页为 `/column/manage`，编辑长篇页的弹窗脚本是 `long-article-cover-dialog.js`，新建长篇封面随 `/article` 请求的 `columnCoverURL` 写入；封面保存接口为 `POST /api/columns/{columnId}/cover`，处理器是 `LongArticleColumnProcessor`。
 - 路由总入口：`Router#requestMapping` + 各 Processor `register()`；新增路由先决定使用 `loginCheck` / `apiCheck` / `permission` / `anonymousViewCheck` 哪条链路。
 - Latke 路由存在静态段被相邻动态段截获的风险（如 `/article/{id}/revisions/list` 可能进入 `/article/{id}/revisions/{revisionId}`）；新增相邻路由时需避免路径歧义，或在处理方法中显式识别保留字。
 - `BeforeRequestHandler` 通过 `Dispatcher.startRequestHandler` 在路由中间件前执行；该阶段 `query/form/cookie` 已由 latke-core 解析，可直接读取请求参数与 Cookie。

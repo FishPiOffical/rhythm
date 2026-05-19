@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * User channel.
@@ -60,6 +61,10 @@ public class UserChannel implements WebSocketChannel {
      * Logger.
      */
     private static final Logger LOGGER = LogManager.getLogger(UserChannel.class);
+
+    private static final String ONLINE_START_MILLIS = "timeStamp";
+
+    private static final String ONLINE_MINUTE_KEY = "onlineMinute";
 
     /**
      * User management service.
@@ -109,9 +114,9 @@ public class UserChannel implements WebSocketChannel {
         if (!userOnline.containsKey(userId)) {
             JSONObject onlineUser = new JSONObject();
             // 当前时间戳
-            onlineUser.put("timeStamp", System.currentTimeMillis());
+            onlineUser.put(ONLINE_START_MILLIS, System.currentTimeMillis());
             // 用户之前的在线时间
-            onlineUser.put("onlineMinute", userQueryService.getOnlineMinute(userId));
+            onlineUser.put(ONLINE_MINUTE_KEY, userQueryService.getOnlineMinute(userId));
             userOnline.put(userId, onlineUser);
         }
 
@@ -247,16 +252,19 @@ public class UserChannel implements WebSocketChannel {
             // 停止记录在线时间
             if (userOnline.containsKey(userId)) {
                 JSONObject onlineUser = userOnline.get(userId);
-                long timeStamp = onlineUser.optLong("timeStamp");
-                int onlineMinute = onlineUser.optInt("onlineMinute");
-                long onlineTime = System.currentTimeMillis() - timeStamp;
-                int calcOnlineMinutes = (int) onlineTime / 1000 / 60;
-                onlineMinute = onlineMinute + calcOnlineMinutes;
-                userMgmtService.setOnlineMinute(userId, onlineMinute);
+                userMgmtService.setOnlineMinute(userId, calculateOnlineMinute(onlineUser));
                 userOnline.remove(userId);
             }
             userMgmtService.updateOnlineStatus(userId, ip, false, true);
         }
+    }
+
+    private static int calculateOnlineMinute(final JSONObject onlineUser) {
+        final long timeStamp = onlineUser.optLong(ONLINE_START_MILLIS);
+        final int onlineMinute = onlineUser.optInt(ONLINE_MINUTE_KEY);
+        final long onlineTime = System.currentTimeMillis() - timeStamp;
+        final long calcOnlineMinutes = TimeUnit.MILLISECONDS.toMinutes(onlineTime);
+        return Math.toIntExact(onlineMinute + calcOnlineMinutes);
     }
 
     /**
@@ -266,12 +274,8 @@ public class UserChannel implements WebSocketChannel {
         LOGGER.log(Level.INFO, "Settlement user online time...");
         for (String key : userOnline.keySet()) {
             JSONObject onlineUser = userOnline.get(key);
-            long timeStamp = onlineUser.optLong("timeStamp");
-            int onlineMinute = onlineUser.optInt("onlineMinute");
-            long onlineTime = System.currentTimeMillis() - timeStamp;
-            int calcOnlineMinutes = (int) onlineTime / 1000 / 60;
-            onlineMinute = onlineMinute + calcOnlineMinutes;
-            System.out.println("UserId [" + key + "], Online time [" + onlineMinute + "]");
+            final int onlineMinute = calculateOnlineMinute(onlineUser);
+            LOGGER.log(Level.INFO, "UserId [" + key + "], Online time [" + onlineMinute + "]");
             final BeanManager beanManager = BeanManager.getInstance();
             final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
             userMgmtService.setOnlineMinute(key, onlineMinute);

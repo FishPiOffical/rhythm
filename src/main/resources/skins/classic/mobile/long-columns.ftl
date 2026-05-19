@@ -32,65 +32,55 @@
     <#include "header.ftl">
     <@indexNav 'column'/>
 </div>
-<#macro columnMeta column showLatestChapter>
-    <div class="ft__smaller ft__fade" style="margin-top:6px;">
-        <#if column.columnAuthorName?? && column.columnAuthorName?has_content>
-            作者 <a href="${servePath}/member/${column.columnAuthorName}">${column.columnAuthorName}</a> ·
-        </#if>
-        <#if column.columnUpdateTimeAgo?? && column.columnUpdateTimeAgo?has_content>
-            更新时间 <span title="${column.columnUpdateTimeStr!}">${column.columnUpdateTimeAgo}</span> ·
-        </#if>
-        共 ${column.columnArticleCount?c} 章
-        <#if showLatestChapter && column.latestChapter?? && column.latestChapter.articlePermalink??>
-            · 最新：<a href="${servePath}${column.latestChapter.articlePermalink}">第 ${column.latestChapter.chapterNo?c} 章</a>
-        </#if>
-    </div>
+<#macro columnBook column>
+    <#assign columnId = column.columnId!column.oId>
+    <a class="column-book<#if !(column.columnHasCover!false)> column-book--default</#if>"
+       href="${servePath}/column/${columnId}" title="${column.columnTitle}">
+        <span class="column-book__cover" style="background-image:url('${column.columnCoverURL?html}')"></span>
+        <span class="column-book__title">${column.columnTitle}</span>
+    </a>
 </#macro>
 <div style="height: 74px;width: 1px;"></div>
 
-<div class="main">
-    <#if latestLongColumns?? && latestLongColumns?size != 0>
-        <div class="module_new">
-            <h2 class="module__title ft__fade fn__clear">最新专栏</h2>
-        </div>
-        <ul>
+<div class="main column-bookstore column-bookstore--mobile">
+    <section class="column-bookstore__section">
+        <h2 class="module__title ft__fade fn__clear">最新专栏</h2>
+        <#if latestLongColumns?? && latestLongColumns?size != 0>
+            <div class="column-bookstore__grid">
             <#list latestLongColumns as column>
-                <#assign columnId = column.columnId!column.oId>
-                <li class="list__item">
-                    <a class="list__title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                    <@columnMeta column true />
-                </li>
+                <@columnBook column=column />
             </#list>
-        </ul>
-    </#if>
+            </div>
+        <#else>
+            <div class="column-bookstore__empty">暂无专栏</div>
+        </#if>
+    </section>
 
-    <#if hotLongColumns?? && hotLongColumns?size != 0>
-        <div class="module_new">
-            <h2 class="module__title ft__fade fn__clear">热门专栏</h2>
-        </div>
-        <ul>
+    <section class="column-bookstore__section column-bookstore__section--hot">
+        <h2 class="module__title ft__fade fn__clear">热门专栏</h2>
+        <#if hotLongColumns?? && hotLongColumns?size != 0>
+            <div class="column-bookstore__grid">
             <#list hotLongColumns as column>
-                <#assign columnId = column.columnId!column.oId>
-                <li class="list__item">
-                    <a class="list__title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                    <@columnMeta column false />
-                </li>
+                <@columnBook column=column />
             </#list>
-        </ul>
-    </#if>
+            </div>
+        <#else>
+            <div class="column-bookstore__empty">暂无专栏</div>
+        </#if>
+    </section>
 
     <#if isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0>
-        <div class="module_new">
+        <section class="column-bookstore__section">
             <h2 class="module__title ft__fade fn__clear">最近阅读</h2>
-        </div>
-        <ul>
+            <ul>
             <#list longColumnRecentReadHistory as history>
                 <li class="list__item">
                     <a class="list__title" href="${servePath}${history.articlePermalink}">第 ${history.chapterNo?c} 章 · ${history.articleTitleEmoj}</a>
                     <a class="ft__smaller" style="color:#2b5db9;text-decoration:none;" href="${servePath}/column/${history.columnId}">${history.columnTitle}</a>
                 </li>
             </#list>
-        </ul>
+            </ul>
+        </section>
     </#if>
 </div>
 

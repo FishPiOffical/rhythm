@@ -187,6 +187,7 @@ public class IndexProcessor {
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/recent", "/recent/hot", "/recent/good", "/recent/reply"}).handler(indexProcessor::showRecent);
         Dispatcher.get("/recent/long", indexProcessor::showLongArticles, loginCheck::handle);
         Dispatcher.get("/column", indexProcessor::showLongArticleColumns, loginCheck::handle);
+        Dispatcher.get("/column/manage", beanManager.getReference(LongArticleColumnProcessor.class)::showManage, loginCheck::handle);
         Dispatcher.get("/column/{columnId}", indexProcessor::showLongArticleColumn, loginCheck::handle);
         Dispatcher.get("/about", indexProcessor::showAbout);
         Dispatcher.get("/kill-browser", indexProcessor::showKillBrowser);
@@ -830,6 +831,11 @@ public class IndexProcessor {
      */
     public void showLongArticleColumn(final RequestContext context) {
         final String columnId = context.pathVar("columnId");
+        if ("manage".equals(columnId)) {
+            BeanManager.getInstance().getReference(LongArticleColumnProcessor.class).showManage(context);
+            return;
+        }
+
         final JSONObject columnView = longArticleColumnQueryService.getColumnViewById(columnId);
         if (null == columnView) {
             context.sendError(404);

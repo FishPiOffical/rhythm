@@ -5460,6 +5460,20 @@ body.long-article-page {
   margin: 16px 0;
 }
 
+.long-article-column-manage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid #d9e5f5;
+  border-radius: 15px;
+  background: #fff;
+  color: #2b5db9;
+  text-decoration: none;
+}
+
 .article-nav-scope__input,
 .article-nav-sort__input {
   position: absolute;
@@ -6017,6 +6031,10 @@ body.night {
   line-height: 1;  /* 防止 emoji 撑高 */
 }
 
+@import "home-personalize";
+@import "home-feedback";
+@import "column-store";
+@import "long-article-cover-dialog";
 @import "mobile-polish-vars";
 @import "mobile-header-polish";
 @import "mobile-home-polish";

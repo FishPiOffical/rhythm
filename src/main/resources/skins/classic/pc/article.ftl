@@ -121,7 +121,6 @@
             <div class="vditor-reset article-content" id="articleThought" data-author="${article.articleAuthorName}"
                  data-link="${servePath}${article.articlePermalink}"></div>
         </#if>
-        <#include "common/article-adjacent-nav.ftl">
 
         <#if 0 < article.articleRewardPoint>
             <div id="articleRewardContent">
@@ -140,6 +139,7 @@
                 </div>
             </div>
         </#if>
+        <#include "common/article-adjacent-nav.ftl">
 
         <div class="article-tail">
             <#if 6 == article.articleType>

@@ -97,6 +97,8 @@ public final class Router {
         FollowProcessor.register();
         // 首页
         IndexProcessor.register();
+        // 专栏管理
+        LongArticleColumnProcessor.register();
         // 登录
         LoginProcessor.register();
         // 通知
@@ -138,6 +140,8 @@ public final class Router {
         EmojiProcessor.register();
         // reaction
         ReactionProcessor.register();
+        // 复读机转录站
+        RepeaterProcessor.register();
 
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);

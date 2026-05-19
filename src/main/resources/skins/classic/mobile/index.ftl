@@ -45,31 +45,45 @@
     </form>
 </#if>
 
+<div class="home-personalize-toolbar home-personalize-toolbar--mobile">
+    <button class="home-personalize-toolbar__btn" id="homePersonalizeOpen" type="button" aria-label="配置首页模块">
+        <svg><use xlink:href="#setting-outline"></use></svg>
+        <span>配置</span>
+    </button>
+    <div class="home-personalize-panel" id="homePersonalizePanel" aria-hidden="true"></div>
+</div>
+
 <div class="main" >
-    <ul>
+    <ul class="home-personalize-zone" data-home-zone="mobile">
         <#if recentArticlesMobile??>
-            <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
-                <span>最新文章</span>
-                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent">更多</a>
+            <li class="home-module home-module--mobile-group" data-home-module="recent" data-home-title="最新文章">
+                <div class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
+                    <span>最新文章</span>
+                    <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/recent">更多</a>
+                </div>
+                <ul>
+                    <#list recentArticlesMobile as article>
+                        <#include "common/list-item.ftl">
+                    </#list>
+                </ul>
             </li>
-        <#list recentArticlesMobile as article>
-            <#include "common/list-item.ftl">
-        </#list>
         </#if>
 
         <#if (latestLongColumns?? && latestLongColumns?size != 0) || (hotLongColumns?? && hotLongColumns?size != 0) || (isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0)>
-            <li class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
-                <span>长篇专区</span>
-                <a class="fn__right" style="margin-left:auto;color:#4285f4;text-decoration:none;" href="${servePath}/column">更多</a>
-            </li>
+            <li class="home-module home-module--mobile-group mobile-column-shelf" data-home-module="long" data-home-title="长篇专区">
+                <div class="module__title ft__fade fn__clear" style="padding: 10px 12px 6px 12px; color:#333; font-weight:400; font-size:15px; display:flex; align-items:center; justify-content:flex-start; text-align:left;">
+                    <span>长篇专区</span>
+                    <span class="fn__right" style="margin-left:auto;"></span>
+                    <a style="color:#4285f4;text-decoration:none;" href="${servePath}/column">更多</a>
+                </div>
             <#if latestLongColumns?? && latestLongColumns?size != 0>
-                <li class="list__item fn__flex" style="padding-bottom:0;">
+                <div class="list__item fn__flex" style="padding-bottom:0;">
                     <span class="ft__smaller ft__fade">最近更新</span>
-                </li>
+                </div>
                 <#list latestLongColumns as column>
                     <#if column_index < 4>
                     <#assign columnId = column.columnId!column.oId>
-                    <li class="list__item mobile-long-column">
+                    <article class="list__item mobile-long-column">
                         <div class="fn__flex">
                             <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
                             <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
@@ -88,18 +102,18 @@
                             </a>
                             </#if>
                         </div>
-                    </li>
+                    </article>
                     </#if>
                 </#list>
             </#if>
             <#if hotLongColumns?? && hotLongColumns?size != 0>
-                <li class="list__item fn__flex" style="padding-bottom:0;">
+                <div class="list__item fn__flex" style="padding-bottom:0;">
                     <span class="ft__smaller ft__fade">热门专栏</span>
-                </li>
+                </div>
                 <#list hotLongColumns as column>
                     <#if column_index < 4>
                     <#assign columnId = column.columnId!column.oId>
-                    <li class="list__item mobile-long-column">
+                    <article class="list__item mobile-long-column">
                         <div class="fn__flex">
                             <a class="fn__flex-1" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
                             <span class="ft__smaller ft__fade">${column.columnArticleCount?c} 章</span>
@@ -118,28 +132,31 @@
                             </a>
                             </#if>
                         </div>
-                    </li>
+                    </article>
                     </#if>
                 </#list>
             </#if>
             <#if isLoggedIn && longColumnRecentReadHistory?? && longColumnRecentReadHistory?size != 0>
-                <li class="list__item fn__flex" style="padding-bottom:0;">
+                <div class="list__item fn__flex" style="padding-bottom:0;">
                     <span class="ft__smaller ft__fade">最近阅读</span>
-                </li>
+                </div>
                 <#list longColumnRecentReadHistory as history>
                     <#if history_index < 4>
-                    <li class="list__item">
+                    <article class="list__item mobile-long-column mobile-long-column--history">
                         <a class="list__title" href="${servePath}${history.articlePermalink}">第 ${history.chapterNo?c} 章 · ${history.articleTitleEmoj}</a>
-                        <a class="ft__smaller" style="color:#2b5db9;text-decoration:none;" href="${servePath}/column/${history.columnId}">${history.columnTitle}</a>
-                    </li>
+                        <a class="ft__smaller mobile-long-column__bookmark" href="${servePath}/column/${history.columnId}">${history.columnTitle}</a>
+                    </article>
                     </#if>
                 </#list>
             </#if>
+            </li>
         </#if>
+
     </ul>
 </div>
 
 <#if tags?size != 0>
+    <div class="home-module" data-home-module="tags" data-home-title="推荐标签">
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">
             推荐标签
@@ -161,15 +178,59 @@
         </#list>
 
     </div>
+    </div>
 </#if>
 
 <div class="fn-hr10"></div>
 <#if  niceUsers?size!=0>
+    <div class="home-module" data-home-module="users" data-home-title="最新注册">
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">
             最新注册
         </h2>
     </div>
+    <section class="repeater-station repeater-station--mobile-users">
+        <div class="repeater-station__head">
+            <div class="repeater-station__title">
+                <svg><use xlink:href="#refresh"></use></svg>
+                <span>复读机转录站</span>
+            </div>
+            <div class="repeater-station__tabs" role="tablist">
+                <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke">段子</button>
+                <button type="button" class="repeater-station__tab" data-repeater-type="kfc">星期四</button>
+                <button type="button" class="repeater-station__tab" data-repeater-type="fish">鱼科普</button>
+            </div>
+        </div>
+        <div class="repeater-station__body">
+            <div class="repeater-station__quote" id="repeaterContent">加载中...</div>
+            <div class="repeater-station__meta">
+                <span id="repeaterTypeLabel">段子</span>
+                <span id="repeaterAuthor"></span>
+            </div>
+        </div>
+        <div class="repeater-station__actions">
+            <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
+            <button type="button" class="repeater-station__btn" data-repeater-action="next">换一个</button>
+            <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like">
+                <svg><use xlink:href="#heart"></use></svg>
+                <span id="repeaterLikeCount">0</span>
+            </button>
+            <#if isLoggedIn>
+                <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
+            <#else>
+                <a class="repeater-station__btn" href="${servePath}/login">登录</a>
+            </#if>
+        </div>
+        <#if isLoggedIn>
+            <div class="repeater-station__create" id="repeaterCreatePanel" hidden>
+                <textarea id="repeaterCreateContent" maxlength="500" placeholder="输入转录内容"></textarea>
+                <div class="repeater-station__create-actions">
+                    <button type="button" class="green" data-repeater-action="submit">提交</button>
+                    <button type="button" data-repeater-action="closeCreate">取消</button>
+                </div>
+            </div>
+        </#if>
+    </section>
     <div class="module__body">
         <#list recentRegUsers as user>
             <a  rel="nofollow"
@@ -179,8 +240,10 @@
         </#list>
     </div>
     <div class="fn-hr10"></div>
+    </div>
 </#if>
 <#if isLoggedIn>
+<div class="home-module" data-home-module="tools" data-home-title="功能">
 <div class="module_new">
     <h2 class="module__title ft__fade fn__clear">
         <div class="module__title ft__fade fn__clear">
@@ -217,8 +280,10 @@
     <li class="menu__item"><a class="title" style="text-decoration: none" id="yesterday" onclick="yesterday()">✅ 领取昨日活跃奖励</a>
     </li>
 </ul>
+</div>
 
 <div class="fn-hr10"></div>
+<div class="home-module" data-home-module="nav" data-home-title="导航">
 <div class="module_new">
     <h2 class="module__title ft__fade fn__clear">
         <div class="module__title ft__fade fn__clear">
@@ -239,6 +304,7 @@
     <li class="menu__item"><a class="title" href="https://market.time-pack.com/">🏪 交易市场</a></li>
     <li class="menu__item"><a class="title" href="https://room.adventext.fun">🎮 摸鱼竞技大厅</a></li>
 </ul>
+</div>
 </#if>
 <#if showSideAd && ADLabel != ''>
 <div class="main">
@@ -276,6 +342,9 @@
 </div>
 <#include "footer.ftl">
 </body>
+<script src="${staticServePath}/js/home-personalize${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/home-modules${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/repeater-station${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     var chatRoomPictureStatus = "<#if 0 == chatRoomPictureStatus> blur</#if>";
 
@@ -375,5 +444,10 @@
     <#if need2fa == "yes">
     Util.alert("⛔ 摸鱼派管理组成员，您好！<br>作为管理组的成员，您的账号需要更高的安全性，以确保社区的稳定运行。<br>请您收到此通知后，立即在个人设置-账户中启用两步验证，感谢你对社区的贡献！<br><br><button onclick='location.href=\"${servePath}/settings/account#mfaCode\"'>点击这里前往设置</button>", "致管理组成员的重要通知️")
     </#if>
+</script>
+<script>
+    $(function () {
+        HomePersonalize.initIndex();
+    });
 </script>
 </html>

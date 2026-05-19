@@ -96,6 +96,7 @@ var AddArticle = {
       columnId: columnId,
       columnTitle: columnTitle,
       chapterNo: chapterNo,
+      columnCoverURL: $('#longArticleColumnCoverURL').val() || '',
     }
   },
   _hasDraftContent: function (draft) {
@@ -551,6 +552,7 @@ var AddArticle = {
         }
         requestJSONObject.columnId = longArticleColumnId
         requestJSONObject.columnTitle = longArticleColumnTitle
+        requestJSONObject.columnCoverURL = $('#longArticleColumnCoverURL').val() || ''
 
         var chapterNo = ''
         if (longArticleColumnId !== '' && $('#longArticleChapterNo').length > 0) {
@@ -902,6 +904,50 @@ var AddArticle = {
         $('#longArticleChapterNo').prop('disabled', true).val('')
       }
     }
+
+    AddArticle.syncLongColumnCoverValue(selectedColumnId)
+
+    if ($('#longArticleColumnManage').length > 0) {
+      if (isColumnEnabled) {
+        $('#longArticleColumnManage')
+          .attr('href', 'javascript:void(0)')
+          .text('封面管理')
+          .show()
+      } else {
+        $('#longArticleColumnManage').hide()
+      }
+    }
+  },
+  syncLongColumnCoverValue: function (selectedColumnId) {
+    if ($('#longArticleColumnCoverURL').length === 0) {
+      return
+    }
+    if (selectedColumnId === '') {
+      $('#longArticleColumnCoverURL').val('')
+      return
+    }
+    if (selectedColumnId === '__NEW__') {
+      if (window.LongArticleCoverDialog) {
+        $('#longArticleColumnCoverURL').val(LongArticleCoverDialog.getPendingCoverFromPostData())
+      } else {
+        $('#longArticleColumnCoverURL').val('')
+      }
+      return
+    }
+    $('#longArticleColumnCoverURL').val(AddArticle.getLongColumnCoverURL(selectedColumnId))
+  },
+  getLongColumnCoverURL: function (selectedColumnId) {
+    var coverURL = ''
+    $('#longArticleColumnCoverData span').each(function () {
+      var $item = $(this)
+      if (String($item.attr('data-column-id')) !== String(selectedColumnId)) {
+        return
+      }
+      if ($item.attr('data-has-cover') === 'true') {
+        coverURL = $item.attr('data-cover-url') || ''
+      }
+    })
+    return coverURL
   },
   /**
    * @description 初始化标签编辑器

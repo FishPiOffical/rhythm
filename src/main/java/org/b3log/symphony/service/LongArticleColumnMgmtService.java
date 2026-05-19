@@ -90,6 +90,8 @@ public class LongArticleColumnMgmtService {
             }
 
             final String columnTitle = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE));
+            final String columnCoverURL = ColumnCoverMgmtService.normalizeCoverURL(
+                    requestJSONObject.optString(LongArticleColumn.COLUMN_COVER_URL));
             final String chapterNoStr = StringUtils.trim(requestJSONObject.optString(LongArticleColumn.CHAPTER_NO));
             int chapterNo = 0;
             if (StringUtils.isNotBlank(chapterNoStr)) {
@@ -108,9 +110,12 @@ public class LongArticleColumnMgmtService {
             }
 
             if (StringUtils.isBlank(columnId)) {
-                columnId = findOrCreateColumnId(authorId, columnTitle, now);
+                columnId = findOrCreateColumnId(authorId, columnTitle, columnCoverURL, now);
             } else {
                 validateColumnOwner(columnId, authorId);
+                if (StringUtils.isNotBlank(columnCoverURL)) {
+                    updateColumnCoverURL(columnId, columnCoverURL);
+                }
             }
 
             if (chapterNo <= 0) {
@@ -183,7 +188,11 @@ public class LongArticleColumnMgmtService {
         return longArticleChapterRepository.getFirst(query);
     }
 
-    private String findOrCreateColumnId(final String authorId, final String columnTitle, final long now) throws RepositoryException, ServiceException {
+    private String findOrCreateColumnId(
+            final String authorId,
+            final String columnTitle,
+            final String columnCoverURL,
+            final long now) throws RepositoryException, ServiceException {
         if (StringUtils.isBlank(columnTitle)) {
             throw new ServiceException("请填写专栏名称或选择已有专栏");
         }
@@ -198,6 +207,9 @@ public class LongArticleColumnMgmtService {
                 .setPageCount(1);
         JSONObject column = longArticleColumnRepository.getFirst(query);
         if (null != column) {
+            if (StringUtils.isNotBlank(columnCoverURL)) {
+                updateColumnCoverURL(column.optString(Keys.OBJECT_ID), columnCoverURL);
+            }
             return column.optString(Keys.OBJECT_ID);
         }
 
@@ -206,12 +218,23 @@ public class LongArticleColumnMgmtService {
         column.put(Keys.OBJECT_ID, columnId);
         column.put(LongArticleColumn.COLUMN_TITLE, columnTitle);
         column.put(LongArticleColumn.COLUMN_AUTHOR_ID, authorId);
+        column.put(LongArticleColumn.COLUMN_COVER_URL, columnCoverURL);
         column.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, 0);
         column.put(LongArticleColumn.COLUMN_STATUS, LongArticleColumn.COLUMN_STATUS_C_VALID);
         column.put(LongArticleColumn.COLUMN_CREATE_TIME, now);
         column.put(LongArticleColumn.COLUMN_UPDATE_TIME, now);
         longArticleColumnRepository.add(column);
         return columnId;
+    }
+
+    private void updateColumnCoverURL(final String columnId, final String columnCoverURL)
+            throws RepositoryException {
+        final JSONObject column = longArticleColumnRepository.get(columnId);
+        if (null == column) {
+            return;
+        }
+        column.put(LongArticleColumn.COLUMN_COVER_URL, columnCoverURL);
+        longArticleColumnRepository.update(columnId, column);
     }
 
     private void validateColumnOwner(final String columnId, final String authorId) throws RepositoryException, ServiceException {

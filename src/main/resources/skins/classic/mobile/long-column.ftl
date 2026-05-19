@@ -35,6 +35,16 @@
 <div style="height: 74px;width: 1px;"></div>
 
 <div class="main">
+    <div class="column-detail-hero column-detail-hero--mobile<#if !(longColumn.columnHasCover!false)> column-detail-hero--default</#if>">
+        <a class="column-detail-hero__cover" href="${servePath}/column/${longColumn.oId}" style="background-image:url('${longColumn.columnCoverURL?html}')">
+            <span>${longColumn.columnTitle}</span>
+        </a>
+        <div class="column-detail-hero__body">
+            <div class="column-detail-hero__label">专栏</div>
+            <h1>${longColumn.columnTitle}</h1>
+            <div class="column-detail-hero__meta">共 ${longColumn.columnArticleCount?c} 章</div>
+        </div>
+    </div>
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">专栏：${longColumn.columnTitle}
             <span class="fn__right ft__smaller">共 ${longColumn.columnArticleCount?c} 章</span>

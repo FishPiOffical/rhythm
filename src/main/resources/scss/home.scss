@@ -341,6 +341,20 @@
       box-shadow: 0 0 0 0.1rem rgba(25, 140, 255, 0.2);
       border-color: rgba(25, 140, 255, 0.5) !important;
     }
+
+    .long-article-column-manage {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      margin-top: 8px;
+      padding: 0 12px;
+      border: 1px solid #d9e5f5;
+      border-radius: 14px;
+      background: #fff;
+      color: #2b5db9;
+      text-decoration: none;
+    }
   }
 
   #articleTitle {
@@ -1048,3 +1062,5 @@
 
 
 /* end settings */
+
+@import "long-article-cover-dialog";

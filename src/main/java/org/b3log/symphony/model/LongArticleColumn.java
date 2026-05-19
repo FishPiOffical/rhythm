@@ -50,6 +50,16 @@ public final class LongArticleColumn {
     public static final String COLUMN_AUTHOR_ID = "columnAuthorId";
 
     /**
+     * 专栏封面图地址。
+     */
+    public static final String COLUMN_COVER_URL = "columnCoverURL";
+
+    /**
+     * 专栏是否设置封面视图字段。
+     */
+    public static final String COLUMN_T_HAS_COVER = "columnHasCover";
+
+    /**
      * 专栏作者用户名视图字段。
      */
     public static final String COLUMN_T_AUTHOR_NAME = "columnAuthorName";
@@ -123,4 +133,9 @@ public final class LongArticleColumn {
      * Max column title length.
      */
     public static final int MAX_COLUMN_TITLE_LENGTH = 64;
+
+    /**
+     * 专栏封面图地址最大长度。
+     */
+    public static final int MAX_COLUMN_COVER_URL_LENGTH = 1024;
 }

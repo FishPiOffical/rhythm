@@ -23,6 +23,7 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.CompositeFilterOperator;
@@ -68,6 +69,7 @@ public class LongArticleColumnQueryService {
     private static final int CHAPTER_PREVIEW_MAX_LENGTH = 120;
     private static final long UNSET_TIME = 0L;
     private static final String COLUMN_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    private static final String DEFAULT_COVER_PATH = "/images/holiday/book-bg.jpg";
 
     @Inject
     private LongArticleColumnRepository longArticleColumnRepository;
@@ -107,12 +109,17 @@ public class LongArticleColumnQueryService {
             for (final JSONObject column : columns) {
                 column.put(LongArticleColumn.COLUMN_TITLE,
                         Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
+                fillCoverFields(column);
             }
             return columns;
         } catch (final Exception e) {
             LOGGER.error("Gets user long article columns failed [userId={}]", userId, e);
             return Collections.emptyList();
         }
+    }
+
+    public List<JSONObject> getManageableColumns(final String userId, final int fetchSize) {
+        return getUserColumns(userId, fetchSize);
     }
 
     /**
@@ -142,6 +149,9 @@ public class LongArticleColumnQueryService {
             ret.put(LongArticleColumn.COLUMN_TITLE, Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
             ret.put(LongArticleColumn.CHAPTER_NO, chapter.optInt(LongArticleColumn.CHAPTER_NO));
             ret.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, column.optInt(LongArticleColumn.COLUMN_ARTICLE_COUNT));
+            ret.put(LongArticleColumn.COLUMN_COVER_URL,
+                    StringUtils.defaultIfBlank(column.optString(LongArticleColumn.COLUMN_COVER_URL),
+                            Latkes.getStaticServePath() + DEFAULT_COVER_PATH));
             return ret;
         } catch (final Exception e) {
             LOGGER.error("Gets article chapter meta failed [articleId={}]", articleId, e);
@@ -209,6 +219,7 @@ public class LongArticleColumnQueryService {
             safeColumn.put(LongArticleColumn.COLUMN_TITLE,
                     Escapes.escapeHTML(safeColumn.optString(LongArticleColumn.COLUMN_TITLE)));
             safeColumn.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
+            fillCoverFields(safeColumn);
             ret.put("column", safeColumn);
             ret.put("chapters", (Object) chapterViews);
             ret.put(LongArticleColumn.CHAPTER_NO, chapterViews.get(currentIndex).optInt(LongArticleColumn.CHAPTER_NO));
@@ -271,6 +282,7 @@ public class LongArticleColumnQueryService {
             safeColumn.put(LongArticleColumn.COLUMN_TITLE,
                     Escapes.escapeHTML(safeColumn.optString(LongArticleColumn.COLUMN_TITLE)));
             safeColumn.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, chapterViews.size());
+            fillCoverFields(safeColumn);
             ret.put("column", safeColumn);
             ret.put("chapters", (Object) chapterViews);
             return ret;
@@ -365,6 +377,8 @@ public class LongArticleColumnQueryService {
                 historyItem.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(title));
                 historyItem.put(LongArticleColumn.COLUMN_ID, chapterMeta.optString(LongArticleColumn.COLUMN_ID));
                 historyItem.put(LongArticleColumn.COLUMN_TITLE, chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
+                historyItem.put(LongArticleColumn.COLUMN_COVER_URL,
+                        chapterMeta.optString(LongArticleColumn.COLUMN_COVER_URL));
                 historyItem.put(LongArticleColumn.CHAPTER_NO, chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
                 historyItem.put(LongArticleRead.FIRST_READ_AT, record.optLong(LongArticleRead.FIRST_READ_AT));
                 ret.add(historyItem);
@@ -448,6 +462,7 @@ public class LongArticleColumnQueryService {
         card.put(LongArticleColumn.COLUMN_ID, columnId);
         card.put(LongArticleColumn.COLUMN_TITLE,
                 Escapes.escapeHTML(card.optString(LongArticleColumn.COLUMN_TITLE)));
+        fillCoverFields(card);
 
         final String authorName = getColumnAuthorName(card);
         if (StringUtils.isNotBlank(authorName)) {
@@ -483,6 +498,13 @@ public class LongArticleColumnQueryService {
         }
 
         return Escapes.escapeHTML(author.optString(User.USER_NAME));
+    }
+
+    public void fillCoverFields(final JSONObject column) {
+        final String coverURL = StringUtils.trimToEmpty(column.optString(LongArticleColumn.COLUMN_COVER_URL));
+        column.put(LongArticleColumn.COLUMN_T_HAS_COVER, StringUtils.isNotBlank(coverURL));
+        column.put(LongArticleColumn.COLUMN_COVER_URL, StringUtils.defaultIfBlank(coverURL,
+                Latkes.getStaticServePath() + DEFAULT_COVER_PATH));
     }
 
     private void attachRecentChapters(final JSONObject card, final List<JSONObject> recentChapters) {

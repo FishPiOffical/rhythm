@@ -62,6 +62,18 @@
                             </#list>
                             <option value="__NEW__"<#if selectedColumnId == "__NEW__"> selected</#if>>+ 新建专栏</option>
                             </select>
+                            <input type="hidden" id="longArticleColumnCoverURL"
+                                   value="<#if longArticleColumnCoverURL??>${longArticleColumnCoverURL?html}</#if>"/>
+                            <a class="long-article-column-manage" id="longArticleColumnManage"
+                               href="javascript:void(0)"
+                               <#if !selectedColumnId?has_content> style="display:none"</#if>>封面管理</a>
+                            <div id="longArticleColumnCoverData" class="fn-none">
+                                <#list longArticleColumnList as longColumn>
+                                    <span data-column-id="${longColumn.oId}"
+                                          data-cover-url="${(longColumn.columnCoverURL!'')?html}"
+                                          data-has-cover="${(longColumn.columnHasCover!false)?c}"></span>
+                                </#list>
+                            </div>
                         </div>
                         <div class="form" id="longArticleColumnTitleWrap"<#if !showCreateColumnInput> style="display:none"</#if>>
                             <label for="longArticleColumnTitle">新专栏名称</label>
@@ -145,7 +157,9 @@
             Label.articleType = 6;
             Label.confirmRemoveLabel = '${confirmRemoveLabel}';
         </script>
+        <script src="${staticServePath}/js/lib/jquery/file-upload/jquery.fileupload.min.js"></script>
         <script src="${staticServePath}/js/add-article${miniPostfix}.js?${staticResourceVersion}"></script>
+        <script src="${staticServePath}/js/long-article-cover-dialog${miniPostfix}.js?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/lib/sweetalert2.all.min.js"></script>
     </body>
 </html>

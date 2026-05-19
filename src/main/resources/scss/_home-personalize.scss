@@ -1,0 +1,266 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/* start home-personalize */
+.home-personalize-toolbar {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0 0;
+}
+
+.home-personalize-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-color: #d7dee8;
+  color: #2f3b52;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.home-personalize-panel {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  z-index: 80;
+  display: none;
+  width: 280px;
+  border: 1px solid #dfe6ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .18);
+}
+
+.home-personalize-panel--open {
+  display: block;
+}
+
+.home-personalize-panel__head,
+.home-personalize-panel__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.home-personalize-panel__head {
+  border-bottom: 1px solid #eef2f7;
+}
+
+.home-personalize-panel__actions {
+  border-top: 1px solid #eef2f7;
+}
+
+.home-personalize-panel__actions button {
+  flex: 1 1 auto;
+}
+
+.home-personalize-panel__list {
+  max-height: 360px;
+  overflow: auto;
+  padding: 6px;
+}
+
+.home-personalize-panel__item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: #2f3b52;
+  cursor: grab;
+}
+
+.home-personalize-panel__item:hover {
+  background: #f6f8fb;
+}
+
+.home-personalize-panel__item--dragging {
+  opacity: .55;
+}
+
+.home-personalize-panel__item small {
+  color: #8792a2;
+}
+
+.home-module[draggable="true"] {
+  cursor: grab;
+}
+
+.home-module--dragging {
+  opacity: .55;
+  outline: 2px dashed #7da7df;
+  outline-offset: 3px;
+}
+
+.repeater-station {
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.repeater-station__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.repeater-station__title,
+.repeater-station__tabs,
+.repeater-station__actions,
+.repeater-station__create-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.repeater-station__title {
+  min-width: 0;
+  color: #1f2937;
+  font-weight: 700;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: #2b5db9;
+  }
+}
+
+.repeater-station__tabs,
+.repeater-station__actions {
+  flex-wrap: wrap;
+}
+
+.repeater-station__tab,
+.repeater-station__btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+}
+
+.repeater-station__tab--active,
+.repeater-station__btn--liked {
+  border-color: #2b5db9;
+  background: #edf4ff;
+  color: #1d4ed8;
+}
+
+.repeater-station__body {
+  min-height: 120px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f7fafc;
+}
+
+.repeater-station__quote {
+  color: #1f2937;
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.repeater-station__meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  color: #738095;
+  font-size: 12px;
+}
+
+.repeater-station__actions {
+  margin-top: 12px;
+}
+
+.repeater-station__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.repeater-station__create {
+  margin-top: 12px;
+}
+
+.repeater-station__create textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 86px;
+  padding: 10px;
+  border: 1px solid #d7dee8;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+body.night .home-personalize-panel,
+body.night .repeater-station {
+  border-color: rgba(255, 255, 255, .1);
+  background: #1e293b;
+}
+
+body.night .repeater-station__body {
+  background: #111827;
+}
+
+body.night .repeater-station__title,
+body.night .repeater-station__quote,
+body.night .home-personalize-panel__item {
+  color: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .home-personalize-toolbar {
+    margin: 0 10px;
+    padding-top: 8px;
+  }
+
+  .home-personalize-panel {
+    top: 48px;
+    right: 0;
+    left: 0;
+    width: auto;
+  }
+
+  .repeater-station__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .repeater-station__body {
+    min-height: 96px;
+  }
+}
+/* end home-personalize */

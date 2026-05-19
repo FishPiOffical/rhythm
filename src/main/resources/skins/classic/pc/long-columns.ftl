@@ -29,58 +29,46 @@
 </head>
 <body>
 <#include "header.ftl">
-<#macro columnMeta column showLatestChapter>
-    <div class="ft-smaller ft-gray" style="margin-top:6px;">
-        <#if column.columnAuthorName?? && column.columnAuthorName?has_content>
-            作者 <a href="${servePath}/member/${column.columnAuthorName}">${column.columnAuthorName}</a> ·
-        </#if>
-        <#if column.columnUpdateTimeAgo?? && column.columnUpdateTimeAgo?has_content>
-            更新时间 <span title="${column.columnUpdateTimeStr!}">${column.columnUpdateTimeAgo}</span> ·
-        </#if>
-        共 ${column.columnArticleCount?c} 章
-        <#if showLatestChapter && column.latestChapter?? && column.latestChapter.articlePermalink??>
-            · 最新：<a href="${servePath}${column.latestChapter.articlePermalink}">第 ${column.latestChapter.chapterNo?c} 章</a>
-        </#if>
-    </div>
+<#macro columnBook column>
+    <#assign columnId = column.columnId!column.oId>
+    <a class="column-book<#if !(column.columnHasCover!false)> column-book--default</#if>"
+       href="${servePath}/column/${columnId}" title="${column.columnTitle}">
+        <span class="column-book__cover" style="background-image:url('${column.columnCoverURL?html}')"></span>
+        <span class="column-book__title">${column.columnTitle}</span>
+    </a>
 </#macro>
 <div class="main">
     <div class="wrapper">
         <div class="content fn-clear">
-            <div class="module">
-                <div class="module-header"><h2>最新专栏</h2></div>
-                <div class="module-panel">
-                    <#if latestLongColumns?? && latestLongColumns?size != 0>
-                        <ul class="module-list long-column-module-list">
-                            <#list latestLongColumns as column>
-                                <#assign columnId = column.columnId!column.oId>
-                                <li>
-                                    <a class="title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                                    <@columnMeta column true />
-                                </li>
-                            </#list>
-                        </ul>
-                    <#else>
-                        <div class="ft-center ft-gray" style="padding:20px 0;">暂无专栏数据</div>
-                    </#if>
-                </div>
-            </div>
-
-            <div class="module">
-                <div class="module-header"><h2>热门专栏</h2></div>
-                <div class="module-panel">
-                    <#if hotLongColumns?? && hotLongColumns?size != 0>
-                        <ul class="module-list long-column-module-list">
-                            <#list hotLongColumns as column>
-                                <#assign columnId = column.columnId!column.oId>
-                                <li>
-                                    <a class="title" href="${servePath}/column/${columnId}">${column.columnTitle}</a>
-                                    <@columnMeta column false />
-                                </li>
-                            </#list>
-                        </ul>
-                    <#else>
-                        <div class="ft-center ft-gray" style="padding:20px 0;">暂无专栏数据</div>
-                    </#if>
+            <div class="module column-bookstore">
+                <div class="module-header"><h2>专栏书城</h2></div>
+                <div class="module-panel column-bookstore__panel">
+                    <div class="column-bookstore__sections">
+                        <section class="column-bookstore__section">
+                            <h3>最新专栏</h3>
+                            <#if latestLongColumns?? && latestLongColumns?size != 0>
+                                <div class="column-bookstore__grid">
+                                <#list latestLongColumns as column>
+                                    <@columnBook column=column />
+                                </#list>
+                                </div>
+                            <#else>
+                                <div class="column-bookstore__empty">暂无专栏</div>
+                            </#if>
+                        </section>
+                        <section class="column-bookstore__section column-bookstore__section--hot">
+                            <h3>热门专栏</h3>
+                            <#if hotLongColumns?? && hotLongColumns?size != 0>
+                                <div class="column-bookstore__grid">
+                                <#list hotLongColumns as column>
+                                    <@columnBook column=column />
+                                </#list>
+                                </div>
+                            <#else>
+                                <div class="column-bookstore__empty">暂无专栏</div>
+                            </#if>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>

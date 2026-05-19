@@ -219,6 +219,19 @@
                 <div class="vditor-reset article-content" id="articleThought" data-author="${article.articleAuthorName}"
                      data-link="${servePath}${article.articlePermalink}"></div>
                 </#if>
+
+                <#if 0 < article.articleRewardPoint>
+                <div class="vditor-reset<#if !article.rewarded> reward</#if>" id="articleRewardContent">
+                     <#if !article.rewarded>
+                     <span>
+                        ${rewardTipLabel?replace("{articleId}", article.oId)?replace("{point}", article.articleRewardPoint)}
+                    </span>
+                    <#else>
+                    ${article.articleRewardContent}
+                    </#if>
+                </div>
+                <div class="fn-hr10"></div>
+                </#if>
                 <#include "common/article-adjacent-nav.ftl">
 
                 <#if 6 == article.articleType>
@@ -244,19 +257,6 @@
                     <div class="ft__smaller ft__fade">未注册以 IP+UA 去重，当窗封顶 100</div>
                 </div>
                 </#if>
-                </#if>
-
-                <#if 0 < article.articleRewardPoint>
-                <div class="vditor-reset" id="articleRewardContent"<#if !article.rewarded> class="reward"</#if>>
-                     <#if !article.rewarded>
-                     <span>
-                        ${rewardTipLabel?replace("{articleId}", article.oId)?replace("{point}", article.articleRewardPoint)}
-                    </span>
-                    <#else>
-                    ${article.articleRewardContent}
-                    </#if>
-                </div>
-                <div class="fn-hr10"></div>
                 </#if>
                 <#if article.offered>
                 <div class="module nice">

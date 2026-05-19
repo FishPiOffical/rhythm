@@ -1,0 +1,241 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/* start home-feedback */
+.home-personalize-toolbar,
+.wrapper.home-personalize-toolbar {
+  position: fixed;
+  display: flex;
+  justify-content: flex-end;
+  top: 172px;
+  right: 24px;
+  left: auto !important;
+  z-index: 30;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.home-personalize-toolbar__btn {
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 86px;
+  min-height: 54px;
+  border: 1px solid #e0e7ef;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, .76);
+  box-shadow: 0 6px 24px rgba(60, 80, 120, .12), 0 1.5px 6px rgba(60, 80, 120, .08);
+  color: #222;
+  font-weight: 700;
+  line-height: 1.2;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  transition: box-shadow .3s, transform .2s;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(60, 80, 120, .16), 0 2px 8px rgba(60, 80, 120, .10);
+    transform: translateY(-2px) scale(1.04);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  span {
+    font-size: 12px;
+  }
+}
+
+.home-personalize-panel {
+  top: 62px;
+  pointer-events: auto;
+}
+
+.home-personalize-toolbar--nav,
+.wrapper.home-personalize-toolbar--nav {
+  position: relative;
+  top: auto;
+  right: auto;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.home-personalize-toolbar--nav .home-personalize-toolbar__btn {
+  flex-direction: row;
+  gap: 0;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: #3b3e43;
+  font-size: 0;
+  line-height: 1;
+  padding: 14px 10px;
+  backdrop-filter: none;
+
+  &:hover,
+  &:focus {
+    background: #fff7ec;
+    box-shadow: none;
+    color: #e59230;
+    transform: none;
+  }
+
+  svg {
+    color: currentColor;
+    fill: none;
+    height: 18px;
+    stroke: currentColor;
+    width: 18px;
+  }
+
+  span {
+    display: none;
+  }
+}
+
+.home-personalize-toolbar--nav .home-personalize-panel {
+  top: 46px;
+  right: 0;
+}
+
+.long-read-zone--compact .long-read-zone__wrapper {
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.long-read-zone__compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.long-read-zone__compact-group {
+  min-width: 0;
+}
+
+.long-read-zone__compact-group .module-list {
+  margin-top: 8px;
+}
+
+.long-read-zone__compact-group li {
+  min-height: 30px;
+}
+
+.repeater-station--sidebar {
+  margin-bottom: 12px;
+  padding: 10px;
+}
+
+.repeater-station--sidebar .repeater-station__head {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.repeater-station--sidebar .repeater-station__body {
+  min-height: 72px;
+  padding: 10px;
+}
+
+.repeater-station--sidebar .repeater-station__quote {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.repeater-station--sidebar .repeater-station__tab,
+.repeater-station--sidebar .repeater-station__btn {
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.repeater-station--mobile-users {
+  margin: 0 10px 10px;
+}
+
+@media (max-width: 768px) {
+  .home-personalize-toolbar {
+    top: 150px;
+    right: 10px;
+    margin: 0;
+  }
+
+  .home-personalize-panel {
+    right: 0;
+    left: auto;
+    width: min(280px, calc(100vw - 20px));
+  }
+
+  .home-personalize-toolbar--nav {
+    position: relative;
+    top: auto;
+    right: auto;
+    flex: 0 0 34px;
+    height: 34px;
+    margin: 0;
+    width: 34px;
+  }
+
+  .home-personalize-toolbar--nav .home-personalize-toolbar__btn {
+    box-sizing: border-box;
+    border-radius: 999px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+    width: 34px;
+  }
+
+  .home-personalize-toolbar--nav .home-personalize-toolbar__btn:hover,
+  .home-personalize-toolbar--nav .home-personalize-toolbar__btn:active {
+    background: #eef6ff;
+    color: #2b5db9;
+  }
+
+  .home-personalize-toolbar--nav .home-personalize-toolbar__btn svg {
+    height: 21px;
+    width: 21px;
+  }
+
+  .home-personalize-toolbar--nav .home-personalize-panel {
+    position: fixed;
+    top: 52px;
+    right: 10px;
+    left: auto;
+  }
+
+  .long-read-zone__compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* end home-feedback */

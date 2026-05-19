@@ -255,11 +255,115 @@ var Util = {
             document.getElementsByTagName('head')[0].appendChild(styleElement)
         }
     },
+    shouldHighlightCodeBlock: function (code) {
+        if (!code || !code.parentElement) {
+            return false
+        }
+
+        var parent = code.parentElement
+        if (parent.classList.contains('vditor-ir__marker--pre') ||
+            parent.classList.contains('vditor-wysiwyg__pre') ||
+            code.classList.contains('hljs') ||
+            code.classList.contains('highlight-chroma') ||
+            code.closest('.highlight-chroma') ||
+            code.dataset.highlighted) {
+            return false
+        }
+
+        var ignoredClasses = [
+            'language-mermaid', 'language-flowchart', 'language-echarts',
+            'language-mindmap', 'language-plantuml', 'language-abc',
+            'language-graphviz', 'language-math',
+        ]
+        for (var i = 0; i < ignoredClasses.length; i++) {
+            if (code.classList.contains(ignoredClasses[i])) {
+                return false
+            }
+        }
+        return true
+    },
+    getHighlightScriptBaseURL: function () {
+        var style = document.getElementById('vditorHljsStyle')
+        if (!style || !style.href) {
+            throw new Error('Vditor highlight style is not loaded')
+        }
+
+        var stylesPath = '/styles/'
+        var stylesIndex = style.href.indexOf(stylesPath)
+        if (stylesIndex < 0) {
+            throw new Error('Unexpected Vditor highlight style URL: ' + style.href)
+        }
+        return style.href.substring(0, stylesIndex)
+    },
+    loadScriptOnce: function (id, url, callback) {
+        var script = document.getElementById(id)
+        if (script && script.dataset.loaded === 'true') {
+            callback()
+            return
+        }
+        if (!script) {
+            script = document.createElement('script')
+            script.id = id
+            script.src = url
+        }
+
+        script.addEventListener('load', function () {
+            script.dataset.loaded = 'true'
+            callback()
+        }, { once: true })
+        script.addEventListener('error', function () {
+            throw new Error('Failed to load script: ' + url)
+        }, { once: true })
+        if (!script.parentElement) {
+            document.head.appendChild(script)
+        }
+    },
+    loadHljsScripts: function (callback) {
+        var baseURL = Util.getHighlightScriptBaseURL()
+        Util.loadScriptOnce('vditorHljsScript',
+            baseURL + '/highlight.pack.js', callback)
+    },
+    renderHljsCodeBlocks: function (blocks) {
+        var render = function () {
+            if (!window.hljs) {
+                throw new Error('Vditor highlight script is not loaded')
+            }
+
+            blocks.forEach(function (code) {
+                if (!Util.shouldHighlightCodeBlock(code)) {
+                    return
+                }
+                if (typeof window.hljs.highlightElement === 'function') {
+                    window.hljs.highlightElement(code)
+                    return
+                }
+                if (typeof window.hljs.highlightBlock === 'function') {
+                    window.hljs.highlightBlock(code)
+                    return
+                }
+                throw new Error('Unsupported highlight.js API')
+            })
+        }
+
+        if (window.hljs) {
+            render()
+            return
+        }
+
+        Util.loadHljsScripts(render)
+    },
     parseHljs: function () {
         Vditor.highlightRender({
             style: 'github',
-            enable: !Label.luteAvailable,
+            enable: false,
         }, document)
+
+        var blocks = Array.prototype.filter.call(
+            document.querySelectorAll('pre > code'),
+            Util.shouldHighlightCodeBlock)
+        if (blocks.length > 0) {
+            Util.renderHljsCodeBlocks(blocks)
+        }
     },
     /**
      * 按需加载 MathJax 及 flow、live photo
@@ -2552,4 +2656,3 @@ function Rotate(id) {
         return (d >= 0 && this.lastIndexOf(endStr) === d);
     }
 }
-

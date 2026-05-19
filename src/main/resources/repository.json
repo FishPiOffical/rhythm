@@ -2651,6 +2651,7 @@
         { "name": "oId", "type": "String", "length": 19, "description": "主键" },
         { "name": "columnTitle", "type": "String", "length": 64, "description": "专栏名称" },
         { "name": "columnAuthorId", "type": "String", "length": 19, "description": "专栏作者 ID" },
+        { "name": "columnCoverURL", "type": "String", "length": 1024, "description": "专栏封面图地址" },
         { "name": "columnArticleCount", "type": "int", "description": "专栏文章数" },
         { "name": "columnStatus", "type": "int", "description": "状态：0 有效，1 无效" },
         { "name": "columnCreateTime", "type": "long", "description": "创建时间" },
@@ -2667,6 +2668,31 @@
         { "name": "chapterNo", "type": "int", "description": "章节号" },
         { "name": "chapterCreateTime", "type": "long", "description": "创建时间" },
         { "name": "chapterUpdateTime", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "repeater_content",
+      "description": "复读机转录站内容",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "repeaterContentType", "type": "String", "length": 16, "description": "类型：joke/kfc/fish" },
+        { "name": "repeaterContent", "type": "String", "length": 500, "description": "正文" },
+        { "name": "repeaterContentAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
+        { "name": "repeaterContentSource", "type": "String", "length": 16, "description": "来源：user/seed" },
+        { "name": "repeaterContentStatus", "type": "int", "description": "状态：0 有效，1 已删除" },
+        { "name": "repeaterContentLikeCount", "type": "int", "description": "点赞数" },
+        { "name": "repeaterContentCreatedTime", "type": "long", "description": "创建时间" },
+        { "name": "repeaterContentUpdatedTime", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "repeater_like",
+      "description": "复读机转录站点赞",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "repeaterLikeContentId", "type": "String", "length": 19, "description": "内容 ID" },
+        { "name": "repeaterLikeUserId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "repeaterLikeCreatedTime", "type": "long", "description": "创建时间" }
       ]
     },
     {

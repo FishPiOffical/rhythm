@@ -37,8 +37,15 @@
 </#if>
 <div class="main">
     <div class="wrapper index-full-size-white" id="nightTips" style="display: none"></div>
-    <div class="wrapper" id="indexTopWrapper" style="padding-bottom: 20px">
-        <div class="index-recent fn-flex-1" id="indexRecentColLeft">
+    <div class="home-personalize-toolbar">
+        <button class="home-personalize-toolbar__btn" id="homePersonalizeOpen" type="button" aria-label="配置首页模块">
+            <svg><use xlink:href="#setting-outline"></use></svg>
+            <span>配置</span>
+        </button>
+        <div class="home-personalize-panel" id="homePersonalizePanel" aria-hidden="true"></div>
+    </div>
+    <div class="wrapper home-personalize-zone" id="indexTopWrapper" style="padding-bottom: 20px" data-home-zone="top">
+        <div class="index-recent fn-flex-1 home-module" id="indexRecentColLeft" data-home-module="recentA" data-home-title="最新一">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">最新</div>
                 <div style="clear:both;"></div>
@@ -103,7 +110,7 @@
             </div>
 
         </div>
-        <div class="index-recent fn-flex-1" id="indexRecentColRight">
+        <div class="index-recent fn-flex-1 home-module" id="indexRecentColRight" data-home-module="recentB" data-home-title="最新二">
             <div class="index-head-title">
                 <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">&nbsp;</div>
                 <div style="float:right;font-size:13px;margin:5px 0 0 0;">
@@ -139,7 +146,7 @@
                 </ul>
             </div>
         </div>
-        <div class="index-recent fn-flex-1" id="indexRankCol">
+        <div class="index-recent fn-flex-1 home-module" id="indexRankCol" data-home-module="rank" data-home-title="排行">
             <div class="module-panel">
                 <#if TGIF == '0'>
                     <div class="TGIF__item" style="margin-bottom: 17px; margin-top: 5px">
@@ -285,14 +292,16 @@
     </div>
 
     <#if (latestLongColumns?? && latestLongColumns?size != 0) || (hotLongColumns?? && hotLongColumns?size != 0)>
-    <section class="long-read-zone">
+    <section class="long-read-zone home-module" data-home-module="long" data-home-title="长篇专区">
         <div class="wrapper long-read-zone__wrapper">
             <div class="long-read-zone__head">
                 <div class="long-read-zone__title">
                     <svg><use xlink:href="#book"></use></svg>
                     <span>长篇专区</span>
                 </div>
-                <a class="long-read-zone__more" href="${servePath}/column">更多</a>
+                <div class="long-read-zone__actions">
+                    <a class="long-read-zone__more" href="${servePath}/column">更多</a>
+                </div>
             </div>
 
             <#if latestLongColumns?? && latestLongColumns?size != 0>
@@ -385,7 +394,7 @@
     </#if>
 
     <#if isLoggedIn>
-        <div style="margin-top: 20px">
+        <div style="margin-top: 20px" class="home-module" data-home-module="activity" data-home-title="活动">
             <div class="wrapper">
                 <section class="activity-hub">
                     <div class="activity-hub__left">
@@ -484,8 +493,8 @@
     </#if>
 
     <div style="padding-top:20px;padding-bottom: 20px;">
-        <div class="wrapper">
-            <div class="index-recent fn-flex-1">
+        <div class="wrapper home-personalize-zone" data-home-zone="middle">
+            <div class="index-recent fn-flex-1 home-module" data-home-module="chat" data-home-title="聊天室">
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">聊天室（<span
                                 id="indexOnlineChatCnt">?</span>人在线）
@@ -549,7 +558,7 @@
                     </div>
                 </div>
             </div>
-            <div class="index-recent fn-flex-1">
+            <div class="index-recent fn-flex-1 home-module" data-home-module="hotQna" data-home-title="热议问答">
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;">
                         <a href="javascript:void(0)" class="index-hot-switch" data-mode="hot" style="text-decoration:none;color:#333;" onclick="switchIndexHotPanel('hot', this)">热议</a>
@@ -663,7 +672,49 @@
                     </ul>
                 </div>
             </div>
-            <div class="index-recent fn-flex-1">
+            <div class="index-recent fn-flex-1 home-module" data-home-module="community" data-home-title="社区">
+                <section class="repeater-station repeater-station--sidebar">
+                    <div class="repeater-station__head">
+                        <div class="repeater-station__title">
+                            <svg><use xlink:href="#refresh"></use></svg>
+                            <span>复读机转录站</span>
+                        </div>
+                        <div class="repeater-station__tabs" role="tablist">
+                            <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke">段子</button>
+                            <button type="button" class="repeater-station__tab" data-repeater-type="kfc">星期四</button>
+                            <button type="button" class="repeater-station__tab" data-repeater-type="fish">鱼科普</button>
+                        </div>
+                    </div>
+                    <div class="repeater-station__body">
+                        <div class="repeater-station__quote" id="repeaterContent">加载中...</div>
+                        <div class="repeater-station__meta">
+                            <span id="repeaterTypeLabel">段子</span>
+                            <span id="repeaterAuthor"></span>
+                        </div>
+                    </div>
+                    <div class="repeater-station__actions">
+                        <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
+                        <button type="button" class="repeater-station__btn" data-repeater-action="next">换一个</button>
+                        <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like">
+                            <svg><use xlink:href="#heart"></use></svg>
+                            <span id="repeaterLikeCount">0</span>
+                        </button>
+                        <#if isLoggedIn>
+                            <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
+                        <#else>
+                            <a class="repeater-station__btn" href="${servePath}/login">登录</a>
+                        </#if>
+                    </div>
+                    <#if isLoggedIn>
+                        <div class="repeater-station__create" id="repeaterCreatePanel" hidden>
+                            <textarea id="repeaterCreateContent" maxlength="500" placeholder="输入转录内容"></textarea>
+                            <div class="repeater-station__create-actions">
+                                <button type="button" class="green" data-repeater-action="submit">提交</button>
+                                <button type="button" data-repeater-action="closeCreate">取消</button>
+                            </div>
+                        </div>
+                    </#if>
+                </section>
                 <div class="index-head-title">
                     <div style="float:left;font-size:13px;margin:5px 0 10px 0; font-weight:bold;cursor: pointer">最新注册</div>
                     <#list recentRegUsers as user>
@@ -765,6 +816,9 @@
     Label.chatRoomPictureStatus = "<#if 0 == chatRoomPictureStatus> blur</#if>";
 </script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/home-personalize${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/home-modules${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/repeater-station${miniPostfix}.js?${staticResourceVersion}"></script>
 <script type="text/javascript">
     // tag click
     function switchIndexHotPanel(mode, it) {
@@ -1167,6 +1221,7 @@
     $(function () {
         initLongShelfAuto('long-recent', 3600);
         initLongShelfAuto('long-hot', 3600);
+        HomePersonalize.initIndex();
     });
 
 </script>
