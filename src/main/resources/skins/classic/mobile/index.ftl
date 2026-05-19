@@ -151,12 +151,8 @@
             </#if>
             </li>
         </#if>
-
-    </ul>
-</div>
-
 <#if tags?size != 0>
-    <div class="home-module" data-home-module="tags" data-home-title="推荐标签">
+    <li class="home-module" data-home-module="tags" data-home-title="推荐标签">
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">
             推荐标签
@@ -178,12 +174,11 @@
         </#list>
 
     </div>
-    </div>
+    </li>
 </#if>
 
-<div class="fn-hr10"></div>
 <#if  niceUsers?size!=0>
-    <div class="home-module" data-home-module="users" data-home-title="最新注册">
+    <li class="home-module" data-home-module="users" data-home-title="最新注册">
     <div class="module_new">
         <h2 class="module__title ft__fade fn__clear">
             最新注册
@@ -239,11 +234,10 @@
             </a>
         </#list>
     </div>
-    <div class="fn-hr10"></div>
-    </div>
+    </li>
 </#if>
 <#if isLoggedIn>
-<div class="home-module" data-home-module="tools" data-home-title="功能">
+<li class="home-module" data-home-module="tools" data-home-title="功能">
 <div class="module_new">
     <h2 class="module__title ft__fade fn__clear">
         <div class="module__title ft__fade fn__clear">
@@ -280,10 +274,9 @@
     <li class="menu__item"><a class="title" style="text-decoration: none" id="yesterday" onclick="yesterday()">✅ 领取昨日活跃奖励</a>
     </li>
 </ul>
-</div>
+</li>
 
-<div class="fn-hr10"></div>
-<div class="home-module" data-home-module="nav" data-home-title="导航">
+<li class="home-module" data-home-module="nav" data-home-title="导航">
 <div class="module_new">
     <h2 class="module__title ft__fade fn__clear">
         <div class="module__title ft__fade fn__clear">
@@ -304,8 +297,10 @@
     <li class="menu__item"><a class="title" href="https://market.time-pack.com/">🏪 交易市场</a></li>
     <li class="menu__item"><a class="title" href="https://room.adventext.fun">🎮 摸鱼竞技大厅</a></li>
 </ul>
-</div>
+</li>
 </#if>
+    </ul>
+</div>
 <#if showSideAd && ADLabel != ''>
 <div class="main">
     <div class="wrapper">

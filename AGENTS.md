@@ -94,11 +94,12 @@
 - VIP 管理页样式需注意 `home.css` 的 `.form--admin label { flex: 1; }` 会影响布局；配置项行在 `vip-admin.scss` 中需显式改为整行（label/builder 100%）并对 checkbox 使用类型选择器，避免控件被放大。
 - 有效期字段：勋章 `expireTime`（毫秒，`0`=永久）；会员 `expiresAt`（可回填勋章到期）。
 - 首页最新文章链路：`IndexProcessor#loadIndexData` 通过 `ArticleQueryService#getIndexRecentArticles(fetchSize, page)` 组装 classic/pc 与 classic/mobile 首页“最新文章”；第一页置顶插入与数量行为在该方法维护。
-- 首页模块个性化链路：classic PC/移动首页模板引入 `home-personalize.js`、`home-modules.js`、`repeater-station.js`，配置状态保存在浏览器 `localStorage`；重置布局要按初始 DOM 锚点恢复，不能简单 append 到父容器末尾；复读机接口在 `RepeaterProcessor`，数据表为 `repeater_content`/`repeater_like`。
+- 首页模块个性化链路：classic PC/移动首页模板引入 `home-personalize.js`、`home-modules.js`、`repeater-station.js`，配置状态保存在浏览器 `localStorage`；重置布局要按初始 DOM 锚点恢复，不能简单 append 到父容器末尾；移动端首页参与配置的模块需作为同一个 `home-personalize-zone` 的直接子项；复读机接口在 `RepeaterProcessor`，数据表为 `repeater_content`/`repeater_like`。
 - `/recent` 与 `/api/articles/recent*` 共用 `ArticleQueryService#getRecentArticles`；该链路已明确排除长篇（`articleType=6`），长篇列表请走 `/recent/long` 页面或 `GET /api/articles/recent/long`。
 - 首页两列对齐约束：`getIndexRecentArticles` 的第一页会插入全部置顶且不截断；第二页起需按第一页“置顶占位数”补偿 `fetchSize` 与分页偏移，并基于已排除置顶 ID 的普通文章序列取数，保证两列等高、不重复、不丢中间文章。
 - 首页右侧排行补偿（无前端延迟）：由 `IndexProcessor#loadIndexData` 按两列最新文章的最大行数计算 `rankCompensateRows`，先换算“右栏总补偿行数”再分摊到 `checkinVisibleCount/onlineVisibleCount`，Freemarker 直接按该数量渲染，不再依赖 JS 运行时增删行。
 - 专栏封面链路：封面字段是 `long_article_column.columnCoverURL`；默认封面在 `LongArticleColumnQueryService` 填充；作者管理页为 `/column/manage`，编辑长篇页的弹窗脚本是 `long-article-cover-dialog.js`，新建长篇封面随 `/article` 请求的 `columnCoverURL` 写入；封面保存接口为 `POST /api/columns/{columnId}/cover`，处理器是 `LongArticleColumnProcessor`。
+- 管理员文章页编辑长文专栏时，`admin/article.ftl` 会随文章表单提交 `columnCoverURL`，后端在 `ArticleMgmtService` 的文章事务内复用 `ColumnCoverMgmtService` 校验并更新或清空专栏封面。
 - 路由总入口：`Router#requestMapping` + 各 Processor `register()`；新增路由先决定使用 `loginCheck` / `apiCheck` / `permission` / `anonymousViewCheck` 哪条链路。
 - Latke 路由存在静态段被相邻动态段截获的风险（如 `/article/{id}/revisions/list` 可能进入 `/article/{id}/revisions/{revisionId}`）；新增相邻路由时需避免路径歧义，或在处理方法中显式识别保留字。
 - `BeforeRequestHandler` 通过 `Dispatcher.startRequestHandler` 在路由中间件前执行；该阶段 `query/form/cookie` 已由 latke-core 解析，可直接读取请求参数与 Cookie。

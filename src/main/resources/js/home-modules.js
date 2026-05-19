@@ -73,20 +73,39 @@ $.extend(HomePersonalize, {
     return '<div class="home-personalize-panel__head"><b>首页模块</b>'
       + '<button type="button" data-home-panel-action="close">关闭</button></div>'
       + '<div class="home-personalize-panel__list">' + HomePersonalize.buildPanelItems()
-      + '</div><div class="home-personalize-panel__actions">'
-      + '<button type="button" data-home-panel-action="compact">精简6</button>'
-      + '<button type="button" data-home-panel-action="standard">标准8</button>'
-      + '<button type="button" data-home-panel-action="reset">重置</button></div>'
+      + '</div>' + HomePersonalize.buildPanelActions()
+  },
+
+  buildPanelActions: function () {
+    var actions = []
+    var moduleCount = HomePersonalize.modules.length
+    if (moduleCount > HomePersonalize.visiblePresetSizes.compact) {
+      actions.push('<button type="button" data-home-panel-action="compact">精简6</button>')
+    }
+    if (moduleCount >= HomePersonalize.visiblePresetSizes.standard) {
+      actions.push('<button type="button" data-home-panel-action="standard">标准8</button>')
+    }
+    actions.push('<button type="button" data-home-panel-action="reset">重置</button>')
+    return '<div class="home-personalize-panel__actions">' + actions.join('') + '</div>'
   },
 
   buildPanelItems: function () {
     var state = HomePersonalize.getState()
-    return HomePersonalize.getPanelModules().map(function (module) {
+    var modules = HomePersonalize.getPanelModules()
+    return modules.map(function (module, index) {
       var checked = state.hidden[module.id] ? '' : ' checked'
       var id = HomePersonalize.escape(module.id)
-      return '<label class="home-personalize-panel__item" data-home-panel-id="' + id + '" draggable="true">'
+      var title = HomePersonalize.escape(module.title)
+      var upDisabled = index === 0 ? ' disabled' : ''
+      var downDisabled = index === modules.length - 1 ? ' disabled' : ''
+      return '<div class="home-personalize-panel__item" data-home-panel-id="' + id + '" draggable="true">'
+        + '<label class="home-personalize-panel__check">'
         + '<input type="checkbox" data-home-module-toggle="' + id + '"' + checked + '>'
-        + '<span>' + HomePersonalize.escape(module.title) + '</span><small>排序</small></label>'
+        + '<span>' + title + '</span></label>'
+        + '<span class="home-personalize-panel__sort">'
+        + '<button type="button" data-home-panel-move="up" data-home-panel-target="' + id + '" aria-label="上移' + title + '"' + upDisabled + '>上移</button>'
+        + '<button type="button" data-home-panel-move="down" data-home-panel-target="' + id + '" aria-label="下移' + title + '"' + downDisabled + '>下移</button>'
+        + '</span></div>'
     }).join('')
   },
 
@@ -126,6 +145,7 @@ $.extend(HomePersonalize, {
     })
     $('#homePersonalizePanel').off('click.homePersonalize')
       .on('click.homePersonalize', '[data-home-panel-action]', HomePersonalize.handlePanelAction)
+      .on('click.homePersonalize', '[data-home-panel-move]', HomePersonalize.handlePanelMove)
       .on('change.homePersonalize', '[data-home-module-toggle]', HomePersonalize.toggleModule)
       .on('dragstart.homePersonalize', '[data-home-panel-id]', HomePersonalize.startPanelDrag)
       .on('dragover.homePersonalize', '[data-home-panel-id]', HomePersonalize.allowPanelDrop)
@@ -168,6 +188,39 @@ $.extend(HomePersonalize, {
     if (action === 'compact' || action === 'standard') {
       HomePersonalize.applyVisiblePreset(HomePersonalize.visiblePresetSizes[action])
     }
+  },
+
+  handlePanelMove: function (event) {
+    event.preventDefault()
+    event.stopPropagation()
+    var id = $(this).data('home-panel-target')
+    var direction = $(this).data('home-panel-move')
+    HomePersonalize.movePanelItem(id, direction)
+  },
+
+  movePanelItem: function (id, direction) {
+    var modules = HomePersonalize.getPanelModules()
+    var index = HomePersonalize.findPanelIndex(modules, id)
+    if (index < 0) {
+      return
+    }
+    var targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= modules.length) {
+      return
+    }
+    var position = direction === 'up' ? 'before' : 'after'
+    if (HomePersonalize.placeModule(id, modules[targetIndex].id, position)) {
+      HomePersonalize.renderPanel()
+    }
+  },
+
+  findPanelIndex: function (modules, id) {
+    for (var i = 0; i < modules.length; i++) {
+      if (modules[i].id === id) {
+        return i
+      }
+    }
+    return -1
   },
 
   resetLayout: function () {
@@ -259,15 +312,24 @@ $.extend(HomePersonalize, {
   },
 
   moveModule: function (sourceId, targetId) {
+    HomePersonalize.placeModule(sourceId, targetId, 'before')
+  },
+
+  placeModule: function (sourceId, targetId, position) {
     if (!sourceId || !targetId || sourceId === targetId) {
-      return
+      return false
     }
     var pair = HomePersonalize.getMovePair(sourceId, targetId)
     if (!pair) {
-      return
+      return false
     }
-    pair.$target.before(pair.$source)
+    if (position === 'after') {
+      pair.$target.after(pair.$source)
+    } else {
+      pair.$target.before(pair.$source)
+    }
     HomePersonalize.storeLayout()
+    return true
   },
 
   getMovePair: function (sourceId, targetId) {

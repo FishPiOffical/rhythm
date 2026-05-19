@@ -48,9 +48,7 @@ public class ColumnCoverMgmtService {
         final Transaction transaction = longArticleColumnRepository.beginTransaction();
         try {
             final JSONObject column = getOwnedColumn(userId, columnId);
-            column.put(LongArticleColumn.COLUMN_COVER_URL, normalizedCoverURL);
-            column.put(LongArticleColumn.COLUMN_UPDATE_TIME, System.currentTimeMillis());
-            longArticleColumnRepository.update(columnId, column);
+            updateCoverURLInCurrentTransaction(columnId, column, normalizedCoverURL);
             transaction.commit();
             return column;
         } catch (final ServiceException e) {
@@ -60,6 +58,34 @@ public class ColumnCoverMgmtService {
             rollback(transaction);
             throw new ServiceException(e);
         }
+    }
+
+    public JSONObject updateOwnedCoverURLInCurrentTransaction(final String userId,
+                                                             final String columnId,
+                                                             final String coverURL) throws ServiceException {
+        final String normalizedCoverURL = normalizeCoverURL(coverURL);
+        try {
+            final JSONObject column = getOwnedColumn(userId, columnId);
+            updateCoverURLInCurrentTransaction(columnId, column, normalizedCoverURL);
+            return column;
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final RepositoryException e) {
+            throw new ServiceException(e);
+        }
+    }
+
+    private void updateCoverURLInCurrentTransaction(final String columnId,
+                                                   final JSONObject column,
+                                                   final String normalizedCoverURL) throws RepositoryException {
+        final String currentCoverURL = StringUtils.trimToEmpty(column.optString(LongArticleColumn.COLUMN_COVER_URL));
+        if (StringUtils.equals(currentCoverURL, normalizedCoverURL)) {
+            return;
+        }
+
+        column.put(LongArticleColumn.COLUMN_COVER_URL, normalizedCoverURL);
+        column.put(LongArticleColumn.COLUMN_UPDATE_TIME, System.currentTimeMillis());
+        longArticleColumnRepository.update(columnId, column);
     }
 
     private JSONObject getOwnedColumn(final String userId, final String columnId)

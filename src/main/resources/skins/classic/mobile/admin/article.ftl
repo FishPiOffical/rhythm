@@ -135,6 +135,10 @@
                     <#assign adminLongColumns = longArticleColumns![]>
                     <#assign adminSelectedColumnId = article.columnId!"">
                     <#assign adminSelectedColumnTitle = article.columnTitle!"">
+                    <#assign adminSelectedColumnCoverURL = "">
+                    <#if (article.columnHasCover!false) && article.columnCoverURL??>
+                        <#assign adminSelectedColumnCoverURL = article.columnCoverURL>
+                    </#if>
                     <#assign adminShowCreateColumnInput = !adminSelectedColumnId?has_content && adminSelectedColumnTitle?has_content>
                     <#assign adminHasSelectedColumn = false>
                     <#list adminLongColumns as longColumn>
@@ -147,14 +151,18 @@
                     <select id="adminLongArticleColumnId" name="columnId">
                         <option value="">不归属专栏（下架专栏）</option>
                         <#if adminSelectedColumnId?has_content && !adminHasSelectedColumn>
-                            <option value="${adminSelectedColumnId}" selected>${article.columnTitle!adminSelectedColumnId}（当前专栏）</option>
+                            <option value="${adminSelectedColumnId}" selected
+                                    data-cover-url="${adminSelectedColumnCoverURL?html}"
+                                    data-has-cover="${(article.columnHasCover!false)?c}">${article.columnTitle!adminSelectedColumnId}（当前专栏）</option>
                         </#if>
                         <#list adminLongColumns as longColumn>
-                            <option value="${longColumn.oId}"<#if adminSelectedColumnId == longColumn.oId> selected</#if>>
+                            <option value="${longColumn.oId}"<#if adminSelectedColumnId == longColumn.oId> selected</#if>
+                                    data-cover-url="<#if (longColumn.columnHasCover!false)>${(longColumn.columnCoverURL!'')?html}</#if>"
+                                    data-has-cover="${(longColumn.columnHasCover!false)?c}">
                                 ${longColumn.columnTitle}<#if longColumn.columnArticleCount??>（${longColumn.columnArticleCount} 章）</#if>
                             </option>
                         </#list>
-                        <option value="__NEW__"<#if adminShowCreateColumnInput> selected</#if>>+ 新建专栏</option>
+                        <option value="__NEW__"<#if adminShowCreateColumnInput> selected</#if> data-has-cover="false">+ 新建专栏</option>
                     </select>
 
                     <div id="adminLongArticleColumnTitleWrap"<#if !adminShowCreateColumnInput> style="display:none"</#if>>
@@ -170,8 +178,15 @@
                                value="<#if article.chapterNo??>${article.chapterNo?c}</#if>" placeholder="留空自动排在专栏末尾"/>
                     </div>
 
+                    <div id="adminLongArticleColumnCoverWrap"<#if !adminSelectedColumnId?has_content && !adminShowCreateColumnInput> style="display:none"</#if>>
+                        <label for="adminLongArticleColumnCoverURL">封面 URL</label>
+                        <input type="text" id="adminLongArticleColumnCoverURL" name="columnCoverURL" maxlength="1024"
+                               <#if !adminSelectedColumnId?has_content && !adminShowCreateColumnInput>disabled</#if>
+                               value="${adminSelectedColumnCoverURL?html}" placeholder="封面 URL"/>
+                    </div>
+
                     <div id="adminLongArticleColumnTipWrap" class="ft-fade" style="margin:6px 0 10px;line-height:1.6;">
-                        管理员可为该长文新建专栏、切换专栏，或选择“不归属专栏”进行下架。
+                        可新建、切换、下架专栏。
                     </div>
                 </div>
 
@@ -280,12 +295,24 @@
     var columnTitleInput = document.getElementById('adminLongArticleColumnTitle');
     var chapterWrap = document.getElementById('adminLongArticleChapterNoWrap');
     var chapterInput = document.getElementById('adminLongArticleChapterNo');
+    var coverWrap = document.getElementById('adminLongArticleColumnCoverWrap');
+    var coverInput = document.getElementById('adminLongArticleColumnCoverURL');
 
-    if (!articleTypeEl || !columnSelect || !columnWrap || !columnTitleWrap || !chapterWrap) {
+    if (!articleTypeEl || !columnSelect || !columnWrap || !columnTitleWrap || !chapterWrap || !coverWrap) {
         return;
     }
 
-    var toggleColumnForm = function () {
+    var syncCoverInput = function () {
+        if (!coverInput) {
+            return;
+        }
+
+        var selectedOption = columnSelect.options[columnSelect.selectedIndex];
+        var hasCover = selectedOption && selectedOption.getAttribute('data-has-cover') === 'true';
+        coverInput.value = hasCover ? selectedOption.getAttribute('data-cover-url') || '' : '';
+    };
+
+    var toggleColumnForm = function (refreshCover) {
         var selectedColumnId = columnSelect.value || '';
         var isCreate = selectedColumnId === '__NEW__';
         var isBound = selectedColumnId !== '';
@@ -317,6 +344,16 @@
                 columnTitleInput.value = '';
             }
         }
+
+        coverWrap.style.display = isBound ? '' : 'none';
+        if (coverInput) {
+            coverInput.disabled = !isBound;
+            if (!isBound) {
+                coverInput.value = '';
+            } else if (refreshCover) {
+                syncCoverInput();
+            }
+        }
     };
 
     var toggleByType = function () {
@@ -334,12 +371,17 @@
             if (chapterInput) {
                 chapterInput.value = '';
             }
+            if (coverInput) {
+                coverInput.value = '';
+            }
         }
 
-        toggleColumnForm();
+        toggleColumnForm(true);
     };
 
-    columnSelect.addEventListener('change', toggleColumnForm);
+    columnSelect.addEventListener('change', function () {
+        toggleColumnForm(true);
+    });
     articleTypeEl.addEventListener('change', toggleByType);
     toggleByType();
 })();

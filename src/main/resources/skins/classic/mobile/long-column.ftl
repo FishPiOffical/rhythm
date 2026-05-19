@@ -43,6 +43,9 @@
             <div class="column-detail-hero__label">专栏</div>
             <h1>${longColumn.columnTitle}</h1>
             <div class="column-detail-hero__meta">共 ${longColumn.columnArticleCount?c} 章</div>
+            <#if isLoggedIn && currentUser?? && longColumn.columnAuthorId?? && currentUser.oId == longColumn.columnAuthorId>
+                <a class="column-detail-hero__edit" href="${servePath}/column/manage?columnId=${longColumn.oId}">编辑封面</a>
+            </#if>
         </div>
     </div>
     <div class="module_new">

@@ -1859,7 +1859,14 @@ public class AdminProcessor {
                             String articleId = article.optString(Keys.OBJECT_ID);
                             JSONObject editArticle = articleQueryService.getArticle(articleId);
                             editArticle.put(Article.ARTICLE_STATUS, Article.ARTICLE_STATUS_C_INVALID);
-                            articleMgmtService.updateArticleByAdmin(articleId, editArticle);
+                            try {
+                                articleMgmtService.updateArticleByAdmin(articleId, editArticle);
+                            } catch (final ServiceException e) {
+                                LOGGER.log(Level.ERROR, "Updates an article failed", e);
+                                dataModel.put(Keys.MSG, e.getMessage());
+                                dataModelService.fillHeaderAndFooter(context, dataModel);
+                                return;
+                            }
                         }
                     }
                     if (!value.equals(String.valueOf(UserExt.USER_STATUS_C_VALID))) {
@@ -2312,12 +2319,17 @@ public class AdminProcessor {
         longArticleColumnRequest.put(LongArticleColumn.CHAPTER_NO,
                 StringUtils.trimToEmpty(context.param(LongArticleColumn.CHAPTER_NO)));
 
-        final Iterator<String> parameterNames = request.getParameterNames().iterator();
-        while (parameterNames.hasNext()) {
-            final String name = parameterNames.next();
+        final Set<String> parameterNames = request.getParameterNames();
+        if (parameterNames.contains(LongArticleColumn.COLUMN_COVER_URL)) {
+            longArticleColumnRequest.put(LongArticleColumn.COLUMN_COVER_URL,
+                    StringUtils.trimToEmpty(context.param(LongArticleColumn.COLUMN_COVER_URL)));
+        }
+
+        for (final String name : parameterNames) {
             if (name.equals(LongArticleColumn.COLUMN_ID)
                     || name.equals(LongArticleColumn.COLUMN_TITLE)
-                    || name.equals(LongArticleColumn.CHAPTER_NO)) {
+                    || name.equals(LongArticleColumn.CHAPTER_NO)
+                    || name.equals(LongArticleColumn.COLUMN_COVER_URL)) {
                 continue;
             }
 
@@ -2342,7 +2354,21 @@ public class AdminProcessor {
         final String articleTags = Tag.formatTags(article.optString(Article.ARTICLE_TAGS));
         article.put(Article.ARTICLE_TAGS, articleTags);
 
-        articleMgmtService.updateArticleByAdmin(articleId, article, longArticleColumnRequest);
+        try {
+            articleMgmtService.updateArticleByAdmin(articleId, article, longArticleColumnRequest);
+        } catch (final ServiceException e) {
+            LOGGER.log(Level.ERROR, "Updates an article failed", e);
+            fillLongArticleChapterMeta(article);
+            fillLongArticleColumnsForAdmin(article, dataModel);
+            String title = article.optString(Article.ARTICLE_TITLE);
+            title = Escapes.escapeHTML(title);
+            article.put(Article.ARTICLE_TITLE, title);
+            dataModel.put(Article.ARTICLE, article);
+            dataModel.put(Keys.MSG, e.getMessage());
+            dataModelService.fillHeaderAndFooter(context, dataModel);
+            return;
+        }
+
         operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_UPDATE_ARTICLE, articleId));
 
         article = articleQueryService.getArticle(articleId);
@@ -2368,12 +2394,16 @@ public class AdminProcessor {
             article.remove(LongArticleColumn.COLUMN_ID);
             article.remove(LongArticleColumn.COLUMN_TITLE);
             article.remove(LongArticleColumn.CHAPTER_NO);
+            article.remove(LongArticleColumn.COLUMN_COVER_URL);
+            article.remove(LongArticleColumn.COLUMN_T_HAS_COVER);
             return;
         }
 
         article.put(LongArticleColumn.COLUMN_ID, chapterMeta.optString(LongArticleColumn.COLUMN_ID));
         article.put(LongArticleColumn.COLUMN_TITLE, chapterMeta.optString(LongArticleColumn.COLUMN_TITLE));
         article.put(LongArticleColumn.CHAPTER_NO, chapterMeta.optInt(LongArticleColumn.CHAPTER_NO));
+        article.put(LongArticleColumn.COLUMN_COVER_URL, chapterMeta.optString(LongArticleColumn.COLUMN_COVER_URL));
+        article.put(LongArticleColumn.COLUMN_T_HAS_COVER, chapterMeta.optBoolean(LongArticleColumn.COLUMN_T_HAS_COVER));
     }
 
     private void fillLongArticleColumnsForAdmin(final JSONObject article, final Map<String, Object> dataModel) {

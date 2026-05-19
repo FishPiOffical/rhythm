@@ -64,9 +64,14 @@ body.index .main {
   padding: 0;
 
   > ul {
+    list-style: none;
     margin: 0;
     padding: 0;
   }
+}
+
+body.index .home-personalize-zone > .home-module {
+  list-style: none;
 }
 
 body.index .main > ul > .module__title {

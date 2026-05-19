@@ -85,7 +85,7 @@
 
 .home-personalize-panel__item {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-height: 38px;
@@ -95,16 +95,43 @@
   cursor: grab;
 }
 
+.home-personalize-panel__check {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.home-personalize-panel__check span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-personalize-panel__sort {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.home-personalize-panel__sort button {
+  min-height: 28px;
+  padding: 0 7px;
+  font-size: 12px;
+}
+
+.home-personalize-panel__sort button:disabled {
+  cursor: default;
+  opacity: .42;
+}
+
 .home-personalize-panel__item:hover {
   background: #f6f8fb;
 }
 
 .home-personalize-panel__item--dragging {
   opacity: .55;
-}
-
-.home-personalize-panel__item small {
-  color: #8792a2;
 }
 
 .home-module[draggable="true"] {

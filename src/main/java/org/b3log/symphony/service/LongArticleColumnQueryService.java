@@ -149,9 +149,10 @@ public class LongArticleColumnQueryService {
             ret.put(LongArticleColumn.COLUMN_TITLE, Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
             ret.put(LongArticleColumn.CHAPTER_NO, chapter.optInt(LongArticleColumn.CHAPTER_NO));
             ret.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, column.optInt(LongArticleColumn.COLUMN_ARTICLE_COUNT));
+            final String coverURL = StringUtils.trimToEmpty(column.optString(LongArticleColumn.COLUMN_COVER_URL));
+            ret.put(LongArticleColumn.COLUMN_T_HAS_COVER, StringUtils.isNotBlank(coverURL));
             ret.put(LongArticleColumn.COLUMN_COVER_URL,
-                    StringUtils.defaultIfBlank(column.optString(LongArticleColumn.COLUMN_COVER_URL),
-                            Latkes.getStaticServePath() + DEFAULT_COVER_PATH));
+                    StringUtils.defaultIfBlank(coverURL, Latkes.getStaticServePath() + DEFAULT_COVER_PATH));
             return ret;
         } catch (final Exception e) {
             LOGGER.error("Gets article chapter meta failed [articleId={}]", articleId, e);

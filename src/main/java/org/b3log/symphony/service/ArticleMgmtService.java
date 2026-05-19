@@ -176,6 +176,9 @@ public class ArticleMgmtService {
     @Inject
     private LongArticleColumnMgmtService longArticleColumnMgmtService;
 
+    @Inject
+    private ColumnCoverMgmtService columnCoverMgmtService;
+
     /**
      * Reward management service.
      */
@@ -1038,8 +1041,9 @@ public class ArticleMgmtService {
      *
      * @param articleId the given article id
      * @param article   the specified article
+     * @throws ServiceException service exception
      */
-    public void updateArticleByAdmin(final String articleId, final JSONObject article) {
+    public void updateArticleByAdmin(final String articleId, final JSONObject article) throws ServiceException {
         updateArticleByAdmin(articleId, article, null);
     }
 
@@ -1052,9 +1056,10 @@ public class ArticleMgmtService {
      * @param articleId                 the given article id
      * @param article                   the specified article
      * @param longArticleColumnRequest  long article column request, {@code null} for no column change
+     * @throws ServiceException service exception
      */
     public void updateArticleByAdmin(final String articleId, final JSONObject article,
-                                     final JSONObject longArticleColumnRequest) {
+                                     final JSONObject longArticleColumnRequest) throws ServiceException {
         final Transaction transaction = articleRepository.beginTransaction();
 
         try {
@@ -1107,6 +1112,7 @@ public class ArticleMgmtService {
             if (null != longArticleColumnRequest) {
                 article.put(Keys.OBJECT_ID, articleId);
                 longArticleColumnMgmtService.syncChapterInCurrentTransaction(article, longArticleColumnRequest);
+                updateColumnCoverByAdminInCurrentTransaction(article, longArticleColumnRequest);
             }
 
             transaction.commit();
@@ -1129,7 +1135,30 @@ public class ArticleMgmtService {
             }
 
             LOGGER.log(Level.ERROR, "Updates an article[id=" + articleId + "] failed", e);
+            if (e instanceof ServiceException) {
+                throw (ServiceException) e;
+            }
+
+            throw new ServiceException(e);
         }
+    }
+
+    private void updateColumnCoverByAdminInCurrentTransaction(final JSONObject article,
+                                                             final JSONObject request) throws ServiceException {
+        if (Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)
+                || !request.has(LongArticleColumn.COLUMN_COVER_URL)) {
+            return;
+        }
+
+        final String columnId = StringUtils.trimToEmpty(request.optString(LongArticleColumn.COLUMN_ID));
+        if (StringUtils.isBlank(columnId) || "__NEW__".equals(columnId)) {
+            return;
+        }
+
+        columnCoverMgmtService.updateOwnedCoverURLInCurrentTransaction(
+                article.optString(Article.ARTICLE_AUTHOR_ID),
+                columnId,
+                request.optString(LongArticleColumn.COLUMN_COVER_URL));
     }
 
     /**
