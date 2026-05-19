@@ -26,6 +26,8 @@
 
 @import "variables";
 
+$article-toc-visible-min-width: 1880px;
+
 :root {
   --background-color: #fff;
   --background-secondary-color: #f6f8fa;
@@ -427,19 +429,25 @@
         padding-right: 28px;
         padding-left: 28px;
       }
+
+      #articleToC {
+        display: none;
+      }
     }
 
     &.article--has-toc {
       --article-toc-width: clamp(220px, 18vw, 340px);
-      --article-content-width: min(1120px, calc(100vw - var(--article-toc-width) - 80px));
-
-      .article-container {
-        margin-right: calc(var(--article-toc-width) + var(--article-layout-gap));
-        margin-left: auto;
-      }
 
       #articleToC {
         width: var(--article-toc-width);
+      }
+    }
+  }
+
+  @media (min-width: $article-toc-visible-min-width) {
+    &.article--has-toc:not(.long-article-page) {
+      #articleToC {
+        display: block;
       }
     }
   }
