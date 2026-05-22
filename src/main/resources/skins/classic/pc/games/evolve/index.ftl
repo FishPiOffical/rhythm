@@ -38,7 +38,7 @@
     <script src="https://file.fishpi.cn/evolve/lib/jquery.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/vue.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/buefy.min.js"></script>
-    <script src="https://file.fishpi.cn/evolve/lib/popper.min.js"></script>
+    <script src="https://file.fishpi.cn/evolve/lib/popper.min.js?${staticResourceVersion}"></script>
     <script src="https://file.fishpi.cn/evolve/lib/Sortable.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/chart.min.js"></script>
     <script src="https://file.fishpi.cn/evolve/lib/lz-string.min.js"></script>
