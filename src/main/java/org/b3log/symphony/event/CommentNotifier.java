@@ -290,25 +290,25 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                 return;
             }
 
-            // 2. 'Commented' Notification
-            if (!commenterIsArticleAuthor) {
-                final JSONObject requestJSONObject = new JSONObject();
-                requestJSONObject.put(Notification.NOTIFICATION_USER_ID, articleAuthorId);
-                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                notificationMgmtService.addCommentedNotification(requestJSONObject);
-            }
-
-            // 3. 'Reply' Notification
+            // 2. 'Reply' Notification
             final Set<String> repliedIds = new HashSet<>();
             if (StringUtils.isNotBlank(originalCmtId)) {
-                notifyReplyRecipient(originalCmtAuthorId, commenterId, articleAuthorId, commentId, repliedIds);
+                notifyReplyRecipient(originalCmtAuthorId, commenterId, commentId, repliedIds);
                 if (StringUtils.isNotBlank(threadRootCommentId) && !StringUtils.equals(threadRootCommentId, originalCmtId)) {
                     final JSONObject rootComment = commentRepository.get(threadRootCommentId);
                     if (null != rootComment) {
                         notifyReplyRecipient(rootComment.optString(Comment.COMMENT_AUTHOR_ID),
-                                commenterId, articleAuthorId, commentId, repliedIds);
+                                commenterId, commentId, repliedIds);
                     }
                 }
+            }
+
+            // 3. 'Commented' Notification
+            if (!commenterIsArticleAuthor && !repliedIds.contains(articleAuthorId)) {
+                final JSONObject requestJSONObject = new JSONObject();
+                requestJSONObject.put(Notification.NOTIFICATION_USER_ID, articleAuthorId);
+                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
+                notificationMgmtService.addCommentedNotification(requestJSONObject);
             }
 
             final String articleContent = originalArticle.optString(Article.ARTICLE_CONTENT);
@@ -326,11 +326,11 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
                     }
 
                     final JSONObject atUser = userQueryService.getUserByName(atUserName);
-                    if (atUser.optString(Keys.OBJECT_ID).equals(articleAuthorId)) {
-                        continue; // Has notified in step 2
+                    final String atUserId = atUser.optString(Keys.OBJECT_ID);
+                    if (StringUtils.equals(atUserId, articleAuthorId)) {
+                        continue; // 已通过评论或回复通知提醒文章作者
                     }
 
-                    final String atUserId = atUser.optString(Keys.OBJECT_ID);
                     if (repliedIds.contains(atUserId)) {
                         continue;
                     }
@@ -372,10 +372,10 @@ public class CommentNotifier extends AbstractEventListener<JSONObject> {
     }
 
     private void notifyReplyRecipient(final String recipientId, final String commenterId,
-                                      final String articleAuthorId, final String commentId,
+                                      final String commentId,
                                       final Set<String> repliedIds) throws ServiceException {
         if (StringUtils.isBlank(recipientId) || StringUtils.equals(recipientId, commenterId)
-                || StringUtils.equals(recipientId, articleAuthorId) || repliedIds.contains(recipientId)) {
+                || repliedIds.contains(recipientId)) {
             return;
         }
 

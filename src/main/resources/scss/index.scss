@@ -1017,8 +1017,8 @@ label.cmt-anonymous {
     align-items: center;
     flex-wrap: wrap;
     gap: 5px;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .comment-thread__meta a {
@@ -1033,8 +1033,8 @@ label.cmt-anonymous {
   .comment-thread__content {
     margin-top: 2px;
     color: $black-text;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.7;
   }
 
   .comment-thread__content img:not(.emoji) {
@@ -1051,6 +1051,7 @@ label.cmt-anonymous {
     align-items: center;
     gap: 4px;
     margin-top: 5px;
+    font-size: 13px;
   }
 
   .comment-thread__actions .comment-action__left {
@@ -1068,8 +1069,8 @@ label.cmt-anonymous {
 
   .comment-thread__actions .action-btns > span,
   .comment-thread__actions .action-btns > a {
-    min-height: 22px;
-    padding: 0 5px;
+    min-height: 24px;
+    padding: 0 7px;
     border: 0;
     background: transparent;
     box-shadow: none;
@@ -1086,8 +1087,8 @@ label.cmt-anonymous {
 
   .comment-thread__actions .reaction-pill,
   .comment-thread__actions .reaction-trigger {
-    min-height: 22px;
-    padding: 0 6px;
+    min-height: 24px;
+    padding: 0 7px;
     border-color: transparent;
     background: transparent;
     box-shadow: none;

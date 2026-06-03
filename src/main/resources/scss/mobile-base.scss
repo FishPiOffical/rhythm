@@ -1867,8 +1867,8 @@ label.cmt-anonymous {
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .comment-thread__meta a {
@@ -1884,8 +1884,8 @@ label.cmt-anonymous {
 .comment-thread__content {
   margin-top: 2px;
   color: var(--text-color);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .comment-thread__content img:not(.emoji) {
@@ -1902,6 +1902,7 @@ label.cmt-anonymous {
   align-items: center;
   gap: 4px;
   margin-top: 5px;
+  font-size: 13px;
 }
 
 .comment-thread__actions .comment-action__left {
