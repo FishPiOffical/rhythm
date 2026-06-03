@@ -295,8 +295,32 @@ var Util = {
         }
         return style.href.substring(0, stylesIndex)
     },
+    getHighlightScriptURLs: function () {
+        var style = document.getElementById('vditorHljsStyle')
+        if (!style || !style.href) {
+            throw new Error('Vditor highlight style is not loaded')
+        }
+
+        var baseURL = Util.getHighlightScriptBaseURL()
+        var styleName = style.href.substring(style.href.lastIndexOf('/') + 1)
+        if (styleName.indexOf('.min.css') > -1) {
+            return [
+                baseURL + '/highlight.min.js',
+                baseURL + '/third-languages.js',
+            ]
+        }
+        return [baseURL + '/highlight.pack.js']
+    },
     loadScriptOnce: function (id, url, callback) {
         var script = document.getElementById(id)
+        if (script && script.dataset.failed === 'true') {
+            script.remove()
+            script = undefined
+        }
+        if (script && script.src !== url) {
+            script.remove()
+            script = undefined
+        }
         if (script && script.dataset.loaded === 'true') {
             callback()
             return
@@ -312,6 +336,7 @@ var Util = {
             callback()
         }, { once: true })
         script.addEventListener('error', function () {
+            script.dataset.failed = 'true'
             throw new Error('Failed to load script: ' + url)
         }, { once: true })
         if (!script.parentElement) {
@@ -319,9 +344,21 @@ var Util = {
         }
     },
     loadHljsScripts: function (callback) {
-        var baseURL = Util.getHighlightScriptBaseURL()
-        Util.loadScriptOnce('vditorHljsScript',
-            baseURL + '/highlight.pack.js', callback)
+        var urls = Util.getHighlightScriptURLs()
+        var index = 0
+        var loadNext = function () {
+            if (index >= urls.length) {
+                callback()
+                return
+            }
+
+            var id = index === 0 ? 'vditorHljsScript' : 'vditorHljsThirdScript'
+            Util.loadScriptOnce(id, urls[index], function () {
+                index++
+                loadNext()
+            })
+        }
+        loadNext()
     },
     renderHljsCodeBlocks: function (blocks) {
         var render = function () {
