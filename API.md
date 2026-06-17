@@ -479,6 +479,56 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 `GET /user/{用户名}/point`
 
+### 查询积分记录
+
+`GET /api/user/points`
+
+分页查询当前用户积分记录。管理员可通过 `userId` 查询指定用户。
+
+请求：
+
+| Key    | 说明                    | 示例                             |
+| ------ | ----------------------- | -------------------------------- |
+| apiKey | 通用密钥                | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| p      | 页码，默认 1            | 1                                |
+| size   | 每页数量，默认 20，最大 200 | 20                               |
+| userId | 用户 oId，仅管理员可用  | 1659430635383                    |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/user/points?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS&p=1&size=20' \
+--header 'User-Agent: Mozilla/5.0'
+```
+
+响应：
+
+| Key                              | 说明                 | 示例          |
+| -------------------------------- | -------------------- | ------------- |
+| code                             | 0 为成功，-1 为失败  | 0             |
+| msg                              | 错误消息             |               |
+| data                             | 响应数据             |               |
+| - userId                         | 用户 oId             | 1659430635383 |
+| - records                        | 积分记录列表         |               |
+| -- oId                           | 记录 oId             | 1760000000000 |
+| -- fromId                        | 支出用户 oId         | 1659430635383 |
+| -- toId                          | 收入用户 oId         | sys           |
+| -- sum                           | 积分数量             | 20            |
+| -- type                          | 记录类型             | 8             |
+| -- time                          | 记录时间             | 1760000000000 |
+| -- dataId                        | 关联数据             | 1760000000000 |
+| -- memo                          | 备注                 | hello         |
+| -- operation                     | 收支方向             | +             |
+| -- balance                       | 操作后余额           | 183939        |
+| -- displayType                   | 类型名称             | 活动收益      |
+| -- description                   | 记录描述             | 签到奖励      |
+| - pagination                     | 分页信息             |               |
+| -- paginationCurrentPageNum      | 当前页               | 1             |
+| -- paginationPageSize            | 每页数量             | 20            |
+| -- paginationRecordCount         | 总记录数             | 100           |
+| -- paginationPageCount           | 总页数               | 5             |
+| -- paginationPageNums            | 页码列表             | [1,2,3,4,5]   |
+
 ### 查询用户勋章
 
 `GET /user/{用户名}/medal`
