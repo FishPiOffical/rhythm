@@ -256,6 +256,7 @@ public class UserProcessor {
         Dispatcher.post("/user/edit/points", userProcessor::adjustPoint);
         Dispatcher.post("/user/edit/notification", userProcessor::sendSystemNotification);
         Dispatcher.post("/user/identify", userProcessor::submitIdentify, loginCheck::handle);
+        Dispatcher.get("/api/user/points", userProcessor::getUserPointRecords, loginCheck::handle);
         Dispatcher.get("/api/user/{userName}/articles", userProcessor::userArticles, loginCheck::handle);
         Dispatcher.get("/api/user/{userName}/breezemoons", userProcessor::userBreezemoons, loginCheck::handle);
     }
@@ -1664,6 +1665,117 @@ public class UserProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
 
         dataModel.put(Common.TYPE, "points");
+    }
+
+    /**
+     * Gets user point records.
+     *
+     * @param context the specified context
+     */
+    public void getUserPointRecords(final RequestContext context) {
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) {
+            context.sendError(401);
+            return;
+        }
+
+        final boolean isAdmin = Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE));
+        final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
+        String targetUserId = StringUtils.trim(context.param("userId"));
+        if (StringUtils.isBlank(targetUserId)) {
+            targetUserId = currentUserId;
+        } else if (!StringUtils.isNumeric(targetUserId) || targetUserId.length() > 19) {
+            renderUserPointRecordsError(context, "参数错误");
+            return;
+        }
+
+        if (!isAdmin && !currentUserId.equals(targetUserId)) {
+            renderUserPointRecordsError(context, "无权限");
+            return;
+        }
+
+        final JSONObject targetUser = userQueryService.getUser(targetUserId);
+        if (null == targetUser) {
+            renderUserPointRecordsError(context, "用户不存在");
+            return;
+        }
+
+        final int pageNum = getPositiveIntParam(context, "p", 1);
+        final int pageSize = Math.min(getPositiveIntParam(context, "size", Symphonys.USER_HOME_LIST_CNT), 200);
+        final int windowSize = Symphonys.USER_HOME_LIST_WIN_SIZE;
+
+        final JSONObject userPointsResult = pointtransferQueryService.getUserPoints(targetUserId, pageNum, pageSize);
+        if (null == userPointsResult) {
+            renderUserPointRecordsError(context, "查询失败");
+            return;
+        }
+
+        final int recordCount = userPointsResult.optInt(Pagination.PAGINATION_RECORD_COUNT);
+        final int pageCount = (int) Math.ceil(recordCount / (double) pageSize);
+        final List<Integer> pageNums = Paginator.paginate(pageNum, pageSize, pageCount, windowSize);
+
+        final JSONArray records = new JSONArray();
+        final JSONArray points = userPointsResult.optJSONArray(Keys.RESULTS);
+        if (null != points) {
+            for (int i = 0; i < points.length(); i++) {
+                final Object item = points.opt(i);
+                if (!(item instanceof JSONObject)) {
+                    continue;
+                }
+
+                final JSONObject point = (JSONObject) item;
+                records.put(new JSONObject()
+                        .put(Keys.OBJECT_ID, point.optString(Keys.OBJECT_ID))
+                        .put(Pointtransfer.FROM_ID, point.optString(Pointtransfer.FROM_ID))
+                        .put(Pointtransfer.TO_ID, point.optString(Pointtransfer.TO_ID))
+                        .put(Pointtransfer.SUM, point.optInt(Pointtransfer.SUM))
+                        .put(Pointtransfer.TYPE, point.optInt(Pointtransfer.TYPE))
+                        .put(Pointtransfer.TIME, point.optLong(Pointtransfer.TIME))
+                        .put(Pointtransfer.DATA_ID, point.optString(Pointtransfer.DATA_ID))
+                        .put(Pointtransfer.MEMO, point.optString(Pointtransfer.MEMO))
+                        .put(Common.OPERATION, point.optString(Common.OPERATION))
+                        .put(Common.BALANCE, point.optInt(Common.BALANCE))
+                        .put(Common.DISPLAY_TYPE, point.optString(Common.DISPLAY_TYPE))
+                        .put(Common.DESCRIPTION, point.optString(Common.DESCRIPTION)));
+            }
+        }
+
+        final JSONObject pagination = new JSONObject()
+                .put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum)
+                .put(Pagination.PAGINATION_PAGE_SIZE, pageSize)
+                .put(Pagination.PAGINATION_RECORD_COUNT, recordCount)
+                .put(Pagination.PAGINATION_PAGE_COUNT, pageCount)
+                .put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
+        final JSONObject data = new JSONObject()
+                .put("userId", targetUserId)
+                .put("records", records)
+                .put(Pagination.PAGINATION, pagination);
+
+        context.renderJSON(new JSONObject()
+                .put(Keys.CODE, StatusCodes.SUCC)
+                .put(Keys.MSG, "")
+                .put(Common.DATA, data));
+    }
+
+    private int getPositiveIntParam(final RequestContext context, final String key, final int defaultValue) {
+        final String value = StringUtils.trim(context.param(key));
+        if (StringUtils.isBlank(value)) {
+            return defaultValue;
+        }
+
+        try {
+            final int ret = Integer.parseInt(value);
+            return ret > 0 ? ret : defaultValue;
+        } catch (final NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private void renderUserPointRecordsError(final RequestContext context, final String msg) {
+        context.renderJSON(new JSONObject()
+                .put(Keys.CODE, StatusCodes.ERR)
+                .put(Keys.MSG, msg)
+                .put(Common.DATA, new JSONObject()));
     }
 
     /**
