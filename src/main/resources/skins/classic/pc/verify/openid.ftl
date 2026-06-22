@@ -37,8 +37,8 @@
 
             <div class="openid-info">
 
-                <div class="tip1">使用您的 ${visionLabel} 账户登录到 ${realmName} </div>
-                <div class="tip2">请注意，${realmName} 不附属于 ${symphonyLabel}</div>
+                <div class="tip1">登录到 ${realmName}</div>
+                <div class="tip2">非 ${symphonyLabel} 站点</div>
                 <div class="info-box" >
                     <span class="avatar-mid" style="background-image:url('${currentUser.userAvatarURL48}')"></span>
                     <div class="info-detail" style="flex:1">
@@ -48,25 +48,43 @@
                     <a href="javascript:Util.logout()">这不是您？</a>
                 </div>
                 <form action="${servePath}/openid/confirm" method="post">
+                    <input type="hidden" name="fishpi.authRequestId" value="${fishpi_auth_request_id}">
                     <input type="hidden" name="openid.ns" value="${openid_ns}">
                     <input type="hidden" name="openid.mode" value="${openid_mode}">
                     <input type="hidden" name="openid.return_to" value="${openid_return_to}">
                     <input type="hidden" name="openid.identity" value="${openid_identity}">
                     <input type="hidden" name="openid.claimed_id" value="${openid_claimed_id}">
                     <input type="hidden" name="openid.realm" value="${openid_realm}">
-                    <button class="green" type="submit">${loginLabel}</button>
+                    <div style="margin: 16px 0;text-align: left">
+                        <#list fishpiScopes as scope>
+                            <label style="align-items:center;display:flex;gap:8px;margin:8px 0">
+                                <input type="checkbox" name="fishpi.scope.${scope.key}" value="true" <#if scope.requested>checked disabled</#if>>
+                                <#if scope.requested>
+                                    <input type="hidden" name="fishpi.scope.${scope.key}" value="true">
+                                </#if>
+                                <span>${scope.label}</span>
+                                <#if scope.requested>
+                                    <span class="ft-smaller ft-gray">必选</span>
+                                </#if>
+                            </label>
+                        </#list>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <button class="green" type="submit">${loginLabel}</button>
+                        <button type="submit" name="cancel" value="true">取消</button>
+                    </div>
                 </form>
             </div>
         </div>
         <div class="intro vditor-reset" style="height: 100%">
             <div class="openid-intro">
-                <div style="margin-bottom: 16px" class="openid-intro-title">通过  ${visionLabel} 账户登录到 ${realmName}：</div>
+                <div style="margin-bottom: 16px" class="openid-intro-title">授权内容</div>
                 <ul>
-                    <li>您的 ${visionLabel} 登录凭据不会被共享。</li>
-                    <li>将与 <b>${realmName}</b> 共享唯一的数字标识符。</li>
-                    <li>${realmName} 可以获得您在 ${visionLabel} 上的<b>头像</b>，<b>昵称</b>，<b>用户名</b>。</li>
+                    <li>个人信息：头像、昵称、用户名</li>
+                    <li>积分信息：余额、记录</li>
+                    <li>发帖信息：公开发帖</li>
                 </ul>
-                <div class="openid-intro-title">点击“登录”表示您同意共享此数据。 </div>
+                <div class="openid-intro-title">登录即授权所选项</div>
             </div>
         </div>
     </div>

@@ -107,6 +107,7 @@
 - `BeforeRequestHandler` 获取当前用户优先用 `UserQueryService#getCurrentUser(request)`（底层 `Sessions.currentUser(request)`）；`Sessions.getUser()` 仅读取 ThreadLocal，未 `Sessions.setUser(...)` 前通常为 `null`。
 - `LoginCheckMidware#handle`：未登录统一 401（特殊 URI `/gen` 返回空 SVG）；支持 `Sessions` 与 `apiKey` 两种登录态来源。
 - 新接口若需“页面登录态 + apiKey 调用”双兼容，路由层优先挂 `loginCheck::handle`，处理方法再读取 `context.attr(User.USER)`；避免只挂 `permission` 导致拿不到当前用户对象。
+- OAuth/OpenID 用户资源链路在 `OpenIdProcessor`：`/openid/login` 通过 `fishpi.scope` 请求 `profile.read/points.read/articles.read`，`/openid/verify` 成功后返回短期 Bearer `access_token`；`/openid/user/*` 资源接口只认该 token，不挂 `loginCheck`、不接收 `apiKey`、不支持 `userId` 代查。
 - 文章页实时链路走 `ArticleChannel`：新增评论仍是 `type=comment`，评论 reaction 增量走 `type=commentReaction`，帖子本体 reaction 增量走 `type=articleReaction`；联调这类 Java 推送改动时，前端强刷还不够，必须让用户重启或重新编译服务端。
 - `AnonymousViewCheckMidware#handle`：匿名访问触发验证码（2 小时首次访问 + 每 5 次访问），并结合 `anonymous.viewSkips`、文章匿名开关、匿名访问次数 Cookie 限制。
 - `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。
