@@ -10,6 +10,25 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "openid_refresh_token",
+      "description": "OpenID refresh token sessions",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "Primary key" },
+        { "name": "tokenHash", "type": "String", "length": 128, "description": "Refresh token hash" },
+        { "name": "userId", "type": "String", "length": 19, "description": "User ID" },
+        { "name": "realm", "type": "String", "length": 512, "description": "OpenID realm" },
+        { "name": "scope", "type": "String", "length": 255, "description": "Authorized scopes" },
+        { "name": "familyId", "type": "String", "length": 64, "description": "Token family ID" },
+        { "name": "parentId", "type": "String", "length": 19, "description": "Parent token row ID" },
+        { "name": "state", "type": "int", "description": "0 active, 1 rotated, 2 revoked, 3 expired" },
+        { "name": "createdAt", "type": "long", "description": "Created time" },
+        { "name": "updatedAt", "type": "long", "description": "Updated time" },
+        { "name": "lastUsedAt", "type": "long", "description": "Last used time" },
+        { "name": "idleExpiresAt", "type": "long", "description": "Idle expiration time" },
+        { "name": "maxExpiresAt", "type": "long", "description": "Max expiration time" }
+      ]
+    },
+    {
       "name": "membership_level",
       "description": "会员等级定义",
       "keys": [

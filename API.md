@@ -479,26 +479,130 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 `GET /user/{用户名}/point`
 
-### 查询积分记录
+### 查询用户勋章
 
-`GET /api/user/points`
+`GET /user/{用户名}/medal`
 
-分页查询当前用户积分记录。管理员可通过 `userId` 查询指定用户。
+## OAuth 用户资源
+
+### OAuth 授权范围
+
+`GET /openid/login`
+
+第三方登录时可通过 `fishpi.scope` 请求用户资源权限。用户授权后，`POST /openid/verify` 成功响应会追加 `access_token` 和 `refresh_token`。
 
 请求：
 
-| Key    | 说明                    | 示例                             |
-| ------ | ----------------------- | -------------------------------- |
-| apiKey | 通用密钥                | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
-| p      | 页码，默认 1            | 1                                |
-| size   | 每页数量，默认 20，最大 200 | 20                               |
-| userId | 用户 oId，仅管理员可用  | 1659430635383                    |
+| Key          | 说明                         | 示例                         |
+| ------------ | ---------------------------- | ---------------------------- |
+| fishpi.scope | 授权范围，空格或逗号分隔     | profile.read points.read     |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/user/points?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS&p=1&size=20' \
---header 'User-Agent: Mozilla/5.0'
+curl --location --request GET 'https://fishpi.cn/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=https%3A%2F%2Fexample.com%2Fcallback&openid.realm=https%3A%2F%2Fexample.com&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&fishpi.scope=profile.read%20points.read'
+```
+
+响应：
+
+| Key          | 说明                         | 示例                         |
+| ------------ | ---------------------------- | ---------------------------- |
+| scope        | 用户最终授权范围             | profile.read points.read     |
+| token_type   | 令牌类型                     | Bearer                       |
+| access_token | OAuth 用户资源访问令牌       | xxx                          |
+| expires_in   | 有效期，单位秒               | 604800                       |
+| refresh_token | OAuth 续签令牌              | xxx                          |
+| refresh_expires_in | 续签令牌空闲有效期，单位秒 | 31104000                     |
+
+> `profile.read` 为基础权限；站点请求的权限为必选，用户可额外勾选更多权限。
+
+### 续签 OAuth 访问令牌
+
+`POST /openid/token`
+
+使用 `refresh_token` 续签 OAuth 访问令牌。不接受 `apiKey`。
+
+请求：
+| Key           | 说明                         | 示例          |
+| ------------- | ---------------------------- | ------------- |
+| grant_type    | 固定为 `refresh_token`        | refresh_token |
+| refresh_token | OAuth 续签令牌                | xxx           |
+
+请求示例：
+```bash
+curl --location --request POST 'https://fishpi.cn/openid/token' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "grant_type": "refresh_token",
+  "refresh_token": "xxx"
+}'
+```
+
+响应：
+| Key                    | 说明                         | 示例                     |
+| ---------------------- | ---------------------------- | ------------------------ |
+| code                   | 0 为成功，-1 为失败           | 0                        |
+| msg                    | 错误消息                     |                          |
+| data                   | 响应数据                     |                          |
+| - token_type           | 令牌类型                     | Bearer                   |
+| - access_token         | OAuth 用户资源访问令牌       | xxx                      |
+| - expires_in           | 访问令牌有效期，单位秒       | 604800                   |
+| - refresh_token        | 新 OAuth 续签令牌            | xxx                      |
+| - refresh_expires_in   | 续签令牌空闲有效期，单位秒   | 31104000                 |
+| - scope                | 用户最终授权范围             | profile.read points.read |
+
+> 每次续签都会返回新的 `refresh_token`，旧 `refresh_token` 会立即失效；续签令牌最长不超过首次授权后 720 天；请不要把 `refresh_token` 暴露到前端页面或日志中。
+
+### 查询 OAuth 用户信息
+
+`GET /openid/user/profile`
+
+查询当前 OAuth 授权用户的基础信息。需要 `profile.read` 权限。
+
+请求：
+
+| Key           | 说明             | 示例         |
+| ------------- | ---------------- | ------------ |
+| Authorization | Bearer 访问令牌  | Bearer xxx   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/openid/user/profile' \
+--header 'Authorization: Bearer xxx'
+```
+
+响应：
+
+| Key              | 说明                 | 示例                          |
+| ---------------- | -------------------- | ----------------------------- |
+| code             | 0 为成功，-1 为失败  | 0                             |
+| msg              | 错误消息             |                               |
+| data             | 响应数据             |                               |
+| - userId         | 用户 oId             | 1659430635383                 |
+| - userName       | 用户名               | admin                         |
+| - userNickname   | 昵称                 | 管理员                        |
+| - userAvatarURL  | 头像                 | https://file.fishpi.cn/a.png  |
+
+### 查询 OAuth 用户积分记录
+
+`GET /openid/user/points`
+
+分页查询当前 OAuth 授权用户的积分余额和积分记录。需要 `points.read` 权限。
+
+请求：
+
+| Key           | 说明                         | 示例       |
+| ------------- | ---------------------------- | ---------- |
+| Authorization | Bearer 访问令牌              | Bearer xxx |
+| p             | 页码，默认 1                 | 1          |
+| size          | 每页数量，默认 20，最大 200  | 20         |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/openid/user/points?p=1&size=20' \
+--header 'Authorization: Bearer xxx'
 ```
 
 响应：
@@ -509,6 +613,7 @@ curl --location --request GET 'https://fishpi.cn/api/user/points?apiKey=oXTQTD4l
 | msg                              | 错误消息             |               |
 | data                             | 响应数据             |               |
 | - userId                         | 用户 oId             | 1659430635383 |
+| - userPoint                      | 当前积分             | 183939        |
 | - records                        | 积分记录列表         |               |
 | -- oId                           | 记录 oId             | 1760000000000 |
 | -- fromId                        | 支出用户 oId         | 1659430635383 |
@@ -529,9 +634,54 @@ curl --location --request GET 'https://fishpi.cn/api/user/points?apiKey=oXTQTD4l
 | -- paginationPageCount           | 总页数               | 5             |
 | -- paginationPageNums            | 页码列表             | [1,2,3,4,5]   |
 
-### 查询用户勋章
+### 查询 OAuth 用户发帖记录
 
-`GET /user/{用户名}/medal`
+`GET /openid/user/articles`
+
+分页查询当前 OAuth 授权用户的公开发帖记录。需要 `articles.read` 权限。
+
+请求：
+
+| Key           | 说明                         | 示例       |
+| ------------- | ---------------------------- | ---------- |
+| Authorization | Bearer 访问令牌              | Bearer xxx |
+| p             | 页码，默认 1                 | 1          |
+| size          | 每页数量，默认 20，最大 100  | 20         |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/openid/user/articles?p=1&size=20' \
+--header 'Authorization: Bearer xxx'
+```
+
+响应：
+
+| Key                              | 说明                 | 示例          |
+| -------------------------------- | -------------------- | ------------- |
+| code                             | 0 为成功，-1 为失败  | 0             |
+| msg                              | 错误消息             |               |
+| data                             | 响应数据             |               |
+| - userId                         | 用户 oId             | 1659430635383 |
+| - articles                       | 发帖记录列表         |               |
+| -- oId                           | 帖子 oId             | 1760000000000 |
+| -- articleTitle                  | 标题                 | 摸鱼          |
+| -- articlePermalink              | 链接                 | /article/1760000000000 |
+| -- articleTags                   | 标签                 | 摸鱼,生活     |
+| -- articleCreateTime             | 创建时间             | 1760000000000 |
+| -- articleUpdateTime             | 更新时间             | 1760000000000 |
+| -- articleCommentCount           | 回帖数               | 3             |
+| -- articleViewCount              | 浏览数               | 100           |
+| -- articleType                   | 帖子类型             | 0             |
+| -- articlePerfect                | 是否优选             | 0             |
+| - pagination                     | 分页信息             |               |
+| -- paginationCurrentPageNum      | 当前页               | 1             |
+| -- paginationPageSize            | 每页数量             | 20            |
+| -- paginationRecordCount         | 总记录数             | 100           |
+| -- paginationPageCount           | 总页数               | 5             |
+| -- paginationPageNums            | 页码列表             | [1,2,3,4,5]   |
+
+> 发帖记录只返回公开、非匿名、未删除发帖，不包含正文、草稿、IP、UA。
 
 ## 通知
 

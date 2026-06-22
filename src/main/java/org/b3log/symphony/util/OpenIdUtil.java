@@ -17,16 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.b3log.symphony.util;
+
+import org.json.JSONObject;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.*;
+import java.util.regex.Pattern;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 
 public class OpenIdUtil {
 
     private static final String SECRET = Symphonys.get("openid.secret");
+    private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Pattern REFRESH_TOKEN_PATTERN = Pattern.compile("[A-Za-z0-9_-]{43,256}");
+
     public static String generateNonce() {
         // 时间部分
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -62,5 +76,66 @@ public class OpenIdUtil {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         return sdf.parse(timestampPart);
+    }
+
+    public static String generateAccessToken(final String userId, final Collection<String> scopes,
+                                             final String realm, final long expiresAt) throws Exception {
+        final long now = System.currentTimeMillis();
+        final JSONObject payload = new JSONObject()
+                .put("userId", userId)
+                .put("scope", String.join(" ", scopes))
+                .put("realm", realm)
+                .put("iat", now)
+                .put("exp", expiresAt)
+                .put("jti", UUID.randomUUID().toString().replace("-", ""));
+        final String encodedPayload = URL_ENCODER.encodeToString(payload.toString().getBytes(StandardCharsets.UTF_8));
+        final String signature = URL_ENCODER.encodeToString(hmac(encodedPayload));
+
+        return encodedPayload + "." + signature;
+    }
+
+    public static JSONObject parseAccessToken(final String token) {
+        try {
+            final String[] parts = token.split("\\.");
+            if (2 != parts.length) {
+                return null;
+            }
+
+            final byte[] expectedSignature = hmac(parts[0]);
+            final byte[] actualSignature = URL_DECODER.decode(parts[1]);
+            if (!MessageDigest.isEqual(expectedSignature, actualSignature)) {
+                return null;
+            }
+
+            final JSONObject payload = new JSONObject(new String(URL_DECODER.decode(parts[0]), StandardCharsets.UTF_8));
+            if (payload.optLong("exp") < System.currentTimeMillis()) {
+                return null;
+            }
+
+            return payload;
+        } catch (final Exception e) {
+            return null;
+        }
+    }
+
+    public static String generateRefreshToken() {
+        final byte[] random = new byte[32];
+        SECURE_RANDOM.nextBytes(random);
+        return URL_ENCODER.encodeToString(random);
+    }
+
+    public static boolean isRefreshTokenFormat(final String token) {
+        return null != token && REFRESH_TOKEN_PATTERN.matcher(token).matches();
+    }
+
+    public static String hashRefreshToken(final String token) throws Exception {
+        return URL_ENCODER.encodeToString(hmac("refresh:" + token));
+    }
+
+    private static byte[] hmac(final String payload) throws Exception {
+        final Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+
+        return mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
     }
 }
