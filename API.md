@@ -489,7 +489,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 `GET /openid/login`
 
-第三方登录时可通过 `fishpi.scope` 请求用户资源权限。用户授权后，`POST /openid/verify` 成功响应会追加 `access_token`。
+第三方登录时可通过 `fishpi.scope` 请求用户资源权限。用户授权后，`POST /openid/verify` 成功响应会追加 `access_token` 和 `refresh_token`。
 
 请求：
 
@@ -510,9 +510,48 @@ curl --location --request GET 'https://fishpi.cn/openid/login?openid.ns=http%3A%
 | scope        | 用户最终授权范围             | profile.read points.read     |
 | token_type   | 令牌类型                     | Bearer                       |
 | access_token | OAuth 用户资源访问令牌       | xxx                          |
-| expires_in   | 有效期，单位秒               | 1800                         |
+| expires_in   | 有效期，单位秒               | 604800                       |
+| refresh_token | OAuth 续签令牌              | xxx                          |
+| refresh_expires_in | 续签令牌空闲有效期，单位秒 | 31104000                     |
 
 > `profile.read` 为基础权限；站点请求的权限为必选，用户可额外勾选更多权限。
+
+### 续签 OAuth 访问令牌
+
+`POST /openid/token`
+
+使用 `refresh_token` 续签 OAuth 访问令牌。不接受 `apiKey`。
+
+请求：
+| Key           | 说明                         | 示例          |
+| ------------- | ---------------------------- | ------------- |
+| grant_type    | 固定为 `refresh_token`        | refresh_token |
+| refresh_token | OAuth 续签令牌                | xxx           |
+
+请求示例：
+```bash
+curl --location --request POST 'https://fishpi.cn/openid/token' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "grant_type": "refresh_token",
+  "refresh_token": "xxx"
+}'
+```
+
+响应：
+| Key                    | 说明                         | 示例                     |
+| ---------------------- | ---------------------------- | ------------------------ |
+| code                   | 0 为成功，-1 为失败           | 0                        |
+| msg                    | 错误消息                     |                          |
+| data                   | 响应数据                     |                          |
+| - token_type           | 令牌类型                     | Bearer                   |
+| - access_token         | OAuth 用户资源访问令牌       | xxx                      |
+| - expires_in           | 访问令牌有效期，单位秒       | 604800                   |
+| - refresh_token        | 新 OAuth 续签令牌            | xxx                      |
+| - refresh_expires_in   | 续签令牌空闲有效期，单位秒   | 31104000                 |
+| - scope                | 用户最终授权范围             | profile.read points.read |
+
+> 每次续签都会返回新的 `refresh_token`，旧 `refresh_token` 会立即失效；续签令牌最长不超过首次授权后 720 天；请不要把 `refresh_token` 暴露到前端页面或日志中。
 
 ### 查询 OAuth 用户信息
 

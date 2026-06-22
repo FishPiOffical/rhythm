@@ -32,6 +32,7 @@ import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.Pagination;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Paginator;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
@@ -42,6 +43,7 @@ import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.ActivityMgmtService;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.DataModelService;
+import org.b3log.symphony.service.OpenIdRefreshTokenMgmtService;
 import org.b3log.symphony.service.PointtransferQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.OpenIdUtil;
@@ -85,7 +87,6 @@ public class OpenIdProcessor {
     private static final String SCOPE_POINTS_READ = "points.read";
     private static final String SCOPE_ARTICLES_READ = "articles.read";
     private static final long OPENID_TMP_EXPIRES = 5 * 60 * 1000L;
-    private static final long OPENID_ACCESS_TOKEN_EXPIRES = 30 * 60 * 1000L;
     private static final List<ScopeDefinition> SCOPE_DEFINITIONS = Arrays.asList(
             new ScopeDefinition(SCOPE_PROFILE_READ, "个人信息"),
             new ScopeDefinition(SCOPE_POINTS_READ, "积分信息"),
@@ -111,6 +112,9 @@ public class OpenIdProcessor {
     @Inject
     private ArticleQueryService articleQueryService;
 
+    @Inject
+    private OpenIdRefreshTokenMgmtService openIdRefreshTokenMgmtService;
+
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
@@ -121,6 +125,7 @@ public class OpenIdProcessor {
         Dispatcher.get("/openid/login", openIdProcessor::showLoginForm, loginCheck::handle,csrfMidware::fill);
         Dispatcher.post("/openid/confirm", openIdProcessor::confirm, loginCheck::handle,csrfMidware::fill);
         Dispatcher.post("/openid/verify", openIdProcessor::verify, csrfMidware::fill);
+        Dispatcher.post("/openid/token", openIdProcessor::refreshToken);
         Dispatcher.get("/openid/user/profile", openIdProcessor::getProfile);
         Dispatcher.get("/openid/user/points", openIdProcessor::getPoints);
         Dispatcher.get("/openid/user/articles", openIdProcessor::getArticles);
@@ -451,15 +456,16 @@ public class OpenIdProcessor {
             final StringBuilder builder = new StringBuilder("ns:http://specs.openid.net/auth/2.0\nis_valid:true\n");
             if (null != authResult && !authResult.scopes.isEmpty()) {
                 try {
-                    final long expiresAt = System.currentTimeMillis() + OPENID_ACCESS_TOKEN_EXPIRES;
-                    builder.append("scope:").append(String.join(" ", authResult.scopes)).append("\n");
-                    builder.append("token_type:Bearer\n");
-                    builder.append("access_token:")
-                            .append(OpenIdUtil.generateAccessToken(authResult.userId, authResult.scopes, authResult.realm, expiresAt))
-                            .append("\n");
-                    builder.append("expires_in:").append(OPENID_ACCESS_TOKEN_EXPIRES / 1000).append("\n");
+                    final JSONObject tokenData = openIdRefreshTokenMgmtService.issueToken(authResult.userId,
+                            authResult.scopes, authResult.realm);
+                    builder.append("scope:").append(tokenData.optString("scope")).append("\n");
+                    builder.append("token_type:").append(tokenData.optString("token_type")).append("\n");
+                    builder.append("access_token:").append(tokenData.optString("access_token")).append("\n");
+                    builder.append("expires_in:").append(tokenData.optLong("expires_in")).append("\n");
+                    builder.append("refresh_token:").append(tokenData.optString("refresh_token")).append("\n");
+                    builder.append("refresh_expires_in:").append(tokenData.optLong("refresh_expires_in")).append("\n");
                 } catch (final Exception e) {
-                    LOGGER.log(Level.ERROR, "Generates OpenID access token failed", e);
+                    LOGGER.log(Level.ERROR, "Generates OpenID token failed", e);
                     context.sendString("ns:http://specs.openid.net/auth/2.0\nis_valid:false\n");
                     return;
                 }
@@ -469,6 +475,46 @@ public class OpenIdProcessor {
             context.sendString("ns:http://specs.openid.net/auth/2.0\nis_valid:false\n");
         }
 
+    }
+
+    public void refreshToken(final RequestContext context) {
+        JSONObject requestJSONObject = null;
+        String grantType = StringUtils.trimToEmpty(context.param("grant_type"));
+        if (StringUtils.isBlank(grantType)) {
+            requestJSONObject = readRequestJSON(context);
+            grantType = StringUtils.trimToEmpty(requestJSONObject.optString("grant_type"));
+        }
+        if (!"refresh_token".equals(grantType)) {
+            renderError(context, "参数错误");
+            return;
+        }
+
+        String refreshToken = StringUtils.trimToEmpty(context.param("refresh_token"));
+        if (StringUtils.isBlank(refreshToken)) {
+            if (null == requestJSONObject) {
+                requestJSONObject = readRequestJSON(context);
+            }
+            refreshToken = StringUtils.trimToEmpty(requestJSONObject.optString("refresh_token"));
+        }
+        if (!OpenIdUtil.isRefreshTokenFormat(refreshToken)) {
+            renderAccessDenied(context);
+            return;
+        }
+
+        try {
+            renderSucc(context, openIdRefreshTokenMgmtService.refresh(refreshToken));
+        } catch (final ServiceException e) {
+            renderAccessDenied(context);
+        }
+    }
+
+    private JSONObject readRequestJSON(final RequestContext context) {
+        try {
+            final JSONObject ret = context.requestJSON();
+            return null == ret ? new JSONObject() : ret;
+        } catch (final Exception e) {
+            return new JSONObject();
+        }
     }
 
     public void getProfile(final RequestContext context) {

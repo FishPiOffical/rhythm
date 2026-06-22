@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `symphony_openid_refresh_token` (
+  `oId` VARCHAR(19) NOT NULL,
+  `tokenHash` VARCHAR(128) NOT NULL,
+  `userId` VARCHAR(19) NOT NULL,
+  `realm` VARCHAR(512) NOT NULL DEFAULT '',
+  `scope` VARCHAR(255) NOT NULL DEFAULT '',
+  `familyId` VARCHAR(64) NOT NULL,
+  `parentId` VARCHAR(19) NOT NULL DEFAULT '',
+  `state` INT NOT NULL DEFAULT 0,
+  `createdAt` BIGINT NOT NULL,
+  `updatedAt` BIGINT NOT NULL,
+  `lastUsedAt` BIGINT NOT NULL DEFAULT 0,
+  `idleExpiresAt` BIGINT NOT NULL,
+  `maxExpiresAt` BIGINT NOT NULL,
+  PRIMARY KEY (`oId`),
+  UNIQUE KEY `uk_openid_refresh_token_hash` (`tokenHash`),
+  KEY `idx_openid_refresh_token_family_state` (`familyId`, `state`),
+  KEY `idx_openid_refresh_token_user_realm` (`userId`, `realm`(191)),
+  KEY `idx_openid_refresh_token_expires` (`idleExpiresAt`, `maxExpiresAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -22,10 +22,12 @@ import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,6 +38,8 @@ public class OpenIdUtil {
     private static final String SECRET = Symphonys.get("openid.secret");
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Pattern REFRESH_TOKEN_PATTERN = Pattern.compile("[A-Za-z0-9_-]{43,256}");
 
     public static String generateNonce() {
         // 时间部分
@@ -112,6 +116,20 @@ public class OpenIdUtil {
         } catch (final Exception e) {
             return null;
         }
+    }
+
+    public static String generateRefreshToken() {
+        final byte[] random = new byte[32];
+        SECURE_RANDOM.nextBytes(random);
+        return URL_ENCODER.encodeToString(random);
+    }
+
+    public static boolean isRefreshTokenFormat(final String token) {
+        return null != token && REFRESH_TOKEN_PATTERN.matcher(token).matches();
+    }
+
+    public static String hashRefreshToken(final String token) throws Exception {
+        return URL_ENCODER.encodeToString(hmac("refresh:" + token));
     }
 
     private static byte[] hmac(final String payload) throws Exception {
