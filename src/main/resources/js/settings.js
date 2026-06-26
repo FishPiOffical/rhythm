@@ -28,6 +28,37 @@
  * @static
  */
 var Settings = {
+  geetestCaptchaId: '6d886bcaec3f86fcfd6f61bff5af2cb4',
+  geetestProduct: 'float',
+  initGeetestCaptcha: function (selector, onSuccess) {
+    if (typeof initGeetest4 !== 'function') {
+      throw new Error('Geetest script is not loaded')
+    }
+
+    var $captcha = $(selector)
+    $captcha.empty().show()
+
+    initGeetest4({
+      captchaId: Settings.geetestCaptchaId,
+      product: Settings.geetestProduct,
+    }, function (gt) {
+      gt.appendTo(selector).onSuccess(function () {
+        var result = gt.getValidate()
+        $captcha.empty().hide()
+        onSuccess(result)
+      })
+    })
+  },
+  startPhoneCaptcha: function (csrfToken) {
+    Settings.initGeetestCaptcha('#phoneCaptcha', function (result) {
+      Settings.getPhoneCaptcha(csrfToken, result)
+    })
+  },
+  startEmailCaptcha: function (csrfToken) {
+    Settings.initGeetestCaptcha('#emailCaptcha', function (result) {
+      Settings.getEmailCaptcha(csrfToken, result)
+    })
+  },
   submitIdentity: function () {
     let info = {};
     info.type = $("#id-type").children('option:selected').val();
@@ -670,7 +701,7 @@ var Settings = {
       success: function (result) {
         if (0 === result.code) {
           $('#phoneInput').prop('disabled', true)
-          $('#phone_captch').hide()
+          $('#phoneCaptcha').empty().hide()
           $('#phoneCodePanel').show()
           $('#phoneCode').show().focus()
           $('#phoneSubmitBtn').show()
@@ -699,24 +730,20 @@ var Settings = {
       }),
       success: function (result) {
         if (0 === result.code) {
-          $('#phone_captch').show()
-          $('#phoneVerify').val('')
+          $('#phoneCaptcha').empty().hide()
           $('#phoneCodePanel').hide()
           $('#phoneCode').val('')
           $('#phoneSubmitBtn').hide()
           $('#phoneGetBtn').show()
           $('#phoneInput').prop('disabled', false)
-          $('#phone_captch img').click()
           Util.alert(Label.updateSuccLabel)
         } else {
           if (result.code === 1) {
-            $('#phone_captch').show()
-            $('#phoneVerify').val('')
+            Settings.startPhoneCaptcha(csrfToken)
             $('#phoneCodePanel').hide()
             $('#phoneSubmitBtn').hide()
             $('#phoneGetBtn').show()
             $('#phoneInput').prop('disabled', false)
-            $('#phone_captch img').click()
           }
           Util.alert(result.msg)
         }
@@ -727,8 +754,9 @@ var Settings = {
   /**
    * 获取邮箱验证码
    * @param csrfToken
+   * @param result
    */
-  getEmailCaptcha: function (csrfToken) {
+  getEmailCaptcha: function (csrfToken, result) {
     $('#emailGetBtn').attr('disabled', 'disabled').css('opacity', '0.3')
     $.ajax({
       url: Label.servePath + '/settings/email/vc',
@@ -736,18 +764,22 @@ var Settings = {
       headers: {'csrfToken': csrfToken},
       data: JSON.stringify({
         userEmail: $('#emailInput').val(),
-        captcha: $('#emailVerify').val(),
+        captcha: result,
       }),
       success: function (result) {
         if (0 === result.code) {
           $('#emailInput').prop('disabled', true)
-          $('#email_captch').hide()
+          $('#emailCaptcha').empty().hide()
           $('#emailCodePanel').show()
           $('#emailCode').show().focus()
           $('#emailSubmitBtn').show()
           $('#emailGetBtn').hide()
         }
         Util.alert(result.msg)
+        $('#emailGetBtn').removeAttr('disabled').css('opacity', '1')
+      },
+      error: function (result) {
+        Util.alert(result.statusText)
         $('#emailGetBtn').removeAttr('disabled').css('opacity', '1')
       },
     })
@@ -767,24 +799,20 @@ var Settings = {
       }),
       success: function (result) {
         if (0 === result.code) {
-          $('#email_captch').show()
-          $('#emailVerify').val('')
+          $('#emailCaptcha').empty().hide()
           $('#emailCodePanel').hide()
           $('#emailCode').val('')
           $('#emailSubmitBtn').hide()
           $('#emailGetBtn').show()
           $('#emailInput').prop('disabled', false)
-          $('#email_captch img').click()
           Util.alert(Label.updateSuccLabel)
         } else {
           if (result.code === 1) {
-            $('#email_captch').show()
-            $('#emailVerify').val('')
+            Settings.startEmailCaptcha(csrfToken)
             $('#emailCodePanel').hide()
             $('#emailSubmitBtn').hide()
             $('#emailGetBtn').show()
             $('#emailInput').prop('disabled', false)
-            $('#email_captch img').click()
           }
           Util.alert(result.msg)
         }
@@ -2616,4 +2644,3 @@ var Settings = {
     });
   },
 }
-

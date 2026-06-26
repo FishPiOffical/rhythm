@@ -87,33 +87,11 @@
     <div class="module-panel form fn-clear">
         <label>手机号</label>
         <input id="phoneInput" type="text" value="${currentUser.userPhone}" />
-        <button style="margin-top: 10px" onclick="$('#change-phone-form').removeClass('fn-none');$('#change-phone-form img').click();$(this).remove()">修改绑定手机</button>
+        <button style="margin-top: 10px" onclick="$('#change-phone-form').removeClass('fn-none');Settings.startPhoneCaptcha('${csrfToken}');$(this).remove()">修改绑定手机</button>
         <span id="change-phone-form" class="fn-none">
             <br>
-                        <div id="captcha"></div>
-                        <br>
-                        <script>
-                            var captchaId = "6d886bcaec3f86fcfd6f61bff5af2cb4"
-                            var product = "float"
-                            if (product !== 'bind') {
-                                $('#btn').remove();
-                            }
-
-                            initGeetest4({
-                                captchaId: captchaId,
-                                product: product,
-                            }, function (gt) {
-                                window.gt = gt
-                                gt
-                                    .appendTo("#captcha")
-                                    .onSuccess(function (e) {
-                                        var result = gt.getValidate();
-                                        Settings.getPhoneCaptcha('${csrfToken}', result)
-                                        $("#captcha").remove();
-                                    })
-                            });
-
-                        </script>
+            <div id="phoneCaptcha" style="display: none"></div>
+            <br>
         </span>
 
         <div class="fn-none" id="phoneCodePanel">
@@ -132,11 +110,9 @@
         <label>${emailLabel}</label>
         <input id="emailInput" type="text" value="<#if !currentUser.userEmail?ends_with("sym.b3log.org")>${currentUser.userEmail}</#if>" />
 
-        <div class="home-account__captch" id="email_captch">
-            <label>${imageCaptchaLabel}</label>
-            <img class="fn-pointer" height="20px" src="${servePath}/captcha?v=02" onclick="this.src = '${servePath}/captcha?' + (new Date()).getTime()" />
-            <input id="emailVerify" type="text" />
-        </div>
+        <br>
+        <div id="emailCaptcha" style="display: none"></div>
+        <br>
         <div class="fn-none" id="emailCodePanel">
             <label>${emailCaptchaLabel}</label>
             <input id="emailCode" type="text" />
@@ -146,7 +122,7 @@
                 onclick="Settings.updateEmail('${csrfToken}')">${submitLabel}</button>
         <button id="emailGetBtn"
                 class="fn-right"
-                onclick="Settings.getEmailCaptcha('${csrfToken}')">${getEmailCaptchaLabel}</button>
+                onclick="Settings.startEmailCaptcha('${csrfToken}')">${getEmailCaptchaLabel}</button>
     </div>
 </div>
 </@home>

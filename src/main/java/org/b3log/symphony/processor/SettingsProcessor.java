@@ -544,7 +544,7 @@ public class SettingsProcessor {
         }
 
         final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
-        if (CaptchaProcessor.invalidCaptcha(captcha)) {
+        if (!CaptchaProcessor.jiyan(captcha)) {
             final String msg = langPropsService.get("sendFailedLabel") + " - " + langPropsService.get("captchaErrorLabel");
             context.renderMsg(msg);
             return;
