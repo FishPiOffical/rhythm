@@ -32,19 +32,29 @@ import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.Pagination;
+import org.b3log.latke.model.User;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Paginator;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.model.Follow;
+import org.b3log.symphony.model.Membership;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.model.Role;
+import org.b3log.symphony.model.SystemSettings;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.ActivityMgmtService;
 import org.b3log.symphony.service.ArticleQueryService;
+import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.DataModelService;
+import org.b3log.symphony.service.FollowQueryService;
+import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.OpenIdRefreshTokenMgmtService;
 import org.b3log.symphony.service.PointtransferQueryService;
+import org.b3log.symphony.service.RoleQueryService;
+import org.b3log.symphony.service.SystemSettingsService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.OpenIdUtil;
 import org.b3log.symphony.util.Sessions;
@@ -84,16 +94,21 @@ public class OpenIdProcessor {
     private static final String FISHPI_SCOPE_KEY = "fishpi.scope";
     private static final String FISHPI_AUTH_REQUEST_ID_KEY = "fishpi.authRequestId";
     private static final String SCOPE_PROFILE_READ = "profile.read";
+    private static final String SCOPE_PROFILE_DETAIL_READ = "profile.detail.read";
     private static final String SCOPE_POINTS_READ = "points.read";
     private static final String SCOPE_ARTICLES_READ = "articles.read";
+    private static final String SCOPE_MEMBERSHIP_READ = "membership.read";
     private static final long OPENID_TMP_EXPIRES = 5 * 60 * 1000L;
     private static final List<ScopeDefinition> SCOPE_DEFINITIONS = Arrays.asList(
             new ScopeDefinition(SCOPE_PROFILE_READ, "个人信息"),
+            new ScopeDefinition(SCOPE_PROFILE_DETAIL_READ, "详细资料"),
             new ScopeDefinition(SCOPE_POINTS_READ, "积分信息"),
-            new ScopeDefinition(SCOPE_ARTICLES_READ, "发帖信息")
+            new ScopeDefinition(SCOPE_ARTICLES_READ, "发帖信息"),
+            new ScopeDefinition(SCOPE_MEMBERSHIP_READ, "VIP信息")
     );
     private static final Set<String> ALL_SCOPES = new LinkedHashSet<>(Arrays.asList(
-            SCOPE_PROFILE_READ, SCOPE_POINTS_READ, SCOPE_ARTICLES_READ
+            SCOPE_PROFILE_READ, SCOPE_PROFILE_DETAIL_READ, SCOPE_POINTS_READ, SCOPE_ARTICLES_READ,
+            SCOPE_MEMBERSHIP_READ
     ));
 
     private static final Map<String, AuthRequest> authRequestMap = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -115,6 +130,21 @@ public class OpenIdProcessor {
     @Inject
     private OpenIdRefreshTokenMgmtService openIdRefreshTokenMgmtService;
 
+    @Inject
+    private CloudService cloudService;
+
+    @Inject
+    private FollowQueryService followQueryService;
+
+    @Inject
+    private MembershipQueryService membershipQueryService;
+
+    @Inject
+    private RoleQueryService roleQueryService;
+
+    @Inject
+    private SystemSettingsService systemSettingsService;
+
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
@@ -127,8 +157,10 @@ public class OpenIdProcessor {
         Dispatcher.post("/openid/verify", openIdProcessor::verify, csrfMidware::fill);
         Dispatcher.post("/openid/token", openIdProcessor::refreshToken);
         Dispatcher.get("/openid/user/profile", openIdProcessor::getProfile);
+        Dispatcher.get("/openid/user/detail", openIdProcessor::getDetail);
         Dispatcher.get("/openid/user/points", openIdProcessor::getPoints);
         Dispatcher.get("/openid/user/articles", openIdProcessor::getArticles);
+        Dispatcher.get("/openid/user/membership", openIdProcessor::getMembership);
 
         // 开启定时任务，清理过期的nonce
         Symphonys.SCHEDULED_EXECUTOR_SERVICE.scheduleAtFixedRate(() -> {
@@ -525,9 +557,37 @@ public class OpenIdProcessor {
 
         final JSONObject data = new JSONObject()
                 .put("userId", user.optString(Keys.OBJECT_ID))
-                .put("userName", user.optString(org.b3log.latke.model.User.USER_NAME))
+                .put("userName", user.optString(User.USER_NAME))
                 .put("userNickname", user.optString(UserExt.USER_NICKNAME))
                 .put("userAvatarURL", user.optString(UserExt.USER_AVATAR_URL));
+        renderSucc(context, data);
+    }
+
+    public void getDetail(final RequestContext context) {
+        final JSONObject user = requireOpenIdUser(context, SCOPE_PROFILE_DETAIL_READ);
+        if (null == user) {
+            return;
+        }
+
+        final String userId = user.optString(Keys.OBJECT_ID);
+        final JSONObject data = new JSONObject();
+        data.put(User.USER_NAME, user.optString(User.USER_NAME));
+        data.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+        data.put(UserExt.ONLINE_MINUTE, user.optInt(UserExt.ONLINE_MINUTE));
+        data.put(User.USER_URL, user.optString(User.USER_URL));
+        data.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));
+        data.put(UserExt.USER_CITY, getPublicCity(user));
+        data.put(UserExt.USER_AVATAR_URL, user.optString(UserExt.USER_AVATAR_URL));
+        data.put(UserExt.USER_POINT, user.optInt(UserExt.USER_POINT));
+        data.put(UserExt.USER_INTRO, user.optString(UserExt.USER_INTRO));
+        data.put(Keys.OBJECT_ID, userId);
+        data.put(UserExt.USER_NO, user.optString(UserExt.USER_NO));
+        data.put(UserExt.USER_APP_ROLE, user.optString(UserExt.USER_APP_ROLE));
+        data.put("sysMetal", cloudService.getEnabledMedal(userId));
+        data.put("followerCount", followQueryService.getFollowerCount(userId, Follow.FOLLOWING_TYPE_C_USER));
+        data.put("followingUserCount", followQueryService.getFollowingCount(userId, Follow.FOLLOWING_TYPE_C_USER));
+        data.put(User.USER_ROLE, getRoleName(user));
+        data.put("cardBg", getCardBg(userId));
         renderSucc(context, data);
     }
 
@@ -577,6 +637,20 @@ public class OpenIdProcessor {
         renderSucc(context, data);
     }
 
+    public void getMembership(final RequestContext context) {
+        final JSONObject user = requireOpenIdUser(context, SCOPE_MEMBERSHIP_READ);
+        if (null == user) {
+            return;
+        }
+
+        try {
+            final JSONObject membership = membershipQueryService.getStatusByUserId(user.optString(Keys.OBJECT_ID));
+            renderSucc(context, buildMembershipData(membership));
+        } catch (final ServiceException e) {
+            renderError(context, "查询失败");
+        }
+    }
+
     private JSONObject requireOpenIdUser(final RequestContext context, final String requiredScope) {
         String authorization = StringUtils.trim(context.header("Authorization"));
         if (StringUtils.isBlank(authorization) || !StringUtils.startsWithIgnoreCase(authorization, "Bearer ")) {
@@ -604,6 +678,69 @@ public class OpenIdProcessor {
         }
 
         return user;
+    }
+
+    private String getPublicCity(final JSONObject user) {
+        try {
+            if (user.optInt(UserExt.USER_GEO_STATUS) == UserExt.USER_GEO_STATUS_C_PUBLIC) {
+                return user.optString(UserExt.USER_CITY);
+            }
+        } catch (final Exception ignored) {
+        }
+
+        return "";
+    }
+
+    private String getRoleName(final JSONObject user) {
+        final JSONObject role = roleQueryService.getRole(user.optString(User.USER_ROLE));
+        if (null == role) {
+            return "";
+        }
+
+        return role.optString(Role.ROLE_NAME);
+    }
+
+    private String getCardBg(final String userId) {
+        final JSONObject systemSettings = systemSettingsService.getByUsrId(userId);
+        if (null == systemSettings) {
+            return "";
+        }
+
+        try {
+            final JSONObject settings = new JSONObject(systemSettings.optString(SystemSettings.SETTINGS));
+            return settings.optString("cardBg");
+        } catch (final Exception ignored) {
+            return "";
+        }
+    }
+
+    private JSONObject buildMembershipData(final JSONObject membership) {
+        if (null == membership) {
+            return buildInactiveMembershipData();
+        }
+
+        final int state = membership.optInt(Membership.STATE, 0);
+        final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+        final boolean active = 1 == state && (0L == expiresAt || expiresAt > System.currentTimeMillis());
+        if (!active) {
+            return buildInactiveMembershipData();
+        }
+
+        return new JSONObject()
+                .put("active", true)
+                .put(Membership.STATE, state)
+                .put(Membership.LV_CODE, membership.optString(Membership.LV_CODE))
+                .put(Membership.EXPIRES_AT, expiresAt)
+                .put(Membership.CONFIG_JSON, membership.optString(Membership.CONFIG_JSON));
+    }
+
+    private JSONObject buildInactiveMembershipData() {
+        return new JSONObject()
+                .put("active", false)
+                .put(Membership.STATE, 0)
+                .put(Membership.LV_CODE, "")
+                .put(Membership.EXPIRES_AT, 0L)
+                .put(Membership.CONFIG_JSON, "");
     }
 
     private Set<String> parseScopes(final String scopeText) {

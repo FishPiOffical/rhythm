@@ -77,8 +77,10 @@
                 <div style="margin-bottom: 16px" class="openid-intro-title">授权内容</div>
                 <ul>
                     <li>个人信息：头像、昵称、用户名</li>
+                    <li>详细资料：简介、在线、关注</li>
                     <li>积分信息：余额、记录</li>
                     <li>发帖信息：公开发帖</li>
+                    <li>VIP信息：等级、到期</li>
                 </ul>
                 <div class="openid-intro-title">登录即授权所选项</div>
             </div>
