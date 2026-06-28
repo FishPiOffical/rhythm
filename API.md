@@ -495,19 +495,21 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key          | 说明                         | 示例                         |
 | ------------ | ---------------------------- | ---------------------------- |
-| fishpi.scope | 授权范围，空格或逗号分隔     | profile.read points.read     |
+| fishpi.scope | 授权范围，空格或逗号分隔     | profile.read profile.detail.read membership.read |
+
+> 可用范围：`profile.read` 基础信息，`profile.detail.read` 详细资料，`points.read` 积分信息，`articles.read` 发帖信息，`membership.read` VIP 信息。
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=https%3A%2F%2Fexample.com%2Fcallback&openid.realm=https%3A%2F%2Fexample.com&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&fishpi.scope=profile.read%20points.read'
+curl --location --request GET 'https://fishpi.cn/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=https%3A%2F%2Fexample.com%2Fcallback&openid.realm=https%3A%2F%2Fexample.com&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&fishpi.scope=profile.read%20profile.detail.read%20membership.read'
 ```
 
 响应：
 
 | Key          | 说明                         | 示例                         |
 | ------------ | ---------------------------- | ---------------------------- |
-| scope        | 用户最终授权范围             | profile.read points.read     |
+| scope        | 用户最终授权范围             | profile.read profile.detail.read membership.read |
 | token_type   | 令牌类型                     | Bearer                       |
 | access_token | OAuth 用户资源访问令牌       | xxx                          |
 | expires_in   | 有效期，单位秒               | 604800                       |
@@ -549,7 +551,7 @@ curl --location --request POST 'https://fishpi.cn/openid/token' \
 | - expires_in           | 访问令牌有效期，单位秒       | 604800                   |
 | - refresh_token        | 新 OAuth 续签令牌            | xxx                      |
 | - refresh_expires_in   | 续签令牌空闲有效期，单位秒   | 31104000                 |
-| - scope                | 用户最终授权范围             | profile.read points.read |
+| - scope                | 用户最终授权范围             | profile.read profile.detail.read membership.read |
 
 > 每次续签都会返回新的 `refresh_token`，旧 `refresh_token` 会立即失效；续签令牌最长不超过首次授权后 720 天；请不要把 `refresh_token` 暴露到前端页面或日志中。
 
@@ -583,6 +585,86 @@ curl --location --request GET 'https://fishpi.cn/openid/user/profile' \
 | - userName       | 用户名               | admin                         |
 | - userNickname   | 昵称                 | 管理员                        |
 | - userAvatarURL  | 头像                 | https://file.fishpi.cn/a.png  |
+
+### 查询 OAuth 用户详细信息
+
+`GET /openid/user/detail`
+
+查询当前 OAuth 授权用户的详细资料。需要 `profile.detail.read` 权限。
+
+请求：
+
+| Key           | 说明             | 示例         |
+| ------------- | ---------------- | ------------ |
+| Authorization | Bearer 访问令牌  | Bearer xxx   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/openid/user/detail' \
+--header 'Authorization: Bearer xxx'
+```
+
+响应：
+
+| Key                    | 说明                 | 示例                         |
+| ---------------------- | -------------------- | ---------------------------- |
+| code                   | 0 为成功，-1 为失败  | 0                            |
+| msg                    | 错误消息             |                              |
+| data                   | 响应数据             |                              |
+| - userName             | 用户名               | admin                        |
+| - userOnlineFlag       | 是否在线             | true                         |
+| - onlineMinute         | 在线分钟数           | 1000                         |
+| - userURL              | 个人链接             | https://example.com          |
+| - userNickname         | 昵称                 | 管理员                       |
+| - userCity             | 公开城市             | 北京                         |
+| - userAvatarURL        | 头像                 | https://file.fishpi.cn/a.png |
+| - userPoint            | 当前积分             | 183939                       |
+| - userIntro            | 简介                 | 摸鱼中                       |
+| - oId                  | 用户 oId             | 1659430635383                |
+| - userNo               | 用户编号             | 1                            |
+| - userAppRole          | 站内身份             | 0                            |
+| - sysMetal             | 展示勋章             | {"list":[]}                  |
+| - followerCount        | 粉丝数               | 10                           |
+| - followingUserCount   | 关注数               | 5                            |
+| - userRole             | 角色名               | 普通用户                     |
+| - cardBg               | 卡片背景             |                              |
+
+> 本接口不接受 `apiKey`，只返回当前 Bearer token 所属用户；不会返回邮箱、手机号、QQ、登录 IP、密码、2FA 密钥、token/key 或完整用户对象。`userCity` 仅在用户公开地理位置时返回。
+
+### 查询 OAuth 用户 VIP 信息
+
+`GET /openid/user/membership`
+
+查询当前 OAuth 授权用户的 VIP 状态。需要 `membership.read` 权限。
+
+请求：
+
+| Key           | 说明             | 示例         |
+| ------------- | ---------------- | ------------ |
+| Authorization | Bearer 访问令牌  | Bearer xxx   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/openid/user/membership' \
+--header 'Authorization: Bearer xxx'
+```
+
+响应：
+
+| Key          | 说明                 | 示例          |
+| ------------ | -------------------- | ------------- |
+| code         | 0 为成功，-1 为失败  | 0             |
+| msg          | 错误消息             |               |
+| data         | 响应数据             |               |
+| - active     | VIP 是否有效         | true          |
+| - state      | 会员状态             | 1             |
+| - lvCode     | VIP 等级编码         | VIP1          |
+| - expiresAt  | 到期时间，毫秒；0 为永久 | 1760000000000 |
+| - configJson | 用户 VIP 配置        | {}            |
+
+> 本接口不接受 `apiKey`，只返回当前 Bearer token 所属用户；非 VIP 或已过期时返回 `active=false`、`state=0`、`lvCode=""`、`expiresAt=0`、`configJson=""`。不会返回价格、支付、退款或后台维护记录。
 
 ### 查询 OAuth 用户积分记录
 
