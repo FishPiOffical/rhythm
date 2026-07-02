@@ -18,8 +18,6 @@
  */
 package org.b3log.symphony.model.feed;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
 /**
  * Category.
  *
@@ -59,7 +57,7 @@ public final class RSSCategory {
 
     @Override
     public String toString() {
-        return CATEGORY_ELEMENT.replace("${term}", StringEscapeUtils.escapeXml(term));
+        return CATEGORY_ELEMENT.replace("${term}", RSSXmls.escape(term));
     }
 }
 

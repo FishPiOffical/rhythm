@@ -18,7 +18,6 @@
  */
 package org.b3log.symphony.model.feed;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import java.util.Date;
@@ -252,23 +251,23 @@ public final class RSSItem {
         final StringBuilder stringBuilder = new StringBuilder();
 
         stringBuilder.append("<item>").append(START_TITLE_ELEMENT);
-        stringBuilder.append(StringEscapeUtils.escapeXml(title));
+        stringBuilder.append(RSSXmls.escape(title));
         stringBuilder.append(END_TITLE_ELEMENT);
 
         stringBuilder.append(START_LINK_ELEMENT);
-        stringBuilder.append(StringEscapeUtils.escapeXml(link));
+        stringBuilder.append(RSSXmls.escape(link));
         stringBuilder.append(END_LINK_ELEMENT);
 
         stringBuilder.append(START_DESCRIPTION_ELEMENT);
-        stringBuilder.append("<![CDATA[" + description + "]]>");
+        stringBuilder.append(RSSXmls.cdata(description));
         stringBuilder.append(END_DESCRIPTION_ELEMENT);
 
         stringBuilder.append(START_AUTHOR_ELEMENT);
-        stringBuilder.append(StringEscapeUtils.escapeXml(author));
+        stringBuilder.append(RSSXmls.escape(author));
         stringBuilder.append(END_AUTHOR_ELEMENT);
 
         stringBuilder.append(START_GUID_ELEMENT);
-        stringBuilder.append(StringEscapeUtils.escapeXml(guid));
+        stringBuilder.append(RSSXmls.escape(guid));
         stringBuilder.append(END_GUID_ELEMENT);
 
         for (final RSSCategory category : categories) {

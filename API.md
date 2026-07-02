@@ -1798,6 +1798,8 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 | apiKey   | 通用密钥     | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
 | 其它参数 | 自行发帖抓包 |                                  |
 
+> `articleType=3` 的思绪新增已关闭，历史思绪仍可通过读取接口访问。
+
 ### 更新贴子
 
 `PUT /article/<id>`

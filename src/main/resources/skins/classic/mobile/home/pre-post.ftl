@@ -43,15 +43,6 @@
                     <div class="ft-fade">${addAskArticleTipLabel}</div>
                 </div>
                 <div>
-                    <a href="${servePath}/post?type=3">
-                        <svg><use xlink:href="#video"></use></svg>${thoughtLabel}
-                    </a>
-                    <div class="ft-fade">
-                    ${addThoughtArticleTipLabel}
-                        <a href="${servePath}/about" target="_blank">(?)</a>
-                    </div>
-                </div>
-                <div>
                     <a href="${servePath}/post?type=1&tags=${discussionLabel}">
                         <svg><use xlink:href="#locked"></use></svg> ${discussionLabel}
                     </a>

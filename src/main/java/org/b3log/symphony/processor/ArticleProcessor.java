@@ -1237,6 +1237,11 @@ public class ArticleProcessor {
                 articleType = Article.ARTICLE_TYPE_C_NORMAL;
             }
 
+            if (Article.ARTICLE_TYPE_C_THOUGHT == articleType) {
+                context.sendError(404);
+                return;
+            }
+
             dataModel.put(Article.ARTICLE_TYPE, articleType);
         }
 

@@ -110,7 +110,7 @@ public class MedalProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/medal.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
         final JSONObject currentUser = Sessions.getUser();
-        if (null == currentUser) {
+        if (null == currentUser || !Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
             context.sendError(403);
             return;
         }

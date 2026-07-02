@@ -182,12 +182,7 @@ public class FeedProcessor {
         String title = article.getString(Article.ARTICLE_TITLE);
         title = Emotions.toAliases(title);
         ret.setTitle(title);
-        String description = article.getString(Article.ARTICLE_CONTENT);
-        description = shortLinkQueryService.linkArticle(description);
-        description = Emotions.toAliases(description);
-        description = Emotions.convert(description);
-        description = Markdowns.toHTML(description);
-        ret.setDescription(description);
+        ret.setDescription(getDescription(article));
         final Date pubDate = (Date) article.get(Article.ARTICLE_UPDATE_TIME);
         ret.setPubDate(pubDate);
         final String link = Latkes.getServePath() + article.getString(Article.ARTICLE_PERMALINK);
@@ -203,5 +198,18 @@ public class FeedProcessor {
         }
 
         return ret;
+    }
+
+    private String getDescription(final JSONObject article) throws org.json.JSONException {
+        if (Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE)) {
+            return "";
+        }
+
+        String description = article.getString(Article.ARTICLE_CONTENT);
+        description = shortLinkQueryService.linkArticle(description);
+        description = Emotions.toAliases(description);
+        description = Emotions.convert(description);
+
+        return Markdowns.toHTML(description);
     }
 }

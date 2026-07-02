@@ -86,6 +86,8 @@ public class ArticlePostValidationMidware {
 
     final private static SimpleCurrentLimiter addArticleLimiter = new SimpleCurrentLimiter(60 * 30, 10);
 
+    private static final String HTTP_METHOD_POST = "POST";
+
     public void handle(final RequestContext context) {
         final JSONObject requestJSONObject = context.requestJSON();
         final BeanManager beanManager = BeanManager.getInstance();
@@ -111,6 +113,12 @@ public class ArticlePostValidationMidware {
         final int articleType = requestJSONObject.optInt(Article.ARTICLE_TYPE);
         if (Article.isInvalidArticleType(articleType)) {
             context.renderJSON(exception.put(Keys.MSG, langPropsService.get("articleTypeErrorLabel")));
+            context.abort();
+            return;
+        }
+
+        if (isDisabledThoughtAdd(context, articleType)) {
+            context.renderJSON(exception.put(Keys.MSG, langPropsService.get("thoughtArticleDisabledLabel")));
             context.abort();
             return;
         }
@@ -308,5 +316,10 @@ public class ArticlePostValidationMidware {
         }
 
         context.handle();
+    }
+
+    private boolean isDisabledThoughtAdd(final RequestContext context, final int articleType) {
+        return Article.ARTICLE_TYPE_C_THOUGHT == articleType
+                && HTTP_METHOD_POST.equalsIgnoreCase(context.method());
     }
 }
