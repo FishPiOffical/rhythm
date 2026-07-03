@@ -85,6 +85,20 @@
                             <li>
                                 <div class='fn-flex'>
                                     <div class="avatar"
+                                         style="background-image:url('https://file.fishpi.cn/2026/07/kesinicardicon512-f84e6851.png')"></div>
+                                    <div class="fn-flex-1">
+                                        <h2 class="ft-13">
+                                            <a target="_blank" href="https://card-game.yuimeta.com">Kesini 抽卡站</a>
+                                        </h2>
+                                        <span class="ft-fade vditor-reset">
+                                            由 <a href="https://fishpi.cn/member/Yui" target="_blank">Yui</a>主导，G大师主刀开发、白猫老师手绘卡面的抽卡游戏。是非酋还是欧皇？来试试你就知道。
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class='fn-flex'>
+                                    <div class="avatar"
                                          style="background-image:url('https://file.fishpi.cn/2023/08/minecraft-71137c15.png')"></div>
                                     <div class="fn-flex-1">
                                         <h2 class="ft-13">
