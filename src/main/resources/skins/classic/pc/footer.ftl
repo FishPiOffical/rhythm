@@ -97,12 +97,13 @@
                 <a href="${servePath}/tag/announcement">${symAnnouncementLabel}</a>
                 <a href="${servePath}/domains">${domainLabel}</a>
                 <a href="${servePath}/tags">${tagLabel}</a>
+                <a href="https://cloudy.iwpz.cn">Cloudy 词云</a>
                 <a href="${servePath}/statistic">${dataStatLabel}</a>
                 <a href="${servePath}/agreement" target="_blank">用户协议</a>
                 <a href="${servePath}/privacy" target="_blank">隐私政策</a>
                 <a href="${servePath}/logs" target="_blank">日志公开</a>
                 <a href="${servePath}/article/1636516552191">开放 API</a>
-                <a href="${servePath}/article/1766113414640">接入 OAuth</a>
+                <a href="${servePath}/article/1782119519493">接入 OAuth</a>
             </div>
         </div>
     </div>
