@@ -113,6 +113,18 @@
                                                     <svg class="icon-reply"><use xlink:href="#reply"></use></svg>
                                                 </span>
                                             </#if>
+                                            <#if permissions["commonViewCommentHistory"].permissionGrant && (threadReply.commentRevisionCount!0) gte 2>
+                                                <span aria-label="${historyLabel}" onclick="Article.revision('${threadReply.oId}', 'comment')"
+                                                      class="comment-history-action tooltipped tooltipped-n">
+                                                    <svg class="icon-history"><use xlink:href="#history"></use></svg>
+                                                </span>
+                                            </#if>
+                                            <#if threadIsCurrentUserComment && permissions["commonUpdateComment"].permissionGrant>
+                                                <span aria-label="${editLabel}" class="comment-edit-action tooltipped tooltipped-n"
+                                                      onclick="Comment.edit('${threadReply.oId}')">
+                                                    <svg><use xlink:href="#edit"></use></svg>
+                                                </span>
+                                            </#if>
                                             <span class="tooltipped tooltipped-n<#if threadHasRewarded> ft-red</#if>" aria-label="${thankLabel}"
                                             <#if !threadHasRewarded && permissions["commonThankComment"].permissionGrant>
                                                 onclick="Comment.thank('${threadReply.oId}', '${csrfToken}', '${threadReply.commentThankLabel!''}', ${threadReply.commentAnonymous!0}, this)"

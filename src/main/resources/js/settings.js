@@ -1125,16 +1125,6 @@ var Settings = {
     })
   },
   /**
-   * 向用户确认是否真的注销账号
-   */
-  requestDeactive: function (csrfToken) {
-    if (confirm("请注意！这不是保存按钮！！！\n点击确定后，您的摸鱼派账号将会被永久停用，无法登录，账户信息将被部分抹除，您绑定的手机号需要一个月后才能在摸鱼派重新注册账号，确定继续吗？")) {
-      if (confirm("亲爱的鱼油，再次向您确认！\n您的账号数据非常宝贵，如果对社区的发展有任何意见或建议，欢迎联系摸鱼派管理组。\n本次确认后，您的账户将被永久停用。")) {
-        Settings.update('deactivate', csrfToken);
-      }
-    }
-  },
-  /**
    * @description 更新 settings 页面数据.
    * @argument {String} csrfToken CSRF token
    */
@@ -1230,8 +1220,6 @@ var Settings = {
           userMobileSkin: $('#userMobileSkin').val(),
         }
         break
-      case 'deactivate':
-        break
       default:
         console.log('update settings has no type')
     }
@@ -1292,9 +1280,6 @@ var Settings = {
             window.location.reload()
           }
 
-          if (type === 'deactivate') {
-            window.location.href = Label.servePath
-          }
         }, 5000)
       },
     })

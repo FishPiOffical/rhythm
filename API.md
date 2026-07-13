@@ -2215,6 +2215,7 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/parents' \
 | - commentVote              | 当前登录用户投票状态                                   | -1                   |
 | - commentThankLabel        | 感谢确认文案                                           | 确定赠送 15 积分给 adlered 以表谢意？ |
 | - commentThreadReplies     | 回复预览列表                                           | `[ ... ]`            |
+| -- commentRevisionCount    | 预览回复历史版本数量                                   | 2                    |
 | - commentThreadReplyCount  | 该线程回复总数                                         | 3                    |
 | - commentThreadHasMore     | 是否还有更多回复                                       | true                 |
 | - reactionSummary          | 该评论当前的表情汇总                                   | `[ ... ]`            |
@@ -2281,6 +2282,7 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 | - commentOriginalAuthorNickName | 被回复评论作者昵称                                | 阿达                 |
 | - commentContent           | 回复内容，格式为 HTML                                  | `牛蛙牛蛙`           |
 | - commentVisible           | 可见范围                                               | 0                    |
+| - commentRevisionCount     | 回复历史版本数量                                       | 2                    |
 | - commentThankCnt          | 感谢数                                                 | 1                    |
 | - rewardedCnt              | 感谢数                                                 | 1                    |
 | - rewarded                 | 当前登录用户是否已感谢                                 | false                |
@@ -2327,6 +2329,14 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 | commentAnonymous | 是否匿名评论，是填写true，否填写false   | false                            |
 | commentVisible   | 是否仅楼主可见，是填写true，否填写false | false                            |
 | commentContent   | 评论原文（Markdown格式）                | hello world                      |
+
+响应：
+
+| Key                  | 说明                                      | 示例      |
+| -------------------- | ----------------------------------------- | --------- |
+| code                 | `0` 表示成功                              | 0         |
+| commentContent       | 更新后的评论内容，格式为 HTML             | `<p>...</p>` |
+| commentRevisionCount | 更新后的历史版本数量；小于 2 时没有历史记录 | 2         |
 
 ### 给评论点赞
 
@@ -2593,7 +2603,7 @@ curl --location --request GET 'https://fishpi.cn/comment/1636516552191/revisions
 说明：
 
 - 该接口需要登录权限，也支持通过 `apiKey` 调用。
-- 仅评论可见范围允许当前用户查看时返回历史内容。
+- 仅目标文章和评论可见范围均允许当前用户查看时返回历史内容；讨论帖还会校验参与权限。
 - 当当前评论内容与最后一个已存历史版本不一致时，响应末尾可能追加当前评论内容。
 
 ## 清风明月
@@ -2680,21 +2690,38 @@ curl --location --request POST 'https://fishpi.cn/breezemoon' \
 
 新版私信系统全部采用摸鱼派开放 API 进行请求，全动态（包括 Web 端），API 已全部开发完毕，但是 API 文档还得等等（没时间写），如果你需要重构私信系统，请先自行抓包哦～
 
-## 敏感操作
+## 用户管理
 
-### 永久注销删除用户
+### 永久停用用户
 
-注意！使用本接口将抹除该用户在社区中的数据（部分关联数据保留）无法恢复。
+`POST /admin/user/{userId}/deactivate`
 
-该接口需要重复请求2次，第1次请求不会进行任何cāo作，仅进行提醒。
-
-`POST /settings/deactivate`
+永久停用指定用户，匿名化账号资料并清空绑定手机号。仅管理员分组可操作，不支持停用当前管理员账号。
 
 请求：
 
-| Key    | 说明     | 示例                             |
-| ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| Key       | 说明                         | 示例                |
+| --------- | ---------------------------- | ------------------- |
+| userId    | 用户 ID，路径参数            | 1471298152875       |
+| csrfToken | CSRF 令牌，通过请求头传入     | a1B2c3D4e5F6        |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/admin/user/1471298152875/deactivate' \
+  -H 'csrfToken: a1B2c3D4e5F6' \
+  -H 'Referer: https://fishpi.cn/admin/user/1471298152875' \
+  -H 'Cookie: sym-ce=登录凭证'
+```
+
+响应：
+
+| Key  | 说明                  | 示例                         |
+| ---- | --------------------- | ---------------------------- |
+| code | `0` 表示成功          | 0                            |
+| msg  | 操作结果              | 账号已永久停用，手机号已清空 |
+
+> 本接口仅支持管理员页面登录态，不支持 `apiKey`。操作不可恢复。
 
 ## 金手指
 

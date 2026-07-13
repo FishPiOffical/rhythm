@@ -166,22 +166,15 @@ public class UserMgmtService {
         final Transaction transaction = userRepository.beginTransaction();
         try {
             final JSONObject user = userRepository.get(userId);
-            final String userNo = user.optString(UserExt.USER_NO);
-            final String newName = UserExt.ANONYMOUS_USER_NAME + userNo;
-            user.put(User.USER_NAME, newName);
-            user.put(User.USER_EMAIL, newName + UserExt.USER_BUILTIN_EMAIL_SUFFIX);
-            user.put(User.USER_PASSWORD, DigestUtils.md5Hex(RandomStringUtils.randomAlphanumeric(8)));
-            user.put(UserExt.USER_NICKNAME, "");
-            user.put(UserExt.USER_TAGS, "");
-            user.put(User.USER_URL, "");
-            user.put(UserExt.USER_INTRO, "");
-            user.put(UserExt.USER_AVATAR_URL, AvatarQueryService.DEFAULT_AVATAR_URL);
-            user.put(UserExt.USER_CITY, "");
-            user.put(UserExt.USER_PROVINCE, "");
-            user.put(UserExt.USER_COUNTRY, "");
-            user.put(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT);
-            user.put(UserExt.USER_ONLINE_FLAG, false);
-            user.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_DEACTIVATED);
+            if (null == user) {
+                transaction.rollback();
+                throw new ServiceException("用户不存在");
+            }
+            if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+                transaction.rollback();
+                throw new ServiceException("账号已永久停用");
+            }
+            anonymizeDeactivatedUser(user);
             userRepository.update(userId, user);
 
             notificationRepository.removeByUserId(userId);
@@ -198,6 +191,31 @@ public class UserMgmtService {
             LOGGER.log(Level.ERROR, "Deactivates a user [id=" + userId + "] failed", e);
             throw new ServiceException(e);
         }
+    }
+
+    private void anonymizeDeactivatedUser(final JSONObject user) {
+        final String newName = UserExt.ANONYMOUS_USER_NAME + user.optString(UserExt.USER_NO);
+        user.put(User.USER_NAME, newName);
+        user.put(User.USER_EMAIL, newName + UserExt.USER_BUILTIN_EMAIL_SUFFIX);
+        user.put("userPhone", UserExt.NULL_USER_PHONE);
+        user.put(User.USER_PASSWORD, DigestUtils.md5Hex(RandomStringUtils.randomAlphanumeric(8)));
+        user.put(UserExt.USER_NICKNAME, "");
+        user.put(UserExt.USER_TAGS, "");
+        user.put(User.USER_URL, "");
+        user.put(UserExt.USER_INTRO, "");
+        user.put(UserExt.USER_QQ, "");
+        user.put(UserExt.USER_AVATAR_TYPE, UserExt.USER_AVATAR_TYPE_C_UPLOAD);
+        user.put(UserExt.USER_AVATAR_URL, AvatarQueryService.DEFAULT_AVATAR_URL);
+        user.put(UserExt.USER_CITY, "");
+        user.put(UserExt.USER_PROVINCE, "");
+        user.put(UserExt.USER_COUNTRY, "");
+        user.put(UserExt.USER_LATEST_LOGIN_IP, "");
+        user.put(UserExt.USER_INDEX_REDIRECT_URL, "");
+        user.put("secret2fa", "");
+        user.put("mbti", "");
+        user.put(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT);
+        user.put(UserExt.USER_ONLINE_FLAG, false);
+        user.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_DEACTIVATED);
     }
 
     /**
@@ -719,6 +737,9 @@ public class UserMgmtService {
      */
     public void updateUserPhone(final String userId, final JSONObject user) throws ServiceException {
         final String newPhone = user.optString("userPhone");
+        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+            throw new ServiceException("永久停用账号不能绑定手机号");
+        }
 
         final Transaction transaction = userRepository.beginTransaction();
 
@@ -750,6 +771,9 @@ public class UserMgmtService {
      */
     public void updateUserEmail(final String userId, final JSONObject user) throws ServiceException {
         final String newEmail = user.optString(User.USER_EMAIL);
+        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+            throw new ServiceException("永久停用账号不能修改邮箱");
+        }
 
         final Transaction transaction = userRepository.beginTransaction();
 
@@ -780,6 +804,9 @@ public class UserMgmtService {
      */
     public void updateUserName(final String userId, final JSONObject user) throws ServiceException {
         final String newUserName = user.optString(User.USER_NAME);
+        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+            throw new ServiceException("永久停用账号不能修改用户名");
+        }
 
         final Transaction transaction = userRepository.beginTransaction();
 

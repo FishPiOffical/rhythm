@@ -188,6 +188,8 @@ var Comment = {
       + Comment.renderThreadVoteAction(data, true)
       + Comment.renderThreadVoteAction(data, false)
       + Comment.renderThreadReportAction(data)
+      + Comment.renderThreadHistoryAction(data)
+      + Comment.renderThreadEditAction(data)
       + Comment.renderThreadReplyAction(data)
       + '</span></div>'
   },
@@ -240,6 +242,51 @@ var Comment = {
       Comment.escapeJSString(data.commentAuthorName) + '\', \'' +
       Comment.escapeJSString(data.oId) +
       '\')"><svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>'
+  },
+  renderThreadEditAction: function (data) {
+    if (!data.commentIsCurrentUser || !Label.canUpdateComment) {
+      return ''
+    }
+    return '<span aria-label="' + Comment.escapeHTML(Label.editLabel) +
+      '" class="comment-edit-action tooltipped tooltipped-n" onclick="Comment.edit(\'' +
+      Comment.escapeJSString(data.oId) +
+      '\')"><svg><use xlink:href="#edit"></use></svg></span>'
+  },
+  renderThreadHistoryAction: function (data) {
+    if (!Label.canViewCommentHistory || parseInt(data.commentRevisionCount || 0) < 2) {
+      return ''
+    }
+    return '<span aria-label="' + Comment.escapeHTML(Label.historyLabel) +
+      '" class="comment-history-action tooltipped tooltipped-n' +
+      '" onclick="Article.revision(\'' + Comment.escapeJSString(data.oId) +
+      '\', \'comment\')"><svg class="icon-history"><use xlink:href="#history"></use></svg></span>'
+  },
+  updateCommentHistoryAction: function (id, revisionCount) {
+    var $comment = Comment.getCommentElement(id)
+    if (!$comment.hasClass('comment-thread__reply')) {
+      $comment.find('.icon-history').parent().toggle(revisionCount >= 2)
+      return
+    }
+    var $actions = $comment.find(
+      '> .comment-thread__body > .comment-thread__actions > .action-btns')
+    $actions.children('.comment-history-action').remove()
+    if (revisionCount < 2) {
+      return
+    }
+    var historyAction = Comment.renderThreadHistoryAction({
+      oId: id,
+      commentRevisionCount: revisionCount,
+    })
+    var $editAction = $actions.children('.comment-edit-action')
+    $editAction.length === 1 ? $editAction.before(historyAction) : $actions.append(historyAction)
+  },
+  updateEditedCommentContent: function (id, content) {
+    var $comment = Comment.getCommentElement(id)
+    if ($comment.hasClass('comment-thread__reply')) {
+      $comment.find('> .comment-thread__body > .comment-thread__content').html(content)
+      return
+    }
+    $comment.find('> .fn-flex > .fn-flex-1 > .vditor-reset').html(content)
   },
   getThreadReplyDepth: function (data) {
     var depth = parseInt(data.commentThreadDepth, 10)
@@ -1539,9 +1586,9 @@ var Comment = {
         if (0 === result.code) {
           // edit cmt
           if (commentId) {
-            $('#' + commentId + ' > .fn-flex > .fn-flex-1 > .vditor-reset').
-              html(result.commentContent)
-            $('#' + commentId + ' .icon-history').parent().show()
+            Comment.updateEditedCommentContent(commentId, result.commentContent)
+            Comment.updateCommentHistoryAction(
+              commentId, parseInt(result.commentRevisionCount || 0))
           }
 
           if (requestJSONObject.commentOriginalCommentId) {

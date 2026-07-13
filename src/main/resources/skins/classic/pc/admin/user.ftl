@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    <#if permissions["userUpdateUserBasic"].permissionGrant>
+    <#if permissions["userUpdateUserBasic"].permissionGrant && user.userStatus != 4>
     <div class="module">
         <div class="module-header">
             <h2>${modifiableLabel}</h2>
@@ -350,8 +350,13 @@
                             <option value="1"<#if 1 == user.userStatus> selected</#if>>(封号选我) ${banLabel}</option>
                             <option value="2"<#if 2 == user.userStatus> selected</#if>>(请勿选择) ${notVerifiedLabel}</option>
                             <option value="3"<#if 3 == user.userStatus> selected</#if>>(请勿选择) ${invalidLoginLabel}</option>
-                            <option value="3"<#if 4 == user.userStatus> selected</#if>>(请勿选择) ${deactivateAccountLabel}</option>
+                            <#if 4 == user.userStatus>
+                            <option value="4" selected disabled>${deactivateAccountLabel}</option>
+                            </#if>
                         </select>
+                        <#if 4 == user.userStatus>
+                        <input type="hidden" name="userStatus" value="4"/>
+                        </#if>
                     </label>
                 </div>
                 <br/>
@@ -361,7 +366,21 @@
     </div>
     </#if>
 
-    <#if permissions["userUpdateUserAdvanced"].permissionGrant>
+    <#if isAdminLoggedIn && currentUser.oId != user.oId && user.userStatus != 4>
+    <div class="module">
+        <div class="module-header">
+            <h2>永久停用账号</h2>
+        </div>
+        <div class="module-panel form fn-clear form--admin">
+            <div>清空手机号并停用账号</div>
+            <br/>
+            <button type="button" class="red fn-right"
+                    onclick="AdminUser.deactivate('${user.oId}', '${user.userName?js_string?html}', '${csrfToken}')">永久停用</button>
+        </div>
+    </div>
+    </#if>
+
+    <#if permissions["userUpdateUserAdvanced"].permissionGrant && user.userStatus != 4>
     <div class="module">
         <div class="module-header">
             <h2>${advancedUpdateLabel}</h2>

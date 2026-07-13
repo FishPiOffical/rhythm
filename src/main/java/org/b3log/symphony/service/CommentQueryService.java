@@ -1000,6 +1000,7 @@ public class CommentQueryService {
                 currentUserId, comment.optString(Keys.OBJECT_ID), COMMENT_THREAD_PREVIEW_SIZE + 1, false);
         final int endIndex = Math.min(COMMENT_THREAD_PREVIEW_SIZE, replies.size());
         final List<JSONObject> preview = new ArrayList<>(replies.subList(0, endIndex));
+        fillCommentRevisionCounts(preview);
         reactionQueryService.fillCommentReactions(preview, currentUserId);
         comment.put(COMMENT_THREAD_REPLIES, (Object) preview);
         comment.put(COMMENT_THREAD_REPLY_COUNT,
@@ -1045,6 +1046,19 @@ public class CommentQueryService {
         ret.put(COMMENT_THREAD_DEPTH, context.depth);
         fillOriginalAuthor(ret, context.originalComment);
         return ret;
+    }
+
+    public void fillCommentRevisionCounts(final List<JSONObject> comments) {
+        final List<String> commentIds = new ArrayList<>();
+        for (final JSONObject comment : comments) {
+            commentIds.add(comment.optString(Keys.OBJECT_ID));
+        }
+        final Map<String, Integer> counts = revisionQueryService.countByDataIds(
+                commentIds, Revision.DATA_TYPE_C_COMMENT);
+        for (final JSONObject comment : comments) {
+            comment.put(Comment.COMMENT_REVISION_COUNT,
+                    counts.getOrDefault(comment.optString(Keys.OBJECT_ID), 0));
+        }
     }
 
     private JSONObject buildThreadParentComment(final JSONObject comment, final ThreadQueryContext context)

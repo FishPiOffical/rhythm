@@ -526,6 +526,16 @@ public final class Sessions {
     }
 
     /**
+     * 使指定用户的服务端会话立即失效。
+     *
+     * @param userId 用户 ID
+     */
+    public static void invalidate(final String userId) {
+        SESSION_CACHE.remove(userId);
+        SESSION_CACHE.remove(userId + Common.CSRF_TOKEN);
+    }
+
+    /**
      * Private constructor.
      */
     private Sessions() {

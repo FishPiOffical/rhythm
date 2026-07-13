@@ -30,7 +30,6 @@ import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
-import org.b3log.latke.http.Response;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
@@ -80,7 +79,6 @@ import java.util.*;
  * <li>Sends email verify code (/settings/email/vc), POST</li>
  * <li>Updates email (/settings/email), POST</li>
  * <li>Updates username (/settings/username), POST</li>
- * <li>Deactivates user (/settings/deactivate), POST</li>
  * </ul>
  *
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
@@ -241,7 +239,6 @@ public class SettingsProcessor {
         final PointTransferValidationMidware pointTransferValidationMidware = beanManager.getReference(PointTransferValidationMidware.class);
 
         final SettingsProcessor settingsProcessor = beanManager.getReference(SettingsProcessor.class);
-        //Dispatcher.post("/settings/deactivate", settingsProcessor::deactivateUser, loginCheck::handle);
         Dispatcher.post("/settings/username", settingsProcessor::updateUserName, loginCheck::handle);
         Dispatcher.post("/settings/email/vc", settingsProcessor::sendEmailVC, loginCheck::handle);
         Dispatcher.post("/settings/phone/vc", settingsProcessor::sendPhoneVC, loginCheck::handle);
@@ -363,47 +360,6 @@ public class SettingsProcessor {
             context.renderJSON(StatusCodes.SUCC);
             context.renderMsg("两天免签卡使用成功！未来两天的签到将由系统自动进行～");
         }
-    }
-
-    /**
-     * Deactivates user.
-     *
-     * @param context the specified context
-     */
-    // List<String> users = new ArrayList<>();
-    synchronized public void deactivateUser(final RequestContext context) {
-        context.renderJSON(StatusCodes.ERR);
-        context.renderMsg("[Err Chk00013] 请求暂时无法处理，请稍候再试或联系管理员。");
-        /*
-
-        final Response response = context.getResponse();
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        if (users.contains(userId)) {
-            for (int i = 0; i < users.size(); i++) {
-                if (users.get(i).equals(userId)) {
-                    users.remove(i);
-                }
-            }
-            try {
-                Sessions.logout(currentUser.optString(Keys.OBJECT_ID), context.getRequest(), response);
-                userMgmtService.deactivateUser(userId);
-
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("操作已完成。");
-            } catch (final Exception e) {
-                context.renderMsg(e.getMessage());
-            }
-        } else {
-            users.add(userId);
-            context.renderMsg("用户注销申请已记录，如确认要注销该用户，请再请求一次本接口，如果是测试用途，请不要再次请求本接口。");
-        }*/
     }
 
     /**

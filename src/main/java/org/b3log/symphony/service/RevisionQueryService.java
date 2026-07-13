@@ -37,7 +37,9 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Revision query service.
@@ -169,6 +171,27 @@ public class RevisionQueryService {
             return 0;
         } finally {
             Stopwatchs.end();
+        }
+    }
+
+    public Map<String, Integer> countByDataIds(final List<String> dataIds, final int dataType) {
+        if (dataIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        final Query query = new Query().setFilter(CompositeFilterOperator.and(
+                new PropertyFilter(Revision.REVISION_DATA_ID, FilterOperator.IN, dataIds),
+                new PropertyFilter(Revision.REVISION_DATA_TYPE, FilterOperator.EQUAL, dataType)
+        )).setPage(1, Integer.MAX_VALUE).setPageCount(1).select(Revision.REVISION_DATA_ID);
+        try {
+            final Map<String, Integer> counts = new HashMap<>();
+            for (final JSONObject revision : revisionRepository.getList(query)) {
+                final String dataId = revision.optString(Revision.REVISION_DATA_ID);
+                counts.put(dataId, counts.getOrDefault(dataId, 0) + 1);
+            }
+            return counts;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts revisions by data ids failed", e);
+            throw new IllegalStateException("Counts revisions by data ids failed", e);
         }
     }
 }

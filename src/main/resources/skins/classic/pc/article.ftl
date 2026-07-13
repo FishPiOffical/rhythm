@@ -887,6 +887,8 @@
     Label.adminLabel = '${adminLabel}';
     Label.thankSelfLabel = '${thankSelfLabel}';
     Label.replyLabel = '${replyLabel}';
+    Label.editLabel = '${editLabel}';
+    Label.historyLabel = '${historyLabel}';
     Label.articleAuthorName = '${article.articleAuthorName}';
     Label.referenceLabel = '${referenceLabel}';
     Label.goCommentLabel = '${goCommentLabel}';
@@ -912,6 +914,8 @@
     Label.canGoodComment = ${permissions["commonGoodComment"].permissionGrant?c};
     Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
     Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
+    Label.canUpdateComment = ${permissions["commonUpdateComment"].permissionGrant?c};
+    Label.canViewCommentHistory = ${permissions["commonViewCommentHistory"].permissionGrant?c};
     Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
     <#if isLoggedIn>
     Label.currentUserName = '${currentUser.userName}';

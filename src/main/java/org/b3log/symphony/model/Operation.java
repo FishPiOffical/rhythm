@@ -314,6 +314,11 @@ public final class Operation {
 
     public static final int OPERATION_CODE_C_DELETE_MILESTONE = 48;
 
+    /**
+     * 操作代码：永久停用用户。
+     */
+    public static final int OPERATION_CODE_C_DEACTIVATE_USER = 49;
+
 
     //// Transient ////
 

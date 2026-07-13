@@ -225,6 +225,8 @@
             Util.parseHljs()
             Util.parseMarkdown()
         </script>
+    <#elseif type == "users">
+        <script src="${staticServePath}/js/admin-user${miniPostfix}.js?${staticResourceVersion}"></script>
     <#elseif type == 'reports'>
         <script>
             AdminReportHandled = function (it, id) {

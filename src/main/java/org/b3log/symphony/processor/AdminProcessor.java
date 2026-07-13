@@ -74,6 +74,7 @@ import org.json.JSONObject;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static org.b3log.symphony.util.Symphonys.QN_ENABLED;
 
@@ -86,6 +87,7 @@ import static org.b3log.symphony.util.Symphonys.QN_ENABLED;
  * <li>Shows add user (/admin/add-user), GET</li>
  * <li>Adds a user (/admin/add-user), POST</li>
  * <li>Updates a user (/admin/user/{userId}), POST</li>
+ * <li>永久停用用户 (/admin/user/{userId}/deactivate), POST</li>
  * <li>Updates a user's email (/admin/user/{userId}/email), POST</li>
  * <li>Updates a user's username (/admin/user/{userId}/username), POST</li>
  * <li>Charges a user's point (/admin/user/{userId}/charge-point), POST</li>
@@ -157,6 +159,16 @@ public class AdminProcessor {
      * Pagination page size.
      */
     private static final int PAGE_SIZE = 60;
+
+    /**
+     * 用户断开连接等待时间。
+     */
+    private static final long USER_DISCONNECT_DELAY_MILLIS = 2000L;
+
+    /**
+     * 用户 ID 格式。
+     */
+    private static final Pattern USER_ID_PATTERN = Pattern.compile("\\d{13,19}");
 
     /**
      * Language service.
@@ -420,6 +432,8 @@ public class AdminProcessor {
         Dispatcher.get("/admin/add-user", adminProcessor::showAddUser, middlewares);
         Dispatcher.post("/admin/add-user", adminProcessor::addUser, middlewares);
         Dispatcher.post("/admin/user/{userId}", adminProcessor::updateUser, middlewares);
+        Dispatcher.post("/admin/user/{userId}/deactivate", adminProcessor::deactivateUser,
+                loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/admin/user/{userId}/phone", adminProcessor::updateUserPhone, middlewares);
         Dispatcher.post("/admin/user/{userId}/email", adminProcessor::updateUserEmail, middlewares);
         Dispatcher.post("/admin/user/{userId}/username", adminProcessor::updateUserName, middlewares);
@@ -1840,6 +1854,11 @@ public class AdminProcessor {
         final JSONObject user = userQueryService.getUser(userId);
         dataModel.put(User.USER, user);
         final String oldRole = user.optString(User.USER_ROLE);
+        final boolean deactivated = UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS);
+        if (deactivated) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("永久停用账号不能修改");
+            return;
+        }
 
         final JSONObject result = roleQueryService.getRoles(1, Integer.MAX_VALUE, 10);
         final List<JSONObject> roles = (List<JSONObject>) result.opt(Role.ROLES);
@@ -1852,6 +1871,10 @@ public class AdminProcessor {
 
             switch (name) {
                 case UserExt.USER_STATUS:
+                    if (!isEditableUserStatus(value)) {
+                        context.renderJSON(StatusCodes.ERR).renderMsg("用户状态无效");
+                        return;
+                    }
                     if (value.equals(String.valueOf(UserExt.USER_STATUS_C_INVALID))) {
                         LOGGER.log(Level.INFO, "Banned user and articles [userName=" + user.optString(User.USER_NAME) + "]");
                         final List<JSONObject> userArticles = articleQueryService.getUserArticles(user.optString(Keys.OBJECT_ID), Article.ARTICLE_ANONYMOUS_C_PUBLIC, 1, 10000);
@@ -1870,30 +1893,7 @@ public class AdminProcessor {
                         }
                     }
                     if (!value.equals(String.valueOf(UserExt.USER_STATUS_C_VALID))) {
-                        String disconnectUser = user.optString(User.USER_NAME);
-                        Thread.startVirtualThread(() -> {
-                            try {
-                                Thread.sleep(2000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            NodeUtil.sendKick(disconnectUser);
-                            List<WebSocketSession> senderSessions = new ArrayList<>();
-                            for (Map.Entry<WebSocketSession, JSONObject> entry : ChatroomChannel.onlineUsers.entrySet()) {
-                                try {
-                                    String tempUserName = entry.getValue().optString(User.USER_NAME);
-                                    if (tempUserName.equals(disconnectUser)) {
-                                        senderSessions.add(entry.getKey());
-                                    }
-                                } catch (Exception ignored) {
-                                }
-                            }
-                            for (WebSocketSession session : senderSessions) {
-                                ChatroomChannel.removeSession(session);
-                            }
-                            ChatChannel.kickUser(userId);
-                        });
-                        LOGGER.log(Level.INFO, "Kicked user from chatroom and chat [userName=" + user.optString(User.USER_NAME) + "]");
+                        disconnectUser(userId, user.optString(User.USER_NAME));
                     }
                 case UserExt.USER_POINT:
                 case UserExt.USER_APP_ROLE:
@@ -1980,6 +1980,94 @@ public class AdminProcessor {
         }
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    /**
+     * 永久停用指定用户。
+     *
+     * @param context 请求上下文
+     */
+    public void deactivateUser(final RequestContext context) {
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser || !Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        if (isApiKeyRequest(context)) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+
+        final String userId = context.pathVar("userId");
+        if (!USER_ID_PATTERN.matcher(userId).matches()) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("用户 ID 无效");
+            return;
+        }
+        if (userId.equals(currentUser.optString(Keys.OBJECT_ID))) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("不能永久停用当前管理员账号");
+            return;
+        }
+
+        final JSONObject user = userQueryService.getUser(userId);
+        if (null == user) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("用户不存在");
+            return;
+        }
+        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("账号已永久停用");
+            return;
+        }
+
+        final String userName = user.optString(User.USER_NAME);
+        try {
+            userMgmtService.deactivateUser(userId);
+            operationMgmtService.addOperation(Operation.newOperation(context.getRequest(),
+                    Operation.OPERATION_CODE_C_DEACTIVATE_USER, userId));
+            Sessions.invalidate(userId);
+            disconnectUser(userId, userName);
+            context.renderJSON(StatusCodes.SUCC).renderMsg("账号已永久停用，手机号已清空");
+        } catch (final ServiceException e) {
+            LOGGER.log(Level.ERROR, "Deactivates a user failed [id=" + userId + "]", e);
+            context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+        }
+    }
+
+    private boolean isApiKeyRequest(final RequestContext context) {
+        if (StringUtils.isNotBlank(context.param("apiKey"))) {
+            return true;
+        }
+        final JSONObject requestJSON = context.requestJSON();
+        return null != requestJSON && StringUtils.isNotBlank(requestJSON.optString("apiKey"));
+    }
+
+    private void disconnectUser(final String userId, final String userName) {
+        Thread.startVirtualThread(() -> {
+            try {
+                Thread.sleep(USER_DISCONNECT_DELAY_MILLIS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            NodeUtil.sendKick(userName);
+            final List<WebSocketSession> sessions = new ArrayList<>();
+            for (final Map.Entry<WebSocketSession, JSONObject> entry : ChatroomChannel.onlineUsers.entrySet()) {
+                if (userName.equals(entry.getValue().optString(User.USER_NAME))) {
+                    sessions.add(entry.getKey());
+                }
+            }
+            sessions.forEach(ChatroomChannel::removeSession);
+            ChatChannel.kickUser(userId);
+        });
+        LOGGER.log(Level.INFO, "Kicked user from chatroom and chat [userName=" + userName + "]");
+    }
+
+    private boolean isEditableUserStatus(final String status) {
+        return String.valueOf(UserExt.USER_STATUS_C_VALID).equals(status)
+                || String.valueOf(UserExt.USER_STATUS_C_INVALID).equals(status)
+                || String.valueOf(UserExt.USER_STATUS_C_NOT_VERIFIED).equals(status)
+                || String.valueOf(UserExt.USER_STATUS_C_INVALID_LOGIN).equals(status);
     }
 
     /**

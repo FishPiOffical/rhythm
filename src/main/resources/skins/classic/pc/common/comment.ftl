@@ -164,6 +164,18 @@
                                             <span aria-label="${reportLabel}" class="tooltipped tooltipped-n"
                                                   onclick="$('#reportDialog').data('type', 1).data('id', '${threadReply.oId}').dialog('open')"
                                             ><svg><use xlink:href="#icon-report"></use></svg></span>
+                                            <#if permissions["commonViewCommentHistory"].permissionGrant && (threadReply.commentRevisionCount!0) gte 2>
+                                                <span aria-label="${historyLabel}" onclick="Article.revision('${threadReply.oId}', 'comment')"
+                                                      class="comment-history-action tooltipped tooltipped-n">
+                                                    <svg class="icon-history"><use xlink:href="#history"></use></svg>
+                                                </span>
+                                            </#if>
+                                            <#if threadIsCurrentUserComment && permissions["commonUpdateComment"].permissionGrant>
+                                                <span aria-label="${editLabel}" class="comment-edit-action tooltipped tooltipped-n"
+                                                      onclick="Comment.edit('${threadReply.oId}')">
+                                                    <svg><use xlink:href="#edit"></use></svg>
+                                                </span>
+                                            </#if>
                                             <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
                                                 <span aria-label="${replyLabel}" class="icon-reply-btn tooltipped tooltipped-n"
                                                       onclick="Comment.reply('${threadReply.commentAuthorName}', '${threadReply.oId}')">

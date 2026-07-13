@@ -290,7 +290,13 @@ public class CommentProcessor {
      */
     public void getCommentRevisions(final RequestContext context) {
         final String id = context.pathVar("id");
-        final JSONObject viewer = Sessions.getUser();
+        final JSONObject viewer = (JSONObject) context.attr(User.USER);
+        final JSONObject comment = commentQueryService.getComment(id);
+        if (null == comment || null == getViewableArticle(
+                comment.optString(Comment.COMMENT_ON_ARTICLE_ID), viewer)) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("评论不存在或不可查看");
+            return;
+        }
         final List<JSONObject> revisions = revisionQueryService.getCommentRevisions(viewer, id);
         final JSONObject ret = new JSONObject();
         ret.put(Keys.CODE, StatusCodes.SUCC);
@@ -393,6 +399,8 @@ public class CommentProcessor {
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
             context.renderJSONValue(Comment.COMMENT_CONTENT, commentContent);
+            context.renderJSONValue(Comment.COMMENT_REVISION_COUNT,
+                    revisionQueryService.count(id, Revision.DATA_TYPE_C_COMMENT));
         } catch (final ServiceException e) {
             context.renderMsg(e.getMessage());
         }
@@ -546,6 +554,7 @@ public class CommentProcessor {
                 allReplies, requestJSONObject.optString(ANCHOR_COMMENT_ID), requestedPage);
         final int currentPage = normalizeThreadReplyPage(anchorPage, pageCount);
         final List<JSONObject> replies = getThreadReplyPageReplies(allReplies, currentPage);
+        commentQueryService.fillCommentRevisionCounts(replies);
         reactionQueryService.fillCommentReactions(replies, currentUserId);
         context.renderJSON(StatusCodes.SUCC).
                 renderJSONValue(COMMENT_THREAD_REPLIES, replies).
