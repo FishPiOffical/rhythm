@@ -1136,6 +1136,7 @@ var Comment = {
     $thread.find('.comment-thread__more').remove()
     Comment.renderThreadPagination($thread, rootId, options.pagination)
     Comment.initReactionWidgets($thread)
+    Util.listenUserCard()
     Util.parseHljs()
     Util.parseMarkdown()
     if (options.focus === false || !targetId) {

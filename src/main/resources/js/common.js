@@ -1678,10 +1678,11 @@ var Util = {
         var hoverTimeout = null;
         var currentTarget = null;
         var isCardVisible = false; // 新增：追踪卡片是否可见
+        var userCardSelector = ".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at, .userCardBond, .comment-thread__avatar";
 
-        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at, .userCardBond").unbind();
+        $(userCardSelector).unbind();
 
-        $(".avatar, .avatar-small, .avatar-middle, .avatar-mid, .avatar-big, .name-at, .userCardBond").hover(function () {
+        $(userCardSelector).hover(function () {
             var $this = $(this);
             currentTarget = this;
 
