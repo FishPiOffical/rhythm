@@ -25,20 +25,24 @@
         <@head title="日志公开 - ${symphonyLabel}">
         </@head>
         <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}" />
+        <link rel="stylesheet" href="${staticServePath}/css/logs.css?${staticResourceVersion}" />
     </head>
     <body>
         <#include "header.ftl">
         <div class="main">
             <div class="wrapper">
-                <div class="content">
-                    <h1>管理日志公开</h1>
-                    <i class="ft-gray">摸鱼派管理组公平、公正、公开，感谢大家的监督。(点击日志类型可以筛选)</i>
-                    <br><br>
-                    <div id="logsContent">
+                <div class="content logs-page">
+                    <h1>公开日志</h1>
+                    <div class="logs-description">公开管理操作记录</div>
+                    <div class="logs-filter">
+                        <label for="logCategorySelect">分类</label>
+                        <select id="logCategorySelect" aria-label="日志分类">
+                            <option value="">全部日志</option>
+                        </select>
+                        <button type="button" id="clearLogFilter" class="logs-filter__clear" hidden>清除</button>
                     </div>
-                    <br>
-                    <div style="color: #888f91; cursor: pointer" onclick="Logs.more()" id="loadMoreBtn">加载更多</div>
-                    <div style="color: #888f91; cursor: pointer;margin-top: 1rem" onclick="Logs.reset();" id="loadMoreBtn">重置筛选</div>
+                    <div id="logsContent" class="logs-list" aria-live="polite"></div>
+                    <button type="button" id="loadMoreBtn" class="logs-more">加载更多</button>
                 </div>
                 <div class="side">
                     <#include "side.ftl">
