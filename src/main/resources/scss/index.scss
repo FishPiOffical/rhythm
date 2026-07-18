@@ -5206,7 +5206,7 @@ code .dec {
 }
 
 .article.long-article-page {
-  --long-article-drawer-width: min(430px, calc(100vw - 72px));
+  --long-article-drawer-width: min(360px, calc(100vw - 72px));
   min-height: 100vh;
   padding-top: 0;
   overflow-x: hidden;
@@ -5314,7 +5314,7 @@ code .dec {
     border-left: 1px solid rgba(61, 91, 68, 0.14);
     border-radius: 0;
     background: #dcebdd;
-    box-shadow: -16px 0 38px rgba(40, 66, 47, 0.16);
+    box-shadow: none;
     opacity: 0;
     pointer-events: none;
     transform: translateX(24px);
@@ -5363,9 +5363,13 @@ code .dec {
 
   &.long-article-comments-open.long-article-comments-inline {
     .long-article-reading-stage {
-      column-gap: 14px;
-      width: var(--long-article-stage-width, calc(var(--long-article-width, 800px) + var(--long-article-drawer-width) + 14px));
+      column-gap: 0;
+      width: var(--long-article-stage-width, calc(var(--long-article-width, 800px) + var(--long-article-drawer-width)));
       max-width: calc(100vw - 28px);
+    }
+
+    .long-article-settings {
+      left: calc(var(--long-article-drawer-left) + var(--long-article-drawer-width) + 14px);
     }
 
     .article-container {
@@ -5998,7 +6002,7 @@ body.night {
     #articleCommentsPanel {
       background: #111111;
       border-left-color: rgba(255, 255, 255, 0.08);
-      box-shadow: -16px 0 38px rgba(0, 0, 0, 0.34);
+      box-shadow: none;
     }
 
     #comments {

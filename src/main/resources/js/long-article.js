@@ -216,8 +216,8 @@ window.LongArticle = {
         var viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         var selectedWidth = this.settings.width === 'auto' ? Math.min(viewportWidth * 0.8, 1200) : parseInt(this.settings.width, 10);
         var closedArticleWidth = Math.min(selectedWidth, Math.max(320, viewportWidth - 28));
-        var drawerWidth = viewportWidth <= 768 ? Math.max(320, viewportWidth - 20) : Math.min(430, Math.max(360, viewportWidth * 0.3));
-        var articleDrawerGap = 14;
+        var drawerWidth = viewportWidth <= 768 ? Math.max(320, viewportWidth - 20) : Math.min(360, Math.max(320, viewportWidth * 0.22));
+        var articleDrawerGap = 0;
         var toolbarGap = 14;
         var toolbarWidth = 44;
         var safeMargin = 14;
@@ -235,7 +235,7 @@ window.LongArticle = {
         var stageLeft = Math.max(safeMargin, (viewportWidth - stageWidth) / 2);
         var drawerLeft = inline ? stageLeft + openArticleWidth + articleDrawerGap : viewportWidth - drawerWidth;
         var closedToolbarLeft = Math.min(viewportWidth - toolbarWidth - safeMargin, (viewportWidth - closedArticleWidth) / 2 + closedArticleWidth + toolbarGap);
-        var openToolbarLeft = inline ? Math.min(viewportWidth - toolbarWidth - safeMargin, stageLeft + stageWidth + toolbarGap) : closedToolbarLeft;
+        var openToolbarLeft = inline ? stageLeft + stageWidth + toolbarGap : closedToolbarLeft;
 
         root.style.setProperty('--long-article-stage-width', stageWidth + 'px');
         root.style.setProperty('--long-article-open-article-width', openArticleWidth + 'px');
