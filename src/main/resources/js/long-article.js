@@ -213,7 +213,7 @@ window.LongArticle = {
 
     updateLayoutMetrics: function () {
         var root = document.documentElement;
-        var viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
         var selectedWidth = this.settings.width === 'auto' ? Math.min(viewportWidth * 0.8, 1200) : parseInt(this.settings.width, 10);
         var closedArticleWidth = Math.min(selectedWidth, Math.max(320, viewportWidth - 28));
         var drawerWidth = viewportWidth <= 768 ? Math.max(320, viewportWidth - 20) : Math.min(360, Math.max(320, viewportWidth * 0.22));

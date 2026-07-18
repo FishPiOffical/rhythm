@@ -5311,7 +5311,7 @@ code .dec {
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 0;
-    border-left: 1px solid rgba(61, 91, 68, 0.14);
+    border-left: 0;
     border-radius: 0;
     background: #dcebdd;
     box-shadow: none;
@@ -6001,7 +6001,7 @@ body.night {
 
     #articleCommentsPanel {
       background: #111111;
-      border-left-color: rgba(255, 255, 255, 0.08);
+      border-left: 0;
       box-shadow: none;
     }
 
