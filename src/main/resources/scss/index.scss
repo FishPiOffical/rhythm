@@ -5208,7 +5208,8 @@ code .dec {
 .article.long-article-page {
   min-height: 100vh;
   padding-top: 0;
-  background: #c7d8ca;
+  overflow-x: hidden;
+  background: #c7dcc8;
   color: #25332a;
 
   > .nav,
@@ -5221,11 +5222,11 @@ code .dec {
     box-sizing: border-box;
     width: min(var(--long-article-width, 800px), calc(100vw - 28px));
     max-width: none;
-    margin: 36px auto 0;
-    border: 1px solid rgba(72, 101, 79, 0.12);
-    border-radius: 12px;
-    background: #fbfcf8;
-    box-shadow: 0 12px 36px rgba(48, 73, 55, 0.1);
+    margin: 0 auto;
+    border: 0;
+    border-radius: 0;
+    background: #dcebdd;
+    box-shadow: none;
   }
 
   .article-body {
@@ -5236,7 +5237,7 @@ code .dec {
     box-sizing: border-box;
     width: 100%;
     max-width: none;
-    padding: 54px clamp(32px, 6vw, 72px) 46px;
+    padding: 80px clamp(32px, 6vw, 64px) 64px;
   }
 
   h1.article-title {
@@ -5257,10 +5258,10 @@ code .dec {
 
   > .main {
     box-sizing: border-box;
-    margin-top: 36px;
+    margin-top: 0;
     padding: 38px 0 48px;
-    border-top: 1px solid rgba(72, 101, 79, 0.12);
-    background: #dce8de;
+    border-top: 0;
+    background: #c7dcc8;
   }
 
   #articleCommentsPanel {
@@ -5269,9 +5270,9 @@ code .dec {
     max-width: none;
     margin: 0 auto;
     padding: 26px;
-    border: 1px solid rgba(72, 101, 79, 0.1);
-    border-radius: 12px;
-    background: #f8faf6;
+    border: 0;
+    border-radius: 0;
+    background: #dcebdd;
   }
 
   .article-footer {
@@ -5555,9 +5556,9 @@ code .dec {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid rgba(72, 101, 79, 0.15);
+  border: 0;
   border-radius: 8px;
-  background: rgba(248, 251, 247, 0.96);
+  background: #dcebdd;
   box-shadow: 0 4px 14px rgba(48, 73, 55, 0.12);
   color: #52685a;
   cursor: pointer;
@@ -5613,7 +5614,7 @@ code .dec {
   padding: 14px;
   border: 1px solid rgba(72, 101, 79, 0.16);
   border-radius: 10px;
-  background: rgba(251, 253, 249, 0.98);
+  background: #ebfaeb;
   box-shadow: 0 12px 32px rgba(38, 61, 44, 0.18);
 
   &.is-open {
@@ -5658,13 +5659,12 @@ code .dec {
 
 body.night {
   &.long-article-page {
-    background: #26332b;
+    background: #0a0a0a;
     color: #d9e3db;
 
     .article-container {
-      border-color: rgba(204, 224, 209, 0.08);
-      background: #18231d;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+      background: #111111;
+      box-shadow: none;
     }
 
     h1.article-title {
@@ -5672,18 +5672,16 @@ body.night {
     }
 
     > .main {
-      border-color: rgba(204, 224, 209, 0.08);
-      background: #202d25;
+      background: #0a0a0a;
     }
 
     #articleCommentsPanel {
-      border-color: rgba(204, 224, 209, 0.08);
-      background: #18231d;
+      background: #111111;
     }
   }
 
   .long-article-content {
-    color: #d9e3db;
+    color: #989898;
 
     a {
       color: #8fc9a0;
@@ -5701,7 +5699,7 @@ body.night {
     > h4,
     > h5,
     > h6 {
-      color: #edf4ef;
+      color: #989898;
     }
 
     pre {
@@ -5790,37 +5788,36 @@ body.night {
   }
 
   .long-article-settings-btn {
-    border-color: rgba(190, 214, 196, 0.12);
-    background: rgba(28, 41, 33, 0.96);
-    color: #a7b7ac;
+    border: 0;
+    background: #191919;
+    color: #989898;
 
     &:hover {
-      border-color: rgba(190, 214, 196, 0.25);
-      background: #26382d;
-      color: #e3ece5;
+      background: #191919;
+      color: #989898;
     }
   }
 
   .long-article-layout-panel {
-    border-color: rgba(190, 214, 196, 0.12);
-    background: rgba(24, 35, 29, 0.98);
+    border: 0;
+    background: #1f1f1f;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
   }
 
   .long-article-layout-panel__title {
-    color: #a7b7ac;
+    color: #989898;
   }
 
   .long-article-layout-panel__options button {
-    border-color: #34483a;
-    background: #223128;
-    color: #b2c2b7;
+    border-color: #3a3a3a;
+    background: #191919;
+    color: #989898;
 
     &:hover,
     &.is-active {
-      border-color: #6c9177;
-      background: #304637;
-      color: #e3ece5;
+      border-color: #666;
+      background: #292929;
+      color: #fff;
     }
   }
 }
@@ -5828,8 +5825,8 @@ body.night {
 @media (max-width: 768px) {
   .article.long-article-page {
     .article-container {
-      margin-top: 14px;
-      border-radius: 9px;
+      margin-top: 0;
+      border-radius: 0;
     }
 
     .article-body > .wrapper {
@@ -5847,7 +5844,7 @@ body.night {
 
     #articleCommentsPanel {
       padding: 18px;
-      border-radius: 9px;
+      border-radius: 0;
     }
   }
 

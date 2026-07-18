@@ -5509,7 +5509,7 @@ body.long-article-page {
   padding: 0;
   overflow-x: hidden;
   box-sizing: border-box;
-  background: #c7d8ca;
+  background: #c7dcc8;
   color: #25332a;
 
   > .nav,
@@ -5521,8 +5521,8 @@ body.long-article-page {
   > .main {
     box-sizing: border-box;
     margin: 0;
-    padding: 14px 14px 30px;
-    background: #c7d8ca;
+    padding: 0 14px 30px;
+    background: #c7dcc8;
     box-shadow: none;
   }
 
@@ -5533,10 +5533,10 @@ body.long-article-page {
   .article-main {
     overflow: hidden;
     padding: 0;
-    border: 1px solid rgba(72, 101, 79, 0.12);
-    border-radius: 10px;
-    background: #fbfcf8;
-    box-shadow: 0 8px 24px rgba(48, 73, 55, 0.1);
+    border: 0;
+    border-radius: 0;
+    background: #dcebdd;
+    box-shadow: none;
   }
 
   .article-main > .wrapper {
@@ -5582,9 +5582,9 @@ body.long-article-page {
     box-sizing: border-box;
     margin: 20px 0 0;
     padding: 20px 14px;
-    border: 1px solid rgba(72, 101, 79, 0.1);
-    border-radius: 10px;
-    background: #f7faf5;
+    border: 0;
+    border-radius: 0;
+    background: #dcebdd;
   }
 
   .side {
@@ -5873,9 +5873,9 @@ body.long-article-page {
 .long-article-settings-btn {
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(72, 101, 79, 0.15);
+  border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.95);
+  background: #dcebdd;
   box-shadow: 0 4px 12px rgba(48, 73, 55, 0.15);
   cursor: pointer;
   display: flex;
@@ -5923,8 +5923,8 @@ body.long-article-page {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(72, 101, 79, 0.15);
+  background: #dcebdd;
+  border: 0;
   box-shadow: 0 4px 12px rgba(48, 73, 55, 0.15);
   cursor: pointer;
   display: flex;
@@ -5943,17 +5943,16 @@ body.long-article-page {
 
 body.night {
   &.long-article-page {
-    background: #26332b;
+    background: #0a0a0a;
     color: #d9e3db;
 
     > .main {
-      background: #26332b;
+      background: #0a0a0a;
     }
 
     .article-main {
-      border-color: rgba(204, 224, 209, 0.08);
-      background: #18231d;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+      background: #111111;
+      box-shadow: none;
     }
 
     .article-title,
@@ -5962,13 +5961,12 @@ body.night {
     }
 
     #comments {
-      border-color: rgba(204, 224, 209, 0.08);
-      background: #18231d;
+      background: #111111;
     }
   }
 
   .long-article-content {
-    color: #d9e3db;
+    color: #989898;
 
     a {
       color: #8fc9a0;
@@ -5986,7 +5984,7 @@ body.night {
     > h4,
     > h5,
     > h6 {
-      color: #edf4ef;
+      color: #989898;
     }
 
     pre {
@@ -6065,18 +6063,18 @@ body.night {
 
   .long-article-settings-btn,
   .long-article-toggle-btn {
-    border-color: rgba(190, 214, 196, 0.12);
-    background: rgba(28, 41, 33, 0.96);
-    color: #a7b7ac;
+    border: 0;
+    background: #191919;
+    color: #989898;
 
     &:hover {
-      background: #26382d;
-      color: #e3ece5;
+      background: #191919;
+      color: #989898;
     }
   }
 
   .long-article-toggle-btn.active {
-    background: #3e7250;
+    background: #191919;
     color: #fff;
   }
 }
