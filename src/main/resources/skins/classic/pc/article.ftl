@@ -80,9 +80,12 @@
     <meta name="twitter:creator" content="@B3logOS"/>
 </head>
 <body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
+<#assign hidePageChrome = (6 == article.articleType)>
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
 <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+<#if !hidePageChrome>
 <#include "header.ftl">
+</#if>
 <div class="article-container">
 <div class="article-body">
     <#if showTopAd && 6 != article.articleType>
@@ -658,6 +661,7 @@
                         class="ft-13">${article.thankedCnt}</span></span>
 </div>
 </div>
+<#if !hidePageChrome>
 <div class="article-header">
     <h1 aria-label="返回上一页" class="tooltipped tooltipped-s" style="display: flex; align-items: center;">
         <a href="javascript:history.back()">
@@ -752,6 +756,7 @@
         </#if>
     </div>
 </div>
+</#if>
 
 <#if 6 == article.articleType>
 <div class="long-article-settings" data-long-article-toolbar>

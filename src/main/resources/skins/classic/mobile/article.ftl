@@ -34,9 +34,12 @@
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
     </head>
     <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
+        <#assign hidePageChrome = (6 == article.articleType)>
         <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
         <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+        <#if !hidePageChrome>
         <#include "header.ftl">
+        </#if>
         <div class="main">
             <div class="article-actions fn-clear" style="margin-bottom: 10px;">
                     <span class="fn-right">
