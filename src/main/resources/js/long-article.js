@@ -104,6 +104,7 @@ window.LongArticle = {
         root.style.setProperty('--long-article-half-width', halfWidth);
         root.style.setProperty('--long-article-font-size', this.settings.desktopFontSize + 'px');
         this.updateWidthButtons();
+        this.updateLayoutMetrics();
     },
 
     bindEvents: function () {
@@ -149,6 +150,10 @@ window.LongArticle = {
             if (event.key === 'Escape' && self.isCommentsOpen()) {
                 self.closeComments();
             }
+        });
+
+        window.addEventListener('resize', function () {
+            self.updateLayoutMetrics();
         });
     },
 
@@ -206,6 +211,41 @@ window.LongArticle = {
         }
     },
 
+    updateLayoutMetrics: function () {
+        var root = document.documentElement;
+        var viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        var selectedWidth = this.settings.width === 'auto' ? Math.min(viewportWidth * 0.8, 1200) : parseInt(this.settings.width, 10);
+        var closedArticleWidth = Math.min(selectedWidth, Math.max(320, viewportWidth - 28));
+        var drawerWidth = viewportWidth <= 768 ? Math.max(320, viewportWidth - 20) : Math.min(430, Math.max(360, viewportWidth * 0.3));
+        var articleDrawerGap = 14;
+        var toolbarGap = 14;
+        var toolbarWidth = 44;
+        var safeMargin = 14;
+        var inline = viewportWidth >= 1100;
+        var openArticleWidth = closedArticleWidth;
+
+        if (inline) {
+            var maxInlineStageWidth = viewportWidth - (toolbarWidth + toolbarGap + safeMargin) * 2;
+            var maxInlineArticleWidth = maxInlineStageWidth - drawerWidth - articleDrawerGap;
+            openArticleWidth = Math.min(closedArticleWidth, Math.max(560, maxInlineArticleWidth));
+            inline = openArticleWidth >= 560;
+        }
+
+        var stageWidth = inline ? openArticleWidth + articleDrawerGap + drawerWidth : closedArticleWidth;
+        var stageLeft = Math.max(safeMargin, (viewportWidth - stageWidth) / 2);
+        var drawerLeft = inline ? stageLeft + openArticleWidth + articleDrawerGap : viewportWidth - drawerWidth;
+        var closedToolbarLeft = Math.min(viewportWidth - toolbarWidth - safeMargin, (viewportWidth - closedArticleWidth) / 2 + closedArticleWidth + toolbarGap);
+        var openToolbarLeft = inline ? Math.min(viewportWidth - toolbarWidth - safeMargin, stageLeft + stageWidth + toolbarGap) : closedToolbarLeft;
+
+        root.style.setProperty('--long-article-stage-width', stageWidth + 'px');
+        root.style.setProperty('--long-article-open-article-width', openArticleWidth + 'px');
+        document.body.style.setProperty('--long-article-drawer-width', drawerWidth + 'px');
+        root.style.setProperty('--long-article-drawer-left', drawerLeft + 'px');
+        root.style.setProperty('--long-article-toolbar-closed-left', closedToolbarLeft + 'px');
+        root.style.setProperty('--long-article-toolbar-open-left', openToolbarLeft + 'px');
+        document.body.classList.toggle('long-article-comments-inline', inline);
+    },
+
     scrollToTop: function () {
         window.scrollTo({top: 0, behavior: 'smooth'});
     },
@@ -233,6 +273,7 @@ window.LongArticle = {
             return;
         }
         this.closeLayoutPanel();
+        this.updateLayoutMetrics();
         document.body.classList.add('long-article-comments-open');
         panel.setAttribute('aria-hidden', 'false');
         if (button) {
@@ -245,8 +286,8 @@ window.LongArticle = {
         var panel = this.getCommentsPanel();
         var button = document.querySelector('[data-long-article-action="comments"]');
         var editorPanel = document.querySelector('.editor-panel');
-        if (editorPanel && window.getComputedStyle(editorPanel).display !== 'none' && window.getComputedStyle(editorPanel).bottom === '0px' && window.Comment && typeof window.Comment._toggleReply === 'function') {
-            window.Comment._toggleReply();
+        if (editorPanel && window.getComputedStyle(editorPanel).display !== 'none' && window.Comment && typeof window.Comment._hideReplyPanel === 'function') {
+            window.Comment._hideReplyPanel();
         }
         document.body.classList.remove('long-article-comments-open');
         if (panel) {

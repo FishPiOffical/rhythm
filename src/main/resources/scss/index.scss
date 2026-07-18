@@ -5206,7 +5206,7 @@ code .dec {
 }
 
 .article.long-article-page {
-  --long-article-comments-width: min(430px, calc(100vw - 72px));
+  --long-article-drawer-width: min(430px, calc(100vw - 72px));
   min-height: 100vh;
   padding-top: 0;
   overflow-x: hidden;
@@ -5226,15 +5226,28 @@ code .dec {
     display: none !important;
   }
 
-  .article-container {
+  .long-article-reading-stage {
+    display: flex;
+    align-items: flex-start;
+    column-gap: 0;
     box-sizing: border-box;
     width: min(var(--long-article-width, 800px), calc(100vw - 28px));
-    max-width: none;
+    max-width: calc(100vw - 28px);
     margin: 0 auto;
+    transition: width 0.32s ease, column-gap 0.32s ease;
+  }
+
+  .article-container {
+    flex: 0 0 100%;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     border: 0;
     border-radius: 0;
     background: #dcebdd;
     box-shadow: none;
+    transition: width 0.32s ease, flex-basis 0.32s ease;
   }
 
   .article-body {
@@ -5264,8 +5277,10 @@ code .dec {
     }
   }
 
-  > .main {
+  .long-article-reading-stage > .main {
+    flex: 0 0 0;
     box-sizing: border-box;
+    width: 0;
     min-height: 0;
     height: 0;
     margin: 0;
@@ -5273,18 +5288,17 @@ code .dec {
     overflow: visible;
     border-top: 0;
     background: transparent;
+    transition: width 0.32s ease, flex-basis 0.32s ease;
   }
 
   #articleCommentsPanel {
-    position: fixed;
+    position: sticky;
     top: 0;
-    right: 0;
-    bottom: 0;
     z-index: 115;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    width: var(--long-article-comments-width);
+    width: 100%;
     height: 100vh;
     height: 100dvh;
     max-width: none;
@@ -5298,8 +5312,10 @@ code .dec {
     border-radius: 0;
     background: #dcebdd;
     box-shadow: -16px 0 38px rgba(40, 66, 47, 0.16);
-    transform: translateX(100%);
-    transition: transform 0.28s ease, visibility 0s linear 0.28s;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(24px);
+    transition: opacity 0.24s ease, transform 0.32s ease, visibility 0s linear 0.32s;
     visibility: hidden;
 
     > .module {
@@ -5310,6 +5326,10 @@ code .dec {
       box-shadow: none;
     }
 
+    > #comments {
+      margin-top: 0;
+    }
+
     > .pagination {
       flex: 0 0 auto;
       margin: 18px auto 0;
@@ -5318,17 +5338,59 @@ code .dec {
   }
 
   &.long-article-comments-open {
+    .long-article-settings {
+      right: auto;
+      left: var(--long-article-toolbar-open-left, calc(100vw - 58px));
+      z-index: 121;
+    }
+
+    .editor-panel {
+      right: auto;
+      left: var(--long-article-drawer-left, calc(100vw - var(--long-article-drawer-width)));
+    }
+
     #articleCommentsPanel {
+      opacity: 1;
+      pointer-events: auto;
       transform: translateX(0);
       transition-delay: 0s;
       visibility: visible;
     }
+  }
 
-    .long-article-settings {
-      right: calc(var(--long-article-comments-width) + 14px);
-      left: auto;
-      z-index: 121;
+  &.long-article-comments-open.long-article-comments-inline {
+    .long-article-reading-stage {
+      column-gap: 14px;
+      width: var(--long-article-stage-width, calc(var(--long-article-width, 800px) + var(--long-article-drawer-width) + 14px));
+      max-width: calc(100vw - 28px);
     }
+
+    .article-container {
+      flex-basis: var(--long-article-open-article-width, var(--long-article-width, 800px));
+      width: var(--long-article-open-article-width, var(--long-article-width, 800px));
+    }
+
+    .long-article-reading-stage > .main {
+      flex-basis: var(--long-article-drawer-width);
+      width: var(--long-article-drawer-width);
+      height: auto;
+    }
+  }
+
+  &.long-article-comments-open:not(.long-article-comments-inline) {
+    #articleCommentsPanel {
+      position: fixed;
+      right: auto;
+      bottom: 0;
+      left: var(--long-article-drawer-left, calc(100vw - var(--long-article-drawer-width)));
+      width: var(--long-article-drawer-width);
+    }
+  }
+
+  .long-article-settings {
+    right: auto;
+    left: var(--long-article-toolbar-closed-left, min(calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)) + 14px), calc(100vw - 58px)));
+    transition: left 0.32s ease;
   }
 
   #comments {
@@ -5515,8 +5577,9 @@ code .dec {
   .editor-panel {
     right: 0;
     left: auto;
-    width: var(--long-article-comments-width);
-    max-width: var(--long-article-comments-width);
+    width: var(--long-article-drawer-width);
+    max-width: var(--long-article-drawer-width);
+    transition: left 0.32s ease;
 
     .editor-bg {
       display: none;
@@ -5935,7 +5998,7 @@ body.night {
       color: #eef4ef;
     }
 
-    > .main {
+    .long-article-reading-stage > .main {
       background: #0a0a0a;
     }
 
@@ -6149,8 +6212,6 @@ body.night {
 
 @media (max-width: 768px) {
   .article.long-article-page {
-    --long-article-comments-width: calc(100vw - 20px);
-
     .article-container {
       margin-top: 0;
       border-radius: 0;
@@ -6162,11 +6223,6 @@ body.night {
 
     h1.article-title {
       font-size: 26px;
-    }
-
-    > .main {
-      margin-top: 20px;
-      padding: 24px 0 30px;
     }
 
     #articleCommentsPanel {

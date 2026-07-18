@@ -86,6 +86,9 @@
 <#if !hidePageChrome>
 <#include "header.ftl">
 </#if>
+<#if 6 == article.articleType>
+<div class="long-article-reading-stage">
+</#if>
 <div class="article-container">
 <div class="article-body">
     <#if showTopAd && 6 != article.articleType>
@@ -561,6 +564,9 @@
         <#if pjax><!---- pjax {#comments} end ----></#if>
     </div>
 </div>
+<#if 6 == article.articleType>
+</div>
+</#if>
 <div class="wrapper article-footer">
     <#if 6 != article.articleType>
     <#if sideRelevantArticles?size != 0>

@@ -855,6 +855,22 @@ var Comment = {
     return Comment.focusCommentById(targetId)
   },
   /**
+   * 隐藏回复面板
+   * @returns {Boolean}
+   */
+  _hideReplyPanel: function () {
+    var $panel = $('.editor-panel')
+    if ($panel.length === 0 || !$panel.hasClass('editor-panel--open')) {
+      return false
+    }
+    $panel.removeClass('editor-panel--open')
+    $panel.find('.wrapper').slideUp(function () {
+      $panel.fadeOut(100)
+      $('.footer').removeAttr('style')
+    })
+    return false
+  },
+  /**
    * 回复面板显示／隐藏
    * @param {function} cb 面板弹出后的回掉函数
    */
@@ -872,12 +888,13 @@ var Comment = {
       return false
     }
 
-    if ($('.footer').attr('style')) {
-      $('.editor-panel .wrapper').slideUp(function () {
-        $(".editor-panel").fadeOut(100)
-        $('.footer').removeAttr('style')
-      })
-      return false
+    var $panel = $('.editor-panel')
+    if ($panel.hasClass('editor-panel--open')) {
+      return Comment._hideReplyPanel()
+    }
+
+    if (document.body.classList.contains('long-article-page') && window.LongArticle && !window.LongArticle.isCommentsOpen()) {
+      window.LongArticle.openComments()
     }
 
     $('.cmt-anonymous').show()
@@ -892,13 +909,13 @@ var Comment = {
       removeData()
 
     // 如果 hide 初始化， focus 无效
-    if ($('.editor-panel').css('bottom') !== '0px') {
-      $('.editor-panel .wrapper').hide()
-      $('.editor-panel').css('bottom', 0)
+    if ($panel.css('bottom') !== '0px') {
+      $panel.find('.wrapper').hide()
+      $panel.css('bottom', 0)
     }
 
-    $('.editor-panel').show()
-    $('.editor-panel .wrapper').slideDown(function () {
+    $panel.show().addClass('editor-panel--open')
+    $panel.find('.wrapper').slideDown(function () {
       Comment.editor.focus()
       cb ? cb() : ''
     })

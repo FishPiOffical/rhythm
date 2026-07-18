@@ -168,8 +168,8 @@ window.MLongArticle = {
         var panel = this.getCommentsPanel();
         var button = document.querySelector('[data-long-article-action="comments"]');
         var editorPanel = document.querySelector('.editor-panel');
-        if (editorPanel && editorPanel.classList.contains('editor-panel--open') && window.Comment && typeof window.Comment._toggleReply === 'function') {
-            window.Comment._toggleReply();
+        if (editorPanel && editorPanel.classList.contains('editor-panel--open') && window.Comment && typeof window.Comment._hideReplyPanel === 'function') {
+            window.Comment._hideReplyPanel();
         }
         document.body.classList.remove('long-article-comments-open');
         if (panel) {
