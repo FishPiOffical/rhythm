@@ -5212,8 +5212,9 @@ code .dec {
   color: #25332a;
 
   > .nav,
-  > .footer {
-    display: none;
+  > .footer,
+  .article-header {
+    display: none !important;
   }
 
   .article-container {
