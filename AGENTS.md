@@ -89,6 +89,7 @@
 - VIP 管理服务关键方法位于 `MembershipMgmtService`：免费新增（不扣积分）、手工维护、按剩余天数退款并失效。
 - VIP 按天退款成功后会复用“系统转账通知”（`Notification.DATA_TYPE_C_POINT_TRANSFER`）给用户发送站内通知。
 - 积分变更统一走 `PointtransferMgmtService`：独立流程用 `transfer(...)`（方法内自带事务）；若外层已有事务，必须用 `transferInCurrentTransaction(...)` 避免事务冲突。
+- credit 应用积分链路：`POST /user/edit/points` 携带完整 `sourceAppId/sourceAppName/sourceScene/requestId` 时走 `ExternalPointAdjustMgmtService`，使用 `Pointtransfer` 类型 55、通知类型 42 与 `external_point_request` 保证幂等；账户方向仍为 `sys` 与用户，应用来源只作为可信快照和展示信息，内部请求编号不得通过积分记录接口公开。
 - 发积分/扣积分约定：发积分用 `fromId=Pointtransfer.ID_C_SYS`、`toId=userId`；扣积分用 `fromId=userId`、`toId=Pointtransfer.ID_C_SYS`（常用类型 `Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT`）。
 - 需要给用户发“系统转账通知”时：在转账成功拿到 `transferId` 后，调用 `NotificationMgmtService#addPointTransferNotification`，并设置 `Notification.NOTIFICATION_USER_ID` 与 `Notification.NOTIFICATION_DATA_ID=transferId`。
 - 通知金手指：`POST /user/edit/notification`（`UserProcessor#sendSystemNotification`），使用 `gold.finger.notification` 校验；请求体使用 `userName` + `notification` + `goldFingerKey`，新正文优先写 `notification.content`（最大 4096），老库未补 `content` 列时仅兼容旧 64 字纯文本 `dataId` 链路。

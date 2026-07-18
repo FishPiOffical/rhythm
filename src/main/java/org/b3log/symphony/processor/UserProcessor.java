@@ -54,6 +54,7 @@ import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * User processor.
@@ -80,6 +81,10 @@ import java.util.*;
  */
 @Singleton
 public class UserProcessor {
+
+    private static final Pattern SOURCE_APP_ID_PATTERN = Pattern.compile("[A-Za-z0-9_.-]{1,64}");
+    private static final Pattern SOURCE_REQUEST_ID_PATTERN = Pattern.compile("[A-Za-z0-9_:.-]{1,128}");
+    private static final Set<String> SOURCE_SCENES = Set.of("payment", "point_issue", "refund", "transfer");
 
     /**
      * User management service.
@@ -152,6 +157,12 @@ public class UserProcessor {
      */
     @Inject
     private PointtransferMgmtService pointtransferMgmtService;
+
+    /**
+     * External point adjustment service.
+     */
+    @Inject
+    private ExternalPointAdjustMgmtService externalPointAdjustMgmtService;
 
     /**
      * Notification management service.
@@ -469,78 +480,127 @@ public class UserProcessor {
      * 金手指：调整积分
      */
     public void adjustPoint(final RequestContext context) {
-        JSONObject requestJSONObject = context.requestJSON();
+        final JSONObject requestJSONObject = context.requestJSON();
         final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
-        final String itemKey = Symphonys.get("gold.finger.point");
-        if (goldFingerKey.equals(itemKey)) {
-            try {
-                final String userName = requestJSONObject.optString("userName");
-                JSONObject user = userQueryService.getUserByName(userName);
-                try {
-                    int point = requestJSONObject.optInt("point");
-                    String memo = requestJSONObject.optString("memo");
-                    if (memo.isEmpty()) {
-                        context.renderJSON(StatusCodes.ERR);
-                        context.renderMsg("转账失败：交易备注不得为空。");
-                        return;
-                    }
-                    final String userId = user.optString(Keys.OBJECT_ID);
-                    // 打印转账信息
-                    System.out.println("金手指-积分：用户: " + userName + ", 积分: " + point + ", 描述: " + memo);
-                    if (point > 0) {
-                        // 增加积分
-                        final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                                Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, point, userId, System.currentTimeMillis(), memo);
-                        if (transferId == null) {
-                            context.renderJSON(StatusCodes.ERR);
-                            context.renderMsg("转账失败：无法完成交易。");
-                            return;
-                        }
-                        final JSONObject notification = new JSONObject();
-                        notification.put(Notification.NOTIFICATION_USER_ID, userId);
-                        notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                        notificationMgmtService.addPointTransferNotification(notification);
-                        // === 记录日志 ===
-                        LogsService.simpleLog(context, "增加积分", "用户: " + userName + ", 积分: " + point + ", 备注: " + memo);
-                        // === 记录日志 ===
-                        context.renderJSON(StatusCodes.SUCC);
-                        context.renderMsg("转账成功，交易oId为：" + transferId);
-                        return;
-                    } else if (point < 0) {
-                        // 减少积分
-                        point = -point;
-                        final String transferId = pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
-                                Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT, point, memo, System.currentTimeMillis(), "");
-                        if (transferId == null) {
-                            context.renderJSON(StatusCodes.ERR);
-                            context.renderMsg("转账失败：无法完成交易。");
-                            return;
-                        }
-                        final JSONObject notification = new JSONObject();
-                        notification.put(Notification.NOTIFICATION_USER_ID, userId);
-                        notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                        notificationMgmtService.addAbusePointDeductNotification(notification);
-                        // === 记录日志 ===
-                        LogsService.simpleLog(context, "扣除积分", "用户: " + userName + ", 积分: " + point + ", 备注: " + memo);
-                        // === 记录日志 ===
-                        context.renderJSON(StatusCodes.SUCC);
-                        context.renderMsg("扣款成功，交易oId为：" + transferId);
-                        return;
-                    }
-                } catch (Exception e) {
-                    context.renderJSON(StatusCodes.ERR);
-                    context.renderMsg("转账失败：" + e.getMessage());
-                }
-            } catch (Exception e) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("用户不存在，请检查用户名。");
-            }
-        } else {
+        final String pointKey = Symphonys.get("gold.finger.point");
+        if (!StringUtils.equals(goldFingerKey, pointKey)) {
             context.renderJSON(StatusCodes.ERR);
             context.renderMsg("金手指(point类型)不正确。");
+            return;
         }
-        context.renderJSON(StatusCodes.ERR);
-        context.renderMsg("转账失败。");
+
+        try {
+            final String userName = StringUtils.trimToEmpty(requestJSONObject.optString(User.USER_NAME));
+            if (StringUtils.isBlank(userName) || codePointLength(userName) > 64) {
+                throw new IllegalArgumentException("用户名无效。");
+            }
+            final int point = parsePoint(requestJSONObject);
+            final String memo = StringUtils.trimToEmpty(requestJSONObject.optString(Pointtransfer.MEMO));
+            if (StringUtils.isBlank(memo)) {
+                throw new IllegalArgumentException("交易备注不得为空。");
+            }
+            if (codePointLength(memo) > 255) {
+                throw new IllegalArgumentException("交易备注不能超过 255 字。");
+            }
+
+            final JSONObject user = userQueryService.getUserByName(userName);
+            if (null == user) {
+                context.renderJSON(StatusCodes.ERR);
+                context.renderMsg("用户不存在，请检查用户名。");
+                return;
+            }
+            final String userId = user.optString(Keys.OBJECT_ID);
+            final PointtransferSource source = parsePointSource(requestJSONObject);
+            if (null != source) {
+                final String transferId = externalPointAdjustMgmtService.adjust(
+                        context, userId, userName, point, memo, source);
+                context.renderJSON(StatusCodes.SUCC);
+                context.renderMsg((point > 0 ? "转账成功，交易oId为：" : "扣款成功，交易oId为：") + transferId);
+                return;
+            }
+
+            System.out.println("金手指-积分：用户: " + userName + ", 积分: " + point + ", 描述: " + memo);
+            if (point > 0) {
+                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
+                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, point, userId, System.currentTimeMillis(), memo);
+                if (null == transferId) {
+                    throw new IllegalStateException("无法完成交易。");
+                }
+                final JSONObject notification = new JSONObject();
+                notification.put(Notification.NOTIFICATION_USER_ID, userId);
+                notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
+                notificationMgmtService.addPointTransferNotification(notification);
+                LogsService.simpleLog(context, "增加积分", "用户: " + userName + ", 积分: " + point + ", 备注: " + memo);
+                context.renderJSON(StatusCodes.SUCC);
+                context.renderMsg("转账成功，交易oId为：" + transferId);
+                return;
+            }
+
+            final int sum = Math.abs(point);
+            final String transferId = pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
+                    Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT, sum, memo, System.currentTimeMillis(), "");
+            if (null == transferId) {
+                throw new IllegalStateException("无法完成交易。");
+            }
+            final JSONObject notification = new JSONObject();
+            notification.put(Notification.NOTIFICATION_USER_ID, userId);
+            notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
+            notificationMgmtService.addAbusePointDeductNotification(notification);
+            LogsService.simpleLog(context, "扣除积分", "用户: " + userName + ", 积分: " + sum + ", 备注: " + memo);
+            context.renderJSON(StatusCodes.SUCC);
+            context.renderMsg("扣款成功，交易oId为：" + transferId);
+        } catch (final Exception e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg("转账失败：" + StringUtils.defaultIfBlank(e.getMessage(), "无法完成交易。"));
+        }
+    }
+
+    private int parsePoint(final JSONObject requestJSONObject) {
+        if (!requestJSONObject.has(Common.POINT)) {
+            throw new IllegalArgumentException("积分必须为非零整数。");
+        }
+        try {
+            final long point = Long.parseLong(String.valueOf(requestJSONObject.opt(Common.POINT)).trim());
+            if (0 == point || point > Integer.MAX_VALUE || point <= Integer.MIN_VALUE) {
+                throw new IllegalArgumentException("积分必须为非零 32 位整数。");
+            }
+            return (int) point;
+        } catch (final NumberFormatException e) {
+            throw new IllegalArgumentException("积分必须为非零整数。");
+        }
+    }
+
+    private PointtransferSource parsePointSource(final JSONObject requestJSONObject) {
+        final String appId = StringUtils.trimToEmpty(requestJSONObject.optString(Pointtransfer.SOURCE_APP_ID));
+        final String appName = StringUtils.trimToEmpty(requestJSONObject.optString(Pointtransfer.SOURCE_APP_NAME));
+        final String scene = StringUtils.trimToEmpty(requestJSONObject.optString(Pointtransfer.SOURCE_SCENE));
+        final String requestId = StringUtils.trimToEmpty(requestJSONObject.optString("requestId"));
+        final boolean hasSource = StringUtils.isNotEmpty(appId) || StringUtils.isNotEmpty(appName)
+                || StringUtils.isNotEmpty(scene) || StringUtils.isNotEmpty(requestId);
+        if (!hasSource) {
+            return null;
+        }
+        if (StringUtils.isEmpty(appId) || StringUtils.isEmpty(appName)
+                || StringUtils.isEmpty(scene) || StringUtils.isEmpty(requestId)) {
+            throw new IllegalArgumentException("应用来源信息不完整。");
+        }
+        if (!SOURCE_APP_ID_PATTERN.matcher(appId).matches()) {
+            throw new IllegalArgumentException("应用编号无效。");
+        }
+        if (codePointLength(appName) > 40 || appName.codePoints().anyMatch(java.lang.Character::isISOControl)) {
+            throw new IllegalArgumentException("应用名称无效。");
+        }
+        if (!SOURCE_SCENES.contains(scene)) {
+            throw new IllegalArgumentException("积分场景无效。");
+        }
+        if (!SOURCE_REQUEST_ID_PATTERN.matcher(requestId).matches()) {
+            throw new IllegalArgumentException("请求编号无效。");
+        }
+        return new PointtransferSource(appId, appName, scene, requestId);
+    }
+
+    private int codePointLength(final String value) {
+        return value.codePointCount(0, value.length());
     }
 
     /**

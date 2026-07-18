@@ -391,6 +391,7 @@ public class NotificationQueryService {
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE));
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_POINT_REPORT_HANDLED));
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_RED_PACKET_FROM_SKY));
+        subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_APP_POINT_ADJUST));
         filters.add(new CompositeFilter(CompositeFilterOperator.OR, subFilters));
         final Query query = new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters));
         try {
@@ -442,6 +443,7 @@ public class NotificationQueryService {
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE));
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_POINT_REPORT_HANDLED));
         subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_RED_PACKET_FROM_SKY));
+        subFilters.add(new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, Notification.DATA_TYPE_C_APP_POINT_ADJUST));
         filters.add(new CompositeFilter(CompositeFilterOperator.OR, subFilters));
         final Query query = new Query().setPage(currentPageNum, pageSize).
                 setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters)).
@@ -616,6 +618,14 @@ public class NotificationQueryService {
                             desTemplate = desTemplate.replace("{memo}", langPropsService.get("noMemoLabel"));
                         }
                         break;
+                    case Notification.DATA_TYPE_C_APP_POINT_ADJUST:
+                        final JSONObject appTransfer = pointtransferRepository.get(dataId);
+                        if (null == appTransfer) {
+                            continue;
+                        }
+                        desTemplate = buildAppPointDescription(
+                                appTransfer, userId.equals(appTransfer.optString(Pointtransfer.TO_ID)));
+                        break;
                     case Notification.DATA_TYPE_C_INVITECODE_USED:
                         desTemplate = langPropsService.get("notificationInvitecodeUsedLabel");
 
@@ -675,6 +685,28 @@ public class NotificationQueryService {
 
             return null;
         }
+    }
+
+    /**
+     * Builds a safe application point notification description.
+     */
+    private String buildAppPointDescription(final JSONObject transfer, final boolean income) {
+        final String sceneKey = switch (transfer.optString(Pointtransfer.SOURCE_SCENE)) {
+            case "payment" -> "Payment";
+            case "point_issue" -> "PointIssue";
+            case "refund" -> "Refund";
+            case "transfer" -> "Transfer";
+            default -> "Transfer";
+        };
+        final String directionKey = income ? "In" : "Out";
+        String description = langPropsService.get("pointApp" + sceneKey + directionKey + "DesLabel");
+        final String appName = StringUtils.defaultIfBlank(
+                transfer.optString(Pointtransfer.SOURCE_APP_NAME), langPropsService.get("systemLabel"));
+        final String memo = StringUtils.defaultIfBlank(
+                transfer.optString(Pointtransfer.MEMO), langPropsService.get("noMemoLabel"));
+        description = description.replace("{app}", Escapes.escapeHTML(appName));
+        description = description.replace("{point}", String.valueOf(transfer.optInt(Pointtransfer.SUM)));
+        return description.replace("{memo}", Escapes.escapeHTML(memo));
     }
 
     /**

@@ -248,6 +248,11 @@ public final class Notification {
      */
     public static final int DATA_TYPE_C_CUSTOM_SYS = 41;
 
+    /**
+     * Data type - external application point adjustment.
+     */
+    public static final int DATA_TYPE_C_APP_POINT_ADJUST = 42;
+
     //// Transient ////
     /**
      * Key of unread notification count.

@@ -1,0 +1,206 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+@import "variables";
+
+.logs-page {
+  h1 {
+    margin-bottom: 6px;
+  }
+}
+
+.logs-description {
+  color: $fade;
+  font-size: 14px;
+}
+
+.logs-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid #e6ebf1;
+  border-radius: 8px;
+  background: $blue-lighter;
+
+  label {
+    flex: none;
+    color: $black-light;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  select {
+    min-width: 180px;
+    height: 36px;
+    padding: 0 32px 0 10px;
+    border: 1px solid #d5dce5;
+    border-radius: 6px;
+    background-color: $white;
+    color: $black-text;
+  }
+}
+
+.logs-filter__clear,
+.logs-more,
+.logs-category {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.logs-filter__clear {
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: transparent;
+  color: $blue;
+
+  &:hover {
+    background: $blue-light;
+  }
+}
+
+.logs-list {
+  border: 1px solid #e6ebf1;
+  border-radius: 8px;
+  background: $white;
+  overflow: hidden;
+}
+
+.logs-item {
+  padding: 14px 16px;
+
+  & + & {
+    border-top: 1px solid #edf0f3;
+  }
+}
+
+.logs-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+  color: $fade;
+  font-size: 13px;
+}
+
+.logs-item__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.logs-category {
+  flex: none;
+  max-width: 180px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f0edff;
+  color: #6750a4;
+  font-size: 12px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(.96);
+  }
+}
+
+.logs-category--add {
+  background: #edf8e9;
+  color: #3d7d2d;
+}
+
+.logs-category--reduce {
+  background: #fff0ef;
+  color: #b73a32;
+}
+
+.logs-category--post {
+  background: #fff5e6;
+  color: #a55a00;
+}
+
+.logs-item__detail {
+  min-width: 0;
+  color: $black-text;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+
+  a {
+    color: $blue;
+  }
+}
+
+.logs-empty {
+  padding: 44px 20px;
+  color: $fade;
+  text-align: center;
+}
+
+.logs-more {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f4f7fa;
+  color: $blue;
+
+  &:hover:not(:disabled) {
+    background: $blue-lighter;
+  }
+
+  &:disabled {
+    color: $fade;
+    cursor: default;
+  }
+}
+
+@media (max-width: 700px) {
+  .logs-filter {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px;
+
+    label {
+      display: flex;
+      align-items: center;
+    }
+
+    select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .logs-filter__clear {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .logs-item {
+    padding: 12px;
+  }
+
+  .logs-item__body {
+    display: block;
+  }
+
+  .logs-category {
+    max-width: 100%;
+    margin-bottom: 7px;
+  }
+}

@@ -85,6 +85,26 @@ public final class Pointtransfer {
      */
     public static final String MEMO = "memo";
 
+    /**
+     * Key of source application id.
+     */
+    public static final String SOURCE_APP_ID = "sourceAppId";
+
+    /**
+     * Key of source application name.
+     */
+    public static final String SOURCE_APP_NAME = "sourceAppName";
+
+    /**
+     * Key of source scene.
+     */
+    public static final String SOURCE_SCENE = "sourceScene";
+
+    /**
+     * Key of source request id.
+     */
+    public static final String SOURCE_REQUEST_ID = "sourceRequestId";
+
     // Id constants
     /**
      * System.
@@ -482,6 +502,11 @@ public final class Pointtransfer {
      * Transfer type - Long article read reward.
      */
     public static final int TRANSFER_TYPE_C_LONG_ARTICLE_READ_REWARD = 54;
+
+    /**
+     * Transfer type - external application point adjustment.
+     */
+    public static final int TRANSFER_TYPE_C_APP_ADJUST = 55;
 
     /**
      * Transfer sum - 摆龙门阵.

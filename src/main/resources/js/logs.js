@@ -19,6 +19,18 @@
 var Logs = {
     init: function () {
         //Logs.connectWS();
+        $("#logCategorySelect").on("change", function () {
+            Logs.filter($(this).val());
+        });
+        $("#clearLogFilter").on("click", function () {
+            Logs.reset();
+        });
+        $("#loadMoreBtn").on("click", function () {
+            Logs.more();
+        });
+        $("#logsContent").on("click", ".logs-category", function () {
+            Logs.filter($(this).attr("data-category"));
+        });
         Logs.more();
     },
 
@@ -54,91 +66,146 @@ var Logs = {
     },
 
     prependLog: function (key1, key2, key3, data) {
+        Logs.addCategory(key3);
+        if (Logs.category && Logs.category !== key3) {
+            return;
+        }
         let result = Logs.sumResult(key1, key2, key3, data);
         $("#logsContent").prepend(result);
-    }, sumResult: function (key1, key2, key3, data) {
-        // let result = '<div style="padding: 5px 0;font-size: 15px;">';
-        // result += '【 <span style="color: #696969">' + key1 + '</span> ';
-        // result += '<span style="color: #708090">' + key2 + '</span> 】<br>';
-        // result += '「<span style="color: #6A5ACD">' + key3 + '</span>」 ';
-        // result += '<span style="color: #1E90FF">' + data + '</span> ';
-        // result += '</div>';
-        // return result;
+    },
 
-        /**
-         * 根据key3值不同显示不同颜色 增加(tag)
-         * 增加积分 绿色 tag:add
-         * 扣除积分 红色 tag:reduce
-         * 发送弹幕 #6A5ACD tag:post
-         *
-         * 其他key值统一为 #6A5ACD tag:handle
-         */
-        let result = "";
-        switch (key3) {
-            case  "增加积分":
-                result = '<div style="padding: 5px 0;font-size: 15px;">';
-                result += '【 <span style="color: #696969">' + key1 + "</span> ";
-                result += '<span style="color: #708090">' + key2 + "</span> 】<br>";
-                result += '「<span style="color: #99CC66;cursor:pointer" onclick="Logs.more(\''+ key3 +'\',1)">' + "(add)" + key3 + "</span>」 ";
-                result += '<span style="color: #1E90FF">' + data + "</span> ";
-                result += "</div>";
-                break;
-            case  "扣除积分":
-                result = '<div style="padding: 5px 0;font-size: 15px;">';
-                result += '【 <span style="color: #696969">' + key1 + "</span> ";
-                result += '<span style="color: #708090">' + key2 + "</span> 】<br>";
-                result += '「<span style="color: #FF6666;cursor:pointer" onclick="Logs.more(\''+ key3 +'\',1)">' + "(reduce)" + key3 + "</span>」 ";
-                result += '<span style="color: #1E90FF">' + data + "</span> ";
-                result += "</div>";
-                break;
-            case  "发送弹幕":
-                result = '<div style="padding: 5px 0;font-size: 15px;">';
-                result += '【 <span style="color: #696969">' + key1 + "</span> ";
-                result += '<span style="color: #708090">' + key2 + "</span> 】<br>";
-                result += '「<span style="color: #FF9900;cursor:pointer" onclick="Logs.more(\''+ key3 +'\',1)">' + "(post)" + key3 + "</span>」 ";
-                result += '<span style="color: #1E90FF">' + data + "</span> ";
-                result += "</div>";
-                break;
-            default:
-                result = '<div style="padding: 5px 0;font-size: 15px;">';
-                result += '【 <span style="color: #696969">' + key1 + "</span> ";
-                result += '<span style="color: #708090">' + key2 + "</span> 】<br>";
-                result += '「<span style="color: #6A5ACD;cursor:pointer" onclick="Logs.more(\''+ key3 +'\',1)">' + "(handle)" + key3 + "</span>」 ";
-                result += '<span style="color: #1E90FF">' + data + "</span> ";
-                result += "</div>";
-                break;
+    escapeHTML: function (text) {
+        return String(text ?? "").replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    },
+
+    sumResult: function (key1, key2, key3, data) {
+        let categoryClass = "logs-category--default";
+        if (key3 === "增加积分") {
+            categoryClass = "logs-category--add";
+        } else if (key3 === "扣除积分") {
+            categoryClass = "logs-category--reduce";
+        } else if (key3 === "发送弹幕") {
+            categoryClass = "logs-category--post";
         }
-        return result;
+
+        return '<article class="logs-item">' +
+            '<div class="logs-item__meta">' +
+            '<span>' + Logs.escapeHTML(key1) + '</span>' +
+            '<span>' + Logs.escapeHTML(key2) + '</span>' +
+            '</div>' +
+            '<div class="logs-item__body">' +
+            '<button type="button" class="logs-category ' + categoryClass + '" data-category="' +
+            Logs.escapeHTML(key3) + '">' + Logs.escapeHTML(key3) + '</button>' +
+            '<div class="logs-item__detail">' + (data ?? "") + '</div>' +
+            '</div>' +
+            '</article>';
     },
 
     page: 1,
-    more: function (keyWords, page) {
+    pageSize: 30,
+    category: "",
+    loading: false,
+    hasMore: true,
+    loadFailed: false,
+    categories: {},
+
+    addCategory: function (category) {
+        if (!category || Logs.categories[category]) {
+            return;
+        }
+        Logs.categories[category] = true;
+        $("#logCategorySelect").append(new Option(category, category));
+    },
+
+    setControlsDisabled: function (disabled) {
+        $("#logCategorySelect, #clearLogFilter").prop("disabled", disabled);
+    },
+
+    updateFilter: function () {
+        Logs.addCategory(Logs.category);
+        $("#logCategorySelect").val(Logs.category);
+        $("#clearLogFilter").prop("hidden", !Logs.category);
+    },
+
+    updateLoadMore: function () {
+        const $button = $("#loadMoreBtn");
+        if (Logs.loading) {
+            $button.show().prop("disabled", true).text("加载中");
+        } else if (Logs.loadFailed) {
+            $button.show().prop("disabled", false).text("重试");
+        } else if (!Logs.hasMore) {
+            $button.hide();
+        } else {
+            $button.show().prop("disabled", false).text("加载更多");
+        }
+    },
+
+    more: function () {
+        if (Logs.loading || !Logs.hasMore) {
+            return;
+        }
+        const requestedPage = Logs.page;
+        Logs.loading = true;
+        Logs.loadFailed = false;
+        Logs.setControlsDisabled(true);
+        Logs.updateLoadMore();
         $.ajax({
-            url: Label.servePath + "/logs/more?page=" + (page ?? Logs.page) + "&pageSize=30&key3=" + (keyWords ?? ""),
+            url: Label.servePath + "/logs/more",
+            data: {
+                page: requestedPage,
+                pageSize: Logs.pageSize,
+                key3: Logs.category
+            },
             type: "GET",
-            async: false,
             success: function (result) {
-                if (0 === result.code) {
-                    let data = result.data;
-                    if (page && page === 1) {
-                        $("#logsContent").html("")
-                        Logs.page = 1;
-                    }
-                    if (data.length === 0) {
-                        $("#loadMoreBtn").html("没有更多内容了");
-                    } else {
-                        data.forEach((log) => {
-                            Logs.appendLog(log.key1, log.key2, log.key3, log.data);
-                        });
-                    }
+                if (0 !== result.code || !Array.isArray(result.data)) {
+                    Logs.loadFailed = true;
+                    return;
                 }
+                const data = result.data;
+                if (requestedPage === 1) {
+                    $("#logsContent").empty();
+                }
+                data.forEach(function (log) {
+                    Logs.addCategory(log.key3);
+                    Logs.appendLog(log.key1, log.key2, log.key3, log.data);
+                });
+                if (requestedPage === 1 && data.length === 0) {
+                    $("#logsContent").html('<div class="logs-empty">暂无日志</div>');
+                }
+                Logs.page = requestedPage + 1;
+                Logs.hasMore = data.length === Logs.pageSize;
+            },
+            error: function () {
+                Logs.loadFailed = true;
+            },
+            complete: function () {
+                Logs.loading = false;
+                Logs.setControlsDisabled(false);
+                Logs.updateFilter();
+                Logs.updateLoadMore();
             },
         });
-        Logs.page++;
     },
-    reset: function () {
+
+    filter: function (category) {
+        if (Logs.loading || category === Logs.category) {
+            return;
+        }
+        Logs.category = category || "";
         Logs.page = 1;
-        Logs.more("", 1);
+        Logs.hasMore = true;
+        Logs.loadFailed = false;
+        Logs.updateFilter();
+        Logs.more();
+    },
+
+    reset: function () {
+        Logs.filter("");
     }
 };
 

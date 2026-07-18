@@ -70,6 +70,12 @@
                     <a href="https://github.com/FishPiOffical/rhythm" target="_blank">Rhythm社区引擎</a>
                     &nbsp;｜&nbsp;
                     <a href="${servePath}/milestones">${milestoneLabel}</a>
+                    &nbsp;｜&nbsp;
+                    <a href="${servePath}/domains">${domainLabel}</a>
+                    &nbsp;｜&nbsp;
+                    <a href="${servePath}/tags">${tagLabel}</a>
+                    &nbsp;｜&nbsp;
+                    <a href="https://cloudy.iwpz.cn">Cloudy 词云</a>
                     <br>
                     <a href="${servePath}/download">摸鱼派客户端</a>&nbsp;&nbsp;
                     <span>
@@ -95,9 +101,6 @@
                 </div>
                 <a rel="help" href="${servePath}/article/1630569106133">${aboutLabel}</a>
                 <a href="${servePath}/tag/announcement">${symAnnouncementLabel}</a>
-                <a href="${servePath}/domains">${domainLabel}</a>
-                <a href="${servePath}/tags">${tagLabel}</a>
-                <a href="https://cloudy.iwpz.cn">Cloudy 词云</a>
                 <a href="${servePath}/statistic">${dataStatLabel}</a>
                 <a href="${servePath}/agreement" target="_blank">用户协议</a>
                 <a href="${servePath}/privacy" target="_blank">隐私政策</a>

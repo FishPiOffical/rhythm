@@ -989,6 +989,65 @@
           "type": "String",
           "length": 255,
           "description": "备注"
+        },
+        {
+          "name": "sourceAppId",
+          "type": "String",
+          "length": 64,
+          "description": "来源应用编号"
+        },
+        {
+          "name": "sourceAppName",
+          "type": "String",
+          "length": 40,
+          "description": "来源应用名称快照"
+        },
+        {
+          "name": "sourceScene",
+          "type": "String",
+          "length": 20,
+          "description": "来源场景"
+        },
+        {
+          "name": "sourceRequestId",
+          "type": "String",
+          "length": 128,
+          "description": "来源请求编号"
+        }
+      ]
+    },
+    {
+      "name": "external_point_request",
+      "description": "外部应用积分请求幂等表",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "requestId",
+          "type": "String",
+          "length": 128,
+          "description": "外部请求编号"
+        },
+        {
+          "name": "requestHash",
+          "type": "String",
+          "length": 64,
+          "description": "请求参数摘要"
+        },
+        {
+          "name": "transferId",
+          "type": "String",
+          "length": 19,
+          "description": "积分流水编号"
+        },
+        {
+          "name": "createTime",
+          "type": "long",
+          "description": "创建时间"
         }
       ]
     },

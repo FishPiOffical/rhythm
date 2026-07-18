@@ -818,6 +818,8 @@ public class OpenIdProcessor {
                 .put(Pointtransfer.TIME, point.optLong(Pointtransfer.TIME))
                 .put(Pointtransfer.DATA_ID, point.optString(Pointtransfer.DATA_ID))
                 .put(Pointtransfer.MEMO, point.optString(Pointtransfer.MEMO))
+                .put(Pointtransfer.SOURCE_APP_NAME, point.optString(Pointtransfer.SOURCE_APP_NAME))
+                .put(Pointtransfer.SOURCE_SCENE, point.optString(Pointtransfer.SOURCE_SCENE))
                 .put(Common.OPERATION, point.optString(Common.OPERATION))
                 .put(Common.BALANCE, point.optInt(Common.BALANCE))
                 .put(Common.DISPLAY_TYPE, point.optString(Common.DISPLAY_TYPE))
