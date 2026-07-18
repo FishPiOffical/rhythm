@@ -5292,13 +5292,16 @@ code .dec {
   }
 
   #articleCommentsPanel {
-    position: sticky;
+    position: fixed;
     top: 0;
+    right: auto;
+    bottom: 0;
+    left: var(--long-article-drawer-left, calc(100vw - var(--long-article-drawer-width)));
     z-index: 115;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    width: 100%;
+    width: var(--long-article-drawer-width);
     height: 100vh;
     height: 100dvh;
     max-width: none;
@@ -5315,7 +5318,7 @@ code .dec {
     opacity: 0;
     pointer-events: none;
     transform: translateX(24px);
-    transition: opacity 0.24s ease, transform 0.32s ease, visibility 0s linear 0.32s;
+    transition: left 0.32s ease, opacity 0.24s ease, transform 0.32s ease, visibility 0s linear 0.32s;
     visibility: hidden;
 
     > .module {
@@ -5374,16 +5377,6 @@ code .dec {
       flex-basis: var(--long-article-drawer-width);
       width: var(--long-article-drawer-width);
       height: auto;
-    }
-  }
-
-  &.long-article-comments-open:not(.long-article-comments-inline) {
-    #articleCommentsPanel {
-      position: fixed;
-      right: auto;
-      bottom: 0;
-      left: var(--long-article-drawer-left, calc(100vw - var(--long-article-drawer-width)));
-      width: var(--long-article-drawer-width);
     }
   }
 
