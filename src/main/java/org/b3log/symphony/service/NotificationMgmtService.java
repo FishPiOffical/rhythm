@@ -763,6 +763,37 @@ public class NotificationMgmtService {
     }
 
     /**
+     * Adds an application point adjustment notification in the current transaction.
+     * The caller publishes the refresh command after the outer transaction commits.
+     *
+     * @param userId     notification user id
+     * @param transferId point transfer id
+     * @throws RepositoryException repository exception
+     */
+    public void addAppPointAdjustNotificationInCurrentTransaction(final String userId, final String transferId)
+            throws RepositoryException {
+        final JSONObject requestJSONObject = new JSONObject();
+        requestJSONObject.put(Notification.NOTIFICATION_USER_ID, userId);
+        requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, transferId);
+        requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_APP_POINT_ADJUST);
+        addNotificationRecord(requestJSONObject);
+    }
+
+    /**
+     * Publishes a notification refresh command after a transaction commits.
+     *
+     * @param userId user id
+     */
+    public void publishRefreshNotification(final String userId) {
+        Symphonys.EXECUTOR_SERVICE.submit(() -> {
+            final JSONObject cmd = new JSONObject();
+            cmd.put(UserExt.USER_T_ID, userId);
+            cmd.put(Common.COMMAND, "refreshNotification");
+            UserChannel.sendCmd(cmd);
+        });
+    }
+
+    /**
      * Adds a 'point exchange' type notification with the specified request json object.
      *
      * @param requestJSONObject the specified request json object, for example,
@@ -1055,6 +1086,14 @@ public class NotificationMgmtService {
      * @throws RepositoryException repository exception
      */
     private void addNotification(final JSONObject requestJSONObject) throws RepositoryException {
+        addNotificationRecord(requestJSONObject);
+        publishRefreshNotification(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
+    }
+
+    /**
+     * Adds a notification record without publishing a user-channel command.
+     */
+    private void addNotificationRecord(final JSONObject requestJSONObject) throws RepositoryException {
         final JSONObject notification = new JSONObject();
 
         notification.put(Notification.NOTIFICATION_HAS_READ, false);
@@ -1063,17 +1102,22 @@ public class NotificationMgmtService {
         notification.put(Notification.NOTIFICATION_DATA_TYPE, requestJSONObject.optInt(Notification.NOTIFICATION_DATA_TYPE));
         if (requestJSONObject.has(Notification.NOTIFICATION_CONTENT)) {
             notification.put(Notification.NOTIFICATION_CONTENT, requestJSONObject.optString(Notification.NOTIFICATION_CONTENT));
+        } else if (isNotificationContentColumnReady()) {
+            notification.put(Notification.NOTIFICATION_CONTENT, StringUtils.EMPTY);
         }
 
         notificationRepository.add(notification);
+    }
 
-        Symphonys.EXECUTOR_SERVICE.submit(() -> {
-            final JSONObject cmd = new JSONObject();
-            cmd.put(UserExt.USER_T_ID, requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
-            cmd.put(Common.COMMAND, "refreshNotification");
-
-            UserChannel.sendCmd(cmd);
-        });
+    /**
+     * Returns whether the notification content column is ready for inserts.
+     */
+    private boolean isNotificationContentColumnReady() throws RepositoryException {
+        try {
+            return isCustomSysContentColumnReady();
+        } catch (final ServiceException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     /**

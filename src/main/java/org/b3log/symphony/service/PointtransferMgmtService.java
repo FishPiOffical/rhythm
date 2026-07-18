@@ -26,6 +26,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.model.PointtransferSource;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.PointtransferRedcRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
@@ -35,6 +36,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -90,6 +92,21 @@ public class PointtransferMgmtService {
     }
 
     /**
+     * Executes an operation while holding the same account-pair lock used by point transfers.
+     * This lets an outer transaction retain the lock until it commits.
+     */
+    public <T> T executeWithTransferLock(final String fromId, final String toId,
+                                         final Callable<T> operation) throws Exception {
+        final ReentrantLock lock = getTransferLock(fromId, toId);
+        lock.lock();
+        try {
+            return operation.call();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
      * Pointtransfer repository.
      */
     @Inject
@@ -115,6 +132,15 @@ public class PointtransferMgmtService {
      */
     public String transfer(final String fromId, final String toId, final int type, final int sum,
                            final String dataId, final long time, final String memo) {
+        return transfer(fromId, toId, type, sum, dataId, time, memo, PointtransferSource.EMPTY);
+    }
+
+    /**
+     * Transfers point with a source application snapshot.
+     */
+    public String transfer(final String fromId, final String toId, final int type, final int sum,
+                           final String dataId, final long time, final String memo,
+                           final PointtransferSource source) {
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
             return null;
@@ -138,7 +164,7 @@ public class PointtransferMgmtService {
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT, fromUser.optInt(UserExt.USER_USED_POINT) + sum);
                 }
@@ -164,11 +190,11 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.TYPE, type);
             pointtransfer.put(Pointtransfer.DATA_ID, dataId);
             pointtransfer.put(Pointtransfer.MEMO, memo);
+            putSource(pointtransfer, source);
 
             final String ret = pointtransferRepository.add(pointtransfer);
 
-            PointtransferRedcRepository.addRecordAsync(fromId, ret);
-            PointtransferRedcRepository.addRecordAsync(toId, ret);
+            indexTransferAsync(fromId, toId, ret);
 
             transaction.commit();
 
@@ -201,6 +227,16 @@ public class PointtransferMgmtService {
      */
     public String transferInCurrentTransaction(final String fromId, final String toId, final int type, final int sum,
                                                final String dataId, final long time, final String memo) {
+        return transferInCurrentTransaction(fromId, toId, type, sum, dataId, time, memo,
+                PointtransferSource.EMPTY, true);
+    }
+
+    /**
+     * Transfers point in the current transaction with a source application snapshot.
+     */
+    public String transferInCurrentTransaction(final String fromId, final String toId, final int type, final int sum,
+                                               final String dataId, final long time, final String memo,
+                                               final PointtransferSource source, final boolean indexAsync) {
         if (StringUtils.equals(fromId, toId)) {
             LOGGER.log(Level.WARN, "The from id is equal to the to id [" + fromId + "]");
             return null;
@@ -218,7 +254,7 @@ public class PointtransferMgmtService {
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT, fromUser.optInt(UserExt.USER_USED_POINT) + sum);
                 }
@@ -244,11 +280,13 @@ public class PointtransferMgmtService {
             pointtransfer.put(Pointtransfer.TYPE, type);
             pointtransfer.put(Pointtransfer.DATA_ID, dataId);
             pointtransfer.put(Pointtransfer.MEMO, memo);
+            putSource(pointtransfer, source);
 
             final String ret = pointtransferRepository.add(pointtransfer);
 
-            PointtransferRedcRepository.addRecordAsync(fromId, ret);
-            PointtransferRedcRepository.addRecordAsync(toId, ret);
+            if (indexAsync) {
+                indexTransferAsync(fromId, toId, ret);
+            }
 
             return ret;
         } catch (final Exception e) {
@@ -258,5 +296,24 @@ public class PointtransferMgmtService {
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Adds a committed transfer to the per-user redundant index asynchronously.
+     */
+    public void indexTransferAsync(final String fromId, final String toId, final String transferId) {
+        PointtransferRedcRepository.addRecordAsync(fromId, transferId);
+        PointtransferRedcRepository.addRecordAsync(toId, transferId);
+    }
+
+    /**
+     * Fills source application fields on every transfer record so new database columns always have values.
+     */
+    private void putSource(final JSONObject pointtransfer, final PointtransferSource source) {
+        final PointtransferSource safeSource = null == source ? PointtransferSource.EMPTY : source;
+        pointtransfer.put(Pointtransfer.SOURCE_APP_ID, safeSource.appId());
+        pointtransfer.put(Pointtransfer.SOURCE_APP_NAME, safeSource.appName());
+        pointtransfer.put(Pointtransfer.SOURCE_SCENE, safeSource.scene());
+        pointtransfer.put(Pointtransfer.SOURCE_REQUEST_ID, safeSource.requestId());
     }
 }

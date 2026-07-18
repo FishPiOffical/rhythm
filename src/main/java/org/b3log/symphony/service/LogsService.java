@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Requests;
@@ -32,6 +33,7 @@ import org.b3log.symphony.processor.channel.LogsChannel;
 import org.b3log.symphony.repository.ChatInfoRepository;
 import org.b3log.symphony.repository.ChatRoomRepository;
 import org.b3log.symphony.repository.LogsRepository;
+import org.b3log.symphony.util.Escapes;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -46,6 +48,9 @@ import java.util.Date;
 public class LogsService {
 
     private static final Logger LOGGER = LogManager.getLogger(LogsService.class);
+
+    @Inject
+    private LogsRepository logsRepository;
 
     public static void log(String type, String key1, String key2, String key3, String data, boolean isPublic) {
         try {
@@ -80,6 +85,54 @@ public class LogsService {
 
     public static void simpleLog(RequestContext context, String module, String message) {
         log("simple", getTime(), getAddress(context), module, message, true);
+    }
+
+    /**
+     * Adds an application point log in the caller's current transaction.
+     *
+     * @return log payload for websocket publication after commit
+     */
+    public JSONObject addAppPointLogInCurrentTransaction(final RequestContext context, final boolean income,
+                                                         final String appName, final String scene,
+                                                         final String userName, final int point,
+                                                         final String memo) throws RepositoryException {
+        final String key1 = getTime();
+        final String key2 = getAddress(context);
+        final String key3 = income ? "应用发放积分" : "应用扣除积分";
+        final String data = "应用: " + Escapes.escapeHTML(appName)
+                + "，场景: " + sceneLabel(scene)
+                + "，用户: " + Escapes.escapeHTML(userName)
+                + "，积分: " + point
+                + "，备注: " + Escapes.escapeHTML(memo);
+        logsRepository.add("simple", key1, key2, key3, data, true);
+
+        return new JSONObject()
+                .put("type", "simple")
+                .put("key1", key1)
+                .put("key2", key2)
+                .put("key3", key3)
+                .put("data", data);
+    }
+
+    /**
+     * Publishes a committed public log to websocket clients.
+     */
+    public static void publishPublicLog(final JSONObject log) {
+        try {
+            LogsChannel.sendMsg(log.toString());
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Unable to publish public log", e);
+        }
+    }
+
+    private String sceneLabel(final String scene) {
+        return switch (scene) {
+            case "payment" -> "支付";
+            case "point_issue" -> "发放";
+            case "refund" -> "退款";
+            case "transfer" -> "转账";
+            default -> "应用操作";
+        };
     }
 
     public static void chatroomLog(RequestContext context, String oId, String userName) {

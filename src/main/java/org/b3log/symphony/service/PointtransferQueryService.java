@@ -260,7 +260,8 @@ public class PointtransferQueryService {
                         || ("9".equals(typeStr) && userId.equals(toId))
                         || ("14".equals(typeStr) && userId.equals(toId))
                         || ("22".equals(typeStr) && userId.equals(toId))
-                        || ("34".equals(typeStr) && userId.equals(toId))) {
+                        || ("34".equals(typeStr) && userId.equals(toId))
+                        || ("55".equals(typeStr) && userId.equals(toId))) {
                     typeStr += "In";
                 }
 
@@ -443,6 +444,9 @@ public class PointtransferQueryService {
                                 + Escapes.escapeHTML(longArticle.optString(Article.ARTICLE_TITLE)) + "</a>";
                         desTemplate = desTemplate.replace("{article}", longArticleLink);
                         desTemplate = desTemplate.replace("{point}", String.valueOf(record.optInt(Pointtransfer.SUM)));
+                        break;
+                    case Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST:
+                        desTemplate = buildAppPointDescription(record, userId.equals(toId));
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);
@@ -669,6 +673,8 @@ public class PointtransferQueryService {
                 desTemplate = Emotions.convert(desTemplate);
 
                 record.put(Common.DESCRIPTION, desTemplate);
+                record.remove(Pointtransfer.SOURCE_APP_ID);
+                record.remove(Pointtransfer.SOURCE_REQUEST_ID);
             }
 
             final int recordCnt = ret.optJSONObject(Pagination.PAGINATION).optInt(Pagination.PAGINATION_RECORD_COUNT);
@@ -680,5 +686,27 @@ public class PointtransferQueryService {
 
             return null;
         }
+    }
+
+    /**
+     * Builds a safe user-facing description for an external application point adjustment.
+     */
+    private String buildAppPointDescription(final JSONObject record, final boolean income) {
+        final String sceneKey = switch (record.optString(Pointtransfer.SOURCE_SCENE)) {
+            case "payment" -> "Payment";
+            case "point_issue" -> "PointIssue";
+            case "refund" -> "Refund";
+            case "transfer" -> "Transfer";
+            default -> "Transfer";
+        };
+        final String directionKey = income ? "In" : "Out";
+        String description = langPropsService.get("pointApp" + sceneKey + directionKey + "DesLabel");
+        final String appName = StringUtils.defaultIfBlank(
+                record.optString(Pointtransfer.SOURCE_APP_NAME), langPropsService.get("systemLabel"));
+        final String memo = StringUtils.defaultIfBlank(
+                record.optString(Pointtransfer.MEMO), langPropsService.get("noMemoLabel"));
+        description = description.replace("{app}", Escapes.escapeHTML(appName));
+        description = description.replace("{point}", String.valueOf(record.optInt(Pointtransfer.SUM)));
+        return description.replace("{memo}", Escapes.escapeHTML(memo));
     }
 }

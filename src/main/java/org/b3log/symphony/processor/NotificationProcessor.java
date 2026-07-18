@@ -318,6 +318,7 @@ public class NotificationProcessor {
                 notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_INVITATION_LINK_USED);
                 notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_POINT_REPORT_HANDLED);
                 notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_RED_PACKET_FROM_SKY);
+                notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_APP_POINT_ADJUST);
                 break;
             case "sys-announce":
                 notificationMgmtService.makeRead(userId, Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE);

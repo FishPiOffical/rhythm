@@ -705,6 +705,8 @@ curl --location --request GET 'https://fishpi.cn/openid/user/points?p=1&size=20'
 | -- time                          | 记录时间             | 1760000000000 |
 | -- dataId                        | 关联数据             | 1760000000000 |
 | -- memo                          | 备注                 | hello         |
+| -- sourceAppName                 | 来源应用名称         | 小冰游戏      |
+| -- sourceScene                   | 来源场景             | point_issue   |
 | -- operation                     | 收支方向             | +             |
 | -- balance                       | 操作后余额           | 183939        |
 | -- displayType                   | 类型名称             | 活动收益      |
@@ -2838,14 +2840,50 @@ POST /user/edit/give-metal
 
 `POST /user/edit/points`
 
+由可信积分平台调整指定用户积分。
+
 请求：
 
-| Key           | 说明                                                                                              | 示例                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| goldFingerKey | `point`类型的金手指密钥                                                                           | 省略                                                                |
-| userName      | 用户在摸鱼派的用户名                                                                              | adlered                                                             |
-| point         | 积分，正数（例如100）为增加积分，负数（例如-50）为扣除积分                                        | 100                                                                 |
-| memo          | 必填！请规范备注请求来源、原因、交易内容，如填写不够详细，将被取消使用`point`类型金手指密钥的权限 | 请求来源：小冰游戏；原因：玩家adlered购买道具；交易内容：新手套装x1 |
+| Key           | 说明                                                                                 | 示例                              |
+| ------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
+| goldFingerKey | `point` 类型的金手指密钥                                                             | 省略                              |
+| userName      | 用户名，最大 64 字                                                                   | adlered                           |
+| point         | 非零 32 位整数；正数增加积分，负数扣除积分                                           | 100                               |
+| memo          | 交易备注，1～255 字                                                                  | 新手任务奖励                      |
+| sourceAppId   | 来源应用编号，1～64 字；应用来源字段必须同时提供                                     | app_0123456789abcdef0123456789abcd |
+| sourceAppName | 来源应用名称，1～40 字；由可信积分平台从应用资料中读取                               | 小冰游戏                          |
+| sourceScene   | 来源场景：`payment`、`point_issue`、`refund`、`transfer`                             | point_issue                       |
+| requestId     | 幂等请求编号，1～128 字；相同请求重复提交不会再次操作积分                            | order:123:point_issue_credit      |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/user/edit/points' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "goldFingerKey": "省略",
+  "userName": "adlered",
+  "point": 100,
+  "memo": "新手任务奖励",
+  "sourceAppId": "app_0123456789abcdef0123456789abcd",
+  "sourceAppName": "小冰游戏",
+  "sourceScene": "point_issue",
+  "requestId": "order:123:point_issue_credit"
+}'
+```
+
+响应：
+
+| Key | 说明                          | 示例                              |
+| --- | ----------------------------- | --------------------------------- |
+| code | 0 为成功，-1 为失败          | 0                                 |
+| msg | 操作结果，成功时包含交易 oId | 转账成功，交易oId为：1760000000000 |
+
+> 四个应用来源字段全部不传时保持旧版行为。任一来源字段存在时必须全部提供；应用来源请求会生成独立的应用积分流水，不会将正常扣款记录为违规扣除。
+>
+> 相同 `requestId` 且请求参数一致时返回首次交易 oId；相同 `requestId` 携带不同用户、积分、备注或应用来源时返回“请求编号已使用”。
+>
+> `sourceAppId`、内部请求编号和请求摘要不会出现在 OAuth 积分记录响应中；仅公开 `sourceAppName` 与 `sourceScene`。
 
 ### 获取用户活跃度
 
