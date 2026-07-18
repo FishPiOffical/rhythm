@@ -93,6 +93,19 @@
             <@icon article.articlePerfect article.articleType></@icon>
             ${article.articleTitleEmoj}
         </h1>
+        <#if 6 == article.articleType>
+            <div class="long-article-meta">
+                <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">
+                    <#if article.articleAuthorNickName != "">${article.articleAuthorNickName}<#else>${article.articleAuthorName}</#if>
+                </a>
+                <span>${article.timeAgo}</span>
+                <#if longArticleColumn??>
+                    <span class="long-article-meta__separator">·</span>
+                    <a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}">${longArticleColumn.columnTitle}</a>
+                    <span>第 ${article.longArticleChapterNo?c} 章</span>
+                </#if>
+            </div>
+        </#if>
         <#if 0!= article.articleStatement>
         <div style="display: flex ;justify-content: center">
             <div class="article-statement">
@@ -143,10 +156,6 @@
 
         <div class="article-tail">
             <#if 6 == article.articleType>
-                <div class="long-article-meta">
-                    <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
-                    <span class="long-article-time">${article.timeAgo}</span>
-                </div>
                 <#if article.isMyArticle && article.longArticleReadStat??>
                     <div class="fn__flex-column" style="gap:8px;margin:12px 0;padding:12px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
                         <div class="ft__smaller ft__fade">长文阅读激励</div>
@@ -745,36 +754,40 @@
 </div>
 
 <#if 6 == article.articleType>
-<div class="long-article-settings">
-    <button class="long-article-settings-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
+<div class="long-article-settings" data-long-article-toolbar>
+    <button type="button" class="long-article-settings-btn" data-long-article-action="top" title="回到顶部">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
     </button>
-    <button class="long-article-settings-btn" onclick="document.getElementById('comments').scrollIntoView({behavior:'smooth'})" title="评论 ${article.articleCommentCount}">
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${article.articleCommentCount}">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
         <#if article.articleCommentCount gt 0>
-        <span style="position:absolute;top:-4px;right:-4px;background:#f44336;color:#fff;border-radius:10px;padding:2px 5px;font-size:10px;min-width:18px;text-align:center;">${article.articleCommentCount}</span>
+        <span class="long-article-settings__count">${article.articleCommentCount}</span>
         </#if>
     </button>
-    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.max(12,s-2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="减小字号">
+    <button type="button" class="long-article-settings-btn" data-long-article-action="font-decrease" title="减小字号">
         A-
     </button>
-    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.min(28,s+2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="增大字号">
+    <button type="button" class="long-article-settings-btn" data-long-article-action="font-increase" title="增大字号">
         A+
     </button>
+    <div class="long-article-layout">
+        <button type="button" class="long-article-settings-btn long-article-settings-btn--text" data-long-article-action="layout" aria-expanded="false" aria-controls="longArticleLayoutPanel">版式</button>
+        <div class="long-article-layout-panel" id="longArticleLayoutPanel" aria-hidden="true">
+            <div class="long-article-layout-panel__title">正文宽度</div>
+            <div class="long-article-layout-panel__options">
+                <button type="button" data-long-article-width="auto">自动</button>
+                <button type="button" data-long-article-width="600">600</button>
+                <button type="button" data-long-article-width="800">800</button>
+                <button type="button" data-long-article-width="1000">1000</button>
+                <button type="button" data-long-article-width="1200">1200</button>
+            </div>
+        </div>
+    </div>
 </div>
-<script>
-(function(){
-    var fontSize = localStorage.getItem('longArticleFontSize');
-    if (fontSize) {
-        var content = document.querySelector('.long-article-content');
-        if (content) content.style.fontSize = fontSize + 'px';
-    }
-})();
-</script>
 </#if>
 
 <#include "footer.ftl">
@@ -854,6 +867,9 @@
 <script src="${staticServePath}/js/emoji-groups${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
+<#if 6 == article.articleType>
+<script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+</#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
     Label.symphonyLabel = "${symphonyLabel}";
