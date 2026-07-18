@@ -498,12 +498,17 @@
         <div class="module comments" id="comments">
             <div class="comments-header module-header">
                 <div class="comments-header__main">
-                    <span class="article-cmt-cnt">${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</span>
+                    <span class="article-cmt-cnt"><#if 6 == article.articleType>评论 <span class="long-article-comments-count">${commentDisplayCount!article.articleCommentCount} 条</span><#else>${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</#if></span>
                     <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
                         <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
                            aria-label="${jumpToBottomCommentLabel}"><svg><use
                                         xlink:href="#chevron-down"></use></svg></a>
                     </span>
+                    <#if 6 == article.articleType>
+                    <button type="button" class="long-article-comments-close" data-long-article-comments-close aria-label="关闭评论" title="关闭评论">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.42 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29 6.29-6.3z"/></svg>
+                    </button>
+                    </#if>
                 </div>
                 <#if article.articleCommentCount != 0>
                     <div class="comment-filterbar">
@@ -765,7 +770,7 @@
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
     </button>
-    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${article.articleCommentCount}">
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>

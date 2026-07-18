@@ -103,7 +103,7 @@
 - 首页两列对齐约束：`getIndexRecentArticles` 的第一页会插入全部置顶且不截断；第二页起需按第一页“置顶占位数”补偿 `fetchSize` 与分页偏移，并基于已排除置顶 ID 的普通文章序列取数，保证两列等高、不重复、不丢中间文章。
 - 首页右侧排行补偿（无前端延迟）：由 `IndexProcessor#loadIndexData` 按两列最新文章的最大行数计算 `rankCompensateRows`，先换算“右栏总补偿行数”再分摊到 `checkinVisibleCount/onlineVisibleCount`，Freemarker 直接按该数量渲染，不再依赖 JS 运行时增删行。
 - 专栏封面链路：封面字段是 `long_article_column.columnCoverURL`；默认封面在 `LongArticleColumnQueryService` 填充；作者管理页为 `/column/manage`，编辑长篇页的弹窗脚本是 `long-article-cover-dialog.js`，新建长篇封面随 `/article` 请求的 `columnCoverURL` 写入；封面保存接口为 `POST /api/columns/{columnId}/cover`，处理器是 `LongArticleColumnProcessor`。
-- 长文阅读页以 `articleType=6` 区分，PC/移动模板均为 `skins/classic/*/article.ftl`，样式在 `index.scss`/`mobile-base.scss`，交互在 `long-article.js`/`m-long-article.js`；模板通过 `hidePageChrome` 不渲染顶部与底部视觉内容，但 footer 的公共脚本仍需加载；桌面宽度和两端字号统一保存在 `localStorage.longArticleSettings`，宽度仅在 PC 生效。
+- 长文阅读页以 `articleType=6` 区分，PC/移动模板均为 `skins/classic/*/article.ftl`，样式在 `index.scss`/`mobile-base.scss`，交互在 `long-article.js`/`m-long-article.js`；模板通过 `hidePageChrome` 不渲染顶部与底部视觉内容，但 footer 的公共脚本仍需加载；桌面宽度和两端字号统一保存在 `localStorage.longArticleSettings`，宽度仅在 PC 生效；评论按钮控制右侧评论抽屉，现有评论列表、筛选、分页和编辑器均在抽屉链路内复用。
 - 管理员文章页编辑长文专栏时，`admin/article.ftl` 会随文章表单提交 `columnCoverURL`，后端在 `ArticleMgmtService` 的文章事务内复用 `ColumnCoverMgmtService` 校验并更新或清空专栏封面。
 - 路由总入口：`Router#requestMapping` + 各 Processor `register()`；新增路由先决定使用 `loginCheck` / `apiCheck` / `permission` / `anonymousViewCheck` 哪条链路。
 - Latke 路由存在静态段被相邻动态段截获的风险（如 `/article/{id}/revisions/list` 可能进入 `/article/{id}/revisions/{revisionId}`）；新增相邻路由时需避免路径歧义，或在处理方法中显式识别保留字。

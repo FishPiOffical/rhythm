@@ -27,6 +27,10 @@ window.MLongArticle = {
         this.loadSettings();
         this.bindEvents();
         this.applySettings();
+        if (this.shouldOpenCommentsFromLocation()) {
+            this.openComments();
+            this.focusLocationComment();
+        }
     },
 
     loadSettings: function () {
@@ -109,14 +113,17 @@ window.MLongArticle = {
             } else if (action === 'top') {
                 window.scrollTo({top: 0, behavior: 'smooth'});
             } else if (action === 'comments') {
-                var comments = document.getElementById('comments');
-                if (comments) {
-                    comments.scrollIntoView({behavior: 'smooth'});
-                }
+                self.toggleComments();
             } else if (action === 'font-decrease') {
                 self.setFontSize(-2);
             } else if (action === 'font-increase') {
                 self.setFontSize(2);
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (event.target.closest && event.target.closest('[data-long-article-comments-close]')) {
+                self.closeComments();
             }
         });
     },
@@ -125,5 +132,74 @@ window.MLongArticle = {
         this.settings.mobileFontSize = this.normalizeFontSize(this.settings.mobileFontSize + delta, 12, 24, 16);
         this.saveSettings();
         this.applySettings();
+    },
+
+    getCommentsPanel: function () {
+        return document.getElementById('comments');
+    },
+
+    isCommentsOpen: function () {
+        return document.body.classList.contains('long-article-comments-open');
+    },
+
+    toggleComments: function () {
+        if (this.isCommentsOpen()) {
+            this.closeComments();
+        } else {
+            this.openComments();
+        }
+    },
+
+    openComments: function () {
+        var panel = this.getCommentsPanel();
+        var button = document.querySelector('[data-long-article-action="comments"]');
+        if (!panel) {
+            return;
+        }
+        document.body.classList.add('long-article-comments-open');
+        panel.setAttribute('aria-hidden', 'false');
+        if (button) {
+            button.classList.add('is-active');
+            button.setAttribute('aria-expanded', 'true');
+        }
+    },
+
+    closeComments: function () {
+        var panel = this.getCommentsPanel();
+        var button = document.querySelector('[data-long-article-action="comments"]');
+        var editorPanel = document.querySelector('.editor-panel');
+        if (editorPanel && editorPanel.classList.contains('editor-panel--open') && window.Comment && typeof window.Comment._toggleReply === 'function') {
+            window.Comment._toggleReply();
+        }
+        document.body.classList.remove('long-article-comments-open');
+        if (panel) {
+            panel.setAttribute('aria-hidden', 'true');
+        }
+        if (button) {
+            button.classList.remove('is-active');
+            button.setAttribute('aria-expanded', 'false');
+        }
+    },
+
+    shouldOpenCommentsFromLocation: function () {
+        var panel = this.getCommentsPanel();
+        var hash = window.location.hash.replace(/^#/, '');
+        var target = hash ? document.getElementById(hash) : null;
+        if (panel && target && panel.contains(target)) {
+            return true;
+        }
+        return /(?:\?|&)(?:p|m|sort|author)=/.test(window.location.search);
+    },
+
+    focusLocationComment: function () {
+        var self = this;
+        window.setTimeout(function () {
+            var hash = window.location.hash.replace(/^#/, '');
+            var target = hash ? document.getElementById(hash) : null;
+            var panel = self.getCommentsPanel();
+            if (panel && target && panel.contains(target)) {
+                target.scrollIntoView({block: 'center'});
+            }
+        }, 0);
     }
 };
