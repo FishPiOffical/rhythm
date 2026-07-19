@@ -233,7 +233,7 @@ window.LongArticle = {
         var closedArticleWidth = Math.min(selectedWidth, Math.max(320, viewportWidth - 28));
         var drawerWidth = viewportWidth <= 768
             ? Math.max(280, viewportWidth - 20)
-            : Math.min(280, Math.max(240, closedArticleWidth * 0.38));
+            : 320;
         var articleDrawerGap = 0;
         var toolbarGap = 14;
         var toolbarWidth = 64;
