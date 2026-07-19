@@ -387,7 +387,10 @@ public class LongArticleParagraphService {
             return;
         }
 
-        final List<Node> nodes = new ArrayList<>(paragraph.childNodes());
+        final List<Node> nodes = new ArrayList<>();
+        for (final Node node : paragraph.childNodes()) {
+            nodes.add(node.clone());
+        }
         if (annotate) {
             paragraph.empty();
             Element line = paragraph.appendElement("span").addClass("long-article-paragraph-line");
