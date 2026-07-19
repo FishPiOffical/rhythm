@@ -490,6 +490,20 @@ public class CommentMgmtService {
                 originalCmt.put(Comment.COMMENT_REPLY_CNT, originalCmtReplyCnt + 1);
                 commentRepository.update(originalCmtId, originalCmt);
 
+                if (Comment.COMMENT_TYPE_C_PARAGRAPH == originalCmt.optInt(Comment.COMMENT_TYPE)) {
+                    requestJSONObject.put(Comment.COMMENT_TYPE, Comment.COMMENT_TYPE_C_PARAGRAPH);
+                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_ID,
+                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_ID));
+                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_KIND,
+                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_KIND));
+                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_INDEX,
+                            originalCmt.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
+                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT,
+                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
+                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_STATUS,
+                            originalCmt.optInt(Comment.COMMENT_PARAGRAPH_STATUS));
+                }
+
                 notificationMgmtService.makeRead(commentAuthorId, Arrays.asList(originalCmtId));
             }
 
@@ -543,6 +557,19 @@ public class CommentMgmtService {
             comment.put(Comment.COMMENT_REPLY_CNT, 0);
             comment.put(Comment.COMMENT_AUDIO_URL, "");
             comment.put(Comment.COMMENT_QNA_OFFERED, Comment.COMMENT_QNA_OFFERED_C_NOT);
+            comment.put(Comment.COMMENT_TYPE, requestJSONObject.optInt(Comment.COMMENT_TYPE,
+                    Comment.COMMENT_TYPE_C_ARTICLE));
+            comment.put(Comment.COMMENT_PARAGRAPH_ID, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_ID));
+            comment.put(Comment.COMMENT_PARAGRAPH_KIND, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_KIND));
+            comment.put(Comment.COMMENT_PARAGRAPH_INDEX, requestJSONObject.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
+            comment.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
+            comment.put(Comment.COMMENT_PARAGRAPH_STATUS, requestJSONObject.optInt(Comment.COMMENT_PARAGRAPH_STATUS,
+                    Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE));
+            if (Comment.COMMENT_TYPE_C_PARAGRAPH == comment.optInt(Comment.COMMENT_TYPE)
+                    && StringUtils.isNotBlank(comment.optString(Comment.COMMENT_PARAGRAPH_ID))) {
+                comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?paragraph="
+                        + comment.optString(Comment.COMMENT_PARAGRAPH_ID) + "#" + ret);
+            }
 
             // Adds the comment
             final String commentId = commentRepository.add(comment);

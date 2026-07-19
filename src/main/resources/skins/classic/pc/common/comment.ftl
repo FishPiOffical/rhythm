@@ -41,6 +41,9 @@
 <#assign isCurrentUserComment = (comment.commentIsCurrentUser!false) || (isLoggedIn && comment.commentAuthorId?? && comment.commentAuthorId == currentUser.oId)>
 <li id="${comment.oId}"
     data-author="${comment.commentAuthorName}"
+    data-comment-type="${comment.commentType!0}"
+    data-comment-paragraph-id="${comment.commentParagraphId!}"
+    data-comment-paragraph-status="${comment.commentParagraphStatus!0}"
     data-is-author="<#if isArticleAuthorComment>true<#else>false</#if>"
     class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if threadReplyCount != 0> cmt-selected</#if>">
     <div class="fn-flex">
@@ -108,6 +111,9 @@
                 </span>
             </div>
             <div class="vditor-reset comment">
+                <#if (comment.commentType!0) == 1 && (comment.commentParagraphStatus!0) == 1 && (comment.commentParagraphSnapshot!'') != "">
+                <div class="comment-paragraph-context">${comment.commentParagraphSnapshot?html}</div>
+                </#if>
                 ${comment.commentContent}
             </div>
             <#if threadReplyCount gt 0>

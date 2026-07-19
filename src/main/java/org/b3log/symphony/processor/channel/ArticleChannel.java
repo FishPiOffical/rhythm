@@ -267,7 +267,9 @@ public class ArticleChannel implements WebSocketChannel {
                 Comment.COMMENT_STATUS, Common.REWARED_COUNT, Common.REWARDED,
                 Comment.COMMENT_T_VOTE, Comment.COMMENT_REVISION_COUNT, Comment.COMMENT_T_NICE,
                 Comment.COMMENT_T_THANK_LABEL, Comment.COMMENT_T_IS_ARTICLE_AUTHOR,
-                Comment.COMMENT_T_IS_CURRENT_USER, "sysMetal", "reactionSummary", "currentUserReaction"
+                Comment.COMMENT_T_IS_CURRENT_USER, "sysMetal", "reactionSummary", "currentUserReaction",
+                Comment.COMMENT_TYPE, Comment.COMMENT_PARAGRAPH_ID, Comment.COMMENT_PARAGRAPH_KIND,
+                Comment.COMMENT_PARAGRAPH_INDEX, Comment.COMMENT_PARAGRAPH_SNAPSHOT, Comment.COMMENT_PARAGRAPH_STATUS
         };
         for (final String field : publicFields) {
             if (message.has(field)) {

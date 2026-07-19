@@ -1251,6 +1251,39 @@
           "name": "commentVisible",
           "type": "int",
           "description": "0：所有人可见，1：仅楼主和自己可见"
+        },
+        {
+          "name": "commentType",
+          "type": "int",
+          "description": "0：章评，1：段评"
+        },
+        {
+          "name": "commentParagraphId",
+          "type": "String",
+          "length": 64,
+          "description": "段评锚点 ID"
+        },
+        {
+          "name": "commentParagraphKind",
+          "type": "String",
+          "length": 16,
+          "description": "段评锚点类型"
+        },
+        {
+          "name": "commentParagraphIndex",
+          "type": "int",
+          "description": "段评锚点顺序"
+        },
+        {
+          "name": "commentParagraphSnapshot",
+          "type": "String",
+          "length": 1024,
+          "description": "段评原文快照"
+        },
+        {
+          "name": "commentParagraphStatus",
+          "type": "int",
+          "description": "0：关联有效，1：原段落已修改"
         }
       ]
     },

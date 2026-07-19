@@ -519,7 +519,7 @@
                     </button>
                     </#if>
                 </div>
-                <#if article.articleCommentCount != 0>
+                <#if (commentDisplayCount!article.articleCommentCount) != 0>
                     <div class="comment-filterbar">
                         <div class="comment-segment">
                             <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
@@ -563,6 +563,16 @@
                         <#include 'common/comment.ftl' />
                     </#list>
                 </ul>
+                <#if 6 == article.articleType && (article.articleOrphanedParagraphComments![])?size gt 0>
+                <details class="long-article-orphaned-comments">
+                    <summary>原段落已修改 <span>${article.articleOrphanedParagraphComments?size}</span></summary>
+                    <ul>
+                        <#list article.articleOrphanedParagraphComments as comment>
+                            <#include 'common/comment.ftl' />
+                        </#list>
+                    </ul>
+                </details>
+                </#if>
                 <div id="bottomComment"></div>
             </div>
             <@pagination url="${servePath}${article.articlePermalink}" query="${commentPaginationQuery}" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
@@ -783,13 +793,13 @@
         </svg>
         <span>顶部</span>
     </button>
-    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${commentDisplayCount!article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
         <span>评论</span>
-        <#if article.articleCommentCount gt 0>
-        <span class="long-article-settings__count">${article.articleCommentCount}</span>
+        <#if (commentDisplayCount!article.articleCommentCount) gt 0>
+        <span class="long-article-settings__count">${commentDisplayCount!article.articleCommentCount}</span>
         </#if>
     </button>
     <div class="long-article-layout">
@@ -903,6 +913,7 @@
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
 <#if 6 == article.articleType>
 <script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/long-article-paragraph${miniPostfix}.js?${staticResourceVersion}"></script>
 </#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
@@ -920,6 +931,7 @@
     Label.downLabel = "${downLabel}";
     Label.confirmRemoveLabel = "${confirmRemoveLabel}";
     Label.removedLabel = "${removedLabel}";
+    Label.removeCommentLabel = "${removeCommentLabel}";
     Label.uploadLabel = "${uploadLabel}";
     Label.userCommentViewMode = ${userCommentViewMode};
     Label.commentSort = '${commentSort}';
@@ -965,6 +977,7 @@
     Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
     Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
     Label.canUpdateComment = ${permissions["commonUpdateComment"].permissionGrant?c};
+    Label.canRemoveComment = ${permissions["commonRemoveComment"].permissionGrant?c};
     Label.canViewCommentHistory = ${permissions["commonViewCommentHistory"].permissionGrant?c};
     Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
     <#if isLoggedIn>
@@ -978,6 +991,7 @@
 
     <#if 6 == article.articleType>
     LongArticle.init();
+    LongArticleParagraphComments.init();
     </#if>
 
     setInterval(function () {

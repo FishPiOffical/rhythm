@@ -113,7 +113,12 @@ window.MLongArticle = {
             } else if (action === 'top') {
                 window.scrollTo({top: 0, behavior: 'smooth'});
             } else if (action === 'comments') {
-                self.toggleComments();
+                if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
+                    window.LongArticleParagraphComments.showChapterComments();
+                    self.openComments();
+                } else {
+                    self.toggleComments();
+                }
             } else if (action === 'font-decrease') {
                 self.setFontSize(-2);
             } else if (action === 'font-increase') {
@@ -171,6 +176,9 @@ window.MLongArticle = {
         if (editorPanel && editorPanel.classList.contains('editor-panel--open') && window.Comment && typeof window.Comment._hideReplyPanel === 'function') {
             window.Comment._hideReplyPanel();
         }
+        if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
+            window.LongArticleParagraphComments.showChapterComments(true, false);
+        }
         document.body.classList.remove('long-article-comments-open');
         if (panel) {
             panel.setAttribute('aria-hidden', 'true');
@@ -188,7 +196,7 @@ window.MLongArticle = {
         if (panel && target && panel.contains(target)) {
             return true;
         }
-        return /(?:\?|&)(?:p|m|sort|author)=/.test(window.location.search);
+        return /(?:\?|&)(?:p|m|sort|author|paragraph)=/.test(window.location.search);
     },
 
     focusLocationComment: function () {

@@ -395,7 +395,7 @@
                                     </button>
                                     </#if>
                                 </div>
-                                <#if article.articleCommentCount != 0>
+                                <#if (commentDisplayCount!article.articleCommentCount) != 0>
                                     <div class="comment-filterbar">
                                         <div class="comment-segment">
                                             <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
@@ -423,6 +423,16 @@
                                 </#list>
                                 <div id="bottomComment"></div>
                             </ul>
+                            <#if 6 == article.articleType && (article.articleOrphanedParagraphComments![])?size gt 0>
+                            <details class="long-article-orphaned-comments">
+                                <summary>原段落已修改 <span>${article.articleOrphanedParagraphComments?size}</span></summary>
+                                <ul>
+                                    <#list article.articleOrphanedParagraphComments as comment>
+                                        <#include 'common/comment.ftl' />
+                                    </#list>
+                                </ul>
+                            </details>
+                            </#if>
                         </div>
                     <@pagination url=article.articlePermalink query="${commentPaginationQuery}" />
                 </div>
@@ -522,7 +532,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
-                <span class="count">${article.articleCommentCount}</span>
+                <span class="count">${commentDisplayCount!article.articleCommentCount}</span>
             </button>
             <button type="button" class="long-article-settings-btn" data-long-article-action="font-decrease" title="减小字号">
                 <span>A-</span>
@@ -634,6 +644,7 @@
         <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
         <#if 6 == article.articleType>
         <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+        <script src="${staticServePath}/js/long-article-paragraph${miniPostfix}.js?${staticResourceVersion}"></script>
         </#if>
         <script>
             Label.commentErrorLabel = "${commentErrorLabel}";
@@ -650,6 +661,7 @@
             Label.downLabel = "${downLabel}";
             Label.confirmRemoveLabel = "${confirmRemoveLabel}";
             Label.removedLabel = "${removedLabel}";
+            Label.removeCommentLabel = "${removeCommentLabel}";
             Label.uploadLabel = "${uploadLabel}";
             Label.userCommentViewMode = ${userCommentViewMode};
             Label.commentSort = '${commentSort}';
@@ -694,6 +706,7 @@
             Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
             Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
             Label.canUpdateComment = ${permissions["commonUpdateComment"].permissionGrant?c};
+            Label.canRemoveComment = ${permissions["commonRemoveComment"].permissionGrant?c};
             Label.canViewCommentHistory = ${permissions["commonViewCommentHistory"].permissionGrant?c};
             Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
             <#if isLoggedIn>
@@ -706,6 +719,7 @@
             </#if>
             <#if 6 == article.articleType>
                 MLongArticle.init();
+                LongArticleParagraphComments.init();
             </#if>
 
             $(".editor-bg").click(Comment._toggleReply)

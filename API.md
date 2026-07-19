@@ -2318,6 +2318,107 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 | commentContent           | 评论原文（Markdown格式）                                          | hello world                      |
 | commentOriginalCommentId | （选填）如果是回复某个评论，传递此参数并填写值为要回复的评论的oId | 1646216549324                    |
 
+### 长篇段评
+
+`POST /comment/paragraph`
+
+为长篇正文指定段落发表评论或回复。旧的 `POST /comment` 继续创建章评。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥，可选 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| articleId | 长篇文章 Id | 1645002736006 |
+| paragraphId | 服务端生成的段落 Id | `64 位小写 SHA-256` |
+| commentContent | 评论原文（Markdown 格式） | 这一段写得很好 |
+| commentAnonymous | 是否匿名评论 | false |
+| commentVisible | 是否仅楼主可见 | false |
+| commentOriginalCommentId | 回复时填写段评 Id，可选 | 1646216549324 |
+
+请求示例：
+
+```bash
+curl -X POST "https://fishpi.cn/comment/paragraph" \
+  -H "Content-Type: application/json" \
+  -d '{"apiKey":"你的 apiKey","articleId":"1645002736006","paragraphId":"64 位小写 SHA-256","commentContent":"这一段写得很好","commentAnonymous":false,"commentVisible":false}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | 0 |
+| commentId | 新评论 Id | 1646216549324 |
+
+> 仅支持 `articleType=6`。段落类型、顺序和文本快照由服务端校验并保存，客户端不能伪造。新增根评论必须关联当前有效段落；回复必须属于同一文章和同一段评线程，原段落已修改的线程仍可继续回复。
+
+### 获取长篇段评摘要
+
+`POST /comment/paragraph/summary`
+
+获取长篇当前有效段落的评论数量，数量包含根评论和回复。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 访问受限文章时填写 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| articleId | 长篇文章 Id | 1645002736006 |
+
+请求示例：
+
+```bash
+curl -X POST "https://fishpi.cn/comment/paragraph/summary" \
+  -H "Content-Type: application/json" \
+  -d '{"articleId":"1645002736006"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | 0 |
+| paragraphComments | 段落评论数量 | `[...]` |
+| - paragraphId | 段落 Id | `64 位小写 SHA-256` |
+| - commentCount | 段评总数 | 3 |
+
+### 获取长篇段评线程
+
+`POST /comment/paragraph/thread/parents`
+
+获取指定段落的评论线程根评论。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 访问受限文章时填写 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| articleId | 长篇文章 Id | 1645002736006 |
+| paragraphId | 段落 Id | `64 位小写 SHA-256` |
+| paginationCurrentPageNum | 页码，默认 1 | 1 |
+| sort | `hot` 表示热门排序 | hot |
+
+请求示例：
+
+```bash
+curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
+  -H "Content-Type: application/json" \
+  -d '{"articleId":"1645002736006","paragraphId":"64 位小写 SHA-256","paginationCurrentPageNum":1,"sort":"hot"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | 0 |
+| commentThreadParents | 段评线程根评论，字段与线程接口一致 | `[...]` |
+| paragraphId | 当前段落 Id | `64 位小写 SHA-256` |
+| paragraphSnapshot | 当前段落摘要 | 这一段写得很好 |
+| pagination | 分页信息 | `{...}` |
+
+> 段评接口遵循文章匿名访问、讨论帖权限和评论可见性校验；响应不返回评论 IP、UA、联系方式、密钥或完整用户对象。文章编辑后无法匹配的段评会保留为“原段落已修改”，不会丢失。
+
 ### 更新评论
 
 `PUT /comment/{评论oId}`

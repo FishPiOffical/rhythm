@@ -177,6 +177,9 @@ public class ArticleMgmtService {
     private LongArticleColumnMgmtService longArticleColumnMgmtService;
 
     @Inject
+    private LongArticleParagraphService longArticleParagraphService;
+
+    @Inject
     private ColumnCoverMgmtService columnCoverMgmtService;
 
     /**
@@ -918,6 +921,7 @@ public class ArticleMgmtService {
         articleToUpdate.put(Article.ARTICLE_QNA_OFFER_POINT, qnaOfferPoint);
 
         final int articleType = requestJSONObject.optInt(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL);
+        final int oldArticleType = articleToUpdate.optInt(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL);
 
         final Transaction transaction = articleRepository.beginTransaction();
 
@@ -984,6 +988,10 @@ public class ArticleMgmtService {
 
             final boolean titleChanged = !oldTitle.replaceAll("\\s+", "").equals(articleTitle.replaceAll("\\s+", ""));
             final boolean contentChanged = !oldContent.replaceAll("\\s+", "").equals(articleContent.replaceAll("\\s+", ""));
+            if (contentChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
+                    || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
+                longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, articleContent);
+            }
             if (notIn5m && Article.ARTICLE_TYPE_C_THOUGHT != articleType
                     && (titleChanged || contentChanged)) {
                 final JSONObject revision = new JSONObject();

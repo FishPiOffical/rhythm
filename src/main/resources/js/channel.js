@@ -58,6 +58,11 @@ var ArticleChannel = {
 
             switch (data.type) {
                 case 'comment':
+                    if (parseInt(data.commentType || 0) === 1 &&
+                        window.LongArticleParagraphComments) {
+                        window.LongArticleParagraphComments.handleRealtime(data)
+                        break
+                    }
                     if (Label.commentAuthorFilter &&
                         !data.commentIsArticleAuthor) {
                         return

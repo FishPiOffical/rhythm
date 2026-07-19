@@ -197,10 +197,17 @@ public class CommentQueryService {
             }
             String title = Escapes.escapeHTML(article.optString(Article.ARTICLE_TITLE));
             title = Emotions.convert(title);
-            final int commentPage = getCommentThreadPage(articleId, commentId, sortMode, pageSize);
-
-            return "<a href=\"" + Latkes.getServePath() + "/article/" + articleId + "?p=" + commentPage
-                    + "&m=" + sortMode + "#" + commentId + "\" target=\"_blank\">" + title + "</a>";
+            final String paragraphId = comment.optString(Comment.COMMENT_PARAGRAPH_ID);
+            final String sharpURL;
+            if (Comment.COMMENT_TYPE_C_PARAGRAPH == comment.optInt(Comment.COMMENT_TYPE)
+                    && StringUtils.isNotBlank(paragraphId)) {
+                sharpURL = "/article/" + articleId + "?paragraph=" + paragraphId + "#" + commentId;
+            } else {
+                final int commentPage = getCommentThreadPage(articleId, commentId, sortMode, pageSize);
+                sharpURL = "/article/" + articleId + "?p=" + commentPage + "&m=" + sortMode + "#" + commentId;
+            }
+            return "<a href=\"" + Latkes.getServePath() + sharpURL
+                    + "\" target=\"_blank\">" + title + "</a>";
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Gets comment URL failed", e);
 
@@ -422,6 +429,7 @@ public class CommentQueryService {
                     setPage(1, fetchSize).setPageCount(1).
                     setFilter(CompositeFilterOperator.and(
                             new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                            new PropertyFilter(Comment.COMMENT_TYPE, FilterOperator.EQUAL, Comment.COMMENT_TYPE_C_ARTICLE),
                             new PropertyFilter(Comment.COMMENT_SCORE, FilterOperator.GREATER_THAN, 0D),
                             new PropertyFilter(Comment.COMMENT_STATUS, FilterOperator.EQUAL, Comment.COMMENT_STATUS_C_VALID)));
             try {
@@ -609,7 +617,7 @@ public class CommentQueryService {
                 final String commentId = comment.optString(Keys.OBJECT_ID);
                 final int cmtViewMode = UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL;
                 final int cmtPage = getCommentThreadPage(articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
-                comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?p=" + cmtPage + "&m=" + cmtViewMode + "#" + commentId);
+                comment.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, articleId, cmtPage, cmtViewMode));
 
                 if (Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
                         && Article.ARTICLE_ANONYMOUS_C_PUBLIC == article.optInt(Article.ARTICLE_ANONYMOUS)) {
@@ -709,6 +717,116 @@ public class CommentQueryService {
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Counts article [" + articleId + "] comments failed", e);
             throw new IllegalStateException("Counts article comments failed", e);
+        }
+    }
+
+    public int countChapterComments(final String articleId) {
+        final Query query = new Query().setFilter(buildChapterCommentFilter(articleId));
+        try {
+            return (int) commentRepository.count(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts chapter comments failed", e);
+            return 0;
+        }
+    }
+
+    public int countParagraphComments(final String articleId, final String paragraphId) {
+        final Query query = new Query().setFilter(buildParagraphCommentFilter(articleId, paragraphId));
+        try {
+            return (int) commentRepository.count(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts paragraph comments failed", e);
+            return 0;
+        }
+    }
+
+    public int countParagraphThreadParents(final String articleId, final String paragraphId) {
+        final Query query = new Query().setFilter(buildParagraphThreadParentCommentFilter(articleId, paragraphId));
+        try {
+            return (int) commentRepository.count(query);
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Counts paragraph comment threads failed", e);
+            return 0;
+        }
+    }
+
+    public Map<String, Integer> getParagraphCommentCounts(final String articleId) {
+        final Map<String, Integer> ret = new LinkedHashMap<>();
+        final Filter filter = buildParagraphArticleFilter(articleId);
+        try {
+            final List<JSONObject> comments = commentRepository.getList(new Query().setPage(1, Integer.MAX_VALUE).
+                    setPageCount(1).setFilter(filter).select(Comment.COMMENT_PARAGRAPH_ID));
+            for (final JSONObject comment : comments) {
+                final String paragraphId = comment.optString(Comment.COMMENT_PARAGRAPH_ID);
+                if (StringUtils.isNotBlank(paragraphId)) {
+                    ret.put(paragraphId, ret.getOrDefault(paragraphId, 0) + 1);
+                }
+            }
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets paragraph comment counts failed", e);
+        }
+        return ret;
+    }
+
+    public List<JSONObject> getParagraphThreadParentComments(final String articleId, final String paragraphId,
+                                                              final int currentPageNum, final int sortMode,
+                                                              final String commentSort, final String currentUserId,
+                                                              final String articleAuthorId) {
+        final Query query = new Query().setPageCount(1).
+                setPage(currentPageNum, Symphonys.ARTICLE_COMMENTS_CNT).
+                setFilter(buildParagraphThreadParentCommentFilter(articleId, paragraphId));
+        if (COMMENT_SORT_HOT.equals(commentSort)) {
+            query.addSort(Comment.COMMENT_SCORE, SortDirection.DESCENDING).
+                    addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        } else if (UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME == sortMode) {
+            query.addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
+        } else {
+            query.addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
+        }
+        try {
+            final JSONObject result = commentRepository.get(query);
+            final List<JSONObject> comments = (List<JSONObject>) result.opt(Keys.RESULTS);
+            organizeComments(comments);
+            final ThreadQueryContext context = buildThreadQueryContext(
+                    currentUserId, "", articleId, articleAuthorId);
+            final List<JSONObject> ret = new ArrayList<>();
+            for (final JSONObject comment : comments) {
+                fillArticleCommentMetadata(comment, articleId, sortMode, Symphonys.ARTICLE_COMMENTS_CNT);
+                fillCommentThreadPreview(comment, currentUserId);
+                ret.add(buildThreadParentComment(comment, context));
+            }
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets paragraph comments failed", e);
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    public List<JSONObject> getOrphanedParagraphThreadParentComments(final String articleId,
+                                                                      final String currentUserId,
+                                                                      final String articleAuthorId) {
+        final Query query = new Query().setPageCount(1).setPage(1, Integer.MAX_VALUE).
+                setFilter(buildOrphanedParagraphThreadParentCommentFilter(articleId)).
+                addSort(Keys.OBJECT_ID, SortDirection.ASCENDING);
+        try {
+            final List<JSONObject> comments = commentRepository.getList(query);
+            organizeComments(comments);
+            final ThreadQueryContext context = buildThreadQueryContext(
+                    currentUserId, "", articleId, articleAuthorId);
+            final List<JSONObject> ret = new ArrayList<>();
+            for (final JSONObject comment : comments) {
+                fillArticleCommentMetadata(comment, articleId,
+                        UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL, Symphonys.ARTICLE_COMMENTS_CNT);
+                fillCommentThreadPreview(comment, currentUserId);
+                final JSONObject target = buildThreadParentComment(comment, context);
+                target.put(Comment.COMMENT_T_NICE, false);
+                ret.add(target);
+            }
+            reactionQueryService.fillCommentReactions(ret, currentUserId);
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets orphaned paragraph comments failed", e);
+            return Collections.emptyList();
         }
     }
 
@@ -880,13 +998,59 @@ public class CommentQueryService {
     }
 
     private Filter buildArticleCommentFilter(final String articleId, final String authorId) {
-        final Filter articleFilter = new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId);
+        final Filter articleFilter = buildChapterCommentFilter(articleId);
         if (StringUtils.isBlank(authorId)) {
             return articleFilter;
         }
         return CompositeFilterOperator.and(
                 articleFilter,
                 new PropertyFilter(Comment.COMMENT_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+    }
+
+    private Filter buildChapterCommentFilter(final String articleId) {
+        return CompositeFilterOperator.and(
+                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                new PropertyFilter(Comment.COMMENT_TYPE, FilterOperator.EQUAL, Comment.COMMENT_TYPE_C_ARTICLE),
+                new PropertyFilter(Comment.COMMENT_STATUS, FilterOperator.EQUAL, Comment.COMMENT_STATUS_C_VALID));
+    }
+
+    private Filter buildParagraphCommentFilter(final String articleId, final String paragraphId) {
+        return CompositeFilterOperator.and(buildParagraphArticleFilter(articleId),
+                new PropertyFilter(Comment.COMMENT_PARAGRAPH_ID, FilterOperator.EQUAL, paragraphId));
+    }
+
+    private Filter buildParagraphArticleFilter(final String articleId) {
+        return CompositeFilterOperator.and(
+                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                new PropertyFilter(Comment.COMMENT_TYPE, FilterOperator.EQUAL, Comment.COMMENT_TYPE_C_PARAGRAPH),
+                new PropertyFilter(Comment.COMMENT_PARAGRAPH_STATUS, FilterOperator.EQUAL,
+                        Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE),
+                new PropertyFilter(Comment.COMMENT_STATUS, FilterOperator.EQUAL, Comment.COMMENT_STATUS_C_VALID));
+    }
+
+    private Filter buildParagraphThreadParentCommentFilter(final String articleId, final String paragraphId) {
+        return CompositeFilterOperator.and(buildParagraphCommentFilter(articleId, paragraphId),
+                new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""));
+    }
+
+    private Filter buildOrphanedParagraphThreadParentCommentFilter(final String articleId) {
+        return CompositeFilterOperator.and(
+                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                new PropertyFilter(Comment.COMMENT_TYPE, FilterOperator.EQUAL, Comment.COMMENT_TYPE_C_PARAGRAPH),
+                new PropertyFilter(Comment.COMMENT_PARAGRAPH_STATUS, FilterOperator.EQUAL,
+                        Comment.COMMENT_PARAGRAPH_STATUS_C_ORPHANED),
+                new PropertyFilter(Comment.COMMENT_STATUS, FilterOperator.EQUAL, Comment.COMMENT_STATUS_C_VALID),
+                new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""));
+    }
+
+    private String buildCommentSharpURL(final JSONObject comment, final String articleId,
+                                        final int commentPage, final int sortMode) {
+        final String paragraphId = comment.optString(Comment.COMMENT_PARAGRAPH_ID);
+        if (Comment.COMMENT_TYPE_C_PARAGRAPH == comment.optInt(Comment.COMMENT_TYPE)
+                && StringUtils.isNotBlank(paragraphId)) {
+            return "/article/" + articleId + "?paragraph=" + paragraphId + "#" + comment.optString(Keys.OBJECT_ID);
+        }
+        return "/article/" + articleId + "?p=" + commentPage + "&m=" + sortMode + "#" + comment.optString(Keys.OBJECT_ID);
     }
 
     private Query buildThreadParentCommentQuery(final JSONObject options) {
@@ -908,7 +1072,7 @@ public class CommentQueryService {
 
     private Filter buildThreadParentCommentFilter(final String articleId, final String authorId) {
         final Filter parentFilter = CompositeFilterOperator.and(
-                new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
+                buildChapterCommentFilter(articleId),
                 new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""));
         if (StringUtils.isBlank(authorId)) {
             return parentFilter;
@@ -920,7 +1084,11 @@ public class CommentQueryService {
     private Filter buildThreadPageBeforeFilter(final String articleId, final JSONObject rootComment,
                                                final int sortMode, final String commentSort,
                                                final String authorId) {
-        final Filter parentFilter = buildThreadParentCommentFilter(articleId, authorId);
+        final Filter parentFilter = Comment.COMMENT_TYPE_C_PARAGRAPH == rootComment.optInt(Comment.COMMENT_TYPE)
+                ? CompositeFilterOperator.and(buildParagraphCommentFilter(articleId,
+                rootComment.optString(Comment.COMMENT_PARAGRAPH_ID)),
+                new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""))
+                : buildThreadParentCommentFilter(articleId, authorId);
         if (COMMENT_SORT_HOT.equals(commentSort)) {
             return CompositeFilterOperator.and(parentFilter, buildHotThreadBeforeFilter(rootComment));
         }
@@ -1092,6 +1260,12 @@ public class CommentQueryService {
         ret.put(Comment.COMMENT_CREATE_TIME_STR, comment.optString(Comment.COMMENT_CREATE_TIME_STR));
         ret.put(Comment.COMMENT_CONTENT, comment.optString(Comment.COMMENT_CONTENT));
         ret.put(Comment.COMMENT_VISIBLE, comment.optInt(Comment.COMMENT_VISIBLE));
+        ret.put(Comment.COMMENT_TYPE, comment.optInt(Comment.COMMENT_TYPE));
+        ret.put(Comment.COMMENT_PARAGRAPH_ID, comment.optString(Comment.COMMENT_PARAGRAPH_ID));
+        ret.put(Comment.COMMENT_PARAGRAPH_KIND, comment.optString(Comment.COMMENT_PARAGRAPH_KIND));
+        ret.put(Comment.COMMENT_PARAGRAPH_INDEX, comment.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
+        ret.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, comment.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
+        ret.put(Comment.COMMENT_PARAGRAPH_STATUS, comment.optInt(Comment.COMMENT_PARAGRAPH_STATUS));
         fillThreadCommentState(ret, comment, context);
         fillOriginalAuthor(ret, null);
         filterThreadCommentContent(ret, comment, context);
@@ -1160,7 +1334,7 @@ public class CommentQueryService {
      */
     public List<JSONObject> getArticleCommentors(final String articleId) {
         final Query query = new Query().
-                setFilter(new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId)).
+                setFilter(buildChapterCommentFilter(articleId)).
                 addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).
                 select(Comment.COMMENT_AUTHOR_ID);
 
