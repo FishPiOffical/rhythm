@@ -771,35 +771,47 @@
 
 <#if 6 == article.articleType>
 <div class="long-article-settings" data-long-article-toolbar>
-    <button type="button" class="long-article-settings-btn" data-long-article-action="top" title="回到顶部">
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--top" data-long-article-action="top" title="回到顶部">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
+        <span>顶部</span>
     </button>
     <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
+        <span>评论</span>
         <#if article.articleCommentCount gt 0>
         <span class="long-article-settings__count">${article.articleCommentCount}</span>
         </#if>
     </button>
-    <button type="button" class="long-article-settings-btn" data-long-article-action="font-decrease" title="减小字号">
-        A-
-    </button>
-    <button type="button" class="long-article-settings-btn" data-long-article-action="font-increase" title="增大字号">
-        A+
-    </button>
     <div class="long-article-layout">
-        <button type="button" class="long-article-settings-btn long-article-settings-btn--text" data-long-article-action="layout" aria-expanded="false" aria-controls="longArticleLayoutPanel">版式</button>
+        <button type="button" class="long-article-settings-btn" data-long-article-action="layout" aria-expanded="false" aria-controls="longArticleLayoutPanel" title="阅读设置">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+            </svg>
+            <span>设置</span>
+        </button>
         <div class="long-article-layout-panel" id="longArticleLayoutPanel" aria-hidden="true">
-            <div class="long-article-layout-panel__title">正文宽度</div>
-            <div class="long-article-layout-panel__options">
-                <button type="button" data-long-article-width="auto">自动</button>
-                <button type="button" data-long-article-width="600">600</button>
-                <button type="button" data-long-article-width="800">800</button>
-                <button type="button" data-long-article-width="1000">1000</button>
-                <button type="button" data-long-article-width="1200">1200</button>
+            <div class="long-article-layout-panel__title">阅读设置</div>
+            <div class="long-article-layout-panel__row">
+                <span>字号</span>
+                <div class="long-article-font-options">
+                    <button type="button" data-long-article-action="font-decrease" title="减小字号">A-</button>
+                    <output data-long-article-font-size>18px</output>
+                    <button type="button" data-long-article-action="font-increase" title="增大字号">A+</button>
+                </div>
+            </div>
+            <div class="long-article-layout-panel__row long-article-layout-panel__row--width">
+                <span>版式</span>
+                <div class="long-article-layout-panel__options">
+                    <button type="button" data-long-article-width="auto">自动</button>
+                    <button type="button" data-long-article-width="600">600</button>
+                    <button type="button" data-long-article-width="800">800</button>
+                    <button type="button" data-long-article-width="1000">1000</button>
+                    <button type="button" data-long-article-width="1200">1200</button>
+                </div>
             </div>
         </div>
     </div>

@@ -5343,7 +5343,7 @@ code .dec {
   &.long-article-comments-open {
     .long-article-settings {
       right: auto;
-      left: var(--long-article-toolbar-open-left, calc(100vw - 58px));
+      left: var(--long-article-toolbar-open-left, calc(100vw - 78px));
       z-index: 121;
     }
 
@@ -5392,7 +5392,7 @@ code .dec {
 
   .long-article-settings {
     right: auto;
-    left: var(--long-article-toolbar-closed-left, min(calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)) + 14px), calc(100vw - 58px)));
+    left: var(--long-article-toolbar-closed-left, min(calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)) + 14px), calc(100vw - 78px)));
     transition: left 0.32s ease;
   }
 
@@ -5865,30 +5865,32 @@ code .dec {
 
 .long-article-settings {
   position: fixed;
-  left: min(calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)) + 14px), calc(100vw - 58px));
+  left: min(calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)) + 14px), calc(100vw - 78px));
   top: 50%;
   transform: translateY(-50%);
   z-index: 101;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .long-article-settings-btn {
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 64px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 5px;
   background: #dcebdd;
   box-shadow: 0 4px 14px rgba(48, 73, 55, 0.12);
   color: #52685a;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 400;
   position: relative;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 
@@ -5905,13 +5907,17 @@ code .dec {
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 }
 
-.long-article-settings-btn--text {
-  font-size: 13px;
+.long-article-settings-btn--top {
+  display: none;
+
+  &.is-visible {
+    display: flex;
+  }
 }
 
 .long-article-settings__count {
@@ -5936,12 +5942,12 @@ code .dec {
 
 .long-article-layout-panel {
   position: absolute;
-  right: 56px;
+  right: 80px;
   bottom: 0;
   display: none;
-  width: 210px;
+  width: 360px;
   box-sizing: border-box;
-  padding: 14px;
+  padding: 24px;
   border: 1px solid rgba(72, 101, 79, 0.16);
   border-radius: 10px;
   background: #ebfaeb;
@@ -5953,10 +5959,52 @@ code .dec {
 }
 
 .long-article-layout-panel__title {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  color: #52685a;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.long-article-layout-panel__row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
   color: #52685a;
   font-size: 13px;
-  font-weight: 600;
+}
+
+.long-article-font-options {
+  display: grid;
+  grid-template-columns: 44px minmax(64px, 1fr) 44px;
+  align-items: center;
+  gap: 7px;
+
+  output {
+    color: #52685a;
+    font-size: 13px;
+    text-align: center;
+  }
+}
+
+.long-article-font-options button,
+.long-article-layout-panel__options button {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #d9e3da;
+  border-radius: 5px;
+  background: #f3f7f1;
+  color: #52685a;
+  cursor: pointer;
+  font-size: 12px;
+
+  &:hover,
+  &.is-active {
+    border-color: #77977e;
+    background: #dfeadf;
+    color: #285a39;
+  }
 }
 
 .long-article-layout-panel__options {
@@ -5965,22 +6013,6 @@ code .dec {
   gap: 7px;
 
   button {
-    height: 32px;
-    padding: 0 8px;
-    border: 1px solid #d9e3da;
-    border-radius: 6px;
-    background: #f3f7f1;
-    color: #52685a;
-    cursor: pointer;
-    font-size: 12px;
-
-    &:hover,
-    &.is-active {
-      border-color: #77977e;
-      background: #dfeadf;
-      color: #285a39;
-    }
-
     &.is-active {
       font-weight: 600;
     }
@@ -6199,6 +6231,12 @@ body.night {
     color: #989898;
   }
 
+  .long-article-layout-panel__row,
+  .long-article-font-options output {
+    color: #989898;
+  }
+
+  .long-article-font-options button,
   .long-article-layout-panel__options button {
     border-color: #3a3a3a;
     background: #191919;
@@ -6272,12 +6310,13 @@ body.night {
   }
 
   .long-article-settings-btn {
-    width: 40px;
-    height: 40px;
+    width: 54px;
+    height: 54px;
   }
 
   .long-article-layout-panel {
-    right: 50px;
+    right: 64px;
+    width: min(340px, calc(100vw - 90px));
   }
 }
 

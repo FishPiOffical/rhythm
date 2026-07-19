@@ -28,6 +28,7 @@ window.LongArticle = {
         this.loadSettings();
         this.bindEvents();
         this.applySettings();
+        this.updateTopButton();
         if (this.shouldOpenCommentsFromLocation()) {
             this.openComments();
             this.focusLocationComment();
@@ -155,6 +156,9 @@ window.LongArticle = {
         window.addEventListener('resize', function () {
             self.updateLayoutMetrics();
         });
+        window.addEventListener('scroll', function () {
+            self.updateTopButton();
+        }, {passive: true});
     },
 
     findActionElement: function (target, boundary) {
@@ -185,6 +189,17 @@ window.LongArticle = {
         document.querySelectorAll('[data-long-article-width]').forEach(function (button) {
             button.classList.toggle('is-active', button.getAttribute('data-long-article-width') === width);
         });
+        var fontSize = document.querySelector('[data-long-article-font-size]');
+        if (fontSize) {
+            fontSize.textContent = this.settings.desktopFontSize + 'px';
+        }
+    },
+
+    updateTopButton: function () {
+        var button = document.querySelector('[data-long-article-action="top"]');
+        if (button) {
+            button.classList.toggle('is-visible', (window.pageYOffset || document.documentElement.scrollTop || 0) > 320);
+        }
     },
 
     toggleLayoutPanel: function () {
@@ -219,7 +234,7 @@ window.LongArticle = {
         var drawerWidth = viewportWidth <= 768 ? Math.max(280, viewportWidth - 20) : Math.min(320, Math.max(280, viewportWidth * 0.2));
         var articleDrawerGap = 0;
         var toolbarGap = 14;
-        var toolbarWidth = 44;
+        var toolbarWidth = 64;
         var safeMargin = 14;
         var inline = viewportWidth >= 960;
         var openArticleWidth = closedArticleWidth;
