@@ -82,6 +82,11 @@ window.LongArticleParagraphComments = {
         self.open(openButton.getAttribute('data-open-paragraph-comments'))
         return
       }
+      var paragraph = event.target.closest && event.target.closest('.long-article-commentable-block')
+      if (paragraph && self.canOpenFromParagraphClick(event, paragraph)) {
+        self.open(paragraph.getAttribute('data-long-paragraph-id'))
+        return
+      }
       if (event.target.closest && event.target.closest('[data-paragraph-comments-close]')) {
         self.close()
         return
@@ -128,7 +133,24 @@ window.LongArticleParagraphComments = {
     }
     var count = parseInt(this.counts[paragraphId] || 0)
     button.classList.toggle('has-comments', count > 0)
-    button.querySelector('span').textContent = count > 0 ? count : ''
+    var countElement = button.querySelector('span')
+    countElement.textContent = count > 0 ? count : ''
+    countElement.hidden = count <= 0
+    button.setAttribute('aria-label', count > 0 ? '查看段评 ' + count : '写段评')
+  },
+
+  canOpenFromParagraphClick: function (event, paragraph) {
+    if (window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      return false
+    }
+    if (event.defaultPrevented || (typeof event.button === 'number' && event.button !== 0)) {
+      return false
+    }
+    if (event.target.closest('a, button, input, textarea, select, video, audio, iframe, pre, code, table, [contenteditable="true"]')) {
+      return false
+    }
+    var selection = window.getSelection && window.getSelection()
+    return !selection || selection.isCollapsed || !paragraph.contains(selection.anchorNode)
   },
 
   open: function (paragraphId) {
