@@ -255,6 +255,7 @@ window.LongArticle = {
         var openToolbarLeft = inline ? stageLeft + stageWidth + toolbarGap : closedToolbarLeft;
 
         root.style.setProperty('--long-article-stage-width', stageWidth + 'px');
+        root.style.setProperty('--long-article-stage-left', stageLeft + 'px');
         root.style.setProperty('--long-article-open-article-width', openArticleWidth + 'px');
         document.body.style.setProperty('--long-article-drawer-width', drawerWidth + 'px');
         root.style.setProperty('--long-article-drawer-left', drawerLeft + 'px');

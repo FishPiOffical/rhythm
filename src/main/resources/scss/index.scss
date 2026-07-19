@@ -5350,7 +5350,9 @@ code .dec {
 
     .editor-panel {
       right: auto;
-      left: var(--long-article-drawer-left, calc(100vw - var(--long-article-drawer-width)));
+      left: var(--long-article-stage-left, 14px);
+      width: var(--long-article-stage-width, calc(100vw - 28px));
+      max-width: calc(100vw - 28px);
     }
 
     #articleCommentsPanel {
@@ -5579,11 +5581,11 @@ code .dec {
   }
 
   .editor-panel {
-    right: 0;
-    left: auto;
-    width: var(--long-article-drawer-width);
-    max-width: var(--long-article-drawer-width);
-    transition: left 0.32s ease;
+    right: auto;
+    left: var(--long-article-stage-left, 14px);
+    width: var(--long-article-stage-width, min(var(--long-article-width, 800px), calc(100vw - 28px)));
+    max-width: calc(100vw - 28px);
+    transition: left 0.32s ease, width 0.32s ease;
 
     .editor-bg {
       display: none;
