@@ -5426,6 +5426,9 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
 
 /* start long-article */
 .long-article-content {
+  min-width: 0;
+  overflow: visible !important;
+
   padding: 0;
   color: #25332a;
   font-size: var(--long-article-font-size, 16px);
@@ -5503,20 +5506,22 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
 }
 
 .long-article-paragraph-comment-btn {
-  position: absolute;
-  right: 0;
-  bottom: -8px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
+  margin-left: 6px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: #dcebdd;
   color: #6e8975;
   opacity: 0.76;
+  transform: translateY(2px);
+  vertical-align: baseline;
+  text-indent: 0;
 
   svg {
     width: 15px;
@@ -5539,7 +5544,7 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   }
 }
 
-.long-article-commentable-block.is-commenting > .long-article-paragraph-comment-btn {
+.long-article-commentable-block.is-commenting .long-article-paragraph-comment-btn {
   background: #3e7250;
   color: #fff;
   opacity: 1;

@@ -5128,9 +5128,11 @@ code .dec {
 
 /* start long-article */
 .long-article-content {
+  min-width: 0;
   max-width: none;
   margin: 36px 0 0;
   padding: 0;
+  overflow: visible !important;
   color: #25332a;
   font-size: var(--long-article-font-size, 18px);
   line-height: 1.9;
@@ -5216,14 +5218,13 @@ code .dec {
 }
 
 .long-article-paragraph-comment-btn {
-  position: absolute;
-  top: 50%;
-  right: -36px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
+  margin-left: 8px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -5231,7 +5232,9 @@ code .dec {
   color: #6e8975;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(-50%) translateX(-4px);
+  transform: translateY(2px);
+  vertical-align: baseline;
+  text-indent: 0;
   transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, color 0.2s ease;
 
   svg {
@@ -5255,15 +5258,15 @@ code .dec {
   }
 }
 
-.long-article-commentable-block:hover > .long-article-paragraph-comment-btn,
+.long-article-commentable-block:hover .long-article-paragraph-comment-btn,
 .long-article-paragraph-comment-btn.has-comments,
-.long-article-commentable-block.is-commenting > .long-article-paragraph-comment-btn {
+.long-article-commentable-block.is-commenting .long-article-paragraph-comment-btn {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  transform: translateY(2px);
 }
 
 .long-article-paragraph-comment-btn:hover,
-.long-article-commentable-block.is-commenting > .long-article-paragraph-comment-btn {
+.long-article-commentable-block.is-commenting .long-article-paragraph-comment-btn {
   background: #3e7250;
   color: #fff;
 }

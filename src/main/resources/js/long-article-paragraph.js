@@ -65,7 +65,9 @@ window.LongArticleParagraphComments = {
       button.setAttribute('data-open-paragraph-comments', paragraph.getAttribute('data-long-paragraph-id'))
       button.setAttribute('aria-label', '查看段评')
       button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><span>0</span>'
-      paragraph.appendChild(button)
+      var lines = paragraph.querySelectorAll('.long-article-paragraph-line')
+      var target = lines.length ? lines[lines.length - 1] : paragraph
+      target.appendChild(button)
       self.updateParagraphButton(paragraph.getAttribute('data-long-paragraph-id'))
     })
   },
@@ -286,12 +288,7 @@ window.LongArticleParagraphComments = {
   },
 
   getDirectCommentButton: function (paragraph) {
-    for (var i = 0; i < paragraph.children.length; i++) {
-      if (paragraph.children[i].classList.contains('long-article-paragraph-comment-btn')) {
-        return paragraph.children[i]
-      }
-    }
-    return null
+    return paragraph.querySelector('.long-article-paragraph-comment-btn')
   },
 
   getActiveParagraphId: function () {
