@@ -231,7 +231,9 @@ window.LongArticle = {
         var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
         var selectedWidth = this.settings.width === 'auto' ? Math.min(viewportWidth * 0.8, 1200) : parseInt(this.settings.width, 10);
         var closedArticleWidth = Math.min(selectedWidth, Math.max(320, viewportWidth - 28));
-        var drawerWidth = viewportWidth <= 768 ? Math.max(280, viewportWidth - 20) : Math.min(320, Math.max(280, viewportWidth * 0.2));
+        var drawerWidth = viewportWidth <= 768
+            ? Math.max(280, viewportWidth - 20)
+            : Math.min(280, Math.max(240, closedArticleWidth * 0.38));
         var articleDrawerGap = 0;
         var toolbarGap = 14;
         var toolbarWidth = 64;

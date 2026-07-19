@@ -5206,7 +5206,7 @@ code .dec {
 }
 
 .article.long-article-page {
-  --long-article-drawer-width: min(320px, calc(100vw - 72px));
+  --long-article-drawer-width: min(280px, calc(100vw - 72px));
   min-height: 100vh;
   padding-top: 0;
   overflow-x: hidden;
