@@ -5206,7 +5206,7 @@ code .dec {
 }
 
 .article.long-article-page {
-  --long-article-drawer-width: min(360px, calc(100vw - 72px));
+  --long-article-drawer-width: min(320px, calc(100vw - 72px));
   min-height: 100vh;
   padding-top: 0;
   overflow-x: hidden;
@@ -5311,7 +5311,7 @@ code .dec {
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 0;
-    border-left: 0;
+    border-left: 1px solid rgba(61, 91, 68, 0.18);
     border-radius: 0;
     background: #dcebdd;
     box-shadow: none;
@@ -5381,6 +5381,12 @@ code .dec {
       flex-basis: var(--long-article-drawer-width);
       width: var(--long-article-drawer-width);
       height: auto;
+    }
+  }
+
+  &.long-article-comments-open:not(.long-article-comments-inline) {
+    .long-article-settings {
+      display: none;
     }
   }
 
@@ -6001,7 +6007,7 @@ body.night {
 
     #articleCommentsPanel {
       background: #111111;
-      border-left: 0;
+      border-left-color: rgba(255, 255, 255, 0.1);
       box-shadow: none;
     }
 
