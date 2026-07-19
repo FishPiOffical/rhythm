@@ -5114,6 +5114,15 @@ code .dec {
     text-indent: 2em;
   }
 
+  > p.long-article-paragraph-lines {
+    text-indent: 0;
+  }
+
+  .long-article-paragraph-line {
+    display: block;
+    text-indent: 2em;
+  }
+
   > p:has(> img),
   > p:has(> picture),
   > p:has(> video),
@@ -5257,6 +5266,7 @@ code .dec {
   .article-body > .wrapper {
     box-sizing: border-box;
     width: 100%;
+    min-width: 0;
     max-width: none;
     padding: 80px clamp(32px, 6vw, 64px) 64px;
   }
@@ -5917,10 +5927,22 @@ code .dec {
 }
 
 .long-article-settings-btn--top {
-  display: none;
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.94);
+  visibility: hidden;
+  transition: height 0.24s ease, opacity 0.2s ease, transform 0.24s ease, visibility 0s linear 0.24s;
 
   &.is-visible {
-    display: flex;
+    height: 64px;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+    transition-delay: 0s;
   }
 }
 
@@ -6315,6 +6337,10 @@ body.night {
 
   .long-article-settings-btn {
     width: 54px;
+    height: 54px;
+  }
+
+  .long-article-settings-btn--top.is-visible {
     height: 54px;
   }
 

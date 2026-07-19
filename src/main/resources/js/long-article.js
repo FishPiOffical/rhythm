@@ -28,6 +28,7 @@ window.LongArticle = {
         this.loadSettings();
         this.bindEvents();
         this.applySettings();
+        this.formatParagraphIndentation();
         this.updateTopButton();
         if (this.shouldOpenCommentsFromLocation()) {
             this.openComments();
@@ -86,6 +87,34 @@ window.LongArticle = {
             return fallback;
         }
         return Math.max(min, Math.min(max, size));
+    },
+
+    formatParagraphIndentation: function () {
+        document.querySelectorAll('.long-article-content > p').forEach(function (paragraph) {
+            var hasDirectBreak = Array.prototype.some.call(paragraph.childNodes, function (node) {
+                return node.nodeType === 1 && node.tagName === 'BR';
+            });
+            if (!hasDirectBreak || paragraph.querySelector('img, picture, video, iframe')) {
+                return;
+            }
+
+            var fragment = document.createDocumentFragment();
+            var line = document.createElement('span');
+            line.className = 'long-article-paragraph-line';
+            Array.prototype.slice.call(paragraph.childNodes).forEach(function (node) {
+                if (node.nodeType === 1 && node.tagName === 'BR') {
+                    fragment.appendChild(line);
+                    line = document.createElement('span');
+                    line.className = 'long-article-paragraph-line';
+                } else {
+                    line.appendChild(node);
+                }
+            });
+            fragment.appendChild(line);
+            paragraph.textContent = '';
+            paragraph.classList.add('long-article-paragraph-lines');
+            paragraph.appendChild(fragment);
+        });
     },
 
     saveSettings: function () {
