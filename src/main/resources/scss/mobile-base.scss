@@ -5502,6 +5502,24 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   color: #9ba79f;
 }
 
+.long-article-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  margin: 0 0 20px;
+  padding: 0 9px 0 7px;
+  border-radius: 5px;
+  color: #526c5a;
+  font-size: 13px;
+  text-decoration: none;
+
+  svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
 body.long-article-page {
   --long-article-comments-width: min(430px, 100vw);
   min-height: 100vh;
@@ -6181,6 +6199,10 @@ body.night {
     .article-title,
     .article-title > a {
       color: #eef4ef;
+    }
+
+    .long-article-home-link {
+      color: #989898;
     }
 
     #comments {
