@@ -5512,22 +5512,29 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   box-shadow: inset 0 -1px 0 rgba(77, 111, 84, 0.42);
 }
 
+.long-article-commentable-block.has-paragraph-comments,
+.long-article-commentable-block.is-commenting {
+  padding-right: 34px;
+}
+
 .long-article-paragraph-comment-btn {
-  position: relative;
+  position: absolute;
+  right: 6px;
+  bottom: 0.35em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 20px;
-  margin-left: 6px;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 3px;
   background: transparent;
   color: #6e8975;
   opacity: 0.76;
-  transform: translateY(-1px);
-  vertical-align: 0.18em;
+  transform: none;
+  vertical-align: initial;
   text-indent: 0;
 
   svg {

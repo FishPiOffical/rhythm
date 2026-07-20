@@ -133,6 +133,10 @@ window.LongArticleParagraphComments = {
     }
     var count = parseInt(this.counts[paragraphId] || 0)
     button.classList.toggle('has-comments', count > 0)
+    var paragraph = document.querySelector('[data-long-paragraph-id="' + paragraphId + '"]')
+    if (paragraph) {
+      paragraph.classList.toggle('has-paragraph-comments', count > 0)
+    }
     var countElement = button.querySelector('span')
     countElement.textContent = count > 0 ? count : ''
     countElement.hidden = count <= 0
