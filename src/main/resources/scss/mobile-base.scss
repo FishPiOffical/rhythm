@@ -5591,6 +5591,14 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   background: #dcebdd;
 }
 
+.long-article-paragraph-comments .reaction-widget__summary {
+  display: none;
+}
+
+.long-article-paragraph-comments .comment-thread {
+  --comment-thread-max-indent: 16px;
+}
+
 .long-article-paragraph-comments.is-active {
   display: block;
 }

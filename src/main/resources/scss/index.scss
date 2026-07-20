@@ -5315,6 +5315,14 @@ code .dec {
   background: #dcebdd;
 }
 
+.long-article-paragraph-comments .reaction-widget__summary {
+  display: none;
+}
+
+.long-article-paragraph-comments .comment-thread {
+  --comment-thread-max-indent: 28px;
+}
+
 .long-article-paragraph-comments.is-active {
   display: block;
 }
