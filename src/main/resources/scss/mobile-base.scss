@@ -5526,8 +5526,8 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   background: transparent;
   color: #6e8975;
   opacity: 0.76;
-  transform: translateY(2px);
-  vertical-align: baseline;
+  transform: translateY(-1px);
+  vertical-align: 0.18em;
   text-indent: 0;
 
   svg {
@@ -5539,14 +5539,14 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
     position: static;
     display: none;
     min-width: 12px;
-    height: 16px;
+    height: 18px;
     padding: 0 4px;
     border: 1px solid rgba(77, 111, 84, 0.32);
     border-radius: 2px;
     background: rgba(237, 245, 237, 0.78);
     color: #617068;
     font-size: 10px;
-    line-height: 14px;
+    line-height: 16px;
     text-align: center;
   }
 }
@@ -5554,6 +5554,7 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
 .long-article-paragraph-comment-btn.has-comments {
   width: auto;
   min-width: 18px;
+  height: 18px;
   padding: 0;
   opacity: 1;
 

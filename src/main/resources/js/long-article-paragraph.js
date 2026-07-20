@@ -79,12 +79,12 @@ window.LongArticleParagraphComments = {
       if (openButton) {
         event.preventDefault()
         event.stopPropagation()
-        self.open(openButton.getAttribute('data-open-paragraph-comments'))
+        self.toggle(openButton.getAttribute('data-open-paragraph-comments'))
         return
       }
       var paragraph = event.target.closest && event.target.closest('.long-article-commentable-block')
       if (paragraph && self.canOpenFromParagraphClick(event, paragraph)) {
-        self.open(paragraph.getAttribute('data-long-paragraph-id'))
+        self.toggle(paragraph.getAttribute('data-long-paragraph-id'))
         return
       }
       if (event.target.closest && event.target.closest('[data-paragraph-comments-close]')) {
@@ -151,6 +151,14 @@ window.LongArticleParagraphComments = {
     }
     var selection = window.getSelection && window.getSelection()
     return !selection || selection.isCollapsed || !paragraph.contains(selection.anchorNode)
+  },
+
+  toggle: function (paragraphId) {
+    if (this.activeParagraphId === paragraphId && this.paragraphPanel.classList.contains('is-active')) {
+      this.close()
+      return
+    }
+    this.open(paragraphId)
   },
 
   open: function (paragraphId) {
