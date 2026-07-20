@@ -5335,10 +5335,9 @@ code .dec {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
-  border-radius: 5px;
-  background: rgba(220, 235, 221, 0.96);
-  box-shadow: 0 6px 16px rgba(48, 73, 55, 0.14);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
   transform: translate(-4px, -50%);
@@ -5347,7 +5346,7 @@ code .dec {
   white-space: nowrap;
 }
 
-#longArticleParagraphComments .long-article-paragraph-comment-card.is-actions-visible .long-article-paragraph-comment-hover-actions {
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions.is-actions-visible {
   opacity: 1;
   pointer-events: auto;
   transform: translate(0, -50%);
@@ -5384,8 +5383,15 @@ code .dec {
 }
 
 #longArticleParagraphComments .long-article-paragraph-comment-more {
-  font-size: 13px;
-  letter-spacing: 1px;
+  width: 24px;
+  min-width: 24px;
+  padding: 0;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
 }
 
 #longArticleParagraphComments .long-article-paragraph-comment-more-panel {
@@ -5396,13 +5402,14 @@ code .dec {
   align-items: center;
   gap: 2px;
   padding: 4px;
+  border: 1px solid rgba(95, 126, 104, 0.18);
   border-radius: 6px;
-  background: #edf5ed;
-  box-shadow: 0 8px 20px rgba(48, 73, 55, 0.18);
+  background: #f4f8f4;
+  box-shadow: none;
   white-space: nowrap;
 }
 
-#longArticleParagraphComments .long-article-paragraph-comment-card.is-more-open .long-article-paragraph-comment-more-panel {
+#longArticleParagraphComments .long-article-paragraph-comment-more-menu.is-more-open .long-article-paragraph-comment-more-panel {
   display: inline-flex;
 }
 

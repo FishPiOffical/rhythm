@@ -79,6 +79,26 @@ window.LongArticleParagraphComments = {
         ? node.closest('.long-article-paragraph-comment-card')
         : null
     }
+    var setCardActionsVisible = function (card, visible) {
+      if (!card) {
+        return
+      }
+      var cardId = card.getAttribute('data-long-paragraph-comment-card-id')
+      if (!cardId) {
+        return
+      }
+      self.paragraphPanel.querySelectorAll('[data-long-paragraph-comment-actions-for="' + cardId + '"]').forEach(function (actions) {
+        actions.classList.toggle('is-actions-visible', visible)
+      })
+    }
+    var hideCommentActions = function () {
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-hover-actions.is-actions-visible').forEach(function (item) {
+        item.classList.remove('is-actions-visible')
+      })
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-more-menu.is-more-open').forEach(function (item) {
+        item.classList.remove('is-more-open')
+      })
+    }
     document.addEventListener('click', function (event) {
       var openButton = event.target.closest && event.target.closest('[data-open-paragraph-comments]')
       if (openButton) {
@@ -91,14 +111,18 @@ window.LongArticleParagraphComments = {
       if (moreButton) {
         event.preventDefault()
         event.stopPropagation()
-        var moreCard = moreButton.closest('.long-article-paragraph-comment-card')
-        if (moreCard) {
-          moreCard.classList.toggle('is-more-open')
+        var moreMenu = moreButton.closest('.long-article-paragraph-comment-more-menu')
+        if (moreMenu) {
+          var willOpen = !moreMenu.classList.contains('is-more-open')
+          self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-more-menu.is-more-open').forEach(function (item) {
+            item.classList.remove('is-more-open')
+          })
+          moreMenu.classList.toggle('is-more-open', willOpen)
         }
         return
       }
       if (!event.target.closest || !event.target.closest('.long-article-paragraph-comment-more-menu')) {
-        self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
+        self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-more-menu.is-more-open').forEach(function (item) {
           item.classList.remove('is-more-open')
         })
       }
@@ -129,28 +153,18 @@ window.LongArticleParagraphComments = {
       if (!card || getActionCard(event.relatedTarget) === card) {
         return
       }
-      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
-        item.classList.remove('is-actions-visible')
-      })
-      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
-        item.classList.remove('is-more-open')
-      })
-      card.classList.add('is-actions-visible')
+      hideCommentActions()
+      setCardActionsVisible(card, true)
     })
     this.paragraphPanel.addEventListener('mouseout', function (event) {
       var card = getActionCard(event.target)
-      if (!card || getActionCard(event.relatedTarget)) {
+      if (!card || getActionCard(event.relatedTarget) === card) {
         return
       }
-      card.classList.remove('is-actions-visible')
+      setCardActionsVisible(card, false)
     })
     this.paragraphPanel.addEventListener('mouseleave', function () {
-      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
-        item.classList.remove('is-actions-visible')
-      })
-      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
-        item.classList.remove('is-more-open')
-      })
+      hideCommentActions()
     })
   },
 
@@ -325,7 +339,14 @@ window.LongArticleParagraphComments = {
     this.paragraphPanel.querySelectorAll('.comment-thread__reply').forEach(function (reply) {
       reply.classList.add('long-article-paragraph-comment-card')
     })
+    this.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card').forEach(function (card, index) {
+      card.setAttribute('data-long-paragraph-comment-card-id', String(index))
+    })
     this.paragraphPanel.querySelectorAll('.action-btns').forEach(function (actions) {
+      var card = actions.closest('.long-article-paragraph-comment-card')
+      if (!card) {
+        return
+      }
       var hoverActions = []
       var overflowActions = []
       var actionNodes = []
@@ -355,6 +376,7 @@ window.LongArticleParagraphComments = {
       }
       var hoverTray = document.createElement('span')
       hoverTray.className = 'long-article-paragraph-comment-hover-actions'
+      hoverTray.setAttribute('data-long-paragraph-comment-actions-for', card.getAttribute('data-long-paragraph-comment-card-id'))
       for (var k = 0; k < hoverActions.length; k++) {
         hoverTray.appendChild(hoverActions[k])
       }
@@ -366,7 +388,7 @@ window.LongArticleParagraphComments = {
         moreButton.className = 'long-article-paragraph-comment-more'
         moreButton.setAttribute('data-long-paragraph-comment-more', '')
         moreButton.setAttribute('aria-label', '更多')
-        moreButton.textContent = '•••'
+        moreButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>'
         var morePanel = document.createElement('span')
         morePanel.className = 'long-article-paragraph-comment-more-panel'
         for (var m = 0; m < overflowActions.length; m++) {
