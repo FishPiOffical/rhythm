@@ -6205,13 +6205,13 @@ body.night .long-article-paragraph-comments {
 .article-column-card {
   margin: 16px 0;
   padding: 12px;
-  border: 1px solid #eceff5;
+  border: 1px solid #b7cfba;
   border-radius: 8px;
-  background: #fbfdff;
+  background: #cfe2d0;
 }
 
 .article-column-card__title {
-  color: #2b3a55;
+  color: #2d4935;
   font-weight: 600;
 
   a {
@@ -6222,7 +6222,7 @@ body.night .long-article-paragraph-comments {
 
 .article-column-card__meta {
   margin-top: 4px;
-  color: #7b8798;
+  color: #718078;
   font-size: 12px;
 }
 
@@ -6231,25 +6231,25 @@ body.night .long-article-paragraph-comments {
   max-height: 260px;
   overflow: auto;
   padding-top: 8px;
-  border-top: 1px dashed #e6eaf0;
+  border-top: 1px dashed #b8d0bb;
 }
 
 .article-column-card__chapter {
   display: block;
   padding: 6px 8px;
   border-radius: 8px;
-  color: #3d4a5c;
+  color: #3b5743;
   text-decoration: none;
 
   &:hover {
-    background: #f1f6ff;
+    background: #c1d9c4;
     text-decoration: none;
   }
 }
 
 .article-column-card__chapter--active {
-  background: #e8f0ff;
-  color: #1d4ed8;
+  background: #b2d0b5;
+  color: #28593a;
   font-weight: 600;
 }
 
@@ -6654,7 +6654,11 @@ body.night {
   }
 
   .article-column-card__chapter:hover,
-  .article-column-card__chapter--active,
+  .article-column-card__chapter--active {
+    background: rgba(95, 149, 109, 0.24);
+    color: #c9edcf;
+  }
+
   .article-nav-list-card__item:hover,
   .article-nav-list-card__item--active {
     background: rgba(59, 130, 246, 0.18);
