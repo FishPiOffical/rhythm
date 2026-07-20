@@ -41,12 +41,14 @@ import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
 import org.b3log.symphony.processor.middleware.validate.CommentAddValidationMidware;
 import org.b3log.symphony.processor.middleware.validate.CommentUpdateValidationMidware;
+import org.b3log.symphony.processor.middleware.validate.LongArticleParagraphCommentValidationMidware;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -157,6 +159,9 @@ public class CommentProcessor {
     private FollowMgmtService followMgmtService;
 
     @Inject
+    private LongArticleParagraphService longArticleParagraphService;
+
+    @Inject
     private PointtransferMgmtService pointtransferMgmtService;
 
     /**
@@ -170,6 +175,8 @@ public class CommentProcessor {
         final AnonymousViewCheckMidware anonymousViewCheckMidware = beanManager.getReference(AnonymousViewCheckMidware.class);
         final CommentUpdateValidationMidware commentUpdateValidationMidware = beanManager.getReference(CommentUpdateValidationMidware.class);
         final CommentAddValidationMidware commentAddValidationMidware = beanManager.getReference(CommentAddValidationMidware.class);
+        final LongArticleParagraphCommentValidationMidware paragraphValidation =
+                beanManager.getReference(LongArticleParagraphCommentValidationMidware.class);
 
         final CommentProcessor commentProcessor = beanManager.getReference(CommentProcessor.class);
         Dispatcher.post("/comment/accept", commentProcessor::acceptComment, loginCheck::handle, csrfMidware::check, permissionMidware::check);
@@ -182,6 +189,13 @@ public class CommentProcessor {
         Dispatcher.post("/comment/thread/parents", commentProcessor::getThreadParentComments, anonymousViewCheckMidware::handle);
         Dispatcher.post("/comment/thread/replies", commentProcessor::getThreadReplies, anonymousViewCheckMidware::handle);
         Dispatcher.post("/comment", commentProcessor::addComment, loginCheck::handle, permissionMidware::check, commentAddValidationMidware::handle);
+        Dispatcher.post("/comment/paragraph", commentProcessor::addParagraphComment,
+                loginCheck::handle, permissionMidware::check, commentAddValidationMidware::handle,
+                paragraphValidation::handle);
+        Dispatcher.post("/comment/paragraph/summary", commentProcessor::getParagraphSummary,
+                anonymousViewCheckMidware::handle);
+        Dispatcher.post("/comment/paragraph/thread/parents", commentProcessor::getParagraphThreadParents,
+                anonymousViewCheckMidware::handle);
         Dispatcher.post("/comment/thank", commentProcessor::thankComment, loginCheck::handle, permissionMidware::check);
     }
 
@@ -522,6 +536,69 @@ public class CommentProcessor {
                 renderJSONValue(Pagination.PAGINATION, buildThreadPagination(currentPage, pageCount, commentCnt));
     }
 
+    public void getParagraphSummary(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
+        final JSONObject request = context.requestJSON();
+        final String articleId = request.optString(Article.ARTICLE_T_ID, request.optString("articleId"));
+        final JSONObject currentUser = getCurrentUser(context, request);
+        final JSONObject article = getViewableArticle(articleId, currentUser);
+        if (null == article || Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)) {
+            context.renderMsg("文章不存在或不可查看");
+            return;
+        }
+        articleQueryService.processArticleContent(article);
+
+        final Map<String, Integer> counts = commentQueryService.getParagraphCommentCounts(articleId);
+        final List<JSONObject> summaries = new java.util.ArrayList<>();
+        for (final LongArticleParagraphService.Paragraph paragraph :
+                longArticleParagraphService.extractRendered(articleId, article.optString(Article.ARTICLE_CONTENT))) {
+            final JSONObject item = new JSONObject();
+            item.put("paragraphId", paragraph.getId());
+            item.put("commentCount", counts.getOrDefault(paragraph.getId(), 0));
+            summaries.add(item);
+        }
+        context.renderJSON(StatusCodes.SUCC).renderJSONValue("paragraphComments", summaries);
+    }
+
+    public void getParagraphThreadParents(final RequestContext context) {
+        context.renderJSON(StatusCodes.ERR);
+        final JSONObject request = context.requestJSON();
+        final String articleId = request.optString(Article.ARTICLE_T_ID, request.optString("articleId"));
+        final String paragraphId = request.optString("paragraphId");
+        final JSONObject currentUser = getCurrentUser(context, request);
+        final JSONObject article = getViewableArticle(articleId, currentUser);
+        if (null == article || Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)) {
+            context.renderMsg("段落不存在或不可查看");
+            return;
+        }
+        articleQueryService.processArticleContent(article);
+        final LongArticleParagraphService.Paragraph paragraph = longArticleParagraphService.findRenderedParagraph(
+                articleId, article.optString(Article.ARTICLE_CONTENT), paragraphId);
+        if (null == paragraph) {
+            context.renderMsg("段落不存在或不可查看");
+            return;
+        }
+        final int pageNum = request.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM, 1);
+        if (pageNum < 1) {
+            context.renderMsg("页码无效");
+            return;
+        }
+        final int sortMode = normalizeCommentViewMode(request);
+        final String currentUserId = getCurrentUserId(currentUser);
+        final int commentCnt = commentQueryService.countParagraphThreadParents(articleId, paragraphId);
+        final int pageCount = (int) Math.ceil((double) commentCnt / Symphonys.ARTICLE_COMMENTS_CNT);
+        final int currentPage = normalizeThreadPage(pageNum, pageCount, sortMode);
+        final List<JSONObject> comments = commentQueryService.getParagraphThreadParentComments(articleId,
+                paragraphId, currentPage, sortMode, normalizeCommentSort(request.optString("sort")),
+                currentUserId, article.optString(Article.ARTICLE_AUTHOR_ID));
+        fillThreadParentViewState(comments, article, currentUser, sortMode);
+        context.renderJSON(StatusCodes.SUCC).
+                renderJSONValue(COMMENT_THREAD_PARENTS, comments).
+                renderJSONValue("paragraphId", paragraphId).
+                renderJSONValue("paragraphSnapshot", paragraph.getSnapshot()).
+                renderJSONValue(Pagination.PAGINATION, buildThreadPagination(currentPage, pageCount, commentCnt));
+    }
+
     public void getThreadReplies(final RequestContext context) {
         context.renderJSON(StatusCodes.ERR);
         final JSONObject requestJSONObject = context.requestJSON();
@@ -818,6 +895,14 @@ public class CommentProcessor {
      * @param context the specified context
      */
     public void addComment(final RequestContext context) {
+        addComment(context, false);
+    }
+
+    public void addParagraphComment(final RequestContext context) {
+        addComment(context, true);
+    }
+
+    private void addComment(final RequestContext context, final boolean paragraphComment) {
         context.renderJSON(StatusCodes.ERR);
 
         final Request request = context.getRequest();
@@ -846,6 +931,15 @@ public class CommentProcessor {
             comment.put(Comment.COMMENT_UA, ua);
         }
         comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, commentOriginalCommentId);
+        if (paragraphComment) {
+            comment.put(Comment.COMMENT_TYPE, Comment.COMMENT_TYPE_C_PARAGRAPH);
+            comment.put(Comment.COMMENT_PARAGRAPH_ID, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_ID));
+            comment.put(Comment.COMMENT_PARAGRAPH_KIND, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_KIND));
+            comment.put(Comment.COMMENT_PARAGRAPH_INDEX, requestJSONObject.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
+            comment.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
+            comment.put(Comment.COMMENT_PARAGRAPH_STATUS, requestJSONObject.optInt(
+                    Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE));
+        }
 
         try {
             JSONObject currentUser = Sessions.getUser();
@@ -889,7 +983,7 @@ public class CommentProcessor {
             comment.put(Comment.COMMENT_VISIBLE, isOnlyAuthorVisible
                     ? Comment.COMMENT_VISIBLE_C_AUTHOR : Comment.COMMENT_VISIBLE_C_ALL);
 
-            commentMgmtService.addComment(comment);
+            final String commentId = commentMgmtService.addComment(comment);
 
             if ((!commentAuthorId.equals(articleAuthorId) &&
                     UserExt.USER_XXX_STATUS_C_ENABLED == currentUser.optInt(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS))
@@ -898,6 +992,9 @@ public class CommentProcessor {
             }
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
+            if (paragraphComment) {
+                context.renderJSONValue("commentId", commentId);
+            }
         } catch (final ServiceException e) {
             context.renderMsg(e.getMessage());
         }

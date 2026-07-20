@@ -162,6 +162,9 @@ public class ArticleProcessor {
     @Inject
     private LongArticleColumnQueryService longArticleColumnQueryService;
 
+    @Inject
+    private LongArticleParagraphService longArticleParagraphService;
+
     /**
      * Comment query service.
      */
@@ -534,6 +537,9 @@ public class ArticleProcessor {
         articleQueryService.processArticleContent(article);
 
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject paragraphContent = longArticleParagraphService.annotateRenderedContent(
+                    articleId, article.optString(Article.ARTICLE_CONTENT));
+            article.put(Article.ARTICLE_CONTENT, paragraphContent.optString("html"));
             final JSONObject readStat = longArticleReadService.getStat(articleId);
             article.put("longArticleReadStat", readStat);
             dataModel.put("longArticleReadStat", readStat);
@@ -1418,6 +1424,9 @@ public class ArticleProcessor {
         articleQueryService.processArticleContent(article);
 
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            final JSONObject paragraphContent = longArticleParagraphService.annotateRenderedContent(
+                    articleId, article.optString(Article.ARTICLE_CONTENT));
+            article.put(Article.ARTICLE_CONTENT, paragraphContent.optString("html"));
             final JSONObject readStat = longArticleReadService.getStat(articleId);
             article.put("longArticleReadStat", readStat);
             dataModel.put("longArticleReadStat", readStat);
@@ -1640,6 +1649,11 @@ public class ArticleProcessor {
         // Load comments
         final List<JSONObject> articleComments = commentQueryService.getArticleThreadParentComments(commentThreadOptions);
         article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
+        if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
+            article.put("articleOrphanedParagraphComments", (Object)
+                    commentQueryService.getOrphanedParagraphThreadParentComments(
+                            articleId, currentUserId, articleAuthorId));
+        }
         article.put("commentors", (Object) commentQueryService.getArticleCommentors(articleId));
 
         // Fill comment thank

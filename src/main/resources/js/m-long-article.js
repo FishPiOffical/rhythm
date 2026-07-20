@@ -7,106 +7,207 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 /**
  * Mobile long article reading page functionality.
  */
 window.MLongArticle = {
+    storageKey: 'longArticleSettings',
     settings: {
-        theme: 'light',
-        fontSize: 16
+        width: '800',
+        desktopFontSize: 18,
+        mobileFontSize: 16
     },
 
-    init: function() {
+    init: function () {
+        if (this.initialized) {
+            return;
+        }
+        this.initialized = true;
         this.loadSettings();
         this.bindEvents();
         this.applySettings();
+        if (this.shouldOpenCommentsFromLocation()) {
+            this.openComments();
+            this.focusLocationComment();
+        }
     },
 
-    loadSettings: function() {
-        var saved = localStorage.getItem('mLongArticleSettings');
-        if (saved) {
-            try {
-                this.settings = JSON.parse(saved);
-            } catch (e) {
-                console.error('Failed to parse settings', e);
+    loadSettings: function () {
+        var settings = {
+            width: '800',
+            desktopFontSize: 18,
+            mobileFontSize: 16
+        };
+        var saved;
+
+        try {
+            saved = JSON.parse(window.localStorage.getItem(this.storageKey) || '{}');
+        } catch (e) {
+            saved = {};
+        }
+        if (saved && typeof saved === 'object') {
+            settings.width = ['auto', '600', '800', '1000', '1200'].indexOf(String(saved.width || '800')) >= 0 ? String(saved.width || '800') : '800';
+            settings.desktopFontSize = this.normalizeFontSize(saved.desktopFontSize || saved.fontSize, 18, 32, 18);
+            settings.mobileFontSize = this.normalizeFontSize(saved.mobileFontSize || saved.fontSize, 16, 24, 16);
+        }
+
+        try {
+            var legacyFontSize = parseInt(window.localStorage.getItem('longArticleFontSize'), 10);
+            var oldSettings = JSON.parse(window.localStorage.getItem('mLongArticleSettings') || '{}');
+            if (!saved.mobileFontSize && oldSettings && !isNaN(parseInt(oldSettings.fontSize, 10))) {
+                settings.mobileFontSize = this.normalizeFontSize(parseInt(oldSettings.fontSize, 10), 16, 24, 16);
+            } else if (!saved.mobileFontSize && !isNaN(legacyFontSize)) {
+                settings.mobileFontSize = this.normalizeFontSize(legacyFontSize, 16, 24, 16);
             }
+            window.localStorage.removeItem('longArticleFontSize');
+            window.localStorage.removeItem('mLongArticleSettings');
+        } catch (e) {
+            // Ignore unavailable or malformed legacy storage.
+        }
+
+        this.settings = settings;
+        this.saveSettings();
+    },
+
+    normalizeFontSize: function (size, min, max, fallback) {
+        size = parseInt(size, 10);
+        if (isNaN(size)) {
+            return fallback;
+        }
+        return Math.max(min, Math.min(max, size));
+    },
+
+    saveSettings: function () {
+        try {
+            window.localStorage.setItem(this.storageKey, JSON.stringify(this.settings));
+        } catch (e) {
+            // Ignore unavailable storage.
         }
     },
 
-    saveSettings: function() {
-        localStorage.setItem('mLongArticleSettings', JSON.stringify(this.settings));
+    applySettings: function () {
+        document.documentElement.style.setProperty('--long-article-font-size', this.settings.mobileFontSize + 'px');
     },
 
-    applySettings: function() {
-        var body = document.body;
-        var content = document.querySelector('.m-long-article-content');
-
-        if (this.settings.theme === 'night') {
-            body.classList.add('night');
-        } else {
-            body.classList.remove('night');
-        }
-
-        if (content) {
-            content.style.fontSize = this.settings.fontSize + 'px';
-        }
-        var fontSizeEl = document.getElementById('mFontSizeValue');
-        if (fontSizeEl) {
-            fontSizeEl.textContent = this.settings.fontSize + 'px';
-        }
-    },
-
-    bindEvents: function() {
+    bindEvents: function () {
         var self = this;
-
-        document.addEventListener('click', function(e) {
-            var panel = document.getElementById('mSettingsPanel');
-            var toggle = document.querySelector('.m-action-btn[onclick*="openSettings"]');
-            if (panel && panel.classList.contains('active')) {
-                if (!panel.contains(e.target) && (!toggle || !toggle.contains(e.target))) {
-                    panel.classList.remove('active');
+        var toolbar = document.querySelector('[data-long-article-toolbar]');
+        if (!toolbar) {
+            return;
+        }
+        toolbar.addEventListener('click', function (event) {
+            var target = event.target;
+            while (target && target !== toolbar && !target.hasAttribute('data-long-article-action')) {
+                target = target.parentNode;
+            }
+            if (!target || target === toolbar) {
+                return;
+            }
+            var action = target.getAttribute('data-long-article-action');
+            if (action === 'toggle') {
+                var open = !toolbar.classList.contains('is-open');
+                toolbar.classList.toggle('is-open', open);
+                target.classList.toggle('active', open);
+                target.setAttribute('aria-expanded', open ? 'true' : 'false');
+            } else if (action === 'top') {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            } else if (action === 'comments') {
+                if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
+                    window.LongArticleParagraphComments.showChapterComments();
+                    self.openComments();
+                } else {
+                    self.toggleComments();
                 }
+            } else if (action === 'font-decrease') {
+                self.setFontSize(-2);
+            } else if (action === 'font-increase') {
+                self.setFontSize(2);
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (event.target.closest && event.target.closest('[data-long-article-comments-close]')) {
+                self.closeComments();
             }
         });
     },
 
-    openSettings: function() {
-        var panel = document.getElementById('mSettingsPanel');
-        if (panel) {
-            panel.classList.toggle('active');
-        }
-    },
-
-    setTheme: function(theme) {
-        this.settings.theme = theme;
+    setFontSize: function (delta) {
+        this.settings.mobileFontSize = this.normalizeFontSize(this.settings.mobileFontSize + delta, 12, 24, 16);
         this.saveSettings();
         this.applySettings();
-
-        var lightBtn = document.querySelector('.m-theme-btn.light');
-        var nightBtn = document.querySelector('.m-theme-btn.night');
-        if (lightBtn) lightBtn.classList.toggle('active', theme === 'light');
-        if (nightBtn) nightBtn.classList.toggle('active', theme === 'night');
     },
 
-    setFontSize: function(delta) {
-        var newSize = this.settings.fontSize + delta;
-        if (newSize >= 12 && newSize <= 24) {
-            this.settings.fontSize = newSize;
-            this.saveSettings();
-            this.applySettings();
+    getCommentsPanel: function () {
+        return document.getElementById('comments');
+    },
+
+    isCommentsOpen: function () {
+        return document.body.classList.contains('long-article-comments-open');
+    },
+
+    toggleComments: function () {
+        if (this.isCommentsOpen()) {
+            this.closeComments();
+        } else {
+            this.openComments();
         }
     },
 
-    toggleNight: function() {
-        this.setTheme(this.settings.theme === 'night' ? 'light' : 'night');
+    openComments: function () {
+        var panel = this.getCommentsPanel();
+        var button = document.querySelector('[data-long-article-action="comments"]');
+        if (!panel) {
+            return;
+        }
+        document.body.classList.add('long-article-comments-open');
+        panel.setAttribute('aria-hidden', 'false');
+        if (button) {
+            button.classList.add('is-active');
+            button.setAttribute('aria-expanded', 'true');
+        }
+    },
+
+    closeComments: function () {
+        var panel = this.getCommentsPanel();
+        var button = document.querySelector('[data-long-article-action="comments"]');
+        var editorPanel = document.querySelector('.editor-panel');
+        if (editorPanel && editorPanel.classList.contains('editor-panel--open') && window.Comment && typeof window.Comment._hideReplyPanel === 'function') {
+            window.Comment._hideReplyPanel();
+        }
+        if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
+            window.LongArticleParagraphComments.showChapterComments(true, false);
+        }
+        document.body.classList.remove('long-article-comments-open');
+        if (panel) {
+            panel.setAttribute('aria-hidden', 'true');
+        }
+        if (button) {
+            button.classList.remove('is-active');
+            button.setAttribute('aria-expanded', 'false');
+        }
+    },
+
+    shouldOpenCommentsFromLocation: function () {
+        var panel = this.getCommentsPanel();
+        var hash = window.location.hash.replace(/^#/, '');
+        var target = hash ? document.getElementById(hash) : null;
+        if (panel && target && panel.contains(target)) {
+            return true;
+        }
+        return /(?:\?|&)(?:p|m|sort|author|paragraph)=/.test(window.location.search);
+    },
+
+    focusLocationComment: function () {
+        var self = this;
+        window.setTimeout(function () {
+            var hash = window.location.hash.replace(/^#/, '');
+            var target = hash ? document.getElementById(hash) : null;
+            var panel = self.getCommentsPanel();
+            if (panel && target && panel.contains(target)) {
+                target.scrollIntoView({block: 'center'});
+            }
+        }, 0);
     }
 };

@@ -774,6 +774,9 @@ public class NotificationQueryService {
                 commentedNotification.put(Notification.NOTIFICATION_HAS_READ, notification.optBoolean(Notification.NOTIFICATION_HAS_READ));
                 commentedNotification.put(Comment.COMMENT_T_ARTICLE_PERFECT, articlePerfect);
                 commentedNotification.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, cmtViewMode));
+                commentedNotification.put(Comment.COMMENT_TYPE, comment.optInt(Comment.COMMENT_TYPE));
+                commentedNotification.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT,
+                        comment.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
 
                 rslts.add(commentedNotification);
             }
@@ -851,6 +854,9 @@ public class NotificationQueryService {
                 replyNotification.put(Comment.COMMENT_CREATE_TIME, comment.opt(Comment.COMMENT_CREATE_TIME));
                 replyNotification.put(Notification.NOTIFICATION_HAS_READ, notification.optBoolean(Notification.NOTIFICATION_HAS_READ));
                 replyNotification.put(Comment.COMMENT_T_ARTICLE_PERFECT, articlePerfect);
+                replyNotification.put(Comment.COMMENT_TYPE, comment.optInt(Comment.COMMENT_TYPE));
+                replyNotification.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT,
+                        comment.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
                 replyNotification.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_REPLY);
                 final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
                 replyNotification.put(Article.ARTICLE_T_ID, articleId);
@@ -870,6 +876,11 @@ public class NotificationQueryService {
     private String buildCommentSharpURL(final JSONObject comment, final int cmtViewMode) {
         final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
         final String commentId = comment.optString(Keys.OBJECT_ID);
+        if (Comment.COMMENT_TYPE_C_PARAGRAPH == comment.optInt(Comment.COMMENT_TYPE)
+                && StringUtils.isNotBlank(comment.optString(Comment.COMMENT_PARAGRAPH_ID))) {
+            return "/article/" + articleId + "?paragraph="
+                    + comment.optString(Comment.COMMENT_PARAGRAPH_ID) + "#" + commentId;
+        }
         final int cmtPage = commentQueryService.getCommentThreadPage(
                 articleId, commentId, cmtViewMode, Symphonys.ARTICLE_COMMENTS_CNT);
         return "/article/" + articleId + "?p=" + cmtPage + "&m=" + cmtViewMode + "#" + commentId;

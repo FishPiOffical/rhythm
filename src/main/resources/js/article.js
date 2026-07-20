@@ -188,6 +188,7 @@ var Comment = {
       + Comment.renderThreadVoteAction(data, true)
       + Comment.renderThreadVoteAction(data, false)
       + Comment.renderThreadReportAction(data)
+      + Comment.renderThreadRemoveAction(data)
       + Comment.renderThreadHistoryAction(data)
       + Comment.renderThreadEditAction(data)
       + Comment.renderThreadReplyAction(data)
@@ -242,6 +243,15 @@ var Comment = {
       Comment.escapeJSString(data.commentAuthorName) + '\', \'' +
       Comment.escapeJSString(data.oId) +
       '\')"><svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>'
+  },
+  renderThreadRemoveAction: function (data) {
+    if (!data.commentIsCurrentUser || !Label.canRemoveComment) {
+      return ''
+    }
+    return '<span aria-label="' + Comment.escapeHTML(Label.removeCommentLabel) +
+      '" class="tooltipped tooltipped-n" onclick="Comment.remove(\'' +
+      Comment.escapeJSString(data.oId) +
+      '\')"><svg class="ft-red"><use xlink:href="#remove"></use></svg></span>'
   },
   renderThreadEditAction: function (data) {
     if (!data.commentIsCurrentUser || !Label.canUpdateComment) {
@@ -698,6 +708,8 @@ var Comment = {
     if (!confirm('删除评论需要100积分，' + Label.confirmRemoveLabel)) {
       return false
     }
+    var commentElement = document.getElementById(id)
+    var paragraphId = commentElement ? commentElement.getAttribute('data-comment-paragraph-id') : ''
     $.ajax({
       url: Label.servePath + '/comment/' + id + '/remove',
       type: 'POST',
@@ -705,6 +717,9 @@ var Comment = {
       success: function (result, textStatus) {
         if (result.code === 0) {
           $('#' + id).remove()
+          if (paragraphId && window.LongArticleParagraphComments) {
+            window.LongArticleParagraphComments.handleRemove(paragraphId)
+          }
         } else {
           Util.alert(result.msg)
         }
@@ -855,6 +870,22 @@ var Comment = {
     return Comment.focusCommentById(targetId)
   },
   /**
+   * 隐藏回复面板
+   * @returns {Boolean}
+   */
+  _hideReplyPanel: function () {
+    var $panel = $('.editor-panel')
+    if ($panel.length === 0 || !$panel.hasClass('editor-panel--open')) {
+      return false
+    }
+    $panel.removeClass('editor-panel--open')
+    $panel.find('.wrapper').slideUp(function () {
+      $panel.fadeOut(100)
+      $('.footer').removeAttr('style')
+    })
+    return false
+  },
+  /**
    * 回复面板显示／隐藏
    * @param {function} cb 面板弹出后的回掉函数
    */
@@ -872,12 +903,13 @@ var Comment = {
       return false
     }
 
-    if ($('.footer').attr('style')) {
-      $('.editor-panel .wrapper').slideUp(function () {
-        $(".editor-panel").fadeOut(100)
-        $('.footer').removeAttr('style')
-      })
-      return false
+    var $panel = $('.editor-panel')
+    if ($panel.hasClass('editor-panel--open')) {
+      return Comment._hideReplyPanel()
+    }
+
+    if (document.body.classList.contains('long-article-page') && window.LongArticle && !window.LongArticle.isCommentsOpen()) {
+      window.LongArticle.openComments()
     }
 
     $('.cmt-anonymous').show()
@@ -892,13 +924,13 @@ var Comment = {
       removeData()
 
     // 如果 hide 初始化， focus 无效
-    if ($('.editor-panel').css('bottom') !== '0px') {
-      $('.editor-panel .wrapper').hide()
-      $('.editor-panel').css('bottom', 0)
+    if ($panel.css('bottom') !== '0px') {
+      $panel.find('.wrapper').hide()
+      $panel.css('bottom', 0)
     }
 
-    $('.editor-panel').show()
-    $('.editor-panel .wrapper').slideDown(function () {
+    $panel.show().addClass('editor-panel--open')
+    $panel.find('.wrapper').slideDown(function () {
       Comment.editor.focus()
       cb ? cb() : ''
     })
@@ -1564,12 +1596,21 @@ var Comment = {
         data('commentOriginalCommentId')
     }
 
+    var paragraphComments = window.LongArticleParagraphComments
+    var paragraphId = paragraphComments && paragraphComments.getSubmissionParagraphId
+      ? paragraphComments.getSubmissionParagraphId(requestJSONObject.commentOriginalCommentId) : ''
+    if (paragraphId) {
+      requestJSONObject.paragraphId = paragraphId
+    }
+
     var url = Label.servePath + '/comment',
       type = 'POST',
       commentId = $('#replyUseName').data('commentId')
     if (commentId) {
       url = Label.servePath + '/comment/' + commentId
       type = 'PUT'
+    } else if (paragraphId) {
+      url = Label.servePath + '/comment/paragraph'
     }
 
     $.ajax({
@@ -1605,6 +1646,10 @@ var Comment = {
           // clear reply comment
           $('#replyUseName').text('').removeData()
 
+          if (paragraphId && paragraphComments) {
+            paragraphComments.handleSubmitSuccess()
+          }
+
           // 发送后不主动调整页面位置，避免评论框收起时跳动
           if (requestJSONObject.commentOriginalCommentId) {
             Comment.focusCommentById(requestJSONObject.commentOriginalCommentId, {
@@ -1633,6 +1678,9 @@ var Comment = {
    * @param {String} userName 用户名称
    */
   reply: function (userName, id) {
+    if (window.LongArticleParagraphComments) {
+      window.LongArticleParagraphComments.activateFromComment(document.getElementById(id))
+    }
     Comment._toggleReply(function () {
       var $target = Comment.getCommentElement(id)
       if ($target.length === 0) {

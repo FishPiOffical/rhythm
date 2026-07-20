@@ -18,6 +18,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
+<#if !(hidePageChrome!false)>
 <div class="footer">
     <div class="wrapper">
         <div class="slogan">
@@ -111,6 +112,7 @@
         </div>
     </div>
 </div>
+</#if>
 
 <script src="${staticServePath}/js/symbol-defs${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>

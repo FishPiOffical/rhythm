@@ -58,6 +58,9 @@
                 </div>
 
                 <div class="vditor-reset comment">
+                    <#if (comment.commentType!0) == 1 && (comment.commentParagraphSnapshot!'') != "">
+                    <div class="comment-paragraph-context">段评 · ${comment.commentParagraphSnapshot?html}</div>
+                    </#if>
                     ${comment.commentContent}
                 </div>
             </div>

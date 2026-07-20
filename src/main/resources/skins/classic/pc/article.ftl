@@ -80,19 +80,44 @@
     <meta name="twitter:creator" content="@B3logOS"/>
 </head>
 <body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
+<#assign hidePageChrome = (6 == article.articleType)>
 <img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
 <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+<#if !hidePageChrome>
 <#include "header.ftl">
+</#if>
+<#if 6 == article.articleType>
+<div class="long-article-reading-stage">
+</#if>
 <div class="article-container">
 <div class="article-body">
     <#if showTopAd && 6 != article.articleType>
         ${HeaderBannerLabel}
     </#if>
     <div class="wrapper">
+        <#if 6 == article.articleType>
+            <a class="long-article-home-link" href="${servePath}/" aria-label="返回鱼排首页" title="返回鱼排首页">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.42-1.41L7.83 13H20z"/></svg>
+                <span>首页</span>
+            </a>
+        </#if>
         <h1 class="article-title" itemprop="name">
             <@icon article.articlePerfect article.articleType></@icon>
             ${article.articleTitleEmoj}
         </h1>
+        <#if 6 == article.articleType>
+            <div class="long-article-meta">
+                <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">
+                    <#if article.articleAuthorNickName != "">${article.articleAuthorNickName}<#else>${article.articleAuthorName}</#if>
+                </a>
+                <span>${article.timeAgo}</span>
+                <#if longArticleColumn??>
+                    <span class="long-article-meta__separator">·</span>
+                    <a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}">${longArticleColumn.columnTitle}</a>
+                    <span>第 ${article.longArticleChapterNo?c} 章</span>
+                </#if>
+            </div>
+        </#if>
         <#if 0!= article.articleStatement>
         <div style="display: flex ;justify-content: center">
             <div class="article-statement">
@@ -143,10 +168,6 @@
 
         <div class="article-tail">
             <#if 6 == article.articleType>
-                <div class="long-article-meta">
-                    <a href="${servePath}/member/${article.articleAuthorName}" class="long-article-author">${article.articleAuthorName}</a>
-                    <span class="long-article-time">${article.timeAgo}</span>
-                </div>
                 <#if article.isMyArticle && article.longArticleReadStat??>
                     <div class="fn__flex-column" style="gap:8px;margin:12px 0;padding:12px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
                         <div class="ft__smaller ft__fade">长文阅读激励</div>
@@ -486,14 +507,19 @@
         <div class="module comments" id="comments">
             <div class="comments-header module-header">
                 <div class="comments-header__main">
-                    <span class="article-cmt-cnt">${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</span>
+                    <span class="article-cmt-cnt"><#if 6 == article.articleType>评论 <span class="long-article-comments-count">${commentDisplayCount!article.articleCommentCount} 条</span><#else>${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</#if></span>
                     <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
                         <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
                            aria-label="${jumpToBottomCommentLabel}"><svg><use
                                         xlink:href="#chevron-down"></use></svg></a>
                     </span>
+                    <#if 6 == article.articleType>
+                    <button type="button" class="long-article-comments-close" data-long-article-comments-close aria-label="关闭评论" title="关闭评论">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.42 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29 6.29-6.3z"/></svg>
+                    </button>
+                    </#if>
                 </div>
-                <#if article.articleCommentCount != 0>
+                <#if (commentDisplayCount!article.articleCommentCount) != 0>
                     <div class="comment-filterbar">
                         <div class="comment-segment">
                             <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
@@ -537,6 +563,16 @@
                         <#include 'common/comment.ftl' />
                     </#list>
                 </ul>
+                <#if 6 == article.articleType && (article.articleOrphanedParagraphComments![])?size gt 0>
+                <details class="long-article-orphaned-comments">
+                    <summary>原段落已修改 <span>${article.articleOrphanedParagraphComments?size}</span></summary>
+                    <ul>
+                        <#list article.articleOrphanedParagraphComments as comment>
+                            <#include 'common/comment.ftl' />
+                        </#list>
+                    </ul>
+                </details>
+                </#if>
                 <div id="bottomComment"></div>
             </div>
             <@pagination url="${servePath}${article.articlePermalink}" query="${commentPaginationQuery}" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
@@ -544,6 +580,9 @@
         <#if pjax><!---- pjax {#comments} end ----></#if>
     </div>
 </div>
+<#if 6 == article.articleType>
+</div>
+</#if>
 <div class="wrapper article-footer">
     <#if 6 != article.articleType>
     <#if sideRelevantArticles?size != 0>
@@ -649,6 +688,7 @@
                         class="ft-13">${article.thankedCnt}</span></span>
 </div>
 </div>
+<#if !hidePageChrome>
 <div class="article-header">
     <h1 aria-label="返回上一页" class="tooltipped tooltipped-s" style="display: flex; align-items: center;">
         <a href="javascript:history.back()">
@@ -743,38 +783,55 @@
         </#if>
     </div>
 </div>
+</#if>
 
 <#if 6 == article.articleType>
-<div class="long-article-settings">
-    <button class="long-article-settings-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">
+<div class="long-article-settings" data-long-article-toolbar>
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--top" data-long-article-action="top" title="回到顶部">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
+        <span>顶部</span>
     </button>
-    <button class="long-article-settings-btn" onclick="document.getElementById('comments').scrollIntoView({behavior:'smooth'})" title="评论 ${article.articleCommentCount}">
+    <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${commentDisplayCount!article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
-        <#if article.articleCommentCount gt 0>
-        <span style="position:absolute;top:-4px;right:-4px;background:#f44336;color:#fff;border-radius:10px;padding:2px 5px;font-size:10px;min-width:18px;text-align:center;">${article.articleCommentCount}</span>
+        <span>评论</span>
+        <#if (commentDisplayCount!article.articleCommentCount) gt 0>
+        <span class="long-article-settings__count">${commentDisplayCount!article.articleCommentCount}</span>
         </#if>
     </button>
-    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.max(12,s-2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="减小字号">
-        A-
-    </button>
-    <button class="long-article-settings-btn" onclick="(function(){var c=document.querySelector('.long-article-content');var s=parseInt(c.style.fontSize)||18;s=Math.min(28,s+2);c.style.fontSize=s+'px';localStorage.setItem('longArticleFontSize',s);})()" title="增大字号">
-        A+
-    </button>
+    <div class="long-article-layout">
+        <button type="button" class="long-article-settings-btn" data-long-article-action="layout" aria-expanded="false" aria-controls="longArticleLayoutPanel" title="阅读设置">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.82 1H9.18l-.647 3.237a8.5 8.5 0 0 0-1.52.88l-3.13-1.059l-2.819 4.884l2.481 2.18a8.6 8.6 0 0 0 0 1.756l-2.481 2.18l2.82 4.884l3.129-1.058c.472.342.98.638 1.52.879L9.18 23h5.64l.647-3.237a8.5 8.5 0 0 0 1.52-.88l3.13 1.059l2.82-4.884l-2.482-2.18a8.6 8.6 0 0 0 0-1.756l2.481-2.18l-2.82-4.884l-3.128 1.058a8.5 8.5 0 0 0-1.52-.879zM12 16a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/>
+            </svg>
+            <span>设置</span>
+        </button>
+        <div class="long-article-layout-panel" id="longArticleLayoutPanel" aria-hidden="true">
+            <div class="long-article-layout-panel__title">阅读设置</div>
+            <div class="long-article-layout-panel__row">
+                <span>字号</span>
+                <div class="long-article-font-options">
+                    <button type="button" data-long-article-action="font-decrease" title="减小字号">A-</button>
+                    <output data-long-article-font-size>18px</output>
+                    <button type="button" data-long-article-action="font-increase" title="增大字号">A+</button>
+                </div>
+            </div>
+            <div class="long-article-layout-panel__row long-article-layout-panel__row--width">
+                <span>版式</span>
+                <div class="long-article-layout-panel__options">
+                    <button type="button" data-long-article-width="auto">自动</button>
+                    <button type="button" data-long-article-width="600">600</button>
+                    <button type="button" data-long-article-width="800">800</button>
+                    <button type="button" data-long-article-width="1000">1000</button>
+                    <button type="button" data-long-article-width="1200">1200</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<script>
-(function(){
-    var fontSize = localStorage.getItem('longArticleFontSize');
-    if (fontSize) {
-        var content = document.querySelector('.long-article-content');
-        if (content) content.style.fontSize = fontSize + 'px';
-    }
-})();
-</script>
 </#if>
 
 <#include "footer.ftl">
@@ -854,6 +911,10 @@
 <script src="${staticServePath}/js/emoji-groups${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/channel${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/article${miniPostfix}.js?${staticResourceVersion}"></script>
+<#if 6 == article.articleType>
+<script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/long-article-paragraph${miniPostfix}.js?${staticResourceVersion}"></script>
+</#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
     Label.symphonyLabel = "${symphonyLabel}";
@@ -870,6 +931,7 @@
     Label.downLabel = "${downLabel}";
     Label.confirmRemoveLabel = "${confirmRemoveLabel}";
     Label.removedLabel = "${removedLabel}";
+    Label.removeCommentLabel = "${removeCommentLabel}";
     Label.uploadLabel = "${uploadLabel}";
     Label.userCommentViewMode = ${userCommentViewMode};
     Label.commentSort = '${commentSort}';
@@ -915,6 +977,7 @@
     Label.canBadComment = ${permissions["commonBadComment"].permissionGrant?c};
     Label.canAddComment = ${permissions["commonAddComment"].permissionGrant?c};
     Label.canUpdateComment = ${permissions["commonUpdateComment"].permissionGrant?c};
+    Label.canRemoveComment = ${permissions["commonRemoveComment"].permissionGrant?c};
     Label.canViewCommentHistory = ${permissions["commonViewCommentHistory"].permissionGrant?c};
     Label.articleChannel = "${wsScheme}://${serverHost}:${serverPort}${contextPath}/article-channel?articleId=${article.oId}&articleType=${article.articleType}";
     <#if isLoggedIn>
@@ -928,6 +991,7 @@
 
     <#if 6 == article.articleType>
     LongArticle.init();
+    LongArticleParagraphComments.init();
     </#if>
 
     setInterval(function () {

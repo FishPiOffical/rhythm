@@ -154,6 +154,7 @@ var Comment = {
       + Comment.renderThreadReplyAction(data)
       + Comment.renderThreadHistoryAction(data)
       + Comment.renderThreadEditAction(data)
+      + Comment.renderThreadRemoveAction(data)
       + Comment.renderThreadThankAction(data)
       + Comment.renderThreadVoteAction(data, true)
       + Comment.renderThreadVoteAction(data, false)
@@ -209,6 +210,15 @@ var Comment = {
       Comment.escapeJSString(data.commentAuthorName) + '\', \'' +
       Comment.escapeJSString(data.oId) +
       '\')"><svg class="icon-reply"><use xlink:href="#reply"></use></svg></span>'
+  },
+  renderThreadRemoveAction: function (data) {
+    if (!data.commentIsCurrentUser || !Label.canRemoveComment) {
+      return ''
+    }
+    return '<span aria-label="' + Comment.escapeHTML(Label.removeCommentLabel) +
+      '" class="tooltipped tooltipped-n" onclick="Comment.remove(\'' +
+      Comment.escapeJSString(data.oId) +
+      '\')"><svg class="ft-red"><use xlink:href="#remove"></use></svg></span>'
   },
   renderThreadEditAction: function (data) {
     if (!data.commentIsCurrentUser || !Label.canUpdateComment) {
@@ -986,6 +996,8 @@ var Comment = {
     if (!confirm(Label.confirmRemoveLabel)) {
       return false
     }
+    var commentElement = document.getElementById(id)
+    var paragraphId = commentElement ? commentElement.getAttribute('data-comment-paragraph-id') : ''
     $.ajax({
       url: Label.servePath + '/comment/' + id + '/remove',
       type: 'POST',
@@ -993,6 +1005,9 @@ var Comment = {
       success: function (result, textStatus) {
         if (result.code === 0) {
           $('#' + id).remove()
+          if (paragraphId && window.LongArticleParagraphComments) {
+            window.LongArticleParagraphComments.handleRemove(paragraphId)
+          }
         } else {
           Util.alert(result.msg)
         }
@@ -1574,12 +1589,21 @@ var Comment = {
         data('commentOriginalCommentId')
     }
 
+    var paragraphComments = window.LongArticleParagraphComments
+    var paragraphId = paragraphComments && paragraphComments.getSubmissionParagraphId
+      ? paragraphComments.getSubmissionParagraphId(requestJSONObject.commentOriginalCommentId) : ''
+    if (paragraphId) {
+      requestJSONObject.paragraphId = paragraphId
+    }
+
     var url = Label.servePath + '/comment',
       type = 'POST',
       commentId = $replyUseName.data('commentId')
     if (commentId) {
       url = Label.servePath + '/comment/' + commentId
       type = 'PUT'
+    } else if (paragraphId) {
+      url = Label.servePath + '/comment/paragraph'
     }
 
     $.ajax({
@@ -1610,6 +1634,10 @@ var Comment = {
 
           // clear reply comment
           Comment._clearReplyUseName()
+
+          if (paragraphId && paragraphComments) {
+            paragraphComments.handleSubmitSuccess()
+          }
 
           // clear local storage
           if (window.localStorage) {
@@ -1648,6 +1676,9 @@ var Comment = {
    * @param {String} userName 用户名称
    */
   reply: function (userName, id) {
+    if (window.LongArticleParagraphComments) {
+      window.LongArticleParagraphComments.activateFromComment(document.getElementById(id))
+    }
     var safeUserName = Comment.escapeHTML(userName),
       $replyUseName = Comment._getReplyUseName()
 

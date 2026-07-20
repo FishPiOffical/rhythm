@@ -132,6 +132,18 @@ public final class Comment {
      */
     public static final String COMMENT_VISIBLE = "commentVisible";
 
+    public static final String COMMENT_TYPE = "commentType";
+
+    public static final String COMMENT_PARAGRAPH_ID = "commentParagraphId";
+
+    public static final String COMMENT_PARAGRAPH_KIND = "commentParagraphKind";
+
+    public static final String COMMENT_PARAGRAPH_INDEX = "commentParagraphIndex";
+
+    public static final String COMMENT_PARAGRAPH_SNAPSHOT = "commentParagraphSnapshot";
+
+    public static final String COMMENT_PARAGRAPH_STATUS = "commentParagraphStatus";
+
     //// Transient ////
     /**
      * Key of comment revision count.
@@ -291,6 +303,14 @@ public final class Comment {
      * Comment visible - only author.
      */
     public static final int COMMENT_VISIBLE_C_AUTHOR = 1;
+
+    public static final int COMMENT_TYPE_C_ARTICLE = 0;
+
+    public static final int COMMENT_TYPE_C_PARAGRAPH = 1;
+
+    public static final int COMMENT_PARAGRAPH_STATUS_C_ACTIVE = 0;
+
+    public static final int COMMENT_PARAGRAPH_STATUS_C_ORPHANED = 1;
 
     //// Validation constants
     /**
