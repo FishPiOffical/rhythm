@@ -67,6 +67,7 @@ window.LongArticleParagraphComments = {
       button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg><span>0</span>'
       var lines = paragraph.querySelectorAll('.long-article-paragraph-line')
       var target = lines.length ? lines[lines.length - 1] : paragraph
+      self.wrapParagraphText(target)
       target.appendChild(button)
       self.updateParagraphButton(paragraph.getAttribute('data-long-paragraph-id'))
     })
@@ -449,6 +450,27 @@ window.LongArticleParagraphComments = {
 
   getDirectCommentButton: function (paragraph) {
     return paragraph.querySelector('.long-article-paragraph-comment-btn')
+  },
+
+  wrapParagraphText: function (paragraph) {
+    if (!paragraph || paragraph.getAttribute('data-long-paragraph-kind') === 'media') {
+      return
+    }
+    for (var i = 0; i < paragraph.children.length; i++) {
+      if (paragraph.children[i].classList.contains('long-article-paragraph-highlight')) {
+        return
+      }
+      var tagName = paragraph.children[i].tagName.toLowerCase()
+      if ('p|div|section|article|header|footer|main|ul|ol|li|blockquote|pre|table|figure'.indexOf('|' + tagName + '|') > -1) {
+        return
+      }
+    }
+    var highlight = document.createElement('span')
+    highlight.className = 'long-article-paragraph-highlight'
+    while (paragraph.firstChild) {
+      highlight.appendChild(paragraph.firstChild)
+    }
+    paragraph.appendChild(highlight)
   },
 
   getActiveParagraphId: function () {
