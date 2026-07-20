@@ -5323,12 +5323,107 @@ code .dec {
   --comment-thread-max-indent: 28px;
 }
 
-#longArticleParagraphComments .long-article-paragraph-comment-action--secondary {
-  display: none;
+#longArticleParagraphComments .action-btns {
+  position: relative;
 }
 
-#longArticleParagraphComments .long-article-paragraph-comment-card.is-actions-visible .long-article-paragraph-comment-action--secondary {
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  z-index: 3;
   display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 5px;
+  background: rgba(220, 235, 221, 0.96);
+  box-shadow: 0 6px 16px rgba(48, 73, 55, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-card.is-actions-visible .long-article-paragraph-comment-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(0, -50%);
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions > span,
+#longArticleParagraphComments .long-article-paragraph-comment-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: #617068;
+  cursor: pointer;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions > span:hover,
+#longArticleParagraphComments .long-article-paragraph-comment-more:hover {
+  background: rgba(95, 126, 104, 0.14);
+  color: #2f6a43;
+  transform: none;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #edf5ed;
+  box-shadow: 0 8px 20px rgba(48, 73, 55, 0.18);
+  white-space: nowrap;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-card.is-more-open .long-article-paragraph-comment-more-panel {
+  display: inline-flex;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-panel > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: #617068;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-panel > span:hover {
+  background: rgba(95, 126, 104, 0.14);
+  color: #2f6a43;
+  transform: none;
 }
 
 .long-article-paragraph-comments.is-active {

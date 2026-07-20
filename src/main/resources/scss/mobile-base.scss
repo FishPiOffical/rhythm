@@ -5599,8 +5599,72 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   --comment-thread-max-indent: 16px;
 }
 
-#longArticleParagraphComments .long-article-paragraph-comment-action--secondary {
+#longArticleParagraphComments .action-btns {
+  position: relative;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions {
   display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-hover-actions > span,
+#longArticleParagraphComments .long-article-paragraph-comment-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more {
+  color: var(--text-gray-color);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 3;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #edf5ed;
+  box-shadow: 0 8px 20px rgba(48, 73, 55, 0.18);
+  white-space: nowrap;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-card.is-more-open .long-article-paragraph-comment-more-panel {
+  display: inline-flex;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-more-panel > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .long-article-paragraph-comments.is-active {

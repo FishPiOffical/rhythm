@@ -87,6 +87,21 @@ window.LongArticleParagraphComments = {
         self.toggle(openButton.getAttribute('data-open-paragraph-comments'))
         return
       }
+      var moreButton = event.target.closest && event.target.closest('[data-long-paragraph-comment-more]')
+      if (moreButton) {
+        event.preventDefault()
+        event.stopPropagation()
+        var moreCard = moreButton.closest('.long-article-paragraph-comment-card')
+        if (moreCard) {
+          moreCard.classList.toggle('is-more-open')
+        }
+        return
+      }
+      if (!event.target.closest || !event.target.closest('.long-article-paragraph-comment-more-menu')) {
+        self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
+          item.classList.remove('is-more-open')
+        })
+      }
       var paragraph = event.target.closest && event.target.closest('.long-article-commentable-block')
       if (paragraph && self.canOpenFromParagraphClick(event, paragraph)) {
         self.toggle(paragraph.getAttribute('data-long-paragraph-id'))
@@ -117,6 +132,9 @@ window.LongArticleParagraphComments = {
       self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
         item.classList.remove('is-actions-visible')
       })
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
+        item.classList.remove('is-more-open')
+      })
       card.classList.add('is-actions-visible')
     })
     this.paragraphPanel.addEventListener('mouseout', function (event) {
@@ -129,6 +147,9 @@ window.LongArticleParagraphComments = {
     this.paragraphPanel.addEventListener('mouseleave', function () {
       self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
         item.classList.remove('is-actions-visible')
+      })
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-more-open').forEach(function (item) {
+        item.classList.remove('is-more-open')
       })
     })
   },
@@ -305,15 +326,57 @@ window.LongArticleParagraphComments = {
       reply.classList.add('long-article-paragraph-comment-card')
     })
     this.paragraphPanel.querySelectorAll('.action-btns').forEach(function (actions) {
+      var hoverActions = []
+      var overflowActions = []
+      var actionNodes = []
       for (var i = 0; i < actions.children.length; i++) {
-        var action = actions.children[i]
+        actionNodes.push(actions.children[i])
+      }
+      for (var j = 0; j < actionNodes.length; j++) {
+        var action = actionNodes[j]
         if (action.tagName !== 'SPAN') {
           continue
         }
         var isLike = !!action.querySelector('.icon-thumbs-up')
+        var isDislike = !!action.querySelector('.icon-thumbs-down')
+        var isReply = action.classList.contains('icon-reply-btn')
         action.classList.toggle('long-article-paragraph-comment-action--like', isLike)
-        action.classList.toggle('long-article-paragraph-comment-action--secondary', !isLike)
+        if (isLike) {
+          continue
+        }
+        if (isDislike || isReply) {
+          hoverActions.push(action)
+        } else {
+          overflowActions.push(action)
+        }
       }
+      if (hoverActions.length === 0 && overflowActions.length === 0) {
+        return
+      }
+      var hoverTray = document.createElement('span')
+      hoverTray.className = 'long-article-paragraph-comment-hover-actions'
+      for (var k = 0; k < hoverActions.length; k++) {
+        hoverTray.appendChild(hoverActions[k])
+      }
+      if (overflowActions.length > 0) {
+        var moreMenu = document.createElement('span')
+        moreMenu.className = 'long-article-paragraph-comment-more-menu'
+        var moreButton = document.createElement('button')
+        moreButton.type = 'button'
+        moreButton.className = 'long-article-paragraph-comment-more'
+        moreButton.setAttribute('data-long-paragraph-comment-more', '')
+        moreButton.setAttribute('aria-label', '更多')
+        moreButton.textContent = '•••'
+        var morePanel = document.createElement('span')
+        morePanel.className = 'long-article-paragraph-comment-more-panel'
+        for (var m = 0; m < overflowActions.length; m++) {
+          morePanel.appendChild(overflowActions[m])
+        }
+        moreMenu.appendChild(moreButton)
+        moreMenu.appendChild(morePanel)
+        hoverTray.appendChild(moreMenu)
+      }
+      actions.appendChild(hoverTray)
     })
   },
 
