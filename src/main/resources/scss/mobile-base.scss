@@ -5599,6 +5599,10 @@ only screen and (device-width: 414px) and (device-height: 896px) and (-webkit-de
   --comment-thread-max-indent: 16px;
 }
 
+#longArticleParagraphComments .long-article-paragraph-comment-action--secondary {
+  display: inline-flex;
+}
+
 .long-article-paragraph-comments.is-active {
   display: block;
 }

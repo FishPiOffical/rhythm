@@ -74,6 +74,11 @@ window.LongArticleParagraphComments = {
 
   bindEvents: function () {
     var self = this
+    var getActionCard = function (node) {
+      return node && node.closest
+        ? node.closest('.long-article-paragraph-comment-card')
+        : null
+    }
     document.addEventListener('click', function (event) {
       var openButton = event.target.closest && event.target.closest('[data-open-paragraph-comments]')
       if (openButton) {
@@ -103,6 +108,28 @@ window.LongArticleParagraphComments = {
       if (event.target.closest && event.target.closest('.long-article-paragraph-comments__reply')) {
         Comment._toggleReply()
       }
+    })
+    this.paragraphPanel.addEventListener('mouseover', function (event) {
+      var card = getActionCard(event.target)
+      if (!card || getActionCard(event.relatedTarget) === card) {
+        return
+      }
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
+        item.classList.remove('is-actions-visible')
+      })
+      card.classList.add('is-actions-visible')
+    })
+    this.paragraphPanel.addEventListener('mouseout', function (event) {
+      var card = getActionCard(event.target)
+      if (!card || getActionCard(event.relatedTarget)) {
+        return
+      }
+      card.classList.remove('is-actions-visible')
+    })
+    this.paragraphPanel.addEventListener('mouseleave', function () {
+      self.paragraphPanel.querySelectorAll('.long-article-paragraph-comment-card.is-actions-visible').forEach(function (item) {
+        item.classList.remove('is-actions-visible')
+      })
     })
   },
 
@@ -251,6 +278,7 @@ window.LongArticleParagraphComments = {
     this.paragraphPanel.querySelector('[data-paragraph-comment-count]').textContent = ' ' + parseInt(this.counts[this.activeParagraphId] || 0) + ' 条'
     this.renderPager(pagination)
     Comment.initReactionWidgets($(this.paragraphPanel))
+    this.decorateCommentActions()
     Util.parseMarkdown()
     Util.parseHljs()
     Util.listenUserCard()
@@ -263,13 +291,30 @@ window.LongArticleParagraphComments = {
     return '<li id="' + Comment.escapeHTML(data.oId) + '" data-author="' + Comment.escapeHTML(data.commentAuthorName) +
       '" data-comment-type="1" data-comment-paragraph-id="' + Comment.escapeHTML(data.commentParagraphId || this.activeParagraphId) +
       '" data-comment-paragraph-status="' + parseInt(data.commentParagraphStatus || 0) +
-      '" data-is-author="' + (data.commentIsArticleAuthor ? 'true' : 'false') + '" class="' + (replies.length ? 'cmt-selected' : '') + '">' +
+      '" data-is-author="' + (data.commentIsArticleAuthor ? 'true' : 'false') + '" class="long-article-paragraph-comment-card ' + (replies.length ? 'cmt-selected' : '') + '">' +
       '<div class="fn-flex"><a rel="nofollow" href="' + Label.servePath + '/member/' + Comment.escapeHTML(data.commentAuthorName) + '">' +
       '<span class="avatar" style="background-image:url(\'' + Comment.escapeHTML(data.commentAuthorThumbnailURL) + '\')"></span></a>' +
       '<div class="fn-flex-1"><div class="comment-info"><a rel="nofollow" href="' + Label.servePath + '/member/' + Comment.escapeHTML(data.commentAuthorName) + '">' +
       Comment.renderCommentAuthorName(data) + '</a><span class="ft-fade"> · ' + Comment.escapeHTML(data.timeAgo) + '</span></div>' +
       '<div class="vditor-reset comment">' + data.commentContent + '</div>' + thread +
       '<div class="comment-action">' + Comment.renderThreadAction(data) + '</div></div></div></li>'
+  },
+
+  decorateCommentActions: function () {
+    this.paragraphPanel.querySelectorAll('.comment-thread__reply').forEach(function (reply) {
+      reply.classList.add('long-article-paragraph-comment-card')
+    })
+    this.paragraphPanel.querySelectorAll('.action-btns').forEach(function (actions) {
+      for (var i = 0; i < actions.children.length; i++) {
+        var action = actions.children[i]
+        if (action.tagName !== 'SPAN') {
+          continue
+        }
+        var isLike = !!action.querySelector('.icon-thumbs-up')
+        action.classList.toggle('long-article-paragraph-comment-action--like', isLike)
+        action.classList.toggle('long-article-paragraph-comment-action--secondary', !isLike)
+      }
+    })
   },
 
   renderPager: function (pagination) {

@@ -5323,6 +5323,14 @@ code .dec {
   --comment-thread-max-indent: 28px;
 }
 
+#longArticleParagraphComments .long-article-paragraph-comment-action--secondary {
+  display: none;
+}
+
+#longArticleParagraphComments .long-article-paragraph-comment-card.is-actions-visible .long-article-paragraph-comment-action--secondary {
+  display: inline-flex;
+}
+
 .long-article-paragraph-comments.is-active {
   display: block;
 }
