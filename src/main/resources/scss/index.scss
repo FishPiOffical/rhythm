@@ -5229,8 +5229,9 @@ code .dec {
 
 .long-article-commentable-block:hover > .long-article-paragraph-highlight,
 .long-article-commentable-block.is-commenting > .long-article-paragraph-highlight {
-  background: rgba(77, 111, 84, 0.08);
+  background: rgba(77, 111, 84, 0.14);
   text-decoration: underline;
+  text-decoration-style: dashed;
   text-decoration-color: rgba(77, 111, 84, 0.42);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
