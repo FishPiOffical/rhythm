@@ -5630,6 +5630,123 @@ body.night .long-article-paragraph-comments {
   }
 }
 
+.long-article-catalog {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 100;
+  display: none;
+  width: min(var(--long-article-width, 800px), calc(100vw - 28px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  background: #dcebdd;
+  scrollbar-gutter: stable;
+  transform: translateX(-50%);
+}
+
+.long-article-catalog__inner {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 64px clamp(32px, 6vw, 64px);
+}
+
+.long-article-catalog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(65, 94, 71, 0.18);
+
+  h2 {
+    margin: 0;
+    color: #1d2b21;
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  span {
+    display: block;
+    margin-top: 6px;
+    color: #718078;
+    font-size: 13px;
+  }
+}
+
+.long-article-catalog__close {
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #617068;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: rgba(95, 126, 104, 0.12);
+    color: #2f6a43;
+  }
+}
+
+.long-article-catalog__chapters {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+
+.long-article-catalog__chapter {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-height: 58px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(65, 94, 71, 0.12);
+  box-sizing: border-box;
+  color: #25332a;
+  text-decoration: none;
+
+  &:hover {
+    background: rgba(95, 126, 104, 0.09);
+    color: #2f6a43;
+    text-decoration: none;
+  }
+}
+
+.long-article-catalog__chapter--active {
+  background: rgba(95, 126, 104, 0.15);
+  box-shadow: inset 3px 0 #3e7250;
+  color: #28593a;
+  font-weight: 600;
+}
+
+.long-article-catalog__chapter-no {
+  color: #718078;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.long-article-catalog__chapter-title {
+  min-width: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .article.long-article-page {
   --long-article-drawer-width: min(320px, calc(100vw - 72px));
   min-height: 100vh;
@@ -5637,6 +5754,18 @@ body.night .long-article-paragraph-comments {
   overflow-x: hidden;
   background: #c7dcc8;
   color: #25332a;
+
+  &.long-article-catalog-open {
+    overflow: hidden;
+
+    .long-article-catalog {
+      display: block;
+    }
+
+    .long-article-settings {
+      z-index: 121;
+    }
+  }
 
   > .nav,
   > .footer,
@@ -6706,6 +6835,51 @@ body.night {
   }
 }
 
+body.night .long-article-catalog {
+  background: #111;
+
+  .long-article-catalog__header {
+    border-color: rgba(255, 255, 255, 0.1);
+
+    h2 {
+      color: #eef4ef;
+    }
+
+    span {
+      color: #858f88;
+    }
+  }
+
+  .long-article-catalog__close {
+    color: #989898;
+
+    &:hover {
+      background: #191919;
+      color: #fff;
+    }
+  }
+
+  .long-article-catalog__chapter {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #b9c2bc;
+
+    &:hover {
+      background: #191919;
+      color: #eef4ef;
+    }
+  }
+
+  .long-article-catalog__chapter--active {
+    background: rgba(95, 149, 109, 0.2);
+    box-shadow: inset 3px 0 #7fb78d;
+    color: #c9edcf;
+  }
+
+  .long-article-catalog__chapter-no {
+    color: #858f88;
+  }
+}
+
 @media (max-width: 768px) {
   .article.long-article-page {
     .article-container {
@@ -6729,6 +6903,21 @@ body.night {
 
   .long-article-content {
     margin-top: 28px;
+  }
+
+  .long-article-catalog__inner {
+    padding: 36px 24px;
+  }
+
+  .long-article-catalog__header h2 {
+    font-size: 24px;
+  }
+
+  .long-article-catalog__chapter {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 10px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
   .article-nav-scope__tabs {

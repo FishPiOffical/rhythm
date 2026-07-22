@@ -111,7 +111,10 @@ window.MLongArticle = {
                 target.classList.toggle('active', open);
                 target.setAttribute('aria-expanded', open ? 'true' : 'false');
             } else if (action === 'top') {
+                self.closeCatalog();
                 window.scrollTo({top: 0, behavior: 'smooth'});
+            } else if (action === 'catalog') {
+                self.toggleCatalog();
             } else if (action === 'comments') {
                 if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
                     window.LongArticleParagraphComments.showChapterComments();
@@ -130,6 +133,17 @@ window.MLongArticle = {
             if (event.target.closest && event.target.closest('[data-long-article-comments-close]')) {
                 self.closeComments();
             }
+            if (event.target.closest && event.target.closest('[data-long-article-catalog-close]')) {
+                self.closeCatalog();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && self.isCatalogOpen()) {
+                self.closeCatalog();
+            } else if (event.key === 'Escape' && self.isCommentsOpen()) {
+                self.closeComments();
+            }
         });
     },
 
@@ -137,6 +151,56 @@ window.MLongArticle = {
         this.settings.mobileFontSize = this.normalizeFontSize(this.settings.mobileFontSize + delta, 12, 24, 16);
         this.saveSettings();
         this.applySettings();
+    },
+
+    getCatalog: function () {
+        return document.querySelector('[data-long-article-catalog]');
+    },
+
+    isCatalogOpen: function () {
+        return document.body.classList.contains('long-article-catalog-open');
+    },
+
+    toggleCatalog: function () {
+        if (this.isCatalogOpen()) {
+            this.closeCatalog();
+        } else {
+            this.openCatalog();
+        }
+    },
+
+    openCatalog: function () {
+        var catalog = this.getCatalog();
+        var button = document.querySelector('[data-long-article-action="catalog"]');
+        if (!catalog) {
+            return;
+        }
+        this.closeComments();
+        document.body.classList.add('long-article-catalog-open');
+        catalog.setAttribute('aria-hidden', 'false');
+        if (button) {
+            button.classList.add('is-active');
+            button.setAttribute('aria-expanded', 'true');
+        }
+        window.setTimeout(function () {
+            var activeChapter = catalog.querySelector('.long-article-catalog__chapter--active');
+            if (activeChapter) {
+                activeChapter.scrollIntoView({block: 'center'});
+            }
+        }, 0);
+    },
+
+    closeCatalog: function () {
+        var catalog = this.getCatalog();
+        var button = document.querySelector('[data-long-article-action="catalog"]');
+        document.body.classList.remove('long-article-catalog-open');
+        if (catalog) {
+            catalog.setAttribute('aria-hidden', 'true');
+        }
+        if (button) {
+            button.classList.remove('is-active');
+            button.setAttribute('aria-expanded', 'false');
+        }
     },
 
     getCommentsPanel: function () {
@@ -161,6 +225,7 @@ window.MLongArticle = {
         if (!panel) {
             return;
         }
+        this.closeCatalog();
         document.body.classList.add('long-article-comments-open');
         panel.setAttribute('aria-hidden', 'false');
         if (button) {
