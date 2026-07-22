@@ -21,7 +21,6 @@ const mode = localStorage.getItem('color-scheme') || 'auto';
 DarkReader.setFetchMethod(window.fetch)
 setColorMode(mode);
 function toggleColorMode() {
-  const body = document.body;
   let mode = localStorage.getItem('color-scheme'); // light / dark / auto
   if (mode === 'dark') {
     mode = isDarkModeInSystem ? 'light' : 'auto';
@@ -34,25 +33,36 @@ function toggleColorMode() {
 }
 
 function setColorMode(mode) {
-    if (mode == 'dark' || (mode == 'auto' && isDarkModeInSystem)) {
+    const isDark = mode == 'dark' || (mode == 'auto' && isDarkModeInSystem);
+    if (isDark) {
         DarkReader.enable({
             brightness: 100,
             contrast: 90,
             sepia: 10
         });
-        document.querySelector('#color-mode svg use')?.setAttribute('xlink:href', '#color-moon')
     } else {
         DarkReader.auto(false);
-        document.querySelector('#color-mode svg use')?.setAttribute('xlink:href', '#color-sun')
     }
     localStorage.setItem('color-scheme', mode);
+    updateColorModeButtons(isDark);
+}
+
+function updateColorModeButtons(isDark) {
+    const headerButton = document.querySelector('#color-mode svg use');
+    headerButton?.setAttribute('xlink:href', isDark ? '#color-moon' : '#color-sun');
+    document.querySelectorAll('[data-color-mode-toggle]').forEach((button) => {
+        const icon = button.querySelector('svg use');
+        icon?.setAttribute('xlink:href', isDark ? '#color-sun' : '#color-moon');
+        const label = isDark ? '白天模式' : '黑夜模式';
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelector('#color-mode').addEventListener('click', toggleColorMode);
-    if (mode == 'dark' || (mode == 'auto' && isDarkModeInSystem)) {
-        document.querySelector('#color-mode svg use').setAttribute('xlink:href', '#color-moon');
-    } else {
-        document.querySelector('#color-mode svg use').setAttribute('xlink:href', '#color-sun');
+    const colorModeButton = document.querySelector('#color-mode');
+    if (colorModeButton) {
+        colorModeButton.addEventListener('click', toggleColorMode);
     }
+    updateColorModeButtons(localStorage.getItem('color-scheme') == 'dark' || (localStorage.getItem('color-scheme') == 'auto' && isDarkModeInSystem));
 });

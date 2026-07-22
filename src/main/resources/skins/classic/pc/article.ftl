@@ -111,11 +111,6 @@
                     <#if article.articleAuthorNickName != "">${article.articleAuthorNickName}<#else>${article.articleAuthorName}</#if>
                 </a>
                 <span>${article.timeAgo}</span>
-                <#if longArticleColumn??>
-                    <span class="long-article-meta__separator">·</span>
-                    <a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}">${longArticleColumn.columnTitle}</a>
-                    <span>第 ${article.longArticleChapterNo?c} 章</span>
-                </#if>
             </div>
         </#if>
         <#if 0!= article.articleStatement>
@@ -581,6 +576,29 @@
     </div>
 </div>
 <#if 6 == article.articleType>
+<#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
+<section class="long-article-catalog" id="longArticleCatalog" data-long-article-catalog aria-hidden="true" aria-labelledby="longArticleCatalogTitle">
+    <div class="long-article-catalog__inner">
+        <header class="long-article-catalog__header">
+            <div>
+                <h2 id="longArticleCatalogTitle">${longArticleColumn.columnTitle}</h2>
+                <span>共 ${longArticleChapters?size} 章</span>
+            </div>
+            <button type="button" class="long-article-catalog__close" data-long-article-catalog-close title="关闭目录" aria-label="关闭目录">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.42 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29 6.29-6.3z"/></svg>
+            </button>
+        </header>
+        <nav class="long-article-catalog__chapters" aria-label="目录">
+            <#list longArticleChapters as chapter>
+                <a href="${servePath}${chapter.articlePermalink}" class="long-article-catalog__chapter<#if chapter.articleId == article.oId> long-article-catalog__chapter--active</#if>"<#if chapter.articleId == article.oId> aria-current="page"</#if>>
+                    <span class="long-article-catalog__chapter-no">第 ${chapter.chapterNo?c} 章</span>
+                    <span class="long-article-catalog__chapter-title">${chapter.articleTitleEmoj}</span>
+                </a>
+            </#list>
+        </nav>
+    </div>
+</section>
+</#if>
 </div>
 </#if>
 <div class="wrapper article-footer">
@@ -792,6 +810,16 @@
             <path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-8zM4 3h16v2H4z"/>
         </svg>
         <span>顶部</span>
+    </button>
+    <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
+    <button type="button" class="long-article-settings-btn" data-long-article-action="catalog" title="目录" aria-expanded="false" aria-controls="longArticleCatalog">
+        <svg aria-hidden="true"><use xlink:href="#book"></use></svg>
+        <span>目录</span>
+    </button>
+    </#if>
+    <button type="button" class="long-article-settings-btn" data-long-article-action="color-mode" data-color-mode-toggle aria-label="切换模式" title="切换模式">
+        <svg aria-hidden="true"><use xlink:href="#color-moon"></use></svg>
+        <span>日夜</span>
     </button>
     <button type="button" class="long-article-settings-btn long-article-settings-btn--count" data-long-article-action="comments" title="评论 ${commentDisplayCount!article.articleCommentCount}" aria-expanded="false" aria-controls="articleCommentsPanel">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">

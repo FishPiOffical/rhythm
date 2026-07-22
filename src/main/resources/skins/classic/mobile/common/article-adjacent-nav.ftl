@@ -97,16 +97,3 @@
         </div>
     </div>
 </div>
-<#if hasColumnNav>
-    <div class="article-column-card">
-        <div class="article-column-card__title">所属专栏：<a href="${servePath}/column/${longArticleColumn.oId!longArticleColumn.columnId}">${longArticleColumn.columnTitle}</a></div>
-        <div class="article-column-card__meta">当前第 ${article.longArticleChapterNo?c} 章 · 共 ${longArticleColumn.columnArticleCount?c} 章</div>
-        <div class="article-column-card__chapters">
-            <#list longArticleChapters as chapter>
-                <a href="${servePath}${chapter.articlePermalink}" class="article-column-card__chapter<#if chapter.articleId == article.oId> article-column-card__chapter--active</#if>">
-                    第 ${chapter.chapterNo?c} 章 · ${chapter.articleTitleEmoj}
-                </a>
-            </#list>
-        </div>
-    </div>
-</#if>
