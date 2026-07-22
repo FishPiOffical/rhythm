@@ -548,11 +548,12 @@
             </button>
             <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
             <button type="button" class="long-article-settings-btn" data-long-article-action="catalog" title="目录" aria-expanded="false" aria-controls="longArticleCatalog">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13"/>
-                </svg>
+                <svg aria-hidden="true"><use xlink:href="#book"></use></svg>
             </button>
             </#if>
+            <button type="button" class="long-article-settings-btn" data-long-article-action="color-mode" data-color-mode-toggle aria-label="切换模式" title="切换模式">
+                <svg aria-hidden="true"><use xlink:href="#color-moon"></use></svg>
+            </button>
             <button type="button" class="long-article-settings-btn has-cnt" data-long-article-action="comments" title="评论" aria-expanded="false" aria-controls="comments">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>

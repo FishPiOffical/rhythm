@@ -115,6 +115,10 @@ window.MLongArticle = {
                 window.scrollTo({top: 0, behavior: 'smooth'});
             } else if (action === 'catalog') {
                 self.toggleCatalog();
+            } else if (action === 'color-mode') {
+                if (typeof window.toggleColorMode === 'function') {
+                    window.toggleColorMode();
+                }
             } else if (action === 'comments') {
                 if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
                     window.LongArticleParagraphComments.showChapterComments();

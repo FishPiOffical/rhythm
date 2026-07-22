@@ -155,6 +155,10 @@ window.LongArticle = {
                 self.scrollToTop();
             } else if (action === 'catalog') {
                 self.toggleCatalog();
+            } else if (action === 'color-mode') {
+                if (typeof window.toggleColorMode === 'function') {
+                    window.toggleColorMode();
+                }
             } else if (action === 'comments') {
                 if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
                     window.LongArticleParagraphComments.showChapterComments();
