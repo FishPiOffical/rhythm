@@ -1027,6 +1027,12 @@
           "description": "主键"
         },
         {
+          "name": "sourceAppId",
+          "type": "String",
+          "length": 64,
+          "description": "来源应用编号"
+        },
+        {
           "name": "requestId",
           "type": "String",
           "length": 128,
