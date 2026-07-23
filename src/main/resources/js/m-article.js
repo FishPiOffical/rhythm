@@ -294,11 +294,22 @@ var Comment = {
     return ' data-thread-depth="' + depth +
       '" style="--comment-thread-indent:' + (depth * 16) + 'px"'
   },
+  renderThreadReplyParagraphAttributes: function (data) {
+    var paragraphId = data.commentParagraphId || ''
+    if (!paragraphId) {
+      return ''
+    }
+    var paragraphStatus = parseInt(data.commentParagraphStatus, 10)
+    paragraphStatus = isNaN(paragraphStatus) ? 0 : paragraphStatus
+    return ' data-comment-paragraph-id="' + Comment.escapeHTML(paragraphId) +
+      '" data-comment-paragraph-status="' + paragraphStatus + '"'
+  },
   renderThreadReply: function (data) {
     var depth = Comment.getThreadReplyDepth(data)
     return '<div id="' + Comment.escapeHTML(data.oId) + '" class="' +
       Comment.renderThreadReplyClass(depth) + '"' +
-      Comment.renderThreadReplyStyle(depth) + '>'
+      Comment.renderThreadReplyStyle(depth) +
+      Comment.renderThreadReplyParagraphAttributes(data) + '>'
       + '<a rel="nofollow" href="' + Label.servePath + '/member/'
       + Comment.escapeHTML(data.commentAuthorName) + '" class="comment-thread__avatar" aria-label="'
       + Comment.escapeHTML(data.commentAuthorName) + '" style="background-image:url(\''
