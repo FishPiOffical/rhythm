@@ -221,9 +221,15 @@ public class LongArticleParagraphService {
                 comment.put(Comment.COMMENT_PARAGRAPH_KIND, target.kind);
                 comment.put(Comment.COMMENT_PARAGRAPH_INDEX, target.index);
                 comment.put(Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE);
+                comment.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, target.id));
             }
             commentRepository.update(comment.optString(Keys.OBJECT_ID), comment);
         }
+    }
+
+    private String buildCommentSharpURL(final JSONObject comment, final String paragraphId) {
+        return "/article/" + comment.optString(Comment.COMMENT_ON_ARTICLE_ID)
+                + "?paragraph=" + paragraphId + "#" + comment.optString(Keys.OBJECT_ID);
     }
 
     private Map<String, Paragraph> matchParagraphs(final List<Paragraph> oldParagraphs,

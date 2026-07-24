@@ -988,7 +988,8 @@ public class ArticleMgmtService {
 
             final boolean titleChanged = !oldTitle.replaceAll("\\s+", "").equals(articleTitle.replaceAll("\\s+", ""));
             final boolean contentChanged = !oldContent.replaceAll("\\s+", "").equals(articleContent.replaceAll("\\s+", ""));
-            if (contentChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
+            final boolean paragraphStructureChanged = !StringUtils.equals(oldContent, articleContent);
+            if (paragraphStructureChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
                     || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
                 longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, articleContent);
             }
@@ -1121,9 +1122,8 @@ public class ArticleMgmtService {
 
             final int articleType = article.optInt(Article.ARTICLE_TYPE);
             final String articleContent = article.optString(Article.ARTICLE_CONTENT);
-            final boolean contentChanged = !oldContent.replaceAll("\\s+", "")
-                    .equals(articleContent.replaceAll("\\s+", ""));
-            if (contentChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
+            final boolean paragraphStructureChanged = !StringUtils.equals(oldContent, articleContent);
+            if (paragraphStructureChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
                     || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
                 longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, articleContent);
             }

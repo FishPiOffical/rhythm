@@ -161,25 +161,31 @@
         </#if>
         <#include "common/article-adjacent-nav.ftl">
 
-        <div class="article-tail">
-            <#if 6 == article.articleType>
-                <#if article.isMyArticle && article.longArticleReadStat??>
-                    <div class="fn__flex-column" style="gap:8px;margin:12px 0;padding:12px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
-                        <div class="ft__smaller ft__fade">长文阅读激励</div>
-                        <div class="fn__flex" style="gap:12px;flex-wrap:wrap;">
-                            <div class="fn__flex-1">
-                                <div class="ft__smaller ft__fade">未结算</div>
-                                <div>注册 ${article.longArticleReadStat.registeredUnsettledCnt} / 未注册 ${article.longArticleReadStat.anonymousUnsettledCnt}</div>
-                            </div>
-                            <div class="fn__flex-1">
-                                <div class="ft__smaller ft__fade">总计</div>
-                                <div>注册 ${article.longArticleReadStat.registeredTotalCnt} / 未注册 ${article.longArticleReadStat.anonymousTotalCnt}</div>
-                            </div>
-                        </div>
-                        <div class="ft__smaller ft__fade">未注册以 IP+UA 去重，当窗封顶 100</div>
+        <#if 6 == article.articleType && article.isMyArticle && article.longArticleReadStat??>
+            <section class="long-article-read-stat" aria-label="长文阅读激励">
+                <div class="long-article-read-stat__title">阅读激励</div>
+                <div class="long-article-read-stat__items">
+                    <div>
+                        <span>未结算</span>
+                        <strong>用户 ${article.longArticleReadStat.registeredUnsettledCnt} · 访客 ${article.longArticleReadStat.anonymousUnsettledCnt}</strong>
                     </div>
-                </#if>
-            </#if>
+                    <div>
+                        <span>总计</span>
+                        <strong>用户 ${article.longArticleReadStat.registeredTotalCnt} · 访客 ${article.longArticleReadStat.anonymousTotalCnt}</strong>
+                    </div>
+                </div>
+                <div class="long-article-read-stat__note">访客去重，周期上限 100 次</div>
+            </section>
+        </#if>
+
+        <#if 6 == article.articleType>
+            <div class="article-reaction-shell"
+                 data-target-id="${article.oId}"
+                 data-current-user-reaction="${article.currentUserReaction!''}"
+                 data-summary='${(article.reactionSummary!'[]')?html}'></div>
+        </#if>
+
+        <div class="article-tail">
             <div class="article-actions action-btns fn-right">
                 <#if "" != article.articleToC>
                     <span onclick="Article.toggleToc()" aria-label="${ToCLabel}"
@@ -247,11 +253,13 @@
                 </ul>
             </div>
             </#if>
+            <#if 6 != article.articleType>
             <div class="article-reaction-shell"
                  data-target-id="${article.oId}"
                  data-current-user-reaction="${article.currentUserReaction!''}"
                  data-summary='${(article.reactionSummary!'[]')?html}'></div>
             <div id="articleActionPanel" class="comment__action"></div>
+            </#if>
             <#if 6 == article.articleType>
             <#else>
             <div class="article__meta">
@@ -502,7 +510,7 @@
         <div class="module comments" id="comments">
             <div class="comments-header module-header">
                 <div class="comments-header__main">
-                    <span class="article-cmt-cnt"><#if 6 == article.articleType>评论 <span class="long-article-comments-count">${commentDisplayCount!article.articleCommentCount} 条</span><#else>${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</#if></span>
+                    <span class="article-cmt-cnt" data-comment-count="${commentDisplayCount!article.articleCommentCount}"><#if 6 == article.articleType>评论 <span class="long-article-comments-count">${commentDisplayCount!article.articleCommentCount} 条</span><#else>${commentDisplayCount!article.articleCommentCount} ${cmtLabel}</#if></span>
                     <span class="fn-right<#if article.articleComments?size == 0> fn-none</#if>">
                         <a class="tooltipped tooltipped-nw" href="javascript:Comment._bgFade($('#bottomComment'))"
                            aria-label="${jumpToBottomCommentLabel}"><svg><use
@@ -694,7 +702,7 @@
 </div>
 
 <div class="share">
-            <span id="thankArticle" aria-label="${thankLabel}"
+            <span<#if 6 != article.articleType> id="thankArticle"</#if> aria-label="${thankLabel}"
                   class="tooltipped tooltipped-e<#if article.thanked> ft-red<#else> ft-blue</#if>"
             <#if permissions["commonThankArticle"].permissionGrant>
                 <#if !article.thanked>
@@ -812,6 +820,32 @@
         <span>顶部</span>
     </button>
     <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
+        <div class="long-article-chapter-actions" aria-label="章节切换">
+        <#if longArticlePrevious?? && longArticlePrevious.articlePermalink??>
+        <a href="${servePath}${longArticlePrevious.articlePermalink}" class="long-article-settings-btn long-article-settings-btn--chapter" aria-label="上一章" title="上一章">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15.4 16.6-4.6-4.6 4.6-4.6L14 6l-6 6 6 6z"/></svg>
+            <span>上一章</span>
+        </a>
+        <#else>
+        <span class="long-article-settings-btn long-article-settings-btn--chapter is-disabled" aria-disabled="true" title="已是首章">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15.4 16.6-4.6-4.6 4.6-4.6L14 6l-6 6 6 6z"/></svg>
+            <span>上一章</span>
+        </span>
+        </#if>
+        <#if longArticleNext?? && longArticleNext.articlePermalink??>
+        <a href="${servePath}${longArticleNext.articlePermalink}" class="long-article-settings-btn long-article-settings-btn--chapter" aria-label="下一章" title="下一章">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m8.6 16.6 4.6-4.6-4.6-4.6L10 6l6 6-6 6z"/></svg>
+            <span>下一章</span>
+        </a>
+        <#else>
+        <span class="long-article-settings-btn long-article-settings-btn--chapter is-disabled" aria-disabled="true" title="已是末章">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m8.6 16.6 4.6-4.6-4.6-4.6L10 6l6 6-6 6z"/></svg>
+            <span>下一章</span>
+        </span>
+        </#if>
+        </div>
+    </#if>
+    <#if longArticleColumn?? && longArticleChapters?? && (longArticleChapters?size > 0)>
     <button type="button" class="long-article-settings-btn" data-long-article-action="catalog" title="目录" aria-expanded="false" aria-controls="longArticleCatalog">
         <svg aria-hidden="true"><use xlink:href="#book"></use></svg>
         <span>目录</span>
@@ -830,6 +864,66 @@
         <span class="long-article-settings__count">${commentDisplayCount!article.articleCommentCount}</span>
         </#if>
     </button>
+    <div class="long-article-more">
+        <button type="button" class="long-article-settings-btn" data-long-article-action="more" title="更多操作" aria-expanded="false" aria-controls="longArticleMorePanel">
+            <span aria-hidden="true">···</span>
+            <span>更多</span>
+        </button>
+        <div class="long-article-more-panel" id="longArticleMorePanel" aria-hidden="true">
+            <#if permissions["commonThankArticle"].permissionGrant>
+            <button type="button" id="thankArticle" class="long-article-more-panel__item<#if article.thanked> ft-red</#if>" onclick="<#if !article.thanked>Article.thankArticle('${article.oId}', ${article.articleAnonymous})</#if>" title="${thankLabel}">
+                <svg><use xlink:href="#heart"></use></svg><span>${article.thankedCnt} ${thankLabel}</span>
+            </button>
+            </#if>
+            <button type="button" class="long-article-more-panel__item<#if isLoggedIn && 0 == article.articleVote> ft-red</#if>" <#if permissions["commonGoodArticle"].permissionGrant>onclick="Article.voteUp('${article.oId}', 'article', this)"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${upLabel}">
+                <svg><use xlink:href="#thumbs-up"></use></svg><span>${article.articleGoodCnt} ${upLabel}</span>
+            </button>
+            <button type="button" class="long-article-more-panel__item<#if isLoggedIn && 1 == article.articleVote> ft-red</#if>" <#if permissions["commonBadArticle"].permissionGrant>onclick="Article.voteDown('${article.oId}', 'article', this)"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${downLabel}">
+                <svg><use xlink:href="#thumbs-down"></use></svg><span>${article.articleBadCnt} ${downLabel}</span>
+            </button>
+            <#if isLoggedIn && isFollowing>
+            <button type="button" class="long-article-more-panel__item ft-red" <#if permissions["commonFollowArticle"].permissionGrant>onclick="Util.unfollow(this, '${article.oId}', 'article', ${article.articleCollectCnt})"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${uncollectLabel}">
+                <svg><use xlink:href="#star"></use></svg><span>${article.articleCollectCnt} ${uncollectLabel}</span>
+            </button>
+            <#else>
+            <button type="button" class="long-article-more-panel__item" <#if permissions["commonFollowArticle"].permissionGrant>onclick="Util.follow(this, '${article.oId}', 'article', ${article.articleCollectCnt})"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${collectLabel}">
+                <svg><use xlink:href="#star"></use></svg><span>${article.articleCollectCnt} ${collectLabel}</span>
+            </button>
+            </#if>
+            <#if isLoggedIn && isWatching>
+            <button type="button" class="long-article-more-panel__item ft-red" <#if permissions["commonWatchArticle"].permissionGrant>onclick="Util.unfollow(this, '${article.oId}', 'article-watch', ${article.articleWatchCnt})"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${unfollowLabel}">
+                <svg><use xlink:href="#view"></use></svg><span>${article.articleWatchCnt} ${unfollowLabel}</span>
+            </button>
+            <#else>
+            <button type="button" class="long-article-more-panel__item" <#if permissions["commonWatchArticle"].permissionGrant>onclick="Util.follow(this, '${article.oId}', 'article-watch', ${article.articleWatchCnt})"<#else>onclick="Article.permissionTip(Label.noPermissionLabel)"</#if> title="${followLabel}">
+                <svg><use xlink:href="#view"></use></svg><span>${article.articleWatchCnt} ${followLabel}</span>
+            </button>
+            </#if>
+            <#if permissions["commonViewArticleHistory"].permissionGrant && article.articleRevisionCount &gt; 1>
+            <button type="button" class="long-article-more-panel__item" onclick="Article.revision('${article.oId}')" title="${historyLabel}">
+                <svg><use xlink:href="#history"></use></svg><span>${historyLabel}</span>
+            </button>
+            </#if>
+            <button type="button" class="long-article-more-panel__item" onclick="$('#reportDialog').data('type', 0).data('id', '${article.oId}').dialog('open')" title="${reportLabel}">
+                <svg><use xlink:href="#icon-report"></use></svg><span>${reportLabel}</span>
+            </button>
+            <#if article.isMyArticle && 3 != article.articleType && permissions["commonUpdateArticle"].permissionGrant>
+            <a class="long-article-more-panel__item" href="${servePath}/update?id=${article.oId}" title="${editLabel}">
+                <svg><use xlink:href="#edit"></use></svg><span>${editLabel}</span>
+            </a>
+            </#if>
+            <#if article.isMyArticle && permissions["commonStickArticle"].permissionGrant>
+            <button type="button" class="long-article-more-panel__item" onclick="Article.stick('${article.oId}')" title="${stickLabel}">
+                <svg><use xlink:href="#chevron-up"></use></svg><span>${stickLabel}</span>
+            </button>
+            </#if>
+            <#if permissions["articleUpdateArticleBasic"].permissionGrant>
+            <a class="long-article-more-panel__item" href="${servePath}/admin/article/${article.oId}" title="${adminLabel}">
+                <svg><use xlink:href="#setting"></use></svg><span>${adminLabel}</span>
+            </a>
+            </#if>
+        </div>
+    </div>
     <div class="long-article-layout">
         <button type="button" class="long-article-settings-btn" data-long-article-action="layout" aria-expanded="false" aria-controls="longArticleLayoutPanel" title="阅读设置">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">

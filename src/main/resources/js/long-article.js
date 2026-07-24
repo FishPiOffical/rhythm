@@ -145,50 +145,10 @@ window.LongArticle = {
         }
 
         toolbar.addEventListener('click', function (event) {
-            var actionElement = self.findActionElement(event.target, toolbar);
-            if (!actionElement) {
-                return;
-            }
-            var action = actionElement.getAttribute('data-long-article-action');
-            if (action === 'top') {
-                self.closeCatalog();
-                self.scrollToTop();
-            } else if (action === 'catalog') {
-                self.toggleCatalog();
-            } else if (action === 'color-mode') {
-                if (typeof window.toggleColorMode === 'function') {
-                    window.toggleColorMode();
-                }
-            } else if (action === 'comments') {
-                if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
-                    window.LongArticleParagraphComments.showChapterComments();
-                    self.openComments();
-                } else {
-                    self.toggleComments();
-                }
-            } else if (action === 'font-decrease') {
-                self.setFontSize(-2);
-            } else if (action === 'font-increase') {
-                self.setFontSize(2);
-            } else if (action === 'layout') {
-                self.toggleLayoutPanel();
-            } else if (actionElement.hasAttribute('data-long-article-width')) {
-                self.setWidth(actionElement.getAttribute('data-long-article-width'));
-            }
+            self.handleToolbarClick(event, toolbar);
         });
-
         document.addEventListener('click', function (event) {
-            var panel = document.getElementById('longArticleLayoutPanel');
-            var layoutButton = toolbar.querySelector('[data-long-article-action="layout"]');
-            if (panel && panel.classList.contains('is-open') && !panel.contains(event.target) && !layoutButton.contains(event.target)) {
-                self.closeLayoutPanel();
-            }
-            if (event.target.closest && event.target.closest('[data-long-article-comments-close]')) {
-                self.closeComments();
-            }
-            if (event.target.closest && event.target.closest('[data-long-article-catalog-close]')) {
-                self.closeCatalog();
-            }
+            self.handleDocumentClick(event, toolbar);
         });
 
         document.addEventListener('keydown', function (event) {
@@ -205,6 +165,82 @@ window.LongArticle = {
         window.addEventListener('scroll', function () {
             self.updateTopButton();
         }, {passive: true});
+    },
+
+    handleToolbarClick: function (event, toolbar) {
+        var actionElement = this.findActionElement(event.target, toolbar);
+        if (!actionElement) {
+            return;
+        }
+        var action = actionElement.getAttribute('data-long-article-action');
+        if (actionElement.hasAttribute('data-long-article-width')) {
+            this.setWidth(actionElement.getAttribute('data-long-article-width'));
+            return;
+        }
+        this.runToolbarAction(action);
+    },
+
+    runToolbarAction: function (action) {
+        var actions = {
+            top: this.handleTopAction,
+            catalog: this.toggleCatalog,
+            'color-mode': this.toggleColorMode,
+            comments: this.handleCommentsAction,
+            'font-decrease': function () { this.setFontSize(-2); },
+            'font-increase': function () { this.setFontSize(2); },
+            layout: this.toggleLayoutPanel,
+            more: this.toggleMorePanel
+        };
+        if (actions[action]) {
+            actions[action].call(this);
+        }
+    },
+
+    handleTopAction: function () {
+        this.closeCatalog();
+        this.scrollToTop();
+    },
+
+    toggleColorMode: function () {
+        if (typeof window.toggleColorMode === 'function') {
+            window.toggleColorMode();
+        }
+    },
+
+    handleCommentsAction: function () {
+        if (window.LongArticleParagraphComments && window.LongArticleParagraphComments.getActiveParagraphId()) {
+            window.LongArticleParagraphComments.showChapterComments();
+            this.openComments();
+            return;
+        }
+        this.toggleComments();
+    },
+
+    handleDocumentClick: function (event, toolbar) {
+        this.closePanelFromOutside(event, toolbar, {
+            panelId: 'longArticleLayoutPanel',
+            action: 'layout',
+            closePanel: this.closeLayoutPanel
+        });
+        this.closePanelFromOutside(event, toolbar, {
+            panelId: 'longArticleMorePanel',
+            action: 'more',
+            closePanel: this.closeMorePanel
+        });
+        if (event.target.closest && event.target.closest('[data-long-article-comments-close]')) {
+            this.closeComments();
+        }
+        if (event.target.closest && event.target.closest('[data-long-article-catalog-close]')) {
+            this.closeCatalog();
+        }
+    },
+
+    closePanelFromOutside: function (event, toolbar, options) {
+        var panel = document.getElementById(options.panelId);
+        var button = toolbar.querySelector('[data-long-article-action="' + options.action + '"]');
+        if (panel && panel.classList.contains('is-open') && !panel.contains(event.target) && !button.contains(event.target)) {
+            options.closePanel.call(this);
+        }
     },
 
     findActionElement: function (target, boundary) {
@@ -255,6 +291,7 @@ window.LongArticle = {
             return;
         }
         var open = !panel.classList.contains('is-open');
+        this.closeMorePanel();
         panel.classList.toggle('is-open', open);
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -268,6 +305,33 @@ window.LongArticle = {
             panel.setAttribute('aria-hidden', 'true');
         }
         if (button) {
+            button.setAttribute('aria-expanded', 'false');
+        }
+    },
+
+    toggleMorePanel: function () {
+        var panel = document.getElementById('longArticleMorePanel');
+        var button = document.querySelector('[data-long-article-action="more"]');
+        if (!panel || !button) {
+            return;
+        }
+        var open = !panel.classList.contains('is-open');
+        this.closeLayoutPanel();
+        panel.classList.toggle('is-open', open);
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        button.classList.toggle('is-active', open);
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    },
+
+    closeMorePanel: function () {
+        var panel = document.getElementById('longArticleMorePanel');
+        var button = document.querySelector('[data-long-article-action="more"]');
+        if (panel) {
+            panel.classList.remove('is-open');
+            panel.setAttribute('aria-hidden', 'true');
+        }
+        if (button) {
+            button.classList.remove('is-active');
             button.setAttribute('aria-expanded', 'false');
         }
     },

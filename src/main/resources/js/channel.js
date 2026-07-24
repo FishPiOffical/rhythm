@@ -35,6 +35,32 @@ var ArticleChannel = {
      * @type WebSocket
      */
     ws: undefined,
+    incrementCommentCount: function () {
+        var $headerCount = $('.comments-header .article-cmt-cnt').first(),
+            currentCount = parseInt($headerCount.attr('data-comment-count'), 10)
+        if (isNaN(currentCount)) {
+            throw new Error('Invalid article comment count')
+        }
+        var nextCount = currentCount + 1,
+            $longCount = $headerCount.find('.long-article-comments-count'),
+            $toolbarButton = $('[data-long-article-action="comments"]')
+        $headerCount.attr('data-comment-count', nextCount)
+        if ($longCount.length > 0) {
+            $longCount.text(nextCount + ' 条')
+            var $inlineCount = $toolbarButton.find('.count')
+            if ($inlineCount.length > 0) {
+                $inlineCount.text(nextCount)
+                return
+            }
+            var $badge = $toolbarButton.find('.long-article-settings__count')
+            if ($badge.length === 0) {
+                $badge = $('<span class="long-article-settings__count"></span>').appendTo($toolbarButton)
+            }
+            $badge.text(nextCount)
+            return
+        }
+        $headerCount.text(nextCount + ' ' + Label.cmtLabel)
+    },
     /**
      * @description Initializes message channel
      */
@@ -73,10 +99,7 @@ var ArticleChannel = {
                         break
                     }
 
-                    var cmtCount = parseInt(
-                        $('.comments-header .article-cmt-cnt').text()) + 1
-                    // 总帖数更新
-                    $('.comments-header .article-cmt-cnt').text(cmtCount + ' ' + Label.cmtLabel)
+                    ArticleChannel.incrementCommentCount()
 
                     // 新增第一条评论时到底部的锚点
                     if ($('#comments .list > ul > li').length === 0) {
