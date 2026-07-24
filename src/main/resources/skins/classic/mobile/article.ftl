@@ -32,6 +32,9 @@
         </#if>
         </@head>
         <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
+        <#if 6 == article.articleType>
+            <link rel="stylesheet" href="${staticServePath}/css/long-article-image-menu.css?${staticResourceVersion}">
+        </#if>
     </head>
     <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
         <#assign hidePageChrome = (6 == article.articleType)>
@@ -308,53 +311,6 @@
                     </div>
                 </div>
                 </#if>
-                <#if article.articleNiceComments?size != 0>
-                    <div class="module nice">
-                        <div class="module-header">
-                            <svg class="ft-blue"><use xlink:href="#thumbs-up"></use></svg>
-                            ${niceCommentsLabel}
-                        </div>
-                        <div class="module-panel list comments">
-                            <ul>
-                            <#list article.articleNiceComments as comment>
-                            <li>
-                                    <div class="fn-flex">
-                                        <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}">
-                                            <div class="avatar tooltipped tooltipped-se"
-                                                 aria-label="${comment.commentAuthorName}" style="background-image:url('${comment.commentAuthorThumbnailURL}')"></div>
-                                        </a>
-                                        <div class="fn-flex-1">
-                                            <div class="fn-clear comment-info ft-smaller">
-                                                <span class="fn-left">
-                                                    <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}" class="ft-gray"><span class="ft-gray"><#if comment.commentAuthorNickName != "">${comment.commentAuthorNickName} (${comment.commentAuthorName})<#else>${comment.commentAuthorName}</#if></span></a>
-                                                    <span class="ft-fade">• ${comment.timeAgo}</span>
-
-                                                    <#if comment.rewardedCnt gt 0>
-                                                    <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
-                                                    <span aria-label="<#if hasRewarded>${thankedLabel}<#else>${thankLabel} ${comment.rewardedCnt}</#if>"
-                                                          class="tooltipped tooltipped-n rewarded-cnt <#if hasRewarded>ft-red<#else>ft-fade</#if>">
-                                                        <svg class="fn-text-top"><use xlink:href="#heart"></use></svg> ${comment.rewardedCnt}
-                                                    </span>
-                                                    </#if>
-                                                </span>
-                                                &nbsp;<#list comment.sysMetal?eval as metal>
-                                                <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
-                                                </#list>
-                                                <a class="ft-a-title fn-right tooltipped tooltipped-nw" aria-label="${goCommentLabel}"
-                                                   href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${comment.oId}')"><svg><use xlink:href="#down"></use></svg></a>
-                                            </div>
-                                            <div class="vditor-reset comment">
-                                                ${comment.commentContent}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </li>
-                            </#list>
-                        </ul>
-                        </div>
-                    </div>
-                    </#if>
-
             </div>
             <div>
                 <#if pjax><!---- pjax {#comments} start ----></#if>
@@ -386,7 +342,7 @@
                                     </button>
                                     </#if>
                                 </div>
-                                <#if (commentDisplayCount!article.articleCommentCount) != 0>
+                                <#if article.articleCommentCount != 0 || commentAuthorFilter>
                                     <div class="comment-filterbar">
                                         <div class="comment-segment">
                                             <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
@@ -685,6 +641,7 @@
         <#if 6 == article.articleType>
         <script src="${staticServePath}/js/m-long-article${miniPostfix}.js?${staticResourceVersion}"></script>
         <script src="${staticServePath}/js/long-article-paragraph${miniPostfix}.js?${staticResourceVersion}"></script>
+        <script src="${staticServePath}/js/long-article-image-choice${miniPostfix}.js?${staticResourceVersion}"></script>
         </#if>
         <script>
             Label.commentErrorLabel = "${commentErrorLabel}";
@@ -760,6 +717,7 @@
             <#if 6 == article.articleType>
                 MLongArticle.init();
                 LongArticleParagraphComments.init();
+                LongArticleImageActions.init();
             </#if>
 
             $(".editor-bg").click(Comment._toggleReply)

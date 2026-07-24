@@ -1,0 +1,95 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.long-article-image-actions {
+  position: fixed;
+  z-index: 130;
+  display: flex;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid rgba(65, 94, 71, 0.18);
+  border-radius: 8px;
+  background: #edf5ed;
+  box-shadow: 0 8px 24px rgba(31, 46, 36, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+
+  &.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  button {
+    min-width: 56px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #35513d;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    touch-action: manipulation;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  button:hover,
+  button:active {
+    background: #3e7250;
+    color: #fff;
+  }
+
+  button:focus-visible {
+    outline: 2px solid #3e7250;
+    outline-offset: 2px;
+  }
+}
+
+.long-article-page > .img-preview {
+  z-index: 140;
+}
+
+body.night .long-article-image-actions {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #191919;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+
+  button {
+    color: #c4d4c8;
+  }
+
+  button:hover,
+  button:active {
+    background: #3e7250;
+    color: #fff;
+  }
+
+  button:focus-visible {
+    outline-color: #8fc9a0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .long-article-image-actions {
+    transition: none;
+  }
+}

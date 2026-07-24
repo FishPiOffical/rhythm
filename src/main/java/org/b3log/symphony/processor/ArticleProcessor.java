@@ -667,7 +667,6 @@ public class ArticleProcessor {
         double niceCmtScore = Double.MAX_VALUE;
         if (!niceComments.isEmpty()) {
             niceCmtScore = niceComments.get(niceComments.size() - 1).optDouble(Comment.COMMENT_SCORE, 0D);
-
             for (final JSONObject comment : niceComments) {
                 DesensitizeUtil.commentDesensitize(comment);
 
@@ -1581,9 +1580,18 @@ public class ArticleProcessor {
         commentThreadOptions.put(Comment.COMMENT_AUTHOR_ID, filteredCommentAuthorId);
         commentThreadOptions.put("commentSort", commentSort);
         commentThreadOptions.put(Keys.OBJECT_ID, currentUserId);
+        final List<JSONObject> niceComments = StringUtils.isBlank(filteredCommentAuthorId)
+                ? commentQueryService.getNiceThreadParentComments(commentThreadOptions, 3)
+                : Collections.emptyList();
+        final List<String> niceCommentIds = new ArrayList<>();
+        for (final JSONObject comment : niceComments) {
+            niceCommentIds.add(comment.optString(Keys.OBJECT_ID));
+        }
+        commentThreadOptions.put(CommentQueryService.COMMENT_EXCLUDED_IDS, niceCommentIds);
         final int commentCnt = commentQueryService.countArticleThreadParentComments(commentThreadOptions);
-        dataModel.put("commentDisplayCount", commentCnt);
-        final int pageCount = (int) Math.ceil((double) commentCnt / (double) pageSize);
+        dataModel.put("commentDisplayCount", commentCnt + niceComments.size());
+        final int pageCount = Math.max(niceComments.isEmpty() ? 0 : 1,
+                (int) Math.ceil((double) commentCnt / (double) pageSize));
         // 回帖分页 SEO https://github.com/b3log/symphony/issues/813
         if (UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL == cmtViewMode) {
             if (0 < pageCount && pageNum > pageCount) {
@@ -1614,41 +1622,10 @@ public class ArticleProcessor {
             return;
         }
 
-        final List<JSONObject> niceComments = commentQueryService.getNiceComments(cmtViewMode, articleId, 3);
         article.put(Article.ARTICLE_T_NICE_COMMENTS, (Object) niceComments);
-
-        double niceCmtScore = Double.MAX_VALUE;
-        if (!niceComments.isEmpty()) {
-            niceCmtScore = niceComments.get(niceComments.size() - 1).optDouble(Comment.COMMENT_SCORE, 0D);
-
-            for (final JSONObject comment : niceComments) {
-                String thankTemplate = langPropsService.get("thankConfirmLabel");
-                thankTemplate = thankTemplate.replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT))
-                        .replace("{user}", comment.optJSONObject(Comment.COMMENT_T_COMMENTER).optString(User.USER_NAME));
-                comment.put(Comment.COMMENT_T_THANK_LABEL, thankTemplate);
-
-                final String commentId = comment.optString(Keys.OBJECT_ID);
-                if (isLoggedIn) {
-                    comment.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
-                    final int commentVote = voteQueryService.isVoted(currentUserId, commentId);
-                    comment.put(Comment.COMMENT_T_VOTE, commentVote);
-                }
-
-                comment.put(Common.REWARED_COUNT, comment.optInt(Comment.COMMENT_THANK_CNT));
-
-                // https://github.com/b3log/symphony/issues/682
-                if (Comment.COMMENT_VISIBLE_C_AUTHOR == comment.optInt(Comment.COMMENT_VISIBLE)) {
-                    final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-                    if (!isLoggedIn || (!StringUtils.equals(currentUserId, commentAuthorId) && !StringUtils.equals(currentUserId, articleAuthorId))) {
-                        comment.put(Comment.COMMENT_CONTENT, langPropsService.get("onlySelfAndArticleAuthorVisibleLabel"));
-                    }
-                }
-            }
-        }
 
         // Load comments
         final List<JSONObject> articleComments = commentQueryService.getArticleThreadParentComments(commentThreadOptions);
-        article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
         if (Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE)) {
             article.put("articleOrphanedParagraphComments", (Object)
                     commentQueryService.getOrphanedParagraphThreadParentComments(
@@ -1656,13 +1633,15 @@ public class ArticleProcessor {
         }
         article.put("commentors", (Object) commentQueryService.getArticleCommentors(articleId));
 
+        if (!niceComments.isEmpty()) {
+            articleComments.addAll(0, niceComments);
+        }
+
         // Fill comment thank
         Stopwatchs.start("Fills comment thank");
         try {
             final String thankTemplate = langPropsService.get("thankConfirmLabel");
             for (final JSONObject comment : articleComments) {
-                comment.put(Comment.COMMENT_T_NICE, comment.optDouble(Comment.COMMENT_SCORE, 0D) >= niceCmtScore);
-
                 final String thankStr = thankTemplate.replace("{point}", String.valueOf(Symphonys.POINT_THANK_COMMENT))
                         .replace("{user}", comment.optJSONObject(Comment.COMMENT_T_COMMENTER).optString(User.USER_NAME));
                 comment.put(Comment.COMMENT_T_THANK_LABEL, thankStr);
@@ -1689,8 +1668,8 @@ public class ArticleProcessor {
             Stopwatchs.end();
         }
 
-        reactionQueryService.fillCommentReactions(niceComments, currentUserId);
         reactionQueryService.fillCommentReactions(articleComments, currentUserId);
+        article.put(Article.ARTICLE_T_COMMENTS, (Object) articleComments);
 
         // Referral statistic
         final String referralUserName = context.param("r");

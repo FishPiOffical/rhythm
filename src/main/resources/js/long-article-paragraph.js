@@ -209,7 +209,7 @@ window.LongArticleParagraphComments = {
     if (event.defaultPrevented || (typeof event.button === 'number' && event.button !== 0)) {
       return false
     }
-    if (event.target.closest('a, button, input, textarea, select, video, audio, iframe, pre, code, table, [contenteditable="true"]')) {
+    if (event.target.closest('a, button, img, input, textarea, select, video, audio, iframe, pre, code, table, [contenteditable="true"]')) {
       return false
     }
     var selection = window.getSelection && window.getSelection()

@@ -785,6 +785,24 @@ a[class*=" icon-"]:hover {
   background-color: #f9f6f6;
 }
 
+.comment-nice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 5px;
+  color: #4f7f5d;
+  font-weight: 600;
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+body.night .comment-nice-badge {
+  color: #8fc69b;
+}
+
 .has-view {
   margin-right: 40px;
 }
@@ -2048,6 +2066,11 @@ label.cmt-anonymous {
 .article-reaction .reaction-popover {
   left: 0;
   right: auto;
+}
+
+body.long-article-page .article-reaction .reaction-popover {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .chat-reaction {
@@ -5941,13 +5964,23 @@ body.night .long-article-paragraph-comments {
 
 body.long-article-page {
   --long-article-comments-width: min(430px, 100vw);
+  --long-article-page-background: #c7dcc8;
+  --long-article-surface-background: #dcebdd;
   min-height: 100vh;
   width: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   box-sizing: border-box;
-  background: #c7dcc8;
+  background: linear-gradient(
+    to right,
+    var(--long-article-page-background) 0,
+    var(--long-article-page-background) 14px,
+    var(--long-article-surface-background) 14px,
+    var(--long-article-surface-background) calc(100% - 14px),
+    var(--long-article-page-background) calc(100% - 14px),
+    var(--long-article-page-background) 100%
+  );
   color: #25332a;
 
   &.long-article-catalog-open {
@@ -5980,7 +6013,7 @@ body.long-article-page {
     box-sizing: border-box;
     margin: 0;
     padding: 0 14px 30px;
-    background: #c7dcc8;
+    background: transparent;
     box-shadow: none;
   }
 
@@ -6679,11 +6712,12 @@ body.night .long-article-catalog {
 
 body.night {
   &.long-article-page {
-    background: #0a0a0a;
+    --long-article-page-background: #0a0a0a;
+    --long-article-surface-background: #111111;
     color: #d9e3db;
 
     > .main {
-      background: #0a0a0a;
+      background: transparent;
     }
 
     .article-main {

@@ -113,7 +113,7 @@ var ArticleChannel = {
                     if (0 === Label.userCommentViewMode) { // tranditional view mode
                         $('#comments > .list > ul').append(data.cmtTpl)
                     } else {
-                        $('#comments > .list > ul').prepend(data.cmtTpl)
+                        ArticleChannel.insertAfterNiceComments(data.cmtTpl)
                     }
                     Comment.initReactionWidgets($('#' + data.commentId))
 
@@ -167,6 +167,15 @@ var ArticleChannel = {
         ArticleChannel.ws.onerror = function (err) {
             console.log(err)
         }
+    },
+    insertAfterNiceComments: function (commentTemplate) {
+        var $commentList = $('#comments > .list > ul'),
+            $lastNiceComment = $commentList.children('li.cmt-nice').last()
+        if ($lastNiceComment.length > 0) {
+            $lastNiceComment.after(commentTemplate)
+            return
+        }
+        $commentList.prepend(commentTemplate)
     },
     insertThreadReply: function (data) {
         if (typeof Comment === 'undefined' || !Comment.renderThreadReply) {

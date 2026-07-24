@@ -890,6 +890,20 @@ label.cmt-anonymous {
     background-color: #f9f6f6;
   }
 
+  .comment-nice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 6px;
+    color: #4f7f5d;
+    font-weight: 600;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+
   .list > ul > li:hover .hover-show,
   .list > ul > li.focus .fn-hidden {
     visibility: visible;
@@ -1229,6 +1243,11 @@ label.cmt-anonymous {
 .article-reaction .reaction-widget__summary,
 .article-reaction .reaction-widget__items {
   justify-content: flex-start;
+}
+
+.article.long-article-page .article-reaction .reaction-popover {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .comment-reaction {
@@ -5750,10 +5769,22 @@ body.night .long-article-paragraph-comments {
 
 .article.long-article-page {
   --long-article-drawer-width: min(320px, calc(100vw - 72px));
+  --long-article-page-background: #c7dcc8;
+  --long-article-surface-background: #dcebdd;
+  --long-article-surface-left: calc(50% - min(var(--long-article-half-width, 400px), calc(50vw - 14px)));
+  --long-article-surface-right: calc(50% + min(var(--long-article-half-width, 400px), calc(50vw - 14px)));
   min-height: 100vh;
   padding-top: 0;
   overflow-x: hidden;
-  background: #c7dcc8;
+  background: linear-gradient(
+    to right,
+    var(--long-article-page-background) 0,
+    var(--long-article-page-background) var(--long-article-surface-left),
+    var(--long-article-surface-background) var(--long-article-surface-left),
+    var(--long-article-surface-background) var(--long-article-surface-right),
+    var(--long-article-page-background) var(--long-article-surface-right),
+    var(--long-article-page-background) 100%
+  );
   color: #25332a;
 
   &.long-article-catalog-open {
@@ -5924,6 +5955,9 @@ body.night .long-article-paragraph-comments {
   }
 
   &.long-article-comments-open.long-article-comments-inline {
+    --long-article-surface-left: var(--long-article-stage-left, 14px);
+    --long-article-surface-right: calc(var(--long-article-stage-left, 14px) + var(--long-article-open-article-width, var(--long-article-width, 800px)));
+
     .long-article-reading-stage {
       column-gap: 0;
       width: var(--long-article-stage-width, calc(var(--long-article-width, 800px) + var(--long-article-drawer-width)));
@@ -6431,6 +6465,10 @@ body.night .long-article-paragraph-comments {
   }
 }
 
+body.night .comment-nice-badge {
+  color: #8fc69b;
+}
+
 .long-article-chapter-actions {
   display: flex;
   flex-direction: column;
@@ -6678,7 +6716,8 @@ a.long-article-settings-btn {
 
 body.night {
   &.long-article-page {
-    background: #0a0a0a;
+    --long-article-page-background: #0a0a0a;
+    --long-article-surface-background: #111111;
     color: #d9e3db;
 
     .article-container {

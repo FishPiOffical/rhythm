@@ -27,7 +27,7 @@
     data-comment-paragraph-id="${comment.commentParagraphId!}"
     data-comment-paragraph-status="${comment.commentParagraphStatus!0}"
     data-is-author="<#if isArticleAuthorComment>true<#else>false</#if>"
-    class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice || comment.commentQnAOffered == 1> cmt-perfect</#if><#if threadReplyCount != 0> cmt-selected</#if>">
+    class="<#if comment.commentStatus == 1>cmt-shield</#if><#if comment.commentNice> cmt-perfect cmt-nice<#elseif comment.commentQnAOffered == 1> cmt-perfect</#if><#if threadReplyCount != 0> cmt-selected</#if>">
     <div class="fn-flex">
         <div>
             <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}">
@@ -40,6 +40,9 @@
             <div class="fn-clear comment-info">
                 <span class="fn-left ft-smaller">
                     <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}" class="ft-gray"><span class="ft-gray"><#if comment.commentAuthorNickName != "">${comment.commentAuthorNickName} (${comment.commentAuthorName})<#else>${comment.commentAuthorName}</#if></span></a>
+                    <#if comment.commentNice!false>
+                        <span class="comment-nice-badge"><svg><use xlink:href="#thumbs-up"></use></svg>优质</span>
+                    </#if>
                     <#list comment.sysMetal?eval as metal>
                         <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
                     </#list>

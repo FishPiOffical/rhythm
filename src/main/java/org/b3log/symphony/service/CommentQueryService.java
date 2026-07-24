@@ -81,6 +81,8 @@ public class CommentQueryService {
 
     private static final String COMMENT_THREAD_DEPTH = "commentThreadDepth";
 
+    public static final String COMMENT_EXCLUDED_IDS = "commentExcludedIds";
+
     private static final class ThreadQueryContext {
         private final String currentUserId;
         private final String rootCommentId;
@@ -832,7 +834,8 @@ public class CommentQueryService {
 
     public int countArticleThreadParentComments(final JSONObject options) {
         final String articleId = options.optString(Article.ARTICLE_T_ID, options.optString("articleId"));
-        final Query query = new Query().setFilter(buildThreadParentCommentFilter(articleId, options.optString(Comment.COMMENT_AUTHOR_ID)));
+        final Query query = new Query().setFilter(buildThreadParentCommentFilter(
+                articleId, options.optString(Comment.COMMENT_AUTHOR_ID), getExcludedCommentIds(options)));
         try {
             return (int) commentRepository.count(query);
         } catch (final RepositoryException e) {
@@ -860,6 +863,43 @@ public class CommentQueryService {
             return ret;
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Gets article [" + articleId + "] parent comments failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public List<JSONObject> getNiceThreadParentComments(final JSONObject options, final int fetchSize) {
+        final String articleId = options.optString(Article.ARTICLE_T_ID, options.optString("articleId"));
+        final List<JSONObject> candidates = getNiceComments(
+                options.optInt(UserExt.USER_COMMENT_VIEW_MODE), articleId, fetchSize);
+        if (candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            final ThreadQueryContext context = buildThreadQueryContext(
+                    options.optString(Keys.OBJECT_ID), "", articleId,
+                    options.optString(Article.ARTICLE_AUTHOR_ID));
+            final List<JSONObject> ret = new ArrayList<>();
+            final Set<String> rootIds = new LinkedHashSet<>();
+            for (final JSONObject candidate : candidates) {
+                rootIds.add(getCommentThreadRootId(candidate.optString(Keys.OBJECT_ID)));
+            }
+            for (final String rootId : rootIds) {
+                final JSONObject comment = commentRepository.get(rootId);
+                if (null == comment) {
+                    continue;
+                }
+                organizeComment(comment);
+                fillArticleCommentMetadata(comment, articleId,
+                        options.optInt(UserExt.USER_COMMENT_VIEW_MODE),
+                        options.optInt(Pagination.PAGINATION_PAGE_SIZE));
+                fillCommentThreadPreview(comment, options.optString(Keys.OBJECT_ID));
+                final JSONObject target = buildThreadParentComment(comment, context);
+                target.put(Comment.COMMENT_T_NICE, true);
+                ret.add(target);
+            }
+            return ret;
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.ERROR, "Gets article [" + articleId + "] nice comment threads failed", e);
             return Collections.emptyList();
         }
     }
@@ -1059,7 +1099,7 @@ public class CommentQueryService {
                 setPage(options.optInt(Pagination.PAGINATION_CURRENT_PAGE_NUM), options.optInt(Pagination.PAGINATION_PAGE_SIZE)).
                 setFilter(buildThreadParentCommentFilter(
                         options.optString(Article.ARTICLE_T_ID, options.optString("articleId")),
-                        options.optString(Comment.COMMENT_AUTHOR_ID)));
+                        options.optString(Comment.COMMENT_AUTHOR_ID), getExcludedCommentIds(options)));
         if (COMMENT_SORT_HOT.equals(options.optString("commentSort"))) {
             return query.addSort(Comment.COMMENT_SCORE, SortDirection.DESCENDING).
                     addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
@@ -1071,14 +1111,37 @@ public class CommentQueryService {
     }
 
     private Filter buildThreadParentCommentFilter(final String articleId, final String authorId) {
+        return buildThreadParentCommentFilter(articleId, authorId, Collections.emptyList());
+    }
+
+    private Filter buildThreadParentCommentFilter(final String articleId, final String authorId,
+                                                  final List<String> excludedCommentIds) {
         final Filter parentFilter = CompositeFilterOperator.and(
                 buildChapterCommentFilter(articleId),
                 new PropertyFilter(Comment.COMMENT_ORIGINAL_COMMENT_ID, FilterOperator.EQUAL, ""));
-        if (StringUtils.isBlank(authorId)) {
+        final List<Filter> filters = new ArrayList<>();
+        filters.add(parentFilter);
+        if (StringUtils.isNotBlank(authorId)) {
+            filters.add(new PropertyFilter(Comment.COMMENT_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+        }
+        if (!excludedCommentIds.isEmpty()) {
+            filters.add(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.NOT_IN, excludedCommentIds));
+        }
+        if (1 == filters.size()) {
             return parentFilter;
         }
-        return CompositeFilterOperator.and(parentFilter,
-                new PropertyFilter(Comment.COMMENT_AUTHOR_ID, FilterOperator.EQUAL, authorId));
+        return CompositeFilterOperator.and(filters.toArray(new Filter[0]));
+    }
+
+    private List<String> getExcludedCommentIds(final JSONObject options) {
+        if (null == options.optJSONArray(COMMENT_EXCLUDED_IDS)) {
+            return Collections.emptyList();
+        }
+        final List<String> ret = new ArrayList<>();
+        for (final Object id : options.optJSONArray(COMMENT_EXCLUDED_IDS)) {
+            ret.add(String.valueOf(id));
+        }
+        return ret;
     }
 
     private Filter buildThreadPageBeforeFilter(final String articleId, final JSONObject rootComment,
@@ -1232,6 +1295,7 @@ public class CommentQueryService {
     private JSONObject buildThreadParentComment(final JSONObject comment, final ThreadQueryContext context)
             throws RepositoryException {
         final JSONObject ret = buildThreadCommentBase(comment, context);
+        ret.put(Comment.COMMENT_T_NICE, false);
         ret.put(Comment.COMMENT_STATUS, comment.optInt(Comment.COMMENT_STATUS));
         ret.put(Comment.COMMENT_SCORE, comment.optDouble(Comment.COMMENT_SCORE));
         ret.put(Comment.COMMENT_REPLY_CNT, comment.optInt(Comment.COMMENT_REPLY_CNT));

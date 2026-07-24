@@ -52,6 +52,9 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/js/lib/compress/article.min.css?${staticResourceVersion}">
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
+    <#if 6 == article.articleType>
+        <link rel="stylesheet" href="${staticServePath}/css/long-article-image-menu.css?${staticResourceVersion}"/>
+    </#if>
     <link rel="canonical"
           href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
     <#if articlePrevious??>
@@ -431,81 +434,6 @@
                 </div>
             </div>
         </#if>
-        <#if article.articleNiceComments?size != 0>
-            <div class="module nice">
-                <div class="module-header">
-                    <svg class="ft-blue">
-                        <use xlink:href="#thumbs-up"></use>
-                    </svg>
-                    ${niceCommentsLabel}
-                </div>
-                <div class="module-panel list comments">
-                    <ul>
-                        <#list article.articleNiceComments as comment>
-                            <li>
-                                <div class="fn-flex">
-                                    <a rel="nofollow" href="${servePath}/member/${comment.commentAuthorName}">
-                                        <div class="avatar"
-                                             aria-label="${comment.commentAuthorName}"
-                                             style="background-image:url('${comment.commentAuthorThumbnailURL}')"></div>
-                                    </a>
-                                    <div class="fn-flex-1">
-                                        <div class="fn-clear comment-info ft-smaller">
-                                            <span class="fn-left">
-                                                <a rel="nofollow"
-                                                   href="${servePath}/member/${comment.commentAuthorName}"
-                                                   class="ft-gray"><span
-                                                            class="ft-gray"><#if comment.commentAuthorNickName != "">${comment.commentAuthorNickName} (${comment.commentAuthorName})<#else>${comment.commentAuthorName}</#if></span></a>
-                                                 <span class="ft-fade">• ${comment.timeAgo}</span>
- 
-                                                 <#if comment.rewardedCnt gt 0>
-                                                     <#assign hasRewarded = isLoggedIn && comment.commentAuthorId != currentUser.oId && comment.rewarded>
-                                                     <span aria-label="<#if hasRewarded>${thankedLabel}<#else>${thankLabel} ${comment.rewardedCnt}</#if>"
-                                                          class="tooltipped tooltipped-n rewarded-cnt <#if hasRewarded>ft-red<#else>ft-fade</#if>">
-                                                    <svg class="fn-text-top"><use
-                                                                xlink:href="#heart"></use></svg> ${comment.rewardedCnt}
-                                                </span>
-                                                 </#if>
-                                             </span>
-                                             <#assign commentMedals = (comment.sysMetal?is_string)?then(comment.sysMetal?eval, comment.sysMetal)![]>
-                                             <#if commentMedals?size != 0>
-                                                 &nbsp;
-                                                 <#list commentMedals as metal>
-                                                     <#assign medalType = metal.type!''>
-                                                     <#assign medalName = metal.name!''>
-                                                     <#assign medalDesc = metal.description!''>
-                                                     <span class="tip-wrapper">
-                                                         <img src="${servePath}/gen?id=${metal.id}"/>
-                                                         <span class="tip-text">
-                                                             <#if medalType != "">
-                                                                 <span style="${medalTypeStyle(medalType)}">[${medalType}]</span>
-                                                                 <#if medalName != "" || medalDesc != "">&nbsp;</#if>
-                                                             </#if>
-                                                             <#if medalName != "">${medalName}<#if medalDesc != ""> - </#if></#if>${medalDesc}
-                                                         </span>
-                                                     </span>
-                                                 </#list>
-                                             </#if>
-                                             <a class="ft-a-title fn-right tooltipped tooltipped-nw"
-                                                aria-label="${goCommentLabel}"
-                                               href="javascript:Comment.goComment('${servePath}/article/${article.oId}?p=${comment.paginationCurrentPageNum}&m=${userCommentViewMode}<#if commentSort == "hot">&sort=hot</#if><#if commentAuthorFilter>&author=1</#if>#${comment.oId}')">
-                                                <svg>
-                                                    <use xlink:href="#down"></use>
-                                                </svg>
-                                            </a>
-                                        </div>
-                                        <div class="vditor-reset comment">
-                                            ${comment.commentContent}
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
-                        </#list>
-                    </ul>
-                </div>
-            </div>
-        </#if>
-
         <#if pjax><!---- pjax {#comments} start ----></#if>
         <div class="module comments" id="comments">
             <div class="comments-header module-header">
@@ -522,7 +450,7 @@
                     </button>
                     </#if>
                 </div>
-                <#if (commentDisplayCount!article.articleCommentCount) != 0>
+                <#if article.articleCommentCount != 0 || commentAuthorFilter>
                     <div class="comment-filterbar">
                         <div class="comment-segment">
                             <a class="comment-segment__item<#if !commentAuthorFilter> comment-segment__item--active</#if>"
@@ -1036,6 +964,7 @@
 <#if 6 == article.articleType>
 <script src="${staticServePath}/js/long-article${miniPostfix}.js?${staticResourceVersion}"></script>
 <script src="${staticServePath}/js/long-article-paragraph${miniPostfix}.js?${staticResourceVersion}"></script>
+<script src="${staticServePath}/js/long-article-image-choice${miniPostfix}.js?${staticResourceVersion}"></script>
 </#if>
 <script>
     Label.commentErrorLabel = "${commentErrorLabel}";
@@ -1114,6 +1043,7 @@
     <#if 6 == article.articleType>
     LongArticle.init();
     LongArticleParagraphComments.init();
+    LongArticleImageActions.init();
     </#if>
 
     setInterval(function () {
