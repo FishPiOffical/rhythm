@@ -92,7 +92,9 @@
                             <#if threadOriginalAuthorLabel == ''><#assign threadOriginalAuthorLabel = threadReply.commentOriginalAuthorName!'原评论'></#if>
                             <#assign threadDepth = threadReply.commentThreadDepth!0>
                             <div id="${threadReply.oId}" class="comment-thread__reply<#if threadDepth gt 0> comment-thread__reply--nested</#if>"
-                                 data-thread-depth="${threadDepth}" style="--comment-thread-indent:${threadDepth * 16}px">
+                                 data-thread-depth="${threadDepth}" style="--comment-thread-indent:${threadDepth * 16}px"
+                                 <#if (threadReply.commentParagraphId!'') != ''>data-comment-paragraph-id="${threadReply.commentParagraphId?html}"
+                                 data-comment-paragraph-status="${threadReply.commentParagraphStatus!0}"</#if>>
                                 <a rel="nofollow" href="${servePath}/member/${threadReply.commentAuthorName}" class="comment-thread__avatar"
                                    aria-label="${threadReply.commentAuthorName}"
                                    style="background-image:url('${threadReply.commentAuthorThumbnailURL}')"></a>

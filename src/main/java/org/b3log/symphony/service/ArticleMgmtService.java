@@ -1078,6 +1078,8 @@ public class ArticleMgmtService {
             article.put(Article.ARTICLE_STATEMENT, Integer.valueOf(article.optInt(Article.ARTICLE_STATEMENT, 0)));
 
             final JSONObject oldArticle = articleRepository.get(articleId);
+            final int oldArticleType = oldArticle.optInt(Article.ARTICLE_TYPE);
+            final String oldContent = oldArticle.optString(Article.ARTICLE_CONTENT);
 
             if (Article.ARTICLE_STATUS_C_INVALID == article.optInt(Article.ARTICLE_STATUS)) {
                 article.put(Article.ARTICLE_TAGS, "回收站");
@@ -1116,6 +1118,15 @@ public class ArticleMgmtService {
 
             userRepository.update(authorId, author);
             articleRepository.update(articleId, article);
+
+            final int articleType = article.optInt(Article.ARTICLE_TYPE);
+            final String articleContent = article.optString(Article.ARTICLE_CONTENT);
+            final boolean contentChanged = !oldContent.replaceAll("\\s+", "")
+                    .equals(articleContent.replaceAll("\\s+", ""));
+            if (contentChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
+                    || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
+                longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, articleContent);
+            }
 
             if (null != longArticleColumnRequest) {
                 article.put(Keys.OBJECT_ID, articleId);

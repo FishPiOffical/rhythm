@@ -65,10 +65,12 @@ public class ExternalPointAdjustMgmtService {
                          final int point, final String memo, final PointtransferSource source)
             throws ServiceException {
         final String requestHash = requestHash(userId, point, memo, source);
-        final ReentrantLock requestLock = REQUEST_LOCKS[Math.floorMod(source.requestId().hashCode(), LOCK_STRIPE_COUNT)];
+        final int requestLockIndex = Math.floorMod(31 * source.appId().hashCode() + source.requestId().hashCode(),
+                LOCK_STRIPE_COUNT);
+        final ReentrantLock requestLock = REQUEST_LOCKS[requestLockIndex];
         requestLock.lock();
         try {
-            final JSONObject existing = getExisting(source.requestId());
+            final JSONObject existing = getExisting(source.appId(), source.requestId());
             if (null != existing) {
                 return resolveExisting(existing, requestHash);
             }
@@ -100,6 +102,7 @@ public class ExternalPointAdjustMgmtService {
         JSONObject publicLog = null;
         try {
             final JSONObject request = new JSONObject();
+            request.put(ExternalPointRequest.SOURCE_APP_ID, source.appId());
             request.put(ExternalPointRequest.REQUEST_ID, source.requestId());
             request.put(ExternalPointRequest.REQUEST_HASH, requestHash);
             request.put(ExternalPointRequest.TRANSFER_ID, "");
@@ -125,7 +128,7 @@ public class ExternalPointAdjustMgmtService {
                 transaction.rollback();
             }
 
-            final JSONObject existing = getExisting(source.requestId());
+            final JSONObject existing = getExisting(source.appId(), source.requestId());
             if (null != existing) {
                 return resolveExisting(existing, requestHash);
             }
@@ -157,9 +160,9 @@ public class ExternalPointAdjustMgmtService {
         }
     }
 
-    private JSONObject getExisting(final String requestId) throws ServiceException {
+    private JSONObject getExisting(final String sourceAppId, final String requestId) throws ServiceException {
         try {
-            return externalPointRequestRepository.getByRequestId(requestId);
+            return externalPointRequestRepository.getBySourceAppIdAndRequestId(sourceAppId, requestId);
         } catch (final RepositoryException e) {
             throw new ServiceException("请求记录查询失败。");
         }

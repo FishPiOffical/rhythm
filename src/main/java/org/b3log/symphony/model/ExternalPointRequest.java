@@ -15,6 +15,7 @@ package org.b3log.symphony.model;
 public final class ExternalPointRequest {
 
     public static final String EXTERNAL_POINT_REQUEST = "external_point_request";
+    public static final String SOURCE_APP_ID = "sourceAppId";
     public static final String REQUEST_ID = "requestId";
     public static final String REQUEST_HASH = "requestHash";
     public static final String TRANSFER_ID = "transferId";

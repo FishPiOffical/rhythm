@@ -10,6 +10,7 @@
 package org.b3log.symphony.repository;
 
 import org.b3log.latke.repository.AbstractRepository;
+import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
@@ -31,15 +32,19 @@ public class ExternalPointRequestRepository extends AbstractRepository {
     }
 
     /**
-     * Gets a request by the specified id.
+     * Gets a request by the specified source application and request id.
      *
+     * @param sourceAppId source application id
      * @param requestId request id
      * @return request, returns {@code null} if not found
      * @throws RepositoryException repository exception
      */
-    public JSONObject getByRequestId(final String requestId) throws RepositoryException {
+    public JSONObject getBySourceAppIdAndRequestId(final String sourceAppId, final String requestId)
+            throws RepositoryException {
         final Query query = new Query().setPage(1, 1).setFilter(
-                new PropertyFilter(ExternalPointRequest.REQUEST_ID, FilterOperator.EQUAL, requestId));
+                CompositeFilterOperator.and(
+                        new PropertyFilter(ExternalPointRequest.SOURCE_APP_ID, FilterOperator.EQUAL, sourceAppId),
+                        new PropertyFilter(ExternalPointRequest.REQUEST_ID, FilterOperator.EQUAL, requestId)));
         final List<JSONObject> requests = getList(query);
         return requests.isEmpty() ? null : requests.get(0);
     }
