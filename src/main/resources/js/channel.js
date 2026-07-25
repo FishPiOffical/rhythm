@@ -35,6 +35,11 @@ var ArticleChannel = {
      * @type WebSocket
      */
     ws: undefined,
+    getCommentList: function () {
+        return $('#comments .long-article-comments-scroll > .list > ul, '
+            + '#comments .long-article-comments-scroll > ul, '
+            + '#comments > .list > ul').first()
+    },
     incrementCommentCount: function () {
         var $headerCount = $('.comments-header .article-cmt-cnt').first(),
             currentCount = parseInt($headerCount.attr('data-comment-count'), 10)
@@ -102,7 +107,8 @@ var ArticleChannel = {
                     ArticleChannel.incrementCommentCount()
 
                     // 新增第一条评论时到底部的锚点
-                    if ($('#comments .list > ul > li').length === 0) {
+                    var $commentList = ArticleChannel.getCommentList()
+                    if ($commentList.children('li').length === 0) {
                         $('.comment-header > .fn-none').show()
                         // 显示预览模式 & 回到底部
                         $('.comments-header > .fn-none').show()
@@ -111,7 +117,7 @@ var ArticleChannel = {
                     }
 
                     if (0 === Label.userCommentViewMode) { // tranditional view mode
-                        $('#comments > .list > ul').append(data.cmtTpl)
+                        $commentList.append(data.cmtTpl)
                     } else {
                         ArticleChannel.insertAfterNiceComments(data.cmtTpl)
                     }
@@ -169,7 +175,7 @@ var ArticleChannel = {
         }
     },
     insertAfterNiceComments: function (commentTemplate) {
-        var $commentList = $('#comments > .list > ul'),
+        var $commentList = ArticleChannel.getCommentList(),
             $lastNiceComment = $commentList.children('li.cmt-nice').last()
         if ($lastNiceComment.length > 0) {
             $lastNiceComment.after(commentTemplate)

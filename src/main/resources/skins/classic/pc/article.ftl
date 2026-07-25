@@ -469,7 +469,11 @@
                     </div>
                 </#if>
             </div>
+            <#if 6 == article.articleType>
+            <div class="long-article-comments-scroll">
+            </#if>
             <div class="list">
+                <#if 6 != article.articleType>
                 <div class="comment__reply">
                     <#if isLoggedIn>
                         <div class="fn__flex">
@@ -486,6 +490,7 @@
                         </div>
                     </#if>
                 </div>
+                </#if>
                 <ul>
                     <#assign notificationCmtIds = "">
                     <#list article.articleComments as comment>
@@ -507,6 +512,21 @@
                 <div id="bottomComment"></div>
             </div>
             <@pagination url="${servePath}${article.articlePermalink}" query="${commentPaginationQuery}" pjaxTitle="${article.articleTitle} - ${symphonyLabel}" />
+            <#if 6 == article.articleType>
+            </div>
+            <div class="comment__reply">
+                <#if isLoggedIn>
+                    <div class="fn__flex">
+                        <span class="avatar"
+                              style="background-image: url('${currentUser.userAvatarURL48}');"></span>
+                        <span class="reply__text fn-flex-1 commentToggleEditorBtn"
+                              onclick="Comment._toggleReply();">请输入回帖内容 ...</span>
+                    </div>
+                <#else>
+                    <div class="reply__text fn-flex-1 commentToggleEditorBtn" onclick="Util.goLogin();">登录参与讨论 ...</div>
+                </#if>
+            </div>
+            </#if>
         </div>
         <#if pjax><!---- pjax {#comments} end ----></#if>
     </div>

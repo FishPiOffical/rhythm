@@ -314,8 +314,9 @@
             </div>
             <div>
                 <#if pjax><!---- pjax {#comments} start ----></#if>
-                <div class="fn-clear" id="comments">
+                <div<#if 6 != article.articleType> class="fn-clear"</#if> id="comments">
                     <div class="list comments">
+                            <#if 6 != article.articleType>
                             <#if discussionViewable && article.articleCommentable>
                                 <div class="comment__reply">
                                     <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
@@ -329,6 +330,7 @@
                                         <div class="reply__text fn-flex-1 commentToggleEditorBtn" onclick="Util.goLogin();">${loginDiscussLabel}</div>
                                     </#if>
                                 </div>
+                            </#if>
                             </#if>
                             <div class="comments-header fn-clear">
                                 <div class="comments-header__main">
@@ -361,6 +363,9 @@
                                     </div>
                                 </#if>
                             </div>
+                            <#if 6 == article.articleType>
+                            <div class="long-article-comments-scroll">
+                            </#if>
                             <ul>
                                 <#assign notificationCmtIds = "">
                                 <#list article.articleComments as comment>
@@ -380,8 +385,28 @@
                                 </ul>
                             </details>
                             </#if>
+                            <#if 6 == article.articleType>
+                            <@pagination url=article.articlePermalink query="${commentPaginationQuery}" />
+                            </div>
+                            <#if discussionViewable && article.articleCommentable>
+                                <div class="comment__reply">
+                                    <#if isLoggedIn && permissions["commonAddComment"].permissionGrant>
+                                        <div class="fn-flex">
+                                            <span class="avatar"
+                                                  style="background-image: url('${currentUser.userAvatarURL48}');"></span>
+                                            <span class="reply__text fn-flex-1 commentToggleEditorBtn"
+                                                  onclick="Comment._toggleReply();">请输入回帖内容 ...</span>
+                                        </div>
+                                    <#else>
+                                        <div class="reply__text fn-flex-1 commentToggleEditorBtn" onclick="Util.goLogin();">${loginDiscussLabel}</div>
+                                    </#if>
+                                </div>
+                            </#if>
+                            </#if>
                         </div>
+                    <#if 6 != article.articleType>
                     <@pagination url=article.articlePermalink query="${commentPaginationQuery}" />
+                    </#if>
                 </div>
                 <#if pjax><!---- pjax {#comments} end ----></#if>
             </div>

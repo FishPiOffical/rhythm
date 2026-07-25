@@ -62,7 +62,7 @@
                     <#if comment.commentNice!false>
                         <span class="comment-nice-badge"><svg><use xlink:href="#thumbs-up"></use></svg>优质</span>
                     </#if>
-                    <#if commentMedals?size != 0>
+                    <#if !(article?? && article.articleType == 6) && commentMedals?size != 0>
                         <#list commentMedals as metal>
                             <#assign medalType = metal.type!''>
                             <#assign medalName = metal.name!''>

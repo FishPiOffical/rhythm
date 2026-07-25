@@ -619,7 +619,8 @@ var Comment = {
       return $threadReply.first()
     }
 
-    return $(target).closest('#comments .list.comments > ul > li').first()
+    return $(target).closest('#comments .list.comments > ul > li, '
+      + '#comments .long-article-comments-scroll > ul > li').first()
   },
   closeCommentActionMenus: function (except) {
     var $openMenus = $('#comments .comment-actions-open')
@@ -630,7 +631,8 @@ var Comment = {
   },
   bindMobileCommentActions: function () {
     $('#comments').off('click.mobileCommentActions').on('click.mobileCommentActions',
-      '.list.comments > ul > li,.comment-thread__reply', function (event) {
+      '.list.comments > ul > li,.long-article-comments-scroll > ul > li,'
+      + '.comment-thread__reply', function (event) {
         if (Comment.shouldSkipActionToggle(event.target)) {
           return
         }

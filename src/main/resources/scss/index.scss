@@ -5897,9 +5897,8 @@ body.night .long-article-paragraph-comments {
     height: 100dvh;
     max-width: none;
     margin: 0;
-    padding: 0 20px 86px;
-    overflow-x: hidden;
-    overflow-y: auto;
+    padding: 0 20px;
+    overflow: hidden;
     overscroll-behavior: contain;
     border: 0;
     border-left: 1px solid rgba(61, 91, 68, 0.18);
@@ -5921,6 +5920,8 @@ body.night .long-article-paragraph-comments {
     }
 
     > #comments {
+      flex: 1 1 auto;
+      min-height: 0;
       margin-top: 0;
     }
 
@@ -5994,14 +5995,17 @@ body.night .long-article-paragraph-comments {
 
   #comments {
     order: -1;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
     margin: 0;
     border: 0;
     background: transparent;
     box-shadow: none;
 
     .comments-header {
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 4;
       margin: 0 -20px 6px;
       padding: 22px 20px 16px;
@@ -6053,6 +6057,19 @@ body.night .long-article-paragraph-comments {
 
     .list {
       background: transparent;
+    }
+
+    .long-article-comments-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+
+      > .pagination {
+        margin: 18px auto;
+        float: none;
+      }
     }
 
     .list > ul {
@@ -6121,13 +6138,12 @@ body.night .long-article-paragraph-comments {
     }
 
     .comment__reply {
-      position: fixed;
-      right: 0;
-      bottom: 0;
+      position: static;
       z-index: 5;
+      flex: 0 0 auto;
       box-sizing: border-box;
-      width: 100%;
-      margin: 0;
+      width: auto;
+      margin: 0 -20px;
       padding: 14px 20px;
       border-top: 1px solid rgba(65, 94, 71, 0.14);
       background: rgba(220, 235, 221, 0.97);
@@ -7037,7 +7053,7 @@ body.night .long-article-catalog {
     }
 
     #articleCommentsPanel {
-      padding: 0 18px 82px;
+      padding: 0 18px;
       border-radius: 0;
     }
   }

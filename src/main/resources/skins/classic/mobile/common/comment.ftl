@@ -43,9 +43,11 @@
                     <#if comment.commentNice!false>
                         <span class="comment-nice-badge"><svg><use xlink:href="#thumbs-up"></use></svg>优质</span>
                     </#if>
-                    <#list comment.sysMetal?eval as metal>
-                        <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
-                    </#list>
+                    <#if !(article?? && article.articleType == 6)>
+                        <#list comment.sysMetal?eval as metal>
+                            <img title="${metal.description}" src="${servePath}/gen?id=${metal.id}"/>
+                        </#list>
+                    </#if>
                     <span class="ft-fade">• ${comment.timeAgo}</span>
                 </span>
                 <span class="fn-right">

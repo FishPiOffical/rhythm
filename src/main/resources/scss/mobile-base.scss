@@ -6080,10 +6080,10 @@ body.long-article-page {
     height: 100vh;
     height: 100dvh;
     margin: 0;
-    padding: 0 14px calc(78px + env(safe-area-inset-bottom));
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    padding: 0 14px;
+    overflow: hidden;
     border: 0;
     border-left: 1px solid rgba(61, 91, 68, 0.14);
     border-radius: 0;
@@ -6094,14 +6094,17 @@ body.long-article-page {
     visibility: hidden;
 
     .list.comments {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
       border: 0;
       background: transparent;
       box-shadow: none;
     }
 
     .comments-header {
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 4;
       margin: 0 -14px 6px;
       padding: 18px 14px 14px;
@@ -6146,21 +6149,34 @@ body.long-article-page {
       color: #fff;
     }
 
-    .list.comments > ul {
+    .long-article-comments-scroll > ul {
       margin: 0;
       padding: 0 0 10px;
     }
 
-    .list.comments > ul > li,
-    .list.comments > ul > li.cmt-perfect,
-    .list.comments > ul > li.cmt-perfect:hover {
+    .long-article-comments-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+
+      > .pagination {
+        margin: 16px auto;
+        float: none;
+      }
+    }
+
+    .long-article-comments-scroll > ul > li,
+    .long-article-comments-scroll > ul > li.cmt-perfect,
+    .long-article-comments-scroll > ul > li.cmt-perfect:hover {
       margin: 0;
       padding: 16px 0;
       border-bottom: 1px solid rgba(65, 94, 71, 0.12);
       background: transparent;
     }
 
-    .list.comments > ul > li .avatar {
+    .long-article-comments-scroll > ul > li .avatar {
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -6197,13 +6213,12 @@ body.long-article-page {
     }
 
     .comment__reply {
-      position: fixed;
-      right: 0;
-      bottom: 0;
+      position: static;
       z-index: 5;
+      flex: 0 0 auto;
       box-sizing: border-box;
-      width: 100%;
-      margin: 0;
+      width: auto;
+      margin: 0 -14px;
       padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
       border-top: 1px solid rgba(65, 94, 71, 0.14);
       background: rgba(220, 235, 221, 0.97);
