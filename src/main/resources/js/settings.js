@@ -451,34 +451,28 @@ var Settings = {
   /**
    * 拉取指定用户展示中的勋章（用于主页侧边栏）
    */
-  loadUserMedals: function (userId, userName) {
+  loadUserMedals: function (userIdOrName, userName) {
     if (!document.getElementById('metal')) {
       return;
     }
-    var payload = {};
-    if (userId) {
-      payload.userId = userId;
-    } else if (userName) {
-      payload.userName = userName;
-    } else {
+    var targetUserName = userName || userIdOrName;
+    if (!targetUserName) {
       return;
     }
     $.ajax({
-      url: Label.servePath + '/api/medal/user/list',
-      type: 'POST',
+      url: Label.servePath + '/user/' + encodeURIComponent(targetUserName) + '/medal',
+      type: 'GET',
       cache: false,
-      data: JSON.stringify(payload),
-      contentType: 'application/json;charset=UTF-8',
       success: function (result) {
         if (result && result.code === 0) {
-          var list = result.data || [];
+          var list = result.data && result.data.list ? result.data.list : [];
           Settings.renderUserMedals(list);
         } else {
-          // 主页侧边栏失败就简单忽略即可
+          console.error('加载用户勋章失败', result);
         }
       },
-      error: function () {
-        // 忽略错误，避免打扰用户
+      error: function (xhr) {
+        console.error('加载用户勋章失败', xhr.status);
       }
     });
   },
@@ -495,16 +489,16 @@ var Settings = {
       el.innerHTML = '';
       return;
     }
-    // 按 display_order 排序
+    // 按展示顺序排序
     list.sort(function (a, b) {
-      var oa = typeof a.display_order === 'number' ? a.display_order : 0;
-      var ob = typeof b.display_order === 'number' ? b.display_order : 0;
+      var oa = typeof a.order === 'number' ? a.order : 0;
+      var ob = typeof b.order === 'number' ? b.order : 0;
       return oa - ob;
     });
     var html = '';
     for (var i = 0; i < list.length; i++) {
       var m = list[i];
-      html += Util.genMedalTooltips("<img src='" + Util.genMetal(m.medal_id) + "'/>", m.medal_type, m.medal_name + ' - ' + m.medal_description);
+      html += Util.genMedalTooltips("<img src='" + Util.genMetal(m.id) + "'/>", m.type, m.name + ' - ' + m.description);
     }
     el.innerHTML = html;
   },
@@ -1492,8 +1486,7 @@ var Settings = {
       'hideFooter': true,
     })
 
-    // 个人主页展示勋章：如果是当前登录用户自己的主页，可考虑使用新接口展示更多信息。
-    // 对于设置页 account.ftl，直接在页面脚本中调用 Settings.initMetal() 即可。
+    Settings.loadUserMedals(Label.userName)
 
     if ($.ua.device.type !== 'mobile') {
       Settings.homeScroll()

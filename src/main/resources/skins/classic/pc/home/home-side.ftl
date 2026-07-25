@@ -255,11 +255,6 @@
                 '</div>' +
                 '</a>';
         });
-
-        // 主页侧边栏展示该用户的勋章
-        if (typeof Settings !== 'undefined' && document.getElementById('metal')) {
-            Settings.loadUserMedals('${user.oId}', '${user.userName}');
-        }
     };
 
     document.getElementById("userFollower").addEventListener("click", function () {

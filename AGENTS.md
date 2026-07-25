@@ -79,6 +79,7 @@
 - 表情集分享链路使用新表 `emoji_share` 保存“分组快照 + 永久分享码”；分享内容是静态快照，后续源分组变更不会实时同步，导入会在目标用户下新建自定义分组并同步补入其“全部”分组。
 - 首页右栏专栏列表（classic/pc）需使用 `module-list long-column-module-list`（见 `skins/classic/pc/index.ftl` 的“最新专栏/热门专栏/最近阅读”）；否则会命中 `.module-list .title` 默认 `margin-left: 30px` 产生左侧空白。
 - 勋章管理页：`/admin/medal`
+- 个人主页勋章由 `settings.js` 的 `Settings.initHome` 动态调用公开只读接口 `GET /user/{userName}/medal`，再渲染到 PC/移动端 `home-side.ftl` 的 `#metal`；不要依赖可选游戏组件的 `window.onload`，也不要改回 FTL 服务端渲染。
   - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）
   - 前端：`src/main/resources/js/medal.js`
 - 模板：`src/main/resources/skins/classic/pc/admin/medal.ftl`、`src/main/resources/skins/classic/mobile/admin/medal.ftl`
