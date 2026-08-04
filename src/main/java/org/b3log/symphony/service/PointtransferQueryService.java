@@ -277,7 +277,12 @@ public class PointtransferQueryService {
 
                 final int type = record.optInt(Pointtransfer.TYPE);
                 final String dataId = record.optString(Pointtransfer.DATA_ID);
-                String desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
+                String desTemplate;
+                if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
+                    desTemplate = buildAppPointDescription(record, userId.equals(toId));
+                } else {
+                    desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
+                }
 
                 switch (type) {
                     case Pointtransfer.TRANSFER_TYPE_C_DATA_EXPORT:
@@ -446,7 +451,6 @@ public class PointtransferQueryService {
                         desTemplate = desTemplate.replace("{point}", String.valueOf(record.optInt(Pointtransfer.SUM)));
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST:
-                        desTemplate = buildAppPointDescription(record, userId.equals(toId));
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);
