@@ -79,6 +79,11 @@
             <@head title="鱼排续命师 - ${symphonyLabel}">
             </@head>
         </#if>
+        <#if type == "profession">
+            <@head title="职业排行 - ${symphonyLabel}">
+            </@head>
+        </#if>
+        <link rel="stylesheet" href="${staticServePath}/css/profession.css?${staticResourceVersion}&amp;profession-ui-v20260804c" />
         
     </head>
     <body>

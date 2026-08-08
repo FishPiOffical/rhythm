@@ -1,0 +1,127 @@
+{
+  "format": "fishpi.profession-config",
+  "formatVersion": 1,
+  "exportedAt": 0,
+  "scope": "SINGLE",
+  "professions": [
+    {
+      "professionCode": "freelancer",
+      "status": "PUBLISHED",
+      "sortOrder": 50,
+      "revisions": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "displayName": "自由职业",
+          "shortName": "自由职业者",
+          "description": "把在线时间留给想做的事",
+          "defaultPresentationJson": "{\"imageUrl\":\"/images/profession/freelancer-cover.svg\",\"iconUrl\":\"/images/profession/freelancer-icon.svg\",\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"backgroundColor\":\"#0F766E\",\"textColor\":\"#FFFFFF\",\"borderColor\":\"#14B8A6\",\"borderWidth\":\"thin\",\"shape\":\"rounded\",\"shadow\":\"soft\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+        }
+      ],
+      "schemes": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "professionRevisionNo": 1,
+          "migrationPolicy": "MIGRATE_ALL",
+          "rewardMigrationPolicy": "GRANT_NEW_LEVELS",
+          "migrationConfigJson": "{}",
+          "levels": [
+            {
+              "levelCode": "stage-1",
+              "sortOrder": 1,
+              "requiredTotalExperience": 0,
+              "displayName": "自在",
+              "shortName": "自在",
+              "description": "开始记录在线时光",
+              "achievementDescription": "留下第一段在线足迹",
+              "isTopLevel": false,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}"}],
+              "rewards": []
+            },
+            {
+              "levelCode": "stage-2",
+              "sortOrder": 2,
+              "requiredTotalExperience": 360,
+              "displayName": "从容",
+              "shortName": "从容",
+              "description": "把时间安排得刚刚好",
+              "achievementDescription": "积累三百六十次在线单位",
+              "isTopLevel": false,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"}],
+              "rewards": [{"rewardCode":"freelancer.points.stage-2","rewardType":"POINT","rewardConfigJson":"{\"amount\":5000,\"memo\":\"自由职业阶段奖励\"}","grantPolicy":"FIRST_REACH","downgradePolicy":"KEEP","sortOrder":1}]
+            },
+            {
+              "levelCode": "stage-3",
+              "sortOrder": 3,
+              "requiredTotalExperience": 900,
+              "displayName": "自律",
+              "shortName": "自律",
+              "description": "保持自己的节奏",
+              "achievementDescription": "在线时光持续沉淀",
+              "isTopLevel": false,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"}],
+              "rewards": [{"rewardCode":"freelancer.points.stage-3","rewardType":"POINT","rewardConfigJson":"{\"amount\":10000,\"memo\":\"自由职业阶段奖励\"}","grantPolicy":"FIRST_REACH","downgradePolicy":"KEEP","sortOrder":1}]
+            },
+            {
+              "levelCode": "stage-4",
+              "sortOrder": 4,
+              "requiredTotalExperience": 1800,
+              "displayName": "游刃",
+              "shortName": "游刃",
+              "description": "在社区里自在往来",
+              "achievementDescription": "用时间完成自己的计划",
+              "isTopLevel": false,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}"}],
+              "rewards": [{"rewardCode":"freelancer.points.stage-4","rewardType":"POINT","rewardConfigJson":"{\"amount\":20000,\"memo\":\"自由职业阶段奖励\"}","grantPolicy":"FIRST_REACH","downgradePolicy":"KEEP","sortOrder":1}]
+            },
+            {
+              "levelCode": "stage-5",
+              "sortOrder": 5,
+              "requiredTotalExperience": 3600,
+              "displayName": "自得",
+              "shortName": "自得",
+              "description": "让投入成为日常",
+              "achievementDescription": "与社区长期相伴",
+              "isTopLevel": false,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}"}],
+              "rewards": [{"rewardCode":"freelancer.points.stage-5","rewardType":"POINT","rewardConfigJson":"{\"amount\":30000,\"memo\":\"自由职业阶段奖励\"}","grantPolicy":"FIRST_REACH","downgradePolicy":"KEEP","sortOrder":1}]
+            },
+            {
+              "levelCode": "stage-6",
+              "sortOrder": 6,
+              "requiredTotalExperience": 7200,
+              "displayName": "自在家",
+              "shortName": "自在家",
+              "description": "把自由过成自己的方式",
+              "achievementDescription": "完成自由职业的最高阶段",
+              "isTopLevel": true,
+              "presentations": [{"positionCode":"default","lightConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}","darkConfigJson":"{\"primaryColor\":\"#0F766E\",\"secondaryColor\":\"#2DD4BF\",\"borderColor\":\"#14B8A6\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}"}],
+              "rewards": [{"rewardCode":"freelancer.points.stage-6","rewardType":"POINT","rewardConfigJson":"{\"amount\":50000,\"memo\":\"自由职业阶段奖励\"}","grantPolicy":"FIRST_REACH","downgradePolicy":"KEEP","sortOrder":1}]
+            }
+          ]
+        }
+      ],
+      "automations": [
+        {
+          "automationCode": "online-time-settled",
+          "status": "PUBLISHED",
+          "sortOrder": 10,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"user.online.settled\",\"schemaVersion\":1},\"condition\":null,\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"SUBTRACT\",\"left\":{\"calculatorType\":\"DIVIDE\",\"left\":{\"calculatorType\":\"FIELD\",\"fieldCode\":\"onlineMinuteAfter\"},\"right\":{\"calculatorType\":\"FIXED\",\"value\":10},\"zeroValue\":0},\"right\":{\"calculatorType\":\"DIVIDE\",\"left\":{\"calculatorType\":\"FIELD\",\"fieldCode\":\"onlineMinuteBefore\"},\"right\":{\"calculatorType\":\"FIXED\",\"value\":10},\"zeroValue\":0}}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        }
+      ],
+      "currentRevisionNo": 1,
+      "currentSchemeRevisionNo": 1
+    }
+  ]
+}

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
@@ -153,10 +154,11 @@ public class PointtransferMgmtService {
         final Transaction transaction = pointtransferRepository.beginTransaction();
 
         try {
+            final TransferUsers transferUsers = lockTransferUsers(fromId, toId);
             int fromBalance = 0;
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
-                final JSONObject fromUser = userRepository.get(fromId);
-                fromBalance = fromUser.optInt(UserExt.USER_POINT) - sum;
+                final JSONObject fromUser = transferUsers.fromUser();
+                fromBalance = Math.subtractExact(fromUser.optInt(UserExt.USER_POINT), sum);
                 if (type != Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT) {
                     if (fromBalance < 0) {
                         throw new Exception("Insufficient balance");
@@ -166,7 +168,8 @@ public class PointtransferMgmtService {
                 List<Integer> canIncludeArray = new ArrayList<>();
                 Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
                 if (canIncludeArray.contains(type)) {
-                    fromUser.put(UserExt.USER_USED_POINT, fromUser.optInt(UserExt.USER_USED_POINT) + sum);
+                    fromUser.put(UserExt.USER_USED_POINT,
+                            Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));
                 }
                 fromUser.put(UserExt.USER_POINT, fromBalance);
                 userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
@@ -174,8 +177,8 @@ public class PointtransferMgmtService {
 
             int toBalance = 0;
             if (!Pointtransfer.ID_C_SYS.equals(toId)) {
-                final JSONObject toUser = userRepository.get(toId);
-                toBalance = toUser.optInt(UserExt.USER_POINT) + sum;
+                final JSONObject toUser = transferUsers.toUser();
+                toBalance = Math.addExact(toUser.optInt(UserExt.USER_POINT), sum);
                 toUser.put(UserExt.USER_POINT, toBalance);
                 userRepository.update(toId, toUser, UserExt.USER_POINT);
             }
@@ -245,10 +248,11 @@ public class PointtransferMgmtService {
         final ReentrantLock lock = getTransferLock(fromId, toId);
         lock.lock();
         try {
+            final TransferUsers transferUsers = lockTransferUsers(fromId, toId);
             int fromBalance = 0;
             if (!Pointtransfer.ID_C_SYS.equals(fromId)) {
-                final JSONObject fromUser = userRepository.get(fromId);
-                fromBalance = fromUser.optInt(UserExt.USER_POINT) - sum;
+                final JSONObject fromUser = transferUsers.fromUser();
+                fromBalance = Math.subtractExact(fromUser.optInt(UserExt.USER_POINT), sum);
                 if (fromBalance < 0) {
                     throw new Exception("Insufficient balance");
                 }
@@ -256,7 +260,8 @@ public class PointtransferMgmtService {
                 List<Integer> canIncludeArray = new ArrayList<>();
                 Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55);
                 if (canIncludeArray.contains(type)) {
-                    fromUser.put(UserExt.USER_USED_POINT, fromUser.optInt(UserExt.USER_USED_POINT) + sum);
+                    fromUser.put(UserExt.USER_USED_POINT,
+                            Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));
                 }
                 fromUser.put(UserExt.USER_POINT, fromBalance);
                 userRepository.update(fromId, fromUser, UserExt.USER_POINT, UserExt.USER_USED_POINT);
@@ -264,8 +269,8 @@ public class PointtransferMgmtService {
 
             int toBalance = 0;
             if (!Pointtransfer.ID_C_SYS.equals(toId)) {
-                final JSONObject toUser = userRepository.get(toId);
-                toBalance = toUser.optInt(UserExt.USER_POINT) + sum;
+                final JSONObject toUser = transferUsers.toUser();
+                toBalance = Math.addExact(toUser.optInt(UserExt.USER_POINT), sum);
                 toUser.put(UserExt.USER_POINT, toBalance);
                 userRepository.update(toId, toUser, UserExt.USER_POINT);
             }
@@ -306,6 +311,27 @@ public class PointtransferMgmtService {
         PointtransferRedcRepository.addRecordAsync(toId, transferId);
     }
 
+    private TransferUsers lockTransferUsers(final String fromId, final String toId) throws RepositoryException {
+        if (Pointtransfer.ID_C_SYS.equals(fromId)) {
+            return new TransferUsers(null, requireUserForUpdate(toId));
+        }
+        if (Pointtransfer.ID_C_SYS.equals(toId)) {
+            return new TransferUsers(requireUserForUpdate(fromId), null);
+        }
+        final boolean fromFirst = fromId.compareTo(toId) <= 0;
+        final JSONObject first = requireUserForUpdate(fromFirst ? fromId : toId);
+        final JSONObject second = requireUserForUpdate(fromFirst ? toId : fromId);
+        return fromFirst ? new TransferUsers(first, second) : new TransferUsers(second, first);
+    }
+
+    private JSONObject requireUserForUpdate(final String userId) throws RepositoryException {
+        final JSONObject user = userRepository.getForUpdate(userId);
+        if (null == user) {
+            throw new RepositoryException("积分转账用户不存在");
+        }
+        return user;
+    }
+
     /**
      * Fills source application fields on every transfer record so new database columns always have values.
      */
@@ -315,5 +341,8 @@ public class PointtransferMgmtService {
         pointtransfer.put(Pointtransfer.SOURCE_APP_NAME, safeSource.appName());
         pointtransfer.put(Pointtransfer.SOURCE_SCENE, safeSource.scene());
         pointtransfer.put(Pointtransfer.SOURCE_REQUEST_ID, safeSource.requestId());
+    }
+
+    private record TransferUsers(JSONObject fromUser, JSONObject toUser) {
     }
 }

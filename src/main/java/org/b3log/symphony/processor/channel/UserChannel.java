@@ -252,7 +252,7 @@ public class UserChannel implements WebSocketChannel {
             // 停止记录在线时间
             if (userOnline.containsKey(userId)) {
                 JSONObject onlineUser = userOnline.get(userId);
-                userMgmtService.setOnlineMinute(userId, calculateOnlineMinute(onlineUser));
+                userMgmtService.settleOnlineMinute(userId, calculateOnlineMinute(onlineUser), System.currentTimeMillis());
                 userOnline.remove(userId);
             }
             userMgmtService.updateOnlineStatus(userId, ip, false, true);
@@ -278,7 +278,10 @@ public class UserChannel implements WebSocketChannel {
             LOGGER.log(Level.INFO, "UserId [" + key + "], Online time [" + onlineMinute + "]");
             final BeanManager beanManager = BeanManager.getInstance();
             final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-            userMgmtService.setOnlineMinute(key, onlineMinute);
+            final long now = System.currentTimeMillis();
+            userMgmtService.settleOnlineMinute(key, onlineMinute, now);
+            onlineUser.put(ONLINE_START_MILLIS, now);
+            onlineUser.put(ONLINE_MINUTE_KEY, onlineMinute);
         }
         LOGGER.log(Level.INFO, "Settlement user online time end");
     }

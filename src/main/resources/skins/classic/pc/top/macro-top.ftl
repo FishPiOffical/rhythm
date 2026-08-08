@@ -93,8 +93,14 @@
                 <link rel="canonical" href="${servePath}/top/donate">
             </@head>
         </#if>
+        <#if type == "profession">
+            <@head title="职业排行 - ${symphonyLabel}">
+                <link rel="canonical" href="${servePath}/top/profession">
+            </@head>
+        </#if>
         <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}" />
         <link rel="stylesheet" href="${staticServePath}/css/responsive.css?${staticResourceVersion}" />
+        <link rel="stylesheet" href="${staticServePath}/css/profession.css?${staticResourceVersion}&amp;profession-ui-v20260804c" />
     </head>
     <body>
         <#include "../header.ftl">

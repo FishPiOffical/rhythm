@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="生活家封面">
+  <defs><linearGradient id="a" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse"><stop stop-color="#fff7ed"/><stop offset=".58" stop-color="#fed7aa"/><stop offset="1" stop-color="#fb923c"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="url(#a)"/><circle cx="1305" cy="165" r="105" fill="#f59e0b" fill-opacity=".7"/><path d="M0 670c188-130 350-102 497 27 138 121 303 104 434-6 160-135 375-137 669 20v189H0V670Z" fill="#fb923c" fill-opacity=".34"/>
+  <g transform="translate(555 245)"><path d="M0 170 245 0l245 170v315c0 28-23 51-51 51H51c-28 0-51-23-51-51V170Z" fill="#fffdf9"/><path d="M190 536V315c0-25 25-45 55-45s55 20 55 45v221" fill="#f97316"/><path d="M63 208h86v88H63zM341 208h86v88h-86z" fill="#fed7aa"/><path d="M373 55c-20-76 14-126 95-147-13 82-48 131-95 147ZM345 102c-63-14-98-55-102-120 76 16 110 56 102 120Z" fill="#65a30d"/></g>
+</svg>

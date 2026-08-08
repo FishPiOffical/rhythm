@@ -235,6 +235,9 @@ public class ArticleMgmtService {
     @Inject
     private VisitMgmtService visitMgmtService;
 
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+
     /**
      * Determines whether the specified tag title exists in the specified tags.
      *
@@ -267,6 +270,7 @@ public class ArticleMgmtService {
      * @param articleId the given article id
      * @throws ServiceException service exception
      */
+    @Transactional
     public void removeArticle(final String articleId) throws ServiceException {
         JSONObject article = null;
 
@@ -385,6 +389,7 @@ public class ArticleMgmtService {
             final int commentCnt = comments.size();
             for (final JSONObject comment : comments) {
                 final String commentId = comment.optString(Keys.OBJECT_ID);
+                professionSourceEventCaptureService.targetRemoved("comment", commentId);
                 commentRepository.removeComment(commentId);
             }
 
@@ -411,6 +416,7 @@ public class ArticleMgmtService {
 
             longArticleColumnMgmtService.removeChapterInCurrentTransaction(articleId);
 
+            professionSourceEventCaptureService.targetRemoved("article", articleId);
             articleRepository.remove(articleId);
 
             // Remove article revisions
@@ -453,6 +459,7 @@ public class ArticleMgmtService {
             }
         } catch (final RepositoryException | ServiceException e) {
             LOGGER.log(Level.ERROR, "Removes an article error [id=" + articleId + "]", e);
+            throw new IllegalStateException("删除文章时撤销职业来源失败", e);
         }
     }
 
@@ -488,8 +495,9 @@ public class ArticleMgmtService {
                     return;
                 }
 
-                longArticleReadService.record(articleId, visit.optString(Visit.VISIT_USER_ID),
-                        visit.optString(Visit.VISIT_IP), visit.optString(Visit.VISIT_UA));
+                longArticleReadService.record(new LongArticleReadCaptureRequest(articleId,
+                        visit.optString(Visit.VISIT_USER_ID), visit.optString(Visit.VISIT_IP),
+                        visit.optString(Visit.VISIT_UA)));
 
                 final int viewCnt = article.optInt(Article.ARTICLE_VIEW_CNT);
                 article.put(Article.ARTICLE_VIEW_CNT, viewCnt + 1);
@@ -500,7 +508,7 @@ public class ArticleMgmtService {
                 transaction.commit();
                 articleSearchVisitStatMgmtService.recordReferer(articleId, visit.optString(Visit.VISIT_REFERER_URL));
                 articleSearchVisitStatMgmtService.recordClient(articleId, visit.optString(Visit.VISIT_UA));
-            } catch (final RepositoryException e) {
+            } catch (final Exception e) {
                 if (transaction.isActive()) {
                     transaction.rollback();
                 }
@@ -769,6 +777,8 @@ public class ArticleMgmtService {
                 revision.put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_ARTICLE);
                 revisionRepository.add(revision);
             }
+
+            professionSourceEventCaptureService.articlePublished(article);
 
             transaction.commit();
 
@@ -1893,6 +1903,7 @@ public class ArticleMgmtService {
             userRepository.update(author.optString(Keys.OBJECT_ID), author);
 
             articleRepository.add(article);
+            professionSourceEventCaptureService.articlePublished(article);
 
             transaction.commit();
 

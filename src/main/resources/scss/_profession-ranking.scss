@@ -1,0 +1,53 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-ranking { display: grid; gap: 16px; }
+.profession-ranking__head { display: flex; align-items: end; justify-content: space-between; gap: 14px; padding: 18px; border: 1px solid rgba(37, 99, 235, .16); border-radius: 16px; background: linear-gradient(135deg, #fff, #f7fbff); box-shadow: 0 12px 26px rgba(37, 99, 235, .07); }
+.profession-ranking__head h2 { margin: 0; color: #1e293b; font-size: 20px; letter-spacing: -.02em; }
+.profession-ranking__head p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+.profession-ranking__filter label { display: grid; gap: 5px; color: #64748b; font-size: 12px; font-weight: 700; }
+.profession-ranking__filter select { min-height: 36px; min-width: 150px; padding: 0 28px 0 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #334155; font: inherit; }
+.profession-ranking__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.profession-ranking__item { display: grid; grid-template-columns: 34px minmax(140px, 1fr) minmax(130px, 1fr) auto; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border: 1px solid #dbe3ee; border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(15, 23, 42, .035); transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease; }
+.profession-ranking__item:hover { border-color: rgba(96, 165, 250, .68); box-shadow: 0 10px 20px rgba(37, 99, 235, .1); transform: translateY(-1px); }
+.profession-ranking__rank { color: #64748b; font-size: 16px; font-weight: 760; text-align: center; }
+.profession-ranking__item:nth-child(-n + 3) .profession-ranking__rank { color: #2563eb; }
+.profession-ranking__user, .profession-ranking__profession { display: inline-flex; align-items: center; min-width: 0; gap: 9px; color: #334155; text-decoration: none; }
+.profession-ranking__user .avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; background-position: center; background-size: cover; }
+.profession-ranking__user span:last-child, .profession-ranking__profession span:last-child { display: grid; min-width: 0; gap: 2px; }
+.profession-ranking__user strong, .profession-ranking__profession strong { overflow: hidden; color: #1e293b; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.profession-ranking__user small, .profession-ranking__profession small { overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.profession-ranking__profession img { width: 30px; height: 30px; flex: none; border: 1px solid rgba(37, 99, 235, .16); border-radius: 9px; object-fit: cover; }
+.profession-ranking__profession strong { color: var(--profession-primary, #2563eb); }
+.profession-ranking__experience { color: #2563eb; font-size: 13px; white-space: nowrap; }
+.profession-ranking__empty { margin: 0; padding: 26px; border: 1px dashed #cbd5e1; border-radius: 14px; color: #64748b; text-align: center; }
+
+body.night .profession-ranking__head, body.night .profession-ranking__item { border-color: #334155; background: #111827; }
+body.night .profession-ranking__head h2, body.night .profession-ranking__user strong, body.night .profession-ranking__profession strong { color: #f8fafc; }
+body.night .profession-ranking__filter select { border-color: #475569; background: #111827; color: #e2e8f0; }
+body.night .profession-ranking__empty { border-color: #475569; color: #94a3b8; }
+
+@media (max-width: 600px) {
+  .profession-ranking__head { align-items: stretch; flex-direction: column; }
+  .profession-ranking__filter select { width: 100%; }
+  .profession-ranking__item { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 9px; padding: 10px; }
+  .profession-ranking__profession { grid-column: 2 / 3; }
+  .profession-ranking__experience { grid-column: 3 / 4; grid-row: 1 / 3; }
+}
+
+@media (prefers-reduced-motion: reduce) { .profession-ranking__item { transition: border-color 120ms ease, box-shadow 120ms ease; } .profession-ranking__item:hover { transform: none; } }

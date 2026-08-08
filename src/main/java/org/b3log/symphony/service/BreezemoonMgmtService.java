@@ -74,6 +74,9 @@ public class BreezemoonMgmtService {
     @Inject
     private LangPropsService langPropsService;
 
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+
     /**
      * Adds a breezemoon with the specified request json object.
      *
@@ -105,7 +108,10 @@ public class BreezemoonMgmtService {
         bm.put(Breezemoon.BREEZEMOON_CITY, requestJSONObject.optString(Breezemoon.BREEZEMOON_CITY));
 
         try {
-            return breezemoonRepository.add(bm);
+            final String id = breezemoonRepository.add(bm);
+            bm.put(Keys.OBJECT_ID, id);
+            professionSourceEventCaptureService.breezemoonPublished(bm);
+            return id;
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Adds a breezemoon failed", e);
 
@@ -174,6 +180,11 @@ public class BreezemoonMgmtService {
     @Transactional
     public void removeBreezemoon(final String id) throws ServiceException {
         try {
+            final JSONObject breezemoon = breezemoonRepository.get(id);
+            if (null == breezemoon) {
+                return;
+            }
+            professionSourceEventCaptureService.targetRemoved("breezemoon", id);
             breezemoonRepository.remove(id);
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Removes a breezemoon [id=" + id + "] failed", e);

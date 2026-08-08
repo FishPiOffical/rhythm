@@ -1,0 +1,850 @@
+{
+  "format": "fishpi.profession-config",
+  "formatVersion": 1,
+  "exportedAt": 0,
+  "scope": "ALL",
+  "professions": [
+    {
+      "professionCode": "longform_author",
+      "status": "PUBLISHED",
+      "sortOrder": 10,
+      "revisions": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "displayName": "著述家",
+          "shortName": "社区作家",
+          "description": "连载长篇，持续更新",
+          "defaultPresentationJson": "{\"imageUrl\":\"/images/profession/longform-author-cover.svg\",\"iconUrl\":\"/images/profession/longform-author-icon.svg\",\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"backgroundColor\":\"#5B3E9B\",\"textColor\":\"#FFFFFF\",\"borderColor\":\"#7B5DCE\",\"borderWidth\":\"thin\",\"shape\":\"rounded\",\"shadow\":\"soft\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+        }
+      ],
+      "schemes": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "professionRevisionNo": 1,
+          "migrationPolicy": "MIGRATE_ALL",
+          "rewardMigrationPolicy": "GRANT_NEW_LEVELS",
+          "migrationConfigJson": "{}",
+          "levels": [
+            {
+              "levelCode": "stage-1",
+              "sortOrder": 1,
+              "requiredTotalExperience": 0,
+              "displayName": "起笔",
+              "shortName": "起笔",
+              "description": "写下第一章",
+              "achievementDescription": "完成第一段公开连载",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}"
+                }
+              ],
+              "rewards": []
+            },
+            {
+              "levelCode": "stage-2",
+              "sortOrder": 2,
+              "requiredTotalExperience": 120,
+              "displayName": "连载者",
+              "shortName": "连载",
+              "description": "持续更新作品",
+              "achievementDescription": "作品进入稳定更新",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "longform_author.points.stage-2",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":5000,\"memo\":\"著述家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-3",
+              "sortOrder": 3,
+              "requiredTotalExperience": 360,
+              "displayName": "叙事者",
+              "shortName": "叙事",
+              "description": "建立自己的表达",
+              "achievementDescription": "形成清晰的写作节奏",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "longform_author.points.stage-3",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":10000,\"memo\":\"著述家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-4",
+              "sortOrder": 4,
+              "requiredTotalExperience": 800,
+              "displayName": "著述者",
+              "shortName": "著述",
+              "description": "以章节组织故事",
+              "achievementDescription": "完成更完整的叙事",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "longform_author.points.stage-4",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":20000,\"memo\":\"著述家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-5",
+              "sortOrder": 5,
+              "requiredTotalExperience": 1600,
+              "displayName": "典藏者",
+              "shortName": "典藏",
+              "description": "作品被持续阅读",
+              "achievementDescription": "长期维护一部作品",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "longform_author.points.stage-5",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":30000,\"memo\":\"著述家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-6",
+              "sortOrder": 6,
+              "requiredTotalExperience": 3000,
+              "displayName": "传世者",
+              "shortName": "传世",
+              "description": "留下可回看的作品",
+              "achievementDescription": "完成著述家的最高阶段",
+              "isTopLevel": true,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#5B3E9B\",\"secondaryColor\":\"#9C7BF7\",\"borderColor\":\"#7B5DCE\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "longform_author.points.stage-6",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":50000,\"memo\":\"著述家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "automations": [
+        {
+          "automationCode": "long-chapter-published",
+          "status": "PUBLISHED",
+          "sortOrder": 10,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"article.published\",\"schemaVersion\":1},\"condition\":{\"type\":\"LEAF\",\"fieldCode\":\"articleType\",\"operator\":\"EQ\",\"value\":6},\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":40}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        },
+        {
+          "automationCode": "long-reading-settled",
+          "status": "PUBLISHED",
+          "sortOrder": 20,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"long_article.read_settled\",\"schemaVersion\":1},\"condition\":{\"type\":\"LEAF\",\"fieldCode\":\"rewardPoint\",\"operator\":\"GTE\",\"value\":1},\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIELD\",\"fieldCode\":\"rewardPoint\"}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        }
+      ],
+      "currentRevisionNo": 1,
+      "currentSchemeRevisionNo": 1
+    },
+    {
+      "professionCode": "community_writer",
+      "status": "PUBLISHED",
+      "sortOrder": 20,
+      "revisions": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "displayName": "生活家",
+          "shortName": "社区记录者",
+          "description": "记录生活，也分享见闻",
+          "defaultPresentationJson": "{\"imageUrl\":\"/images/profession/community-writer-cover.svg\",\"iconUrl\":\"/images/profession/community-writer-icon.svg\",\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"backgroundColor\":\"#13755B\",\"textColor\":\"#FFFFFF\",\"borderColor\":\"#289B73\",\"borderWidth\":\"thin\",\"shape\":\"rounded\",\"shadow\":\"soft\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+        }
+      ],
+      "schemes": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "professionRevisionNo": 1,
+          "migrationPolicy": "MIGRATE_ALL",
+          "rewardMigrationPolicy": "GRANT_NEW_LEVELS",
+          "migrationConfigJson": "{}",
+          "levels": [
+            {
+              "levelCode": "stage-1",
+              "sortOrder": 1,
+              "requiredTotalExperience": 0,
+              "displayName": "留影",
+              "shortName": "留影",
+              "description": "记录一个片段",
+              "achievementDescription": "留下第一份社区记录",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}"
+                }
+              ],
+              "rewards": []
+            },
+            {
+              "levelCode": "stage-2",
+              "sortOrder": 2,
+              "requiredTotalExperience": 180,
+              "displayName": "分享者",
+              "shortName": "分享",
+              "description": "把见闻带给他人",
+              "achievementDescription": "持续分享生活片段",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "community_writer.points.stage-2",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":5000,\"memo\":\"生活家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-3",
+              "sortOrder": 3,
+              "requiredTotalExperience": 500,
+              "displayName": "观察者",
+              "shortName": "观察",
+              "description": "发现日常细节",
+              "achievementDescription": "形成稳定的记录习惯",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "community_writer.points.stage-3",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":10000,\"memo\":\"生活家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-4",
+              "sortOrder": 4,
+              "requiredTotalExperience": 1100,
+              "displayName": "生活志",
+              "shortName": "生活志",
+              "description": "记录属于自己的日常",
+              "achievementDescription": "积累可回看的生活笔记",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "community_writer.points.stage-4",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":20000,\"memo\":\"生活家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-5",
+              "sortOrder": 5,
+              "requiredTotalExperience": 2300,
+              "displayName": "同行者",
+              "shortName": "同行",
+              "description": "与社区分享真实体验",
+              "achievementDescription": "让更多人参与到日常里",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "community_writer.points.stage-5",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":30000,\"memo\":\"生活家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-6",
+              "sortOrder": 6,
+              "requiredTotalExperience": 4600,
+              "displayName": "生活家",
+              "shortName": "生活家",
+              "description": "让记录成为社区风景",
+              "achievementDescription": "完成生活家的最高阶段",
+              "isTopLevel": true,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#13755B\",\"secondaryColor\":\"#49B98A\",\"borderColor\":\"#289B73\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "community_writer.points.stage-6",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":50000,\"memo\":\"生活家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "automations": [
+        {
+          "automationCode": "community-post-published",
+          "status": "PUBLISHED",
+          "sortOrder": 10,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"article.published\",\"schemaVersion\":1},\"condition\":{\"type\":\"LEAF\",\"fieldCode\":\"articleType\",\"operator\":\"NE\",\"value\":6},\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":20}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        }
+      ],
+      "currentRevisionNo": 1,
+      "currentSchemeRevisionNo": 1
+    },
+    {
+      "professionCode": "social_connector",
+      "status": "PUBLISHED",
+      "sortOrder": 30,
+      "revisions": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "displayName": "交游家",
+          "shortName": "社区联结者",
+          "description": "让每一次交流都有回响",
+          "defaultPresentationJson": "{\"imageUrl\":\"/images/profession/social-connector-cover.svg\",\"iconUrl\":\"/images/profession/social-connector-icon.svg\",\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"backgroundColor\":\"#245A9F\",\"textColor\":\"#FFFFFF\",\"borderColor\":\"#4D86CE\",\"borderWidth\":\"thin\",\"shape\":\"rounded\",\"shadow\":\"soft\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+        }
+      ],
+      "schemes": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "professionRevisionNo": 1,
+          "migrationPolicy": "MIGRATE_ALL",
+          "rewardMigrationPolicy": "GRANT_NEW_LEVELS",
+          "migrationConfigJson": "{}",
+          "levels": [
+            {
+              "levelCode": "stage-1",
+              "sortOrder": 1,
+              "requiredTotalExperience": 0,
+              "displayName": "问候者",
+              "shortName": "问候",
+              "description": "从一次交流开始",
+              "achievementDescription": "完成第一次有效交流",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}"
+                }
+              ],
+              "rewards": []
+            },
+            {
+              "levelCode": "stage-2",
+              "sortOrder": 2,
+              "requiredTotalExperience": 900,
+              "displayName": "交谈者",
+              "shortName": "交谈",
+              "description": "让对话持续发生",
+              "achievementDescription": "持续参与社区交流",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "social_connector.points.stage-2",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":5000,\"memo\":\"交游家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-3",
+              "sortOrder": 3,
+              "requiredTotalExperience": 2500,
+              "displayName": "联结者",
+              "shortName": "联结",
+              "description": "在不同话题间相遇",
+              "achievementDescription": "成为稳定的交流参与者",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "social_connector.points.stage-3",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":10000,\"memo\":\"交游家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-4",
+              "sortOrder": 4,
+              "requiredTotalExperience": 5600,
+              "displayName": "聚合者",
+              "shortName": "聚合",
+              "description": "让更多回应汇在一起",
+              "achievementDescription": "促进更多社区互动",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "social_connector.points.stage-4",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":20000,\"memo\":\"交游家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-5",
+              "sortOrder": 5,
+              "requiredTotalExperience": 11000,
+              "displayName": "同路人",
+              "shortName": "同路",
+              "description": "与社区共同前行",
+              "achievementDescription": "建立长期的交流联系",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "social_connector.points.stage-5",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":30000,\"memo\":\"交游家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-6",
+              "sortOrder": 6,
+              "requiredTotalExperience": 20000,
+              "displayName": "交游家",
+              "shortName": "交游家",
+              "description": "让交流成为共同记忆",
+              "achievementDescription": "完成交游家的最高阶段",
+              "isTopLevel": true,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#245A9F\",\"secondaryColor\":\"#67AEFF\",\"borderColor\":\"#4D86CE\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "social_connector.points.stage-6",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":50000,\"memo\":\"交游家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "automations": [
+        {
+          "automationCode": "chatroom-conversation",
+          "status": "PUBLISHED",
+          "sortOrder": 10,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"chatroom.message.published\",\"schemaVersion\":1},\"condition\":{\"type\":\"LEAF\",\"fieldCode\":\"contentLength\",\"operator\":\"GTE\",\"value\":12},\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":1}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        },
+        {
+          "automationCode": "breezemoon-published",
+          "status": "PUBLISHED",
+          "sortOrder": 20,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"breezemoon.published\",\"schemaVersion\":1},\"condition\":null,\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":5}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        },
+        {
+          "automationCode": "repeater-published",
+          "status": "PUBLISHED",
+          "sortOrder": 30,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"repeater.published\",\"schemaVersion\":1},\"condition\":null,\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":5}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        }
+      ],
+      "currentRevisionNo": 1,
+      "currentSchemeRevisionNo": 1
+    },
+    {
+      "professionCode": "discussion_contributor",
+      "status": "PUBLISHED",
+      "sortOrder": 40,
+      "revisions": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "displayName": "回响家",
+          "shortName": "社区回应者",
+          "description": "让值得讨论的话继续生长",
+          "defaultPresentationJson": "{\"imageUrl\":\"/images/profession/discussion-contributor-cover.svg\",\"iconUrl\":\"/images/profession/discussion-contributor-icon.svg\",\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"backgroundColor\":\"#B4453F\",\"textColor\":\"#FFFFFF\",\"borderColor\":\"#D7655E\",\"borderWidth\":\"thin\",\"shape\":\"rounded\",\"shadow\":\"soft\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+        }
+      ],
+      "schemes": [
+        {
+          "revisionNo": 1,
+          "schemaVersion": 1,
+          "status": "PUBLISHED",
+          "professionRevisionNo": 1,
+          "migrationPolicy": "MIGRATE_ALL",
+          "rewardMigrationPolicy": "GRANT_NEW_LEVELS",
+          "migrationConfigJson": "{}",
+          "levels": [
+            {
+              "levelCode": "stage-1",
+              "sortOrder": 1,
+              "requiredTotalExperience": 0,
+              "displayName": "留言者",
+              "shortName": "留言",
+              "description": "写下第一句回应",
+              "achievementDescription": "完成第一次公开回应",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"none\",\"progressStyle\":\"solid\",\"levelUpAnimation\":\"fade\"}"
+                }
+              ],
+              "rewards": []
+            },
+            {
+              "levelCode": "stage-2",
+              "sortOrder": 2,
+              "requiredTotalExperience": 300,
+              "displayName": "回应者",
+              "shortName": "回应",
+              "description": "参与一场讨论",
+              "achievementDescription": "持续补充自己的观点",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "discussion_contributor.points.stage-2",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":5000,\"memo\":\"回响家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-3",
+              "sortOrder": 3,
+              "requiredTotalExperience": 800,
+              "displayName": "讨论者",
+              "shortName": "讨论",
+              "description": "让话题继续展开",
+              "achievementDescription": "形成稳定的讨论参与",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"soft\",\"progressStyle\":\"gradient\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "discussion_contributor.points.stage-3",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":10000,\"memo\":\"回响家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-4",
+              "sortOrder": 4,
+              "requiredTotalExperience": 1800,
+              "displayName": "评议者",
+              "shortName": "评议",
+              "description": "提出有价值的回应",
+              "achievementDescription": "让更多对话继续发生",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"scale\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "discussion_contributor.points.stage-4",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":20000,\"memo\":\"回响家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-5",
+              "sortOrder": 5,
+              "requiredTotalExperience": 3600,
+              "displayName": "共鸣者",
+              "shortName": "共鸣",
+              "description": "在讨论中建立联系",
+              "achievementDescription": "积累长期的社区回响",
+              "isTopLevel": false,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"medium\",\"progressStyle\":\"segmented\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "discussion_contributor.points.stage-5",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":30000,\"memo\":\"回响家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "levelCode": "stage-6",
+              "sortOrder": 6,
+              "requiredTotalExperience": 6500,
+              "displayName": "回响家",
+              "shortName": "回响家",
+              "description": "让讨论留下更长的声音",
+              "achievementDescription": "完成回响家的最高阶段",
+              "isTopLevel": true,
+              "presentations": [
+                {
+                  "positionCode": "default",
+                  "lightConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}",
+                  "darkConfigJson": "{\"primaryColor\":\"#B4453F\",\"secondaryColor\":\"#F18A7B\",\"borderColor\":\"#D7655E\",\"glow\":\"strong\",\"progressStyle\":\"ring\",\"levelUpAnimation\":\"burst\"}"
+                }
+              ],
+              "rewards": [
+                {
+                  "rewardCode": "discussion_contributor.points.stage-6",
+                  "rewardType": "POINT",
+                  "rewardConfigJson": "{\"amount\":50000,\"memo\":\"回响家阶段奖励\"}",
+                  "grantPolicy": "FIRST_REACH",
+                  "downgradePolicy": "KEEP",
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "automations": [
+        {
+          "automationCode": "comment-published",
+          "status": "PUBLISHED",
+          "sortOrder": 10,
+          "revisions": [
+            {
+              "revisionNo": 1,
+              "schemaVersion": 1,
+              "status": "PUBLISHED",
+              "configurationJson": "{\"trigger\":{\"triggerType\":\"comment.published\",\"schemaVersion\":1},\"condition\":null,\"actions\":[{\"actionType\":\"profession.experience.adjust\",\"actionCode\":\"experience\",\"calculator\":{\"calculatorType\":\"FIXED\",\"value\":3}},{\"actionType\":\"profession.system.notify\",\"actionCode\":\"level-up\",\"notificationContent\":\"你已达到{职业}·{等级}，获得{奖励}。\",\"notificationWhen\":\"LEVEL_UP\"}]}"
+            }
+          ],
+          "currentRevisionNo": 1
+        }
+      ],
+      "currentRevisionNo": 1,
+      "currentSchemeRevisionNo": 1
+    }
+  ]
+}

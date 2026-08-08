@@ -1,0 +1,270 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-admin {
+  max-width: 1120px;
+  margin: 28px auto 48px;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.profession-admin *,
+.profession-admin *::before,
+.profession-admin *::after { box-sizing: border-box; }
+
+.profession-admin h1,
+.profession-admin h2,
+.profession-admin h3,
+.profession-admin h4,
+.profession-admin p { margin: 0; }
+
+.profession-admin__hero,
+.profession-admin__form,
+.profession-admin__catalog {
+  border: 1px solid rgba(148, 163, 184, .24);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 16px 44px rgba(15, 23, 42, .08);
+}
+
+.profession-admin__hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 30px;
+}
+
+.profession-admin__eyebrow,
+.profession-admin__form-head > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: .04em;
+}
+
+.profession-admin__hero h1 {
+  color: #0f172a;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 760;
+  letter-spacing: -.045em;
+  line-height: 1.02;
+}
+
+.profession-admin__hero p,
+.profession-admin__form-head p,
+.profession-admin__theme-editor p {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.profession-admin__hero-actions,
+.profession-admin__form-actions,
+.profession-admin__catalog-tools,
+.profession-admin__actions,
+.profession-admin__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profession-admin__hero-actions { justify-content: flex-end; }
+
+.profession-admin__status {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profession-admin__button,
+.profession-level-editor button,
+.profession-automation button,
+.profession-medal-picker button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid #d7e0ec;
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1;
+  transition: transform 100ms ease-out, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.profession-admin__button svg { width: 15px; height: 15px; fill: currentColor; }
+.profession-admin__button:hover,
+.profession-level-editor button:hover,
+.profession-automation button:hover,
+.profession-medal-picker button:hover { border-color: #8ab4f8; background: #f8fbff; box-shadow: 0 5px 14px rgba(37, 99, 235, .10); }
+.profession-admin__button:active,
+.profession-level-editor button:active,
+.profession-automation button:active,
+.profession-medal-picker button:active { transform: scale(.97); }
+.profession-admin__button:disabled,
+.profession-level-editor button:disabled,
+.profession-automation button:disabled { cursor: not-allowed; opacity: .55; }
+
+.profession-admin__button--primary,
+.profession-admin__form-actions .green {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.profession-admin__button--primary:hover,
+.profession-admin__form-actions .green:hover { border-color: #1d4ed8; background: #1d4ed8; }
+
+.profession-admin__wizard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 16px 28px;
+  border-bottom: 1px solid #e6edf5;
+  background: rgba(248, 250, 252, .82);
+}
+
+.profession-admin__wizard button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 1px 9px;
+  min-height: 62px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.profession-admin__wizard button > span {
+  grid-row: span 2;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.profession-admin__wizard strong { font-size: 14px; }
+.profession-admin__wizard small { font-size: 12px; }
+.profession-admin__wizard button.is-active { border-color: #b8d3ff; background: #eff6ff; color: #1d4ed8; box-shadow: 0 7px 16px rgba(37, 99, 235, .08); }
+.profession-admin__wizard button.is-active > span { background: #2563eb; color: #fff; }
+
+.profession-admin__form { min-height: 100%; padding: 26px 28px; }
+.profession-admin__form-head { margin-bottom: 22px; }
+.profession-admin__form-head h2 { color: #0f172a; font-size: 22px; letter-spacing: -.025em; }
+
+.profession-admin label {
+  display: grid;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.profession-admin input,
+.profession-admin select,
+.profession-admin textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #d7e0ec;
+  border-radius: 12px;
+  outline: 0;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.profession-admin textarea { min-height: 76px; resize: vertical; }
+.profession-admin input:focus,
+.profession-admin select:focus,
+.profession-admin textarea:focus { border-color: #4d93fa; box-shadow: 0 0 0 3px rgba(37, 99, 235, .13); }
+.profession-admin__field-grid,
+.profession-admin__appearance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.profession-admin__field--wide { grid-column: 1 / -1; }
+
+.profession-admin__form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  justify-content: flex-end;
+  margin: 24px -28px 0;
+  padding: 18px 28px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 30%);
+}
+
+.profession-admin__dialog {
+  width: min(760px, calc(100vw - 24px));
+  max-height: min(780px, calc(100dvh - 24px));
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .32);
+  border-radius: 22px;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 26px 72px rgba(15, 23, 42, .30);
+}
+
+.profession-admin__dialog[open] { animation: profession-dialog-enter 220ms cubic-bezier(.2, .8, .2, 1); }
+.profession-admin__dialog:not([open]) { display: none; }
+.profession-admin__dialog::backdrop { background: rgba(15, 23, 42, .42); backdrop-filter: blur(4px); }
+.profession-admin__dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.profession-admin__dialog-head { padding-bottom: 17px; border-bottom: 1px solid #e6edf5; }
+.profession-admin__dialog-close { display: grid; width: 40px; height: 40px; place-items: center; padding: 0; border: 1px solid #d7e0ec; border-radius: 50%; background: #f8fafc; color: #475569; cursor: pointer; font-size: 24px; line-height: 1; }
+.profession-admin__dialog-close:hover { background: #eff6ff; color: #1d4ed8; }
+.profession-admin__editor-dialog {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(1000px, calc(100vw - 24px));
+  padding: 0;
+  overflow: visible;
+}
+.profession-admin__editor-dialog > .profession-admin__dialog-head { padding: 22px 28px 16px; }
+.profession-admin__composer { min-height: 0; overflow: auto; }
+
+@keyframes profession-dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

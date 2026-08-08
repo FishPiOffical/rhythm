@@ -33,6 +33,8 @@ public final class LongArticleRead {
     public static final String HISTORY = "article_long_read_history";
     public static final String USER = "article_long_read_user";
     public static final String ANON = "article_long_read_anon";
+    public static final String WINDOW = "article_long_read_window";
+    public static final String SETTLEMENT = "article_long_read_settlement";
 
     public static final String ARTICLE_ID = "articleId";
     public static final String WINDOW_START = "windowStart";
@@ -54,4 +56,7 @@ public final class LongArticleRead {
     public static final String USER_ID = "userId";
     public static final String FIRST_READ_AT = "firstReadAt";
     public static final String READER_HASH = "readerHash";
+
+    public static final String STATE = "state";
+    public static final String SETTLEMENT_ID = "settlementId";
 }

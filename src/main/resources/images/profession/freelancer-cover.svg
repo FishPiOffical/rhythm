@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="自由职业封面">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1200" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#064E4A"/><stop offset=".55" stop-color="#0F766E"/><stop offset="1" stop-color="#5EEAD4"/>
+    </linearGradient>
+    <radialGradient id="b" cx="0" cy="0" r="1" gradientTransform="matrix(260 0 0 260 920 150)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CCFBF1" stop-opacity=".48"/><stop offset="1" stop-color="#CCFBF1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="480" fill="url(#a)"/>
+  <rect width="1200" height="480" fill="url(#b)"/>
+  <g fill="none" stroke="#CCFBF1" stroke-opacity=".23">
+    <path d="M-45 403C150 260 252 548 443 357S753 173 915 314s220 69 360-32" stroke-width="3"/>
+    <path d="M-40 305C125 183 280 423 466 249S760 113 908 232s257 68 339-30" stroke-width="2"/>
+    <circle cx="888" cy="132" r="90" stroke-width="2"/>
+    <circle cx="888" cy="132" r="142" stroke-width="1"/>
+  </g>
+  <g transform="translate(862 95)" fill="#ECFEFF" fill-opacity=".94">
+    <path d="M64 0c4.7 0 8.5 3.8 8.5 8.5v25.3l22-12.7a8.5 8.5 0 0 1 8.5 14.7L81 48.5l22 12.7a8.5 8.5 0 0 1-8.5 14.7l-22-12.7v25.3a8.5 8.5 0 1 1-17 0V63.2l-22 12.7A8.5 8.5 0 0 1 25 61.2l22-12.7-22-12.7A8.5 8.5 0 0 1 33.5 32l22 12.7V8.5C55.5 3.8 59.3 0 64 0Z"/>
+    <circle cx="64" cy="48.5" r="8.5" fill="#0F766E"/>
+  </g>
+</svg>

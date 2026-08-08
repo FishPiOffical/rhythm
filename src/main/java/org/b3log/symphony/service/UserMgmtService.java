@@ -156,6 +156,9 @@ public class UserMgmtService {
     @Inject
     private NotificationMgmtService notificationMgmtService;
 
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+
     /**
      * Deactivates the specified user.
      *
@@ -672,24 +675,27 @@ public class UserMgmtService {
      * @param minute online minute.
      * @throws ServiceException an normal exception.
      */
-    public void setOnlineMinute(final String userId, int minute) {
+    public void settleOnlineMinute(final String userId, final int minute, final long occurredAt) {
         final Transaction transaction = userRepository.beginTransaction();
 
         try {
             final JSONObject user = userRepository.get(userId);
             if (null == user) {
-                return;
+                throw new IllegalArgumentException("用户不存在");
             }
-            user.put(UserExt.ONLINE_MINUTE, minute);
+            final int beforeMinute = user.optInt(UserExt.ONLINE_MINUTE);
+            final int afterMinute = Math.max(beforeMinute, minute);
+            user.put(UserExt.ONLINE_MINUTE, afterMinute);
             userRepository.update(userId, user, UserExt.ONLINE_MINUTE);
+            professionSourceEventCaptureService.onlineMinutesSettled(userId, beforeMinute, afterMinute, occurredAt);
 
             transaction.commit();
-        } catch (final RepositoryException e) {
+        } catch (final Exception e) {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
-
             LOGGER.log(Level.ERROR, "Set online minute [id=" + userId + ", minute=" + minute + "] failed", e);
+            throw new IllegalStateException("结算在线时长失败", e);
         }
     }
 

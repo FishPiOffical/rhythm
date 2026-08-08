@@ -444,27 +444,7 @@ public class NotificationMgmtService {
     @Transactional
     public void addSysAnnounceCustomNotification(String notification, String uid) throws ServiceException {
         try {
-            final JSONObject requestJSONObject = new JSONObject();
-            requestJSONObject.put(Notification.NOTIFICATION_USER_ID, uid);
-            if (isCustomSysContentColumnReady()) {
-                final String rawContent = NotificationContents.normalizeCustomSysContent(notification);
-                final String safeContent = NotificationContents.sanitizeCustomSysContent(rawContent);
-                if (StringUtils.isBlank(safeContent)) {
-                    throw new ServiceException("发送失败：notification 清洗后为空，请至少保留文本或 http/https 链接。");
-                }
-                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, StringUtils.EMPTY);
-                requestJSONObject.put(Notification.NOTIFICATION_CONTENT, rawContent);
-            } else {
-                if (NotificationContents.requiresDedicatedContentColumn(notification)) {
-                    throw new ServiceException("当前数据库缺少 notification.content 列，请先执行 SQL：ALTER TABLE `"
-                            + Latkes.getLocalProperty("jdbc.tablePrefix") + "_notification` ADD COLUMN `content` TEXT;");
-                }
-                requestJSONObject.put(Notification.NOTIFICATION_DATA_ID,
-                        NotificationContents.normalizeCustomSysContent(notification));
-            }
-            requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_CUSTOM_SYS);
-
-            addNotification(requestJSONObject);
+            addNotification(customSysNotificationRequest(notification, uid));
         } catch (final ServiceException e) {
             throw e;
         } catch (final RepositoryException e) {
@@ -473,6 +453,33 @@ public class NotificationMgmtService {
 
             throw new ServiceException(msg);
         }
+    }
+
+    /** 在调用方事务内保存系统通知，事务提交后由调用方刷新用户通知。 */
+    public void addSysAnnounceCustomNotificationInCurrentTransaction(final String notification, final String userId)
+            throws ServiceException, RepositoryException {
+        addNotificationRecord(customSysNotificationRequest(notification, userId));
+    }
+
+    private JSONObject customSysNotificationRequest(final String notification, final String userId)
+            throws ServiceException, RepositoryException {
+        final JSONObject request = new JSONObject();
+        request.put(Notification.NOTIFICATION_USER_ID, userId);
+        if (isCustomSysContentColumnReady()) {
+            final String content = NotificationContents.normalizeCustomSysContent(notification);
+            if (StringUtils.isBlank(NotificationContents.sanitizeCustomSysContent(content))) {
+                throw new ServiceException("发送失败：notification 清洗后为空，请至少保留文本或 http/https 链接。");
+            }
+            request.put(Notification.NOTIFICATION_DATA_ID, StringUtils.EMPTY);
+            request.put(Notification.NOTIFICATION_CONTENT, content);
+        } else if (NotificationContents.requiresDedicatedContentColumn(notification)) {
+            throw new ServiceException("当前数据库缺少 notification.content 列，请先执行 SQL：ALTER TABLE `"
+                    + Latkes.getLocalProperty("jdbc.tablePrefix") + "_notification` ADD COLUMN `content` TEXT;");
+        } else {
+            request.put(Notification.NOTIFICATION_DATA_ID, NotificationContents.normalizeCustomSysContent(notification));
+        }
+        request.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_CUSTOM_SYS);
+        return request;
     }
 
     /**

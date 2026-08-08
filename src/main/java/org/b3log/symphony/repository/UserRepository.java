@@ -70,6 +70,11 @@ public class UserRepository extends AbstractRepository {
         super(User.USER);
     }
 
+    public JSONObject getForUpdate(final String id) throws RepositoryException {
+        final List<JSONObject> values = select("SELECT * FROM `" + getName() + "` WHERE `oId`=? FOR UPDATE", id);
+        return values.isEmpty() ? null : values.getFirst();
+    }
+
     @Override
     public JSONObject get(final String id) throws RepositoryException {
         JSONObject ret = userCache.getUser(id);

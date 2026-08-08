@@ -1,0 +1,133 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-admin__catalog { margin-top: 24px; padding: 24px; }
+.profession-admin__catalog > header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 20px; }
+.profession-admin__catalog h2 { color: #0f172a; font-size: 22px; letter-spacing: -.025em; }
+.profession-admin__catalog header p { margin-top: 6px; color: #64748b; font-size: 13px; }
+.profession-admin__catalog-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 132px 132px max-content;
+  flex: 0 1 680px;
+  gap: 10px;
+  width: min(100%, 680px);
+  min-width: 0;
+}
+.profession-admin__catalog-tools > label { min-width: 0; }
+.profession-admin__catalog-tools > .profession-admin__search { min-width: 0; }
+.profession-admin__catalog-tools > button { min-width: max-content; white-space: nowrap; }
+.profession-admin__catalog-tools select,
+.profession-admin__catalog-tools input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; }
+.profession-admin__list { display: grid; gap: 10px; margin-top: 18px; }
+
+.profession-admin__item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'preview content state'
+    'preview metrics actions';
+  gap: 8px 15px;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #e0e8f1;
+  border-radius: 18px;
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.profession-admin__item:hover { border-color: #b9d3fb; box-shadow: 0 10px 24px rgba(37, 99, 235, .08); transform: translateY(-1px); }
+.profession-admin__item:active { transform: scale(.992); }
+.profession-admin__preview { grid-area: preview; display: grid; width: 58px; height: 58px; place-items: center; overflow: hidden; border: 1px solid rgba(148, 163, 184, .34); border-radius: 18px; background-color: var(--profession-background); background-position: center; background-size: cover; color: var(--profession-text); font-size: 17px; font-weight: 780; }
+.profession-admin__preview img { width: 100%; height: 100%; object-fit: cover; }
+.profession-admin__item-content { grid-area: content; min-width: 0; }
+.profession-admin__item h3 { color: #1e293b; font-size: 16px; letter-spacing: -.01em; }
+.profession-admin__item-content > p { margin-top: 3px; color: #64748b; font-size: 12px; }
+.profession-admin__item-content small { display: block; overflow: hidden; margin-top: 5px; color: #64748b; font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.profession-admin__state { grid-area: state; justify-self: end; padding: 5px 9px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 750; }
+.profession-admin__state--draft { background: #fff7e7; color: #9a5b00; }
+.profession-admin__state--retired { background: #f1f5f9; color: #64748b; }
+.profession-admin__metrics { grid-area: metrics; color: #64748b; font-size: 12px; }
+.profession-admin__item .profession-admin__actions { grid-area: actions; justify-self: end; margin-top: 1px; }
+.profession-admin__empty { margin-top: 18px !important; padding: 28px 16px; border: 1px dashed #bdcad9; border-radius: 14px; color: #64748b; text-align: center; }
+.profession-admin__pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 18px; color: #64748b; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.profession-admin__history { display: grid; gap: 14px; margin-top: 14px; }
+.profession-admin__group { padding-top: 16px; border-top: 1px solid #e6edf5; }
+.profession-admin__group h3 { margin-bottom: 10px; font-size: 15px; }
+.profession-admin__history-record { display: grid; gap: 8px; margin-top: 10px; padding: 14px; border: 1px solid #e0e8f1; border-radius: 14px; background: #fbfdff; }
+.profession-admin__history-record > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profession-admin__history-record > small,
+.profession-admin__dialog-copy { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.profession-admin__history-record details { color: #475569; font-size: 13px; }
+.profession-admin__history-record summary { cursor: pointer; font-weight: 700; }
+.profession-admin__history-record details p { margin-top: 8px; line-height: 1.5; word-break: break-word; }
+
+.profession-admin__template-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.profession-admin__template-list button { display: grid; gap: 5px; min-height: 100px; padding: 17px; border: 1px solid #dbe5f0; border-radius: 16px; background: #fff; color: #1e293b; cursor: pointer; text-align: left; }
+.profession-admin__template-list button:hover { border-color: #8ab4f8; box-shadow: 0 10px 22px rgba(37, 99, 235, .10); }
+.profession-admin__template-list button strong { font-size: 16px; }
+.profession-admin__template-list button span { color: #64748b; font-size: 13px; }
+
+.profession-admin__transfer { display: grid; gap: 12px; margin-top: 18px; }
+.profession-admin__transfer h3 { margin-top: 6px; font-size: 15px; }
+.profession-admin__transfer p { color: #64748b; font-size: 13px; }
+.profession-admin__transfer > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.profession-admin__transfer output { min-height: 20px; color: #15803d; font-size: 13px; font-weight: 700; }
+.profession-admin__transfer-actions { display: flex !important; grid-template-columns: none !important; flex-wrap: wrap; align-items: center !important; }
+.profession-admin__transfer-summary { display: grid; gap: 8px; margin-top: 10px; padding: 12px; border: 1px solid #bbf7d0; border-radius: 12px; background: #f0fdf4; color: #166534; font-size: 13px; }
+.profession-admin__transfer-summary.is-conflict { border-color: #fed7aa; background: #fff7ed; color: #9a3412; }
+.profession-admin__transfer-summary ul { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+.profession-admin__transfer-paste { border: 1px solid #dbe5f0; border-radius: 12px; background: #fbfdff; }
+.profession-admin__transfer-paste summary { padding: 11px 13px; color: #475569; cursor: pointer; font-size: 13px; font-weight: 700; }
+.profession-admin__transfer-paste > label { padding: 0 13px 13px; }
+.profession-admin__transfer-paste textarea { min-height: 130px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; line-height: 1.45; }
+
+.profession-admin__order-list { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.profession-admin__order-list li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) auto; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #e0e8f1; border-radius: 13px; background: #fbfdff; }
+.profession-admin__order-list small { overflow: hidden; color: #64748b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.profession-admin__order-actions { display: flex; gap: 6px; }
+
+.profession-admin__simulation { display: grid; gap: 16px; margin-top: 18px; }
+.profession-admin__simulation-fields,
+.profession-admin__simulation-entry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.profession-admin__simulation-entry { grid-template-columns: repeat(4, minmax(0, 1fr)) max-content; align-items: end; padding: 14px; border: 1px solid #dbe5f0; border-radius: 16px; background: #fbfdff; }
+.profession-admin__simulation-entry > label { min-width: 0; }
+.profession-admin__simulation-entry > button { min-width: max-content; white-space: nowrap; }
+.profession-admin__simulation-summary { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 18px; border-radius: 18px; background: linear-gradient(135deg, #eff6ff, #fbfdff); }
+.profession-admin__simulation-summary strong { font-size: clamp(24px, 5vw, 34px); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.profession-admin__simulation-summary span { color: #1d4ed8; font-size: 14px; font-weight: 750; text-align: right; }
+.profession-admin__simulation-timeline { display: grid; gap: 0; margin: 0; padding: 0 0 0 26px; list-style: none; }
+.profession-admin__simulation-timeline li { position: relative; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 12px; padding: 0 0 20px 18px; }
+.profession-admin__simulation-timeline li::before { position: absolute; top: 5px; left: -5px; width: 11px; height: 11px; border: 3px solid #fff; border-radius: 50%; background: #2563eb; box-shadow: 0 0 0 1px #93c5fd; content: ''; }
+.profession-admin__simulation-timeline li::after { position: absolute; top: 18px; bottom: 0; left: 0; width: 1px; background: #cbd5e1; content: ''; }
+.profession-admin__simulation-timeline li:last-child::after { display: none; }
+.profession-admin__simulation-timeline time { grid-row: span 2; color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.profession-admin__simulation-timeline strong { color: #1e293b; font-size: 14px; }
+.profession-admin__simulation-timeline span { color: #2563eb; font-size: 13px; font-weight: 700; }
+.profession-admin__simulation-timeline small { grid-column: 2; color: #64748b; font-size: 12px; line-height: 1.5; }
+
+.profession-structure-map { margin-top: 16px; overflow: auto; }
+.profession-structure-map__tree,
+.profession-structure-map__tree ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.profession-structure-map__tree > .profession-structure-map__branch { min-width: 520px; }
+.profession-structure-map__branch { position: relative; display: grid; gap: 10px; padding-left: 24px; }
+.profession-structure-map__branch::before { position: absolute; top: 17px; bottom: 18px; left: 7px; width: 1px; background: #bfdbfe; content: ''; }
+.profession-structure-map__branch > strong,
+.profession-structure-map__leaf { display: inline-flex; width: fit-content; max-width: 100%; padding: 9px 11px; border: 1px solid #dbe5f0; border-radius: 12px; background: #fff; color: #334155; font-size: 13px; }
+.profession-structure-map__branch > strong { border-color: #b9d3fb; background: #eff6ff; color: #1d4ed8; font-weight: 750; }
+.profession-structure-map__leaf { color: #64748b; }

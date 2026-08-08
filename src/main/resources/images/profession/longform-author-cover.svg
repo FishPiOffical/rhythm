@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="著述家封面">
+  <defs><linearGradient id="a" x1="110" y1="70" x2="1420" y2="840" gradientUnits="userSpaceOnUse"><stop stop-color="#2e1065"/><stop offset=".52" stop-color="#6d28d9"/><stop offset="1" stop-color="#c4b5fd"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="42"/></filter></defs>
+  <rect width="1600" height="900" fill="url(#a)"/><circle cx="1310" cy="160" r="180" fill="#fbbf24" fill-opacity=".23" filter="url(#b)"/><circle cx="420" cy="760" r="260" fill="#ddd6fe" fill-opacity=".18" filter="url(#b)"/>
+  <g transform="translate(410 208) rotate(-8)"><path d="M0 64c162-35 294 5 390 117 96-112 228-152 390-117v534c-156-34-288 7-390 118C288 605 156 564 0 598V64Z" fill="#fff" fill-opacity=".94"/><path d="M390 170v420M74 190h240M74 252h240M74 314h202M706 190H466M706 252H466M668 314H466" stroke="#7c3aed" stroke-linecap="round" stroke-width="24"/></g>
+</svg>

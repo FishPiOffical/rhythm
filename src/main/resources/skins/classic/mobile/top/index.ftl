@@ -33,6 +33,13 @@
                     <h2 class="sub-head"><span>🏅</span> ${totalRankLabel}</h2>
                     <div class="list">
                         <ul>
+                            <li class="fn__flex">
+                                <div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">✦</div>
+                                <div class="fn-flex-1">
+                                    <h2><a class="title" href="${servePath}/top/profession">职业排行</a></h2>
+                                    <div class="ft-fade ft-smaller">查看各职业的公开进度</div>
+                                </div>
+                            </li>
 <#--                            <li class="fn__flex">-->
 <#--                                <svg class="avatar"><use xlink:href="#linkIcon"></use></svg>-->
 <#--                                <div class="fn-flex-1">-->

@@ -450,7 +450,7 @@ public class ArticleProcessor {
         final String viewerId = null == viewer ? null : viewer.optString(Keys.OBJECT_ID);
         final String ip = Requests.getRemoteAddr(context.getRequest());
         final String ua = Headers.getHeader(context.getRequest(), Common.USER_AGENT, "");
-        longArticleReadService.record(articleId, viewerId, ip, ua);
+        longArticleReadService.record(new LongArticleReadCaptureRequest(articleId, viewerId, ip, ua));
 
         String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
 

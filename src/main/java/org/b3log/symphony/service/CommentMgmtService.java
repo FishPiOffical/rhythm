@@ -152,6 +152,9 @@ public class CommentMgmtService {
     @Inject
     private LivenessMgmtService livenessMgmtService;
 
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+
     /**
      * Accepts a comment specified with the given comment id.
      *
@@ -224,6 +227,7 @@ public class CommentMgmtService {
      * @param commentId the given commentId id
      * @throws ServiceException service exception
      */
+    @Transactional
     public void removeComment(final String commentId) throws ServiceException {
         JSONObject comment = null;
 
@@ -270,9 +274,15 @@ public class CommentMgmtService {
     @Transactional
     public void removeCommentByAdmin(final String commentId) {
         try {
+            final JSONObject comment = commentRepository.get(commentId);
+            if (null == comment) {
+                return;
+            }
+            professionSourceEventCaptureService.targetRemoved("comment", commentId);
             commentRepository.removeComment(commentId);
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Removes a comment error [id=" + commentId + "]", e);
+            throw new IllegalStateException("删除评论时撤销职业来源失败", e);
         }
     }
 
@@ -592,6 +602,8 @@ public class CommentMgmtService {
             revision.put(Revision.REVISION_DATA_ID, commentId);
             revision.put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_COMMENT);
             revisionRepository.add(revision);
+
+            professionSourceEventCaptureService.commentPublished(comment, article);
 
             transaction.commit();
 

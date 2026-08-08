@@ -60,6 +60,9 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- 职业成长系统完全独立于 `userAppRole`：定义、等级方案、自动化、来源事件、效果、用户汇总和贡献均走 `profession_*` / `user_profession*` 新表；效果和来源事件均先独立提交领取状态，再在所有权条件下完成事务，防止回滚后的并发覆盖。等级方案 `MIGRATE_ALL` 与 `SCHEDULED_SWITCH` 由 `ProfessionLevelMigrationService` 分批切换，定时方案由 `ProfessionScheduledSchemeService` 激活。首次选择职业的升级来源由 `ProfessionGrowthGuideQueryService` 根据已发布自动化规则动态提供，禁止在前端写死职业升级方式。停用职业由 `ProfessionRetirementMgmtService` 锁定定义与受影响用户，将系统通知与停用状态同事务提交，并在提交后刷新通知，禁止直接写通知表。
+- 职业管理数据读取分为 `/catalog-summary`（分页摘要）和 `/catalog-detail/{professionId}`（单职业完整配置）；导入必须先走 `/config/precheck`，排序经 `/catalog/order` 在同一事务内校验并保存全部职业顺序，二者均限管理员登录态与 CSRF。
+- 职业自动化执行器包含经验调整和系统通知；系统通知配置 `notificationContent` / `notificationWhen`（`ALWAYS`、`LEVEL_UP`），由 `ProfessionAutomationNotificationService` 在职业效果事务中经 `NotificationMgmtService` 发送，不能直接写通知表。通知效果必须排在经验效果之后，正文变量为 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；等级方案迁移不会回放来源事件，但会对新跨越的每级分别补发允许的等级奖励，并为已发布 `LEVEL_UP` 通知创建独立幂等效果。金手指外部职业经验效果没有 `automationRevisionId`，通知判断必须先识别这种外部效果，不能查询自动化版本，否则效果会进入 `APPLY_RETRY`。
 - Latke 原生仅提供轻量皮肤元信息能力（如 `Latkes#getSkinName` 读取 `/skins/<dir>/skin.properties`），不负责 Rhythm 的运行时选肤；Rhythm 当前皮肤链路在 `BeforeRequestHandler#resolveSkinDir` + `Sessions` + `processor/SkinRenderer` + `util/Templates`。
 - Rhythm 当前“皮肤”本质是模板目录名：默认值来自 `symphony.properties` 的 `skinDirName=classic/pc`、`mobileSkinDirName=classic/mobile`；运行时先按 UA 分流 pc/mobile 默认皮肤，再按用户字段 `userSkin` / `userMobileSkin` 覆盖，设置页通过 `/settings/skin` 保存，`SkinQueryService` 负责扫描 `/skins/**/skin.properties` 识别可选主题。
 - Rhythm 侧 `SkinQueryService` 现已按 UTF-8 读取 `skin.properties`，皮肤名称/描述可直接写中文；但 `src/main/resources/lib/latke-core.jar` 内的 `Latkes#getSkinName` 仍是旧 `Properties.load`，若后续有代码依赖该方法读取皮肤元信息，需要同步改 Latke 并替换 jar。

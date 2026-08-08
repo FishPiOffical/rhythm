@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="生活家">
+  <defs><linearGradient id="a" x1="36" y1="28" x2="218" y2="224" gradientUnits="userSpaceOnUse"><stop stop-color="#f97316"/><stop offset="1" stop-color="#9a3412"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#a)"/>
+  <path d="M48 124 128 58l80 66v76c0 12-10 22-22 22H70c-12 0-22-10-22-22v-76Z" fill="#fff7ed"/>
+  <path d="M106 222v-61c0-10 10-18 22-18s22 8 22 18v61" fill="#fb923c"/><path d="M70 128h24v25H70zM162 128h24v25h-24z" fill="#c2410c"/>
+  <path d="M186 83c-7-27 5-45 32-52-4 30-16 47-32 52ZM176 100c-22-4-35-19-38-45 26 5 39 20 38 45Z" fill="#bbf7d0"/>
+</svg>

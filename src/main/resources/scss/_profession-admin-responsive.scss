@@ -1,0 +1,152 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+body.night .profession-admin { color: #e2e8f0; }
+body.night .profession-admin__hero,
+body.night .profession-admin__form,
+body.night .profession-admin__catalog,
+body.night .profession-admin__item,
+body.night .profession-admin input,
+body.night .profession-admin select,
+body.night .profession-admin textarea,
+body.night .profession-admin__button,
+body.night .profession-level-editor,
+body.night .profession-automation-card,
+body.night .profession-level-editor__presentation,
+body.night .profession-level-editor__style,
+body.night .profession-level-editor__reward,
+body.night .profession-automation,
+body.night .profession-automation__condition,
+body.night .profession-automation__action,
+body.night .profession-automation__calculator-group,
+body.night .profession-medal-picker__panel,
+body.night .profession-admin__dialog { border-color: #334155; background: #111827; color: #e2e8f0; }
+
+body.night .profession-admin__hero h1,
+body.night .profession-admin__form-head h2,
+body.night .profession-admin__catalog h2,
+body.night .profession-admin__item h3,
+body.night .profession-level-editor__name,
+body.night .profession-automation-card__name { color: #f8fafc; }
+body.night .profession-admin__wizard,
+body.night .profession-admin__theme-editor,
+body.night .profession-admin__transfer-paste,
+body.night .profession-automation,
+body.night .profession-admin__simulation-entry,
+body.night .profession-admin__history-record,
+body.night .profession-admin__order-list li { border-color: #334155; background: #172033; }
+body.night .profession-admin__wizard button { color: #94a3b8; }
+body.night .profession-admin__wizard button.is-active { background: #172554; color: #bfdbfe; }
+body.night .profession-admin__form-actions { background: linear-gradient(to bottom, rgba(17, 24, 39, 0), #111827 30%); }
+body.night .profession-admin label,
+body.night .profession-automation h3,
+body.night .profession-level-editor__group h4,
+body.night .profession-admin__simulation-summary strong,
+body.night .profession-admin__simulation-timeline strong { color: #e2e8f0; }
+body.night .profession-admin__live-preview { border-color: #475569; }
+body.night .profession-admin__simulation-summary { background: linear-gradient(135deg, #172554, #111827); }
+body.night .profession-admin__state { background: #172554; color: #bfdbfe; }
+body.night .profession-admin__state--draft { background: #422006; color: #fde68a; }
+body.night .profession-admin__state--retired { background: #1e293b; color: #cbd5e1; }
+body.night .profession-structure-map__branch > strong { border-color: #1d4ed8; background: #172554; color: #bfdbfe; }
+body.night .profession-structure-map__leaf { border-color: #334155; background: #172033; color: #cbd5e1; }
+body.night .profession-structure-map__branch::before { background: #1e40af; }
+
+@media (max-width: 760px) {
+  .profession-admin { margin: 12px auto 32px; padding: 0 10px; }
+  .profession-admin__hero { align-items: flex-start; flex-direction: column; padding: 21px; border-radius: 20px; }
+  .profession-admin__hero-actions { justify-content: flex-start; }
+  .profession-admin__hero-actions .profession-admin__status { width: 100%; }
+  .profession-admin__wizard { display: flex; overflow-x: auto; padding: 12px 16px; }
+  .profession-admin__wizard button { flex: 1 0 132px; }
+  .profession-admin__field-grid,
+  .profession-admin__appearance,
+  .profession-level-editor__fields,
+  .profession-level-editor__style,
+  .profession-level-editor__reward,
+  .profession-automation-card__fields,
+  .profession-automation__condition-fields,
+  [data-automation-payload],
+  .profession-admin__definition-layout { grid-template-columns: 1fr; }
+  .profession-admin__live-preview { min-height: 118px; }
+  .profession-admin__catalog { padding: 18px; border-radius: 18px; }
+  .profession-admin__catalog > header { align-items: flex-start; flex-direction: column; }
+  .profession-admin__catalog-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: none;
+    width: 100%;
+  }
+  .profession-admin__catalog-tools > label { min-width: 0; }
+  .profession-admin__catalog-tools > .profession-admin__search { grid-column: 1 / -1; min-width: 0; }
+  .profession-admin__catalog-tools input,
+  .profession-admin__catalog-tools select { width: 100%; min-width: 0; }
+  .profession-admin__catalog-tools > button { grid-column: 1 / -1; justify-self: start; }
+  .profession-admin__item {
+    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-areas:
+      'preview content'
+      'preview state'
+      'metrics metrics'
+      'actions actions';
+  }
+  .profession-admin__state { justify-self: start; }
+  .profession-admin__item .profession-admin__actions { justify-self: start; margin-top: 0; }
+  .profession-admin__template-list { grid-template-columns: 1fr; }
+  .profession-admin__transfer > div,
+  .profession-admin__simulation-fields,
+  .profession-admin__simulation-entry { grid-template-columns: 1fr; }
+  .profession-admin__order-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .profession-admin__order-list small { grid-column: 1; }
+  .profession-admin__order-actions { grid-row: span 2; grid-column: 2; }
+  .profession-admin__dialog { padding: 18px; border-radius: 18px; }
+  .profession-admin__editor-dialog { width: calc(100vw - 12px); max-height: calc(100dvh - 12px); padding: 0; }
+  .profession-admin__editor-dialog > .profession-admin__dialog-head { padding: 18px 18px 14px; }
+  .profession-admin__form { padding: 20px 18px; border: 0; border-radius: 0; box-shadow: none; }
+  .profession-admin__form-actions { bottom: 0; margin: 22px -18px 0; padding: 16px 18px; }
+  .profession-admin__simulation-timeline li { grid-template-columns: 1fr; gap: 4px; }
+  .profession-admin__simulation-timeline time,
+  .profession-admin__simulation-timeline small { grid-column: auto; grid-row: auto; }
+  .profession-admin__button,
+  .profession-level-editor button,
+  .profession-automation button,
+  .profession-medal-picker button { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profession-admin *,
+  .profession-admin *::before,
+  .profession-admin *::after { scroll-behavior: auto !important; transition-duration: 1ms !important; animation-duration: 1ms !important; }
+  .profession-admin__item:hover { transform: none; }
+  .profession-admin__item:active { transform: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .profession-admin__hero { background: #fff; }
+  .profession-admin__dialog::backdrop { background: rgba(15, 23, 42, .78); backdrop-filter: none; }
+  body.night .profession-admin__dialog::backdrop { background: rgba(0, 0, 0, .84); }
+}
+
+@media (prefers-contrast: more) {
+  .profession-admin__hero,
+  .profession-admin__form,
+  .profession-admin__catalog,
+  .profession-admin__item,
+  .profession-level-editor,
+  .profession-automation-card { border-color: currentColor; }
+}

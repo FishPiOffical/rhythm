@@ -28,6 +28,7 @@
 <meta name="copyright" content="B3log" />
 <meta http-equiv="Window-target" content="_top" />
 <link rel="stylesheet" href="${staticServePath}/css/mobile-base.css?${staticResourceVersion}" />
+<link rel="stylesheet" href="${staticServePath}/css/profession.css?${staticResourceVersion}&amp;profession-ui-v20260804c" />
 <link rel="icon" type="image/png" href="${iconURL}" />
 <link rel="apple-touch-icon" href="${staticServePath}/images/faviconH.png">
 <link rel="stylesheet" href="${staticServePath}/js/lib/tooltips/tooltips.min.css?${staticResourceVersion}">

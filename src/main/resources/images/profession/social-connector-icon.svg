@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="交游家">
+  <defs><linearGradient id="a" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse"><stop stop-color="#0ea5e9"/><stop offset="1" stop-color="#155e75"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#a)"/>
+  <path d="M40 61c0-13 11-24 24-24h88c13 0 24 11 24 24v62c0 13-11 24-24 24H96l-31 28 6-28H64c-13 0-24-11-24-24V61Z" fill="#ecfeff"/>
+  <path d="M94 108h-1M119 108h-1M144 108h-1" stroke="#0284c7" stroke-linecap="round" stroke-width="16"/>
+  <path d="M94 137c0-13 11-24 24-24h74c13 0 24 11 24 24v49c0 13-11 24-24 24h-39l-25 23 5-23h-15c-13 0-24-11-24-24v-49Z" fill="#bae6fd"/>
+  <path d="M135 160h1M160 160h1M185 160h1" stroke="#0369a1" stroke-linecap="round" stroke-width="14"/>
+</svg>

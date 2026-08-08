@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="回响家">
+  <defs><linearGradient id="a" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse"><stop stop-color="#ec4899"/><stop offset="1" stop-color="#831843"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#a)"/>
+  <path d="M54 56c0-13 11-24 24-24h100c13 0 24 11 24 24v76c0 13-11 24-24 24h-44l-36 31 8-31H78c-13 0-24-11-24-24V56Z" fill="#fff1f2"/>
+  <path d="M89 90h78M89 120h50" stroke="#db2777" stroke-linecap="round" stroke-width="12"/>
+  <path d="M123 171c30 0 55 14 70 36M123 194c20 0 36 9 47 24" fill="none" stroke="#fbcfe8" stroke-linecap="round" stroke-width="12"/>
+  <circle cx="99" cy="182" r="18" fill="#fbbf24"/>
+</svg>

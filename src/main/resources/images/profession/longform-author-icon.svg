@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="著述家">
+  <defs><linearGradient id="a" x1="36" y1="24" x2="218" y2="232" gradientUnits="userSpaceOnUse"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#312e81"/></linearGradient></defs>
+  <rect width="256" height="256" rx="56" fill="url(#a)"/>
+  <path d="M48 70c33-8 59 0 80 24 21-24 47-32 80-24v113c-32-7-57 1-80 24-23-23-48-31-80-24V70Z" fill="#fff" fill-opacity=".96"/>
+  <path d="M128 94v91M68 92c20-4 37 2 50 18M68 122c20-4 37 2 50 18M188 92c-20-4-37 2-50 18M188 122c-20-4-37 2-50 18" fill="none" stroke="#7c3aed" stroke-linecap="round" stroke-width="9"/>
+  <circle cx="200" cy="58" r="13" fill="#fbbf24"/>
+</svg>

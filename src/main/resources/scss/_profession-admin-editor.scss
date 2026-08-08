@@ -1,0 +1,194 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-admin__definition-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.profession-admin__live-preview {
+  position: relative;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 11px 12px;
+  min-height: 138px;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--preview-primary) 24%, #d7e0ec);
+  border-radius: 20px;
+  background-color: var(--preview-background);
+  background-position: center;
+  background-size: cover;
+  color: var(--preview-text);
+}
+
+.profession-admin__live-preview > span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, .74);
+  border-radius: 18px;
+  background: var(--preview-primary);
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--preview-primary) 25%, transparent);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 760;
+}
+
+.profession-admin__live-preview div { align-self: center; min-width: 0; }
+.profession-admin__live-preview strong,
+.profession-admin__live-preview small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profession-admin__live-preview strong { font-size: 17px; letter-spacing: -.02em; }
+.profession-admin__live-preview small { margin-top: 5px; font-size: 12px; opacity: .76; }
+.profession-admin__live-preview i { grid-column: 1 / -1; display: block; height: 7px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .72); }
+.profession-admin__live-preview i::after { display: block; width: 64%; height: 100%; border-radius: inherit; background: var(--preview-primary); content: ''; }
+
+.profession-admin__theme-editor { display: grid; gap: 15px; margin-top: 20px; padding: 18px; border: 1px solid #e1e9f2; border-radius: 18px; background: #fbfdff; }
+.profession-admin__theme-editor > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profession-admin__theme-editor h3 { font-size: 15px; }
+.profession-admin__theme-editor p { margin-top: 4px; font-size: 12px; }
+.profession-admin__appearance input[type="color"] { padding: 4px; cursor: pointer; }
+.profession-admin__asset { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: center; }
+.profession-admin__asset-preview { display: block; width: 70px; height: 70px; overflow: hidden; border: 1px dashed #b8c8dd; border-radius: 16px; background: #f8fafc; }
+.profession-admin__asset-preview img { width: 100%; height: 100%; object-fit: cover; }
+.profession-admin__asset-preview--cover { border-radius: 14px; }
+
+.profession-admin__details { margin-top: 16px; border: 1px solid #e1e9f2; border-radius: 15px; }
+.profession-admin__details summary { padding: 13px 15px; color: #334155; cursor: pointer; font-size: 13px; font-weight: 700; }
+.profession-admin__details > div { padding: 2px 15px 15px; }
+.profession-admin__owner { display: flex; align-items: center; gap: 9px; margin-top: 16px; padding: 11px 13px; border: 1px solid #dbe5f0; border-radius: 13px; background: #f8fbff; }
+.profession-admin__owner > span { color: #64748b; font-size: 12px; font-weight: 650; }
+.profession-admin__owner > strong { min-width: 0; overflow: hidden; color: #1e293b; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.profession-admin__level-list,
+.profession-automation-list { display: grid; gap: 12px; margin-top: 18px; }
+
+.profession-level-editor,
+.profession-automation-card {
+  overflow: hidden;
+  border: 1px solid #dbe5f0;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.profession-level-editor__summary,
+.profession-automation-card__summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 15px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.profession-level-editor__summary::-webkit-details-marker,
+.profession-automation-card__summary::-webkit-details-marker { display: none; }
+.profession-level-editor__summary::marker,
+.profession-automation-card__summary::marker { content: ''; font-size: 0; }
+.profession-editor__disclosure {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  width: 8px;
+  height: 8px;
+  margin: -4px 3px 0 5px;
+  color: #64748b;
+  transform: rotate(0deg);
+  transition: transform 160ms ease;
+}
+.profession-level-editor[open] .profession-editor__disclosure { transform: rotate(180deg); }
+.profession-automation-card[open] .profession-editor__disclosure { transform: rotate(180deg); }
+.profession-editor__button-icon { width: 15px; height: 15px; fill: currentColor; }
+.profession-level-editor__index,
+.profession-automation-card__index { padding: 5px 8px; border-radius: 999px; background: #edf4ff; color: #2563eb; font-size: 12px; font-weight: 750; }
+.profession-level-editor__name,
+.profession-automation-card__name { overflow: hidden; color: #1e293b; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.profession-level-editor__experience,
+.profession-automation-card__trigger { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.profession-level-editor__body,
+.profession-automation-card__body { display: grid; gap: 16px; padding: 17px; border-top: 1px solid #e8eef5; }
+.profession-level-editor__fields,
+.profession-level-editor__style,
+.profession-level-editor__reward,
+.profession-automation-card__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.profession-level-editor__group { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid #e8eef5; }
+.profession-level-editor__group h4 { font-size: 14px; }
+.profession-level-editor__hint,
+.profession-automation__hint { color: #64748b; font-size: 12px; line-height: 1.45; }
+.profession-level-editor__advanced { border: 1px solid #dbe5f0; border-radius: 13px; }
+.profession-level-editor__advanced summary { padding: 11px 13px; color: #475569; cursor: pointer; font-size: 13px; font-weight: 700; }
+.profession-level-editor__advanced .profession-level-editor__presentations { display: grid; gap: 10px; padding: 12px; }
+.profession-level-editor__advanced > button { margin: 0 12px 12px; }
+.profession-level-editor__presentation,
+.profession-level-editor__style,
+.profession-level-editor__reward,
+.profession-automation { display: grid; gap: 11px; padding: 14px; border: 1px solid #dbe5f0; border-radius: 14px; }
+.profession-level-editor__style legend { padding: 0 5px; color: #64748b; font-size: 12px; }
+.profession-level-editor__rewards { display: grid; gap: 10px; }
+
+.profession-medal-picker { position: relative; }
+.profession-medal-picker__panel {
+  position: fixed;
+  z-index: 12;
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid #cbd9e9;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, .20);
+}
+.profession-medal-picker__panel[hidden] { display: none !important; }
+.profession-medal-picker__panel input { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; }
+.profession-medal-picker__results { display: grid; max-height: min(220px, calc(100dvh - 160px)); margin-top: 8px; overflow: auto; }
+.profession-medal-picker__results button { display: grid; min-height: 0; grid-template-columns: minmax(0, 1fr) auto; justify-content: stretch; padding: 9px 10px; border: 0; border-radius: 9px; text-align: left; }
+.profession-medal-picker__results strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profession-medal-picker__results small { color: #64748b; }
+.profession-medal-picker__empty { padding: 10px; color: #64748b; font-size: 12px; }
+
+.profession-automation-card__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profession-automation { margin: 0; background: #fbfdff; }
+.profession-automation > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profession-automation__test { padding: 0; }
+.profession-automation__test > summary { padding: 13px 14px; color: #334155; cursor: pointer; font-size: 13px; font-weight: 700; list-style: none; }
+.profession-automation__test > summary::-webkit-details-marker { display: none; }
+.profession-automation__test > summary::marker { content: ''; font-size: 0; }
+.profession-automation__test-content { display: grid; gap: 11px; padding: 0 14px 14px; border-top: 1px solid #e8eef5; }
+.profession-automation__test-count { width: min(180px, 100%); }
+.profession-automation h3 { color: #334155; font-size: 14px; }
+.profession-automation__switch { display: inline-flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 6px; font-weight: 600 !important; }
+.profession-automation__switch input { width: auto; min-height: auto; }
+.profession-automation__condition,
+.profession-automation__action,
+.profession-automation__calculator-group { display: grid; gap: 9px; padding: 10px; border: 1px solid #dbe5f0; border-radius: 12px; background: #fff; }
+.profession-automation__condition-group { display: grid; gap: 8px; }
+.profession-automation__condition-fields,
+[data-automation-payload] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.profession-automation__calculator > .profession-automation__calculator { margin-top: 8px; }
+.profession-automation__notification { display: grid; gap: 10px; }
+.profession-automation__notification small,
+.profession-automation__result { color: #64748b; font-size: 12px; line-height: 1.45; }
+.profession-automation__result { min-height: 18px; color: #15803d; font-weight: 700; }

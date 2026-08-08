@@ -1,0 +1,57 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-admin__confirm {
+  width: min(420px, calc(100vw - 32px));
+  margin: auto;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .34);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 24px 72px rgba(15, 23, 42, .3);
+  color: #1e293b;
+  font: 500 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.profession-admin__confirm[open] { animation: profession-dialog-enter 180ms cubic-bezier(.2, .8, .2, 1); }
+.profession-admin__confirm::backdrop { background: rgba(15, 23, 42, .42); backdrop-filter: blur(4px); }
+.profession-admin__confirm p { margin: 0; }
+.profession-admin__confirm footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+.profession-admin__confirm button {
+  min-height: 40px;
+  border: 1px solid #d7e0ec;
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 680;
+}
+.profession-admin__confirm button:hover { border-color: #8ab4f8; background: #f8fbff; }
+.profession-admin__confirm button:active { transform: scale(.97); }
+.profession-admin__confirm .profession-admin__button--primary { border-color: #2563eb; background: #2563eb; color: #fff; }
+.profession-admin__confirm .profession-admin__button--primary:hover { border-color: #1d4ed8; background: #1d4ed8; }
+
+body.night .profession-admin__confirm { border-color: #334155; background: rgba(17, 24, 39, .97); color: #e2e8f0; }
+body.night .profession-admin__confirm button { border-color: #334155; background: #172033; color: #e2e8f0; }
+body.night .profession-admin__confirm .profession-admin__button--primary { border-color: #2563eb; background: #2563eb; }
+
+@media (prefers-reduced-motion: reduce) {
+  .profession-admin__confirm[open] { animation: none; }
+  .profession-admin__confirm::backdrop { backdrop-filter: none; }
+}

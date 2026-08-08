@@ -154,6 +154,7 @@
                                 </#if>
                                 <#if isLoggedIn && "adminRole" == currentUser.userRole>
                                 <a href="${servePath}/admin/medal" target="_blank">勋章管理</a>
+                                <a href="${servePath}/admin/profession" target="_blank">职业管理</a>
                                 </#if>
                                 <a href="${servePath}/admin/vip"<#if type == "vipManage"> class="current"</#if>>VIP 管理</a>
                                 <#if permissions["menuAdminMilestone"].permissionGrant>

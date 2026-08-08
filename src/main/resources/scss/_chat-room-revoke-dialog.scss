@@ -1,0 +1,74 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.chatroom-revoke-confirm {
+  color: var(--text-color);
+  text-align: left;
+
+  p {
+    margin: 0;
+    color: var(--text-fade-color);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+}
+
+.chatroom-revoke-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.chatroom-revoke-confirm__actions .btn {
+  min-width: 74px;
+  min-height: 34px;
+  border-radius: 10px;
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.chatroom-revoke-confirm__actions .btn:active {
+  transform: scale(.97);
+}
+
+.chatroom-revoke-confirm__actions .chatroom-revoke-confirm__confirm {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(220, 38, 38, .22);
+}
+
+.chatroom-revoke-confirm__actions .chatroom-revoke-confirm__confirm:hover {
+  background: #b91c1c;
+  box-shadow: 0 7px 16px rgba(220, 38, 38, .28);
+}
+
+body.night .chatroom-revoke-confirm__actions .chatroom-revoke-confirm__confirm {
+  border-color: #ef4444;
+  background: #ef4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chatroom-revoke-confirm__actions .btn {
+    transition: background-color .12s ease;
+  }
+
+  .chatroom-revoke-confirm__actions .btn:active {
+    transform: none;
+  }
+}

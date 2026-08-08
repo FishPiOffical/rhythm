@@ -44,7 +44,7 @@ curl --location --request POST 'https://fishpi.cn/api/getKey' \
 
 | Key  | 说明                           | 示例                             |
 | ---- | ------------------------------ | -------------------------------- |
-| Key  | API 通用密钥，用于用户身份识别 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| Key  | API 通用密钥，用于用户身份识别 | YOUR_API_KEY |
 | msg  | 错误信息                       | 密码错误                         |
 | code | 0 为请求成功，-1 失败          | -1                               |
 
@@ -58,12 +58,12 @@ curl --location --request POST 'https://fishpi.cn/api/getKey' \
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/user?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS'
+curl --location --request GET 'https://fishpi.cn/api/user?apiKey=YOUR_API_KEY'
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
@@ -169,14 +169,14 @@ code 返回 0 则注册成功！
 | Key      | 说明      | 示例                             |
 | -------- | --------- | -------------------------------- |
 | username | 用户名    | taozhiyu                         |
-| apiKey   | 通用密钥* | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey   | 通用密钥* | YOUR_API_KEY |
 
 > <sup>*</sup> 选填，填写后 `canFollow` 返回值可以显示是否已经关注该用户
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/user/taozhiyu?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS'\
+curl --location --request GET 'https://fishpi.cn/user/taozhiyu?apiKey=YOUR_API_KEY'\
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
@@ -250,12 +250,12 @@ curl --location --request POST 'https://fishpi.cn/users/names' \
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/users/emotions?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/users/emotions?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -281,12 +281,12 @@ curl --location --request GET 'https://fishpi.cn/users/emotions?apiKey=oXTQTD4lj
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/user/liveness?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/user/liveness?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -306,12 +306,12 @@ curl --location --request GET 'https://fishpi.cn/user/liveness?apiKey=oXTQTD4ljr
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/user/checkedIn?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/user/checkedIn?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -331,12 +331,12 @@ curl --location --request GET 'https://fishpi.cn/user/checkedIn?apiKey=oXTQTD4lj
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/activity/yesterday-liveness-reward-api?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/activity/yesterday-liveness-reward-api?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -356,12 +356,12 @@ curl --location --request GET 'https://fishpi.cn/activity/yesterday-liveness-rew
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/activity/is-collected-liveness?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/api/activity/is-collected-liveness?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -382,7 +382,7 @@ curl --location --request GET 'https://fishpi.cn/api/activity/is-collected-liven
 
 | Key            | 说明         | 示例                                                                                              |
 | -------------- | ------------ | ------------------------------------------------------------------------------------------------- |
-| apiKey         | 通用密钥     | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS                                                                  |
+| apiKey         | 通用密钥     | YOUR_API_KEY                                                                  |
 | reportDataId   | 举报 Id      | 1651126540998                                                                                     |
 | reportDataType | 举报数据类型 | 0:文章,1:评论,2:用户,3:聊天消息                                                                   |
 | reportType     | 举报类型     | 0:垃圾广告,1: H,2:违规,3:侵权,4:人身攻击,5:冒充他人账号,6:垃圾广告账号,7:违规泄露个人信息,49:其他 |
@@ -395,7 +395,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS",
+ "apiKey":"YOUR_API_KEY",
  "reportDataId":"1651126540998",
  "reportDataType":3,
  "reportType":49,
@@ -422,7 +422,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key      | 说明     | 示例                             |
 | -------- | -------- | -------------------------------- |
-| apiKey   | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey   | 通用密钥 | YOUR_API_KEY |
 | userName | 收款人   | adlered                          |
 | amount   | 转账金额 | 100                              |
 | memo     | 转账备注 | hello                            |
@@ -435,7 +435,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key         | 说明          | 示例                             |
 | ----------- | ------------- | -------------------------------- |
-| apiKey      | 通用密钥      | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey      | 通用密钥      | YOUR_API_KEY |
 | followingId | 关注对象的oId | 1659430635383                    |
 
 ### 取关用户
@@ -446,7 +446,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key         | 说明          | 示例                             |
 | ----------- | ------------- | -------------------------------- |
-| apiKey      | 通用密钥      | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey      | 通用密钥      | YOUR_API_KEY |
 | followingId | 关注对象的oId | 1659430635383                    |
 
 ### 修改用户信息
@@ -457,7 +457,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key          | 说明                             | 示例                             |
 | ------------ | -------------------------------- | -------------------------------- |
-| apiKey       | 通用密钥                         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey       | 通用密钥                         | YOUR_API_KEY |
 | userNickname | 用户昵称                         | 阿达                             |
 | userTags     | 用户标签，多个标签用英文逗号分隔 | 标签1,标签2                      |
 | userURL      | 用户URL                          | https://xxx.com                  |
@@ -472,7 +472,7 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 | Key           | 说明        | 示例                                   |
 | ------------- | ----------- | -------------------------------------- |
-| apiKey        | 通用密钥    | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS       |
+| apiKey        | 通用密钥    | YOUR_API_KEY       |
 | userAvatarURL | 用户头像URL | https://file.fishpi.cn/2025/12/xxx.png |
 
 ### 查询用户积分余额
@@ -779,12 +779,12 @@ curl --location --request GET 'https://fishpi.cn/openid/user/articles?p=1&size=2
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/notifications/unread/count?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/notifications/unread/count?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -814,7 +814,7 @@ curl --location --request GET 'https://fishpi.cn/notifications/unread/count?apiK
 
 | Key    | 说明              | 示例                             |
 | ------ | ----------------- | -------------------------------- |
-| apiKey | 通用密钥          | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥          | YOUR_API_KEY |
 | type   | 要获取的通知类型  | point                            |
 | p      | 页数可选，默认为1 | 1                                |
 
@@ -833,7 +833,7 @@ curl --location --request GET 'https://fishpi.cn/notifications/unread/count?apiK
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS&type=point' \
+curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=YOUR_API_KEY&type=point' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -919,7 +919,7 @@ curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=oXT
 
 | Key    | 说明             | 示例                             |
 | ------ | ---------------- | -------------------------------- |
-| apiKey | 通用密钥         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥         | YOUR_API_KEY |
 | type   | 要已读的通知类型 | point                            |
 
 | 通知类型：   |            |
@@ -937,7 +937,7 @@ curl --location --request GET 'https://fishpi.cn/api/getNotifications?apiKey=oXT
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/notifications/make-read/point?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/notifications/make-read/point?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -951,13 +951,13 @@ curl --location --request GET 'https://fishpi.cn/notifications/make-read/point?a
 
 | Key    | 说明             | 示例                             |
 | ------ | ---------------- | -------------------------------- |
-| apiKey | 通用密钥         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥         | YOUR_API_KEY |
 | type   | 要已读的通知类型 | point                            |
 
 请求示例:
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -979,7 +979,7 @@ curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=o
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 事件处理：
 
@@ -1049,13 +1049,13 @@ curl --location --request GET 'https://fishpi.cn/notifications/all-read?apiKey=o
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 | page   | 頁碼     | 1                                |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=5r1qeYe4tDx0No9uEpXA4rK2peczjZ40' \
+curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -1102,7 +1102,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=5r
 
 | Key    | 说明                                                                                          | 示例                             |
 | ------ | --------------------------------------------------------------------------------------------- | -------------------------------- |
-| apiKey | 通用密钥                                                                                      | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                                                                                      | YOUR_API_KEY |
 | oId    | 消息oId                                                                                       | 1650609438569                    |
 | size   | 显示消息个数（不包括当mode为0时实际个数乘以2）                                                | 25                               |
 | mode   | mode = 0 显示本条及之前、之后的消息mode = 1 显示本条及之前的消息mode = 2 显示本条及之后的消息 | 0                                |
@@ -1151,7 +1151,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=5r
 
 | Key        | 说明                                                                                                                                                                                                                                                                                            | 示例                                     |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| apiKey     | 通用密钥                                                                                                                                                                                                                                                                                        | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS         |
+| apiKey     | 通用密钥                                                                                                                                                                                                                                                                                        | YOUR_API_KEY         |
 | client     | 格式：`标识/版本`标识必须为：`Web` `PC` `Mobile` `Windows` `macOS` `iOS` `Android` `Extension` `IDEA` `Chrome` `Edge` `VSCode` `Python` `Golang` `Linux` `IceNet` `ElvesOnline` `Harmony` `Other`版本允许使用字符：中文、大小写英文、数字、英文句号、英文横线、空格，最大32字符，超过则自动截断 | Windows/V1.0.0                           |
 | content    | 消息正文（支持Markdown格式）。                                                                                                                                                                                                                                                                  | `...` 或 `[redpacket]{...}[/redpacket]`* |
 | - msg      | 红包祝福语                                                                                                                                                                                                                                                                                      | 摸鱼者，事竟成！                         |
@@ -1177,7 +1177,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=5r
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 | oId    | 消息 Id  | 1640078407444                    |
 
 请求示例：
@@ -1187,7 +1187,7 @@ curl --location --request DELETE 'https://fishpi.cn/chat-room/revoke/16400784074
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS"
+ "apiKey":"YOUR_API_KEY"
 }'
 ```
 
@@ -1235,7 +1235,7 @@ curl --location --request GET 'https://fishpi.cn/cr/raw/1641290717190' \
 
 | Key     | 说明                                 | 示例                             |
 | ------- | ------------------------------------ | -------------------------------- |
-| apiKey  | 通用密钥                             | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey  | 通用密钥                             | YOUR_API_KEY |
 | oId     | 消息 Id                              | 1640078407444                    |
 | gesture | 打开猜拳红包必须参数，表示领取者出招 | 0                                |
 
@@ -1246,7 +1246,7 @@ curl --location --request POST 'https://fishpi.cn/chat-room/red-packet/open' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"5r1qeYe4tDx0No9uEpXA4rK2peczjZ40",
+ "apiKey":"YOUR_API_KEY",
  "oId":"1640075201124"
 }'
 ```
@@ -1281,7 +1281,7 @@ curl --location --request POST 'https://fishpi.cn/chat-room/red-packet/open' \
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 | gameId | 数据 Id  | emojis                           |
 
 请求示例：
@@ -1291,7 +1291,7 @@ curl --location --request POST 'https://fishpi.cn/api/cloud/get' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS",
+ "apiKey":"YOUR_API_KEY",
  "gameId":"emojis"
 }'
 ```
@@ -1315,7 +1315,7 @@ curl --location --request POST 'https://fishpi.cn/api/cloud/get' \
 
 | Key    | 说明                                             | 示例                             |
 | ------ | ------------------------------------------------ | -------------------------------- |
-| apiKey | 通用密钥                                         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                                         | YOUR_API_KEY |
 | gameId | 数据 Id                                          | emojis                           |
 | data*  | 数据字符串，表情包内容为表情地址列表 JSON 字符串 | `["url1", "url2"]`               |
 
@@ -1329,7 +1329,7 @@ curl --location --request POST 'https://fishpi.cn/api/cloud/get' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS",
+ "apiKey":"YOUR_API_KEY",
  "gameId":"emojis",
  "data":"[\"url1\", \"url2\"]"
 }'
@@ -1430,7 +1430,7 @@ curl -X POST -H "Content-Type: application/json" \
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
 | file[] | 文件     |                                  |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 响应：
 
@@ -1456,12 +1456,12 @@ curl -X POST -H "Content-Type: application/json" \
 | Key                 | 说明                                      | 示例                             |
 | ------------------- | ----------------------------------------- | -------------------------------- |
 | repeaterContentType | 内容类型：`joke`/`kfc`/`fish`，不传查全部 | joke                             |
-| apiKey              | 通用密钥，可选                            | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey              | 通用密钥，可选                            | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterContentType=joke&apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS'
+curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterContentType=joke&apiKey=YOUR_API_KEY'
 ```
 
 响应：
@@ -1496,7 +1496,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterCont
 | ------------------- | ----------------------------------------- | -------------------------------- |
 | repeaterContentType | 内容类型：`joke`/`kfc`/`fish`，不传查全部 | joke                             |
 | excludeId           | 需要排除的内容 Id，可选                   | 1770000000000                    |
-| apiKey              | 通用密钥，可选                            | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey              | 通用密钥，可选                            | YOUR_API_KEY |
 
 请求示例：
 
@@ -1523,7 +1523,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/next?repeaterConte
 
 | Key                 | 说明                                  | 示例                             |
 | ------------------- | ------------------------------------- | -------------------------------- |
-| apiKey              | 通用密钥                              | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey              | 通用密钥                              | YOUR_API_KEY |
 | repeaterContentType | 内容类型：`joke`/`kfc`/`fish`         | kfc                              |
 | repeaterContent     | 正文，2 到 500 字符，会清理 HTML 标签 | 今天疯狂星期四                   |
 
@@ -1532,7 +1532,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/next?repeaterConte
 ```bash
 curl --location --request POST 'https://fishpi.cn/api/repeater' \
 --header 'Content-Type: application/json' \
---data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS","repeaterContentType":"kfc","repeaterContent":"今天疯狂星期四"}'
+--data-raw '{"apiKey":"YOUR_API_KEY","repeaterContentType":"kfc","repeaterContent":"今天疯狂星期四"}'
 ```
 
 响应：
@@ -1555,14 +1555,14 @@ curl --location --request POST 'https://fishpi.cn/api/repeater' \
 | Key    | 说明                       | 示例                             |
 | ------ | -------------------------- | -------------------------------- |
 | id     | 内容 Id，本参数为 URL 参数 | 1770000000000                    |
-| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                   | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
 curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/like' \
 --header 'Content-Type: application/json' \
---data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS"}'
+--data-raw '{"apiKey":"YOUR_API_KEY"}'
 ```
 
 响应：
@@ -1588,7 +1588,7 @@ curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/lik
 | Key            | 说明                                             | 示例                             |
 | -------------- | ------------------------------------------------ | -------------------------------- |
 | columnId       | 专栏 Id，本参数为 URL 参数                       | 1770000000000                    |
-| apiKey         | 通用密钥                                         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey         | 通用密钥                                         | YOUR_API_KEY |
 | columnCoverURL | 封面图地址，支持站内路径或 HTTP/HTTPS，最长 1024 | https://file.fishpi.cn/demo.jpg  |
 
 请求示例：
@@ -1596,7 +1596,7 @@ curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/lik
 ```bash
 curl --location --request POST 'https://fishpi.cn/api/columns/1770000000000/cover' \
 --header 'Content-Type: application/json' \
---data-raw '{"apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS","columnCoverURL":"https://file.fishpi.cn/demo.jpg"}'
+--data-raw '{"apiKey":"YOUR_API_KEY","columnCoverURL":"https://file.fishpi.cn/demo.jpg"}'
 ```
 
 响应：
@@ -1624,12 +1624,12 @@ curl --location --request POST 'https://fishpi.cn/api/columns/1770000000000/cove
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/article-drafts?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/api/article-drafts?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -1661,7 +1661,7 @@ curl --location --request GET 'https://fishpi.cn/api/article-drafts?apiKey=oXTQT
 
 | Key                        | 说明                             | 示例                             |
 | -------------------------- | -------------------------------- | -------------------------------- |
-| apiKey                     | 通用密钥                         | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey                     | 通用密钥                         | YOUR_API_KEY |
 | articleDraftId             | 草稿 Id，更新时填写              | 1770000000000                    |
 | articleTitle               | 标题，最长 255 字符              | 今天摸鱼了吗                     |
 | articleContent             | 正文，最长 1024000 字符          | 正文内容                         |
@@ -1687,7 +1687,7 @@ curl --location --request POST 'https://fishpi.cn/api/article-drafts' \
 --header 'Content-Type: application/json' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --data-raw '{
-  "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS",
+  "apiKey":"YOUR_API_KEY",
   "articleTitle":"今天摸鱼了吗",
   "articleContent":"正文内容",
   "articleTags":"摸鱼,日常",
@@ -1722,12 +1722,12 @@ curl --location --request POST 'https://fishpi.cn/api/article-drafts' \
 | Key    | 说明                       | 示例                             |
 | ------ | -------------------------- | -------------------------------- |
 | id     | 草稿 Id，本参数为 URL 参数 | 1770000000000                    |
-| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                   | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/article-drafts/1770000000000?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/api/article-drafts/1770000000000?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -1769,12 +1769,12 @@ curl --location --request GET 'https://fishpi.cn/api/article-drafts/177000000000
 | Key    | 说明                       | 示例                             |
 | ------ | -------------------------- | -------------------------------- |
 | id     | 草稿 Id，本参数为 URL 参数 | 1770000000000                    |
-| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                   | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/1770000000000?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/1770000000000?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
 ```
 
@@ -1797,7 +1797,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 | Key      | 说明         | 示例                             |
 | -------- | ------------ | -------------------------------- |
-| apiKey   | 通用密钥     | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey   | 通用密钥     | YOUR_API_KEY |
 | 其它参数 | 自行发帖抓包 |                                  |
 
 > `articleType=3` 的思绪新增已关闭，历史思绪仍可通过读取接口访问。
@@ -1813,7 +1813,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 | Key      | 说明         | 示例                             |
 | -------- | ------------ | -------------------------------- |
 | id       | 帖子 Id      | ...                              |
-| apiKey   | 通用密钥     | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey   | 通用密钥     | YOUR_API_KEY |
 | 其它参数 | 自行发帖抓包 |                                  |
 
 ### 帖子列表
@@ -1885,12 +1885,12 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS'
+curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKey=YOUR_API_KEY'
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
@@ -2121,7 +2121,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 
 | Key    | 说明      | 示例                             |
 | ------ | --------- | -------------------------------- |
-| apiKey | 通用密钥  | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥  | YOUR_API_KEY |
 | dataId | 文章的oId | 1645002736006                    |
 
 响应：
@@ -2141,7 +2141,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 响应：
 
@@ -2161,7 +2161,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 
 | Key       | 说明     | 示例                             |
 | --------- | -------- | -------------------------------- |
-| apiKey    | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey    | 通用密钥 | YOUR_API_KEY |
 
 ### 获取评论线程根评论列表（新）
 
@@ -2173,7 +2173,7 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 
 | Key                      | 说明                                      | 示例                             |
 | ------------------------ | ----------------------------------------- | -------------------------------- |
-| apiKey                   | 通用密钥，访问禁止匿名查看的帖子时必填    | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey                   | 通用密钥，访问禁止匿名查看的帖子时必填    | YOUR_API_KEY |
 | articleId                | 帖子 Id                                   | 1636516552191                    |
 | paginationCurrentPageNum | 页码，默认 1                              | 1                                |
 | userCommentViewMode      | 评论查看模式，默认传统模式                | 0                                |
@@ -2243,7 +2243,7 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/parents' \
 
 | Key                      | 说明                                      | 示例                             |
 | ------------------------ | ----------------------------------------- | -------------------------------- |
-| apiKey                   | 通用密钥，访问禁止匿名查看的帖子时必填    | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey                   | 通用密钥，访问禁止匿名查看的帖子时必填    | YOUR_API_KEY |
 | commentId                | 评论 Id                                   | 1645002736006                    |
 | paginationCurrentPageNum | 页码，优先使用该字段                      | 1                                |
 | page                     | 页码，兼容字段                            | 1                                |
@@ -2311,7 +2311,7 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 
 | Key                      | 说明                                                              | 示例                             |
 | ------------------------ | ----------------------------------------------------------------- | -------------------------------- |
-| apiKey                   | 通用密钥                                                          | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey                   | 通用密钥                                                          | YOUR_API_KEY |
 | articleId                | 文章的oId                                                         | 1645002736006                    |
 | commentAnonymous         | 是否匿名评论，是填写true，否填写false                             | false                            |
 | commentVisible           | 是否仅楼主可见，是填写true，否填写false                           | false                            |
@@ -2328,7 +2328,7 @@ curl --location --request POST 'https://fishpi.cn/comment/thread/replies' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 通用密钥，可选 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥，可选 | YOUR_API_KEY |
 | articleId | 长篇文章 Id | 1645002736006 |
 | paragraphId | 服务端生成的段落 Id | `64 位小写 SHA-256` |
 | commentContent | 评论原文（Markdown 格式） | 这一段写得很好 |
@@ -2363,7 +2363,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph" \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 访问受限文章时填写 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 访问受限文章时填写 | YOUR_API_KEY |
 | articleId | 长篇文章 Id | 1645002736006 |
 
 请求示例：
@@ -2393,7 +2393,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/summary" \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| apiKey | 访问受限文章时填写 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 访问受限文章时填写 | YOUR_API_KEY |
 | articleId | 长篇文章 Id | 1645002736006 |
 | paragraphId | 段落 Id | `64 位小写 SHA-256` |
 | paginationCurrentPageNum | 页码，默认 1 | 1 |
@@ -2427,7 +2427,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 
 | Key              | 说明                                    | 示例                             |
 | ---------------- | --------------------------------------- | -------------------------------- |
-| apiKey           | 通用密钥                                | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey           | 通用密钥                                | YOUR_API_KEY |
 | articleId        | 文章的oId                               | 1645002736006                    |
 | commentAnonymous | 是否匿名评论，是填写true，否填写false   | false                            |
 | commentVisible   | 是否仅楼主可见，是填写true，否填写false | false                            |
@@ -2449,7 +2449,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 
 | Key    | 说明      | 示例                             |
 | ------ | --------- | -------------------------------- |
-| apiKey | 通用密钥  | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥  | YOUR_API_KEY |
 | dataId | 评论的oId | 1645002736006                    |
 
 响应：
@@ -2471,7 +2471,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 
 | Key       | 说明      | 示例                             |
 | --------- | --------- | -------------------------------- |
-| apiKey    | 通用密钥  | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey    | 通用密钥  | YOUR_API_KEY |
 | commentId | 评论的oId | 1645002736006                    |
 
 响应：
@@ -2488,7 +2488,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 响应：
 
@@ -2522,7 +2522,7 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 
 | Key    | 说明     | 示例                             |
 | ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥 | YOUR_API_KEY |
 
 获取文章接口返回的是渲染好的HTML，如果你需要渲染数学公式或者有更多样式要求，建议获取Markdown原文进行处理。
 
@@ -2539,12 +2539,12 @@ curl -X POST "https://fishpi.cn/comment/paragraph/thread/parents" \
 | Key    | 说明                       | 示例                             |
 | ------ | -------------------------- | -------------------------------- |
 | id     | 帖子 Id，本参数为 URL 参数 | 1636516552191                    |
-| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                   | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions/list?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions/list?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0'
 ```
 
@@ -2600,12 +2600,12 @@ curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions
 | ---------- | ----------------------------------------------------------------- | -------------------------------- |
 | id         | 帖子 Id，本参数为 URL 参数                                        | 1636516552191                    |
 | revisionId | 历史版本 Id，取自历史版本列表接口；传`current` 可读取当前帖子内容 | 1636516552191                    |
-| apiKey     | 通用密钥                                                          | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey     | 通用密钥                                                          | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions/1636516552191?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions/1636516552191?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0'
 ```
 
@@ -2653,12 +2653,12 @@ curl --location --request GET 'https://fishpi.cn/article/1636516552191/revisions
 | Key    | 说明                       | 示例                             |
 | ------ | -------------------------- | -------------------------------- |
 | id     | 评论 Id，本参数为 URL 参数 | 1636516552191                    |
-| apiKey | 通用密钥                   | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey | 通用密钥                   | YOUR_API_KEY |
 
 请求示例：
 
 ```bash
-curl --location --request GET 'https://fishpi.cn/comment/1636516552191/revisions?apiKey=oXTQTD4ljryXoIxa1lySgEl6aObrIhSS' \
+curl --location --request GET 'https://fishpi.cn/comment/1636516552191/revisions?apiKey=YOUR_API_KEY' \
 --header 'User-Agent: Mozilla/5.0'
 ```
 
@@ -2753,7 +2753,7 @@ curl --location --request GET 'https://fishpi.cn/api/breezemoons?p=1&size=20' \
 
 | Key               | 说明         | 示例                             |
 | ----------------- | ------------ | -------------------------------- |
-| apiKey            | 通用密钥     | oXTQTD4ljryXoIxa1lySgEl6aObrIhSS |
+| apiKey            | 通用密钥     | YOUR_API_KEY |
 | breezemoonContent | 清风明月正文 | helloworld                       |
 
 请求示例：
@@ -2763,7 +2763,7 @@ curl --location --request POST 'https://fishpi.cn/breezemoon' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 --header 'Content-Type: application/json' \
 --data-raw '{
- "apiKey":"oXTQTD4ljryXoIxa1lySgEl6aObrIhSS",
+ "apiKey":"YOUR_API_KEY",
  "breezemoonContent":"helloworld"
 }'
 ```
@@ -2825,6 +2825,617 @@ curl -X POST 'https://fishpi.cn/admin/user/1471298152875/deactivate' \
 | msg  | 操作结果              | 账号已永久停用，手机号已清空 |
 
 > 本接口仅支持管理员页面登录态，不支持 `apiKey`。操作不可恢复。
+
+## 职业成长
+
+### 读取当前职业设置
+
+`GET /api/profession/me`
+
+读取当前登录用户的主职业、已累计职业、可选择职业和职业隐私设置。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/me?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 职业设置 | `{...}` |
+| - primaryProfessionId | 主职业 ID，未设置时为空 | `1760000000000000000` |
+| - progress | 已累计职业 | `[{"professionId":"...","totalExperience":120}]` |
+| - availableProfessions | 当前可选择职业 | `[{"displayName":"著述家"}]` |
+| - growthGuides | 按职业 ID 分组的已发布升级来源 | `{"1760000000000000000":["article.published"]}` |
+
+### 查询我的职业详情
+
+`GET /api/profession/me/{professionId}/detail`
+
+读取指定职业的当前等级、等级路线、稀有度和贡献统计。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| professionId | 职业 ID，路径参数 | `1760000000000000000` |
+| dark | 是否读取深色展示样式，默认 `false` | `true` |
+| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/me/1760000000000000000/detail?dark=true&apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 职业详情 | `{...}` |
+| - profession | 当前职业与等级展示 | `{"displayName":"著述家","totalExperience":120}` |
+| - levels | 当前等级方案的等级路线 | `[{"displayName":"入门","requiredExperience":0}]` |
+| - rarity | 稀有度与排行 | `{"rank":12,"surpassedPercent":80}` |
+| - contributions | 各贡献动作的次数与经验汇总 | `[{"eventCount":12,"experienceSum":120}]` |
+
+### 查询我的职业记录
+
+`GET /api/profession/me/{professionId}/records`
+
+读取指定职业最近 90 天的经验变化记录，按发生时间倒序分页。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| professionId | 职业 ID，路径参数 | `1760000000000000000` |
+| beforeOccurredAt | 下一页游标中的发生时间，首次请求省略 | `1760000000000` |
+| beforeEffectId | 下一页游标中的记录 ID，首次请求省略 | `1760000000000000001` |
+| limit | 返回数量，`1` 至 `100`，默认 `30` | `30` |
+| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/me/1760000000000000000/records?limit=30&apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 职业记录分页 | `{...}` |
+| - records | 职业经验记录 | `[{"experienceDelta":20,"afterExperience":120}]` |
+| -- actionCode | 贡献动作编码 | `article.publish` |
+| -- sourceLabel | 经验来源说明 | 发布帖子 |
+| -- experienceDelta | 本次经验变化，可为负数 | `20` |
+| -- beforeExperience | 变化前累计经验 | `100` |
+| -- afterExperience | 变化后累计经验 | `120` |
+| -- occurredAt | 发生时间，毫秒时间戳 | `1760000000000` |
+| - nextCursor | 下一页游标，没有更多记录时省略 | `{"beforeOccurredAt":1760000000000,"beforeEffectId":"..."}` |
+
+### 更新主职业与隐私
+
+`POST /api/profession/me/primary`
+
+设置主职业，其他职业的经验和等级不会清除。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| professionId | 已发布职业 ID | `1760000000000000000` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/profession/me/primary' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面 CSRF Token' \
+--header 'Cookie: sym-ce=登录凭证' \
+--data-raw '{"professionId":"1760000000000000000"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 更新后的职业设置 | `{...}` |
+
+> `POST /api/profession/me/skip` 使用相同登录和 CSRF 要求，可结束首次选择提示。`POST /api/profession/me/privacy` 请求体为 `preset`，可选值为 `ALL_PUBLIC`、`LEVEL_ONLY`、`PRIMARY_ONLY`、`SELF_ONLY`、`FULLY_HIDDEN` 或 `CUSTOM`。`CUSTOM` 必须同时提交完整的 `moduleVisibility` 对象。
+
+### 结束首次选择提示
+
+`POST /api/profession/me/skip`
+
+请求体为空对象，使用登录态和页面 `csrfToken`。调用后停止首页首次选择弹窗，用户仍可在个人设置中重新打开选择页。
+
+```bash
+curl --request POST 'https://fishpi.cn/api/profession/me/skip' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面 CSRF Token' \
+--header 'Cookie: sym-ce=登录凭证' \
+--data '{}'
+```
+
+### 更新职业隐私
+
+`POST /api/profession/me/privacy`
+
+请求体：`preset` 可选 `ALL_PUBLIC`、`LEVEL_ONLY`、`PRIMARY_ONLY`、`SELF_ONLY`、`FULLY_HIDDEN`、`CUSTOM`；使用 `CUSTOM` 时必须同时提交完整的 `moduleVisibility` 对象。
+
+```bash
+curl --request POST 'https://fishpi.cn/api/profession/me/privacy' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面 CSRF Token' \
+--header 'Cookie: sym-ce=登录凭证' \
+--data-raw '{"preset":"CUSTOM","moduleVisibility":{"professions":true,"experience":false,"contributions":true,"activity":false,"ranking":false}}'
+```
+
+### 查询公开职业资料
+
+`GET /api/user/{userName}/profession`
+
+按用户隐私设置读取公开职业资料。完全隐藏或没有任何公开模块时返回 `404`。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| userName | 用户名 | `adlered` |
+| position | 展示位置：`homeProfile`、`userCard`、`professionPage`、`ranking`、`compactMobile`，默认 `homeProfile` | `professionPage` |
+| dark | 是否读取深色展示样式，默认 `false` | `true` |
+| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/user/adlered/profession?position=professionPage&dark=true'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 经隐私过滤后的职业资料 | `{...}` |
+| - primaryProfession | 主职业摘要 | `{"displayName":"著述家","levelCode":"writer.2"}` |
+| - professions | 已公开职业列表 | `[{...}]` |
+| - majorContributions | 已公开主要贡献 | `[{"actionCode":"experience"}]` |
+| - contributionStats | 贡献统计摘要 | `[{"eventCount":12}]` |
+| - activityFeed | 最近 90 天职业动态摘要 | `[{"sourceLabel":"发布帖子"}]` |
+| - levelHistory | 最近 90 天等级变化 | `[{"afterLevelCode":"writer.2"}]` |
+| - rewards | 已发放的等级奖励摘要 | `[{"rewardType":"POINT"}]` |
+| - ranking | 各职业排行摘要 | `[{"rank":12,"surpassedPercent":80}]` |
+
+> `LEVEL_ONLY` 仅公开主职业及当前等级，不公开经验值。职业动态会再次检查来源内容是否仍可公开访问；`sourceLabel` 只说明来源类型，不包含内容标题、内部来源事件、请求编号、IP、UA 或密钥。
+
+### 查询职业排行
+
+`GET /api/profession/ranking`
+
+读取指定职业的公开榜单。仅展示已允许当前查看者读取“排行信息”的用户；经验值也遵从各用户的展示范围。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| professionId | 已发布职业 ID；省略时返回首个已发布职业 | `1760000000000000000` |
+| dark | 是否读取深色展示样式，默认 `false` | `true` |
+| apiKey | 通用密钥，页面登录态可省略 | `YOUR_API_KEY` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/ranking?professionId=1760000000000000000&apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 榜单数据 | `{...}` |
+| - selectedProfession | 当前职业 | `{"displayName":"著述家"}` |
+| - professions | 可切换的已发布职业 | `[{"professionId":"...","displayName":"著述家"}]` |
+| - entries | 可见榜单条目 | `[{"rank":1,"userName":"adlered"}]` |
+| -- rank | 该职业的总排名 | `1` |
+| -- userName | 用户名 | `adlered` |
+| -- userNickname | 用户昵称 | `阿达` |
+| -- userAvatarURL48 | 48 像素头像地址 | `https://...` |
+| -- professionName | 职业名称 | `著述家` |
+| -- levelName | 当前等级名称 | `成章` |
+| -- totalExperience | 仅在经验可见时返回 | `101` |
+
+> 该接口需要登录或 `apiKey`，不返回用户 ID、联系方式、IP、UA、职业流水或内部来源事件。
+
+### 获取自动化编辑元数据
+
+`GET /api/profession/admin/automation/metadata`
+
+读取职业管理界面可用的触发器、字段、条件、计算器和执行器。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/admin/automation/metadata' \
+--header 'Cookie: sym-ce=管理员登录凭证'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 自动化编辑元数据 | `{"triggers":[...],"calculatorTypes":[...]}` |
+
+> 内置触发器包含长篇阅读结算、发布帖子、发表评论、发布清风明月、发布复读机内容和聊天室发言。聊天室发言仅采集普通文本消息，条件字段为 `messageId`、`authorUserId`、`messageType`、`contentLength`、`sentAt`；不会写入消息正文、聊天室标识、IP、UA 或原始请求载荷。撤回消息后会同步回退关联效果。
+
+> `actions` 现包含“增加职业经验”“记录贡献”和“发送系统通知”。“记录贡献”会累计职业贡献次数，不改变经验和等级；撤销来源内容后会同步回退。系统通知执行器使用 `notificationContent` 配置正文，支持 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；`notificationWhen` 可选 `ALWAYS` 或 `LEVEL_UP`。通知跟随职业效果事务发送，不会写入职业经验或奖励记录。
+
+> 此接口仅管理员可访问，不提供职业管理写入能力给金手指或第三方应用。
+
+### 获取职业展示元数据
+
+`GET /api/profession/admin/definition/metadata`
+
+管理员页面读取职业展示位置和可用预设。展示位置包括 `default`、`selectionCard`、`homeProfile`、`userCard`、`professionPage`、`ranking`、`levelUpDialog`、`compactMobile`；颜色、边框、阴影、进度条和升级动画字段由服务端校验。
+
+### 读取完整职业目录
+
+`GET /api/profession/admin/catalog`
+
+读取完整职业目录，返回定义、等级方案和自动化配置。日常列表建议使用分页的 `catalog-summary`，编辑单个职业使用 `catalog-detail/{professionId}`。
+
+### 读取职业库摘要
+
+`GET /api/profession/admin/catalog-summary`
+
+按名称或代号检索职业库摘要。此接口不返回历史版本、等级明细或自动化配置。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| keyword | 可选；职业名称或代号关键词，最多 64 个字符 | `著述` |
+| status | 可选；`DRAFT`、`PUBLISHED` 或 `RETIRED` | `PUBLISHED` |
+| sort | 可选；`recent`、`manual` 或 `name`，默认 `recent` | `recent` |
+| page | 可选；页码，最小 `1`，默认 `1` | `1` |
+| pageSize | 可选；每页数量，`1` 至 `50`，默认 `24` | `24` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/admin/catalog-summary?keyword=%E8%91%97%E8%BF%B0&status=PUBLISHED&sort=recent&page=1&pageSize=24' \
+--header 'Cookie: sym-ce=管理员登录凭证'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 职业库分页结果 | `{...}` |
+| - items | 职业摘要列表 | `[{"displayName":"著述家","levelCount":12}]` |
+| -- defaultPresentationJson | 当前职业展示样式 | `{"imageUrl":"..."}` |
+| -- levelCount | 当前等级方案中的等级数量 | `12` |
+| -- automationCount | 经验规则数量 | `4` |
+| - total | 匹配职业总数 | `18` |
+| - page | 当前页码 | `1` |
+| - pageSize | 每页数量 | `24` |
+
+### 读取职业管理详情
+
+`GET /api/profession/admin/catalog-detail/{professionId}`
+
+按需读取单个职业的职业版本、等级方案、等级和自动化配置，供编辑和历史查看使用。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| professionId | 职业 ID，路径参数 | `1760000000000000000` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/admin/catalog-detail/1760000000000000000' \
+--header 'Cookie: sym-ce=管理员登录凭证'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 单个职业的完整管理数据 | `{"revisions":[...],"schemes":[...],"automations":[...]}` |
+| - operatorNames | 历史记录操作人 ID 与用户名映射 | `{"1630399192600":"adlered"}` |
+
+> 两个接口只接受管理员页面登录态，不支持 `apiKey`，不返回用户职业进度、来源事件、请求编号、IP、UA 或密钥。
+
+### 预览等级方案影响
+
+`GET /api/profession/admin/scheme-impact/{professionId}/{schemeId}`
+
+在启用等级方案前，统计会发生等级变化的用户数量。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| professionId | 职业 ID，路径参数 | `1760000000000000000` |
+| schemeId | 等级方案 ID，路径参数 | `1760000000000000001` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/admin/scheme-impact/1760000000000000000/1760000000000000001' \
+--header 'Cookie: sym-ce=管理员登录凭证'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 影响统计 | `{"totalCount":120,"upgradeCount":81,"downgradeCount":3}` |
+| - totalCount | 会重新计算等级的用户数 | `120` |
+| - upgradeCount | 等级提升的用户数 | `81` |
+| - downgradeCount | 等级降低的用户数 | `3` |
+
+### 导出职业配置
+
+`GET /api/profession/admin/config/export`
+
+导出单个或全部职业的定义、等级方案、展示样式、等级奖励和经验规则。导出文件不包含用户职业、经验、贡献、来源事件、奖励发放或排行数据。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| professionId | 可选；指定时仅导出该职业 | `1760000000000000000` |
+
+请求示例：
+
+```bash
+curl --location 'https://fishpi.cn/api/profession/admin/config/export?professionId=1760000000000000000' \
+--header 'Cookie: sym-ce=管理员登录凭证'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 职业配置文件 | `{...}` |
+| - format | 固定为 `fishpi.profession-config` | `fishpi.profession-config` |
+| - formatVersion | 文件格式版本 | `1` |
+| - scope | `SINGLE` 或 `ALL` | `SINGLE` |
+| - professions | 职业配置列表 | `[{"professionCode":"longform_author"}]` |
+
+> 导出的内部编号会被移除；导入时会生成新的编号。
+
+### 导入职业配置
+
+`POST /api/profession/admin/config/import`
+
+导入通过职业配置导出接口生成的文件。系统会先校验整份文件，再在同一事务内写入；任一职业代号已存在时整个导入失败，不会覆盖已有职业。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| csrfToken | 请求头中的页面 CSRF 凭证 | `页面提供的 csrfToken` |
+| configJson | 导出文件的完整 JSON 字符串，最大 16 MB | `{"format":"fishpi.profession-config",...}` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/profession/admin/config/import' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面提供的 csrfToken' \
+--header 'Cookie: sym-ce=管理员登录凭证' \
+--data-raw '{"configJson":"{\\"format\\":\\"fishpi.profession-config\\",\\"formatVersion\\":1,\\"scope\\":\\"SINGLE\\",\\"professions\\":[...]}"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 导入结果 | `{"importedCount":1}` |
+| - importedCount | 成功写入的职业数 | `1` |
+
+> 此接口仅管理员页面可用，不支持金手指或第三方应用调用。
+
+### 预检查职业配置
+
+`POST /api/profession/admin/config/precheck`
+
+校验导入文件格式，并列出可导入职业与代号冲突。此接口不写入数据。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| csrfToken | 请求头中的页面 CSRF 凭证 | `页面提供的 csrfToken` |
+| configJson | 导出文件的完整 JSON 字符串，最大 16 MB | `{"format":"fishpi.profession-config",...}` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/profession/admin/config/precheck' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面提供的 csrfToken' \
+--header 'Cookie: sym-ce=管理员登录凭证' \
+--data-raw '{"configJson":"{\\"format\\":\\"fishpi.profession-config\\",\\"formatVersion\\":1,\\"scope\\":\\"SINGLE\\",\\"professions\\":[...]}"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 预检查结果 | `{"valid":true,"ready":[...],"conflicts":[]}` |
+| - valid | 文件格式是否有效 | `true` |
+| - ready | 可导入的职业代号 | `[{"professionCode":"longform_author"}]` |
+| - conflicts | 与现有职业冲突的代号 | `[{"professionCode":"longform_author","reason":"职业代号已存在"}]` |
+| - error | `valid=false` 时的格式错误说明 | `职业历史不能为空` |
+
+### 保存职业展示顺序
+
+`POST /api/profession/admin/catalog/order`
+
+按完整职业 ID 列表保存职业展示顺序。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Cookie | 管理员登录凭证 | `sym-ce=...` |
+| csrfToken | 请求头中的页面 CSRF 凭证 | `页面提供的 csrfToken` |
+| professionIds | 当前全部职业 ID，按展示顺序排列 | `["1760000000000000000"]` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/profession/admin/catalog/order' \
+--header 'Content-Type: application/json' \
+--header 'csrfToken: 页面提供的 csrfToken' \
+--header 'Cookie: sym-ce=管理员登录凭证' \
+--data-raw '{"professionIds":["1760000000000000000","1760000000000000001"]}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 空对象 | `{}` |
+
+> `professionIds` 必须包含当前全部职业且不能重复；职业库在保存期间发生变化时，接口会拒绝写入并要求重新读取。
+
+### 创建职业定义草稿
+
+`POST /api/profession/admin/definition/draft`
+
+请求体：`professionCode`、`displayName`、`shortName`、`description`、`defaultPresentationJson`。接口返回新草稿的 `revisionId`。
+
+### 发布职业定义
+
+`POST /api/profession/admin/definition/publish`
+
+请求体：`{"revisionId":"<revisionId>"}`。发布后职业可被用户选择和累计经验。
+
+### 停用职业定义
+
+`POST /api/profession/admin/definition/retire`
+
+请求体：`{"professionId":"<professionId>"}`。停用保留用户经验、贡献和历史记录，并向受影响用户发送通知。
+
+### 复制职业定义
+
+`POST /api/profession/admin/definition/copy`
+
+请求体：`{"revisionId":"<revisionId>"}`。复制指定历史版本为新草稿。
+
+### 回滚职业定义
+
+`POST /api/profession/admin/definition/rollback`
+
+请求体：`{"professionId":"<professionId>","revisionId":"<revisionId>"}`。回滚不清除用户经验。
+
+### 创建等级方案草稿
+
+`POST /api/profession/admin/scheme/draft`
+
+请求体包含 `professionId`、`professionRevisionId`、`migrationPolicy`、`rewardMigrationPolicy`、`migrationConfigJson` 和 `levels`。每个等级至少包含 `levelCode`、`sortOrder`、`requiredTotalExperience`、`displayName`、`description`、`achievementDescription`、`isTopLevel`，可选 `presentations` 与 `rewards`。
+
+等级奖励类型为 `POINT` 或 `MEDAL`：积分配置为 `{"amount":5000,"memo":"职业升级奖励"}`；勋章配置为 `{"medalId":"<medalId>","durationMillis":0,"data":""}`。
+
+### 发布等级方案
+
+`POST /api/profession/admin/scheme/publish`
+
+请求体：`{"schemeId":"<schemeId>"}`。降低经验门槛导致跨越多个等级时，系统按等级顺序分别执行一次幂等奖励和升级通知，不回放历史来源事件。
+
+### 停用等级方案
+
+`POST /api/profession/admin/scheme/retire`
+
+请求体：`{"schemeId":"<schemeId>"}`。
+
+### 复制等级方案
+
+`POST /api/profession/admin/scheme/copy`
+
+请求体：`{"schemeId":"<schemeId>"}`。
+
+### 回滚等级方案
+
+`POST /api/profession/admin/scheme/rollback`
+
+请求体：`{"professionId":"<professionId>","schemeId":"<schemeId>"}`。
+
+### 创建自动化草稿
+
+`POST /api/profession/admin/automation/draft`
+
+请求体：`professionId`、`automationCode`、`configurationJson`。配置必须包含一个已注册 `trigger`、可选的 `condition` 和至少一个 `actions` 执行器。执行器类型为 `profession.experience.adjust`、`profession.contribution.record` 或 `profession.system.notify`。
+
+### 发布自动化
+
+`POST /api/profession/admin/automation/publish`
+
+请求体：`{"revisionId":"<revisionId>"}`。
+
+### 停用自动化
+
+`POST /api/profession/admin/automation/retire`
+
+请求体：`{"automationId":"<automationId>"}`。
+
+### 复制自动化
+
+`POST /api/profession/admin/automation/copy`
+
+请求体：`{"revisionId":"<revisionId>"}`。
+
+### 回滚自动化
+
+`POST /api/profession/admin/automation/rollback`
+
+请求体：`{"automationId":"<automationId>","revisionId":"<revisionId>"}`。
+
+### 测试自动化
+
+`POST /api/profession/admin/automation/test`
+
+只计算规则，不写入经验、奖励、通知或来源事件。请求体：`{"configurationJson":"{...}","payloadJson":"{...}"}`。
 
 ## 金手指
 
@@ -2985,6 +3596,80 @@ curl --location --request POST 'https://fishpi.cn/user/edit/points' \
 > 相同 `requestId` 且请求参数一致时返回首次交易 oId；相同 `requestId` 携带不同用户、积分、备注或应用来源时返回“请求编号已使用”。
 >
 > `sourceAppId`、内部请求编号和请求摘要不会出现在 OAuth 积分记录响应中；仅公开 `sourceAppName` 与 `sourceScene`。
+
+### 写入职业经验
+
+`POST /api/gold-finger/profession/experience`
+
+向指定用户的已发布职业写入经验。请求先写入可审计来源事件，再异步应用职业效果；同一来源应用和请求编号只会生效一次。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| goldFingerKey | `profession` 类型金手指密钥 | 省略 |
+| sourceAppId | 来源应用编号，1～64 位小写字母、数字、`.`、`_`、`-` | `book-reader` |
+| requestId | 幂等请求编号，1～128 位 | `read:20260801:42` |
+| sourceScene | 来源场景，最多 64 字 | `chapter_complete` |
+| userName | 用户名 | `adlered` |
+| professionId | 已发布职业 ID | `1760000000000000000` |
+| experienceDelta | 正整数经验值，不得超过 `profession.external.maxExperience` | `20` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/experience' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "goldFingerKey":"省略",
+  "sourceAppId":"book-reader",
+  "requestId":"read:20260801:42",
+  "sourceScene":"chapter_complete",
+  "userName":"adlered",
+  "professionId":"1760000000000000000",
+  "experienceDelta":20
+}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示已受理 | `0` |
+| data | 受理信息 | `{"eventId":"...","accepted":true,"duplicate":false}` |
+| - duplicate | 相同请求是否已受理 | `false` |
+
+> 每个 `sourceAppId` 的一分钟请求上限由 `profession.external.requestsPerMinute` 配置。金手指密钥只允许放在 JSON 请求体，不要写入查询参数或前端代码。
+
+### 查询用户公开职业资料
+
+`POST /api/gold-finger/profession/query`
+
+查询用户已公开的职业资料，返回字段和公开职业资料接口一致。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| goldFingerKey | `profession` 类型金手指密钥 | 省略 |
+| userName | 用户名 | `adlered` |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/query' \
+--header 'Content-Type: application/json' \
+--data-raw '{"goldFingerKey":"省略","userName":"adlered"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | `0` 表示成功 | `0` |
+| data | 经隐私过滤后的职业资料 | `{...}` |
+
+> 用户未公开职业资料时请求失败，不返回隐藏职业的存在状态、经验或贡献。
 
 ### 获取用户活跃度
 
@@ -3426,7 +4111,7 @@ curl --location --request POST 'https://fishpi.cn/user/edit/points' \
 
 | Key       | 说明                               | 示例                                 |
 | --------- | ---------------------------------- | ------------------------------------ |
-| apiKey    | 通用密钥                           | **oXTQTD4ljryXoIxa1lySgEl6aObrIhSS** |
+| apiKey    | 通用密钥                           | **YOUR_API_KEY** |
 | articleId | 帖子的 oId                         | **1636516552191**                    |
 | groupType | reaction 分组，目前固定为**emoji** | **emoji**                            |
 | value     | 表情值                             | **thumbsup**                         |
@@ -3454,7 +4139,7 @@ curl --location --request POST 'https://fishpi.cn/user/edit/points' \
 
 | Key       | 说明                               | 示例                                 |
 | --------- | ---------------------------------- | ------------------------------------ |
-| apiKey    | 通用密钥                           | **oXTQTD4ljryXoIxa1lySgEl6aObrIhSS** |
+| apiKey    | 通用密钥                           | **YOUR_API_KEY** |
 | commentId | 评论的 oId                         | **1645002736006**                    |
 | groupType | reaction 分组，目前固定为**emoji** | **emoji**                            |
 | value     | 表情值                             | **heart**                            |
@@ -3493,7 +4178,7 @@ curl --location --request POST 'https://fishpi.cn/user/edit/points' \
 
 | Key       | 说明                               | 示例                                 |
 | --------- | ---------------------------------- | ------------------------------------ |
-| apiKey    | 通用密钥                           | **oXTQTD4ljryXoIxa1lySgEl6aObrIhSS** |
+| apiKey    | 通用密钥                           | **YOUR_API_KEY** |
 | oId       | 聊天消息的 oId                     | **1776756136925**                    |
 | groupType | reaction 分组，目前固定为**emoji** | **emoji**                            |
 | value     | 表情值                             | **fire**                             |

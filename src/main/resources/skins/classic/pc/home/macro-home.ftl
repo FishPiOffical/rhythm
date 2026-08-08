@@ -29,6 +29,10 @@
         <meta name="description"
               content="<#list userHomeArticles as article><#if article_index<3>${article.articleTitle},</#if></#list>"/>
             </@head>
+        <#elseif type == "profession">
+            <@head title="职业 - ${user.userName} - ${symphonyLabel}">
+        <meta name="description" content="${user.userName}的职业资料"/>
+            </@head>
         <#elseif type == "long">
             <@head title="${longArticleLabel} - ${user.userName} - ${symphonyLabel}">
         <meta name="description" content="${user.userName}${deLabel}${longArticleLabel}"/>
@@ -80,6 +84,7 @@
         </#if>
     <link rel="stylesheet" href="${staticServePath}/css/home.css?${staticResourceVersion}"/>
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
+    <link rel="stylesheet" href="${staticServePath}/css/profession.css?${staticResourceVersion}&amp;profession-ui-v20260804c"/>
 </head>
 <body class="fn__flex-column">
         <#include "../header.ftl">

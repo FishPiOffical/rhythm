@@ -131,6 +131,10 @@ public final class Router {
         OpenIdProcessor.register();
         // 会员
         MembershipProcessor.register();
+        // 职业
+        ProfessionProcessor.register();
+        ProfessionAdminProcessor.register();
+        ProfessionGoldFingerProcessor.register();
         // Medal test case
         //MedalTestProcessor.register();
         MedalProcessor.register();

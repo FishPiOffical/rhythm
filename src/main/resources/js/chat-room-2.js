@@ -1752,20 +1752,25 @@ border-bottom: none;
      * @param oId
      */
     revoke: function (oId) {
-        if (confirm("确定要撤回吗？")) {
-            $.ajax({
-                url: Label.servePath + '/chat-room/revoke/' + oId,
-                type: 'DELETE',
-                cache: false,
-                success: function (result) {
-                    if (0 === result.code) {
-                        Util.notice("success", 1500, result.msg);
-                    } else {
-                        Util.notice("danger", 1500, result.msg);
-                    }
+        Util.alert('<div class="chatroom-revoke-confirm"><p>撤回后，关联的职业经验会同步回退。</p><div class="chatroom-revoke-confirm__actions"><button type="button" class="btn" onclick="Util.closeAlert()">取消</button><button type="button" class="btn chatroom-revoke-confirm__confirm" onclick="ChatRoom.confirmRevoke(\'' + oId + '\')">撤回</button></div></div>', '撤回消息');
+    },
+    confirmRevoke: function (oId) {
+        Util.closeAlert();
+        ChatRoom.submitRevoke(oId);
+    },
+    submitRevoke: function (oId) {
+        $.ajax({
+            url: Label.servePath + '/chat-room/revoke/' + oId,
+            type: 'DELETE',
+            cache: false,
+            success: function (result) {
+                if (0 === result.code) {
+                    Util.notice("success", 1500, result.msg);
+                } else {
+                    Util.notice("danger", 1500, result.msg);
                 }
-            });
-        }
+            }
+        });
     },
     /**
      * 复读机

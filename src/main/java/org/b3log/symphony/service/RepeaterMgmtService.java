@@ -53,6 +53,9 @@ public class RepeaterMgmtService {
     @Inject
     private RepeaterQueryService repeaterQueryService;
 
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+
     public JSONObject createUserContent(final String userId, final JSONObject request) throws ServiceException {
         return createContent(userId, request.optString(RepeaterContent.TYPE),
                 request.optString(RepeaterContent.CONTENT), RepeaterContent.SOURCE_USER);
@@ -90,6 +93,7 @@ public class RepeaterMgmtService {
         final Transaction transaction = repeaterContentRepository.beginTransaction();
         try {
             repeaterContentRepository.add(item);
+            professionSourceEventCaptureService.repeaterPublished(item);
             repeaterQueryService.fillViewFields(item, userId);
             transaction.commit();
             return item;

@@ -1882,6 +1882,10 @@ var Util = {
 
                     $("#userCard").html(html);
 
+                    if (window.ProfessionProfile) {
+                        window.ProfessionProfile.loadUserCard(document.getElementById('userCardContent'), userName);
+                    }
+
                     const gameEmbed = new GameEmbed();
                     gameEmbed.listen('.card-game-badge', 'oid');
 

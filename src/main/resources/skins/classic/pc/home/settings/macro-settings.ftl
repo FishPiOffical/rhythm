@@ -52,6 +52,7 @@
                                 <a href="${servePath}/settings/function"<#if 'function' == type> class="current"</#if>>${functionLabel}</a>
                                 <a href="${servePath}/settings/point"<#if 'point' == type> class="current"</#if>>${pointLabel}</a>
                                 <a href="${servePath}/settings/privacy"<#if 'privacy' == type> class="current"</#if>>${privacyLabel}</a>
+                                <a href="${servePath}/settings/profession"<#if 'profession' == type> class="current"</#if>>职业</a>
                                 <a href="${servePath}/settings/identity"<#if 'identity' == type> class="current"</#if>><svg style="vertical-align: -1px;"><use xlink:href="#identity"></use></svg>&nbsp;官方身份认证</a>
                                 <a href="${servePath}/settings/data"<#if 'data' == type> class="current"</#if>>${dataLabel}</a>
                                 <a href="${servePath}/settings/i18n"<#if 'i18n' == type> class="current"</#if>>${i18nLabel}</a>

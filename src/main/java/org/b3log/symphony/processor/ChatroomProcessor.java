@@ -87,6 +87,7 @@ import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.NotificationMgmtService;
 import org.b3log.symphony.service.NotificationQueryService;
 import org.b3log.symphony.service.PointtransferMgmtService;
+import org.b3log.symphony.service.ProfessionSourceEventCaptureService;
 import org.b3log.symphony.service.ReactionQueryService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.ShortLinkQueryService;
@@ -242,6 +243,9 @@ public class ChatroomProcessor {
 
     @Inject
     private RoleQueryService roleQueryService;
+
+    @Inject
+    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
 
     public static int barragerCost = 5;
 
@@ -1687,14 +1691,13 @@ public class ChatroomProcessor {
                 incLiveness(userId);
 
                 // 聊天室内容保存到数据库
-                final Transaction transaction = chatRoomRepository.beginTransaction();
                 try {
-                    String oId = chatRoomRepository.add(new JSONObject().put("content", msg.toString()));
-                    msg.put("oId", oId);
-                } catch (RepositoryException e) {
-                    LOGGER.log(Level.ERROR, "Cannot save ChatRoom message to the database.", e);
+                    saveChatMessageAndCapture(msg, userId);
+                } catch (final Exception e) {
+                    LOGGER.log(Level.ERROR, "Cannot save chatroom message and profession source event.", e);
+                    context.renderJSON(StatusCodes.ERR).renderMsg("聊天室消息保存失败");
+                    return;
                 }
-                transaction.commit();
                 msg = msg.put("md", msg.optString(Common.CONTENT)).put(Common.CONTENT, processMarkdown(msg.optString(Common.CONTENT)));
                 final JSONObject pushMsg = JSONs.clone(msg);
                 pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
@@ -2133,9 +2136,7 @@ public class ChatroomProcessor {
             LogsService.chatroomLog(context, removeMessageId, curUser);
 
             if (isAdmin) {
-                final Transaction transaction = chatRoomRepository.beginTransaction();
-                chatRoomRepository.remove(removeMessageId);
-                transaction.commit();
+                removeChatMessageAndReverseProfessionEvent(removeMessageId);
                 context.renderJSON(StatusCodes.SUCC).renderMsg("撤回成功。");
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put(Common.TYPE, "revoke");
@@ -2174,12 +2175,7 @@ public class ChatroomProcessor {
                     context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！要为自己的言行负责~");
                     return;
                 }
-                // 开启事务
-                final Transaction transaction = chatRoomRepository.beginTransaction();
-                // 撤回
-                chatRoomRepository.remove(removeMessageId);
-                // 提交事务
-                transaction.commit();
+                removeChatMessageAndReverseProfessionEvent(removeMessageId);
                 context.renderJSON(StatusCodes.SUCC).renderMsg("撤回成功，下次发消息一定要三思哦！本次消耗积分: " + needDelPoint);
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put(Common.TYPE, "revoke");
@@ -2227,6 +2223,36 @@ public class ChatroomProcessor {
             return msgs;
         } catch (RepositoryException e) {
             return new LinkedList<>();
+        }
+    }
+
+    private void saveChatMessageAndCapture(final JSONObject message, final String userId) throws RepositoryException {
+        final Transaction transaction = chatRoomRepository.beginTransaction();
+        try {
+            message.put(Keys.OBJECT_ID, chatRoomRepository.add(new JSONObject().put("content", message.toString())));
+            professionSourceEventCaptureService.chatroomMessagePublished(message, userId);
+            transaction.commit();
+        } catch (final RepositoryException e) {
+            rollback(transaction);
+            throw e;
+        }
+    }
+
+    private void removeChatMessageAndReverseProfessionEvent(final String messageId) throws RepositoryException {
+        final Transaction transaction = chatRoomRepository.beginTransaction();
+        try {
+            professionSourceEventCaptureService.targetRemoved("chatroom_message", messageId);
+            chatRoomRepository.remove(messageId);
+            transaction.commit();
+        } catch (final RepositoryException e) {
+            rollback(transaction);
+            throw e;
+        }
+    }
+
+    private void rollback(final Transaction transaction) {
+        if (transaction.isActive()) {
+            transaction.rollback();
         }
     }
 

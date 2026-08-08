@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="自由职业图标">
+  <defs>
+    <linearGradient id="a" x1="16" y1="12" x2="114" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/><stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="32" fill="url(#a)"/>
+  <path d="M64 23c4.7 0 8.5 3.8 8.5 8.5v25.3l22-12.7a8.5 8.5 0 0 1 8.5 14.7L81 71.5l22 12.7a8.5 8.5 0 0 1-8.5 14.7l-22-12.7v25.3a8.5 8.5 0 1 1-17 0V86.2l-22 12.7A8.5 8.5 0 0 1 25 84.2l22-12.7-22-12.7A8.5 8.5 0 0 1 33.5 44l22 12.7V31.5c0-4.7 3.8-8.5 8.5-8.5Z" fill="#ECFEFF" fill-opacity=".94"/>
+  <circle cx="64" cy="71.5" r="8.5" fill="#0F766E"/>
+</svg>

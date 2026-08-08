@@ -251,6 +251,8 @@ public class UserProcessor {
         Dispatcher.get("/member/{userName}/watching/articles", userProcessor::showHomeWatchingArticles, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/followers", userProcessor::showHomeFollowers, anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.get("/member/{userName}/points", userProcessor::showHomePoints, anonymousViewCheckMidware::handle, userCheckMidware::handle);
+        Dispatcher.get("/member/{userName}/profession", userProcessor::showHomeProfession,
+                anonymousViewCheckMidware::handle, userCheckMidware::handle);
         Dispatcher.post("/users/names", userProcessor::listNames);
         Dispatcher.get("/users/emotions", userProcessor::getFrequentEmotions);
         Dispatcher.get("/user/{userName}", userProcessor::getUserInfo);
@@ -1724,6 +1726,23 @@ public class UserProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
 
         dataModel.put(Common.TYPE, "points");
+    }
+
+    public void showHomeProfession(final RequestContext context) {
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/profession.ftl");
+        context.setRenderer(renderer);
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        fillHomeUser(dataModel, user, roleQueryService);
+        avatarQueryService.fillUserAvatarURL(user);
+        dataModel.put(Follow.FOLLOWING_ID, user.optString(Keys.OBJECT_ID));
+        final JSONObject currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            dataModel.put(Common.IS_FOLLOWING, followQueryService.isFollowing(currentUser.optString(Keys.OBJECT_ID),
+                    user.optString(Keys.OBJECT_ID), Follow.FOLLOWING_TYPE_C_USER));
+        }
+        dataModel.put(Common.TYPE, "profession");
     }
 
     /**

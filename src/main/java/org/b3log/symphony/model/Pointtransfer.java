@@ -509,6 +509,11 @@ public final class Pointtransfer {
     public static final int TRANSFER_TYPE_C_APP_ADJUST = 55;
 
     /**
+     * Transfer type - profession level reward.
+     */
+    public static final int TRANSFER_TYPE_C_PROFESSION_LEVEL_REWARD = 56;
+
+    /**
      * Transfer sum - 摆龙门阵.
      */
     public static final int TRANSFER_SUM_C_BLMZ = 5;

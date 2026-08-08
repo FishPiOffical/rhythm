@@ -119,6 +119,9 @@ public class TopProcessor {
     @Inject
     private AvatarQueryService avatarQueryService;
 
+    @Inject
+    private ProfessionRankingQueryService professionRankingQueryService;
+
     /**
      * Register request handlers.
      */
@@ -130,6 +133,7 @@ public class TopProcessor {
         final TopProcessor topProcessor = beanManager.getReference(TopProcessor.class);
         Dispatcher.get("/api/top/any", topProcessor::getAnyTop, loginCheck::handle);
         Dispatcher.get("/top", topProcessor::showTop, loginCheck::handle);
+        Dispatcher.get("/top/profession", topProcessor::showProfession, loginCheck::handle);
 //        Dispatcher.get("/top/link", topProcessor::showLink, anonymousViewCheckMidware::handle);
 //        Dispatcher.get("/api/top/link", topProcessor::getLink, anonymousViewCheckMidware::handle);
         Dispatcher.get("/top/balance", topProcessor::showBalance, loginCheck::handle);
@@ -320,6 +324,28 @@ public class TopProcessor {
         final Map<String, Object> dataModel = renderer.getDataModel();
         dataModel.put(Common.SELECTED, Common.TOP);
 
+        dataModelService.fillHeaderAndFooter(context, dataModel);
+        dataModelService.fillRandomArticles(dataModel);
+        dataModelService.fillSideHotArticles(dataModel);
+        dataModelService.fillSideTags(dataModel);
+        dataModelService.fillLatestCmts(dataModel);
+    }
+
+    public void showProfession(final RequestContext context) {
+        final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "top/profession.ftl");
+        context.setRenderer(renderer);
+        final Map<String, Object> dataModel = renderer.getDataModel();
+        try {
+            final JSONObject user = (JSONObject) context.attr(User.USER);
+            final ProfessionRankingQueryService.RankingPage page = professionRankingQueryService.getPage(
+                    context.param("professionId"), user.getString(org.b3log.latke.Keys.OBJECT_ID), false);
+            dataModel.put("professionRankingDefinitions", page.definitions());
+            dataModel.put("selectedProfessionId", page.selected().getString("professionId"));
+            dataModel.put("professionRankingEntries", page.entries());
+        } catch (final Exception e) {
+            throw new IllegalStateException("读取职业排行失败", e);
+        }
+        dataModel.put(Common.SELECTED, Common.TOP);
         dataModelService.fillHeaderAndFooter(context, dataModel);
         dataModelService.fillRandomArticles(dataModel);
         dataModelService.fillSideHotArticles(dataModel);

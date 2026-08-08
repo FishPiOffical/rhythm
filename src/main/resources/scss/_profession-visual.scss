@@ -1,0 +1,237 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+.profession-badge {
+  --profession-primary: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  gap: 9px;
+  color: #1e293b;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.profession-badge__mark {
+  display: inline-grid;
+  width: 32px;
+  aspect-ratio: 1;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, .18);
+  background: linear-gradient(145deg, #dbeafe, #eff6ff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 4px 10px rgba(37, 99, 235, .14);
+  color: var(--profession-primary);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.profession-badge--pill .profession-badge__mark { border-radius: 999px; }
+.profession-badge--rounded .profession-badge__mark { border-radius: 10px; }
+.profession-badge--circle .profession-badge__mark { border-radius: 50%; }
+.profession-badge--border-thin .profession-badge__mark { border-width: 1px; }
+.profession-badge--border-medium .profession-badge__mark { border-width: 2px; }
+.profession-badge--border-thick .profession-badge__mark { border-width: 3px; }
+.profession-badge--shadow-soft .profession-badge__mark { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 4px 10px rgba(15, 23, 42, .16); }
+.profession-badge--shadow-strong .profession-badge__mark { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .88), 0 8px 18px rgba(15, 23, 42, .24); }
+.profession-badge--glow-soft .profession-badge__mark { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 0 0 3px color-mix(in srgb, var(--profession-primary) 13%, transparent), 0 5px 13px rgba(37, 99, 235, .16); }
+.profession-badge--glow-strong .profession-badge__mark { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .88), 0 0 0 4px color-mix(in srgb, var(--profession-primary) 17%, transparent), 0 7px 18px rgba(37, 99, 235, .26); }
+.profession-badge__image { width: 100%; height: 100%; object-fit: cover; }
+.profession-badge__copy { display: grid; min-width: 0; gap: 2px; }
+.profession-badge__name { overflow: hidden; color: inherit; font-size: 13px; font-weight: 720; text-overflow: ellipsis; }
+.profession-badge__level { color: #64748b; font-size: 11px; font-weight: 650; }
+
+.profession-detail__summary {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  gap: 12px;
+  border-color: rgba(37, 99, 235, .16);
+  background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, .08);
+}
+
+.profession-detail__summary::after {
+  position: absolute;
+  z-index: -1;
+  right: -38px;
+  bottom: -44px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(96, 165, 250, .2), rgba(191, 219, 254, 0) 68%);
+  content: '';
+  animation: profession-ambient 5s ease-in-out infinite alternate;
+}
+
+.profession-detail__cover {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .18;
+  pointer-events: none;
+}
+
+.profession-detail__summary--animation-fade { animation: profession-summary-fade 460ms ease-out both; }
+.profession-detail__summary--animation-scale { animation: profession-summary-scale 520ms cubic-bezier(.2, .8, .2, 1) both; }
+.profession-detail__summary--animation-burst::before { position: absolute; z-index: -1; inset: 18% auto auto 62%; width: 68px; aspect-ratio: 1; border: 1px solid rgba(96, 165, 250, .26); border-radius: 50%; content: ''; animation: profession-summary-burst 700ms ease-out both; }
+
+.profession-detail__summary > p { max-width: 38rem; }
+.profession-detail__metrics { display: flex; flex-wrap: wrap; gap: 8px; }
+.profession-detail__metric {
+  padding: 5px 8px;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .72);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.profession-detail__progress { gap: 12px; }
+.profession-detail__progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #1e293b; }
+.profession-detail__progress-head strong { font-size: 15px; letter-spacing: -.01em; }
+.profession-detail__progress-head span { color: #64748b; font-size: 12px; font-weight: 700; }
+.profession-detail__progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef7;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.profession-detail__progress-fill {
+  position: relative;
+  display: block;
+  width: var(--profession-progress, 0%);
+  min-width: 8px;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #38bdf8 58%, #67e8f9);
+  box-shadow: 0 0 14px rgba(37, 99, 235, .32);
+  transform-origin: left center;
+  animation: profession-progress-fill 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.profession-detail__progress-fill::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 22%, rgba(255, 255, 255, .48) 48%, transparent 74%);
+  content: '';
+  transform: translateX(-120%);
+  animation: profession-progress-sheen 2.8s ease-in-out 700ms infinite;
+}
+
+.profession-detail__progress--solid .profession-detail__progress-fill { background: var(--profession-primary, #2563eb); }
+.profession-detail__progress--segmented .profession-detail__progress-track { background: repeating-linear-gradient(90deg, #e8eef7 0 14px, #fff 14px 17px); }
+.profession-detail__progress--segmented .profession-detail__progress-fill { background: repeating-linear-gradient(90deg, #2563eb 0 14px, #67e8f9 14px 17px); }
+.profession-detail__progress-note { margin: 0; color: #64748b; font-size: 12px; }
+.profession-detail__level { position: relative; padding: 12px 12px 12px 16px; border-left-color: #cbd5e1; transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease; }
+.profession-detail__level::before { position: absolute; top: 17px; left: -7px; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; background: #cbd5e1; box-shadow: 0 0 0 1px #cbd5e1; content: ''; }
+.profession-detail__level.is-current { border-left-color: #2563eb; box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .1); }
+.profession-detail__level.is-current::before { background: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.profession-detail__level.is-current:hover { transform: translateX(2px); }
+
+.profession-choice { gap: 11px; }
+.profession-choice.is-selected::after { position: absolute; top: 11px; right: 11px; width: 7px; height: 7px; border-radius: 50%; background: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .12); content: ''; }
+.profession-choice.is-selected .profession-badge__mark { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 6px 14px rgba(37, 99, 235, .24); }
+.profession-profile__primary .profession-badge,
+.user-card__profession .profession-badge { gap: 7px; }
+.profession-profile__primary .profession-badge__mark,
+.user-card__profession .profession-badge__mark { width: 26px; font-size: 12px; }
+.profession-choice__growth { color: #64748b; font-size: 12px; line-height: 1.45; }
+
+body.night .profession-profile__link { border-color: #334155; background: rgba(15, 23, 42, .72); color: #e2e8f0; }
+
+body.night .profession-detail__summary { border-color: #334155; background: linear-gradient(135deg, #111827, #172554); }
+body.night .profession-detail__summary::after { background: radial-gradient(circle, rgba(96, 165, 250, .18), rgba(30, 41, 59, 0) 68%); }
+body.night .profession-badge { color: #f8fafc; }
+body.night .profession-badge__mark { border-color: rgba(125, 211, 252, .35); background: linear-gradient(145deg, #1e3a8a, #172554); color: #bae6fd; }
+body.night .profession-badge__level,
+body.night .profession-detail__progress-head span,
+body.night .profession-detail__progress-note { color: #94a3b8; }
+body.night .profession-detail__metric { border-color: #334155; background: rgba(15, 23, 42, .54); color: #cbd5e1; }
+body.night .profession-detail__progress-track { background: #1e293b; }
+body.night .profession-detail__progress-head { color: #f8fafc; }
+
+@keyframes profession-ambient {
+  from { transform: translate3d(0, 0, 0) scale(.92); opacity: .72; }
+  to { transform: translate3d(-12px, -8px, 0) scale(1.08); opacity: 1; }
+}
+
+@keyframes profession-progress-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes profession-progress-sheen {
+  0%, 25% { transform: translateX(-120%); }
+  58%, 100% { transform: translateX(150%); }
+}
+
+@keyframes profession-summary-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes profession-summary-scale {
+  from { opacity: 0; transform: scale(.975); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes profession-summary-burst {
+  from { opacity: .8; transform: scale(.2); }
+  to { opacity: 0; transform: scale(1.8); }
+}
+
+@media (max-width: 600px) {
+  .profession-detail__summary { padding: 15px; }
+  .profession-detail__progress-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .profession-detail__level.is-current:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profession-detail__summary::after,
+  .profession-detail__summary--animation-fade,
+  .profession-detail__summary--animation-scale,
+  .profession-detail__summary--animation-burst::before,
+  .profession-detail__progress-fill,
+  .profession-detail__progress-fill::after { animation: none; }
+  .profession-detail__level { transition: background-color 120ms ease, border-color 120ms ease; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .profession-detail__metric { background: #fff; }
+  body.night .profession-detail__metric { background: #111827; }
+}
+
+@media (prefers-contrast: more) {
+  .profession-detail__summary,
+  .profession-detail__progress-track,
+  .profession-detail__metric { border: 2px solid currentColor; }
+  .profession-detail__progress-fill { box-shadow: none; }
+}

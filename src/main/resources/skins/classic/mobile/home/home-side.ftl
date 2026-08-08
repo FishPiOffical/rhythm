@@ -27,6 +27,7 @@
 
             <div id="metal">
             </div>
+            <div class="profession-profile" data-user-profession="${user.userName}"></div>
 
             <div>
                 <#if isLoggedIn && (currentUser.userName != user.userName)>

@@ -3155,6 +3155,342 @@
           "description": "更新时间"
         }
       ]
+    },
+    {
+      "name": "profession",
+      "description": "职业稳定定义",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "professionCode", "type": "String", "length": 64, "description": "职业稳定编码" },
+        { "name": "currentRevisionId", "type": "String", "length": 19, "description": "当前职业版本" },
+        { "name": "currentLevelSchemeId", "type": "String", "length": 19, "description": "当前等级方案" },
+        { "name": "status", "type": "String", "length": 24, "description": "状态" },
+        { "name": "sortOrder", "type": "int", "description": "排序" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_revision",
+      "description": "职业不可变版本",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "revisionNo", "type": "int", "description": "版本号" },
+        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
+        { "name": "status", "type": "String", "length": 24, "description": "状态" },
+        { "name": "displayName", "type": "String", "length": 64, "description": "展示名称" },
+        { "name": "shortName", "type": "String", "length": 32, "description": "简称" },
+        { "name": "description", "type": "String", "length": 1024, "description": "职业描述" },
+        { "name": "defaultPresentationJson", "type": "String", "length": 102400, "description": "默认展示配置 JSON" },
+        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
+        { "name": "effectiveTo", "type": "long", "description": "失效时间，0 表示未失效" },
+        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
+        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+      ]
+    },
+    {
+      "name": "profession_level_scheme",
+      "description": "职业等级方案版本",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
+        { "name": "revisionNo", "type": "int", "description": "方案版本号" },
+        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
+        { "name": "status", "type": "String", "length": 24, "description": "状态" },
+        { "name": "migrationPolicy", "type": "String", "length": 32, "description": "迁移策略" },
+        { "name": "rewardMigrationPolicy", "type": "String", "length": 32, "description": "奖励迁移策略" },
+        { "name": "migrationConfigJson", "type": "String", "length": 102400, "description": "迁移策略配置" },
+        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
+        { "name": "effectiveTo", "type": "long", "description": "失效时间" },
+        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
+        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+      ]
+    },
+    {
+      "name": "profession_level",
+      "description": "职业等级",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
+        { "name": "levelCode", "type": "String", "length": 64, "description": "等级稳定编码" },
+        { "name": "sortOrder", "type": "int", "description": "显示排序" },
+        { "name": "requiredTotalExperience", "type": "long", "description": "累计经验门槛" },
+        { "name": "displayName", "type": "String", "length": 64, "description": "展示名称" },
+        { "name": "shortName", "type": "String", "length": 32, "description": "简称" },
+        { "name": "description", "type": "String", "length": 1024, "description": "等级介绍" },
+        { "name": "achievementDescription", "type": "String", "length": 1024, "description": "达成描述" },
+        { "name": "isTopLevel", "type": "boolean", "description": "是否最高等级" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_level_presentation",
+      "description": "职业等级展示样式",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "levelId", "type": "String", "length": 19, "description": "等级 ID" },
+        { "name": "positionCode", "type": "String", "length": 32, "description": "展示位置编码" },
+        { "name": "lightConfigJson", "type": "String", "length": 102400, "description": "浅色展示配置 JSON" },
+        { "name": "darkConfigJson", "type": "String", "length": 102400, "description": "深色展示配置 JSON" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_level_reward",
+      "description": "职业等级奖励定义",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
+        { "name": "levelId", "type": "String", "length": 19, "description": "等级 ID" },
+        { "name": "levelCode", "type": "String", "length": 64, "description": "等级编码快照" },
+        { "name": "rewardCode", "type": "String", "length": 64, "description": "奖励稳定编码" },
+        { "name": "rewardType", "type": "String", "length": 32, "description": "奖励类型" },
+        { "name": "rewardConfigJson", "type": "String", "length": 102400, "description": "奖励配置 JSON" },
+        { "name": "grantPolicy", "type": "String", "length": 32, "description": "发放策略" },
+        { "name": "downgradePolicy", "type": "String", "length": 32, "description": "降级策略" },
+        { "name": "sortOrder", "type": "int", "description": "排序" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_automation",
+      "description": "职业自动化稳定定义",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "automationCode", "type": "String", "length": 64, "description": "自动化稳定编码" },
+        { "name": "currentRevisionId", "type": "String", "length": 19, "description": "当前自动化版本" },
+        { "name": "status", "type": "String", "length": 24, "description": "状态" },
+        { "name": "sortOrder", "type": "int", "description": "排序" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_automation_revision",
+      "description": "职业自动化不可变版本",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "automationId", "type": "String", "length": 19, "description": "自动化 ID" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "revisionNo", "type": "int", "description": "版本号" },
+        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
+        { "name": "status", "type": "String", "length": 24, "description": "状态" },
+        { "name": "triggerType", "type": "String", "length": 64, "description": "触发器类型" },
+        { "name": "triggerSchemaVersion", "type": "int", "description": "触发器结构版本" },
+        { "name": "configurationJson", "type": "String", "length": 102400, "description": "自动化配置 JSON" },
+        { "name": "configurationHash", "type": "String", "length": 64, "description": "自动化配置哈希" },
+        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
+        { "name": "effectiveTo", "type": "long", "description": "失效时间" },
+        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
+        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+      ]
+    },
+    {
+      "name": "profession_source_event",
+      "description": "职业可信来源事件",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "eventKey", "type": "String", "length": 191, "description": "事件幂等键" },
+        { "name": "eventType", "type": "String", "length": 64, "description": "事件类型" },
+        { "name": "schemaVersion", "type": "int", "description": "事件结构版本" },
+        { "name": "subjectUserId", "type": "String", "length": 19, "description": "经验归属用户" },
+        { "name": "actorUserId", "type": "String", "length": 19, "description": "行为用户" },
+        { "name": "targetType", "type": "String", "length": 32, "description": "目标类型" },
+        { "name": "targetId", "type": "String", "length": 19, "description": "目标 ID" },
+        { "name": "occurredAt", "type": "long", "description": "业务发生时间" },
+        { "name": "capturedAt", "type": "long", "description": "采集时间" },
+        { "name": "payloadJson", "type": "String", "length": 102400, "description": "受控事件载荷 JSON" },
+        { "name": "visibilityClass", "type": "String", "length": 24, "description": "来源可见范围" },
+        { "name": "reversalOfEventKey", "type": "String", "length": 191, "description": "被撤销事件键" },
+        { "name": "sourceSystem", "type": "String", "length": 64, "description": "来源系统" },
+        { "name": "sourceAppId", "type": "String", "length": 64, "description": "外部来源应用" },
+        { "name": "externalRequestId", "type": "String", "length": 128, "description": "外部幂等请求号" },
+        { "name": "status", "type": "String", "length": 32, "description": "执行状态" },
+        { "name": "processingAttempt", "type": "int", "description": "处理次数" },
+        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
+        { "name": "lockedAt", "type": "long", "description": "领取时间" },
+        { "name": "errorCode", "type": "String", "length": 64, "description": "错误码" },
+        { "name": "errorMessage", "type": "String", "length": 2048, "description": "错误信息" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_event_effect",
+      "description": "职业经验与等级实际效果",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "effectKey", "type": "String", "length": 255, "description": "效果幂等键" },
+        { "name": "sourceEventId", "type": "String", "length": 19, "description": "来源事件 ID" },
+        { "name": "eventKey", "type": "String", "length": 191, "description": "事件键快照" },
+        { "name": "bucketId", "type": "String", "length": 19, "description": "聚合桶 ID" },
+        { "name": "bucketKey", "type": "String", "length": 191, "description": "聚合桶键快照" },
+        { "name": "automationRevisionId", "type": "String", "length": 19, "description": "自动化版本 ID" },
+        { "name": "actionCode", "type": "String", "length": 64, "description": "执行器动作编码" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
+        { "name": "levelSchemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
+        { "name": "actualExperienceDelta", "type": "long", "description": "实际经验变化" },
+        { "name": "beforeExperience", "type": "long", "description": "变化前经验" },
+        { "name": "afterExperience", "type": "long", "description": "变化后经验" },
+        { "name": "beforeLevelCode", "type": "String", "length": 64, "description": "变化前等级" },
+        { "name": "afterLevelCode", "type": "String", "length": 64, "description": "变化后等级" },
+        { "name": "status", "type": "String", "length": 32, "description": "效果状态" },
+        { "name": "processingAttempt", "type": "int", "description": "应用尝试次数" },
+        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
+        { "name": "lockedAt", "type": "long", "description": "领取时间" },
+        { "name": "errorCode", "type": "String", "length": 64, "description": "应用错误码" },
+        { "name": "errorMessage", "type": "String", "length": 2048, "description": "应用错误摘要" },
+        { "name": "reversesEffectId", "type": "String", "length": 19, "description": "反向效果目标" },
+        { "name": "reversedByEffectId", "type": "String", "length": 19, "description": "成功撤销效果" },
+        { "name": "occurredAt", "type": "long", "description": "业务发生时间" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_event_bucket",
+      "description": "高频职业事件聚合桶",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "bucketKey", "type": "String", "length": 191, "description": "聚合桶幂等键" },
+        { "name": "triggerType", "type": "String", "length": 64, "description": "触发器类型" },
+        { "name": "automationRevisionId", "type": "String", "length": 19, "description": "自动化版本 ID" },
+        { "name": "subjectUserId", "type": "String", "length": 19, "description": "经验归属用户" },
+        { "name": "windowStart", "type": "long", "description": "窗口起点" },
+        { "name": "dimensionKey", "type": "String", "length": 1024, "description": "聚合维度" },
+        { "name": "dimensionHash", "type": "String", "length": 64, "description": "聚合维度哈希" },
+        { "name": "eventCount", "type": "long", "description": "事件数量" },
+        { "name": "numericSum", "type": "long", "description": "数值累计" },
+        { "name": "distinctCount", "type": "long", "description": "去重数量" },
+        { "name": "settlementSequence", "type": "int", "description": "结算序号" },
+        { "name": "status", "type": "String", "length": 32, "description": "结算状态" },
+        { "name": "lastOccurredAt", "type": "long", "description": "最后发生时间" },
+        { "name": "nextSettleAt", "type": "long", "description": "下次结算时间" },
+        { "name": "lockedAt", "type": "long", "description": "领取时间" },
+        { "name": "processingAttempt", "type": "int", "description": "处理次数" },
+        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
+        { "name": "errorCode", "type": "String", "length": 64, "description": "错误码" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "user_profession",
+      "description": "用户职业经验与等级汇总",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
+        { "name": "levelSchemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
+        { "name": "totalExperience", "type": "long", "description": "累计经验" },
+        { "name": "currentLevelCode", "type": "String", "length": 64, "description": "当前等级编码" },
+        { "name": "highestReachedLevelCode", "type": "String", "length": 64, "description": "历史最高等级编码" },
+        { "name": "highestReachedExperience", "type": "long", "description": "历史最高累计经验" },
+        { "name": "currentLevelReachedAt", "type": "long", "description": "当前等级达到时间" },
+        { "name": "highestLevelReachedAt", "type": "long", "description": "历史最高等级达到时间" },
+        { "name": "lastEffectAt", "type": "long", "description": "最后效果时间" },
+        { "name": "dataVersion", "type": "long", "description": "乐观并发版本" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "user_profession_privacy",
+      "description": "用户职业隐私、主职业与引导状态",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "onboardingState", "type": "String", "length": 16, "description": "首次选择状态" },
+        { "name": "primaryProfessionId", "type": "String", "length": 19, "description": "主职业 ID" },
+        { "name": "privacyPreset", "type": "String", "length": 24, "description": "隐私预设" },
+        { "name": "moduleVisibilityJson", "type": "String", "length": 102400, "description": "模块可见范围 JSON" },
+        { "name": "userProgressVersion", "type": "long", "description": "职业进度缓存版本" },
+        { "name": "userPrivacyVersion", "type": "long", "description": "职业隐私缓存版本" },
+        { "name": "publicStatsVersion", "type": "long", "description": "公开统计缓存版本" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "profession_reward_grant",
+      "description": "职业等级奖励发放记录",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
+        { "name": "levelCode", "type": "String", "length": 64, "description": "等级编码" },
+        { "name": "rewardCode", "type": "String", "length": 64, "description": "奖励编码" },
+        { "name": "grantCycle", "type": "String", "length": 32, "description": "发放周期" },
+        { "name": "rewardType", "type": "String", "length": 32, "description": "奖励类型" },
+        { "name": "rewardConfigJson", "type": "String", "length": 102400, "description": "奖励配置快照 JSON" },
+        { "name": "sourceEffectId", "type": "String", "length": 19, "description": "来源效果 ID" },
+        { "name": "externalReferenceId", "type": "String", "length": 64, "description": "外部发放关联 ID" },
+        { "name": "status", "type": "String", "length": 32, "description": "发放状态" },
+        { "name": "grantedAt", "type": "long", "description": "发放时间" },
+        { "name": "revokedAt", "type": "long", "description": "收回时间" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "user_profession_contribution",
+      "description": "用户职业贡献聚合",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
+        { "name": "actionCode", "type": "String", "length": 64, "description": "贡献动作编码" },
+        { "name": "experienceSum", "type": "long", "description": "累计实际经验" },
+        { "name": "eventCount", "type": "long", "description": "效果次数" },
+        { "name": "lastOccurredAt", "type": "long", "description": "最近发生时间" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "article_long_read_window",
+      "description": "长篇阅读窗口计数",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "windowStart", "type": "long", "description": "窗口起点" },
+        { "name": "registeredCnt", "type": "int", "description": "注册读者数量" },
+        { "name": "anonymousCnt", "type": "int", "description": "匿名读者数量" },
+        { "name": "state", "type": "String", "length": 16, "description": "结算状态" },
+        { "name": "settlementId", "type": "String", "length": 19, "description": "结算闸门 ID" },
+        { "name": "settledAt", "type": "long", "description": "结算时间" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "article_long_read_settlement",
+      "description": "长篇阅读结算幂等闸门",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
+        { "name": "windowStart", "type": "long", "description": "窗口起点" },
+        { "name": "historyId", "type": "String", "length": 19, "description": "阅读历史 ID" },
+        { "name": "state", "type": "String", "length": 16, "description": "提交状态" },
+        { "name": "createdAt", "type": "long", "description": "创建时间" },
+        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+      ]
     }
   ]
 }
