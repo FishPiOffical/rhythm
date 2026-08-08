@@ -110,9 +110,13 @@
     return link
   }
   function appendHome(target, data, userName) {
+    if (!data.primaryProfession) {
+      target.replaceChildren()
+      return
+    }
     var holder = document.createElement('div')
     holder.className = 'profession-profile__primary'
-    if (data.primaryProfession) holder.appendChild(profileLink(userName, data.primaryProfession))
+    holder.appendChild(profileLink(userName, data.primaryProfession))
     target.replaceChildren(holder)
   }
   function loadHome(target, userName) {
