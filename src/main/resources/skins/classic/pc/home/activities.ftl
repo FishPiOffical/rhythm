@@ -139,6 +139,20 @@
                                 <li>
                                     <div class='fn-flex'>
                                         <div class="avatar"
+                                             style="background-image:url('https://atom.adventext.fun/favicon.svg')"></div>
+                                        <div class="fn-flex-1">
+                                            <h2>
+                                                <a target="_blank" href="https://atom.adventext.fun/">元素纪元</a>
+                                            </h2>
+                                            <span class="ft-fade vditor-reset">
+                                                从捡起一块木炭开始，重走人类化学的万年征途。⚗️ 一款以化学元素和炼金术为主题的增量/放置类科学模拟游戏。
+                                            </span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class='fn-flex'>
+                                        <div class="avatar"
                                              style="background-image:url('${staticServePath}/images/mofish.png')"></div>
                                         <div class="fn-flex-1">
                                             <h2>
