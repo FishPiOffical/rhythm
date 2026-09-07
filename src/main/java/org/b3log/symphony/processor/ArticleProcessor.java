@@ -1303,6 +1303,8 @@ public class ArticleProcessor {
 
         dataModel.put(Common.REQUISITE, requisite);
         dataModel.put(Common.REQUISITE_MSG, requisiteMsg);
+        dataModel.put("articleBypassCensorAvailable", null != currentUser
+                && Role.canBypassArticleCensor(currentUser.optString(User.USER_ROLE)));
     }
 
     private void fillLongArticleColumnRequisite(final Map<String, Object> dataModel, final JSONObject currentUser, final String articleId) {
@@ -1753,7 +1755,7 @@ public class ArticleProcessor {
         final int articleAnonymous = isAnonymous ? Article.ARTICLE_ANONYMOUS_C_ANONYMOUS : Article.ARTICLE_ANONYMOUS_C_PUBLIC;
         final boolean articleNotifyFollowers = requestJSONObject.optBoolean(Article.ARTICLE_T_NOTIFY_FOLLOWERS);
         final Integer articleShowInList = requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES);
-        final String isGoodArticle = requestJSONObject.optString("isGoodArticle");
+        final String isGoodArticle = requestJSONObject.optString(Article.ARTICLE_GOOD_POST);
         final String longArticleColumnId = requestJSONObject.optString(LongArticleColumn.COLUMN_ID);
         final String longArticleColumnTitle = requestJSONObject.optString(LongArticleColumn.COLUMN_TITLE);
         final String longArticleChapterNo = requestJSONObject.optString(LongArticleColumn.CHAPTER_NO);
@@ -1867,7 +1869,7 @@ public class ArticleProcessor {
                 }
             }
 
-            article.put("isGoodArticle", isGoodArticle);
+            article.put(Article.ARTICLE_GOOD_POST, isGoodArticle);
             final String articleId = articleMgmtService.addArticle(article);
             final String draftRemoveMsg = removePublishedDraft(currentUser.optString(Keys.OBJECT_ID), requestJSONObject);
 

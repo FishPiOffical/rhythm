@@ -450,30 +450,43 @@ var AddArticle = {
       return
     }
 
-    if ($('.tags-input').length === 0 || ($('.tags-input .tag .text').text().indexOf('新人报道') != -1 || $('.tags-input .tag .text').text().indexOf('新人报到') != -1)) {
-      AddArticle.add(csrfToken, it)
-    } else {
-      Swal.fire({
-        html: "根据 <a href='https://fishpi.cn/article/1684378758315' target='_blank'>摸鱼派发帖规范细则</a>，请对您的帖子进行自觉分类，自行选择是否获得<a target='_blank' href='https://fishpi.cn/article/1683775497629'>好帖积分和活跃度奖励</a> (300积分和45%活跃度，每日仅第一次有效)<br><br>" +
-            "<b>有积分奖励的帖子：</b>原创的技术文章 / 原创且用心的美食、旅游、生活内容 / 发自内心的分享 / 有营养的问答 / 原创且用心的长短篇小说、故事、纪实创作<br><br>" +
-            "<b>没有积分奖励的帖子：</b>发牢骚、感慨 / 非原创的内容 / 无意义内容帖、单纯的水帖 / 新人报道帖 / 广告帖 / 不用心、无价值的长短篇小说、故事、纪实创作<br><br>" +
-            "<b>请注意：</b><b>帖子发布后24小时内无法删除！</b>如果不知道该选哪个，请选“我就随便写写”，选择领取奖励后，我们将对帖子进行检查，如不符合规则，您的积分奖励将会被扣除。",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#707070',
-        confirmButtonText: '这是好帖，给我奖励！',
-        cancelButtonText: '我就随便写写，不需要奖励',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          AddArticle.add(csrfToken, it, true)
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-          AddArticle.add(csrfToken, it)
-        }
-      })
-    }
+    AddArticle.add(csrfToken, it)
   },
-  add: function (csrfToken, it, isGoodArticle) {
+  confirmBypassAdd: function (csrfToken, it) {
+    var message = '这是一个绿色通道，专门给受信任分组使用。\n该按钮可免除内容审核以及敏感词过滤，直接发送。\n如果使用该功能进行了非法操作，将人工降低分组，不再开放此功能。'
+    Swal.fire({
+      title: '免审发帖',
+      text: message,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#707070',
+      confirmButtonText: '继续发送',
+      cancelButtonText: '取消',
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        AddArticle.add(csrfToken, it, Label.articleType === 6, true)
+      }
+    })
+  },
+  showGoodArticleInfo: function () {
+    Swal.fire({
+      title: '好帖奖励',
+      html: "根据 <a href='https://fishpi.cn/article/1684378758315' target='_blank'>摸鱼派发帖规范细则</a>，请对帖子进行自觉分类。勾选后可领取<a target='_blank' href='https://fishpi.cn/article/1683775497629'>好帖积分和活跃度奖励</a>（300 积分和 45% 活跃度，每日仅第一次有效）。<br><br>" +
+          "<b>可领取奖励：</b>原创技术文章；原创且用心的美食、旅游、生活内容；发自内心的分享；有营养的问答；原创且用心的长短篇小说、故事、纪实创作。<br><br>" +
+          "<b>不可领取奖励：</b>发牢骚、感慨；非原创内容；无意义内容帖、单纯的水帖；新人报道帖；广告帖；不用心、无价值的长短篇小说、故事、纪实创作。<br><br>" +
+          "<b>请注意：</b>帖子发布后 24 小时内无法删除。领取奖励后会进行检查，不符合规则时将扣除奖励。",
+      icon: 'question',
+      confirmButtonColor: '#3085d6',
+      confirmButtonText: '知道了',
+    })
+  },
+  isGoodArticleEligible: function () {
+    var tagsText = $('.tags-input .tag .text').text()
+    return $('.tags-input').length > 0 && tagsText.indexOf('新人报道') === -1 &&
+      tagsText.indexOf('新人报到') === -1
+  },
+  add: function (csrfToken, it, isGoodArticle, bypassCensor) {
     // 长文章不需要标签
     var hasTagsInput = $('.tags-input').length > 0;
     if (hasTagsInput && $('.tags-input .tag .text').length === 0) {
@@ -525,6 +538,10 @@ var AddArticle = {
         articleType: finalArticleType,
       }
 
+      if (bypassCensor === true) {
+        requestJSONObject.articleBypassCensor = true
+      }
+
       // 长文章不需要这些选项
       if ($('#articleCommentable').length > 0) {
         requestJSONObject.articleCommentable = $('#articleCommentable').prop('checked');
@@ -569,7 +586,8 @@ var AddArticle = {
         requestJSONObject.articleStatement = $('#articleStatement').val();
       }
 
-      if (undefined !== isGoodArticle && isGoodArticle === true) {
+      if (isGoodArticle === true || ($('#articleGoodPost').prop('checked') === true &&
+          AddArticle.isGoodArticleEligible())) {
         requestJSONObject.isGoodArticle = 'yes';
       }
 

@@ -702,6 +702,7 @@ public class ArticleMgmtService {
             article.put(Article.ARTICLE_CITY, city);
             article.put(Article.ARTICLE_ANONYMOUS, articleAnonymous);
             article.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_NOT_PERFECT);
+            article.put(Article.ARTICLE_GOOD_POST, requestJSONObject.optString(Article.ARTICLE_GOOD_POST));
             article.put(Article.ARTICLE_ANONYMOUS_VIEW,
                     requestJSONObject.optInt(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_USE_GLOBAL));
             article.put(Article.ARTICLE_AUDIO_URL, "");
@@ -811,7 +812,7 @@ public class ArticleMgmtService {
                 }
 
                 // Liveness
-                String isGoodArticle = requestJSONObject.optString("isGoodArticle");
+                String isGoodArticle = requestJSONObject.optString(Article.ARTICLE_GOOD_POST);
                 if (isGoodArticle.equals("yes")) {
                     livenessMgmtService.incLiveness(authorId, Liveness.LIVENESS_ARTICLE);
                     LogsService.log("simple", LogsService.getTime(), "*", "发帖并标记为有奖励积分", "发布人：" + author.optString(User.USER_NAME) + "，点击跳转至帖子：<a target='_blank' href='" + ("/article/" + ret) + "'>" + articleTitle + "</a>", true);

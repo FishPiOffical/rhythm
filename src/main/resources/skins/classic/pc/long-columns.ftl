@@ -39,38 +39,31 @@
 </#macro>
 <div class="main">
     <div class="wrapper">
-        <div class="content fn-clear">
-            <div class="module column-bookstore">
-                <div class="module-header"><h2>专栏书城</h2></div>
-                <div class="module-panel column-bookstore__panel">
-                    <div class="column-bookstore__sections">
-                        <section class="column-bookstore__section">
-                            <h3>最新专栏</h3>
-                            <#if latestLongColumns?? && latestLongColumns?size != 0>
-                                <div class="column-bookstore__grid">
-                                <#list latestLongColumns as column>
-                                    <@columnBook column=column />
-                                </#list>
-                                </div>
-                            <#else>
-                                <div class="column-bookstore__empty">暂无专栏</div>
-                            </#if>
-                        </section>
-                        <section class="column-bookstore__section column-bookstore__section--hot">
-                            <h3>热门专栏</h3>
-                            <#if hotLongColumns?? && hotLongColumns?size != 0>
-                                <div class="column-bookstore__grid">
-                                <#list hotLongColumns as column>
-                                    <@columnBook column=column />
-                                </#list>
-                                </div>
-                            <#else>
-                                <div class="column-bookstore__empty">暂无专栏</div>
-                            </#if>
-                        </section>
+        <div class="content fn-clear column-bookstore">
+            <section class="column-bookstore__section">
+                <h2>最新专栏</h2>
+                <#if latestLongColumns?? && latestLongColumns?size != 0>
+                    <div class="column-bookstore__grid">
+                    <#list latestLongColumns as column>
+                        <@columnBook column=column />
+                    </#list>
                     </div>
-                </div>
-            </div>
+                <#else>
+                    <div class="column-bookstore__empty">暂无专栏</div>
+                </#if>
+            </section>
+            <section class="column-bookstore__section column-bookstore__section--hot">
+                <h2>热门专栏</h2>
+                <#if hotLongColumns?? && hotLongColumns?size != 0>
+                    <div class="column-bookstore__grid">
+                    <#list hotLongColumns as column>
+                        <@columnBook column=column />
+                    </#list>
+                    </div>
+                <#else>
+                    <div class="column-bookstore__empty">暂无专栏</div>
+                </#if>
+            </section>
         </div>
 
         <div class="side">

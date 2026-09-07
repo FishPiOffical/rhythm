@@ -1798,9 +1798,12 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 | Key      | 说明         | 示例                             |
 | -------- | ------------ | -------------------------------- |
 | apiKey   | 通用密钥     | YOUR_API_KEY |
+| articleBypassCensor | 免审发帖，布尔值；仅管理员、OP、超级会员分组可用 | true |
 | 其它参数 | 自行发帖抓包 |                                  |
 
 > `articleType=3` 的思绪新增已关闭，历史思绪仍可通过读取接口访问。
+>
+> `articleBypassCensor=true` 时跳过内容审核和敏感词过滤；服务端按用户分组校验，未授权用户传入该字段会返回失败。
 
 ### 更新贴子
 
@@ -1814,7 +1817,10 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 | -------- | ------------ | -------------------------------- |
 | id       | 帖子 Id      | ...                              |
 | apiKey   | 通用密钥     | YOUR_API_KEY |
+| articleBypassCensor | 免审保存，布尔值；仅管理员、OP、超级会员分组可用 | true |
 | 其它参数 | 自行发帖抓包 |                                  |
+
+> `articleBypassCensor=true` 时跳过内容审核和敏感词过滤；服务端按用户分组校验，未授权用户传入该字段会返回失败。
 
 ### 帖子列表
 
@@ -4289,3 +4295,118 @@ curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/que
 | actorReaction | 该用户本次操作后最终选中的表情值，没有则为空字符串 | **heart**           |
 
 未适配的旧客户端可以直接忽略 **chatReaction**、**articleReaction**、**commentReaction** 这三种新增消息类型，不会影响现有消息收发。
+
+## 鱼游
+
+### 获取鱼游列表
+
+`GET /activities`
+
+展示通过审核的鱼游，按点赞数与踩数之和降序排列；点赞数用于并列时排序，踩数只记录不在公开页面显示。
+
+### 投稿鱼游
+
+`POST /api/fish-games`
+
+提交一条待审核鱼游。投稿需登录，不需要提交 OAuth 说明材料；管理员人工审核后公开。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| fishGameName | 名称，1-80 字符 | `元素纪元` |
+| fishGameDescription | 描述，1-1000 字符 | `元素主题放置游戏` |
+| fishGameUrl | 目标网址，HTTPS | `https://example.com/game` |
+| fishGameIconUrl | 图标网址，HTTPS | `https://example.com/icon.png` |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/api/fish-games' \
+  -H 'Content-Type: application/json' \
+  -d '{"apiKey":"YOUR_API_KEY","fishGameName":"元素纪元","fishGameDescription":"元素主题放置游戏","fishGameUrl":"https://example.com/game","fishGameIconUrl":"https://example.com/icon.png"}'
+```
+
+响应：返回 `code`、`msg` 和新建鱼游 `data`，新投稿状态为待审核。
+
+### 申请编辑鱼游
+
+`POST /api/fish-games/{id}/edit`
+
+作者提交与投稿相同字段，审核通过后替换公开内容。已有待审核修改时不能重复提交。
+
+请求：字段同 `POST /api/fish-games`。仅鱼游作者可以提交。
+
+### 鱼游投票
+
+`POST /api/fish-games/{id}/vote`
+
+请求：`fishGameVoteValue` 取 `like` 或 `dislike`。每位用户每个鱼游保留一个投票，可再次点击取消或切换；踩会记录并参与排名，但公开页面不展示踩数量。
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/api/fish-games/1770000000000/vote' \
+  -H 'Content-Type: application/json' \
+  -d '{"apiKey":"YOUR_API_KEY","fishGameVoteValue":"like"}'
+```
+
+### 鱼游评论
+
+`GET /api/fish-games/{id}/comments` 获取评论；`POST /api/fish-games/{id}/comments` 新增评论，请求字段 `content`，最多 500 字符。
+
+响应：评论接口返回 `comments` 数组；评论内容为纯文本并经过清洗。
+
+### 管理鱼游
+
+`GET /admin/fish-games`、`GET /api/admin/fish-games`、`POST /api/admin/fish-games`、`GET /api/admin/fish-games/export`、`POST /api/admin/fish-games/import`、`POST /api/admin/fish-games/{id}/review`、`POST /api/admin/fish-games/{id}/edit`
+
+仅管理员可用。管理员可手动添加、编辑资料、审核通过/拒绝、停用投稿，并导入导出 JSON。
+
+`GET /api/admin/fish-games`
+
+请求：管理员登录态，无请求体。
+
+响应：`data.games` 为全部记录，包含待审核与已停用状态。
+
+`POST /api/admin/fish-games`
+
+请求：字段同 `POST /api/fish-games`。管理员添加的记录直接进入已审核状态。
+
+响应：返回已创建鱼游对象。
+
+`GET /api/admin/fish-games/export`
+
+请求：管理员登录态，无请求体。
+
+响应：
+
+```json
+{"version":1,"games":[{"fishGameName":"元素纪元","fishGameDescription":"元素主题放置游戏","fishGameUrl":"https://example.com/game","fishGameIconUrl":"https://example.com/icon.png","fishGameStatus":1}]}
+```
+
+`POST /api/admin/fish-games/import`
+
+请求：提交导出格式 JSON，`games` 数组最多 200 条。导入记录直接按已审核处理。
+
+```bash
+curl -X POST 'https://fishpi.cn/api/admin/fish-games/import?apiKey=YOUR_API_KEY' \
+  -H 'Content-Type: application/json' \
+  --data-binary @activities-legacy.json
+```
+
+响应：返回 `data.imported`（新增数量）和 `data.skipped`（因目标网址重复而跳过的数量）。
+
+`POST /api/admin/fish-games/{id}/review`
+
+请求：`fishGameStatus` 取 `1`（通过）、`2`（拒绝）或 `3`（停用）。
+
+响应：返回更新后的状态。
+
+`POST /api/admin/fish-games/{id}/edit`
+
+请求：字段同 `POST /api/fish-games`，保存后沿用当前审核状态。
+
+响应：返回更新后的鱼游对象。
+
+> 投稿不要求提交 OAuth 资格材料，由管理员人工审核目标网站。接口变更后请同步更新网站 API 文档文章。

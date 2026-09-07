@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "source": "activities.ftl（2026-09-07 前固定列表）",
+  "games": [
+    {
+      "fishGameName": "摸鱼竞技大厅",
+      "fishGameDescription": "摸鱼竞技大厅基于开源引擎 Tiaoom 开发，提供多人游戏、对局聊天和观战模式。支持象棋、UNO、俄罗斯方块、谁是卧底、药丸博弈、黑白棋、五子棋、斗地主、四子棋、象棋翻棋等玩法。",
+      "fishGameUrl": "https://room.adventext.fun",
+      "fishGameIconUrl": "https://file.fishpi.cn/2025/12/国际象棋游戏-56ff09e8.png"
+    },
+    {
+      "fishGameName": "《进化-Evolve》",
+      "fishGameDescription": "从原生质开始进化，带领智慧生物走向繁荣、迈向星空并征服宇宙。内置摸鱼派云存档，支持进化排行榜。",
+      "fishGameUrl": "https://fishpi.cn/games/evolve/",
+      "fishGameIconUrl": "https://file.fishpi.cn/evolve/evolved.ico"
+    },
+    {
+      "fishGameName": "《A Dark Room》",
+      "fishGameDescription": "极简主义的游戏杰作，带有上世纪 ASCII 游戏的遗风。支持存档云同步，并参与摸鱼派 ADR 游戏总分排行榜。",
+      "fishGameUrl": "https://fishpi.cn/games/adarkroom/?lang=zh_cn",
+      "fishGameIconUrl": "https://file.fishpi.cn/adarkroom/img/adr.png"
+    },
+    {
+      "fishGameName": "Kesini 抽卡站",
+      "fishGameDescription": "由 Yui 主导、G 大师开发、白猫老师绘制卡面的抽卡游戏。",
+      "fishGameUrl": "https://card-game.yuimeta.com",
+      "fishGameIconUrl": "https://file.fishpi.cn/2026/07/kesinicardicon512-f84e6851.png"
+    },
+    {
+      "fishGameName": "Minecraft 私服",
+      "fishGameDescription": "摸鱼派社区成员搭建的 Minecraft 私服，可打怪、挖矿和田园建设。",
+      "fishGameUrl": "https://fishpi.cn/article/1689661528756",
+      "fishGameIconUrl": "https://file.fishpi.cn/2023/08/minecraft-71137c15.png"
+    },
+    {
+      "fishGameName": "《Maze》",
+      "fishGameDescription": "随机生成迷宫，只显示所在位置周围 3×3 的区域，凭直觉找到出口。原网站已停服，保留记录供迁移核对。",
+      "fishGameUrl": "https://maze.hancel.org/",
+      "fishGameIconUrl": "https://file.fishpi.cn/2023/05/icon-4d115aa0.png"
+    },
+    {
+      "fishGameName": "WJU 谜题",
+      "fishGameDescription": "通过 5 种字符串操作，将随机生成的 WJU 字符串变成目标字符串。登录摸鱼派后可获得积分奖励。",
+      "fishGameUrl": "https://wju.adventext.fun/",
+      "fishGameIconUrl": "https://wju.adventext.fun/images/logo.png"
+    },
+    {
+      "fishGameName": "元素纪元",
+      "fishGameDescription": "以化学元素和炼金术为主题的增量放置类科学模拟游戏，从捡起一块木炭开始重走人类化学征途。",
+      "fishGameUrl": "https://atom.adventext.fun/",
+      "fishGameIconUrl": "https://atom.adventext.fun/favicon.svg"
+    },
+    {
+      "fishGameName": "摸鱼大闯关",
+      "fishGameDescription": "CTF 类闯关游戏，利用网页提示寻找密码并进入下一关，支持摸鱼大闯关排行榜。",
+      "fishGameUrl": "https://p.hancel.org/",
+      "fishGameIconUrl": "https://fishpi.cn/images/mofish.png"
+    },
+    {
+      "fishGameName": "摸鱼小闯关",
+      "fishGameDescription": "摸鱼大闯关的原创关卡版本，框架来自跳跳，支持摸鱼小闯关排行榜。",
+      "fishGameUrl": "https://puzzle.iwpz.net/",
+      "fishGameIconUrl": "https://fishpi.cn/images/mofish.png"
+    },
+    {
+      "fishGameName": "汉兜",
+      "fishGameDescription": "猜四字词语的游戏，每天首次游戏可获得积分奖励。",
+      "fishGameUrl": "https://fishpi.cn/games/handle/",
+      "fishGameIconUrl": "https://fishpi.cn/games/handle/favicon.svg"
+    },
+    {
+      "fishGameName": "人生重开模拟器",
+      "fishGameDescription": "不满意现在的人生就重新开始，支持存档云同步和成就排行榜。",
+      "fishGameUrl": "https://fishpi.cn/games/lifeRestart/view/",
+      "fishGameIconUrl": "https://fishpi.cn/images/restart.png"
+    },
+    {
+      "fishGameName": "Emoji 真假小黄脸",
+      "fishGameDescription": "在众多小黄脸中找出不同者，每天首次游戏可获得积分奖励。",
+      "fishGameUrl": "https://fishpi.cn/games/emojiPair",
+      "fishGameIconUrl": "https://fishpi.cn/images/favicon.png"
+    },
+    {
+      "fishGameName": "围住小猫",
+      "fishGameDescription": "围住这只调皮的小猫。",
+      "fishGameUrl": "https://fishpi.cn/activity/catch-the-cat",
+      "fishGameIconUrl": "https://fishpi.cn/images/activities/cat.jpg"
+    },
+    {
+      "fishGameName": "合成大西瓜",
+      "fishGameDescription": "大、大、大、大西瓜。",
+      "fishGameUrl": "https://fishpi.cn/activity/daxigua",
+      "fishGameIconUrl": "https://fishpi.cn/images/activities/daxigua.png"
+    },
+    {
+      "fishGameName": "汉字字符",
+      "fishGameDescription": "参与摸鱼派字符活动。",
+      "fishGameUrl": "https://fishpi.cn/activity/character",
+      "fishGameIconUrl": "https://fishpi.cn/images/activities/char.png"
+    },
+    {
+      "fishGameName": "吃蛇",
+      "fishGameDescription": "参与摸鱼派吃蛇活动。",
+      "fishGameUrl": "https://fishpi.cn/activity/eating-snake",
+      "fishGameIconUrl": "https://fishpi.cn/images/activities/snak.png"
+    },
+    {
+      "fishGameName": "五子棋",
+      "fishGameDescription": "参与摸鱼派五子棋活动。",
+      "fishGameUrl": "https://fishpi.cn/activity/gobang",
+      "fishGameIconUrl": "https://fishpi.cn/images/activities/gobang.png"
+    }
+  ]
+}

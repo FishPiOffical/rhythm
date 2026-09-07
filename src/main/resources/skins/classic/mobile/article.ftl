@@ -117,6 +117,9 @@
                 </#if>
                 <h1 class="article-title" itemprop="name">
                     <@icon article.articlePerfect article.articleType></@icon>
+                    <#if article.isGoodArticle?? && "yes" == article.isGoodArticle>
+                        <span class="article-good-post-badge" aria-label="好帖">好帖</span>
+                    </#if>
                     <a class="ft-a-title" href="${servePath}${article.articlePermalink}" rel="bookmark">
                         ${article.articleTitleEmoj}
                     </a>

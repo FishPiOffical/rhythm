@@ -70,6 +70,16 @@ public final class Role {
     public static final String ROLE_ID_C_ADMIN = "adminRole";
 
     /**
+     * Role id - OP.
+     */
+    public static final String ROLE_ID_C_OP = "1630552921050";
+
+    /**
+     * Role id - super member.
+     */
+    public static final String ROLE_ID_C_SUPER_MEMBER = "1630553268292";
+
+    /**
      * Role name - leader.
      */
     public static final String ROLE_ID_C_LEADER = "leaderRole";
@@ -88,6 +98,18 @@ public final class Role {
      * Role name - visitor.
      */
     public static final String ROLE_ID_C_VISITOR = "visitorRole";
+
+    /**
+     * Checks whether a role can use the article censor bypass.
+     *
+     * @param roleId the role id
+     * @return whether the role is trusted for the bypass
+     */
+    public static boolean canBypassArticleCensor(final String roleId) {
+        return ROLE_ID_C_ADMIN.equals(roleId)
+                || ROLE_ID_C_OP.equals(roleId)
+                || ROLE_ID_C_SUPER_MEMBER.equals(roleId);
+    }
 
     /**
      * Private constructor.

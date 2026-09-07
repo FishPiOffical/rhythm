@@ -94,6 +94,9 @@ public class ActivityProcessor {
     @Inject
     private ActivityQueryService activityQueryService;
 
+    @Inject
+    private FishGameQueryService fishGameQueryService;
+
     /**
      * Character query service.
      */
@@ -459,15 +462,16 @@ public class ActivityProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "home/activities.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
         dataModelService.fillHeaderAndFooter(context, dataModel);
-        dataModelService.fillRandomArticles(dataModel);
-        dataModelService.fillSideHotArticles(dataModel);
-        dataModelService.fillSideTags(dataModel);
-        dataModelService.fillLatestCmts(dataModel);
-
         dataModel.put("pointActivityCheckinMin", Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MIN);
         dataModel.put("pointActivityCheckinMax", Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKIN_MAX);
         dataModel.put("pointActivityCheckinStreak", Pointtransfer.TRANSFER_SUM_C_ACTIVITY_CHECKINT_STREAK);
         dataModel.put("activitYesterdayLivenessRewardMaxPoint", Symphonys.ACTIVITY_YESTERDAY_REWARD_MAX);
+        dataModel.put("fishGames", fishGameQueryService.getApproved());
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final JSONObject sessionUser = currentUser == null ? Sessions.getUser() : currentUser;
+        final String userId = sessionUser == null ? "" : sessionUser.optString(Keys.OBJECT_ID);
+        dataModel.put("myFishGames", fishGameQueryService.getByAuthor(userId));
+        dataModel.put("fishGameUserVotes", fishGameQueryService.getUserVotes(userId));
     }
 
     /**

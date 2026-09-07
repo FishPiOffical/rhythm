@@ -148,6 +148,7 @@
                                 </#if>
                                 <#if permissions["menuAdmin"].permissionGrant>
                                     <a href="${servePath}/admin/pic"<#if type == "pic"> class="current"</#if>>图片审核</a>
+                                    <a href="${servePath}/admin/fish-games"<#if type == "fishGames"> class="current"</#if>>鱼游管理</a>
                                 </#if>
                                 <#if permissions["ipManage"].permissionGrant>
                                     <a href="${servePath}/admin/ip"<#if type == "ip"> class="current"</#if>>IP 管理</a>

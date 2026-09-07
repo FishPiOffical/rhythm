@@ -150,6 +150,23 @@ $article-toc-visible-min-width: 1880px;
       width: 28px;
       vertical-align: -4px;
     }
+
+    .article-good-post-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      margin: 0 6px 0 2px;
+      padding: 0 9px;
+      border: 1px solid rgba(47, 143, 98, .24);
+      border-radius: 999px;
+      background: #effaf3;
+      color: #267a52;
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1;
+      vertical-align: 3px;
+      white-space: nowrap;
+    }
   }
 
   .article-statement{
@@ -2326,6 +2343,629 @@ code .dec {
 .activity {
   min-height: 300px;
 }
+
+.fish-games-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 18px; }
+.fish-game-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border: 1px solid rgba(148, 163, 184, .22); border-radius: 18px; background: rgba(255,255,255,.72); box-shadow: 0 12px 30px rgba(15,23,42,.08); transition: transform .2s ease, box-shadow .2s ease; cursor: pointer; }
+.fish-game-card:hover { transform: translateY(-3px); box-shadow: 0 18px 38px rgba(15,23,42,.14); }
+.fish-games-page .fish-game-card__link, .fish-games-page .fish-game-card__link:hover, .fish-games-page .fish-game-card__link:focus { display: flex; gap: 14px; min-width: 0; flex: 1; color: inherit; text-decoration: none !important; }
+.fish-games-page .fish-game-card__link h2, .fish-games-page .fish-game-card__link p, .fish-games-page .fish-game-card__link:hover h2, .fish-games-page .fish-game-card__link:hover p { text-decoration: none !important; }
+.fish-game-card__icon { flex: 0 0 64px; height: 64px; overflow: hidden; border-radius: 16px; background: #eef2f7; }
+.fish-game-card__icon img, .fish-game-detail__hero img { width: 100%; height: 100%; object-fit: cover; }
+.fish-game-card__body { min-width: 0; flex: 1; }
+.fish-game-card h2 { margin: 0 0 6px; font-size: 17px; }
+.fish-game-card p { margin: 0; color: #6b7280; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.fish-game-card__meta, .fish-game-detail__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 0; color: #6b7280; font-size: 12px; }
+.fish-game-card__meta button, .fish-game-detail__actions button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 28px; padding: 3px 8px; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; line-height: 1; white-space: nowrap; }
+.fish-game-card__meta button:hover, .fish-game-detail__actions button:hover { background: rgba(47,111,237,.1); color: #2f6fed; text-decoration: none; }
+.fish-game-card__meta button.is-selected, .fish-game-detail__actions button.is-selected { background: rgba(47,111,237,.14); color: #205bc4; box-shadow: inset 0 0 0 1px rgba(47,111,237,.18); }
+.fish-game-card__meta button:active, .fish-game-detail__actions button:active { transform: scale(.94); }
+.fish-games-page .fish-game-card__meta a, .fish-games-page .fish-game-card__meta a:hover, .fish-games-page .fish-game-card__meta a:focus { text-decoration: none !important; }
+.fish-game-card__meta a { margin-left: auto; }
+.fish-games-hero { display: flex; align-items: center; justify-content: space-between; padding: 24px; border: 1px solid rgba(148,163,184,.22); background: rgba(255,255,255,.66); backdrop-filter: blur(18px) saturate(140%); border-radius: 18px; box-shadow: 0 12px 30px rgba(15,23,42,.06); }
+.fish-games-hero h1 { margin: 0; font-size: 28px; }
+.fish-games-hero p { margin: 6px 0 0; color: #6b7280; }
+.fish-game-submit, .fish-game-detail { margin-top: 18px; padding: 22px; border-radius: 18px; background: rgba(255,255,255,.86); }
+.fish-game-notice { padding: 12px 14px; border-radius: 12px; background: #fff7e6; color: #7a5b18; line-height: 1.6; }
+.fish-game-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.fish-game-form label { display: flex; flex-direction: column; gap: 6px; color: #4b5563; }
+.fish-game-form input, .fish-game-form textarea, .fish-game-comment-form textarea { padding: 10px 12px; border: 1px solid #dbe3ee; border-radius: 10px; box-sizing: border-box; }
+.fish-game-form textarea { min-height: 100px; resize: vertical; }
+.fish-game-form__wide { grid-column: 1 / -1; }
+.fish-game-detail {
+  margin-top: 18px;
+  padding: 0;
+  background: transparent;
+}
+
+.fish-game-detail__hero,
+.fish-game-detail__panel,
+.fish-game-detail__comments {
+  border: 1px solid #e3e8ef;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+}
+
+.fish-game-detail__hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 30px 32px;
+}
+
+.fish-game-detail__identity {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.fish-game-detail__hero img {
+  width: 104px;
+  height: 104px;
+  border: 1px solid #edf1f5;
+  border-radius: 22px;
+  background: #f5f7fa;
+}
+
+.fish-game-detail__copy {
+  min-width: 0;
+}
+
+.fish-game-detail__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #6d7784;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.fish-game-detail__hero h1 {
+  margin: 0;
+  color: #18212b;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.fish-game-detail__hero p {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: #586574;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.fish-game-detail__open,
+.fish-game-detail__open:hover,
+.fish-game-detail__open:focus {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid #287d59;
+  border-radius: 12px;
+  background: #2f8f62;
+  box-shadow: 0 6px 14px rgba(47, 143, 98, .2);
+  color: #fff;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.fish-game-detail__open:hover {
+  background: #287d59;
+  box-shadow: 0 8px 18px rgba(47, 143, 98, .25);
+}
+
+.fish-game-detail__open:active {
+  transform: scale(.97);
+  box-shadow: 0 3px 8px rgba(47, 143, 98, .22);
+}
+
+.fish-game-detail__layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.fish-game-detail__sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.fish-game-detail__panel {
+  padding: 20px;
+}
+
+.fish-game-detail__panel h2,
+.fish-game-detail__section-head h2 {
+  margin: 0;
+  color: #263241;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.fish-game-detail__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fish-game-detail__actions button.fish-game-vote {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid #e2e8ef;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #465465;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  transition: transform .15s ease, border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+.fish-game-detail__actions button.fish-game-vote:hover {
+  border-color: #c8d4df;
+  background: #fff;
+}
+
+.fish-game-detail__actions button.fish-game-vote--like.is-selected {
+  border-color: #9ec7ed;
+  background: #eff7ff;
+  color: #1764ac;
+  box-shadow: inset 0 0 0 1px rgba(23, 100, 172, .04);
+}
+
+.fish-game-detail__actions button.fish-game-vote--dislike.is-selected {
+  border-color: #ebc6c6;
+  background: #fff5f5;
+  color: #a94b4b;
+}
+
+.fish-game-detail__actions button.fish-game-vote:active {
+  transform: scale(.97);
+}
+
+.fish-game-vote__count {
+  min-width: 1.2em;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.fish-game-detail__owner {
+  padding: 0;
+  overflow: hidden;
+}
+
+.fish-game-edit-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  color: #263241;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fish-game-edit-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.fish-game-edit-disclosure summary strong,
+.fish-game-edit-disclosure summary small {
+  display: block;
+}
+
+.fish-game-edit-disclosure summary small {
+  margin-top: 4px;
+  color: #778393;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fish-game-edit-disclosure summary b {
+  flex: 0 0 auto;
+  color: #1e6e4c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fish-game-edit-disclosure[open] summary {
+  border-bottom: 1px solid #edf1f5;
+}
+
+.fish-game-edit-disclosure form {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px 20px;
+}
+
+.fish-game-edit-disclosure label {
+  display: grid;
+  gap: 6px;
+  color: #596778;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fish-game-edit-disclosure input,
+.fish-game-edit-disclosure textarea,
+.fish-game-comment-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d9e1e9;
+  border-radius: 10px;
+  background: #fff;
+  color: #263241;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.fish-game-edit-disclosure input {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.fish-game-edit-disclosure textarea {
+  min-height: 88px;
+  padding: 9px 10px;
+  resize: vertical;
+}
+
+.fish-game-edit-disclosure input:focus,
+.fish-game-edit-disclosure textarea:focus,
+.fish-game-comment-form textarea:focus {
+  border-color: #75b797;
+  outline: 3px solid rgba(47, 143, 98, .14);
+}
+
+.fish-game-edit-disclosure form .btn {
+  justify-self: start;
+  min-height: 38px;
+}
+
+.fish-game-edit-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 20px;
+  background: #fffdf7;
+}
+
+.fish-game-edit-status__indicator {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #d69e2e;
+  box-shadow: 0 0 0 4px rgba(214, 158, 46, .15);
+}
+
+.fish-game-edit-status strong,
+.fish-game-edit-status small {
+  display: block;
+}
+
+.fish-game-edit-status strong {
+  color: #695017;
+  font-size: 14px;
+}
+
+.fish-game-edit-status small {
+  margin-top: 4px;
+  color: #94783b;
+  font-size: 12px;
+}
+
+.fish-game-detail__comments {
+  min-width: 0;
+  padding: 0 26px;
+}
+
+.fish-game-detail__section-head {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.fish-game-comments__empty {
+  margin: 0;
+  padding: 28px 0;
+  color: #7a8796;
+}
+
+.fish-game-comment {
+  padding: 18px 0;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.fish-game-comment b {
+  color: #344254;
+  font-size: 14px;
+}
+
+.fish-game-comment p {
+  margin: 7px 0 0;
+  color: #5b6878;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.fish-game-comment-form {
+  display: grid;
+  gap: 12px;
+  padding: 20px 0 24px;
+}
+
+.fish-game-comment-form textarea {
+  min-height: 96px;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.fish-game-comment-form .btn {
+  justify-self: end;
+  min-height: 40px;
+}
+
+.fish-game-login,
+.fish-game-login:hover,
+.fish-game-login:focus {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin: 20px 0 24px;
+  color: #1e6e4c;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+
+@media (max-width: 820px) {
+  .fish-game-detail__hero {
+    align-items: flex-start;
+    padding: 24px;
+  }
+
+  .fish-game-detail__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fish-game-detail__sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish-game-detail__open,
+  .fish-game-detail__actions button.fish-game-vote {
+    transition: background-color .12s ease, border-color .12s ease;
+  }
+
+  .fish-game-detail__open:active,
+  .fish-game-detail__actions button.fish-game-vote:active {
+    transform: none;
+  }
+}
+@media (max-width: 900px) { .fish-games-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (prefers-reduced-motion: reduce) { .fish-game-card { transition: none; } .fish-game-card:hover { transform: none; } }
+.fish-game-admin {
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, .06);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.fish-game-admin__header,
+.fish-game-admin__list-heading,
+.fish-game-admin__game-heading,
+.fish-game-admin__edit-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.fish-game-admin__header { margin-bottom: 14px; }
+.fish-game-admin__header h1 { margin: 0; color: #172033; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.fish-game-admin__header p { margin: 6px 0 0; color: #758195; line-height: 1.5; }
+.fish-game-admin__toolbar { display: flex; flex: 0 0 auto; gap: 8px; }
+.fish-game-admin__result { display: block; min-height: 20px; margin: 10px 0; color: #267044; font-size: 13px; line-height: 20px; }
+
+.fish-game-admin__button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .1s ease;
+  white-space: nowrap;
+}
+
+.fish-game-admin__button:active { transform: scale(.98); }
+.fish-game-admin__button--primary { background: #1f6f4d; color: #fff; }
+.fish-game-admin__button--primary:hover { background: #185c3f; box-shadow: 0 6px 14px rgba(31, 111, 77, .2); }
+.fish-game-admin__button--secondary { border-color: #dce4ed; background: #fff; color: #354155; }
+.fish-game-admin__button--secondary:hover { border-color: #bfcbd8; background: #f8fafc; }
+.fish-game-admin__button--approve { border-color: #bde2cb; background: #ecf8f0; color: #206a44; }
+.fish-game-admin__button--approve:hover { background: #ddf2e4; }
+.fish-game-admin__button--reject { border-color: #f1d2d2; background: #fff6f5; color: #a14b4b; }
+.fish-game-admin__button--reject:hover { background: #ffebe9; }
+.fish-game-admin__button--disable { border-color: #e5e7eb; background: #f8fafc; color: #596579; }
+.fish-game-admin__button--disable:hover { border-color: #d1d7e0; background: #eef2f7; }
+
+.fish-game-admin__disclosures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fish-game-admin__disclosure,
+.fish-game-admin__edit-disclosure {
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.fish-game-admin__disclosure summary,
+.fish-game-admin__edit-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 66px;
+  padding: 0 16px;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color .16s ease;
+}
+
+.fish-game-admin__disclosure summary:hover,
+.fish-game-admin__edit-disclosure summary:hover { background: #f8fafc; }
+.fish-game-admin__disclosure summary::-webkit-details-marker,
+.fish-game-admin__edit-disclosure summary::-webkit-details-marker { display: none; }
+.fish-game-admin__disclosure-copy strong { display: block; color: #243146; font-size: 16px; line-height: 1.3; }
+.fish-game-admin__disclosure-copy small { display: block; margin-top: 3px; color: #7a879a; font-size: 13px; line-height: 1.4; }
+.fish-game-admin__chevron { width: 8px; height: 8px; flex: 0 0 auto; border-right: 1.5px solid #7e8b9d; border-bottom: 1.5px solid #7e8b9d; transform: rotate(45deg) translateY(-2px); transition: transform .18s ease; }
+.fish-game-admin__disclosure[open] .fish-game-admin__chevron,
+.fish-game-admin__edit-disclosure[open] .fish-game-admin__chevron { transform: rotate(225deg) translateY(-2px); }
+.fish-game-admin__disclosure-body { padding: 4px 16px 16px; border-top: 1px solid #edf1f5; }
+.fish-game-admin__hint { margin: 10px 0 12px; color: #718096; font-size: 13px; line-height: 1.5; }
+
+.fish-game-admin__form,
+.fish-game-admin__edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fish-game-admin__form { padding-top: 12px; }
+.fish-game-admin__form label,
+.fish-game-admin__edit label,
+.fish-game-admin__json-label { display: flex; flex-direction: column; gap: 6px; color: #4a5668; font-size: 13px; font-weight: 600; }
+.fish-game-admin__form input,
+.fish-game-admin__form textarea,
+.fish-game-admin__edit input,
+.fish-game-admin__edit textarea,
+.fish-game-admin__json-label textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 10px;
+  border: 1px solid #d9e2ec;
+  border-radius: 9px;
+  background: #fff;
+  color: #263241;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  outline: 0;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.fish-game-admin__form textarea,
+.fish-game-admin__edit textarea,
+.fish-game-admin__json-label textarea { min-height: 88px; resize: vertical; }
+.fish-game-admin__form input:focus,
+.fish-game-admin__form textarea:focus,
+.fish-game-admin__edit input:focus,
+.fish-game-admin__edit textarea:focus,
+.fish-game-admin__json-label textarea:focus { border-color: #72b494; box-shadow: 0 0 0 3px rgba(47, 143, 98, .13); }
+.fish-game-admin__form .fish-game-admin__button,
+.fish-game-admin__edit .fish-game-admin__button { justify-self: start; }
+
+.fish-game-admin__file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.fish-game-admin__file-picker { display: flex; min-height: 40px; align-items: center; gap: 10px; margin-bottom: 12px; padding: 5px; border: 1px solid #dce4ed; border-radius: 10px; background: #f8fafc; cursor: pointer; }
+.fish-game-admin__file-picker:hover { border-color: #c5d0dc; background: #f3f7fb; }
+.fish-game-admin__file-input:focus + .fish-game-admin__file-picker { border-color: #72b494; box-shadow: 0 0 0 3px rgba(47, 143, 98, .13); }
+.fish-game-admin__file-button { display: inline-flex; min-height: 30px; align-items: center; padding: 0 10px; border-radius: 7px; background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .06); color: #304056; font-size: 13px; font-weight: 650; }
+.fish-game-admin__file-name { min-width: 0; overflow: hidden; color: #748196; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.fish-game-admin__json-label { margin-bottom: 12px; }
+
+.fish-game-admin__list { margin-top: 22px; }
+.fish-game-admin__list-heading { margin-bottom: 10px; padding: 0 2px; }
+.fish-game-admin__list-heading h2 { margin: 0; color: #243146; font-size: 17px; line-height: 1.3; }
+.fish-game-admin__list-heading span { color: #8190a3; font-size: 13px; }
+.fish-game-admin__row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start; margin-top: 10px; padding: 16px; border: 1px solid #e5ebf1; border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(15, 23, 42, .025); }
+.fish-game-admin__row img { width: 64px; height: 64px; border-radius: 15px; object-fit: cover; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .05); }
+.fish-game-admin__main { min-width: 0; }
+.fish-game-admin__game-heading { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+.fish-game-admin__game-heading h2 { margin: 0; color: #253247; font-size: 16px; line-height: 1.35; }
+.fish-game-admin__status { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; background: #eef2f7; color: #596579; font-size: 12px; font-weight: 650; }
+.fish-game-admin__status--0 { background: #fff4da; color: #8a6417; }
+.fish-game-admin__status--1 { background: #e8f7ee; color: #277147; }
+.fish-game-admin__status--2,
+.fish-game-admin__status--3 { background: #fff0ef; color: #a24c4c; }
+.fish-game-admin__meta { display: block; margin-top: 5px; color: #7c8999; font-size: 12px; line-height: 1.4; }
+.fish-game-admin__row p { margin: 8px 0; color: #556174; font-size: 14px; line-height: 1.55; }
+.fish-game-admin__site-link,
+.fish-game-admin__site-link:hover,
+.fish-game-admin__site-link:focus { color: #2169b1; font-size: 13px; font-weight: 650; text-decoration: none; }
+.fish-game-admin__pending { margin: 14px 0; padding: 12px 13px; border: 1px solid #f2dfb5; border-radius: 10px; background: #fff9eb; color: #805d13; }
+.fish-game-admin__pending p { margin: 4px 0; color: inherit; font-size: 13px; }
+.fish-game-admin__edit-disclosure { margin-top: 14px; }
+.fish-game-admin__edit-disclosure summary { min-height: 46px; padding: 0 12px; color: #425168; font-size: 13px; font-weight: 650; }
+.fish-game-admin__edit { padding: 12px; border-top: 1px solid #edf1f5; }
+.fish-game-admin__actions { display: flex; min-width: 92px; flex-direction: column; gap: 7px; }
+.fish-game-admin__empty { padding: 24px 0; color: #7b8798; text-align: center; }
+
+@media (max-width: 720px) {
+  .fish-game-admin__disclosures { grid-template-columns: 1fr; }
+  .fish-game-admin__row { grid-template-columns: 56px minmax(0, 1fr); }
+  .fish-game-admin__row img { width: 56px; height: 56px; }
+  .fish-game-admin__actions { grid-column: 1 / -1; min-width: 0; flex-direction: row; flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish-game-admin__button,
+  .fish-game-admin__chevron,
+  .fish-game-admin__disclosure summary,
+  .fish-game-admin__edit-disclosure summary { transition: none; }
+  .fish-game-admin__button:active { transform: none; }
+}
+.fish-game-modal[hidden] { display: none; }
+.fish-game-modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; }
+.fish-game-modal__backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.34); backdrop-filter: blur(8px); }
+.fish-game-modal__dialog { position: relative; width: min(640px, 100%); max-height: min(720px, calc(100vh - 48px)); overflow: auto; padding: 26px; border: 1px solid rgba(255,255,255,.72); border-radius: 22px; background: rgba(255,255,255,.94); box-shadow: 0 24px 70px rgba(15,23,42,.24); }
+.fish-game-modal__dialog h2 { margin: 0 0 14px; }
+.fish-game-modal__close { position: absolute; top: 12px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #eef2f7; color: #334155; font-size: 22px; line-height: 1; cursor: pointer; }
+.fish-game-modal-open { overflow: hidden; }
+.fish-game-submissions { margin-top: 20px; padding: 20px; border: 1px solid rgba(148,163,184,.2); border-radius: 18px; background: rgba(255,255,255,.72); }
+.fish-game-submissions__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fish-game-submissions__header h2 { margin: 0; font-size: 20px; }
+.fish-game-submission { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid #edf1f6; }
+.fish-game-submission:last-child { border-bottom: 0; }
+.fish-game-submission p { margin: 5px 0 0; color: #6b7280; }
+.fish-game-status { flex: 0 0 auto; padding: 4px 9px; border-radius: 999px; background: #eef2f7; color: #526070; font-size: 12px; }
+.fish-game-status--0 { background: #fff4d6; color: #8a6417; }
+.fish-game-status--1 { background: #e4f6eb; color: #267044; }
+.fish-game-status--2, .fish-game-status--3 { background: #fbe8e8; color: #9a3d3d; }
+@media (max-width: 600px) { .fish-game-modal { padding: 12px; } .fish-game-modal__dialog { padding: 22px 16px 16px; border-radius: 18px; } .fish-game-submission { align-items: flex-start; flex-direction: column; gap: 8px; } }
+@media (prefers-reduced-motion: reduce) { .fish-game-card__meta button:active, .fish-game-detail__actions button:active { transform: none; } }
 
 .activity .list .ft-fade {
   margin-top: 6px;
@@ -7556,6 +8196,10 @@ body.night .long-column-card--hot .long-column-card__chapter-no {
   color: #fdba74;
 }
 /* end long-read-zone */
+
+.fish-games-page {
+  border-radius: 18px;
+}
 
 @import "home-personalize";
 @import "home-feedback";

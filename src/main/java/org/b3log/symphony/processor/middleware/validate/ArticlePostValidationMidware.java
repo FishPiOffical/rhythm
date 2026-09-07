@@ -88,6 +88,8 @@ public class ArticlePostValidationMidware {
 
     private static final String HTTP_METHOD_POST = "POST";
 
+    private static final String ARTICLE_BYPASS_CENSOR_FORBIDDEN = "无权使用免审发帖。";
+
     public void handle(final RequestContext context) {
         final JSONObject requestJSONObject = context.requestJSON();
         final BeanManager beanManager = BeanManager.getInstance();
@@ -98,7 +100,24 @@ public class ArticlePostValidationMidware {
         final JSONObject exception = new JSONObject();
         exception.put(Keys.CODE, StatusCodes.ERR);
 
-        requestJSONObject.put(Article.ARTICLE_TITLE, ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_TITLE)));
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) {
+            context.sendError(401);
+            context.abort();
+            return;
+        }
+
+        final boolean bypassCensor = requestJSONObject.optBoolean(Article.ARTICLE_BYPASS_CENSOR, false);
+        if (bypassCensor && !Role.canBypassArticleCensor(currentUser.optString(User.USER_ROLE))) {
+            context.renderJSON(exception.put(Keys.MSG, ARTICLE_BYPASS_CENSOR_FORBIDDEN));
+            context.abort();
+            return;
+        }
+
+        if (!bypassCensor) {
+            requestJSONObject.put(Article.ARTICLE_TITLE,
+                    ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_TITLE)));
+        }
         String articleTitle = requestJSONObject.optString(Article.ARTICLE_TITLE);
         articleTitle = StringUtils.trim(articleTitle);
         articleTitle = Emotions.clear(articleTitle);
@@ -154,7 +173,10 @@ public class ArticlePostValidationMidware {
             }
         }
 
-        requestJSONObject.put(Article.ARTICLE_TAGS, ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_TAGS)));
+        if (!bypassCensor) {
+            requestJSONObject.put(Article.ARTICLE_TAGS,
+                    ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_TAGS)));
+        }
         String articleTags = requestJSONObject.optString(Article.ARTICLE_TAGS);
         articleTags = Tag.formatTags(articleTags);
 
@@ -199,18 +221,8 @@ public class ArticlePostValidationMidware {
                     }
                 }
 
-                JSONObject currentUser = Sessions.getUser();
-                try {
-                    currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-                } catch (NullPointerException ignored) {
-                }
-                try {
-                    currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-                } catch (NullPointerException ignored) {
-                }
-                if ((
-                        !Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE)) && !"1630552921050".equals(currentUser.optString(User.USER_ROLE))
-                )
+                if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
+                        && !Role.ROLE_ID_C_OP.equals(currentUser.optString(User.USER_ROLE))
                         && ArrayUtils.contains(Symphonys.RESERVED_TAGS, tagTitle)) {
                     context.renderJSON(exception.put(Keys.MSG, langPropsService.get("articleTagReservedLabel") + " [" + tagTitle + "]"));
                     context.abort();
@@ -229,7 +241,10 @@ public class ArticlePostValidationMidware {
             requestJSONObject.put(Article.ARTICLE_TAGS, tagBuilder.toString());
         }
 
-        requestJSONObject.put(Article.ARTICLE_CONTENT, ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_CONTENT)));
+        if (!bypassCensor) {
+            requestJSONObject.put(Article.ARTICLE_CONTENT,
+                    ReservedWords.processReservedWord(requestJSONObject.optString(Article.ARTICLE_CONTENT)));
+        }
         String articleContent = requestJSONObject.optString(Article.ARTICLE_CONTENT);
         articleContent = StringUtils.trim(articleContent);
         if (StringUtils.isBlank(articleContent) || articleContent.length() > MAX_ARTICLE_CONTENT_LENGTH
@@ -242,23 +257,9 @@ public class ArticlePostValidationMidware {
             return;
         }
 
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        if (null == currentUser) {
-            context.sendError(401);
-            context.abort();
-            return;
-        }
-
         // 频率检测
-        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE)) && !"1630552921050".equals(currentUser.optString(User.USER_ROLE))) {
+        if (!Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(User.USER_ROLE))
+                && !Role.ROLE_ID_C_OP.equals(currentUser.optString(User.USER_ROLE))) {
             if (!addArticleLimiter.access(currentUser.optString(Keys.OBJECT_ID))) {
                 context.renderJSON(exception.put(Keys.MSG, "操作过于频繁，请稍候重试。"));
                 context.abort();
@@ -298,21 +299,23 @@ public class ArticlePostValidationMidware {
             }
         }
 
-        // 敏感词检测
-        CensorResult titleCensorResult = CensorFactory.getTextCensor().censor(articleTitle + " 标签：" + articleTags);
-        CensorResult articleCensorResult = CensorFactory.getTextCensor().censor(articleContent);
-        // 组合标题和文章的bannedWords数组（如果标题或文章没有则不显示额外字符），组成用于显示的字符串
-        String titleBannedWords = "标题和标签" + titleCensorResult.showBannedWords() + "；";
-        String articleBannedWords = "内容" + articleCensorResult.showBannedWords();
-        String bannedWords = titleBannedWords + articleBannedWords;
-        if (titleCensorResult.isBlocked() || articleCensorResult.isBlocked()) {
-            // 违规内容，不予显示
-            context.renderJSON(exception.put(Keys.MSG, "您的文章经过AI审核存在违规内容，请修改内容后重试。" + bannedWords));
-            // 记录日志
-            LogsService.censorLog(context, currentUser.optString(Keys.OBJECT_ID), "用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);
-            System.out.println("用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);
-            context.abort();
-            return;
+        if (!bypassCensor) {
+            // 敏感词检测
+            CensorResult titleCensorResult = CensorFactory.getTextCensor().censor(articleTitle + " 标签：" + articleTags);
+            CensorResult articleCensorResult = CensorFactory.getTextCensor().censor(articleContent);
+            // 组合标题和文章的bannedWords数组（如果标题或文章没有则不显示额外字符），组成用于显示的字符串
+            String titleBannedWords = "标题和标签" + titleCensorResult.showBannedWords() + "；";
+            String articleBannedWords = "内容" + articleCensorResult.showBannedWords();
+            String bannedWords = titleBannedWords + articleBannedWords;
+            if (titleCensorResult.isBlocked() || articleCensorResult.isBlocked()) {
+                // 违规内容，不予显示
+                context.renderJSON(exception.put(Keys.MSG, "您的文章经过AI审核存在违规内容，请修改内容后重试。" + bannedWords));
+                // 记录日志
+                LogsService.censorLog(context, currentUser.optString(Keys.OBJECT_ID), "用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);
+                System.out.println("用户：" + currentUser.optString(User.USER_NAME) + " 违规上传文章：" + articleTitle + " 内容：" + articleContent + " 标题违规判定：" + titleCensorResult + " 内容违规判定：" + articleCensorResult);
+                context.abort();
+                return;
+            }
         }
 
         context.handle();

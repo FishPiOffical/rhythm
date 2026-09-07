@@ -116,9 +116,10 @@
                         <input class="fn-none" type="radio" name="articleType" value="${article.articleType}" checked="checked"/> 
                         </#if>
                     </div>
-                    <div class="fn-clear">
-                        <label class="article-anonymous">&nbsp;  ${statementLabel}
-                            <select id="articleStatement" name="articleStatement" >
+                    <div class="article-settings fn-clear">
+                        <div class="article-settings__options">
+                        <label class="article-anonymous article-settings__statement">${statementLabel}
+                            <select id="articleStatement" name="articleStatement">
                                 <option value="0" <#if article?? && 0 == article.articleStatement>selected</#if>>${statementNoneLabel}</option>
                                 <option value="1" <#if article?? && 1 == article.articleStatement>selected</#if>>${statementAILabel}</option>
                                 <option value="2" <#if article?? && 2 == article.articleStatement>selected</#if>>${statementSpoilersLabel}</option>
@@ -130,35 +131,46 @@
                                 <#if article??> disabled="disabled"<#if 1 == article.articleAnonymous> checked</#if></#if>
                                 type="checkbox" id="articleAnonymous"></label>
                         </#if>
-                        <br />
-                        <br />
-                        <label class="article-anonymous">&nbsp;  ${showInListLabel}<input
+                        <label class="article-anonymous">${showInListLabel}<input
                                 <#if (article?? && (1 == article.articleShowInList)) || !article??> checked="checked"</#if>
                                                                                                      type="checkbox" id="articleShowInList"></label>
-                        <label class="article-anonymous">&nbsp;  ${commentableLabel}<input
+                        <label class="article-anonymous">${commentableLabel}<input
                                 <#if (article?? && article.articleCommentable) || !article??> checked="checked"</#if>
                                                 type="checkbox" id="articleCommentable"></label>
-                        <label class="article-anonymous">&nbsp;  ${notifyFollowersLabel}<input type="checkbox" id="articleNotifyFollowers"></label>
-                        <br/><br/>
+                        <label class="article-anonymous">${notifyFollowersLabel}<input type="checkbox" id="articleNotifyFollowers"></label>
+                        </div>
+                        <div class="article-settings__actions article-post-actions">
                         <#if article??>
+                            <#if permissions["commonRemoveArticle"].permissionGrant>
+                                <button class="red article-remove-action" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
+                            </#if>
                             <#if permissions["commonUpdateArticle"].permissionGrant>
-                                <button class="fn-right" tabindex="10" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
+                                <#if articleBypassCensorAvailable>
+                                    <button type="button" class="article-draft-action article-bypass-action" tabindex="10"
+                                            onclick="AddArticle.confirmBypassAdd('${csrfToken}', this)">免审保存</button>
+                                </#if>
+                                <button class="green article-publish-action" tabindex="10" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
                             </#if>
-                        <#else>
-                            <#if permissions["commonAddArticle"].permissionGrant>
-                                <button type="button" class="fn-right article-draft-action" tabindex="12"
-                                        onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
-                                <span class="fn-right">&nbsp; &nbsp;</span>
-                                <button type="button" class="fn-right article-draft-action" tabindex="11"
-                                        onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
-                                <span class="fn-right">&nbsp; &nbsp;</span>
-                                <button class="fn-right" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
+                        <#elseif permissions["commonAddArticle"].permissionGrant>
+                            <span class="article-good-post">
+                                <label class="article-good-post__label" for="articleGoodPost">
+                                    <input type="checkbox" id="articleGoodPost">
+                                    <span>这是好帖（获取优质奖励）</span>
+                                </label>
+                                <button type="button" class="article-good-post__help" aria-label="查看好帖奖励说明"
+                                        title="查看好帖奖励说明" onclick="AddArticle.showGoodArticleInfo()">?</button>
+                            </span>
+                            <button type="button" class="article-draft-action article-draft-box-action" tabindex="12"
+                                    onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
+                            <button type="button" class="article-draft-action article-save-draft-action" tabindex="11"
+                                    onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
+                            <#if articleBypassCensorAvailable>
+                                <button type="button" class="article-draft-action article-bypass-action" tabindex="10"
+                                        onclick="AddArticle.confirmBypassAdd('${csrfToken}', this)">免审发帖</button>
                             </#if>
+                            <button class="green article-publish-action" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
                         </#if>
-                        <span class="fn-right">&nbsp; &nbsp;</span>
-                        <#if article?? && permissions["commonRemoveArticle"].permissionGrant>
-                            <button class="red fn-right" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
-                        </#if>
+                        </div>
                     </div>
                     <br/>
                     <div class="fn-clear">

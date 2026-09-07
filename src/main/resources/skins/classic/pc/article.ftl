@@ -106,6 +106,9 @@
         </#if>
         <h1 class="article-title" itemprop="name">
             <@icon article.articlePerfect article.articleType></@icon>
+            <#if article.isGoodArticle?? && "yes" == article.isGoodArticle>
+                <span class="article-good-post-badge" aria-label="好帖">好帖</span>
+            </#if>
             ${article.articleTitleEmoj}
         </h1>
         <#if 6 == article.articleType>

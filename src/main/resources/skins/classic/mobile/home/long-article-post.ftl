@@ -96,24 +96,28 @@
                         </div>
                     </div>
                     <div class="fn-hr10"></div>
-                    <div class="fn-clear">
+                    <div class="article-post-actions">
                         <#if article??>
+                            <#if permissions["commonRemoveArticle"].permissionGrant>
+                                <button class="red article-remove-action" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
+                            </#if>
                             <#if permissions["commonUpdateArticle"].permissionGrant>
-                                <button class="fn-right" tabindex="10" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
+                                <#if articleBypassCensorAvailable>
+                                    <button type="button" class="article-draft-action article-bypass-action" tabindex="10"
+                                            onclick="AddArticle.confirmBypassAdd('${csrfToken}', this)">免审保存</button>
+                                </#if>
+                                <button class="green article-publish-action" id="addArticleBtn" tabindex="10" onclick="AddArticle.add('${csrfToken}', this)">${submitLabel}</button>
                             </#if>
-                        <#else>
-                            <#if permissions["commonAddArticle"].permissionGrant>
-                                <button type="button" class="fn-right article-draft-action" tabindex="12"
-                                        onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
-                                <span class="fn-right">&nbsp; &nbsp;</span>
-                                <button type="button" class="fn-right article-draft-action" tabindex="11"
-                                        onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
-                                <span class="fn-right">&nbsp; &nbsp;</span>
-                                <button class="fn-right" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
+                        <#elseif permissions["commonAddArticle"].permissionGrant>
+                            <button type="button" class="article-draft-action article-draft-box-action" tabindex="12"
+                                    onclick="AddArticle.openDraftBox('${csrfToken}')">草稿箱</button>
+                            <button type="button" class="article-draft-action article-save-draft-action" tabindex="11"
+                                    onclick="AddArticle.saveDraft('${csrfToken}', this)">存草稿</button>
+                            <#if articleBypassCensorAvailable>
+                                <button type="button" class="article-draft-action article-bypass-action" tabindex="10"
+                                        onclick="AddArticle.confirmBypassAdd('${csrfToken}', this)">免审发帖</button>
                             </#if>
-                        </#if>
-                        <#if article?? && permissions["commonRemoveArticle"].permissionGrant>
-                            <button class="red fn-right" tabindex="11" onclick="AddArticle.remove('${csrfToken}', this)">${removeArticleLabel}</button>
+                            <button class="green article-publish-action" id="addArticleBtn" tabindex="10" onclick="AddArticle.confirmAdd('${csrfToken}', this)">${postLabel}</button>
                         </#if>
                     </div>
                     <br/>

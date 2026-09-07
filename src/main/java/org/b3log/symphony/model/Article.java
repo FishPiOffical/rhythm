@@ -217,6 +217,11 @@ public final class Article {
     public static final String ARTICLE_PERFECT = "articlePerfect";
 
     /**
+     * Key of good article flag.
+     */
+    public static final String ARTICLE_GOOD_POST = "isGoodArticle";
+
+    /**
      * Key of article anonymous view.
      */
     public static final String ARTICLE_ANONYMOUS_VIEW = "articleAnonymousView";
@@ -240,6 +245,11 @@ public final class Article {
      * Key of article image1 URL. https://github.com/b3log/symphony/issues/705
      */
     public static final String ARTICLE_IMG1_URL = "articleImg1URL";
+
+    /**
+     * Key of article censor bypass request flag.
+     */
+    public static final String ARTICLE_BYPASS_CENSOR = "articleBypassCensor";
 
     //// Transient ////
     /**

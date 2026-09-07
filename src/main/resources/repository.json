@@ -2095,6 +2095,12 @@
           "description": "0：非优选，1：优选"
         },
         {
+          "name": "isGoodArticle",
+          "type": "String",
+          "length": 3,
+          "description": "是否标记为好帖：yes 表示是"
+        },
+        {
           "name": "articleAnonymousView",
           "type": "int",
           "description": "0：允许不登录浏览， 1：登录才可浏览"
@@ -3154,6 +3160,50 @@
           "type": "long",
           "description": "更新时间"
         }
+      ]
+    },
+    {
+      "name": "fish_game",
+      "description": "鱼游投稿与审核",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "fishGameName", "type": "String", "length": 80, "description": "名称" },
+        { "name": "fishGameDescription", "type": "String", "length": 1000, "description": "描述" },
+        { "name": "fishGameUrl", "type": "String", "length": 512, "description": "网址" },
+        { "name": "fishGameIconUrl", "type": "String", "length": 512, "description": "图标网址" },
+        { "name": "fishGameAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
+        { "name": "fishGameStatus", "type": "int", "description": "状态" },
+        { "name": "fishGameEditPending", "type": "int", "description": "是否有待审核编辑" },
+        { "name": "fishGamePendingName", "type": "String", "length": 80, "description": "待审核名称" },
+        { "name": "fishGamePendingDescription", "type": "String", "length": 1000, "description": "待审核描述" },
+        { "name": "fishGamePendingUrl", "type": "String", "length": 512, "description": "待审核网址" },
+        { "name": "fishGamePendingIconUrl", "type": "String", "length": 512, "description": "待审核图标网址" },
+        { "name": "fishGameLikeCount", "type": "int", "description": "点赞数" },
+        { "name": "fishGameDislikeCount", "type": "int", "description": "点踩数" },
+        { "name": "fishGameCreatedTime", "type": "long", "description": "创建时间" },
+        { "name": "fishGameUpdatedTime", "type": "long", "description": "更新时间" }
+      ]
+    },
+    {
+      "name": "fish_game_vote",
+      "description": "鱼游投票",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "fishGameVoteGameId", "type": "String", "length": 19, "description": "鱼游 ID" },
+        { "name": "fishGameVoteUserId", "type": "String", "length": 19, "description": "用户 ID" },
+        { "name": "fishGameVoteValue", "type": "String", "length": 16, "description": "投票值" },
+        { "name": "fishGameVoteCreatedTime", "type": "long", "description": "创建时间" }
+      ]
+    },
+    {
+      "name": "fish_game_comment",
+      "description": "鱼游评论",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
+        { "name": "fishGameCommentGameId", "type": "String", "length": 19, "description": "鱼游 ID" },
+        { "name": "fishGameCommentAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
+        { "name": "fishGameCommentContent", "type": "String", "length": 500, "description": "评论内容" },
+        { "name": "fishGameCommentCreatedTime", "type": "long", "description": "创建时间" }
       ]
     },
     {

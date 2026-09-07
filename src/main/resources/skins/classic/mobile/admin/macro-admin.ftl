@@ -145,6 +145,9 @@
                     <#if type == "pic"  && permissions["menuAdmin"].permissionGrant>
                         图片审核
                     </#if>
+                    <#if type == "fishGames" && permissions["menuAdmin"].permissionGrant>
+                        鱼游管理
+                    </#if>
                     <#if type == "ip"  && permissions["ipManage"].permissionGrant>
                         IP 管理
                     </#if>
@@ -202,6 +205,7 @@
                     </#if>
                     <#if permissions["menuAdmin"].permissionGrant>
                         <li<#if type == "pic"> class="fn-none"</#if>><a href="${servePath}/admin/pic">图片审核</a></li>
+                        <li<#if type == "fishGames"> class="fn-none"</#if>><a href="${servePath}/admin/fish-games">鱼游管理</a></li>
                     </#if>
                     <#if permissions["ipManage"].permissionGrant>
                     <li<#if type == "ip"> class="fn-none"</#if>><a href="${servePath}/admin/ip">IP 管理</a></li>

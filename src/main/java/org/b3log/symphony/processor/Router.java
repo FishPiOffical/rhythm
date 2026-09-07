@@ -77,6 +77,7 @@ public final class Router {
     private static void registerProcessors() {
         // 活动
         ActivityProcessor.register();
+        FishGameProcessor.register();
         // 帖子
         ArticleProcessor.register();
         // 帖子草稿

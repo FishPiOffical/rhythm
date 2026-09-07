@@ -104,12 +104,8 @@
 }
 
 .profession-settings { display: grid; gap: 16px; padding: 0 !important; background: transparent !important; }
-.profession-settings__hero,
 .profession-settings__section {
-  border: 1px solid rgba(148, 163, 184, .3);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+  padding: 15px;
 }
 
 .profession-settings__hero {
@@ -117,7 +113,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px;
+  padding: 15px;
   background: rgba(255, 255, 255, .84);
   backdrop-filter: blur(16px) saturate(150%);
 }
@@ -127,7 +123,6 @@
 .profession-settings__hero p,
 .profession-settings__section-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; line-height: 1.55; }
 .profession-settings__status { flex: none; padding: 8px 10px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 700; }
-.profession-settings__section { padding: 18px; }
 .profession-settings__section-head h3 { margin: 0; color: #1e293b; font-size: 16px; letter-spacing: -.01em; }
 .profession-settings__choices,
 .profession-onboarding [data-profession-choices] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
@@ -188,7 +183,8 @@
 .profession-detail__more:active { transform: scale(.97); transition-duration: 100ms; }
 
 .profession-settings__presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 16px; }
-.profession-settings__preset { display: flex; align-items: flex-start; gap: 9px; min-height: 62px; padding: 11px; border: 1px solid #dbe3ee; border-radius: 12px; cursor: pointer; }
+.profession-settings__preset { display: flex; align-items: flex-start; gap: 9px; min-height: 33px; padding: 11px; border: 1px solid #dbe3ee; border-radius: 12px; cursor: pointer; }
+.profession-settings__preset strong { margin-top: 0 !important;}
 .profession-settings__preset:has(input:checked) { border-color: #60a5fa; background: #eff6ff; box-shadow: 0 0 0 2px rgba(59, 130, 246, .1); }
 .profession-settings__preset input { flex: none; margin: 3px 0 0; accent-color: #2563eb; }
 .profession-settings__preset span { display: grid; gap: 3px; }
@@ -229,7 +225,6 @@ body.night .profession-detail__positive { color: #86efac; }
 
 @media (max-width: 600px) {
   .profession-settings__hero { align-items: flex-start; flex-direction: column; }
-  .profession-settings__section { padding: 15px; }
   .profession-settings__choices,
   .profession-onboarding [data-profession-choices],
   .profession-settings__presets { grid-template-columns: 1fr; }
