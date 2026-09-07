@@ -79,6 +79,9 @@ public final class Role {
      */
     public static final String ROLE_ID_C_SUPER_MEMBER = "1630553268292";
 
+    /** 纪律委员分组。 */
+    public static final String ROLE_ID_C_DISCIPLINE_COMMITTEE = "1630631382235";
+
     /**
      * Role name - leader.
      */
@@ -108,7 +111,8 @@ public final class Role {
     public static boolean canBypassArticleCensor(final String roleId) {
         return ROLE_ID_C_ADMIN.equals(roleId)
                 || ROLE_ID_C_OP.equals(roleId)
-                || ROLE_ID_C_SUPER_MEMBER.equals(roleId);
+                || ROLE_ID_C_SUPER_MEMBER.equals(roleId)
+                || ROLE_ID_C_DISCIPLINE_COMMITTEE.equals(roleId);
     }
 
     /**

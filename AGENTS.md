@@ -126,4 +126,4 @@
 - `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。
 - 历史遗留：部分接口未在路由层挂登录中间件而在方法内鉴权（如 `MedalProcessor#requireAdmin/requireLogin`、`UserProcessor` 的 goldFingerKey 系列）；新增接口不要复用该模式，优先路由层显式鉴权。
 - 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
-- 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员三个分组。
+- 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。

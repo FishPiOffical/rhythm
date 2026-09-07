@@ -233,6 +233,9 @@
     root.dataset.selectedProfessionId = current
     return current
   }
+  function shouldShowSkip(data) {
+    return data.onboardingState !== 'SKIPPED'
+  }
   function renderSettings(data) {
     var root = settingRoot()
     if (!root) return
@@ -246,7 +249,7 @@
     root.querySelector('[name="professionPreset"][value="' + data.privacyPreset + '"]').checked = true
     renderCustomVisibility(root, visibility(data))
     root.querySelector('[data-profession-custom-visibility]').hidden = data.privacyPreset !== 'CUSTOM'
-    root.querySelector('[data-profession-skip-wrap]').hidden = data.onboardingState !== 'UNDECIDED'
+    root.querySelector('[data-profession-skip-wrap]').hidden = !shouldShowSkip(data)
     root.querySelector('[data-profession-status]').textContent = settingsStatus(data, selected)
     showOwnDetail(root, selected)
   }
