@@ -453,7 +453,7 @@ var AddArticle = {
     AddArticle.add(csrfToken, it)
   },
   confirmBypassAdd: function (csrfToken, it) {
-    var message = '这是一个绿色通道，专门给受信任分组使用。\n该按钮可免除内容审核以及敏感词过滤，直接发送。\n如果使用该功能进行了非法操作，将人工降低分组，不再开放此功能。'
+    var message = '这是一个绿色通道，专门给受信任分组（超级会员、纪律委员、OP、管理员）使用。\n该按钮可免除内容审核以及敏感词过滤，直接发送，适用于文章没问题但被误审核的情况。\n如果使用该功能进行了非法操作，将会被降低分组，不再开放此功能。'
     Swal.fire({
       title: '免审发帖',
       text: message,
