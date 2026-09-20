@@ -139,6 +139,7 @@ public final class Router {
         // Medal test case
         //MedalTestProcessor.register();
         MedalProcessor.register();
+        MedalBatchProcessor.register();
         // 大事记
         MilestoneProcessor.register();
         //表情包分组

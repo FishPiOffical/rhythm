@@ -89,7 +89,7 @@
   - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）
   - 前端：`src/main/resources/js/medal.js`
 - 模板：`src/main/resources/skins/classic/pc/admin/medal.ftl`、`src/main/resources/skins/classic/mobile/admin/medal.ftl`
-- 管理 API：`/api/medal/admin/list`、`/api/medal/admin/search`、`/api/medal/admin/grant`、`/api/medal/admin/revoke`、`/api/medal/admin/owners`
+- 管理 API：`/api/medal/admin/list`、`/api/medal/admin/search`、`/api/medal/admin/grant`、`/api/medal/admin/grant-batch`、`/api/medal/admin/revoke`、`/api/medal/admin/owners`、`/api/medal/admin/holds`
 - 会员状态 API：`GET /api/membership/{userId}`（`MembershipProcessor#getUserMembershipStatus`）
 - VIP 管理页：`/admin/vip`（`MembershipProcessor#showAdminVipManagePage`，classic/pc 与 classic/mobile 同路径模板 `admin/vip.ftl`）。
 - VIP 管理 API（仅 `adminRole`）：`/api/admin/vip/list`、`/api/admin/vip/add`、`/api/admin/vip/update`、`/api/admin/vip/refund`、`/api/admin/vip/extend`。

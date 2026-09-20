@@ -67,6 +67,9 @@ public class MedalProcessor {
     private UserRepository userRepository;
 
     @Inject
+    private MedalApiAuth medalApiAuth;
+
+    @Inject
     private UserQueryService userQueryService;
 
     /**
@@ -127,75 +130,12 @@ public class MedalProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
-    /**
-     * 获取当前用户（支持 apiKey），未登录返回 null.
-     */
-    private JSONObject getCurrentUser(final RequestContext context) {
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            List<String> readOnlyAPIS = new ArrayList<>();
-            readOnlyAPIS.add("/api/medal/admin/list");
-            readOnlyAPIS.add("/api/medal/admin/search");
-            readOnlyAPIS.add("/api/medal/admin/detail");
-            readOnlyAPIS.add("/api/medal/admin/owners");
-            readOnlyAPIS.add("/api/medal/admin/user-medals");
-            JSONObject requestJSONObject = context.requestJSON();
-            final String goldFingerKey = requestJSONObject.optString("goldFingerKey");
-            String requestURI = context.requestURI();
-            if (readOnlyAPIS.contains(requestURI)) {
-                String goldFingerRead = Symphonys.get("gold.finger.medal-admin-read");
-                if (goldFingerKey.equals(goldFingerRead)) {
-                    currentUser = userRepository.getByName("admin");
-                }
-            } else {
-                String goldFingerWrite = Symphonys.get("gold.finger.medal-admin-write");
-                if (goldFingerKey.equals(goldFingerWrite)) {
-                    currentUser = userRepository.getByName("admin");
-                }
-            }
-        } catch (RepositoryException ignored) {
-        }
-        return currentUser;
-    }
-
-    /**
-     * 管理员鉴权，非管理员返回 null 并写 403.
-     */
     private JSONObject requireAdmin(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (null == currentUser) {
-            context.sendError(401);
-            context.abort();
-            return null;
-        }
-        if (!currentUser.optString(User.USER_ROLE).equals(Role.ROLE_ID_C_ADMIN)) {
-            context.sendError(403);
-            context.abort();
-            return null;
-        }
-        return currentUser;
+        return medalApiAuth.requireAdmin(context);
     }
 
-    /**
-     * 登录鉴权，未登录返回 null 并写 401.
-     */
     private JSONObject requireLogin(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (null == currentUser) {
-            context.sendError(401);
-            context.abort();
-            return null;
-        }
-        return currentUser;
+        return medalApiAuth.requireLogin(context);
     }
 
     /* ========== 管理侧接口 ========== */

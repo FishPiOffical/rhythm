@@ -3963,6 +3963,91 @@ curl --location --request POST 'https://fishpi.cn/api/gold-finger/profession/que
 
 ---
 
+#### 管理侧：查询用户是否持有指定勋章
+
+`POST /api/medal/admin/holds`
+
+说明：`userId` 适用于单个用户，`userIds` 适用于用户列表；两个字段可以同时传入，重复用户 ID 会去重并保持首次出现的顺序。单次最多查询 100 个用户。已过期记录返回 `held=false`、`expired=true`。
+
+请求：
+
+| Key                   | 说明                                               | 示例                                  |
+| --------------------- | -------------------------------------------------- | ------------------------------------- |
+| apiKey或goldFingerKey | 通用密钥（管理员）或`medal-admin-read`类型的金手指 | 省略                                  |
+| userId                | 单个用户 oId，与 `userIds` 至少填写一个            | `"1630512345670"`                     |
+| userIds               | 用户 oId 列表，与 `userId` 至少填写一个            | `["1630512345670", "1630512345671"]` |
+| medalId               | 勋章 ID（medal\_id）                               | `"0"`                                 |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/medal/admin/holds' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "apiKey":"<Key>",
+  "userIds":["1630512345670","1630512345671"],
+  "medalId":"0"
+}'
+```
+
+响应：
+
+| Key          | 说明                    | 示例              |
+| ------------ | ----------------------- | ----------------- |
+| code         | 0成功/-1失败            | 0                 |
+| msg          | 错误信息                | `""`              |
+| data         | 持有状态列表            | `[...]`           |
+| - userId     | 用户 oId                | `"1630512345670"` |
+| - held       | 当前是否持有            | true              |
+| - expired    | 是否存在已过期记录      | false             |
+| - expireTime | 过期时间戳，0 表示永久  | 0                 |
+| - permanent  | 是否永久有效            | true              |
+| - data       | 勋章数据                | `"50;adlered"`    |
+
+---
+
+#### 管理侧：批量发放指定勋章
+
+`POST /api/medal/admin/grant-batch`
+
+说明：`userId` 适用于单个用户，`userIds` 适用于用户列表；两个字段可以同时传入，重复用户 ID 会去重。单次最多处理 100 个用户。全部用户在同一事务中写入；勋章不存在、任一用户不存在或任一写入失败时，整批操作失败。用户已经持有该勋章时更新 `expireTime` 和 `data`。
+
+请求：
+
+| Key                   | 说明                                                | 示例                                  |
+| --------------------- | --------------------------------------------------- | ------------------------------------- |
+| apiKey或goldFingerKey | 通用密钥（管理员）或`medal-admin-write`类型的金手指 | 省略                                  |
+| userId                | 单个用户 oId，与 `userIds` 至少填写一个             | `"1630512345670"`                     |
+| userIds               | 用户 oId 列表，与 `userId` 至少填写一个             | `["1630512345670", "1630512345671"]` |
+| medalId               | 勋章 ID（medal\_id）                                | `"0"`                                 |
+| expireTime            | 未来的毫秒时间戳，0 表示永久                        | 0                                     |
+| data                  | 勋章数据，最多 128 个字符                           | `"50;adlered;管理员"`                 |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/medal/admin/grant-batch' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "apiKey":"<Key>",
+  "userIds":["1630512345670","1630512345671"],
+  "medalId":"0",
+  "expireTime":0,
+  "data":"50;adlered;管理员"
+}'
+```
+
+响应：
+
+| Key                 | 说明             | 示例               |
+| ------------------- | ---------------- | ------------------ |
+| code                | 0成功/-1失败     | 0                  |
+| msg                 | 错误信息         | `""`               |
+| data                | 发放结果         | `{...}`            |
+| - grantedCount      | 实际处理用户数量 | 2                  |
+
+---
+
 #### 管理侧：给指定用户移除指定勋章
 
 `POST /api/medal/admin/revoke`
