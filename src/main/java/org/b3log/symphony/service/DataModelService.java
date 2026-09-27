@@ -364,6 +364,10 @@ public class DataModelService {
         if (Symphonys.RHPIC_ENABLED && StringUtils.isNotBlank(Symphonys.RHPIC_UPLOAD_URL)) {
             dataModel.put(Common.RHPIC_UPLOAD_URL, Symphonys.RHPIC_UPLOAD_URL);
         }
+        // 韵图（RhyPic）模式标识：模板据此隐藏旧图片审核入口（审核统一由图床负责）
+        if (Symphonys.RHPIC_ENABLED) {
+            dataModel.put("rhypicEnabled", true);
+        }
     }
 
     /**

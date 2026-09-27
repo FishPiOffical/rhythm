@@ -142,8 +142,10 @@
                     <#if type == "auditlog"  && permissions["menuAdmin"].permissionGrant>
                         ${auditlogLabel}
                     </#if>
+                    <#if !(rhypicEnabled!false)>
                     <#if type == "pic"  && permissions["menuAdmin"].permissionGrant>
                         图片审核
+                    </#if>
                     </#if>
                     <#if type == "fishGames" && permissions["menuAdmin"].permissionGrant>
                         鱼游管理
@@ -204,7 +206,9 @@
                     <li<#if type == "auditlog"> class="fn-none"</#if>><a href="${servePath}/admin/auditlog">${auditlogLabel}</a></li>
                     </#if>
                     <#if permissions["menuAdmin"].permissionGrant>
+                        <#if !(rhypicEnabled!false)>
                         <li<#if type == "pic"> class="fn-none"</#if>><a href="${servePath}/admin/pic">图片审核</a></li>
+                        </#if>
                         <li<#if type == "fishGames"> class="fn-none"</#if>><a href="${servePath}/admin/fish-games">鱼游管理</a></li>
                     </#if>
                     <#if permissions["ipManage"].permissionGrant>

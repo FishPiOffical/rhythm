@@ -147,7 +147,9 @@
                                 <a href="${servePath}/admin/auditlog"<#if type == "auditlog"> class="current"</#if>>${auditlogLabel}</a>
                                 </#if>
                                 <#if permissions["menuAdmin"].permissionGrant>
+                                    <#if !(rhypicEnabled!false)>
                                     <a href="${servePath}/admin/pic"<#if type == "pic"> class="current"</#if>>图片审核</a>
+                                    </#if>
                                     <a href="${servePath}/admin/fish-games"<#if type == "fishGames"> class="current"</#if>>鱼游管理</a>
                                 </#if>
                                 <#if permissions["ipManage"].permissionGrant>
