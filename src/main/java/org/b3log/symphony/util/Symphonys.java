@@ -333,8 +333,16 @@ public final class Symphonys {
 
     /**
      * 韵图（RhyPic）图床对外地址，例如 {@code https://img.fishpi.cn}，不带结尾斜杠.
+     * 该地址会返回给客户端用于直传，必须是外网可访问的域名.
      */
     public static final String RHPIC_UPLOAD_URL = get("upload.rhypic.url");
+
+    /**
+     * 韵图（RhyPic）内网地址，用于 Rhythm 服务端中转上传与内部删除接口调用.
+     * 例如 {@code http://10.0.24.8:8080}，不带结尾斜杠.
+     * 未配置时回退到 {@link #RHPIC_UPLOAD_URL}.
+     */
+    public static final String RHPIC_INTERNAL_URL = org.apache.commons.lang.StringUtils.defaultIfBlank(get("upload.rhypic.internalUrl"), RHPIC_UPLOAD_URL);
 
     /**
      * 韵图上传票据 Ed25519 私钥（base64 编码的 PKCS#8）。

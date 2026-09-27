@@ -2,9 +2,14 @@
 
 站点图床已切换为新的 **RhyPic（韵图）** 图床。旧的上传接口 `POST /upload` 将在不久后彻底停用，请所有第三方客户端按本文档迁移到新的两步上传流程。
 
-> **生产环境信息**：韵图（OSS 上传/管理）与 CDN（公开访问）部署在同一台服务器，统一域名为 **`file.fishpi.cn`**（HTTPS）。即上传地址与文件公开地址均为该域名。
+> **生产环境信息**：韵图（上传/管理）与 CDN（公开访问）使用两个域名：
+>
+> - **上传/管理地址**：`https://pic.fishpi.cn`（处理上传、认证、管理接口）；
+> - **文件公开访问地址**：`https://file.fishpi.cn`（CDN 服务，对外提供文件下载/图片访问）。
+>
+> 上传请求发往 `pic.fishpi.cn`，上传成功后返回的文件公开链接域名是 `file.fishpi.cn`。
 
-> **停用时间安排**：`POST /upload` 计划于 **【待公告：停用日期】** 正式停用。停用前旧接口仍可使用，但建议尽快完成适配。正式公告：【待公告：公告链接】。
+> **停用时间安排**：`POST /upload` 计划于近期正式停用。停用前旧接口仍可使用，但建议尽快完成适配。。
 
 ---
 
@@ -14,20 +19,6 @@
 
 1. **获取上传票据**：`POST /api/rhypic/upload-ticket`（社区站点签发，证明当前用户身份）；
 2. **直传韵图**：`POST {uploadURL}/api/v1/files`（携带票据，multipart 上传文件）。
-
-```
-客户端                社区站点(fishpi.cn)          韵图图床
-  │                         │                         │
-  │  ① 取票据(apiKey)        │                         │
-  │ ───────────────────────>│                         │
-  │  返回 ticket + uploadURL │                         │
-  │ <───────────────────────│                         │
-  │                         │                         │
-  │  ② 直传文件(Bearer ticket)                        │
-  │ ────────────────────────────────────────────────>│
-  │            返回 {errFiles, succMap}               │
-  │ <────────────────────────────────────────────────│
-```
 
 ---
 
@@ -64,7 +55,7 @@ curl --location --request POST 'https://fishpi.cn/api/rhypic/upload-ticket?apiKe
 | msg          | 错误消息         | 图床通道未启用                           |
 | data         | 票据信息         |                                          |
 | - ticket     | 上传票据（JWT）  | eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.... |
-| - uploadURL  | 韵图图床地址（生产环境为 `https://file.fishpi.cn`） | https://file.fishpi.cn                  |
+| - uploadURL  | 韵图上传地址（生产环境为 `https://pic.fishpi.cn`） | https://pic.fishpi.cn                  |
 | - expiresIn  | 票据有效期（秒） | 180                                      |
 
 ```json
@@ -73,7 +64,7 @@ curl --location --request POST 'https://fishpi.cn/api/rhypic/upload-ticket?apiKe
   "msg": "",
   "data": {
     "ticket": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9....",
-    "uploadURL": "https://file.fishpi.cn",
+    "uploadURL": "https://pic.fishpi.cn",
     "expiresIn": 180
   }
 }
@@ -134,12 +125,12 @@ TICKET=$(curl -s -X POST 'https://fishpi.cn/api/rhypic/upload-ticket?apiKey=YOUR
   -H 'User-Agent: Mozilla/5.0' | jq -r '.data.ticket')
 
 # 2. 直传韵图（单文件）
-curl -X POST 'https://file.fishpi.cn/api/v1/files' \
+curl -X POST 'https://pic.fishpi.cn/api/v1/files' \
   -H "Authorization: Bearer $TICKET" \
   -F 'file=@/path/to/image.png'
 
 # 多文件：重复 -F file 即可（仍只使用同一张票据）
-curl -X POST 'https://file.fishpi.cn/api/v1/files' \
+curl -X POST 'https://pic.fishpi.cn/api/v1/files' \
   -H "Authorization: Bearer $TICKET" \
   -F 'file=@/path/to/a.png' \
   -F 'file=@/path/to/b.jpg'
@@ -188,8 +179,9 @@ const upResp = await fetch(`${uploadURL}/api/v1/files`, {
 | 鉴权     | `apiKey` 请求参数                  | `Authorization: Bearer <票据>` 请求头，票据一次性 |
 | 上传地址 | 社区站点 `/upload`                 | 韵图图床 `{uploadURL}/api/v1/files`             |
 | 文件字段 | `file[]`                           | `file`                                          |
-| 文件归属 | 站点本地/七牛                      | 韵图中对应的社区登录用户                        |
+| 文件归属 | 站点                      | 韵图中对应的社区登录用户                        |
 | 多文件   | 部分失败整体处理                   | 成功进 `succMap`，失败进 `errFiles`             |
 | 限制策略 | 社区站点配置                       | 韵图用户组策略（扩展名/MIME/大小/审核）         |
 | 响应结构 | `code/msg/data.errFiles/succMap`   | **完全相同**，可直接沿用解析逻辑                |
 | 跨域     | 无                                 | 浏览器直传需韵图允许来源；非浏览器不受影响      |
+

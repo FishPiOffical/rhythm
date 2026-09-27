@@ -257,7 +257,7 @@ public class RhypicProcessor {
         }
         final String boundary = "----RhythmRhypic" + UUID.randomUUID().toString().replace("-", "");
         final HttpURLConnection conn = (HttpURLConnection) new URL(
-                Symphonys.RHPIC_UPLOAD_URL + "/api/v1/files").openConnection();
+                Symphonys.RHPIC_INTERNAL_URL + "/api/v1/files").openConnection();
         try {
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(10 * 1000);
@@ -312,7 +312,7 @@ public class RhypicProcessor {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(
-                    Symphonys.RHPIC_UPLOAD_URL + "/internal/v1/files/delete").openConnection();
+                    Symphonys.RHPIC_INTERNAL_URL + "/internal/v1/files/delete").openConnection();
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(10 * 1000);
             conn.setReadTimeout(30 * 1000);
