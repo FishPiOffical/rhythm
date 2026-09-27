@@ -1413,7 +1413,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 ## 图床
 
-> **【接口停用预告】** 站点图床已切换为新的 **RhyPic 韵图** 图床（OSS 与 CDN 同机部署，统一域名 `file.fishpi.cn`），本页所述旧上传接口 `POST /upload` 将在不久后**彻底停用**。请第三方客户端开发者尽快改用 RhyPic 韵图的新上传接口完成适配，接口说明见 **[《RhyPic 韵图对接文档》](RHYPIC-API.md)**（正式公告链接待补充）。
+> **【接口停用预告】** 站点图床已切换为新的 **RhyPic 韵图** 图床（OSS 与 CDN 同机部署，统一域名 `file.fishpi.cn`），本页所述旧上传接口 `POST /upload` 将在不久后**彻底停用**。请第三方客户端开发者尽快改用 RhyPic 韵图的新上传接口完成适配，接口说明见 **[《RhyPic 韵图对接文档》](https://fishpi.cn/article/1790518451759)**。
 
 ### 上传图片
 
