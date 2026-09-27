@@ -738,6 +738,11 @@ public final class Common {
     public static final String FILE_MAX_SIZE = "fileMaxSize";
 
     /**
+     * Key of RhyPic upload URL（韵图图床地址，启用 rhypic 渠道时渲染到前端 Label）.
+     */
+    public static final String RHPIC_UPLOAD_URL = "rhypicUploadURL";
+
+    /**
      * Key of online visitor count.
      */
     public static final String ONLINE_VISITOR_CNT = "onlineVisitorCnt";

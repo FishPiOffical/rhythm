@@ -996,6 +996,30 @@ var Util = {
             $(this).blur()
         })
     },
+    /**
+     * @description 获取 RhyPic 上传票据（同步请求）。票据 jti 单次使用，
+     * 每次上传（每个 Vditor 请求）都需取一张新票。
+     * @returns {String} 票据 JWT；失败返回空串并弹出错误信息
+     */
+    rhypicTicket: function () {
+        var ticket = ''
+        $.ajax({
+            url: Label.servePath + '/api/rhypic/upload-ticket',
+            type: 'POST',
+            async: false,
+            success: function (result) {
+                if (result.code === 0 && result.data && result.data.ticket) {
+                    ticket = result.data.ticket
+                } else {
+                    alert(result.msg || '获取上传票据失败')
+                }
+            },
+            error: function () {
+                alert('获取上传票据失败，请稍后重试')
+            },
+        })
+        return ticket
+    },
     newVditor: function (data) {
         if (!Label.emoji) {
             $.ajax({
@@ -1011,6 +1035,23 @@ var Util = {
                     })
                 },
             })
+        }
+
+        var uploadOpts = {
+            max: Label.fileMaxSize,
+            url: Label.servePath + '/upload',
+            filename: function (name) {
+                return name.replace(/\?|\\|\/|:|\||<|>|\*|\[|\]|\s+/g, '-')
+            },
+            accept: '.zip,.rar,.7z,.tar,.gzip,.bz2,.jar,.jpg,.jpeg,.png,.gif,.webp,.webm,.bmp,.mp3,.mp4,.wav,.mov,.weba,.mkv',
+        }
+        if (Label.rhypicUploadURL) {
+            // 图床已切换至韵图 RhyPic：前端直传图床，短期票据鉴权（见 API 文档 upload-ticket 节）
+            uploadOpts.url = Label.rhypicUploadURL + '/api/v1/files'
+            uploadOpts.fieldName = 'file'
+            uploadOpts.setHeaders = function () {
+                return {Authorization: 'Bearer ' + Util.rhypicTicket()}
+            }
         }
 
         var options = {
@@ -1035,14 +1076,7 @@ var Util = {
                     enable: !Label.luteAvailable,
                 },
             },
-            upload: {
-                max: Label.fileMaxSize,
-                url: Label.servePath + '/upload',
-                filename: function (name) {
-                    return name.replace(/\?|\\|\/|:|\||<|>|\*|\[|\]|\s+/g, '-')
-                },
-                accept: '.zip,.rar,.7z,.tar,.gzip,.bz2,.jar,.jpg,.jpeg,.png,.gif,.webp,.webm,.bmp,.mp3,.mp4,.wav,.mov,.weba,.mkv',
-            },
+            upload: uploadOpts,
             placeholder: data.placeholder,
             height: data.height,
             counter: {

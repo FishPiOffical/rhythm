@@ -80,6 +80,9 @@
                     <li<#if 'identity' == type> class="fn-none"</#if>><a href="${servePath}/settings/identity"><svg style="vertical-align: -1px;"><use xlink:href="#identity"></use></svg>&nbsp;官方身份认证</a></li>
                     <li<#if 'i18n' == type> class="fn-none"</#if>><a href="${servePath}/settings/i18n">${i18nLabel}</a></li>
                     <li<#if 'data' == type> class="fn-none"</#if>><a href="${servePath}/settings/data">${dataLabel}</a></li>
+                    <#if rhypicUploadURL?? && rhypicUploadURL != ''>
+                    <li><a href="${rhypicUploadURL}" target="_blank">图床设置</a></li>
+                    </#if>
                     <li<#if 'help' == type> class="current"</#if>><a href="${servePath}/settings/help">${helpLabel}</a></li>
                 </ul>
             </div>

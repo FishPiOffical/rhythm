@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.model.User;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
@@ -37,12 +38,15 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
+import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.FileUploadProcessor;
+import org.b3log.symphony.processor.RhypicProcessor;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -52,6 +56,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -194,7 +200,32 @@ public class PostExportService {
             final FileInputStream inputStream = new FileInputStream(zipFile);
             final byte[] zipData = IOUtils.toByteArray(inputStream);
 
-            if (Symphonys.QN_ENABLED) {
+            if (Symphonys.RHPIC_ENABLED) {
+                // 韵图（RhyPic）：以用户身份签票据上传导出 ZIP
+                final JSONObject exportUser = userRepository.get(userId);
+                if (null == exportUser) {
+                    return null;
+                }
+                final String ticket = RhypicProcessor.mintUploadTicket(userId,
+                        exportUser.optString(User.USER_NAME), exportUser.optString(UserExt.USER_NICKNAME));
+                final List<RhypicProcessor.UploadPart> parts = Collections.singletonList(
+                        new RhypicProcessor.UploadPart(fileKey, "application/zip", zipData));
+                final JSONObject resp = RhypicProcessor.uploadFiles(ticket, parts);
+                if (StatusCodes.SUCC != resp.optInt(Keys.CODE)) {
+                    LOGGER.log(Level.WARN, "Uploads exported zip to RhyPic rejected [userId=" + userId + "], resp=" + resp);
+                    return null;
+                }
+                final JSONObject respData = resp.optJSONObject(Common.DATA);
+                final JSONObject succMap = null == respData ? null : respData.optJSONObject("succMap");
+                if (null != succMap) {
+                    final Iterator<String> keys = succMap.keys();
+                    if (keys.hasNext()) {
+                        return succMap.optString(keys.next());
+                    }
+                }
+                LOGGER.log(Level.WARN, "Uploads exported zip to RhyPic got empty succMap [userId=" + userId + "]");
+                return null;
+            } else if (Symphonys.QN_ENABLED) {
                 final Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
                 final UploadManager uploadManager = new UploadManager(new Configuration());
                 uploadManager.put(zipData, fileKey, auth.uploadToken(Symphonys.UPLOAD_QINIU_BUCKET),

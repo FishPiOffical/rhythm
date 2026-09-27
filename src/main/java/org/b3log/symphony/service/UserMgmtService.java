@@ -43,10 +43,12 @@ import org.b3log.latke.util.Ids;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.FileUploadProcessor;
+import org.b3log.symphony.processor.RhypicProcessor;
 import org.b3log.symphony.processor.SettingsProcessor;
 import org.b3log.symphony.processor.middleware.validate.UserRegisterValidationMidware;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Geos;
+import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
@@ -538,7 +540,15 @@ public class UserMgmtService {
                             baos.close();
                         /*}*/
 
-                        if (Symphonys.QN_ENABLED) {
+                        if (Symphonys.RHPIC_ENABLED) {
+                            // 韵图（RhyPic）：以新用户身份签票据上传系统生成的头像
+                            final String avatarURLRhypic = uploadAvatarToRhypic(ret, userName,
+                                    user.optString(UserExt.USER_NICKNAME), avatarData);
+                            if (StringUtils.isBlank(avatarURLRhypic)) {
+                                throw new IOException("Uploads generated avatar to RhyPic failed");
+                            }
+                            user.put(UserExt.USER_AVATAR_URL, avatarURLRhypic);
+                        } else if (Symphonys.QN_ENABLED) {
                             final Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
                             final UploadManager uploadManager = new UploadManager(new Configuration());
 
@@ -555,7 +565,7 @@ public class UserMgmtService {
 
                             user.put(UserExt.USER_AVATAR_URL, Latkes.getServePath() + "/upload/" + fileName);
                         }
-                    } catch (final IOException e) {
+                    } catch (final Exception e) {
                         LOGGER.log(Level.ERROR, "Generates avatar error, using default thumbnail instead", e);
 
                         user.put(UserExt.USER_AVATAR_URL, AvatarQueryService.DEFAULT_AVATAR_URL);
@@ -952,5 +962,41 @@ public class UserMgmtService {
         }
 
         user.put(UserExt.USER_TAGS, tagTitleStr);
+    }
+
+    /**
+     * 把注册时系统生成的头像以新用户身份经票据上传到韵图（RhyPic）。
+     *
+     * @param oId      新用户 oId（票据归属）
+     * @param userName 用户名（票据 name）
+     * @param nickname 昵称（可为空）
+     * @param data     头像 JPEG 字节
+     * @return 图床公开 URL；失败返回 {@code ""}
+     */
+    private static String uploadAvatarToRhypic(final String oId, final String userName,
+                                               final String nickname, final byte[] data) {
+        try {
+            final String ticket = RhypicProcessor.mintUploadTicket(oId, userName, nickname);
+            final List<RhypicProcessor.UploadPart> parts = Collections.singletonList(
+                    new RhypicProcessor.UploadPart("avatar-" + oId + ".jpg", "image/jpeg", data));
+            final JSONObject resp = RhypicProcessor.uploadFiles(ticket, parts);
+            if (StatusCodes.SUCC != resp.optInt(Keys.CODE)) {
+                LOGGER.log(Level.WARN, "Uploads register avatar to RhyPic rejected [oId=" + oId + "], resp=" + resp);
+                return "";
+            }
+
+            final JSONObject respData = resp.optJSONObject(Common.DATA);
+            final JSONObject succMap = null == respData ? null : respData.optJSONObject("succMap");
+            if (null != succMap) {
+                final Iterator<String> keys = succMap.keys();
+                if (keys.hasNext()) {
+                    return succMap.optString(keys.next());
+                }
+            }
+            LOGGER.log(Level.WARN, "Uploads register avatar to RhyPic got empty succMap [oId=" + oId + "]");
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "Uploads register avatar via RhyPic failed [oId=" + oId + "]", e);
+        }
+        return "";
     }
 }

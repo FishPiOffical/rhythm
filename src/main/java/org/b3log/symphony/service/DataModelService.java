@@ -360,6 +360,10 @@ public class DataModelService {
         dataModel.put(Common.FOOTER_BEI_AN_HAO, Symphonys.FOOTER_BEIANHAO);
         dataModel.put(Common.IMAGE_MAX_SIZE, Symphonys.UPLOAD_IMG_MAX);
         dataModel.put(Common.FILE_MAX_SIZE, Symphonys.UPLOAD_FILE_MAX);
+        // 韵图（RhyPic）图床地址：启用 rhypic 渠道时下发，前端上传组件据此自动适应
+        if (Symphonys.RHPIC_ENABLED && StringUtils.isNotBlank(Symphonys.RHPIC_UPLOAD_URL)) {
+            dataModel.put(Common.RHPIC_UPLOAD_URL, Symphonys.RHPIC_UPLOAD_URL);
+        }
     }
 
     /**

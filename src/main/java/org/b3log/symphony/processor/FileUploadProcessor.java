@@ -53,6 +53,7 @@ import org.b3log.latke.util.Strings;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.Server;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.channel.ChatChannel;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.UploadRepository;
@@ -61,6 +62,7 @@ import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
@@ -180,6 +182,14 @@ public class FileUploadProcessor {
     public synchronized void uploadFile(final RequestContext context) {
         final JSONObject result = Results.newFail();
         context.renderJSONPretty(result);
+
+        // 韵图（RhyPic）渠道：服务端签发票据后代理转发图床，响应保持旧通道
+        // {code, msg, data:{errFiles, succMap}} 结构，聊天/头像/封面/表情等全部
+        // 前端上传点无需任何改动即可切换
+        if (Symphonys.RHPIC_ENABLED) {
+            uploadViaRhypic(context, result);
+            return;
+        }
 
         final Request request = context.getRequest();
         final int maxSize = (int) Symphonys.UPLOAD_FILE_MAX;
@@ -430,6 +440,169 @@ public class FileUploadProcessor {
         result.put(Common.DATA, data);
         result.put(Keys.CODE, StatusCodes.SUCC);
         result.put(Keys.MSG, "");
+    }
+
+    /**
+     * 韵图（RhyPic）代理上传：沿用旧通道的后缀白名单、大小上限与频次限制，
+     * 用当前登录用户（或 apiKey 对应用户）签发一次性票据后经 multipart 转发图床，
+     * 并把图床的 Vditor 兼容响应映射回旧通道结构。
+     *
+     * @param context the specified context
+     * @param result  已渲染待回填的响应对象
+     */
+    private void uploadViaRhypic(final RequestContext context, final JSONObject result) {
+        final JSONObject data = new JSONObject();
+        final Map<String, String> succMap = new HashMap<>();
+        final List<String> errFiles = new ArrayList<>();
+
+        // loginCheck 已把登录用户写入 context（Session 或 apiKey 均可）
+        JSONObject user = (JSONObject) context.attr(User.USER);
+        if (null == user) {
+            try {
+                user = ApiProcessor.getUserByKey(context.param("apiKey"));
+            } catch (final NullPointerException ignored) {
+            }
+        }
+        final String oId = null == user ? "" : user.optString(Keys.OBJECT_ID);
+        if (StringUtils.isBlank(oId)) {
+            data.put("errFiles", errFiles);
+            data.put("succMap", succMap);
+            result.put(Common.DATA, data);
+            result.put(Keys.CODE, 1);
+            result.put(Keys.MSG, "请先登录后再上传");
+            return;
+        }
+        final String userName = user.optString(User.USER_NAME);
+
+        final Request request = context.getRequest();
+        final int maxSize = (int) Symphonys.UPLOAD_FILE_MAX;
+        final List<FileUpload> allFiles = request.getFileUploads("file[]");
+        if (allFiles.isEmpty()) {
+            data.put("errFiles", errFiles);
+            data.put("succMap", succMap);
+            result.put(Common.DATA, data);
+            result.put(Keys.CODE, 1);
+            result.put(Keys.MSG, "没有可上传的文件");
+            return;
+        }
+
+        // 与旧通道一致的后缀白名单校验：任一文件后缀非法即整体拒绝
+        String suffix = "";
+        final String[] allowedSuffixArray = Symphonys.UPLOAD_SUFFIX.split(",");
+        for (final FileUpload file : allFiles) {
+            suffix = Headers.getSuffix(file);
+            if (!Strings.containsIgnoreCase(suffix, allowedSuffixArray)) {
+                for (final FileUpload f : allFiles) {
+                    errFiles.add(f.getFilename());
+                }
+                data.put("errFiles", errFiles);
+                data.put("succMap", succMap);
+                result.put(Common.DATA, data);
+                result.put(Keys.CODE, 1);
+                String msg = langPropsService.get("invalidFileSuffixLabel");
+                msg = StringUtils.replace(msg, "${suffix}", suffix);
+                result.put(Keys.MSG, msg);
+                return;
+            }
+        }
+
+        // 组装转发部件：超限与触发频次上限的文件按旧通道行为计入 errFiles，不上传
+        final List<RhypicProcessor.UploadPart> parts = new ArrayList<>();
+        for (final FileUpload file : allFiles) {
+            if (maxSize < file.getData().length) {
+                continue;
+            }
+
+            final String originalName = Escapes.sanitizeFilename(file.getFilename());
+            if (!uploadLimiter.access(userName)) {
+                errFiles.add(originalName);
+                LOGGER.log(Level.INFO, "Out of upload limit " + originalName + " userName: " + userName);
+                continue;
+            }
+
+            parts.add(new RhypicProcessor.UploadPart(originalName, file.getContentType(), file.getData()));
+        }
+
+        final List<String> forwardNames = new ArrayList<>();
+        for (final RhypicProcessor.UploadPart part : parts) {
+            forwardNames.add(part.getFilename());
+        }
+
+        if (parts.isEmpty()) {
+            data.put("errFiles", errFiles);
+            data.put("succMap", succMap);
+            result.put(Common.DATA, data);
+            result.put(Keys.CODE, 1);
+            result.put(Keys.MSG, errFiles.isEmpty() ? "没有可上传的文件" : "文件超出大小或上传次数限制");
+            return;
+        }
+
+        try {
+            final String ticket = RhypicProcessor.mintUploadTicket(oId,
+                    user.optString(User.USER_NAME), user.optString(UserExt.USER_NICKNAME));
+            final JSONObject resp = RhypicProcessor.uploadFiles(ticket, parts);
+
+            if (StatusCodes.SUCC == resp.optInt(Keys.CODE)) {
+                // 图床成功：合并 data.succMap / data.errFiles（部分文件可能失败）
+                final JSONObject respData = resp.optJSONObject(Common.DATA);
+                if (null != respData) {
+                    final JSONArray respErr = respData.optJSONArray("errFiles");
+                    if (null != respErr) {
+                        for (int i = 0; i < respErr.length(); i++) {
+                            errFiles.add(respErr.optString(i));
+                        }
+                    }
+                    final JSONObject respSucc = respData.optJSONObject("succMap");
+                    if (null != respSucc) {
+                        final Iterator<String> keys = respSucc.keys();
+                        while (keys.hasNext()) {
+                            final String key = keys.next();
+                            succMap.put(key, respSucc.optString(key));
+                        }
+                    }
+                }
+                data.put("errFiles", errFiles);
+                data.put("succMap", succMap);
+                result.put(Common.DATA, data);
+                result.put(Keys.CODE, StatusCodes.SUCC);
+                result.put(Keys.MSG, "");
+                return;
+            }
+
+            // 图床业务失败（Vditor 兼容 code=1 或统一错误结构）：失败文件计入 errFiles
+            String msg = resp.optString(Keys.MSG);
+            if (StringUtils.isBlank(msg)) {
+                final JSONObject error = resp.optJSONObject("error");
+                if (null != error) {
+                    msg = error.optString("message");
+                }
+            }
+            if (StringUtils.isBlank(msg)) {
+                msg = "图床返回错误，请稍后重试";
+            }
+            fillAllFailed(result, data, succMap, errFiles, forwardNames, msg);
+        } catch (final IllegalStateException e) {
+            // 票据签发失败（配置缺失等），消息为用户可读文本
+            LOGGER.log(Level.ERROR, "Mints RhyPic upload ticket failed", e);
+            fillAllFailed(result, data, succMap, errFiles, forwardNames, e.getMessage());
+        } catch (final IOException e) {
+            LOGGER.log(Level.ERROR, "Uploads file via RhyPic failed", e);
+            fillAllFailed(result, data, succMap, errFiles, forwardNames, "图床暂时不可用，请稍后重试");
+        }
+    }
+
+    /**
+     * 全部转发文件失败的统一回填：失败清单 + 失败消息。
+     */
+    private static void fillAllFailed(final JSONObject result, final JSONObject data,
+                                      final Map<String, String> succMap, final List<String> errFiles,
+                                      final List<String> forwardNames, final String msg) {
+        errFiles.addAll(forwardNames);
+        data.put("errFiles", errFiles);
+        data.put("succMap", succMap);
+        result.put(Common.DATA, data);
+        result.put(Keys.CODE, 1);
+        result.put(Keys.MSG, msg);
     }
 
     /**

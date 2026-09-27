@@ -78,6 +78,8 @@ public final class Router {
         // 活动
         ActivityProcessor.register();
         FishGameProcessor.register();
+        // 韵图图床上传票据
+        RhypicProcessor.register();
         // 帖子
         ArticleProcessor.register();
         // 帖子草稿

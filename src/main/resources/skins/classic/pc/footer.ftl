@@ -153,6 +153,7 @@
         makeAsReadLabel: '${makeAsReadLabel}',
         imgMaxSize: ${imgMaxSize?c},
         fileMaxSize: ${fileMaxSize?c},
+        rhypicUploadURL: '${rhypicUploadURL!''}',
         <#if isLoggedIn>
             currentUserName: '${currentUser.userName}',
         </#if>

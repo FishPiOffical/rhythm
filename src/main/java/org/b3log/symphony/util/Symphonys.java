@@ -326,6 +326,29 @@ public final class Symphonys {
     public static final boolean QN_ENABLED = "qiniu".equalsIgnoreCase(UPLOAD_CHANNEL);
 
     /**
+     * 是否启用韵图（RhyPic）渠道上传。启用后前端上传入口自动适应为
+     * 先取票据（{@code POST /api/rhypic/upload-ticket}）再直传图床，文件流不经过 Rhythm 中转.
+     */
+    public static final boolean RHPIC_ENABLED = "rhypic".equalsIgnoreCase(UPLOAD_CHANNEL);
+
+    /**
+     * 韵图（RhyPic）图床对外地址，例如 {@code https://img.fishpi.cn}，不带结尾斜杠.
+     */
+    public static final String RHPIC_UPLOAD_URL = get("upload.rhypic.url");
+
+    /**
+     * 韵图上传票据 Ed25519 私钥（base64 编码的 PKCS#8）。
+     * 仅服务端保存用于签发短期票据，对应公钥需在 RhyPic 管理后台配置，严禁泄露.
+     */
+    public static final String RHPIC_TICKET_PRIVATE_KEY = get("upload.rhypic.ticketPrivateKey");
+
+    /**
+     * 韵图内部接口令牌（与图床侧 RHPIC_OSS_INTERNAL_TOKEN 一致）。
+     * 服务端清理图床文件（如 TTS 音频删除）时使用；为空时跳过清理并记录日志.
+     */
+    public static final String RHPIC_INTERNAL_TOKEN = get("upload.rhypic.internalToken");
+
+    /**
      * 允许上传图片最大值，单位字节.
      */
     public static final long UPLOAD_IMG_MAX = Symphonys.getLong("upload.img.maxSize");
