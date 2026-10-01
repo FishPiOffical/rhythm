@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,9 +42,9 @@ public final class NotificationContents {
     public static final int LEGACY_CUSTOM_SYS_DATA_ID_LENGTH = 64;
 
     /**
-     * Whitelist for custom system notifications.
+     * Safelist for custom system notifications.
      */
-    private static final Whitelist CUSTOM_SYS_WHITELIST = Whitelist.none()
+    private static final Safelist CUSTOM_SYS_WHITELIST = Safelist.none()
             .addTags("a", "br")
             .addAttributes("a", "href", "target", "rel")
             .addProtocols("a", "href", "http", "https");

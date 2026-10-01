@@ -100,7 +100,7 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import jodd.http.HttpRequest;
@@ -1660,7 +1660,7 @@ public class ChatroomProcessor {
                     String barragerString = content.replaceAll("^\\[barrager\\]", "").replaceAll("\\[/barrager\\]$", "");
                     JSONObject barrager = new JSONObject(barragerString);
                     String barragerContent = barrager.optString("content");
-                    barragerContent = Jsoup.clean(barragerContent, Whitelist.none());
+                    barragerContent = Jsoup.clean(barragerContent, Safelist.none());
                     barragerContent = StringUtils.trim(barragerContent);
                     String barragerColor = barrager.optString("color");
                     if (barragerContent.length() > 32) {

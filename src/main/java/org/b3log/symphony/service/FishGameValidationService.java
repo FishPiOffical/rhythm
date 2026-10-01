@@ -24,7 +24,7 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.FishGame;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 import java.net.URI;
 
@@ -52,7 +52,7 @@ public class FishGameValidationService {
     }
 
     private String normalize(final String value, final int max, final String label) throws ServiceException {
-        final String normalized = Jsoup.clean(StringUtils.trimToEmpty(value), Whitelist.none()).trim();
+        final String normalized = Jsoup.clean(StringUtils.trimToEmpty(value), Safelist.none()).trim();
         if (normalized.isEmpty() || normalized.length() > max) {
             throw new ServiceException(label + "不能为空且不能超过 " + max + " 个字符");
         }

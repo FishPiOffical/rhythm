@@ -50,7 +50,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
 import java.util.ArrayList;
@@ -227,7 +227,7 @@ public class BreezemoonProcessor {
 
         final JSONObject breezemoon = new JSONObject();
         String breezemoonContent = requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT);
-        breezemoonContent = Jsoup.clean(breezemoonContent, Whitelist.none());
+        breezemoonContent = Jsoup.clean(breezemoonContent, Safelist.none());
         breezemoonContent = StringUtils.trim(breezemoonContent);
         if (breezemoonContent.isEmpty()) {
             context.renderMsg("非法内容");

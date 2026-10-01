@@ -36,7 +36,7 @@ import org.b3log.symphony.repository.RepeaterContentRepository;
 import org.b3log.symphony.repository.RepeaterLikeRepository;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 /**
  * 复读机转录站管理服务。
@@ -133,7 +133,7 @@ public class RepeaterMgmtService {
     }
 
     private String normalizeContent(final String content) throws ServiceException {
-        final String plain = Jsoup.clean(StringUtils.trimToEmpty(content), Whitelist.none()).replaceAll("\\s+", " ");
+        final String plain = Jsoup.clean(StringUtils.trimToEmpty(content), Safelist.none()).replaceAll("\\s+", " ");
         if (plain.length() < RepeaterContent.MIN_CONTENT_LENGTH) {
             throw new ServiceException("内容太短");
         }

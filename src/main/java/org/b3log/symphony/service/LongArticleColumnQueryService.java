@@ -47,7 +47,7 @@ import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -556,7 +556,7 @@ public class LongArticleColumnQueryService {
         chapterView.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(safeTitle));
         chapterView.put(LongArticleColumn.CHAPTER_NO, chapterNo);
 
-        String preview = Jsoup.clean(Markdowns.toHTML(article.optString(Article.ARTICLE_CONTENT)), Whitelist.none());
+        String preview = Jsoup.clean(Markdowns.toHTML(article.optString(Article.ARTICLE_CONTENT)), Safelist.none());
         preview = StringUtils.replace(preview, "\n", " ");
         preview = StringUtils.replace(preview, "\r", " ");
         preview = StringUtils.normalizeSpace(preview);

@@ -56,7 +56,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 import org.jsoup.select.NodeVisitor;
 
@@ -157,8 +157,8 @@ public final class Markdowns {
      */
     public static String clean(String content, final String baseURI) {
         content = MdSanitizer.stripFormatChars(content);
-        final Whitelist whitelist = Whitelist.relaxed().addAttributes(":all", "id", "target", "data-src", "aria-name", "aria-label");
-        inputWhitelist(whitelist);
+        final Safelist whitelist = Safelist.relaxed().addAttributes(":all", "id", "target", "data-src", "aria-name", "aria-label");
+        inputSafelist(whitelist);
         final Document.OutputSettings outputSettings = new Document.OutputSettings();
         outputSettings.prettyPrint(false);
         content = content.replaceAll("class=\"language-math\"", "><latex></latex");
@@ -244,7 +244,7 @@ public final class Markdowns {
         return ret;
     }
     
-    public static String clean(String bodyHtml, String baseUri, Whitelist whitelist, Document.OutputSettings outputSettings) {
+    public static String clean(String bodyHtml, String baseUri, Safelist whitelist, Document.OutputSettings outputSettings) {
         boolean emoji = false;
         if (bodyHtml.contains("class=\"emoji\"") && bodyHtml.contains("<img")) {
             emoji = true;
@@ -265,8 +265,8 @@ public final class Markdowns {
      * @return safe HTML content
      */
     public static String cleanChat(final String content, final String baseURI) {
-        final Whitelist whitelist = Whitelist.relaxed().addAttributes(":all", "id", "target",  "data-src", "aria-name", "aria-label");
-        inputWhitelistChat(whitelist);
+        final Safelist whitelist = Safelist.relaxed().addAttributes(":all", "id", "target",  "data-src", "aria-name", "aria-label");
+        inputSafelistChat(whitelist);
         final Document.OutputSettings outputSettings = new Document.OutputSettings();
         outputSettings.prettyPrint(false);
         final String tmp = Jsoup.clean(content, baseURI, whitelist, outputSettings);
@@ -397,8 +397,8 @@ public final class Markdowns {
                 html = "<p>" + html + "</p>";
             }
 
-            final Whitelist whitelist = Whitelist.relaxed();
-            inputWhitelist(whitelist);
+            final Safelist whitelist = Safelist.relaxed();
+            inputSafelist(whitelist);
             Document.OutputSettings outputSettings = new Document.OutputSettings();
             outputSettings.prettyPrint(false);
             html = html.replaceAll("class=\"language-math\"", "><latex></latex");
@@ -577,7 +577,7 @@ public final class Markdowns {
         MD_CACHE.put(hash, value);
     }
 
-    private static void inputWhitelist(final Whitelist whitelist) {
+    private static void inputSafelist(final Safelist whitelist) {
         whitelist.addTags("span", "hr", "kbd", "samp", "tt", "del", "s", "strike", "u", "details", "summary", "latex").
                 addAttributes("sup", "id").
                 addAttributes("iframe", "src", "security", "sandbox", "width", "height", "border", "marginwidth", "marginheight").
@@ -603,7 +603,7 @@ public final class Markdowns {
     }
 
 
-    private static void inputWhitelistChat(final Whitelist whitelist) {
+    private static void inputSafelistChat(final Safelist whitelist) {
         whitelist.addTags("span", "hr", "kbd", "samp", "tt", "del", "s", "strike", "u", "details", "summary").
                 addAttributes("sup",  "id").
                 addAttributes("iframe", "src", "security", "sandbox", "width", "height", "border", "marginwidth", "marginheight").

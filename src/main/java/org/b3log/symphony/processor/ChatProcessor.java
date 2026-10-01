@@ -47,7 +47,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -355,7 +355,7 @@ public class ChatProcessor {
     }
 
     public static String makePreview(String content) {
-        content = Jsoup.clean(content, Whitelist.none());
+        content = Jsoup.clean(content, Safelist.none());
         content = StringUtils.trim(content);
         if (StringUtils.isBlank(content)) {
             content = "[聊天消息]";

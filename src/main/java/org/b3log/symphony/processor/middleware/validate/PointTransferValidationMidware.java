@@ -35,7 +35,7 @@ import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 
 /**
  * Validates for user point transfer.
@@ -130,7 +130,7 @@ public class PointTransferValidationMidware {
             context.abort();
             return;
         }
-        memo = Jsoup.clean(memo, Whitelist.none());
+        memo = Jsoup.clean(memo, Safelist.none());
         request.setAttribute(Pointtransfer.MEMO, memo);
 
         context.handle();

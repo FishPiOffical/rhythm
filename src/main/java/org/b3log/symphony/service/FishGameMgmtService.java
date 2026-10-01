@@ -39,7 +39,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.b3log.latke.ioc.Inject;
 import org.jsoup.Jsoup;
-import org.jsoup.safety.Whitelist;
+import org.jsoup.safety.Safelist;
 import java.util.HashSet;
 import java.util.Set;
 /** 鱼游投稿与互动管理服务。 */
@@ -228,7 +228,7 @@ public class FishGameMgmtService {
     }
     public JSONObject addComment(final String userId, final String gameId, final String content) throws ServiceException {
         getApprovedRequired(gameId);
-        final String normalized = Jsoup.clean(StringUtils.trimToEmpty(content), Whitelist.none()).trim();
+        final String normalized = Jsoup.clean(StringUtils.trimToEmpty(content), Safelist.none()).trim();
         if (normalized.isEmpty() || normalized.length() > MAX_COMMENT_LENGTH) {
             throw new ServiceException("评论不能为空且不能超过 " + MAX_COMMENT_LENGTH + " 个字符");
         }
