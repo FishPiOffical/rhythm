@@ -18,13 +18,13 @@
  */
 package org.b3log.symphony.cache;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
-import org.b3log.latke.cache.Cache;
-import org.b3log.latke.cache.CacheFactory;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.repository.*;
@@ -39,6 +39,7 @@ import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Article cache.
@@ -59,13 +60,18 @@ public class ArticleCache {
     /**
      * Article cache.
      */
-    private static final Cache ARTICLE_CACHE = CacheFactory.getCache(Article.ARTICLES);
+    private static final Cache<String, JSONObject> ARTICLE_CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(6, TimeUnit.HOURS)
+            .maximumSize(5_000)
+            .build();
 
     /**
      * Article abstract cache.
      */
-    private static final Cache ARTICLE_ABSTRACT_CACHE = CacheFactory.getCache(Article.ARTICLES + "_"
-            + Article.ARTICLE_T_PREVIEW_CONTENT);
+    private static final Cache<String, JSONObject> ARTICLE_ABSTRACT_CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(6, TimeUnit.HOURS)
+            .maximumSize(5_000)
+            .build();
 
     /**
      * Side hot articles cache.
@@ -184,7 +190,7 @@ public class ArticleCache {
      * @return article abstract, return {@code null} if not found
      */
     public String getArticleAbstract(final String articleId) {
-        final JSONObject value = ARTICLE_ABSTRACT_CACHE.get(articleId);
+        final JSONObject value = ARTICLE_ABSTRACT_CACHE.getIfPresent(articleId);
         if (null == value) {
             return null;
         }
@@ -270,7 +276,7 @@ public class ArticleCache {
      * @return article, returns {@code null} if not found
      */
     public JSONObject getArticle(final String id) {
-        final JSONObject article = ARTICLE_CACHE.get(id);
+        final JSONObject article = ARTICLE_CACHE.getIfPresent(id);
         if (null == article) {
             return null;
         }
@@ -287,7 +293,7 @@ public class ArticleCache {
         final String articleId = article.optString(Keys.OBJECT_ID);
 
         ARTICLE_CACHE.put(articleId, JSONs.clone(article));
-        ARTICLE_ABSTRACT_CACHE.remove(articleId);
+        ARTICLE_ABSTRACT_CACHE.invalidate(articleId);
     }
 
     /**
@@ -296,7 +302,7 @@ public class ArticleCache {
      * @param id the specified article id
      */
     public void removeArticle(final String id) {
-        ARTICLE_CACHE.remove(id);
-        ARTICLE_ABSTRACT_CACHE.remove(id);
+        ARTICLE_CACHE.invalidate(id);
+        ARTICLE_ABSTRACT_CACHE.invalidate(id);
     }
 }

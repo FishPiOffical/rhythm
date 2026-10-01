@@ -18,13 +18,14 @@
  */
 package org.b3log.symphony.cache;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.b3log.latke.Keys;
-import org.b3log.latke.cache.Cache;
-import org.b3log.latke.cache.CacheFactory;
 import org.b3log.latke.ioc.Singleton;
-import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.util.JSONs;
 import org.json.JSONObject;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Comment cache.
@@ -39,7 +40,10 @@ public class CommentCache {
     /**
      * Comment cache.
      */
-    private static final Cache cache = CacheFactory.getCache(Comment.COMMENTS);
+    private static final Cache<String, JSONObject> CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(6, TimeUnit.HOURS)
+            .maximumSize(30_000)
+            .build();
 
     /**
      * Gets a comment by the specified comment id.
@@ -48,7 +52,7 @@ public class CommentCache {
      * @return comment, returns {@code null} if not found
      */
     public JSONObject getComment(final String id) {
-        final JSONObject comment = cache.get(id);
+        final JSONObject comment = CACHE.getIfPresent(id);
         if (null == comment) {
             return null;
         }
@@ -62,7 +66,7 @@ public class CommentCache {
      * @param comment the specified comment
      */
     public void putComment(final JSONObject comment) {
-        cache.put(comment.optString(Keys.OBJECT_ID), JSONs.clone(comment));
+        CACHE.put(comment.optString(Keys.OBJECT_ID), JSONs.clone(comment));
     }
 
     /**
@@ -71,6 +75,6 @@ public class CommentCache {
      * @param id the specified comment id
      */
     public void removeComment(final String id) {
-        cache.remove(id);
+        CACHE.invalidate(id);
     }
 }

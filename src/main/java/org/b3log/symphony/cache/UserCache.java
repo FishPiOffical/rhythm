@@ -136,8 +136,9 @@ public class UserCache {
      * @param user the specified user
      */
     public void putUser(final JSONObject user) {
-        ID_CACHE.put(user.optString(Keys.OBJECT_ID), JSONs.clone(user));
-        NAME_CACHE.put(user.optString(User.USER_NAME), JSONs.clone(user));
+        final JSONObject cached = JSONs.clone(user);
+        ID_CACHE.put(user.optString(Keys.OBJECT_ID), cached);
+        NAME_CACHE.put(user.optString(User.USER_NAME), cached);
         IP_CACHE.put(user.optString(UserExt.USER_LATEST_LOGIN_IP), user.optString(Keys.OBJECT_ID));
         Sessions.put(user.optString(Keys.OBJECT_ID), user);
     }
