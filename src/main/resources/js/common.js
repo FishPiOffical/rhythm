@@ -2444,6 +2444,16 @@ var jpeg_exif = [
 var jpegMagic = [
     0xFF, 0xD8, 0xFF, 0xE0,
 ]
+// JPEG 起始标记 SOI（FF D8）后紧跟任意段标记（FF xx），覆盖 JFIF/Exif 及无 APP0 标记（如 FF DB）的 JPEG
+var jpegSOIMagic = [
+    0xFF, 0xD8, 0xFF,
+]
+var webpRiffMagic = [
+    0x52, 0x49, 0x46, 0x46, // RIFF
+]
+var webpMagic = [
+    0x57, 0x45, 0x42, 0x50, // WEBP
+]
 var gifMagic0 = [
     0x47, 0x49, 0x46, 0x38, 0x37, 0x61,
 ]
@@ -2500,8 +2510,9 @@ function getImageMime (buf) {
         return 'image/gif'
     }
 
+    // JPEG 统一按 SOI（FF D8 FF）起始判定，兼容 JFIF/Exif/裸 DQT 等全部 JPEG 变体
     bytes = []
-    arraycopy(buf, 6, bytes, 0, 4)
+    arraycopy(buf, 0, bytes, 0, 3)
     if (isJpeg(bytes)) {
         return 'image/jpeg'
     }
@@ -2513,6 +2524,29 @@ function getImageMime (buf) {
     }
 
     return null
+}
+
+/**
+ * 判断是否为 WebP（RIFF....WEBP）。当前系统上传白名单不包含 WebP，
+ * 仅用于给出比"只允许上传图片!"更明确的提示。
+ *
+ * @param buf 文件前 12 字节
+ * @return WebP 文件返回 true
+ */
+function isWebpImage (buf) {
+    if (buf == null || buf == 'undefined' || buf.length < 12) {
+        return false
+    }
+
+    var head = []
+    arraycopy(buf, 0, head, 0, 4)
+    if (!arrayEquals(head, webpRiffMagic)) {
+        return false
+    }
+
+    var type = []
+    arraycopy(buf, 8, type, 0, 4)
+    return arrayEquals(type, webpMagic)
 }
 
 function isAudio (buf) {
@@ -2543,13 +2577,12 @@ function isGif (data) {
 }
 
 /**
- * @param data first 4 bytes of file
+ * @param data 文件前 3 字节（FF D8 FF）
  * @return jpeg image file true, other false
  */
 function isJpeg (data) {
     //console.log('JPEG')
-    return arrayEquals(data, jpegMagic) || arrayEquals(data, jpeg_jfif) ||
-        arrayEquals(data, jpeg_exif)
+    return arrayEquals(data, jpegSOIMagic)
 }
 
 /**

@@ -876,7 +876,14 @@ var Settings = {
           var reader = new FileReader()
           reader.readAsArrayBuffer(data.files[0])
           reader.onload = function (evt) {
-            var fileBuf = new Uint8Array(evt.target.result.slice(0, 11))
+            var fileBuf = new Uint8Array(evt.target.result.slice(0, 12))
+
+            if (isWebpImage(fileBuf)) {
+              Util.alert('暂不支持 WebP 格式头像，请转换为 JPG、PNG 或 GIF 后再上传!')
+
+              return
+            }
+
             var isImg = isImage(fileBuf)
 
             if (!isImg) {

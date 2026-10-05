@@ -508,6 +508,8 @@ public class FileUploadProcessor {
 
         // 组装转发部件：超限与触发频次上限的文件按旧通道行为计入 errFiles，不上传
         final List<RhypicProcessor.UploadPart> parts = new ArrayList<>();
+        // 转发文件名（补齐后缀）-> 原始文件名的映射，回填 succMap 时兼容按原名取 URL 的老前端
+        final Map<String, String> forwardedToOriginal = new HashMap<>();
         for (final FileUpload file : allFiles) {
             if (maxSize < file.getData().length) {
                 continue;
@@ -520,7 +522,20 @@ public class FileUploadProcessor {
                 continue;
             }
 
-            parts.add(new RhypicProcessor.UploadPart(originalName, file.getContentType(), file.getData()));
+            // 与旧通道行为对齐：FormData 裸 Blob（cropper 裁剪、聊天室涂鸦等）multipart
+            // 文件名是 "blob" 且无扩展名，图床会拒绝无后缀文件，这里按 Content-Type 推断补齐
+            String forwardedName = originalName;
+            if (StringUtils.isBlank(StringUtils.substringAfterLast(originalName, "."))) {
+                final String inferredSuffix = Headers.getSuffix(file);
+                if (StringUtils.isNotBlank(inferredSuffix)
+                        && Strings.containsIgnoreCase(inferredSuffix, allowedSuffixArray)) {
+                    forwardedName = originalName + "." + inferredSuffix;
+                }
+            }
+            if (!forwardedName.equals(originalName)) {
+                forwardedToOriginal.put(forwardedName, originalName);
+            }
+            parts.add(new RhypicProcessor.UploadPart(forwardedName, file.getContentType(), file.getData()));
         }
 
         final List<String> forwardNames = new ArrayList<>();
@@ -557,7 +572,14 @@ public class FileUploadProcessor {
                         final Iterator<String> keys = respSucc.keys();
                         while (keys.hasNext()) {
                             final String key = keys.next();
-                            succMap.put(key, respSucc.optString(key));
+                            final String url = respSucc.optString(key);
+                            succMap.put(key, url);
+                            // 兼容无后缀裸 Blob 的老前端（如聊天室涂鸦按 succMap.blob 取地址）：
+                            // 图床返回的 key 是补齐后缀后的转发名，额外按原始名映射同一 URL
+                            final String originalKey = forwardedToOriginal.get(key);
+                            if (null != originalKey && !succMap.containsKey(originalKey)) {
+                                succMap.put(originalKey, url);
+                            }
                         }
                     }
                 }

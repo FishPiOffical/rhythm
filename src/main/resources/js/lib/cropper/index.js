@@ -69,7 +69,8 @@ $(function () {
     $save.on('click',function(){
         $('#image').cropper('getCroppedCanvas').toBlob(function (blob) {
             var formData = new FormData();
-            formData.append('file[]', blob);
+            // 必须显式给出文件名：裸 Blob 的 multipart 文件名是 "blob"（无扩展名），会被图床拒绝
+            formData.append('file[]', blob, 'avatar.png');
             $.ajax({
                 url: Label.servePath + '/upload',
                 method: "POST",
@@ -78,18 +79,25 @@ $(function () {
                 contentType: false,
                 mimeType: "multipart/form-data",
                 success: function (res) {
+                    var data = typeof res === 'string' ? JSON.parse(res) : res;
+                    var succMap = data && data.data ? data.data.succMap : null;
+                    var keys = succMap ? Object.keys(succMap) : [];
+                    if (keys.length === 0) {
+                        Util.alert('头像上传失败' + (data && data.msg ? '：' + data.msg : '!'));
+                        return;
+                    }
                     var result = {
                         result: {
-                            key: JSON.parse(res).data.succMap[Object.keys(JSON.parse(res).data.succMap)[0]]
+                            key: succMap[keys[0]]
                         }
                     };
                     updateAvatarByData(result);
                 },
                 error: function () {
-                    alert('头像上传失败!');
+                    Util.alert('头像上传失败!');
                 }
             });
-        });
+        }, 'image/png');
     })
 
     // Import Image

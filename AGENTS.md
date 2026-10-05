@@ -54,6 +54,7 @@
 - 对外接口文档维护：只要新增、修改或删除接口，必须直接更新项目根目录 `API.md`，并与 `UPDATE_LOG.md` 同步产出面向第三方开发者的更新记录；`UPDATE_LOG.md` 按时间倒序维护，新记录必须写在适用说明之后、既有记录之前；最终回复提醒用户把 `API.md` 内容同步到网站 API 文档文章 `https://fishpi.cn/article/1636516552191`；文档保持该文章 Markdown 风格：模块用 `## 模块名`，接口用 `### 接口名`；接口行使用反引号包裹的 `METHOD /path`；包含简短用途说明、`请求:`/`请求：`、`| Key | 说明 | 示例 |` 表格、`请求示例：` 的 `bash` curl 代码块、`响应：` 表格；嵌套字段用 `-`、`--`、`---` 前缀；注意事项用 `>` 引用块；不要改成 OpenAPI/schema 或纯文本表格风格。
 - 字符串输入必须做限制与校验：长度上限、空白处理、字符白名单/黑名单、格式校验（如用户名/URL/JSON）、必要的转义或编码；禁止直接信任前端传参。
 - 涉及业务规则（可用字符、最大长度、是否允许 HTML/Markdown、过滤策略）不明确时，先与用户确认规则再实现，避免误伤或放漏。
+- 上传链路：编辑器贴图走 RhyPic 前端直传（`Util.rhypicTicket` + `pic.fishpi.cn/api/v1/files`，字段名 `file`）；头像/裁剪/涂鸦等 `/upload` 代理通道字段名必须是 `file[]`，由 `FileUploadProcessor#uploadViaRhypic` 签票转发。图床拒绝无扩展名文件：FormData 裸 Blob（cropper、聊天室涂鸦）必须带文件名（append 第三参数），后端同时按 Content-Type 为无后缀文件名补扩展名，并在 succMap 保留原名别名兼容 `succMap.blob` 类老前端。前端魔数校验 `isImage` 只认 JPEG(SOI FF D8 FF)/PNG/GIF，WebP 不在 `upload.suffix` 白名单，头像场景给明确提示。
 - 鱼游投稿链路由 `FishGameProcessor` + `FishGameMgmtService` + `FishGameQueryService` 负责，数据表为 `fish_game`、`fish_game_vote`、`fish_game_comment`；投稿必须通过 OAuth 说明网址校验后进入待审，管理员导入旧清单按已审核处理并按目标网址去重。`/activities` 只展示已审核记录并按点赞数排序，PC/移动模板和资源需同步维护。
 
 ## 目录速览
