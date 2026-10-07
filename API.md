@@ -483,6 +483,75 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 `GET /user/{用户名}/medal`
 
+### 签到排行
+
+获取连续签到天数排行榜。
+
+`GET /api/top/checkin`
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/top/checkin' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应：
+
+| Key  | 说明                 | 示例    |
+| ---- | -------------------- | ------- |
+| code | 0 为请求成功         | 0       |
+| msg  | 错误消息             |         |
+| data | 排行用户列表 | `[...]` |
+
+> 注意：返回固定数量的榜单数据（服务端配置），不支持 `p`/`size` 分页参数。
+
+### 在线排行
+
+获取在线时长排行榜。
+
+`GET /api/top/online`
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/top/online' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应结构与“签到排行”一致。
+
+### 获取广告位配置
+
+获取站点广告位配置的 HTML 内容。
+
+`GET /api/ads?slot=<广告位>`
+
+请求：
+
+| Key  | 说明                                                          | 示例       |
+| ---- | ------------------------------------------------------------- | ---------- |
+| slot | 广告位（可选）：`sideFull` 侧栏广告，`headerBanner` 顶部横幅 | sideFull   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/ads?slot=sideFull' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应：
+
+| Key                   | 说明                                       | 示例       |
+| --------------------- | ------------------------------------------ | ---------- |
+| code                  | 0 为请求成功                               | 0          |
+| msg                   | 错误消息                                   |            |
+| data.slots            | 广告位内容 map（带 `slot` 参数时只含该位） | `{...}`    |
+| - sideFull            | 侧栏广告 HTML，未配置为空字符串            | `<div>...` |
+| - headerBanner        | 顶部横幅 HTML，未配置为空字符串            |            |
+
+> 注意：返回的是管理员配置的原始 HTML 片段，第三方客户端渲染时请注意 XSS 防护与样式适配。
+
 ## OAuth 用户资源
 
 ### OAuth 授权范围
@@ -1832,6 +1901,8 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 所有帖子列表APi都支持定义每页显示文章数量，可在请求后加入参数 `?size=<Size>`自定义数量。
 
+帖子列表类接口均已开放匿名访问，`apiKey` 为可选参数：不传时匿名返回公开帖子；传入有效 `apiKey` 时识别用户身份并返回与该用户相关的状态。
+
 #### 最近
 
 * 最近帖子列表：`GET /api/articles/recent`
@@ -1842,9 +1913,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 请求参数（以上接口通用）：
 
-- `apiKey`：用户 API Key（必填）
+- `apiKey`：用户 API Key（可选，匿名访问可省略）
 - `p`：页码（可选，默认 1）
-- `size`：每页数量（可选，默认使用系统值）
+- `size`：每页数量（可选，默认使用系统值，最大 100）
 
 响应：
 
@@ -1854,6 +1925,41 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 - `/api/articles/recent` 系列默认不再包含长篇文章（`articleType=6`）。
 - 长篇文章请使用 `/api/articles/recent/long`。
+- 匿名访问时返回的均为公开帖子，机要帖（讨论帖）等受限内容不会出现在列表中。
+
+#### 问答
+
+* 最新问答列表：`GET /api/articles/qna`
+* 未回答问答列表：`GET /api/articles/qna/unanswered`
+* 悬赏问答列表：`GET /api/articles/qna/reward`
+* 热门问答列表：`GET /api/articles/qna/hot`
+
+请求参数（以上接口通用）：
+
+- `apiKey`：可选，匿名访问可省略
+- `p`：页码（可选，默认 1）
+- `size`：每页数量（可选，默认使用系统值，最大 100）
+
+响应：
+
+| Key               | 说明           | 示例   |
+| ----------------- | -------------- | ------ |
+| code              | 0 为请求成功   | 0      |
+| msg               | 错误消息       |        |
+| data.articles     | 问答帖子列表 | `[...]` |
+| data.pagination   | 分页信息       | `{...}` |
+
+#### 优选
+
+* 优选帖子列表：`GET /api/articles/perfect`
+
+请求参数：
+
+- `apiKey`：可选，匿名访问可省略
+- `p`：页码（可选，默认 1）
+- `size`：每页数量（可选，默认使用系统值，最大 100）
+
+响应结构与“问答”一致（`data.articles` + `data.pagination`）。
 
 #### 按标签
 
@@ -1863,25 +1969,115 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 * 按最近回复列出帖子：`GET /api/articles/tag/<标签URI>/reply`
 * 按优选列出帖子：`GET /api/articles/tag/<标签URI>/perfect`
 
-注：标签URI可在点开某个标签的页面后，在URL中提取，例如[系统公告](https://fishpi.cn/tag/announcement)的标签URI为 `announcement`。
+注：标签URI可在点开某个标签的页面后，在URL中提取，例如[系统公告](https://fishpi.cn/tag/announcement)的标签URI为 `announcement`。该系列接口支持匿名访问，`apiKey` 可选。
 
 #### 按领域
 
 * 列出帖子：`GET /api/articles/domain/<领域URI>`
 
-注：领域URI与标签URI同理，都可以从领域的页面的URL中提取。
+注：领域URI与标签URI同理，都可以从领域的页面的URL中提取。该接口支持匿名访问，`apiKey` 可选。
 
-响应（帖子列表通用）：
+### 搜索帖子
 
-| Key                   | 说明                                                 | 示例 |
-| --------------------- | ---------------------------------------------------- | ---- |
-| code                  | 为 0 则密钥有效，为 -1 则密钥无效                    | 0    |
-| msg                   | 错误消息                                             |      |
-| articleTitle          | 文章标题                                             |      |
-| articleTags           | 文章标签                                             |      |
-| articlePreviewContent | 文章简略文                                           |      |
-| articleAuthor         | 文章作者信息                                         |      |
-|                       | 还有很多参数，不难理解，大家先自己悟，我有时间再更新 |      |
+按关键字搜索公开帖子的标题与正文。
+
+`GET /api/search?q=<关键字>&p=<Page>&size=<Size>`
+
+请求：
+
+| Key  | 说明                                     | 示例   |
+| ---- | ---------------------------------------- | ------ |
+| q    | 搜索关键字（也可用 `key` 参数，二选一） | 摸鱼   |
+| p    | 页码（可选，默认 1）                     | 1      |
+| size | 每页数量（可选，默认 20，最大 50）       | 20     |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/search?q=%E6%91%B8%E9%B1%BC&p=1&size=20' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应：
+
+| Key                | 说明                           | 示例             |
+| ------------------ | ------------------------------ | ---------------- |
+| code               | 0 为请求成功，-1 为请求失败    | 0                |
+| msg                | 错误消息                       |                  |
+| data.key           | 实际使用的搜索关键字（已转义） | 摸鱼             |
+| data.total         | 命中总数 | 128           |
+| data.pagination    | 分页信息                       | `{...}`          |
+| data.articles      | 命中帖子列表 | `[...]`      |
+| -- oId             | 帖子 ID                        | 1636516552191    |
+| -- articleTitle    | 帖子标题                       | 摸鱼派社区开放 API 使用文档 |
+| -- articleTags     | 帖子标签                       | 摸鱼派,API       |
+| -- articlePermalink| 帖子固定链接                   | /article/1636516552191 |
+| -- articlePreviewContent | 命中内容预览             | `...`            |
+| -- articleAuthor   | 作者公开信息                   | `{...}`          |
+
+> 注意：单 IP 请求间隔不得低于 2 秒，否则会被限流拒绝；搜索服务不可用时返回 `code=-1`。命中结果不包含机要帖、思绪帖等受限内容，返回字段为白名单内的公开字段。
+
+### 标签目录
+
+分页返回全站标签目录，按引用数降序排列，仅包含被帖子引用的标签。
+
+`GET /api/tags?p=<Page>&size=<Size>`
+
+请求：
+
+| Key  | 说明                               | 示例 |
+| ---- | ---------------------------------- | ---- |
+| p    | 页码（可选，默认 1）               | 1    |
+| size | 每页数量（可选，默认 50，最大 100） | 50   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/tags?p=1&size=50' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应：
+
+| Key                 | 说明                     | 示例               |
+| ------------------- | ------------------------ | ------------------ |
+| code                | 0 为请求成功             | 0                  |
+| msg                 | 错误消息                 |                    |
+| data.total          | 标签总数                 | 582                |
+| data.pagination     | 分页信息                 | `{...}`            |
+| data.tags           | 标签列表                 | `[...]`            |
+| - tagTitle          | 标签名                   | 有趣               |
+| - tagURI            | 标签 URI                 | %e6%9c%89%e8%b6%a3 |
+| - tagDescription    | 标签描述                 |                    |
+| - tagReferenceCount | 引用计数                 | 15                 |
+| - tagIconPath       | icon 图地址              | `https://...`      |
+
+### 领域目录
+
+返回全站领域目录及各领域公开帖数。
+
+`GET /api/domains`
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/domains' \
+--header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
+```
+
+响应：
+
+| Key               | 说明                     | 示例         |
+| ----------------- | ------------------------ | ------------ |
+| code              | 0 为请求成功             | 0            |
+| msg               | 错误消息                 |              |
+| data.domains      | 领域列表                 | `[...]`      |
+| - domainURI       | 领域 URI                 | evildoer     |
+| - domainTitle     | 领域名                   | 程序员的折腾 |
+| - domainDescription | 领域简介               |              |
+| - domainIconPath  | 领域 icon 图地址         | `https://...`|
+| - domainTagCnt    | 领域内标签数             | 13           |
+| - articleCnt      | 领域内公开帖数           | 186          |
 
 ### 获取指定帖子
 
@@ -1891,9 +2087,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/article-drafts/177000000
 
 请求:
 
-| Key    | 说明     | 示例                             |
-| ------ | -------- | -------------------------------- |
-| apiKey | 通用密钥 | YOUR_API_KEY |
+| Key    | 说明                                   | 示例         |
+| ------ | -------------------------------------- | ------------ |
+| apiKey | 通用密钥（可选，匿名访问可省略）       | YOUR_API_KEY |
 
 请求示例：
 
@@ -1902,11 +2098,13 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
+> 注意：匿名访问（不带 `apiKey`）时返回公开内容，`isFollowing`、`isWatching`、`isMyArticle`、`thanked` 等与“我”相关的字段统一为未登录状态；作者设置为“不允许匿名浏览”的帖子匿名请求返回 JSON `code=401`，带有效 `apiKey` 后可正常访问。讨论帖（机要帖）正文与评论对未受邀用户不可见。
+
 响应：
 
 | Key                             | 说明                                                           | 示例                               |
 | ------------------------------- | -------------------------------------------------------------- | ---------------------------------- |
-| code                            | 为 0 则密钥有效，为 -1 则密钥无效                              | 0                                  |
+| code                            | 为 0 则请求成功，为 -1 则请求失败（密钥无效或帖子不可读）      | 0                                  |
 | msg                             | 错误消息                                                       |                                    |
 | data                            | 帖子数据                                                       | `{...}`                            |
 | - article                       | 帖子数据                                                       | `{...}`                            |

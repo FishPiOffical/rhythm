@@ -34,9 +34,11 @@ import org.b3log.latke.util.Paginator;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -186,5 +188,33 @@ public class DomainProcessor {
         dataModelService.fillSideTags(dataModel);
         dataModelService.fillRandomArticles(dataModel);
         dataModel.put(Common.SELECTED, Common.DOMAINS);
+    }
+
+    /**
+     * Anonymous domains directory API.
+     *
+     * @param context the specified context
+     */
+    public void getDomainsApi(final RequestContext context) {
+        final List<JSONObject> allDomains = domainQueryService.getAllDomains();
+        final List<JSONObject> domains = new ArrayList<>();
+        for (final JSONObject domain : allDomains) {
+            final JSONObject item = new JSONObject();
+            item.put(Domain.DOMAIN_URI, domain.optString(Domain.DOMAIN_URI));
+            item.put(Domain.DOMAIN_TITLE, domain.optString(Domain.DOMAIN_TITLE));
+            item.put(Domain.DOMAIN_DESCRIPTION, domain.optString(Domain.DOMAIN_DESCRIPTION));
+            item.put(Domain.DOMAIN_ICON_PATH, domain.optString(Domain.DOMAIN_ICON_PATH));
+            item.put(Domain.DOMAIN_TAG_COUNT, domain.optInt(Domain.DOMAIN_TAG_COUNT));
+
+            // 公开帖数：复用领域文章查询的过滤口径，取分页总页数（pageSize=1 时即总帖数）
+            final JSONObject result = articleQueryService.getDomainArticles(domain.optString(Keys.OBJECT_ID), null, 1, 1);
+            final JSONObject pagination = null == result ? null : result.optJSONObject(Pagination.PAGINATION);
+            item.put("articleCnt", null == pagination ? 0 : pagination.optInt(Pagination.PAGINATION_PAGE_COUNT));
+
+            domains.add(item);
+        }
+
+        context.renderJSON(new JSONObject().put("data", new JSONObject().put("domains", (Object) domains)))
+                .renderCode(StatusCodes.SUCC).renderMsg("");
     }
 }

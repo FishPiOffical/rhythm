@@ -408,6 +408,15 @@ public class TagQueryService {
     }
 
     /**
+     * Gets all valid tags from cache for the tag directory API.
+     *
+     * @return all valid tags, returns an empty list if not found
+     */
+    public List<JSONObject> getTagDirectoryTags() {
+        return tagCache.getTags();
+    }
+
+    /**
      * Gets the creator of the specified tag of the given tag id.
      *
      * @param tagId the given tag id

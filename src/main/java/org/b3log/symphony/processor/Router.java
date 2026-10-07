@@ -158,6 +158,7 @@ public final class Router {
         // 搜索
         final SearchProcessor searchProcessor = beanManager.getReference(SearchProcessor.class);
         Dispatcher.get("/search", searchProcessor::search, loginCheck::handle);
+        Dispatcher.get("/api/search", searchProcessor::searchApi);
         // Sitemap
         final SitemapProcessor sitemapProcessor = beanManager.getReference(SitemapProcessor.class);
         Dispatcher.get("/sitemap.xml", sitemapProcessor::sitemap, anonymousViewCheckMidware::handle);
@@ -171,6 +172,7 @@ public final class Router {
         final DomainProcessor domainProcessor = beanManager.getReference(DomainProcessor.class);
         Dispatcher.get("/domain/{domainURI}", domainProcessor::showDomainArticles, loginCheck::handle);
         Dispatcher.get("/domains", domainProcessor::showDomains, loginCheck::handle);
+        Dispatcher.get("/api/domains", domainProcessor::getDomainsApi);
         // RSS 订阅
         final FeedProcessor feedProcessor = beanManager.getReference(FeedProcessor.class);
         Dispatcher.group().router().get().head().uri("/rss/recent.xml").handler(feedProcessor::genRecentRSS);

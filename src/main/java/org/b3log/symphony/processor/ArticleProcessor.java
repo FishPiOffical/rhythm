@@ -107,6 +107,11 @@ public class ArticleProcessor {
      */
     private static final ConcurrentHashMap<String, Long> ARTICLE_RATE_LIMIT = new ConcurrentHashMap<>();
 
+    /**
+     * 匿名列表 API 单页数量上限，防止批量拉取滥用。
+     */
+    private static final int API_PAGE_SIZE_MAX = 100;
+
     private static final String COMMENT_SORT_HOT = "hot";
 
     private static final String COMMENT_AUTHOR_FILTER = "1";
@@ -294,10 +299,14 @@ public class ArticleProcessor {
         Dispatcher.post("/article/thank", articleProcessor::thankArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.post("/article/stick", articleProcessor::stickArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/article/random/{size}", articleProcessor::randomArticles, anonymousViewCheckMidware::handle);
-        Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/recent", "/api/articles/recent/hot", "/api/articles/recent/good", "/api/articles/recent/reply", "/api/articles/recent/long"}).handler(articleProcessor::getArticles);
-        Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/api/articles/tag/{tagURI}", "/api/articles/tag/{tagURI}/hot", "/api/articles/tag/{tagURI}/good", "/api/articles/tag/{tagURI}/reply", "/api/articles/tag/{tagURI}/perfect"}).handler(articleProcessor::getTagArticles);
-        Dispatcher.get("/api/articles/domain/{domainURI}", articleProcessor::getDomainArticles, loginCheck::handle);
-        Dispatcher.get("/api/article/{id}", articleProcessor::showArticleApi, loginCheck::handle);
+        // 公开只读 API：沿用 /api/user、/api/membership 等既有公开 API 惯例，不挂验证码中间件（第三方客户端无法挑战极验），
+        // 防护依赖全局 Firewall CC（429）与各接口自身限流；方法内可选识别 apiKey 返回用户态
+        Dispatcher.group().router().get().uris(new String[]{"/api/articles/recent", "/api/articles/recent/hot", "/api/articles/recent/good", "/api/articles/recent/reply", "/api/articles/recent/long"}).handler(articleProcessor::getArticles);
+        Dispatcher.group().router().get().uris(new String[]{"/api/articles/tag/{tagURI}", "/api/articles/tag/{tagURI}/hot", "/api/articles/tag/{tagURI}/good", "/api/articles/tag/{tagURI}/reply", "/api/articles/tag/{tagURI}/perfect"}).handler(articleProcessor::getTagArticles);
+        Dispatcher.get("/api/articles/domain/{domainURI}", articleProcessor::getDomainArticles);
+        Dispatcher.get("/api/article/{id}", articleProcessor::showArticleApi);
+        Dispatcher.group().router().get().uris(new String[]{"/api/articles/qna", "/api/articles/qna/unanswered", "/api/articles/qna/reward", "/api/articles/qna/hot"}).handler(articleProcessor::getQnaArticlesApi);
+        Dispatcher.get("/api/articles/perfect", articleProcessor::getPerfectArticlesApi);
         Dispatcher.get("/api/article/heat/{articleId}", articleProcessor::getArticleHeat);
         Dispatcher.get("/api/comment/{id}", articleProcessor::showCommentApi, loginCheck::handle);
         Dispatcher.get("/api/article/md/{id}", articleProcessor::showArticleMdApi, loginCheck::handle);
@@ -555,29 +564,45 @@ public class ArticleProcessor {
 
         final int cmtViewMode = 0;
         JSONObject currentUser = Sessions.getUser();
-        String currentUserId = currentUser.optString(Keys.OBJECT_ID);
+        if (null == currentUser) {
+            // 兼容 apiKey 客户端（无会话）
+            try {
+                currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+            } catch (final NullPointerException ignored) {
+            }
+        }
+        final boolean loggedIn = null != currentUser;
+        final String currentUserId = loggedIn ? currentUser.optString(Keys.OBJECT_ID) : "";
 
-        final boolean isMyArticle = currentUserId.equals(articleAuthorId);
+        // 文章级匿名可见性校验（公开 API 不经验证码中间件，在此以 JSON 401 明确拒绝，客户端可识别）
+        if (!loggedIn && Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW == article.optInt(Article.ARTICLE_ANONYMOUS_VIEW)) {
+            context.renderCodeMsg(401, "该帖子不允许匿名访问");
+            return;
+        }
+
+        final boolean isMyArticle = loggedIn && currentUserId.equals(articleAuthorId);
         article.put(Common.IS_MY_ARTICLE, isMyArticle);
 
-        final boolean isFollowing = followQueryService.isFollowing(currentUserId, articleId, Follow.FOLLOWING_TYPE_C_ARTICLE);
+        final boolean isFollowing = loggedIn && followQueryService.isFollowing(currentUserId, articleId, Follow.FOLLOWING_TYPE_C_ARTICLE);
         article.put(Common.IS_FOLLOWING, isFollowing);
 
-        final boolean isWatching = followQueryService.isFollowing(currentUserId, articleId, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
+        final boolean isWatching = loggedIn && followQueryService.isFollowing(currentUserId, articleId, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
         article.put(Common.IS_WATCHING, isWatching);
 
-        final int articleVote = voteQueryService.isVoted(currentUserId, articleId);
+        final int articleVote = loggedIn ? voteQueryService.isVoted(currentUserId, articleId) : -1;
         article.put(Article.ARTICLE_T_VOTE, articleVote);
 
         if (isMyArticle) {
             article.put(Common.REWARDED, true);
         } else {
-            article.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, articleId, Reward.TYPE_C_ARTICLE));
+            article.put(Common.REWARDED, loggedIn && rewardQueryService.isRewarded(currentUserId, articleId, Reward.TYPE_C_ARTICLE));
         }
 
 
-        //加活跃
-        livenessMgmtService.incLiveness(currentUserId, Liveness.LIVENESS_PV);
+        //加活跃（匿名访问不计活跃）
+        if (loggedIn) {
+            livenessMgmtService.incLiveness(currentUserId, Liveness.LIVENESS_PV);
+        }
 
 
         if (Sessions.isBot()) {
@@ -609,7 +634,7 @@ public class ArticleProcessor {
         // Fill article thank
         Stopwatchs.start("Fills article thank");
         try {
-            article.put(Common.THANKED, rewardQueryService.isRewarded(currentUserId, articleId, Reward.TYPE_C_THANK_ARTICLE));
+            article.put(Common.THANKED, loggedIn && rewardQueryService.isRewarded(currentUserId, articleId, Reward.TYPE_C_THANK_ARTICLE));
             article.put(Common.THANKED_COUNT, article.optInt(Article.ARTICLE_THANK_CNT));
             if (Article.ARTICLE_TYPE_C_QNA == article.optInt(Article.ARTICLE_TYPE)) {
                 article.put(Common.OFFERED, rewardQueryService.isRewarded(articleAuthorId, articleId, Reward.TYPE_C_ACCEPT_COMMENT));
@@ -625,7 +650,7 @@ public class ArticleProcessor {
                     final String offeredCmtId = offeredComment.optString(Keys.OBJECT_ID);
                     final int rewardCount = offeredComment.optInt(Comment.COMMENT_THANK_CNT);
                     offeredComment.put(Common.REWARED_COUNT, rewardCount);
-                    offeredComment.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, offeredCmtId, Reward.TYPE_C_COMMENT));
+                    offeredComment.put(Common.REWARDED, loggedIn && rewardQueryService.isRewarded(currentUserId, offeredCmtId, Reward.TYPE_C_COMMENT));
                 }
             }
         } finally {
@@ -677,8 +702,8 @@ public class ArticleProcessor {
 
                 final String commentId = comment.optString(Keys.OBJECT_ID);
 
-                comment.put(Common.REWARDED, rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
-                final int commentVote = voteQueryService.isVoted(currentUserId, commentId);
+                comment.put(Common.REWARDED, loggedIn && rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
+                final int commentVote = loggedIn ? voteQueryService.isVoted(currentUserId, commentId) : -1;
                 comment.put(Comment.COMMENT_T_VOTE, commentVote);
 
                 comment.put(Common.REWARED_COUNT, comment.optInt(Comment.COMMENT_THANK_CNT));
@@ -707,8 +732,8 @@ public class ArticleProcessor {
                 final String commentId = comment.optString(Keys.OBJECT_ID);
 
                 comment.put(Common.REWARDED,
-                        rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
-                final int commentVote = voteQueryService.isVoted(currentUserId, commentId);
+                        loggedIn && rewardQueryService.isRewarded(currentUserId, commentId, Reward.TYPE_C_COMMENT));
+                final int commentVote = loggedIn ? voteQueryService.isVoted(currentUserId, commentId) : -1;
                 comment.put(Comment.COMMENT_T_VOTE, commentVote);
                 comment.put(Common.REWARED_COUNT, comment.optInt(Comment.COMMENT_THANK_CNT));
 
@@ -742,9 +767,7 @@ public class ArticleProcessor {
 
         final Map<String, Object> dataModel = new HashMap<>();
         final int pageNum = Paginator.getPage(request);
-        final String size = context.param("size");
-        int pageSize = StringUtils.isBlank(size) ? 0 : Integer.parseInt(size);
-        pageSize = pageSize <= 0 ? Symphonys.ARTICLE_LIST_CNT : pageSize;
+        final int pageSize = parseApiPageSize(context);
 
         final JSONObject domain = domainQueryService.getByURI(domainURI);
         if (null == domain) {
@@ -779,9 +802,7 @@ public class ArticleProcessor {
 
         final Map<String, Object> dataModel = new HashMap<>();
         final int pageNum = Paginator.getPage(request);
-        final String size = context.param("size");
-        int pageSize = StringUtils.isBlank(size) ? 0 : Integer.parseInt(size);
-        pageSize = pageSize <= 0 ? Symphonys.ARTICLE_LIST_CNT : pageSize;
+        final int pageSize = parseApiPageSize(context);
 
 
         final JSONObject tag = tagQueryService.getTagByURI(tagURI);
@@ -844,9 +865,7 @@ public class ArticleProcessor {
         final Request request = context.getRequest();
         final Map<String, Object> dataModel = new HashMap<>();
         final int pageNum = Paginator.getPage(request);
-        final String size = context.param("size");
-        int pageSize = StringUtils.isBlank(size) ? 0 : Integer.parseInt(size);
-        pageSize = pageSize <= 0 ? Symphonys.ARTICLE_LIST_CNT : pageSize;
+        final int pageSize = parseApiPageSize(context);
 
         String sortModeStr = StringUtils.substringAfter(context.requestURI(), "/recent");
         final JSONObject result;
@@ -881,8 +900,92 @@ public class ArticleProcessor {
         context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
+    /**
+     * Parses the page size for anonymous list APIs, with an upper bound to prevent abuse.
+     */
+    private static int parseApiPageSize(final RequestContext context) {
+        final String size = context.param("size");
+        int pageSize = 0;
+        if (StringUtils.isNotBlank(size)) {
+            try {
+                pageSize = Integer.parseInt(size.trim());
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        if (pageSize <= 0) {
+            pageSize = Symphonys.ARTICLE_LIST_CNT;
+        }
+        return Math.min(pageSize, API_PAGE_SIZE_MAX);
+    }
 
+    /**
+     * api for get question (QnA) articles.
+     *
+     * @param context the specified context
+     */
+    public void getQnaArticlesApi(final RequestContext context) {
+        final Request request = context.getRequest();
+        final Map<String, Object> dataModel = new HashMap<>();
+        final int pageNum = Paginator.getPage(request);
+        final int pageSize = parseApiPageSize(context);
 
+        String sortModeStr = StringUtils.substringAfter(context.requestURI(), "/qna");
+        int sortMode;
+        switch (sortModeStr) {
+            case "":
+                sortMode = 0;
+                break;
+            case "/unanswered":
+                sortMode = 1;
+                break;
+            case "/reward":
+                sortMode = 2;
+                break;
+            case "/hot":
+                sortMode = 3;
+                break;
+            default:
+                sortMode = 0;
+        }
+
+        final JSONObject result = articleQueryService.getQuestionArticles(sortMode, pageNum, pageSize);
+        if (null == result) {
+            context.renderCodeMsg(StatusCodes.ERR, "Query failed");
+            return;
+        }
+        final List<JSONObject> allArticles = (List<JSONObject>) result.opt(Article.ARTICLES);
+
+        final JSONObject pagination = result.optJSONObject(Pagination.PAGINATION);
+        dataModel.put("pagination", pagination);
+        dataModel.put(Article.ARTICLES, DesensitizeUtil.articlesDesensitize(null == allArticles ? Collections.emptyList() : allArticles));
+
+        context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    /**
+     * api for get perfect articles.
+     *
+     * @param context the specified context
+     */
+    public void getPerfectArticlesApi(final RequestContext context) {
+        final Request request = context.getRequest();
+        final Map<String, Object> dataModel = new HashMap<>();
+        final int pageNum = Paginator.getPage(request);
+        final int pageSize = parseApiPageSize(context);
+
+        final JSONObject result = articleQueryService.getPerfectArticles(pageNum, pageSize);
+        if (null == result) {
+            context.renderCodeMsg(StatusCodes.ERR, "Query failed");
+            return;
+        }
+        final List<JSONObject> allArticles = (List<JSONObject>) result.opt(Article.ARTICLES);
+
+        final JSONObject pagination = result.optJSONObject(Pagination.PAGINATION);
+        dataModel.put("pagination", pagination);
+        dataModel.put(Article.ARTICLES, DesensitizeUtil.articlesDesensitize(null == allArticles ? Collections.emptyList() : allArticles));
+
+        context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
 
     /**
      * Removes an article.

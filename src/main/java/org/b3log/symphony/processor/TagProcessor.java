@@ -32,7 +32,6 @@ import org.b3log.latke.model.Pagination;
 import org.b3log.latke.util.Paginator;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.model.*;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
@@ -98,12 +97,71 @@ public class TagProcessor {
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
-        final AnonymousViewCheckMidware anonymousViewCheckMidware = beanManager.getReference(AnonymousViewCheckMidware.class);
 
         final TagProcessor tagProcessor = beanManager.getReference(TagProcessor.class);
         Dispatcher.get("/tags/query", tagProcessor::queryTags, loginCheck::handle);
         Dispatcher.get("/tags", tagProcessor::showTagsWall, loginCheck::handle);
+        Dispatcher.get("/api/tags", tagProcessor::getTagsApi);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/tag/{tagURI}", "/tag/{tagURI}/hot", "/tag/{tagURI}/good", "/tag/{tagURI}/reply", "/tag/{tagURI}/perfect"}).handler(tagProcessor::showTagArticles);
+    }
+
+    /**
+     * Anonymous paginated tag directory API.
+     *
+     * @param context the specified context
+     */
+    public void getTagsApi(final RequestContext context) {
+        final Request request = context.getRequest();
+        final int pageNum = Paginator.getPage(request);
+        int pageSize = 0;
+        final String size = context.param("size");
+        if (StringUtils.isNotBlank(size)) {
+            try {
+                pageSize = Integer.parseInt(size.trim());
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        if (pageSize <= 0) {
+            pageSize = 50;
+        }
+        pageSize = Math.min(pageSize, 100);
+
+        final List<JSONObject> allTags = tagQueryService.getTagDirectoryTags();
+        final List<JSONObject> usedTags = new ArrayList<>();
+        for (final JSONObject tag : allTags) {
+            if (tag.optInt(Tag.TAG_REFERENCE_CNT) > 0) {
+                usedTags.add(tag);
+            }
+        }
+        usedTags.sort((t1, t2) -> t2.optInt(Tag.TAG_REFERENCE_CNT) - t1.optInt(Tag.TAG_REFERENCE_CNT));
+
+        final int total = usedTags.size();
+        final int pageCount = (int) Math.ceil(total / (double) pageSize);
+        final int from = Math.min((pageNum - 1) * pageSize, total);
+        final int to = Math.min(from + pageSize, total);
+
+        final List<JSONObject> tags = new ArrayList<>();
+        for (final JSONObject tag : usedTags.subList(from, to)) {
+            final JSONObject item = new JSONObject();
+            item.put(Tag.TAG_TITLE, tag.optString(Tag.TAG_TITLE));
+            item.put(Tag.TAG_URI, tag.optString(Tag.TAG_URI));
+            item.put(Tag.TAG_DESCRIPTION, tag.optString(Tag.TAG_DESCRIPTION));
+            item.put(Tag.TAG_REFERENCE_CNT, tag.optInt(Tag.TAG_REFERENCE_CNT));
+            item.put(Tag.TAG_ICON_PATH, tag.optString(Tag.TAG_ICON_PATH));
+            tags.add(item);
+        }
+
+        final List<Integer> pageNums = Paginator.paginate(pageNum, pageSize, pageCount, Symphonys.ARTICLE_LIST_WIN_SIZE);
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        pagination.put(Pagination.PAGINATION_PAGE_NUMS, (Object) pageNums);
+
+        final JSONObject data = new JSONObject();
+        data.put("tags", (Object) tags);
+        data.put("total", total);
+        data.put(Pagination.PAGINATION, pagination);
+
+        context.renderJSON(new JSONObject().put("data", data)).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
     /**

@@ -100,6 +100,12 @@ public class IndexProcessor {
     private ArticleQueryService articleQueryService;
 
     /**
+     * Option query service.
+     */
+    @Inject
+    private OptionQueryService optionQueryService;
+
+    /**
      * Long article column query service.
      */
     @Inject
@@ -204,6 +210,39 @@ public class IndexProcessor {
         Dispatcher.get("/breezemoons", indexProcessor::showBreezemoons, loginCheck::handle);
         Dispatcher.get("/privacy", indexProcessor::showPrivacy, anonymousViewCheckMidware::handle);
         Dispatcher.get("/agreement", indexProcessor::showAgreement, anonymousViewCheckMidware::handle);
+        Dispatcher.get("/api/ads", indexProcessor::getAds);
+    }
+
+    /**
+     * Anonymous public ads config API.
+     * <p>
+     * Returns admin-configured ad HTML by slot: "sideFull" (侧栏广告) and "headerBanner"（顶部横幅）.
+     * 未配置的广告位返回空字符串；带 slot 参数时只返回该广告位。
+     *
+     * @param context the specified context
+     */
+    public void getAds(final RequestContext context) {
+        final JSONObject slots = new JSONObject();
+        final String slotParam = context.param("slot");
+
+        fillAdSlot(slots, "sideFull", Option.ID_C_SIDE_FULL_AD, slotParam);
+        fillAdSlot(slots, "headerBanner", Option.ID_C_HEADER_BANNER, slotParam);
+
+        context.renderJSON(new JSONObject().put("data", new JSONObject().put("slots", slots)))
+                .renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    private void fillAdSlot(final JSONObject slots, final String slotName, final String optionId, final String slotParam) {
+        if (StringUtils.isNotBlank(slotParam) && !slotParam.equals(slotName)) {
+            return;
+        }
+
+        final JSONObject option = optionQueryService.getOption(optionId);
+        String content = null == option ? "" : option.optString(Option.OPTION_VALUE);
+        if (null == content) {
+            content = "";
+        }
+        slots.put(slotName, content);
     }
 
 

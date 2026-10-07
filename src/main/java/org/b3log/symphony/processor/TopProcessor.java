@@ -34,7 +34,6 @@ import org.b3log.latke.model.User;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
@@ -127,23 +126,20 @@ public class TopProcessor {
      */
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
-        final AnonymousViewCheckMidware anonymousViewCheckMidware = beanManager.getReference(AnonymousViewCheckMidware.class);
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
 
         final TopProcessor topProcessor = beanManager.getReference(TopProcessor.class);
         Dispatcher.get("/api/top/any", topProcessor::getAnyTop, loginCheck::handle);
         Dispatcher.get("/top", topProcessor::showTop, loginCheck::handle);
         Dispatcher.get("/top/profession", topProcessor::showProfession, loginCheck::handle);
-//        Dispatcher.get("/top/link", topProcessor::showLink, anonymousViewCheckMidware::handle);
-//        Dispatcher.get("/api/top/link", topProcessor::getLink, anonymousViewCheckMidware::handle);
         Dispatcher.get("/top/balance", topProcessor::showBalance, loginCheck::handle);
         Dispatcher.get("/api/top/balance", topProcessor::getBalance, loginCheck::handle);
         Dispatcher.get("/top/consumption", topProcessor::showConsumption, loginCheck::handle);
         Dispatcher.get("/api/top/consumption", topProcessor::getConsumption, loginCheck::handle);
         Dispatcher.get("/top/checkin", topProcessor::showCheckin, loginCheck::handle);
-        Dispatcher.get("/api/top/checkin", topProcessor::getCheckin, loginCheck::handle);
+        Dispatcher.get("/api/top/checkin", topProcessor::getCheckin);
         Dispatcher.get("/top/online", topProcessor::showOnline, loginCheck::handle);
-        Dispatcher.get("/api/top/online", topProcessor::getOnline, loginCheck::handle);
+        Dispatcher.get("/api/top/online", topProcessor::getOnline);
         Dispatcher.get("/top/adr", topProcessor::showADR, loginCheck::handle);
         Dispatcher.get("/api/top/adr", topProcessor::getADR, loginCheck::handle);
         Dispatcher.get("/top/mofish", topProcessor::showMofish, loginCheck::handle);
