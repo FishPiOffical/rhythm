@@ -231,6 +231,10 @@ public class TopProcessor {
         result.remove("userCountry");
         result.remove("userEmail");
         result.remove("secret2fa");
+        result.remove("apiKey");
+        result.remove("token");
+        result.remove("accessToken");
+        result.remove("refreshToken");
     }
 
     /**

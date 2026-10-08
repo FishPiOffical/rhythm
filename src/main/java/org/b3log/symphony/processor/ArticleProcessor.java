@@ -595,7 +595,9 @@ public class ArticleProcessor {
         if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
             cmtViewModeStr = "0";
         }
-        final int cmtViewMode = Integer.parseInt(cmtViewModeStr);
+        final int rawMode = Integer.parseInt(cmtViewModeStr);
+        final int cmtViewMode = (rawMode == UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL || rawMode == UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME)
+                ? rawMode : UserExt.USER_COMMENT_VIEW_MODE_C_TRADITIONAL;
 
         final boolean isMyArticle = loggedIn && currentUserId.equals(articleAuthorId);
         article.put(Common.IS_MY_ARTICLE, isMyArticle);
