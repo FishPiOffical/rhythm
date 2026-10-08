@@ -26,12 +26,14 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.util.Times;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.service.*;
+import org.b3log.symphony.util.StatusCodes;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -195,6 +197,28 @@ public class StatisticProcessor {
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Loads stat data failed", e);
         }
+    }
+
+    /**
+     * Site statistic API.
+     *
+     * @param context the specified context
+     */
+    public void statisticApi(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+
+        final JSONObject data = new JSONObject();
+        final JSONObject statistic = optionQueryService.getStatistic();
+        if (null != statistic) {
+            for (final String key : statistic.keySet()) {
+                data.put(key, statistic.optInt(key));
+            }
+        }
+        data.put(Common.ONLINE_VISITOR_CNT, optionQueryService.getOnlineVisitorCount());
+        data.put(Common.ONLINE_MEMBER_CNT, optionQueryService.getOnlineMemberCount());
+        context.renderData(data).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
     /**

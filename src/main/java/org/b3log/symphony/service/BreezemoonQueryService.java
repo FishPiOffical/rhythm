@@ -163,11 +163,46 @@ public class BreezemoonQueryService {
      * </pre>
      */
     public JSONObject getFollowingUserBreezemoons(final String userId, final int page, final int pageSize, final int windowSize) {
+        return getFollowingUserBreezemoons(userId, page, pageSize, windowSize, true);
+    }
+
+    /**
+     * Get following user breezemoons.
+     *
+     * @param userId     the specified user id, may be {@code null}
+     * @param page       the specified page number
+     * @param pageSize   the specified page size
+     * @param windowSize the specified window size
+     * @param fallback   {@code true} 无关注或关注无内容时回退为全站清风明月（页面行为）；
+     *                   {@code false} 严格只返回关注用户的清风明月（API 行为）
+     * @return for example, <pre>
+     * {
+     *     "pagination": {
+     *         "paginationPageCount": 100,
+     *         "paginationPageNums": [1, 2, 3, 4, 5]
+     *     },
+     *     "breezemoons": [{
+     *         "id": "",
+     *         "breezemoonContent": ""
+     *      }, ....]
+     * }
+     * </pre>
+     */
+    public JSONObject getFollowingUserBreezemoons(final String userId, final int page, final int pageSize, final int windowSize, final boolean fallback) {
         final JSONObject ret = new JSONObject();
 
         final List<JSONObject> users = (List<JSONObject>) followQueryService.getFollowingUsers(userId, 1, Integer.MAX_VALUE).opt(Keys.RESULTS);
         if (users.isEmpty()) {
-            return getBreezemoons(userId, "", page, pageSize, windowSize);
+            if (fallback) {
+                return getBreezemoons(userId, "", page, pageSize, windowSize);
+            }
+            ret.put(Breezemoon.BREEZEMOONS, (Object) Collections.emptyList());
+            final JSONObject pagination = new JSONObject();
+            pagination.put(Pagination.PAGINATION_PAGE_COUNT, 0);
+            pagination.put(Pagination.PAGINATION_PAGE_NUMS, (Object) Collections.emptyList());
+            pagination.put(Pagination.PAGINATION_RECORD_COUNT, 0);
+            ret.put(Pagination.PAGINATION, pagination);
+            return ret;
         }
 
         final Query query = new Query().addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).setPage(page, pageSize);
@@ -187,7 +222,16 @@ public class BreezemoonQueryService {
             result = breezemoonRepository.get(query);
             final List<JSONObject> bms = (List<JSONObject>) result.opt(Keys.RESULTS);
             if (bms.isEmpty()) {
-                return getBreezemoons(userId, "", page, pageSize, windowSize);
+                if (fallback) {
+                    return getBreezemoons(userId, "", page, pageSize, windowSize);
+                }
+                ret.put(Breezemoon.BREEZEMOONS, (Object) Collections.emptyList());
+                final JSONObject emptyPagination = new JSONObject();
+                emptyPagination.put(Pagination.PAGINATION_PAGE_COUNT, 0);
+                emptyPagination.put(Pagination.PAGINATION_PAGE_NUMS, (Object) Collections.emptyList());
+                emptyPagination.put(Pagination.PAGINATION_RECORD_COUNT, 0);
+                ret.put(Pagination.PAGINATION, emptyPagination);
+                return ret;
             }
 
             organizeBreezemoons(userId, bms);
@@ -376,6 +420,7 @@ public class BreezemoonQueryService {
                 bm.put(Common.TIME_AGO, Times.getTimeAgo(time, Locales.getLocale()));
                 bm.put(Breezemoon.BREEZEMOON_T_CREATE_TIME, new Date(time));
                 String content = bm.optString(Breezemoon.BREEZEMOON_CONTENT);
+                bm.put(Breezemoon.BREEZEMOON_CONTENT_RAW, content);
                 content = shortLinkQueryService.linkArticle(content);
                 content = Emotions.convert(content);
                 content = Markdowns.toHTML(content);

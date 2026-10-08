@@ -2,6 +2,57 @@
 
 本文主要适用于第三方开发者，更新日志会着重偏向API的更新，以便第三方开发者能够方便、快速的更新客户端。
 
+# 261008-2
+
+## 批次二：排行榜、个人主页、关注动态、同城、大事记与统计
+
+**排行榜接口结构调整（破坏性变更）**：所有 `/api/top/*` 接口的 `data` 由"数组"统一调整为对象 `{list, totalData, type}`，请改用 `data.list` 读取榜单列表。同时全部 8 类榜单（签到/在线/财富/消费/优选/邀请/捐赠/游戏）改为匿名可读，无需 apiKey。
+
+**帖子详情增强**：
+
+- `GET /api/article/{id}` 确认匿名可读；仅当作者关闭"匿名查看"时匿名请求返回 401，登录/apiKey 不受影响
+- 返回新增 `relevantArticles`（相关帖子）、`previousArticle` / `nextArticle`（上一篇/下一篇，轻量字段）
+- 评论排序新增 query 参数 `m`：`0` 按时间正序（默认）、`1` 按时间倒序；不传时沿用登录用户偏好
+
+**新增接口**：
+
+- 个人主页：`GET /api/user/{userName}/comments` 评论列表、`/long` 长文章、`/watching` 关注动态聚合、`/following/articles` 关注用户的帖子、`/following/tags` 关注的标签、`/following/users` 关注的用户、`/followers` 粉丝；以上匿名可读，目标用户隐私设置关闭对应列表时仅本人或管理员可见（返回 `code != 0`）。`/comments/anonymous` 匿名评论、`/articles/anonymous` 匿名帖子、`/points` 积分流水**仅本人**可调（需要 apiKey）
+- 关注动态：`GET /api/watch/tags/articles`、`GET /api/watch/users/articles`、`GET /api/watch/breezemoons`（需要 apiKey）；`/api/watch/breezemoons` 无关注或关注无内容时返回空列表，不再回退为全站清风明月
+- 专栏管理：`POST /api/columns/{columnId}/rename` 重命名、`POST /api/columns/order` 排序、`POST /api/columns/{columnId}/remove` 删除（有章节的专栏需先移出章节）
+- 清风明月：`GET /api/breezemoons` 与 `GET /api/watch/breezemoons` 每条新增 `breezemoonContentRaw` 原始 Markdown 字段
+- 同城：`GET /api/city/{cityName}` 同城用户分页（匿名，仅含公开位置的用户）
+- 大事记与统计：`GET /api/milestones`、`GET /api/statistic`（匿名）
+
+约定：
+
+- 需登录接口均通过 `apiKey` 鉴权；分页接口参数 `p`（默认 1）/`size`（默认 20，上限 50）
+- 列表统一返回 `data.xxx` + `data.pagination = {paginationPageCount, paginationRecordCount}`
+
+
+# 261008
+
+## 批次一：第三方客户端只读/轻操作 API
+
+为方便第三方 SPA 客户端对接，新增一批 `/api` 前缀接口，并对存量 `/api` 接口做纯增量字段补充。所有现有接口形状不变，FTL 页面对应链路不受影响。
+
+新增接口：
+
+- 鉴权：`GET /api/reset-pwd/meta`，忘记密码时用重置码换取用户 Id（匿名）
+- 背包：`GET /api/user/bag` 读取背包；`GET /api/bag/1dayCheckin`、`GET /api/bag/2dayCheckin`、`GET /api/bag/patchCheckin` 使用免签/补签卡；`POST /api/bag/nameCard` 使用改名卡
+- 签到：`GET /api/checkin/status`，一次返回今日是否签到、活跃度、自动签到门槛与连续签到天数
+- 专栏：`GET /api/columns/latest`、`GET /api/columns/hot` 首页货架；`GET /api/columns/mine` 我的专栏；`GET /api/columns/{columnId}` 专栏详情；`GET /api/columns/{columnId}/articles` 章节分页
+- 鱼游：`GET /api/fish-games` 已审核鱼游分页列表
+- 帖子：`POST /api/article/stick` 作者置顶自己的帖子（按次扣积分）
+
+字段补充：
+
+- `GET /api/user` 返回新增 `userGuideStep` 字段（新人引导步骤）
+
+约定：
+
+- 需登录接口均通过 `apiKey` 鉴权；列表接口设有 `size` 上限
+- 写接口（道具使用、置顶）均需要 apiKey
+
 # 260927
 
 ## 图床切换韵图 RhyPic：旧上传接口 `POST /upload` 即将停用（重要）

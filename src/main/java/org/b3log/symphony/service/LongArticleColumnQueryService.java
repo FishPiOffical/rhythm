@@ -51,6 +51,7 @@ import org.jsoup.safety.Safelist;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -111,6 +112,8 @@ public class LongArticleColumnQueryService {
                         Escapes.escapeHTML(column.optString(LongArticleColumn.COLUMN_TITLE)));
                 fillCoverFields(column);
             }
+            // Stable sort by manual column order; ties (including legacy rows without columnOrder) keep update time desc
+            columns.sort(Comparator.comparingInt(column -> column.optInt(LongArticleColumn.COLUMN_ORDER)));
             return columns;
         } catch (final Exception e) {
             LOGGER.error("Gets user long article columns failed [userId={}]", userId, e);
@@ -554,6 +557,8 @@ public class LongArticleColumnQueryService {
         chapterView.put(Article.ARTICLE_PERMALINK, article.optString(Article.ARTICLE_PERMALINK));
         chapterView.put(Article.ARTICLE_TITLE, safeTitle);
         chapterView.put(Article.ARTICLE_T_TITLE_EMOJI, Emotions.convert(safeTitle));
+        chapterView.put(Article.ARTICLE_CREATE_TIME,
+                DateFormatUtils.format(article.optLong(Article.ARTICLE_CREATE_TIME), COLUMN_TIME_FORMAT));
         chapterView.put(LongArticleColumn.CHAPTER_NO, chapterNo);
 
         String preview = Jsoup.clean(Markdowns.toHTML(article.optString(Article.ARTICLE_CONTENT)), Safelist.none());

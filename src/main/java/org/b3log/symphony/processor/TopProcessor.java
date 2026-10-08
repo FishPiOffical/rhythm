@@ -34,6 +34,7 @@ import org.b3log.latke.model.User;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
@@ -127,39 +128,59 @@ public class TopProcessor {
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
+        final AnonymousViewCheckMidware anonymousViewCheck = beanManager.getReference(AnonymousViewCheckMidware.class);
 
         final TopProcessor topProcessor = beanManager.getReference(TopProcessor.class);
-        Dispatcher.get("/api/top/any", topProcessor::getAnyTop, loginCheck::handle);
+        Dispatcher.get("/api/top/any", topProcessor::getAnyTop, anonymousViewCheck::handle);
         Dispatcher.get("/top", topProcessor::showTop, loginCheck::handle);
         Dispatcher.get("/top/profession", topProcessor::showProfession, loginCheck::handle);
         Dispatcher.get("/top/balance", topProcessor::showBalance, loginCheck::handle);
-        Dispatcher.get("/api/top/balance", topProcessor::getBalance, loginCheck::handle);
+        Dispatcher.get("/api/top/balance", topProcessor::getBalance, anonymousViewCheck::handle);
         Dispatcher.get("/top/consumption", topProcessor::showConsumption, loginCheck::handle);
-        Dispatcher.get("/api/top/consumption", topProcessor::getConsumption, loginCheck::handle);
+        Dispatcher.get("/api/top/consumption", topProcessor::getConsumption, anonymousViewCheck::handle);
         Dispatcher.get("/top/checkin", topProcessor::showCheckin, loginCheck::handle);
-        Dispatcher.get("/api/top/checkin", topProcessor::getCheckin);
+        Dispatcher.get("/api/top/checkin", topProcessor::getCheckin, anonymousViewCheck::handle);
         Dispatcher.get("/top/online", topProcessor::showOnline, loginCheck::handle);
-        Dispatcher.get("/api/top/online", topProcessor::getOnline);
+        Dispatcher.get("/api/top/online", topProcessor::getOnline, anonymousViewCheck::handle);
         Dispatcher.get("/top/adr", topProcessor::showADR, loginCheck::handle);
-        Dispatcher.get("/api/top/adr", topProcessor::getADR, loginCheck::handle);
+        Dispatcher.get("/api/top/adr", topProcessor::getADR, anonymousViewCheck::handle);
         Dispatcher.get("/top/mofish", topProcessor::showMofish, loginCheck::handle);
-        Dispatcher.get("/api/top/mofish", topProcessor::getMofish, loginCheck::handle);
+        Dispatcher.get("/api/top/mofish", topProcessor::getMofish, anonymousViewCheck::handle);
         Dispatcher.get("/top/smallmofish", topProcessor::showSmallMofish, loginCheck::handle);
-        Dispatcher.get("/api/top/smallmofish", topProcessor::getSmallMofish, loginCheck::handle);
+        Dispatcher.get("/api/top/smallmofish", topProcessor::getSmallMofish, anonymousViewCheck::handle);
         Dispatcher.get("/top/lifeRestart", topProcessor::showLifeRestart, loginCheck::handle);
-        Dispatcher.get("/api/top/lifeRestart", topProcessor::getLifeRestart, loginCheck::handle);
+        Dispatcher.get("/api/top/lifeRestart", topProcessor::getLifeRestart, anonymousViewCheck::handle);
         Dispatcher.get("/top/evolve", topProcessor::showEvolve, loginCheck::handle);
-        Dispatcher.get("/api/top/evolve", topProcessor::getEvolve, loginCheck::handle);
+        Dispatcher.get("/api/top/evolve", topProcessor::getEvolve, anonymousViewCheck::handle);
         Dispatcher.get("/top/emoji", topProcessor::showEmoji, loginCheck::handle);
-        Dispatcher.get("/api/top/emoji", topProcessor::getEmoji, loginCheck::handle);
+        Dispatcher.get("/api/top/emoji", topProcessor::getEmoji, anonymousViewCheck::handle);
         Dispatcher.get("/top/xiaoice", topProcessor::showXiaoice, loginCheck::handle);
-        Dispatcher.get("/api/top/xiaoice", topProcessor::getXiaoice, loginCheck::handle);
+        Dispatcher.get("/api/top/xiaoice", topProcessor::getXiaoice, anonymousViewCheck::handle);
         Dispatcher.get("/top/invite", topProcessor::showInvite, loginCheck::handle);
-        Dispatcher.get("/api/top/invite", topProcessor::getInvite, loginCheck::handle);
+        Dispatcher.get("/api/top/invite", topProcessor::getInvite, anonymousViewCheck::handle);
         Dispatcher.get("/top/donate", topProcessor::showDonate, loginCheck::handle);
-        Dispatcher.get("/api/top/donate", topProcessor::getDonate, loginCheck::handle);
+        Dispatcher.get("/api/top/donate", topProcessor::getDonate, anonymousViewCheck::handle);
         Dispatcher.get("/top/perfect", topProcessor::showPerfect, loginCheck::handle);
-        Dispatcher.get("/api/top/perfect", topProcessor::getPerfect, loginCheck::handle);
+        Dispatcher.get("/api/top/perfect", topProcessor::getPerfect, anonymousViewCheck::handle);
+    }
+
+    /**
+     * Renders a unified top list response: {@code {code, data: {list, totalData, type?}}}.
+     *
+     * @param context   the specified context
+     * @param list      the rank list
+     * @param totalData the optional total data (e.g. donate summary)
+     * @param type      the optional sub type
+     */
+    private void renderTop(final RequestContext context, final List<JSONObject> list,
+                           final JSONObject totalData, final String type) {
+        final JSONObject data = new JSONObject();
+        data.put("list", null == list ? new JSONArray() : new JSONArray(list));
+        data.put("totalData", null == totalData ? new JSONObject() : totalData);
+        if (null != type) {
+            data.put("type", type);
+        }
+        context.renderJSON(new JSONObject().put("data", data)).renderCode(StatusCodes.SUCC);
     }
 
     /**
@@ -407,7 +428,7 @@ public class TopProcessor {
       try {
         final List<JSONObject> result = pointtransferQueryService.getTopBalanceUsers(Symphonys.TOP_CNT);
         removePrivateDatas(result);
-        context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+        renderTop(context, result, null, "balance");
         } catch (Exception e) {
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
         }
@@ -440,7 +461,7 @@ public class TopProcessor {
       try{
           final List<JSONObject> result = pointtransferQueryService.getTopConsumptionUsers(Symphonys.TOP_CNT);
           removePrivateDatas(result);
-            context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "consumption");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -473,7 +494,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopCheckinUsers(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "checkin");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -506,9 +527,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopOnlineTimeUsers(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          JSONObject ret = new JSONObject();
-          ret.put("data", result);
-          context.renderJSON(ret).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "online");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -541,7 +560,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopADR(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "adr");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -573,7 +592,7 @@ public class TopProcessor {
       try {
           final List<JSONObject> result = activityQueryService.getTopEmoji(Symphonys.TOP_CNT);
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "emoji");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -606,7 +625,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopMofish(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "mofish");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -639,7 +658,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopSmallMofish(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "smallmofish");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -677,7 +696,7 @@ public class TopProcessor {
           final List<JSONObject> result = activityQueryService.getTopLifeRestart(Symphonys.TOP_CNT);
           // 结果去敏
           removePrivateDatas(result);
-          context.renderJSON(new JSONObject().put("data", new JSONArray(result))).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, "lifeRestart");
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -720,10 +739,7 @@ public class TopProcessor {
         final String type = request.getParameter("type") != null ?
                 request.getParameter("type") : "achievement";
           final List<JSONObject> result = activityQueryService.getEvolve(type, Symphonys.TOP_CNT);
-          JSONObject ret = new JSONObject();
-          ret.put("data", new JSONArray(result));
-          ret.put("type", type);
-          context.renderJSON(ret).renderCode(StatusCodes.SUCC);
+          renderTop(context, result, null, type);
           } catch (Exception e) {
               context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
           }
@@ -837,10 +853,8 @@ public class TopProcessor {
      * @param context
      */
     public void getXiaoice(final RequestContext context) {
-      final JSONObject dataModel = new JSONObject();
       final String type = context.param("type");
-      dataModel.put("data", getXiaoiceData(type));
-      context.renderJSON(dataModel).renderCode(StatusCodes.SUCC);
+      renderTop(context, getXiaoiceData(type), null, type != null ? type : "0");
   }
 
     /**
@@ -916,13 +930,10 @@ public class TopProcessor {
      * @param context the specified context
      */
     public void getInvite(final RequestContext context) {
-      final JSONObject dataModel = new JSONObject();
       try {
-        List<JSONObject> result = getInviteData();
-        dataModel.put("data", result);
-        context.renderJSON(dataModel).renderCode(StatusCodes.SUCC);
+        renderTop(context, getInviteData(), null, "invite");
       } catch (Exception ignored) {
-        context.renderJSON(dataModel).renderCode(StatusCodes.ERR);
+        context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR);
       }
   }
 
@@ -1055,7 +1066,9 @@ public class TopProcessor {
      */
     public void getDonate(final RequestContext context) {
       final JSONObject dataModel = getDonateData();
-      context.renderJSON(dataModel).renderCode(StatusCodes.SUCC);
+      final Object list = dataModel.opt("data");
+      renderTop(context, list instanceof List ? (List<JSONObject>) list : new ArrayList<>(),
+              dataModel.optJSONObject("totalData"), "donate");
     }
 
     /**
@@ -1136,6 +1149,7 @@ public class TopProcessor {
      */
     public void getPerfect(final RequestContext context) {
       final JSONObject dataModel = getPerfectData();
-      context.renderJSON(dataModel).renderCode(StatusCodes.SUCC);
+      final Object list = dataModel.opt("data");
+      renderTop(context, list instanceof List ? (List<JSONObject>) list : new ArrayList<>(), null, "perfect");
     }
 }

@@ -2777,6 +2777,7 @@
         { "name": "columnCoverURL", "type": "String", "length": 1024, "description": "专栏封面图地址" },
         { "name": "columnArticleCount", "type": "int", "description": "专栏文章数" },
         { "name": "columnStatus", "type": "int", "description": "状态：0 有效，1 无效" },
+        { "name": "columnOrder", "type": "int", "description": "排序（越小越靠前）" },
         { "name": "columnCreateTime", "type": "long", "description": "创建时间" },
         { "name": "columnUpdateTime", "type": "long", "description": "更新时间" }
       ]

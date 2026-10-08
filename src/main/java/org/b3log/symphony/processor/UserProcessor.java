@@ -269,8 +269,18 @@ public class UserProcessor {
         Dispatcher.post("/user/edit/points", userProcessor::adjustPoint);
         Dispatcher.post("/user/edit/notification", userProcessor::sendSystemNotification);
         Dispatcher.post("/user/identify", userProcessor::submitIdentify, loginCheck::handle);
-        Dispatcher.get("/api/user/{userName}/articles", userProcessor::userArticles, loginCheck::handle);
-        Dispatcher.get("/api/user/{userName}/breezemoons", userProcessor::userBreezemoons, loginCheck::handle);
+        Dispatcher.get("/api/user/{userName}/articles", userProcessor::userArticles);
+        Dispatcher.get("/api/user/{userName}/breezemoons", userProcessor::userBreezemoons);
+        Dispatcher.get("/api/user/{userName}/comments", userProcessor::apiUserComments);
+        Dispatcher.get("/api/user/{userName}/comments/anonymous", userProcessor::apiUserAnonymousComments, loginCheck::handle);
+        Dispatcher.get("/api/user/{userName}/articles/anonymous", userProcessor::apiUserAnonymousArticles, loginCheck::handle);
+        Dispatcher.get("/api/user/{userName}/long", userProcessor::apiUserLongArticles);
+        Dispatcher.get("/api/user/{userName}/watching", userProcessor::apiUserWatching);
+        Dispatcher.get("/api/user/{userName}/following/articles", userProcessor::apiUserFollowingArticles);
+        Dispatcher.get("/api/user/{userName}/following/tags", userProcessor::apiUserFollowingTags);
+        Dispatcher.get("/api/user/{userName}/following/users", userProcessor::apiUserFollowingUsers);
+        Dispatcher.get("/api/user/{userName}/followers", userProcessor::apiUserFollowers);
+        Dispatcher.get("/api/user/{userName}/points", userProcessor::apiUserPoints, loginCheck::handle);
     }
 
     // 根据用户名获取用户活跃度
@@ -314,6 +324,9 @@ public class UserProcessor {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("用户不存在");
                 return;
             }
+            if (!apiPrivacyCheck(context, user, UserExt.USER_BREEZEMOON_STATUS)) {
+                return;
+            }
             final JSONObject result = breezemoonQueryService.getBreezemoons("", user.optString(Keys.OBJECT_ID), pageNum, pageSize, windowSize);
             final List<JSONObject> bms = (List<JSONObject>) result.opt(Breezemoon.BREEZEMOONS);
             // 结果去敏
@@ -348,6 +361,9 @@ public class UserProcessor {
                 context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("用户不存在");
                 return;
             }
+            if (!apiPrivacyCheck(context, user, UserExt.USER_ARTICLE_STATUS)) {
+                return;
+            }
             final List<JSONObject> userArticles = articleQueryService.getUserArticles(user.optString(Keys.OBJECT_ID), Article.ARTICLE_ANONYMOUS_C_PUBLIC, pageNum, pageSize);
             int recordCount = 0;
             int pageCount = 0;
@@ -369,6 +385,394 @@ public class UserProcessor {
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
         }
 
+    }
+
+    /**
+     * 解析 API 分页 size 参数：默认 20，最大 50，超出截断。
+     */
+    private static int apiPageSize(final RequestContext context) {
+        final String size = context.param("size");
+        int pageSize = 20;
+        if (StringUtils.isNotBlank(size)) {
+            try {
+                pageSize = Integer.parseInt(size);
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        if (pageSize <= 0) {
+            pageSize = 20;
+        }
+        if (pageSize > 50) {
+            pageSize = 50;
+        }
+        return pageSize;
+    }
+
+    /**
+     * 解析路径中的目标用户；不存在时输出错误响应并返回 null。
+     */
+    private JSONObject apiTargetUser(final RequestContext context) {
+        final String userName = context.pathVar("userName");
+        final JSONObject user = userQueryService.getUserByName(userName);
+        if (null == user) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("用户不存在");
+            return null;
+        }
+        return user;
+    }
+
+    /**
+     * 获取当前登录用户：context.attr(User.USER) -> Sessions.getUser() -> apiKey。
+     */
+    private static JSONObject apiCurrentUser(final RequestContext context) {
+        JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null != currentUser) {
+            return currentUser;
+        }
+        currentUser = Sessions.getUser();
+        if (null != currentUser) {
+            return currentUser;
+        }
+        try {
+            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (final NullPointerException ignored) {
+        }
+        return currentUser;
+    }
+
+    /**
+     * 仅本人可见校验：当前用户必须与路径用户一致，否则输出错误响应。
+     */
+    private static boolean apiSelfCheck(final RequestContext context, final JSONObject targetUser) {
+        final JSONObject currentUser = apiCurrentUser(context);
+        if (null == currentUser || !currentUser.optString(Keys.OBJECT_ID).equals(targetUser.optString(Keys.OBJECT_ID))) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("无权访问");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 主页子列表隐私校验，与 FTL 页面一致：目标用户对应隐私开关为公开（0）时任何人可见；
+     * 设为私密（1）时仅本人或管理员可见，否则输出错误响应并返回 false。
+     */
+    private static boolean apiPrivacyCheck(final RequestContext context, final JSONObject targetUser, final String statusField) {
+        if (UserExt.USER_XXX_STATUS_C_ENABLED == targetUser.optInt(statusField)) {
+            return true;
+        }
+        final JSONObject currentUser = apiCurrentUser(context);
+        final boolean privileged = null != currentUser
+                && (Role.ROLE_ID_C_ADMIN.equals(currentUser.optString(UserExt.USER_ROLE))
+                || currentUser.optString(Keys.OBJECT_ID).equals(targetUser.optString(Keys.OBJECT_ID)));
+        if (!privileged) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("对方设置了隐私权限");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 构建统一分页信封 {paginationPageCount, paginationRecordCount}。
+     */
+    private static JSONObject apiPagination(final int pageCount, final int recordCount) {
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, pageCount);
+        pagination.put(Pagination.PAGINATION_RECORD_COUNT, recordCount);
+        return pagination;
+    }
+
+    /**
+     * 将服务层写入的 Date 字段转为毫秒时间戳输出。
+     */
+    private static void normalizeDateField(final JSONObject record, final String field) {
+        final Object value = record.opt(field);
+        if (value instanceof Date) {
+            record.put(field, ((Date) value).getTime());
+        }
+    }
+
+    /**
+     * 输出用户帖子分页数据（脱敏）。
+     */
+    private void renderArticlesData(final RequestContext context, final List<JSONObject> userArticles) {
+        int recordCount = 0;
+        int pageCount = 0;
+        if (!userArticles.isEmpty()) {
+            final JSONObject first = userArticles.get(0);
+            pageCount = first.optInt(Pagination.PAGINATION_PAGE_COUNT);
+            recordCount = first.optInt(Pagination.PAGINATION_RECORD_COUNT);
+            first.remove(Pagination.PAGINATION_PAGE_COUNT);
+            first.remove(Pagination.PAGINATION_RECORD_COUNT);
+        }
+        final JSONObject data = new JSONObject();
+        data.put("articles", DesensitizeUtil.articlesDesensitize(userArticles));
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 输出用户评论分页数据（脱敏，移除 commentIP/commentUA）。
+     */
+    private void renderCommentsData(final RequestContext context, final List<JSONObject> userComments) {
+        int recordCount = 0;
+        int pageCount = 0;
+        if (!userComments.isEmpty()) {
+            final JSONObject first = userComments.get(0);
+            pageCount = first.optInt(Pagination.PAGINATION_PAGE_COUNT);
+            recordCount = first.optInt(Pagination.PAGINATION_RECORD_COUNT);
+            first.remove(Pagination.PAGINATION_PAGE_COUNT);
+            first.remove(Pagination.PAGINATION_RECORD_COUNT);
+        }
+        for (final JSONObject comment : userComments) {
+            DesensitizeUtil.commentDesensitize(comment);
+            normalizeDateField(comment, Comment.COMMENT_CREATE_TIME);
+        }
+        final JSONObject data = new JSONObject();
+        data.put("comments", userComments);
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 输出用户列表分页数据（脱敏）。
+     */
+    private void renderUsersData(final RequestContext context, final JSONObject result, final int pageSize) {
+        final List<JSONObject> users = (List<JSONObject>) result.opt(Keys.RESULTS);
+        for (final JSONObject u : users) {
+            DesensitizeUtil.desensitizeUser(u);
+        }
+        final int recordCount = result.optInt(Pagination.PAGINATION_RECORD_COUNT);
+        final int pageCount = (int) Math.ceil(recordCount / (double) pageSize);
+        final JSONObject data = new JSONObject();
+        data.put("users", users);
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 获取用户评论列表（JSON API）。
+     */
+    public void apiUserComments(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_COMMENT_STATUS)) {
+            return;
+        }
+        final JSONObject viewer = apiCurrentUser(context);
+        final List<JSONObject> userComments = commentQueryService.getUserComments(
+                user.optString(Keys.OBJECT_ID), Comment.COMMENT_ANONYMOUS_C_PUBLIC, pageNum, pageSize, viewer);
+        renderCommentsData(context, userComments);
+    }
+
+    /**
+     * 获取用户匿名评论列表（JSON API，仅本人可见）。
+     */
+    public void apiUserAnonymousComments(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiSelfCheck(context, user)) {
+            return;
+        }
+        final JSONObject viewer = apiCurrentUser(context);
+        final List<JSONObject> userComments = commentQueryService.getUserComments(
+                user.optString(Keys.OBJECT_ID), Comment.COMMENT_ANONYMOUS_C_ANONYMOUS, pageNum, pageSize, viewer);
+        renderCommentsData(context, userComments);
+    }
+
+    /**
+     * 获取用户匿名帖子列表（JSON API，仅本人可见）。
+     */
+    public void apiUserAnonymousArticles(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiSelfCheck(context, user)) {
+            return;
+        }
+        final List<JSONObject> userArticles = articleQueryService.getUserArticles(
+                user.optString(Keys.OBJECT_ID), Article.ARTICLE_ANONYMOUS_C_ANONYMOUS, pageNum, pageSize);
+        renderArticlesData(context, userArticles);
+    }
+
+    /**
+     * 获取用户长文章列表（JSON API）。
+     */
+    public void apiUserLongArticles(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_ARTICLE_STATUS)) {
+            return;
+        }
+        final List<JSONObject> userArticles = articleQueryService.getUserLongArticles(
+                user.optString(Keys.OBJECT_ID), Article.ARTICLE_ANONYMOUS_C_PUBLIC, pageNum, pageSize);
+        renderArticlesData(context, userArticles);
+    }
+
+    /**
+     * 获取用户关注动态聚合（JSON API）：关注用户的最近帖子 + 关注标签下的最近帖子。
+     */
+    public void apiUserWatching(final RequestContext context) {
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_WATCHING_ARTICLE_STATUS)) {
+            return;
+        }
+        final String userId = user.optString(Keys.OBJECT_ID);
+        final List<JSONObject> followingUserArticles = articleQueryService.getFollowingUserArticles(userId, 1, pageSize);
+        final List<JSONObject> followingTagArticles = articleQueryService.getFollowingTagArticles(userId, 1, pageSize);
+        final JSONObject data = new JSONObject();
+        data.put("followingUserArticles", DesensitizeUtil.articlesDesensitize(followingUserArticles));
+        data.put("followingTagArticles", DesensitizeUtil.articlesDesensitize(followingTagArticles));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 获取用户关注的帖子列表（JSON API）。
+     */
+    public void apiUserFollowingArticles(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_FOLLOWING_ARTICLE_STATUS)) {
+            return;
+        }
+        final JSONObject result = followQueryService.getFollowingArticles(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        final List<JSONObject> articles = (List<JSONObject>) result.opt(Keys.RESULTS);
+        final int recordCount = result.optInt(Pagination.PAGINATION_RECORD_COUNT);
+        final int pageCount = (int) Math.ceil(recordCount / (double) pageSize);
+        final JSONObject data = new JSONObject();
+        data.put("articles", DesensitizeUtil.articlesDesensitize(articles));
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 获取用户关注的标签列表（JSON API）。
+     */
+    public void apiUserFollowingTags(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_FOLLOWING_TAG_STATUS)) {
+            return;
+        }
+        final JSONObject result = followQueryService.getFollowingTags(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        final List<JSONObject> tags = (List<JSONObject>) result.opt(Keys.RESULTS);
+        final JSONArray tagList = new JSONArray();
+        for (final JSONObject tag : tags) {
+            final JSONObject item = new JSONObject();
+            item.put(Keys.OBJECT_ID, tag.optString(Keys.OBJECT_ID));
+            item.put(Tag.TAG_TITLE, tag.optString(Tag.TAG_TITLE));
+            item.put(Tag.TAG_URI, tag.optString(Tag.TAG_URI));
+            item.put(Tag.TAG_ICON_PATH, tag.optString(Tag.TAG_ICON_PATH));
+            item.put(Tag.TAG_DESCRIPTION, tag.optString(Tag.TAG_DESCRIPTION));
+            item.put(Tag.TAG_REFERENCE_CNT, tag.optInt(Tag.TAG_REFERENCE_CNT));
+            item.put(Tag.TAG_FOLLOWER_CNT, tag.optInt(Tag.TAG_FOLLOWER_CNT));
+            item.put(Tag.TAG_COMMENT_CNT, tag.optInt(Tag.TAG_COMMENT_CNT));
+            tagList.put(item);
+        }
+        final int recordCount = result.optInt(Pagination.PAGINATION_RECORD_COUNT);
+        final int pageCount = (int) Math.ceil(recordCount / (double) pageSize);
+        final JSONObject data = new JSONObject();
+        data.put("tags", tagList);
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
+    }
+
+    /**
+     * 获取用户关注的用户列表（JSON API）。
+     */
+    public void apiUserFollowingUsers(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_FOLLOWING_USER_STATUS)) {
+            return;
+        }
+        final JSONObject result = followQueryService.getFollowingUsers(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        renderUsersData(context, result, pageSize);
+    }
+
+    /**
+     * 获取用户粉丝列表（JSON API）。
+     */
+    public void apiUserFollowers(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiPrivacyCheck(context, user, UserExt.USER_FOLLOWER_STATUS)) {
+            return;
+        }
+        final JSONObject result = followQueryService.getFollowerUsers(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        renderUsersData(context, result, pageSize);
+    }
+
+    /**
+     * 获取用户积分流水（JSON API，仅本人可见）。
+     */
+    public void apiUserPoints(final RequestContext context) {
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = apiPageSize(context);
+        final JSONObject user = apiTargetUser(context);
+        if (null == user) {
+            return;
+        }
+        if (!apiSelfCheck(context, user)) {
+            return;
+        }
+        final JSONObject userPointsResult = pointtransferQueryService.getUserPoints(user.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        final JSONArray arr = null == userPointsResult ? null : userPointsResult.optJSONArray(Keys.RESULTS);
+        final JSONArray points = new JSONArray();
+        if (null != arr) {
+            for (int i = 0; i < arr.length(); i++) {
+                final JSONObject record = arr.getJSONObject(i);
+                final JSONObject item = new JSONObject();
+                item.put(Pointtransfer.TIME, record.optLong(Pointtransfer.TIME));
+                item.put(Pointtransfer.SUM, record.optInt(Pointtransfer.SUM));
+                item.put(Pointtransfer.TYPE, record.optInt(Pointtransfer.TYPE));
+                item.put(Common.OPERATION, record.optString(Common.OPERATION));
+                item.put(Common.BALANCE, record.optInt(Common.BALANCE));
+                item.put(Common.DISPLAY_TYPE, record.optString(Common.DISPLAY_TYPE));
+                item.put(Common.DESCRIPTION, record.optString(Common.DESCRIPTION));
+                points.put(item);
+            }
+        }
+        final int recordCount = null == userPointsResult ? 0 : userPointsResult.optInt(Pagination.PAGINATION_RECORD_COUNT);
+        final int pageCount = (int) Math.ceil(recordCount / (double) pageSize);
+        final JSONObject data = new JSONObject();
+        data.put("points", points);
+        data.put(Pagination.PAGINATION, apiPagination(pageCount, recordCount));
+        context.renderJSON(new JSONObject().put(Common.DATA, data)).renderCode(StatusCodes.SUCC);
     }
 
     public void submitIdentify(final RequestContext context) {

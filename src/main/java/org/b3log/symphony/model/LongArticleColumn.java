@@ -95,6 +95,11 @@ public final class LongArticleColumn {
     public static final String COLUMN_STATUS = "columnStatus";
 
     /**
+     * 专栏排序 key（同一作者下越小越靠前，默认 0 按更新时间倒序兜底）.
+     */
+    public static final String COLUMN_ORDER = "columnOrder";
+
+    /**
      * Column status valid.
      */
     public static final int COLUMN_STATUS_C_VALID = 0;

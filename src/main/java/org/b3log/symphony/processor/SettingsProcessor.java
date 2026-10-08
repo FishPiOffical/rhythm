@@ -31,6 +31,7 @@ import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
@@ -265,6 +266,11 @@ public class SettingsProcessor {
         Dispatcher.post("/bag/nameCard", settingsProcessor::useNameCard, loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/api/settings/profiles", settingsProcessor::updateProfiles, loginCheck::handle, updateProfilesValidationMidware::handle);
         Dispatcher.post("/api/settings/avatar", settingsProcessor::updateAvatar, loginCheck::handle, updateProfilesValidationMidware::handle);
+        Dispatcher.get("/api/user/bag", settingsProcessor::getUserBagApi, loginCheck::handle);
+        Dispatcher.get("/api/bag/1dayCheckin", settingsProcessor::use1dayCheckinCardApi, loginCheck::handle);
+        Dispatcher.get("/api/bag/2dayCheckin", settingsProcessor::use2dayCheckinCardApi, loginCheck::handle);
+        Dispatcher.get("/api/bag/patchCheckin", settingsProcessor::usePatchCheckinCardApi, loginCheck::handle);
+        Dispatcher.post("/api/bag/nameCard", settingsProcessor::useNameCardApi, loginCheck::handle);
     }
 
     /**
@@ -360,6 +366,166 @@ public class SettingsProcessor {
             context.renderJSON(StatusCodes.SUCC);
             context.renderMsg("两天免签卡使用成功！未来两天的签到将由系统自动进行～");
         }
+    }
+
+    /**
+     * Initializes a JSON renderer with the unified envelope for API endpoints.
+     *
+     * @param context the specified context
+     */
+    private static void initJson(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+    }
+
+    /**
+     * Gets the current user's bag via JSON.
+     *
+     * @param context the specified context
+     */
+    public void getUserBagApi(final RequestContext context) {
+        initJson(context);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final JSONObject bag = new JSONObject(cloudService.getBag(currentUser.optString(Keys.OBJECT_ID)));
+        context.renderData(bag).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    /**
+     * Uses a 1-day check-in exemption card via JSON (apiKey compatible).
+     *
+     * @param context the specified context
+     */
+    public void use1dayCheckinCardApi(final RequestContext context) {
+        initJson(context);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+        final JSONObject bag = new JSONObject(cloudService.getBag(userId));
+        if (bag.optInt("sysCheckinRemain") > 0) {
+            if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
+                final int remain = bag.optInt("sysCheckinRemain") + 1;
+                cloudService.putBag(userId, "sysCheckinRemain", remain, remain);
+                renderBagResult(context, userId, "单日免签卡使用成功！您的免签天数已累积。");
+            }
+            return;
+        }
+
+        if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
+            cloudService.putBag(userId, "sysCheckinRemain", 1, 1);
+            renderBagResult(context, userId, "单日免签卡使用成功！明天的签到将由系统自动进行～");
+        } else {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有单日免签卡。");
+        }
+    }
+
+    /**
+     * Uses a 2-day check-in exemption card via JSON (apiKey compatible).
+     *
+     * @param context the specified context
+     */
+    public void use2dayCheckinCardApi(final RequestContext context) {
+        initJson(context);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+        final JSONObject bag = new JSONObject(cloudService.getBag(userId));
+        if (bag.optInt("sysCheckinRemain") > 0) {
+            if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
+                final int remain = bag.optInt("sysCheckinRemain") + 2;
+                cloudService.putBag(userId, "sysCheckinRemain", remain, remain);
+                renderBagResult(context, userId, "两日免签卡使用成功！您的免签天数已累积。");
+            }
+            return;
+        }
+
+        if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
+            cloudService.putBag(userId, "sysCheckinRemain", 2, 2);
+            renderBagResult(context, userId, "两天免签卡使用成功！未来两天的签到将由系统自动进行～");
+        } else {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有两日免签卡。");
+        }
+    }
+
+    /**
+     * Uses a patch check-in card via JSON (apiKey compatible).
+     *
+     * @param context the specified context
+     */
+    public void usePatchCheckinCardApi(final RequestContext context) {
+        initJson(context);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+        final int result = activityMgmtService.patchCheckin(userId);
+        if (0 == result) {
+            renderBagResult(context, userId, "补签卡使用成功！");
+            return;
+        }
+
+        String msg;
+        switch (result) {
+            case -1:
+                msg = "没有补签卡，怎么补嘛~";
+                break;
+            case -2:
+                msg = "当前签到是最长签到，不可以补签哟";
+                break;
+            case -3:
+                msg = "今天还没签到，不可以补签哟";
+                break;
+            default:
+                msg = "补签卡使用失败！如果吞卡请联系管理员";
+                break;
+        }
+        context.renderCodeMsg(StatusCodes.ERR, msg);
+    }
+
+    /**
+     * Uses a name card via JSON (apiKey compatible). The new user name must match the same rule as registration.
+     *
+     * @param context the specified context
+     */
+    public void useNameCardApi(final RequestContext context) {
+        initJson(context);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+
+        final JSONObject requestJSONObject = context.requestJSON();
+        final String userName = StringUtils.trim(requestJSONObject.optString(User.USER_NAME));
+        if (UserRegisterValidationMidware.invalidUserName(userName)) {
+            context.renderCodeMsg(StatusCodes.ERR, "用户名不合法，仅支持 1-64 位字母、数字和 -");
+            return;
+        }
+
+        if (cloudService.putBag(userId, "nameCard", -1, Integer.MAX_VALUE) != 0) {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有改名卡。");
+            return;
+        }
+
+        try {
+            final JSONObject user = userQueryService.getUser(userId);
+            user.put(User.USER_NAME, userName);
+            userMgmtService.updateUserName(userId, user);
+            renderBagResult(context, userId, "您的用户名已成功修改为：" + userName);
+        } catch (final ServiceException e) {
+            cloudService.putBag(userId, "nameCard", 1, Integer.MAX_VALUE);
+            context.renderCodeMsg(StatusCodes.ERR, "您的用户名修改失败，请重试。原因：" + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Renders a successful bag operation with the latest bag snapshot.
+     *
+     * @param context the specified context
+     * @param userId  the current user id
+     * @param msg     the success message
+     */
+    private void renderBagResult(final RequestContext context, final String userId, final String msg) {
+        final JSONObject bag = new JSONObject(cloudService.getBag(userId));
+        context.renderData(bag).renderCode(StatusCodes.SUCC).renderMsg(msg);
     }
 
     /**

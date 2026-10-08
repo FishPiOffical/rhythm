@@ -85,6 +85,7 @@ curl --location --request GET 'https://fishpi.cn/api/user?apiKey=YOUR_API_KEY'
 | - onlineMinute       | 在线时长，单位分钟                                                    | 85467                                             |
 | - userPoint          | 积分                                                                  | 183939                                            |
 | - userAppRole        | 角色                                                                  | 0 = 黑客，1 = 画家                                |
+| - userGuideStep      | 新人引导步骤：0 已完成，1 上传头像，2 关注标签，3 关注用户，4 Star 项目，-1 未开始 | -1                                                |
 | - userIntro          | 签名                                                                  | 人生而自由，卻無往不在枷鎖之中。                  |
 | - userURL            | URL                                                                   | https://...                                       |
 | - cardBg             | 卡片背景                                                              | https://...                                       |
@@ -97,6 +98,34 @@ curl --location --request GET 'https://fishpi.cn/api/user?apiKey=YOUR_API_KEY'
 | --- data             | 徽章数据                                                              | 无                                                |
 
 > <sup>*</sup> 注意：若密钥无效，无 `data` 项目
+
+### 重置密码元数据
+
+`GET /api/reset-pwd/meta?code=<code>`
+
+忘记密码短信验证后，用重置码换取用户 Id，供后续 `POST /reset-pwd` 提交新密码使用。
+
+请求：
+
+| Key  | 说明     | 示例   |
+| ---- | -------- | ------ |
+| code | 重置码   | xxxx   |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/reset-pwd/meta?code=xxxx'
+```
+
+响应：
+
+| Key          | 说明                             | 示例                  |
+| ------------ | -------------------------------- | --------------------- |
+| code         | 0 成功，-1 失败                  | 0                     |
+| msg          | 错误信息                         | 验证码已过期          |
+| data         | 响应数据                         | `{ ... }`             |
+| - userId     | 用户 Id                          | 1630000000000         |
+| -- code      | 重置码                           | xxxx                  |
 
 ### 注册用户
 
@@ -321,6 +350,93 @@ curl --location --request GET 'https://fishpi.cn/user/checkedIn?apiKey=YOUR_API_
 | --------- | -------- | ---- |
 | checkedIn | 是否签到 | true |
 
+### 获取签到综合状态
+
+`GET /api/checkin/status?apiKey=<Key>`
+
+一次返回签到状态、活跃度、自动签到门槛与当前连续签到天数。需要 apiKey。
+
+请求：
+
+| Key    | 说明     | 示例         |
+| ------ | -------- | ------------ |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/checkin/status?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key          | 说明                                   | 示例     |
+| ------------ | -------------------------------------- | -------- |
+| code         | 0 成功，-1 失败                        | 0        |
+| msg          | 错误信息                               |          |
+| data         | 响应数据                               | `{ ... }`|
+| - checkedIn  | 今日是否已签到                         | true     |
+| - liveness   | 活跃度百分比                           | 80.20    |
+| - threshold  | 活跃度达标自动签到门槛（百分比）       | 10       |
+| - streak     | 当前连续签到天数                       | 12       |
+
+### 查询用户背包
+
+`GET /api/user/bag?apiKey=<Key>`
+
+获取当前用户的背包数据。需要 apiKey。
+
+请求：
+
+| Key    | 说明     | 示例         |
+| ------ | -------- | ------------ |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/user/bag?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key                | 说明                         | 示例      |
+| ------------------ | ---------------------------- | --------- |
+| code               | 0 成功，-1 失败              | 0         |
+| data               | 背包数据                     | `{ ... }` |
+| - checkin1day      | 单日免签卡数量               | 0         |
+| - checkin2days     | 两日免签卡数量               | 0         |
+| - nameCard         | 改名卡数量                   | 0         |
+| - patchCheckinCard | 补签卡数量                   | 0         |
+| - sysCheckinRemain | 系统自动签到剩余天数         | 0         |
+
+### 使用道具（API）
+
+`GET /api/bag/1dayCheckin`、`GET /api/bag/2dayCheckin`、`GET /api/bag/patchCheckin`、`POST /api/bag/nameCard`
+
+通过 API 使用背包道具。需要 apiKey。
+
+`POST /api/bag/nameCard` 请求：
+
+| Key      | 说明                                     | 示例         |
+| -------- | ---------------------------------------- | ------------ |
+| apiKey   | 通用密钥                                 | YOUR_API_KEY |
+| userName | 新用户名，规则同注册：1-64 位字母数字-   | mynewname    |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/bag/patchCheckin?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key          | 说明                                 | 示例                       |
+| ------------ | ------------------------------------ | -------------------------- |
+| code         | 0 成功，-1 失败                      | 0                          |
+| msg          | 结果说明                             | 补签卡使用成功！           |
+| data         | 使用道具后的最新背包快照             | `{ ... }`                  |
+
 ### 领取昨日活跃奖励
 
 `GET /activity/yesterday-liveness-reward-api?apiKey=<Key>`
@@ -489,6 +605,12 @@ curl --location --request POST 'https://fishpi.cn/report' \
 
 `GET /api/top/checkin`
 
+请求：
+
+| Key    | 说明             | 示例         |
+| ------ | ---------------- | ------------ |
+| apiKey | 通用密钥（可选） | YOUR_API_KEY |
+
 请求示例：
 
 ```bash
@@ -498,11 +620,14 @@ curl --location --request GET 'https://fishpi.cn/api/top/checkin' \
 
 响应：
 
-| Key  | 说明                 | 示例    |
-| ---- | -------------------- | ------- |
-| code | 0 为请求成功         | 0       |
-| msg  | 错误消息             |         |
-| data | 排行用户列表 | `[...]` |
+| Key            | 说明                            | 示例    |
+| -------------- | ------------------------------- | ------- |
+| code           | 0 为请求成功                    | 0       |
+| msg            | 错误消息                        |         |
+| data           | 榜单数据                        | `{...}` |
+| - list         | 排行用户列表（固定数量）        | `[...]` |
+| - totalData    | 汇总数据（无汇总时为空对象）    | `{}`    |
+| - type         | 榜单类型标识                    | checkin |
 
 > 注意：返回固定数量的榜单数据（服务端配置），不支持 `p`/`size` 分页参数。
 
@@ -519,7 +644,29 @@ curl --location --request GET 'https://fishpi.cn/api/top/online' \
 --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36' \
 ```
 
-响应结构与“签到排行”一致。
+响应结构与"签到排行"一致，`type` 为 `online`。
+
+### 其他排行榜
+
+以下排行榜接口的响应结构与"签到排行"一致（`data.list` + `data.totalData` + `data.type`），均为匿名可读，可携带 `apiKey`：
+
+| 接口                        | 说明                                   |
+| --------------------------- | -------------------------------------- |
+| `GET /api/top/balance`      | 财富排行（积分余额）                   |
+| `GET /api/top/consumption`  | 消费排行（积分消耗）                   |
+| `GET /api/top/perfect`      | 优选帖子排行                           |
+| `GET /api/top/invite`       | 邀请排行                               |
+| `GET /api/top/donate`       | 捐赠排行（`totalData` 含累计捐赠金额与支撑天数） |
+| `GET /api/top/adr`          | ADR 游戏排行                           |
+| `GET /api/top/mofish`       | 摸鱼游戏排行                           |
+| `GET /api/top/smallmofish`  | 小摸鱼游戏排行                         |
+| `GET /api/top/lifeRestart`  | 人生重开游戏排行                       |
+| `GET /api/top/evolve`       | Evolve 游戏排行，`?type=` 指定子榜（默认 achievement） |
+| `GET /api/top/emoji`        | 表情包游戏排行                         |
+| `GET /api/top/xiaoice`      | 小冰游戏排行，`?type=` 指定子榜（默认 0） |
+| `GET /api/top/any?types=...` | 多榜单合并查询，`types` 逗号分隔，子榜用 `\|` 分隔（如 `evolve|knowledge`）；响应 `data` 为 `{type, data}` 数组 |
+
+> 兼容性提示：2026-10 起以上接口的 `data` 由"数组"统一调整为对象 `{list, totalData, type}`，旧客户端请改用 `data.list` 读取榜单列表。
 
 ### 获取广告位配置
 
@@ -1646,7 +1793,197 @@ curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/lik
 | - liked                    | 操作后是否已点赞     | true |
 | - repeaterContentLikeCount | 操作后的点赞数       | 11   |
 
+## 鱼游
+
+### 获取已审核鱼游列表
+
+`GET /api/fish-games?p=1&size=20`
+
+获取鱼游广场中已审核通过的鱼游列表。
+
+请求：
+
+| Key    | 说明             | 示例         |
+| ------ | ---------------- | ------------ |
+| p      | 页码，默认 1     | 1            |
+| size   | 每页条数，默认 20，最大 50 | 20   |
+| apiKey | 通用密钥（可选） | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/fish-games?p=1&size=20'
+```
+
+响应：
+
+| Key           | 说明                 | 示例       |
+| ------------- | -------------------- | ---------- |
+| code          | 0 成功，-1 失败      | 0          |
+| data          | 鱼游数组             | `[ ... ]`  |
+| - oId         | 鱼游 Id              | 1630...    |
+| - name        | 鱼游名称             | 大鱼吃小鱼 |
+| - description | 简介                 | 一款小游戏 |
+| - url         | 游戏地址             | https://.. |
+| - iconURL     | 图标地址             | https://.. |
+| - authorName  | 作者用户名           | adler      |
+| - upCount     | 点赞数               | 11         |
+| - downCount   | 点踩数               | 0          |
+| - createTime  | 提交时间             | 2026-10-01 |
+
+> 鱼游的投稿、投票、评论等写接口将在后续批次补充文档。
+
 ## 专栏
+
+### 最新专栏
+
+`GET /api/columns/latest?size=12`
+
+获取首页「最新专栏」货架，按专栏更新时间倒序。
+
+请求：
+
+| Key    | 说明                       | 示例         |
+| ------ | -------------------------- | ------------ |
+| size   | 返回条数，默认 12，最大 12 | 12           |
+| apiKey | 通用密钥（可选）           | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/columns/latest?size=12'
+```
+
+响应：
+
+| Key                         | 说明                       | 示例        |
+| --------------------------- | -------------------------- | ----------- |
+| code                        | 0 成功，-1 失败            | 0           |
+| data                        | 专栏卡片数组               | `[ ... ]`   |
+| - columnId                  | 专栏 Id                    | 1770000...  |
+| - columnTitle               | 专栏名称                   | 我的专栏    |
+| - columnCoverURL            | 封面图地址                 | https://..  |
+| - columnHasCover            | 是否设置自定义封面         | true        |
+| - columnAuthorName          | 专栏作者用户名             | imlinha...  |
+| - columnArticleCount        | 专栏章节数                 | 19          |
+| - columnUpdateTimeStr       | 最近更新时间               | 2026-10-07  |
+| - latestChapter             | 最新章节                   | `{ ... }`   |
+| -- articleId                | 章节帖子 Id                | 1630...     |
+| -- articlePermalink         | 章节帖子链接               | /article/x  |
+| -- chapterNo                | 章节序号                   | 19          |
+| -- articleTitle             | 章节标题                   | 第19章      |
+| - secondLatestChapter       | 第二新章节，结构同上       | `{ ... }`   |
+
+### 热门专栏
+
+`GET /api/columns/hot?size=12`
+
+获取首页「热门专栏」货架，按章节数和点赞活跃度排序。参数与响应结构同最新专栏。
+
+### 我的专栏
+
+`GET /api/columns/mine?size=100&apiKey=<Key>`
+
+获取当前用户自己的专栏列表，用于长文章发帖页选择专栏和专栏管理。需要 apiKey。
+
+请求：
+
+| Key    | 说明                         | 示例         |
+| ------ | ---------------------------- | ------------ |
+| size   | 返回条数，默认 100，最大 100 | 100          |
+| apiKey | 通用密钥                     | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/columns/mine?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key                   | 说明                 | 示例       |
+| --------------------- | -------------------- | ---------- |
+| code                  | 0 成功，-1 失败      | 0          |
+| data                  | 专栏数组             | `[ ... ]`  |
+| - oId                 | 专栏 Id              | 1770000... |
+| - columnTitle         | 专栏名称             | 我的专栏   |
+| - columnArticleCount  | 章节数               | 5          |
+| - columnCoverURL      | 封面图地址           | https://.. |
+| - columnHasCover      | 是否设置自定义封面   | true       |
+
+### 专栏详情
+
+`GET /api/columns/{columnId}`
+
+获取专栏详情：名称、简介、章节数和作者信息。
+
+请求：
+
+| Key      | 说明                     | 示例         |
+| -------- | ------------------------ | ------------ |
+| columnId | 专栏 Id，本参数为 URL 参数 | 1770000000000 |
+| apiKey   | 通用密钥（可选）         | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/columns/1770000000000'
+```
+
+响应：
+
+| Key                  | 说明                 | 示例        |
+| -------------------- | -------------------- | ----------- |
+| code                 | 0 成功，-1 失败      | 0           |
+| msg                  | 错误信息             | 专栏不存在  |
+| data                 | 专栏详情             | `{ ... }`   |
+| - columnId           | 专栏 Id              | 1770000...  |
+| - columnTitle        | 专栏名称             | 我的专栏    |
+| - columnDescription  | 专栏简介（暂不支持） |             |
+| - columnArticleCount | 章节数               | 19          |
+| - author             | 作者信息             | `{ ... }`   |
+| -- userName          | 用户名               | imlinha...  |
+| -- userNickname      | 昵称                  | 我是跳跳    |
+| -- userAvatarURL     | 头像地址             | https://..  |
+
+### 专栏章节列表
+
+`GET /api/columns/{columnId}/articles?p=1&size=20`
+
+分页获取专栏下的章节帖子，按章节序号正序。
+
+请求：
+
+| Key      | 说明                       | 示例          |
+| -------- | -------------------------- | ------------- |
+| columnId | 专栏 Id，本参数为 URL 参数 | 1770000000000 |
+| p        | 页码，默认 1               | 1             |
+| size     | 每页条数，默认 20，最大 100 | 20           |
+| apiKey   | 通用密钥（可选）           | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/columns/1770000000000/articles?p=1&size=20'
+```
+
+响应：
+
+| Key                             | 说明                     | 示例       |
+| ------------------------------- | ------------------------ | ---------- |
+| code                            | 0 成功，-1 失败          | 0          |
+| data                            | 章节列表与分页           | `{ ... }`  |
+| - articles                      | 章节数组                 | `[ ... ]`  |
+| -- articleId                    | 帖子 Id                  | 1630...    |
+| -- articlePermalink             | 帖子链接                 | /article/x |
+| -- chapterNo                    | 章节序号                 | 1          |
+| -- articleTitle                 | 章节标题                 | 第一章     |
+| -- articleCreateTime            | 发布时间                 | 2026-10-01 |
+| - pagination                    | 分页信息                 | `{ ... }`  |
+| -- paginationPageCount          | 总页数                   | 1          |
+| -- paginationRecordCount        | 总记录数                 | 19         |
+
+> 超出范围的页码返回空数组。
 
 ### 更新专栏封面
 
@@ -2015,7 +2352,7 @@ curl --location --request GET 'https://fishpi.cn/api/search?q=%E6%91%B8%E9%B1%BC
 | -- articlePreviewContent | 命中内容预览             | `...`            |
 | -- articleAuthor   | 作者公开信息                   | `{...}`          |
 
-> 注意：单 IP 请求间隔不得低于 2 秒，否则会被限流拒绝；搜索服务不可用时返回 `code=-1`。命中结果不包含机要帖、思绪帖等受限内容，返回字段为白名单内的公开字段。
+> 注意：搜索服务不可用时返回 `code=-1`。命中结果不包含机要帖、思绪帖等受限内容，返回字段为白名单内的公开字段。
 
 ### 标签目录
 
@@ -2318,6 +2655,36 @@ curl --location --request GET 'https://fishpi.cn/api/article/1636516552191?apiKe
 | p        | 页码（第几页）                                                                     | 1     |
 | size     | 每页显示多少条结果（可能由于部分用户权限设置，最终显示条数低于该结果，属正常情况） | 20    |
 | userName | 用户名（本参数为URL参数，请注意）                                                  | adler |
+
+### 置顶帖子（API）
+
+`POST /api/article/stick`
+
+置顶自己的帖子，置顶成功会扣除置顶积分（余额不足返回错误）。需要 apiKey。
+
+请求：
+
+| Key       | 说明      | 示例                             |
+| --------- | --------- | -------------------------------- |
+| apiKey    | 通用密钥  | YOUR_API_KEY                     |
+| articleId | 帖子 Id   | 1645002736006                    |
+
+请求示例：
+
+```bash
+curl --location --request POST 'https://fishpi.cn/api/article/stick' \
+--header 'Content-Type: application/json' \
+--data-raw '{"apiKey":"YOUR_API_KEY","articleId":"1645002736006"}'
+```
+
+响应：
+
+| Key  | 说明                 | 示例                 |
+| ---- | -------------------- | -------------------- |
+| code | 0 成功，-1 失败      | 0                    |
+| msg  | 结果或错误信息       | 置顶成功             |
+
+> 仅帖子作者本人可操作；置顶按次扣积分，存在置顶数量上限时会先取消最早的置顶。
 
 ### 给文章点赞
 
@@ -2947,7 +3314,8 @@ curl --location --request GET 'https://fishpi.cn/api/breezemoons?p=1&size=20' \
 | - breezemoonCreated              | 创建时间                           |           |
 | - breezemoonAuthorThumbnailURL48 | 发布者头像URL                      |           |
 | - timeAgo                        | 发布时间                           |           |
-| - breezemoonContent              | 正文                               |           |
+| - breezemoonContent              | 正文（渲染后 HTML）              |           |
+| - breezemoonContentRaw           | 正文原始 Markdown（新增）        |           |
 | - breezemoonCreateTime           | 创建时间                           |           |
 | - breezemoonCity                 | 发布城市（可能为空，请注意做判断） |           |
 
@@ -4374,7 +4742,17 @@ curl --location --request POST 'https://fishpi.cn/api/medal/admin/grant-batch' \
 
 **GET /api/article/{articleId}**
 
-接口本身不变，响应中的 **data.article** 新增以下字段：
+匿名可读；仅当作者关闭"匿名查看"时匿名请求返回错误，携带 `apiKey` 不受影响。评论排序支持 query 参数 `m`：`0` 按时间正序（默认）、`1` 按时间倒序；不传时沿用登录用户偏好。
+
+响应中的 **data** 新增以下字段：
+
+| Key               | 说明                                          | 示例        |
+| ----------------- | --------------------------------------------- | ----------- |
+| relevantArticles  | 相关帖子列表（轻量字段：oId、标题、链接等）   | **[ ... ]** |
+| previousArticle   | 上一篇（`{oId, articleId, articleTitle, articlePermalink}`，无则为 null） | `{ ... }` |
+| nextArticle       | 下一篇（结构同上，无则为 null）               | `{ ... }`   |
+
+响应中的 **data.article** 新增以下字段：
 
 | Key                 | 说明                                                   | 示例         |
 | ------------------- | ------------------------------------------------------ | ------------ |
@@ -4695,3 +5073,141 @@ curl -X POST 'https://fishpi.cn/api/admin/fish-games/import?apiKey=YOUR_API_KEY'
 响应：返回更新后的鱼游对象。
 
 > 投稿不要求提交 OAuth 资格材料，由管理员人工审核目标网站。接口变更后请同步更新网站 API 文档文章。
+
+## 用户主页子列表
+
+以 `/api/user/{userName}/...` 形式提供个人主页各子页数据。`userName` 为路径参数。除标注"仅本人"的接口外均可匿名访问；目标用户在隐私设置中关闭对应列表时，仅本人或管理员可见（其他请求返回 `code != 0`，`msg` 为"对方设置了隐私权限"）。分页参数 `p`（默认 1）、`size`（默认 20，最大 50）；分页接口统一返回 `data.pagination = {paginationPageCount, paginationRecordCount}`。
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/user/{userName}/comments` | 该用户的评论列表（分页，`data.comments`） |
+| `GET /api/user/{userName}/comments/anonymous` | 匿名评论列表（**仅本人**，分页） |
+| `GET /api/user/{userName}/articles/anonymous` | 匿名帖子列表（**仅本人**，分页，`data.articles`） |
+| `GET /api/user/{userName}/long` | 长文章列表（分页，`data.articles`） |
+| `GET /api/user/{userName}/watching` | 关注动态聚合，`data.followingUserArticles` + `data.followingTagArticles` |
+| `GET /api/user/{userName}/following/articles` | 关注用户发布的帖子（分页，`data.articles`） |
+| `GET /api/user/{userName}/following/tags` | 关注的标签（分页，`data.tags`） |
+| `GET /api/user/{userName}/following/users` | 关注的用户（分页，`data.users`） |
+| `GET /api/user/{userName}/followers` | 粉丝列表（分页，`data.users`） |
+| `GET /api/user/{userName}/points` | 积分流水（**仅本人**，分页，`data.points`，含 `time`、`sum`、`type`、`operation`、`balance`、`displayType`、`description`） |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/user/adlered/comments?p=1&size=20&apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key  | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 成功，-1 失败 | 0 |
+| msg | 错误信息 | 用户不存在 |
+| data | 列表数据与分页 | `{...}` |
+
+> 标注"仅本人"的接口只能使用目标用户自己的 apiKey 调用，用他人 apiKey 返回错误。
+
+## 关注动态
+
+均需 apiKey。分页参数 `p`（默认 1）、`size`（默认 20，最大 50）。
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/watch/tags/articles` | 我关注的标签下的帖子（分页，`data.articles`） |
+| `GET /api/watch/users/articles` | 我关注的用户发布的帖子（分页，`data.articles`） |
+| `GET /api/watch/breezemoons` | 我关注的用户的清风明月（分页，`data.breezemoons`，每条含 `breezemoonContentRaw` 原始 Markdown） |
+
+> 未关注任何人或关注的人没有清风明月时，返回空列表（`data.breezemoons` 为空数组）。
+
+## 专栏管理
+
+均需 apiKey，仅专栏作者本人可操作。
+
+### 重命名专栏
+
+`POST /api/columns/{columnId}/rename`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+| columnId | 专栏 Id，本参数为 URL 参数 | 1770000000000 |
+| columnTitle | 新专栏名称，1-64 字符 | 我的新专栏 |
+
+响应：`code` 为 0 时 `data.column` 为更新后的专栏。
+
+### 调整专栏顺序
+
+`POST /api/columns/order`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+| columnIds | 本人的全部专栏 Id，按期望顺序排列 | `["1770000000001","1770000000000"]` |
+
+响应：通用 `code/msg`。排序后 `GET /api/columns/mine` 按新顺序返回。
+
+### 删除专栏
+
+`POST /api/columns/{columnId}/remove`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+| columnId | 专栏 Id，本参数为 URL 参数 | 1770000000000 |
+
+响应：通用 `code/msg`。
+
+> 专栏下还有章节时拒绝删除，需先把章节移出专栏。
+
+## 同城
+
+### 获取同城用户
+
+`GET /api/city/{cityName}`
+
+返回指定城市中公开了位置的用户，分页。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| cityName | 城市名，本参数为 URL 参数 | 北京 |
+| p | 页码，默认 1 | 1 |
+| size | 每页条数，默认 20，最大 50 | 20 |
+| apiKey | 通用密钥（可选） | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl --location --request GET 'https://fishpi.cn/api/city/%E5%8C%97%E4%BA%AC?p=1&size=20'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 成功 | 0 |
+| data | 结果 | `{...}` |
+| - city | 城市名 | 北京 |
+| - users | 用户列表（`oId`、`userName`、`userNickname`、`userAvatarURL`、`userNo`、`userIntro`、`userOnlineFlag`） | `[...]` |
+| - pagination | 分页信息 | `{...}` |
+
+## 大事记与统计
+
+### 获取大事记时间线
+
+`GET /api/milestones`
+
+返回站点大事记列表，字段含 `id`、`title`、`date`、`end_date`、`content`、`media`、`link` 等，与页面 `/milestones` 一致。可携带 `apiKey`（可选）。
+
+### 获取站点统计
+
+`GET /api/statistic`
+
+返回站点统计：`statisticMemberCount`（用户数）、`statisticArticleCount`（帖子数）、`statisticCmtCount`（评论数）、`statisticDomainCount`、`statisticTagCount`、`statisticLinkCount`、`statisticMaxOnlineVisitorCount`（历史最高在线）、`onlineVisitorCnt`（当前在线访客）、`onlineMemberCnt`（当前在线会员）等。可携带 `apiKey`（可选）。

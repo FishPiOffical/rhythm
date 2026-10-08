@@ -29,6 +29,7 @@ import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
@@ -134,6 +135,12 @@ public class ActivityProcessor {
     private UserQueryService userQueryService;
 
     /**
+     * Liveness query service.
+     */
+    @Inject
+    private LivenessQueryService livenessQueryService;
+
+    /**
      * Record if eating snake game is started.
      */
     final static HashMap<String, Long> EATING_SNAKE_STARTED = new HashMap<>();
@@ -180,6 +187,7 @@ public class ActivityProcessor {
         Dispatcher.get("/activity/catch-the-cat", activityProcessor::showCatchTheCat, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/activity/daxigua", activityProcessor::showDaxigua, loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/api/activity/is-collected-liveness", activityProcessor::isCollectedYesterdayLivenessRewardApi, loginCheck::handle);
+        Dispatcher.get("/api/checkin/status", activityProcessor::checkinStatusApi, loginCheck::handle);
     }
 
     /**
@@ -483,6 +491,34 @@ public class ActivityProcessor {
         final JSONObject user = Sessions.getUser();
         final String userId = user.optString(Keys.OBJECT_ID);
         context.renderJSON(new JSONObject().put("sum", activityMgmtService.dailyCheckin(userId)));
+    }
+
+    /**
+     * Gets the current check-in status for SPA clients: checked-in flag, liveness percentage,
+     * auto check-in threshold and current check-in streak. Read-only; no check-in is performed.
+     *
+     * @param context the specified context
+     */
+    public void checkinStatusApi(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = currentUser.optString(Keys.OBJECT_ID);
+
+        final boolean checkedIn = activityQueryService.isCheckedinToday(userId);
+
+        final int livenessMax = Symphonys.ACTIVITY_YESTERDAY_REWARD_MAX;
+        final int currentLivenessPoint = livenessQueryService.getCurrentLivenessPoint(userId);
+        final float liveness = (float) (Math.round((float) currentLivenessPoint / livenessMax * 100 * 100)) / 100;
+
+        final JSONObject data = new JSONObject();
+        data.put("checkedIn", checkedIn);
+        data.put("liveness", liveness);
+        data.put("threshold", Symphonys.ACTIVITY_AUTO_CHECKIN_LIVENESS_THRESHOLD);
+        data.put("streak", currentUser.optInt(UserExt.USER_CURRENT_CHECKIN_STREAK));
+        context.renderData(data).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
     /**

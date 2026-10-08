@@ -19,6 +19,7 @@
 package org.b3log.symphony.processor;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
@@ -74,6 +75,7 @@ public class FishGameProcessor {
         Dispatcher.post("/api/fish-games/{id}/vote", processor::vote, loginCheck::handle, writeSecurity::checkWriteRequest,
                 writeSecurity::checkVoteLimit);
         Dispatcher.get("/api/fish-games/{id}/comments", processor::comments, anonymousViewCheck::handle);
+        Dispatcher.get("/api/fish-games", processor::list, anonymousViewCheck::handle);
         Dispatcher.post("/api/fish-games/{id}/comments", processor::addComment, loginCheck::handle, writeSecurity::checkWriteRequest,
                 writeSecurity::checkCommentLimit);
         Dispatcher.get("/admin/fish-games", processor::showAdmin, loginCheck::handle, permissionMidware::check);
@@ -138,6 +140,52 @@ public class FishGameProcessor {
         }
         final JSONObject result = new JSONObject().put("comments", new JSONArray(withAuthors(fishGameQueryService.getComments(gameId))));
         renderSuccess(context, result);
+    }
+
+    private static final int LIST_DEFAULT_SIZE = 20;
+    private static final int LIST_MAX_SIZE = 50;
+    private static final String TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+    /**
+     * Gets the public approved fish games list, paginated in memory.
+     *
+     * @param context the specified context
+     */
+    public void list(final RequestContext context) {
+        final int page = parsePage(context.param("p"));
+        final int size = parseSize(context.param("size"), LIST_DEFAULT_SIZE, LIST_MAX_SIZE);
+
+        final List<JSONObject> approved = fishGameQueryService.getApproved();
+        final int recordCount = approved.size();
+
+        final JSONArray data = new JSONArray();
+        final int fromIndex = (page - 1) * size;
+        if (fromIndex < recordCount) {
+            final int toIndex = Math.min(fromIndex + size, recordCount);
+            for (final JSONObject game : approved.subList(fromIndex, toIndex)) {
+                data.put(shapePublicGame(game));
+            }
+        }
+
+        context.renderJSON(new JSONObject()
+                .put(Keys.CODE, StatusCodes.SUCC)
+                .put(Keys.MSG, "")
+                .put(Keys.DATA, data));
+    }
+
+    private JSONObject shapePublicGame(final JSONObject game) {
+        final JSONObject author = userQueryService.getUser(game.optString(FishGame.AUTHOR_ID));
+        final String authorName = author == null ? "" : author.optString(User.USER_NAME);
+        return new JSONObject()
+                .put(Keys.OBJECT_ID, game.optString(Keys.OBJECT_ID))
+                .put("name", game.optString(FishGame.NAME))
+                .put("description", game.optString(FishGame.DESCRIPTION))
+                .put("url", game.optString(FishGame.URL))
+                .put("iconURL", game.optString(FishGame.ICON_URL))
+                .put("authorName", authorName)
+                .put("upCount", game.optInt(FishGame.LIKE_COUNT))
+                .put("downCount", game.optInt(FishGame.DISLIKE_COUNT))
+                .put("createTime", DateFormatUtils.format(game.optLong(FishGame.CREATED_TIME), TIME_FORMAT));
     }
 
     public void addComment(final RequestContext context) {
@@ -288,5 +336,31 @@ public class FishGameProcessor {
 
     private void renderError(final RequestContext context, final String message) {
         context.renderJSON(new JSONObject().put(Keys.CODE, StatusCodes.ERR).put(Keys.MSG, message));
+    }
+
+    private static int parsePage(final String value) {
+        if (null == value || value.isBlank()) {
+            return 1;
+        }
+        try {
+            return Math.max(1, Integer.parseInt(value.trim()));
+        } catch (final NumberFormatException e) {
+            return 1;
+        }
+    }
+
+    private static int parseSize(final String value, final int defaultSize, final int maxSize) {
+        if (null == value || value.isBlank()) {
+            return defaultSize;
+        }
+        try {
+            final int parsed = Integer.parseInt(value.trim());
+            if (parsed < 1) {
+                return defaultSize;
+            }
+            return Math.min(parsed, maxSize);
+        } catch (final NumberFormatException e) {
+            return defaultSize;
+        }
     }
 }

@@ -593,6 +593,11 @@ public final class Symphonys {
     public static final float ACTIVITY_1A0001_LIVENESS_THRESHOLD = getFloat("activity1A0001LivenessThreshold");
 
     /**
+     * 活跃度达标自动签到门槛值，百分比.
+     */
+    public static final float ACTIVITY_AUTO_CHECKIN_LIVENESS_THRESHOLD = 10F;
+
+    /**
      * 昨日活跃奖励 - 参与一个活动的返点.
      */
     public static final float ACTIVITY_YESTERDAY_REWARD_ACTIVITY_PER = getFloat("activitYesterdayLivenessReward.activity.perPoint");

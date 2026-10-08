@@ -162,7 +162,7 @@ public class LivenessMgmtService {
                 final int livenessMax = Symphonys.ACTIVITY_YESTERDAY_REWARD_MAX;
                 final int currentLiveness = livenessQueryService.getCurrentLivenessPoint(userId);
                 float liveness = (float) (Math.round((float) currentLiveness / livenessMax * 100 * 100)) / 100;
-                if (liveness >= 10) {
+                if (liveness >= Symphonys.ACTIVITY_AUTO_CHECKIN_LIVENESS_THRESHOLD) {
                     if (!activityQueryService.isCheckedinToday(userId)) {
                         activityMgmtService.dailyCheckin(userId);
                         LOGGER.log(Level.INFO, "Checkin for " + user.optString(User.USER_NAME) + " liveness is " + liveness + "%");

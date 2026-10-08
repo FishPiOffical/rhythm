@@ -191,6 +191,7 @@ public class LoginProcessor {
         Dispatcher.post("/forget-pwd", loginProcessor::forgetPwd, userForgetPwdValidationMidware::handle);
         Dispatcher.get("/reset-pwd", loginProcessor::showResetPwd);
         Dispatcher.post("/reset-pwd", loginProcessor::resetPwd);
+        Dispatcher.get("/api/reset-pwd/meta", loginProcessor::resetPwdMeta);
         Dispatcher.get("/register", loginProcessor::showRegister);
         Dispatcher.get("/verify", loginProcessor::verify);
         Dispatcher.post("/register", loginProcessor::register, userRegisterValidationMidware::handle);
@@ -363,6 +364,10 @@ public class LoginProcessor {
      * @param context the specified context
      */
     public static SimpleCurrentLimiter resetCodeLimiter = new SimpleCurrentLimiter(60, 4);
+    /**
+     * Reset password meta API rate limit per IP: max 10 accesses in 60 seconds.
+     */
+    public static SimpleCurrentLimiter resetPwdMetaLimiter = new SimpleCurrentLimiter(60, 10);
     public void showResetPwd(final RequestContext context) {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, null);
         context.setRenderer(renderer);
@@ -389,6 +394,43 @@ public class LoginProcessor {
         }
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    /**
+     * Gets reset password metadata via JSON for SPA clients. Exchanges a valid reset code for {@code userId}.
+     * This is a dedicated API endpoint; the HTML page flow is not touched.
+     *
+     * @param context the specified context
+     */
+    public void resetPwdMeta(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        if (!resetPwdMetaLimiter.access(ip)) {
+            context.renderCodeMsg(StatusCodes.ERR, "操作过于频繁，请稍后重试");
+            return;
+        }
+
+        final String code = StringUtils.trim(context.param("code"));
+        if (StringUtils.isBlank(code)) {
+            context.renderCodeMsg(StatusCodes.ERR, "校验码不能为空");
+            return;
+        }
+
+        final JSONObject verifycode = verifycodeQueryService.getVerifycode(code);
+        if (null == verifycode
+                || Verifycode.BIZ_TYPE_C_RESET_PWD != verifycode.optInt(Verifycode.BIZ_TYPE)
+                || verifycode.optLong(Verifycode.EXPIRED) < System.currentTimeMillis()) {
+            context.renderCodeMsg(StatusCodes.ERR, langPropsService.get("verifycodeExpiredLabel"));
+            return;
+        }
+
+        final JSONObject data = new JSONObject();
+        data.put(Verifycode.USER_ID, verifycode.optString(Verifycode.USER_ID));
+        data.put(Verifycode.CODE, code);
+        context.renderData(data).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
     /**

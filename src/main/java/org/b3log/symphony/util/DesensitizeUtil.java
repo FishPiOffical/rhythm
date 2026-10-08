@@ -87,7 +87,7 @@ public class DesensitizeUtil {
         article.remove(Article.ARTICLE_CONTENT);
     }
 
-    private static void desensitizeUser(final JSONObject user) {
+    public static void desensitizeUser(final JSONObject user) {
         if (null == user) {
             return;
         }

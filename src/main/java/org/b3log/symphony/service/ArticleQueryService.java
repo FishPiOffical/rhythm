@@ -294,9 +294,37 @@ public class ArticleQueryService {
      * @return following tag articles, returns an empty list if not found
      */
     public List<JSONObject> getFollowingUserArticles(final String userId, final int currentPageNum, final int pageSize) {
+        final JSONObject result = getFollowingUserArticlesWithPagination(userId, currentPageNum, pageSize);
+        return (List<JSONObject>) result.opt(Article.ARTICLES);
+    }
+
+    /**
+     * Gets following user articles with pagination.
+     *
+     * @param userId         the specified user id
+     * @param currentPageNum the specified page number
+     * @param pageSize       the specified page size
+     * @return for example, <pre>
+     * {
+     *     "pagination": {
+     *         "paginationPageCount": 100,
+     *         "paginationRecordCount": 1000
+     *     },
+     *     "articles": [{ .... }, ....]
+     * }
+     * </pre>
+     */
+    public JSONObject getFollowingUserArticlesWithPagination(final String userId, final int currentPageNum, final int pageSize) {
+        final JSONObject ret = new JSONObject();
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, 0);
+        pagination.put(Pagination.PAGINATION_RECORD_COUNT, 0);
+        ret.put(Pagination.PAGINATION, pagination);
+        ret.put(Article.ARTICLES, (Object) Collections.emptyList());
+
         final List<JSONObject> users = (List<JSONObject>) followQueryService.getFollowingUsers(userId, 1, Integer.MAX_VALUE).opt(Keys.RESULTS);
         if (users.isEmpty()) {
-            return Collections.emptyList();
+            return ret;
         }
 
         final Query query = new Query().addSort(Keys.OBJECT_ID, SortDirection.DESCENDING).setPage(currentPageNum, pageSize);
@@ -321,13 +349,15 @@ public class ArticleQueryService {
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Gets following user articles failed", e);
 
-            return Collections.emptyList();
+            return ret;
         } finally {
             Stopwatchs.end();
         }
 
-        final List<JSONObject> ret = (List<JSONObject>) result.opt(Keys.RESULTS);
-        organizeArticles(ret);
+        final List<JSONObject> articles = (List<JSONObject>) result.opt(Keys.RESULTS);
+        organizeArticles(articles);
+        ret.put(Article.ARTICLES, (Object) articles);
+        ret.put(Pagination.PAGINATION, result.optJSONObject(Pagination.PAGINATION));
 
         return ret;
     }
@@ -341,10 +371,38 @@ public class ArticleQueryService {
      * @return following tag articles, returns an empty list if not found
      */
     public List<JSONObject> getFollowingTagArticles(final String userId, final int currentPageNum, final int pageSize) {
+        final JSONObject result = getFollowingTagArticlesWithPagination(userId, currentPageNum, pageSize);
+        return (List<JSONObject>) result.opt(Article.ARTICLES);
+    }
+
+    /**
+     * Gets following tag articles with pagination.
+     *
+     * @param userId         the specified user id
+     * @param currentPageNum the specified page number
+     * @param pageSize       the specified page size
+     * @return for example, <pre>
+     * {
+     *     "pagination": {
+     *         "paginationPageCount": 100,
+     *         "paginationRecordCount": 1000
+     *     },
+     *     "articles": [{ .... }, ....]
+     * }
+     * </pre>
+     */
+    public JSONObject getFollowingTagArticlesWithPagination(final String userId, final int currentPageNum, final int pageSize) {
         final List<JSONObject> tags = (List<JSONObject>) followQueryService.getFollowingTags(
                 userId, 1, Integer.MAX_VALUE).opt(Keys.RESULTS);
         if (tags.isEmpty()) {
-            return Collections.emptyList();
+            final JSONObject ret = new JSONObject();
+            final JSONObject pagination = new JSONObject();
+            pagination.put(Pagination.PAGINATION_PAGE_COUNT, 0);
+            pagination.put(Pagination.PAGINATION_RECORD_COUNT, 0);
+            ret.put(Pagination.PAGINATION, pagination);
+            ret.put(Article.ARTICLES, (Object) Collections.emptyList());
+
+            return ret;
         }
 
         final List<String> articleFields = new ArrayList<>();
@@ -368,7 +426,7 @@ public class ArticleQueryService {
         articleFields.add(Article.ARTICLE_QNA_OFFER_POINT);
         articleFields.add(Article.ARTICLE_SHOW_IN_LIST);
 
-        return getArticlesByTags(currentPageNum, pageSize, articleFields, tags.toArray(new JSONObject[0]));
+        return getArticlesByTagsWithPagination(currentPageNum, pageSize, articleFields, tags.toArray(new JSONObject[0]));
     }
 
     /**
@@ -917,8 +975,37 @@ public class ArticleQueryService {
      * @return articles, return an empty list if not found
      */
     public List<JSONObject> getArticlesByTags(final int currentPageNum, final int pageSize, final List<String> articleFields, final JSONObject... tags) {
+        final JSONObject result = getArticlesByTagsWithPagination(currentPageNum, pageSize, articleFields, tags);
+        return (List<JSONObject>) result.opt(Article.ARTICLES);
+    }
+
+    /**
+     * Gets articles by the specified tags with pagination (order by article create date desc).
+     *
+     * @param tags           the specified tags
+     * @param currentPageNum the specified page number
+     * @param articleFields  the specified article fields to return
+     * @param pageSize       the specified page size
+     * @return for example, <pre>
+     * {
+     *     "pagination": {
+     *         "paginationPageCount": 100,
+     *         "paginationRecordCount": 1000
+     *     },
+     *     "articles": [{ .... }, ....]
+     * }
+     * </pre>
+     */
+    public JSONObject getArticlesByTagsWithPagination(final int currentPageNum, final int pageSize, final List<String> articleFields, final JSONObject... tags) {
+        final JSONObject retJson = new JSONObject();
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT, 0);
+        pagination.put(Pagination.PAGINATION_RECORD_COUNT, 0);
+        retJson.put(Pagination.PAGINATION, pagination);
+        retJson.put(Article.ARTICLES, (Object) Collections.emptyList());
+
         try {
-//            final StringBuilder queryCount = new StringBuilder("select count(0) ").append(" from ");
+            final StringBuilder queryCount = new StringBuilder("select count(distinct symphony_article.oId) ").append(" from ");
             final StringBuilder queryList = new StringBuilder("select symphony_article.oId ").append(" from ");
             final StringBuilder queryStr = new StringBuilder(articleRepository.getName() + " symphony_article, ").append(tagArticleRepository.getName() + " symphony_tag_article ");
             queryStr.append(" where symphony_article.oId=symphony_tag_article.article_oId and symphony_article.articleShowInList != ? ");
@@ -933,8 +1020,12 @@ public class ArticleQueryService {
                 queryStr.append(")");
             }
             queryStr.append(" order by ").append("symphony_tag_article." + Keys.OBJECT_ID + " ").append(" desc ");
-//            final List<JSONObject> tagArticlesCount = articleRepository.
-//                    select(queryCount.append(queryStr.toString()).toString(), Article.ARTICLE_SHOW_IN_LIST_C_NOT);
+            final List<JSONObject> tagArticlesCount = articleRepository.
+                    select(queryCount.append(queryStr.toString()).toString(), Article.ARTICLE_SHOW_IN_LIST_C_NOT);
+            final int recordCount = (null == tagArticlesCount || tagArticlesCount.isEmpty()) ? 0
+                    : tagArticlesCount.get(0).optInt("count(distinct symphony_article.oId)");
+            pagination.put(Pagination.PAGINATION_PAGE_COUNT, (int) Math.ceil(recordCount / (double) pageSize));
+            pagination.put(Pagination.PAGINATION_RECORD_COUNT, recordCount);
             queryStr.append(" limit ").append((currentPageNum - 1) * pageSize).append(",").append(pageSize);
             final List<JSONObject> tagArticles = articleRepository.
                     select(queryList.append(queryStr.toString()).toString(), Article.ARTICLE_SHOW_IN_LIST_C_NOT);
@@ -952,12 +1043,13 @@ public class ArticleQueryService {
 
             final List<JSONObject> ret = articleRepository.getList(query);
             organizeArticles(ret);
+            retJson.put(Article.ARTICLES, (Object) ret);
 
-            return ret;
+            return retJson;
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Gets articles by tags [tagLength=" + tags.length + "] failed", e);
 
-            return Collections.emptyList();
+            return retJson;
         }
     }
 

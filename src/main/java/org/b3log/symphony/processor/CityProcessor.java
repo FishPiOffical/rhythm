@@ -25,20 +25,24 @@ import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.util.Paginator;
+import org.b3log.latke.util.Requests;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
+import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -95,6 +99,108 @@ public class CityProcessor {
      */
     @Inject
     private LangPropsService langService;
+
+    /**
+     * City users API rate limit per IP: max 60 accesses in 60 seconds.
+     */
+    private static final SimpleCurrentLimiter CITY_API_LIMITER = new SimpleCurrentLimiter(60, 60);
+
+    private static final int CITY_USERS_API_DEFAULT_SIZE = 20;
+    private static final int CITY_USERS_API_MAX_SIZE = 50;
+
+    /**
+     * City users list API.
+     *
+     * @param context the specified context
+     */
+    public void cityUsersApi(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        if (!CITY_API_LIMITER.access(ip)) {
+            context.renderCodeMsg(StatusCodes.ERR, "操作过于频繁，请稍后重试");
+            return;
+        }
+
+        final String city = StringUtils.trimToEmpty(context.pathVar("cityName"));
+        if (StringUtils.isBlank(city) || city.length() > 64) {
+            context.renderCodeMsg(StatusCodes.ERR, "城市名不合法");
+            return;
+        }
+
+        final int pageNum = parsePage(context.param("p"));
+        final int pageSize = parseSize(context.param("size"));
+
+        final JSONObject requestJSONObject = new JSONObject();
+        requestJSONObject.put(Keys.OBJECT_ID, "");
+        requestJSONObject.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        requestJSONObject.put(Pagination.PAGINATION_PAGE_SIZE, pageSize);
+        requestJSONObject.put(Pagination.PAGINATION_WINDOW_SIZE, Symphonys.CITY_USERS_WIN_SIZE);
+        requestJSONObject.put(UserExt.USER_LATEST_LOGIN_TIME, 0L);
+        requestJSONObject.put(UserExt.USER_CITY, city);
+        final JSONObject result = userQueryService.getUsersByCity(requestJSONObject);
+        if (null == result) {
+            context.renderCodeMsg(StatusCodes.ERR, "查询失败，请稍后重试");
+            return;
+        }
+
+        final List<JSONObject> users = (List<JSONObject>) result.opt(User.USERS);
+        final List<JSONObject> safeUsers = new ArrayList<>();
+        if (null != users) {
+            for (final JSONObject user : users) {
+                final JSONObject item = new JSONObject();
+                item.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
+                item.put(User.USER_NAME, user.optString(User.USER_NAME));
+                item.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));
+                item.put(UserExt.USER_AVATAR_URL, user.optString(UserExt.USER_AVATAR_URL));
+                item.put(UserExt.USER_NO, user.optString(UserExt.USER_NO));
+                item.put(UserExt.USER_INTRO, user.optString(UserExt.USER_INTRO));
+                item.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+                safeUsers.add(item);
+            }
+        }
+
+        final JSONObject srcPagination = result.optJSONObject(Pagination.PAGINATION);
+        final JSONObject pagination = new JSONObject();
+        pagination.put(Pagination.PAGINATION_PAGE_COUNT,
+                null == srcPagination ? 0 : srcPagination.optInt(Pagination.PAGINATION_PAGE_COUNT));
+        pagination.put(Pagination.PAGINATION_CURRENT_PAGE_NUM, pageNum);
+        pagination.put(Pagination.PAGINATION_PAGE_SIZE, pageSize);
+
+        final JSONObject data = new JSONObject();
+        data.put(Common.CITY, city);
+        data.put(User.USERS, safeUsers);
+        data.put(Pagination.PAGINATION, pagination);
+        context.renderData(data).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    private static int parsePage(final String value) {
+        if (StringUtils.isBlank(value)) {
+            return 1;
+        }
+        try {
+            return Math.max(1, Integer.parseInt(value.trim()));
+        } catch (final NumberFormatException e) {
+            return 1;
+        }
+    }
+
+    private static int parseSize(final String value) {
+        if (StringUtils.isBlank(value)) {
+            return CITY_USERS_API_DEFAULT_SIZE;
+        }
+        try {
+            final int parsed = Integer.parseInt(value.trim());
+            if (parsed < 1) {
+                return CITY_USERS_API_DEFAULT_SIZE;
+            }
+            return Math.min(parsed, CITY_USERS_API_MAX_SIZE);
+        } catch (final NumberFormatException e) {
+            return CITY_USERS_API_DEFAULT_SIZE;
+        }
+    }
 
     /**
      * Show city articles.

@@ -28,6 +28,7 @@ import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.model.Pagination;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.service.ServiceException;
@@ -54,6 +55,7 @@ import org.jsoup.safety.Safelist;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -120,6 +122,7 @@ public class BreezemoonProcessor {
         Dispatcher.put("/breezemoon/{id}", breezemoonProcessor::updateBreezemoon, loginCheck::handle, csrfMidware::check, permissionMidware::check);
         Dispatcher.delete("/breezemoon/{id}", breezemoonProcessor::removeBreezemoon, loginCheck::handle, csrfMidware::check, permissionMidware::check);
         Dispatcher.get("/api/breezemoons", breezemoonProcessor::getBreezemoons, anonymousViewCheckMidware::handle);
+        Dispatcher.get("/api/watch/breezemoons", breezemoonProcessor::getWatchBreezemoons, loginCheck::handle);
     }
 
     /**
@@ -144,6 +147,62 @@ public class BreezemoonProcessor {
         } catch (Exception e) {
             context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
         }
+    }
+
+    /**
+     * API: gets breezemoons from users the current user is following.
+     *
+     * @param context the specified context
+     */
+    public void getWatchBreezemoons(final RequestContext context) {
+        final int pageNum = parseBreezemoonPage(context);
+        final int pageSize = parseBreezemoonPageSize(context);
+        final int windowSize = 15;
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final String userId = null == currentUser ? null : currentUser.optString(Keys.OBJECT_ID);
+        final JSONObject result = breezemoonQueryService.getFollowingUserBreezemoons(userId, pageNum, pageSize, windowSize, false);
+        if (null == result) {
+            context.renderJSON(new JSONObject()).renderCode(StatusCodes.ERR).renderMsg("请求非法");
+            return;
+        }
+
+        final List<JSONObject> bms = (List<JSONObject>) result.opt(Breezemoon.BREEZEMOONS);
+        // 结果去敏
+        for (int i = 0; i < bms.size(); i++) {
+            bms.get(i).remove("breezemoonIP");
+            bms.get(i).remove("breezemoonUA");
+            bms.get(i).remove("breezemoonAuthorId");
+            bms.get(i).remove("breezemoonStatus");
+        }
+
+        final Map<String, Object> dataModel = new HashMap<>();
+        dataModel.put("pagination", result.optJSONObject(Pagination.PAGINATION));
+        dataModel.put(Breezemoon.BREEZEMOONS, new JSONArray(bms));
+        context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
+    }
+
+    private int parseBreezemoonPage(final RequestContext context) {
+        final String p = context.param("p");
+        int pageNum = 1;
+        if (StringUtils.isNotBlank(p)) {
+            try {
+                pageNum = Integer.parseInt(p.trim());
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        return Math.max(1, pageNum);
+    }
+
+    private int parseBreezemoonPageSize(final RequestContext context) {
+        final String size = context.param("size");
+        int pageSize = 20;
+        if (StringUtils.isNotBlank(size)) {
+            try {
+                pageSize = Integer.parseInt(size.trim());
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        return Math.min(Math.max(1, pageSize), 50);
     }
 
     /**

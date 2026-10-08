@@ -165,6 +165,7 @@ public final class Router {
         // 统计
         final StatisticProcessor statisticProcessor = beanManager.getReference(StatisticProcessor.class);
         Dispatcher.get("/statistic", statisticProcessor::showStatistic, loginCheck::handle);
+        Dispatcher.get("/api/statistic", statisticProcessor::statisticApi, anonymousViewCheckMidware::handle);
         // 跳转页
         //final ForwardProcessor forwardProcessor = beanManager.getReference(ForwardProcessor.class);
         //Dispatcher.get("/forward", forwardProcessor::showForward);
@@ -181,6 +182,7 @@ public final class Router {
         final CityProcessor cityProcessor = beanManager.getReference(CityProcessor.class);
         Dispatcher.group().middlewares(loginCheck::handle).router().get().uris(new String[]{"/city/{city}", "/city/{city}/articles"}).handler(cityProcessor::showCityArticles);
         Dispatcher.get("/city/{city}/users", cityProcessor::showCityUsers, loginCheck::handle);
+        Dispatcher.get("/api/city/{cityName}", cityProcessor::cityUsersApi, anonymousViewCheckMidware::handle);
         // 假期
         final Vocation vocation = beanManager.getReference(Vocation.class);
         Dispatcher.get("/api/vocation", vocation::vocation, loginCheck::handle);

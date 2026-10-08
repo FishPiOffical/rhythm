@@ -211,6 +211,65 @@ public class IndexProcessor {
         Dispatcher.get("/privacy", indexProcessor::showPrivacy, anonymousViewCheckMidware::handle);
         Dispatcher.get("/agreement", indexProcessor::showAgreement, anonymousViewCheckMidware::handle);
         Dispatcher.get("/api/ads", indexProcessor::getAds);
+        Dispatcher.get("/api/watch/tags/articles", indexProcessor::getWatchTagArticles, loginCheck::handle);
+        Dispatcher.get("/api/watch/users/articles", indexProcessor::getWatchUserArticles, loginCheck::handle);
+    }
+
+    /**
+     * API: gets articles under the tags followed by the current user.
+     *
+     * @param context the specified context
+     */
+    public void getWatchTagArticles(final RequestContext context) {
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = parseWatchApiPageSize(context);
+        final JSONObject result = articleQueryService.getFollowingTagArticlesWithPagination(
+                currentUser.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        renderWatchArticles(context, result);
+    }
+
+    /**
+     * API: gets articles published by the users followed by the current user.
+     *
+     * @param context the specified context
+     */
+    public void getWatchUserArticles(final RequestContext context) {
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        final int pageNum = Paginator.getPage(context.getRequest());
+        final int pageSize = parseWatchApiPageSize(context);
+        final JSONObject result = articleQueryService.getFollowingUserArticlesWithPagination(
+                currentUser.optString(Keys.OBJECT_ID), pageNum, pageSize);
+        renderWatchArticles(context, result);
+    }
+
+    private static final int WATCH_API_PAGE_SIZE_DEFAULT = 20;
+
+    private static final int WATCH_API_PAGE_SIZE_MAX = 50;
+
+    private static int parseWatchApiPageSize(final RequestContext context) {
+        final String size = context.param("size");
+        int pageSize = 0;
+        if (StringUtils.isNotBlank(size)) {
+            try {
+                pageSize = Integer.parseInt(size.trim());
+            } catch (final NumberFormatException ignored) {
+            }
+        }
+        if (pageSize <= 0) {
+            pageSize = WATCH_API_PAGE_SIZE_DEFAULT;
+        }
+
+        return Math.min(pageSize, WATCH_API_PAGE_SIZE_MAX);
+    }
+
+    private void renderWatchArticles(final RequestContext context, final JSONObject result) {
+        final List<JSONObject> articles = (List<JSONObject>) result.opt(Article.ARTICLES);
+        final Map<String, Object> dataModel = new HashMap<>();
+        dataModel.put(Pagination.PAGINATION, result.optJSONObject(Pagination.PAGINATION));
+        dataModel.put(Article.ARTICLES, DesensitizeUtil.articlesDesensitize(articles));
+
+        context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
     }
 
     /**

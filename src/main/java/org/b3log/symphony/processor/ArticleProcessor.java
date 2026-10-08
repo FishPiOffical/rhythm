@@ -298,6 +298,7 @@ public class ArticleProcessor {
         Dispatcher.post("/article/reward", articleProcessor::rewardArticle, loginCheck::handle);
         Dispatcher.post("/article/thank", articleProcessor::thankArticle, loginCheck::handle, permissionMidware::check);
         Dispatcher.post("/article/stick", articleProcessor::stickArticle, loginCheck::handle, permissionMidware::check);
+        Dispatcher.post("/api/article/stick", articleProcessor::stickArticleApi, loginCheck::handle);
         Dispatcher.get("/article/random/{size}", articleProcessor::randomArticles, anonymousViewCheckMidware::handle);
         // 公开只读 API：沿用 /api/user、/api/membership 等既有公开 API 惯例，不挂验证码中间件（第三方客户端无法挑战极验），
         // 防护依赖全局 Firewall CC（429）与各接口自身限流；方法内可选识别 apiKey 返回用户态
@@ -514,6 +515,10 @@ public class ArticleProcessor {
             context.renderCodeMsg(404, "帖子不存在!");
             return;
         }
+        if (Article.ARTICLE_STATUS_C_INVALID == article.optInt(Article.ARTICLE_STATUS)) {
+            context.renderCodeMsg(404, "帖子不存在!");
+            return;
+        }
 
         final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
         JSONObject author;
@@ -562,8 +567,10 @@ public class ArticleProcessor {
             }
         }
 
-        final int cmtViewMode = 0;
-        JSONObject currentUser = Sessions.getUser();
+        JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) {
+            currentUser = Sessions.getUser();
+        }
         if (null == currentUser) {
             // 兼容 apiKey 客户端（无会话）
             try {
@@ -579,6 +586,16 @@ public class ArticleProcessor {
             context.renderCodeMsg(401, "该帖子不允许匿名访问");
             return;
         }
+
+        // 评论视图模式：优先 query 参数 m，其次登录用户偏好，默认 0
+        String cmtViewModeStr = context.param("m");
+        if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
+            cmtViewModeStr = loggedIn ? currentUser.optString(UserExt.USER_COMMENT_VIEW_MODE) : "0";
+        }
+        if (StringUtils.isBlank(cmtViewModeStr) || !Strings.isNumeric(cmtViewModeStr)) {
+            cmtViewModeStr = "0";
+        }
+        final int cmtViewMode = Integer.parseInt(cmtViewModeStr);
 
         final boolean isMyArticle = loggedIn && currentUserId.equals(articleAuthorId);
         article.put(Common.IS_MY_ARTICLE, isMyArticle);
@@ -679,10 +696,23 @@ public class ArticleProcessor {
         pagination.put(Pagination.PAGINATION_PAGE_NUMS, pageNums);
         dataModel.put("pagination", pagination);
 
+        // Fill relevant & previous/next articles（轻量字段，供第三方客户端展示）
+        final List<JSONObject> relevantArticles = articleQueryService.getRelevantArticles(article, Symphonys.SIDE_RELEVANT_ARTICLES_CNT);
+        final List<JSONObject> lightRelevantArticles = new ArrayList<>();
+        for (final JSONObject relevantArticle : relevantArticles) {
+            lightRelevantArticles.add(toLightNavArticle(relevantArticle));
+        }
+        dataModel.put("relevantArticles", lightRelevantArticles);
+        final List<JSONObject> timeNavArticles = articleQueryService.getTimeNavArticles(article);
+        dataModel.put("previousArticle", toLightNavArticle(getNavListArticle(timeNavArticles, articleId, 1)));
+        dataModel.put("nextArticle", toLightNavArticle(getNavListArticle(timeNavArticles, articleId, -1)));
+
         reactionQueryService.fillArticleReaction(article, currentUserId);
         if (!article.optBoolean(Common.DISCUSSION_VIEWABLE)) {
             article.put(Article.ARTICLE_T_COMMENTS, (Object) Collections.emptyList());
             article.put(Article.ARTICLE_T_NICE_COMMENTS, (Object) Collections.emptyList());
+            dataModel.put(Article.ARTICLE, DesensitizeUtil.articleDesensitize(article));
+            context.renderJSON(new JSONObject().put("data", dataModel)).renderCode(StatusCodes.SUCC).renderMsg("");
             return;
         }
 
@@ -1817,6 +1847,25 @@ public class ArticleProcessor {
     }
 
     /**
+     * Converts the specified article to a light nav article (only id/title/permalink fields) for API output.
+     *
+     * @param article the specified article, may be {@code null}
+     * @return light nav article, {@code null} if the specified article is {@code null}
+     */
+    private JSONObject toLightNavArticle(final JSONObject article) {
+        if (null == article) {
+            return null;
+        }
+        final JSONObject ret = new JSONObject();
+        final String id = article.optString(Keys.OBJECT_ID);
+        ret.put(Keys.OBJECT_ID, id);
+        ret.put(Article.ARTICLE_T_ID, id);
+        ret.put(Article.ARTICLE_TITLE, article.optString(Article.ARTICLE_TITLE));
+        ret.put(Article.ARTICLE_PERMALINK, article.optString(Article.ARTICLE_PERMALINK));
+        return ret;
+    }
+
+    /**
      * Adds an article locally.
      * <p>
      * The request json object (an article):
@@ -2358,6 +2407,51 @@ public class ArticleProcessor {
         }
 
         context.renderJSON(StatusCodes.SUCC).renderMsg(langPropsService.get("stickSuccLabel"));
+    }
+
+    /**
+     * Sticks an article via the dedicated API. Compatible with both Cookie sessions and apiKey;
+     * ownership is enforced: only the article author can stick their own article.
+     *
+     * @param context the specified HTTP request context
+     */
+    public void stickArticleApi(final RequestContext context) {
+        context.renderJSON(new JSONObject()
+                .put(Keys.CODE, StatusCodes.ERR)
+                .put(Keys.MSG, "")
+                .put(Keys.DATA, new JSONObject()));
+
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) {
+            context.renderCodeMsg(StatusCodes.ERR, "未登录");
+            return;
+        }
+
+        final String articleId = context.param(Article.ARTICLE_T_ID);
+        if (StringUtils.isBlank(articleId)) {
+            context.renderCodeMsg(StatusCodes.ERR, "帖子 ID 不能为空");
+            return;
+        }
+
+        final JSONObject article = articleQueryService.getArticle(articleId);
+        if (null == article) {
+            context.renderCodeMsg(StatusCodes.ERR, "帖子不存在");
+            return;
+        }
+
+        if (!currentUser.optString(Keys.OBJECT_ID).equals(article.optString(Article.ARTICLE_AUTHOR_ID))) {
+            context.renderCodeMsg(StatusCodes.ERR, "只能置顶自己的帖子");
+            return;
+        }
+
+        try {
+            articleMgmtService.stick(articleId);
+        } catch (final ServiceException e) {
+            context.renderCodeMsg(StatusCodes.ERR, e.getMessage());
+            return;
+        }
+
+        context.renderCodeMsg(StatusCodes.SUCC, langPropsService.get("stickSuccLabel"));
     }
 
     /**

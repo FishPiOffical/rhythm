@@ -25,6 +25,7 @@ import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractFreeMarkerRenderer;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
@@ -37,12 +38,14 @@ import org.b3log.symphony.model.Milestone;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.processor.SkinRenderer;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.DataModelService;
 import org.b3log.symphony.service.MilestoneMgmtService;
 import org.b3log.symphony.service.MilestoneQueryService;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.StatusCodes;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.b3log.symphony.cache.MilestoneCache;
@@ -97,12 +100,38 @@ public class MilestoneProcessor {
         final MilestoneProcessor milestoneProcessor = beanManager.getReference(MilestoneProcessor.class);
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
         final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
+        final AnonymousViewCheckMidware anonymousViewCheckMidware = beanManager.getReference(AnonymousViewCheckMidware.class);
 
         // Public milestone list
         Dispatcher.get("/milestones", milestoneProcessor::showMilestones,loginCheck::handle, csrfMidware::fill);
         Dispatcher.get("/milestones/submit", milestoneProcessor::showSubmitMilestone,loginCheck::handle, csrfMidware::fill);
         Dispatcher.post("/milestones/submit", milestoneProcessor::submitMilestone,loginCheck::handle, csrfMidware::fill);
+        Dispatcher.get("/api/milestones", milestoneProcessor::milestonesApi, anonymousViewCheckMidware::handle);
+    }
 
+    /**
+     * Milestone timeline events API.
+     *
+     * @param context the specified context
+     */
+    public void milestonesApi(final RequestContext context) {
+        final JsonRenderer renderer = new JsonRenderer();
+        renderer.setJSONObject(new JSONObject());
+        context.setRenderer(renderer);
+
+        try {
+            List<JSONObject> timelineEvents = milestoneCache.getTimelineEvents();
+            if (null == timelineEvents || timelineEvents.isEmpty()) {
+                milestoneCache.loadTimelineEvents();
+                timelineEvents = milestoneCache.getTimelineEvents();
+            }
+
+            context.renderData(null == timelineEvents ? Collections.emptyList() : timelineEvents)
+                    .renderCode(StatusCodes.SUCC).renderMsg("");
+        } catch (final Exception e) {
+            LOGGER.error("Failed to load milestones for api", e);
+            context.renderCodeMsg(StatusCodes.ERR, "获取大事记失败");
+        }
     }
 
     /**

@@ -454,6 +454,7 @@ public class ApiProcessor {
             filteredUserProfile.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
             filteredUserProfile.put(UserExt.USER_NO, user.optString(UserExt.USER_NO));
             filteredUserProfile.put(UserExt.USER_APP_ROLE, user.optString(UserExt.USER_APP_ROLE));
+            filteredUserProfile.put(UserExt.USER_GUIDE_STEP, user.optInt(UserExt.USER_GUIDE_STEP));
             filteredUserProfile.put("sysMetal", cloudService.getEnabledMedal(user.optString(Keys.OBJECT_ID)));
             final String userId = user.optString(Keys.OBJECT_ID);
             final long followerCnt = followQueryService.getFollowerCount(userId, Follow.FOLLOWING_TYPE_C_USER);

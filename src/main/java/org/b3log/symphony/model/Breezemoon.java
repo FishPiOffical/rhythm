@@ -104,5 +104,10 @@ public final class Breezemoon {
      * Key of breezemoon create time.
      */
     public static final String BREEZEMOON_T_CREATE_TIME = "breezemoonCreateTime";
+
+    /**
+     * Key of breezemoon raw content (original Markdown before rendering).
+     */
+    public static final String BREEZEMOON_CONTENT_RAW = "breezemoonContentRaw";
 }
 
