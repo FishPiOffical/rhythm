@@ -357,4 +357,6 @@
 
 - website_v3用户悬浮卡用v3-public-user六字段白名单，重开/轮换读当前资料，不补旧角色/在线/积分。已知公开ID传UserFollowButton.userId绑定关系目标，旧仅用户名调用保持；主页/徽章页旧消费者另迁移。见docs/api-v3-client-user-card-work.md。
 
-- v3公开勋章页使用既有用户名分页GET与usePublicMedals身份边界；历史重复授予不按定义ID去重，公开契约无图片URL，不回退旧完整用户或生成图片接口。MemberView旧资料消费者须独立迁移。
+- v3公开勋章页使用既有用户名分页GET与usePublicMedals身份边界；历史重复授予不按定义ID去重，公开契约无图片URL，不回退旧完整用户或生成图片接口。MemberView已独立迁移公开六字段和当前栏目v3列表。
+
+- 用户主页useMemberPage将公开资料与当前栏目独立读取；SSR仅fetchPublicUser白名单并消费时重投影，不缓存旧完整用户。公开文章/回帖需署名作者匹配，清风深链接直接GET并复核归属，禁止从最近列表推断删除。
