@@ -5052,6 +5052,7 @@ curl 'https://fishpi.cn/api/v3/me/activity/yesterday-reward' \
 | --- | --- | --- |
 | Authorization | 请求头，Bearer accessToken | Bearer YOUR_ACCESS_TOKEN |
 | Idempotency-Key | 请求头，同一次领取重试保持不变 | reward-20261017-001 |
+| expectedDate | 可选，查询返回的奖励日期，8位YYYYMMDD；仅校验当前可领日期 | 20261016 |
 
 请求示例：
 
@@ -5060,7 +5061,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/activity/yesterday-reward' \
   --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
   --header 'Idempotency-Key: reward-20261017-001' \
   --header 'Content-Type: application/json' \
-  --data '{}'
+  --data '{"expectedDate":"20261016"}'
 ```
 
 响应：
@@ -5073,7 +5074,7 @@ curl --request POST 'https://fishpi.cn/api/v3/me/activity/yesterday-reward' \
 | - amount | 本次获得积分 | 50 |
 | - claimed | 已领取 | true |
 
-> 无可领取奖励或今日已经领取时返回 HTTP 409。成功请求同键重试返回原结果，不再发放积分；不同日期的领取请使用新的键。接口不接受指定账号、日期或积分数量。升级后请重新登录获取 activity.write 权限。日常签到仍由活跃度自动触发，可用 `GET /api/v3/me/checkin` 查询。
+> 无可领取奖励或今日已经领取时返回 HTTP 409。成功请求同键重试返回原结果，不再发放积分；不同日期的领取请使用新的键。接口不接受指定账号或积分数量。expectedDate 不用于选择历史奖励；日期已变化且原请求尚未执行时返回 HTTP 409（reward_date_changed），请重新查询后决定。已提交请求的同键同内容重试仍返回原日期回执。省略 expectedDate 时沿服务端当前日期领取；同键不能更换 expectedDate。升级后请重新登录获取 activity.write 权限。日常签到仍由活跃度自动触发，可用 `GET /api/v3/me/checkin` 查询。
 
 ## API v3 专栏管理
 

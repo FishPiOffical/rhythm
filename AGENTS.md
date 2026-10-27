@@ -352,3 +352,5 @@
 - website_v3普通榜单共用v3-rankings/useRankingBoard/RankingBoard，十五类及游戏子类均有限快照分页；首页独立size8，不进旧Home缓存或mock兜底。HTTP嵌套pagination与SSR投影平页分别校验，初始只首挂复用；职业仍独立。见docs/api-v3-client-rankings-work.md。
 
 - website_v3游戏存档在OwnerGameSaves/v3GameSaves：仅evolve-save，原文/版本/键冻结跨SPA恢复，GET核验UTF8/hash；读取不覆盖草稿，历史metadata不回写当前版，409须重读后明确决定。正文只入textarea，全局不显原文；见docs/api-v3-client-game-saves-work.md。
+
+- v3昨日奖励可选expectedDate进幂等请求，锁本人后服务器日期不符拒fresh，已提交旧键先回放；旧{}保持。CheckinPanel/useActivityStatus读真实状态与门槛，v3Activity原date/key跨SPA恢复，日期变化仅在回执未命中时释放原命令；不把旧回执当当前可领状态。见docs/api-v3-client-activity-work.md。

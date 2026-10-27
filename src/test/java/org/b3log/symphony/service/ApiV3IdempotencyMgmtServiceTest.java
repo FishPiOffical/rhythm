@@ -5,6 +5,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3MutationStore;
+import org.b3log.symphony.util.LivenessRewardClaim;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -151,6 +152,28 @@ public class ApiV3IdempotencyMgmtServiceTest {
         Assert.assertFalse(recovered.applied()); Assert.assertEquals(recovered.result().getString("id"), "two");
     }
 
+    @Test
+    public void dateBoundRewardReplaysBeforeFreshDateGuard() throws Exception {
+        final Store store = new Store();
+        final long[] now = {java.time.Instant.parse("2026-10-17T04:00:00Z").toEpochMilli()};
+        final var zone = java.time.ZoneId.of("Asia/Shanghai");
+        final JSONObject body = new JSONObject().put("expectedDate", "20261016");
+        final ApiV3IdempotencyMgmtService.Mutation mutation = () -> LivenessRewardClaim.claim(new LivenessRewardClaim.Store() {
+            public void lockOwner() { Assert.assertTrue(store.hasTransactionBegun()); }
+            public boolean alreadyClaimed(LivenessRewardClaim.Period period) { return false; }
+            public int amount(LivenessRewardClaim.Period period) { return 50; }
+            public String transfer(int amount, long at) { return "transfer-" + store.increment(); }
+        }, () -> now[0], zone, body.getString("expectedDate")).dto();
+        final var first = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", body, mutation);
+        now[0] += 86_400_000L;
+        final var replay = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", body, mutation);
+        Assert.assertTrue(first.applied()); Assert.assertFalse(replay.applied()); Assert.assertEquals(replay.result().getString("date"), "20261016"); Assert.assertEquals(store.value, 1);
+        try { ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "fresh-expired", body, mutation); Assert.fail(); }
+        catch (LivenessRewardClaim.DateChanged expected) { Assert.assertEquals(store.value, 1); Assert.assertEquals(store.rows.size(), 1); }
+        try { ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", new JSONObject().put("expectedDate", "20261017"), mutation); Assert.fail(); }
+        catch (ApiV3Exception expected) { Assert.assertEquals(store.value, 1); }
+    }
+
     public static void main(final String[] args) throws Exception {
         final var test = new ApiV3IdempotencyMgmtServiceTest();
         test.successfulRetryReturnsSameResultWithoutRepeatingMutation();
@@ -160,6 +183,7 @@ public class ApiV3IdempotencyMgmtServiceTest {
         test.uncertainCommitReadsCommittedResultOnRetry();
         test.concurrentIdenticalRequestsCommitOnce();
         test.outcomeDistinguishesFreshCommitFromReplayAndUncertainCommit();
-        System.out.println("PASS: 7 ApiV3Idempotency tests (including 32 concurrent requests; SQL integration not covered)");
+        test.dateBoundRewardReplaysBeforeFreshDateGuard();
+        System.out.println("PASS: 8 ApiV3Idempotency tests (including 32 concurrent requests; SQL integration not covered)");
     }
 }

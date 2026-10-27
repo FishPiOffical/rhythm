@@ -27,8 +27,9 @@ public class ApiV3ActivityProcessor {
     public void status(final RequestContext c) { ApiV3Requests.read(c, () -> management.status(actor(c))); }
     public void claim(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
-            ApiV3WriteInputs.body(c, Set.of(), true);
-            return management.claim(actor(c), ApiV3WriteInputs.idempotencyKey(c));
+            final var body = ApiV3WriteInputs.body(c, Set.of("expectedDate"), true);
+            final String expectedDate = body.has("expectedDate") ? ApiV3WriteInputs.string(body, "expectedDate", 8, false) : null;
+            return management.claim(actor(c), ApiV3WriteInputs.idempotencyKey(c), expectedDate);
         });
     }
     private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }

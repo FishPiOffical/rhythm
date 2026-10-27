@@ -27,13 +27,24 @@ public final class LivenessRewardClaim {
         public JSONObject dto() { return new JSONObject().put("date", date).put("amount", amount).put("claimed", true); }
     }
     public static final class Unavailable extends RuntimeException { }
+    public static final class DateChanged extends RuntimeException { }
+    public static boolean validExpectedDate(final String value) {
+        if (value == null || !value.matches("[0-9]{8}")) return false;
+        try { return LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE).getYear() > 0; }
+        catch (final java.time.DateTimeException e) { return false; }
+    }
     public static Result claim(final Store store, final long now, final ZoneId zone) throws Exception {
         return claim(store, () -> now, zone);
     }
     public static Result claim(final Store store, final LongSupplier clock, final ZoneId zone) throws Exception {
+        return claim(store, clock, zone, null);
+    }
+    public static Result claim(final Store store, final LongSupplier clock, final ZoneId zone, final String expectedDate) throws Exception {
+        if (expectedDate != null && !validExpectedDate(expectedDate)) throw new IllegalArgumentException("invalid reward date");
         store.lockOwner();
         final long now = clock.getAsLong();
         final Period period = Period.at(now, zone);
+        if (expectedDate != null && !expectedDate.equals(period.date())) throw new DateChanged();
         if (store.alreadyClaimed(period)) throw new Unavailable();
         final int amount = store.amount(period);
         if (amount <= 0) throw new Unavailable();

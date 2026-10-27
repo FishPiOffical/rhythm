@@ -37,6 +37,9 @@ public class LivenessRewardMgmtService {
                 .put("claimed", claimed).put("claimable", !claimed && amount > 0);
     }
     public LivenessRewardClaim.Result claimInCurrentTransaction(final String actor) throws Exception {
+        return claimInCurrentTransaction(actor, null);
+    }
+    public LivenessRewardClaim.Result claimInCurrentTransaction(final String actor, final String expectedDate) throws Exception {
         if (!pointtransferRepository.hasTransactionBegun()) throw new IllegalStateException("liveness reward transaction required");
         return LivenessRewardClaim.claim(new LivenessRewardClaim.Store() {
             public void lockOwner() throws RepositoryException {
@@ -48,7 +51,7 @@ public class LivenessRewardMgmtService {
                 return points.transferInCurrentTransaction(Pointtransfer.ID_C_SYS, actor,
                         Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_YESTERDAY_LIVENESS_REWARD, amount, actor, now, "", PointtransferSource.EMPTY, false);
             }
-        }, System::currentTimeMillis, ZoneId.systemDefault());
+        }, System::currentTimeMillis, ZoneId.systemDefault(), expectedDate);
     }
     public int claimLegacy(final String actor) {
         try {

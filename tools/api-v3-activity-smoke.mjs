@@ -34,14 +34,15 @@ if (token) {
   if (process.env.API_V3_ALLOW_REWARD_CLAIM === '1') await check('claim/replay/no second transfer', async () => {
     await request({ method: 'POST', body: { userId: 'another' }, key: randomUUID(), status: 422 });
     await request({ method: 'POST', status: 422 });
-    const before = await request(), key = randomUUID();
+    for (const expectedDate of ['20230229', '20261026\n', null]) await request({ method: 'POST', body: { expectedDate }, key: randomUUID(), status: 422 });
+    const before = await request(), key = randomUUID(), body = { expectedDate: before.date };
     if (!before.claimable) {
-      await request({ method: 'POST', key, status: 409 }); return;
+      await request({ method: 'POST', key, body, status: 409 }); return;
     }
-    const first = await request({ method: 'POST', key });
+    const first = await request({ method: 'POST', key, body });
     assert.deepEqual(Object.keys(first).sort(), ['date', 'amount', 'claimed'].sort());
     assert.equal(first.date, before.date); assert.equal(first.amount, before.amount); assert.equal(first.claimed, true);
-    assert.deepEqual(await request({ method: 'POST', key }), first);
+    assert.deepEqual(await request({ method: 'POST', key, body }), first);
     await request({ method: 'POST', key: randomUUID(), status: 409 });
     const after = await request(); assert.equal(after.claimed, true); assert.equal(after.claimable, false);
   });

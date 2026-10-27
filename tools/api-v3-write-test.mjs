@@ -16,7 +16,7 @@ const java = path.join(javaHome, 'bin', `java${extension}`);
 const javac = path.join(javaHome, 'bin', `javac${extension}`);
 const latke = 'src/main/resources/lib/latke-core.jar';
 for (const file of [java, javac, testng, sqlite, latke]) if (!fs.existsSync(file)) throw new Error('Configure Java 25, TestNG and SQLite jar paths');
-const main = ['model/ApiV3NotificationRevision','repository/ApiV3RevisionRepository','repository/ApiV3NotificationRevisionRepository','util/ApiV3Exception', 'util/ApiV3MutationStore', 'util/ApiV3Json', 'util/ApiV3Transactions', 'util/ApiV3TokenUtil', 'util/ApiV3WriteInputs',
+const main = ['util/LivenessRewardClaim','model/ApiV3NotificationRevision','repository/ApiV3RevisionRepository','repository/ApiV3NotificationRevisionRepository','util/ApiV3Exception', 'util/ApiV3MutationStore', 'util/ApiV3Json', 'util/ApiV3Transactions', 'util/ApiV3TokenUtil', 'util/ApiV3WriteInputs',
   'util/ApiV3DraftInputs', 'util/ApiV3DraftDto', 'model/ApiV3Request', 'model/Article', 'model/ArticleDraft', 'model/LongArticleColumn',
   'repository/ApiV3RequestRepository', 'repository/ArticleDraftRepository', 'service/ArticleDraftMgmtService',
   'service/ApiV3DraftMgmtService', 'service/ApiV3IdempotencyMgmtService'];

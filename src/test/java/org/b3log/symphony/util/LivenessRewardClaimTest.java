@@ -21,6 +21,17 @@ public class LivenessRewardClaimTest {
         final var dst = LivenessRewardClaim.Period.at(Instant.parse("2026-03-08T12:00:00Z").toEpochMilli(), ZoneId.of("America/New_York"));
         Assert.assertEquals(dst.end() - dst.start(), 23L * 60 * 60 * 1000);
         System.out.println("PASS server-day boundaries, previous date and daylight-saving transition");
+        Assert.assertTrue(LivenessRewardClaim.validExpectedDate("20240229"));
+        for (String value : new String[]{"20230229", "00000101", "2026101", "20261016\n", "２０２６１０１６", "20261301"}) Assert.assertFalse(LivenessRewardClaim.validExpectedDate(value));
+        try (final Fixture f = new Fixture()) {
+            f.begin();
+            try { LivenessRewardClaim.claim(f, () -> period.end(), ZONE, "20261016"); Assert.fail(); }
+            catch (final LivenessRewardClaim.DateChanged expected) { Assert.assertTrue(f.locked); f.rollback(); }
+            Assert.assertEquals(f.balance(), 100); Assert.assertTrue(f.rows("SELECT * FROM ledger").isEmpty());
+            f.begin(); final var exact = LivenessRewardClaim.claim(f, () -> NOW, ZONE, "20261016"); f.commit();
+            Assert.assertEquals(exact.date(), "20261016"); Assert.assertEquals(f.balance(), 150);
+        }
+        System.out.println("PASS optional expected date exact validation, date check after owner lock and crossed-midnight refusal without credit");
         try (final Fixture f = new Fixture()) {
             f.begin();
             final var first = LivenessRewardClaim.claim(f, () -> { Assert.assertTrue(f.locked); return NOW; }, ZONE); f.commit();
