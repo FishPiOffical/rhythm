@@ -354,3 +354,5 @@
 - website_v3游戏存档在OwnerGameSaves/v3GameSaves：仅evolve-save，原文/版本/键冻结跨SPA恢复，GET核验UTF8/hash；读取不覆盖草稿，历史metadata不回写当前版，409须重读后明确决定。正文只入textarea，全局不显原文；见docs/api-v3-client-game-saves-work.md。
 
 - v3昨日奖励可选expectedDate进幂等请求，锁本人后服务器日期不符拒fresh，已提交旧键先回放；旧{}保持。CheckinPanel/useActivityStatus读真实状态与门槛，v3Activity原date/key跨SPA恢复，日期变化仅在回执未命中时释放原命令；不把旧回执当当前可领状态。见docs/api-v3-client-activity-work.md。
+
+- website_v3用户悬浮卡用v3-public-user六字段白名单，重开/轮换读当前资料，不补旧角色/在线/积分。已知公开ID传UserFollowButton.userId绑定关系目标，旧仅用户名调用保持；主页/徽章页旧消费者另迁移。见docs/api-v3-client-user-card-work.md。
