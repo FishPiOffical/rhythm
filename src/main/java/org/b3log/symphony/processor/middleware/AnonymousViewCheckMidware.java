@@ -204,10 +204,9 @@ public class AnonymousViewCheckMidware {
             final String ip = Requests.getRemoteAddr(context.getRequest());
             final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
             final boolean verifiedCrawler = null != SearchEngines.verifiedCrawler(ip, ua);
-            // 匿名非蜘蛛：已通过验证码（2 小时内）或已在白名单则放行，其余进入验证判断
+            // 匿名非蜘蛛：白名单直接放行，其余按「首访 / 每 5 次」判断；通过验证码只豁免首访规则，不豁免次数规则
             if (shieldEnabled && !verifiedCrawler && !isPublicInfoPage(requestURI)
-                    && !whiteList.contains(ip)
-                    && null == ipLastCaptchaPassTimeCache.getIfPresent(ip)) {
+                    && !whiteList.contains(ip)) {
                 if (UserCache.hasUserByIP(ip)) {
                     // 该 IP 上有用户登录过，按既定策略整台机器免验证
                     whiteList.add(ip);
@@ -229,9 +228,12 @@ public class AnonymousViewCheckMidware {
                         System.out.println(ip + " 已封禁");
                     }
 
+                    // 2 小时内已通过验证码时，不再按「首访」弹窗，但每 5 次访问仍然需要验证
+                    final boolean passedRecently = null != ipLastCaptchaPassTimeCache.getIfPresent(ip);
+
                     boolean needCaptcha = false;
                     // 非文章页：2 小时内首次访问就需要验证码（可后台开关）；文章页豁免首访验证，便于搜索引擎落地用户直接阅读
-                    if (firstVisitCaptchaEnabled && !firstVisitArticle && count == 1
+                    if (!passedRecently && firstVisitCaptchaEnabled && !firstVisitArticle && count == 1
                             && (now - firstVisitTime) <= FIRST_VISIT_CAPTCHA_WINDOW_MILLIS) {
                         needCaptcha = true;
                     }
