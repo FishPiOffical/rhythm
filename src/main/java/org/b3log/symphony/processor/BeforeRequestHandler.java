@@ -80,7 +80,9 @@ public class BeforeRequestHandler implements Handler {
     public void handle(final RequestContext context) {
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 
+        final String ip = Requests.getRemoteAddr(context.getRequest());
         if (context.header(Common.USER_AGENT) == null) {
+            logShield(context, ip, "拒绝", "缺少UA", null);
             context.sendStatus(418);
             context.abort();
             return;
@@ -94,8 +96,8 @@ public class BeforeRequestHandler implements Handler {
         // 先识别搜索引擎爬虫（含 DNS 反查校验），后续防火墙与验证盾据此豁免
         final boolean verifiedCrawler = fillBotAttrs(context);
 
-        final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT))) {
+            logShield(context, ip, "拒绝", "请求频率超限", null);
             context.sendStatus(429);
             context.abort();
             return;
@@ -107,15 +109,41 @@ public class BeforeRequestHandler implements Handler {
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
             // 已经在黑名单，强制跳转到验证码页面
+            logShield(context, ip, "跳转", "已在验证黑名单", null);
             context.sendRedirect("/test");
             context.abort();
-            System.out.println(ip + " 已经在黑名单中");
             return;
         }
 
         Locales.setLocale(Latkes.getLocale());
 
         resolveSkinDir(context);
+    }
+
+    /**
+     * 输出匿名访问风控决策日志，统一前缀便于检索：{@code [SHIELD]}
+     *
+     * @param context 请求上下文
+     * @param ip      客户端 IP
+     * @param verdict 结果：放行 / 验证码 / 拒绝 / 跳转 / 封禁
+     * @param reason  原因说明
+     * @param extra   额外信息，可为 {@code null}
+     */
+    private static void logShield(final RequestContext context, final String ip, final String verdict,
+                                  final String reason, final String extra) {
+        LOGGER.log(Level.INFO, "[SHIELD] ip={} uri={} 结果={} 原因={}{}",
+                ip, context.requestURI(), verdict, reason, null == extra ? "" : " " + extra);
+    }
+
+    /**
+     * 截断并清理 UA，避免换行或过长内容破坏日志格式。
+     */
+    private static String shortUa(final String ua) {
+        if (null == ua) {
+            return "";
+        }
+        final String cleaned = ua.replaceAll("[\\r\\n\\t]", " ");
+        return cleaned.length() > 120 ? cleaned.substring(0, 120) + "..." : cleaned;
     }
 
     /**
@@ -188,7 +216,7 @@ public class BeforeRequestHandler implements Handler {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
         if (null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr)) {
-            LOGGER.log(Level.DEBUG, "Verified search engine crawler [{}] [User-Agent={}]", claimedEngine.key(), userAgentStr);
+            logShield(context, ip, "放行", "已验证蜘蛛", "engine=" + claimedEngine.key() + " ua=\"" + shortUa(userAgentStr) + "\"");
             Sessions.setBot(true);
             return true;
         }

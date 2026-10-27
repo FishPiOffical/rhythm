@@ -130,7 +130,7 @@ public final class Firewall {
         }
 
         if (counter.count.sum() > effectiveThreshold) {
-            banIpIfAbsent(ip, "CC firewall");
+            banIpIfAbsent(ip, "请求频率超限");
             return false;
         }
 
@@ -145,7 +145,7 @@ public final class Firewall {
         Thread.startVirtualThread(() -> {
             try {
                 final String result = runIpset("add", ip);
-                LOGGER.log(Level.WARN, "{} banned [{}], result: {}", reason, ip, result);
+                LOGGER.log(Level.WARN, "[SHIELD] ip={} 结果=封禁 原因={} 执行结果={}", ip, reason, result);
             } catch (final Exception e) {
                 LOGGER.log(Level.ERROR, reason + " ban failed for [" + ip + "]", e);
             }
