@@ -16,6 +16,8 @@ import org.json.JSONObject;
 @Service
 public class AccountPasswordResetService {
     @Inject private AccountVerificationService verification;
+    @Inject private AccountCredentialMgmtService credentials;
+    @Inject private AccountCredentialStateRepository states;
     @Inject private UserRepository users;
     @Inject private ApiV3ClientRepository clients;
     @Inject private ApiV3TokenRepository tokens;
@@ -38,6 +40,7 @@ public class AccountPasswordResetService {
     }
     private String reset(String selector,String value,String code,String password)throws Exception {
         if(tokens.hasTransactionBegun())throw new IllegalStateException("password reset root required");
+        org.b3log.symphony.util.AccountCredentialVersions.clear();
         String actor=null;final var tx=ApiV3Transactions.strict(tokens.beginTransaction());
         try{
             clients.lockForAccountResetInCurrentTransaction();
@@ -45,10 +48,12 @@ public class AccountPasswordResetService {
             if(owners.size()!=1)throw invalidProof();actor=owners.getFirst().optString(Keys.OBJECT_ID);
             if(!verification.consumePhoneCodeInCurrentTransaction(actor,code,Verifycode.BIZ_TYPE_C_RESET_PWD))throw invalidProof();
             users.updateColumnsInCurrentTransaction(actor,new JSONObject().put(User.USER_PASSWORD,password));
-            requests.invalidatePendingForUserInCurrentTransaction(actor);
-            codes.invalidatePendingForUserInCurrentTransaction(actor);
-            tokens.revokeUserInCurrentTransaction(actor,now());
-            tx.commit();return actor;
+            credentials.revokeInCurrentTransaction(actor);
+            final var epochState=states.current(actor);
+            final long epoch=AccountCredentialStateRepository.epoch(epochState.opt("credentialEpoch"));
+            tx.commit();
+            org.b3log.symphony.util.AccountCredentialVersions.remember(new org.b3log.symphony.util.AccountCredentialVersions.Proof(actor,epoch,password));
+            return actor;
         }catch(ApiV3Exception e){throw e;}
         catch(Exception e){
             // Driver/JSON exceptions may contain a phone, SMS code or password digest.

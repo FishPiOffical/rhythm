@@ -7,6 +7,7 @@ import org.b3log.latke.http.handler.RouteResolution;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
+import org.b3log.symphony.repository.ApiV3AppLoginRequestRepository;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.service.ApiV3ClientDisableService;
 import org.b3log.symphony.util.ApiV3Exception;
@@ -62,6 +63,11 @@ public final class ApiV3ClientDisableTest {
         };
         String before;
         DisableFixture() throws Exception {
+            exec(f.writer,"CREATE TABLE app_logins(oId TEXT PRIMARY KEY,state TEXT)");
+            exec(f.writer,"INSERT INTO app_logins VALUES('pending','APP_CONFIRMED'),('done','CONSUMED'),('denied','DENIED')");
+            final var appLogins=new ApiV3AppLoginRequestRepository(){@Override public String getName(){return "app_logins";}@Override public boolean hasTransactionBegun(){return f.active();}};
+            inject(service,ApiV3ClientDisableService.class,"appLogins",appLogins);
+
             exec(f.writer, "ALTER TABLE tokens ADD COLUMN updatedAt BIGINT DEFAULT 0");
             exec(f.writer, "INSERT INTO clients VALUES('3','other_app','Other','content.read',0,'PRIVATE')");
             exec(f.writer, "INSERT INTO redirects VALUES('31','external_app','https://app.example/callback',0,'PRIVATE')");
@@ -214,6 +220,16 @@ public final class ApiV3ClientDisableTest {
             check(!x.f.active()&&JdbcRepository.TX.get()==null,"failed ticket root disposed");
         }
         System.out.println("PASS 9 actual SocketTicket current parent/client SQL rejects existing grants, unconsumed old tickets and new issuance after committed disable; no real socket/network claimed");
-        System.out.println("Client disable isolated tests passed: 9 groups");
+        System.out.println("Client disable isolated tests passed: 10 groups");
+
+        try(var x=new DisableFixture()){
+            exec(x.f.writer,"INSERT INTO clients VALUES('native','fishpi_app_v3','Native','profile.read',0,'PRIVATE')");
+            x.disable("fishpi_app_v3","native-disable");
+            equal(query(x.f.reader,"SELECT oId FROM app_logins ORDER BY oId").size(),2);
+            equal(query(x.f.reader,"SELECT oId FROM app_logins WHERE oId='pending'").size(),0);
+            equal(query(x.f.reader,"SELECT status FROM clients WHERE clientId='fishpi_app_v3'").getFirst().getInt("status"),1);
+        }
+        System.out.println("PASS 10 native APP disable atomically invalidates pending QR requests while preserving consumed/denied history");
+
     }
 }

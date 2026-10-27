@@ -25,6 +25,8 @@ public class ApiV3OAuthProcessor {
     @Inject private ApiV3AuthorizationCodeService codes;
     @Inject private ApiV3TokenMgmtService tokens;
     @Inject private ApiV3OAuthCorsService cors;
+    @Inject private ApiV3OAuthCredentialQueryService credentials;
+    @Inject private AnonymousViewCheckMidware anonymous;
     private static final Set<String> AUTHORIZE=Set.of("response_type","client_id","redirect_uri","scope","state","code_challenge","code_challenge_method");
     private static final Set<String> CONSENT=Set.of("request","proof","decision","csrfToken");
     private static final Set<String> TOKEN=Set.of("grant_type","client_id","redirect_uri","code","code_verifier","refresh_token","scope");
@@ -32,11 +34,46 @@ public class ApiV3OAuthProcessor {
     public static void register(){
         ApiV3OAuthTransportLogFilter.requireInstalled();
         final var beans=BeanManager.getInstance();final var p=beans.getReference(ApiV3OAuthProcessor.class);final var anonymous=beans.getReference(AnonymousViewCheckMidware.class);
+        registerRoutes(p,anonymous);
+        beans.getReference(ApiV3OAuthMaintenanceService.class).start();
+    }
+    public static void registerRoutes(ApiV3OAuthProcessor p,AnonymousViewCheckMidware anonymous){
+        p.anonymous=anonymous;
         Dispatcher.get("/api/v3/oauth/authorize",p::authorize,p::privacy,p::rate,anonymous::handle);
         Dispatcher.post("/api/v3/oauth/consent",p::consent,p::privacy,p::rate,p::cookieOnly);
-        Dispatcher.post("/api/v3/oauth/token",p::token,p::privacy,p::rate,anonymous::handle);
-        Dispatcher.post("/api/v3/oauth/revoke",p::revoke,p::privacy,p::rate,anonymous::handle);
-        beans.getReference(ApiV3OAuthMaintenanceService.class).start();
+        Dispatcher.post("/api/v3/oauth/token",p::token,p::privacy,p::rate,p::protocolToken);
+        Dispatcher.post("/api/v3/oauth/revoke",p::revoke,p::privacy,p::rate,p::protocolRevoke);
+    }
+    protected void anonymousAccess(RequestContext context){anonymous.handle(context);}
+    public void protocolToken(RequestContext context){protocolAccess(context,false);}
+    public void protocolRevoke(RequestContext context){protocolAccess(context,true);}
+    /** Endpoint-local proof only: never creates a session, Bearer identity, IP whitelist or grant. */
+    private void protocolAccess(RequestContext context,boolean revocation){
+        JSONObject owner=null;
+        try{
+            final var values=form(context,revocation?REVOKE:TOKEN);final String client=client(values);
+            if(context.header("Authorization")==null&&cors.allowed(client,context.header("Origin"))){
+                if(revocation){
+                    if(!values.getOrDefault("token_type_hint","").matches("[\\x21-\\x7E]{0,64}"))throw bad();
+                    owner=credentials.token(client,required(values,"token",256),true);
+                }else if("authorization_code".equals(required(values,"grant_type",64))){
+                    if(values.containsKey("refresh_token")||values.containsKey("scope"))throw bad();
+                    owner=credentials.code(client,required(values,"redirect_uri",2048),required(values,"code",256),required(values,"code_verifier",128));
+                }else if("refresh_token".equals(values.get("grant_type"))){
+                    if(values.containsKey("redirect_uri")||values.containsKey("code")||values.containsKey("code_verifier"))throw bad();
+                    owner=credentials.token(client,required(values,"refresh_token",256),false);
+                }
+            }
+        }catch(ApiV3Exception|IllegalArgumentException rejected){/* Unauthenticated requests retain the existing anonymous gate. */}
+        catch(Exception unavailable){failure(context,unavailable);context.abort();return;}
+        if(owner==null){anonymousAccess(context);return;}
+        final String actor=owner.optString(Keys.OBJECT_ID);final JSONObject cookie=cookieUser(context);
+        if(!actor.matches("[1-9][0-9]{0,18}")){anonymousAccess(context);return;}
+        if((cookie==null||!actor.equals(cookie.optString(Keys.OBJECT_ID)))&&!ApiV3OAuthRateLimit.actor(actor)){
+            context.setHeader("Retry-After","60");error(context,429,"temporarily_unavailable","请求过于频繁，请稍后重试");context.abort();return;
+        }
+        // The exchange/revocation core must read and authorize again in its own strict transaction.
+        context.handle();
     }
     protected JSONObject cookieUser(RequestContext c){return Sessions.currentCookieUser(c.getRequest());}
     protected String csrf(RequestContext c){return Sessions.getCSRFTokenForUser(cookieUser(c));}

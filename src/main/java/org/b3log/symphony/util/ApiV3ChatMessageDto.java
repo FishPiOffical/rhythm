@@ -37,6 +37,16 @@ public final class ApiV3ChatMessageDto {
         try {card=content.stripLeading().startsWith("{")?ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)):null;}
         catch(IllegalArgumentException e){return dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));}
         final String kind=card==null?"":card.optString("msgType");
+        // New cards retain validated plain text and signed URLs exactly. Historical projection stays unchanged.
+        if (card != null && card.optInt("cardVersion") == 3 && Set.of("music", "weather").contains(kind)) {
+            try {
+                final JSONObject payload=card.getJSONObject("payload");
+                final JSONObject normalized="music".equals(kind)?ApiV3ChatCardInputs.music(payload):ApiV3ChatCardInputs.weather(payload);
+                final JSONObject projected=new JSONObject(ApiV3ChatCardInputs.content(kind,normalized));
+                projected.remove("msgType");projected.remove("cardVersion");projected.remove("payload");
+                return dto.put("type",kind).put("card",projected);
+            } catch (RuntimeException invalidCard) { return dto; }
+        }
         switch(kind){
             case "redPacket" -> {
                 final String type=card.optString("type");

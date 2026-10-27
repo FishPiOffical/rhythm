@@ -82,6 +82,11 @@ public final class ApiV3ClientUpdateTest {
             @Override public void update(String id,JSONObject row,String...names)throws RepositoryException{f.receipts.update(id,row,names);}
         };
         UpdateFixture()throws Exception{
+            exec(f.writer,"CREATE TABLE app_logins(oId TEXT PRIMARY KEY,state TEXT)");
+            exec(f.writer,"INSERT INTO app_logins VALUES('pending','APP_CONFIRMED'),('done','CONSUMED'),('denied','DENIED')");
+            final var appLogins=new ApiV3AppLoginRequestRepository(){@Override public String getName(){return "app_logins";}@Override public boolean hasTransactionBegun(){return f.active();}};
+            inject(service,ApiV3ClientUpdateService.class,"appLogins",appLogins);
+
             exec(f.writer,"ALTER TABLE tokens ADD COLUMN updatedAt BIGINT DEFAULT 0");
             exec(f.writer,"CREATE TABLE authcodes(oId TEXT PRIMARY KEY,clientId TEXT,userId TEXT,redirectUri TEXT,scope TEXT,codeChallenge TEXT,createdAt BIGINT,expiresAt BIGINT,consumedAt BIGINT,familyId TEXT)");
             exec(f.writer,"CREATE TABLE consents(oId TEXT PRIMARY KEY,userId TEXT,clientId TEXT,redirectUri TEXT,scope TEXT,state TEXT,codeChallenge TEXT,consentHash TEXT,createdAt BIGINT,expiresAt BIGINT,decidedAt BIGINT,decision TEXT)");
@@ -249,6 +254,16 @@ public final class ApiV3ClientUpdateTest {
             check(!x.f.active()&&JdbcRepository.TX.get()==null,"failed ticket root disposed");
         }
         System.out.println("PASS 11 actual SocketTicket current parent/client SQL rejects existing grants, unconsumed old tickets and new issuance after committed callback/scope change; no real socket/network claimed");
-        System.out.println("Client update isolated tests passed: 11 groups");
+
+        try(var x=new UpdateFixture()){
+            exec(x.f.writer,"INSERT INTO clients VALUES('native','fishpi_app_v3','Native','profile.read content.read',0,'PRIVATE')");
+            x.service.update(x.f.identity("11"),"fishpi_app_v3",new ApiV3ClientManagementInputs.Registration("Native","profile.read",List.of(FIRST)),"native-change");
+            equal(query(x.f.reader,"SELECT oId FROM app_logins ORDER BY oId").size(),2);
+            equal(query(x.f.reader,"SELECT oId FROM app_logins WHERE oId='pending'").size(),0);
+            equal(query(x.f.reader,"SELECT scope FROM clients WHERE clientId='fishpi_app_v3'").getFirst().getString("scope"),"profile.read");
+        }
+        System.out.println("PASS 12 native APP authorization change invalidates pending QR requests in the same administrator transaction and preserves terminal history");
+
+        System.out.println("Client update isolated tests passed: 12 groups");
     }
 }

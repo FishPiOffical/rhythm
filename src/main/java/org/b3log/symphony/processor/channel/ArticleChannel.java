@@ -125,15 +125,8 @@ public class ArticleChannel implements WebSocketChannel {
             }
 
             final Session httpSession = session.getHttpSession();
-            String userStr = null;
-            try {
-                userStr = httpSession.getAttribute(User.USER);
-            } catch (NullPointerException ignored) {
-            }
-            try {
-                userStr = ApiProcessor.getUserByKey(session.getParameter("apiKey")).toString();
-            } catch (NullPointerException ignored) {
-            }
+            final JSONObject credentialUser=org.b3log.symphony.util.Sessions.currentSocketUser(session);
+            final String userStr=credentialUser==null?null:credentialUser.toString();
             if (null == userStr) {
                 continue;
             }

@@ -76,6 +76,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.AvatarQueryService;
 import org.b3log.symphony.service.ChatRoomService;
+import org.b3log.symphony.service.ApiV3ChatRedPacketService;
 import org.b3log.symphony.service.ChatMessageMgmtService;
 import org.b3log.symphony.service.ChatTopicWriteService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
@@ -853,7 +854,25 @@ public class ChatroomProcessor {
      *
      * @param context
      */
+    @Inject private ApiV3ChatRedPacketService apiV3RedPackets;
+
     public synchronized void openRedPacket(final RequestContext context) {
+        try {
+            final JSONObject packetRequest = context.requestJSON();
+            final String packetId = packetRequest.optString("oId");
+            if (apiV3RedPackets.recognizes(packetId)) {
+                final Object authenticated = context.attr(User.USER);
+                final JSONObject actor = authenticated instanceof JSONObject user ? user : Sessions.getUser();
+                context.renderJSON(apiV3RedPackets.legacyOpen(actor, packetId));
+                return;
+            }
+        } catch (final org.b3log.symphony.util.ApiV3Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());
+            return;
+        } catch (final Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+            return;
+        }
         try {
             JSONObject currentUser = Sessions.getUser();
             try {
@@ -895,7 +914,7 @@ public class ChatroomProcessor {
             int risksControlMinute = risksControlled % (24 * 60 * 60) % (60 * 60) / 60;
             int risksControlSecond = risksControlled % (24 * 60 * 60) % (60 * 60) % 60;
             if (risksControlled != -1) {
-                if (!openRedPacketLimiter.access(userId)) {
+                if (!takeRedPacketRiskQuota(userId)) {
                     context.renderJSON(StatusCodes.ERR).renderMsg("抢红包失败，原因：你处于风控名单，每30分钟只能抢一个红包。剩余风控时间为：" + risksControlDay + " 天 " + risksControlHour + " 小时 " + risksControlMinute + " 分 " + risksControlSecond + " 秒。");
                     return;
                 }
@@ -906,6 +925,10 @@ public class ChatroomProcessor {
             String oId = requestJSONObject.optString("oId");
             JSONObject msg = chatRoomService.getChatMsg(oId);
             JSONObject redPacket = new JSONObject(new JSONObject(msg.optString("content")).optString("content"));
+            if (org.b3log.symphony.model.ChatRedPacket.MARKER.equals(redPacket.optString("settlement"))) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+                return;
+            }
             JSONObject info = new JSONObject();
             JSONObject sender = userQueryService.getUser(redPacket.optString("senderId"));
             info.put(UserExt.USER_AVATAR_URL, sender.optString(UserExt.USER_AVATAR_URL));
@@ -1235,6 +1258,9 @@ public class ChatroomProcessor {
     final private static SimpleCurrentLimiter chatRoomLivenessLimiter = new SimpleCurrentLimiter(60, 1);
     final private static SimpleCurrentLimiter risksControlMessageLimiter = new SimpleCurrentLimiter(15 * 60, 1);
     final private static SimpleCurrentLimiter openRedPacketLimiter = new SimpleCurrentLimiter(30 * 60, 1);
+    /** New and historical packet claims share the existing risk quota on this instance. */
+    public static boolean takeRedPacketRiskQuota(final String actor) { return openRedPacketLimiter.access(actor); }
+
 
 
     /**
@@ -1761,6 +1787,20 @@ public class ChatroomProcessor {
     public void afterApiMessagePublished(final JSONObject message) {
         publishCommittedChatMessage(message, true);
     }
+    /** Structured cards have public text, but do not interpret JSON URLs/titles as mention commands. */
+    public void afterApiCardPublished(final JSONObject message) {
+        publishCommittedChatMessage(message, true, false);
+    }
+    /** Safe packet envelope contains only public summary/claims; private assignments are stored separately. */
+    public void afterApiRedPacketPublished(final JSONObject message) {
+        if (chatRoomRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("packet delivery before commit");
+        chatroomChannel.userActive.put(message.getString(User.USER_NAME), message.getLong(Common.TIME));
+        try { incLiveness(message.get("userOId").toString()); } catch (final RuntimeException e) { LOGGER.warn("Committed packet activity delayed"); }
+        final JSONObject push = new JSONObject(message.toString());
+        push.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(message.getLong(Common.TIME)));
+        fillPushMessageReactions(push);
+        ChatroomChannel.notifyChat(push);
+    }
     /** The caller has committed the v3 fee/receipt; this remains an ephemeral legacy notification. */
     public void afterApiBarragePublished(final JSONObject event) {
         if(chatRoomRepository.hasTransactionBegun()||ArticlePublicationCaches.active())throw new IllegalStateException("barrage delivery before commit");
@@ -1775,6 +1815,9 @@ public class ChatroomProcessor {
         publishCommittedChatMessage(message, false);
     }
     private void publishCommittedChatMessage(final JSONObject message, final boolean activity) {
+        publishCommittedChatMessage(message, activity, true);
+    }
+    private void publishCommittedChatMessage(final JSONObject message, final boolean activity, final boolean mentions) {
         if (chatRoomRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
             throw new IllegalStateException("chat effects before transaction end");
         }
@@ -1795,6 +1838,7 @@ public class ChatroomProcessor {
             fillPushMessageReactions(push);
             ChatroomChannel.notifyChat(push);
         } catch (final RuntimeException e) { LOGGER.log(Level.ERROR, "Broadcast committed v3 chat message failed", e); }
+        if (!mentions) return;
         try {
             final Set<String> recipients = new HashSet<>();
             for (final JSONObject recipient : atUsers(html, name)) {

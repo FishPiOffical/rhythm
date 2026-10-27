@@ -1,5 +1,6 @@
 package org.b3log.symphony.service;
 
+import org.apache.commons.lang.time.DateUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.model.User;
@@ -26,6 +27,8 @@ import org.b3log.symphony.repository.TagArticleRepository;
 import org.b3log.symphony.repository.TagRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3ArticleStickState;
+import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.ApiV3ProfileQueries;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.Emotions;
@@ -34,6 +37,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /** Directory, search and public profile read models. No legacy handler delegation. */
@@ -119,9 +123,24 @@ public class ApiV3DiscoveryQueryService {
                 .append(" u WHERE u.oId=a.articleAuthorId AND u.userStatus NOT IN (?,?))");
         final List<Object> args = new ArrayList<>(List.of(Article.ARTICLE_STATUS_C_INVALID, Article.ARTICLE_TYPE_C_DISCUSSION,
                 Article.ARTICLE_SHOW_IN_LIST_C_NOT, Tag.TAG_TITLE_C_SANDBOX, "B3log%", UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED));
-        if (!"all".equals(type)) {
-            from.append(" AND a.articleType").append("long".equals(type) ? "=?" : "<>?");
-            args.add(Article.ARTICLE_TYPE_C_LONG);
+        switch (type) {
+            case "all" -> { }
+            case "perfect" -> {
+                from.append(" AND a.articlePerfect=?");
+                args.add(Article.ARTICLE_PERFECT_C_PERFECT);
+            }
+            case "qna" -> {
+                from.append(" AND a.articleType=?");
+                args.add(Article.ARTICLE_TYPE_C_QNA);
+            }
+            default -> {
+                from.append(" AND a.articleType").append("long".equals(type) ? "=?" : "<>?");
+                args.add(Article.ARTICLE_TYPE_C_LONG);
+            }
+        }
+        if ("month-comments".equals(sort)) {
+            from.append(" AND a.oId>=?");
+            args.add(String.valueOf(DateUtils.addMonths(new Date(), -1).getTime()));
         }
         if (null == viewer) {
             from.append(" AND a.articleAnonymousView<>?");
@@ -172,11 +191,19 @@ public class ApiV3DiscoveryQueryService {
             case "active" -> "a.articleLatestCmtTime DESC,";
             case "hot" -> "a.redditScore DESC,";
             case "comments" -> "a.articleCommentCount DESC,";
+            case "month-comments" -> "recent".equals(type) ? "a.articleCommentCount DESC," : "a.articleStick DESC,a.articleCommentCount DESC,";
             default -> "";
         };
+        final String stickOrder;
+        if ("recent".equals(type)) {
+            final long threshold = ApiV3ArticleStickState.threshold(System.currentTimeMillis(), Symphonys.STICK_ARTICLE_TIME);
+            stickOrder = "CASE WHEN a.articleStick=? THEN 2 WHEN a.articleStick>=? THEN 1 ELSE 0 END DESC,"
+                    + "CASE WHEN a.articleStick>=? THEN a.articleStick ELSE 0 END DESC,";
+            args.add(Long.MAX_VALUE); args.add(threshold); args.add(threshold);
+        } else stickOrder = "";
         args.add((p - 1) * size);
         args.add(size);
-        final List<JSONObject> rows = articleRepository.select("SELECT a.*" + from + " ORDER BY " + order + "a.oId DESC LIMIT ?,?", args.toArray());
+        final List<JSONObject> rows = articleRepository.select("SELECT a.*" + from + " ORDER BY " + stickOrder + order + "a.oId DESC LIMIT ?,?", args.toArray());
         final JSONArray list = new JSONArray();
         for (final JSONObject row : rows) list.put(contentDtoService.summary(row));
         return ApiV3Requests.pagination(list, p, size, total);

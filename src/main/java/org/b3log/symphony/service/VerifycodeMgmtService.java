@@ -234,7 +234,7 @@ public class VerifycodeMgmtService {
     /** Account API delivery confirms acceptance for the one exact E.164 recipient. */
     public boolean sendAccountVerifyCodeSMS(String phone,String code) {
         if(phone==null||!phone.matches("1[0-9]{10}")||code==null||!code.matches("[0-9]{6}"))return false;
-        if(Latkes.getRuntimeMode().equals(Latkes.RuntimeMode.DEVELOPMENT))return sendVerifyCodeSMS(phone,code);
+        if(Latkes.getRuntimeMode().equals(Latkes.RuntimeMode.DEVELOPMENT))return true;
         return switch(Symphonys.SMS_ENABLE){
             case "bao" -> sendMsgSmsBao(phone,code);
             case "tencent" -> {

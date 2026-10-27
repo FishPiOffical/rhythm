@@ -36,6 +36,7 @@ function relative(file) {
 function classifyMiddleware(source) {
   const values = [];
   if (/anonymousViewCheck|anonymousView::handle|anonymous::handle/.test(source)) values.push('匿名访问校验');
+  if (/::protocol(?:Token|Revoke)\b/.test(source)) values.push('协议凭据校验，失败转匿名访问校验');
   if (/apiCheck::handle/.test(source)) values.push('必须 apiKey');
   if (/auth::optionalContent/.test(source)) values.push('可选 Bearer（content.read）');
   if (/auth::optionalProfile/.test(source)) values.push('可选 Bearer（profile.read）');

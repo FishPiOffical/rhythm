@@ -28,8 +28,15 @@ public class ApiV3FollowProcessor {
         final ApiV3FollowProcessor p = beans.getReference(ApiV3FollowProcessor.class);
         final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
         final ApiV3WriteMidware writes = beans.getReference(ApiV3WriteMidware.class);
+        registerRoutes(p, auth, writes);
+    }
+    public static void registerRoutes(ApiV3FollowProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.get("/api/v3/me/follows/users", p::users, auth::profileRead);
+        Dispatcher.get("/api/v3/me/follows/users/{targetId}", p::userState, auth::profileRead);
         Dispatcher.get("/api/v3/me/follows/tags", p::tags, auth::contentRead);
+        Dispatcher.get("/api/v3/me/follows/tags/{targetId}", p::tagState, auth::contentRead);
+        Dispatcher.get("/api/v3/me/collections/{targetId}", p::collectionState, auth::contentRead);
+        Dispatcher.get("/api/v3/me/subscriptions/{targetId}", p::subscriptionState, auth::contentRead);
         Dispatcher.get("/api/v3/me/collections", p::collections, auth::contentRead);
         Dispatcher.get("/api/v3/me/subscriptions", p::subscriptions, auth::contentRead);
         Dispatcher.put("/api/v3/me/follows/users/{targetId}", p::followUser, auth::followsWrite, writes::handle);
@@ -40,6 +47,15 @@ public class ApiV3FollowProcessor {
         Dispatcher.delete("/api/v3/me/collections/{targetId}", p::uncollect, auth::followsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/subscriptions/{targetId}", p::subscribe, auth::followsWrite, writes::handle);
         Dispatcher.delete("/api/v3/me/subscriptions/{targetId}", p::unsubscribe, auth::followsWrite, writes::handle);
+    }
+    public void userState(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.userState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId")));
+    }
+    public void tagState(final RequestContext c) { ApiV3Requests.read(c, () -> query.tagState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId"))); }
+    public void collectionState(final RequestContext c) { articleState(c, false); }
+    public void subscriptionState(final RequestContext c) { articleState(c, true); }
+    private void articleState(final RequestContext c, final boolean watch) {
+        ApiV3Requests.read(c, () -> query.articleState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId"), watch));
     }
     public void users(final RequestContext c) { relations(c, "users"); }
     public void tags(final RequestContext c) { relations(c, "tags"); }

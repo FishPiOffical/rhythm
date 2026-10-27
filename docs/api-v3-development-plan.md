@@ -25,6 +25,8 @@
 
 ## 迁移矩阵
 
+> 下表为早期页面迁移快照，保留历史背景；当前接口实现、重新发现的缺口和运行证据以 [api-v3-progress.md](api-v3-progress.md) 为准。停用/回调维护、鱼游投稿、五类红包、捐助链接等已由后续批次完成源码接线，不能按此历史表重复立项。
+
 | 优先级 | website_v3 页面能力 | v3 目标资源 | 状态 | 前置条件 |
 | --- | --- | --- | --- | --- |
 | P0 | 账号入口 | `auth/register-*`、`auth/password-reset-*`、`auth/login` | 登录已实现；OAuth授权码/同意页/换码/轮换撤销源码已接入；密码重置与注册完成入口已接入，v3找回短信/验证组件及注册短信申请已接入；应用登记已确认仅管理员登记维护，列表/详情/幂等登记已接入，停用/回调维护待实现 | 复用账号规则，独立 JSON 响应 |
@@ -51,7 +53,7 @@
 | `src/api/fishpi.ts#login` | 改用 `/api/v3/auth/login` | 已完成 |
 | `src/router/index.ts` | 首次导航恢复 v3 登录态 | 已完成 |
 | 专栏首页与详情页 | 读取 `/columns*`，移除该页旧文章接口、`apiKey` 和 mock 降级 | 已完成 |
-| 文章、评论、搜索页面 | 移除 `withKey` 与降级数据 | 待对应 v3 资源上线 |
+| 文章、评论、搜索页面 | 列表/搜索/目录与详情评论读取已迁移；互动及旧Socket待迁移 | 读取夹具验证，真实后端与写入待验 |
 | 设置、通知、私信、聊天 | 移除 `pageAuth` 与 apiKey WebSocket | 待专用 v3 HTTP/Socket 认证上线 |
 | 登录页提示 | 移除本地存储 apiKey 描述 | 已完成 |
 
@@ -2442,3 +2444,200 @@ XSS：三处账号回调错误消息改为文本；输入返回或 HTML 验证�
 ## 2026-10-20 第二次累计提交前检查
 
 用户要求先提交推送再继续。提交范围为第三/第四轮累计10个新增入口（187→197）、严格事务与查询/DTO、专项、公开文档和进度清单；无模板、JS/SCSS生成物、新SQL/Repository表变更。git diff及40个untracked whitespace检查通过；再次JS扫描src/main/resources/js共155文件、0版本/sourceMappingURL发现。定向专项沿用前述最终退出0记录，源码之后无业务变更，不重复无理由全量编译。当前新增入口均Bearer，管理额外第一方当前管理员复核；anonymous.viewSkips和黑名单/验证码链未改，无新增上传下载/公网目录。源码权限/输入/DTO/事务反漏扫结论见上述批次，真实MySQL、完整IoC、HTTP/WS/PC/mobile和全站公网反漏扫仍未验收。未运行Maven，不把推送等同部署。
+
+## 2026-10-20 第二次推送后的第五轮并行
+
+用户要求先提交推送再继续，已完成`c09e48cc1f36d9ddcbaaffecdf750d0b7a139f69`（50文件，4068新增/35删除）并推送origin/api_v3，远端6231c4f0→c09e48cc确认成功。此提交包含第三/第四轮10入口；以下开发均在该提交之后，不能当作已推送。
+
+分工：anonymous_content负责本人职业详情/记录，invitation_read负责职业引导/隐私幂等写入，oauth_disable负责本人勋章相邻移动；各自独立Processor/Service/Inputs或DTO/专项/work文档，主代理审查、总接线与公开文档串行维护。沿用已明确旧规则：skip会清空已选主职业；隐私LEVEL_ONLY/PRIMARY_ONLY当前同样仅公开primaryProfession；勋章隐藏/过期持有参与相邻交换、并列用既有v3读取的display_order/oId稳定顺序，边界仍全量重编号，不删除过期项。本人职业详情与记录不伪造zero进度，无真实进度404。规则外的鱼游OAuth证明等继续保留缺口，不擅自开放。
+
+## 2026-10-22 第五轮完成：职业详情/记录、引导/隐私与勋章排序
+
+继续时前轮代理已结束，保留并接续已有草稿；新代理profession_details、profession_settings、medal_order按独立文件完成，medal_order另只读交叉审查职业设置，无实质问题。累计提交c09e48cc已推送，此后本批新增未再次提交。
+
+实际文件与行为：
+
+- `processor/ApiV3ProfessionDetailProcessor.java`、`service/ApiV3ProfessionDetailQueryService.java`、`util/ApiV3ProfessionDetailDto.java`、`src/test/java/org/b3log/symphony/service/ApiV3ProfessionDetailQueryTest.java`、`tools/api-v3-profession-detail-test.mjs`、`docs/api-v3-profession-detail-work.md`：本人详情/记录两GET，profile.read，按真实progress的历史revision/scheme读取等级与贡献；无progress404，近90天APPLIED非零经验真实count/page，白名单不含来源正文/内部ID。路线与贡献有技术预算，超则503不截断；末尾重查有效owner与progress快照，不能声称完整并发快照或跨实例实时。
+- `processor/ApiV3ProfessionSettingsProcessor.java`、`service/ApiV3ProfessionSettingsService.java`、`util/ApiV3ProfessionSettingsInputs.java`、`src/test/java/org/b3log/symphony/service/ApiV3ProfessionSettingsTest.java`、`tools/api-v3-profession-settings-test.mjs`、`docs/api-v3-profession-settings-work.md`：引导/隐私两PUT，settings.write+幂等；每次及重放在严格根当前锁actor，再按列更新privacy/version，不覆盖其他状态。skip只接受SKIPPED并清主；privacy六预设/CUSTOM完整十模块，原预设映射保持，4096字节前置边界，坏版本/重复行不写。
+- `processor/ApiV3MedalOrderProcessor.java`、`service/ApiV3MedalOrderService.java`、`util/ApiV3MedalOrderInputs.java`、`src/test/java/org/b3log/symphony/service/ApiV3MedalOrderTest.java`、`tools/api-v3-medal-order-test.mjs`、`docs/api-v3-medal-order-work.md`：POST相邻移动，settings.write+幂等；全部本人持有含隐藏/过期，order/oId稳定并列、边界也归一。只更新order，定义/持有唯一与typed校验，超4096技术预算503，不清理过期。actor→定义稳定序→持有稳定序，仅确认严格提交后成功；旧key不重复移动。
+- `processor/ApiV3Processor.java`接线三个模块；API.md五份完整契约、UPDATE_LOG.md新增261022记录、AGENTS.md简记长期链路，progress/inventory-and-design和生成api-route-inventory同步202条清单；无新表/Repository/SQL/配置/FTL/前端源码或产物改动，不需要前端构建。
+
+实际验证：主代理最终Java25复跑detail7组、settings11组、order8组均退出0；包含生产路由/控制器/鉴权/SQL、实际严格JDBC/保存点/提交故障与提交确认丢失。Settings与实际PrimaryService交替操作验证字段及重放隔离，Order覆盖4096成功与4097整请求拒绝。SQLite去FOR UPDATE、身份/连接/信封适配器等隔离条件见work，不代替MySQL竞争、完整IoC或真实服务。未运行Maven。
+
+完整人工链路（本轮已明确提醒IDEA重新编译或重启，未确认实际执行）：
+
+1. A/B取得profile.read/settings.write，GET职业目录→A已有进度详情→90天记录分页→PC/mobile职业页面核对。历史退休版本仍可读，已选但无真实progress404；零变化/非APPLIED/早于90天排除，正负变化和total正确。非法ID/size51为422，缺Bearer401/缺scope403，不返回source正文或内部标识；读取不创建进度。
+2. A选主职业→PUT隐私SELF_ONLY→GET本人状态及公开职业页面按A/B/匿名核对→PUT引导SKIPPED→GET确认清主但隐私/经验保持。再选主后重放旧skip只回旧回执，不清新选择；新key才再次清空。各预设/CUSTOM十模块、非法/缺字段、同键冲突、UTF-8超4096返回413、停用后原key和新key拒绝，B状态不变。
+3. A读取本人勋章→对有隐藏/过期邻居的目标POST up/down→重新GET与PC/mobile顺序核对，展示和有效期不变；边界不移出且编号规范。重复原key不再次移动，新key可再移动；Unicode/0勋章ID、方向大小写、空白方向422、他人持有404、损坏/重复409、预算超限503，失败无部分排序。
+4. 开发DB注入业务/回执/保存点/提交前失败，无半写；提交确认丢失以原key恢复。与实际Primary、职业成长/退役、旧隐私整行写、旧勋章授予/显示/排序并发，验证MySQL锁、版本及死锁处理。旧入口没有一起改造，旧全行更新仍可能覆盖并发新值，不能宣称新旧整体原子化。
+5. 回归无Bearer/越权/CSRF/XSS/注入/SSRF/批量/敏感数据，以及原黑名单→test、匿名首访/计次、validateCaptcha解封/开发关闭盾；全站CDN/版本/sourceMappingURL/目录枚举/上传下载路径仍需另验，不把无改动当作实际验证通过。
+
+安全与反漏扫源码结论：五入口均显式Bearer+scope，owner不可由Cookie/apiKey或body替换；写入守卫先鉴权，重放当前用户重查，SQL参数化、输入/typed输出白名单且读取有界。无Cookie授权写路径或服务端HTML渲染、远程抓取、上传下载、新静态/CDN/目录；未改anonymous.viewSkips及黑名单/验证码链。原链路源码保持不等于完整运行验收；实际压力/分布式限额、全站扫描、MySQL/IoC/HTTP/WS/PC/mobile均未验证，未访问生产或支付。
+
+下一工作包会员开通/配置已完成只读盘点：旧配置可写权益、优惠券无效可能加价20%、永久资格与赠包独立提交存在歧义；三条明确业务问题已向用户发出，等待答案后实施，不擅自选择收费或权益规则。鱼游OAuth证明等原依赖继续保留。API.md须同步网站API文章。
+
+第五轮最终检查：tracked diff及18个untracked文件whitespace通过，三个runner的node语法通过；5份新公开契约及各一段curl经bash -n验证（只解析未发请求）。202条可达源码与progress METHOD/path逐项全等无重复，全仓库生成749路由/398浏览器引用。详情DTO最后补动作编码grammar后，主代理再跑7组退出0；settings11/order8最终记录不变。无前端/静态资源变更，本轮未重复yarn或CDN下载；没有新增SQL或迁移，仍未验证完整应用/真实MySQL/浏览器/全站反漏扫。
+
+## 2026-10-22 第六轮：会员展示配置与积分开通
+
+用户已明确三项规则：仅档位支持的bold/underline/color可改，其他权益只读，VIP4真实YEAR/MONTH两码额外八效果，开通由服务端defaults初始化；无效/非折扣/用尽券422且不扣费；有效或永久会员禁止重复购买，自然日期限和原档位礼包同事务。工作由membership_settings、membership_opening独占实现，membership_review只读交叉审；主代理修改公共接线/文档/索引迁移及旧入口最小锁序修复。没有实际支付或线上调用。
+
+实际文件与行为：
+
+- `processor/ApiV3MembershipSettingsProcessor.java`、`service/ApiV3MembershipSettingsService.java`、`util/ApiV3MembershipConfiguration.java`、`src/test/java/org/b3log/symphony/service/ApiV3MembershipSettingsTest.java`、`tools/api-v3-membership-settings-test.mjs`、`docs/api-v3-membership-settings-work.md`：PUT展示配置，settings.write、4096字节/非空部分字段、严格根每次及重放当前锁actor；actor→同码各level→membership，展示模板歧义或坏存量503。仅合并显式字段，空旧配置以空对象为基底，不补readonly或未提交字段。完整defaults函数仅供开通，同lvCode不同周期合法，比较展示规则不把只读礼包差异误当不合法。合法旧配置保留其他权益，提交后只失效缓存。
+- `processor/ApiV3MembershipOpeningProcessor.java`、`service/ApiV3MembershipOpeningService.java`、`util/ApiV3MembershipOpeningInputs.java`、`src/test/java/org/b3log/symphony/service/ApiV3MembershipOpeningTest.java`、`tools/api-v3-membership-opening-test.mjs`、`docs/api-v3-membership-opening-work.md`：POST开通，activity.write、levelId及可选券码，无price/owner/config覆盖。账户对在事务前，ArticlePublicationCaches延后用户缓存，当前用户/档位/券/会员/礼包与回执同严格根及保存点。优惠券沿旧ASCII trim与存量SQL匹配；不可用422，重复或损坏存量503，余额不足409。期限按服务器时区自然日、DST/闰月正确；state0非永久视未激活，state1未来或任意expiresAt0永久409。年档20/50/120卡或366免签额度同提交，数量typed、重复bag503、不清理坏存量，容量沿旧饱和上限。
+- 开通幂等内部回执包裹公开四字段与私有transferId，Service首发/重放均显式投影，不把私有metadata裸返HTTP。账单dataId保留安全编码/有界可读说明，billingHash仅存私有sourceRequestId；提交后按主账PK+归属/类型/scene/hash校验，父行锁串行去重补齐actor/sys两方积分冗余索引。后置失败不反转已成功购买，原key可修复，禁止重复调用旧append-only异步索引函数。
+- `service/MembershipMgmtService.java`：旧public开通先取得同一actor/sys账户对，再执行原完整body；仅移动锁边界，原费用、优惠券/配置/礼包、字段与成功响应保留。旧原子/缓存/提交策略未替换，不能宣称新旧整体原子。它消除同实例旧券DB锁→Java pair与新pair→券的跨域等待；跨实例数据库锁竞争仍需实际验证。
+- `sql/20261022_api_v3_membership.sql`：已有pointtransfer_redc增加(rawId,userId)普通索引，先迁移再启用。无新表或Repository，repository.json已有模型列，无需新增表元数据；迁移不清理历史重复索引。
+- `processor/ApiV3Processor.java`新增两模块总接线；API.md、UPDATE_LOG.md、AGENTS.md及三份汇总、生成api-route-inventory同步新契约与204条源码清单。无前端/FTL/JS/SCSS/生成产物变更，无需yarn。
+
+实际验证：主代理最终复跑配置10组；开通专项12组包括实际PointtransferMgmtService、BagMgmtService、旧MembershipMgmtService编译和前置锁断言。生产SQL/路由/控制器/鉴权/严格JdbcTransaction/保存点/确认丢失、坏券及重复bag、private receipt HTTP白名单、索引去重/失败修复、DST/闰月均有隔离证据。SQLite去FOR UPDATE、缓存/Token/依赖适配不能证明MySQL多连接/IoC或OWASP实际jar行为；HTML编码调用生产Escapes但Encode依赖为Apache适配，详见work。未运行Maven。
+
+完整人工链路（本轮已提醒需IDEA重新编译或重启，未确认用户实际执行）：
+
+1. 先在开发测试库执行新增索引迁移，保留既有v3/积分来源列；IDEA重启后取activity.write/profile.read/settings.write及content.read令牌。GET档位→GET本人inactive→POST levelId→返回4键→GET本人active、积分流水与背包核对。默认权益来自所选档位，年档卡/额度正确，其他背包项保持；PC/mobile VIP页核对。
+2. 使用有限券/无限券/免费券，折扣四舍五入、有限券减一次；未知/非折扣/用尽/越界券422，余额不足409，会员/余额/券/礼包/activation均无部分变化。无/已到期可买，永久和有效会员409；非永久未激活账号可重新购买，重新购买使用服务端defaults。
+3. POST重复同key或响应中断后原key恢复，只有一次扣费、一次券消耗/礼包/activation和积分索引；后置索引失败仍成功，原key重试后列表补齐而非重复。初次和重放HTTP只4键，无券码/rawconfig/sourceRequestId/indexTransferId；同key换level/coupon409。
+4. 有效或永久会员PUT bold/underline/颜色→GET状态→两端昵称核对，未提交字段/其他权益/期限/余额保持；普通档位效果名422，精确VIP4_YEAR/MONTH八效果成功。空旧配置只出现显式提交字段，不自动开通其他权益；body空/额外autoCheckin/configJson/伪造owner/非法类型、重复JSON及UTF8超4096分别拒绝。新key改后重放旧key不覆盖当前设置。
+5. 缺Bearer/仅Cookie/apiKey401、错scope403、账号停用后原key和新key拒绝。损坏/重复会员/券/bag503，超技术预算/展示模板歧义不随机选取。服务器配置错误不能原价降级；所有失败检查余额/券/会员/礼包/回执未部分提交。
+6. 测试库注入业务/回执/保存点/提交前失败与提交确认丢失，验证严格根；模拟后置索引失败后重放修复。新旧开通/配置、退款/到期和多实例并发验证MySQL锁、死锁/超时与缓存。旧锁序修复只额外做实际编译/受控异常锁断言，不冒充旧整条计费运行验收；旧缓存loader迟put及整行快照覆盖仍有局限。
+7. 回归黑名单/test、匿名首访/计次、validateCaptcha解封/开发关闭盾；按未鉴权/越权/CSRF/XSS/注入/SSRF/批量请求/敏感泄漏复核，及公网静态/CDN版本/sourceMappingURL/目录枚举/上传下载路径。源码未改这些链路不等于真实全站验证通过。
+
+安全/反漏扫源码结论：新两入口显式Bearer+scope/当前有效owner，旧开通原loginCheck保留；无新增匿名入口、anonymous.viewSkips、Cookie写例外或黑名单/验证码变更。输入有界/字段白名单、SQL绑定、返回typed投影，账单模板插值编码，优惠码不进公开回执或异常消息，无远程抓取/上传下载/静态/CDN/目录新增；批量预算沿既有共享写门禁。真实MySQL迁移/EXPLAIN/锁、完整Java应用/IoC、HTTP/WS、PC/mobile、全站反漏扫和压力/多实例缓存仍未验证，未访问生产、未执行Maven。本批及前轮5接口仍未再次提交；API.md需同步网站API文章。
+
+第六轮最终复核：配置工具仅按字段存在/类型判断同码多周期支持，不要求合法默认值相同；空白旧配置只合并显式字段。额外补序列化后字节上限，防JSON转义扩展后超过实际存储预算。主代理最终Java25配置10组/开通12组均退出0；含实际旧方法编译/锁序和自然日时区边界。tracked diff及31个untracked whitespace、两runner node语法、两份新契约curl bash -n通过；新索引列与既有repository.json元数据一致，未执行实际DDL。204条注册与逐条清单一致，全仓库751路由/398浏览器引用；无前端产物改动，不重复构建或全站CDN下载。
+
+
+## 2026-10-22 第七轮：职业成长提示、排行与公开资料
+
+用户已确认三项口径：先筛当前读者可见用户再分页/计数/连续编号；允许ranking但隐藏experience时保留名次等级；公开资料rarity/ranking按同一可见榜计算，目标不在榜则省略。profession_guides、profession_ranking、profession_public三个子代理独占模块文件，主代理总接线、逐项审阅、复跑与共享文档。没有改旧接口契约或前端。
+
+实际文件与行为：
+
+- 新 `ApiV3ProfessionGuideProcessor` / `ApiV3ProfessionGuideQueryService` / `ApiV3ProfessionGuideDto`、对应 `ApiV3ProfessionGuideQueryTest`、`tools/api-v3-profession-guide-test.mjs`、`docs/api-v3-profession-guide-work.md`：GET /professions/{professionId}/guides，profile.read，当前已发布自动化来源和当前方案奖励的固定投影。仅triggerType/rewardType/POINT amount，无条件、动作、原始配置或内部勋章资料。展示revision与等级scheme独立发布；只发布新展示版本后，当前scheme仍可引用同职业RETIRED revision。路径/枚举/父级/数值严格、有界读取，异常503，不创建进度。
+- 新 `ApiV3ProfessionRankingProcessor` / `ApiV3ProfessionRankingQueryService` / `ApiV3ProfessionRankingDto`、对应 `ApiV3ProfessionRankingQueryTest`、`tools/api-v3-profession-ranking-test.mjs`、`docs/api-v3-profession-ranking-work.md`：GET /professions/{professionId}/ranking，profile.read，默认20最大50。完整候选先按ranking权限筛选，再经验降序/userId稳定排序和编号；经验隐藏仍保留等级名次，不返回totalExperience。真实历史revision/scheme等级，无零级合成；当前账号/完整候选末尾重查，变化失败关闭。共享summary供公开资料，累计候选预算跨职业共用，超过503而非伪造完整人数。
+- 新 `ApiV3ProfessionPublicProcessor` / `ApiV3ProfessionPublicQueryService` / `ApiV3ProfessionPublicDto`、对应 `ApiV3ProfessionPublicQueryTest`、`tools/api-v3-profession-public-test.mjs`、`docs/api-v3-profession-public-work.md`：GET /users/{userName}/professions，可选profile.read Bearer及真实AnonymousViewCheckMidware。十模块精确scope、HIDDEN无本人/admin绕过，未建privacy纯默认而不写入；经验隐藏跨总量/门槛/贡献/动态省略。主职业没有progress只返回SELECTED定义。近90天APPLIED动态/等级摘要仅当前PUBLIC来源及读者有权目标，绑定subject，匿名内容排除；文章讨论正文以长度/hash有界绑定并重验源/目标授权，清风检查作者隐私，复读用实际repeaterContentStatus，聊天须消息现存。只返回概要，无来源正文或内部ID。
+- `ApiV3Processor.java`新增三模块总注册；API.md、UPDATE_LOG.md、AGENTS.md、progress、inventory-and-design、本计划和生成的api-route-inventory同步。共207条可达注册（206HTTP+1WS，GET113/POST41/PUT32/DELETE20/WS1），全仓库754路由/398浏览器引用。没有SQL/Repository/前端/静态产物变更，无需yarn或新增迁移。
+
+完整人工链路（本轮已明确提醒IDEA重新编译/重启，未确认执行）：
+
+1. A取得profile.read，GET职业目录→已发布职业guides→ranking第一页/第二页/末页，核对来源及POINT/MEDAL最小奖励、连续名次/可见total/稳定并列顺序。只发布新展示revision保留等级scheme后，guides仍成功；无进度者可读guides，不创建progress。未发布404、非法ID/p0/size51为422。
+2. A/B分别设置ranking PUBLIC/LOGGED_IN/SELF/HIDDEN，experience HIDDEN：比较A/B榜单和匿名公开资料；经验隐藏仍在可见榜中显示等级名次，无totalExperience；ranking不允许的目标不出现在榜或公开rarity/ranking。统计百分比为(totalUsers-rank)*100/totalUsers，只按当前读者人群。没有管理员跨过职业模块隐私。
+3. GET /users/{userName}/professions，分别以匿名、本人、他人和管理员验证十模块PUBLIC/LOGGED_IN/SELF/HIDDEN；全隐藏404，缺省privacy读取不新增行。已选无progress仅SELECTED，无虚构等级；真实退休历史进度正确。隐藏experience后全响应无totalExperience/requiredExperience/experienceSum/experienceDelta，次数和等级仍按各模块显示。
+4. 产生文章、讨论邀请、私密/匿名评论、清风、复读与聊天动态，核对仅允许来源摘要；移除邀请、等长修改讨论正文、隐藏清风、停用作者、删除目标消息后重新请求应不再泄露对应摘要。PRIVATE来源及匿名内容不关联；无source/body/label或内部对象。范围与时间之外的历史不假造为当前完整记录。
+5. 缺Bearer或只有Cookie/旧apiKey访问两专用读取401，错scope403；公开入口匿名仍经验证码，坏Bearer不降级匿名，Cookie/apiKey不冒充SELF。测试存储故障、损坏/重复定义、错误父关系/大小写levelCode、超过单榜或全请求预算，503且无截断人数/驱动错误/敏感字段。读取中撤权、切隐私和停用应失败关闭或下次读取失效，不承诺多SQL全局原子快照。
+6. 回归黑名单→/test、匿名首访/计次、validateCaptcha解封、开发关闭盾及两端页面；复核静态/CDN版本、sourceMappingURL、目录枚举、上传下载返回路径。实际MySQL执行计划/CI排序/驱动类型、完整IoC/HTTP/浏览器及并发压力仍需运行验收。
+
+安全与反漏扫源码结论：两个入口明确Bearer/profile.read，新增公开入口optionalProfile之后显式匿名盾，不改anonymous.viewSkips或BeforeRequestHandler/Captcha。纯读不创建默认记录、无Cookie授权写入；SQL参数化、路径/隐私/typed响应白名单且预算有界。公开资料按当前读者及来源权限，不裸传用户/config/正文；无远程抓取、HTML拼接、上传下载路径或新静态/CDN目录。未鉴权/越权/CSRF/XSS/注入/SSRF/滥用/泄露均已源码评估和定向隔离覆盖，但非实际全站安全验收。未运行Maven、真实MySQL、8080、浏览器、生产或第三方服务，本批及前两批未再次提交。API.md需同步网站文章。
+
+第七轮最终证据：主代理最终Java25复跑guide8组、ranking10组、public9组均退出0，日志分别/tmp/rhythm-v3-profession-{guide,ranking,public}-root.log。包含真实AnonymousViewCheck首访/计次、实际SQL与共享排名预算，讨论等长变文hash/最终权限重验及真实复读字段回归。tracked diff --check、49个untracked文件whitespace、三个runner node语法和三段新API curl bash -n通过。207条总register可达METHOD/path与progress逐项全等无重复；未执行curl请求或Maven，真实MySQL/IoC/HTTP/PC/mobile及完整反漏扫均未验收，不能记作已通过。
+
+
+## 2026-10-22 第八轮：复读机读取、常用表情设置与邀请码购买
+
+继续按用户授权多代理推进。repeater_read负责明确只读池语义，emotion_selection负责常用表情写入，remaining_rules先只读盘点并在用户确认后负责邀请码购买；主代理审阅、总接线、复跑及共享文档。用户明确批准目录白名单/空数组恢复默认；购买仅邀请模式、每次现有100分、余额不足不生成、码/费用/回执一起提交，旧购码例外保持。转账、举报、历史正文等盘点仍不当作已获批准业务。
+
+实际文件及行为：
+
+- `ApiV3RepeaterProcessor` / `ApiV3RepeaterQueryService` / `ApiV3RepeaterDto`、`ApiV3RepeaterQueryTest`、`tools/api-v3-repeater-test.mjs`、`docs/api-v3-repeater-work.md`：GET /repeater/items与/next，可选content.read及显式匿名盾。列表默认12最多50，不伪称全量分页；按赞/时间/ID降序，next取前50再排除、随机，无候选null。仅status0，失效或seed作者null而不删除池成员；liked只当前Bearer，owner EXISTS避免重复点赞放大。正文存量不强加投稿最短长度，但模型上限/Unicode/精确数字检查，超长或坏数据503而非截断成功；末尾当前actor/池重验。
+- `ApiV3EmotionSettingsProcessor` / `ApiV3EmotionSettingsService` / `ApiV3EmotionSettingsInputs`、`ApiV3EmotionSettingsTest`、`tools/api-v3-emotion-settings-test.mjs`、`docs/api-v3-emotion-settings-work.md`：PUT /me/settings/emotions，settings.write/key，目录动态唯一158项，保留输入顺序。重复/空白/未知422，[]只清本人type0并响应默认11项，保留其他type/owner。当前actor锁及settings.emotions严格根/保存点/回执同提交；原key恢复旧响应不覆盖之后设置，重放停用者不可成功。旧setEmotionList仍无共同actor锁且删全部type，不宣称新旧整体串行或原子。
+- `ApiV3InvitationPurchaseProcessor` / `ApiV3InvitationPurchaseService` / `ApiV3InvitationPurchaseInputs`、`ApiV3InvitationPurchaseTest`、`tools/api-v3-invitation-purchase-test.mjs`、`docs/api-v3-invitation-purchase-work.md`：POST /me/invitation-codes，activity.write/key，空请求/空JSON，服务端定价/生成16位强随机码。账户对先于缓存边界与严格根，namespace→当前模式→actor→receipt；模式只在新购时检查，原key只重验有效actor恢复原code，即使模式关闭/原码已用/清理。ID+TTL用旧真实计龄规则，余额不足不调用生成器；码/积分/回执同保存点提交，primitive null必须回滚。账本dataId空、固定memo，码不进入积分失败日志打印字段；内部transferId只回执私有，HTTP投影三字段。提交后主账PK/归属/场景/hash核验后串行幂等修复冗余索引，索引故障不反转成功购买。旧独立先造码行为不变，既有code非唯一索引不能保证与旧入口跨实例绝无随机碰撞，碰撞当前读发现即503回滚。
+- `docs/api-v3-next-rules-work.md`：只读盘点转账/举报/历史及邀请码原链，邀请码已标用户确认，其余待后续规则确认。不新增这些未确认的HTTP写入口。
+- `ApiV3Processor.java`总接线三模块四条路由，API.md/UPDATE_LOG.md/AGENTS.md/三个汇总及生成inventory同步。211条（210HTTP+1WS，GET115/POST42/PUT33/DELETE20/WS1），全仓库758路由/398浏览器引用。没有新SQL、Repository表、FTL/JS/SCSS或生成产物，无需yarn。本批购码仍依赖已存在20260717_external_point_source.sql及20261022_api_v3_membership.sql迁移，未执行实际DDL。
+
+实际验证：主代理最终复跑repeater6组、emotion-settings7组、invitation-purchase9组均退出0，日志/tmp/rhythm-v3-{repeater,emotion-settings,invitation-purchase}-root.log。复读真实AnonymousViewCheck首访/计次、Cookie/apiKey不能个性化、坏Bearer不匿名降级；表情实际既有GET回读与最大目录、严格提交/保存点故障/确认丢失；购码实际积分/OptionRepository/SQL/严格根、余额边界、跨actor回执隔离、主提交与索引提交各自丢失确认均有覆盖。生产Symphonys配置和Token/请求/cache/SQLite去FOR UPDATE为适配，不能推广为完整应用或MySQL行锁/多实例通过。未执行Maven、真实HTTP、浏览器或生产。
+
+完整人工链（本轮已提醒IDEA重新编译或重启，未确认执行）：
+
+1. PC/mobile复读机入口对照 GET items默认12、各类型/size1/50，赞/时间/ID降序，空分类为空；GET next带当前ID，只在前50池且不返回排除项，唯一排除/空池null，不补第51条。正文按纯文本、emoji/换行正常，无作者时null。坏类型/size0或51/注入ID422，存量超长/负数等503无部分成功。
+2. 匿名、旧Cookie/apiKey与content.read A/B分别读复读机，匿名liked=false、A/B只各自点赞；坏Bearer401不降级、错scope403、停用404。首访/计次走/test，黑名单/validateCaptcha解封与开发关闭盾仍按原基线；修改或下架候选时不继续返回旧池快照。
+3. 取得profile.read/settings.write，GET表情选项→PUT顺序数组→成功返回同顺序→GET本人列表→两端设置页/编辑器核对。其他owner/type保持、无积分变化；[]恢复默认。新key再改值，重放旧key回旧结果但GET仍新值，同key变内容409；重复/空白/目录外/EOF/非字符串422，重复JSON400，超请求体413，无Bearer401/错scope403/缺key422，停用后重放失败。MySQL故障不出现半列表；旧新竞争不作为已解决。
+4. 测试库先确认已有积分来源列/索引迁移，邀请模式且余额足够，以activity.write/key POST空对象：仅code/expiresAt/paidPoints，扣100、单码/单转账/单回执；原key重试不新增。把码用掉/删除、关闭模式后原key仍只恢复旧结果，不保证可注册；新key重新验证模式。余额99为409且无新码/扣款/回执，余额100可至0。Cookie/apiKey/伪造owner/price/code不能越权，其他用户同key不能读本人的码。
+5. 开发库注入积分、码、回执、保存点/commit故障，确认整体回滚；提交成功丢响应后原key恢复原码，索引失败不报购买失败且原key修复不重复，索引自身提交丢响应亦不重复。检查响应/普通账本/失败日志无内部transferId或邀请码明文。旧PC/mobile兑换成功链与原字段保持，不把旧余额不足造码当成已修复。
+6. 用真实MySQL核对SQL类型/大小写/查询计划、行锁/间隙锁、代码碰撞、旧新入口/注册清理并发及缓存；完整IoC/HTTP/两端和全局验证码/黑名单链回归。全站CDN版本/sourceMappingURL、目录枚举、上传/下载返回路径另验，本批没有新增这些资源或路径。
+
+安全/反漏扫源码结论：新增两个匿名GET显式optionalContent+AnonymousViewCheck，写入口明确Bearer scope+共享写守卫/当前用户，未改BeforeRequestHandler/Captcha/anonymous.viewSkips。纯读无隐式写，写入无Cookie授权或不兼容CSRF拦截；参数化SQL、白名单输入/DTO、技术预算明确、无远程抓取/HTML拼接/新资源或上传下载。购码凭据只本人响应与受保护回执，日志和账本不含码，私人内部回执不得裸返。未鉴权/越权/CSRF/XSS/注入/SSRF/批量滥用/泄漏逐项有源码/专项判断；真实全站反漏扫、MySQL/并发负载/IoC/HTTP/浏览器仍未验收。该批和前批未提交；API.md需同步网站文章。
+
+第八轮最终复核：211个总register可达METHOD/path与progress逐条一致且无重复，方法统计GET115/POST42/PUT33/DELETE20/WS1。tracked diff --check、68个累计untracked文件尾随空白、三个runner node --check、四段新API curl bash -n通过（仅语法，未发请求）。全仓库生成758路由/398浏览器引用。主代理6/7/9组结果为当前最终源码；无新增迁移/前端，不重复构建，完整应用/MySQL/浏览器/全站反漏扫仍未验收。
+
+
+## 2026-10-23 第九及第十轮接线
+
+第九轮六入口达到217条，主代理专项转账9、举报9、复读写9组退出0。独立MySQL8.4.11三项RR当前读/回滚/目标锁串行SQL通过，未接触业务库，不代替完整Java事务MySQL并发。完整文件与人工链见[转账](api-v3-point-transfer-work.md)、[举报](api-v3-report-work.md)、[复读写](api-v3-repeater-write-work.md)。
+
+第十轮先接历史四GET及分组三写，达到224条（223HTTP+1WS）；主代理复跑历史8组、分组7组退出0。实际文件、权限与失败边界、完整人工步骤见[历史](api-v3-revision-work.md)及[分组](api-v3-emoji-group-work.md)。图片成员/鱼游投稿正在实现，未计总register；敏感设置已确认第一方及密码/TOTP证明，其余策略待答。
+
+当前未再次提交，未执行Maven，无前端修改或构建。完整IoC/HTTP、应用MySQL、PC/mobile及全站反漏扫未验收；联调前用户须通过IDEA重新编译或重启。API.md已更新，发布时还需同步网站API文章。
+
+
+第十轮续：图片成员四路由及鱼游投稿/编辑两路由已总接线，当前230条（229HTTP+1WS）。主代理最终复跑历史9、分组7、成员8、鱼游7组全部退出0。历史增加真实SHA2输入计量和预算前置；鱼游先执行`sql/20261023_api_v3_fish_game_submission.sql`，旧审核只适配OAuth pending合并/清理，不宣称新旧写入整体串行。实际新增与改动文件及完整人工链见[成员](api-v3-emoji-item-work.md)、[鱼游](api-v3-fish-game-submission-work.md)，前述历史/分组work同步更新。真实运行仍未验收。
+
+
+第十一轮（2026-10-23）：图片分享/导入/历史迁移三POST总接线，233条。主代理transfer7组、共享保存点修复后group7及item8组最终退出0。实际文件与完整入口/核心操作/成功及错误边界见[分享与迁移](api-v3-emoji-transfer-work.md)。修复`ApiV3TransactionSavepoint`嵌套primitive已中止根时的二次回滚错误覆盖；无新表或前端。当前credential底座和敏感设置源码仍在实施，未作为可用入口；真实应用与全站反漏扫未验收。
+
+
+## 2026-10-23 第十二轮：敏感设置及全凭据撤销
+
+安全/MFA/联系方式九路由已总接线，当前242条（241HTTP+1WS）：GET121/POST55/PUT41/DELETE24/WS1。主代理最终security6、mfa9、contact8、mail3、credential10、Cookie3组及既有chat-event综合157条PASS退出0；生产日志过滤XML/真实Latke解析专项通过。文件、部署顺序、完整人工用户链及未验证项见[凭据底座](api-v3-account-credential-work.md)、[安全](api-v3-security-work.md)、[MFA](api-v3-mfa-work.md)、[联系方式](api-v3-contact-work.md)、[邮件](api-v3-account-mail-work.md)。
+
+独立epoch避免旧User整行写回退撤权；敏感变更与密码重置同时撤Cookie/apiKey/旧OpenID/v3/code/pending。WS认证与资源释放经独立检查，关闭清理不重新鉴权。三份SQL和repository.json已齐备，未执行业务迁移；需用户IDEA重编译/重启后实际MySQL/IoC/PC/mobile/供应商/多实例和全站反漏扫验收。无前端修改，无Maven，不作整个未提交工作区发布验收通过声明。
+
+本批结束时普通积分改名、游戏云存档、导出、红包及公开支付继续保留在范围（后续进展见下一批）；云存档两项规则已向用户发出，其他待确认建议见cloud-export-plan及chat-payments-work。
+
+
+## 2026-10-24 第十三轮：普通积分改名
+
+PUT `/api/v3/me/settings/user-name`已接入总register，当前243条（242HTTP+1WS）：GET121/POST55/PUT42/DELETE24/WS1。沿既有UserNameRules、ProfileWriteQuota、Censor与Pointtransfer费用，双activity.write/settings.write及幂等，改名/扣费/回执同严格事务；旧`/settings/username`本批不改造，不宣称新旧整个扣费链原子化。积分记录新格式与旧格式兼容读取另作专项验证。
+
+当前配置`pointChangeUsername=1000`，隔离fixture的100仅为测试值。文件清单、带列长触发器的最终隔离6组及证据边界、完整人工用户链和运行限制见[普通积分改名工作记录](api-v3-user-name-work.md)。仍需IDEA重编译/重启后真实MySQL/IoC/PC/mobile及全站反漏扫验收。游戏云存档、导出、红包及公开支付继续保留在后续范围。
+
+第十三轮最终核对：主代理改名runner带列长触发器6组退出0（`/tmp/rhythm-v3-user-name-root-final.log`）；全仓生成790路由/398浏览器引用，总register243条与进度表逐项一致、无重复。真实完整getUserPoints/MySQL/浏览器未验收，细节见user-name-work。
+
+## 2026-10-24 第十四轮：样式、捐助页、私有导出与三类红包
+
+已总接线8入口：会员样式GET、捐助页GET、本人导出POST/GET/下载GET、红包创建POST/详情GET/领取POST。当前251条（250HTTP+1WS），GET126/POST58/PUT42/DELETE24/WS1，最终递归register校验另记progress。会员样式仅指定ID批量/三展示字段；捐助仅当前站点页面链接；完整本人导出100积分/24h私有DB块，先迁移20261024_api_v3_post_export.sql；三类红包持久分配/原子资金及旧领取桥接，先迁移20261024_api_v3_chat_red_packet.sql，未领完禁删除，旧历史不变。无前端改动，无Maven/服务端或业务库联调。
+
+真实执行证据：style5组、donation3组、export10组、红包9组；真实Latke/XML敏感解析日志过滤含export通过；普通改名另增真实MySQL8.4.11专项5组/231条FOR UPDATE，费用实际1000。红包触及共享聊天删除，chat-event/publication回归通过；最终重复数以根日志与各work为准，不把隔离测试等同全服务。完整文件/人工链分别见membership-style-work、donation-work、post-export-work、chat-red-packet-work与user-name-mysql-work。
+
+子代理因配额停止后根接手导出测试/接线/文档及红包编译修复/事务专项/接线。未完成整体v3目标：真游戏存档规则及旧客户端桥接待答，心跳/猜拳另行设计，OAuth非浏览器风控凭据契约、独立website_v3客户端仓库迁移和真实部署全链验收仍在范围。不提交/推送；公开API.md需同步网站文章。
+
+## 2026-10-24 第十五轮：原生OAuth协议准入
+
+用户批准两个协议端点以有效绑定凭据证明身份。ApiV3OAuthProcessor接只读CredentialQuery，原privacy/rate/global Before黑名单保持；无效仍原anonymous，不设通用身份或IP白名单。正确绑定重放仍进原核心撤家族，最终写根重验。251条不变，原回归157组与新定向6组退出0；真实浏览器/native/完整匿名解封未验，完整文件及人工链见oauth-protocol-work。第十四轮两SQL已在一次性MySQL8.4.11执行/复执行、核四表元数据/索引及样本回滚两组通过，专用容器已删，不代用户执行业务迁移。
+
+
+## 2026-10-24 第十六轮：心跳和猜拳
+
+三子代理分别完成结算/迁移、HTTP契约/公开文档、专项测试；根整合实际MySQL独立进程竞争。沿已有三个红包入口扩五类，不新增路由，251条保持。心跳负积分、猜拳双倍返还、已领份额与消息/事件/回执在同一严格根提交；显式风险确认和出拳指纹，未结算出拳只对发送者详情可见。先迁移20261024_api_v3_chat_red_packet_risk.sql。完整修改文件、人工步骤与验证边界见api-v3-chat-red-packet-risk-work.md。真游戏云存档两问题、独立website_v3客户端和真实服务端/PC/mobile验收仍待完成；本轮不提交推送、无Maven或前端改动。
+
+
+## 2026-10-24 第十七轮：剩余能力反查与交付迁移
+
+只读审查重新找到作者付费置顶、官方身份认证申请、音乐/天气卡片发送三个用户侧缺口，已纳入progress，业务规则已询问，不能排除或以读取DTO代替写入。游戏云存档仍待游戏范围/旧桥接与版本体积契约；外部website_v3源码缺及IDEA重启未确认仍是运行依赖。未将整体目标标为完成。
+
+新增有序15SQL/19张新表的真实MySQL迁移链专项，四组通过；导出新增真实MySQL八场景，验证多块文件、费用/回执/文件原子性、故障/丢ACK及跨JVM同键只有一份任务和100分扣费。专用容器已清理，未操作业务库、不Maven；完整文件、人工链与夹具限制见migration-chain-work及post-export-work。本轮没有新增或修改公开接口。
+
+
+## 2026-10-24 第十八轮：客户端读取
+
+找到真实客户端/Users/ling/Documents/fishpi/website_v3，保留已有改动后接线读取helper、稳健认证及缓存旧响应隔离。后端文章GET补问答/优选和月内评论排序，原契约不变、数量251。隔离SQL4组、客户端认证12组/缓存3组/内容专项、类型与双构建通过，IAB窄视口仅用独立本地夹具验证。真实后端重启、宽屏与设备/全站风控尚未验收。详见client-read-work及客户端V3_MIGRATION。用户新确认付费置顶、音乐/天气、认证独立审核及首次读取销毁，后续继续实现。
+
+
+## 2026-10-24 第十九轮：作者付费置顶
+
+新增POST stick并总注册，当前252入口。用户批准有效置顶排序及元数据；同事务付费/时间/回执、共享过期当前读、防旧回执覆盖、提交后索引修复。隔离8组、排序SQL4组、客户端适配/双构建及本地夹具宽视口展示通过，真实服务/调度/MySQL并发/移动设备未验。完整文件与人工链见article-stick-work；音乐/天气、认证独立审核等继续开发。
+
+### 2026-10-24 音乐/天气补齐
+
+新增两路POST并接入总register，当前254（253HTTP+1WS）；实现与限制见`api-v3-chat-card-work.md`。官方企业认证的申请去重、审核结论和材料一次读取规则已确认，尚待实现；不能据源码计数宣告v3全部完成。
+
+### 2026-10-24 企业认证材料阶段
+
+新增5路源码达259入口，私有申请与材料一次读取已接线；结论提交在先读图规则答复后补齐，当前不能完成整份审核。新迁移、8组隔离检查和MySQL迁移证据见`api-v3-identity-application-work.md`。
+
+企业认证补充真实MySQL证据：8个既有核心/HTTP边界场景及3组跨JVM竞争通过，包含观察InnoDB等待的幂等/单pending/一次性读图。259入口不变；完整应用与待确认审核结论继续保留，不据测试条数宣告全目标完成。
+
+2026-10-24企业认证结论已补齐：先读图、同事务结论/回执/释放pending及幂等重放，6路使总数260。11组核心/HTTP与真实MySQL、5组跨JVM竞争通过。仍需完整运行验收，不将源码闭环当部署完成。
+
+
+2026-10-25扫码范围更新：用户明确只需v3支持、不改APP代码。七条官方APP扫码POST已总注册，SQL/Repository元数据、两分钟/双端确认/一次消费、当前发码授权/epoch重验与独立native令牌完成；管理员变更/停用清待扫码。当前271路，源码/隔离证据与运行验收仍分列；完整链及未验见api-v3-app-login-work.md。APP克隆仅只读参考，工作区已还原干净，不以APP源码迁移作为本任务交付条件。

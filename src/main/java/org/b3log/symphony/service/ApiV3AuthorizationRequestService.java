@@ -36,10 +36,13 @@ public class ApiV3AuthorizationRequestService {
     private Transaction begin(){
         if(requests.hasTransactionBegun())throw new IllegalStateException("authorization request root already active");return ApiV3Transactions.strict(requests.beginTransaction());
     }
+    protected void verifyCookieCredential(String actor) {
+        if(org.b3log.symphony.util.AccountCredentialVersions.issuance(actor,null)==null)throw invalid();
+    }
     public Prepared start(String cookieActor,String client,String uri,String scope,String state,String challenge,String method)throws Exception {
         actor(cookieActor);ApiV3Pkce.requireS256(challenge,method);ApiV3OAuthCallbacks.validateState(state);
         final Transaction tx=begin();try{
-            final var registered=codes.prepareConsentClientInCurrentTransaction(client,uri,scope);codes.verifyConsentUserInCurrentTransaction(cookieActor);
+            final var registered=codes.prepareConsentClientInCurrentTransaction(client,uri,scope);codes.verifyConsentUserInCurrentTransaction(cookieActor);verifyCookieCredential(cookieActor);
             final long time=now();if(time<=0)throw new IllegalStateException("invalid consent clock");final long expires=Math.addExact(time,TTL);
             final String handle=ApiV3TokenUtil.generate(),proof=ApiV3TokenUtil.generate(),hash=requestHash(handle);
             final var row=new JSONObject().put(Keys.OBJECT_ID,hash).put(ApiV3AuthorizationRequest.USER_ID,cookieActor)
@@ -67,7 +70,7 @@ public class ApiV3AuthorizationRequestService {
             final long created=row.optLong(ApiV3AuthorizationRequest.CREATED_AT,-1),expires=row.optLong(ApiV3AuthorizationRequest.EXPIRES_AT,-1);
             if(time<=0||created<=0||created>time||created>Long.MAX_VALUE-TTL||expires!=created+TTL||expires<=time||row.optLong(ApiV3AuthorizationRequest.DECIDED_AT,-1)!=0)throw invalid();
             final String state=row.getString(ApiV3AuthorizationRequest.STATE),challenge=row.getString(ApiV3AuthorizationRequest.CHALLENGE);ApiV3OAuthCallbacks.validateState(state);ApiV3Pkce.requireS256(challenge,"S256");
-            codes.verifyConsentUserInCurrentTransaction(cookieActor);
+            codes.verifyConsentUserInCurrentTransaction(cookieActor);verifyCookieCredential(cookieActor);
             final String code=approved?codes.issueInCurrentTransaction(cookieActor,client.clientId(),client.redirectUri(),client.scope(),challenge,"S256").code():null;
             final String callback=ApiV3OAuthCallbacks.result(client.redirectUri(),state,code,approved);
             row.put(ApiV3AuthorizationRequest.DECISION,approved?ApiV3AuthorizationRequest.APPROVED:ApiV3AuthorizationRequest.DENIED).put(ApiV3AuthorizationRequest.DECIDED_AT,time);

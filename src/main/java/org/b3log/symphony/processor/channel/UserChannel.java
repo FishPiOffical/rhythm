@@ -82,6 +82,7 @@ public class UserChannel implements WebSocketChannel {
      * Session set.
      */
     public static final Map<String, Set<WebSocketSession>> SESSIONS = new ConcurrentHashMap();
+    private static final Map<WebSocketSession, String> CONNECTION_OWNERS = new ConcurrentHashMap<>();
 
     /**
      * Online time count.
@@ -96,15 +97,7 @@ public class UserChannel implements WebSocketChannel {
     @Override
     public void onConnect(final WebSocketSession session) {
         final Session httpSession = session.getHttpSession();
-        JSONObject user = null;
-        try {
-            user = new JSONObject(httpSession.getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            user = ApiProcessor.getUserByKey(session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
+        JSONObject user = org.b3log.symphony.util.Sessions.currentSocketUser(session);
         if (null == user) {
             return;
         }
@@ -124,6 +117,7 @@ public class UserChannel implements WebSocketChannel {
         userSessions.add(session);
 
         SESSIONS.put(userId, userSessions);
+        CONNECTION_OWNERS.put(session, userId);
 
         final BeanManager beanManager = BeanManager.getInstance();
         final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
@@ -180,6 +174,7 @@ public class UserChannel implements WebSocketChannel {
             if (userId.equals(recvUserId)) {
                 final Set<WebSocketSession> sessions = SESSIONS.get(userId);
                 for (final WebSocketSession session : sessions) {
+                    if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                     session.sendText(msgStr);
                     AdminProcessor.manager.onMessageSent(8, msgStr.length());
                 }
@@ -203,6 +198,7 @@ public class UserChannel implements WebSocketChannel {
                 try {
                     final Set<WebSocketSession> sessions = SESSIONS.get(userId);
                     for (final WebSocketSession session : sessions) {
+                        if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                         session.sendText(msgStr);
                         AdminProcessor.manager.onMessageSent(8, msgStr.length());
                     }
@@ -217,26 +213,11 @@ public class UserChannel implements WebSocketChannel {
      *
      * @param session the specified session
      */
-    String lastSession = "";
     private synchronized void removeSession(final WebSocketSession session) {
-        if (lastSession.equals(session.getId())) {
-            return;
-        }
-        lastSession = session.getId();
+        // Closing a revoked connection must still remove its server-recorded ownership and settle time.
+        final String userId = CONNECTION_OWNERS.remove(session);
+        if (userId == null) return;
         final Session httpSession = session.getHttpSession();
-        JSONObject user = null;
-        try {
-            user = new JSONObject(httpSession.getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            user = ApiProcessor.getUserByKey(session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
-        if (null == user) {
-            return;
-        }
-        final String userId = user.optString(Keys.OBJECT_ID);
         final BeanManager beanManager = BeanManager.getInstance();
         final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
         final String ip = httpSession.getAttribute(Common.IP);

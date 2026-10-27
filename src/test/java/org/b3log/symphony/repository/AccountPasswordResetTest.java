@@ -1,6 +1,8 @@
 package org.b3log.symphony.repository;
 
 import org.b3log.latke.Latkes;
+import org.b3log.latke.ioc.BeanManager;
+import org.b3log.symphony.service.AccountCredentialMgmtService;
 import org.b3log.latke.http.*;
 import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.repository.RepositoryException;
@@ -32,7 +34,7 @@ public class AccountPasswordResetTest {
         final AccountVerificationService verification=new AccountVerificationService(){@Override protected long now(){return 100_000;}};
         final Controller controller=new Controller();final LoginProcessor legacy=new LoginProcessor();
         Reset()throws Exception {
-            exec(writer,"ALTER TABLE user ADD COLUMN userPhone TEXT");exec(writer,"ALTER TABLE user ADD COLUMN userPassword TEXT");
+            exec(writer,"ALTER TABLE user ADD COLUMN userPhone TEXT");
             exec(writer,"UPDATE user SET userPhone='13800000001',userPassword='before' WHERE oId='1'");exec(writer,"UPDATE user SET userPhone='13800000002',userPassword='other' WHERE oId='2'");
             exec(writer,"CREATE TABLE verifycode(oId TEXT PRIMARY KEY,userId TEXT,receiver TEXT,type INTEGER,bizType INTEGER,code TEXT,status INTEGER,expired BIGINT)");sms("1","1",PHONE,1,200_000);
             final var owners=new UserRepository(){
@@ -68,11 +70,25 @@ public class AccountPasswordResetTest {
                 @Override public boolean hasTransactionBegun(){return active();}
                 @Override public int invalidatePendingForUserInCurrentTransaction(String id)throws RepositoryException{int n=super.invalidatePendingForUserInCurrentTransaction(id);fault("requests");return n;}
             });
+            exec(writer,"CREATE TABLE legacy_refresh(oId TEXT PRIMARY KEY,userId TEXT,state INTEGER,updatedAt BIGINT)");
+            exec(writer,"INSERT INTO legacy_refresh VALUES('legacy1','1',0,0),('legacy2','2',0,0)");
+            final var epochStates=BeanManager.getInstance().getReference(AccountCredentialStateRepository.class);
+            final var credentialWrites=new AccountCredentialMgmtService(){@Override protected long now(){return 100_000;}};
+            inject(credentialWrites,AccountCredentialMgmtService.class,"users",owners);
+            inject(credentialWrites,AccountCredentialMgmtService.class,"states",epochStates);
+            inject(credentialWrites,AccountCredentialMgmtService.class,"openid",new OpenIdRefreshTokenRepository(){@Override public String getName(){return "legacy_refresh";}});
+            for(String name:List.of("tokens","requests","codes")){
+                final var field=AccountPasswordResetService.class.getDeclaredField(name);field.setAccessible(true);
+                inject(credentialWrites,AccountCredentialMgmtService.class,name,field.get(reset));
+            }
+            inject(reset,AccountPasswordResetService.class,"credentials",credentialWrites);
+            inject(reset,AccountPasswordResetService.class,"states",epochStates);
+            AccountCredentialVersions.remember(AccountCredentialVersions.current("1"));
             inject(controller,ApiV3AccountProcessor.class,"passwords",reset);inject(legacy,LoginProcessor.class,"passwordResets",reset);
         }
         void fault(String name)throws RepositoryException{if(faults.contains("reset."+name))throw new RepositoryException("fixture reset statement failure");}
         void sms(String id,String user,String phone,int purpose,long expiry)throws Exception{exec(writer,"INSERT INTO verifycode VALUES(?,?,?,1,?,'123456',0,?)",id,user,phone,purpose,expiry);}
-        String resetSnapshot()throws Exception{return all()+query(reader,"SELECT * FROM auth_requests ORDER BY oId")+query(reader,"SELECT * FROM user ORDER BY oId")+query(reader,"SELECT * FROM verifycode ORDER BY oId");}
+        String resetSnapshot()throws Exception{return all()+query(reader,"SELECT * FROM credential_states ORDER BY oId")+query(reader,"SELECT * FROM legacy_refresh ORDER BY oId")+query(reader,"SELECT * FROM auth_requests ORDER BY oId")+query(reader,"SELECT * FROM user ORDER BY oId")+query(reader,"SELECT * FROM verifycode ORDER BY oId");}
         JSONObject http(boolean old,String body,String query,String type)throws Exception{
             var netty=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,old?"/reset-pwd":"/api/v3/auth/password-reset/complete"+(query==null?"":"?"+query),io.netty.buffer.Unpooled.copiedBuffer(body,java.nio.charset.StandardCharsets.UTF_8));
             try{
@@ -95,7 +111,7 @@ public class AccountPasswordResetTest {
             final var sample=f.token(pair.getString("accessToken"));f.begin();
             for(int i=0;i<250;i++)f.insert("tokens",new JSONObject(sample.toString()).put("oId",Long.toString(1_000_000_000_000_000_000L+i)).put("tokenHash","bulk-hash-"+i).put("familyId","bulk-family-"+i));f.commit();
             f.begin();var user2=f.service.issueForClientInCurrentTransaction("2",CLIENT,"content.read");f.commit();
-            f.issue("content.read");f.consent.start("1",CLIENT,URI,"content.read","state",CHALLENGE,"S256");f.consent.start("2",CLIENT,URI,"content.read","other",CHALLENGE,"S256");
+            f.issue("content.read");f.consent.start("1",CLIENT,URI,"content.read","state",CHALLENGE,"S256");AccountCredentialVersions.remember(AccountCredentialVersions.current("2"));f.consent.start("2",CLIENT,URI,"content.read","other",CHALLENGE,"S256");AccountCredentialVersions.remember(AccountCredentialVersions.current("1"));
             f.locks.clear();Assert.assertTrue(f.reset.complete(PHONE,"123456",PASSWORD).getBoolean("changed"));Assert.assertEquals(f.locks.getFirst(),"client");Assert.assertEquals(f.order.getFirst(),"user");
             Assert.assertEquals(query(f.reader,"SELECT userPassword FROM user WHERE oId='1'").getFirst().getString("userPassword"),PASSWORD);
             Assert.assertNull(f.service.authenticate(pair.getString("accessToken")));Assert.assertNull(f.service.authenticate(other.getString("accessToken")));Assert.assertNotNull(f.service.authenticate(user2.getString("accessToken")));

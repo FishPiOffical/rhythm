@@ -1438,11 +1438,8 @@ public class ArticleMgmtService {
                     continue; // Skip admin stick
                 }
 
-                final long expired = stick + stepTime;
-                if (expired < now) {
-                    article.put(Article.ARTICLE_STICK, 0L);
-                    articleRepository.update(article.optString(Keys.OBJECT_ID), article, Article.ARTICLE_STICK);
-                }
+                articleRepository.expireStickIfCurrentInCurrentTransaction(
+                        article.optString(Keys.OBJECT_ID), stick, now, stepTime);
             }
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Expires sticked articles failed", e);

@@ -7,6 +7,8 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.ApiV3AuthorizationRequest;
 import org.b3log.symphony.model.ApiV3ClientRedirect;
 import org.b3log.symphony.model.ApiV3Token;
+import org.b3log.symphony.model.ApiV3Client;
+import org.b3log.symphony.repository.ApiV3AppLoginRequestRepository;
 import org.b3log.symphony.repository.ApiV3AuthorizationCodeRepository;
 import org.b3log.symphony.repository.ApiV3AuthorizationRequestRepository;
 import org.b3log.symphony.repository.ApiV3ClientRedirectRepository;
@@ -39,6 +41,7 @@ public class ApiV3ClientUpdateService {
     @Inject private ApiV3AuthorizationCodeRepository codes;
     @Inject private ApiV3AuthorizationRequestRepository consents;
     @Inject private ApiV3RequestRepository requests;
+    @Inject private ApiV3AppLoginRequestRepository appLogins;
 
     public JSONObject update(final JSONObject identity, final String clientId,
                              final ApiV3ClientManagementInputs.Registration input, final String key) throws Exception {
@@ -112,6 +115,7 @@ public class ApiV3ClientUpdateService {
                 if (added != 1) throw unavailable();
             }
             if (changed) {
+                if (ApiV3Client.APP_CLIENT.equals(clientId)) appLogins.invalidatePendingInCurrentTransaction();
                 final int revoked = ApiV3TransactionStatements.execute("UPDATE `" + tokens.getName()
                         + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                         ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);

@@ -231,3 +231,58 @@ v3 DELETE本人私信已接线，用户批准旧GET /chat/revoke共用严格事�
 2026-10-20第三轮：提交6231c4f0已推送origin/api_v3；其后接入主职业/勋章显示PUT及管理员OAuth列表/详情/登记，共192条可达注册（191 HTTP+1WS）。已确认20回调/2048上限并落实；停用及回调/权限修改仍未完成。最新状态以progress为准。
 
 2026-10-20第四轮：并行接线本人匿名文章/评论、邀请码状态、管理员客户端停用与完整修改5接口；当前197条（196HTTP+1WS），最新清单见progress。用户确认权限/回调集合实际变更使全部旧Token/码/pending授权失效；仅名称或集合顺序变化保留授权，不开放重新启用。匿名列表仅本人元数据，邀请码unused不等于当前可注册。实际文件、隔离证据和未完成运行验收见development-plan及各work文档；本批仍未提交。
+
+2026-10-22：第五轮接入本人职业详情/90天记录两GET、引导/隐私两PUT和勋章相邻移动POST；当前202条（201HTTP+1WS）。主代理隔离专项7/11/8组通过，真实运行未验收，本批未再提交。会员配置/开通已发出三条规则确认，收费与权益不擅自改动。最新清单及缺口见progress，文件/人工链路见development-plan及本批三份work。
+
+2026-10-22第六轮：会员三项规则已获确认，展示配置PUT和积分开通POST已接线，当前204条（203HTTP+1WS）。主代理专项10/12组通过，新买方主账/券/礼包/回执同事务，仅开通使用完整服务端defaults。旧开通仅补账户对前置锁，不改原收费与字段。先迁移20261022_api_v3_membership.sql积分冗余索引，真实运行与全站反漏扫仍待验；本批未提交。
+
+
+2026-10-22第七轮：职业成长提示、排行及用户公开职业资料三GET已总接线，当前207条（206HTTP+1WS）。排行先筛可见人群、连续编号；隐藏经验仍显示等级名次，公开资料跨模块省略经验，rarity/ranking使用同一可见人群。成长提示承认展示revision与等级scheme独立生命周期；公开资料检查十模块和当前公开来源权限。隔离与运行验收分别以progress/交接文档为准，未执行Maven、真实MySQL或完整应用，本批未提交。
+
+
+2026-10-22第八轮：复读机items/next两GET、本人常用表情PUT、本人邀请码购买POST已注册，当前211条（210HTTP+1WS）。用户确认表情严格目录/空数组恢复默认，以及邀请码仅邀请模式/余额足够才原子扣费生成。复读保留前50池语义；购码同key恢复原code，不在账本/日志字段存码，旧入口保持。主代理专项6/7/9组通过；源码与运行验收分列，无新迁移/前端，仍需既有积分来源/索引迁移和真实MySQL/完整应用验收。本批未提交。
+
+
+## 2026-10-23 第九及第十轮接线
+
+第九轮六入口达到217条，主代理专项转账9、举报9、复读写9组退出0。独立MySQL8.4.11三项RR当前读/回滚/目标锁串行SQL通过，未接触业务库，不代替完整Java事务MySQL并发。完整文件与人工链见[转账](api-v3-point-transfer-work.md)、[举报](api-v3-report-work.md)、[复读写](api-v3-repeater-write-work.md)。
+
+第十轮先接历史四GET及分组三写，达到224条（223HTTP+1WS）；主代理复跑历史8组、分组7组退出0。实际文件、权限与失败边界、完整人工步骤见[历史](api-v3-revision-work.md)及[分组](api-v3-emoji-group-work.md)。图片成员/鱼游投稿正在实现，未计总register；敏感设置已确认第一方及密码/TOTP证明，其余策略待答。
+
+当前未再次提交，未执行Maven，无前端修改或构建。完整IoC/HTTP、应用MySQL、PC/mobile及全站反漏扫未验收；联调前用户须通过IDEA重新编译或重启。API.md已更新，发布时还需同步网站API文章。
+
+
+第十轮续：图片成员四路由及鱼游投稿/编辑两路由已总接线，当前230条（229HTTP+1WS）。主代理最终复跑历史9、分组7、成员8、鱼游7组全部退出0。历史增加真实SHA2输入计量和预算前置；鱼游先执行`sql/20261023_api_v3_fish_game_submission.sql`，旧审核只适配OAuth pending合并/清理，不宣称新旧写入整体串行。实际新增与改动文件及完整人工链见[成员](api-v3-emoji-item-work.md)、[鱼游](api-v3-fish-game-submission-work.md)，前述历史/分组work同步更新。真实运行仍未验收。
+
+
+第十一轮（2026-10-23）：图片分享/导入/历史迁移三POST总接线，233条。主代理transfer7组、共享保存点修复后group7及item8组最终退出0。实际文件与完整入口/核心操作/成功及错误边界见[分享与迁移](api-v3-emoji-transfer-work.md)。修复`ApiV3TransactionSavepoint`嵌套primitive已中止根时的二次回滚错误覆盖；无新表或前端。当前credential底座和敏感设置源码仍在实施，未作为可用入口；真实应用与全站反漏扫未验收。
+
+
+## 2026-10-23 第十二轮：敏感设置及全凭据撤销
+
+安全/MFA/联系方式九路由已总接线，当前242条（241HTTP+1WS）：GET121/POST55/PUT41/DELETE24/WS1。主代理最终security6、mfa9、contact8、mail3、credential10、Cookie3组及既有chat-event综合157条PASS退出0；生产日志过滤XML/真实Latke解析专项通过。文件、部署顺序、完整人工用户链及未验证项见[凭据底座](api-v3-account-credential-work.md)、[安全](api-v3-security-work.md)、[MFA](api-v3-mfa-work.md)、[联系方式](api-v3-contact-work.md)、[邮件](api-v3-account-mail-work.md)。
+
+独立epoch避免旧User整行写回退撤权；敏感变更与密码重置同时撤Cookie/apiKey/旧OpenID/v3/code/pending。WS认证与资源释放经独立检查，关闭清理不重新鉴权。三份SQL和repository.json已齐备，未执行业务迁移；需用户IDEA重编译/重启后实际MySQL/IoC/PC/mobile/供应商/多实例和全站反漏扫验收。无前端修改，无Maven，不作整个未提交工作区发布验收通过声明。
+
+本批结束时普通积分改名、游戏云存档、导出、红包及公开支付继续保留在范围（后续进展见下一批）；云存档两项规则已向用户发出，其他待确认建议见cloud-export-plan及chat-payments-work。
+
+
+## 2026-10-24 第十三轮：普通积分改名
+
+PUT `/api/v3/me/settings/user-name`已接入总register，当前243条（242HTTP+1WS）：GET121/POST55/PUT42/DELETE24/WS1。沿既有UserNameRules、ProfileWriteQuota、Censor与Pointtransfer费用，双activity.write/settings.write及幂等，改名/扣费/回执同严格事务；旧`/settings/username`本批不改造，不宣称新旧整个扣费链原子化。积分记录新格式与旧格式兼容读取另作专项验证。
+
+当前配置`pointChangeUsername=1000`，隔离fixture的100仅为测试值。文件清单、带列长触发器的最终隔离6组及证据边界、完整人工用户链和运行限制见[普通积分改名工作记录](api-v3-user-name-work.md)。仍需IDEA重编译/重启后真实MySQL/IoC/PC/mobile及全站反漏扫验收。游戏云存档、导出、红包及公开支付继续保留在后续范围。
+
+第十三轮最终核对：主代理改名runner带列长触发器6组退出0（`/tmp/rhythm-v3-user-name-root-final.log`）；全仓生成790路由/398浏览器引用，总register243条与进度表逐项一致、无重复。真实完整getUserPoints/MySQL/浏览器未验收，细节见user-name-work。
+
+## 2026-10-24 第十四轮：样式、捐助页、私有导出与三类红包
+
+已总接线8入口：会员样式GET、捐助页GET、本人导出POST/GET/下载GET、红包创建POST/详情GET/领取POST。当前251条（250HTTP+1WS），GET126/POST58/PUT42/DELETE24/WS1，最终递归register校验另记progress。会员样式仅指定ID批量/三展示字段；捐助仅当前站点页面链接；完整本人导出100积分/24h私有DB块，先迁移20261024_api_v3_post_export.sql；三类红包持久分配/原子资金及旧领取桥接，先迁移20261024_api_v3_chat_red_packet.sql，未领完禁删除，旧历史不变。无前端改动，无Maven/服务端或业务库联调。
+
+真实执行证据：style5组、donation3组、export10组、红包9组；真实Latke/XML敏感解析日志过滤含export通过；普通改名另增真实MySQL8.4.11专项5组/231条FOR UPDATE，费用实际1000。红包触及共享聊天删除，chat-event/publication回归通过；最终重复数以根日志与各work为准，不把隔离测试等同全服务。完整文件/人工链分别见membership-style-work、donation-work、post-export-work、chat-red-packet-work与user-name-mysql-work。
+
+子代理因配额停止后根接手导出测试/接线/文档及红包编译修复/事务专项/接线。未完成整体v3目标：真游戏存档规则及旧客户端桥接待答，心跳/猜拳另行设计，OAuth非浏览器风控凭据契约、独立website_v3客户端仓库迁移和真实部署全链验收仍在范围。不提交/推送；公开API.md需同步网站文章。
+
+## 2026-10-24 第十五轮：原生OAuth协议准入
+
+用户批准两个协议端点以有效绑定凭据证明身份。ApiV3OAuthProcessor接只读CredentialQuery，原privacy/rate/global Before黑名单保持；无效仍原anonymous，不设通用身份或IP白名单。正确绑定重放仍进原核心撤家族，最终写根重验。251条不变，原回归157组与新定向6组退出0；真实浏览器/native/完整匿名解封未验，完整文件及人工链见oauth-protocol-work。第十四轮两SQL已在一次性MySQL8.4.11执行/复执行、核四表元数据/索引及样本回滚两组通过，专用容器已删，不代用户执行业务迁移。

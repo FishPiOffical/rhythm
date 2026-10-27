@@ -28,6 +28,8 @@ public final class FishGame {
     public static final String DESCRIPTION = "fishGameDescription";
     public static final String URL = "fishGameUrl";
     public static final String ICON_URL = "fishGameIconUrl";
+    public static final String OAUTH_LOGIN_URL = "fishGameOauthLoginUrl";
+    public static final String PENDING_OAUTH_LOGIN_URL = "fishGamePendingOauthLoginUrl";
     public static final String AUTHOR_ID = "fishGameAuthorId";
     public static final String STATUS = "fishGameStatus";
     public static final String EDIT_PENDING = "fishGameEditPending";

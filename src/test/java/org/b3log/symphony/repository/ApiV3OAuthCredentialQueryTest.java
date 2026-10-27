@@ -10,7 +10,7 @@ import java.util.*;
 import static org.b3log.symphony.repository.ApiV3ChatEventRepositoryTest.*;
 import static org.b3log.symphony.repository.ApiV3AuthorizationCodeTest.*;
 
-/** Prepared but not wired pending the user's anonymous/authenticated endpoint policy choice. */
+/** Read-only proof used by the endpoint-local native OAuth admission policy. */
 public class ApiV3OAuthCredentialQueryTest {
     static class Proof extends Grants {
         final ApiV3OAuthCredentialQueryService proof=new ApiV3OAuthCredentialQueryService(){@Override protected long now(){return service.clock;}};

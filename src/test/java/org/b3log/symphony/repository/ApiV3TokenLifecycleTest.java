@@ -1,6 +1,8 @@
 package org.b3log.symphony.repository;
 
 import org.b3log.latke.Latkes;
+import org.b3log.latke.ioc.BeanManager;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
@@ -37,6 +39,12 @@ public class ApiV3TokenLifecycleTest {
         };
         Fixture()throws Exception{
             exec(writer,"ALTER TABLE user ADD COLUMN userStatus INTEGER");exec(writer,"UPDATE user SET userStatus=0");exec(writer,"INSERT INTO user VALUES('2',0)");
+            exec(writer,"ALTER TABLE user ADD COLUMN userPassword TEXT DEFAULT 'fixture-password'");
+            exec(writer,"CREATE TABLE credential_states(oId TEXT PRIMARY KEY,credentialEpoch BIGINT,updatedAt BIGINT)");
+            var credentialUsers=new UserRepository(){public boolean hasTransactionBegun(){return active();}public String getName(){return "user";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return query(active()?writer:reader,sql,args);}};
+            var credentialStates=new AccountCredentialStateRepository(){public boolean hasTransactionBegun(){return active();}public String getName(){return "credential_states";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return query(active()?writer:reader,sql,args);}};
+            inject(credentialStates,AccountCredentialStateRepository.class,"users",credentialUsers);BeanManager.put(AccountCredentialStateRepository.class,credentialStates);
+            AccountCredentialVersions.remember(AccountCredentialVersions.current("1"));
             exec(writer,"CREATE TABLE clients(oId TEXT PRIMARY KEY,clientId TEXT UNIQUE,name TEXT,scope TEXT,status INTEGER)");
             exec(writer,"CREATE TABLE tokens(oId TEXT PRIMARY KEY,tokenHash TEXT UNIQUE,tokenType TEXT,userId TEXT,clientId TEXT,scope TEXT,familyId TEXT,parentId TEXT,state INTEGER,createdAt BIGINT,updatedAt BIGINT,lastUsedAt BIGINT,expiresAt BIGINT)");
             inject(service,ApiV3TokenMgmtService.class,"apiV3TokenRepository",tokens);inject(service,ApiV3TokenMgmtService.class,"apiV3ClientRepository",clients);

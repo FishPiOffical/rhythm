@@ -127,6 +127,27 @@ var ChatRoom = {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
     },
+    cardImageURL: function (value) {
+        try {
+            const url = new URL(String(value || ''), window.location.href);
+            if (value && (url.protocol === 'https:' || url.protocol === 'http:')) return url.href;
+        } catch (ignore) { }
+        return Label.servePath + '/images/music/cat.gif';
+    },
+    renderMusicCard: function (card) {
+        const escape = ChatRoom.escapeReactionHtml;
+        return '<div class="music-player"><img class="music-player-img" src="' + escape(ChatRoom.cardImageURL(card.coverURL)) +
+            '"><div class="music-player-box"><div class="music-player-title">' + escape(card.title) +
+            '</div><div class="music-player-controller" data-source="' + escape(card.source) + '" data-cover="' + escape(card.coverURL) +
+            '" data-title="' + escape(card.title) + '" data-from="' + escape(card.from) +
+            '"><span onclick="ChatRoom.playSound.add(this)">加入列表</span> | <span onclick="ChatRoom.playSound.play(this)">立即播放</span></div></div></div>';
+    },
+    renderWeatherCard: function (id, card) {
+        const escape = ChatRoom.escapeReactionHtml;
+        return '<div id="weather_' + escape(id) + '" style="width:300px;height:280px;" data-date="' + escape(card.date) +
+            '" data-code="' + escape(card.weatherCode) + '" data-max="' + escape(card.max) + '" data-min="' + escape(card.min) +
+            '" data-t="' + escape(card.t) + '" data-st="' + escape(card.st) + '"></div>';
+    },
     getReactionUserDetails: function (item) {
         if (!item || !Array.isArray(item.userDetails)) {
             return [];
@@ -2209,7 +2230,7 @@ ${result.info.msg}
             let isMusic = false;
             let isPlusOne = Label.latestMessage === data.md;
             try {
-                let msgJSON = $.parseJSON(data.content.replace("<p>", "").replace("</p>", ""));
+                let msgJSON = $.parseJSON(data.md || data.content.replace("<p>", "").replace("</p>", ""));
                 if (msgJSON.msgType === "redPacket") {
                     isRedPacket = true;
                     let type = "未知类型红包";
@@ -2303,19 +2324,10 @@ ${result.info.msg}
                     }
                 } else if (msgJSON.msgType === "weather") {
                     isWeather = true;
-                    data.content = '<div id="weather_' + data.oId + '" style="width: 300px;height:280px;" data-date="' + msgJSON.date + '" data-code="' + msgJSON.weatherCode + '" data-max="' + msgJSON.max + '" data-min="' + msgJSON.min + '" data-t="' + msgJSON.t + '" data-st="' + msgJSON.st + '"></div>';
+                    data.content = ChatRoom.renderWeatherCard(data.oId, msgJSON);
                 } else if (msgJSON.msgType === 'music') {
                     isMusic = true;
-                    data.content = '<div class="music-player">' +
-                        '<img class="music-player-img" src="' + (msgJSON.coverURL === "" ? Label.servePath + "/images/music/cat.gif" : msgJSON.coverURL) + '" />' +
-                        '<div class="music-player-box"><div class="music-player-title">' + msgJSON.title + '</div>' +
-                        '<div class="music-player-controller"  data-source="' + msgJSON.source + '" data-cover="' + msgJSON.coverURL +
-                        '" data-title="' + msgJSON.title + '" data-from="' + msgJSON.from + '">' +
-                        '<span onclick="ChatRoom.playSound.add(this)">加入列表</span>' +
-                        ' | ' +
-                        '<span onclick="ChatRoom.playSound.play(this)">立即播放</span>' +
-                        '</div></div>' +
-                        '</div>'
+                    data.content = ChatRoom.renderMusicCard(msgJSON);
                 }
             } catch (err) {
             }
@@ -2909,7 +2921,7 @@ ${result.info.msg}
                 // console.log('加载完成');
                 currentEle.innerHTML = this.secondsToTime(this.ele.currentTime);
                 durationEle.innerHTML = this.secondsToTime(this.ele.duration);
-                titleEle.innerHTML = this.list[this.index].title;
+                titleEle.textContent = this.list[this.index].title;
                 let cover = this.list[this.index].cover;
                 coverEle.src = cover === '' ? Label.servePath + '/images/music/cat.gif' : cover;
             });
@@ -2964,8 +2976,8 @@ ${result.info.msg}
             for (let i = 0; i < this.list.length; i++) {
                 let item = this.list[i];
                 list += '<div class="music-list-item">' +
-                    '        <img src="' + item.cover + '" alt="">' +
-                    '        <div class="music-list-title">' + item.title + '</div>' +
+                    '        <img src="' + ChatRoom.escapeReactionHtml(ChatRoom.cardImageURL(item.cover)) + '" alt="">' +
+                    '        <div class="music-list-title">' + ChatRoom.escapeReactionHtml(item.title) + '</div>' +
                     '        <div class="music-list-controller">' +
                     '            <span style="color: #198cff" data-i="' + i + '" onclick="ChatRoom.playSound.playIndex(' + i + ')">播放</span>' +
                     '            <span style="color: red" data-i="' + i + '" onclick="ChatRoom.playSound.remove(' + i + ')">移除</span>' +
@@ -2997,20 +3009,33 @@ ${result.info.msg}
                 let sourceEle = music.source.split('=');
                 music.source = sourceEle[sourceEle.length - 1];
             }
-            //this.ele.src = music.source;
-            let iframeBox = document.querySelector('.music-detail');
-            iframeBox.innerHTML = '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height=86 src="//music.163.com/outchain/player?type=2&id=' + music.source + '&auto=1&height=66"></iframe>';
+            this.renderSource(music.source);
             this.playing = false;
             this.togglePlay();
             !this.isShow && this.show();
         },
         playIndex(idx) {
-            //this.ele.src = this.list[idx].source;
-            let iframeBox = document.querySelector('.music-detail');
-            iframeBox.innerHTML = '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height=86 src="//music.163.com/outchain/player?type=2&id=' + this.list[idx].source + '&auto=1&height=66"></iframe>';
+            this.renderSource(this.list[idx].source);
             this.playing = false;
             this.index = idx;
             this.togglePlay();
+        },
+        renderSource(source) {
+            const box = document.querySelector('.music-detail');
+            let player;
+            if (/^[0-9]{1,32}$/.test(source)) {
+                player = document.createElement('iframe');
+                player.src = 'https://music.163.com/outchain/player?type=2&id=' + source + '&auto=1&height=66';
+                player.width = '100%'; player.height = '86'; player.setAttribute('frameborder', 'no');
+            } else {
+                let url;
+                try { url = new URL(source); } catch (ignore) { return; }
+                if (url.protocol !== 'https:' || url.username || url.password) return;
+                player = document.createElement('audio');
+                player.src = source; player.controls = true; player.autoplay = true;
+                player.addEventListener('ended', () => this.autoNext());
+            }
+            box.replaceChildren(player);
         },
         autoNext() {
             if (this.mode === 0) {

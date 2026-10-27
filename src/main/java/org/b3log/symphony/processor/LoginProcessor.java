@@ -49,6 +49,7 @@ import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
@@ -642,6 +643,7 @@ public class LoginProcessor {
             final String referral=context.param("r");
             final String id=registrations.completeForUserId(body.optString(UserExt.USER_T_ID),body.optString(Keys.CODE),
                     body.optString(User.USER_PASSWORD),body.optInt(UserExt.USER_APP_ROLE),body.optString("mbti"),referral==null?"":referral);
+            AccountCredentialVersions.remember(new AccountCredentialVersions.Proof(id,0,body.optString(User.USER_PASSWORD)));
             Sessions.login(context.getResponse(),id,false);
             context.renderJSON(StatusCodes.SUCC);LOGGER.info("Account registration completed");
         }catch(ApiV3Exception e){context.renderMsg(e.getMessage());}
@@ -681,6 +683,7 @@ public class LoginProcessor {
      */
     public LoginResult authenticate(final String nameOrEmail, final String password, final String mfaCode,
                                     final String ip) throws ServiceException {
+        AccountCredentialVersions.clear();
         final Long unlockAt = LOGIN_IP_LOCK.get(ip);
         if (null != unlockAt) {
             if (System.currentTimeMillis() < unlockAt) return LoginResult.failure("too_many_attempts", "尝试次数过多，请稍后再试");
@@ -706,7 +709,8 @@ public class LoginProcessor {
             return LoginResult.failure("account_unavailable", langPropsService.get("invalidLoginLabel"));
 
         final String userId = user.optString(Keys.OBJECT_ID);
-        final boolean passwordMatches = userFound && user.optString(User.USER_PASSWORD).equals(password);
+        final var credentialProof = userFound ? AccountCredentialVersions.current(userId) : null;
+        final boolean passwordMatches = credentialProof != null && credentialProof.password().equals(password);
         if (passwordMatches) {
             final long code;
             try {
@@ -717,6 +721,11 @@ public class LoginProcessor {
             if (!MFAProcessor.verifyLogin(userId, code)) {
                 return LoginResult.failure(StringUtils.isBlank(mfaCode) ? "mfa_required" : "invalid_mfa",
                         StringUtils.isBlank(mfaCode) ? "需要两步验证码" : "两步验证码错误");
+            }
+            AccountCredentialVersions.remember(credentialProof);
+            if (AccountCredentialVersions.issuance(userId, null) == null) {
+                AccountCredentialVersions.clear();
+                return LoginResult.failure("invalid_credentials", langPropsService.get("wrongPwdLabel"));
             }
             WRONG_PWD_TRIES.remove(userId);
             LOGIN_IP_LOCK.remove(ip);

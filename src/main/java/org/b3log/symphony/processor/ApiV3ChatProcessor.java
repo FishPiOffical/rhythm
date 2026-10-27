@@ -30,6 +30,8 @@ public class ApiV3ChatProcessor {
         final var auth=beans.getReference(ApiV3AuthMidware.class);
         final var writes=beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/chat/messages",p::create,auth::contentWrite,writes::handle);
+        Dispatcher.post("/api/v3/chat/music",p::sendMusic,auth::contentWrite,writes::handle);
+        Dispatcher.post("/api/v3/chat/weather",p::sendWeather,auth::contentWrite,writes::handle);
         Dispatcher.delete("/api/v3/chat/messages/{messageId}",p::withdraw,auth::contentWrite,writes::handle);
         Dispatcher.get("/api/v3/chat/messages",p::list,auth::contentRead);
         Dispatcher.get("/api/v3/chat/online-users",p::online,auth::contentRead);
@@ -46,6 +48,10 @@ public class ApiV3ChatProcessor {
         return publication.publish(ApiV3Requests.viewer(c),ApiV3WriteInputs.string(body,"content",4096,false),
                 ApiV3WriteInputs.string(body,"client",128,false),ApiV3WriteInputs.idempotencyKey(c));
     });}
+    public void sendMusic(final RequestContext c){ApiV3Requests.respond(c,()->publication.publishCard(ApiV3Requests.viewer(c), "music",
+            ApiV3WriteInputs.body(c,Set.of("title","from","source","coverURL"),false),ApiV3WriteInputs.idempotencyKey(c)));}
+    public void sendWeather(final RequestContext c){ApiV3Requests.respond(c,()->publication.publishCard(ApiV3Requests.viewer(c), "weather",
+            ApiV3WriteInputs.body(c,Set.of("city","description","days"),false),ApiV3WriteInputs.idempotencyKey(c)));}
     public void online(final RequestContext c){ApiV3Requests.read(c,()->onlineQuery.list(ApiV3Requests.viewer(c),ApiV3Requests.page(c),ApiV3Requests.size(c)));}
     public void withdraw(final RequestContext c){ApiV3Requests.respond(c,()->{
         ApiV3WriteInputs.body(c,Set.of(),true);

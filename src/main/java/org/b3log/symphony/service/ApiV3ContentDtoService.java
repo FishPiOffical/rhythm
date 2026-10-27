@@ -6,6 +6,8 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3ArticleStickState;
+import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
 import org.json.JSONObject;
@@ -33,7 +35,9 @@ public class ApiV3ContentDtoService {
                 .put("createdAt", article.optLong(Article.ARTICLE_CREATE_TIME))
                 .put("updatedAt", article.optLong(Article.ARTICLE_UPDATE_TIME))
                 .put("commentCount", article.optInt(Article.ARTICLE_COMMENT_CNT))
-                .put("viewCount", article.optInt(Article.ARTICLE_VIEW_CNT));
+                .put("viewCount", article.optInt(Article.ARTICLE_VIEW_CNT))
+                .put("stick", ApiV3ArticleStickState.metadata(article.opt(Article.ARTICLE_STICK),
+                        System.currentTimeMillis(), Symphonys.STICK_ARTICLE_TIME));
     }
 
     public JSONObject author(final JSONObject user, final boolean anonymous) {

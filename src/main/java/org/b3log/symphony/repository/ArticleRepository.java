@@ -221,6 +221,19 @@ public class ArticleRepository extends AbstractRepository {
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
+    /** An expiry scan may be stale; never erase a later paid renewal or administrator stick. */
+    public boolean expireStickIfCurrentInCurrentTransaction(final String id, final long expected,
+                                                            final long now, final long duration) throws RepositoryException {
+        requireWriteTransaction();
+        if (expected <= 0 || expected == Long.MAX_VALUE || duration <= 0 || now <= duration || expected >= now - duration) return false;
+        final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", id);
+        if (rows.size() != 1 || rows.getFirst().getLong(Article.ARTICLE_STICK) != expected || expected >= now - duration) return false;
+        final JSONObject current = rows.getFirst();
+        current.put(Article.ARTICLE_STICK, 0L);
+        update(id, current, Article.ARTICLE_STICK);
+        return true;
+    }
+
     public Long latestPublicArticleIdForUpdate(final String authorId) throws RepositoryException {
         if (!hasTransactionBegun()) throw new IllegalStateException("article transaction required");
         final var rows = select(ArticleSubmissionPolicy.latestPublicSql(getName(), true), authorId,

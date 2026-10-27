@@ -24,6 +24,7 @@ public class ChatMessageMgmtServiceTest {
             };
             inject(repository,ChatRoomRepository.class,"changes",events);
             inject(management,ChatMessageMgmtService.class,"messages",repository);
+            inject(management,ChatMessageMgmtService.class,"redPackets",new ChatRedPacketRepository(){public JSONObject current(String id,boolean lock){return null;}});
             inject(management,ChatMessageMgmtService.class,"professions",capture);
             inject(capture,ProfessionSourceEventCaptureService.class,"sourceEventRepository",new ProfessionSourceEventRepository(){
                 @Override public String add(JSONObject row)throws RepositoryException {

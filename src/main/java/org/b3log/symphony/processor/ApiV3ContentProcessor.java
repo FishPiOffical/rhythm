@@ -37,8 +37,8 @@ public class ApiV3ContentProcessor {
         try {
             final int p = number(context, "p", 1, Integer.MAX_VALUE / 50);
             final int size = number(context, "size", 20, 50);
-            final String sort = choice(context, "sort", "latest", Set.of("latest", "active", "hot", "comments"));
-            final String type = choice(context, "type", "recent", Set.of("recent", "long"));
+            final String sort = choice(context, "sort", "latest", Set.of("latest", "active", "hot", "comments", "month-comments"));
+            final String type = choice(context, "type", "recent", Set.of("recent", "long", "qna", "perfect"));
             ApiV3Processor.success(context, contentQueryService.articles(viewer(context), p, size, sort, type));
         } catch (final IllegalArgumentException e) {
             ApiV3Processor.error(context, 422, "invalid_request", "分页或筛选参数不合法");

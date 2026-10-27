@@ -164,6 +164,24 @@ public class MembershipMgmtService {
     public JSONObject openMembership(final String userId, final String levelOId, final String configJson,
             final String couponCode)
             throws ServiceException {
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(levelOId)) {
+            throw new ServiceException("参数不完整");
+        }
+        try {
+            // Match v3's account-pair-before-transaction order. Taking the pair
+            // only after a coupon write can wait on a pair held by a v3 buyer
+            // that is itself waiting for this transaction's coupon row.
+            return pointtransferMgmtService.executeWithTransferLocks(userId, List.of(Pointtransfer.ID_C_SYS),
+                    () -> openMembershipWithTransferLocks(userId, levelOId, configJson, couponCode));
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new ServiceException(e);
+        }
+    }
+
+    private JSONObject openMembershipWithTransferLocks(final String userId, final String levelOId,
+            final String configJson, final String couponCode) throws ServiceException {
         final Transaction transaction = membershipRepository.beginTransaction();
         try {
             if (StringUtils.isBlank(userId) || StringUtils.isBlank(levelOId)) {

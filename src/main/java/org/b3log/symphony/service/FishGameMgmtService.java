@@ -80,9 +80,10 @@ public class FishGameMgmtService {
         game.put(FishGame.PENDING_DESCRIPTION, pending.optString(FishGame.DESCRIPTION));
         game.put(FishGame.PENDING_URL, pending.optString(FishGame.URL));
         game.put(FishGame.PENDING_ICON_URL, pending.optString(FishGame.ICON_URL));
+        game.put(FishGame.PENDING_OAUTH_LOGIN_URL, "");
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
         updateWithTransaction(game, FishGame.EDIT_PENDING, FishGame.PENDING_NAME, FishGame.PENDING_DESCRIPTION,
-                FishGame.PENDING_URL, FishGame.PENDING_ICON_URL, FishGame.UPDATED_TIME);
+                FishGame.PENDING_URL, FishGame.PENDING_ICON_URL, FishGame.PENDING_OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
     }
     public JSONObject review(final String gameId, final int status, final JSONObject request) throws ServiceException {
         final JSONObject game = getRequired(gameId);
@@ -97,6 +98,7 @@ public class FishGameMgmtService {
             game.put(FishGame.DESCRIPTION, game.optString(FishGame.PENDING_DESCRIPTION));
             game.put(FishGame.URL, game.optString(FishGame.PENDING_URL));
             game.put(FishGame.ICON_URL, game.optString(FishGame.PENDING_ICON_URL));
+            game.put(FishGame.OAUTH_LOGIN_URL, game.optString(FishGame.PENDING_OAUTH_LOGIN_URL));
             clearPending(game);
         }
         if (hasPending && status != FishGame.STATUS_APPROVED) {
@@ -107,6 +109,7 @@ public class FishGameMgmtService {
             ensureUrlAvailable(manual.optString(FishGame.URL), gameId);
             game.put(FishGame.NAME, manual.optString(FishGame.NAME));
             game.put(FishGame.DESCRIPTION, manual.optString(FishGame.DESCRIPTION));
+            if (!game.optString(FishGame.URL).equals(manual.optString(FishGame.URL))) game.put(FishGame.OAUTH_LOGIN_URL, "");
             game.put(FishGame.URL, manual.optString(FishGame.URL));
             game.put(FishGame.ICON_URL, manual.optString(FishGame.ICON_URL));
         }
@@ -116,7 +119,7 @@ public class FishGameMgmtService {
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
         updateWithTransaction(game, FishGame.STATUS, FishGame.NAME, FishGame.DESCRIPTION, FishGame.URL, FishGame.ICON_URL,
                 FishGame.EDIT_PENDING, FishGame.PENDING_NAME, FishGame.PENDING_DESCRIPTION, FishGame.PENDING_URL,
-                FishGame.PENDING_ICON_URL, FishGame.UPDATED_TIME);
+                FishGame.PENDING_ICON_URL, FishGame.OAUTH_LOGIN_URL, FishGame.PENDING_OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
         return game;
     }
     public JSONObject updateByAdmin(final String gameId, final JSONObject request) throws ServiceException {
@@ -125,10 +128,11 @@ public class FishGameMgmtService {
         ensureUrlAvailable(normalized.optString(FishGame.URL), gameId);
         game.put(FishGame.NAME, normalized.optString(FishGame.NAME));
         game.put(FishGame.DESCRIPTION, normalized.optString(FishGame.DESCRIPTION));
+        if (!game.optString(FishGame.URL).equals(normalized.optString(FishGame.URL))) game.put(FishGame.OAUTH_LOGIN_URL, "");
         game.put(FishGame.URL, normalized.optString(FishGame.URL));
         game.put(FishGame.ICON_URL, normalized.optString(FishGame.ICON_URL));
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
-        updateWithTransaction(game, FishGame.NAME, FishGame.DESCRIPTION, FishGame.URL, FishGame.ICON_URL, FishGame.UPDATED_TIME);
+        updateWithTransaction(game, FishGame.NAME, FishGame.DESCRIPTION, FishGame.URL, FishGame.ICON_URL, FishGame.OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
         return game;
     }
     public JSONObject addManual(final String adminId, final JSONObject request) throws ServiceException {
@@ -303,7 +307,7 @@ public class FishGameMgmtService {
 
     private void clearPending(final JSONObject game) {
         game.put(FishGame.EDIT_PENDING, 0).put(FishGame.PENDING_NAME, "").put(FishGame.PENDING_DESCRIPTION, "")
-                .put(FishGame.PENDING_URL, "").put(FishGame.PENDING_ICON_URL, "");
+                .put(FishGame.PENDING_URL, "").put(FishGame.PENDING_ICON_URL, "").put(FishGame.PENDING_OAUTH_LOGIN_URL, "");
     }
 
     private void rollback(final Transaction tx) {

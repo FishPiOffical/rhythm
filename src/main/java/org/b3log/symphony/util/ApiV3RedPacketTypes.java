@@ -15,7 +15,7 @@ public final class ApiV3RedPacketTypes {
         types.put(type("heartbeat", "心跳红包", true));
         types.put(type("rockPaperScissors", "猜拳红包", true));
         return new JSONObject().put("types", types)
-                .put("creationSupported", false).put("claimSupported", false);
+                .put("creationSupported", true).put("claimSupported", true);
     }
 
     private static JSONObject type(final String id, final String name, final boolean mayLosePoints) {

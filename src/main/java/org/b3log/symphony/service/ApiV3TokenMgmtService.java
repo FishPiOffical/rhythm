@@ -52,6 +52,8 @@ public class ApiV3TokenMgmtService {
         final Transaction transaction = beginRoot();
         try {
             final JSONObject client = ensureWebsiteClient();
+            final var expected=org.b3log.symphony.util.AccountCredentialVersions.snapshot(userId);
+            if(expected==null || org.b3log.symphony.util.AccountCredentialVersions.issuance(userId,null)==null)throw new ServiceException("unauthorized");
             final JSONObject result = issueInternal(userId, WEBSITE_CLIENT, client.optString(ApiV3Client.SCOPE), null, null);
             transaction.commit();
             return result;

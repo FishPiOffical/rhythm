@@ -6,6 +6,7 @@ public final class ApiV3Client {
     }
 
     public static final String API_V3_CLIENT = "api_v3_client";
+    public static final String APP_CLIENT = "fishpi_app_v3";
     public static final String CLIENT_ID = "clientId";
     public static final String NAME = "name";
     public static final String SCOPE = "scope";

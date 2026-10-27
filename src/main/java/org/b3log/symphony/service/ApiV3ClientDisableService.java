@@ -5,6 +5,8 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.ApiV3Token;
+import org.b3log.symphony.model.ApiV3Client;
+import org.b3log.symphony.repository.ApiV3AppLoginRequestRepository;
 import org.b3log.symphony.repository.ApiV3ClientRepository;
 import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
@@ -25,6 +27,7 @@ public class ApiV3ClientDisableService {
     @Inject private ApiV3ClientRepository clients;
     @Inject private ApiV3TokenRepository tokens;
     @Inject private ApiV3RequestRepository requests;
+    @Inject private ApiV3AppLoginRequestRepository appLogins;
 
     public JSONObject disable(final JSONObject identity, final String clientId, final String key) throws Exception {
         ApiV3ClientManagementInputs.clientId(clientId);
@@ -73,6 +76,7 @@ public class ApiV3ClientDisableService {
                     + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                     ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);
             if (changed < 0) throw unavailable();
+            if (ApiV3Client.APP_CLIENT.equals(clientId)) appLogins.invalidatePendingInCurrentTransaction();
             return new JSONObject().put("clientId", clientId).put("status", DISABLED);
         });
     }

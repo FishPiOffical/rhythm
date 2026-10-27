@@ -39,7 +39,10 @@ public final class ApiV3OAuthTransportLogFilter extends AbstractFilter {
         String decoded=value;
         for(int pass=0;pass<3;pass++){
             final String path=decoded.toLowerCase(java.util.Locale.ROOT);
-            if(path.contains("/api/v3/oauth/")||path.contains("/api/v3/auth/")||path.contains("/reset-pwd")||path.contains("/register2"))return true;
+            if(path.contains("/api/v3/me/game-saves/")||path.contains("/api/cloud/")||path.contains("/api/v3/oauth/")||path.contains("/api/v3/auth/")||path.contains("/api/v3/me/security/")||path.contains("/api/v3/me/exports/")
+                    ||path.contains("/api/v3/me/identity-applications")||path.contains("/api/v3/review/identity-applications")
+                    ||path.contains("/api/v3/me/settings/password")||path.contains("/api/v3/me/settings/phone")
+                    ||path.contains("/api/v3/me/settings/email")||path.contains("/api/v3/me/settings/qq")||path.contains("/reset-pwd")||path.contains("/register2"))return true;
             final StringBuilder next=new StringBuilder(decoded.length());boolean changed=false;
             for(int i=0;i<decoded.length();i++){
                 if(decoded.charAt(i)=='%'&&i+2<decoded.length()){

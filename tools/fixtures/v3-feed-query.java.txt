@@ -1,0 +1,70 @@
+import org.json.*;
+import java.sql.*;
+import java.util.*;
+import java.util.Date;
+import org.apache.commons.lang.time.DateUtils;
+import org.b3log.latke.repository.RepositoryException;
+import org.b3log.symphony.model.*;
+import org.b3log.symphony.util.*;
+
+// Fixture template: runner transplants the unchanged production method, not a mirrored query.
+public class FeedQueryTest {
+ static Connection db;
+ static class R {
+  String name; R(String n){name=n;} String getName(){return name;}
+  List<JSONObject> select(String sql,Object...args)throws RepositoryException {
+   try(var p=db.prepareStatement(sql)){
+    for(int i=0;i<args.length;i++)p.setObject(i+1,args[i]);
+    try(var r=p.executeQuery()){var rows=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnName(i),r.getObject(i));rows.add(row);}return rows;}
+   }catch(SQLException e){throw new RepositoryException(e);}
+  }
+ }
+ R articleRepository=new R("articles"),userRepository=new R("users"),tagArticleRepository=new R("ta"),domainTagRepository=new R("dt"),tagRepository=new R("tags"),followRepository=new R("follows");
+ static class D {JSONObject summary(JSONObject row){return new JSONObject().put("id",row.getString("oId")).put("type",row.getInt("articleType"));}}
+ D contentDtoService=new D();
+ static String escapeLike(String value){return value.replace("!","!!").replace("%","!%").replace("_","!_");}
+ // PRODUCTION_RECORDS
+ // PRODUCTION_METHOD
+ static void exec(String q,Object...a)throws Exception{try(var p=db.prepareStatement(q)){for(int i=0;i<a.length;i++)p.setObject(i+1,a[i]);p.execute();}}
+ static String add(int days,int type,int perfect,int comments,long stick,int score)throws Exception{
+  String id=Long.toString(System.currentTimeMillis()-days*86400000L);
+  exec("INSERT INTO articles VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,Article.ARTICLE_STATUS_C_VALID,type,Article.ARTICLE_SHOW_IN_LIST_C_YES,"java","1",0,perfect,comments,stick,score,1L,"title","body");return id;
+ }
+ static void equal(Object a,Object b){if(!Objects.equals(a,b))throw new AssertionError(a+" != "+b);}
+ static List<String> ids(JSONObject page){var result=new ArrayList<String>();for(Object value:page.getJSONArray("list"))result.add(((JSONObject)value).getString("id"));return result;}
+ public static void main(String[] args)throws Exception{
+  Class.forName("org.sqlite.JDBC");
+  try(var connection=DriverManager.getConnection("jdbc:sqlite::memory:")){
+   db=connection;
+   exec("CREATE TABLE users(oId TEXT PRIMARY KEY,userStatus INT)");exec("INSERT INTO users VALUES('1',?),('2',?)",UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_DEACTIVATED);
+   exec("CREATE TABLE articles(oId TEXT PRIMARY KEY,articleStatus INT,articleType INT,articleShowInList INT,articleTags TEXT,articleAuthorId TEXT,articleAnonymousView INT,articlePerfect INT,articleCommentCount INT,articleStick BIGINT,redditScore INT,articleLatestCmtTime BIGINT,articleTitle TEXT,articleContent TEXT)");
+   var service=new FeedQueryTest();var selection=Selection.all();
+   String qna=add(10,Article.ARTICLE_TYPE_C_QNA,0,3,0,1),longPerfect=add(9,Article.ARTICLE_TYPE_C_LONG,1,9,0,3),plainPerfect=add(8,0,1,5,0,2),privateId=add(7,Article.ARTICLE_TYPE_C_QNA,0,999,0,10),old=add(60,Article.ARTICLE_TYPE_C_QNA,1,1000,0,50);
+   exec("UPDATE articles SET articleAnonymousView=? WHERE oId=?",Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW,privateId);
+   String hidden=add(6,Article.ARTICLE_TYPE_C_QNA,1,500,0,20);exec("UPDATE articles SET articleStatus=? WHERE oId=?",Article.ARTICLE_STATUS_C_INVALID,hidden);
+   String noList=add(5,Article.ARTICLE_TYPE_C_QNA,1,500,0,20);exec("UPDATE articles SET articleShowInList=? WHERE oId=?",Article.ARTICLE_SHOW_IN_LIST_C_NOT,noList);
+   add(4,Article.ARTICLE_TYPE_C_DISCUSSION,1,500,0,20);
+   String inactive=add(3,Article.ARTICLE_TYPE_C_QNA,1,500,0,20);exec("UPDATE articles SET articleAuthorId='2' WHERE oId=?",inactive);
+   String sandbox=add(2,Article.ARTICLE_TYPE_C_QNA,1,500,0,20);exec("UPDATE articles SET articleTags=? WHERE oId=?",Tag.TAG_TITLE_C_SANDBOX,sandbox);
+   var q=service.articles(null,1,1,"latest","qna",selection);equal(ids(q),List.of(qna));equal(q.getJSONObject("pagination").getInt("total"),2);equal(ids(service.articles(null,2,1,"latest","qna",selection)),List.of(old));
+   equal(service.articles(new JSONObject().put("oId","9"),1,50,"latest","qna",selection).getJSONObject("pagination").getInt("total"),3);
+   System.out.println("PASS feed 1 qna visibility precedes count/page and authenticated-only rows stay hidden for anonymous");
+   equal(ids(service.articles(null,1,50,"latest","perfect",selection)),List.of(plainPerfect,longPerfect,old));
+   equal(ids(service.articles(null,1,50,"latest","long",selection)),List.of(longPerfect));
+   System.out.println("PASS feed 2 perfect includes long articles and prior long selection remains intact");
+   equal(ids(service.articles(null,1,50,"hot","recent",selection)),List.of(old,plainPerfect,qna));
+   String pinned=add(11,0,0,1,System.currentTimeMillis()-1000,0);
+   equal(ids(service.articles(null,1,50,"month-comments","recent",selection)),List.of(pinned,plainPerfect,qna));
+   equal(service.articles(null,1,1,"month-comments","recent",selection).getJSONObject("pagination").getInt("total"),3);
+   System.out.println("PASS feed 3 monthly ranking filters before paging, retains pin priority, excludes old/invisible rows");
+   equal(ids(service.articles(null,1,50,"hot","recent",selection)),List.of(pinned,old,plainPerfect,qna));
+   String permanent=add(12,0,0,0,Long.MAX_VALUE,0),stale=add(1,0,0,15,System.currentTimeMillis()-3600000,100);
+   for(String sort:List.of("latest","hot","active","comments","month-comments")){
+    var ordered=ids(service.articles(null,1,50,sort,"recent",selection));
+    equal(ordered.subList(0,2),List.of(permanent,pinned));
+   }
+   equal(ids(service.articles(null,1,50,"month-comments","recent",selection)),List.of(permanent,pinned,stale,plainPerfect,qna));
+   System.out.println("PASS feed 4 current recent sorts prioritize permanent then active sticks; expired sticks use normal sort, prior nonstick reddit order retained");
+  }
+ }
+}

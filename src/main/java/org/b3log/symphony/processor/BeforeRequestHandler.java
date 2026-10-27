@@ -78,6 +78,7 @@ public class BeforeRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        org.b3log.symphony.util.AccountCredentialVersions.beginHttp();
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 
         if (context.header(Common.USER_AGENT) == null) {
@@ -155,6 +156,10 @@ public class BeforeRequestHandler implements Handler {
                 return;
             }
 
+            final var credentialProof=org.b3log.symphony.util.AccountCredentialVersions.snapshot(user.optString(Keys.OBJECT_ID));
+            if(credentialProof==null)return;
+            user.put(User.USER_PASSWORD,credentialProof.password());
+            httpSession.setAttribute("accountCredentialEpoch",String.valueOf(credentialProof.epoch()));
             httpSession.setAttribute(User.USER, user.toString());
 
             final String skin = Sessions.isMobile() ? user.optString(UserExt.USER_MOBILE_SKIN) : user.optString(UserExt.USER_SKIN);

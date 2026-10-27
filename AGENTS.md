@@ -11,6 +11,7 @@
 - 在 WSL 环境中不要依赖 git 状态/差异判断工作区是否干净（可能存在异常噪声）；默认按任务目标直接改指定文件，git 清理由用户在 Windows 环境统一处理
 
 ## 协作目标
+- 用户已要求每批改动完成并检查后提交Git；Rhythm与website_v3分别提交本批相关源码、文档和测试。推送、发布仍按用户明确指令执行。
 - `AGENTS.md` 保持精简，只保留会影响决策的长期约定；新增内容优先补充“关键链路”，避免堆砌背景信息。
 
 ## 开发硬约束
@@ -64,6 +65,12 @@
 
 - v3 聊天室在线名单由 `ApiV3ChatOnlineQueryService` 合并当前实例旧连接、已认证 chat 订阅和 `ChatOnlineSnapshot` 节点采样，按当前资料过滤在线隐私与有效状态后分页；人数只计可见用户。节点采样原子发布仅用户名，不返回节点凭据；其他实例的 v3 连接未共享，不能宣称全站实时人数。
 
+- v3历史读取在`ApiV3RevisionQueryService`：本人或当前精确历史权限的合法读者，私密仍限双方；只投影清洗正文，不返编辑者ID，current仅已有历史且原文忽略空白不同，评论current.time=null。分组写入`ApiV3EmojiGroupService`仅本人type0，type1不可改删，删除保留全局图片/其他组/分享；旧写不共锁，不能宣称新旧全局唯一。
+
+- v3鱼游投稿/编辑在`ApiV3FishGameSubmissionService`：只校验旧OpenID授权URL参数及游戏同站回调，不抓取/证明归属；当前与待审OAuth分列，旧审核批准时随pending内容合并，手改URL清旧OAuth。先迁移20261023鱼游SQL；新旧写入口未整体共锁。图片成员`ApiV3EmojiItemService`以内部namespace先于actor锁串行，完整URL按BINARY精确身份，自定义添加镜像全部、移除全部级联本人组，历史损坏不自动清理。
+
+- v3会员昵称样式`ApiV3MembershipStyleQueryService`仅指定1..100个ID/profile.read，按当前有效账号/会员/档位支持投影bold/underline/color；无样式统一空对象，不能回用旧全站原configJson。捐助链接GET由`ApiV3DonationPage`固定配置站点/charge/point，不发Cookie或订单，浏览器仍需页面登录。
+
 ## 目录速览
 - 后端：`src/main/java/org/b3log/symphony`（入口 `Server.java`，核心分层 `processor/service/repository/model/util`）。
 - 资源：`src/main/resources`（配置、静态资源、`skins` 模板）。
@@ -72,11 +79,28 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- 单项本人关注状态在`ApiV3FollowQueryService#userState`，当前actor/target有效及关系EXISTS同一只读SQL，仅targetId/following；不调用吞错的旧isFollowing。客户端关注命令只保存未确认的明确PUT/DELETE，回放结果后必须GET当前状态，不能把历史receipt当最新状态。
+- v3游戏存档仅`ApiV3GameSaveInputs`精确目录，首批evolve-save单槽；`ApiV3GameSaveService`新旧HTTP共锁owner，CAS/metadata回执/版本同严格根，迁移只复制唯一旧记录不覆盖。旧登记游戏保存须JSON、盲写递增版本，其他cloud键保留；先迁移20261025_api_v3_game_save.sql。捆绑Latke会有损重写getBytes，存档须经同包`ApiV3GameSaveRawBody`读原Netty字节校验，不能换回框架归一化正文。
+- 本人QQ由ApiV3QqSettingsService独立第一方当前授权、settings.qq严格根与回执管理，公开/第三方profile响应不扩字段；旧Latke Strings.isNumeric实际是Double.parseDouble，禁止用于QQ纯数字验证。个人标签ApiV3ProfileTagsService按owner→统计namespace→当前目录锁，标签/creator/self/统计/设置/settings.tags回执同根，缓存边界后刷新；ApiV3ProfileTagInputs先验每个原项，不能复用旧Tag.formatTags静默丢弃/截4项。共享Tag.normalizeAlias但旧写未全共锁，不宣称新旧全局唯一或跨实例缓存强一致。
+- OAuth token/revoke以`ApiV3OAuthProcessor.protocolAccess`只读当前绑定凭据作为端点身份，无效仍原anonymous；不写Cookie/IDENTITY/IP白名单或viewSkips，全局Before黑名单先执行。正确绑定的已用code/轮换refresh仅可进原家族重放撤销，最终写根仍重验；不能把预检owner用作其他资源身份。
+- v3三类红包`ApiV3ChatRedPacketService`本金/税/消息/持久份额/回执同根，ID绑定专属名单仅sender，旧open只桥接新head；历史红包原规则保持。共享删除primitive锁消息后检查新head，未领完409，须先迁移20261024_api_v3_chat_red_packet.sql。0份额仍记领取但不造零额账；税仅精确有效VIP4免，禁止回退进程桶或把未领完消息删掉。
+- v3本人导出`ApiV3PostExportService`第一方当前密码/MFA，完整RR本人快照→账户对→证明绑定重验→私有DB块/100积分/metadata/回执同严格根；24h下载逐块/总hash及当前授权后发ZIP，每分钟同事务清理并释放连接。先迁移20261024_api_v3_post_export.sql；禁止复用旧公开图床导出或把预算超限截断成功。
+- v3普通积分改名在`ApiV3UserNameService`：双activity.write/settings.write与幂等，账户对→namespace→当前有效用户，名称/现有费用/回执同严格根；新主账scene=settings.user-name分列dataId新名/memo旧名，显示经`UserNamePointData`编码，禁止连字符拼接。提交/回放后修索引及失效名称缓存，重放不覆盖后来改名；旧/settings/username扣费链本批未改。
+- 敏感设置仅第一方`ApiV3SecurityProofService`当前密码/已有TOTP；client命名空间→当前user/access→独立credential state，`AccountCredentialMgmtService`同严格根递增epoch并撤OpenID/v3/code/pending。Cookie/apiKey/OpenID每次当前SQL比版本，缺版本仅epoch0兼容；发行只用认证时Proof，不可重读新epoch升级旧身份。先部署20261023三份credential/MFA/contact迁移，旧重置自动登录绑定本次提交版本。
+- `ApiV3MfaService`准备10分钟、secret/otpauth仅当次，启用消费清secret；`ApiV3ContactSettingsService`先proof→无SQL锁发送→当前epoch/旧联系值快照重验后保存，HMAC码及旧值绑定，修改/消费/全撤同根。WS后续授权检查拒旧凭据；User/Shop关闭按建立时归属清理，不能因凭据失效跳过移除/在线结算。账号验证码邮件须走`Mails.sendAccountBindingCode`专用无debug/正文日志通道，不能复用旧MailSender.sendMessage。完整文件与验收见account-credential-work。
+- `ApiV3TransactionSavepoint`嵌套primitive须检测原owner仍active且TX未换；内层回滚保存点失败已中止根时，外层不可再次碰已关闭连接或覆盖原错。图片分享/导入/迁移在`ApiV3EmojiTransferService`，严格校验每个原始项后去重，坏项整批422；快照独立于源组，迁移仅本人emojis云数据，不开放任意cloud键。
+- v3转账`ApiV3PointTransferService`完整账户对先于严格根、用户按ID锁；主款/费/通知revision/回执同提交，精确有效VIP4及实际费收款者免。重放从本人回执取得锁提示，仅当前actor必须有效；私有fee账本元数据投影后返回，后置主账验证去重修索引。旧转账未整体改造。举报`ApiV3ReportPublicationService`预hint→排序用户→回执→当前目标，fresh重验绑定、重放不依赖目标；仅复用最早pending，旧入口未共用去重。新memo存储编码供两端管理模板直接输出，原始/编码长度均有界。
+- v3复读投稿`ApiV3RepeaterPublicationService`绑定职业来源与回执同严格根；新旧点赞共用`RepeaterLikeMutationService`，用户→目标→本人likes，COUNT用当前锁定读取；只收敛本人重复，保留其他历史重复计数。旧toggle请求/成功字段保持，拒绝嵌套根，不能绕回旧分开计数写入。
+- v3邀请码购买`ApiV3InvitationPurchaseService`仅新业务检查当前邀请模式；账户对先于严格根，namespace→模式→当前用户→回执，扣费/码/回执同提交，TTL以真实码oId计龄。重放仅复核本人有效性并恢复原code，不保证旧码仍可注册；码不放入账本/失败日志字段。提交后主账锁验证并修复索引，内部transferId必须投影后返回；沿既有point来源及membership索引迁移，旧先造码再扣费保持且无code唯一约束，不宣称新旧整体原子或绝无碰撞。
+- v3复读机`ApiV3RepeaterQueryService`保留前N列表/前50排除后随机池语义，不假称全量分页；可选content.read与匿名盾，liked仅当前Bearer，失效作者不移除内容而author=null。常用表情PUT在`ApiV3EmotionSettingsService`：仅目录别名/有序数组，空数组恢复默认，严格根与settings.emotions回执仅替换本人type0；旧setEmotionList仍删全部类型且不共用actor锁，不宣称新旧整体串行。
+- v3职业成长提示/排行/公开资料由`ApiV3ProfessionGuideQueryService`、`ApiV3ProfessionRankingQueryService`、`ApiV3ProfessionPublicQueryService`只读投影；当前展示revision和等级scheme各自发布，scheme可绑定同职业退休revision。排行先按ranking隐私筛可见人群再连续编号，隐藏experience仍保留等级名次；公开资料十模块独立判断且experience跨贡献/动态省略，rarity/ranking共用可见榜口径。公开动态必须当前PUBLIC来源及目标可读，匿名来源不关联，HIDDEN对本人也无公开路径例外；超查询预算503而非伪造完整统计。
 - 本人匿名创作GET由`ApiV3AnonymousContentQueryService`提供元数据，评论先用有界讨论候选/正文预算及共享`UserMentionCandidates`精确解析，再绑定当前正文SHA2与actor快照做SQL计数分页；超预算503而非截断。管理员用Java精确角色判断，不能用CI数据库字符串比较扩大权限。邀请码状态POST仅投影stored status，不读/返预留字段，不把unused当可注册保证。
 - 主职业设置`ApiV3ProfessionPrimaryService`只选当前已发布职业、免费且不造progress，按列更新privacy中的selection/userProgressVersion；旧职业隐私整行写仍有并发覆盖局限。`ApiV3MedalDisplayService`按本人/定义/持有锁设置display而非toggle，重复定义或持有409；两者重放前重查当前账号，原回执不覆盖后续设置。
-- v3职业/勋章/会员读取分别在`ApiV3ProfessionQueryService`、`ApiV3MedalQueryService`、`ApiV3MembershipQueryService`。职业目录仅发布版本，本人进度按关联历史版本且不伪造零级；勋章本人含隐藏、公开仅有效展示，禁止复用会删过期记录的旧查询；会员仅本人状态和已知权益白名单，不裸返configJson/benefits。主职业PUT与勋章显示PUT已用独立幂等严格事务，分别仅改selection/version及display；其他写入仍待实现。
+- v3职业/勋章/会员读取分别在`ApiV3ProfessionQueryService`、`ApiV3MedalQueryService`、`ApiV3MembershipQueryService`。职业目录仅发布版本，本人进度按历史版本且不伪造零级；`ApiV3ProfessionDetailQueryService`提供本人真实详情及90天APPLIED非零记录，无progress为404，仅白名单概要、不返回来源正文/内部ID。勋章本人含隐藏、公开仅有效展示，禁止复用会删过期记录的旧查询；会员仅本人状态和已知权益白名单，不裸返configJson/benefits。
+- 会员写入在`ApiV3MembershipSettingsService`/`ApiV3MembershipOpeningService`：仅支持的bold/underline/color可改，VIP4效果仅精确YEAR/MONTH两码，空旧配置只合并显式字段；完整defaults仅供开通。无效/用尽券422不扣费，有效/永久禁止重复开通，自然日期限与积分/券/记录/礼包同严格事务。内部回执转账ID必须投影后才HTTP返回；提交后按主账PK核验并幂等修复积分索引，先迁移20261022_api_v3_membership.sql。新旧开通均事务前取账户对锁，但旧赠包/缓存/提交策略未整体改造，不宣称新旧全部原子或缓存强一致。
+- `ApiV3ProfessionSettingsService`的skip沿旧规则清空主职业，privacy沿旧六预设/十模块，仅按相关列和版本写入；`ApiV3MedalOrderService`按全部本人持有（含隐藏/过期）相邻移动后重编号，并列按order/oId，超技术预算503而非截断。两者每次及重放在严格根当前锁有效用户，回执不覆盖后续操作；旧隐私/勋章整行写未同步改造，不能宣称新旧整体原子化。
 - v3完整清单与后续分工见`docs/api-v3-progress.md`；以总register可达的METHOD+path计数，源码/隔离测试/运行验收分列，用户侧职业/勋章/会员不可按后台整体排除。v3热度GET需content.read及`ApiV3RealtimeTargetService`当前授权，合计本节点旧连接与重新授权的文章订阅连接，仅近似连接数，不是全站或去重人数。
-- v3表情四个GET由`ApiV3EmotionProcessor`提供本人常用/目录/图片分组与条目，均profile.read；不调用会创建默认组的旧GET，items查询重复绑定owner。PC/mobile旧目录与v3共用`ApiV3EmotionOptions`，保持EOF分隔但对外去除；红包类型目录仅描述能力，不表示v3创建/领取已开放。
+- v3表情四个GET由`ApiV3EmotionProcessor`提供本人常用/目录/图片分组与条目，均profile.read；不调用会创建默认组的旧GET，items查询重复绑定owner。PC/mobile旧目录与v3共用`ApiV3EmotionOptions`，保持EOF分隔但对外去除；红包类型目录已标写能力true，仅random/average/specify开放，heartbeat/rockPaperScissors仍未开放。
 
 - v3 MBTI由`ApiV3Personality`严格规范16类型及可选-A/-T，大小写/首尾空白规范化、空值清空、无效422（用户已确认）；GET/目录需profile.read，PUT走settings.write及settings.personality幂等事务，锁当前有效用户仅写mbti/更新时间，沿用ProfileWriteQuota。旧`SettingsProcessor.checkMBTI`仍用于旧资料/注册，禁止顺手改变其规范化行为。
 - v3头像GET/PUT在`ApiV3SettingsProcessor`：GET由`ApiV3AvatarQueryService`只读本人当前有效账号URL，PUT用settings.avatar幂等事务和`UserSettingsMutation`锁用户后仅写URL/type/更新时间；允许任意合法HTTPS、255 UTF-16、保留签名query、不抓取远程内容。旧头像设置及页面展示规则保持，不能用`AvatarQueryService`处理后的缩放URL代替本人保存的地址。
@@ -228,3 +252,87 @@
 - v3私信撤回在PrivateMessageWithdrawalService/ApiV3PrivateMessageWithdrawalService：本人消息投影取得完整用户锁集合，排序当前锁用户后再当前锁消息、重验peer；消息/准确messageId+fromId+toId未读/list同保存点，幂等严格根。未知历史未读保留（用户已确认），回执只id/peerId/removed，不泄露接收者已读状态。接收者已删除/停用仍可撤回本人历史；提交/回放后可重复失效缓存，不转发旧完整WS。旧GET/chat/revoke已获用户批准接入removeLegacy严格根，身份取ApiCheck写入attr，推送/审计/计数刷新在提交后且失败不覆盖成功；旧GET无幂等回执。
 
 - 私信实时前置标记在PrivateMessageRevisionService/ApiV3PrivateRevisionRepository：新表api_v3_private_revision及repository.json，先迁移20261020_api_v3_private_realtime.sql；当前v3发/读/撤及旧原子撤回同事务标记受影响owner，读取标记必须在写事务外。保存点须覆盖数据与标记；读标记失败也不能让已读删除被外层捕获后部分提交。标记是opaque invalidation，不是历史游标；旧普通/手动/认证申请私信的消息和未读add已接Repository标记，旧指定/全部已读用owner-aware删除，异步列表refreshLegacy提交时再标记；旧发送各步骤仍独立事务，不能称整体原子。Socket私信频道已接ApiV3RealtimeService.pollMessages，只读已提交owner标记并逐连接复核后发messages.changed空提示；POST /api/v3/me/messages/realtime-ticket需messages.read，target必须为空。通知/文章/chat索引与scope隔离，首次/重连ready后须HTTP同步；提示可合并丢失，不是逐条消息/已读回执或可靠游标。
+
+- v3风险红包沿`ApiV3ChatRedPacketService`同根结算；先迁移20261024红包risk SQL（type17/gesture/refund列）。创建及领取均需riskAccepted=true，心跳signed slots总和为pool；猜拳负款用正数反向转账，refund独立ledger，同一事务/完整账户对锁。senderGesture未结算仅本人详情，不能放初始card；未领完删除409。旧桥接不能代替风险同意，历史旧奖池仍走旧核心。
+
+- v3部署有序迁移与证据见`docs/api-v3-migration-chain-work.md`：15份SQL/19张新表已隔离MySQL核验；部分ALTER仅一次，不能盲目整链重跑。progress列明真正缺口，不能用路由数量或历史迁移矩阵推定用户侧全部完成。
+
+- website_v3实际客户端在/Users/ling/Documents/fishpi/website_v3，另读其AGENTS；迁移状态见该仓docs/V3_MIGRATION。不能按后端仓库不含客户端文件判源码不可用。主文章GET新增qna/perfect/month-comments；good页面映射既有hot热度，hot页面映射月内评论，不得用普通列表伪装分类。
+
+- v3作者付费置顶由ApiV3ArticleStickService处理：账户对→当前用户/回执→本人文章，原19类费用/时间/回执同严格根；重放不覆盖后来状态。expireStick必须经Repository当前锁时间比对，不能用扫描快照清新续费。recent查询有效置顶优先/永久最先；公共stick白名单不返回Long.MAX_VALUE哨兵，永久expiresAt=null。
+
+- v3音乐/天气由`ApiV3ChatProcessor`→`ApiV3ChatPublicationService.publishCard`共用普通准入/原子消息链；新cardVersion=3/payload仅内部存储，DTO重验后白名单投影，URL和文字不经历史HTML清洗。两套chat-room脚本优先解析raw md、编码卡片/播放列表；音乐source仅数字进网易云iframe，HTTPS音频进原生audio，禁止再拼接source到HTML。
+
+- v3企业认证`ApiV3IdentityApplicationService`只第一方当前SQL授权，独立私有材料表；迁移20261024_api_v3_identity_application.sql精确绑定adlered当前ID，改名不转权。创建/唯一pending/材料/回执同根；POST open先删材料及记readAt并提交，再送原始图片，网络丢ACK也410，禁止保存在回执/日志/图床。当前6路；PUT decision必须readAt>0，仅approved/rejected和256纯文本说明，结论/回执/释放pending同根，不自动发勋章或改权限；重放不影响新申请。
+
+- website_v3表情客户端接线与验收见docs/api-v3-client-emojis-work.md；共享Picker可插入不代表旧编辑器hint/上传/发送已迁移，前端私有成员id与全局emojiId不得混用。
+
+- 官方Flutter APP已克隆 `/Users/ling/Documents/fishpi/fishpi-app`（FishPiOffical/fishpi-app）。用户最新要求不改APP代码，仅完成v3服务端支持；APP仓库已还原干净、只读参考。已确认网页生码/APP扫码、2分钟、APP明确确认后网页再批准、一次消费与拒绝作废；ApiV3AppLoginProcessor/Service已接七POST，先迁移sql/20261025_api_v3_app_login.sql；发码源website access/epoch逐次当前重验，APP challenge绑定/双确认/令牌对与消费同严格根，二维码只opaque payload。本地生成图形由客户端接入，不可调用第三方QR服务；原生匿名入口保留AnonymousViewCheck，无viewSkips例外。固定fishpi_app_v3仅原生Bearer，不借website Cookie刷新；管理员变更/停用清未完成请求。扫码实际Java/MySQL runner为tools/api-v3-app-login-mysql-test.mjs，保留FOR UPDATE并执行生产Token发行/撤权，勿用SQL sink竞争替代服务并发；完整IoC/部署仍另验。原fishpi Dart SDK仍是旧apiKey，禁止把v3 Bearer塞进旧token/Fishpi(token)冒充登录；事务/本地QR/APP凭据及页面迁移见app-login-work。
+
+- website_v3清风主列表/首页/侧栏共用BreezemoonPanel与v3Breezemoons命令核心，未知结果原key跨组件恢复，完成通知原编辑框；SSR公共载荷由每app的SSR_PAYLOAD_KEY注入，禁止再用进程global供并发渲染消费。城市/个人清风尚独立旧读，完整验收与未验项见client-breezemoons-work。
+
+- 单项标签关注/收藏/订阅GET在ApiV3FollowQueryService，content.read、当前有效本人+有效标签/共享文章可见性，只返targetId/following；前端ContentRelationButton按kind+ID恢复原明确命令，确认后必须GET。多组件提交须废弃在途旧状态读取再重读，不能因loading跳过完成通知；UserFollowButton同规则。
+
+- website_v3 首次路由须保留游客 SSR 首帧，由 clientStartup 在 mount 后恢复；AppShell 私有子页须当前 auth.isLoggedIn，不能只凭 startup.ready 放行。后续 SPA 保留认证守卫，初始恢复不得覆盖后来导航。
+
+- website_v3文章三类互动共ArticleInteraction/v3ArticleInteractions，未知按kind+ID保原命令key，确认后GET而非receipt计数；付费正文仅当前详情rewarded=true的rewardContentHtml，离页/换号废弃迟到读取并取消本人费用确认。
+
+- website_v3评论三写共CommentComposer/v3Comments，原Markdown不trim、编辑默认省visible；未知固定article/id/input/key，完成只重读且不得覆盖后来回复目标。长篇须paragraphs includeContent取锚点HTML再发段评，平铺分页不伪造根层次；匿名本人不能用用户名推断编辑归属。
+
+- website_v3的ArticleInteraction同时承载articles与comments/vote；API、命令键、完成通知和读取身份必须含资源，不能让同ID文章/评论互相恢复或刷新。异步按钮保留节点，重复操作由aria状态及处理函数共同阻止。
+
+- 评论感谢/采纳当前状态由ApiV3CommentRewardQueryService只读投影，私密按正文可读检查，匿名费用0；canAccept是问答页基本资格提示，写核心仍重验。website_v3的ArticleInteraction按comments资源承载vote/thanks/accept；采纳完成须刷新所有挂载候选，不能只重读被采纳项。
+
+- website_v3表态共V3ReactionBar/v3Reactions，目录与当前GET为准，命令按article/comment/chat+ID隔离；旧Socket只失效提示，不采actorReaction/summary。认证恢复前不请求，游客显式读且事件不扇出；chat游客无读路径，未知原choice/key保留，目录迟到也须身份隔离。
+
+- website_v3历史共RevisionHistory/v3-revisions：按当前授权惰性读，current仅列表已有、评论time=null不造时间；content是清洗文本而非原Markdown，禁止回旧preview或用于编辑。ArticleView用认证版本/owner稳定身份，不以正常轮换token字符串重建页面。
+
+- website_v3文章/草稿主链PostView/v3Posts/v3-posts：PATCH只变更、本人source原文，metadata不回填；发布draftId交服务端消费勿追加DELETE。未知op/id/input/key保留，导航/余额失败不重付；MarkdownEditor预览/上传/@仍独立旧链，主链接线不是编辑器全迁移。
+
+- v3编辑器预览POST由ApiV3MarkdownProcessor提供，content.read、原始字节严格JSON，走Markdowns.toPrivateHTML而非公共缓存/远程转换。客户端Vditor同步transform必须返回空以阻断本地fallback，再由parse异步写清洗HTML；正文/身份/卸载清输出并废弃迟到结果。预览预算独立于发布，勿接共享写限额。
+
+- website_v3共享编辑器上传由v3-uploads/editorUpload接既有票据，图床只专用票据/无Cookie/禁重定向，唯一multipart名按序对应部分结果；换身份/外部正文/卸载取消旧插入。Vditor的insertValue先解析HTML，Markdown一律用insertMD，普通目的地转义括号。其他旧上传调用方尚未整体迁移。
+
+- website_v3工具栏表情复用v3 EmojiPicker；本地Lute Unicode仅显示，插入仍服务端别名，不拼本人内容进Vditor原生hint HTML。普通token轮换保留，auth context/owner变化清除。@联想已接新suggestions/users，见user-suggestions-work。
+
+- v3用户联想在ApiV3UserSuggestionQueryService/Processor，profile.read、ASCII用户名prefix1..64/LOWER参数查询/字面下划线/有效账号/四字段最多10，空前缀空列表，不走旧缓存。Editor捕获原生input取消旧hint，勿在Vditor延迟input回调清当前候选；旧promise须先结算防迟到覆盖。当前CDN UI仍8项/31位，接口独立10/64；勿给toolbar.elements.emoji加别名，会隐藏自定义按钮。
+
+- website_v3长文归栏用AuthorColumnPicker+v3-author-columns分页本人目录；失败/翻页不清绑定，未在本页不伪造有效性，只明确选择发id/title，章节/封面沿source不自动改。PostView部分编辑规范化现有columnTitle，草稿保留对应标题。标签联想已实现，见tag-suggestions-work。
+
+- v3标签联想在ApiV3TagSuggestionQueryService/Processor：content.read、trim/现有Tag字符表/64、有效标签与正引用数并EXISTS当前文章关联，热门/前缀最多7，只返回名称。TagInput仅替换当前光标token，不重写其他输入；选择需当前快照，IME组合期不发请求。标签联想不改文章提交规范化规则。
+
+- 客户端本人文章操作ArticleOwnerActions/v3ArticleOwner惰性source仅留id/status，匿名不猜ID；未知kind/id/key跨SPA、退出清空，非持久队列。置顶回执非当前stick、成功后GET失败只重读；删除清正文且导航失败不重发。普通/长文共享入口，私有source不得回显。
+
+- ArticleView文章实时统一subscribeArticleChanges，精确票据/ready/articleId，首帧传票，article.changed仅提示与失效，HTTP显式重读；新事件revision不可被旧读清除。热度用v3 GET显示本节点近似连接，失败不造0，游客不查；普通/全屏长文共用live-status，旧article-channel正文禁止接回。
+
+- 独立/chat页由V3PrivateMessages/v3Messages管理，用户ID绑定、历史before游标，读取不自动已读；未知原kind/target/body/key跨SPA，成功当前GET而非回执拼正文。普通token轮换保草稿，watch多目标须稳定序列化身份，不能新数组触发重置；messages.changed仅失效。独立页/抽屉共面板，privateInbox单订阅/当前未读及入口不存正文；查询合并、失败未知非0。旧whispers已删，聊天室仍独立待迁移。
+
+- 聊天室原文/引用由useChatMessageSource→v3-chat-messages当前详情；只传id，不采旧列表HTML/作者。卡片仅公开摘要、unavailable清正文，普通Markdown/HTML分列，作者转义、多行逐行引用；取消/身份隔离与独立rawOpen。普通发送已接v3ChatPublication，主历史/实时已接v3ChatTimeline。
+
+- ChatStyle/appearance首帧统一SSR默认，AppShell挂载后restoreStyle/restore；不要在store初始化读本地布局/主题改变服务端首帧结构或选中类，避免现代布局/浅色偏好水合不一致。
+
+- 普通聊天室send→v3ChatPublication，原content/client/key跨SPA；confirmation_required明确确认原键，成功只metadata后当前GET，读取失败不重发。Chatroom/抽屉输入匹配才清，当前详情投影去重。旧特殊按钮走独立legacy临时链，禁止普通正文隐式回退旧语法执行器；消息历史/实时已接v3ChatTimeline；在线等剩余链另迁移。
+
+- 聊天室消息统一v3ChatTimeline游标/首帧chat事件；WS仅ID/revision，当前GET合并，旧响应/旧页不覆盖更新或复活删除，401/403清授权并拒迟到投影。ready/sync重读窗口，清屏不自动重灌；Home/SSR不取旧chat正文，节点密钥链已从消息消费者移除。在线/mutes/特殊写等仍单独迁移。
+
+- website_v3在线名单用v3ChatOnline/ChatOnlineList共享分页/total/采样；错误未知与0区分，本页筛选，不以本页长度当总人数，不宣称全站实时。SSR不预载旧名单；真实隐私/多节点仍需运行验收。
+
+- website_v3撤回用v3ChatRevoke/ChatRevokeAction/Recovery；作者ID认领，确认后DELETE，未知原ID/key跨SPA、恢复4xx不清命令，换身份清理；成功经timeline.removeConfirmed保留删除集合阻止迟到历史/详情/发送复活，不能回接旧撤回wrapper。
+
+- website_v3消息上下文用useChatContext/ChatContextPanel与/cr#chatroom{id}；窗口独立于最新timeline，前后翻页替换，失败原方向重试，权限/404清正文。timeline.changeHint仅元数据，使相关/在途成员失效；初次登录恢复不得抹掉hash，返回最新清hash并重读主窗。
+
+- website_v3话题修改用v3ChatTopic/ChatTopicEditor/Recovery；原text/key跨SPA未知恢复，confirmation_required明确确认，当前值只GET不以回执覆盖，GET失败不再付费。timeline.readTopic可主动无订阅读取且保留身份/代数隔离；旧setDiscuss包装已删。
+
+- v3客户端弹幕使用v3ChatBarrage/v3ChatBarragePrice，原content/color/key恢复且回执不补播；认证chat.barrager白名单→timeline独立ref→AppShell唯一ChatBarrageOverlay，纯文本/有界去重/定时清理，不进历史或上下文。详见docs/api-v3-client-chat-barrage-work.md。
+
+- v3客户端音乐发送在v3ChatMusic：冻结四字段/key，成功仅当前详情GET后入timeline，回执不充正文；ChatCard数字ID走网易云链接，显式媒体播放有乱序和错误处理。见docs/api-v3-client-chat-music-work.md。
+
+- v3客户端天气发送在v3ChatWeather，固定五天客户端数据，UTC完整年份日历/20代码/整数温度白名单；表单不默认伪造预报，成功仅当前GET后入timeline，原city/description/days/key恢复。见docs/api-v3-client-chat-weather-work.md。
+
+- website_v3红包由v3ChatRedPackets统一创建/详情/领取及原键恢复；卡片只GET，风险领取须显式确认，猜拳手势独立选择。metadata不作当前正文，旧历史404不回退旧领取器；见docs/api-v3-client-chat-red-packets-work.md。
+
+- v3思过崖GET /api/v3/chat/mutes要求content.read，按用户ID读实际未到期sys-mute及有效账号，不读si:guo用户名快照；五公开字段/分页，坏状态或预算超限503。客户端v3ChatMutes按需共享读取，失败人数未知，见docs/api-v3-chat-mutes-work.md。
+
+- website_v3涂鸦PaintPanel共用v3-uploads，具名PNG只插草稿不自动发；上传冻结绘制，失败保画布，关闭/身份变化拒迟到结果，同账号轮换保留。旧uploadFiles已移除，见docs/api-v3-client-chat-paint-work.md。
+
+- website_v3举报统一ReportDialog/v3Reports，目录GET无本地兜底，四目标理由分列/聊天室仅49；原type/id/reason/memo/key跨SPA恢复，AppShell唯一ReportRecovery只显编号不显备注。旧reportContent已删，见docs/api-v3-client-reports-work.md。

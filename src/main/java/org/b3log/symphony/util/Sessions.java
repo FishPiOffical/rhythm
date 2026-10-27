@@ -266,6 +266,7 @@ public final class Sessions {
      */
     public static void clearThreadLocalData() {
         THREAD_LOCAL_DATA.set(null);
+        AccountCredentialVersions.endHttp();
     }
 
     /**
@@ -310,6 +311,8 @@ public final class Sessions {
      */
     public static String login(final Response response, final String userId, final boolean rememberLogin) {
         try {
+            final var proof = AccountCredentialVersions.issuance(userId, null);
+            if (proof == null) return null;
             final BeanManager beanManager = BeanManager.getInstance();
             final UserRepository userRepository = beanManager.getReference(UserRepository.class);
             final JSONObject user = userRepository.get(userId);
@@ -319,6 +322,7 @@ public final class Sessions {
                 return null;
             }
 
+            user.put(User.USER_PASSWORD, proof.password());
             SESSION_CACHE.put(userId, user);
 
             final JSONObject csrfToken = new JSONObject();
@@ -327,9 +331,10 @@ public final class Sessions {
 
             final JSONObject cookieJSONObject = new JSONObject();
             cookieJSONObject.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
+            cookieJSONObject.put("credentialEpoch", proof.epoch());
 
             final String random = RandomStringUtils.randomAlphanumeric(16);
-            cookieJSONObject.put(Keys.TOKEN, user.optString(User.USER_PASSWORD) + COOKIE_ITEM_SEPARATOR + random);
+            cookieJSONObject.put(Keys.TOKEN, proof.password() + COOKIE_ITEM_SEPARATOR + random);
             cookieJSONObject.put(Common.REMEMBER_LOGIN, rememberLogin);
 
             final String ret = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET);
@@ -404,6 +409,7 @@ public final class Sessions {
 
     /** Existing Cookie validation branch, callable without the legacy apiKey-first resolver. */
     public static JSONObject currentCookieUser(final Request request) {
+        AccountCredentialVersions.clear();
         final Set<Cookie> cookies = request.getCookies();
         if (cookies.isEmpty()) {
             return null;
@@ -415,7 +421,7 @@ public final class Sessions {
                     continue;
                 }
 
-                if (cookie.getValue().length() != 224) {
+                if (cookie.getValue().length() < 128 || cookie.getValue().length() > 1024) {
                     return null;
                 }
 
@@ -438,15 +444,16 @@ public final class Sessions {
                 final String token = cookieJSONObject.optString(Keys.TOKEN);
                 final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
                 final String userPassword = ret.optString(User.USER_PASSWORD);
-                if (!userPassword.equals(password)) {
+                if (!AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
                     return null;
                 }
+                ret.put(User.USER_PASSWORD, password);
 
                 if (UserExt.USER_STATUS_C_INVALID == ret.optInt(UserExt.USER_STATUS)
                         || UserExt.USER_STATUS_C_INVALID_LOGIN == ret.optInt(UserExt.USER_STATUS)
                         || UserExt.USER_STATUS_C_DEACTIVATED == ret.optInt(UserExt.USER_STATUS)) {
                     SESSION_CACHE.remove(userId);
-
+                    AccountCredentialVersions.clear();
                     return null;
                 }
 
@@ -461,6 +468,7 @@ public final class Sessions {
         } catch (final Exception ignored) {
         }
 
+        AccountCredentialVersions.clear();
         return null;
     }
 
@@ -496,7 +504,8 @@ public final class Sessions {
             final String userPassword = ret.optString(User.USER_PASSWORD);
             final String token = cookieJSONObject.optString(Keys.TOKEN);
             final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
-            if (userPassword.equals(password)) {
+            if (AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
+                ret.put(User.USER_PASSWORD, password);
                 //userMgmtService.updateOnlineStatus(userId, ip, true, true);
 
                 SESSION_CACHE.put(userId, ret);
@@ -507,6 +516,31 @@ public final class Sessions {
         }
 
         return null;
+    }
+
+    /** Native sockets retain the credential version captured by the HTTP handshake, never a fresh upgrade. */
+    public static JSONObject currentSocketUser(final WebSocketSession session) {
+        final boolean http=AccountCredentialVersions.isHttp();
+        final boolean release=!http&&!AccountCredentialVersions.hasActiveTransaction();
+        final var previous=AccountCredentialVersions.saved();
+        try {
+            String apiKey=session.getParameter("apiKey");
+            if(apiKey!=null&&!apiKey.isEmpty())return ApiProcessor.getUserByKeyForSocket(apiKey);
+            final Session state=session.getHttpSession();
+            final String raw=state.getAttribute(User.USER);
+            if(raw==null)return null;
+            final JSONObject user=new JSONObject(raw);
+            final String actor=user.optString(Keys.OBJECT_ID);
+            final String captured=state.getAttribute("accountCredentialEpoch");
+            final long epoch=captured==null?0:Long.parseLong(captured);
+            final var current=AccountCredentialVersions.current(actor);
+            if(epoch<0||current==null||current.epoch()!=epoch||!current.password().equals(user.optString(User.USER_PASSWORD)))return null;
+            return user;
+        }catch(Exception e){return null;}
+        finally {
+            AccountCredentialVersions.remember(http?previous:null);
+            if(release)ApiV3Transactions.releaseThreadResources();
+        }
     }
 
     /**

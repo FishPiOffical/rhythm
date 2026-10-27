@@ -6,6 +6,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.ChatRoomRepository;
+import org.b3log.symphony.repository.ChatRedPacketRepository;
 import org.b3log.symphony.repository.ReactionRepository;
 import org.b3log.symphony.model.Reaction;
 import org.b3log.symphony.util.ApiV3ChatTransaction;
@@ -16,6 +17,7 @@ import org.json.JSONObject;
 @Service
 public class ChatMessageMgmtService {
     @Inject private ChatRoomRepository messages;
+    @Inject private ChatRedPacketRepository redPackets;
     @Inject private ProfessionSourceEventCaptureService professions;
     @Inject private ReactionRepository reactions;
 
@@ -28,6 +30,7 @@ public class ChatMessageMgmtService {
         return ApiV3ChatTransaction.write(() -> {
             final var rows = messages.select("SELECT oId,content FROM `" + messages.getName() + "` WHERE oId=? FOR UPDATE", id);
             if (rows.isEmpty()) return false;
+            redPackets.requireSettledForRemoval(id);
             if (check != null) check.check(new JSONObject(rows.getFirst().toString()));
             messages.remove(id);
             reactions.removeTargetInCurrentTransaction(Reaction.TARGET_TYPE_CHAT, id);

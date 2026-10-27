@@ -80,9 +80,15 @@ public class OpenIdUtil {
 
     public static String generateAccessToken(final String userId, final Collection<String> scopes,
                                              final String realm, final long expiresAt) throws Exception {
+        var expected=AccountCredentialVersions.snapshot(userId);
+        if(expected==null||!AccountCredentialVersions.matches(userId,expected.epoch()))throw new IllegalArgumentException("credential proof required");
+        return generateAccessToken(userId,scopes,realm,expiresAt,expected.epoch());
+    }
+    public static String generateAccessToken(final String userId,final Collection<String> scopes,final String realm,final long expiresAt,final long epoch)throws Exception {
         final long now = System.currentTimeMillis();
         final JSONObject payload = new JSONObject()
                 .put("userId", userId)
+                .put("credentialEpoch", epoch)
                 .put("scope", String.join(" ", scopes))
                 .put("realm", realm)
                 .put("iat", now)
@@ -112,6 +118,7 @@ public class OpenIdUtil {
                 return null;
             }
 
+            if(!AccountCredentialVersions.matches(payload.optString("userId"),AccountCredentialVersions.payloadEpoch(payload)))return null;
             return payload;
         } catch (final Exception e) {
             return null;
