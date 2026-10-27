@@ -1,6 +1,6 @@
 # /api/v3 当前进度与剩余工作
 
-快照：2026-10-27；以本文件生成时工作区源码为准。后续新增入口须同步重扫，本文件不替代历史批次记录。
+快照：2026-10-28；以本文件生成时工作区源码为准。后续新增入口须同步重扫，本文件不替代历史批次记录。
 
 ## 判定口径
 
@@ -11,13 +11,24 @@
 
 ## 当前数量
 
-已注册 **285 条（284 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 142, POST 72, PUT 46, WEBSOCKET 1。
+已注册 **288 条（287 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 145, POST 72, PUT 46, WEBSOCKET 1。
 
 连接链路：`processor/Router.java#requestMapping` → `processor/ApiV3Processor.java#register` → 各模块 `register`。以下路径均包含完整 `/api/v3` 前缀，代码位置以生成时行号为准。
 
-注意：当前生成的“全仓库832路由、398浏览器引用”是不同口径，包含旧HTTP/WS等，不能当作v3接口数。静态注册成功也不证明完整IoC启动成功。
+注意：当前生成的“全仓库835路由、398浏览器引用”是不同口径，包含旧HTTP/WS等，不能当作v3接口数。静态注册成功也不证明完整IoC启动成功。
 
 ## 已注册接口清单
+
+### 最近注册、随机发现与公开日志（3）
+
+代码：`processor/ApiV3DiscoveryExtrasProcessor.java`；总register可达。实际Java25/SQLite10组及源码接线1组，完整运行未验收，详见[本批记录](api-v3-discovery-extras-work.md)。
+
+| 方法 | 路径 | 行号 | 门禁 |
+| --- | --- | --- | --- |
+| GET | `/api/v3/recent-members` | 21 | optionalProfile、匿名验证 |
+| GET | `/api/v3/articles/random` | 22 | optionalContent、匿名验证 |
+| GET | `/api/v3/logs` | 23 | activity.read |
+
 
 ### 思过崖（1）
 
@@ -897,7 +908,7 @@
 | website_v3迁移 | 已找到客户端 /Users/ling/Documents/fishpi/website_v3 | 认证/本人会员及列表、分类、搜索、目录、详情评论读取已接线；追加通知HTTP/已读写/票据实时失效与SSR导航一致性。通知6组、认证12组/缓存3组、双构建和实际应用本地HTTP+WS夹具通过；追加常用表情/图片分组分页、设置与选择器迁移，旧mock版本URL已删除；其余写入/Socket/模块仍待迁移，见client-notifications-work与client-emojis-work |
 | 官方APP短期扫码 | 用户已确认2分钟、APP确认后网页批准、一次消费；当前七POST已接线 | SQL/Repository/metadata、当前网页授权与账号epoch绑定、原子令牌对、Native刷新/撤销复用OAuth及管理员变更联动已实现。Java纯核心4/事务HTTP7、管理12+10/安全6回归及真实MySQL原语3组通过；追加实际生产Java/MySQL七场景、五写入故障、七独立JVM竞争且逐项观察锁等待。完整IoC/部署仍未验。用户最新范围仅v3，APP已还原干净。 |
 | 公开专栏 | 四GET已改当前可见署名长篇/有效作者SQL投影，字段路径保持 | 当前范围的计数/最新章/排序先过滤再分页；9组隔离及客户端14组，完整运行仍待验，旧经典保持 |
-| 最近注册、随机发现、公开日志 | 用户2026-10-27已确认三项规则，尚未新增v3路由 | 最近注册仅有效账号ID倒序最多20，公开四字段；随机字段起点回绕/去重/打乱，1..20默认8、当前可读可列出及可选排除ID，匿名隐藏身份；日志仅登录activity.read、ID/时间/固定白名单类别，无data/key2，后续按类别扩正文 |
+| 最近注册、随机发现、公开日志 | 第100轮已实现三项源码与客户端，真实运行待验收 | 最近注册仅有效账号ID倒序最多20，公开四字段；随机字段起点回绕/去重/打乱，1..20默认8、当前可读可列出及可选排除ID，匿名隐藏身份；日志仅登录activity.read、ID/时间/固定白名单类别，无data/key2，后续按类别扩正文 |
 | 全链路验收 | 上列已注册接口皆缺本轮真实运行确认 | 依赖数据库迁移、Java25完整类型/IoC启动、IDEA重编译/重启确认、专用测试账号/短信/图床/浏览器及第三方OAuth客户端 |
 
 ## 并行分工与合入顺序
@@ -1206,3 +1217,6 @@
 
 
 第九十九轮（2026-10-27）：用户批准专栏四GET按当前可读/可列出署名长篇与有效作者过滤，SQL先过滤再数量/最新/热门/分页，无可见章404、SQL失败503，optionalContent/原匿名盾及no-store。旧经典保持。客户端资料/章节独立GET/错误/原页重试、20项分页、原章号/首最新阅读、身份迟到隔离和封面CSS占位；首页架共用严格卡片解码。Java25/SQLite8+接线源码1及既有写核心4通过；客户端14专项、73脚本811组、独立exit0双构建、72JS版本0/无map通过。IAB1280合成20/总21→p2故障→末页重试/占位最终重载通过。285保持，无SQL迁移/FTL/Maven/APP；Java已提醒IDEA重编/重启，真实IoC/MySQL/权限/风控/390px待验。最近注册/随机发现/仅时间类别日志规则已确认、待下一批实现。两仓提交，见[公开专栏记录](api-v3-public-columns-work.md)。
+
+
+第100轮（2026-10-28）：最近注册/随机发现/日志元数据三GET总接线，288（287HTTP+WS1），GET145/POST72/PUT46/DELETE24。当前有效四字段/随机起点回绕及匿名保护/固定日志类别先过滤再分页，绝不返回data/key2；客户端Home/Activity/Article/Logs及SSR迁移，独立错误与原页重试，删三旧包装。Java25实际服务/SQLite10+源码接线1组及DTO/共享门禁回归通过；客户端74脚本831组、独立exit0双构建、75JS版本0/无map通过。IAB1280合成19人完整/两模块503独立重试、日志p2故障→末页和首页真实入口通过。无SQL/FTL/Maven/APP；Java需IDEA重编重启，真实IoC/MySQL/新路HTTP/权限/反漏扫/390px待验。两仓分别提交，见[本批记录](api-v3-discovery-extras-work.md)。

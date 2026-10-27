@@ -21,6 +21,11 @@ public class ApiV3ContentDtoService {
 
     public JSONObject summary(final JSONObject article) {
         final JSONObject author = userQueryService.getUser(article.optString(Article.ARTICLE_AUTHOR_ID));
+        return summary(article, author);
+    }
+
+    /** A caller with a current SQL author snapshot need not fall back to a cached user lookup. */
+    public JSONObject summary(final JSONObject article, final JSONObject author) {
         final boolean blocked = isBlocked(author);
         final boolean anonymous = Article.ARTICLE_ANONYMOUS_C_ANONYMOUS == article.optInt(Article.ARTICLE_ANONYMOUS);
         final boolean thought = Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE);

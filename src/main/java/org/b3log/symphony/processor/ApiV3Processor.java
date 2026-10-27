@@ -44,6 +44,7 @@ public class ApiV3Processor {
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3Processor processor = beans.getReference(ApiV3Processor.class);
+        ApiV3DiscoveryExtrasProcessor.register();
         ApiV3ContentProcessor.register();
         ApiV3ArticleWriteProcessor.register();
         ApiV3CommentProcessor.register();

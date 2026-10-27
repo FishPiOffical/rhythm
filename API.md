@@ -16151,3 +16151,125 @@ curl 'https://fishpi.cn/api/v3/me/subscriptions/1770000000000' \
 | - following | 是否已订阅 | true |
 
 > 目标不存在、失效或当前不可读返回404，无效ID返回422。设置或取消继续使用同路径PUT/DELETE及follows.write；写入重试回执不一定代表最新状态，可在成功后重新GET。
+
+
+## v3 发现与公开操作记录
+
+### 读取最近注册用户
+
+`GET /api/v3/recent-members`
+
+按用户ID倒序读取最多20名当前有效用户。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥（可选） | |
+| Authorization | 可选，v3 Bearer Access Token，需profile.read | Bearer ACCESS_TOKEN |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/recent-members'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 查询结果 | {} |
+| - list | 用户列表，最多20条 | [] |
+| -- id | 公开用户ID | 1770000000000 |
+| -- userName | 用户名 | FishPi |
+| -- userNickname | 昵称 | 鱼油 |
+| -- userAvatarURL | 头像 | https://example.com/avatar.png |
+
+> 不返回注册时间或其他账号资料；没有符合条件的用户时返回空列表，读取暂不可用返回503。
+
+### 读取随机发现文章
+
+`GET /api/v3/articles/random`
+
+从当前可读、可列出的文章中发现内容。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥（可选） | |
+| Authorization | 可选，v3 Bearer Access Token，需content.read | Bearer ACCESS_TOKEN |
+| size | 条数，默认8，1至20 | 8 |
+| excludeId | 可选，要排除的一个文章ID，1至32位数字 | 1770000000000 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/articles/random?size=8&excludeId=1770000000000'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 查询结果 | {} |
+| - list | 不重复的文章摘要列表 | [] |
+| -- id | 文章ID | 1770000000001 |
+| -- title | 标题 | 今日摸鱼 |
+| -- preview | 纯文本摘要 | 正文摘要 |
+| -- tags | 标签 | 摸鱼 |
+| -- type | 文章类型，沿用文章列表 | 0 |
+| -- anonymous | 是否匿名文章 | false |
+| -- author | 作者公开资料；匿名时ID、头像为空，名称为匿名用户 | {} |
+| --- id | 公开用户ID | 1770000000000 |
+| --- userName | 用户名 | FishPi |
+| --- userNickname | 昵称 | 鱼油 |
+| --- userAvatarURL | 头像 | https://example.com/avatar.png |
+| -- permalink | 文章链接 | /article/1770000000001 |
+| -- createdAt | 创建时间，毫秒时间戳 | 1770000000001 |
+| -- updatedAt | 更新时间，毫秒时间戳 | 1770000000001 |
+| -- commentCount | 评论数 | 1 |
+| -- viewCount | 浏览数 | 10 |
+| -- stick | 置顶状态 | {} |
+| --- active | 当前是否置顶 | false |
+| --- permanent | 是否永久置顶 | false |
+| --- expiresAt | 到期时间，毫秒时间戳；永久时为null | null |
+
+> 按既有随机字段选择起点并回绕，再打乱结果，不保证全库等概率；可用内容不足时条数可以少于size。不包含讨论帖及不可列出内容；游客不能发现限制游客阅读的文章。参数无效返回422，读取暂不可用返回503。
+
+### 分页读取公开操作记录
+
+`GET /api/v3/logs`
+
+读取公开操作的时间与类别，需要 apiKey（v3 Bearer Access Token，activity.read）。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 请求头 | Bearer ACCESS_TOKEN |
+| p | 页码，默认1，1至42949672 | 1 |
+| size | 每页条数，默认20，最多50 | 20 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/logs?p=1&size=20' \
+  --header 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 分页结果 | {} |
+| - list | 按记录ID倒序的公开记录 | [] |
+| -- id | 记录ID | 1770000000000 |
+| -- time | 记录时间，yyyy-MM-dd HH:mm:ss，保留原记录文本 | 2026-10-28 12:00:00 |
+| -- category | 操作类别 | 增加积分 |
+| - p | 当前页码 | 1 |
+| - size | 每页条数 | 20 |
+| - total | 符合条件的记录数 | 21 |
+| - pageCount | 总页数 | 2 |
+
+> 首批类别：增加积分、扣除积分、发送系统通知、调整用户背包、移除勋章、移除勋章(使用UserId)、添加勋章、解封IP、封禁IP、发放工资、上传摸鱼大闯关数据、上传摸鱼小闯关数据、发送弹幕、发帖并标记为有奖励积分、应用发放积分、应用扣除积分。不返回操作正文、备注或操作对象；读取暂不可用返回503。

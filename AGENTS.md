@@ -364,3 +364,5 @@
 - 注册/找回三页共用AccountAccessForm和v3-account-access；注册SMS快照绑定邀请信息，完成无幂等回执，未知结果先登录核实而非自动重发。手机号/验证码不放URL或storage；useGeetest4新增可选服务端captchaId，旧默认调用保持。构建必须单独核验退出码，不能让后续命令成功掩盖失败。
 
 - 公开专栏四GET由ApiV3PublicColumnQueryService按当前可见署名长篇SQL投影，先过滤再计数/分页，作者绑定所有者及0/3状态；卡片最近章/数量/时间不能回用旧存储值。客户端usePublicColumn独立资料/分页及身份边界，原章号保留，空/失败封面用CSS占位；旧经典读取未同步改造。
+
+- v3发现三GET由ApiV3DiscoveryExtrasQueryService只读SQL：recent-members仅status0公开四字段；random静态注册先于articleId，当前0/3作者/可列出/游客可读与匿名DTO；日志BINARY固定类别先过滤计数，只选oId/key1/key3，禁止回退旧data/key2。客户端最近用户SSR独立消费、不入Home旧缓存，三资源失败清旧/原页重试。
