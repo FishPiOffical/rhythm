@@ -1162,3 +1162,6 @@
 
 
 第八十五轮（2026-10-27）：举报四目标接既有v3目录/提交，文章/长文/评论/用户及聊天室两布局共用；真实分类无兜底、备注可空、按ID识别他人，原target/type/reason/memo/key跨SPA未知恢复，平台明确确认、身份隔离、全局仅编号回执。删旧reportContent。举报19及相关共323组、类型双构建、72JS版本0/无map通过；无浏览器工具，真实权限/DB去重/风控及双视口待验。285保持，无Java/SQL/Maven/APP/提交推送，见[举报记录](api-v3-client-reports-work.md)。
+
+
+第八十六轮（2026-10-27）：复读机首页/独立页迁移既有v3榜单、分类、服务端next、投稿及明确PUT/DELETE点赞，原命令/key全局恢复与平台确认，成功只GET当前榜单不回写历史计数；Home/SSR明确joke，纯文本不剥HTML。新增18组，tools目录60脚本全部通过共613组，类型/客户端/SSR构建、73JS版本0/无map通过。285路由保持，无Java/FTL/SQL/Maven/APP改动；浏览器双视口、真实权限/DB/风控仍待验。本批按用户要求两仓提交，见[复读机记录](api-v3-client-repeater-work.md)。

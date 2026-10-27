@@ -336,3 +336,5 @@
 - website_v3涂鸦PaintPanel共用v3-uploads，具名PNG只插草稿不自动发；上传冻结绘制，失败保画布，关闭/身份变化拒迟到结果，同账号轮换保留。旧uploadFiles已移除，见docs/api-v3-client-chat-paint-work.md。
 
 - website_v3举报统一ReportDialog/v3Reports，目录GET无本地兜底，四目标理由分列/聊天室仅49；原type/id/reason/memo/key跨SPA恢复，AppShell唯一ReportRecovery只显编号不显备注。旧reportContent已删，见docs/api-v3-client-reports-work.md。
+
+- website_v3复读机由v3-repeater/useRepeaterFeed/v3Repeater接列表、服务端next及原键写恢复；榜单仅前12，写回执仅编号，成功GET当前榜单，随机项可离榜。Home/SSR明确joke，纯文本不stripHTML；见docs/api-v3-client-repeater-work.md。
