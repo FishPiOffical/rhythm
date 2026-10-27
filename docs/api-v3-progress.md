@@ -401,10 +401,10 @@
 | POST | `/api/v3/auth/refresh` | 119 | ` processor::refresh, anonymous::handle` |
 | POST | `/api/v3/auth/logout` | 120 | ` processor::logout, anonymous::handle` |
 | GET | `/api/v3/me` | 121 | ` processor::me, auth::handle` |
-| GET | `/api/v3/columns` | 122 | ` processor::columns, anonymous::handle` |
-| GET | `/api/v3/columns/hot` | 123 | ` processor::hotColumns, anonymous::handle` |
-| GET | `/api/v3/columns/{columnId}/articles` | 124 | ` processor::columnArticles, anonymous::handle` |
-| GET | `/api/v3/columns/{columnId}` | 125 | ` processor::column, anonymous::handle` |
+| GET | `/api/v3/columns` | 131 | ` processor::columns, auth::optionalContent, anonymous::handle` |
+| GET | `/api/v3/columns/hot` | 132 | ` processor::hotColumns, auth::optionalContent, anonymous::handle` |
+| GET | `/api/v3/columns/{columnId}/articles` | 133 | ` processor::columnArticles, auth::optionalContent, anonymous::handle` |
+| GET | `/api/v3/columns/{columnId}` | 134 | ` processor::column, auth::optionalContent, anonymous::handle` |
 
 ### 排行榜（1）
 
@@ -896,6 +896,8 @@
 | 游戏云存档 | Evolve四新入口已接，旧cloud登记游戏共用核心 | 已确认单槽/原样字符串/版本/幂等/显式迁移；七组服务HTTP、完整SQL重复迁移与七独立JVM MySQL竞争通过。其他游戏仅确认来源后扩目录；真实IoC/PC/mobile/CDN及全局风控仍待验，见game-save-work。 |
 | website_v3迁移 | 已找到客户端 /Users/ling/Documents/fishpi/website_v3 | 认证/本人会员及列表、分类、搜索、目录、详情评论读取已接线；追加通知HTTP/已读写/票据实时失效与SSR导航一致性。通知6组、认证12组/缓存3组、双构建和实际应用本地HTTP+WS夹具通过；追加常用表情/图片分组分页、设置与选择器迁移，旧mock版本URL已删除；其余写入/Socket/模块仍待迁移，见client-notifications-work与client-emojis-work |
 | 官方APP短期扫码 | 用户已确认2分钟、APP确认后网页批准、一次消费；当前七POST已接线 | SQL/Repository/metadata、当前网页授权与账号epoch绑定、原子令牌对、Native刷新/撤销复用OAuth及管理员变更联动已实现。Java纯核心4/事务HTTP7、管理12+10/安全6回归及真实MySQL原语3组通过；追加实际生产Java/MySQL七场景、五写入故障、七独立JVM竞争且逐项观察锁等待。完整IoC/部署仍未验。用户最新范围仅v3，APP已还原干净。 |
+| 公开专栏 | 四GET已改当前可见署名长篇/有效作者SQL投影，字段路径保持 | 当前范围的计数/最新章/排序先过滤再分页；9组隔离及客户端14组，完整运行仍待验，旧经典保持 |
+| 最近注册、随机发现、公开日志 | 用户2026-10-27已确认三项规则，尚未新增v3路由 | 最近注册仅有效账号ID倒序最多20，公开四字段；随机字段起点回绕/去重/打乱，1..20默认8、当前可读可列出及可选排除ID，匿名隐藏身份；日志仅登录activity.read、ID/时间/固定白名单类别，无data/key2，后续按类别扩正文 |
 | 全链路验收 | 上列已注册接口皆缺本轮真实运行确认 | 依赖数据库迁移、Java25完整类型/IoC启动、IDEA重编译/重启确认、专用测试账号/短信/图床/浏览器及第三方OAuth客户端 |
 
 ## 并行分工与合入顺序
@@ -1201,3 +1203,6 @@
 
 
 第九十八轮（2026-10-27）：注册/找回/重置三入口共用既有六v3资源，当前注册选项/服务端captchaId/SMS快照绑定/手机号验证码直提，删旧verify/meta与六包装及假userId。新密码复用6–128/Unicode规则，未知完成先登录核实不自动重发，取消拒迟到、秘密不进URL/storage。20专项、72脚本797组、独立exit0类型双构建、73JS版本0/无map通过。IAB1280合成选项故障→重试、组件故障不发短信及最终重置表单布局通过；未操作真实验证码/账号凭据。更正上轮构建：旧包装删除留下两unused辅助函数，本批清理并独立实核成功。285保持，无Java/FTL/SQL/Maven/APP；真实短信/极验/凭据撤销/风控/390px待验。两仓提交，见[账号入口记录](api-v3-client-account-access-work.md)。
+
+
+第九十九轮（2026-10-27）：用户批准专栏四GET按当前可读/可列出署名长篇与有效作者过滤，SQL先过滤再数量/最新/热门/分页，无可见章404、SQL失败503，optionalContent/原匿名盾及no-store。旧经典保持。客户端资料/章节独立GET/错误/原页重试、20项分页、原章号/首最新阅读、身份迟到隔离和封面CSS占位；首页架共用严格卡片解码。Java25/SQLite8+接线源码1及既有写核心4通过；客户端14专项、73脚本811组、独立exit0双构建、72JS版本0/无map通过。IAB1280合成20/总21→p2故障→末页重试/占位最终重载通过。285保持，无SQL迁移/FTL/Maven/APP；Java已提醒IDEA重编/重启，真实IoC/MySQL/权限/风控/390px待验。最近注册/随机发现/仅时间类别日志规则已确认、待下一批实现。两仓提交，见[公开专栏记录](api-v3-public-columns-work.md)。

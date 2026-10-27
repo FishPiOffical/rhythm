@@ -16,14 +16,13 @@ import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
-import org.b3log.symphony.service.LongArticleColumnQueryService;
+import org.b3log.symphony.service.ApiV3PublicColumnQueryService;
+import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.latke.util.Requests;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.List;
 import java.net.URI;
 import java.util.UUID;
 
@@ -38,7 +37,7 @@ public class ApiV3Processor {
     @Inject
     private ApiV3TokenMgmtService apiV3TokenMgmtService;
     @Inject
-    private LongArticleColumnQueryService longArticleColumnQueryService;
+    private ApiV3PublicColumnQueryService publicColumns;
     @Inject
     private LoginProcessor loginProcessor;
 
@@ -129,10 +128,10 @@ public class ApiV3Processor {
         Dispatcher.post("/api/v3/auth/refresh", processor::refresh, anonymous::handle);
         Dispatcher.post("/api/v3/auth/logout", processor::logout, anonymous::handle);
         Dispatcher.get("/api/v3/me", processor::me, auth::handle);
-        Dispatcher.get("/api/v3/columns", processor::columns, anonymous::handle);
-        Dispatcher.get("/api/v3/columns/hot", processor::hotColumns, anonymous::handle);
-        Dispatcher.get("/api/v3/columns/{columnId}/articles", processor::columnArticles, anonymous::handle);
-        Dispatcher.get("/api/v3/columns/{columnId}", processor::column, anonymous::handle);
+        Dispatcher.get("/api/v3/columns", processor::columns, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/columns/hot", processor::hotColumns, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/columns/{columnId}/articles", processor::columnArticles, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/columns/{columnId}", processor::column, auth::optionalContent, anonymous::handle);
     }
 
     public void login(final RequestContext context) {
@@ -216,88 +215,16 @@ public class ApiV3Processor {
     }
 
     public void columns(final RequestContext context) {
-        final int p = page(context, 1);
-        final int size = pageSize(context, 12);
-        final List<JSONObject> columns = longArticleColumnQueryService.getLatestColumns(size, p);
-        columns(context, columns, p, size, longArticleColumnQueryService.countValidColumns());
+        ApiV3Requests.read(context, () -> publicColumns.list(ApiV3Requests.viewer(context), page(context, 1), pageSize(context, 12), false));
     }
-
     public void hotColumns(final RequestContext context) {
-        final int p = page(context, 1);
-        final int size = pageSize(context, 12);
-        final List<JSONObject> columns = longArticleColumnQueryService.getHotColumns(size, p);
-        columns(context, columns, p, size, longArticleColumnQueryService.countValidColumns());
+        ApiV3Requests.read(context, () -> publicColumns.list(ApiV3Requests.viewer(context), page(context, 1), pageSize(context, 12), true));
     }
-
     public void column(final RequestContext context) {
-        final String columnId = columnId(context);
-        if (null == columnId) {
-            error(context, 422, "invalid_request", "专栏 ID 格式不合法");
-            return;
-        }
-        final JSONObject view = longArticleColumnQueryService.getColumnViewById(columnId);
-        if (null == view) {
-            error(context, 404, "not_found", "专栏不存在");
-            return;
-        }
-        final JSONObject column = view.optJSONObject("column");
-        final JSONArray chapters = view.optJSONArray("chapters");
-        final JSONArray chapterDtos = new JSONArray();
-        if (null != chapters) {
-            for (int i = 0; i < chapters.length(); i++) {
-                final JSONObject chapter = chapters.optJSONObject(i);
-                if (null == chapter) continue;
-                chapterDtos.put(new JSONObject()
-                        .put("id", chapter.optString("articleId", chapter.optString(Keys.OBJECT_ID)))
-                        .put("title", chapter.optString("articleTitle"))
-                        .put("chapterNo", chapter.optInt("chapterNo"))
-                        .put("permalink", chapter.optString("articlePermalink"))
-                        .put("createdAt", chapter.optLong("articleCreateTime")));
-            }
-        }
-        context.getResponse().setHeader("Cache-Control", "public, max-age=60");
-        success(context, new JSONObject().put("column", columnDto(column)).put("chapters", chapterDtos));
+        ApiV3Requests.read(context, () -> publicColumns.detail(ApiV3Requests.viewer(context), columnId(context)));
     }
-
     public void columnArticles(final RequestContext context) {
-        final String columnId = columnId(context);
-        if (null == columnId) {
-            error(context, 422, "invalid_request", "专栏 ID 格式不合法");
-            return;
-        }
-        final JSONObject view = longArticleColumnQueryService.getColumnViewById(columnId);
-        if (null == view) {
-            error(context, 404, "not_found", "专栏不存在");
-            return;
-        }
-        final int p = page(context, 1);
-        final int size = pageSize(context, 20);
-        final JSONArray chapters = view.optJSONArray("chapters");
-        final int total = null == chapters ? 0 : chapters.length();
-        final JSONArray list = new JSONArray();
-        final int start = Math.min((p - 1) * size, total);
-        final int end = Math.min(start + size, total);
-        for (int i = start; i < end; i++) {
-            final JSONObject chapter = chapters.optJSONObject(i);
-            if (null == chapter) continue;
-            list.put(new JSONObject().put("id", chapter.optString("articleId", chapter.optString(Keys.OBJECT_ID)))
-                    .put("title", chapter.optString("articleTitle")).put("chapterNo", chapter.optInt("chapterNo"))
-                    .put("permalink", chapter.optString("articlePermalink"))
-                    .put("createdAt", chapter.optLong("articleCreateTime")));
-        }
-        context.getResponse().setHeader("Cache-Control", "public, max-age=60");
-        success(context, new JSONObject().put("list", list).put("pagination", new JSONObject()
-                .put("p", p).put("size", size).put("total", total)
-                .put("pageCount", (total + size - 1) / size)));
-    }
-
-    private void columns(final RequestContext context, final List<JSONObject> columns, final int p, final int size, final long total) {
-        final JSONArray list = new JSONArray();
-        for (final JSONObject column : columns) list.put(columnDto(column));
-        context.getResponse().setHeader("Cache-Control", "public, max-age=60");
-        success(context, new JSONObject().put("list", list).put("pagination", new JSONObject()
-                .put("p", p).put("size", size).put("total", total)
-                .put("pageCount", (total + size - 1) / size)));
+        ApiV3Requests.read(context, () -> publicColumns.chapters(ApiV3Requests.viewer(context), columnId(context), page(context, 1), pageSize(context, 20)));
     }
 
     private static int pageSize(final RequestContext context, final int defaultSize) {
@@ -347,28 +274,6 @@ public class ApiV3Processor {
                 .put("userURL", user.optString(User.USER_URL)).put("userPoint", user.optInt(UserExt.USER_POINT));
         if (self) dto.put("userGuideStep", user.optInt(UserExt.USER_GUIDE_STEP));
         return dto;
-    }
-
-    private JSONObject columnDto(final JSONObject column) {
-        if (null == column) return new JSONObject();
-        final JSONObject dto = new JSONObject().put("id", column.optString(Keys.OBJECT_ID))
-                .put("columnId", column.optString("columnId", column.optString(Keys.OBJECT_ID)))
-                .put("title", column.optString("columnTitle")).put("coverURL", column.optString("columnCoverURL"))
-                .put("articleCount", column.optInt("columnArticleCount")).put("updatedAt", column.optLong("columnUpdateTime"));
-        final JSONArray chapters = new JSONArray();
-        final JSONObject latest = column.optJSONObject("latestChapter");
-        final JSONObject secondLatest = column.optJSONObject("secondLatestChapter");
-        if (null != latest) chapters.put(chapterDto(latest));
-        if (null != secondLatest) chapters.put(chapterDto(secondLatest));
-        return dto.put("chapters", chapters);
-    }
-
-    private static JSONObject chapterDto(final JSONObject chapter) {
-        return new JSONObject().put("id", chapter.optString("articleId", chapter.optString(Keys.OBJECT_ID)))
-                .put("title", chapter.optString("articleTitle")).put("chapterNo", chapter.optInt("chapterNo"))
-                .put("permalink", chapter.optString("articlePermalink"))
-                .put("preview", chapter.optString("articlePreviewContent"))
-                .put("createdAt", chapter.optString("articleCreateTime"));
     }
 
     private static String cookie(final RequestContext context, final String name) {

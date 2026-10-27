@@ -336,51 +336,87 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 
 `GET /api/v3/columns?p=1&size=12`
 
-读取最新更新的公开专栏。
+读取有当前可见章节的公开专栏，按可见章节最近更新时间倒序排列。
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| p | 页码，从 1 开始 | 1 |
-| size | 返回数量，最大 50 | 12 |
+| apiKey | 通用密钥（可选） | xxx |
+| Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
+| p | 页码，从1开始 | 1 |
+| size | 每页数量，默认12，最大50 | 12 |
 
 请求示例：
 
 ```bash
-curl 'https://fishpi.cn/api/v3/columns?size=12'
+curl 'https://fishpi.cn/api/v3/columns?p=1&size=12'
 ```
 
 响应：
 
 | Key | 说明 |
 | --- | --- |
-| data.list | 专栏列表 |
-| data.list[].id | 专栏 ID |
-| data.list[].title | 标题 |
-| data.list[].coverURL | 封面地址 |
-| data.list[].articleCount | 章节数量 |
-| data.pagination | 分页信息 |
+| code / msg | 结果码 / 提示 |
+| data | 列表结果 |
+| - list | 专栏列表 |
+| -- id / columnId | 专栏ID，两个字段值相同 |
+| -- title / coverURL | 标题 / 封面地址 |
+| -- articleCount | 当前可见章节数量 |
+| -- updatedAt | 可见章节最近更新时间，毫秒时间戳 |
+| -- chapters | 最近两个可见章节 |
+| --- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
+| --- permalink / createdAt / preview | 文章链接 / 创建时间（毫秒）/ 文本摘要 |
+| - pagination | 分页信息 |
+| -- p / size / total / pageCount | 页码 / 每页数量 / 可见专栏数 / 总页数 |
+
+> 仅收录当前可读、可列出的非匿名长文章及有效作者。专栏没有可见章节时不进入列表；数量、最近章节和排序按当前可见范围计算，可能与此前结果不同。游客不包含禁止访客阅读的章节。
 
 ### 热门专栏
 
 `GET /api/v3/columns/hot?p=1&size=12`
 
-读取热门公开专栏，响应字段与“最新专栏”相同。
-
-请求参数与“最新专栏”相同。
-
-### 专栏详情
-
-`GET /api/v3/columns/{columnId}`
-
-读取公开专栏和章节目录。
+按当前可见章节数量倒序排列，同数量时按可见章节最近更新时间排列。
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| columnId | 专栏 ID | 2026101600000000001 |
+| apiKey | 通用密钥（可选） | xxx |
+| Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
+| p | 页码，从1开始 | 1 |
+| size | 每页数量，默认12，最大50 | 12 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/columns/hot?p=1&size=12'
+```
+
+响应：
+
+| Key | 说明 |
+| --- | --- |
+| code / msg | 结果码 / 提示 |
+| data | 列表结果，与最新专栏相同 |
+| - list | 专栏列表，字段同最新专栏 |
+| - pagination | p、size、total、pageCount |
+
+> 可见范围、章节数量及最近章节规则与最新专栏相同。
+
+### 专栏详情
+
+`GET /api/v3/columns/{columnId}`
+
+读取公开专栏和当前可见的章节目录。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥（可选） | xxx |
+| Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
+| columnId | 专栏ID | 2026101600000000001 |
 
 请求示例：
 
@@ -392,25 +428,30 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001'
 
 | Key | 说明 |
 | --- | --- |
-| data.column | 专栏基础资料 |
-| data.chapters | 章节目录 |
-| data.chapters[].id | 文章 ID |
-| data.chapters[].title | 文章标题 |
-| data.chapters[].chapterNo | 章节序号 |
+| code / msg | 结果码 / 提示 |
+| data | 详情结果 |
+| - column | 专栏资料，字段同最新专栏 |
+| - chapters | 按原章节序号升序排列的可见目录 |
+| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
+| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |
+
+> 不存在、不可用或没有当前可见章节时返回HTTP 404。章节被隐藏后原序号可能不连续，不重新编号；articleCount只计算当前可见章节。
 
 ### 专栏章节
 
 `GET /api/v3/columns/{columnId}/articles?p=1&size=20`
 
-分页读取公开专栏的章节目录。
+分页读取当前可见章节，保留原章节序号并按序号升序排列。
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| columnId | 专栏 ID | 2026101600000000001 |
-| p | 页码 | 1 |
-| size | 每页数量，最大 50 | 20 |
+| apiKey | 通用密钥（可选） | xxx |
+| Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
+| columnId | 专栏ID | 2026101600000000001 |
+| p | 页码，从1开始 | 1 |
+| size | 每页数量，默认20，最大50 | 20 |
 
 请求示例：
 
@@ -422,13 +463,15 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001/articles?p=1&size=20'
 
 | Key | 说明 |
 | --- | --- |
-| data.list | 章节列表 |
-| data.list[].id | 文章 ID |
-| data.list[].title | 章节标题 |
-| data.list[].chapterNo | 章节序号 |
-| data.list[].permalink | 文章链接 |
-| data.list[].createdAt | 创建时间 |
-| data.pagination | 分页信息 |
+| code / msg | 结果码 / 提示 |
+| data | 目录结果 |
+| - list | 可见章节列表 |
+| -- id / title / chapterNo | 文章ID / 标题 / 原章节序号 |
+| -- permalink / createdAt | 文章链接 / 创建时间（毫秒） |
+| - pagination | 分页信息 |
+| -- p / size / total / pageCount | 页码 / 每页数量 / 可见章节数量 / 总页数 |
+
+> 可见范围与专栏详情相同；没有当前可见章节时返回HTTP 404。读取暂不可用时返回503，不能将失败当作空目录。
 
 
 ### 发布文章
