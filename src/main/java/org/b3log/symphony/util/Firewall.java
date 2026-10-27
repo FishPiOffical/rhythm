@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony.util;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +28,6 @@ import org.b3log.latke.util.Execs;
 import org.b3log.symphony.cache.UserCache;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
@@ -49,7 +50,12 @@ public final class Firewall {
 
     private static final String IPSET_NAME = "fishpi";
 
-    private static final String IPSET_SHELL_COMMAND = "ipset \"$1\" \"$2\" \"$3\"";
+    /**
+     * 封禁为永久生效，由管理员在后台 /admin/ip 手动解封。
+     */
+    private static final String IPSET_ADD_COMMAND = "ipset add \"$1\" \"$2\"";
+
+    private static final String IPSET_DEL_COMMAND = "ipset del \"$1\" \"$2\"";
 
     /**
      * Runtime threshold, adjustable and reset on restart.
@@ -72,9 +78,11 @@ public final class Firewall {
     private static final Map<String, Counter> COUNTERS = new ConcurrentHashMap<>();
 
     /**
-     * Already banned IPs to avoid duplicate shell calls.
+     * 已封禁的 IP，避免重复执行 shell；无过期，需管理员手动解封。
      */
-    private static final Set<String> BANNED = ConcurrentHashMap.newKeySet();
+    private static final Cache<String, Boolean> BANNED = Caffeine.newBuilder()
+            .maximumSize(100000)
+            .build();
 
     private Firewall() {
     }
@@ -86,7 +94,23 @@ public final class Firewall {
      * @return {@code true} if the request is allowed, {@code false} if already banned or ban was triggered
      */
     public static boolean recordAndMaybeBan(final String ip) {
+        return recordAndMaybeBan(ip, null);
+    }
+
+    /**
+     * Record one request from the given IP, and ban it if it crosses the threshold.
+     * Verified search engine crawlers are whitelisted so that they are never counted or banned.
+     *
+     * @param ip client IP
+     * @param ua client user agent
+     * @return {@code true} if the request is allowed, {@code false} if already banned or ban was triggered
+     */
+    public static boolean recordAndMaybeBan(final String ip, final String ua) {
         if (StringUtils.isBlank(ip) || !enabled) {
+            return true;
+        }
+
+        if (null != SearchEngines.verifiedCrawler(ip, ua)) {
             return true;
         }
 
@@ -110,11 +134,11 @@ public final class Firewall {
             return false;
         }
 
-        return !BANNED.contains(ip);
+        return null == BANNED.getIfPresent(ip);
     }
 
     public static boolean banIpIfAbsent(final String ip, final String reason) {
-        if (StringUtils.isBlank(ip) || !BANNED.add(ip)) {
+        if (StringUtils.isBlank(ip) || null != BANNED.asMap().putIfAbsent(ip, Boolean.TRUE)) {
             return false;
         }
 
@@ -130,12 +154,12 @@ public final class Firewall {
     }
 
     public static String banIp(final String ip) {
-        BANNED.add(ip);
+        BANNED.put(ip, Boolean.TRUE);
         return runIpset("add", ip);
     }
 
     public static String unbanIp(final String ip) {
-        BANNED.remove(ip);
+        BANNED.invalidate(ip);
         return runIpset("del", ip);
     }
 
@@ -143,7 +167,11 @@ public final class Firewall {
         if (StringUtils.isBlank(operation) || StringUtils.isBlank(ip)) {
             throw new IllegalArgumentException("ipset operation and IP must not be blank");
         }
-        return Execs.exec(new String[]{"sh", "-c", IPSET_SHELL_COMMAND, "ipset", operation, IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
+        if ("add".equals(operation)) {
+            return Execs.exec(new String[]{"sh", "-c", IPSET_ADD_COMMAND,
+                    "ipset", IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
+        }
+        return Execs.exec(new String[]{"sh", "-c", IPSET_DEL_COMMAND, "ipset", IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
     }
 
     public static void cleanupOldBuckets(final long currentBucket) {

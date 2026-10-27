@@ -86,14 +86,23 @@ public class BeforeRequestHandler implements Handler {
             return;
         }
 
+        // 先重置会话默认值，再交给 fillBotAttrs 按 UA 覆盖，避免移动端标记被后续重置冲掉
+        Sessions.setTemplateDir(Symphonys.SKIN_DIR_NAME);
+        Sessions.setMobile(false);
+        Sessions.setAvatarViewMode(UserExt.USER_AVATAR_VIEW_MODE_C_ORIGINAL);
+
+        // 先识别搜索引擎爬虫（含 DNS 反查校验），后续防火墙与验证盾据此豁免
+        final boolean verifiedCrawler = fillBotAttrs(context);
+
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (!Firewall.recordAndMaybeBan(ip)) {
+        if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT))) {
             context.sendStatus(429);
             context.abort();
             return;
         }
         // 黑名单判断
-        if (AnonymousViewCheckMidware.isEnabled()
+        if (!verifiedCrawler
+                && AnonymousViewCheckMidware.isEnabled()
                 && AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
@@ -106,11 +115,6 @@ public class BeforeRequestHandler implements Handler {
 
         Locales.setLocale(Latkes.getLocale());
 
-        Sessions.setTemplateDir(Symphonys.SKIN_DIR_NAME);
-        Sessions.setMobile(false);
-        Sessions.setAvatarViewMode(UserExt.USER_AVATAR_VIEW_MODE_C_ORIGINAL);
-
-        fillBotAttrs(context);
         resolveSkinDir(context);
     }
 
@@ -174,14 +178,19 @@ public class BeforeRequestHandler implements Handler {
         }
     }
 
-    private static void fillBotAttrs(final RequestContext context) {
+    /**
+     * 填充 UA 相关会话属性。
+     *
+     * @return {@code true} 表示已通过 DNS 校验的搜索引擎蜘蛛
+     */
+    private static boolean fillBotAttrs(final RequestContext context) {
         final String userAgentStr = context.header(Common.USER_AGENT);
         final String ip = Requests.getRemoteAddr(context.getRequest());
         final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
         if (null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr)) {
             LOGGER.log(Level.DEBUG, "Verified search engine crawler [{}] [User-Agent={}]", claimedEngine.key(), userAgentStr);
             Sessions.setBot(true);
-            return;
+            return true;
         }
 
         final UserAgent userAgent = UserAgent.parseUserAgentString(userAgentStr);
@@ -219,11 +228,12 @@ public class BeforeRequestHandler implements Handler {
         if (BrowserType.ROBOT == browserType) {
             LOGGER.log(Level.DEBUG, "Request made from a search engine [User-Agent={}]", context.header(Common.USER_AGENT));
             Sessions.setBot(true);
-            return;
+            return false;
         }
 
         Sessions.setBot(false);
         Sessions.setMobile(BrowserType.MOBILE_BROWSER == browserType);
+        return false;
     }
 
     /**

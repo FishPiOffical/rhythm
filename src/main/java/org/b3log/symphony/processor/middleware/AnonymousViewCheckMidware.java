@@ -94,17 +94,17 @@ public class AnonymousViewCheckMidware {
     @Inject
     private OptionQueryService optionQueryService;
 
-    // 计数缓存，5分钟过期
+    // 访问计数缓存，2 小时过期；窗口必须足够长，否则慢速抓取（间隔超过 5 分钟）会让计数反复归零从而绕过验证码
     public static final Cache<String, Integer> ipVisitCountCache = Caffeine.newBuilder()
-            .expireAfterWrite(5, java.util.concurrent.TimeUnit.MINUTES)
+            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
             .maximumSize(100000)
             .build();
     // 黑名单缓存，无过期，手动移除
     public static final Cache<String, Boolean> ipBlacklistCache = Caffeine.newBuilder()
             .maximumSize(100000)
             .build();
-    // String类型的白名单
-    public static final Set<String> whiteList = new HashSet<>();
+    // String类型的白名单（管理员在 /admin/ip 解封后加入，永久跳过验证码盾）
+    public static final Set<String> whiteList = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /**
      * IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）
@@ -132,7 +132,8 @@ public class AnonymousViewCheckMidware {
      */
     private static volatile boolean firstVisitCaptchaEnabled = true;
 
-    private static final int AUTO_BAN_VISIT_THRESHOLD = 100;
+    // 计数窗口为 2 小时，阈值需相应放大，避免正常用户 2 小时内浏览 100 个页面被误封
+    private static final int AUTO_BAN_VISIT_THRESHOLD = 300;
 
     private static final int CAPTCHA_VISIT_INTERVAL = 5;
 
@@ -179,6 +180,14 @@ public class AnonymousViewCheckMidware {
         response.addCookie(cookie);
     }
 
+    private static boolean isPublicInfoPage(final String requestURI) {
+        final String contextPath = Latkes.getContextPath();
+        return requestURI.equals(contextPath + "/about")
+                || requestURI.equals(contextPath + "/download")
+                || requestURI.equals(contextPath + "/privacy")
+                || requestURI.equals(contextPath + "/agreement");
+    }
+
     public void handle(final RequestContext context) {
         final boolean shieldEnabled = enabled;
 
@@ -193,59 +202,55 @@ public class AnonymousViewCheckMidware {
         }
         if (null == currentUser) {
             final String ip = Requests.getRemoteAddr(context.getRequest());
-            if (!whiteList.contains(ip)) {
+            final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
+            final boolean verifiedCrawler = null != SearchEngines.verifiedCrawler(ip, ua);
+            // 匿名非蜘蛛：已通过验证码（2 小时内）或已在白名单则放行，其余进入验证判断
+            if (shieldEnabled && !verifiedCrawler && !isPublicInfoPage(requestURI)
+                    && !whiteList.contains(ip)
+                    && null == ipLastCaptchaPassTimeCache.getIfPresent(ip)) {
                 if (UserCache.hasUserByIP(ip)) {
+                    // 该 IP 上有用户登录过，按既定策略整台机器免验证
                     whiteList.add(ip);
                 } else {
-                    final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-                    if (shieldEnabled && !SearchEngines.isVerifiedCrawler(ip, ua)) {
-                        // 初始化首次访问时间（用于 2 小时内首次访问逻辑）
-                        Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
-                        long now = System.currentTimeMillis();
-                        if (firstVisitTime == null) {
-                            firstVisitTime = now;
-                            ipFirstVisitTimeCache.put(ip, firstVisitTime);
-                        }
+                    final long now = System.currentTimeMillis();
+                    Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
+                    if (null == firstVisitTime) {
+                        firstVisitTime = now;
+                        ipFirstVisitTimeCache.put(ip, firstVisitTime);
+                    }
 
-                        // 计数逻辑（包含两种策略：2 小时内首次访问一次验证码，其后每 5 次一次）
-                        Integer count = ipVisitCountCache.getIfPresent(ip);
-                        if (count == null) count = 0;
-                        count++;
-                        ipVisitCountCache.put(ip, count);
+                    final Integer visits = ipVisitCountCache.getIfPresent(ip);
+                    final int count = null == visits ? 1 : visits + 1;
+                    ipVisitCountCache.put(ip, count);
 
-                        if (count >= AUTO_BAN_VISIT_THRESHOLD) {
-                            if (Firewall.banIpIfAbsent(ip, "Anonymous captcha threshold")) {
-                                System.out.println(ip + " 已封禁");
-                            }
-                        }
+                    // API 调用方无法通过验证码，不做累计封禁，交给 Firewall 的速率阈值处理
+                    if (!requestURI.contains("/api/")
+                            && count >= AUTO_BAN_VISIT_THRESHOLD && Firewall.banIpIfAbsent(ip, "Anonymous captcha threshold")) {
+                        System.out.println(ip + " 已封禁");
+                    }
 
-                        // 判断是否需要进入验证码流程
-                        boolean needCaptcha = false;
+                    boolean needCaptcha = false;
+                    // 非文章页：2 小时内首次访问就需要验证码（可后台开关）；文章页豁免首访验证，便于搜索引擎落地用户直接阅读
+                    if (firstVisitCaptchaEnabled && !firstVisitArticle && count == 1
+                            && (now - firstVisitTime) <= FIRST_VISIT_CAPTCHA_WINDOW_MILLIS) {
+                        needCaptcha = true;
+                    }
+                    // 之后每访问 5 次需要一次验证码
+                    if (!needCaptcha && count % CAPTCHA_VISIT_INTERVAL == 0) {
+                        needCaptcha = true;
+                    }
 
-                        // 2 小时内首次访问：第一次就需要验证码（可单独开关）
-                        Long lastPassTime = ipLastCaptchaPassTimeCache.getIfPresent(ip);
-                        if (firstVisitCaptchaEnabled
-                                 && !firstVisitArticle
-                                 && lastPassTime == null
-                                 && (now - firstVisitTime) <= FIRST_VISIT_CAPTCHA_WINDOW_MILLIS) {
-                            if (count == 1) {
-                                needCaptcha = true;
-                            }
-                        }
-
-                        // 之后每访问 5 次需要一次验证码
-                        if (!needCaptcha && count % CAPTCHA_VISIT_INTERVAL == 0) {
-                            needCaptcha = true;
-                        }
-
-                        if (needCaptcha) {
-                            // 进入黑名单并跳转验证码页面
+                    if (needCaptcha) {
+                        if (requestURI.contains("/api/")) {
+                            // API 调用方无法完成验证码，直接拒绝且不拉黑，避免把服务端客户端永久卡死
+                            context.sendError(401);
+                        } else {
                             ipBlacklistCache.put(ip, true);
                             context.sendRedirect("/test");
-                            context.abort();
                             System.out.println(ip + " 触发验证码，进入黑名单");
-                            return;
                         }
+                        context.abort();
+                        return;
                     }
                 }
             }

@@ -145,6 +145,9 @@ final class SearchEngineDnsVerifier {
                 return SearchEngines.hasDnsSuffix(hostname, "yandex.ru")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.net")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.com");
+            case SO360:
+                return SearchEngines.hasDnsSuffix(hostname, "so.com")
+                        || SearchEngines.hasDnsSuffix(hostname, "360.cn");
             default:
                 return false;
         }

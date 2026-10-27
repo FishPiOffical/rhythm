@@ -27,7 +27,8 @@
         <@head title="${article.articleTitle} - ${symphonyLabel}">
         <meta name="keywords" content="<#list article.articleTagObjs as articleTag>${articleTag.tagTitle}<#if articleTag?has_next>,</#if></#list>" />
         <meta name="description" content="${article.articlePreviewContent}"/>
-        <#if 1 == article.articleStatus || 1 == article.articleAuthor.userStatus || 1 == article.articleType>
+        <link rel="canonical" href="${servePath}${article.articlePermalink}"/>
+        <#if 1 == article.articleStatus || 1 == article.articleAuthor.userStatus>
         <meta name="robots" content="NOINDEX,NOFOLLOW" />
         </#if>
         </@head>

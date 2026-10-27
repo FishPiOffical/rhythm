@@ -554,6 +554,7 @@ public class ArticleQueryService {
         return new Query().setFilter(CompositeFilterOperator.and(
                         new PropertyFilter(Keys.OBJECT_ID, idOperator, articleId),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW),
                         new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
                 .addSort(Keys.OBJECT_ID, sortDirection)
                 .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
@@ -565,6 +566,7 @@ public class ArticleQueryService {
                         new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN, articleId),
                         new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW),
                         new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
                 .addSort(Keys.OBJECT_ID, SortDirection.ASCENDING)
                 .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
@@ -576,6 +578,7 @@ public class ArticleQueryService {
                         new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN, articleId),
                         new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW),
                         new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES)))
                 .addSort(Keys.OBJECT_ID, SortDirection.DESCENDING)
                 .select(Keys.OBJECT_ID, Article.ARTICLE_PERMALINK, Article.ARTICLE_TITLE, Article.ARTICLE_CONTENT)
@@ -595,6 +598,7 @@ public class ArticleQueryService {
         final List<Filter> filters = new ArrayList<>();
         filters.add(new PropertyFilter(Keys.OBJECT_ID, newer ? FilterOperator.GREATER_THAN : FilterOperator.LESS_THAN, articleId));
         filters.add(new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID));
+        filters.add(new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW));
         filters.add(new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_YES));
         if (StringUtils.isNotBlank(authorId)) {
             filters.add(new PropertyFilter(Article.ARTICLE_AUTHOR_ID, FilterOperator.EQUAL, authorId));
@@ -1432,6 +1436,7 @@ public class ArticleQueryService {
         filters.add(new PropertyFilter(Article.ARTICLE_TAGS, FilterOperator.NOT_EQUAL, Tag.TAG_TITLE_C_SANDBOX));
         filters.add(new PropertyFilter(Article.ARTICLE_TAGS, FilterOperator.NOT_LIKE, "B3log%"));
         filters.add(new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT));
+        filters.add(new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW));
 
         return new CompositeFilter(CompositeFilterOperator.AND, filters);
     }
@@ -1613,6 +1618,7 @@ public class ArticleQueryService {
                         new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.NOT_EQUAL, Article.ARTICLE_TYPE_C_LONG),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID),
                         new PropertyFilter(Article.ARTICLE_SHOW_IN_LIST, FilterOperator.NOT_EQUAL, Article.ARTICLE_SHOW_IN_LIST_C_NOT),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW),
                         new PropertyFilter(Article.ARTICLE_CREATE_TIME, FilterOperator.GREATER_THAN_OR_EQUAL, String.valueOf(DateUtils.addDays(new Date(), -30).getTime())))).
                 setPageCount(1).setPage(page, fetchSize).
                 addSort(Article.ARTICLE_LATEST_CMT_TIME, SortDirection.DESCENDING);
@@ -2697,6 +2703,7 @@ public class ArticleQueryService {
                 setFilter(CompositeFilterOperator.and(
                         new PropertyFilter(Article.ARTICLE_STICK, FilterOperator.NOT_EQUAL, 0L),
                         new PropertyFilter(Article.ARTICLE_TYPE, FilterOperator.NOT_EQUAL, Article.ARTICLE_TYPE_C_DISCUSSION),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW),
                         new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.EQUAL, Article.ARTICLE_STATUS_C_VALID))).
                 setPageCount(1).setPage(1, Integer.MAX_VALUE).
                 addSort(Article.ARTICLE_STICK, SortDirection.DESCENDING);

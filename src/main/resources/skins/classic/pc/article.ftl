@@ -46,7 +46,7 @@
         <meta name="keywords"
               content="<#list article.articleTagObjs as articleTag>${articleTag.tagTitle}<#if articleTag?has_next>,</#if></#list>"/>
         <meta name="description" content="${article.articlePreviewContent}"/>
-        <#if 1 == article.articleStatus || 1 == article.articleAuthor.userStatus || 1 == article.articleType>
+        <#if 1 == article.articleStatus || 1 == article.articleAuthor.userStatus>
             <meta name="robots" content="NOINDEX,NOFOLLOW"/>
         </#if>
     </@head>
@@ -56,7 +56,7 @@
         <link rel="stylesheet" href="${staticServePath}/css/long-article-image-menu.css?${staticResourceVersion}"/>
     </#if>
     <link rel="canonical"
-          href="${servePath}${article.articlePermalink}?p=${paginationCurrentPageNum}&m=${userCommentViewMode}">
+          href="${servePath}${article.articlePermalink}">
     <#if articlePrevious??>
         <link rel="prev" title="${articlePrevious.articleTitleEmojUnicode}"
               href="${servePath}${articlePrevious.articlePermalink}">

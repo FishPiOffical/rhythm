@@ -129,8 +129,22 @@
 - OAuth/OpenID 用户资源链路在 `OpenIdProcessor`：`/openid/login` 通过 `fishpi.scope` 请求 `profile.read/profile.detail.read/points.read/articles.read/membership.read`，`/openid/verify` 成功后返回 Bearer `access_token` 与可轮换 `refresh_token`；资源接口只认 `Authorization: Bearer`，续签走匿名 `POST /openid/token`，不接收 `apiKey`、不支持 `userId` 代查。
 - 文章页实时链路走 `ArticleChannel`：新增评论仍是 `type=comment`，评论 reaction 增量走 `type=commentReaction`，帖子本体 reaction 增量走 `type=articleReaction`；联调这类 Java 推送改动时，前端强刷还不够，必须让用户重启或重新编译服务端。
 - 账号设置手机/邮箱验证码链路：PC/移动模板在 `skins/classic/*/home/settings/account.ftl`，前端在 `settings.js`，发送接口在 `SettingsProcessor#sendPhoneVC/sendEmailVC`；验证码形态调整需同步前端提交字段与后端校验方式。
-- `AnonymousViewCheckMidware#handle`：匿名访问触发验证码（2 小时首次访问 + 每 5 次访问），并结合 `anonymous.viewSkips`、文章匿名开关、匿名访问次数 Cookie 限制。
+- `AnonymousViewCheckMidware#handle`：匿名访客的验证码判定顺序为「登录态/apiKey → 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同 IP 有用户登录过就永久免验证，属既定设计）→ 2 小时内已通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 每 5 次访问」。计数窗口为 2 小时，累计 300 次触发 `Firewall` 封禁；`/api/` 命中验证码规则时返回 401 且不拉黑，避免服务端客户端被永久卡住。`sitemap.xml` 不在豁免名单内，仍依赖已验证蜘蛛通行。
 - `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。
 - 历史遗留：部分接口未在路由层挂登录中间件而在方法内鉴权（如 `MedalProcessor#requireAdmin/requireLogin`、`UserProcessor` 的 goldFingerKey 系列）；新增接口不要复用该模式，优先路由层显式鉴权。
 - 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
 - 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。
+
+## 反漏扫 / 搜索引擎 / 封禁链路（现行基线）
+
+- 威胁模型：单位漏扫通常从 `/` 起步；搜索引擎爬虫与搜索落地用户会直接从文章页进入。因此「文章页首访免验证码」是刻意设计，不要改成「未验证就零内容」，也不要为方便爬虫把 `/sitemap.xml` 加进公开豁免（会被漏扫利用）。
+- 蜘蛛识别顺序：`SearchEngines.detectCrawler(UA)` 判定身份 → `verifiedCrawler(ip, ua)` 做 PTR 反查 + 正向 A 双向校验（`SearchEngineDnsVerifier`），正向缓存 6 小时、负缓存 10 分钟。DNS 瞬断会让真爬虫被当匿名 10 分钟，排查「蜘蛛被弹验证码」时先看这里。
+- DuckDuckGo 没有可用 PTR（Azure 通用域名），只能靠本地 CIDR 文件 `src/main/resources/search-engines/duckduckgo-bot-prefixes.json` 匹配，不做 DNS 校验；该文件由部署脚本在打包前合并官方 JSON。
+- `BeforeRequestHandler` 的蜘蛛豁免只认 `verifiedCrawler` 的返回值，不要用 `Sessions.isBot()`：后者对 Iframely / BUbiNG / ltx71 等 UA 也为 true，等于给伪造 UA 开了后门。
+- `Firewall`：已验证蜘蛛不计数、不封禁；`ipset` 集合 `fishpi` 为永久封禁（`ipset add` 不带 timeout，`BANNED` 缓存无过期），解封唯一入口是后台 `/admin/ip`。该操作会 `ipset del`、清黑名单/计数/首访缓存、把 IP 加入内存白名单并回填通过时间；白名单与缓存都是内存态，服务重启后解封失效。
+- `ipset` 集合创建时未带 `timeout` 就无法对单条记录设置过期；要恢复过期能力必须用 `ipset swap` 重建集合并同步 iptables，不能直接 `ipset add ... timeout`。
+- 生产 nginx 为直连（未走 CDN），`$clientRealIp` 直接取 `$remote_addr`，XFF 等头不可伪造；`/etc/nginx/blockip.conf` 现在只是封禁记录文件，nginx 已不再 include，实际拦截靠 ipset。
+- 运维脚本 `scripts/anti_cc.sh`（`/scripts/` 已被 `.gitignore` 忽略，内含部署凭证，禁止提交）：保留「单 IP 400 req/min、503 超量、CONNECT/特殊字符」三段检测，封禁前做蜘蛛豁免（含 DuckDuckGo CIDR），单次运行内对 PTR/正向查询做缓存；日志固定写独立文件（默认 `/var/log/anti_cc.log`，不可写回退 `/tmp`）；封禁同样不带 timeout。解封需 `ipset del` 且删除记录行，只删 ipset 会被脚本按记录行判重重新加回。
+- SEO 基线：`robots.txt` 对 `/recent` `/qna` `/column` `/tag/` `/api/` `/article/1636516552191` `/article/*/revisions/` 等做 disallow；`articleType=1`（讨论帖）不再输出 NOINDEX；PC/移动 `article.ftl` 的 canonical 统一用 `${servePath}${article.permalink}`；PC/移动 `macro-head.ftl` 保留 `applicable-device`。
+- 匿名可见性过滤：首页最新文章、标签/列表、置顶、作者上/下一篇、时间导航、sitemap 统一排除 `articleAnonymousView == NOT_ALLOW`。Latke 的 `NOT_EQUAL` 生成标准 SQL `!=`，**NULL 行会被排除**，历史数据必须保证该字段非 NULL，否则内容会成片消失。
+- `/sitemap.xml` 是单文件、`setPage(1, Integer.MAX_VALUE)` 一次性取全部文章；超过 5 万条 URL 或响应过大时 Google Search Console / 百度会报「无法读取」。若需修复，应改为 sitemap index + 分片，而不是放宽访问控制。

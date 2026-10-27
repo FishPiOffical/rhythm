@@ -138,7 +138,7 @@ public final class SearchEngines {
 
     private static boolean supportsDnsVerification(final Engine engine) {
         return Engine.GOOGLE == engine || Engine.BAIDU == engine || Engine.BING == engine
-                || Engine.SOGOU == engine || Engine.YANDEX == engine;
+                || Engine.SOGOU == engine || Engine.YANDEX == engine || Engine.SO360 == engine;
     }
 
     private static Engine detectRefererHost(final String host) {
@@ -159,9 +159,9 @@ public final class SearchEngines {
             case BAIDU:
                 return ua.contains("baiduspider");
             case BING:
-                return ua.contains("bingbot") || ua.contains("msnbot");
+                return ua.contains("bingbot") || ua.contains("msnbot") || ua.contains("bingpreview");
             case SOGOU:
-                return ua.contains("sogou");
+                return ua.contains("sogou web spider");
             case YANDEX:
                 return ua.contains("yandexbot");
             case SO360:
