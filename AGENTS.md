@@ -356,3 +356,5 @@
 - v3昨日奖励可选expectedDate进幂等请求，锁本人后服务器日期不符拒fresh，已提交旧键先回放；旧{}保持。CheckinPanel/useActivityStatus读真实状态与门槛，v3Activity原date/key跨SPA恢复，日期变化仅在回执未命中时释放原命令；不把旧回执当当前可领状态。见docs/api-v3-client-activity-work.md。
 
 - website_v3用户悬浮卡用v3-public-user六字段白名单，重开/轮换读当前资料，不补旧角色/在线/积分。已知公开ID传UserFollowButton.userId绑定关系目标，旧仅用户名调用保持；主页/徽章页旧消费者另迁移。见docs/api-v3-client-user-card-work.md。
+
+- v3公开勋章页使用既有用户名分页GET与usePublicMedals身份边界；历史重复授予不按定义ID去重，公开契约无图片URL，不回退旧完整用户或生成图片接口。MemberView旧资料消费者须独立迁移。
