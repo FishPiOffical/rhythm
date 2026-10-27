@@ -344,3 +344,5 @@
 - website_v3同城用v3-cities/useCityFeed双资源真分页，访客沿现有optional scope，独立错误/原页重试；Vue Router城市参数已解码，禁止再decodeURIComponent，API仅编码一次。移除近50条清风过滤，见docs/api-v3-client-cities-work.md。
 
 - website_v3大事记由v3-milestones/useMilestones/v3Milestones提供公开SSR时间线及本人状态；本人content是历史HTML或原文，必须经现有preview清洗后展示，失败禁止原文回退。投稿回执pending不代替当前GET审核状态，原键跨SPA恢复；见docs/api-v3-client-milestones-work.md。
+
+- website_v3统计/statistic用v3-statistics/useStatistics仅投影九项非负安全整数，错误清快照不填零；公开SSR按请求提供并一次消费，当前登录/凭据轮换重新读，拒迟到。仅统计快照，不宣称全站去重在线；见docs/api-v3-client-statistics-work.md。
