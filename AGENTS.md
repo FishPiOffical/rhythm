@@ -348,3 +348,5 @@
 - website_v3统计/statistic用v3-statistics/useStatistics仅投影九项非负安全整数，错误清快照不填零；公开SSR按请求提供并一次消费，当前登录/凭据轮换重新读，拒迟到。仅统计快照，不宣称全站去重在线；见docs/api-v3-client-statistics-work.md。
 
 - website_v3账号页OwnerAppLogin只接既有网页扫码三POST，qrcode本地矩阵绘SVG；旧apiKey/外部QR包装已删。仅APP确认后明确批准，未知写先查状态，consumed才完成；到期/离页/身份边界清码，同账号轮换重验原issuer，不自动升级。APP源码不改；见docs/api-v3-client-app-login-work.md。
+
+- website_v3普通榜单共用v3-rankings/useRankingBoard/RankingBoard，十五类及游戏子类均有限快照分页；首页独立size8，不进旧Home缓存或mock兜底。HTTP嵌套pagination与SSR投影平页分别校验，初始只首挂复用；职业仍独立。见docs/api-v3-client-rankings-work.md。

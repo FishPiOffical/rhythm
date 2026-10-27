@@ -1180,3 +1180,6 @@
 
 
 第九十一轮（2026-10-27）：账号页APP码改既有v3三网页POST，本地矩阵SVG/两分钟/手动状态/APP确认后网页明确批准或拒绝，未知决定只查当前状态，consumed才显示完成；清除旧apiKey/外部QR链，APP源码不动。扫码16专项、65脚本692组、类型双构建、73JS版本0/无map通过，独立jsQR解码回读一致。真实Chrome合成协议1280批准已保存503→只GET语义的状态POST恢复→consumed，390本地码/拒绝通过，无page-error/水合警告，预期503及原密码verbose提示单列。285保持，无Java/FTL/SQL/Maven；真实APP/issuer/单次换码/风控未验。本批两仓提交，见[网页扫码记录](api-v3-client-app-login-work.md)。
+
+
+第九十二轮（2026-10-27）：普通十五榜/全部游戏子类接既有v3有限快照分页，原页重试/子类重置/身份迟到隔离、赞助汇总/安全链接；Top目录只导航，职业独立。Home连签/在线size8独立预览/错误/SSR，不入旧缓存，删除旧top包装和mock导出。16专项、66脚本709组、类型双构建、74JS版本0/无map通过。Chrome生产构建+SSR合成HTTP完成1280连签p2故障→rank21/子榜/赞助与390Home前8→更多→p2重试；修复短末页停页脚并复验定位，无page-error/水合警告，预期401/503单列。285保持，无Java/FTL/SQL/Maven/APP；真实快照/权限/反漏扫未验。两仓提交，见[排行榜记录](api-v3-client-rankings-work.md)。
