@@ -360,3 +360,5 @@
 - v3公开勋章页使用既有用户名分页GET与usePublicMedals身份边界；历史重复授予不按定义ID去重，公开契约无图片URL，不回退旧完整用户或生成图片接口。MemberView已独立迁移公开六字段和当前栏目v3列表。
 
 - 用户主页useMemberPage将公开资料与当前栏目独立读取；SSR仅fetchPublicUser白名单并消费时重投影，不缓存旧完整用户。公开文章/回帖需署名作者匹配，清风深链接直接GET并复核归属，禁止从最近列表推断删除。
+
+- 注册/找回三页共用AccountAccessForm和v3-account-access；注册SMS快照绑定邀请信息，完成无幂等回执，未知结果先登录核实而非自动重发。手机号/验证码不放URL或storage；useGeetest4新增可选服务端captchaId，旧默认调用保持。构建必须单独核验退出码，不能让后续命令成功掩盖失败。
