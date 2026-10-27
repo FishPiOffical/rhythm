@@ -342,3 +342,5 @@
 - website_v3鱼游在v3-fish-games/useFishGames/v3FishGames：默认votes分页、详情/评论独立读、明确三态投票，五字段投稿/编辑含OAuth必填；回执不写当前公开内容，未知原键跨SPA恢复。官方游戏只导航经典站点，见docs/api-v3-client-fish-games-work.md。
 
 - website_v3同城用v3-cities/useCityFeed双资源真分页，访客沿现有optional scope，独立错误/原页重试；Vue Router城市参数已解码，禁止再decodeURIComponent，API仅编码一次。移除近50条清风过滤，见docs/api-v3-client-cities-work.md。
+
+- website_v3大事记由v3-milestones/useMilestones/v3Milestones提供公开SSR时间线及本人状态；本人content是历史HTML或原文，必须经现有preview清洗后展示，失败禁止原文回退。投稿回执pending不代替当前GET审核状态，原键跨SPA恢复；见docs/api-v3-client-milestones-work.md。
