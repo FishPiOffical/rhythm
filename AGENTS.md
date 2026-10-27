@@ -346,3 +346,5 @@
 - website_v3大事记由v3-milestones/useMilestones/v3Milestones提供公开SSR时间线及本人状态；本人content是历史HTML或原文，必须经现有preview清洗后展示，失败禁止原文回退。投稿回执pending不代替当前GET审核状态，原键跨SPA恢复；见docs/api-v3-client-milestones-work.md。
 
 - website_v3统计/statistic用v3-statistics/useStatistics仅投影九项非负安全整数，错误清快照不填零；公开SSR按请求提供并一次消费，当前登录/凭据轮换重新读，拒迟到。仅统计快照，不宣称全站去重在线；见docs/api-v3-client-statistics-work.md。
+
+- website_v3账号页OwnerAppLogin只接既有网页扫码三POST，qrcode本地矩阵绘SVG；旧apiKey/外部QR包装已删。仅APP确认后明确批准，未知写先查状态，consumed才完成；到期/离页/身份边界清码，同账号轮换重验原issuer，不自动升级。APP源码不改；见docs/api-v3-client-app-login-work.md。

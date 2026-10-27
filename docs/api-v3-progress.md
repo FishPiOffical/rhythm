@@ -1177,3 +1177,6 @@
 
 
 第九十轮（2026-10-27）：/statistic页脚改SPA统计，复用现有GET九项数字白名单与每请求公开SSR；错误清旧快照/不填零、原资源重试、凭据/迟到隔离，桌面三列/移动两列。统计12专项、64脚本676组、类型双构建、75JS版本0/无map通过；真实Chrome生产构建+SSR合成HTTP完成1280刷新503→旧数字清除→重试恢复和390九项/零值/刷新，无page-error/水合警告，预期401/503单列。285保持，无Java/FTL/SQL/Maven/APP；真实业务统计、权限与反漏扫链未验。本批两仓提交，见[统计记录](api-v3-client-statistics-work.md)。
+
+
+第九十一轮（2026-10-27）：账号页APP码改既有v3三网页POST，本地矩阵SVG/两分钟/手动状态/APP确认后网页明确批准或拒绝，未知决定只查当前状态，consumed才显示完成；清除旧apiKey/外部QR链，APP源码不动。扫码16专项、65脚本692组、类型双构建、73JS版本0/无map通过，独立jsQR解码回读一致。真实Chrome合成协议1280批准已保存503→只GET语义的状态POST恢复→consumed，390本地码/拒绝通过，无page-error/水合警告，预期503及原密码verbose提示单列。285保持，无Java/FTL/SQL/Maven；真实APP/issuer/单次换码/风控未验。本批两仓提交，见[网页扫码记录](api-v3-client-app-login-work.md)。
