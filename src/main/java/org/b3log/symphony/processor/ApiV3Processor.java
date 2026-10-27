@@ -106,6 +106,7 @@ public class ApiV3Processor {
         ApiV3ProfessionRankingProcessor.register();
         ApiV3ProfessionPublicProcessor.register();
         ApiV3MedalProcessor.register();
+        ApiV3MedalImageProcessor.register();
         ApiV3MedalDisplayProcessor.register();
         ApiV3MedalOrderProcessor.register();
         ApiV3MembershipProcessor.register();

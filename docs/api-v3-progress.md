@@ -11,13 +11,21 @@
 
 ## 当前数量
 
-已注册 **288 条（287 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 145, POST 72, PUT 46, WEBSOCKET 1。
+已注册 **290 条（289 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 147, POST 72, PUT 46, WEBSOCKET 1。
 
 连接链路：`processor/Router.java#requestMapping` → `processor/ApiV3Processor.java#register` → 各模块 `register`。以下路径均包含完整 `/api/v3` 前缀，代码位置以生成时行号为准。
 
-注意：当前生成的“全仓库835路由、398浏览器引用”是不同口径，包含旧HTTP/WS等，不能当作v3接口数。静态注册成功也不证明完整IoC启动成功。
+注意：当前生成的“全仓库837路由、398浏览器引用”是不同口径，包含旧HTTP/WS等，不能当作v3接口数。静态注册成功也不证明完整IoC启动成功。
 
 ## 已注册接口清单
+
+### 当前授权勋章图片（2）
+
+`ApiV3MedalImageProcessor`总register已接，均profile.read。本人有效持有含隐藏；公开路径必须指定用户当前有效展示；SVG清洗、前后当前SQL核对、不返回原配置。核心隔离8组及真实Dispatcher/中间件/controller隔离1组，真实部署待验。
+
+- `GET /api/v3/me/medals/image`
+- `GET /api/v3/users/{userName}/medals/image`
+
 
 ### 最近注册、随机发现与公开日志（3）
 
@@ -898,7 +906,7 @@
 | 文章/评论版本与举报 | 旧ArticleProcessor历史版本两入口、CommentProcessor版本入口、Router `/report` | 举报GET/POST已接入；历史四GET已接线，作者及有对应历史权限的当前合法读者可读，私密仍限双方，详情仅清洗投影 |
 | 本人匿名创作清单 | GET /me/anonymous-articles及/me/anonymous-comments已接入，content.read本人元数据 | 正文经已有详情读取；讨论邀请用有界候选/共享解析/hash绑定，超技术预算503，真实MySQL与并发验收仍待做 |
 | 用户职业 | 目录/本人状态、本人详情/90天记录、主职业/跳过引导/隐私及排行/提示/公开资料均已注册 | 排行、成长提示与他人公开资料三GET已注册；按可见人群排行/统计，经验跨模块省略，公开动态当前来源权限；真实MySQL、完整应用及旧隐私整行写竞争仍待验收 |
-| 用户勋章 | 本人/公开读取、显示PUT、相邻移动POST已注册 | 用户侧当前已知排序入口已补齐；隐藏/过期持有参与移动但不清理，旧整行写竞争与真实MySQL待验收，不开放后台全定义目录 |
+| 用户勋章 | 本人/公开读取、显示PUT、相邻移动POST及两图片GET已注册 | 用户侧当前已知排序入口已补齐；隐藏/过期持有参与移动但不清理，旧整行写竞争与真实MySQL待验收，不开放后台全定义目录 |
 | 用户会员 | 档位/本人状态两GET、配置PUT与积分开通POST已注册 | 三项业务规则已获确认并落实；仅展示可写，开通defaults/券/积分/礼包同严格根；部署新积分索引后仍需真实MySQL、旧入口并用与缓存验收。公开昵称样式已确认并接入按1..100个指定ID查询，仅bold/underline/color和profile.read，不返回全站名单或到期时间 |
 | 复读机转录站 | RepeaterProcessor旧`GET /api/repeater/items`、`GET /api/repeater/next`、`POST /api/repeater`及`POST /api/repeater/{id}/like`；API.md独立公开模块 | items/next两个GET已接入，保留前N/前50随机池、匿名盾/可选content.read及当前用户点赞状态；投稿POST与明确点赞PUT/DELETE已接入严格事务/幂等，职业来源绑定；用户批准旧toggle共用核心，COUNT当前读，历史重复仅本人收敛 |
 | 作者付费置顶 | 新POST /api/v3/articles/{articleId}/stick已接线，双scope与同事务100积分/时间/回执 | 用户批准recent有效置顶优先及摘要详情stick投影，已实现；共享过期检查当前时间，不清掉后来续费/永久置顶。隔离8组+排序SQL4组和客户端构建/宽视口夹具通过；真实MySQL/业务库/调度未验，旧付费链保持 |
@@ -1220,3 +1228,6 @@
 
 
 第100轮（2026-10-28）：最近注册/随机发现/日志元数据三GET总接线，288（287HTTP+WS1），GET145/POST72/PUT46/DELETE24。当前有效四字段/随机起点回绕及匿名保护/固定日志类别先过滤再分页，绝不返回data/key2；客户端Home/Activity/Article/Logs及SSR迁移，独立错误与原页重试，删三旧包装。Java25实际服务/SQLite10+源码接线1组及DTO/共享门禁回归通过；客户端74脚本831组、独立exit0双构建、75JS版本0/无map通过。IAB1280合成19人完整/两模块503独立重试、日志p2故障→末页和首页真实入口通过。无SQL/FTL/Maven/APP；Java需IDEA重编重启，真实IoC/MySQL/新路HTTP/权限/反漏扫/390px待验。两仓分别提交，见[本批记录](api-v3-discovery-extras-work.md)。
+
+
+第101轮（2026-10-28）：用户确认勋章图片profile.read、本人有效持有或指定用户当前公开展示，格式纠正为清洗SVG。两GET总接线290（289HTTP+WS1），GET147。当前SQL权限/定义→固定renderer→SVG白名单→再次SQL核对，no-store/图片响应，保留原始128单位ID，查询参数完整传递，不trim或重复解码；旧/gen保持。客户端Bearer二进制/两并发/Blob img及释放、身份迟到隔离，OwnerMedals与公开页接入，删旧medalSession/gen包装。Java25核心SQL/清洗/实际loopback渲染8组及实际Dispatcher/auth/controller隔离1组通过；75前端脚本841组、认证12组、独立exit0双构建、75JS版本0/无map通过。IAB1280合成公开图片503→单项重试恢复、本人与公开入口实际Bearer通过。无SQL/FTL/Maven/APP；IDEA重编重启、真实MySQL/renderer样式/IoC/风控/390px待验。列表真分页/专栏伪造回退列下批，见[本批记录](api-v3-medal-images-work.md)。

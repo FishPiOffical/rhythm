@@ -16273,3 +16273,67 @@ curl 'https://fishpi.cn/api/v3/logs?p=1&size=20' \
 | - pageCount | 总页数 | 2 |
 
 > 首批类别：增加积分、扣除积分、发送系统通知、调整用户背包、移除勋章、移除勋章(使用UserId)、添加勋章、解封IP、封禁IP、发放工资、上传摸鱼大闯关数据、上传摸鱼小闯关数据、发送弹幕、发帖并标记为有奖励积分、应用发放积分、应用扣除积分。不返回操作正文、备注或操作对象；读取暂不可用返回503。
+
+
+## v3 勋章图片
+
+### 读取本人持有的勋章图片
+
+`GET /api/v3/me/medals/image`
+
+读取本人当前有效持有的勋章图片，包含隐藏勋章，需要 apiKey（v3 Bearer Access Token，profile.read）。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 请求头 | Bearer ACCESS_TOKEN |
+| medalId | 查询参数，勋章定义ID；沿勋章列表原值，最多128字符，进行URL编码 | 7 |
+| size | full或mini，默认full；mini不显示名称文字 | full |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/medals/image?medalId=7&size=full' \
+  --header 'Authorization: Bearer ACCESS_TOKEN' --output medal.svg
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Content-Type | 成功响应类型 | image/svg+xml; charset=UTF-8 |
+| body | SVG图片二进制；浏览器客户端应作为图片展示 | medal.svg |
+
+> 沿勋章列表的当前有效期判断；勋章不存在、已失效或本人未持有返回404，无效参数返回422，图片暂不可用返回503。错误仍为通用JSON响应。图片仅保留支持的SVG图形、样式与动画，部分效果可能与经典页面不同；无需提交原始样式参数。
+
+### 读取用户公开展示的勋章图片
+
+`GET /api/v3/users/{userName}/medals/image`
+
+读取指定用户当前公开展示且有效的勋章图片，需要 apiKey（v3 Bearer Access Token，profile.read）。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 请求头 | Bearer ACCESS_TOKEN |
+| userName | 路径参数，用户名，1至64位英文字母、数字、下划线或连字符 | FishPi |
+| medalId | 查询参数，沿公开勋章列表的定义ID，最多128字符，URL编码 | 7 |
+| size | full或mini，默认full | mini |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
+  --header 'Authorization: Bearer ACCESS_TOKEN' --output medal-mini.svg
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Content-Type | 成功响应类型 | image/svg+xml; charset=UTF-8 |
+| body | SVG图片二进制 | medal-mini.svg |
+
+> 用户、勋章不存在或当前未公开展示返回404。当前用户也不能通过此路径读取自己的隐藏勋章，请改用本人路径。公开勋章列表仍可按原接口读取；图片需要profile.read，游客客户端可继续展示名称和描述。

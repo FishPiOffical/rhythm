@@ -366,3 +366,5 @@
 - 公开专栏四GET由ApiV3PublicColumnQueryService按当前可见署名长篇SQL投影，先过滤再计数/分页，作者绑定所有者及0/3状态；卡片最近章/数量/时间不能回用旧存储值。客户端usePublicColumn独立资料/分页及身份边界，原章号保留，空/失败封面用CSS占位；旧经典读取未同步改造。
 
 - v3发现三GET由ApiV3DiscoveryExtrasQueryService只读SQL：recent-members仅status0公开四字段；random静态注册先于articleId，当前0/3作者/可列出/游客可读与匿名DTO；日志BINARY固定类别先过滤计数，只选oId/key1/key3，禁止回退旧data/key2。客户端最近用户SSR独立消费、不入Home旧缓存，三资源失败清旧/原页重试。
+
+- v3勋章图片在ApiV3MedalImageQueryService/Service及ApiV3MedalSvg：profile.read、指定本人/公开owner、当前有效grant/定义前后核对，固定renderer无重定向、SVG白名单后仅图片响应。Latke路由前解码会拆开编码斜杠，图片medalId须用查询参数、保留原128单位键且不重复解码；客户端V3MedalImage只用Bearer Blob img/释放与身份隔离，不再建/gen Cookie。复杂CSS/外部资源不保留，实际renderer需联调。
