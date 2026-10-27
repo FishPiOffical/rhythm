@@ -269,7 +269,7 @@
 
 - 官方Flutter APP已克隆 `/Users/ling/Documents/fishpi/fishpi-app`（FishPiOffical/fishpi-app）。用户最新要求不改APP代码，仅完成v3服务端支持；APP仓库已还原干净、只读参考。已确认网页生码/APP扫码、2分钟、APP明确确认后网页再批准、一次消费与拒绝作废；ApiV3AppLoginProcessor/Service已接七POST，先迁移sql/20261025_api_v3_app_login.sql；发码源website access/epoch逐次当前重验，APP challenge绑定/双确认/令牌对与消费同严格根，二维码只opaque payload。本地生成图形由客户端接入，不可调用第三方QR服务；原生匿名入口保留AnonymousViewCheck，无viewSkips例外。固定fishpi_app_v3仅原生Bearer，不借website Cookie刷新；管理员变更/停用清未完成请求。扫码实际Java/MySQL runner为tools/api-v3-app-login-mysql-test.mjs，保留FOR UPDATE并执行生产Token发行/撤权，勿用SQL sink竞争替代服务并发；完整IoC/部署仍另验。原fishpi Dart SDK仍是旧apiKey，禁止把v3 Bearer塞进旧token/Fishpi(token)冒充登录；事务/本地QR/APP凭据及页面迁移见app-login-work。
 
-- website_v3清风主列表/首页/侧栏共用BreezemoonPanel与v3Breezemoons命令核心，未知结果原key跨组件恢复，完成通知原编辑框；SSR公共载荷由每app的SSR_PAYLOAD_KEY注入，禁止再用进程global供并发渲染消费。城市/个人清风尚独立旧读，完整验收与未验项见client-breezemoons-work。
+- website_v3清风主列表/首页/侧栏共用BreezemoonPanel与v3Breezemoons命令核心，未知结果原key跨组件恢复，完成通知原编辑框；SSR公共载荷由每app的SSR_PAYLOAD_KEY注入，禁止再用进程global供并发渲染消费。个人清风尚独立旧读，完整验收与未验项见client-breezemoons-work。
 
 - 单项标签关注/收藏/订阅GET在ApiV3FollowQueryService，content.read、当前有效本人+有效标签/共享文章可见性，只返targetId/following；前端ContentRelationButton按kind+ID恢复原明确命令，确认后必须GET。多组件提交须废弃在途旧状态读取再重读，不能因loading跳过完成通知；UserFollowButton同规则。
 
@@ -340,3 +340,5 @@
 - website_v3复读机由v3-repeater/useRepeaterFeed/v3Repeater接列表、服务端next及原键写恢复；榜单仅前12，写回执仅编号，成功GET当前榜单，随机项可离榜。Home/SSR明确joke，纯文本不stripHTML；见docs/api-v3-client-repeater-work.md。
 
 - website_v3鱼游在v3-fish-games/useFishGames/v3FishGames：默认votes分页、详情/评论独立读、明确三态投票，五字段投稿/编辑含OAuth必填；回执不写当前公开内容，未知原键跨SPA恢复。官方游戏只导航经典站点，见docs/api-v3-client-fish-games-work.md。
+
+- website_v3同城用v3-cities/useCityFeed双资源真分页，访客沿现有optional scope，独立错误/原页重试；Vue Router城市参数已解码，禁止再decodeURIComponent，API仅编码一次。移除近50条清风过滤，见docs/api-v3-client-cities-work.md。
