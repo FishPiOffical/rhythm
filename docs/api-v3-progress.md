@@ -1231,3 +1231,6 @@
 
 
 第101轮（2026-10-28）：用户确认勋章图片profile.read、本人有效持有或指定用户当前公开展示，格式纠正为清洗SVG。两GET总接线290（289HTTP+WS1），GET147。当前SQL权限/定义→固定renderer→SVG白名单→再次SQL核对，no-store/图片响应，保留原始128单位ID，查询参数完整传递，不trim或重复解码；旧/gen保持。客户端Bearer二进制/两并发/Blob img及释放、身份迟到隔离，OwnerMedals与公开页接入，删旧medalSession/gen包装。Java25核心SQL/清洗/实际loopback渲染8组及实际Dispatcher/auth/controller隔离1组通过；75前端脚本841组、认证12组、独立exit0双构建、75JS版本0/无map通过。IAB1280合成公开图片503→单项重试恢复、本人与公开入口实际Bearer通过。无SQL/FTL/Maven/APP；IDEA重编重启、真实MySQL/renderer样式/IoC/风控/390px待验。列表真分页/专栏伪造回退列下批，见[本批记录](api-v3-medal-images-work.md)。
+
+
+第102轮（2026-10-28）：ArticleListView所有文章分类/搜索/目录采用真实v3分页（20），专栏采用当前可见目录（12）和单选排序，不再猜下一页或由文章拼造作品数/作者/章号。独立错误清旧/原页重试/收缩回首页、凭据与目标迟到隔离，公开SSR按kind/extra/order绑定/白名单/一次消费，Home旧feed保持。新增16专项与SSR第9组、76脚本858组、认证12组、独立exit0双构建、75JS版本0/无map通过；IAB1280合成文章与专栏p2故障→末页/禁下一页、专栏hot重置p1和C++目录通过。290入口保持，无Java/FTL/SQL/Maven/APP/外部接口契约变更。真实权限/风控/390px及Home聚合缓存假空仍待，见[列表记录](api-v3-client-article-list-work.md)。
