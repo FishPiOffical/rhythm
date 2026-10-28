@@ -370,3 +370,5 @@
 - v3勋章图片在ApiV3MedalImageQueryService/Service及ApiV3MedalSvg：profile.read、指定本人/公开owner、当前有效grant/定义前后核对，固定renderer无重定向、SVG白名单后仅图片响应。Latke路由前解码会拆开编码斜杠，图片medalId须用查询参数、保留原128单位键且不重复解码；客户端V3MedalImage只用Bearer Blob img/释放与身份隔离，不再建/gen Cookie。复杂CSS/外部资源不保留，实际renderer需联调。
 
 - website_v3列表由v3-article-list/useArticleListing按真实分页读取：文章20/专栏12，专栏只取当前选择目录，不从文章猜作品或作者。SSR articleListing按kind/extra/order绑定且白名单一次消费；身份/目标变更清旧、失败保原页重试，不用SWR回退。Home旧feed/聚合缓存未在此批整体改造。
+
+- Home五资源读取在`v3-home-reads`/`useHomeRead`，SSR失败null与合法[]分开，每应用消费/白名单，不能恢复聚合SWR或文章伪造专栏；复读机用ready区分未知。聊天室草稿身份边界用context/是否登录/actor，普通Token轮换须保留。
