@@ -372,3 +372,5 @@
 - website_v3列表由v3-article-list/useArticleListing按真实分页读取：文章20/专栏12，专栏只取当前选择目录，不从文章猜作品或作者。SSR articleListing按kind/extra/order绑定且白名单一次消费；身份/目标变更清旧、失败保原页重试，不用SWR回退。Home旧feed/聚合缓存未在此批整体改造。
 
 - Home五资源读取在`v3-home-reads`/`useHomeRead`，SSR失败null与合法[]分开，每应用消费/白名单，不能恢复聚合SWR或文章伪造专栏；复读机用ready区分未知。聊天室草稿身份边界用context/是否登录/actor，普通Token轮换须保留。
+
+- 领域/标签目录页共用`v3-directory`/`useDirectory`，固定50项真实分页、SSR kind/第一页绑定和响应白名单；条目链接使用数字ID，不二次解码名称。不能恢复目录整库聚合SWR或按条数猜下一页。
