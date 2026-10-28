@@ -380,3 +380,5 @@
 - website_v3旧page-auth及loginWebInApiKey代理已获用户批准退役；Node/Vite/nginx模板同步，经典Rhythm入口未删。fishpi.ts仅六当前helper及共享类型，禁止恢复无调用旧包装或存储旧凭据的桥接。
 
 - 客户端边界复核用website_v3的`tools/v3-client-boundary-audit.mjs`，仅AST字面量/静态导入，动态表达式单列，不当运行覆盖。DomainItem在content-types，catalog/gaps假数据已删；离线ping只用v3，任意HTTP响应仅代表可达。
+
+- Rhythm注册/文档核对用`tools/api-v3-contract-audit.mjs`，从Router.requestMapping追本类辅助注册；条件/重载歧义需复核。通过仅证明固定源码形式与API.md一致，不当作IoC/HTTP或业务完成。

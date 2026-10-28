@@ -13,6 +13,8 @@
 
 ## 当前数量
 
+可重复核对：`node tools/api-v3-contract-audit.mjs --json /tmp/api-v3-contract-audit.json`。只核源码注册链和公开契约，不能替代运行验收。
+
 已注册 **290 条（289 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 147, POST 72, PUT 46, WEBSOCKET 1。
 
 连接链路：`processor/Router.java#requestMapping` → `processor/ApiV3Processor.java#register` → 各模块 `register`。以下路径均包含完整 `/api/v3` 前缀，代码位置以生成时行号为准。
@@ -923,6 +925,8 @@
 
 ## 并行分工与合入顺序
 
+下表为早期历史分工，不能作为当前缺口清单；当前状态以上方能力表及最新批次为准。
+
 | 工作包 | 本轮负责人/状态 | 独占区域与可并行边界 | 合入依赖 |
 | --- | --- | --- | --- |
 | 当前清单与缺口 | inventory代理首轮181条，主代理第二轮更新187条源码清单 | 仅`docs/api-v3-progress.md`；不改代码或公开文档 | 主代理最终重扫注册数、逐条核对新增入口 |
@@ -1254,3 +1258,6 @@
 
 
 第108轮（2026-10-28）：删除孤立catalog/gaps假数据、移纯DomainItem类型、删除无用withKey；静态AST复核找出离线旧ping并改既有v3 captcha-options。330文件165 API字面量/47动态表达式/2 RhyPic校验单列、0发现，报告不等于运行覆盖。80脚本917组、认证13组、exit0双构建、77JS版本0/无map；IAB1280合成离线一次v3探测→原登录页通过。用户确认部署后本机8080仍拒绝，随后明确暂不做真实联调；继续源码/隔离，不等待地址。290保持，无Java/FTL/SQL/Maven/APP/外部契约变化，真实权限/风控/390px待验，见[边界记录](api-v3-client-boundary-work.md)。
+
+
+第109轮（2026-10-28）：新增Router.requestMapping→registerProcessors→ApiV3/helper注册链审计，与API.md按METHOD/path核对；114方法/290路由/文档290，差集/重复0。9组正反例与node --check通过；全仓837/398口径保持。仅工具/文档，无业务Java/FTL/SQL/客户端/Maven/APP改动，未重复构建或全量客户端测试。真实联调按用户要求暂缓；风险红包经典衔接/停用发送者结算两规则待答，不据源码契约齐全宣称业务完成，见[收尾检查](api-v3-contract-audit-work.md)。
