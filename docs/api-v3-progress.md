@@ -1267,3 +1267,6 @@
 
 
 第111轮（2026-10-28）：经典两channel实时领完同步durable状态，完成单向/清待恢复证明，旧事件与快照不回退，完成后只读。新核心参数遇非新核心目标明确拒绝，旧历史正常请求保持。12状态+16领取UI+Java25核心20组、资源build、8JS版本0/无map通过；IAB1280两套实际min与模拟WS→只读请求通过。290保持，无新SQL/FTL/Maven/APP，已提醒IDEA重编/重启；真实联调/移动仍暂缓，见[实时状态收尾](api-v3-risk-status-work.md)。
+
+
+第112轮（2026-10-28）：真实Util.alert/jquery/生成样式的390px检查发现PC风险弹窗502px越界；新增专用SCSS modifier并PC/mobile共享import，按钮换行、视口留白/旋转与旧弹层清理；仅新风险弹窗。16领取UI+12状态、资源build、4JS版本0/无map、CSS无sourceMappingURL通过；IAB实际DOM390 PC/mobile两脚本、844横屏及1280桌面几何/截图通过。无Java/FTL/SQL/Maven/APP，真实联调/实机仍暂缓，见[窄屏记录](api-v3-risk-dialog-layout-work.md)。

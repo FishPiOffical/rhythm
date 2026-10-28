@@ -2183,12 +2183,14 @@ border-bottom: none;
         if (!packet || !/^[1-9][0-9]{0,18}$/.test(String(oId))) return;
         const rps = packet.type === 'rockPaperScissors';
         const chosen = String(gesture);
-        const select = rps ? '<label>请选择出拳 <select id="durablePacketGesture"><option value="">请选择</option>' +
+        const select = rps ? '<label class="red-packet-risk-field">请选择出拳 <select id="durablePacketGesture"><option value="">请选择</option>' +
             ['石头', '剪刀', '布'].map((name, i) => '<option value="' + i + '"' + (chosen === String(i) ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>' : '';
+        Util.clearAlert();
         Util.alert('<div><p>' + (rps ? '猜拳输时会扣除税后奖池等额积分，平局不获积分。' : '心跳红包可能抽到负积分，领取时将扣除积分。') +
             '领取前须有足够积分；确认后将按本次选择结算。</p>' + select +
-            '<p><button type="button" id="durablePacketConfirm">我理解扣分风险，确认领取</button> ' +
+            '<p class="red-packet-risk-actions"><button type="button" id="durablePacketConfirm">我理解扣分风险，确认领取</button> ' +
             '<button type="button" id="durablePacketView">只查看详情</button> <button type="button" id="durablePacketCancel">取消</button></p></div>', '红包风险确认');
+        $('#alertDialogPanel').addClass('dialog-panel--packet-risk');
         $('#durablePacketCancel').on('click', function () { Util.clearAlert(); });
         $('#durablePacketView').on('click', function () { Util.clearAlert(); ChatRoom.unpackRedPacket(oId, undefined, {viewOnly: true}); });
         $('#durablePacketConfirm').on('click', function () {

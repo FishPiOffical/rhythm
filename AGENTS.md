@@ -386,3 +386,5 @@
 - 新风险红包经典领取已获确认：durable_v3走显式riskAccepted/整数出拳，viewOnly不结算，未知恢复原拳/expectedUserId；JSON媒体限制只覆盖新证明。猜拳发送者停用仍按原账号返还，删除409无入账，不恢复其资格。旧历史保持。
 
 - 经典新红包完成状态由两套channel同步到ChatRoom共享元数据，旧事件/快照不得回退；不匹配目标携带新核心参数必须拒绝，不能进入旧领取路径。
+
+- 新风险确认弹窗布局在共享_red-packet-risk-dialog.scss，base/mobile-base均引入；仅dialog-panel--packet-risk覆盖Util.alert内联坐标，禁止恢复500px窄屏最小宽或直接改生成CSS。

@@ -1,0 +1,35 @@
+// Risk confirmation must remain usable when the desktop skin runs in a narrow window.
+// Util.alert sets inline coordinates before this scoped class is attached.
+.dialog-panel.dialog-panel--packet-risk {
+  inset: 16px !important;
+  margin: auto;
+  box-sizing: border-box;
+  width: 500px;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+
+  .red-packet-risk-field {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .red-packet-risk-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    button {
+      max-width: 100%;
+      min-height: 40px;
+      margin: 0;
+      white-space: normal;
+    }
+  }
+}
