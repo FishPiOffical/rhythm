@@ -91,5 +91,45 @@ public final class ApiV3ChatRedPacketRiskTest {
         }
         System.out.println("PASS risk packet 7 actual HTTP routes enforce current risk acceptance and typed gesture before settlement, retaining scopes and sender ownership");
 
+        for(int gesture=0;gesture<3;gesture++)try(var f=new F()){
+            f.create(rps(0));exec(f.writer,"UPDATE user SET userStatus=4 WHERE oId='1'");
+            var result=f.service.claim(f.viewer("2"),"123",move(gesture),"inactive-sender");
+            Assert.assertEquals(f.balance("1"),9000L+result.getInt("senderRefundPoints"));
+            Assert.assertEquals(query(f.reader,"SELECT userStatus FROM user WHERE oId='1'").getFirst().getInt("userStatus"),4);
+            Assert.assertEquals(f.balance("2"),10000L+result.getInt("amount"));Assert.assertEquals(f.count("receipts"),2L);
+        }
+        try(var f=new F()){
+            f.create(rps(0));exec(f.writer,"DELETE FROM user WHERE oId='1'");
+            rejected(409,()->f.service.claim(f.viewer("2"),"123",move(1),"deleted-sender"));
+            Assert.assertEquals(f.balance("2"),10000L);Assert.assertEquals(f.count("receipts"),1L);
+            Assert.assertEquals(query(f.reader,"SELECT got FROM packets").getFirst().getInt("got"),0);
+            Assert.assertEquals(query(f.reader,"SELECT claimUserId FROM slots").getFirst().getString("claimUserId"),"");
+        }
+        System.out.println("PASS risk packet 8 inactive sender settles all outcomes without reactivation, deleted sender returns409 without debit/slot/receipt");
+        try(var f=new F()){
+            f.create(rps(0));var view=f.service.legacyOpen(f.viewer("2"),"123",new JSONObject().put("viewOnly",true));
+            Assert.assertEquals(view.getJSONObject("info").getInt("got"),0);Assert.assertFalse(view.getJSONObject("info").has("gesture"));
+            rejected(422,()->f.service.legacyOpen(f.viewer("2"),"123",new JSONObject().put("riskAccepted",true).put("gesture","1")));
+            var claimed=f.service.legacyOpen(f.viewer("2"),"123",move(1));Assert.assertEquals(claimed.getJSONObject("info").getInt("got"),1);
+            Assert.assertEquals(claimed.getJSONObject("info").getInt("gesture"),0);Assert.assertTrue(claimed.getJSONObject("info").has("userAvatarURL48"));
+            f.service.legacyOpen(f.viewer("2"),"123",move(1));Assert.assertEquals(f.balance("2"),9150L);
+            rejected(409,()->f.service.legacyOpen(f.viewer("2"),"123",move(2)));
+        }
+        try(var f=new F()){
+            f.create(heart());negativeFirst(f);rejected(422,()->f.service.legacyOpen(f.viewer("2"),"123"));
+            f.service.legacyOpen(f.viewer("2"),"123",proof());Assert.assertEquals(query(f.reader,"SELECT got FROM packets").getFirst().getInt("got"),1);
+        }
+        System.out.println("PASS risk packet 9 legacy bridge read-only never claims, typed explicit risk/gesture settles and replays without private pre-settlement gesture");
+
+        try(var f=new F()){
+            f.create(rps(0));Assert.assertEquals(f.legacy("2","123").getInt("code"),-1);
+            rejected(409,()->f.service.legacyOpen(f.viewer("2"),"123",move(1).put("expectedUserId","4")));
+            Assert.assertEquals(f.legacy("2","123",move(1),"text/plain").getInt("code"),-1);Assert.assertEquals(f.balance("2"),10000L);
+            Assert.assertEquals(f.legacy("2","123",new JSONObject().put("viewOnly",true)).getJSONObject("info").getInt("got"),0);
+            f.legacy("2","123",move(1));Assert.assertEquals(f.balance("2"),9150L);
+            f.legacy("2","123",move(1));Assert.assertEquals(f.balance("2"),9150L);
+        }
+        System.out.println("PASS risk packet 10 actual legacy HTTP handler forwards typed body proof and read-only flag using authenticated identity, no duplicate settlement");
+
     }
 }

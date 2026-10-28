@@ -2117,6 +2117,30 @@ border-bottom: none;
     },
 
 
+    durableRedPackets: new Map(),
+    confirmDurablePacket: function (oId, gesture) {
+        const packet = ChatRoom.durableRedPackets.get(String(oId));
+        if (!packet || !/^[1-9][0-9]{0,18}$/.test(String(oId))) return;
+        const rps = packet.type === 'rockPaperScissors';
+        const chosen = String(gesture);
+        const select = rps ? '<label>请选择出拳 <select id="durablePacketGesture"><option value="">请选择</option>' +
+            ['石头', '剪刀', '布'].map((name, i) => '<option value="' + i + '"' + (chosen === String(i) ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>' : '';
+        Util.alert('<div><p>' + (rps ? '猜拳输时会扣除税后奖池等额积分，平局不获积分。' : '心跳红包可能抽到负积分，领取时将扣除积分。') +
+            '领取前须有足够积分；确认后将按本次选择结算。</p>' + select +
+            '<p><button type="button" id="durablePacketConfirm">我理解扣分风险，确认领取</button> ' +
+            '<button type="button" id="durablePacketView">只查看详情</button> <button type="button" id="durablePacketCancel">取消</button></p></div>', '红包风险确认');
+        $('#durablePacketCancel').on('click', function () { Util.clearAlert(); });
+        $('#durablePacketView').on('click', function () { Util.clearAlert(); ChatRoom.unpackRedPacket(oId, undefined, {viewOnly: true}); });
+        $('#durablePacketConfirm').on('click', function () {
+            const proof = {riskAccepted: true, expectedUserId: String(Label.currentUserId)};
+            if (rps) {
+                const value = $('#durablePacketGesture').val();
+                if (!['0', '1', '2'].includes(value)) return;
+                proof.gesture = Number(value);
+            }
+            Util.clearAlert(); ChatRoom.unpackRedPacket(oId, undefined, proof);
+        });
+    },
     selectGesture: function (oId) {
         Util.alert(`<div class="form fn__flex-column select-center">
 <div>
@@ -2129,7 +2153,19 @@ border-bottom: none;
     /**
      * 拆开红包
      */
-    unpackRedPacket: function (oId, gesture) {
+    unpackRedPacket: function (oId, gesture, riskProof) {
+        const durable = ChatRoom.durableRedPackets.get(String(oId));
+        if (durable && ['heartbeat', 'rockPaperScissors'].includes(durable.type)) {
+            if (riskProof && riskProof.viewOnly === true || durable.complete || durable.claimed || durable.type === 'rockPaperScissors' && durable.senderId === String(Label.currentUserId)) {
+                riskProof = {viewOnly: true};
+            } else if (durable.pendingProof) {
+                riskProof = durable.pendingProof;
+            } else if (!riskProof || riskProof.riskAccepted !== true) {
+                ChatRoom.confirmDurablePacket(oId, gesture); return;
+            }
+            if (riskProof.riskAccepted === true) durable.pendingProof = riskProof;
+        }
+
         if (undefined === gesture || null === gesture) {
             gesture = "0"
         }
@@ -2140,13 +2176,10 @@ border-bottom: none;
             url: Label.servePath + "/chat-room/red-packet/open",
             async: true,
             method: "POST",
-            data: JSON.stringify({
-                oId: oId,
-                gesture: gesture,
-                dice: {
-                    bet: $("#betRadio>input[name=bet]:checked").val(),
-                    chips: $("#betRadio>input[name=chips]").val()
-                }
+            contentType: 'application/json',
+            data: JSON.stringify(durable ? Object.assign({oId: String(oId), expectedUserId: String(Label.currentUserId)}, riskProof || {}) : {
+                oId: oId, gesture: gesture,
+                dice: {bet: $("#betRadio>input[name=bet]:checked").val(), chips: $("#betRadio>input[name=chips]").val()}
             }),
             success: function (result) {
                 setTimeout(function () {
@@ -2154,6 +2187,11 @@ border-bottom: none;
                     $('#chatroom' + oId).css("pointer-events", "");
                 }, 300);
                 if (result.code !== -1) {
+                    if (durable) {
+                        durable.complete = Number(result.info.got) === Number(result.info.count);
+                        durable.claimed = (result.who || []).some(item => String(item.userId) === String(Label.currentUserId));
+                        if (!riskProof || riskProof.viewOnly !== true || durable.complete || durable.claimed) durable.pendingProof = null;
+                    }
                     let iGot = "抢红包人数较多，加载中...";
                     let gesture = "";
                     if (result.info.gesture !== undefined) {
@@ -2188,11 +2226,14 @@ ${result.info.msg}
                         }
                     }
                 } else {
+                    if (durable) durable.pendingProof = null;
                     Util.alert(result.msg);
                 }
             },
-            error: function (result) {
-                Util.alert(result.msg);
+            error: function () {
+                $($('#chatroom' + oId).find('.hongbao__item').find('div')[1]).html(redPacketMap.get(oId));
+                $('#chatroom' + oId).css('pointer-events', '');
+                Util.alert('领取结果未确认，请重新打开红包恢复本次领取，或只查看详情。');
             }
         });
     },
@@ -2233,6 +2274,13 @@ ${result.info.msg}
                 let msgJSON = $.parseJSON(data.md || data.content.replace("<p>", "").replace("</p>", ""));
                 if (msgJSON.msgType === "redPacket") {
                     isRedPacket = true;
+                    if (msgJSON.settlement === 'durable_v3' && /^[1-9][0-9]{0,18}$/.test(String(data.oId))) {
+                        const prior = ChatRoom.durableRedPackets.get(String(data.oId));
+                        ChatRoom.durableRedPackets.set(String(data.oId), {type: msgJSON.type, senderId: String(msgJSON.senderId),
+                            complete: Number(msgJSON.got) === Number(msgJSON.count),
+                            claimed: (msgJSON.who || []).some(item => String(item.userId) === String(Label.currentUserId)),
+                            pendingProof: prior ? prior.pendingProof : null});
+                    }
                     let type = "未知类型红包";
                     let onclick = 'ChatRoom.unpackRedPacket(\'' + data.oId + '\')';
                     switch (msgJSON.type) {

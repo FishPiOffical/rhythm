@@ -166,8 +166,10 @@ public class ApiV3ChatRedPacketService {
                         if(ApiV3RedPacketInputs.risky(hintedType)&&number(owner.opt(UserExt.USER_POINT))<pool)throw new ApiV3Exception(409,"insufficient_points","领取所需积分不足");
                         int amount=chosen.getInt("amount"),refund=0;
                         if(rps){
-                            // Until the inactive-sender policy is approved, only a current valid sender can settle.
-                            requireActor(sender,false);
+                            // Escrow belongs to the original account even when that account is inactive.
+                            final JSONObject senderAccount=users.getForUpdate(sender);
+                            if(senderAccount==null||!sender.equals(senderAccount.optString("oId")))
+                                throw new ApiV3Exception(409,"sender_unavailable","发送者账号不存在，暂不能结算");
                             final int gesture=input.getInt("gesture"),sourceGesture=packet.getInt("senderGesture");
                             final int delta=sourceGesture-gesture;
                             amount=sourceGesture==gesture?0:delta==1||delta==-2?pool:-pool;
@@ -207,14 +209,28 @@ public class ApiV3ChatRedPacketService {
 
     /** Legacy bridge keeps the established response field names; assignments stay sender-only. */
     public JSONObject legacyOpen(JSONObject viewer,String messageId)throws Exception {
-        final String actor=actor(viewer);
+        return legacyOpen(viewer,messageId,new JSONObject());
+    }
+    public JSONObject legacyOpen(JSONObject viewer,String messageId,JSONObject body)throws Exception {
+        final String actor=actor(viewer);identity(messageId);
+        if(body.has("expectedUserId")&&!actor.equals(body.opt("expectedUserId")))throw new ApiV3Exception(409,"actor_changed","当前账号已变化，请刷新页面");
+        if(body.has("viewOnly")&&!(body.opt("viewOnly") instanceof Boolean))throw ApiV3WriteInputs.invalid();
+        final boolean viewOnly=body.optBoolean("viewOnly",false);
         final JSONObject legacyPacket=packets.current(messageId,false);
-        if(legacyPacket!=null&&ApiV3RedPacketInputs.risky(legacyPacket.optString("type")))throw new ApiV3Exception(422,"risk_confirmation_required","请使用支持风险确认的客户端领取此红包");
-        try{claim(viewer,messageId,"legacy."+ApiV3TokenUtil.hash(actor+"\0"+messageId));}
+        if(legacyPacket==null)throw ApiV3Requests.notFound();
+        final JSONObject proof=new JSONObject();
+        if(ApiV3RedPacketInputs.risky(legacyPacket.optString("type"))&&!viewOnly){
+            if(!Boolean.TRUE.equals(body.opt("riskAccepted")))throw new ApiV3Exception(422,"risk_confirmation_required","请明确确认可能扣除积分的风险");
+            proof.put("riskAccepted",true);
+            if(legacyPacket.optString("type").equals("rockPaperScissors"))proof.put("gesture",body.opt("gesture"));
+        }
+        try{if(!viewOnly)claim(viewer,messageId,proof,"legacy."+ApiV3TokenUtil.hash(actor+"\0"+messageId));}
         catch(ApiV3Exception e){if(!Set.of("red_packet_empty","recipient_required").contains(e.code))throw e;}
         final JSONObject data=detail(viewer,messageId);final JSONObject sender=data.getJSONObject("sender");
         final JSONObject info=new JSONObject().put("userName",sender.optString("userName")).put("userAvatarURL",sender.optString("userAvatarURL"))
+                .put("userAvatarURL48",sender.optString("userAvatarURL"))
                 .put("count",data.getInt("count")).put("got",data.getInt("got")).put("msg",data.getString("message"));
+        if(data.has("senderGesture"))info.put("gesture",data.getInt("senderGesture"));
         final JSONArray who=new JSONArray();for(Object value:data.getJSONArray("claims")){final JSONObject item=(JSONObject)value,u=item.getJSONObject("user");who.put(new JSONObject().put("userId",u.getString("id")).put("userName",u.optString("userName"))
                 .put("avatar",u.optString("userAvatarURL")).put("userMoney",item.getInt("amount")).put("time",format(item.getLong("claimedAt"))));}
         final JSONArray recipients=new JSONArray();if(data.has("recipientIds"))for(Object id:data.getJSONArray("recipientIds")){JSONObject user=publicUser(id.toString());recipients.put(user.optString("userName"));}

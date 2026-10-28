@@ -17,7 +17,7 @@
 
 共享核心修改：`src/main/java/org/b3log/symphony/service/ApiV3ChatRedPacketService.java`、`src/main/java/org/b3log/symphony/util/ApiV3RedPacketInputs.java`、`src/main/resources/repository.json`，新增迁移`sql/20261024_api_v3_chat_red_packet_risk.sql`。既有两张表与Repository复用，无新增Repository。扩展类型长度和出拳/退回结算字段须先部署迁移；原安全三类迁移`20261024_api_v3_chat_red_packet.sql`也必须已完成。当前源码已经完成集成；实际执行证据另列下方。
 
-旧页面未提交明确风险证明，因此实现默认拒绝通过legacyOpen结算新风险红包，不默认替用户接受风险；旧历史心跳和猜拳仍按原链路。该新旧衔接选择以及发送者状态失效时的猜拳退款资格，仍以根代理获得的用户回复为准，未回复前不能宣称兼容决策已经批准。
+用户已于第110批确认：经典PC/mobile同步显式风险确认与出拳，发送者停用但账号存在仍可结算，删除409。实现与最终验收步骤以[经典衔接记录](api-v3-risk-legacy-bridge-work.md)为准；下文为原风险核心历史证据。
 
 ## 源码安全检查与实际验证边界
 

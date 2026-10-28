@@ -115,11 +115,13 @@ public final class ApiV3ChatRedPacketTest {
                 context.addHandler(new org.b3log.latke.http.handler.RouteHandler());context.addHandler(c->{var r=(org.b3log.latke.http.handler.RouteResolution)c.attr("MATCH_RESULT");try{r.getContextHandlerMeta().getInvokeHolder().invoke(processor,c);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}});context.handle();return context;
             }finally{raw.release();}
         }
-        JSONObject legacy(String actor,String id)throws Exception{
+        JSONObject legacy(String actor,String id)throws Exception{return legacy(actor,id,new JSONObject());}
+        JSONObject legacy(String actor,String id,JSONObject input)throws Exception{return legacy(actor,id,input,"application/json");}
+        JSONObject legacy(String actor,String id,JSONObject input,String media)throws Exception{
             var bridge=new org.b3log.symphony.processor.LegacyRedPacketBridge();bridge.apiV3RedPackets=service;
-            String body=new JSONObject().put("oId",id).put("apiKey","spoofed-other").toString();
+            String body=new JSONObject(input.toString()).put("oId",id).put("apiKey","spoofed-other").toString();
             var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,"/chat-room/red-packet/open",io.netty.buffer.Unpooled.copiedBuffer(body,StandardCharsets.UTF_8));
-            try{raw.headers().set("Content-Type","application/json");var request=new Request(null,raw);request.setBytes(body.getBytes(StandardCharsets.UTF_8));request.setJSON(new JSONObject(body));var c=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.attr(org.b3log.latke.model.User.USER,viewer(actor));bridge.openRedPacket(c);Assert.assertEquals(bridge.legacyFallbacks,0);return ((org.b3log.latke.http.renderer.JsonRenderer)c.getRenderer()).getJSONObject();}finally{raw.release();}
+            try{raw.headers().set("Content-Type",media);var request=new Request(null,raw);request.setBytes(body.getBytes(StandardCharsets.UTF_8));request.setJSON(new JSONObject(body));var c=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.attr(org.b3log.latke.model.User.USER,viewer(actor));bridge.openRedPacket(c);Assert.assertEquals(bridge.legacyFallbacks,0);return ((org.b3log.latke.http.renderer.JsonRenderer)c.getRenderer()).getJSONObject();}finally{raw.release();}
         }
     }
     interface Work{void run()throws Exception;}

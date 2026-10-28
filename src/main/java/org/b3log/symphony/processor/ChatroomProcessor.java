@@ -861,9 +861,14 @@ public class ChatroomProcessor {
             final JSONObject packetRequest = context.requestJSON();
             final String packetId = packetRequest.optString("oId");
             if (apiV3RedPackets.recognizes(packetId)) {
+                if (packetRequest.has("riskAccepted")) {
+                    final String media = context.header("Content-Type");
+                    if (media == null || !"application/json".equalsIgnoreCase(media.split(";", 2)[0].trim()))
+                        throw new org.b3log.symphony.util.ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
+                }
                 final Object authenticated = context.attr(User.USER);
                 final JSONObject actor = authenticated instanceof JSONObject user ? user : Sessions.getUser();
-                context.renderJSON(apiV3RedPackets.legacyOpen(actor, packetId));
+                context.renderJSON(apiV3RedPackets.legacyOpen(actor, packetId, packetRequest));
                 return;
             }
         } catch (final org.b3log.symphony.util.ApiV3Exception error) {

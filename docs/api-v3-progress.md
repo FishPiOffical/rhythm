@@ -902,7 +902,7 @@
 | OAuth客户端登记/维护 | `ApiV3ClientRegistrationService#createApprovedInCurrentTransaction`已有已批准应用登记核心；列表/详情/登记HTTP已接入 | 用户已确认仅管理员登记和维护及20回调/2048字符；第一方管理员授权、幂等列表/详情/登记已接入，逻辑停用及完整Token撤销已接入；回调/权限PUT已接入，实际集合变更令全部旧Token/码/待确认失效；仅改名称保留授权，禁止自助登记 |
 | OAuth token/revoke风控 | 协议入口已注册，用户已批准有效协议证明作为端点身份 | token/revoke接只读绑定凭据准入，缺失/无效委派原匿名验证；全局黑名单不变，不加viewSkips或普通身份。根定向6组，真实第三方/验证码/黑名单联调仍待做 |
 | 鱼游投稿/编辑申请 | v3仅目录/详情/评论读、投票和评论写；旧 `FishGameProcessor` `/api/fish-games` POST与`/{id}/edit` | 投稿POST/编辑PUT已接线；按说明校验授权URL及同站回调后待审，旧审核合并pending OAuth字段；先执行20261023鱼游迁移 |
-| 聊天红包发送/详情/领取 | 已新增GET `/api/v3/chat/red-packet-types`；`ApiV3ChatMessageDto`只给红包摘要，旧ChatroomProcessor红包链仍存在 | 五类创建/详情/领取已接源码：新增心跳负积分与猜拳出拳/返还结算；均需显式风险确认。dice不支持。真实MySQL独立进程竞争已有定向证据；完整IoC/页面仍未验；旧页面新风险红包衔接及停用发送者返还资格待答，见risk-work |
+| 聊天红包发送/详情/领取 | 已新增GET `/api/v3/chat/red-packet-types`；`ApiV3ChatMessageDto`只给红包摘要，旧ChatroomProcessor红包链仍存在 | 五类创建/详情/领取已接源码：新增心跳负积分与猜拳出拳/返还结算；均需显式风险确认。dice不支持。真实MySQL独立进程竞争已有定向证据；完整IoC/页面仍未验；两项规则已确认并在第110批实现经典显式证明/只读及停用账号结算；真实完整链路待验，见risk-legacy-bridge-work |
 | 公开支付跳转 | 旧 `/pay/wechat` 与 `/charge/point`存在；支付回调及管理排除 | 用户确认只提供现有站内捐助页链接；GET /api/v3/payments/donation-page已接线，activity.read，不创建订单或凭浏览器链接建立Cookie；真实浏览器登录跳转待验 |
 | 账号敏感设置 | 旧SettingsProcessor手机/邮箱验证码与修改、密码修改、普通积分改名；MFAProcessor四条MFA能力 | 密码/MFA状态、MFA准备启停、手机邮箱申请变更9入口已接线；全部凭据epoch底座已落；普通积分改名v3已接线，同事务改名/扣费/回执；旧/settings/username本批不改造。真实MySQL/IoC/客户端验收仍缺 |
 | 邀请、转账、导出 | 旧`/invitecode/state`、`/point/buy-invitecode`、`/point/transfer`、`/export/posts` | 邀请码存储状态POST已接入（activity.read，仅used/unused/stopped）；购买POST已接入：仅邀请模式、余额足够才扣费生成、原key恢复同码；转账POST已接入原子主款/费/通知及本人回执；导出三入口已接线，第一方当前密码/MFA、完整本人私有ZIP与100分/回执同提交，24h当前本人授权下载；先执行新SQL，真实MySQL/IoC/下载未验，unused不保证可注册 |
@@ -1261,3 +1261,6 @@
 
 
 第109轮（2026-10-28）：新增Router.requestMapping→registerProcessors→ApiV3/helper注册链审计，与API.md按METHOD/path核对；114方法/290路由/文档290，差集/重复0。9组正反例与node --check通过；全仓837/398口径保持。仅工具/文档，无业务Java/FTL/SQL/客户端/Maven/APP改动，未重复构建或全量客户端测试。真实联调按用户要求暂缓；风险红包经典衔接/停用发送者结算两规则待答，不据源码契约齐全宣称业务完成，见[收尾检查](api-v3-contract-audit-work.md)。
+
+
+第110轮（2026-10-28）：用户确认风险红包经典两端显式领取、停用发送者存在即可结算/删除409。共享legacy证明/只读/预期账号、JSON媒体类型及PC两JS/生成产物接入，未知重试保留原拳/账号；旧历史保持。Java25核心20组、JS16组、卡片4组、资源build、4JS版本0/无map、290契约一致通过；IAB1280本地捕获两min脚本确认/取消/出拳/只读通过。无新SQL/FTL/Maven/APP；已提醒IDEA重编/重启，真实联调继续暂缓，见[风险红包衔接](api-v3-risk-legacy-bridge-work.md)。
