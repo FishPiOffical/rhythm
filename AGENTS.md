@@ -374,3 +374,5 @@
 - Home五资源读取在`v3-home-reads`/`useHomeRead`，SSR失败null与合法[]分开，每应用消费/白名单，不能恢复聚合SWR或文章伪造专栏；复读机用ready区分未知。聊天室草稿身份边界用context/是否登录/actor，普通Token轮换须保留。
 
 - 领域/标签目录页共用`v3-directory`/`useDirectory`，固定50项真实分页、SSR kind/第一页绑定和响应白名单；条目链接使用数字ID，不二次解码名称。不能恢复目录整库聚合SWR或按条数猜下一页。
+
+- ArticleView正文/评论不进通用SWR；所有来源当前401/403/404清内容与引用，确认写入后503仅GET重试。普通Token轮换重读须保留挂载评论草稿/历史，卸载与页号迟到检查不可移除。
