@@ -129,6 +129,12 @@ public final class ApiV3ChatRedPacketRiskTest {
             f.legacy("2","123",move(1));Assert.assertEquals(f.balance("2"),9150L);
             f.legacy("2","123",move(1));Assert.assertEquals(f.balance("2"),9150L);
         }
+        try(var f=new F()){
+            Assert.assertEquals(f.legacy("2","999",new JSONObject().put("viewOnly",true)).getInt("code"),-1);
+            Assert.assertEquals(f.legacy("2","999",proof()).getInt("code"),-1);
+            Assert.assertEquals(f.legacy("2","999",new JSONObject().put("expectedUserId","2")).getInt("code"),-1);
+            Assert.assertEquals(f.count("transfers"),0L);
+        }
         System.out.println("PASS risk packet 10 actual legacy HTTP handler forwards typed body proof and read-only flag using authenticated identity, no duplicate settlement");
 
     }

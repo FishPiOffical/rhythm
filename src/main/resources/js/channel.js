@@ -491,6 +491,7 @@ var ChatRoomChannel = {
                     $("#discuss-title").text(newDiscuss);
                     break;
                 case 'redPacketStatus':
+                    if (typeof ChatRoom !== 'undefined' && typeof ChatRoom.updateDurablePacketStatus === 'function') ChatRoom.updateDurablePacketStatus(data);
                     let whoGive = data.whoGive;
                     let whoGot = data.whoGot;
                     let got = data.got;

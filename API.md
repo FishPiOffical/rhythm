@@ -9060,6 +9060,8 @@ curl --location --request GET 'https://fishpi.cn/cr/raw/1641290717190' \
 
 > 新核心心跳/猜拳领取需要显式风险确认和application/json；只查看可传viewOnly=true，不会领取。旧历史红包规则保持；发送者出拳只在本人查看或结算后返回。
 
+> viewOnly、riskAccepted、expectedUserId仅适用于新核心红包，其他目标会返回错误。
+
 请求：
 
 | Key     | 说明                                 | 示例                             |

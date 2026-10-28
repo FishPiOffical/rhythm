@@ -2118,6 +2118,14 @@ border-bottom: none;
 
 
     durableRedPackets: new Map(),
+    updateDurablePacketStatus: function (data) {
+        if (!data || !/^[1-9][0-9]{0,18}$/.test(String(data.oId))) return;
+        const packet = ChatRoom.durableRedPackets.get(String(data.oId));
+        const got = data.got, count = data.count;
+        if (!packet || !Number.isInteger(count) || count < 1 || count > 100 || !Number.isInteger(got) || got < 0 || got > count) return;
+        // Older partial events must not undo a completed packet or recover its pending claim.
+        if (got === count) { packet.complete = true; packet.pendingProof = null; }
+    },
     confirmDurablePacket: function (oId, gesture) {
         const packet = ChatRoom.durableRedPackets.get(String(oId));
         if (!packet || !/^[1-9][0-9]{0,18}$/.test(String(oId))) return;
@@ -2277,7 +2285,7 @@ ${result.info.msg}
                     if (msgJSON.settlement === 'durable_v3' && /^[1-9][0-9]{0,18}$/.test(String(data.oId))) {
                         const prior = ChatRoom.durableRedPackets.get(String(data.oId));
                         ChatRoom.durableRedPackets.set(String(data.oId), {type: msgJSON.type, senderId: String(msgJSON.senderId),
-                            complete: Number(msgJSON.got) === Number(msgJSON.count),
+                            complete: Boolean(prior && prior.complete) || Number(msgJSON.got) === Number(msgJSON.count),
                             claimed: (msgJSON.who || []).some(item => String(item.userId) === String(Label.currentUserId)),
                             pendingProof: prior ? prior.pendingProof : null});
                     }

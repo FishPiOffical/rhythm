@@ -871,6 +871,8 @@ public class ChatroomProcessor {
                 context.renderJSON(apiV3RedPackets.legacyOpen(actor, packetId, packetRequest));
                 return;
             }
+            if (packetRequest.has("viewOnly") || packetRequest.has("riskAccepted") || packetRequest.has("expectedUserId"))
+                throw new org.b3log.symphony.util.ApiV3Exception(404, "red_packet_not_found", "新核心红包不存在");
         } catch (final org.b3log.symphony.util.ApiV3Exception error) {
             context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());
             return;

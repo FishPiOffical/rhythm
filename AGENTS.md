@@ -384,3 +384,5 @@
 - Rhythm注册/文档核对用`tools/api-v3-contract-audit.mjs`，从Router.requestMapping追本类辅助注册；条件/重载歧义需复核。通过仅证明固定源码形式与API.md一致，不当作IoC/HTTP或业务完成。
 
 - 新风险红包经典领取已获确认：durable_v3走显式riskAccepted/整数出拳，viewOnly不结算，未知恢复原拳/expectedUserId；JSON媒体限制只覆盖新证明。猜拳发送者停用仍按原账号返还，删除409无入账，不恢复其资格。旧历史保持。
+
+- 经典新红包完成状态由两套channel同步到ChatRoom共享元数据，旧事件/快照不得回退；不匹配目标携带新核心参数必须拒绝，不能进入旧领取路径。
