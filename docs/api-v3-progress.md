@@ -4,6 +4,8 @@
 
 ## 判定口径
 
+本轮运行状态：用户已确认重编重启与迁移；本执行环境IPv4/IPv6 localhost:8080拒绝连接。用户随后明确暂不做真实联调，后续先继续源码与隔离验证。
+
 - **已注册源码**：`Router.requestMapping` 调用 `ApiV3Processor.register()`，后者能到达具体 Processor 的 Dispatcher 注册；不把孤立的处理方法、服务类或 API.md 条目计为接口。
 - **隔离证据**：历史批次明确记载执行过的 runner；常含 SQLite、仓储/锁/身份/外部服务适配器，不等于真实 MySQL、完整 IoC、浏览器或端到端验证。本轮定向重跑结果见下方证据表，其余历史 runner 未全量重跑。
 - **运行验收**：当前没有本次可确认的完整应用启动、迁移、真实 HTTP/Socket、PC/mobile 与第三方客户端全链路验收证据。下表所有源码接口均仍需运行验收。
@@ -1249,3 +1251,6 @@
 
 
 第107轮（2026-10-28）：用户批准网站旧page-auth桥接退役；删除Node转换/HTML抓取/Cookie签发、前端sessionStorage helper及Vite/nginx旧登录转发，Rhythm经典入口保持。fishpi删除47个无调用包装，仅六当前helper。实际生产/开发Node六组桥接404/零上游/无Cookie、现有v3与验证码POST正文保留；80脚本917组、认证12组、exit0双构建、77JS版本0/无map，IAB1280首页→v3登录表单通过。290保持，无Java/FTL/SQL/Maven/APP；需部署重启Node/同步nginx，真实登录/风控/390px待验，见[桥接退役记录](api-v3-retired-bridge-work.md)。
+
+
+第108轮（2026-10-28）：删除孤立catalog/gaps假数据、移纯DomainItem类型、删除无用withKey；静态AST复核找出离线旧ping并改既有v3 captcha-options。330文件165 API字面量/47动态表达式/2 RhyPic校验单列、0发现，报告不等于运行覆盖。80脚本917组、认证13组、exit0双构建、77JS版本0/无map；IAB1280合成离线一次v3探测→原登录页通过。用户确认部署后本机8080仍拒绝，随后明确暂不做真实联调；继续源码/隔离，不等待地址。290保持，无Java/FTL/SQL/Maven/APP/外部契约变化，真实权限/风控/390px待验，见[边界记录](api-v3-client-boundary-work.md)。

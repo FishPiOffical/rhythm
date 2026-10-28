@@ -378,3 +378,5 @@
 - ArticleView正文/评论不进通用SWR；所有来源当前401/403/404清内容与引用，确认写入后503仅GET重试。普通Token轮换重读须保留挂载评论草稿/历史，卸载与页号迟到检查不可移除；v3Article须核对详情ID/逐条comment.articleId/页与size20并拒重复，参数先验后发请求；评论后页缩减为0页仍须保留返回第一页入口。
 
 - website_v3旧page-auth及loginWebInApiKey代理已获用户批准退役；Node/Vite/nginx模板同步，经典Rhythm入口未删。fishpi.ts仅六当前helper及共享类型，禁止恢复无调用旧包装或存储旧凭据的桥接。
+
+- 客户端边界复核用website_v3的`tools/v3-client-boundary-audit.mjs`，仅AST字面量/静态导入，动态表达式单列，不当运行覆盖。DomainItem在content-types，catalog/gaps假数据已删；离线ping只用v3，任意HTTP响应仅代表可达。
