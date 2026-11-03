@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-03",
+  "scope": "Authenticated real website_v3 -> development proxy -> Rhythm notification reads and current actor navigation; notification rows are controlled SQL fixtures, not actual follower/vote event publication",
+  "backendPid": 66339,
+  "backendCommit": "51206bd0",
+  "clientCommit": "c84d0f8",
+  "authentication": "Normal browser login with independent development account; no token/storage injection; logout performed",
+  "cacheControl": "Legacy getInfoById warmed old actor and still returned old name after SQL rename; current notification route and profile used new name/nickname",
+  "checks": [
+    "Unauthenticated notification entry redirected to login with original target",
+    "Normal login returned to notifications",
+    "At category displayed both vote and follower notifications with current renamed actor",
+    "Clicking actor username opened current profile route and current nickname",
+    "After deleting temporary actor, vote notification retained readable article and omitted all actor links",
+    "Follower notice became unavailable without old identity or target link",
+    "Both 1280px and390px had matching scrollWidth; missing actor links remained0",
+    "After cleanup, explicit refresh returned legitimate empty at list",
+    "Logout synchronously removed private notification region"
+  ],
+  "browserConsole": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "cleanup": {
+    "temporaryActorRemoved": true,
+    "temporaryNotificationsRemoved": 2,
+    "notificationBalanceLedgerAndReceiptFingerprintUnchanged": true,
+    "viewportRestored": true,
+    "temporaryTabClosed": true
+  },
+  "limits": [
+    "Controlled notification rows do not prove real follow/vote event publication",
+    "No new evidence for historical missing-ID chat actor policy",
+    "Development mode does not prove production captcha/blacklist/unlock or external services; no full CDN/directory/upload/download audit"
+  ],
+  "sourceChanges": []
+}
