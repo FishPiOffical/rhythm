@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-03",
+  "runtimePid": 66339,
+  "productionCommit": "51206bd0",
+  "scope": "Real full-application notification reads with controlled SQL records and actual legacy user-cache control, not business event publication or browser validation",
+  "passed": 28,
+  "checks": [
+    "actual legacy lookup warms initial user cache",
+    "legacy cache remains stale after SQL update",
+    "current actor detail type 17 fixture",
+    "current actor detail type 23 fixture",
+    "current actor detail type 24 fixture",
+    "current actor detail type 25 fixture",
+    "current actor detail type 26 fixture",
+    "current actor detail type 27 fixture",
+    "current actor detail type 28 fixture",
+    "current actor detail type 38 fixture",
+    "current actor detail type 39 fixture",
+    "current actor detail type 38 fixture",
+    "current actor detail type 39 fixture",
+    "notification page matches all current detail actors",
+    "other owner404 and unauthenticated401",
+    "deleted actor still exists in legacy cache control",
+    "deleted actor omitted type 17 fixture",
+    "deleted actor omitted type 23 fixture",
+    "deleted actor omitted type 24 fixture",
+    "deleted actor omitted type 25 fixture",
+    "deleted actor omitted type 26 fixture",
+    "deleted actor omitted type 27 fixture",
+    "deleted actor omitted type 28 fixture",
+    "deleted actor omitted type 38 fixture",
+    "deleted actor omitted type 39 fixture",
+    "deleted actor omitted type 38 fixture",
+    "deleted actor omitted type 39 fixture",
+    "list retains readable targets without cached identity"
+  ],
+  "cleanup": {
+    "temporaryNotifications": 11,
+    "temporaryChatEnvelopes": 4,
+    "temporaryActorRemoved": true,
+    "businessFingerprintUnchanged": true
+  },
+  "limits": [
+    "Browser notification navigation not covered",
+    "Historical missing-ID actor rule unchanged",
+    "Production captcha/blacklist/CDN and external services not exercised",
+    "Legacy PC completed heartbeat detail was observed earlier, but is not counted as new risk acceptance or mobile-template verification"
+  ]
+}
