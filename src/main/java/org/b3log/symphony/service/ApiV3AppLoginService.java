@@ -79,7 +79,7 @@ public class ApiV3AppLoginService {
             final JSONObject hint = requests.hint(hash);
             if (hint == null) throw missing();
             if (identity!=null && !actor(identity).equals(hint.optString("userId"))) throw missing();
-            return root(() -> {
+            final JSONObject response = root(() -> {
                 final JSONObject client = lockClient();
                 if (identity!=null) proofs.authorizeFirstPartyInCurrentTransaction(identity,action.equals("web-status")?"profile.read":"settings.write");
                 final JSONObject issuer = new JSONObject().put("user",new JSONObject().put("oId",hint.getString("userId"))).put("tokenId",hint.getString("issuerTokenId"));
@@ -111,7 +111,10 @@ public class ApiV3AppLoginService {
                     default -> current;
                 };
                 JSONObject issued = null;
-                if (action.equals("exchange")) issued = issue(row.getString("userId"),row.getString("scope"));
+                if (action.equals("exchange")) {
+                    issued = issue(row.getString("userId"),row.getString("scope"));
+                    grants.recordSuccessfulLoginInCurrentTransaction(row.getString("userId"), time);
+                }
                 if (!next.equals(current)) change("UPDATE `"+requests.getName()+"` SET state=?,codeChallenge=?,updatedAt=? WHERE oId=? AND state=? AND codeChallenge=?",
                         next.state().name(),next.challenge(),time,hash,current.state().name(),current.challenge());
                 if (issued!=null) return tokenResponse(issued,row.getString("scope"));
@@ -119,6 +122,8 @@ public class ApiV3AppLoginService {
                 if (action.equals("claim") || action.equals("app-status")) result.put("account",account(row.getString("userId")));
                 return result;
             });
+            if (action.equals("exchange")) grants.evictLoginCacheAfterTransaction(hint.getString("userId"));
+            return response;
         } catch (ApiV3Exception error) { throw error; }
         catch (Exception error) { throw unavailable(); }
     }

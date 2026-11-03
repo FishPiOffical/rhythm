@@ -17,6 +17,7 @@ import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.b3log.symphony.util.ApiV3Transactions;
+import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.json.JSONObject;
 
@@ -53,12 +54,37 @@ public class ApiV3TokenMgmtService {
             final var expected=org.b3log.symphony.util.AccountCredentialVersions.snapshot(userId);
             if(expected==null || org.b3log.symphony.util.AccountCredentialVersions.issuance(userId,null)==null)throw new ServiceException("unauthorized");
             final JSONObject result = issueInternal(userId, WEBSITE_CLIENT, client.optString(ApiV3Client.SCOPE), null, null);
+            recordSuccessfulLoginInCurrentTransaction(userId, now());
             transaction.commit();
+            evictLoginCacheAfterTransaction(userId);
             return result;
         } catch (final Exception e) {
             rollback(transaction);
             throw new ServiceException(e);
         }
+    }
+
+    /** Only explicit first-party sign-ins call this; rotation and OAuth grants do not. */
+    public void recordSuccessfulLoginInCurrentTransaction(final String userId, final long time) throws Exception {
+        if (!apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login transaction required");
+        if (userId == null || !userId.matches("[1-9][0-9]{0,18}") || time <= 0)
+            throw new IllegalArgumentException("login activity");
+        final var rows = userRepository.select("SELECT oId,userStatus,userLatestLoginTime FROM `"
+                + userRepository.getName() + "` WHERE oId=? FOR UPDATE", userId);
+        if (rows.size() != 1 || rows.getFirst().optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+            throw new ServiceException("unauthorized");
+        // Matched-but-unchanged rows may report zero on some JDBC configurations.
+        if (rows.getFirst().getLong(UserExt.USER_LATEST_LOGIN_TIME) == time) return;
+        if (ApiV3TransactionStatements.execute("UPDATE `" + userRepository.getName()
+                + "` SET userLatestLoginTime=? WHERE oId=? AND userStatus=?", time, userId, UserExt.USER_STATUS_C_VALID) != 1)
+            throw new ServiceException("login_activity_unavailable");
+    }
+
+    /** Eviction cannot turn an already committed sign-in into a reported failure. */
+    public void evictLoginCacheAfterTransaction(final String userId) {
+        if (apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login cache eviction before commit");
+        try { userRepository.evictSettingsCaches(userId); }
+        catch (final RuntimeException error) { LOGGER.warn("Cannot evict committed login activity cache", error); }
     }
 
     /** Existing website cookie refresh cannot be used to refresh a different registered client's grant. */

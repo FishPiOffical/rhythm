@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-03",
+  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "approvedRule": "Successful first-party password login and official APP QR consumption record login time in token root; failed operations, refresh, ordinary reads and third-party OAuth grants do not; old UserChannel unchanged",
+  "productionJava": [
+    "service/ApiV3TokenMgmtService.java",
+    "service/ApiV3AppLoginService.java"
+  ],
+  "implementation": {
+    "writes": "Current locked valid user; exact userLatestLoginTime column only, bound SQL; no online/IP/geo update",
+    "website": "Pair insertion, login timestamp and root commit together",
+    "app": "Pair, timestamp and consumed state together",
+    "cache": "After commit only; eviction failure does not report committed issuance as failure",
+    "sameTimestamp": "Locked equality check avoids matched-but-unchanged JDBC update ambiguity"
+  },
+  "baseline": "Actual token lifecycle assertion failed before patch: expected100000, observed7",
+  "runners": [
+    {
+      "name": "api-v3-chat-event-test.mjs",
+      "PASS": 166
+    },
+    {
+      "name": "api-v3-app-login-service-test.mjs",
+      "PASS": 7
+    },
+    {
+      "name": "api-v3-app-login-mysql-test.mjs",
+      "PASS": 26,
+      "note": "Includes rerun of the7 service cases; not199 independent cases overall",
+      "temporaryDBRemoved": true
+    }
+  ],
+  "coverage": [
+    "Website login commits timestamp with pair",
+    "Refresh leaves login time unchanged even with advanced clock",
+    "Generic third-party grant leaves prior timestamp",
+    "Timestamp storage failure rolls back both token rows",
+    "Pair insert and commit failure restore previous timestamp",
+    "QR half-pair, invalid response, timestamp and commit faults roll back consumed state, pair and timestamp",
+    "Real native refresh does not update timestamp",
+    "MySQL independent-process consume/deny/reset races remain serialized"
+  ],
+  "staticContract": {
+    "registered": 293,
+    "documented": 293,
+    "authClassified": 293,
+    "issues": 0
+  },
+  "limits": [
+    "New Java not yet verified against full deployed application",
+    "Actual announcement recipient flow waiting rebuild",
+    "SQLite/JDBC adapters explicit; temporary MySQL uses production services with fixture schema, not local business DB",
+    "Production captcha/blacklist/unlock, full CDN/directory/upload-download and external services not newly exercised"
+  ],
+  "manualSteps": [
+    "User IDEA rebuild two Java files, restart8081; no migration",
+    "Password login independent account, verify current last-login time; failed login/refresh leave it unchanged",
+    "Complete native dual confirmation and exchange; verify once, retry410 and native refresh unchanged",
+    "Publish the already-approved local announcement, verify current-title/visibility notifications and cleanup; do not repeat100point perfect reward"
+  ]
+}

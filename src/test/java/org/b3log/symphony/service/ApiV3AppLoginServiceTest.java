@@ -30,6 +30,7 @@ public class ApiV3AppLoginServiceTest {
             }
         };
         Fixture()throws Exception {
+            sql(db,"ALTER TABLE u ADD COLUMN userLatestLoginTime BIGINT DEFAULT 7");
             sql(db,"ALTER TABLE u ADD COLUMN userName TEXT");sql(db,"ALTER TABLE u ADD COLUMN userNickname TEXT");sql(db,"ALTER TABLE u ADD COLUMN userAvatarURL TEXT");
             sql(db,"UPDATE u SET userName='owner',userNickname='Owner',userAvatarURL='https://images.example/avatar.png' WHERE oId='1'");
             sql(db,"INSERT INTO clients VALUES('fishpi_app_v3',0,'profile.read settings.write')");
@@ -78,14 +79,15 @@ public class ApiV3AppLoginServiceTest {
             error(409,()->f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(RAW)));error(403,()->f.service.appDecision(RAW,RAW,"confirm"));
             f.service.appDecision(RAW,PROOF,"confirm");error(409,()->f.service.exchange(RAW,PROOF));f.service.webDecision(identity(),RAW,"approve");
             final var result=f.service.exchange(RAW,PROOF);Assert.assertEquals(result.keySet(),Set.of("accessToken","refreshToken","tokenType","expiresIn","refreshExpiresIn","scope","clientId"));Assert.assertEquals(result.getString("clientId"),"fishpi_app_v3");
+            Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),f.clock);
             Assert.assertEquals(f.row().getString("state"),"CONSUMED");Assert.assertEquals(f.pairs(),2);Assert.assertEquals(f.issued,1);error(410,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.pairs(),2);Assert.assertFalse(f.row().toString().contains(PROOF));
         }System.out.println("PASS app login service 1 real owner/epoch/issuer SQL, ordered double consent and same-root single token-pair consume; metadata/token response whitelists");
         for(String mutation:List.of("UPDATE tokens SET state=2 WHERE oId='100'","UPDATE tokens SET expiresAt=1 WHERE oId='100'","UPDATE tokens SET clientId='third' WHERE oId='100'","UPDATE clients SET status=1 WHERE clientId='website_v3'","UPDATE clients SET status=1 WHERE clientId='fishpi_app_v3'","UPDATE u SET userStatus=4 WHERE oId='1'","INSERT INTO states VALUES('1',1,0)","UPDATE tokens SET scope='profile.read' WHERE oId='100'","UPDATE clients SET scope='settings.write' WHERE clientId='fishpi_app_v3'"))try(var f=new Fixture()){
             f.approved();sql(f.db,mutation);error(403,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.pairs(),0);Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");
         }System.out.println("PASS app login service 2 current issuer expiry/revocation/client binding, owner status/epoch and native/website scope rechecked before issuance");
-        for(String failure:List.of("half","response","commit"))try(var f=new Fixture()){
-            f.approved();if(failure.equals("commit"))f.fault="commit";else f.issueFault=failure;
-            error(503,()->f.service.exchange(RAW,PROOF));f.fault="";f.issueFault="";Assert.assertEquals(f.pairs(),0);Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");
+        for(String failure:List.of("half","response","commit","activity"))try(var f=new Fixture()){
+            f.approved();if(failure.equals("commit"))f.fault="commit";else if(failure.equals("activity"))f.fault="password";else f.issueFault=failure;
+            error(503,()->f.service.exchange(RAW,PROOF));f.fault="";f.issueFault="";Assert.assertEquals(f.pairs(),0);Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),7L);
             f.service.exchange(RAW,PROOF);Assert.assertEquals(f.pairs(),2);
         }
         try(var f=new Fixture()){f.approved();f.fault="ack";error(503,()->f.service.exchange(RAW,PROOF));f.fault="";Assert.assertEquals(f.pairs(),2);Assert.assertEquals(f.row().getString("state"),"CONSUMED");error(410,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.issued,1);}
@@ -104,7 +106,7 @@ public class ApiV3AppLoginServiceTest {
             Assert.assertEquals(rows.get(0).getString("familyId"),rows.get(1).getString("familyId"));Assert.assertEquals(rows.get(0).getString("parentId"),"");
             Assert.assertFalse(f.row().toString().contains(pair.getString("accessToken")));Assert.assertFalse(rows.get(0).toString().contains(pair.getString("accessToken")));
             Assert.assertEquals(rows.get(0).getString("tokenHash"),ApiV3TokenUtil.hash(pair.getString("accessToken")));
-            final var grants=(ApiV3TokenMgmtService)field(f.service,"grants");final JSONObject refreshed=grants.refreshForClient("fishpi_app_v3",pair.getString("refreshToken"));Assert.assertEquals(f.pairs(),4);
+            final long signedIn=f.clock;f.clock+=100;final var grants=(ApiV3TokenMgmtService)field(f.service,"grants");final JSONObject refreshed=grants.refreshForClient("fishpi_app_v3",pair.getString("refreshToken"));Assert.assertEquals(f.pairs(),4);Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),signedIn,"native refresh must not record another login");
             try {grants.refreshForClient("fishpi_app_v3",pair.getString("refreshToken"));Assert.fail("rotated refresh must reject");}catch(org.b3log.latke.service.ServiceException expected){}
             Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM tokens WHERE clientId='fishpi_app_v3' AND state=0").getFirst().getInt("n"),0);
             Assert.assertEquals(rows(f.db,"SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"),0);

@@ -251,6 +251,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/login' \
 
 > 启用两步认证的账号首次请求会返回 `mfa_required`，携带 `mfaCode` 后再次登录。
 
+> 密码登录成功后记录最近登录时间；登录失败、刷新登录状态和普通读取不会更新该时间。
+
 > 请求体最多4096字节，使用标准UTF-8 JSON对象，仅接受表中的字符串字段；非法JSON返回400，未知字段或非字符串值返回422，超限413，错误媒体类型415。
 
 ### 刷新登录状态
@@ -16022,6 +16024,8 @@ curl -X POST 'https://fishpi.cn/api/v3/auth/app-login/exchange' \
 | - refreshExpiresIn | 刷新有效期，秒 | 2592000 |
 | - scope | 实际授予权限，以此为准 | content.read profile.read |
 | - clientId | 固定官方APP客户端ID | fishpi_app_v3 |
+
+> 成功换取APP令牌时记录最近登录时间；扫码状态查询、双端确认及令牌刷新不重复记录。
 
 > 令牌通过`Authorization: Bearer ACCESS_TOKEN`调用v3，不可用作旧apiKey。刷新和撤销走既有OAuth token/revoke接口，`client_id`使用`fishpi_app_v3`；OAuth请求/响应字段仍按该协议的下划线风格。部分仅网页登录可用的本人设置接口不会因此自动向APP开放。
 >

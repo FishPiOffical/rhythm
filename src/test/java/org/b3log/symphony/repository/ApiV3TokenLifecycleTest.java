@@ -39,6 +39,7 @@ public class ApiV3TokenLifecycleTest {
         Fixture()throws Exception{
             exec(writer,"ALTER TABLE user ADD COLUMN userStatus INTEGER");exec(writer,"UPDATE user SET userStatus=0");exec(writer,"INSERT INTO user VALUES('2',0)");
             exec(writer,"ALTER TABLE user ADD COLUMN userPassword TEXT DEFAULT 'fixture-password'");
+            exec(writer,"ALTER TABLE user ADD COLUMN userLatestLoginTime BIGINT DEFAULT 7");
             exec(writer,"CREATE TABLE credential_states(oId TEXT PRIMARY KEY,credentialEpoch BIGINT,updatedAt BIGINT)");
             var credentialUsers=new UserRepository(){public boolean hasTransactionBegun(){return active();}public String getName(){return "user";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return query(active()?writer:reader,sql,args);}};
             var credentialStates=new AccountCredentialStateRepository(){public boolean hasTransactionBegun(){return active();}public String getName(){return "credential_states";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return query(active()?writer:reader,sql,args);}};
@@ -57,7 +58,8 @@ public class ApiV3TokenLifecycleTest {
             var keys=new TreeSet<>(row.keySet());exec(writer,"INSERT INTO "+table+" ("+String.join(",",keys)+") VALUES ("+String.join(",",Collections.nCopies(keys.size(),"?"))+")",keys.stream().map(row::get).toArray());
         }
         void client(String id,String scope)throws RepositoryException{insert("clients",new JSONObject().put("oId",id).put("clientId",id).put("name","Application").put("scope",scope).put("status",0));}
-        String snapshot()throws RepositoryException{return query(reader,"SELECT * FROM clients ORDER BY oId").toString()+query(reader,"SELECT * FROM tokens ORDER BY oId");}
+        long loginTime()throws RepositoryException{return query(reader,"SELECT userLatestLoginTime FROM user WHERE oId='1'").getFirst().getLong("userLatestLoginTime");}
+        String snapshot()throws RepositoryException{return query(reader,"SELECT * FROM clients ORDER BY oId").toString()+query(reader,"SELECT * FROM tokens ORDER BY oId")+query(reader,"SELECT * FROM user ORDER BY oId");}
         JSONObject token(String raw)throws Exception{return tokens.getByHash(ApiV3TokenUtil.hash(raw));}
         JSONObject grant(String client,String scope)throws Exception{begin();try{var result=service.issueForClientInCurrentTransaction("1",client,scope);commit();return result;}finally{if(active())rollback();}}
         Tokens otherInstance()throws Exception{
@@ -74,8 +76,9 @@ public class ApiV3TokenLifecycleTest {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
             var first=f.service.issue("1");Assert.assertEquals(first.keySet(),Set.of("accessToken","refreshToken","expiresIn","refreshExpiresIn","scope","tokenType"));Assert.assertEquals(first.getLong("expiresIn"),900);Assert.assertEquals(first.getLong("refreshExpiresIn"),2592000);
+            Assert.assertEquals(f.loginTime(),f.service.clock,"password token pair did not atomically record login time");
             var access=f.token(first.getString("accessToken"));Assert.assertEquals(access.getString("clientId"),"website_v3");Assert.assertFalse(f.snapshot().contains(first.getString("accessToken")));Assert.assertFalse(f.snapshot().contains(first.getString("refreshToken")));
-            f.locks.clear();var next=f.otherInstance().refresh(first.getString("refreshToken"));Assert.assertEquals(f.locks,List.of("client","token","user"));Assert.assertEquals(f.token(next.getString("accessToken")).getString("familyId"),access.getString("familyId"));Assert.assertEquals(f.token(first.getString("refreshToken")).getInt("state"),1);
+            f.service.clock+=100;f.locks.clear();var next=f.otherInstance().refresh(first.getString("refreshToken"));Assert.assertEquals(f.locks,List.of("client","token","user"));Assert.assertEquals(f.token(next.getString("accessToken")).getString("familyId"),access.getString("familyId"));Assert.assertEquals(f.loginTime(),100_000L,"refresh must not count as a new login");Assert.assertEquals(f.token(first.getString("refreshToken")).getInt("state"),1);
             Assert.assertNotNull(f.service.authenticate(next.getString("accessToken")));denied(()->f.service.refresh(first.getString("refreshToken")));Assert.assertNull(f.service.authenticate(next.getString("accessToken")));Assert.assertNull(f.service.authenticate(first.getString("accessToken")));
         }
         System.out.println("PASS actual website issue/refresh DTO and TTLs stay stable, secrets persist only as hashes, client-before-token current reads rotate one family and replay revokes every active successor");
@@ -84,6 +87,14 @@ public class ApiV3TokenLifecycleTest {
             String original=f.snapshot();denied(()->f.service.refresh(result.getString("refreshToken")));Assert.assertEquals(f.snapshot(),original);f.service.revokeRefresh(result.getString("refreshToken"));Assert.assertEquals(f.snapshot(),original);
             var next=f.service.refreshForClient("external",result.getString("refreshToken"));Assert.assertEquals(f.token(next.getString("refreshToken")).getString("clientId"),"external");f.service.revokeForClient("external",next.getString("refreshToken"));Assert.assertNull(f.service.authenticate(next.getString("accessToken")));
         }
+        try(var f=new Fixture()){
+            f.client("external","content.read");f.grant("external","content.read");Assert.assertEquals(f.loginTime(),7L,"third-party OAuth grant must not count as a login");
+        }
+        try(var f=new Fixture()){
+            String before=f.snapshot();exec(f.writer,"CREATE TRIGGER reject_login BEFORE UPDATE OF userLatestLoginTime ON user BEGIN SELECT RAISE(ABORT,'login timestamp storage failure'); END");
+            denied(()->f.service.issue("1"));Assert.assertEquals(f.snapshot(),before,"login-time failure must roll back both token rows and client creation");
+        }
+        System.out.println("PASS successful password login records time in token root; refresh/OAuth do not, and timestamp storage failure rolls back the complete pair");
         System.out.println("PASS caller-owned client grant commits only with its owner, normalizes permitted scopes and binds all rotated tokens to that client; website cookie paths cannot refresh or revoke a foreign client family");
         for(String fault:List.of("add.access","add.refresh","commit"))try(var f=new Fixture()){
             String before=f.snapshot();f.faults.add(fault);try{f.service.issue("1");Assert.fail(fault);}catch(ServiceException expected){}Assert.assertEquals(f.snapshot(),before,fault);Assert.assertFalse(f.active());
