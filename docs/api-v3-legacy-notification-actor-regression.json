@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "status": "LIVE_READS_VERIFIED",
   "approvedCompatibility": "Omit optional actor for historical chat notifications without stable valid author ID; retain currently readable body and chat link",
   "productionFile": "src/main/java/org/b3log/symphony/service/ApiV3NotificationQueryService.java",
   "testFile": "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
@@ -28,7 +28,7 @@
     "SSRFResources": "No fetch, CDN/static, map, directory or upload/download path added"
   },
   "limits": [
-    "New Java not deployed/live-tested yet",
+    "Full deployed query/list/detail verified on PID39318; event publication outside this controlled-read scope",
     "Production captcha/blacklist/unlock and full CDN/directory/upload-download not revalidated",
     "Frontend already handles absent action actor; no frontend production change or rebuild this batch"
   ],
@@ -37,5 +37,6 @@
     "Read owned type38/39 notifications with missing ID: no actor, readable body and/cr link retained",
     "Read valid string/integer ID notifications: current public actor remains",
     "Other owner404, anonymous401; do not conflate fixture reads with actual publication"
-  ]
+  ],
+  "liveEvidence": "api-v3-legacy-notification-actor-live.json"
 }
