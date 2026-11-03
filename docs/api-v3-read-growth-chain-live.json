@@ -1,7 +1,7 @@
 {
   "date": "2026-11-03",
-  "status": "CAPTURED_WINDOW_CLOSED_WAITING_NORMAL_CRON",
-  "scope": "Combined actual v3 content read -> explicit actual read registration -> unchanged natural Cron settlement -> profession rule consumption; no completion claim until observed",
+  "status": "PASS",
+  "scope": "Actual v3 article read and explicit registration -> normal startup Cron after natural window end -> real long-article-read event -> actual profession consumption -> owner API and real browser -> guarded cleanup",
   "fixture": {
     "articleId": "1793700906253",
     "professionId": "1793700906248",
@@ -32,12 +32,7 @@
     "writes": "Read-only observer, no capture clock/window/event/points writes",
     "currentHandle": "Prior handle missing and observer process absent at 2026-11-03T20:43:22+08:00; not restarted past its deadline"
   },
-  "pending": [
-    "Observe actual old-window settlement, current event and actual effect",
-    "Verify reward ledger and both indexes, expected +10 author points and +15 experience",
-    "Read actual owner APIs/browser and check replay without new award",
-    "Clean temporary domain fixture while preserving legitimate financial audit records; do not SQL refund"
-  ],
+  "pending": [],
   "productionSourceChanges": [],
   "scheduleObservation": {
     "at": "2026-11-03T20:43:22+08:00",
@@ -49,5 +44,89 @@
     "serverStart": "2026-11-03T19:28:16+08:00",
     "source": "CronMgmtService schedules settleAll at fixed rate every six hours after startup delay, not aligned to window end",
     "nextAction": "User asked to restart unchanged Java so normal startup Cron handles closed window; no clock/window/manual award changes"
-  }
+  },
+  "completedAt": 1793713671387,
+  "runtime": {
+    "PID": 58883,
+    "credentiallessMe": 401,
+    "userConfirmedRestart": true
+  },
+  "naturalResult": {
+    "passed": true,
+    "at": 1793713630085,
+    "historyReward": 10,
+    "experience": 15,
+    "window": "SETTLED",
+    "source": "SUCCEEDED",
+    "effects": 1,
+    "sourceEventId": "1793713614916",
+    "sourcePayload": {
+      "anonymousReaderCount": 0,
+      "authorUserId": "1789806105944",
+      "windowStart": 1793685600000,
+      "registeredReaderCount": 1,
+      "articleId": "1793700906253",
+      "rewardPoint": 10,
+      "windowEnd": 1793707200000,
+      "settlementId": "1793713614630",
+      "countedAnonymousReaderCount": 0
+    }
+  },
+  "verification": {
+    "passed": true,
+    "at": 1793713670533,
+    "realSourceSystem": "long-article-read",
+    "settledWindow": 1,
+    "committedGate": 1,
+    "rewardHistory": 1,
+    "rewardLedger": 1,
+    "rewardPoints": 10,
+    "indexes": 2,
+    "appliedEffects": 1,
+    "experience": 15,
+    "currentBalanceReconciled": true,
+    "actualOwnerAPI": true
+  },
+  "browser": {
+    "normalLogin": true,
+    "ownerListExperience": 15,
+    "level": "advanced",
+    "contributionCount": 1,
+    "recordCount": 1,
+    "recordDelta": 15,
+    "beforeExperience": 0,
+    "afterExperience": 15,
+    "detailAndRecordsReread": true,
+    "widths": [
+      {
+        "viewport": 1280,
+        "scrollWidth": 1280
+      },
+      {
+        "viewport": 390,
+        "scrollWidth": 390
+      }
+    ],
+    "warnOrErrorCount": 0,
+    "deletedFixtureDetailClearedOnReread": true,
+    "ownerListEmptyAfterCleanup": true,
+    "loggedOut": true,
+    "viewportReset": true
+  },
+  "cleanup": {
+    "at": 1793713671387,
+    "fixtureDomainRemoved": true,
+    "realLedgerAndBothIndexesPreserved": true,
+    "realHistoryAndSourcePreserved": true,
+    "ownerBalancePreserved": true,
+    "articleAndProfession404": true,
+    "noSQLRefund": true
+  },
+  "limits": [
+    "Temporary definition, level and exact article/author rule were staged by transactional SQL, not administrator publishing UI; no progress/effect/source event was staged",
+    "Fixture description retained an earlier synthetic-input label; actual sourceSystem/event binding and payload were verified as long-article-read",
+    "Repeated registration was already false in the same original window; owner API/browser rereads preserved one result. This batch did not manually requeue the event or force a second settlement run",
+    "Real +10 reward, double ledger indexes, source, read window/claim/gate/history retained; temporary article/profession/rule/progress/effect removed; no SQL refund",
+    "Other release checks remain unverified in api-v3-release-acceptance.md"
+  ]
 }
