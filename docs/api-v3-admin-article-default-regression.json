@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "LIVE_ADMIN_CREATION_AND_PERFECT_PASSED_ANNOUNCEMENT_ELIGIBILITY_GAP",
+  "status": "LIVE_ADMIN_CREATION_PERFECT_AND_ANNOUNCEMENT_GENERATION_VERIFIED",
   "scope": "User-approved local admin-triggered perfect and system-announcement event test; real admin form exposed existing required-field omission before article persistence",
   "reproduction": {
     "normalAdminLogin": true,
@@ -29,9 +29,8 @@
     "Production anonymous/captcha/blacklist/unlock/CDN/directory/upload-download not exercised; existing auth routes unchanged"
   ],
   "next": [
-    "Await confirmed v3 successful-login timestamp rule; do not seed a timestamp and claim whole v3 delivery fixed",
-    "Do not repeat already completed100point perfect reward",
-    "After approved fix/rebuild, verify real announcement delivery/current title/visibility and normal cleanup"
+    "Do not repeat the already verified100point perfect reward just to increase test count",
+    "Retain limits recorded in api-v3-login-activity-live.json"
   ],
   "liveAfterUserRebuild": {
     "backendPid": 89663,
@@ -48,5 +47,12 @@
     "announcementNotificationObserved": false,
     "announcementRecipientCause": "Development v3-only recipients have userLatestLoginTime=0; existing filter requires recent login; old UserChannel is the only active updater",
     "unrelatedEnvironmentIssue": "IPv6 literal admin redirect produced invalid legacy address after commit; exact created row cleaned by normal localhost admin deletion; subsequent tests used verified localhost"
+  },
+  "announcementGapResolution": {
+    "approvedLoginActivityFix": "8e9f9515",
+    "deployedPid": 11335,
+    "actualLoginAndAnnouncementChecks": 7,
+    "noSQLRecipientEligibilitySeeding": true,
+    "evidence": "api-v3-login-activity-live.json"
   }
 }

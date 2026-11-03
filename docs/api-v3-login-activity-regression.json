@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "status": "FULL_APPLICATION_LOGIN_AND_ANNOUNCEMENT_VERIFIED",
   "approvedRule": "Successful first-party password login and official APP QR consumption record login time in token root; failed operations, refresh, ordinary reads and third-party OAuth grants do not; old UserChannel unchanged",
   "productionJava": [
     "service/ApiV3TokenMgmtService.java",
@@ -47,7 +47,7 @@
     "issues": 0
   },
   "limits": [
-    "New Java not yet verified against full deployed application",
+    "Full application PID11335 password/QR/announcement paths now verified; see separate live report",
     "Actual announcement recipient flow waiting rebuild",
     "SQLite/JDBC adapters explicit; temporary MySQL uses production services with fixture schema, not local business DB",
     "Production captcha/blacklist/unlock, full CDN/directory/upload-download and external services not newly exercised"
@@ -57,5 +57,6 @@
     "Password login independent account, verify current last-login time; failed login/refresh leave it unchanged",
     "Complete native dual confirmation and exchange; verify once, retry410 and native refresh unchanged",
     "Publish the already-approved local announcement, verify current-title/visibility notifications and cleanup; do not repeat100point perfect reward"
-  ]
+  ],
+  "liveEvidence": "api-v3-login-activity-live.json"
 }
