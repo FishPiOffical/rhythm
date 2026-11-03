@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-03",
+  "status": "CAPTURED_WAITING_NATURAL_WINDOW",
+  "scope": "Combined actual v3 content read -> explicit actual read registration -> unchanged natural Cron settlement -> profession rule consumption; no completion claim until observed",
+  "fixture": {
+    "articleId": "1793700906253",
+    "professionId": "1793700906248",
+    "rule": "Published SQL fixture, exact articleId AND authorUserId; +15 experience only, no point/medal/notification actions; not published through admin UI",
+    "profilePrivacyChanged": false
+  },
+  "capture": {
+    "fullArticleReadHTTP": true,
+    "firstRecorded": true,
+    "sameWindowRepeatRecorded": false,
+    "claims": 1,
+    "registeredCount": 1,
+    "anonymousCount": 0,
+    "sourceEventsAtCapture": 0,
+    "effectsAtCapture": 0
+  },
+  "naturalWindowEnd": "2026-11-03T20:00:00+08:00",
+  "monitor": {
+    "command": "node .idea/rhythm-local/read-growth-live.mjs watch",
+    "execSessionAtStart": 14979,
+    "initialObservedState": {
+      "window": "OPEN",
+      "source": "absent",
+      "effects": [],
+      "experience": null
+    },
+    "deadline": "2026-11-03T20:30:00+08:00",
+    "writes": "Read-only observer, no capture clock/window/event/points writes"
+  },
+  "pending": [
+    "Observe actual old-window settlement, current event and actual effect",
+    "Verify reward ledger and both indexes, expected +10 author points and +15 experience",
+    "Read actual owner APIs/browser and check replay without new award",
+    "Clean temporary domain fixture while preserving legitimate financial audit records; do not SQL refund"
+  ],
+  "productionSourceChanges": []
+}
