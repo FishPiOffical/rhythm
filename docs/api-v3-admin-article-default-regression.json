@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "status": "LIVE_ADMIN_CREATION_AND_PERFECT_PASSED_ANNOUNCEMENT_ELIGIBILITY_GAP",
   "scope": "User-approved local admin-triggered perfect and system-announcement event test; real admin form exposed existing required-field omission before article persistence",
   "reproduction": {
     "normalAdminLogin": true,
@@ -29,9 +29,24 @@
     "Production anonymous/captcha/blacklist/unlock/CDN/directory/upload-download not exercised; existing auth routes unchanged"
   ],
   "next": [
-    "User IDEA rebuild/restart ArticleMgmtService.java",
-    "Repeat original admin form; observe actual type22/15 events",
-    "Check current title and visibility through v3",
-    "Normal admin deletion cleans test content/notifications; retain real reward ledger"
-  ]
+    "Await confirmed v3 successful-login timestamp rule; do not seed a timestamp and claim whole v3 delivery fixed",
+    "Do not repeat already completed100point perfect reward",
+    "After approved fix/rebuild, verify real announcement delivery/current title/visibility and normal cleanup"
+  ],
+  "liveAfterUserRebuild": {
+    "backendPid": 89663,
+    "normalAdminArticleCreation": true,
+    "normalAdminDeletion": true,
+    "perfectNotificationType22": 1,
+    "perfectRewardPoints": 100,
+    "perfectLedgerCount": 1,
+    "perfectLedgerIndexes": 2,
+    "testArticlesRemaining": 0,
+    "matchingNotificationsRemaining": 0,
+    "SQLRefund": false,
+    "announcementArticlePublished": true,
+    "announcementNotificationObserved": false,
+    "announcementRecipientCause": "Development v3-only recipients have userLatestLoginTime=0; existing filter requires recent login; old UserChannel is the only active updater",
+    "unrelatedEnvironmentIssue": "IPv6 literal admin redirect produced invalid legacy address after commit; exact created row cleaned by normal localhost admin deletion; subsequent tests used verified localhost"
+  }
 }
