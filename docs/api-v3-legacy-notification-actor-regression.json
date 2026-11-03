@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-03",
+  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "approvedCompatibility": "Omit optional actor for historical chat notifications without stable valid author ID; retain currently readable body and chat link",
+  "productionFile": "src/main/java/org/b3log/symphony/service/ApiV3NotificationQueryService.java",
+  "testFile": "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+  "changes": [
+    "Remove UserQueryService injection and username fallback",
+    "Valid stable string/integer IDs still use current SQL public author projection",
+    "Missing/null/empty/invalid/leading-zero IDs omit actor; body and/cr retained"
+  ],
+  "baseline": "New actual-query assertion failed before patch because cached username was returned as actor",
+  "tests": {
+    "SQLitePASS": 23,
+    "MySQLPASS": 25,
+    "MySQLCountIncludes": 2,
+    "MySQLCountIncludesDescription": "Actual bundled framework policy JDBC cases",
+    "temporaryDBRemoved": true,
+    "contractRoutes": 293,
+    "documented": 293,
+    "authClassified": 293,
+    "issues": 0
+  },
+  "security": {
+    "identity": "No new identity inferred from recycled usernames; response whitelist preserved",
+    "authAndCSRF": "Existing required Bearer/scopes and global anonymous/blacklist chain unchanged; no skip changes",
+    "SQLAndXSS": "No new input/SQL interpolation/HTML rendering; existing escaped and cleaned content unchanged",
+    "SSRFResources": "No fetch, CDN/static, map, directory or upload/download path added"
+  },
+  "limits": [
+    "New Java not deployed/live-tested yet",
+    "Production captcha/blacklist/unlock and full CDN/directory/upload-download not revalidated",
+    "Frontend already handles absent action actor; no frontend production change or rebuild this batch"
+  ],
+  "manualSteps": [
+    "User IDEA rebuild/restart ApiV3NotificationQueryService.java, no migration",
+    "Read owned type38/39 notifications with missing ID: no actor, readable body and/cr link retained",
+    "Read valid string/integer ID notifications: current public actor remains",
+    "Other owner404, anonymous401; do not conflate fixture reads with actual publication"
+  ]
+}

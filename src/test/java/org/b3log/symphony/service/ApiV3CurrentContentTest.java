@@ -96,7 +96,7 @@ public class ApiV3CurrentContentTest {
             inject(notificationQuery,"notificationRepository",notifications);inject(notificationQuery,"rewardRepository",rewards);
             inject(notificationQuery,"contentQueryService",content);inject(notificationQuery,"contentDtoService",dto);
             inject(notificationQuery,"notificationQueryService",new NotificationQueryService());inject(notificationQuery,"langPropsService",new org.b3log.latke.service.LangPropsService());
-            inject(notificationQuery,"userQueryService",new UserQueryService());inject(notificationQuery,"commentQueryService",new CommentQueryService());
+            inject(notificationQuery,"commentQueryService",new CommentQueryService());
             sql("UPDATE articles SET articleTitle='Current <img src=x> & title',articleAnonymous=0 WHERE oId='10'");
             sql("UPDATE users SET userName='current_sender' WHERE oId='3'");
             sql("INSERT INTO comments(oId,commentAuthorId,commentOnArticleId,commentStatus,commentVisible,commentAnonymous,commentType,commentContent,commentScore) VALUES('30','3','10',0,1,1,0,'DO_NOT_INCLUDE_COMMENT_BODY',1)");
@@ -136,6 +136,19 @@ public class ApiV3CurrentContentTest {
                     check(result.getString("description").equals(type==39?"packet text":"chat text"));
                 }
                 System.out.println("PASS current notification actor 4 chat mentions and packet notices with persisted string/integer IDs use current identity instead of stale username aliases");
+                int legacyIndex=0;
+                for(int type:new int[]{38,39})for(Object missing:Arrays.asList(null,"",JSONObject.NULL,"invalid","0004")){
+                    String id="930"+(++legacyIndex);var envelope=new JSONObject().put("userName","stale_actor")
+                            .put("content",type==39?new JSONObject().put("msg","legacy packet text").toString():"legacy chat text");
+                    if(missing!=null)envelope.put("userOId",missing);
+                    chatService.rows.put(id,new JSONObject().put("content",envelope.toString()));
+                    notifications.rows.put(id,new JSONObject().put("oId",id).put("userId","1").put("dataType",type).put("dataId",id));
+                    var result=notificationQuery.get(owner,id);check(result.getBoolean("contentAvailable"));
+                    check(!result.has("actor"));check(result.getString("url").equals("/cr"));
+                    check(result.getString("description").equals(type==39?"legacy packet text":"legacy chat text"));
+                }
+                System.out.println("PASS current notification actor 5 missing/null/blank/invalid stable IDs never resolve a reusable username; current readable content and chat link remain");
+
                 sql("DELETE FROM users WHERE oId='4'");
                 var goneFollower=notificationQuery.get(owner,"91017");check(!goneFollower.getBoolean("contentAvailable")&&!goneFollower.has("actor")&&goneFollower.getString("url").isEmpty());
                 for(int type:new int[]{23,24,25,26,27,28}){var result=notificationQuery.get(owner,"910"+type);check(result.getBoolean("contentAvailable")&&!result.has("actor"));}

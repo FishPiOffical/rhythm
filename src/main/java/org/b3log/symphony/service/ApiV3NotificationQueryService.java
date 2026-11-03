@@ -39,7 +39,6 @@ public class ApiV3NotificationQueryService {
     @Inject private LangPropsService langPropsService;
     @Inject private ApiV3ContentQueryService contentQueryService;
     @Inject private ApiV3ContentDtoService contentDtoService;
-    @Inject private UserQueryService userQueryService;
     @Inject private ChatRoomService chatRoomService;
 
     public JSONObject list(final JSONObject viewer, final String type, final String status, final int p, final int size) throws RepositoryException {
@@ -218,9 +217,8 @@ public class ApiV3NotificationQueryService {
         }
         description(dto, sourceText ? Escapes.escapeHTML(text) : text);
         final String actorId = message.optString("userOId");
-        // Legacy envelopes without an ID retain their existing username fallback.
-        final JSONObject actor = actorId.isEmpty() ? userQueryService.getUserByName(message.optString(User.USER_NAME))
-                : actorId.matches("[1-9][0-9]{0,18}") ? contentQueryService.currentAuthor(actorId) : null;
+        // Names in legacy messages may have been reassigned; only a stable ID identifies the actor.
+        final JSONObject actor = actorId.matches("[1-9][0-9]{0,18}") ? contentQueryService.currentAuthor(actorId) : null;
         if (null != actor) dto.put("actor", contentDtoService.author(actor, false));
         dto.put("url", "/cr");
     }

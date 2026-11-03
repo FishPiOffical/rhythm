@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-03",
+  "scope": "Actual PC/mobile server templates and existing completed durable packet details via guarded loopback reverse proxy; not unclaimed risk acceptance or new settlement",
+  "backendPid": 11335,
+  "variants": [
+    {
+      "device": "mobile",
+      "style": "classic",
+      "width": 390,
+      "marker": "mobile-head",
+      "script": "chat-room.js",
+      "packet": "completed heartbeat5/5; negative/zero/positive historical amounts displayed"
+    },
+    {
+      "device": "mobile",
+      "style": "light",
+      "width": 390,
+      "marker": "qq-layout inline bottom50px padding from mobile template",
+      "script": "chat-room-2.js",
+      "packet": "completed RPS1/1; settled sender gesture and zero result"
+    },
+    {
+      "device": "pc",
+      "style": "classic",
+      "width": 1280,
+      "marker": "PC header, no mobile-head",
+      "script": "chat-room.js",
+      "packet": "completed heartbeat5/5"
+    },
+    {
+      "device": "pc",
+      "style": "light",
+      "width": 1280,
+      "marker": "qq-layout without mobile inline padding",
+      "script": "chat-room-2.js",
+      "packet": "completed RPS1/1"
+    }
+  ],
+  "transport": {
+    "forwardedPacketReads": 4,
+    "allViewOnly": true,
+    "riskAcceptedRequests": 0,
+    "claimRequestsForwarded": 0,
+    "guard": "Proxy refuses non-viewOnly packet opens before forwarding; selects device by upstream UA and style by ephemeral theme override",
+    "backendResponse": "Actual existing packet details, not synthetic JSON"
+  },
+  "horizontalOverflow": false,
+  "lastPageConsoleErrors": 0,
+  "cleanup": {
+    "temporaryProxyStopped": true,
+    "temporaryBrowserClosed": true,
+    "viewportRestored": true,
+    "noNewPacketCreated": true
+  },
+  "limits": [
+    "No physical mobile device or remote node verified",
+    "Unclaimed risk prompt/selection/cancel still has isolated method/browser evidence only; live final risk claim requires separate user action",
+    "No assertion of full financial fingerprint from this read-only run",
+    "No source/FTL/resources changed; no build required"
+  ]
+}
