@@ -156,7 +156,7 @@
 
 可重复核对：`node tools/api-v3-contract-audit.mjs --json /tmp/api-v3-contract-audit.json`。只核源码注册链和公开契约，不能替代运行验收。
 
-已注册 **292 条（291 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 148, POST 73, PUT 46, WEBSOCKET 1。
+已注册 **293 条（292 HTTP + 1 WebSocket）**；HTTP按 METHOD+完整path计数；GET/PUT/DELETE共用路径仍分别计数。方法分布：DELETE 24, GET 149, POST 73, PUT 46, WEBSOCKET 1。
 
 连接链路：`processor/Router.java#requestMapping` → `processor/ApiV3Processor.java#register` → 各模块 `register`。以下路径均包含完整 `/api/v3` 前缀，代码位置以生成时行号为准。
 
@@ -164,13 +164,9 @@
 
 ## 当前剩余工作
 
-1. **最新部署与已闭环缺陷**：第73批新增perfect投影的ApiV3ContentDtoService待IDEA重编确认；第69–71批五处Java已由用户重编并在PID8853实测22项通过，无当前待重启；最新已确认Java PID8853，问答字段与采纳资格22项实测通过；此前已确认并实测Java PID96544，包含当前作者与完整头像URL修复；正文/评论当前记录及通知旧标题遗漏均已部署实测。第48/49批不再待重启；认证严格JSON/Cookie、OAuth回调、阅读登记和结算、实时失效清正文与历史预算/UI已有逐批证据，不重复列为未开发或未部署。
-2. **当前未发现确定缺路由**：292条总register/公开契约一致只是接线证据。未完成的是各已实现能力尚未覆盖的运行/浏览器组合，不能把旧模块标题下“运行未验收”当最新全模块结论，也不能以局部通过抹掉未验范围。
-3. **下一步验收重点**：已完成所有Bearer入口缺失/无效凭据、空scope及六个双scope分离拒绝；继续按现有模块证据补剩余本人设置正常写入与恢复、收费/幂等/网络失败、通知优选/系统文章公告两类真实事件、经典红包双端与跨账号浏览器。已有测试覆盖的同一分支不为增加计数重复运行。外部环境不通时保留明确未验项，不能造成功结果。
-4. **外部及拓扑依赖**：短信/邮件/图床/内容审核、10831节点、物理移动设备与多实例、生产匿名首访/周期/黑名单/验证码解封及全站CDN/目录/上传下载反漏扫，需要相应环境证据；开发关闭风控不等于这些通过。职业读取/阅读事件已验，但具体职业自动化规则增长尚缺开发库规则场景。
-5. **范围保持用户原约定**：仅v3支持APP扫码，不改APP源码；非OAuth客户端管理的后台不整体迁移；捐助只提供既有页面链接；游戏仅登记Evolve完整存档，dice不支持。新增不明确规则仍须先确认，这些边界不擅自扩成新接口。
+以[当前待办与验收入口](api-v3-remaining-acceptance.md)为准：通知当前作者修复已提交、待IDEA重编后实测；历史聊天室通知无ID关联规则待确认；阅读到职业成长组合链、两类通知事件及经典双端风险红包继续补验。外部服务与生产同等风控另列明确限制，不把已实现或后续已验事项重复列为未开发。
 
-最新模块证据和具体局限见[实际联调记录](api-v3-live-integration-work.md)与[当前完成度](api-v3-current-completion-audit.md)。下面保留历史生成的注册清单；历史“运行未验收”仅描述生成当时，必须与最新批次对照。
+第80–82批已经覆盖旧别名/原URL目标、登录返回、职业非空读取及实际后台消费/重放/冲正。下面保留注册清单和历史能力依赖，其“运行未验收”仅描述生成当时，须对照最新专项证据。
 
 ## 已注册接口清单
 
@@ -532,7 +528,7 @@
 | POST | `/api/v3/oauth/token` | 44 | `p::token,p::privacy,p::rate,p::protocolToken` |
 | POST | `/api/v3/oauth/revoke` | 45 | `p::revoke,p::privacy,p::rate,p::protocolRevoke` |
 
-### 段评、段落及评论详情（3）
+### 段评、段落及评论详情（4）
 
 代码：`src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java`。状态：已注册源码；运行未验收。
 
@@ -541,6 +537,7 @@
 | GET | `/api/v3/articles/{articleId}/paragraphs` | 23 | ` processor::paragraphs, auth::optionalContent, anonymous::handle` |
 | GET | `/api/v3/articles/{articleId}/paragraph-comments` | 24 | ` processor::comments, auth::optionalContent, anonymous::handle` |
 | GET | `/api/v3/comments/{commentId}` | 25 | ` processor::comment, auth::optionalContent, anonymous::handle` |
+| GET | `/api/v3/comments/{commentId}/location` | 25 | `processor::location, auth::optionalContent, anonymous::handle` |
 
 ### 本人设置、资产及创作读取（8）
 
