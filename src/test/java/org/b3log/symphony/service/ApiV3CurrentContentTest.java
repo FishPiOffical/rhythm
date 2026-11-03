@@ -111,6 +111,40 @@ public class ApiV3CurrentContentTest {
             sql("UPDATE articles SET articleStatus=0 WHERE oId='10'");sql("DELETE FROM comments WHERE oId='30'");check(!notificationQuery.get(owner,"9008").getBoolean("contentAvailable"));
             check(cached("articles","10").getString("articleTitle").equals("Current Title"));
             System.out.println("PASS current content 8 complete notification query uses current authorized titles and sender names for six content categories, escapes title HTML and hides removed targets without legacy cache rendering");
+            sql("INSERT INTO users(oId,userStatus,userName,userRole,userNickname,userAvatarURL,userPassword,userPhone) VALUES('4',0,'renamed_actor','defaultRole','Fresh Actor','https://example.test/avatar.png?sig=fresh&size=2','PRIVATE_ACTOR_PASSWORD','PRIVATE_ACTOR_PHONE')");
+            cache.get("users").put("4",new JSONObject().put("oId","4").put("userStatus",0).put("userName","stale_actor").put("userNickname","STALE_ACTOR").put("userAvatarURL","https://example.test/stale.png").put("userPassword","PRIVATE_ACTOR_PASSWORD"));
+            sql("INSERT INTO comments(oId,commentAuthorId,commentOnArticleId,commentStatus,commentVisible,commentAnonymous,commentType,commentContent,commentScore) VALUES('40','2','10',0,0,0,0,'ACTOR_TEST_PUBLIC',0)");
+            try {
+                for(int type:new int[]{17,23,24,25,26,27,28}){
+                    String id="910"+type;notifications.rows.put(id,new JSONObject().put("oId",id).put("userId","1").put("dataType",type).put("dataId",type==17?"4":(type==25||type==26?"40":"10")+"-4"));
+                    var result=notificationQuery.get(owner,id);var actor=result.getJSONObject("actor");
+                    check(actor.getString("userName").equals("renamed_actor"));check(actor.getString("userNickname").equals("Fresh Actor"));
+                    check(actor.getString("userAvatarURL").equals("https://example.test/avatar.png?sig=fresh&size=2"));check(actor.keySet().equals(Set.of("id","userName","userNickname","userAvatarURL")));
+                    check(!result.toString().contains("PRIVATE_")&&!result.toString().contains("stale_actor"));
+                    if(type==17)check(result.getString("url").equals("/member/renamed_actor"));
+                }
+                sql("UPDATE users SET userName='renamed_again',userNickname='Actor Updated' WHERE oId='4'");
+                for(int type:new int[]{17,23,24,25,26,27,28}){var result=notificationQuery.get(owner,"910"+type);check(result.getJSONObject("actor").getString("userName").equals("renamed_again"));check(result.getJSONObject("actor").getString("userNickname").equals("Actor Updated"));}
+                System.out.println("PASS current notification actor 1 follower, follow/watch and four vote kinds use current names, nickname and signed avatar after cache warmup, with public whitelist only");
+                final var chatService=new ChatRoomService();inject(notificationQuery,"chatRoomService",chatService);
+                for(int type:new int[]{38,39})for(Object authorId:List.of("4",4L)){
+                    String id="920"+type+(authorId instanceof String?"0":"1");
+                    final var envelope=new JSONObject().put("userOId",authorId).put("userName","stale_actor").put("content",type==39?new JSONObject().put("msg","packet text").toString():"chat text");
+                    chatService.rows.put(id,new JSONObject().put("content",envelope.toString()));
+                    notifications.rows.put(id,new JSONObject().put("oId",id).put("userId","1").put("dataType",type).put("dataId",id));
+                    var result=notificationQuery.get(owner,id);check(result.getJSONObject("actor").getString("userName").equals("renamed_again"));
+                    check(result.getString("description").equals(type==39?"packet text":"chat text"));
+                }
+                System.out.println("PASS current notification actor 4 chat mentions and packet notices with persisted string/integer IDs use current identity instead of stale username aliases");
+                sql("DELETE FROM users WHERE oId='4'");
+                var goneFollower=notificationQuery.get(owner,"91017");check(!goneFollower.getBoolean("contentAvailable")&&!goneFollower.has("actor")&&goneFollower.getString("url").isEmpty());
+                for(int type:new int[]{23,24,25,26,27,28}){var result=notificationQuery.get(owner,"910"+type);check(result.getBoolean("contentAvailable")&&!result.has("actor"));}
+                for(String id:List.of("920380","920381","920390","920391")){var result=notificationQuery.get(owner,id);check(result.getBoolean("contentAvailable")&&!result.has("actor"));}
+                check(cached("users","4")!=null);
+                System.out.println("PASS current notification actor 2 deleted cached follower becomes unavailable, while readable vote/follow targets retain content and omit missing actor");
+                queryFailure=true;try{notificationQuery.get(owner,"91017");throw new AssertionError("cached actor bypassed failed current lookup");}catch(RepositoryException expected){}finally{queryFailure=false;}
+                System.out.println("PASS current notification actor 3 current actor lookup failure propagates instead of falling back to stale identity");
+            } finally {queryFailure=false;sql("DELETE FROM users WHERE oId='4'");sql("DELETE FROM comments WHERE oId='40'");cache.get("users").remove("4");}
             var profileViewer=new JSONObject().put("oId","2").put("userName","reader").put("userRole","defaultRole");
             var discovery=new ApiV3DiscoveryQueryService();inject(discovery,"userRepository",users);inject(discovery,"contentDtoService",dto);inject(discovery,"breezemoonRepository",new BreezemoonRepository());
             for(String field:List.of("userArticleStatus","userCommentStatus","userBreezemoonStatus","userPointStatus","userFollowerStatus","userFollowingUserStatus","userFollowingTagStatus","userFollowingArticleStatus","userWatchingArticleStatus")){

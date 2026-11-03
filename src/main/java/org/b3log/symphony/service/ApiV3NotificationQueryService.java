@@ -86,7 +86,7 @@ public class ApiV3NotificationQueryService {
             } else if (type == Notification.DATA_TYPE_C_CHAT_ROOM_AT || type == Notification.DATA_TYPE_C_RED_PACKET) {
                 chat(dto, dataId, type);
             } else if (type == Notification.DATA_TYPE_C_NEW_FOLLOWER) {
-                final JSONObject actor = userQueryService.getUser(dataId);
+                final JSONObject actor = contentQueryService.currentAuthor(dataId);
                 if (null == actor) return unavailable(dto);
                 dto.put("actor", contentDtoService.author(actor, false));
                 dto.put("url", "/member/" + actor.optString(User.USER_NAME));
@@ -97,7 +97,7 @@ public class ApiV3NotificationQueryService {
                 if (parts.length != 2) return unavailable(dto);
                 final boolean comment = type == Notification.DATA_TYPE_C_COMMENT_VOTE_UP || type == Notification.DATA_TYPE_C_COMMENT_VOTE_DOWN;
                 if (!(comment ? comment(dto, parts[0], viewer, false) : article(dto, parts[0], viewer))) return unavailable(dto);
-                final JSONObject actor = userQueryService.getUser(parts[1]);
+                final JSONObject actor = contentQueryService.currentAuthor(parts[1]);
                 if (null != actor) dto.put("actor", contentDtoService.author(actor, false));
             } else if (type == Notification.DATA_TYPE_C_COMMENT || type == Notification.DATA_TYPE_C_COMMENTED || type == Notification.DATA_TYPE_C_REPLY
                     || type == Notification.DATA_TYPE_C_FOLLOWING_ARTICLE_COMMENT) {
@@ -201,7 +201,7 @@ public class ApiV3NotificationQueryService {
         return html;
     }
 
-    private void chat(final JSONObject dto, final String id, final int type) {
+    private void chat(final JSONObject dto, final String id, final int type) throws RepositoryException {
         final JSONObject row = chatRoomService.getChatMsg(id);
         if (null == row) { unavailable(dto); return; }
         final JSONObject message = new JSONObject(row.optString(Common.CONTENT));
@@ -217,7 +217,10 @@ public class ApiV3NotificationQueryService {
             }
         }
         description(dto, sourceText ? Escapes.escapeHTML(text) : text);
-        final JSONObject actor = userQueryService.getUserByName(message.optString(User.USER_NAME));
+        final String actorId = message.optString("userOId");
+        // Legacy envelopes without an ID retain their existing username fallback.
+        final JSONObject actor = actorId.isEmpty() ? userQueryService.getUserByName(message.optString(User.USER_NAME))
+                : actorId.matches("[1-9][0-9]{0,18}") ? contentQueryService.currentAuthor(actorId) : null;
         if (null != actor) dto.put("actor", contentDtoService.author(actor, false));
         dto.put("url", "/cr");
     }

@@ -5625,6 +5625,8 @@ curl --request GET 'https://fishpi.cn/api/v3/me/notifications/20261016004' \
 
 > 通知不存在或不属于当前账号时返回 HTTP 404。
 
+> 关注、文章关注/收藏及投票通知中的操作用户资料使用当前用户名、昵称和头像；聊天室通知带有作者ID时同样使用当前资料。作者已删除时省略操作用户资料，新关注者通知则显示为不可用；仍可读的文章、评论和聊天室内容不受影响。
+
 ### 标记单条通知已读
 
 `POST /api/v3/me/notifications/{notificationId}/read`
