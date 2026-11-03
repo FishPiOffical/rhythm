@@ -1,5 +1,6 @@
 package org.b3log.symphony.util;
 
+import org.b3log.latke.http.ApiV3GameSaveRawBody;
 import org.b3log.latke.http.RequestContext;
 import org.json.JSONObject;
 
@@ -12,13 +13,22 @@ public final class ApiV3WriteInputs {
     private ApiV3WriteInputs() { }
 
     public static JSONObject body(final RequestContext context, final Set<String> allowed, final boolean emptyAllowed) {
-        final byte[] bytes = context.getRequest().getBytes();
-        if (emptyAllowed && (null == bytes || bytes.length == 0)) return new JSONObject();
+        return body(context, allowed, emptyAllowed, ApiV3Json.MAX_BODY_BYTES);
+    }
+
+    public static JSONObject body(final RequestContext context, final Set<String> allowed, final boolean emptyAllowed, final int maximumBytes) {
+        if (maximumBytes < 0 || maximumBytes > ApiV3Json.MAX_BODY_BYTES) throw new IllegalArgumentException("body limit");
+        final byte[] bytes;
+        try {
+            bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), maximumBytes);
+        } catch (final ApiV3GameSaveRawBody.TooLarge e) {
+            throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+        }
+        if (emptyAllowed && bytes.length == 0) return new JSONObject();
         final String type = context.header("Content-Type");
         if (null == type || !"application/json".equals(type.split(";", 2)[0].trim().toLowerCase(Locale.ROOT))) {
             throw new ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
         }
-        if (null != bytes && bytes.length > ApiV3Json.MAX_BODY_BYTES) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
         final JSONObject body;
         try { body = ApiV3Json.parse(bytes); }
         catch (final IllegalArgumentException e) { throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法"); }

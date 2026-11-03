@@ -27,7 +27,7 @@ public class ApiV3RealtimeProcessorTest {
     static class Fixture implements AutoCloseable {
         final DefaultFullHttpRequest raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.POST,"/api/v3/realtime/tickets?apiKey=old");
         final DefaultHttpResponse response=new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);final RequestContext c;
-        Fixture(String body,String header){raw.headers().set("Content-Type","application/json");if(header!=null)raw.headers().set("Authorization",header);var request=new Request(null,raw);request.setBytes(body.getBytes(StandardCharsets.UTF_8));c=new RequestContext(request,new Response(null,response));c.attr(User.USER,new JSONObject().put("oId","321"));c.addHandler(context->context.attr("test.accepted",true));}
+        Fixture(String body,String header){raw.headers().set("Content-Type","application/json");if(header!=null)raw.headers().set("Authorization",header);var request=new Request(null,raw);raw.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));request.setBytes(body.getBytes(StandardCharsets.UTF_8));c=new RequestContext(request,new Response(null,response));c.attr(User.USER,new JSONObject().put("oId","321"));c.addHandler(context->context.attr("test.accepted",true));}
         public void close(){raw.release();}
     }
     static class Authentication extends ApiV3TokenMgmtService {

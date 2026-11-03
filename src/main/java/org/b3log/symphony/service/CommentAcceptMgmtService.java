@@ -10,6 +10,7 @@ import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.AccountPairLocks;
 import org.b3log.symphony.util.ArticlePublicationCaches;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +31,14 @@ public class CommentAcceptMgmtService {
     @Inject private CommentThankMgmtService targets;
 
     public record Result(String actor, String recipient, String acceptedId, String transferId, boolean applied) { }
+
+    /** V3-only eligibility, evaluated against the locked article inside the mutation callback. */
+    static void requireV3Question(final JSONObject article) {
+        if (article.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_QNA
+                || article.optInt(Article.ARTICLE_QNA_OFFER_POINT) < 20) {
+            throw new ApiV3Exception(422, "invalid_question", "仅支持采纳悬赏至少20积分的问答回答");
+        }
+    }
     public static final class Rejected extends RuntimeException {
         public final String code;
         public Rejected(final String code) { super(code); this.code = code; }

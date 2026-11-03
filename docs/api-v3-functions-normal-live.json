@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346
+  },
+  "scope": "Own function pagination/view preference normal writes, strict bounds, partial-field preservation and replay",
+  "results": [
+    {
+      "step": "set-lower-bound-and-toggle-view",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "read-first-exact",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "set-upper-bound",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-first-receipt",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-keeps-current",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "same-key-different-body",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "below-page-bound",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "above-page-bound",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "fractional-page-size",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "string-page-size",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "invalid-view",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "numeric-switch",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "unknown-field",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "invalid-preserves-all-fields",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "other-owner-unchanged",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-own-functions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "allSettingsRestored": true,
+  "balancesUnchanged": true,
+  "limits": [
+    "Only pagination size/view fields changed; other function fields were checked for preservation, not all toggled",
+    "No browser preference interaction or every locale/privacy/display path claimed",
+    "Successful idempotency receipts remain as normal history"
+  ]
+}

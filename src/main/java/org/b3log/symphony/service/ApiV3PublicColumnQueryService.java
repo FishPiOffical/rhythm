@@ -16,6 +16,8 @@ import org.b3log.symphony.repository.LongArticleColumnRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.UserMentionCandidates;
 import org.b3log.symphony.util.Escapes;
 import org.b3log.symphony.util.Markdowns;
 import org.json.JSONArray;
@@ -89,6 +91,56 @@ public class ApiV3PublicColumnQueryService {
             if (total == 0) throw ApiV3Requests.notFound();
             return ApiV3Requests.pagination(chapterList(selection, true, false, p, size), p, size, total);
         } catch (final RepositoryException error) { throw unavailable(); }
+    }
+    /** Bounded article navigation; the directory remains a separate paginated resource. */
+    public JSONObject articleContext(final JSONObject viewer, final String articleId) {
+        if (articleId == null || !articleId.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
+        try {
+            final List<JSONObject> targets = query("SELECT a.oId,a.articleAuthorId,a.articleStatus,a.articleType,a.articleAnonymousView,"
+                    + "CASE WHEN a.articleType=? THEN a.articleContent ELSE '' END AS articleContent FROM `" + articles.getName()
+                    + "` a JOIN `" + users.getName() + "` u ON u.oId=a.articleAuthorId WHERE a.oId=? AND u.userStatus IN (?,?)",
+                    List.of(Article.ARTICLE_TYPE_C_DISCUSSION, articleId, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN));
+            if (targets.size() != 1) throw ApiV3Requests.notFound();
+            final JSONObject target = targets.getFirst();
+            if (!ApiV3ContentUtil.canViewArticle(target, viewer, UserMentionCandidates.parse(target.optString("articleContent")))) {
+                throw ApiV3Requests.notFound();
+            }
+            final JSONObject result = new JSONObject().put("articleId", articleId).put("column", JSONObject.NULL)
+                    .put("chapterNo", JSONObject.NULL).put("previous", JSONObject.NULL).put("next", JSONObject.NULL);
+            final Selection visible = from(viewer, null);
+            final List<Object> binding = new ArrayList<>(visible.args); binding.add(articleId);
+            final List<JSONObject> bindings = query("SELECT c.oId,r.chapterNo,r.chapterCreateTime" + visible.sql + " AND a.oId=?", binding);
+            if (bindings.isEmpty()) return result;
+            if (bindings.size() != 1) throw unavailable();
+            final JSONObject current = bindings.getFirst();
+            final Selection selection = from(viewer, current.getString("oId"));
+            final List<JSONObject> summaries = query(aggregate() + selection.sql + group(), selection.args);
+            if (summaries.size() != 1) return result;
+            result.put("column", summary(summaries.getFirst())).put("chapterNo", current.getInt("chapterNo"));
+            for (final boolean next : List.of(false, true)) {
+                final String op = next ? ">" : "<", direction = next ? " ASC" : " DESC";
+                final List<Object> args = new ArrayList<>(selection.args);
+                args.addAll(List.of(current.getInt("chapterNo"), current.getInt("chapterNo"), current.getLong("chapterCreateTime"),
+                        current.getInt("chapterNo"), current.getLong("chapterCreateTime"), articleId));
+                final List<JSONObject> rows = query("SELECT a.oId,a.articleTitle,a.articlePermalink,a.articleCreateTime,r.chapterNo"
+                        + selection.sql + " AND (r.chapterNo" + op + "? OR (r.chapterNo=? AND r.chapterCreateTime" + op
+                        + "?) OR (r.chapterNo=? AND r.chapterCreateTime=? AND a.oId" + op + "?))"
+                        + " ORDER BY r.chapterNo" + direction + ",r.chapterCreateTime" + direction + ",a.oId" + direction + " LIMIT 1", args);
+                if (!rows.isEmpty()) result.put(next ? "next" : "previous", chapter(rows.getFirst()));
+            }
+            return result;
+        } catch (final RepositoryException error) { throw unavailable(); }
+    }
+    private JSONObject summary(final JSONObject row) {
+        final String id = row.getString("oId");
+        return new JSONObject().put("id", id).put("title", Escapes.escapeHTML(row.optString("columnTitle")))
+                .put("coverURL", StringUtils.defaultIfBlank(row.optString("columnCoverURL"), Latkes.getStaticServePath() + "/images/holiday/book-bg.jpg"))
+                .put("articleCount", row.getLong("visibleCount")).put("updatedAt", row.getLong("visibleUpdatedAt"));
+    }
+    private JSONObject chapter(final JSONObject row) {
+        return new JSONObject().put("id", row.getString("oId")).put("title", Escapes.escapeHTML(row.optString("articleTitle")))
+                .put("chapterNo", row.getInt("chapterNo")).put("permalink", row.optString("articlePermalink"))
+                .put("createdAt", row.getLong("articleCreateTime"));
     }
     private JSONObject card(final JSONObject row, final JSONObject viewer) throws RepositoryException {
         final String id = row.getString("oId");

@@ -162,11 +162,14 @@ public class LongArticleParagraphService {
             final java.util.function.Function<String, TitleSnapshot> titles) {
         final Map<String, TitleSnapshot> memo = new HashMap<>();
         final java.util.function.Function<String, TitleSnapshot> snapshot = id -> memo.computeIfAbsent(id, titles);
-        final String canonical = renderMarkdown(articleId, markdown, id -> snapshot.apply(id).title());
-        final String safe = renderMarkdown(articleId, markdown, id -> {
+        final String canonical = renderLinkedMarkdown(articleId, shortLinkQueryService.linkArticleWithUrlTitles(
+                StringUtils.defaultString(markdown), (id, url) -> snapshot.apply(id).title()));
+        final String safeLinks = shortLinkQueryService.linkArticleWithUrlTitles(StringUtils.defaultString(markdown), (id, url) -> {
             final TitleSnapshot title = snapshot.apply(id);
-            return title.publiclyReadable() ? title.title() : null;
+            // Keep the same expanded href/attributes as the identity view. Only its label is public.
+            return title.publiclyReadable() ? title.title() : title.title() == null ? null : url;
         });
+        final String safe = renderLinkedMarkdown(articleId, safeLinks);
         return compatibleRenderedContent(articleId, canonical, safe);
     }
 
@@ -287,7 +290,11 @@ public class LongArticleParagraphService {
     }
 
     private String renderMarkdown(final String articleId, final String markdown, final java.util.function.Function<String, String> titleLookup) {
-        String content = shortLinkQueryService.linkArticle(StringUtils.defaultString(markdown), titleLookup);
+        final String content = shortLinkQueryService.linkArticle(StringUtils.defaultString(markdown), titleLookup);
+        return renderLinkedMarkdown(articleId, content);
+    }
+
+    private String renderLinkedMarkdown(final String articleId, final String content) {
         String html = Markdowns.toHTML(Emotions.convert(content));
         html = Markdowns.clean(html, Latkes.getServePath() + "/article/" + articleId);
         html = MediaPlayers.renderAudio(html);

@@ -6,7 +6,7 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ApiV3Exception;
-import org.b3log.symphony.util.ApiV3CommunityDto;
+import org.b3log.symphony.util.ApiV3AvatarUrl;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
@@ -24,6 +24,6 @@ public class ApiV3AvatarQueryService {
             throw new ApiV3Exception(503,"temporarily_unavailable","头像设置暂不可用");
         }
         if(rows.size()!=1)throw ApiV3Requests.notFound();
-        return new JSONObject().put("avatarURL",ApiV3CommunityDto.safeUrl(rows.getFirst().optString("userAvatarURL")));
+        return new JSONObject().put("avatarURL",ApiV3AvatarUrl.stored(rows.getFirst().optString("userAvatarURL")));
     }
 }

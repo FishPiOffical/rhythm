@@ -459,11 +459,10 @@ public class ArticleProcessor {
             return;
         }
 
-        final JSONObject viewer = Sessions.getUser();
+        final JSONObject authenticated = (JSONObject) context.attr(User.USER);
+        final JSONObject viewer = authenticated == null ? Sessions.getUser() : authenticated;
         final String viewerId = null == viewer ? null : viewer.optString(Keys.OBJECT_ID);
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        final String ua = Headers.getHeader(context.getRequest(), Common.USER_AGENT, "");
-        longArticleReadService.record(new LongArticleReadCaptureRequest(articleId, viewerId, ip, ua));
+        longArticleReadService.record(new LongArticleReadCaptureRequest(articleId, viewerId, null, null));
 
         String md = article.optString(Article.ARTICLE_T_ORIGINAL_CONTENT);
 

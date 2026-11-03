@@ -63,7 +63,7 @@ public class ApiV3UploadTicketServiceTest {
         var legacy=payload(RhypicProcessor.mintUploadTicket("123","Legacy-Name","旧昵称"),pair.getPublic());Assert.assertEquals(legacy.getString("sub"),"123");Assert.assertEquals(legacy.getString("name"),"Legacy-Name");Assert.assertEquals(legacy.getLong("exp")-legacy.getLong("iat"),180L);Assert.assertEquals(legacy.keySet(),firstClaims.keySet());
         System.out.println("PASS actual legacy mint helper retains claims, signature, names and 180-second lifetime with shared signer");
         for(String body:List.of("{\"userId\":\"456\"}","{\"uploadURL\":\"https://evil.test\"}","{\"scope\":\"admin\"}","{\"apiKey\":\"old\"}","{\"expiresIn\":999999}")){
-            var http=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.POST,"/api/v3/uploads/tickets");http.headers().set("Content-Type","application/json");var request=new Request(null,http);request.setBytes(body.getBytes(StandardCharsets.UTF_8));
+            var http=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.POST,"/api/v3/uploads/tickets");http.headers().set("Content-Type","application/json");var request=new Request(null,http);http.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));request.setBytes(body.getBytes(StandardCharsets.UTF_8));
             var context=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));try{status(422,()->ApiV3WriteInputs.body(context,Set.of(),true));}finally{http.release();}
         }
         System.out.println("PASS real Latke request parser rejects caller identity, target, scope, credentials and lifetime fields");
@@ -73,10 +73,10 @@ public class ApiV3UploadTicketServiceTest {
         final String old="profile.read content.read activity.read content.write comments.write reactions.write follows.write";
         final String sql=java.nio.file.Files.readString(java.nio.file.Path.of("sql/20261016_api_v3.sql"));
         final var updates=java.util.regex.Pattern.compile("UPDATE `symphony_api_v3_client`[\\s\\S]*?;").matcher(sql);final var commands=new ArrayList<String>();
-        while(updates.find())commands.add(updates.group().replaceAll("CONCAT\\(`scope`, '([^']*)'\\)","(`scope` || '$1')"));Assert.assertEquals(commands.size(),4);
+        while(updates.find())commands.add(updates.group().replaceAll("CONCAT\\(`scope`, '([^']*)'\\)","(`scope` || '$1')"));Assert.assertEquals(commands.size(),6);
         try(var db=java.sql.DriverManager.getConnection("jdbc:sqlite::memory:")){
             try(var s=db.createStatement()){s.execute("CREATE TABLE symphony_api_v3_client(clientId TEXT,scope TEXT)");}
-            for(String[] row:List.of(new String[]{"website_v3",old},new String[]{"website_v3",defaults.replace(" uploads.write","")},new String[]{"website_v3","profile.read custom.write"},new String[]{"third_party",old})){
+            for(String[] row:List.of(new String[]{"website_v3",old},new String[]{"website_v3",defaults.replace(" uploads.write","").replace(" messages.read","").replace(" messages.write","")},new String[]{"website_v3","profile.read custom.write"},new String[]{"third_party",old})){
                 try(var s=db.prepareStatement("INSERT INTO symphony_api_v3_client VALUES(?,?)")){s.setString(1,row[0]);s.setString(2,row[1]);s.executeUpdate();}
             }
             for(int round=0;round<2;round++)for(String command:commands)try(var s=db.createStatement()){s.executeUpdate(command);}

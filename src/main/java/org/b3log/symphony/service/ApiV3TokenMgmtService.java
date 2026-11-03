@@ -38,8 +38,6 @@ public class ApiV3TokenMgmtService {
     private ApiV3TokenRepository apiV3TokenRepository;
     @Inject
     private ApiV3ClientRepository apiV3ClientRepository;
-    @Inject
-    private UserQueryService userQueryService;
     @Inject private UserRepository userRepository;
     protected long now(){return System.currentTimeMillis();}
 
@@ -106,12 +104,9 @@ public class ApiV3TokenMgmtService {
                 }
                 throw new ServiceException("unauthorized");
             }
-            final JSONObject user;
-            if(WEBSITE_CLIENT.equals(clientId))user=userQueryService.getUser(current.optString(ApiV3Token.USER_ID));
-            else{
-                final var rows=userRepository.select("SELECT oId,userStatus FROM `"+userRepository.getName()+"` WHERE oId=? FOR UPDATE",current.getString(ApiV3Token.USER_ID));
-                user=rows.size()==1?rows.getFirst():null;
-            }
+            // Every client, including the website, must use the current locked account status.
+            final var rows=userRepository.select("SELECT oId,userStatus FROM `"+userRepository.getName()+"` WHERE oId=? FOR UPDATE",current.getString(ApiV3Token.USER_ID));
+            final JSONObject user=rows.size()==1?rows.getFirst():null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) {
                 current.put(ApiV3Token.STATE, ApiV3Token.STATE_REVOKED).put(ApiV3Token.UPDATED_AT, now);
                 apiV3TokenRepository.update(current.optString(Keys.OBJECT_ID), current);
@@ -162,7 +157,9 @@ public class ApiV3TokenMgmtService {
                     || row.optLong(ApiV3Token.EXPIRES_AT) <= now()) return null;
             final JSONObject client = apiV3ClientRepository.getByClientId(row.optString(ApiV3Token.CLIENT_ID));
             if (null == client || ApiV3Client.STATUS_ACTIVE != client.optInt(ApiV3Client.STATUS)) return null;
-            final JSONObject user = userQueryService.getUser(row.optString(ApiV3Token.USER_ID));
+            // UserRepository.get/UserQueryService.getUser may return a stale per-node cache entry.
+            final var users=userRepository.select("SELECT * FROM `"+userRepository.getName()+"` WHERE oId=? LIMIT 2",row.optString(ApiV3Token.USER_ID));
+            final JSONObject user=users.size()==1?users.getFirst():null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) return null;
             markAccessUsed(row);
             return new JSONObject().put("user", user).put("scope", row.optString(ApiV3Token.SCOPE))

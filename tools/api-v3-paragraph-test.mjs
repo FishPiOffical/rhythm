@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Real paragraph parser/annotation, isolated from persistence and Markdown rendering.
- * Rendering is a minimal link fixture adapter with identity cleaning: this does NOT validate sanitization or real Markdown.
+/** Real paragraph parser/annotation and local Flexmark conversion, isolated from persistence.
+ * Sanitization, emotion and media adapters remain controlled; this does NOT validate the full production Markdown pipeline.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,10 +23,12 @@ try {
     'org/b3log/symphony/repository/CommentRepository.java': 'package org.b3log.symphony.repository; public class CommentRepository extends org.b3log.latke.repository.AbstractRepository { public CommentRepository() {super("comment");} }',
     'org/b3log/symphony/repository/ArticleRepository.java': 'package org.b3log.symphony.repository; public class ArticleRepository extends org.b3log.latke.repository.AbstractRepository { public ArticleRepository() {super("article");} }',
     'org/b3log/symphony/util/Markdowns.java': String.raw`package org.b3log.symphony.util; public class Markdowns {
-      public static String toHTML(String text){
-        String linked=text.replaceAll("\\[([^\\]]*)\\]\\((https?[^)]*)\\)","<a href=\"$2\">$1</a>");
-        return linked.replaceAll("(?<![\"'=])https?://[^\\s<>]+","<a href=\"$0\">$0</a>");
-      }
+      private static final com.vladsch.flexmark.util.data.DataHolder OPTIONS = new com.vladsch.flexmark.util.data.MutableDataSet()
+        .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS,java.util.Arrays.asList(com.vladsch.flexmark.ext.tables.TablesExtension.create(),com.vladsch.flexmark.ext.gfm.tasklist.TaskListExtension.create(),com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension.create(),com.vladsch.flexmark.ext.autolink.AutolinkExtension.create()))
+        .set(com.vladsch.flexmark.html.HtmlRenderer.SOFT_BREAK,"<br />\n");
+      private static final com.vladsch.flexmark.parser.Parser PARSER=com.vladsch.flexmark.parser.Parser.builder(OPTIONS).build();
+      private static final com.vladsch.flexmark.html.HtmlRenderer RENDERER=com.vladsch.flexmark.html.HtmlRenderer.builder(OPTIONS).build();
+      public static String toHTML(String text){return RENDERER.render(PARSER.parse(text));}
       public static String clean(String text,String base){return text;}
     }`,
     'org/b3log/symphony/util/Emotions.java': 'package org.b3log.symphony.util; public class Emotions {public static String convert(String text){return text;} }',
@@ -36,7 +38,12 @@ try {
   for (const [name, source] of Object.entries(shims)) {
     const file = path.join(work, name); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, source); files.push(file);
   }
-  const cp = [latke, testng, jsoup, sqlite].join(path.delimiter), classes = path.join(work, 'classes');
+  const repository=path.join(os.homedir(),'.m2/repository');
+  const jars=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?jars(path.join(dir,e.name)):/\.jar$/.test(e.name)&&!/(sources|javadoc)\.jar$/.test(e.name)?[path.join(dir,e.name)]:[]);
+  const flexmarkVersion=fs.readFileSync('pom.xml','utf8').match(/<flexmark.version>([^<]+)<\/flexmark.version>/)?.[1];
+  if(!flexmarkVersion)throw Error('Missing project Flexmark version');
+  const markdownJars=[...jars(path.join(repository,'com/vladsch/flexmark')).filter(file=>file.includes(path.sep+flexmarkVersion+path.sep)),...jars(path.join(repository,'org/nibor/autolink'))];
+  const cp = [latke, testng, jsoup, sqlite,...markdownJars].join(path.delimiter), classes = path.join(work, 'classes');
   run(path.join(home, 'bin', 'javac'), ['--release', '25', '-proc:none', '-cp', cp, '-d', classes, ...files,
     'src/main/java/org/b3log/symphony/model/Comment.java', 'src/main/java/org/b3log/symphony/model/Article.java',
     'src/main/java/org/b3log/symphony/service/ShortLinkQueryService.java', 'src/main/java/org/b3log/symphony/util/ArticlePublicationCaches.java', 'src/main/java/org/b3log/symphony/util/ApiV3Exception.java',

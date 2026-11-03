@@ -34,7 +34,7 @@ public class ApiV3QqSettingsTest {
                 if (token != null) raw.headers().set("Authorization", "Bearer " + token);
                 if (key != null) raw.headers().set("Idempotency-Key", key);
                 raw.headers().set("Content-Type", "application/json"); raw.headers().set("Cookie", "legacy"); raw.headers().set("X-Real-IP", "127.0.0.1");
-                final var request = new Request(null, raw); request.setBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                final var request = new Request(null, raw); raw.content().clear().writeBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
                 final var context = new RequestContext(request, new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
                 context.addHandler(new org.b3log.latke.http.handler.RouteHandler());

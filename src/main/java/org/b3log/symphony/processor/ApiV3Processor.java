@@ -18,6 +18,8 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.ApiV3PublicColumnQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.b3log.latke.util.Requests;
 import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
 import java.util.UUID;
+import java.util.Set;
 
 /** Versioned public Web API. It does not delegate authentication to legacy API handlers. */
 @Singleton
@@ -33,6 +36,7 @@ public class ApiV3Processor {
     public static final String IDENTITY = "apiV3Identity";
     private static final String REFRESH_COOKIE = ApiV3RefreshCookies.NAME;
     private static final int MAX_LOGIN_FIELD = 256;
+    private static final int MAX_AUTH_BODY_BYTES = 4096;
 
     @Inject
     private ApiV3TokenMgmtService apiV3TokenMgmtService;
@@ -53,6 +57,7 @@ public class ApiV3Processor {
         ApiV3VoteProcessor.register();
         ApiV3ArticleRewardProcessor.register();
         ApiV3ArticleStickProcessor.register();
+        ApiV3ArticleReadProcessor.register();
         ApiV3ParagraphProcessor.register();
         ApiV3DiscoveryProcessor.register();
         ApiV3UserSuggestionProcessor.register();
@@ -134,10 +139,12 @@ public class ApiV3Processor {
         Dispatcher.get("/api/v3/columns/hot", processor::hotColumns, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/columns/{columnId}/articles", processor::columnArticles, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/columns/{columnId}", processor::column, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/articles/{articleId}/column", processor::articleColumn, auth::optionalContent, anonymous::handle);
     }
 
     public void login(final RequestContext context) {
-        final JSONObject body = context.requestJSON();
+        final JSONObject body = authenticationBody(context, Set.of("nameOrEmail", User.USER_PASSWORD, "mfaCode"), false);
+        if (body == null) return;
         final String nameOrEmail = StringUtils.trimToEmpty(body.optString("nameOrEmail"));
         final String password = StringUtils.trimToEmpty(body.optString(User.USER_PASSWORD));
         if (nameOrEmail.length() > MAX_LOGIN_FIELD || password.length() != 32 || !password.matches("[a-f0-9]{32}")) {
@@ -175,6 +182,7 @@ public class ApiV3Processor {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
         }
+        if (authenticationBody(context, Set.of(), true) == null) return;
         final String refreshToken = cookie(context, REFRESH_COOKIE);
         try {
             final JSONObject token = apiV3TokenMgmtService.refresh(refreshToken);
@@ -194,6 +202,7 @@ public class ApiV3Processor {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
         }
+        if (authenticationBody(context, Set.of(), true) == null) return;
         try {
             apiV3TokenMgmtService.revokeRefresh(cookie(context, REFRESH_COOKIE));
             audit(context, "logout", "success", null);
@@ -203,6 +212,19 @@ public class ApiV3Processor {
         }
         clearRefreshCookie(context);
         success(context, new JSONObject());
+    }
+
+    private static JSONObject authenticationBody(final RequestContext context, final Set<String> fields, final boolean emptyAllowed) {
+        try {
+            final JSONObject body = ApiV3WriteInputs.body(context, fields, emptyAllowed, MAX_AUTH_BODY_BYTES);
+            for (final String field : body.keySet()) {
+                if (!(body.opt(field) instanceof String)) throw ApiV3WriteInputs.invalid();
+            }
+            return body;
+        } catch (final ApiV3Exception e) {
+            error(context, e.status, e.code, e.getMessage());
+            return null;
+        }
     }
 
     public void me(final RequestContext context) {
@@ -227,6 +249,9 @@ public class ApiV3Processor {
     }
     public void columnArticles(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.chapters(ApiV3Requests.viewer(context), columnId(context), page(context, 1), pageSize(context, 20)));
+    }
+    public void articleColumn(final RequestContext context) {
+        ApiV3Requests.read(context, () -> publicColumns.articleContext(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "articleId")));
     }
 
     private static int pageSize(final RequestContext context, final int defaultSize) {

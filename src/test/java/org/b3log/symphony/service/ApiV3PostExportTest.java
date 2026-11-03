@@ -52,9 +52,14 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
    return rows(active()?writer:db,q.replace("OCTET_LENGTH(","length(CAST(").replace("articleContent)","articleContent AS BLOB))").replace("articleRewardContent)","articleRewardContent AS BLOB))").replace("commentContent)","commentContent AS BLOB))"),a);
   }
   void insert(String table,JSONObject r)throws RepositoryException {var names=new ArrayList<>(r.keySet());sql(writer,"INSERT INTO "+table+" ("+String.join(",",names)+") VALUES ("+String.join(",",Collections.nCopies(names.size(),"?"))+")",names.stream().map(r::get).toArray());}
-  @Override Transaction begin(){Transaction tx=super.begin();Connection previous=writer;
+  int snapshotIsolationUpgrades;
+  @Override Transaction begin(){Transaction tx=super.begin();Connection previous=writer;final boolean[] raised={false};
    writer=(Connection)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{Connection.class},(p,m,a)->{try{
     if(m.getName().equals("getTransactionIsolation")&&exportFault.equals("weak-isolation"))return Connection.TRANSACTION_READ_COMMITTED;
+    if(exportFault.equals("read-committed")){
+     if(m.getName().equals("getTransactionIsolation"))return raised[0]?Connection.TRANSACTION_REPEATABLE_READ:Connection.TRANSACTION_READ_COMMITTED;
+     if(m.getName().equals("setTransactionIsolation")){Assert.assertEquals((Integer)a[0],Integer.valueOf(Connection.TRANSACTION_REPEATABLE_READ));raised[0]=true;snapshotIsolationUpgrades++;return null;}
+    }
     if(m.getName().equals("commit")&&roots>=3&&exportFault.equals("commit"))throw new SQLException("PRIVATE_COMMIT");
     if(m.getName().equals("prepareStatement")){String q=(String)a[0];var ps=(PreparedStatement)m.invoke(previous,a);return Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{PreparedStatement.class},(x,n,b)->{try{Object out=n.invoke(ps,b);if(n.getName().equals("executeUpdate")&&(exportFault.equals("chunks")&&q.startsWith("INSERT INTO `chunks`")||exportFault.equals("job")&&q.startsWith("INSERT INTO `artifacts`")||exportFault.equals("charge")&&q.startsWith("UPDATE u")))throw new SQLException("PRIVATE_WRITE");return out;}catch(InvocationTargetException e){throw e.getCause();}});}
     Object out=m.invoke(previous,a);if(m.getName().equals("commit")&&roots==3&&exportFault.equals("ack"))throw new SQLException("PRIVATE_ACK");return out;
@@ -121,7 +126,12 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
   for(String failure:List.of("oversize","weak-isolation"))try(var f=new F()){f.exportFault=failure;error(503,()->f.create("budget"));Assert.assertEquals(f.balance(),500);Assert.assertEquals(f.n("artifacts"),0);}
   try(var f=new F()){var tx=f.begin();try{try{f.create("nested");Assert.fail();}catch(IllegalStateException expected){}}finally{if(tx.isActive())tx.rollback();}Assert.assertEquals(f.balance(),500);}
   try(var stream=ApiV3PostExportFiles.bounded(OutputStream.nullOutputStream(),3)){stream.write(new byte[3]);try{stream.write(1);Assert.fail();}catch(IOException expected){}}
-  System.out.println("PASS export 9 multi-chunk incompressible source round-trip/full digest, explicit source/compressed size budgets, weak snapshot isolation and nested root refused without charge");
+  try(var f=new F()){
+   f.exportFault="read-committed";var job=f.create("snapshot-isolation");Assert.assertEquals(f.snapshotIsolationUpgrades,1);Assert.assertEquals(f.balance(),400);
+   var files=unzip(f.export.download(identity(),job.getString("jobId")));Assert.assertTrue(files.containsKey("manifest.json"));Assert.assertEquals(files.get("articles/6.reward.md"),"PAID_SECRET");
+   Assert.assertEquals(f.create("snapshot-isolation").getString("jobId"),job.getString("jobId"));Assert.assertEquals(f.snapshotIsolationUpgrades,1);Assert.assertEquals(f.balance(),400);
+  }
+  System.out.println("PASS export 9 multi-chunk incompressible source round-trip/full digest, explicit source/compressed size budgets, READ_COMMITTED upgraded before snapshot, unsupported snapshot isolation and nested root refused without charge");
 
   final var logged=new ArrayList<String>();
   final var appender=new org.apache.logging.log4j.core.appender.AbstractAppender("export-private-audit",null,null,false,org.apache.logging.log4j.core.config.Property.EMPTY_ARRAY){

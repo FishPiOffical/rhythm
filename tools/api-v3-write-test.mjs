@@ -30,7 +30,7 @@ function run(command, args) {
 try {
   const classes = path.join(work, 'classes');
   const cp = [latke, testng, sqlite].join(path.delimiter);
-  run(javac, ['--release', '25', '-proc:none', '-cp', cp, '-d', classes,
+  run(javac, ['--release', '25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java', '-proc:none', '-cp', cp, '-d', classes,
     ...main.map(name => `src/main/java/org/b3log/symphony/${name}.java`),
     ...suites.map(name => `src/test/java/org/b3log/symphony/${name}.java`)]);
   for (const suite of suites) run(java, ['-cp', [classes, cp].join(path.delimiter), `org.b3log.symphony.${suite.replaceAll('/', '.')}`]);

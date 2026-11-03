@@ -14,11 +14,15 @@ import java.util.*;
 /** Real MySQL production export primitives; ancillary schema/repository/cache adapters inherited explicitly. */
 public class ApiV3PostExportMysqlTest extends ApiV3PostExportTest {
  static class Mysql extends F {
-  boolean hold;String release;
+  boolean hold,readCommitted,snapshotObserved,regularObserved;String release;
   Mysql()throws Exception{super();System.setProperty("rhythm.mysql.fixtureSetup","true");}
-  @Override Transaction begin(){Transaction result=super.begin();if(!hold)return result;Connection previous=writer;
+  @Override Transaction begin(){Transaction result=super.begin();if(readCommitted)try{writer.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);}catch(SQLException e){throw new IllegalStateException(e);}if(!hold&&!readCommitted)return result;Connection previous=writer;
    writer=(Connection)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{Connection.class},(p,m,a)->{try{
-    if(m.getName().equals("commit")&&roots==3){System.out.println("BEFORE_FINAL_COMMIT");System.out.flush();long end=System.currentTimeMillis()+20000;while(!Files.exists(Path.of(release))){if(System.currentTimeMillis()>end)throw new SQLException("release timeout");Thread.sleep(20);}}
+    if(m.getName().equals("commit")&&readCommitted){
+     if(roots==2){Assert.assertEquals(previous.getTransactionIsolation(),Connection.TRANSACTION_REPEATABLE_READ);snapshotObserved=true;}
+     else {Assert.assertEquals(previous.getTransactionIsolation(),Connection.TRANSACTION_READ_COMMITTED);if(roots==3)regularObserved=true;}
+    }
+    if(m.getName().equals("commit")&&hold&&roots==3){System.out.println("BEFORE_FINAL_COMMIT");System.out.flush();long end=System.currentTimeMillis()+20000;while(!Files.exists(Path.of(release))){if(System.currentTimeMillis()>end)throw new SQLException("release timeout");Thread.sleep(20);}}
     return m.invoke(previous,a);
    }catch(InvocationTargetException e){throw e.getCause();}});
    try{var field=JdbcTransaction.class.getDeclaredField("connection");field.setAccessible(true);field.set(tx,writer);}catch(Exception e){throw new IllegalStateException(e);}return result;
@@ -35,9 +39,10 @@ public class ApiV3PostExportMysqlTest extends ApiV3PostExportTest {
    switch(args[0]){
     case "setup" -> System.out.println("SETUP_READY");
     case "normal" -> {
+     f.readCommitted=true;
      byte[] data=new byte[300000];new Random(7).nextBytes(data);String body=Base64.getEncoder().encodeToString(data);sql(f.db,"UPDATE articles SET articleContent=? WHERE oId='1'",body);
-     JSONObject job=f.create("mysql");committed(f);Assert.assertTrue(f.n("chunks")>1);var zip=unzip(f.export.download(identity(),job.getString("jobId")));Assert.assertEquals(zip.get("articles/1.md"),body);Assert.assertEquals(zip.get("articles/6.reward.md"),"PAID_SECRET");Assert.assertEquals(new JSONObject(zip.get("manifest.json")).getJSONArray("comments").length(),8);Assert.assertEquals(f.create("mysql").getString("jobId"),job.getString("jobId"));committed(f);
-     System.out.println("PASS export mysql 1 exact artifact/chunk DDL, real RR MySQL snapshot/UTF8 ZIP/multi-chunk hash and atomic 100-point charge/receipt; same-key replay once "+env);
+     JSONObject job=f.create("mysql");Assert.assertTrue(f.snapshotObserved);Assert.assertTrue(f.regularObserved);committed(f);Assert.assertTrue(f.n("chunks")>1);var zip=unzip(f.export.download(identity(),job.getString("jobId")));Assert.assertEquals(zip.get("articles/1.md"),body);Assert.assertEquals(zip.get("articles/6.reward.md"),"PAID_SECRET");Assert.assertEquals(new JSONObject(zip.get("manifest.json")).getJSONArray("comments").length(),8);Assert.assertEquals(f.create("mysql").getString("jobId"),job.getString("jobId"));committed(f);
+     System.out.println("PASS export mysql 1 exact artifact/chunk DDL, real per-root READ_COMMITTED baseline upgraded to RR snapshot/UTF8 ZIP/multi-chunk hash and atomic 100-point charge/receipt; same-key replay once "+env);
     }
     case "fault" -> {
      f.exportFault=args[1];try{f.create("fault");Assert.fail("fault must fail");}catch(ApiV3Exception e){Assert.assertEquals(e.status,503);}

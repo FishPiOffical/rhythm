@@ -42,6 +42,7 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SearchEngines;
@@ -78,6 +79,7 @@ public class BeforeRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        ApiV3RefreshCookies.discardFrameworkEcho(context);
         org.b3log.symphony.util.AccountCredentialVersions.beginHttp();
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 

@@ -20,7 +20,7 @@ public class FeedQueryTest {
   }
  }
  R articleRepository=new R("articles"),userRepository=new R("users"),tagArticleRepository=new R("ta"),domainTagRepository=new R("dt"),tagRepository=new R("tags"),followRepository=new R("follows");
- static class D {JSONObject summary(JSONObject row){return new JSONObject().put("id",row.getString("oId")).put("type",row.getInt("articleType"));}}
+ static class D {JSONObject summary(JSONObject row){final var author=ApiV3ContentSnapshots.author(row,"articleAuthorId");if(author==null||!"CurrentName".equals(author.optString("userNickname"))||!"https://example.test/a.png?sig=x".equals(author.optString("userAvatarURL")))throw new AssertionError("Author snapshot must travel with article page SQL");return new JSONObject().put("id",row.getString("oId")).put("type",row.getInt("articleType"));}}
  D contentDtoService=new D();
  static String escapeLike(String value){return value.replace("!","!!").replace("%","!%").replace("_","!_");}
  // PRODUCTION_RECORDS
@@ -36,7 +36,7 @@ public class FeedQueryTest {
   Class.forName("org.sqlite.JDBC");
   try(var connection=DriverManager.getConnection("jdbc:sqlite::memory:")){
    db=connection;
-   exec("CREATE TABLE users(oId TEXT PRIMARY KEY,userStatus INT)");exec("INSERT INTO users VALUES('1',?),('2',?)",UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_DEACTIVATED);
+   exec("CREATE TABLE users(oId TEXT PRIMARY KEY,userStatus INT,userName TEXT,userNickname TEXT,userAvatarURL TEXT)");exec("INSERT INTO users(oId,userStatus) VALUES('1',?),('2',?)",UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_DEACTIVATED);exec("UPDATE users SET userName='User1',userNickname='CurrentName',userAvatarURL='https://example.test/a.png?sig=x' WHERE oId='1'");
    exec("CREATE TABLE articles(oId TEXT PRIMARY KEY,articleStatus INT,articleType INT,articleShowInList INT,articleTags TEXT,articleAuthorId TEXT,articleAnonymousView INT,articlePerfect INT,articleCommentCount INT,articleStick BIGINT,redditScore INT,articleLatestCmtTime BIGINT,articleTitle TEXT,articleContent TEXT)");
    var service=new FeedQueryTest();var selection=Selection.all();
    String qna=add(10,Article.ARTICLE_TYPE_C_QNA,0,3,0,1),longPerfect=add(9,Article.ARTICLE_TYPE_C_LONG,1,9,0,3),plainPerfect=add(8,0,1,5,0,2),privateId=add(7,Article.ARTICLE_TYPE_C_QNA,0,999,0,10),old=add(60,Article.ARTICLE_TYPE_C_QNA,1,1000,0,50);

@@ -40,9 +40,10 @@ public class ApiV3OAuthHttpTest {
                 var c=new RequestContext(request,new Response(null,response));c.attr("user",new JSONObject().put("oId","2"));handler.accept(c);
                 var out=new JSONObject().put("status",response.status().code());
                 if(c.getRenderer() instanceof JsonRenderer renderer)out.put("json",renderer.getJSONObject());
+                out.put("policy",response.headers().get("Content-Security-Policy"));
                 if(response.headers().contains("Location"))out.put("location",response.headers().get("Location"));
                 if(response.headers().contains("Access-Control-Allow-Origin"))out.put("cors",response.headers().get("Access-Control-Allow-Origin"));
-                Assert.assertEquals(response.headers().get("Cache-Control"),"no-store");Assert.assertEquals(response.headers().get("Referrer-Policy"),"no-referrer");Assert.assertEquals(response.headers().get("X-Frame-Options"),"DENY");Assert.assertNotNull(response.headers().get("X-Request-Id"));Assert.assertFalse(response.headers().contains("Access-Control-Allow-Credentials"));return out;
+                Assert.assertEquals(response.headers().get("Cache-Control"),"no-store");Assert.assertEquals(response.headers().get("Referrer-Policy"),Boolean.TRUE.equals(c.attr("html"))?"same-origin":"no-referrer");Assert.assertEquals(response.headers().get("X-Frame-Options"),"DENY");Assert.assertNotNull(response.headers().get("X-Request-Id"));Assert.assertFalse(response.headers().contains("Access-Control-Allow-Credentials"));return out;
             }finally{req.release();}
         }
     }
@@ -51,10 +52,23 @@ public class ApiV3OAuthHttpTest {
     static final Map<String,String> CONSENT=Map.of("Content-Type","application/x-www-form-urlencoded","Origin","https://fishpi.cn","Sec-Fetch-Site","same-origin");
     public static void main(String[] args)throws Exception{
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);Latkes.setServerScheme("https");Latkes.setServerHost("fishpi.cn");Latkes.setServerPort("443");Latkes.setStaticServerScheme("https");Latkes.setStaticServerHost("fishpi.cn");Latkes.setStaticServerPort("443");Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);Latkes.setStaticResourceVersion("fixture");Latkes.setContextPath("");Latkes.setStaticPath("");
+        var policyMethod=ApiV3OAuthProcessor.class.getDeclaredMethod("consentPolicy",String.class);policyMethod.setAccessible(true);
+        var policyController=new Controller();
+        Assert.assertTrue(((String)policyMethod.invoke(policyController,"https://client.example/callback?fixed=a%2Bb")).contains("form-action 'self' https://client.example;"));
+        Assert.assertTrue(((String)policyMethod.invoke(policyController,"com.example.app:/oauth/callback")).contains("form-action 'self' com.example.app:;"));
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.DEVELOPMENT);
+        try{
+            Assert.assertTrue(((String)policyMethod.invoke(policyController,"http://127.0.0.1:18769/oauth/callback?fixed=A%2BB")).contains("form-action 'self' http://127.0.0.1:18769;"));
+            Assert.assertTrue(((String)policyMethod.invoke(policyController,"http://[::1]:18769/oauth/callback")).contains("form-action 'self' http://[::1]:18769;"));
+            for(String invalid:List.of("javascript:alert(1)","https://client.example/; form-action *", "https://user@client.example/cb","https://client.example/cb#fragment")){
+                try{policyMethod.invoke(policyController,invalid);Assert.fail("unsafe callback policy");}catch(java.lang.reflect.InvocationTargetException expected){Assert.assertTrue(expected.getCause() instanceof ApiV3Exception);}
+            }
+        }finally{Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);}
+        System.out.println("PASS consent document policy includes only its validated callback origin or native scheme, preserves loopback ports/IPv6 and rejects header/directive injection without relaxing server exact callback matching");
         final String authorize=form(Map.of("response_type","code","client_id",CLIENT,"redirect_uri",URI,"scope","content.read content.write","state","bound state +😀","code_challenge",CHALLENGE,"code_challenge_method","S256"));
         try(var f=new Http()){
             Assert.assertEquals(f.call(f.controller::authorize,authorize,"{\"apiKey\":\"forged\"}",Map.of("Content-Type","application/json")).getInt("status"),400);Assert.assertTrue(query(f.reader,"SELECT * FROM auth_requests").isEmpty());
-            Assert.assertEquals(f.call(f.controller::authorize,authorize,null,Map.of()).getInt("status"),200);Assert.assertEquals(f.controller.model.get("oauthUser"),"Actual Cookie User");Assert.assertFalse(f.controller.model.containsKey("user"));Assert.assertEquals(query(f.reader,"SELECT userId FROM auth_requests").getFirst().getString("userId"),"1");
+            var consentPage=f.call(f.controller::authorize,authorize,null,Map.of());Assert.assertEquals(consentPage.getInt("status"),200);Assert.assertTrue(consentPage.getString("policy").contains("form-action 'self' https://client.example;"));Assert.assertFalse(consentPage.getString("policy").contains("*"));Assert.assertEquals(f.controller.model.get("oauthUser"),"Actual Cookie User");Assert.assertFalse(f.controller.model.containsKey("user"));Assert.assertEquals(query(f.reader,"SELECT userId FROM auth_requests").getFirst().getString("userId"),"1");
             String confirmation=form(Map.of("request",(String)f.controller.model.get("oauthRequest"),"proof",(String)f.controller.model.get("oauthProof"),"csrfToken","session-csrf","decision","approve"));
             var decision=f.call(f.controller::consent,null,confirmation,CONSENT);Assert.assertEquals(decision.getInt("status"),303);var params=ApiV3AuthorizationRequestTest.params(decision.getString("location"));Assert.assertEquals(params.get("state"),"bound state +😀");
             var exchanged=f.call(f.controller::token,null,form(Map.of("grant_type","authorization_code","client_id",CLIENT,"redirect_uri",URI,"code",params.get("code"),"code_verifier",VERIFIER)),FORM);Assert.assertEquals(exchanged.getInt("status"),200);var credentials=exchanged.getJSONObject("json");Assert.assertEquals(credentials.keySet(),Set.of("access_token","token_type","expires_in","refresh_token","refresh_expires_in","scope"));Assert.assertEquals(credentials.getString("token_type"),"Bearer");Assert.assertFalse(credentials.has("code"));Assert.assertNotNull(f.service.authenticate(credentials.getString("access_token")));

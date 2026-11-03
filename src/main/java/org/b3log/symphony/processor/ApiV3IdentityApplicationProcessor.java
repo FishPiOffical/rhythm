@@ -1,6 +1,7 @@
 package org.b3log.symphony.processor;
 
 import org.b3log.latke.http.Dispatcher;
+import org.b3log.latke.http.ApiV3GameSaveRawBody;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
@@ -34,7 +35,10 @@ public class ApiV3IdentityApplicationProcessor {
         final String media=c.header("Content-Type");
         final String type=media==null?"":media.split(";",2)[0].strip().toLowerCase(Locale.ROOT);
         final String key=ApiV3WriteInputs.idempotencyKey(c);
-        return applications.create(identity(c),c.getRequest().getBytes(),type,key);
+        final byte[] bytes;
+        try { bytes=ApiV3GameSaveRawBody.copy(c.getRequest(),ApiV3IdentityImage.MAX_BYTES); }
+        catch(ApiV3GameSaveRawBody.TooLarge error){throw new ApiV3Exception(413,"body_too_large","证明图片最多5MiB");}
+        return applications.create(identity(c),bytes,type,key);
     });}
     public void list(RequestContext c){ApiV3Requests.read(c,()->applications.list(identity(c),ApiV3Requests.page(c),ApiV3Requests.size(c),false,""));}
     public void detail(RequestContext c){ApiV3Requests.read(c,()->applications.detail(identity(c),ApiV3Requests.id(c,"applicationId")));}

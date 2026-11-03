@@ -5,11 +5,12 @@ import org.jsoup.Jsoup;
 import org.testng.Assert;
 import java.util.HashSet;
 
-/** Uses real parser/anchor/annotation with HTML fixture rendering shims, never the sanitization pipeline. */
+/** Real parser and project Flexmark; controlled sanitization/emotion/media adapters. */
 public class LongArticleParagraphAnnotationTest {
     public static void main(final String[] args) throws Exception {
         final var configuration = org.b3log.latke.Latkes.class.getDeclaredField("latkeProps");
         configuration.setAccessible(true); configuration.set(null, new java.util.Properties());
+        org.b3log.latke.Latkes.setServerHost("paragraph.source.test");
         final var service = new LongArticleParagraphService();
         final var links = LongArticleParagraphService.class.getDeclaredField("shortLinkQueryService"); links.setAccessible(true);
         links.set(service, new ShortLinkQueryService());
@@ -35,7 +36,7 @@ public class LongArticleParagraphAnnotationTest {
         System.out.println("PASS real mixed-content parser/legacy annotations preserve deterministic article-bound unique anchors and indices");
 
         final var rendered = service.annotateMarkdown("10", html);
-        Assert.assertEquals(rendered.html(), legacy.getString("html"));
+        Assert.assertEquals(rendered.html().strip(), legacy.getString("html").strip());
         Assert.assertEquals(rendered.paragraphs().size(), raw.size());
         for (int i = 0; i < raw.size(); i++) {
             Assert.assertEquals(rendered.paragraphs().get(i).getId(), raw.get(i).getId());
@@ -66,7 +67,7 @@ public class LongArticleParagraphAnnotationTest {
         catch (final IllegalStateException expected) { Assert.assertEquals(expected.getMessage(), "lookup unavailable"); }
         System.out.println("PASS actual short-link callback never falls back to unrestricted lookup; dollars/backslashes remain literal and failures propagate");
 
-        final String body = "<p> " + privateUrl + " </p><p> " + publicUrl + " </p>";
+        final String body = privateUrl + "\n\n" + publicUrl;
         final var safe = service.annotateMarkdown("10", body, publicTitles);
         final var safeRows = service.extractMarkdown("10", body, publicTitles);
         Assert.assertEquals(safeRows.size(), 2);
@@ -117,6 +118,42 @@ public class LongArticleParagraphAnnotationTest {
         Assert.assertEquals(paired.paragraphs().getFirst().getId(), service.extractMarkdown("10", body,
                 id -> privateId.equals(id) ? "SECRET-title" : "Public title").getFirst().getId());
         System.out.println("PASS paired rendering memoizes one title snapshot per linked article and never exposes restricted text");
+
+        final String initialHost = org.b3log.latke.Latkes.getServerHost();
+        try {
+            org.b3log.latke.Latkes.setServerHost("local-paragraph-proxy.invalid");
+            final String previousIdentity = service.annotateMarkdown("10", body, id -> privateId.equals(id) ? "SECRET-proxy-title" : "Public title").html();
+            final String previousSafe = service.annotateMarkdown("10", body, id -> privateId.equals(id) ? null : "Public title").html();
+            conflict(() -> service.compatibleRenderedContent("10", previousIdentity, previousSafe));
+            final var proxied = service.compatibleMarkdown("10", body, id ->
+                    new LongArticleParagraphService.TitleSnapshot(privateId.equals(id) ? "SECRET-proxy-title" : "Public title", !privateId.equals(id)));
+            Assert.assertFalse(proxied.html().contains("SECRET-proxy-title"));
+            Assert.assertTrue(proxied.paragraphs().getFirst().getSnapshot().contains(privateUrl));
+            Assert.assertEquals(proxied.idsFor(proxied.paragraphs().getFirst().getId()).size(), 2);
+            Assert.assertTrue(proxied.html().contains("href=\"" + privateUrl + "\""));
+            Assert.assertFalse(proxied.html().contains("local-paragraph-proxy.invalid"));
+            Assert.assertTrue(previousIdentity.contains("local-paragraph-proxy.invalid"));
+            Assert.assertEquals(proxied.paragraphs().getFirst().getId(), service.extractRendered("10", previousIdentity).getFirst().getId());
+        } finally { org.b3log.latke.Latkes.setServerHost(initialHost); }
+        System.out.println("PASS restricted URL labels retain the exact paired link destination across request host changes without exposing titles");
+
+        final String detailedUrl = privateUrl + "?p=2&sort=oldest#comment7";
+        final var pairedLabels = new java.util.ArrayList<String>();
+        final String kept = shortLinks.linkArticleWithUrlTitles(detailedUrl, (id, originalUrl) -> {
+            Assert.assertEquals(id, privateId); pairedLabels.add(originalUrl); return originalUrl;
+        });
+        Assert.assertEquals(pairedLabels, java.util.List.of(detailedUrl));
+        Assert.assertTrue(kept.contains("[" + detailedUrl + "](" + detailedUrl + ")"));
+        Assert.assertEquals(shortLinks.linkArticleWithUrlTitles(privateUrl, (id, originalUrl) -> null), privateUrl);
+        final var missing = service.compatibleMarkdown("10", privateUrl, id -> new LongArticleParagraphService.TitleSnapshot(null, false));
+        Assert.assertEquals(missing.paragraphs().size(), 1);
+        Assert.assertEquals(missing.paragraphs().getFirst().getSnapshot(), privateUrl);
+        Assert.assertEquals(missing.idsFor(missing.paragraphs().getFirst().getId()).size(), 1);
+        Assert.assertEquals(shortLinks.linkArticleWithUrlTitles("`" + privateUrl + "`", (id, originalUrl) -> { throw new AssertionError("inline code lookup"); }), "`" + privateUrl + "`");
+        System.out.println("PASS safe URL label receives original query/fragment; missing titles and inline code retain existing fallback without database lookup");
+        final String spoof = privateUrl.replace("paragraph.source.test", "paragraphXsourceYtest");
+        Assert.assertEquals(shortLinks.linkArticleWithUrlTitles(spoof, (id, originalUrl) -> { throw new AssertionError("lookalike origin lookup"); }), spoof);
+        System.out.println("PASS URL-preserving paired renderer requires literal configured source origin and cannot expand regex lookalike hosts");
     }
     private static void conflict(final Runnable operation) {
         try { operation.run(); Assert.fail("Expected ambiguous mapping rejection"); }

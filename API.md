@@ -12,6 +12,8 @@
 
 > 支持Idempotency-Key的写接口遇到连接中断或服务端错误时，应使用原键和原请求体重试，不要为同一次操作换新键。
 
+> v3 JSON业务写入请使用标准UTF-8 JSON对象，不接受单引号、重复字段、损坏JSON或无效UTF-8；非法JSON返回400，正文超限返回413，错误媒体类型返回415。只有明确允许省略正文的接口可提交真正空体；正常空对象及业务字段仍按各接口约定校验。
+
 ### 查询账号验证组件
 
 `GET /api/v3/auth/captcha-options`
@@ -249,6 +251,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/login' \
 
 > 启用两步认证的账号首次请求会返回 `mfa_required`，携带 `mfaCode` 后再次登录。
 
+> 请求体最多4096字节，使用标准UTF-8 JSON对象，仅接受表中的字符串字段；非法JSON返回400，未知字段或非字符串值返回422，超限413，错误媒体类型415。
+
 ### 刷新登录状态
 
 `POST /api/v3/auth/refresh`
@@ -275,7 +279,9 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/refresh'
 | data.expiresIn | 访问令牌有效秒数 |
 | data.refreshExpiresIn | 刷新登录状态有效秒数 |
 
-> 刷新成功后浏览器使用新的登录 Cookie。请勿重复使用刷新前的 Cookie；重复使用会使本次登录失效，需要重新登录。
+> 可省略正文；提交正文时仅接受 `Content-Type: application/json` 的空对象 `{}`，最多4096字节。非法JSON返回400，非空对象字段返回422，超限413，错误媒体类型415。
+
+> 刷新成功后浏览器使用新的登录 Cookie。请勿重复使用刷新前的 Cookie；重复使用会使本次登录失效，需要重新登录。 账号已停用、未激活或不存在时返回 HTTP 401，不能继续刷新。
 
 ### 退出登录
 
@@ -302,6 +308,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/logout'
 | data | 空对象 |
 
 > 服务端完成退出处理后，本次登录下的访问令牌不再可用；其他独立登录不受影响。
+
+> 可省略正文；提交正文时仅接受 `Content-Type: application/json` 的空对象 `{}`，最多4096字节。非法JSON返回400，非空对象字段返回422，超限413，错误媒体类型415。
 
 ### 当前用户
 
@@ -333,6 +341,8 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 | data.userURL | 个人主页链接 |
 | data.userPoint | 积分 |
 | data.userGuideStep | 新手引导进度 |
+
+> 返回当前账号资料；账号不再有效或已删除时，原访问令牌也会返回 HTTP 401。
 
 ### 最新专栏
 
@@ -475,6 +485,43 @@ curl 'https://fishpi.cn/api/v3/columns/2026101600000000001/articles?p=1&size=20'
 
 > 可见范围与专栏详情相同；没有当前可见章节时返回HTTP 404。读取暂不可用时返回503，不能将失败当作空目录。
 
+
+### 长篇章节导航
+
+`GET /api/v3/articles/{articleId}/column`
+
+读取文章当前可见的所属专栏、章号及前后章节。章节目录使用现有专栏章节分页接口。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥（可选） | xxx |
+| Authorization | Bearer访问令牌（可选），使用令牌时需要content.read | Bearer TOKEN |
+| articleId | 文章ID | 1770000000001 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/articles/1770000000001/column'
+```
+
+响应：
+
+| Key | 说明 |
+| --- | --- |
+| code / msg | 结果码 / 提示 |
+| data | 当前章节导航 |
+| - articleId | 请求的文章ID |
+| - column | 专栏摘要；没有可见关联时为null |
+| -- id / title / coverURL | 专栏ID、名称、封面地址 |
+| -- articleCount / updatedAt | 当前可见章节数、更新时间（毫秒） |
+| - chapterNo | 当前原章节号；没有关联时为null |
+| - previous / next | 前一章 / 后一章；不存在时为null |
+| -- id / title / chapterNo | 文章ID、标题、原章节号 |
+| -- permalink / createdAt | 文章链接、创建时间（毫秒） |
+
+> 不存在或不可读的文章返回HTTP 404。可读但没有可见专栏关联、未列出或非长篇文章返回column=null，chapterNo、previous、next也均为null。只按当前可见章节定位前后章，不重新编号；此响应不包含完整目录或文章正文。读取暂不可用时返回503。
 
 ### 发布文章
 
@@ -740,6 +787,7 @@ curl 'https://fishpi.cn/api/v3/articles?p=1&size=20&sort=latest&type=recent'
 | -- tags | 逗号分隔的标签 |
 | -- type | 文章类型，与旧接口 articleType 一致 |
 | -- anonymous | 是否匿名发表 |
+| -- perfect | 是否为优选文章，布尔值 |
 | -- author | 公开作者资料 |
 | --- id | 用户 ID，匿名发表时为空 |
 | --- userName / userNickname | 用户名 / 昵称，匿名发表时显示匿名用户 |
@@ -784,12 +832,19 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191' \
 | - content | 正文源内容；Markdown 或思绪记录字符串 |
 | - contentFormat | markdown 或 thought |
 | - contentHtml | 正文 HTML；思绪帖为空，需要由客户端播放 content 中的记录 |
+| - commentable | 当前是否允许发布或编辑评论，布尔值；历史状态无法识别时为 null |
+| - statement | 创作声明：0 无、1 AI、2 剧透、3 虚构；历史状态无法识别时为 null |
 | - rewardPoint | 打赏所需积分 |
 | - rewarded | 当前阅读者是否已打赏或为文章作者 |
 | - rewardContent | 可查看的打赏内容源文本，否则为空 |
 | - rewardContentHtml | 可查看的打赏内容 HTML，否则为空 |
+| - qna | 问答当前公开状态；非问答为 null |
+| -- offerPoint | 文章当前悬赏积分 |
+| -- accepted | 是否存在已采纳回答；包括隐藏或匿名回答，不包含回答编号、作者或正文 |
 
-> 不存在或不可查看的文章返回 HTTP 404。原始内容与文本字段应按文本处理，展示富文本使用 contentHtml；思绪播放器需要自行安全处理记录。此接口仅执行读取，不增加浏览数。
+> commentable 为 false 或 null 时，不应发起新评论、回复或评论编辑；已有评论仍可读取，已成功请求的原幂等键可以恢复。旧服务未提供这些字段时应展示状态暂不可用，不推定允许评论或无创作声明。
+
+> 每次读取按文章和作者当前状态、匿名访问设置及当前讨论范围判断，并返回当前内容；失效或已不可读的内容不会沿用之前的读取结果。不存在或不可查看的文章返回 HTTP 404。原始内容与文本字段应按文本处理，展示富文本使用 contentHtml；思绪播放器需要自行安全处理记录。此接口仅执行读取，不增加浏览数。
 
 ### 文章评论列表
 
@@ -832,7 +887,7 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
 
-> 文章不存在或不可查看时返回 HTTP 404。仅作者可见评论的正文只对评论作者和文章作者可见，其他阅读者会得到 contentVisible=false 的占位记录。非法 ID、分页或排序返回 HTTP 422。
+> 文章和评论引用均按当前状态及可读范围返回。文章不存在或不可查看时返回 HTTP 404。仅作者可见评论的正文只对评论作者和文章作者可见，其他阅读者会得到 contentVisible=false 的占位记录。非法 ID、分页或排序返回 HTTP 422。
 
 
 ## API v3 官方认证（企业）
@@ -843,7 +898,7 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 
 `POST /api/v3/me/identity-applications/enterprise`
 
-需要 settings.write，直接上传营业执照原始图片数据。
+需要 settings.write，直接上传营业执照原始图片数据。请按二进制发送完整文件，不要先转为字符串。
 
 请求：
 
@@ -1070,7 +1125,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/review/identity-applications/179280
 
 `GET /api/v3/oauth/authorize`
 
-在浏览器打开此地址，用户登录后查看应用、账号和申请权限，再明确选择允许或拒绝。
+在浏览器打开此地址，用户登录后查看应用、账号和申请权限，再明确选择允许或拒绝。允许与拒绝均回到登记地址，并原样带回 state；拒绝时返回 error=access_denied，不生成授权码。
 
 请求：
 
@@ -1212,6 +1267,41 @@ curl --request POST 'https://fishpi.cn/api/v3/oauth/revoke' \
 
 ## API v3 段落与评论详情
 
+### 登记长篇阅读
+
+`POST /api/v3/articles/{articleId}/reads`
+
+正文成功显示后登记当前用户的一次阅读，需要 apiKey。同一用户、同一文章在同一6小时窗口内只计一次；仅支持当前有效、可读、可列出的署名长篇，作者本人不计入。SSR、预览及正文读取失败时不应调用。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| articleId（路径） | 长篇文章ID | 1645002736006 |
+| Authorization（Header） | Bearer访问令牌，需要content.read、activity.write | Bearer TOKEN |
+| 请求体 | 可省略，或提交空JSON对象；无其他字段 | {} |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/articles/1645002736006/reads' \
+  --header 'Authorization: Bearer TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 成功为0 | 0 |
+| msg | 提示信息 |  |
+| data | 登记结果 | {} |
+| - articleId | 本次文章ID | 1645002736006 |
+| - recorded | 本次是否新增计数；同窗口已登记返回false | true |
+
+> 不使用Idempotency-Key，服务端按当前用户、文章及6小时窗口去重；超时后在同一窗口内重试不会重复计数。跨窗口调用可新增一次。登记不直接发放奖励，也不接受读者身份、窗口、计数或奖励参数；奖励沿后台结算，结算失败后由后台重试，不由客户端重复发奖。本人阅读返回409，目标不符合条件或不可读返回404，非法JSON返回400、非JSON请求体返回415，参数错误422，暂不可用503。旧Markdown接口及经典浏览量链路的长篇奖励登记采用相同资格和窗口；旧响应及页面浏览量保持。
+
 ### 长篇段落列表
 
 `GET /api/v3/articles/{articleId}/paragraphs`
@@ -1252,6 +1342,8 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraphs?p=1&size=20&inc
 | -- p / size | 当前页 / 每页数量 |
 | -- total / pageCount | 段落总数 / 总页数 |
 | - contentHtml | 仅 includeContent=true 时返回；完整正文 HTML，元素带 data-long-paragraph-id、data-long-paragraph-kind 和 data-long-paragraph-index |
+
+> 正文中的站内文章链接仅展示当前可公开的标题；无可公开标题时显示网址，不提供受限标题；链接保留原网址目标及查询参数、片段。
 
 > 锚点以本接口当前结果为准，建议与 includeContent 返回的正文共同使用。正文编辑或相关标题变化后应重新获取；分页只影响 list，contentHtml 始终为整篇正文。兼容既有段落标识；标识无法唯一对应时返回 HTTP 409，不会猜测评论归属。不存在、不可查看或非长篇文章返回 HTTP 404，非法分页或 includeContent 返回 HTTP 422。
 
@@ -1339,6 +1431,43 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003' \
 | - permalink | 文章内评论链接 |
 
 > 不存在、已失效的评论或所属文章不可查看时返回 HTTP 404。仅楼主可见正文及匿名作者资料遵循段评列表的规则；有效段评标识无法唯一对应时返回 HTTP 409。
+
+### 读取评论当前位置
+
+`GET /api/v3/comments/{commentId}/location`
+
+查询普通评论或段评在当前列表中的位置，用于打开文章后定位评论。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | Bearer 访问令牌（可选），使用令牌时需要 content.read | Bearer TOKEN |
+| commentId | 评论 ID，路径参数 | 1770000000003 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/comments/1770000000003/location' \
+  --header 'Authorization: Bearer TOKEN'
+```
+
+响应：
+
+| Key | 说明 |
+| --- | --- |
+| code / msg | 结果码 / 提示 |
+| data | 当前定位信息，不包含评论正文或作者身份 |
+| - id / articleId | 评论 ID / 所属文章 ID |
+| - type | 0 普通评论，1 段评 |
+| - page / size | 当前页码 / 固定每页20条，按评论ID升序 |
+| - paragraph | 普通评论为 null；段评为当前分组信息 |
+| -- id | 段落标识；有效旧标识归入当前兼容分组 |
+| -- state | active 当前段评，orphaned 原段落已移除的段评 |
+
+> 普通评论使用文章普通评论列表；段评使用返回的 paragraph.id 和 state 查询段评列表，二者均按 oldest、每页20条读取。私密正文不可见时仍可定位其列表占位，不会因此获得正文或匿名作者身份。
+>
+> 位置反映查询时的当前列表；删除、编辑或段落变化后可能需要重新查询，不保证页码永久不变。不存在、失效或所属文章不可查看，以及当前无法列出的评论返回 HTTP 404；非法ID返回422，位置暂不可计算返回503。
 
 ## API v3 标签联想
 
@@ -1488,7 +1617,7 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000001/comments' \
 
 > 需要绑定手机、具备评论权限并通过正文审核，收费、发言间隔和匿名余额条件沿用平台规则。回复目标必须属于当前文章且可读；回复段评时可省略 paragraphId，若传入则必须与原段落一致。独立段评必须指向当前正文中存在的段落。兼容既有段落标识；无法唯一对应时返回 HTTP 409，且不发表或扣款。
 >
-> 相同请求键及相同内容重试返回原发布结果，不重复发布或扣款；同键不同内容返回 HTTP 409。文章或原评论不存在、不可查看、跨文章回复、段落不存在时返回 HTTP 404；缺少权限、未绑定手机或文章禁止评论时返回 HTTP 403；字段、审核、余额或发言间隔条件未满足时返回 HTTP 422，操作过于频繁返回 HTTP 429。
+> 相同请求键及相同内容重试返回原发布结果，不重复发布或扣款；同键不同内容返回 HTTP 409。文章或原评论不存在、不可查看、跨文章回复、段落不存在时返回 HTTP 404；缺少权限、未绑定手机、文章禁止评论或评论状态未知时返回 HTTP 403；字段、审核、余额或发言间隔条件未满足时返回 HTTP 422，操作过于频繁返回 HTTP 429。
 
 
 ### 编辑本人评论
@@ -1528,7 +1657,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003' \
 
 > 正文需通过审核。编辑费用与五分钟规则沿用平台行为；窗口外的普通公开评论编辑即使正文未变化，也按原规则收费。相同请求键重试不重复编辑、扣款或发送提醒，重放不会覆盖后续编辑；同键不同内容返回 HTTP 409。
 >
-> 不存在、不属于本人或所属文章不可查看时返回 HTTP 404；文章锁定、评论不可编辑或缺权限返回 HTTP 403。字段、审核或余额不满足要求返回 HTTP 422，操作过于频繁返回 HTTP 429。
+> 不存在、不属于本人或所属文章不可查看时返回 HTTP 404；文章锁定、评论关闭或状态未知、评论不可编辑或缺权限返回 HTTP 403。字段、审核或余额不满足要求返回 HTTP 422，操作过于频繁返回 HTTP 429。
 
 
 ### 删除本人评论
@@ -1669,7 +1798,7 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/accept' \
 | data | 当前状态 |
 | - id | 评论 ID |
 | - accepted | 当前评论是否已被采纳 |
-| - canAccept | 当前读者为问答文章作者、非评论作者，且文章尚无采纳时为 true |
+| - canAccept | 当前读者为问答文章作者、非评论作者，文章悬赏至少20积分且尚无采纳时为 true |
 | - offerPoint | 当前采纳费用；匿名评论为 0 |
 
 > canAccept 为当前基本资格提示；余额及最终资格在提交时重新校验。仅返回当前评论的状态，不提供其他被采纳评论的编号。目标不存在、失效、作者不可用或正文不可阅读时返回 HTTP 404；缺少权限返回 HTTP 403，编号不合法返回 HTTP 422。
@@ -1679,6 +1808,8 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003/accept' \
 `POST /api/v3/comments/{commentId}/accept`
 
 文章作者采纳一条可阅读的他人评论，悬赏积分及匿名免转账规则沿用平台行为。一篇文章仅能采纳一条评论。
+
+> 仅支持问答文章（type=5），文章当前悬赏至少20积分；普通文章或低于最低悬赏时返回 HTTP 422。匿名回答仍沿用免转账规则，但文章也须满足上述资格。
 
 请求：
 
@@ -1708,6 +1839,7 @@ curl --request POST 'https://fishpi.cn/api/v3/comments/1770000000003/accept' \
 | - accepted | 是否已采纳，成功时为 true |
 
 > 请求体可省略或为 `{}`，不接受其他字段。相同请求键重试返回原结果；换用新键重复采纳同一评论也不重复付款。保存失败时不扣款。
+> 已成功请求使用原键重试仍返回原结果；新键按文章当前类型及悬赏资格检查。
 >
 > 评论不存在、失效、不可阅读或作者不可用时返回 HTTP 404；非文章作者或缺少权限返回 HTTP 403；采纳自己、余额不足或参数不合法返回 HTTP 422；已有其他采纳或评论归属变化返回 HTTP 409；操作过于频繁返回 HTTP 429。
 
@@ -2407,7 +2539,7 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa'
 | - userNickname / userAvatarURL | 昵称 / 头像 |
 | - userIntro / userURL | 个人介绍文本 / 个人网址 |
 
-> 用户不存在或不可用时返回 HTTP 404。
+> 用户不存在或不可用时返回 HTTP 404。 资料及相关列表按当前账号状态和隐私范围读取；收回公开权限后，无权读者的相关列表返回 HTTP 403，本人和符合既有权限的管理员例外保持。
 
 ### 用户文章
 
@@ -2599,7 +2731,7 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa/breezemoons'
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
 
-> 沿用用户清风明月列表隐私设置，无权查看返回 HTTP 403。
+> 沿用用户清风明月列表隐私设置，无权查看返回 HTTP 403。 单条详情同样按当前作者状态及可见范围判断，不可读时返回 HTTP 404。
 
 ### 用户关注的用户
 
@@ -3429,7 +3561,7 @@ curl 'https://fishpi.cn/api/v3/me/settings/avatar' \
 | data | 当前设置 | `{...}` |
 | - avatarURL | 保存的头像地址；没有可用地址时为空字符串 | https://images.example/avatar.png |
 
-> 返回保存的地址，保留查询参数，不追加缩放或静态化参数。历史 HTTP 和站内相对地址仍可读取；客户端显示头像时应按 URL 处理。
+> 返回保存的地址，保留查询参数，不追加缩放或静态化参数。历史 HTTP 和站内相对地址仍可读取；客户端显示头像时应按 URL 处理。 公开资料及文章、评论作者头像同样保留合法地址中的完整查询参数，避免签名失效。
 
 ### 修改头像设置
 
@@ -3823,6 +3955,8 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/settings/functions' \
 | data | 修改后的完整功能设置，字段同对应读取接口 | `{...}` |
 
 > 至少提交一个字段。无效枚举、错误类型或超出范围返回 HTTP 422；同键重试返回原结果，同键更换内容返回 HTTP 409。布尔开关必须使用 true/false。
+
+> 用户站登录后进入不带筛选或定位信息的首页时，按首页跳转设置前往已支持的站内页面。空值保持默认首页；目标未支持或设置读取失败时保留首页并提示。
 
 ### 读取位置公开设置
 
@@ -4295,7 +4429,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1792304100000' \
 
 > 无需请求体，也可发送空 JSON 对象。普通用户每天可撤回多次，当天费用依次为 0、32、64……积分，与旧撤回接口共享计次；改名和服务重启不重置计次，平台自然日切换后重新计算。原有管理角色的免费规则保留，本接口仅撤回本人消息。
 >
-> 不存在、已撤回或非本人消息返回 HTTP 404；红包消息返回 HTTP 409（message_not_removable），积分不足返回 HTTP 409（insufficient_points）。未提交成功的操作不会扣分或增加计次。
+> 不存在、已撤回或非本人消息返回 HTTP 404；红包消息返回 HTTP 409（message_not_removable），积分不足返回 HTTP 409（insufficient_points）。未提交成功的操作不会扣分或增加计次。 拒绝撤回时保留消息及已有互动，客户端无需按撤回成功清理记录。
 >
 > 同键重试返回首次成功回执，不重复扣分。报错或断线后请保留原消息 ID 和幂等键重试确认，不要换键；成功后可用消息查询接口确认 HTTP 404，并清理本地记录及 reaction。实时提示可能延迟或丢失。
 
@@ -5424,7 +5558,7 @@ curl --request GET 'https://fishpi.cn/api/v3/me/notifications?type=all&status=un
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
 
-> 读取不会自动标记已读。相关内容不存在或不可查看时返回 contentAvailable=false 的占位通知，不提供相关资源和跳转链接。
+> 读取不会自动标记已读。相关内容不存在或不可查看时返回 contentAvailable=false 的占位通知，不提供相关资源和跳转链接。 涉及文章的通知说明使用当前可读文章的标题，目标变化后不继续展示旧标题。
 
 ### 通知未读计数
 
@@ -14432,7 +14566,7 @@ curl 'http://localhost:8080/api/v3/reports' -X POST -H 'Authorization: Bearer AC
 | --- | --- | --- |
 | data.id | 举报ID | 1761000000000 |
 
-> 不支持自举报；聊天室消息理由仅49。同一目标已有本人未处理举报时返回原ID；处理后可使用新幂等键再次举报。相同幂等键和请求内容始终返回原举报ID，不创建新举报；同键不同内容返回409。
+> 不支持自举报；聊天室消息按消息ID举报，理由仅49。同一目标已有本人未处理举报时返回原ID；处理后可使用新幂等键再次举报。相同幂等键和请求内容始终返回原举报ID，不创建新举报；同键不同内容返回409。
 
 ## API v3 积分转账
 
@@ -15413,6 +15547,8 @@ curl --request POST 'https://fishpi.cn/api/v3/me/exports/posts' \
 | - byteLength | ZIP字节数 | 10240 |
 | - sha256 | ZIP的SHA-256摘要 | 64位小写十六进制字符串 |
 
+> 文章与评论来自同一次完整内容快照；文件就绪后仅扣费一次。
+>
 > ZIP内包含UTF-8 manifest.json，以及按固定ID命名的 articles/{id}.md、articles/{id}.reward.md、comments/{id}.md。清单包含当前原文和状态、匿名标记、真实时间；不包含他人正文、他人文章标题、账号联系方式、IP或凭据。已物理删除的内容无法恢复，历次编辑版本不在此包中。
 >
 > 同键重试恢复同一任务，不再次扣费；每次仍需有效的当前密码和已有两步验证。文件过期后不会用原键重新生成或收费，expired响应仅保留jobId、status、paidPoints；重新导出请使用新键。余额不足返回409，失败不扣费；内容规模超过当前处理能力时返回503，不以部分导出替代完整结果。遇响应丢失请保留原键重试。
@@ -15533,7 +15669,7 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/red-packets' \
 
 > 普通、拼手气和心跳税率3%，专属税率1%，猜拳税率15%；税后金额向下取整，税额为差额。普通/专属按每份计算后乘份数，专属份数为接收人数；principalPoints = poolPoints + taxPoints。精确有效的 VIP4_YEAR、VIP4_MONTH 免税，所有发送者适用相同金额和份数上限。
 >
-> 留言保留英文字母、数字、中文基本汉字、空白及 `,，.。！!?？《》`，不接受控制字符。拼手气允许领到0积分，分配保存后不再重抽；红包无自动过期或退款，领完为止，专属接收人发出后固定。未领完的红包消息不能撤回或删除，返回409；领完后按原删除权限处理。失败不部分扣款或创建，同键重试返回原结果，不重复发红包；同键不同内容返回409。
+> 留言保留英文字母、数字、中文基本汉字、空白及 `,，.。！!?？《》`，不接受控制字符。拼手气允许领到0积分，分配保存后不再重抽；红包无自动过期或退款，领完为止，专属接收人发出后固定。未领完的红包消息不能撤回或删除，返回409；领完后按原删除权限处理。失败不部分扣款或创建；遇到暂不可用或响应中断，请保留原键与原参数重试。同键重试返回原结果，不重复发红包；同键不同内容返回409。
 
 > 心跳可能领取负积分，发送者也可参与。以初始税后奖池P及份数N计算，额外金额E=floor(P/N)+10：一个大奖为P+E，其余份额合计为-E，全部份额之和仍为P。领取前余额至少为P，失败不占份额；未领取的份额不公开。
 >

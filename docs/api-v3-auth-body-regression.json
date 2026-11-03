@@ -1,0 +1,140 @@
+{
+  "date": "2026-11-02",
+  "scope": "Approved strict login/refresh/logout raw JSON; isolated controller/helper regressions, not newly deployed HTTP validation",
+  "backend": [
+    {
+      "runner": "tools/api-v3-auth-body-test.mjs",
+      "exitCode": 0,
+      "passLines": 5,
+      "seconds": 0.92
+    },
+    {
+      "runner": "tools/api-v3-write-test.mjs",
+      "exitCode": 0,
+      "passLines": 11,
+      "seconds": 2.78
+    },
+    {
+      "runner": "tools/api-v3-token-test.mjs",
+      "exitCode": 0,
+      "passLines": 4,
+      "seconds": 0.68
+    },
+    {
+      "runner": "tools/api-v3-oauth-cookie-test.mjs",
+      "exitCode": 0,
+      "passLines": 3,
+      "seconds": 1.2
+    },
+    {
+      "runner": "tools/api-v3-client-management-test.mjs",
+      "exitCode": 0,
+      "passLines": 10,
+      "seconds": 2.84
+    },
+    {
+      "runner": "tools/api-v3-client-update-test.mjs",
+      "exitCode": 0,
+      "passLines": 12,
+      "seconds": 3.32
+    },
+    {
+      "runner": "tools/api-v3-security-test.mjs",
+      "exitCode": 0,
+      "passLines": 6,
+      "seconds": 1.34
+    },
+    {
+      "runner": "tools/api-v3-account-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-public-column-test.mjs",
+      "exitCode": 0,
+      "passLines": 13
+    },
+    {
+      "runner": "tools/api-v3-medal-image-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-discovery-extras-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    }
+  ],
+  "backendPassLines": 87,
+  "client": [
+    {
+      "runner": "tools/v3-account-access-test.mjs",
+      "exitCode": 0,
+      "passLines": 20
+    },
+    {
+      "runner": "tools/v3-client-startup-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/v3-security-lifecycle-test.mjs",
+      "exitCode": 0,
+      "passLines": 3
+    }
+  ],
+  "clientPassLines": 32,
+  "failures": 0,
+  "routeCount": 292,
+  "baselineHttp": "Old deployed service accepted single-quoted login and text/plain (401 invalid_credentials), ignored malformed refresh/logout body (401/200). No credentials sent in this baseline.",
+  "testLimits": [
+    "Real controller methods extracted unchanged, service counters replace persistence; raw Netty bytes and actual Latke.parseForm used.",
+    "Cookie collection populated separately to match dispatcher stage; this is not full HTTP/IoC proof.",
+    "IDEA rebuild/restart confirmation required before checking new behavior on 8081."
+  ],
+  "changedFiles": [
+    "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+    "src/main/java/org/b3log/symphony/util/ApiV3WriteInputs.java",
+    "src/test/java/org/b3log/symphony/processor/AuthBodyTest.java",
+    "tools/api-v3-auth-body-test.mjs",
+    "API.md",
+    "UPDATE_LOG.md",
+    "AGENTS.md",
+    "docs/api-v3-auth-body-regression.json",
+    "docs/api-v3-live-integration-work.md",
+    "docs/api-v3-progress.md",
+    "docs/api-v3-current-completion-audit.md",
+    "src/main/java/org/b3log/symphony/util/ApiV3RefreshCookies.java",
+    "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
+    "src/test/java/org/b3log/symphony/processor/RefreshCookieEchoTest.java"
+  ],
+  "echoFix": {
+    "date": "2026-11-02",
+    "approved": true,
+    "runtimeFailure": "Rejected refresh returned400 but bundled framework prefilled an unsafe root-path refresh Cookie; independent test login was logged out in finally.",
+    "latestFocusedReruns": [
+      {
+        "runner": "tools/api-v3-auth-body-test.mjs",
+        "exitCode": 0,
+        "passLines": 7
+      },
+      {
+        "runner": "tools/api-v3-token-test.mjs",
+        "exitCode": 0,
+        "passLines": 4
+      },
+      {
+        "runner": "tools/api-v3-oauth-cookie-test.mjs",
+        "exitCode": 0,
+        "passLines": 3
+      },
+      {
+        "runner": "tools/api-v3-write-test.mjs",
+        "exitCode": 0,
+        "passLines": 11
+      }
+    ],
+    "actualBundledServerHandlerRegression": true,
+    "deployment": "Requires new IDEA rebuild/restart after PID80007"
+  }
+}

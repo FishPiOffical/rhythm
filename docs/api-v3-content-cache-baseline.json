@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-02",
+  "scope": "Controlled persistent-state changes after warm article/user caches; existing runtime before any new Java fix",
+  "results": [
+    {
+      "step": "warm-reader-detail",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm-guest-detail",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-invalid-reader",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-invalid-comments",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-invalid-guest",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-no-anonymous-guest",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-discussion-non-invitee",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "warm-other-author-detail",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "persisted-deactivated-author",
+      "status": 200,
+      "code": 0
+    }
+  ],
+  "fixturesRestored": true,
+  "noBodiesOrCredentialsInReport": true
+}

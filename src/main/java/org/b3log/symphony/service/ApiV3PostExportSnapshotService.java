@@ -26,7 +26,15 @@ public class ApiV3PostExportSnapshotService {
         try {
             final var jdbc=JdbcRepository.TX.get();
             if(jdbc==null)throw unavailable();
-            final int isolation=jdbc.getConnection().getTransactionIsolation();
+            final var connection=jdbc.getConnection();
+            // Latke borrows connections as READ_COMMITTED by default. This dedicated root has
+            // not queried any source rows yet; choose a stable snapshot before the first SELECT.
+            // The pool/Latke reapplies its configured isolation on the next connection borrow.
+            int isolation=connection.getTransactionIsolation();
+            if(isolation!=java.sql.Connection.TRANSACTION_REPEATABLE_READ&&isolation!=java.sql.Connection.TRANSACTION_SERIALIZABLE){
+                connection.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+                isolation=connection.getTransactionIsolation();
+            }
             if(isolation!=java.sql.Connection.TRANSACTION_REPEATABLE_READ&&isolation!=java.sql.Connection.TRANSACTION_SERIALIZABLE)throw unavailable();
             final long articleCount=count(articles.getName(),"articleAuthorId",actor),commentCount=count(comments.getName(),"commentAuthorId",actor);
             long bytes=0,actualArticles=0,actualComments=0;

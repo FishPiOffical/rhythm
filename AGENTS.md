@@ -11,7 +11,7 @@
 - 在 WSL 环境中不要依赖 git 状态/差异判断工作区是否干净（可能存在异常噪声）；默认按任务目标直接改指定文件，git 清理由用户在 Windows 环境统一处理
 
 ## 协作目标
-- 用户已要求每批改动完成并检查后提交Git；Rhythm与website_v3分别提交本批相关源码、文档和测试。推送、发布仍按用户明确指令执行。
+- 用户最新要求每次修复完成后提交本地 Git；Rhythm与website_v3分别提交，未经明确要求不推送远端。
 - `AGENTS.md` 保持精简，只保留会影响决策的长期约定；新增内容优先补充“关键链路”，避免堆砌背景信息。
 
 ## 开发硬约束
@@ -79,34 +79,45 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- 长篇段落双视图须只改变受限链接的标签，链接目标/属性保持一致；ShortLinkQueryService.linkArticleWithUrlTitles字面绑定配置来源并保留原URL为目标/安全标签，缺失标题仍不展开；旧Function入口保持原重写语义。正文/目标真正不对应继续409，不可忽略href差异放宽结构校验。段落测试用项目版本Flexmark，清洗/媒体仍为夹具，不能宣称完整渲染HTTP已验。
+- v3评论定位在ApiV3ParagraphQueryService.location，按与普通/段评oldest相同筛选SQL计当前位置，每页20；段评沿现有别名分组和active/orphaned，不能用旧缓存、创建时间或扫描客户端分页猜位置。只返ID/分页/分组，不给私密正文或匿名身份；客户端目标须绑定当前文章/读者，真实当前页挂载后再滚动，位置变化显式重查。
+- v3详情commentable/statement由ApiV3ArticlePolicy严格投影，异常旧值为null；Latke按注册字段提前getBoolean，历史CHAR须经v3ContentCommentable别名原样读取，不能用SELECT *或数字强转把坏值当true；新评论/编辑在幂等回调内经getV3CommentPolicyForUpdate锁文章后按原始锁定值校验，成功原键不被当前关闭状态阻断。客户端未知/关闭禁新写但须保留普通与长篇抽屉的原命令恢复入口。
+- v3问答详情的qna仅公开悬赏与采纳存在性，须随当前文章SQL快照查询；隐藏/匿名回答仍计已采纳，但不返回身份。v3采纳新键在锁定文章上要求type5且悬赏至少20，状态canAccept同步；旧入口与成功原键回放保持。
+- v3论坛读取用ApiV3ContentSnapshots绑定当前文章/作者与当前读者，评论/段落/通知/表态不从实体缓存恢复资格或正文；内部作者别名只供白名单DTO投影，不能裸返。修订历史本来走当前SQL；勿改回ArticleRepository.get/UserQueryService作为权限依据。 内容型积分/文章公告说明也须用已授权当前标题，不能在校验后再调旧通知缓存描述生成器。 公开资料/列表隐私与清风明月作者由DiscoveryQueryService.currentProfileUser当前查询，不用getByName/get实体缓存授权。 列表作者随分页SQL投影，DTO未提供快照时只读当前公开作者；v3头像共用ApiV3AvatarUrl原URL投影，不能调用旧AvatarQuery显示变换丢掉签名query。
+
+- 长篇阅读登记统一在LongArticleReadCaptureService：v3显式正文后POST双scope，旧Markdown/经典浏览量仅计当前有效登录他人、当前可列出署名有效长篇；排序当前用户锁→文章→claim/窗口同根或owner保存点。读者表已改article/user/window唯一，先停登记迁移20261030；Connector/J匹配未改行不代表计数成功，须锁读窗口OPEN。正常结算公式与历史匿名计数保留，不从SSR/预览或客户端发奖。结算先point pair→当前作者→文章/窗口，积分/历史/职业事件/两侧账本索引同严格根；负数或溢出回滚，缓存边界后刷新、通知提交后发、后台结束释放连接。
+
+- 本机 IDEA 的 `Rhythm Local` 使用 Java 25、HTTP 8081、独立 MySQL `rhythm-dev-mysql`/127.0.0.1:3319；8080/3306 属于 workphone，不能当作 Rhythm 验收；8081也可能被不同项目分占IPv4/IPv6，先核对监听进程与无凭据响应，再发送凭据，当前用户站临时target为[::1]:8081。私有配置在被忽略的 `.idea/rhythm-local/`，通过 `LATKE_LOCAL_PROPS` 加载；自动建表不替代 SQL 迁移（生成列、索引、种子）。Docker内mysql命令须显式`--default-character-set=utf8mb4`，默认latin1会损坏中文快照/迁移输入；读取正文/JSON快照须加--raw或使用HEX传输，否则mysql批量输出的反斜杠转义会污染换行/原文。环境恢复说明见 `docs/local-idea-environment.md`。
+- `ChatroomProcessor` 到 `ApiV3ChatRedPacketService` 必须请求时获取，不能字段注入：红包服务发布消息又依赖该处理器，Latke 启动会递归溢出。常规编译检查使用 `-Dlicense.skip=true`，避免既有 license:format 批量改源码头。
 - 单项本人关注状态在`ApiV3FollowQueryService#userState`，当前actor/target有效及关系EXISTS同一只读SQL，仅targetId/following；不调用吞错的旧isFollowing。客户端关注命令只保存未确认的明确PUT/DELETE，回放结果后必须GET当前状态，不能把历史receipt当最新状态。
-- v3游戏存档仅`ApiV3GameSaveInputs`精确目录，首批evolve-save单槽；`ApiV3GameSaveService`新旧HTTP共锁owner，CAS/metadata回执/版本同严格根，迁移只复制唯一旧记录不覆盖。旧登记游戏保存须JSON、盲写递增版本，其他cloud键保留；先迁移20261025_api_v3_game_save.sql。捆绑Latke会有损重写getBytes，存档须经同包`ApiV3GameSaveRawBody`读原Netty字节校验，不能换回框架归一化正文。
+- v3游戏存档仅`ApiV3GameSaveInputs`精确目录，首批evolve-save单槽；`ApiV3GameSaveService`新旧HTTP共锁owner，CAS/metadata回执/版本同严格根，迁移只复制唯一旧记录不覆盖。旧登记游戏保存须JSON、盲写递增版本，其他cloud键保留；先迁移20261025_api_v3_game_save.sql。捆绑Latke会有损重写getBytes，存档须经同包`ApiV3GameSaveRawBody`读原Netty字节校验，不能换回框架归一化正文；企业认证JPEG/PNG上传也复用该原始字节适配器，测试必须覆盖parseForm真实有损预处理，不能只setBytes注入。 共享ApiV3WriteInputs也必须从原始Netty字节严格解析，不得回退到getBytes；三认证入口用有界重载（4096字节），刷新/退出先同源再验空体/空对象，格式拒绝不得消费或清Cookie；捆绑Latke会把入站Cookie预填到响应且丢属性，全局Before须先用ApiV3RefreshCookies移除fp_v3_refresh响应副本，只有认证端点显式签发/清除；隔离HTTP夹具须写真实Netty buffer并覆盖parseForm。允许空体的阅读登记同样须校验原始Netty字节：Latke遇非法JSON可能清空getBytes，不能据此当成真正空请求；回归须实际parseForm。
 - 本人QQ由ApiV3QqSettingsService独立第一方当前授权、settings.qq严格根与回执管理，公开/第三方profile响应不扩字段；旧Latke Strings.isNumeric实际是Double.parseDouble，禁止用于QQ纯数字验证。个人标签ApiV3ProfileTagsService按owner→统计namespace→当前目录锁，标签/creator/self/统计/设置/settings.tags回执同根，缓存边界后刷新；ApiV3ProfileTagInputs先验每个原项，不能复用旧Tag.formatTags静默丢弃/截4项。共享Tag.normalizeAlias但旧写未全共锁，不宣称新旧全局唯一或跨实例缓存强一致。
+- OAuth授权HTML及PC/mobile模板须用Referrer-Policy same-origin：浏览器no-referrer表单会发送Origin:null而被严格同源校验拒绝。token/consent等JSON响应仍no-referrer；不得为修页面把null Origin放行。授权HTML的form-action还须包含该次已绑定回调origin/原生scheme，否则浏览器会阻断表单303外站回调；完整回调仍由核心精确匹配，不用通配符。
 - OAuth token/revoke以`ApiV3OAuthProcessor.protocolAccess`只读当前绑定凭据作为端点身份，无效仍原anonymous；不写Cookie/IDENTITY/IP白名单或viewSkips，全局Before黑名单先执行。正确绑定的已用code/轮换refresh仅可进原家族重放撤销，最终写根仍重验；不能把预检owner用作其他资源身份。
-- v3三类红包`ApiV3ChatRedPacketService`本金/税/消息/持久份额/回执同根，ID绑定专属名单仅sender，旧open只桥接新head；历史红包原规则保持。共享删除primitive锁消息后检查新head，未领完409，须先迁移20261024_api_v3_chat_red_packet.sql。0份额仍记领取但不造零额账；税仅精确有效VIP4免，禁止回退进程桶或把未领完消息删掉。
-- v3本人导出`ApiV3PostExportService`第一方当前密码/MFA，完整RR本人快照→账户对→证明绑定重验→私有DB块/100积分/metadata/回执同严格根；24h下载逐块/总hash及当前授权后发ZIP，每分钟同事务清理并释放连接。先迁移20261024_api_v3_post_export.sql；禁止复用旧公开图床导出或把预算超限截断成功。
+- v3三类红包`ApiV3ChatRedPacketService`本金/税/消息/持久份额/回执同根，ID绑定专属名单仅sender，旧open只桥接新head；历史红包原规则保持。共享删除primitive锁消息后检查新head，未领完409，须先迁移20261024_api_v3_chat_red_packet.sql及20261029_api_v3_point_source_scene.sql（账本场景列64字符）。0份额仍记领取但不造零额账；税仅精确有效VIP4免，禁止回退进程桶或把未领完消息删掉。
+- v3本人导出`ApiV3PostExportService`第一方当前密码/MFA，Latke默认RC，导出专用根须首次查询前选RR且不改全局隔离；完整RR本人快照→账户对→证明绑定重验→私有DB块/100积分/metadata/回执同严格根；24h下载逐块/总hash及当前授权后发ZIP，每分钟同事务清理并释放连接。先迁移20261024_api_v3_post_export.sql；禁止复用旧公开图床导出或把预算超限截断成功。
 - v3普通积分改名在`ApiV3UserNameService`：双activity.write/settings.write与幂等，账户对→namespace→当前有效用户，名称/现有费用/回执同严格根；新主账scene=settings.user-name分列dataId新名/memo旧名，显示经`UserNamePointData`编码，禁止连字符拼接。提交/回放后修索引及失效名称缓存，重放不覆盖后来改名；旧/settings/username扣费链本批未改。
 - 敏感设置仅第一方`ApiV3SecurityProofService`当前密码/已有TOTP；client命名空间→当前user/access→独立credential state，`AccountCredentialMgmtService`同严格根递增epoch并撤OpenID/v3/code/pending。Cookie/apiKey/OpenID每次当前SQL比版本，缺版本仅epoch0兼容；发行只用认证时Proof，不可重读新epoch升级旧身份。先部署20261023三份credential/MFA/contact迁移，旧重置自动登录绑定本次提交版本。
 - `ApiV3MfaService`准备10分钟、secret/otpauth仅当次，启用消费清secret；`ApiV3ContactSettingsService`先proof→无SQL锁发送→当前epoch/旧联系值快照重验后保存，HMAC码及旧值绑定，修改/消费/全撤同根。WS后续授权检查拒旧凭据；User/Shop关闭按建立时归属清理，不能因凭据失效跳过移除/在线结算。账号验证码邮件须走`Mails.sendAccountBindingCode`专用无debug/正文日志通道，不能复用旧MailSender.sendMessage。完整文件与验收见account-credential-work。
 - `ApiV3TransactionSavepoint`嵌套primitive须检测原owner仍active且TX未换；内层回滚保存点失败已中止根时，外层不可再次碰已关闭连接或覆盖原错。图片分享/导入/迁移在`ApiV3EmojiTransferService`，严格校验每个原始项后去重，坏项整批422；快照独立于源组，迁移仅本人emojis云数据，不开放任意cloud键。
-- v3转账`ApiV3PointTransferService`完整账户对先于严格根、用户按ID锁；主款/费/通知revision/回执同提交，精确有效VIP4及实际费收款者免。重放从本人回执取得锁提示，仅当前actor必须有效；私有fee账本元数据投影后返回，后置主账验证去重修索引。旧转账未整体改造。举报`ApiV3ReportPublicationService`预hint→排序用户→回执→当前目标，fresh重验绑定、重放不依赖目标；仅复用最早pending，旧入口未共用去重。新memo存储编码供两端管理模板直接输出，原始/编码长度均有界。
+- v3转账`ApiV3PointTransferService`完整账户对先于严格根、用户按ID锁；主款/费/通知revision/回执同提交，精确有效VIP4及实际费收款者免。重放从本人回执取得锁提示，仅当前actor必须有效；私有fee账本元数据投影后返回，后置主账验证去重修索引。旧转账未整体改造。举报`ApiV3ReportPublicationService`预hint→排序用户→回执→当前目标，fresh重验绑定、重放不依赖目标；仅复用最早pending，旧入口未共用去重。新memo存储编码供两端管理模板直接输出，原始/编码长度均有界。聊天室存储userOId有字符串和整数两种，归属校验须兼容整数且不能浮点化ID。
 - v3复读投稿`ApiV3RepeaterPublicationService`绑定职业来源与回执同严格根；新旧点赞共用`RepeaterLikeMutationService`，用户→目标→本人likes，COUNT用当前锁定读取；只收敛本人重复，保留其他历史重复计数。旧toggle请求/成功字段保持，拒绝嵌套根，不能绕回旧分开计数写入。
 - v3邀请码购买`ApiV3InvitationPurchaseService`仅新业务检查当前邀请模式；账户对先于严格根，namespace→模式→当前用户→回执，扣费/码/回执同提交，TTL以真实码oId计龄。重放仅复核本人有效性并恢复原code，不保证旧码仍可注册；码不放入账本/失败日志字段。提交后主账锁验证并修复索引，内部transferId必须投影后返回；沿既有point来源及membership索引迁移，旧先造码再扣费保持且无code唯一约束，不宣称新旧整体原子或绝无碰撞。
 - v3复读机`ApiV3RepeaterQueryService`保留前N列表/前50排除后随机池语义，不假称全量分页；可选content.read与匿名盾，liked仅当前Bearer，失效作者不移除内容而author=null。常用表情PUT在`ApiV3EmotionSettingsService`：仅目录别名/有序数组，空数组恢复默认，严格根与settings.emotions回执仅替换本人type0；旧setEmotionList仍删全部类型且不共用actor锁，不宣称新旧整体串行。
 - v3职业成长提示/排行/公开资料由`ApiV3ProfessionGuideQueryService`、`ApiV3ProfessionRankingQueryService`、`ApiV3ProfessionPublicQueryService`只读投影；当前展示revision和等级scheme各自发布，scheme可绑定同职业退休revision。排行先按ranking隐私筛可见人群再连续编号，隐藏experience仍保留等级名次；公开资料十模块独立判断且experience跨贡献/动态省略，rarity/ranking共用可见榜口径。公开动态必须当前PUBLIC来源及目标可读，匿名来源不关联，HIDDEN对本人也无公开路径例外；超查询预算503而非伪造完整统计。
 - 本人匿名创作GET由`ApiV3AnonymousContentQueryService`提供元数据，评论先用有界讨论候选/正文预算及共享`UserMentionCandidates`精确解析，再绑定当前正文SHA2与actor快照做SQL计数分页；超预算503而非截断。管理员用Java精确角色判断，不能用CI数据库字符串比较扩大权限。邀请码状态POST仅投影stored status，不读/返预留字段，不把unused当可注册保证。
 - 主职业设置`ApiV3ProfessionPrimaryService`只选当前已发布职业、免费且不造progress，按列更新privacy中的selection/userProgressVersion；旧职业隐私整行写仍有并发覆盖局限。`ApiV3MedalDisplayService`按本人/定义/持有锁设置display而非toggle，重复定义或持有409；两者重放前重查当前账号，原回执不覆盖后续设置。
-- v3职业/勋章/会员读取分别在`ApiV3ProfessionQueryService`、`ApiV3MedalQueryService`、`ApiV3MembershipQueryService`。职业目录仅发布版本，本人进度按历史版本且不伪造零级；`ApiV3ProfessionDetailQueryService`提供本人真实详情及90天APPLIED非零记录，无progress为404，仅白名单概要、不返回来源正文/内部ID。勋章本人含隐藏、公开仅有效展示，禁止复用会删过期记录的旧查询；会员仅本人状态和已知权益白名单，不裸返configJson/benefits。
+- v3职业/勋章/会员读取分别在`ApiV3ProfessionQueryService`、`ApiV3MedalQueryService`、`ApiV3MembershipQueryService`。职业目录仅发布版本，本人进度按历史版本且不伪造零级；`ApiV3ProfessionDetailQueryService`提供本人真实详情及90天APPLIED非零记录，无progress为404，仅白名单概要、不返回来源正文/内部ID。本人勋章只读有效记录（含隐藏），公开仅有效展示，禁止复用会删过期记录的旧查询；会员仅本人状态和已知权益白名单，不裸返configJson/benefits。
 - 会员写入在`ApiV3MembershipSettingsService`/`ApiV3MembershipOpeningService`：仅支持的bold/underline/color可改，VIP4效果仅精确YEAR/MONTH两码，空旧配置只合并显式字段；完整defaults仅供开通。无效/用尽券422不扣费，有效/永久禁止重复开通，自然日期限与积分/券/记录/礼包同严格事务。内部回执转账ID必须投影后才HTTP返回；提交后按主账PK核验并幂等修复积分索引，先迁移20261022_api_v3_membership.sql。新旧开通均事务前取账户对锁，但旧赠包/缓存/提交策略未整体改造，不宣称新旧全部原子或缓存强一致。
 - `ApiV3ProfessionSettingsService`的skip沿旧规则清空主职业，privacy沿旧六预设/十模块，仅按相关列和版本写入；`ApiV3MedalOrderService`按全部本人持有（含隐藏/过期）相邻移动后重编号，并列按order/oId，超技术预算503而非截断。两者每次及重放在严格根当前锁有效用户，回执不覆盖后续操作；旧隐私/勋章整行写未同步改造，不能宣称新旧整体原子化。
-- v3完整清单与后续分工见`docs/api-v3-progress.md`；以总register可达的METHOD+path计数，源码/隔离测试/运行验收分列，用户侧职业/勋章/会员不可按后台整体排除。v3热度GET需content.read及`ApiV3RealtimeTargetService`当前授权，合计本节点旧连接与重新授权的文章订阅连接，仅近似连接数，不是全站或去重人数。
-- v3表情四个GET由`ApiV3EmotionProcessor`提供本人常用/目录/图片分组与条目，均profile.read；不调用会创建默认组的旧GET，items查询重复绑定owner。PC/mobile旧目录与v3共用`ApiV3EmotionOptions`，保持EOF分隔但对外去除；红包类型目录已标写能力true，仅random/average/specify开放，heartbeat/rockPaperScissors仍未开放。
+- v3完整清单与后续分工见`docs/api-v3-progress.md`，当前跨仓库路由对照见`docs/api-v3-current-completion-audit.md`（动态候选/转发不是运行通过）；以总register可达的METHOD+path计数，源码/隔离测试/运行验收分列，用户侧职业/勋章/会员不可按后台整体排除。v3热度GET需content.read及`ApiV3RealtimeTargetService`当前授权，合计本节点旧连接与重新授权的文章订阅连接，仅近似连接数，不是全站或去重人数。
+- v3表情四个GET由`ApiV3EmotionProcessor`提供本人常用/目录/图片分组与条目，均profile.read；不调用会创建默认组的旧GET，items查询重复绑定owner。PC/mobile旧目录与v3共用`ApiV3EmotionOptions`，保持EOF分隔但对外去除；红包类型目录五类均已开放；heartbeat/rockPaperScissors创建及领取须显式风险确认，猜拳另需出拳，dice仍不支持。
 
 - v3 MBTI由`ApiV3Personality`严格规范16类型及可选-A/-T，大小写/首尾空白规范化、空值清空、无效422（用户已确认）；GET/目录需profile.read，PUT走settings.write及settings.personality幂等事务，锁当前有效用户仅写mbti/更新时间，沿用ProfileWriteQuota。旧`SettingsProcessor.checkMBTI`仍用于旧资料/注册，禁止顺手改变其规范化行为。
 - v3头像GET/PUT在`ApiV3SettingsProcessor`：GET由`ApiV3AvatarQueryService`只读本人当前有效账号URL，PUT用settings.avatar幂等事务和`UserSettingsMutation`锁用户后仅写URL/type/更新时间；允许任意合法HTTPS、255 UTF-16、保留签名query、不抓取远程内容。旧头像设置及页面展示规则保持，不能用`AvatarQueryService`处理后的缩放URL代替本人保存的地址。
 - OAuth同意页使用 `ApiV3AuthorizationRequestService`：服务端保存owner/client/完整回调/scope/state/PKCE及handle/proof哈希，确认只传request/proof/明确决定，禁止用表单覆盖user/scope。hint先owner过滤供client锁序，再锁请求重验，决定/签码严格同事务，批准和拒绝均一次性。HTTP必须仅取Sessions.currentCookieUser（全局Sessions可能已被apiKey提升），并接 `ApiV3ConsentSecurity` 的配置站点精确来源+非空Session CSRF；不能拿legacy CSRFMidware的Referer前缀替代，也不能回退apiKey/Bearer。state可省略、最多1024 UTF-8字节，回调禁止预置OAuth响应参数并编码state/码；HTTP在ApiV3OAuthProcessor，PC/mobile授权模板同步；普通业务信封不套OAuth协议。
 - 第三方PKCE核心在 `ApiV3AuthorizationCodeService`：签码必须加入服务端确认的授权请求事务，不能接收HTTP指定的user/scope。client→精确注册redirect→code→当前user，消费码与Token对严格同事务；匹配绑定及PKCE的重放撤销对应家族，错误证明不撤销。新表见20261019_api_v3_oauth.sql并已入repository.json，先迁移再联调。用户已确认HTTPS、仅开发HTTP回环及登记的原生专用scheme；`ApiV3OAuthRedirects`要求原生反向域名scheme+单斜线路径，完整URI（含端口/查询）精确匹配，不做动态端口例外；旧/openid凭据独立。
-- v3 Token写入统一先锁客户端再当前读Token；家族撤销必须按clientId/userId/familyId完整SQL更新，禁止分页截断或用旧活动快照回写state。`issueForClientInCurrentTransaction`由PKCE换码在同一授权码事务内调用、actor由服务端授权记录取得；局部保存点保护Token对。第一方Cookie仍只用于website_v3，不能把内部通用发行方法直接暴露成可指定用户的HTTP入口。
+- v3 Bearer认证必须直接SQL读取当前用户，所有客户端刷新均锁定当前用户状态，禁止回退UserQueryService/UserRepository.get的节点缓存。v3 Token写入统一先锁客户端再当前读Token；家族撤销必须按clientId/userId/familyId完整SQL更新，禁止分页截断或用旧活动快照回写state。`issueForClientInCurrentTransaction`由PKCE换码在同一授权码事务内调用、actor由服务端授权记录取得；局部保存点保护Token对。第一方Cookie仍只用于website_v3，不能把内部通用发行方法直接暴露成可指定用户的HTTP入口。
 - 已批准应用登记核心为 `ApiV3ClientRegistrationService#createApprovedInCurrentTransaction`：服务端生成client_id，客户端行和精确回调行在调用方事务内同保存点写入，scope仅允许已实现的v3权限；不做HTTP身份/审批/幂等，调用方须完整提供这些边界，用户已确认仅管理员登记和维护；`ApiV3ClientManagementProcessor/Service`提供第一方当前管理员的列表/详情/幂等登记，最多20回调、每个2048；先按账号重置顺序锁客户端命名空间，再锁user/token/request，重放也重验。停用由`ApiV3ClientDisableService`把status=1、全部目标Token撤销与回执同严格事务，不删登记/回调；票据/WS在后续当前授权检查失效，不承诺同步跨实例断连。`ApiV3ClientUpdateService`完整替换名称/scope/回调，实际权限或回调集合变更同事务撤销全部Token、删除旧code与pending请求，保留已决定历史；名称或排序变化保留授权，状态不变；禁止自助登记。
 - v3 注册选项在 `ApiV3AccountProcessor` / `ApiV3RegistrationPolicyService`：直接查询注册开关，邀请资格沿角色权限读取，仅为表单展示，不可作为后续写入授权。账号短信验证核心 `AccountVerificationService` 在调用方事务中先当前读锁用户，再按当前手机号/type/purpose/有效期锁并消费验证码，消费与账号变更同提交；同值重复码全部消费，禁止回退全局getVerifycode(code)。核心不含尝试限额，公开入口须先接共享限额。用户已同意旧register2新增code及新旧账号入口一起加固；reset-pwd及register2已接入，PC/移动页面已传code，不再重复询问。
 - 新旧话题写入共用 `ChatTopicWriteService` / `ChatTopicMgmtService`：账户对锁及缓存边界外包事务，当前用户→房间head→option/chatRoomTopic，16积分、话题及topic/0事件同保存点；v3 PUT由 `ApiV3ChatTopicService` 显式Bearer准入及幂等。v3沿用字符过滤且超64 UTF-16拒绝，旧入口保留过滤/截断；投影worker重读已提交最新状态恢复旧页面，topic WS仅发revision，不能冒充messageId=0。旧Bot准入先执行，不能称整个旧Bot处罚与话题原子化。
@@ -388,3 +399,5 @@
 - 经典新红包完成状态由两套channel同步到ChatRoom共享元数据，旧事件/快照不得回退；不匹配目标携带新核心参数必须拒绝，不能进入旧领取路径。
 
 - 新风险确认弹窗布局在共享_red-packet-risk-dialog.scss，base/mobile-base均引入；仅dialog-panel--packet-risk覆盖Util.alert内联坐标，禁止恢复500px窄屏最小宽或直接改生成CSS。
+
+- 长篇导航GET在ApiV3PublicColumnQueryService#articleContext：当前SQL先验文章阅读权限，再与公开专栏共用可列出/署名/有效作者筛选，仅返回摘要和前后章；全目录另走分页，客户端ArticleColumnNavigation独立失败/身份隔离，禁止复用旧未过滤的getArticleColumnView。

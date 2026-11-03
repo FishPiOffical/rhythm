@@ -7,7 +7,6 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
-import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
@@ -48,11 +47,11 @@ public class ApiV3TokenLifecycleTest {
             exec(writer,"CREATE TABLE clients(oId TEXT PRIMARY KEY,clientId TEXT UNIQUE,name TEXT,scope TEXT,status INTEGER)");
             exec(writer,"CREATE TABLE tokens(oId TEXT PRIMARY KEY,tokenHash TEXT UNIQUE,tokenType TEXT,userId TEXT,clientId TEXT,scope TEXT,familyId TEXT,parentId TEXT,state INTEGER,createdAt BIGINT,updatedAt BIGINT,lastUsedAt BIGINT,expiresAt BIGINT)");
             inject(service,ApiV3TokenMgmtService.class,"apiV3TokenRepository",tokens);inject(service,ApiV3TokenMgmtService.class,"apiV3ClientRepository",clients);
-            inject(service,ApiV3TokenMgmtService.class,"userQueryService",new UserQueryService(){@Override public JSONObject getUser(String id){try{
+            inject(service,ApiV3TokenMgmtService.class,"userRepository",new UserRepository(){@Override public String getName(){return "user";}@Override public List<JSONObject> select(String sql,Object...args)throws RepositoryException{
+                locks.add("user");
                 if(revokeBeforeActivity){revokeBeforeActivity=false;exec(writer,"UPDATE tokens SET state=2 WHERE tokenType='access'");}
-                var rows=query(active()?writer:reader,"SELECT * FROM user WHERE oId=?",id);return rows.isEmpty()?null:rows.getFirst();
-            }catch(RepositoryException e){throw new IllegalStateException(e);}}});
-            inject(service,ApiV3TokenMgmtService.class,"userRepository",new UserRepository(){@Override public String getName(){return "user";}@Override public List<JSONObject> select(String sql,Object...args)throws RepositoryException{locks.add("user");return query(writer,sql,args);}});
+                return query(active()?writer:reader,sql,args);
+            }});
         }
         void insert(String table,JSONObject row)throws RepositoryException{
             var keys=new TreeSet<>(row.keySet());exec(writer,"INSERT INTO "+table+" ("+String.join(",",keys)+") VALUES ("+String.join(",",Collections.nCopies(keys.size(),"?"))+")",keys.stream().map(row::get).toArray());
@@ -63,7 +62,7 @@ public class ApiV3TokenLifecycleTest {
         JSONObject grant(String client,String scope)throws Exception{begin();try{var result=service.issueForClientInCurrentTransaction("1",client,scope);commit();return result;}finally{if(active())rollback();}}
         Tokens otherInstance()throws Exception{
             final var other=new Tokens();other.clock=service.clock;
-            for(String name:List.of("apiV3TokenRepository","apiV3ClientRepository","userQueryService","userRepository")){
+            for(String name:List.of("apiV3TokenRepository","apiV3ClientRepository","userRepository")){
                 var field=ApiV3TokenMgmtService.class.getDeclaredField(name);field.setAccessible(true);inject(other,ApiV3TokenMgmtService.class,name,field.get(service));
             }
             return other;
@@ -76,7 +75,7 @@ public class ApiV3TokenLifecycleTest {
         try(var f=new Fixture()){
             var first=f.service.issue("1");Assert.assertEquals(first.keySet(),Set.of("accessToken","refreshToken","expiresIn","refreshExpiresIn","scope","tokenType"));Assert.assertEquals(first.getLong("expiresIn"),900);Assert.assertEquals(first.getLong("refreshExpiresIn"),2592000);
             var access=f.token(first.getString("accessToken"));Assert.assertEquals(access.getString("clientId"),"website_v3");Assert.assertFalse(f.snapshot().contains(first.getString("accessToken")));Assert.assertFalse(f.snapshot().contains(first.getString("refreshToken")));
-            f.locks.clear();var next=f.otherInstance().refresh(first.getString("refreshToken"));Assert.assertEquals(f.locks,List.of("client","token"));Assert.assertEquals(f.token(next.getString("accessToken")).getString("familyId"),access.getString("familyId"));Assert.assertEquals(f.token(first.getString("refreshToken")).getInt("state"),1);
+            f.locks.clear();var next=f.otherInstance().refresh(first.getString("refreshToken"));Assert.assertEquals(f.locks,List.of("client","token","user"));Assert.assertEquals(f.token(next.getString("accessToken")).getString("familyId"),access.getString("familyId"));Assert.assertEquals(f.token(first.getString("refreshToken")).getInt("state"),1);
             Assert.assertNotNull(f.service.authenticate(next.getString("accessToken")));denied(()->f.service.refresh(first.getString("refreshToken")));Assert.assertNull(f.service.authenticate(next.getString("accessToken")));Assert.assertNull(f.service.authenticate(first.getString("accessToken")));
         }
         System.out.println("PASS actual website issue/refresh DTO and TTLs stay stable, secrets persist only as hashes, client-before-token current reads rotate one family and replay revokes every active successor");
@@ -112,6 +111,19 @@ public class ApiV3TokenLifecycleTest {
             String before=f.snapshot();f.service.revokeRefresh(first.getString("accessToken"));Assert.assertEquals(f.snapshot(),before);
         }
         System.out.println("PASS access activity uses conditional column-only SQL, records valid use and cannot resurrect a revocation after an old authentication read; an access token is not accepted as a refresh revocation credential");
+        for(int status:List.of(1,2,3,4))try(var f=new Fixture()){
+            var first=f.service.issue("1");f.locks.clear();Assert.assertNotNull(f.service.authenticate(first.getString("accessToken")));Assert.assertTrue(f.locks.contains("user"),"authentication must query the current user store");
+            exec(f.writer,"UPDATE user SET userStatus=? WHERE oId='1'",status);Assert.assertNull(f.service.authenticate(first.getString("accessToken")));
+            denied(()->f.service.refresh(first.getString("refreshToken")));Assert.assertEquals(f.token(first.getString("refreshToken")).getInt("state"),2);
+        }
+        try(var f=new Fixture()){
+            var first=f.service.issue("1");exec(f.writer,"DELETE FROM user WHERE oId='1'");Assert.assertNull(f.service.authenticate(first.getString("accessToken")));denied(()->f.service.refresh(first.getString("refreshToken")));
+        }
+        try(var f=new Fixture()){
+            exec(f.writer,"ALTER TABLE user ADD COLUMN userNickname TEXT DEFAULT 'before'");var first=f.service.issue("1");Assert.assertEquals(f.service.authenticate(first.getString("accessToken")).getJSONObject("user").getString("userNickname"),"before");
+            exec(f.writer,"UPDATE user SET userNickname='after' WHERE oId='1'");Assert.assertEquals(f.service.authenticate(first.getString("accessToken")).getJSONObject("user").getString("userNickname"),"after");
+        }
+        System.out.println("PASS current SQL user status rejects all four inactive states and deletion for Bearer/website refresh, and current profile updates do not reuse cached snapshots");
         for(String scope:List.of("settings.write","content.read\tprofile.read","content.read \\","content.read \""))try(var f=new Fixture()){
             f.client("external","content.read profile.read");String before=f.snapshot();denied(()->f.grant("external",scope));Assert.assertEquals(f.snapshot(),before);
         }

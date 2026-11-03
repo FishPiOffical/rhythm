@@ -83,6 +83,13 @@ public class ApiV3OAuthProcessor {
         c.setHeader("X-Frame-Options","DENY");c.setHeader("X-Content-Type-Options","nosniff");c.setHeader("X-Request-Id",ApiV3Processor.requestId(c));
         c.setHeader("Content-Security-Policy","default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; style-src 'self' "+staticOrigin());
     }
+    private String consentPolicy(String redirect){
+        if(!ApiV3OAuthRedirects.valid(redirect,Latkes.RuntimeMode.DEVELOPMENT==Latkes.getRuntimeMode()))throw bad();
+        final URI callback=URI.create(redirect);
+        // Form-action also restricts Chromium's POST redirect target. Only this bound callback may follow.
+        final String source=callback.getHost()==null?callback.getScheme()+":":callback.getScheme()+"://"+callback.getRawAuthority();
+        return "default-src 'none'; base-uri 'none'; form-action 'self' "+source+"; frame-ancestors 'none'; style-src 'self' "+staticOrigin();
+    }
     public void privacy(RequestContext c){common(c);c.handle();}
     public void rate(RequestContext c){
         final JSONObject user=cookieUser(c);
@@ -131,7 +138,11 @@ public class ApiV3OAuthProcessor {
                 model.put("oauthUser",user.optString(User.USER_NAME));model.put("oauthClient",prepared.clientName());model.put("oauthRedirect",prepared.redirectUri());
                 model.put("oauthPermissions",permissions(prepared.scope()));model.put("oauthRequest",prepared.requestId());model.put("oauthProof",prepared.consentToken());
                 model.put("oauthCsrf",csrf(c));model.put("oauthAction",site()+"/api/v3/oauth/consent");
+                c.setHeader("Content-Security-Policy",consentPolicy(prepared.redirectUri()));
             }
+            // Browsers suppress the Origin of non-CORS form POSTs under no-referrer.
+            // same-origin retains consent proof while omitting referrers on external callbacks.
+            c.setHeader("Referrer-Policy","same-origin");
             render(c,model);
         }catch(Exception e){failure(c,e);}
     }

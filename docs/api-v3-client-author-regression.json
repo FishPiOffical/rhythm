@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-02",
+  "scope": "website_v3 current content author display, SSR projection and CSS avatar URL quoting; no backend API change",
+  "productionFiles": [
+    "src/api/fishpi.ts",
+    "src/api/v3-content.ts",
+    "src/api/v3-article-list.ts",
+    "src/utils/avatar.ts",
+    "src/components/articles/ArticleFeed.vue",
+    "src/components/CommentItem.vue",
+    "src/views/ArticleView.vue",
+    "src/components/articles/LongArticleReader.vue"
+  ],
+  "testFiles": [
+    "tools/v3-content-author-test.mjs",
+    "tools/v3-long-reader-test.mjs",
+    "tools/v3-comment-rewards-test.mjs",
+    "tools/v3-comment-votes-test.mjs",
+    "tools/v3-comments-test.mjs",
+    "tools/v3-following-feed-test.mjs",
+    "tools/v3-reactions-test.mjs",
+    "tools/v3-saved-content-test.mjs"
+  ],
+  "baseline": "New actual-adapter regression failed because nickname was undefined before the change; existing server field was dropped in the client",
+  "suite": {
+    "scripts": 89,
+    "passLines": 1003,
+    "failures": [],
+    "evidence": "/tmp/v3-author-suite-final.json"
+  },
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "log": "/tmp/v3-content-author-build-final.log"
+  },
+  "boundary": {
+    "sourceFiles": 336,
+    "findings": 0,
+    "dynamicCallsSeparatelyListed": 47,
+    "otherServiceChecksSeparatelyListed": 2
+  },
+  "assets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "problems": []
+  },
+  "browser": {
+    "target": "http://127.0.0.1:5173",
+    "backendJavaPid": 96544,
+    "observations": [
+      "Actual ordinary article displays synthetic nickname as literal text and uses unchanged username in profile links",
+      "Computed CSS accepts apostrophe-containing avatar URI and retains signature query values; browser canonicalizes apostrophe to %27",
+      "Anonymous article shows anonymous label, no author profile links or real nickname",
+      "Restored actual recent list, ordinary comments and long reader show current nicknames and username links",
+      "Anonymous ordinary comment has no member link",
+      "390px viewport has scrollWidth 390; captured warn/error empty; viewport reset"
+    ],
+    "originalNicknameAvatarAnonymityRestored": true,
+    "pointsUnchanged": true,
+    "screenshot": "Private .idea/rhythm-local/browser-content-author-mobile.png; not copied to public assets"
+  },
+  "limits": [
+    "No remote provider signature verification or production image availability claim",
+    "Paragraph nickname and compact feed behavior covered by actual Vue/SSR isolation; not all real mobile browser combinations",
+    "No new production anonymous/blacklist/captcha unblock, full CDN/directory enumeration or multi-instance matrix",
+    "Existing API contracts unchanged; no backend Java/FTL, migration, Maven, commit or push"
+  ]
+}

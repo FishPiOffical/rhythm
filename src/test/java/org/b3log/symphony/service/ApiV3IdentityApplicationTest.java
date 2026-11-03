@@ -72,7 +72,14 @@ public class ApiV3IdentityApplicationTest {
             try{
                 if(token!=null)raw.headers().set("Authorization","Bearer "+token);if(media!=null)raw.headers().set("Content-Type",media);
                 if(key!=null)raw.headers().set("Idempotency-Key",key);raw.headers().set("Cookie","legacy");raw.headers().set("X-Real-IP","127.0.0.1");
-                final Request request=new Request(null,raw);request.setBytes(bytes==null?new byte[0]:bytes);request.setParams(new HashMap<>(Map.of("apiKey","legacy")));
+                raw.content().writeBytes(bytes==null?new byte[0]:bytes);
+                final Request request=new Request(null,raw);
+                // Exercise the bundled framework's lossy preprocessing instead of injecting pristine bytes.
+                final var parse=Request.class.getDeclaredMethod("parseForm");parse.setAccessible(true);parse.invoke(request);
+                if("image/png".equals(media)||"image/jpeg".equals(media)) {
+                    if(bytes!=null&&bytes.length>0&&(bytes[0]&255)>=128)Assert.assertFalse(Arrays.equals(request.getBytes(),bytes),"fixture must expose framework binary rewriting");
+                }
+                request.setParams(new HashMap<>(Map.of("apiKey","legacy")));
                 final Response response=new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)){public void sendBytes(byte[] body){sent=body;}};
                 final RequestContext context=new RequestContext(request,response);context.addHandler(new org.b3log.latke.http.handler.RouteHandler());
                 context.addHandler(c->{final var match=(org.b3log.latke.http.handler.RouteResolution)c.attr("MATCH_RESULT");
@@ -171,6 +178,18 @@ public class ApiV3IdentityApplicationTest {
             Assert.assertEquals(filter.filter(event),org.apache.logging.log4j.core.Filter.Result.DENY);
         }
         System.out.println("PASS identity 7 actual transport filter suppresses malformed private upload/material request diagnostics, including encoded paths");
+        try(var f=new Fixture()) {
+            final String create="/api/v3/me/identity-applications/enterprise";
+            Assert.assertEquals(f.request("POST",create,"owner","image/png","large",new byte[ApiV3IdentityImage.MAX_BYTES+1]).attr("test.status"),413);
+            Assert.assertEquals(f.count("identity_app"),0);Assert.assertEquals(f.count("identity_material"),0);
+            final var created=f.request("POST",create,"owner","image/jpeg","raw-jpeg",jpeg);
+            Assert.assertEquals(created.attr("test.status"),200);
+            final String id=((JSONObject)created.attr("test.data")).getString("id");
+            final var response=f.request("POST","/api/v3/review/identity-applications/"+id+"/material/open","reviewer",null,null,null);
+            Assert.assertEquals(f.sent,jpeg);Assert.assertEquals(response.getResponse().getContentType(),"image/jpeg");
+            Assert.assertEquals(f.count("identity_material"),0);
+        }
+        System.out.println("PASS identity 12 raw Netty PNG/JPEG survive actual parseForm corruption; oversized raw body413 before storing application/material");
         for(String fault:List.of("INSERT INTO `identity_app`","INSERT INTO `identity_material`"))try(var f=new Fixture()) {
             f.writeFault=fault;error(503,()->f.submit(png,"partial-create"));
             Assert.assertEquals(f.count("identity_app"),0);Assert.assertEquals(f.count("identity_material"),0);Assert.assertEquals(f.count("receipt"),0);

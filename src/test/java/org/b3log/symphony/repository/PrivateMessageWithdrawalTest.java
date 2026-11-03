@@ -39,7 +39,7 @@ public class PrivateMessageWithdrawalTest {
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.DELETE,"/api/v3/me/messages/"+id+(query==null?"":"?"+query));
             try{
                 raw.headers().set("Cookie","legacy");if(token!=null)raw.headers().set("Authorization",token);if(type!=null)raw.headers().set("Content-Type",type);if(key!=null)raw.headers().set("Idempotency-Key",key);
-                final var req=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.153";}};req.setBytes(body.getBytes(StandardCharsets.UTF_8));
+                final var req=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.153";}};raw.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));req.setBytes(body.getBytes(StandardCharsets.UTF_8));
                 final var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.pathVars(new HashMap<>());c.pathVar("messageId",id);c.attr("user",new JSONObject().put("oId","2"));c.addHandler(new ApiV3WriteMidware()::handle);c.addHandler(controller::withdraw);auth.messagesWrite(c);
                 final var out=new JSONObject().put("status",c.attr("test.status"));if(c.attr("test.data")!=null)out.put("data",c.attr("test.data"));if(out.getInt("status")==200)Assert.assertEquals(c.getResponse().getHeader("Cache-Control"),"no-store");return out;
             }finally{raw.release();}
@@ -51,7 +51,7 @@ public class PrivateMessageWithdrawalTest {
         final String body=bodyKey==null?"{}":new JSONObject().put("apiKey",bodyKey).toString();
         var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.GET,"/chat/revoke?oId="+id+(queryKey==null?"":"&apiKey="+queryKey),io.netty.buffer.Unpooled.copiedBuffer(body,StandardCharsets.UTF_8));
         try{
-            raw.headers().set("Content-Type","application/json");var req=new Request(null,raw);req.setBytes(body.getBytes(StandardCharsets.UTF_8));var queryParser=Request.class.getDeclaredMethod("parseQueryStr");queryParser.setAccessible(true);queryParser.invoke(req);var parser=Request.class.getDeclaredMethod("parseForm");parser.setAccessible(true);parser.invoke(req);
+            raw.headers().set("Content-Type","application/json");var req=new Request(null,raw);raw.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));req.setBytes(body.getBytes(StandardCharsets.UTF_8));var queryParser=Request.class.getDeclaredMethod("parseQueryStr");queryParser.setAccessible(true);queryParser.invoke(req);var parser=Request.class.getDeclaredMethod("parseForm");parser.setAccessible(true);parser.invoke(req);
             final var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.attr("user",new JSONObject().put("oId","3"));c.addHandler(processor::revoke);new org.b3log.symphony.processor.middleware.ApiCheckMidware().handle(c);
             return ((org.b3log.latke.http.renderer.JsonRenderer)c.getRenderer()).getJSONObject();
         }finally{raw.release();}

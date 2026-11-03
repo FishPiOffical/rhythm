@@ -42,7 +42,13 @@ public class ApiV3CommentRewardQueryTest {
             for(String id:List.of("13","14","99"))error(404,()->service.read(owner,id,false));error(404,()->service.read(new JSONObject().put("oId","4"),"11",false));
             System.out.println("PASS comment rewards 2 private content gate and article visibility, anonymous zero fee, invalid actor/author/comment hidden");
             final var accept=service.read(owner,"11",true);Assert.assertEquals(accept.keySet(),Set.of("id","accepted","canAccept","offerPoint"));Assert.assertTrue(accept.getBoolean("canAccept"));Assert.assertEquals(accept.getInt("offerPoint"),100);Assert.assertFalse(service.read(other,"11",true).getBoolean("canAccept"));Assert.assertFalse(service.read(author,"11",true).getBoolean("canAccept"));
-            offer[0]=0;Assert.assertTrue(service.read(owner,"11",true).getBoolean("canAccept"));offer[0]=100;articleType[0]=0;Assert.assertFalse(service.read(owner,"11",true).getBoolean("canAccept"));articleType[0]=5;
+            for(int value:List.of(0,19)){
+                offer[0]=value;Assert.assertFalse(service.read(owner,"11",true).getBoolean("canAccept"));
+                Assert.assertFalse(service.read(owner,"12",true).getBoolean("canAccept"));
+            }
+            offer[0]=20;Assert.assertTrue(service.read(owner,"11",true).getBoolean("canAccept"));
+            Assert.assertTrue(service.read(owner,"12",true).getBoolean("canAccept"));Assert.assertEquals(service.read(owner,"12",true).getInt("offerPoint"),0);
+            offer[0]=100;articleType[0]=0;Assert.assertFalse(service.read(owner,"11",true).getBoolean("canAccept"));articleType[0]=5;
             try(var s=db.createStatement()){s.execute("UPDATE comments SET commentQnAOffered=1 WHERE oId='12'");}Assert.assertFalse(service.read(owner,"11",true).getBoolean("canAccept"));Assert.assertTrue(service.read(owner,"12",true).getBoolean("accepted"));
             System.out.println("PASS comment rewards 3 current article owner/target status, anonymous award fee and other accepted candidate without disclosing its ID");
             error(401,()->service.read(null,"11",false));for(String id:List.of("0","1 OR 1=1","11/12","99999999999999999999"))error(422,()->service.read(owner,id,false));failed[0]=true;try{service.read(owner,"11",false);Assert.fail();}catch(RepositoryException expected){}failed[0]=false;

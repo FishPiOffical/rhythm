@@ -15,8 +15,9 @@ try{
  if(controller.includes('public, max-age=60')||controller.includes('longArticleColumnQueryService'))throw Error('legacy shared public cache/read delegate remains');
  const sandbox=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];
  shim('org/b3log/symphony/model/Tag',`package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
- const sources=['model/UserExt','model/Article','model/Common','model/LongArticleColumn','repository/LongArticleColumnRepository','repository/LongArticleChapterRepository','util/ApiV3Exception','util/Escapes','service/ApiV3PublicColumnQueryService'];
+ const sources=['model/UserExt','model/Article','model/Comment','model/Role','model/Common','model/LongArticleColumn','repository/LongArticleColumnRepository','repository/LongArticleChapterRepository','util/ApiV3Exception','util/ApiV3ContentUtil','util/UserMentionCandidates','util/Escapes','service/ApiV3PublicColumnQueryService'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...shims,...sources.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3PublicColumnQueryTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3PublicColumnQueryTest']);
+ if(!controller.includes('Dispatcher.get("/api/v3/articles/{articleId}/column", processor::articleColumn, auth::optionalContent, anonymous::handle)'))throw Error('article context must keep scope and anonymous protection');
  console.log('PASS public column 9 four unchanged routes retain anonymous shield, optional content scope, current viewer and no shared public cache (source wiring check)');
 }finally{fs.rmSync(work,{recursive:true,force:true})}

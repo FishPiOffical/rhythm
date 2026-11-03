@@ -23,12 +23,9 @@ public final class ApiV3ArticleStickStateTest {
         invalid(()->ApiV3ArticleStickState.threshold(now,0));
         System.out.println("PASS stick state 1 none/active/exact expiry/expired/permanent metadata, no unsafe integer sentinel, malformed state fails closed");
         var dto=new ApiV3ContentDtoService();
-        for(String field:new String[]{"userQueryService","avatarQueryService"}) {
-            var f=ApiV3ContentDtoService.class.getDeclaredField(field);f.setAccessible(true);
-            f.set(dto,field.equals("userQueryService")?new UserQueryService():new AvatarQueryService());
-        }
+        var avatarField=ApiV3ContentDtoService.class.getDeclaredField("avatarQueryService");avatarField.setAccessible(true);avatarField.set(dto,new AvatarQueryService());
         var article=new JSONObject().put("oId","10").put("articleAuthorId","1").put("articleTitle","Title").put("articleContent","Body").put("articleStick",Long.MAX_VALUE);
-        var summary=dto.summary(article);
+        var summary=dto.summary(article,new JSONObject().put("oId","1").put("userStatus",0).put("userAvatarURL","https://example.test/a.png"));
         Assert.assertTrue(summary.getJSONObject("stick").getBoolean("permanent"));Assert.assertTrue(summary.getJSONObject("stick").isNull("expiresAt"));
         Assert.assertFalse(summary.has("articleStick"));Assert.assertFalse(summary.toString().contains("PRIVATE"));
         System.out.println("PASS stick state 2 actual public article summary adds only whitelisted stick metadata");

@@ -32,7 +32,7 @@ public class ChatMessageWithdrawalEndpointTest {
             var response=new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);
             try{
                 netty.headers().set("Cookie","JSESSIONID=legacy");if(token!=null)netty.headers().set("Authorization",token);if(type!=null)netty.headers().set("Content-Type",type);if(key!=null)netty.headers().set("Idempotency-Key",key);
-                final var request=new Request(null,netty);request.setBytes(body.getBytes(StandardCharsets.UTF_8));final var context=new RequestContext(request,new Response(null,response));context.pathVar(old?"oId":"messageId",id);context.attr(User.USER,user);
+                final var request=new Request(null,netty);netty.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));request.setBytes(body.getBytes(StandardCharsets.UTF_8));final var context=new RequestContext(request,new Response(null,response));context.pathVar(old?"oId":"messageId",id);context.attr(User.USER,user);
                 if(old){legacy.revokeMessage(context);return ((JsonRenderer)context.getRenderer()).getJSONObject();}
                 context.addHandler(controller::withdraw);auth.contentWrite(context);
                 final var result=new JSONObject().put("status",context.attr("test.status"));if(context.attr("test.code")!=null)result.put("code",context.attr("test.code"));if(context.attr("test.data")!=null)result.put("data",context.attr("test.data"));

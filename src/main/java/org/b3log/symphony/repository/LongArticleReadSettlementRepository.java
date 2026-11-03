@@ -41,7 +41,7 @@ public class LongArticleReadSettlementRepository extends AbstractRepository {
                 + "ON DUPLICATE KEY UPDATE `oId`=`oId`";
         AtomicRepositorySupport.executeUpdate(sql, claim.id(), claim.articleId(), claim.windowStart(),
                 claim.createdAt(), claim.createdAt());
-        final String selectSql = "SELECT `oId` FROM `" + getName() + "` WHERE `articleId`=? AND `windowStart`=?";
+        final String selectSql = "SELECT `oId` FROM `" + getName() + "` WHERE `articleId`=? AND `windowStart`=? FOR UPDATE";
         final List<JSONObject> stored = select(selectSql, claim.articleId(), claim.windowStart());
         return !stored.isEmpty() && claim.id().equals(stored.getFirst().getString("oId"));
     }

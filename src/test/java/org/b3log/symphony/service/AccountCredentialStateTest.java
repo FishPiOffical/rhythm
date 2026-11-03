@@ -66,7 +66,7 @@ public class AccountCredentialStateTest extends ApiV3ProfessionPrimaryTest {
             wire(verification,"users",userRows);wire(verification,"codes",sms);
             wire(revoke,"users",userRows);wire(revoke,"states",states);wire(revoke,"openid",oldTokens);wire(revoke,"tokens",v3);wire(revoke,"requests",consents);wire(revoke,"codes",codes);
             wire(openid,"openIdRefreshTokenRepository",oldTokens);wire(openid,"states",states);wire(openid,"userQueryService",new UserQueryService(){public JSONObject getUser(String id){return new JSONObject(cached.toString());}});
-            wire(tokenService,"apiV3TokenRepository",v3);wire(tokenService,"apiV3ClientRepository",clients);wire(tokenService,"userRepository",userRows);wire(tokenService,"userQueryService",new UserQueryService(){public JSONObject getUser(String id){return new JSONObject(cached.toString());}});
+            wire(tokenService,"apiV3TokenRepository",v3);wire(tokenService,"apiV3ClientRepository",clients);wire(tokenService,"userRepository",userRows);
             wire(reset,"users",userRows);wire(reset,"verification",verification);wire(reset,"clients",clients);wire(reset,"tokens",v3);wire(reset,"requests",consents);wire(reset,"codes",codes);wire(reset,"credentials",revoke);wire(reset,"states",states);
             BeanManager.put(AccountCredentialStateRepository.class,states);BeanManager.put(UserRepository.class,userRows);BeanManager.put(UserMgmtService.class,new UserMgmtService());
             AccountCredentialVersions.endHttp();Sessions.invalidate(actor);
@@ -182,6 +182,12 @@ public class AccountCredentialStateTest extends ApiV3ProfessionPrimaryTest {
             f.change();Assert.assertNotNull(f.cookieUser(f.cookie(true,1)));String issued=f.webApi(f.cookie(true,1),null,null);Assert.assertEquals(ApiProcessor.getUserByKey(issued).getString("oId"),f.actor);
         }
         System.out.println("PASS 10 actual Cookie-to-apiKey handler preserves proof with absent query, reauthenticates real Cookie after bad key, accepts query/body API identities and issues current bounded credentials");
-        System.out.println("Credential state isolated tests passed: 10 groups");
+        try(var f=new Credentials()) {
+            AccountCredentialVersions.remember(new AccountCredentialVersions.Proof(f.actor,0,PASSWORD));var issued=f.tokenService.issue(f.actor);Assert.assertNotNull(f.tokenService.authenticate(issued.getString("accessToken")));
+            Assert.assertEquals(f.cached.getInt("userStatus"),0);sql(f.observer,"UPDATE x_user SET userStatus=4 WHERE oId=?",f.actor);
+            Assert.assertEquals(f.cached.getInt("userStatus"),0,"fixture deliberately retains a valid stale cached user");Assert.assertNull(f.tokenService.authenticate(issued.getString("accessToken")));refused(()->f.tokenService.refresh(issued.getString("refreshToken")));
+        }
+        System.out.println("PASS 11 stale valid UserRepository.get cache cannot authorize a currently deactivated account or website refresh");
+        System.out.println("Credential state isolated tests passed: 11 groups");
     }
 }

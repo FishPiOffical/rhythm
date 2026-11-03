@@ -68,7 +68,7 @@ public class PrivateMessageReadStateTest {
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,path+(query==null?"":"?"+query));
             try{
                 raw.headers().set("Cookie","legacy");if(bearer!=null)raw.headers().set("Authorization",bearer);if(key!=null)raw.headers().set("Idempotency-Key",key);if(type!=null)raw.headers().set("Content-Type",type);
-                var request=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.150";}};request.setBytes(body.getBytes(StandardCharsets.UTF_8));
+                var request=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.150";}};raw.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));request.setBytes(body.getBytes(StandardCharsets.UTF_8));
                 var c=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.pathVars(new HashMap<>());c.attr("user",new JSONObject().put("oId","2"));if(peer!=null)c.pathVar("peerId",peer);
                 if(routes){
                     if(!routesRegistered){PrivateReadRouteBindings.register(controller,auth,new ApiV3WriteMidware());routesRegistered=true;}

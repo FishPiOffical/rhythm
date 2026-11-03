@@ -33,7 +33,7 @@ try {
     if (!actualModel.includes(`public static final int ${name} = ${value};`)) throw new Error('Update model adapter');
   }
   fs.writeFileSync(model, 'package org.b3log.symphony.model;public class UserExt {public static final int USER_STATUS_C_VALID=0, USER_AVATAR_TYPE_C_UPLOAD=2;}');
-  run(javac, ['--release', '25', '-proc:none', '-cp', cp, '-d', classes,
+  run(javac, ['--release', '25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java', '-proc:none', '-cp', cp, '-d', classes,
     model, ...sources.map(name => `src/main/java/org/b3log/symphony/${name}.java`),
     ...['main/SimpleCurrentLimiter', 'control/MainControl', 'cache/MainCache', 'cache/pair/CachePair'].map(name => `src/main/java/pers/adlered/simplecurrentlimiter/${name}.java`),
     'src/test/java/org/b3log/symphony/util/ApiV3SettingsTest.java']);

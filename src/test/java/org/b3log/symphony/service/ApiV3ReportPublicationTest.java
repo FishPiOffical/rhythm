@@ -100,5 +100,16 @@ public class ApiV3ReportPublicationTest {
    var response=f.http("writer","http",body(0,"10").toString(),true);Assert.assertEquals(response.attr("test.status"),200);Assert.assertEquals(response.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(response.getResponse().getHeader("Vary"),"Authorization");Assert.assertEquals(f.count("r"),1);
   }System.out.println("PASS publication 6 actual POST Dispatcher/auth/write middleware/controller, wrong scope and legacy identity rejected, body/key gate, no-store response");
 
+  try(var f=new F()){
+   sql(f.db,"INSERT INTO chat VALUES('32','{\"userOId\":2}'),('33','{\"userOId\":179000000000000001}')");
+   sql(f.db,"INSERT INTO u VALUES('179000000000000001',0,'longWriter','defaultRole')");
+   f.send(3,"32","integer-author");f.send(3,"33","long-author");Assert.assertEquals(f.count("r"),2);
+   for(String invalid:List.of("1","2.0","2e0","-2","true","null","{}","[]","\"02\"","92233720368547758070")){
+    sql(f.db,"INSERT OR REPLACE INTO chat VALUES('34',?)","{\"userOId\":"+invalid+"}");
+    error(404,()->f.send(3,"34","bad-owner-"+Integer.toString(invalid.hashCode()).replace("-","n")));
+   }
+   Assert.assertEquals(f.count("r"),2);
+  }System.out.println("PASS publication 7 actual integer and 18-digit chat author IDs, no floating-point loss, malformed/self owners remain denied");
+
  }
 }

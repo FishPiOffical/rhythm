@@ -854,12 +854,16 @@ public class ChatroomProcessor {
      *
      * @param context
      */
-    @Inject private ApiV3ChatRedPacketService apiV3RedPackets;
+    // The packet service publishes through this processor; resolve it after singleton creation.
+    protected ApiV3ChatRedPacketService redPackets() {
+        return BeanManager.getInstance().getReference(ApiV3ChatRedPacketService.class);
+    }
 
     public synchronized void openRedPacket(final RequestContext context) {
         try {
             final JSONObject packetRequest = context.requestJSON();
             final String packetId = packetRequest.optString("oId");
+            final ApiV3ChatRedPacketService apiV3RedPackets = redPackets();
             if (apiV3RedPackets.recognizes(packetId)) {
                 if (packetRequest.has("riskAccepted")) {
                     final String media = context.header("Content-Type");

@@ -2040,7 +2040,7 @@
         {
           "name": "sourceScene",
           "type": "String",
-          "length": 20,
+          "length": 64,
           "description": "来源场景"
         },
         {
@@ -3869,7 +3869,7 @@
     },
     {
       "name": "article_long_read_user",
-      "description": "长文阅读去重（注册用户）",
+      "description": "长文阅读去重（注册用户，按窗口）",
       "keys": [
         {
           "name": "oId",
@@ -3888,6 +3888,11 @@
           "type": "String",
           "length": 19,
           "description": "用户 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "六小时窗口起点"
         },
         {
           "name": "firstReadAt",

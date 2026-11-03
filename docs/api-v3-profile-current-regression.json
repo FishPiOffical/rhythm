@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-02",
+  "scope": "Approved current-record access extended to public profile lists and breezemoon authors; runtime pending user IDEA rebuild",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ApiV3DiscoveryQueryService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+    "tools/api-v3-content-current-test.mjs"
+  ],
+  "focused": [
+    {
+      "database": "SQLite",
+      "passLines": 10,
+      "exitCode": 0
+    },
+    {
+      "database": "MySQL",
+      "passLines": 10,
+      "exitCode": 0
+    }
+  ],
+  "related": [
+    {
+      "runner": "tools/api-v3-feed-query-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-follow-state-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-breezemoon-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-discovery-extras-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-profile-test.mjs",
+      "exitCode": 0,
+      "passLines": 2
+    }
+  ],
+  "totalPassLines": 48,
+  "negativeControl": "Switching targetUser to legacy cached getByName passes the first eight groups and fails the new hidden-list group",
+  "baselineReport": "api-v3-profile-privacy-cache-baseline.json",
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "problems": 0
+  },
+  "limits": [
+    "Production class has not yet been recompiled/restarted by the user for this batch",
+    "Profile and breezemoon production methods are extracted into isolated adapters; complete original DiscoveryQueryService IoC/runtime is not claimed",
+    "SQL and current visibility do not promise cross-request serializability or end-to-end production multi-node cache convergence",
+    "Classic HTTP handlers unchanged; homepage automatic consumption remains a separate pending policy question"
+  ]
+}

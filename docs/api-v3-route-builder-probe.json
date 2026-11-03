@@ -1,0 +1,397 @@
+{
+  "scope": "Actual TS URL/method construction only; synthetic inputs, captured transport, no network, auth or response validation; other generic forwarders and external RhyPic remain separate",
+  "modules": 15,
+  "calls": 97,
+  "matchedCalls": 97,
+  "registeredRoutes": 292,
+  "requests": [
+    {
+      "path": "/api/v3/articles/100/vote",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/vote",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/articles/100/vote",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/articles/100/thanks",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/thanks",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/articles/100/reward",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/reward",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/comments/100/vote",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/vote",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/comments/100/vote",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/comments/100/thanks",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/thanks",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/comments/100/accept",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/accept",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/follows/tags/100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/follows/tags/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/follows/tags/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/me/collections/100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/collections/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/collections/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/me/subscriptions/100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/subscriptions/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/subscriptions/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/articles/100/reactions",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/reactions",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/articles/100/reactions",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/comments/100/reactions",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/reactions",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/comments/100/reactions",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/chat/messages/100/reactions",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/chat/messages/100/reactions",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/chat/messages/100/reactions",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/articles/100/revisions?p=1&size=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/revisions/101",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100/revisions/current",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/revisions?p=1&size=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/revisions/101",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/comments/100/revisions/current",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/breezemoons?p=1&size=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/breezemoons/100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/breezemoons",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/breezemoons/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/breezemoons/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/me/settings/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/personality",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/personality-options",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/qq",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/tags",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/avatar",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/profile",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/settings/personality",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/settings/qq",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/settings/tags",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/settings/avatar",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/auth/app-login/requests",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/auth/app-login/status",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/auth/app-login/decision",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/auth/app-login/decision",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/security/mfa",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/settings/password",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/security/mfa/preparations",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/security/mfa",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/security/mfa",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/me/settings/phone/verification",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/settings/phone",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/settings/email/verification",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/settings/email",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/articles/100/source",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/articles/100/stick",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/articles/100/source",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/drafts?p=1&size=20",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/drafts/100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/articles",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/articles/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/drafts",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/drafts/100",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/me/drafts/100",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/repeater/items?size=12",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/next",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/items?size=12&type=joke",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/next?type=joke",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/items?size=12&type=kfc",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/next?type=kfc",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/items?size=12&type=fish",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/next?type=fish",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/repeater/items",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/repeater/items",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/repeater/items",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/repeater/items/100/like",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/v3/repeater/items/100/like",
+      "method": "DELETE"
+    },
+    {
+      "path": "/api/v3/me/bag",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/bag/nameCard/use",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v3/me/settings/user-name",
+      "method": "PUT"
+    }
+  ]
+}

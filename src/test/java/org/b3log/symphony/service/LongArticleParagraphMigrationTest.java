@@ -29,8 +29,8 @@ public class LongArticleParagraphMigrationTest {
         final var articles = new ArticleRows();
         inject(links, "articleRepository", articles); inject(service, "shortLinkQueryService", links);
         final String url = Latkes.getServePath() + "/article/1700000000001";
-        final String source = "<p> prefix " + url + " suffix </p>";
-        final String edited = source + "<p>another ordinary paragraph with no relation</p>";
+        final String source = "prefix " + url + " suffix";
+        final String edited = source + "\n\nanother ordinary paragraph with no relation";
         final var legacy = service.extractMarkdown("10", source).getFirst();
         final var provisional = service.extractMarkdown("10", source, id -> null).getFirst();
         Assert.assertNotEquals(legacy.getId(), provisional.getId());

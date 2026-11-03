@@ -44,7 +44,7 @@ public class ApiV3CommentRewardQueryService {
             final int offer=article.getInt(Article.ARTICLE_QNA_OFFER_POINT);
             if(offer<0)throw new IllegalStateException("negative stored comment offer");
             return new JSONObject().put("id",id).put("accepted",comment.getInt(Comment.COMMENT_QNA_OFFERED)==Comment.COMMENT_QNA_OFFERED_C_YES)
-                    .put("canAccept",article.getInt(Article.ARTICLE_TYPE)==Article.ARTICLE_TYPE_C_QNA && !own && actor.equals(article.getString(Article.ARTICLE_AUTHOR_ID)) && comment.getInt("anyAccepted")==0)
+                    .put("canAccept",article.getInt(Article.ARTICLE_TYPE)==Article.ARTICLE_TYPE_C_QNA && offer >= 20 && !own && actor.equals(article.getString(Article.ARTICLE_AUTHOR_ID)) && comment.getInt("anyAccepted")==0)
                     .put("offerPoint",anonymous?0:offer);
         }
         final int count=comment.getInt(Comment.COMMENT_THANK_CNT);

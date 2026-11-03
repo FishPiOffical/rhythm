@@ -20,7 +20,7 @@ try{
  let test='src/test/java/org/b3log/symphony/service/ApiV3FollowStateTest.java';
  if(mysql){const f=path.join(dir,'ApiV3FollowStateTest.java');fs.writeFileSync(f,fs.readFileSync(test,'utf8').replace('DriverManager.getConnection("jdbc:sqlite::memory:")','DriverManager.getConnection(System.getProperty("rhythm.follow.mysqlUrl"))').replaceAll('oId TEXT PRIMARY KEY','oId VARCHAR(19) PRIMARY KEY'));test=f;}
  const sources=['model/Follow','repository/FollowRepository','util/ApiV3Exception','util/ApiV3Requests','service/ApiV3FollowQueryService','processor/ApiV3FollowProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware','util/ApiV3WriteInputs','util/ApiV3Json'];
- run(home+'/bin/javac',['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...sources.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
+ run(home+'/bin/javac',['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...sources.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){
   function docker(args){const r=spawnSync('docker',args,{encoding:'utf8',timeout:20000});if(r.status!==0)throw Error(r.stderr);return r.stdout.trim()}

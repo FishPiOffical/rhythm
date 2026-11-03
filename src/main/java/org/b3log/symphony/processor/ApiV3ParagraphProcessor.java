@@ -22,6 +22,7 @@ public class ApiV3ParagraphProcessor {
         final var anonymous = beans.getReference(AnonymousViewCheckMidware.class);
         Dispatcher.get("/api/v3/articles/{articleId}/paragraphs", processor::paragraphs, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/articles/{articleId}/paragraph-comments", processor::comments, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/comments/{commentId}/location", processor::location, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/comments/{commentId}", processor::comment, auth::optionalContent, anonymous::handle);
     }
     public void paragraphs(final RequestContext context) {
@@ -39,6 +40,9 @@ public class ApiV3ParagraphProcessor {
                     ApiV3Requests.number(context, "p", 1, Integer.MAX_VALUE / 50), ApiV3Requests.number(context, "size", 20, 50),
                     ApiV3Requests.choice(context, "sort", "oldest", Set.of("oldest", "latest", "hot")));
         });
+    }
+    public void location(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> queries.location(ApiV3Requests.id(context, "commentId"), ApiV3Requests.viewer(context)));
     }
     public void comment(final RequestContext context) {
         ApiV3Requests.respond(context, () -> queries.comment(ApiV3Requests.id(context, "commentId"), ApiV3Requests.viewer(context)));

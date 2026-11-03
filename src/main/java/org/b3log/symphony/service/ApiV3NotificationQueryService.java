@@ -7,13 +7,13 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.latke.service.LangPropsService;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Reward;
 import org.b3log.symphony.model.UserExt;
-import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.repository.NotificationRepository;
 import org.b3log.symphony.repository.RewardRepository;
 import org.b3log.symphony.util.ApiV3NotificationTypes;
@@ -33,10 +33,10 @@ import org.jsoup.Jsoup;
 public class ApiV3NotificationQueryService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3NotificationQueryService.class);
     @Inject private NotificationRepository notificationRepository;
-    @Inject private CommentRepository commentRepository;
     @Inject private CommentQueryService commentQueryService;
     @Inject private RewardRepository rewardRepository;
     @Inject private NotificationQueryService notificationQueryService;
+    @Inject private LangPropsService langPropsService;
     @Inject private ApiV3ContentQueryService contentQueryService;
     @Inject private ApiV3ContentDtoService contentDtoService;
     @Inject private UserQueryService userQueryService;
@@ -73,13 +73,16 @@ public class ApiV3NotificationQueryService {
         final String dataId = row.optString(Notification.NOTIFICATION_DATA_ID);
         try {
             if ("point".equals(dto.optString("category"))) {
-                if (!pointTargetVisible(row, viewer)) return unavailable(dto);
-                final String html = notificationQueryService.getPointNotificationDescription(row, viewer.optString(Keys.OBJECT_ID));
+                final String html = contentDescriptionType(type) ? currentContentDescription(row, viewer, dto)
+                        : notificationQueryService.getPointNotificationDescription(row, viewer.optString(Keys.OBJECT_ID));
                 if (null == html) return unavailable(dto);
                 description(dto, html);
             } else if ("sys-announce".equals(dto.optString("category"))) {
-                if (type == Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE && !article(dto, dataId, viewer)) return unavailable(dto);
-                description(dto, notificationQueryService.getSysAnnouncementDescription(row));
+                if (type == Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE) {
+                    final String html = currentContentDescription(row, viewer, dto);
+                    if (html == null) return unavailable(dto);
+                    description(dto, html);
+                } else description(dto, notificationQueryService.getSysAnnouncementDescription(row));
             } else if (type == Notification.DATA_TYPE_C_CHAT_ROOM_AT || type == Notification.DATA_TYPE_C_RED_PACKET) {
                 chat(dto, dataId, type);
             } else if (type == Notification.DATA_TYPE_C_NEW_FOLLOWER) {
@@ -100,7 +103,7 @@ public class ApiV3NotificationQueryService {
                     || type == Notification.DATA_TYPE_C_FOLLOWING_ARTICLE_COMMENT) {
                 if (!comment(dto, dataId, viewer, true)) return unavailable(dto);
             } else if (type == Notification.DATA_TYPE_C_AT) {
-                final JSONObject comment = commentRepository.get(dataId);
+                final JSONObject comment = contentQueryService.currentComment(dataId);
                 if (null != comment) {
                     if (!comment(dto, dataId, viewer, true)) return unavailable(dto);
                 } else if (!article(dto, dataId, viewer)) return unavailable(dto);
@@ -124,7 +127,7 @@ public class ApiV3NotificationQueryService {
     }
 
     private boolean comment(final JSONObject dto, final String id, final JSONObject viewer, final boolean includeContent) throws RepositoryException {
-        final JSONObject comment = commentRepository.get(id);
+        final JSONObject comment = contentQueryService.currentComment(id);
         if (null == comment || Comment.COMMENT_STATUS_C_VALID != comment.optInt(Comment.COMMENT_STATUS)) return false;
         final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
         final JSONObject article = contentQueryService.viewableArticle(articleId, viewer);
@@ -137,29 +140,65 @@ public class ApiV3NotificationQueryService {
         final String target = commentQueryService.getCommentURL(id, mode, Symphonys.ARTICLE_COMMENTS_CNT);
         if (null != target) {
             final var anchor = Jsoup.parseBodyFragment(target).selectFirst("a[href]");
-            if (null != anchor) dto.put("url", anchor.attr("href"));
+            if (null != anchor) {
+                try {
+                    final String href = anchor.attr("href");
+                    final var location = java.net.URI.create(href);
+                    if (("/article/" + articleId).equals(location.getPath()) && id.equals(location.getFragment())) dto.put("url", href);
+                } catch (final IllegalArgumentException ignored) { /* Keep the current target URL. */ }
+            }
         }
         if (includeContent && publicComment.optBoolean("contentVisible")) description(dto, publicComment.optString("contentHtml"));
         return true;
     }
 
-    private boolean pointTargetVisible(final JSONObject row, final JSONObject viewer) throws RepositoryException {
+    /** Content descriptions must use the authorized current target, not legacy cached title/link generators. */
+    private static boolean contentDescriptionType(final int type) {
+        return type == Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE || type == Notification.DATA_TYPE_C_POINT_ARTICLE_THANK
+                || type == Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD || type == Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT
+                || type == Notification.DATA_TYPE_C_POINT_COMMENT_THANK || type == Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE;
+    }
+
+    private String currentContentDescription(final JSONObject row, final JSONObject viewer, final JSONObject dto) throws RepositoryException {
         final int type = row.optInt(Notification.NOTIFICATION_DATA_TYPE);
-        final String dataId = row.optString(Notification.NOTIFICATION_DATA_ID);
-        if (type == Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE) return null != contentQueryService.viewableArticle(dataId, viewer);
-        if (type == Notification.DATA_TYPE_C_POINT_ARTICLE_THANK || type == Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD
-                || type == Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT || type == Notification.DATA_TYPE_C_POINT_COMMENT_THANK) {
-            final JSONObject reward = rewardRepository.get(dataId);
-            if (null == reward) return false;
-            String id = reward.optString(Reward.DATA_ID);
+        String articleId = row.optString(Notification.NOTIFICATION_DATA_ID);
+        String actorId = null;
+        if (type != Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE && type != Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE) {
+            final JSONObject reward = rewardRepository.get(articleId);
+            if (reward == null) return null;
+            articleId = reward.optString(Reward.DATA_ID);
+            actorId = reward.optString(Reward.SENDER_ID);
             if (type == Notification.DATA_TYPE_C_POINT_COMMENT_THANK) {
-                final JSONObject comment = commentRepository.get(id);
-                if (null == comment) return false;
-                id = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
+                final JSONObject comment = contentQueryService.currentComment(articleId);
+                if (comment == null || comment.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) return null;
+                articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
             }
-            return null != contentQueryService.viewableArticle(id, viewer);
         }
-        return true;
+        final JSONObject article = contentQueryService.viewableArticle(articleId, viewer);
+        if (article == null) return null;
+        if (type == Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE) {
+            dto.put("article", contentDtoService.summary(article)).put("url", article.optString(Article.ARTICLE_PERMALINK));
+        }
+        final String label = switch (type) {
+            case Notification.DATA_TYPE_C_POINT_ARTICLE_THANK -> "notificationArticleThankLabel";
+            case Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD -> "notificationArticleRewardLabel";
+            case Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT -> "notificationCmtAcceptLabel";
+            case Notification.DATA_TYPE_C_POINT_COMMENT_THANK -> "notificationCmtThankLabel";
+            case Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE -> "notificationPointPerfectArticleLabel";
+            case Notification.DATA_TYPE_C_SYS_ANNOUNCE_ARTICLE -> "notificationSysArticleLabel";
+            default -> throw new IllegalArgumentException("content notification type");
+        };
+        final String link = "<a href=\"" + Escapes.escapeHTML(article.optString(Article.ARTICLE_PERMALINK)) + "\">"
+                + Escapes.escapeHTML(article.optString(Article.ARTICLE_TITLE)) + "</a>";
+        String html = langPropsService.get(label).replace("{article}", link);
+        if (actorId != null) {
+            if (type == Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT) actorId = article.optString(Article.ARTICLE_AUTHOR_ID);
+            final JSONObject actor = contentQueryService.currentAuthor(actorId);
+            if (actor == null) return null;
+            final String name = Escapes.escapeHTML(actor.optString(User.USER_NAME));
+            html = html.replace("{user}", "<a href=\"/member/" + name + "\" class=\"name-at\" aria-label=\"" + name + "\">" + name + "</a> ");
+        }
+        return html;
     }
 
     private void chat(final JSONObject dto, final String id, final int type) {

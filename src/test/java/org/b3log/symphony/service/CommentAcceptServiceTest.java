@@ -7,6 +7,7 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.AccountPairLocks;
 import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.CommentRemoval;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
 import java.util.List;
@@ -91,11 +92,58 @@ public class CommentAcceptServiceTest {
             Assert.assertEquals(f.snapshot(),before);Assert.assertEquals(f.indexEvents,0);f.failResults=false;Assert.assertTrue(f.idempotent("persist-failure","30").applied());
         }
         System.out.println("PASS real idempotency coordinator replays without payment/events, rejects another candidate, and result persistence failure rolls the acceptance transaction back");
+        for (int type : List.of(0, 1, 2, 3, 6)) {
+            for (boolean anonymous : List.of(false, true)) {
+                try (var f = new Acceptance()) {
+                    f.exec("UPDATE article SET articleType=" + type + " WHERE oId='10'");
+                    if (anonymous) f.exec("UPDATE comment SET commentAnonymous=1 WHERE oId='30'");
+                    String before = f.snapshot();
+                    try { f.v3Idempotent("invalid-type", "30"); Assert.fail(); }
+                    catch (ApiV3Exception rejected) { Assert.assertEquals(rejected.status, 422); }
+                    Assert.assertEquals(f.snapshot(), before);
+                    Assert.assertEquals(f.indexEvents, 0);
+                }
+            }
+        }
+        System.out.println("PASS v3 rejects every non-question type for public and anonymous answers without payment, flags, notification or receipt");
+        for (int offer : List.of(-1, 0, 19)) {
+            for (boolean anonymous : List.of(false, true)) {
+                try (var f = new Acceptance()) {
+                    f.exec("UPDATE article SET articleQnAOfferPoint=" + offer + " WHERE oId='10'");
+                    if (anonymous) f.exec("UPDATE comment SET commentAnonymous=1 WHERE oId='30'");
+                    String before = f.snapshot();
+                    try { f.v3Idempotent("invalid-offer", "30"); Assert.fail(); }
+                    catch (ApiV3Exception rejected) { Assert.assertEquals(rejected.status, 422); }
+                    Assert.assertEquals(f.snapshot(), before);
+                }
+            }
+        }
+        System.out.println("PASS v3 rejects subminimum offers before public or anonymous settlement and rolls back the whole mutation");
+        for (boolean anonymous : List.of(false, true)) {
+            try (var f = new Acceptance()) {
+                f.exec("UPDATE article SET articleQnAOfferPoint=20 WHERE oId='10'");
+                if (anonymous) f.exec("UPDATE comment SET commentAnonymous=1 WHERE oId='30'");
+                var first = f.v3Idempotent("valid-v3", "30");
+                Assert.assertEquals(f.scalar("SELECT userPoint FROM user WHERE oId='older'"), anonymous ? 900L : 880L);
+                String before = f.snapshot();
+                Assert.assertEquals(f.v3Idempotent("valid-v3", "30").result().toString(), first.result().toString());
+                Assert.assertEquals(f.snapshot(), before);
+                f.exec("UPDATE article SET articleType=0,articleQnAOfferPoint=0 WHERE oId='10'");
+                before = f.snapshot();
+                Assert.assertFalse(f.v3Idempotent("valid-v3", "30").applied());
+                Assert.assertEquals(f.snapshot(), before);
+                try { f.v3Idempotent("fresh-invalid", "30"); Assert.fail(); }
+                catch (ApiV3Exception rejected) { Assert.assertEquals(rejected.status, 422); }
+                Assert.assertEquals(f.snapshot(), before);
+            }
+        }
+        System.out.println("PASS v3 minimum offer succeeds, anonymous keeps no-transfer rule, successful receipt replays after type changes but fresh key rechecks current eligibility");
     }
     static class Acceptance extends CommentThankServiceTest.Thanks {
         final CommentAcceptMgmtService acceptance=new CommentAcceptMgmtService();CommentAcceptMgmtService.Result pending;
         Acceptance()throws Exception {
             exec("ALTER TABLE article ADD COLUMN articleQnAOfferPoint INT DEFAULT 100");
+            exec("ALTER TABLE article ADD COLUMN articleType INT DEFAULT 5");
             exec("INSERT INTO comment(oId,commentAuthorId,commentOnArticleId,commentOriginalCommentId,commentContent) VALUES('40','owner','10','','other candidate')");
             for(Object bean:List.of(new CommentRepository(),new ArticleRepository(),new UserRepository(),new OptionRepository(),new RewardRepository(),new PointtransferMgmtService(),new NotificationMgmtService(),new LivenessMgmtService(),new ArticleMgmtService(),thanks)){
                 String field=switch(bean.getClass().getSimpleName()){case "CommentRepository"->"comments";case "ArticleRepository"->"articles";case "UserRepository"->"users";case "OptionRepository"->"options";case "RewardRepository"->"rewards";case "PointtransferMgmtService"->"points";case "NotificationMgmtService"->"notifications";case "LivenessMgmtService"->"liveness";case "ArticleMgmtService"->"articleWrites";default->"targets";};
@@ -108,11 +156,17 @@ public class CommentAcceptServiceTest {
             },ignored->{});
         }
         ApiV3IdempotencyMgmtService.Execution idempotent(String key,String id)throws Exception {
+            return idempotent(key,id,false);
+        }
+        ApiV3IdempotencyMgmtService.Execution v3Idempotent(String key,String id)throws Exception {
+            return idempotent(key,id,true);
+        }
+        ApiV3IdempotencyMgmtService.Execution idempotent(String key,String id,boolean v3)throws Exception {
             var expected=thanks.target(id);
             return new ArticleMgmtService().withPublicationLocks("older",null==expected?List.of(Pointtransfer.ID_C_SYS):List.of(Pointtransfer.ID_C_SYS,expected.author()),()->
                 ApiV3IdempotencyMgmtService.runAtomicWithOutcome(requestStore(),"older","comments.accept:"+id,key,new JSONObject(),()->{
                     if(null==expected)throw new CommentAcceptMgmtService.Rejected("not_found");
-                    pending=acceptance.acceptInCurrentTransaction("older",expected,(a,b,c)->{});
+                    pending=acceptance.acceptInCurrentTransaction("older",expected,(a,b,c)->{if(v3)CommentAcceptMgmtService.requireV3Question(b);});
                     if(!id.equals(pending.acceptedId()))throw new CommentAcceptMgmtService.Rejected("already_accepted");
                     return new JSONObject().put("id",id).put("accepted",true);
                 }),execution->{if(execution.applied())acceptance.afterAccepted(pending);});

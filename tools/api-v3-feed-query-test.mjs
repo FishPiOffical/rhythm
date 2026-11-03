@@ -23,6 +23,6 @@ try{
  const fixture=fs.readFileSync('tools/fixtures/v3-feed-query.java.txt','utf8');
  const java=put('FeedQueryTest',fixture.replace('// PRODUCTION_RECORDS',records).replace('// PRODUCTION_METHOD',method));
  const models=['Article','Comment','Follow','UserExt'].map(name=>'src/main/java/org/b3log/symphony/model/'+name+'.java');
- run(path.join(home,'bin/javac'),['--release','25','-proc:none','-cp',cp,'-d',work,symphonys,requests,tag,java,...models,'src/main/java/org/b3log/symphony/util/ApiV3ProfileQueries.java','src/main/java/org/b3log/symphony/util/ApiV3ArticleStickState.java','src/main/java/org/b3log/symphony/util/ApiV3Exception.java']);
+ run(path.join(home,'bin/javac'),['--release','25','-proc:none','-cp',cp,'-d',work,symphonys,requests,tag,java,...models,'src/main/java/org/b3log/symphony/util/ApiV3ContentSnapshots.java','src/main/java/org/b3log/symphony/util/ApiV3ArticlePolicy.java','src/main/java/org/b3log/symphony/util/ApiV3ProfileQueries.java','src/main/java/org/b3log/symphony/util/ApiV3ArticleStickState.java','src/main/java/org/b3log/symphony/util/ApiV3Exception.java']);
  run(path.join(home,'bin/java'),['-cp',[work,cp].join(path.delimiter),'FeedQueryTest']);
 }finally{fs.rmSync(work,{recursive:true,force:true});}

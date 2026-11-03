@@ -26,6 +26,8 @@ if(token){
  await check('request key required',()=>request('0',422,{key:''}));
  if(process.env.API_V3_SELF_COMMENT_ID)await check('own answer rejected',()=>request(process.env.API_V3_SELF_COMMENT_ID,422));
  if(process.env.API_V3_FOREIGN_ARTICLE_COMMENT_ID)await check('article owner required',()=>request(process.env.API_V3_FOREIGN_ARTICLE_COMMENT_ID,403));
+ if(process.env.API_V3_NON_QUESTION_COMMENT_ID)await check('non-question acceptance rejected',()=>request(process.env.API_V3_NON_QUESTION_COMMENT_ID,422,{key:`non-question-${Date.now()}`}));
+ if(process.env.API_V3_LOW_OFFER_COMMENT_ID)await check('question below 20 points rejected',()=>request(process.env.API_V3_LOW_OFFER_COMMENT_ID,422,{key:`low-offer-${Date.now()}`}));
 }
 if(process.env.API_V3_COMMENT_ACCEPT==='1'){
  const id=process.env.API_V3_COMMENT_ACCEPT_ID;if(!token||!/^\d{1,19}$/.test(id||''))throw new Error('Explicit acceptance requires token and disposable answer ID');

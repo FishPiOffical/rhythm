@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-02",
+  "scope": "Actual production client build, real Rhythm authenticated GET, body-cut proxy, SPA logout/login to a different dedicated dev account",
+  "javaPid": 96544,
+  "primaryFrontendPid": 81882,
+  "temporaryPorts": [
+    5187,
+    5188
+  ],
+  "steps": {
+    "currentReaderBodyCutShowsNetworkNotice": true,
+    "currentReaderCanRetryRead": true,
+    "secondReadHeadersAndPrefixDelivered": true,
+    "logoutClearsExistingNoticeAndPaidText": true,
+    "differentReaderLoggedInBeforeOldBodyRelease": true,
+    "heldConnectionLiveAtRelease": true,
+    "lateOldBodyFailureDoesNotNotifyNewReader": true,
+    "lateOldPaidTextNotRenderedOnNewPage": true,
+    "mobileWidth": 390,
+    "mobileScrollWidth": 390,
+    "capturedWarnErrorCount": 0,
+    "originalAccountViewportAndPrimaryReadRestored": true
+  },
+  "upstreamFaults": [
+    {
+      "mode": "fail-once",
+      "revision": 1,
+      "upstreamStatus": 200,
+      "prefixBytes": 5
+    },
+    {
+      "mode": "hold-next",
+      "revision": 2,
+      "upstreamStatus": 200,
+      "prefixBytes": 5
+    }
+  ],
+  "temporaryFixtureStopped": true,
+  "temporaryPortsConfirmedClosed": true,
+  "newPurchaseChargeOrNotification": false,
+  "retainedOriginalPurchaseTransferNotificationCounts": [
+    1,
+    1,
+    1
+  ],
+  "privateScreenshots": [
+    ".idea/rhythm-local/browser-offline-current-reader.png",
+    ".idea/rhythm-local/browser-offline-new-reader-mobile.png"
+  ],
+  "limits": [
+    "Only actual authenticated reward-status GET was cut; no first-charge or arbitrary POST lost-ACK browser proof",
+    "An initial run tracked logical holding state; repeated the same read/account-switch case with actual live socket state checked at release before accepting proof",
+    "Temporary local production build is not production-site validation; primary 5173 and Rhythm were not restarted",
+    "Normal dev login/logout updates authentication records; no direct SQL writes or monetary test actions",
+    "Production anti-scan/CAPTCHA/blacklist, whole static/CDN/directory scan and real mobile devices remain unverified"
+  ]
+}

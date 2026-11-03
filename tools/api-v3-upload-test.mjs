@@ -13,6 +13,6 @@ try{
  shim('org/b3log/symphony/util/Symphonys.java',`package org.b3log.symphony.util; public class Symphonys {public static final String[] RESERVED_USER_NAMES={};public static boolean RHPIC_ENABLED=true;public static String RHPIC_UPLOAD_URL="https://pic.example.test",RHPIC_TICKET_PRIVATE_KEY="",RHPIC_INTERNAL_URL="http://internal.invalid",RHPIC_INTERNAL_TOKEN="INTERNAL-PRIVATE";}`);
  const real=['model/Common','model/UserExt','util/StatusCodes','util/Results','util/ApiV3Exception','util/ApiV3Json','util/ApiV3WriteInputs','util/RhypicUploadTickets','util/ApiV3UploadTargets','processor/RhypicProcessor','service/ApiV3UploadTicketService'];
  const cp=[latke,testng,sqlite].join(path.delimiter),classes=path.join(work,'classes');
- run(javac,['--release','25','-proc:none','-cp',cp,'-d',classes,...sources,...real.map(n=>`src/main/java/org/b3log/symphony/${n}.java`),'src/test/java/org/b3log/symphony/service/ApiV3UploadTicketServiceTest.java']);
+ run(javac,['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',classes,...sources,...real.map(n=>`src/main/java/org/b3log/symphony/${n}.java`),'src/test/java/org/b3log/symphony/service/ApiV3UploadTicketServiceTest.java']);
  run(java,['-cp',[classes,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3UploadTicketServiceTest']);
 }finally{fs.rmSync(work,{recursive:true,force:true});}

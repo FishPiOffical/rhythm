@@ -7,6 +7,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.util.ApiV3ParagraphDto;
+import org.b3log.symphony.util.ApiV3CommentLocationQueries;
 import org.b3log.symphony.util.ApiV3ParagraphQueries;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
@@ -59,7 +60,7 @@ public class ApiV3ParagraphQueryService {
     }
 
     public JSONObject comment(final String id, final JSONObject viewer) throws Exception {
-        final JSONObject row = comments.get(id);
+        final JSONObject row = content.currentComment(id);
         if (null == row || row.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) throw ApiV3Requests.notFound();
         final JSONObject article = content.viewableArticle(row.optString(Comment.COMMENT_ON_ARTICLE_ID), viewer);
         if (null == article) throw ApiV3Requests.notFound();
@@ -67,6 +68,41 @@ public class ApiV3ParagraphQueryService {
                 && row.optInt(Comment.COMMENT_PARAGRAPH_STATUS) == Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE
                 && article.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_LONG ? compatible(article) : null;
         return ApiV3ParagraphDto.comment(content.commentDto(row, article, viewer), normalize(row, rendered));
+    }
+
+    /** Metadata-only location; never returns stored comment text or an author's identity. */
+    public JSONObject location(final String id, final JSONObject viewer) throws Exception {
+        final JSONObject row = content.currentComment(id);
+        if (row == null || row.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) throw ApiV3Requests.notFound();
+        final String articleId = row.optString(Comment.COMMENT_ON_ARTICLE_ID);
+        final JSONObject article = content.viewableArticle(articleId, viewer);
+        if (article == null) throw ApiV3Requests.notFound();
+        final int type = row.optInt(Comment.COMMENT_TYPE, -1);
+        final ApiV3ParagraphQueries.Selection selection;
+        JSONObject paragraph = null;
+        if (type == Comment.COMMENT_TYPE_C_ARTICLE) {
+            selection = ApiV3CommentLocationQueries.ordinary(comments.getName(), articleId);
+        } else if (type == Comment.COMMENT_TYPE_C_PARAGRAPH) {
+            if (article.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_LONG) throw ApiV3Requests.notFound();
+            final int status = row.optInt(Comment.COMMENT_PARAGRAPH_STATUS, -1);
+            if (status != Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE && status != Comment.COMMENT_PARAGRAPH_STATUS_C_ORPHANED) throw ApiV3Requests.notFound();
+            final String raw = row.optString(Comment.COMMENT_PARAGRAPH_ID);
+            if (!raw.matches("[0-9a-f]{64}")) throw ApiV3Requests.notFound();
+            final boolean active = status == Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE;
+            final var rendered = active ? compatible(article) : null;
+            final var aliases = active ? rendered.idsFor(raw) : java.util.List.<String>of();
+            final String canonical = aliases.isEmpty() ? raw : rendered.canonicalId(raw);
+            final String state = active ? "active" : "orphaned";
+            selection = ApiV3ParagraphQueries.selection(comments.getName(), articleId,
+                    aliases.isEmpty() ? java.util.List.of(raw) : aliases, state);
+            paragraph = new JSONObject().put("id", canonical).put("state", state);
+        } else throw ApiV3Requests.notFound();
+        final var query = ApiV3CommentLocationQueries.rank(selection, id);
+        final var ranks = comments.select(query.sql(), query.args().toArray());
+        if (ranks.size() != 1) throw new IllegalStateException("comment position aggregate missing");
+        return new JSONObject().put("id", id).put("articleId", articleId).put("type", type)
+                .put("page", ApiV3CommentLocationQueries.page(ranks.getFirst())).put("size", ApiV3CommentLocationQueries.PAGE_SIZE)
+                .put("paragraph", paragraph == null ? JSONObject.NULL : paragraph);
     }
 
     private LongArticleParagraphService.CompatibleContent compatible(final JSONObject article) {

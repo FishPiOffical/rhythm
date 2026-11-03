@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "scope": "Actual production http.ts and article interaction API with real Rhythm replay, loopback proxy cuts JSON body after actual upstream success",
+  "upstreamResponses": [
+    {
+      "status": 200,
+      "bodyBytes": 65
+    },
+    {
+      "status": 200,
+      "bodyBytes": 65
+    }
+  ],
+  "proxyRequests": [
+    {
+      "method": "POST",
+      "keyMatches": true,
+      "bodyBytes": 0
+    },
+    {
+      "method": "POST",
+      "keyMatches": true,
+      "bodyBytes": 0
+    }
+  ],
+  "cutAfterBytes": 5,
+  "offlineEventCount": 1,
+  "automaticRetryCount": 0,
+  "explicitSameKeyRetrySucceeded": true,
+  "tokenAndIdentityUnchanged": true,
+  "unchangedFingerprints": {
+    "balances": true,
+    "purchase": true,
+    "ledger": true,
+    "indexes": true,
+    "notification": true,
+    "receipts": true
+  },
+  "newCharge": false,
+  "newKeyOrReceipt": false,
+  "limits": [
+    "Uses the already committed test purchase original key; not a new first-purchase/fee lost-ACK scenario",
+    "Actual Node native fetch and TCP sockets; no claim of browser connection/OS/production proxy fault injection",
+    "Captcha dependency fails if called; no CAPTCHA solved or bypassed",
+    "Cross-instance races and full production anti-scan/static audit remain separate"
+  ]
+}

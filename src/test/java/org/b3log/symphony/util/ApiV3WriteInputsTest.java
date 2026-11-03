@@ -26,6 +26,13 @@ public class ApiV3WriteInputsTest {
         status(422, () -> body("{\"apiKey\":\"legacy\"}", "application/json", false));
         status(413, () -> body("x".repeat(ApiV3Json.MAX_BODY_BYTES + 1), "application/json", false));
         Assert.assertEquals(body("", null, true).length(), 0);
+        status(400, () -> body("{", "application/json", true));
+        status(400, () -> body("{\"title\":1,\"title\":2}", "application/json", true));
+        status(400, () -> body("[]", "application/json", true));
+        status(400, () -> body("   ", "application/json", true));
+        status(400, () -> body("{\"title\":\"\\ud800\"}", "application/json", false));
+        status(400, () -> body(new byte[]{123,34,116,105,116,108,101,34,58,34,(byte)0xc3,40,34,125}, "application/json", false));
+        Assert.assertEquals(body("{\"title\":\"中文 🐟\\nline\\\\literal\"}", "application/json", false).getString("title"), "中文 🐟\nline\\literal");
     }
 
     @Test
@@ -40,10 +47,16 @@ public class ApiV3WriteInputsTest {
     }
 
     private JSONObject body(final String text, final String contentType, final boolean empty) {
+        return body(text.getBytes(StandardCharsets.UTF_8), contentType, empty);
+    }
+
+    private JSONObject body(final byte[] bytes, final String contentType, final boolean empty) {
         final var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/api/v3/me/drafts");
         if (null != contentType) raw.headers().set("Content-Type", contentType);
-        final Request request = new Request(null, raw);
-        request.setBytes(text.getBytes(StandardCharsets.UTF_8));
+        final Request request = new Request(null, raw) { @Override public String getRemoteAddr() { return "127.0.0.1"; } };
+        raw.content().writeBytes(bytes);
+        try { final var parse = Request.class.getDeclaredMethod("parseForm"); parse.setAccessible(true); parse.invoke(request); }
+        catch (final ReflectiveOperationException e) { throw new AssertionError(e); }
         final Response response = new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK));
         try { return ApiV3WriteInputs.body(new RequestContext(request, response), Set.of("title"), empty); }
         finally { raw.release(); }

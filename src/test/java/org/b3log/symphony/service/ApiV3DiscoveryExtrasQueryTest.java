@@ -21,7 +21,7 @@ public class ApiV3DiscoveryExtrasQueryTest {
             inject(service,"users",new UserRepository(){public String getName(){return "x_user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
             inject(service,"articles",new ArticleRepository(){public String getName(){return "x_article";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
             inject(service,"logs",new LogsRepository(){public String getName(){return "x_logs";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
-            var dto=new ApiV3ContentDtoService();inject(dto,"userQueryService",new UserQueryService());inject(dto,"avatarQueryService",new AvatarQueryService());inject(service,"dto",dto);
+            var dto=new ApiV3ContentDtoService();inject(dto,"userRepository",new UserRepository(){public String getName(){return "x_user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});inject(dto,"avatarQueryService",new AvatarQueryService());inject(service,"dto",dto);
             for(int i=1;i<=25;i++)sql("INSERT INTO x_user VALUES (?,0,?,?,?,'PRIVATE_PASSWORD','PRIVATE_PHONE')",String.format("%03d",i),"User"+i,"Nickname "+i,"https://example.test/"+i+".png");
         }
         static void inject(Object target,String field,Object value)throws Exception{Class<?> type=target.getClass();while(type!=null){try{var f=type.getDeclaredField(field);f.setAccessible(true);f.set(target,value);return;}catch(NoSuchFieldException e){type=type.getSuperclass();}}throw new IllegalStateException(field);}

@@ -27,7 +27,7 @@ function run(command, args) {
 try {
   const classes = path.join(work, 'classes');
   const cp = [latke, testng, sqlite, jsoup].join(path.delimiter);
-  run(javac, ['--release', '25', '-proc:none', '-cp', cp, '-d', classes,
+  run(javac, ['--release', '25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java', '-proc:none', '-cp', cp, '-d', classes,
     ...sources.map(name => `src/main/java/org/b3log/symphony/${name}.java`),
     'src/test/java/org/b3log/symphony/repository/ApiV3BreezemoonTest.java']);
   run(java, ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.repository.ApiV3BreezemoonTest']);

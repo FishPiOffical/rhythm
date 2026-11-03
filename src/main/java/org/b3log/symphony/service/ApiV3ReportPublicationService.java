@@ -91,7 +91,11 @@ public class ApiV3ReportPublicationService {
             final String raw=row.getString("content");if(raw.length()>102400)throw unavailable();
             final JSONObject envelope;
             try{envelope=ApiV3Json.parse(raw.getBytes(StandardCharsets.UTF_8));}catch(IllegalArgumentException e){throw ApiV3Requests.notFound();}
-            if(!(envelope.opt("userOId") instanceof String owner))throw ApiV3Requests.notFound();author=owner;idOrNotFound(author);
+            final Object owner=envelope.opt("userOId");
+            if(owner instanceof String value)author=value;
+            else if(owner instanceof Integer || owner instanceof Long || owner instanceof java.math.BigInteger)author=owner.toString();
+            else throw ApiV3Requests.notFound();
+            idOrNotFound(author);
             return new Target(row,article,author,Set.of(author));
         }
         if(type==1) {

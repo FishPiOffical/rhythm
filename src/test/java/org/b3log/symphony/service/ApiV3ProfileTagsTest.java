@@ -61,7 +61,7 @@ public class ApiV3ProfileTagsTest {
         RequestContext httpTags(String method,String token,String key,String body)throws Exception {
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.valueOf(method),"/api/v3/me/settings/tags");
             try{if(token!=null)raw.headers().set("Authorization","Bearer "+token);if(key!=null)raw.headers().set("Idempotency-Key",key);raw.headers().set("Content-Type","application/json");raw.headers().set("X-Real-IP","127.0.0.1");
-                final var request=new Request(null,raw);request.setBytes(body==null?new byte[0]:body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setParams(new HashMap<>(Map.of("apiKey","legacy")));
+                final var request=new Request(null,raw);raw.content().clear().writeBytes(body==null?new byte[0]:body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setBytes(body==null?new byte[0]:body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setParams(new HashMap<>(Map.of("apiKey","legacy")));
                 final var context=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));context.addHandler(new org.b3log.latke.http.handler.RouteHandler());context.addHandler(c->{if(method.equals("GET"))endpointQq.tags(c);else endpointQq.updateTags(c);});context.handle();return context;
             }finally{raw.release();}
         }

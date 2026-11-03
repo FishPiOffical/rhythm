@@ -28,7 +28,7 @@ try {
   const real = ['model/UserExt', 'model/Membership', 'model/MembershipLevel', 'repository/MembershipRepository', 'repository/MembershipLevelRepository',
     'util/ApiV3MembershipConfiguration','util/ApiV3WriteInputs','util/ApiV3OAuthForms','service/ApiV3MembershipStyleQueryService','processor/ApiV3MembershipStyleProcessor','util/ApiV3Exception', 'util/ApiV3Json', 'util/ApiV3Requests', 'util/ApiV3MembershipDto', 'service/ApiV3MembershipQueryService',
     'processor/middleware/ApiV3AuthMidware', 'processor/ApiV3MembershipProcessor'];
-  run(path.join(home, 'bin', 'javac'), ['--release', '25', '-proc:none', '-cp', cp, '-d', work, ...shims,
+  run(path.join(home, 'bin', 'javac'), ['--release', '25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java', '-proc:none', '-cp', cp, '-d', work, ...shims,
     ...real.map(name => `src/main/java/org/b3log/symphony/${name}.java`), 'src/test/java/org/b3log/symphony/processor/ApiV3MembershipTest.java','src/test/java/org/b3log/symphony/processor/ApiV3MembershipStyleTest.java']);
   run(path.join(home, 'bin', 'java'), ['-cp', [work, cp].join(path.delimiter), 'org.b3log.symphony.processor.ApiV3MembershipStyleTest']);
 } finally { fs.rmSync(work, { recursive: true, force: true }); }

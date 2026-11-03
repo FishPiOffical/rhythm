@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-02",
+  "scope": "Each of six explicitly registered compound-scope routes with only first/only second scope; no normal write payload",
+  "deployment": {
+    "javaPid": 91346
+  },
+  "expectedChecks": 12,
+  "completedChecks": 12,
+  "allCompletedPassed": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "heldScope": "content.read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reads",
+      "heldScope": "activity.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "heldScope": "content.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "heldScope": "activity.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "heldScope": "content.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "heldScope": "activity.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "heldScope": "activity.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "heldScope": "settings.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "heldScope": "settings.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "heldScope": "profile.read",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "heldScope": "activity.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "heldScope": "settings.write",
+      "status": 403,
+      "code": "insufficient_scope",
+      "passed": true
+    }
+  ],
+  "originalScopeAndStateRestored": true,
+  "selectedBusinessCountsUnchanged": true,
+  "failure": null,
+  "limits": [
+    "Only syntactically explicit registered dual scopes; additional handler/service/role/first-party checks need their own valid-credential evidence",
+    "Does not authorize successful fee-bearing operations or prove cross-instance behavior"
+  ]
+}

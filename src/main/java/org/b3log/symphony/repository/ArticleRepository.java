@@ -28,6 +28,7 @@ import org.b3log.symphony.util.JSONs;
 import org.b3log.symphony.util.ArticleSubmissionPolicy;
 import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.ApiV3ArticleEditorDto;
+import org.b3log.symphony.util.ApiV3ArticlePolicy;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -201,6 +202,13 @@ public class ArticleRepository extends AbstractRepository {
     public String getCommentPublicationAuthor(final String id) throws RepositoryException {
         final var rows = select("SELECT articleAuthorId FROM `" + getName() + "` WHERE oId=? LIMIT 1", id);
         return rows.isEmpty() ? "" : rows.getFirst().optString(Article.ARTICLE_AUTHOR_ID);
+    }
+
+    /** V3 comment gate locks the current row without coercing damaged historical CHAR booleans. */
+    public JSONObject getV3CommentPolicyForUpdate(final String id) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("article transaction required");
+        final var rows = select(ApiV3ArticlePolicy.lockSql(getName()), id);
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     public JSONObject getForUpdate(final String id) throws RepositoryException {

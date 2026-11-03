@@ -27,6 +27,7 @@ import org.b3log.symphony.repository.TagArticleRepository;
 import org.b3log.symphony.repository.TagRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3ContentSnapshots;
 import org.b3log.symphony.util.ApiV3ArticleStickState;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.ApiV3ProfileQueries;
@@ -117,10 +118,10 @@ public class ApiV3DiscoveryQueryService {
     /** All filtering precedes count and pagination. SQL identifiers are internal, values are bound. */
     public JSONObject articles(final JSONObject viewer, final int p, final int size, final String sort,
                                final String type, final Selection selection) throws RepositoryException {
-        final StringBuilder from = new StringBuilder(" FROM ").append(articleRepository.getName()).append(" a WHERE ")
+        final StringBuilder from = new StringBuilder(" FROM ").append(articleRepository.getName())
+                .append(" a JOIN ").append(userRepository.getName()).append(" u ON u.oId=a.articleAuthorId WHERE ")
                 .append("a.articleStatus<>? AND a.articleType<>? AND a.articleShowInList<>? AND a.articleTags<>? AND a.articleTags NOT LIKE ?")
-                .append(" AND EXISTS (SELECT 1 FROM ").append(userRepository.getName())
-                .append(" u WHERE u.oId=a.articleAuthorId AND u.userStatus NOT IN (?,?))");
+                .append(" AND u.userStatus NOT IN (?,?)");
         final List<Object> args = new ArrayList<>(List.of(Article.ARTICLE_STATUS_C_INVALID, Article.ARTICLE_TYPE_C_DISCUSSION,
                 Article.ARTICLE_SHOW_IN_LIST_C_NOT, Tag.TAG_TITLE_C_SANDBOX, "B3log%", UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED));
         switch (type) {
@@ -203,17 +204,25 @@ public class ApiV3DiscoveryQueryService {
         } else stickOrder = "";
         args.add((p - 1) * size);
         args.add(size);
-        final List<JSONObject> rows = articleRepository.select("SELECT a.*" + from + " ORDER BY " + stickOrder + order + "a.oId DESC LIMIT ?,?", args.toArray());
+        final List<JSONObject> rows = articleRepository.select("SELECT a.*," + ApiV3ContentSnapshots.authorColumns() + from + " ORDER BY " + stickOrder + order + "a.oId DESC LIMIT ?,?", args.toArray());
         final JSONArray list = new JSONArray();
         for (final JSONObject row : rows) list.put(contentDtoService.summary(row));
         return ApiV3Requests.pagination(list, p, size, total);
     }
 
     public JSONObject targetUser(final String name) throws RepositoryException {
-        final JSONObject user = userRepository.getByName(name);
+        final JSONObject user = currentProfileUser("userName", name);
         if (null == user || UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)
                 || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) throw ApiV3Requests.notFound();
         return user;
+    }
+
+    /** Current privacy/status/name lookup; cached users must never decide public profile access. */
+    private JSONObject currentProfileUser(final String field, final String value) throws RepositoryException {
+        if (!java.util.Set.of("oId", "userName").contains(field)) throw new IllegalArgumentException("profile lookup");
+        final var rows = userRepository.select("SELECT * FROM `" + userRepository.getName() + "` WHERE " + field + "=? LIMIT 2", value);
+        if (rows.size() > 1) throw new RepositoryException("Duplicate v3 profile target");
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     public JSONObject profile(final JSONObject user) {
@@ -271,19 +280,25 @@ public class ApiV3DiscoveryQueryService {
     }
 
     public JSONObject breezemoonDto(final JSONObject row) throws RepositoryException {
+        final JSONObject author = currentProfileUser("oId", row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID));
+        if (null == author || UserExt.USER_STATUS_C_INVALID == author.optInt(UserExt.USER_STATUS)
+                || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS)) throw ApiV3Requests.notFound();
+        return breezemoonDto(row, author);
+    }
+    private JSONObject breezemoonDto(final JSONObject row, final JSONObject currentAuthor) {
         final String content = row.optString(Breezemoon.BREEZEMOON_CONTENT);
         return new JSONObject().put("id", row.optString(Keys.OBJECT_ID)).put("content", content)
                 .put("contentHtml", Markdowns.clean(Markdowns.toHTML(Emotions.convert(content)), ""))
                 .put("createdAt", row.optLong(Breezemoon.BREEZEMOON_CREATED)).put("updatedAt", row.optLong(Breezemoon.BREEZEMOON_UPDATED))
-                .put("author", author(userRepository.get(row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID))));
+                .put("author", author(currentAuthor));
     }
     public JSONObject breezemoon(final String id, final JSONObject viewer) throws RepositoryException {
         final JSONObject row = breezemoonRepository.get(id);
         if (null == row || Breezemoon.BREEZEMOON_STATUS_C_VALID != row.optInt(Breezemoon.BREEZEMOON_STATUS)) throw ApiV3Requests.notFound();
-        final JSONObject author = userRepository.get(row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID));
+        final JSONObject author = currentProfileUser("oId", row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID));
         if (null == author || UserExt.USER_STATUS_C_INVALID == author.optInt(UserExt.USER_STATUS) || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS)
                 || !ApiV3ContentUtil.canViewUserList(author, viewer, UserExt.USER_BREEZEMOON_STATUS)) throw ApiV3Requests.notFound();
-        return breezemoonDto(row);
+        return breezemoonDto(row, author);
     }
 
     private JSONObject author(final JSONObject user) {

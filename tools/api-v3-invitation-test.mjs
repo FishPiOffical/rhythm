@@ -17,6 +17,6 @@ try{
  if(routes.length!==1||!routes[0].includes('auth::activityRead, budget::handle'))throw Error('Review invitation route gates');
  shim('org/b3log/symphony/processor/InvitationRouteBindings',`package org.b3log.symphony.processor;import org.b3log.latke.http.Dispatcher;import org.b3log.symphony.processor.middleware.*;public class InvitationRouteBindings {public static void register(ApiV3InvitationProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware budget){${routes.join('\n')}}}`);
  const real=['model/UserExt','model/Role','model/Invitecode','repository/InvitecodeRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3WriteInputs','util/ApiV3Json','util/ApiV3Invitation','service/ApiV3InvitationQueryService','processor/ApiV3InvitationProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
- run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3InvitationTest.java']);
+ run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3InvitationTest.java']);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3InvitationTest']);
 }finally{fs.rmSync(dir,{recursive:true,force:true});}

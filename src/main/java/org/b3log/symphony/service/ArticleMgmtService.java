@@ -486,7 +486,7 @@ public class ArticleMgmtService {
                 return;
             }
 
-            final Transaction transaction = articleRepository.beginTransaction();
+            final Transaction transaction = ApiV3Transactions.strict(articleRepository.beginTransaction());
             try {
                 final JSONObject article = articleRepository.get(articleId);
                 if (null == article) {

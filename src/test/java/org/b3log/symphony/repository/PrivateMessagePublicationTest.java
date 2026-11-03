@@ -71,7 +71,7 @@ public class PrivateMessagePublicationTest {
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,path+(query==null?"":"?"+query));
             try{
                 raw.headers().set("Cookie","legacy");if(bearer!=null)raw.headers().set("Authorization",bearer);if(key!=null)raw.headers().set("Idempotency-Key",key);if(type!=null)raw.headers().set("Content-Type",type);
-                var request=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.151";}};request.setBytes(body.getBytes(StandardCharsets.UTF_8));
+                var request=new Request(null,raw){@Override public String getRemoteAddr(){return "192.0.2.151";}};raw.content().clear().writeBytes(body.getBytes(StandardCharsets.UTF_8));request.setBytes(body.getBytes(StandardCharsets.UTF_8));
                 var c=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));c.pathVars(new HashMap<>());c.pathVar("peerId",peer);c.attr("user",new JSONObject().put("oId","2"));
                 if(routes){
                     PrivateReadRouteBindings.register(controller,auth,new ApiV3WriteMidware());final var registry=Dispatcher.class.getDeclaredField("routerGroups");registry.setAccessible(true);boolean found=false;

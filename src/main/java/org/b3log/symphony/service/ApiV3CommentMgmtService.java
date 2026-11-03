@@ -15,6 +15,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.util.ApiV3CommentTarget;
+import org.b3log.symphony.util.ApiV3ArticlePolicy;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.repository.UserRepository;
@@ -62,6 +63,7 @@ public class ApiV3CommentMgmtService {
                             || comment.optInt(Comment.COMMENT_STATUS) == Comment.COMMENT_STATUS_C_INVALID
                             || null == author || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID
                             || !ApiV3ContentUtil.canViewCommentContent(comment, article, sender)) throw ApiV3Requests.notFound();
+                    CommentAcceptMgmtService.requireV3Question(article);
                 });
                 if (!id.equals(result.acceptedId())) throw new ApiV3Exception(409, "already_accepted", "该文章已采纳其他评论");
                 accepted.set(result);
@@ -158,14 +160,17 @@ public class ApiV3CommentMgmtService {
             if (author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.forbidden();
             publicationPermission(author, normalized);
             if (author.optString("userPhone").isBlank()) throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
+            final var lockedArticle = articles.getV3CommentPolicyForUpdate(articleId);
+            if (null == lockedArticle) throw ApiV3Requests.notFound();
             final var article = content.viewableArticle(articleId, author);
             if (null == article) throw ApiV3Requests.notFound();
             if (!expectedAuthor.equals(article.optString(Article.ARTICLE_AUTHOR_ID))) {
                 throw new ApiV3Exception(409, "target_changed", "文章已变化，请重试");
             }
-            if (article.optInt(Article.ARTICLE_STATUS) != Article.ARTICLE_STATUS_C_VALID || !article.optBoolean(Article.ARTICLE_COMMENTABLE)) {
+            if (article.optInt(Article.ARTICLE_STATUS) != Article.ARTICLE_STATUS_C_VALID) {
                 throw new ApiV3Exception(403, "comments_closed", "文章当前不可评论");
             }
+            ApiV3ArticlePolicy.requireCommenting(lockedArticle);
             final var request = new JSONObject(normalized.toString());
             final String parentId = request.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
             final var parent = parentId.isEmpty() ? null : repository.get(parentId);
@@ -229,9 +234,12 @@ public class ApiV3CommentMgmtService {
             permission(author);
             final var target = repository.getOwnedEditTarget(id, actor);
             if (null == target) throw ApiV3Requests.notFound();
+            final var lockedArticle = articles.getV3CommentPolicyForUpdate(target.optString(Comment.COMMENT_ON_ARTICLE_ID));
+            if (null == lockedArticle) throw ApiV3Requests.notFound();
             final var article = content.viewableArticle(target.optString(Comment.COMMENT_ON_ARTICLE_ID), author);
             if (null == article) throw ApiV3Requests.notFound();
             if (article.optInt(Article.ARTICLE_STATUS) != Article.ARTICLE_STATUS_C_VALID) throw new ApiV3Exception(403, "article_locked", "文章已锁定");
+            ApiV3ArticlePolicy.requireCommenting(lockedArticle);
             final var current = repository.getOwnedForUpdate(id, actor);
             if (null == current) throw ApiV3Requests.notFound();
             if (current.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) throw new ApiV3Exception(403, "comment_locked", "评论不可编辑");

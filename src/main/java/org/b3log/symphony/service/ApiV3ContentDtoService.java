@@ -3,9 +3,14 @@ package org.b3log.symphony.service;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.latke.repository.RepositoryException;
+import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.util.ApiV3AvatarUrl;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3ContentSnapshots;
 import org.b3log.symphony.util.ApiV3ArticleStickState;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.Emotions;
@@ -16,12 +21,24 @@ import org.jsoup.Jsoup;
 /** Common public content DTOs; no list queries or viewer identity resolution. */
 @Service
 public class ApiV3ContentDtoService {
-    @Inject private UserQueryService userQueryService;
+    @Inject private UserRepository userRepository;
     @Inject private AvatarQueryService avatarQueryService;
 
     public JSONObject summary(final JSONObject article) {
-        final JSONObject author = userQueryService.getUser(article.optString(Article.ARTICLE_AUTHOR_ID));
+        final JSONObject author = ApiV3ContentSnapshots.hasAuthor(article)
+                ? ApiV3ContentSnapshots.author(article, Article.ARTICLE_AUTHOR_ID)
+                : currentAuthor(article.optString(Article.ARTICLE_AUTHOR_ID));
         return summary(article, author);
+    }
+
+    private JSONObject currentAuthor(final String id) {
+        try {
+            final var rows = userRepository.select(ApiV3ContentSnapshots.author(userRepository.getName()), id);
+            if (rows.size() > 1) throw new RepositoryException("Duplicate v3 public author");
+            return rows.isEmpty() ? null : rows.getFirst();
+        } catch (final RepositoryException error) {
+            throw new ApiV3Exception(503, "temporarily_unavailable", "作者资料暂不可用");
+        }
     }
 
     /** A caller with a current SQL author snapshot need not fall back to a cached user lookup. */
@@ -36,6 +53,7 @@ public class ApiV3ContentDtoService {
                 .put("preview", preview.substring(0, Math.min(150, preview.length())))
                 .put("tags", blocked ? "" : article.optString(Article.ARTICLE_TAGS))
                 .put("type", article.optInt(Article.ARTICLE_TYPE)).put("anonymous", anonymous)
+                .put("perfect", article.optInt(Article.ARTICLE_PERFECT) == Article.ARTICLE_PERFECT_C_PERFECT)
                 .put("author", author(author, anonymous)).put("permalink", article.optString(Article.ARTICLE_PERMALINK))
                 .put("createdAt", article.optLong(Article.ARTICLE_CREATE_TIME))
                 .put("updatedAt", article.optLong(Article.ARTICLE_UPDATE_TIME))
@@ -46,9 +64,11 @@ public class ApiV3ContentDtoService {
     }
 
     public JSONObject author(final JSONObject user, final boolean anonymous) {
-        // Copy before filling the avatar: query services may return a shared cached user.
         final JSONObject dto = ApiV3ContentUtil.authorDto(user, anonymous);
-        if (!anonymous && null != user) dto.put("userAvatarURL", avatarQueryService.getAvatarURLByUser(user, "48"));
+        if (!anonymous && null != user) {
+            final String url = ApiV3AvatarUrl.stored(user.optString(UserExt.USER_AVATAR_URL));
+            dto.put("userAvatarURL", url.isEmpty() ? avatarQueryService.getDefaultAvatarURL("48") : url);
+        }
         return dto;
     }
 
