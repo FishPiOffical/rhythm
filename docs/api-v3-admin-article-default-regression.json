@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-03",
+  "status": "FIXED_AWAITING_IDEA_REBUILD",
+  "scope": "User-approved local admin-triggered perfect and system-announcement event test; real admin form exposed existing required-field omission before article persistence",
+  "reproduction": {
+    "normalAdminLogin": true,
+    "form": "POST /admin/add-article",
+    "result": "Admin error page: Field isGoodArticle does not have a default value",
+    "createdArticles": 0,
+    "notificationsProduced": 0,
+    "perfectRewardsProduced": 0
+  },
+  "fix": {
+    "file": "src/main/java/org/b3log/symphony/service/ArticleMgmtService.java",
+    "method": "addArticleByAdmin",
+    "behavior": "Explicit empty ARTICLE_GOOD_POST; matches normal article publication unmarked value",
+    "schemaChanges": false
+  },
+  "checks": {
+    "articleRunnerPASS": 66,
+    "currentMySQLSchemaRequiredColumnsWithoutDefault": 39,
+    "explicitAdminConstructedColumns": 39,
+    "missingRequiredColumnsAfterFix": [],
+    "diffCheck": true
+  },
+  "limits": [
+    "Schema/constructor field coverage is static evidence, not execution of fixed admin method",
+    "Actual admin creation/perfect reward/announcement awaiting manual Java rebuild",
+    "Production anonymous/captcha/blacklist/unlock/CDN/directory/upload-download not exercised; existing auth routes unchanged"
+  ],
+  "next": [
+    "User IDEA rebuild/restart ArticleMgmtService.java",
+    "Repeat original admin form; observe actual type22/15 events",
+    "Check current title and visibility through v3",
+    "Normal admin deletion cleans test content/notifications; retain real reward ledger"
+  ]
+}
