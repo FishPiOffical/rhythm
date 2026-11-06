@@ -245,3 +245,5 @@
 - 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。
 
 
+
+- v3公开资料`ApiV3DiscoveryQueryService.profile`返回cardBg/userPoint/onlineMinute，cardBg只读目标system_settings的单字段并校验图片URL，禁止裸返settings；余额和累计分钟沿用主页公开展示，userPointStatus为流水权限、userOnlineStatus为在线标志权限，不能混为余额/累计时长。

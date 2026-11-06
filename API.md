@@ -2540,6 +2540,9 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa'
 | - id / userName | 用户 ID / 用户名 |
 | - userNickname / userAvatarURL | 昵称 / 头像 |
 | - userIntro / userURL | 个人介绍文本 / 个人网址 |
+| - cardBg | 个性卡片背景图片 URL，未设置或无有效图片地址时为空字符串 |
+| - userPoint | 当前积分余额，整数 |
+| - onlineMinute | 累计在线时长，单位分钟，非负整数 |
 
 > 用户不存在或不可用时返回 HTTP 404。 资料及相关列表按当前账号状态和隐私范围读取；收回公开权限后，无权读者的相关列表返回 HTTP 403，本人和符合既有权限的管理员例外保持。
 

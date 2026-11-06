@@ -177,7 +177,10 @@ public class ApiV3CurrentContentTest {
                 System.out.println("PASS current notification actor 3 current actor lookup failure propagates instead of falling back to stale identity");
             } finally {queryFailure=false;sql("DELETE FROM users WHERE oId='4'");sql("DELETE FROM comments WHERE oId='40'");cache.get("users").remove("4");}
             var profileViewer=new JSONObject().put("oId","2").put("userName","reader").put("userRole","defaultRole");
-            var discovery=new ApiV3DiscoveryQueryService();inject(discovery,"userRepository",users);inject(discovery,"contentDtoService",dto);inject(discovery,"breezemoonRepository",new BreezemoonRepository());
+            sql("ALTER TABLE users ADD COLUMN userPoint BIGINT DEFAULT 0");
+            sql("ALTER TABLE users ADD COLUMN onlineMinute BIGINT DEFAULT 0");
+            sql("CREATE TABLE system_settings(oId VARCHAR(19),userId VARCHAR(19),settings TEXT)");
+            var discovery=new ApiV3DiscoveryQueryService();inject(discovery,"systemSettingsRepository",new SystemSettingsRepository());inject(discovery,"userRepository",users);inject(discovery,"contentDtoService",dto);inject(discovery,"breezemoonRepository",new BreezemoonRepository());
             for(String field:List.of("userArticleStatus","userCommentStatus","userBreezemoonStatus","userPointStatus","userFollowerStatus","userFollowingUserStatus","userFollowingTagStatus","userFollowingArticleStatus","userWatchingArticleStatus")){
                 sql("ALTER TABLE users ADD COLUMN "+field+" INTEGER DEFAULT 0");
                 discovery.requireUserList(discovery.targetUser("author"),profileViewer,field);
@@ -189,10 +192,32 @@ public class ApiV3CurrentContentTest {
                 sql("UPDATE users SET "+field+"=0 WHERE oId='1'");
             }
             sql("UPDATE users SET userNickname='Fresh public name',userPassword='PRIVATE_PASSWORD',userPhone='PRIVATE_PHONE' WHERE oId='1'");
+            sql("UPDATE users SET userPoint=12345,onlineMinute=1501 WHERE oId='1'");
             var publicProfile=discovery.profile(discovery.targetUser("author"));check(publicProfile.getString("userNickname").equals("Fresh public name")&&!publicProfile.toString().contains("PRIVATE_"));
             for(int status:new int[]{1,4}){sql("UPDATE users SET userStatus="+status+" WHERE oId='1'");try{discovery.targetUser("author");throw new AssertionError();}catch(ApiV3Exception denied){check(denied.status==404);}}
             sql("UPDATE users SET userStatus=0,userName='renamed_author' WHERE oId='1'");try{discovery.targetUser("author");throw new AssertionError();}catch(ApiV3Exception denied){check(denied.status==404);}check(discovery.targetUser("renamed_author").getString("oId").equals("1"));
             sql("UPDATE users SET userName='author' WHERE oId='1'");
+            var profile = discovery.profile(discovery.targetUser("author"));
+            check(profile.keySet().equals(Set.of("id","userName","userNickname","userAvatarURL","userIntro","userURL","cardBg","userPoint","onlineMinute")));
+            check(profile.getString("cardBg").isEmpty() && profile.getLong("userPoint")==12345 && profile.getLong("onlineMinute")==1501);
+            var settings = new JSONObject().put("cardBg","https://images.example.test/bg.gif?signature=a%2Bb&x=1").put("qq","PRIVATE_CONTACT");
+            try(var statement=db.prepareStatement("INSERT INTO system_settings VALUES(?,?,?)")){statement.setString(1,"s1");statement.setString(2,"1");statement.setString(3,settings.toString());statement.executeUpdate();db.commit();}
+            profile=discovery.profile(discovery.targetUser("author"));
+            check(profile.getString("cardBg").equals(settings.getString("cardBg")) && !profile.toString().contains("PRIVATE_CONTACT"));
+            for(String background:List.of("javascript:alert(1)","//untrusted.test/bg.png","data:image/svg+xml,bad","https://u:p@example.test/bg.png","https://example.test/\\bad")){
+                settings.put("cardBg",background);
+                try(var statement=db.prepareStatement("UPDATE system_settings SET settings=? WHERE userId='1'")){statement.setString(1,settings.toString());statement.executeUpdate();db.commit();}
+                check(discovery.profile(discovery.targetUser("author")).getString("cardBg").isEmpty());
+            }
+            settings.put("cardBg","/images/background.gif?signature=a%2Bb");
+            try(var statement=db.prepareStatement("UPDATE system_settings SET settings=? WHERE userId='1'")){statement.setString(1,settings.toString());statement.executeUpdate();db.commit();}
+            check(discovery.profile(discovery.targetUser("author")).getString("cardBg").equals(settings.getString("cardBg")));
+            sql("UPDATE users SET userPoint=-5,onlineMinute=0 WHERE oId='1'");
+            profile=discovery.profile(discovery.targetUser("author"));check(profile.getLong("userPoint")==-5 && profile.getLong("onlineMinute")==0);
+            sql("UPDATE system_settings SET settings='invalid-json' WHERE userId='1'");
+            try{discovery.profile(discovery.targetUser("author"));throw new AssertionError();}catch(ApiV3Exception invalid){check(invalid.status==503);}
+            sql("DELETE FROM system_settings");
+            System.out.println("PASS public profile background/current points/minutes, signed URL preservation, settings whitelist, invalid URLs, corrupt JSON and zero/signed statistics");
             System.out.println("PASS current content 9 actual profile target/privacy methods use current status, rename and all nine list flags despite warm cached users; owner/exact-admin rules and public field whitelist remain");
             sql("CREATE TABLE breezemoon(oId VARCHAR(19) PRIMARY KEY,breezemoonAuthorId VARCHAR(19),breezemoonStatus INTEGER,breezemoonContent TEXT,breezemoonCreated BIGINT,breezemoonUpdated BIGINT)");
             sql("INSERT INTO breezemoon VALUES('50','1',0,'CURRENT_BREEZEMOON',1,2)");

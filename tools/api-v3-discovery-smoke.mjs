@@ -89,8 +89,8 @@ const publicUser = process.env.API_V3_PUBLIC_USER;
 if (publicUser) {
   const root = `/users/${encodeURIComponent(publicUser)}`;
   await check('public profile', async () => {
-    const data = await request(root); assert.equal(data.userName.toLowerCase(), publicUser.toLowerCase());
-    assert.deepEqual(Object.keys(data).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL', 'userIntro', 'userURL'].sort());
+    const data = await request(root); assert.equal(data.userName.toLowerCase(), publicUser.toLowerCase());assert.equal(typeof data.cardBg,'string');assert.ok(Number.isSafeInteger(data.userPoint));assert.ok(Number.isSafeInteger(data.onlineMinute)&&data.onlineMinute>=0);
+    assert.deepEqual(Object.keys(data).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL', 'userIntro', 'userURL', 'cardBg', 'userPoint', 'onlineMinute'].sort());
   });
   for (const suffix of suffixes) await check(`public user list ${suffix}`, async () => page(await request(`${root}${suffix}?size=2`)));
 } else console.log('SKIP public profile lists: set API_V3_PUBLIC_USER with all tested lists public');

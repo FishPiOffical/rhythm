@@ -35,6 +35,7 @@ import org.b3log.symphony.model.Breezemoon;
 import org.b3log.symphony.model.Domain;
 import org.b3log.symphony.model.Follow;
 import org.b3log.symphony.model.Tag;
+import org.b3log.symphony.model.SystemSettings;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.BreezemoonRepository;
@@ -44,12 +45,15 @@ import org.b3log.symphony.repository.FollowRepository;
 import org.b3log.symphony.repository.TagArticleRepository;
 import org.b3log.symphony.repository.TagRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.SystemSettingsRepository;
 import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3ContentSnapshots;
 import org.b3log.symphony.util.ApiV3ArticleStickState;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.ApiV3ProfileQueries;
 import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3AvatarUrl;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
 import org.json.JSONArray;
@@ -69,6 +73,7 @@ public class ApiV3DiscoveryQueryService {
     @Inject private FollowRepository followRepository;
     @Inject private ArticleRepository articleRepository;
     @Inject private UserRepository userRepository;
+    @Inject private SystemSettingsRepository systemSettingsRepository;
     @Inject private BreezemoonRepository breezemoonRepository;
     @Inject private ApiV3ContentDtoService contentDtoService;
 
@@ -243,8 +248,30 @@ public class ApiV3DiscoveryQueryService {
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
-    public JSONObject profile(final JSONObject user) {
-        return author(user).put("userIntro", user.optString(UserExt.USER_INTRO)).put("userURL", user.optString(User.USER_URL));
+    public JSONObject profile(final JSONObject user) throws RepositoryException {
+        final long points = user.getLong(UserExt.USER_POINT);
+        final long onlineMinutes = user.getLong(UserExt.ONLINE_MINUTE);
+        if (points < -9007199254740991L || points > 9007199254740991L || onlineMinutes < 0 || onlineMinutes > 9007199254740991L) {
+            throw new ApiV3Exception(503, "temporarily_unavailable", "用户统计暂不可用");
+        }
+        return author(user).put("userIntro", user.optString(UserExt.USER_INTRO))
+                .put("userURL", user.optString(User.USER_URL))
+                .put("cardBg", cardBackground(user.optString(Keys.OBJECT_ID)))
+                .put("userPoint", points).put("onlineMinute", onlineMinutes);
+    }
+
+    private String cardBackground(final String userId) throws RepositoryException {
+        final var rows = systemSettingsRepository.select("SELECT settings FROM `" + systemSettingsRepository.getName()
+                + "` WHERE userId=? LIMIT 2", userId);
+        if (rows.isEmpty()) return "";
+        if (rows.size() != 1) throw new ApiV3Exception(503, "temporarily_unavailable", "个性卡片配置暂不可用");
+        try {
+            final JSONObject settings = new JSONObject(rows.getFirst().getString(SystemSettings.SETTINGS));
+            final Object background = settings.opt("cardBg");
+            return background instanceof String url ? ApiV3AvatarUrl.stored(url) : "";
+        } catch (final org.json.JSONException e) {
+            throw new ApiV3Exception(503, "temporarily_unavailable", "个性卡片配置暂不可用");
+        }
     }
 
     public void requireUserList(final JSONObject user, final JSONObject viewer, final String field) {
