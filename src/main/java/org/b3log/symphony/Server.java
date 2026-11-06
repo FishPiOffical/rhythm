@@ -307,8 +307,11 @@ public final class Server extends BaseServer {
         });
 
         Thread.startVirtualThread(() -> {
+            System.err.println("[Rhys-TRACE] === NodeUtil.init() start ===");
             NodeUtil.init();
+            System.err.println("[Rhys-TRACE] === NodeUtil.initOnline() start ===");
             NodeUtil.initOnline();
+            System.err.println("[Rhys-TRACE] === NodeUtil init cycle done ===");
         });
 
         String startupTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());

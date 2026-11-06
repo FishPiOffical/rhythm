@@ -91,22 +91,6 @@ public class BeforeRequestHandler implements Handler {
             return;
         }
 
-        // CORS preflight and response headers for /api/v3/*
-        final String origin = context.header("Origin");
-        if (origin != null && context.requestURI().startsWith("/api/v3")) {
-            context.setHeader("Access-Control-Allow-Origin", origin);
-            context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
-            context.setHeader("Access-Control-Allow-Credentials", "true");
-            context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
-            context.setHeader("Access-Control-Max-Age", "86400");
-            if ("OPTIONS".equals(context.method())) {
-                context.sendStatus(204);
-                context.abort();
-                return;
-            }
-        }
-
         // 先重置会话默认值，再交给 fillBotAttrs 按 UA 覆盖，避免移动端标记被后续重置冲掉
         Sessions.setTemplateDir(Symphonys.SKIN_DIR_NAME);
         Sessions.setMobile(false);
@@ -132,6 +116,23 @@ public class BeforeRequestHandler implements Handler {
             context.sendRedirect("/test");
             context.abort();
             return;
+        }
+
+        // CORS 头放在全局盾链（无UA→418、fillBotAttrs、Firewall 429、黑名单→/test）之后，
+        // 确保 OPTIONS 预检也走完整反漏扫校验链
+        final String origin = context.header("Origin");
+        if (origin != null && context.requestURI().startsWith("/api/v3")) {
+            context.setHeader("Access-Control-Allow-Origin", origin);
+            context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
+            context.setHeader("Access-Control-Allow-Credentials", "true");
+            context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
+            context.setHeader("Access-Control-Max-Age", "86400");
+            if ("OPTIONS".equals(context.method())) {
+                context.sendStatus(204);
+                context.abort();
+                return;
+            }
         }
 
         Locales.setLocale(Latkes.getLocale());
