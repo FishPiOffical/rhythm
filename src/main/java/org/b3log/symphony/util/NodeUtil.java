@@ -114,6 +114,7 @@ public class NodeUtil {
         uriNodes.addAll(tmp_uriNodes);
         nodeNickNames.putAll(tmp_nodeNickNames);
         nodeWeights.putAll(tmp_nodeWeights);
+        LOGGER.info("[Rhys init] init() done. uriNodes={}, wsNodes={}", uriNodes, wsNodes.size());
     }
 
     public static void notice(String text) {
