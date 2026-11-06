@@ -346,7 +346,10 @@ public class ApiV3Processor {
             final URI uri = new URI(value);
             if (!("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))) return false;
             final String authority = uri.getRawAuthority();
-            if (!host.equalsIgnoreCase(authority)) return false;
+            final String lowerHost = host.toLowerCase();
+            final String lowerAuthority = authority.toLowerCase();
+            // 完全匹配 或 以 "." + host 结尾（仅限本站子域名，evil-fishpi.cn 过不了）
+            if (!lowerHost.equals(lowerAuthority) && !lowerAuthority.endsWith("." + lowerHost)) return false;
             return !allowPath || StringUtils.isNotBlank(uri.getRawPath());
         } catch (final Exception e) {
             return false;
