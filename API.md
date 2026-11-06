@@ -14046,41 +14046,35 @@ curl 'https://fishpi.cn/api/v3/me/membership' \
 > 未开通或已过期返回 active=false、空 levelCode、expiresAt=0 和空 config。未识别或格式不合法的可选权益字段不返回。
 
 
-### 批量读取会员昵称样式
+### 全量会员昵称样式快照
 
 `GET /api/v3/membership/styles`
 
-读取指定用户当前可用的会员昵称样式，需要 profile.read。
-
-请求：
-
-| Key | 说明 | 示例 |
-| --- | --- | --- |
-| Authorization | 请求头，Bearer accessToken | Bearer YOUR_ACCESS_TOKEN |
-| userIds | 必填，英文逗号分隔的用户ID，1至100个；不接受重复、空白或空项 | 123,456 |
-
-请求示例：
+需要 `profile.read` 与有效 Bearer。首次不带参数，返回全部当前有效会员的展示配置；不再接受 `userIds`。之后传 `version`（64位小写 SHA-256），相同版本仅确认未变化，不重复传输名单。版本由排序后全部展示内容生成，人数不变但配置修改、会员新增/失效、自然到期都会改变版本。
 
 ```bash
+curl 'https://fishpi.cn/api/v3/membership/styles' --header 'Authorization: Bearer YOUR_ACCESS_TOKEN'
 curl --get 'https://fishpi.cn/api/v3/membership/styles' \
   --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
-  --data-urlencode 'userIds=123,456'
+  --data-urlencode 'version=PREVIOUS_64_CHARACTER_VERSION'
 ```
 
-响应：
+响应 data：
 
-| Key | 说明 | 示例 |
-| --- | --- | --- |
-| code | 0 表示成功 | 0 |
-| data | 查询结果 | `{...}` |
-| - list | 与请求ID顺序相同的列表 | `[...]` |
-| -- userId | 请求的用户ID | 123 |
-| -- style | 当前可展示的样式，无样式时为空对象 | `{...}` |
-| --- bold | 加粗，仅档位支持且本人设置有效时返回 | true |
-| --- underline | 下划线，仅档位支持且本人设置有效时返回 | false |
-| --- color | `#RRGGBB`；有效VIP4额外支持已公布的八种颜色效果 | #FF8800 |
+| 字段 | 说明 |
+| --- | --- |
+| version | 当前完整展示快照的 SHA-256，64位小写十六进制 |
+| unchanged | 与请求 version 相同为 true，此时不返回 list |
+| maxAgeMs | 本次可缓存毫秒数，0～30000；受最近会员自然到期时间约束 |
+| list | 仅 unchanged=false 时返回，按用户 ID 字符串稳定排序的完整列表 |
+| list[].userId | 用户 ID 字符串 |
+| list[].configJson | 规范化 JSON 字符串，仅包含 bold、underline、color；异常/重复绑定或缺少合法档位定义时为 null，表示未知 |
 
-> 只返回 bold、underline、color，不返回会员档位、到期时间、原始配置或其他权益。没有有效会员、账号不可用或用户不存在时，style 为空对象；不会补入默认样式。重复ID、超过100项或参数格式错误返回 HTTP 422。
+`configJson="{}"` 表示没有可展示字段；`null` 不能解释为非会员。color 为 `#RRGGBB`，有效 VIP4 另外支持八种效果；只投影档位支持且本人设置有效的字段，不补默认值。不返回原始配置中的自动签到等其他权益、会员档位、到期时间或后台字段。过期/停用用户不进入正常名单；异常到期数据无法判断时保留 ID，配置为 null。
+
+服务端单节点共享快照最长30秒，同节点会员缓存变更或档位修改后失效，自然到期会提前失效；其他节点/直接 SQL 更新由 TTL 兜底。缓存命中与 unchanged 均重新验证当前账号，HTTP仍为 `Cache-Control: no-store`；客户端仅内存缓存。没有新增匿名豁免或 Cookie/apiKey 回退。
+
+单次输入候选（含重复关联行）最多10000条、原始配置/档位输入与规范化输出各最多2000000字节；超预算503，不以截断结果冒充完整名单。单个损坏配置为null，不拖垮其余用户；数据库不可用仍为503。参数污染、旧userIds、非法版本返回422。
 
 ### 设置本人会员展示
 
