@@ -486,6 +486,20 @@ public class ArticleMgmtService {
                 return;
             }
 
+            // Best-effort long-article eligibility check runs OUTSIDE the view-count transaction.
+            // The capture service opens its own transaction and may throw ApiV3Exception for
+            // ineligible callers (guest, own article, non-long article). Latke's Javassist handler
+            // sees any active TX on that throw and rollbacks it — which would nuke the caller's
+            // TX if they shared the same ThreadLocal. Keep the two write paths isolated.
+            try {
+                longArticleReadService.record(new LongArticleReadCaptureRequest(articleId,
+                        visit.optString(Visit.VISIT_USER_ID), visit.optString(Visit.VISIT_IP),
+                        visit.optString(Visit.VISIT_UA)));
+            } catch (final Exception ignored) {
+                // captureService swallows ApiV3Exception internally; anything else is best-effort only.
+            }
+            ApiV3Transactions.releaseThreadResources(); // ensure no stale TX leaks into the next block
+
             final Transaction transaction = ApiV3Transactions.strict(articleRepository.beginTransaction());
             try {
                 final JSONObject article = articleRepository.get(articleId);
@@ -495,10 +509,6 @@ public class ArticleMgmtService {
                     }
                     return;
                 }
-
-                longArticleReadService.record(new LongArticleReadCaptureRequest(articleId,
-                        visit.optString(Visit.VISIT_USER_ID), visit.optString(Visit.VISIT_IP),
-                        visit.optString(Visit.VISIT_UA)));
 
                 final int viewCnt = article.optInt(Article.ARTICLE_VIEW_CNT);
                 article.put(Article.ARTICLE_VIEW_CNT, viewCnt + 1);
