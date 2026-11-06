@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_chat_state` (
   `revision` BIGINT NOT NULL DEFAULT 0,
   `updatedAt` BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT IGNORE INTO `symphony_api_v3_chat_state` (`oId`,`revision`,`updatedAt`) VALUES ('main',0,0);
 
@@ -25,21 +25,21 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_chat_event` (
   PRIMARY KEY (`oId`),
   UNIQUE KEY `uk_api_v3_chat_event_revision` (`revision`),
   KEY `idx_api_v3_chat_event_created` (`createdAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_article_revision` (
   `oId` VARCHAR(19) NOT NULL,
   `revision` VARCHAR(32) NOT NULL,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_notification_revision` (
   `oId` VARCHAR(19) NOT NULL,
   `revision` VARCHAR(32) NOT NULL,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_socket_ticket` (
   `oId` VARCHAR(64) NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_socket_ticket` (
   PRIMARY KEY (`oId`),
   KEY `idx_api_v3_socket_ticket_expiry` (`expiresAt`),
   KEY `idx_api_v3_socket_ticket_parent` (`parentTokenId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 SET @api_v3_socket_channel_sql = IF(
   EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_client` (
   `status` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`oId`),
   UNIQUE KEY `uk_api_v3_client_id` (`clientId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_token` (
   `oId` VARCHAR(19) NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_token` (
   KEY `idx_api_v3_token_family_state` (`familyId`, `state`),
   KEY `idx_api_v3_token_user_client` (`userId`, `clientId`),
   KEY `idx_api_v3_token_expires` (`expiresAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_request` (
   `oId` VARCHAR(64) NOT NULL,
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_request` (
   `createdAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`),
   KEY `idx_api_v3_request_user_created` (`userId`, `createdAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 UPDATE `symphony_api_v3_client`
 SET `scope` = CONCAT(`scope`, ' notifications.read notifications.write')
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_private_revision` (
   `revision` VARCHAR(32) NOT NULL,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --- A5: 20261023_api_v3_mfa.sql ---
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_mfa_preparation` (
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet` (
  `feeRecipientId` VARCHAR(19) NOT NULL,
  `createdAt` BIGINT NOT NULL,
  PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet_slot` (
  `oId` VARCHAR(64) NOT NULL,
  `messageId` VARCHAR(19) NOT NULL,
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet_slot` (
  PRIMARY KEY (`oId`),
  UNIQUE KEY `uk_chat_packet_ordinal` (`messageId`,`ordinal`),
  KEY `idx_chat_packet_claim` (`messageId`,`claimUserId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --- A7: 20261024_api_v3_post_export.sql ---
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_post_export` (
@@ -292,7 +292,7 @@ CREATE TABLE IF NOT EXISTS `symphony_account_credential_state` (
   `credentialEpoch` BIGINT NOT NULL DEFAULT 0,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `symphony_openid_refresh_token`
   ADD COLUMN `credentialEpoch` BIGINT NOT NULL DEFAULT 0;
@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS `symphony_account_contact_code` (
   `createdAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`),
   UNIQUE KEY `uk_contact_owner_purpose` (`userId`,`purpose`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --- B3: 20261023_api_v3_fish_game_submission.sql ---
 ALTER TABLE `symphony_fish_game`

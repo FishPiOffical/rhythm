@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet` (
  `feeRecipientId` VARCHAR(19) NOT NULL,
  `createdAt` BIGINT NOT NULL,
  PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet_slot` (
  `oId` VARCHAR(64) NOT NULL,
  `messageId` VARCHAR(19) NOT NULL,
@@ -26,4 +26,4 @@ CREATE TABLE IF NOT EXISTS `symphony_chat_red_packet_slot` (
  PRIMARY KEY (`oId`),
  UNIQUE KEY `uk_chat_packet_ordinal` (`messageId`,`ordinal`),
  KEY `idx_chat_packet_claim` (`messageId`,`claimUserId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

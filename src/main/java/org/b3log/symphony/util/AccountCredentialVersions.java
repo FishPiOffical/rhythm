@@ -50,7 +50,14 @@ public final class AccountCredentialVersions {
     public static boolean matches(String actor,long expected) {Proof now=current(actor);return now!=null&&now.epoch()==expected;}
     public static boolean authenticate(String actor,JSONObject credential,String password) {
         clear();long expected=payloadEpoch(credential);Proof current=current(actor);
-        if(current==null||current.epoch()!=expected||!current.password().equals(password))return false;
+        if(current==null)return false;
+        if(current.epoch()==0){
+            // state snapshot 尚未写入（存量用户/首次使用），降级为纯密码比对
+            // 任何后续凭据变更（改密码/注销）都会 increment epoch 从 0→1 从此进入强校验
+            if(!current.password().equals(password))return false;
+            CURRENT.set(new Proof(actor,0,password));return true;
+        }
+        if(current.epoch()!=expected||!current.password().equals(password))return false;
         CURRENT.set(current);return true;
     }
     /** Issuance uses a verified proof, and rechecks it rather than upgrading it to a newer SQL epoch. */

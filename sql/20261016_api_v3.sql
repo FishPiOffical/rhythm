@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_chat_state` (
   `revision` BIGINT NOT NULL DEFAULT 0,
   `updatedAt` BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT IGNORE INTO `symphony_api_v3_chat_state` (`oId`,`revision`,`updatedAt`) VALUES ('main',0,0);
 
@@ -16,21 +16,21 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_chat_event` (
   PRIMARY KEY (`oId`),
   UNIQUE KEY `uk_api_v3_chat_event_revision` (`revision`),
   KEY `idx_api_v3_chat_event_created` (`createdAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_article_revision` (
   `oId` VARCHAR(19) NOT NULL,
   `revision` VARCHAR(32) NOT NULL,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_notification_revision` (
   `oId` VARCHAR(19) NOT NULL,
   `revision` VARCHAR(32) NOT NULL,
   `updatedAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_socket_ticket` (
   `oId` VARCHAR(64) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_socket_ticket` (
   PRIMARY KEY (`oId`),
   KEY `idx_api_v3_socket_ticket_expiry` (`expiresAt`),
   KEY `idx_api_v3_socket_ticket_parent` (`parentTokenId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Upgrade already deployed ticket tables; old grants retain their notification binding.
 SET @api_v3_socket_channel_sql = IF(
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_client` (
   `status` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`oId`),
   UNIQUE KEY `uk_api_v3_client_id` (`clientId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_token` (
   `oId` VARCHAR(19) NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_token` (
   KEY `idx_api_v3_token_family_state` (`familyId`, `state`),
   KEY `idx_api_v3_token_user_client` (`userId`, `clientId`),
   KEY `idx_api_v3_token_expires` (`expiresAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `symphony_api_v3_request` (
   `oId` VARCHAR(64) NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS `symphony_api_v3_request` (
   `createdAt` BIGINT NOT NULL,
   PRIMARY KEY (`oId`),
   KEY `idx_api_v3_request_user_created` (`userId`, `createdAt`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Upgrade only the original default website client policy. Preserve customized client scopes.
 UPDATE `symphony_api_v3_client`
