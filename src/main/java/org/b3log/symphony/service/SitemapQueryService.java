@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
@@ -109,7 +110,9 @@ public class SitemapQueryService {
     public void genArticles(final Sitemap sitemap) {
         final Query query = new Query().setPage(1, Integer.MAX_VALUE).setPageCount(Integer.MAX_VALUE).
                 select(Keys.OBJECT_ID, Article.ARTICLE_UPDATE_TIME).
-                setFilter(new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.NOT_EQUAL, Article.ARTICLE_STATUS_C_INVALID)).
+                setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(Article.ARTICLE_STATUS, FilterOperator.NOT_EQUAL, Article.ARTICLE_STATUS_C_INVALID),
+                        new PropertyFilter(Article.ARTICLE_ANONYMOUS_VIEW, FilterOperator.NOT_EQUAL, Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW))).
                 addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
         try {
             final List<JSONObject> articles = articleRepository.getList(query);

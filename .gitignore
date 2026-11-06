@@ -14,7 +14,6 @@ ChatRoom.tmp
 delegated-apnic-latest.tmp
 *.lock
 .fleet/
-scripts/deploy.ps1
+/scripts/
 /.codex-tasks/
 /cdn-version-replacements/
-/scripts/update-duckduckgo-bot-prefixes.ps1

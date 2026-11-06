@@ -720,14 +720,26 @@ public class AdminProcessor {
             switch (type) {
                 case "unban":
                     for (String ip : ipList) {
+                        ip = ip.trim();
+                        if (ip.isEmpty()) {
+                            continue;
+                        }
                         Firewall.unbanIp(ip);
                         AnonymousViewCheckMidware.whiteList.add(ip);
                         AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
+                        AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
+                        AnonymousViewCheckMidware.ipFirstVisitTimeCache.invalidate(ip);
+                        AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
                         LogsService.simpleLog(context, "解封IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
                     break;
                 case "ban":
                     for (String ip : ipList) {
+                        ip = ip.trim();
+                        if (ip.isEmpty()) {
+                            continue;
+                        }
+                        AnonymousViewCheckMidware.whiteList.remove(ip);
                         Firewall.banIp(ip);
                         LogsService.simpleLog(context, "封禁IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }

@@ -128,11 +128,11 @@ public class CaptchaProcessor {
             AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
             AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
             AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
+            LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=放行 原因=验证码通过", ip);
             context.renderJSON(StatusCodes.SUCC);
-            System.out.println(ip + " 验证成功");
         } else {
+            LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=拒绝 原因=验证码错误", ip);
             context.renderJSON(StatusCodes.ERR);
-            System.out.println(ip + " 验证失败");
         }
     }
 
