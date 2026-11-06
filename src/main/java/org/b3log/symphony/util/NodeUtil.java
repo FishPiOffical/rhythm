@@ -190,24 +190,33 @@ public class NodeUtil {
     }
 
     public static void initOnline() {
+        LOGGER.info("[Rhys init] === loading Rhys nodes, configured URL: {} ===", Symphonys.get("chatroom.node.url"));
+        LOGGER.info("[Rhys init] === adminKey present: {} ===", Symphonys.get("chatroom.node.adminKey") != null && !Symphonys.get("chatroom.node.adminKey").isEmpty());
         JSONArray onlineList = new JSONArray();
         Map<String, Integer> tmp_wsOnline = new HashMap<>();
         HashMap<String, HashMap<String, Integer>> tmp_remoteUserPerNode = new HashMap<>();
         for (String i : uriNodes) {
+            LOGGER.info("[Rhys init] --- connecting node: {} ---", i);
             tmp_remoteUserPerNode.put(i, new HashMap<>());
             try {
                 String serverUri = i + "?apiKey=" + Symphonys.get("chatroom.node.adminKey");
+                LOGGER.info("[Rhys init]   serverUri: {}", serverUri.replace(Symphonys.get("chatroom.node.adminKey"), "<REDACTED>"));
                 SSLContext sslContext = createInsecureSSLContext();
+                LOGGER.info("[Rhys init]   SSL context created");
                 HttpClient client = HttpClient.newBuilder()
                         .sslContext(sslContext)
                         .build();
+                LOGGER.info("[Rhys init]   HttpClient built, building WebSocket...");
                 CompletableFuture<String> responseFuture = new CompletableFuture<>();
                 WebSocket webSocket = client.newWebSocketBuilder()
                         .buildAsync(URI.create(serverUri), new WebSocketListener(responseFuture))
                         .join();
+                LOGGER.info("[Rhys init]   WebSocket connected: {}", webSocket);
                 webSocket.sendText(Symphonys.get("chatroom.node.adminKey") + ":::online", true);
+                LOGGER.info("[Rhys init]   sent online request, waiting up to 10s...");
                 try {
                     String response = responseFuture.get(10, TimeUnit.SECONDS);
+                    LOGGER.info("[Rhys init]   node {} responded, length={}", i, response.length());
                     JSONArray jsonArray = new JSONArray(response);
                     for (int j = 0; j < jsonArray.length(); j++) {
                         onlineList.put(jsonArray.get(j));
@@ -220,14 +229,16 @@ public class NodeUtil {
                         }
                     }
                     tmp_wsOnline.put(i, jsonArray.length());
-                    webSocket.sendClose(1000, "Nornal Closure");
+                    LOGGER.info("[Rhys init]   node {} online users: {}", i, jsonArray.length());
+                    webSocket.sendClose(1000, "Normal Closure");
                 } catch (Exception e) {
-                    webSocket.sendClose(1000, "Nornal Closure");
-                    LOGGER.log(Level.ERROR, serverUri + " No response within 10 seconds. giveup.", e);
+                    LOGGER.log(Level.ERROR, "[Rhys init]   node {} No response within 10 seconds. giveup.", i, e);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                LOGGER.log(Level.ERROR, "[Rhys init]   node {} connection FAILED: {}", i, e.getMessage(), e);
             }
         }
+        LOGGER.info("[Rhys init] === node scan done. wsOnline keys: {}, expected nodes: {} ===", tmp_wsOnline.keySet(), Symphonys.get("chatroom.node.url"));
         remoteUsers = onlineList;
 
         final var names = new java.util.HashSet<String>();
