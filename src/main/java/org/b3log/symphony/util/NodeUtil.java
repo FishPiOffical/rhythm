@@ -193,10 +193,15 @@ public class NodeUtil {
     public static void initOnline() {
         LOGGER.info("[Rhys init] === loading Rhys nodes, configured URL: {} ===", Symphonys.get("chatroom.node.url"));
         LOGGER.info("[Rhys init] === adminKey present: {} ===", Symphonys.get("chatroom.node.adminKey") != null && !Symphonys.get("chatroom.node.adminKey").isEmpty());
+        final long deadline = System.currentTimeMillis() + 15_000L; // 总超时 15s，不管多少个节点
         JSONArray onlineList = new JSONArray();
         Map<String, Integer> tmp_wsOnline = new HashMap<>();
         HashMap<String, HashMap<String, Integer>> tmp_remoteUserPerNode = new HashMap<>();
         for (String i : uriNodes) {
+            if (System.currentTimeMillis() > deadline) {
+                LOGGER.warn("[Rhys init]   global deadline reached, skipping remaining nodes. Success so far: {}", tmp_wsOnline.keySet());
+                break;
+            }
             LOGGER.info("[Rhys init] --- connecting node: {} ---", i);
             tmp_remoteUserPerNode.put(i, new HashMap<>());
             try {
