@@ -33,8 +33,9 @@ import static org.b3log.symphony.processor.ApiV3MembershipTest.*;
 public final class ApiV3MembershipStyleTest {
     static final String PATH="/api/v3/membership/styles";
     static final class F implements AutoCloseable {
+        long time = 1000;
         final Fixture db=new Fixture();
-        final ApiV3MembershipStyleQueryService query=new ApiV3MembershipStyleQueryService(){protected long now(){return 1000;}};
+        final ApiV3MembershipStyleQueryService query=new ApiV3MembershipStyleQueryService(){protected long now(){return time;}};
         final ApiV3MembershipStyleProcessor processor=new ApiV3MembershipStyleProcessor();
         F()throws Exception{
             injectSuper(query,"users",new UserRepository(){public String getName(){return "user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return db.read(q,a);}});
@@ -60,51 +61,74 @@ public final class ApiV3MembershipStyleTest {
         public void close()throws Exception{db.close();}
     }
     static void injectSuper(Object target,String field,Object value)throws Exception{var f=target.getClass().getSuperclass().getDeclaredField(field);f.setAccessible(true);f.set(target,value);}
-    static JSONObject style(JSONObject response,int n){return data(response).getJSONArray("list").getJSONObject(n).getJSONObject("style");}
-    public static void main(String[] args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
-        try(var f=new F()){
-            for(String token:Arrays.asList(null,"bad","content"))equal(f.http(token,"userIds=1").getInt("status"),token==null||token.equals("bad")?401:403);
+    static String revision(JSONObject response) { return data(response).getString("version"); }
+    static JSONObject item(JSONObject response, String id) {
+        for (Object value : data(response).getJSONArray("list")) if (((JSONObject) value).getString("userId").equals(id)) return (JSONObject) value;
+        throw new AssertionError("Missing user " + id);
+    }
+    static JSONObject config(JSONObject response, String id) { return new JSONObject(item(response,id).getString("configJson")); }
+    static void invalidate() { org.b3log.symphony.util.MembershipStyleCache.invalidate(); }
+    public static void main(String[] args) throws Exception {
+        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("runtimeCache","LOCAL_LRU");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+        try(var f=new F()) {
+            for(String token:Arrays.asList(null,"bad","content")) equal(f.http(token,null).getInt("status"),token==null||token.equals("bad")?401:403);
             check(f.db.sql.isEmpty(),"denied before SQL");
-            for(String params:Arrays.asList(null,"","userIds=","userIds=1,1","userIds=01","userIds=0","userIds=1,","userIds=1%20","userIds=1%27","userIds=1&userIds=2","userIds=1&apiKey=legacy","userIds=1&userId=2","userIds=%C0%AF","userIds=%"))equal(f.http("profile",params).getInt("status"),422);
+            for(String params:List.of("userIds=1","version=","version=x","version="+"A".repeat(64),"version="+"a".repeat(64)+"&version="+"a".repeat(64),"apiKey=legacy","version=%C0%AF","version=%")) equal(f.http("profile",params).getInt("status"),422);
             check(f.db.sql.isEmpty(),"invalid query before SQL");
-            equal(f.http("profile","userIds="+String.join(",",java.util.stream.IntStream.rangeClosed(1,101).mapToObj(String::valueOf).toList())).getInt("status"),422);
         }
-        System.out.println("PASS styles 1 actual GET route/profile scope, no Cookie/apiKey fallback, strict raw query rejects pollution/duplicates/malformed IDs and size before SQL");
-        try(var f=new F()){
+        System.out.println("PASS snapshot 1 actual route/profile scope, no Cookie/apiKey fallback and strict optional version rejects pollution/legacy userIds before SQL");
+        try(var f=new F()) {
             f.level("VIP4_YEAR","{\"bold\":true,\"underline\":false,\"color\":\"#FFFFFF\",\"autoCheckin\":true}");
-            f.membership("1","VIP4_YEAR",0,"{\"bold\":false,\"underline\":true,\"color\":\"galaxy\",\"autoCheckin\":true,\"secret\":\"PRIVATE\"}");
-            final var response=f.http("profile","userIds=2%2C1%2C999");final var list=data(response).getJSONArray("list");equal(list.length(),3);
-            equal(list.getJSONObject(0).getString("userId"),"2");check(style(response,0).isEmpty(),"non-member empty");
-            equal(style(response,1).keySet(),Set.of("bold","underline","color"));equal(style(response,1).getString("color"),"galaxy");check(!style(response,1).getBoolean("bold"),"explicit false preserved");
-            check(style(response,2).isEmpty(),"unknown ID no account enumeration");equal(f.db.sql.size(),2);
-            check(list.getJSONObject(1).keySet().equals(Set.of("userId","style")),"no level/expiry/raw config");
-            f.db.exec("UPDATE membership SET expiresAt=1000 WHERE userId='1'");check(style(f.http("profile","userIds=1"),0).isEmpty(),"expiry exact boundary");
-            f.db.exec("UPDATE membership SET expiresAt=0");f.db.exec("UPDATE user SET userStatus=4 WHERE oId='1'");check(style(f.http("other","userIds=1"),0).isEmpty(),"disabled target empty");equal(f.http("profile","userIds=1").getInt("status"),404);
+            f.membership("1","VIP4_YEAR",0,"{\"bold\":false,\"underline\":true,\"color\":\"galaxy\",\"secret\":\"PRIVATE\"}");
+            f.membership("2","VIP4_YEAR",2000,"{\"color\":\"#123456\"}");
+            final var response=f.http("profile",null); equal(data(response).getJSONArray("list").length(),2);
+            equal(config(response,"1").keySet(),Set.of("bold","underline","color")); equal(config(response,"1").getString("color"),"galaxy"); check(!config(response,"1").getBoolean("bold"),"false preserved");
+            check(item(response,"1").keySet().equals(Set.of("userId","configJson")),"only normalized display config, no level/expiry/secrets");
+            equal(data(response).getLong("maxAgeMs"),1000L); equal(f.db.sql.size(),2);
+            final var unchanged=f.http("profile","version="+revision(response)); check(data(unchanged).getBoolean("unchanged"),"content unchanged"); check(!data(unchanged).has("list"),"no redundant directory"); equal(f.db.sql.size(),3);
+            f.time=2000; final var expired=f.http("profile","version="+revision(response)); check(!data(expired).getBoolean("unchanged"),"natural expiry changes version without a write"); equal(data(expired).getJSONArray("list").length(),1);
+            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#ABCDEF\"}' WHERE userId='1'"); invalidate(); final var changed=f.http("profile","version="+revision(expired)); check(!revision(changed).equals(revision(expired)),"same member count but changed config changes content version"); equal(config(changed,"1").getString("color"),"#ABCDEF");
+            f.db.exec("UPDATE user SET userStatus=4 WHERE oId='1'"); equal(f.http("profile","version="+revision(changed)).getInt("status"),404);
         }
-        System.out.println("PASS styles 2 requested-order batch joins current accounts and permanent/expired memberships; only three fields, unknown/nonmembers/disabled targets empty and disabled actor rejected");
-        try(var f=new F()){
-            f.level("VIP1_MONTH","{\"color\":\"#FFFFFF\"}");f.membership("1","VIP1_MONTH",2000,"{\"bold\":true,\"underline\":true,\"color\":\"galaxy\"}");check(style(f.http("profile","userIds=1"),0).isEmpty(),"unsupported fields and VIP4-only effect omitted");
-            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#123aBC\",\"bold\":\"true\"}'");equal(style(f.http("profile","userIds=1"),0).toString(),new JSONObject().put("color","#123aBC").toString());
-            f.db.exec("UPDATE membership_level SET benefits='{}'");check(style(f.http("profile","userIds=1"),0).isEmpty(),"current supported definition re-read without cache");
-            f.db.exec("DELETE FROM membership_level");check(style(f.http("profile","userIds=1"),0).isEmpty(),"missing level cannot grant style");
+        System.out.println("PASS snapshot 2 full sorted member directory, normalized config, shared cache/unchanged response, same-count edits, natural expiry and current actor authorization");
+        try(var f=new F()) {
+            f.level("VIP4_MONTH","{\"bold\":true}"); f.membership("1","VIP4_MONTH",0,"{"); f.membership("2","VIP4_MONTH",0,"{\"bold\":true}");
+            final var bad=f.http("profile",null); equal(bad.getInt("status"),200); check(item(bad,"1").isNull("configJson"),"invalid row explicitly unknown"); check(config(bad,"2").getBoolean("bold"),"other user remains available");
+            f.db.exec("UPDATE membership SET configJson='{\"bold\":false}' WHERE userId='1'"); invalidate(); final var fixed=f.http("profile","version="+revision(bad)); check(!data(fixed).getBoolean("unchanged"),"repair invalidates version"); check(!config(fixed,"1").getBoolean("bold"),"repaired config");
+            f.db.exec("INSERT INTO membership SELECT * FROM membership WHERE userId='1'"); invalidate(); check(item(f.http("profile",null),"1").isNull("configJson"),"duplicate binding not arbitrary choice");
+            f.db.exec("UPDATE membership SET expiresAt=-1 WHERE userId='2'"); invalidate(); check(item(f.http("profile",null),"2").isNull("configJson"),"bad expiry unknown");
+            f.db.failTable="membership"; invalidate(); equal(f.http("profile",null).getInt("status"),503);
         }
-        System.out.println("PASS styles 3 current level support and exact VIP4 effect entitlement constrain stored config; missing definition grants no display and no defaults invented");
-        try(var f=new F()){
-            f.level("VIP4_MONTH","{\"bold\":true}");f.membership("1","VIP4_MONTH",0,"{\"bold\":true}");
-            for(String bad:List.of("{","{\"bold\":true,\"bold\":false}","x".repeat(102401))){f.db.exec("UPDATE membership SET configJson=?",bad);equal(f.http("profile","userIds=1").getInt("status"),503);}
-            f.db.exec("UPDATE membership SET configJson='{}',expiresAt=-1");equal(f.http("profile","userIds=1").getInt("status"),503);
-            f.db.exec("UPDATE membership SET expiresAt=0");f.level("VIP4_MONTH","{}");equal(f.http("profile","userIds=1").getInt("status"),503);
+        System.out.println("PASS snapshot 3 corrupt/duplicate configurations and bad expiry isolated per ID, repairs update version, repository failures remain explicit 503");
+        try(var f=new F()) {
+            f.level("VIP1_MONTH","{\"color\":\"#FFFFFF\"}");f.membership("1","VIP1_MONTH",0,"{\"bold\":true,\"color\":\"galaxy\"}");
+            final var empty=config(f.http("profile",null),"1"); check(empty.isEmpty(),"no unsupported fields or VIP4 effects granted");
+            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#112233\"}'"); f.time+=30000; final var reread=f.http("profile",null); equal(config(reread,"1").getString("color"),"#112233");
+            final int reads=f.db.sql.size(); f.http("other","version="+revision(reread)); equal(f.db.sql.size(),reads+1); check(f.db.sql.stream().allMatch(q->q.startsWith("SELECT ")),"all reads, no state creation");
         }
-        try(var f=new F()){
-            f.level("VIP4_YEAR","{}");f.membership("1","VIP4_YEAR",0,"{}");f.db.exec("INSERT INTO membership SELECT * FROM membership");equal(f.http("profile","userIds=1").getInt("status"),503);
-            f.db.failTable="membership";equal(f.http("profile","userIds=2").getInt("status"),503);
+        System.out.println("PASS snapshot 4 entitlement projection, 30-second refresh for other nodes/out-of-band writes, per-reader auth with shared snapshot and no writes");
+        try(var f=new F()) {
+            injectSuper(f.query,"memberships",new MembershipRepository(){public String getName(){return "membership";}public List<JSONObject> select(String q,Object...a){return Collections.nCopies(10001,new JSONObject());}});
+            equal(f.http("profile",null).getInt("status"),503);
         }
-        System.out.println("PASS styles 4 invalid/duplicate stored JSON, malformed expiry, duplicate level/membership bindings and repository faults fail explicitly without arbitrary choice or raw configuration");
-        try(var f=new F()){
-            final var ids=java.util.stream.IntStream.rangeClosed(1,100).mapToObj(String::valueOf).toList();final var list=data(f.http("profile","userIds="+String.join(",",ids))).getJSONArray("list");equal(list.length(),100);for(int i=0;i<100;i++)equal(list.getJSONObject(i).getString("userId"),ids.get(i));equal(f.db.sql.size(),2);
-            check(f.db.sql.stream().allMatch(q->q.startsWith("SELECT ")),"read only, no default group/state creation");
+        System.out.println("PASS snapshot 5 oversized complete directory fails explicitly instead of reporting truncated success");
+        try(var f=new F()) {
+            f.level("VIP4_MONTH","{\"color\":\"#FFFFFF\"}");f.membership("1","VIP4_MONTH",0,"{\"color\":\"#112233\"}");
+            final var cache=new org.b3log.symphony.cache.MembershipCache();
+            final var row=new JSONObject().put("userId","1").put("lvCode","VIP4_MONTH").put("state",1).put("expiresAt",0).put("configJson","{\"color\":\"#112233\"}");
+            cache.put(row);final long generation=org.b3log.symphony.util.MembershipStyleCache.generation();cache.put(new JSONObject(row.toString()));equal(org.b3log.symphony.util.MembershipStyleCache.generation(),generation);
+            final var before=f.http("profile",null);
+            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#445566\"}'");row.put("configJson","{\"color\":\"#445566\"}");cache.put(row);
+            final var after=f.http("profile","version="+revision(before));check(!data(after).getBoolean("unchanged"),"actual cache.put invalidates snapshot");equal(config(after,"1").getString("color"),"#445566");
+            f.db.exec("UPDATE membership SET state=0");cache.remove("1");equal(data(f.http("profile",null)).getJSONArray("list").length(),0);
         }
-        System.out.println("PASS styles 5 100-ID boundary retains full requested order with two bounded projected reads and no writes");
+        System.out.println("PASS snapshot 6 actual MembershipCache put/remove invalidates snapshots, identical read warming does not churn the generation, removal returns a complete empty directory");
+        try(var f=new F()) {
+            f.level("VIP4_YEAR","{}");
+            final String config=new JSONObject().put("padding","x".repeat(70000)).toString();
+            for(int i=100;i<130;i++){f.db.exec("INSERT INTO user VALUES(?,0,'PRIVATE')",String.valueOf(i));f.membership(String.valueOf(i),"VIP4_YEAR",0,config);}
+            equal(f.http("profile",null).getInt("status"),503);
+        }
+        System.out.println("PASS snapshot 7 source byte budget is enforced by SQL before materializing raw configurations, rather than returning a partial directory");
     }
 }

@@ -39,6 +39,7 @@ import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Ids;
 import org.b3log.latke.util.Times;
 import org.b3log.symphony.model.Membership;
+import org.b3log.symphony.util.MembershipStyleCache;
 import org.b3log.symphony.model.MembershipActivation;
 import org.b3log.symphony.model.MembershipLevel;
 import org.b3log.symphony.model.Notification;
@@ -112,6 +113,7 @@ public class MembershipMgmtService {
             level.put(MembershipLevel.UPDATED_AT, now);
             levelRepository.add(level);
             transaction.commit();
+            MembershipStyleCache.invalidate();
             return level.optString(Keys.OBJECT_ID);
         } catch (RepositoryException e) {
             if (transaction.isActive()) {
@@ -135,6 +137,7 @@ public class MembershipMgmtService {
             old.put(MembershipLevel.UPDATED_AT, System.currentTimeMillis());
             levelRepository.update(oId, old);
             transaction.commit();
+            MembershipStyleCache.invalidate();
         } catch (RepositoryException e) {
             if (transaction.isActive()) {
                 transaction.rollback();
@@ -149,6 +152,7 @@ public class MembershipMgmtService {
         try {
             levelRepository.remove(oId);
             transaction.commit();
+            MembershipStyleCache.invalidate();
         } catch (RepositoryException e) {
             if (transaction.isActive()) {
                 transaction.rollback();

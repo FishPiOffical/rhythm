@@ -1,5 +1,7 @@
 # v3 会员昵称样式批量读取（2026-10-24）
 
+> 2026-11-06：用户已要求改为全量会员展示快照+version条件校验，下文保留旧协议历史；当前协议与验收见[快照记录](api-v3-membership-snapshot-work.md)。
+
 用户已确认只公开 bold、underline、color；需要 profile.read，按指定ID批量1至100个，重复422；不返回全站会员名单、会员档位、到期时间、原configJson或其他权益。
 
 ## 文件与行为
