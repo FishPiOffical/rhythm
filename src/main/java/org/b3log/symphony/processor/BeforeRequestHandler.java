@@ -96,7 +96,8 @@ public class BeforeRequestHandler implements Handler {
         if (origin != null && context.requestURI().startsWith("/api/v3")) {
             context.setHeader("Access-Control-Allow-Origin", origin);
             context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match");
+            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
+            context.setHeader("Access-Control-Allow-Credentials", "true");
             context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
             context.setHeader("Access-Control-Max-Age", "86400");
             if ("OPTIONS".equals(context.method())) {
