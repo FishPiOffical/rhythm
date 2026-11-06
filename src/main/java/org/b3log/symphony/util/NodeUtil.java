@@ -216,7 +216,7 @@ public class NodeUtil {
                 CompletableFuture<String> responseFuture = new CompletableFuture<>();
                 WebSocket webSocket = client.newWebSocketBuilder()
                         .buildAsync(URI.create(serverUri), new WebSocketListener(responseFuture))
-                        .join();
+                        .orTimeout(5, TimeUnit.SECONDS).join();
                 LOGGER.info("[Rhys init]   WebSocket connected: {}", webSocket);
                 webSocket.sendText(Symphonys.get("chatroom.node.adminKey") + ":::online", true);
                 LOGGER.info("[Rhys init]   sent online request, waiting up to 10s...");
