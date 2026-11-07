@@ -48,6 +48,7 @@ public class ShopChannel implements WebSocketChannel {
      * Session set.
      */
     public static final Map<String, Set<WebSocketSession>> SESSIONS = new ConcurrentHashMap();
+    private static final Map<WebSocketSession, String> CONNECTION_OWNERS = new ConcurrentHashMap<>();
 
     /**
      * Called when the socket connection with the browser is established.
@@ -56,15 +57,7 @@ public class ShopChannel implements WebSocketChannel {
      */
     @Override
     public void onConnect(final WebSocketSession session) {
-        JSONObject user = null;
-        try {
-            user = new JSONObject(session.getHttpSession().getAttribute(User.USER));
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            user = ApiProcessor.getUserByKey(session.getParameter("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
+        JSONObject user = org.b3log.symphony.util.Sessions.currentSocketUser(session);
 
         if (null == user) {
             session.close();
@@ -76,6 +69,7 @@ public class ShopChannel implements WebSocketChannel {
         userSessions.add(session);
 
         SESSIONS.put(userId, userSessions);
+        CONNECTION_OWNERS.put(session, userId);
 
         sendMsg(userId, getMOTD() +
                 "欢迎来到系统商店！<span style=\"color: #00bff3\">" + user.optString(User.USER_NAME) + "</span><br>" +
@@ -177,6 +171,7 @@ public class ShopChannel implements WebSocketChannel {
             if (userId.equals(recvUserId)) {
                 final Set<WebSocketSession> sessions = SESSIONS.get(userId);
                 for (final WebSocketSession session : sessions) {
+                    if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                     session.sendText(msgStr);
                     AdminProcessor.manager.onMessageSent(7, msgStr.length());
                 }
@@ -190,14 +185,9 @@ public class ShopChannel implements WebSocketChannel {
      * @param session the specified session
      */
     private void removeSession(final WebSocketSession session) {
-        final Session httpSession = session.getHttpSession();
-        final String userStr = httpSession.getAttribute(User.USER);
-        if (null == userStr) {
-            return;
-        }
-        final JSONObject user = new JSONObject(userStr);
-        final String userId = user.optString(Keys.OBJECT_ID);
+        final String userId = CONNECTION_OWNERS.remove(session);
+        if (userId == null) return;
         Set<WebSocketSession> userSessions = SESSIONS.get(userId);
-        userSessions.remove(session);
+        if (userSessions != null) userSessions.remove(session);
     }
 }

@@ -44,6 +44,16 @@ public class FishGameVoteRepository extends AbstractRepository {
         return getFirst(query);
     }
 
+    public List<JSONObject> getOwnedForUpdate(final String actor, final String gameId) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("fish game vote transaction required");
+        return select("SELECT * FROM " + getName() + " WHERE fishGameVoteUserId=? AND fishGameVoteGameId=?"
+                + " ORDER BY fishGameVoteCreatedTime DESC,oId DESC FOR UPDATE", actor, gameId);
+    }
+
+    public long countByGameAndValue(final String gameId, final String value) throws RepositoryException {
+        return select("SELECT COUNT(1) AS total FROM " + getName() + " WHERE fishGameVoteGameId=? AND fishGameVoteValue=?", gameId, value).getFirst().optLong("total");
+    }
+
     public List<JSONObject> getByUser(final String userId, final int page, final int pageSize) throws RepositoryException {
         final Query query = new Query().setPage(page, pageSize).setPageCount(1)
                 .setFilter(new PropertyFilter(FishGameVote.USER_ID, FilterOperator.EQUAL, userId));

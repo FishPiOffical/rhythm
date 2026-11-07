@@ -87,6 +87,7 @@ public class ChatChannel implements WebSocketChannel {
 
         final Set<WebSocketSession> sessions = SESSIONS.get(chatHex);
         for (final WebSocketSession session : sessions) {
+            if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
             session.sendText(message.toString());
             AdminProcessor.manager.onMessageSent(3, message.toString().length());
         }
@@ -102,7 +103,7 @@ public class ChatChannel implements WebSocketChannel {
         JSONObject user = null;
         try {
             String apiKey = session.getParameter("apiKey");
-            user = ApiProcessor.getUserByKey(apiKey);
+            user = ApiProcessor.getUserByKeyForSocket(apiKey);
         } catch (NullPointerException ignored) {
         }
         if (null == user) {
@@ -156,6 +157,8 @@ public class ChatChannel implements WebSocketChannel {
      */
     @Override
     public void onMessage(final Message message) {
+        final JSONObject current=org.b3log.symphony.util.Sessions.currentSocketUser(message.session);
+        if(current==null || !current.optString(Keys.OBJECT_ID).equals(message.session.getHttpSession().getAttribute("fromId"))) { message.session.close();return; }
         if (message.text.equals("p")) {
             return;
         }
@@ -194,9 +197,7 @@ public class ChatChannel implements WebSocketChannel {
         chatInfo.put("content", content);
         String chatInfoOId;
         try {
-            Transaction transaction = chatInfoRepository.beginTransaction();
-            chatInfoOId = chatInfoRepository.add(chatInfo);
-            transaction.commit();
+            chatInfoOId = chatInfoRepository.addLegacy(chatInfo);
         } catch (RepositoryException e) {
             result.put("code", -1);
             result.put("msg", "发送出错，" + e.getMessage());
@@ -212,10 +213,9 @@ public class ChatChannel implements WebSocketChannel {
         chatUnread.put("fromId", fromId);
         chatUnread.put("toId", toId);
         chatUnread.put("user_session", chatHex);
+        chatUnread.put("messageId", chatInfoOId);
         try {
-            Transaction transaction = chatUnreadRepository.beginTransaction();
-            chatUnreadRepository.add(chatUnread);
-            transaction.commit();
+            chatUnreadRepository.addLegacy(chatUnread);
         } catch (RepositoryException e) {
             result.put("code", -1);
             result.put("msg", "发送出错，" + e.getMessage());
@@ -249,6 +249,7 @@ public class ChatChannel implements WebSocketChannel {
             final Set<WebSocketSession> senderSessions = SESSIONS.get(chatHex);
             if (senderSessions != null) {
                 for (final WebSocketSession session : senderSessions) {
+                    if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                     session.sendText(info.toString());
                     AdminProcessor.manager.onMessageSent(3, info.toString().length());
                 }
@@ -294,9 +295,7 @@ public class ChatChannel implements WebSocketChannel {
         chatInfo.put("content", content);
         String chatInfoOId;
         try {
-            Transaction transaction = chatInfoRepository.beginTransaction();
-            chatInfoOId = chatInfoRepository.add(chatInfo);
-            transaction.commit();
+            chatInfoOId = chatInfoRepository.addLegacy(chatInfo);
         } catch (RepositoryException e) {
             e.printStackTrace();
             return;
@@ -309,10 +308,9 @@ public class ChatChannel implements WebSocketChannel {
         chatUnread.put("fromId", fromId);
         chatUnread.put("toId", toId);
         chatUnread.put("user_session", chatHex);
+        chatUnread.put("messageId", chatInfoOId);
         try {
-            Transaction transaction = chatUnreadRepository.beginTransaction();
-            chatUnreadRepository.add(chatUnread);
-            transaction.commit();
+            chatUnreadRepository.addLegacy(chatUnread);
         } catch (RepositoryException e) {
             e.printStackTrace();
             return;
@@ -343,6 +341,7 @@ public class ChatChannel implements WebSocketChannel {
             final Set<WebSocketSession> senderSessions = SESSIONS.get(chatHex);
             if (senderSessions != null) {
                 for (final WebSocketSession session : senderSessions) {
+                    if(org.b3log.symphony.util.Sessions.currentSocketUser(session)==null){session.close();continue;}
                     session.sendText(info.toString());
                     AdminProcessor.manager.onMessageSent(3, info.toString().length());
                 }

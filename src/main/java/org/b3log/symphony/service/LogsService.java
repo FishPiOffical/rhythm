@@ -30,7 +30,6 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Requests;
 import org.b3log.symphony.processor.LogsProcessor;
 import org.b3log.symphony.processor.channel.LogsChannel;
-import org.b3log.symphony.repository.ChatInfoRepository;
 import org.b3log.symphony.repository.ChatRoomRepository;
 import org.b3log.symphony.repository.LogsRepository;
 import org.b3log.symphony.util.Escapes;
@@ -152,12 +151,11 @@ public class LogsService {
         }
     }
 
+    /** Called after withdrawal commits; do not re-read the removed message or log its private body. */
     public static void chatLog(RequestContext context, String oId, String userName) {
-        final BeanManager beanManager = BeanManager.getInstance();
-        final ChatInfoRepository chatInfoRepository = beanManager.getReference(ChatInfoRepository.class);
         try {
-            JSONObject messageInfo = chatInfoRepository.get(oId);
-            log("chat-revoke", getTime(), getAddress(context), userName, messageInfo.toString(), false);
+            log("chat-revoke", getTime(), getAddress(context), userName,
+                    new JSONObject().put("messageId", oId).toString(), false);
         } catch (Exception ignored) {
         }
     }

@@ -1,0 +1,161 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 8853,
+  "userConfirmedRebuild": true,
+  "scope": "New question metadata/current snapshot and v3 acceptance guard on actual rebuilt Rhythm; no new acceptance charge",
+  "results": [
+    {
+      "step": "guest-accepted-question",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "owner-accepted-question",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "ordinary-qna-null",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-unaccepted-offer-0",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-0-public-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-0-public-write",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "low-offer-0-anonymous-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-0-anonymous-write",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "current-unaccepted-offer-19",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-19-public-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-19-public-write",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "low-offer-19-anonymous-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "low-offer-19-anonymous-write",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "minimum20-public-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "minimum20-anonymous-state",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "hidden-invalid-anonymous-accepted-existence",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "ordinary-public-write-denied",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "ordinary-anonymous-write-denied",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "existing-original-key-replay",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "original-key-after-type-change",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "new-key-after-type-change-denied",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "restored-question-current",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "restoredAndUnchanged": {
+    "article": true,
+    "comment": true,
+    "balance": true,
+    "receipt": true
+  },
+  "limits": [
+    "Actual fixture status values test metadata, not new business acceptance/notification creation",
+    "Browser/physical-device and multiple instances remain separate",
+    "Production CAPTCHA/blacklist and whole-site static/CDN audit not covered"
+  ],
+  "browser": {
+    "currentGuestAndAuthenticatedQuestionAcceptedVisible": true,
+    "mobileWidth": 390,
+    "mobileScrollWidth": 390,
+    "note": "Read-only current accepted state/refresh, no browser acceptance click this batch",
+    "privateScreenshots": [
+      "browser-qna-current-accepted.png",
+      "browser-qna-current-mobile.png"
+    ]
+  }
+}

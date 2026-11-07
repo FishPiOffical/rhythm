@@ -11,6 +11,7 @@
 - 在 WSL 环境中不要依赖 git 状态/差异判断工作区是否干净（可能存在异常噪声）；默认按任务目标直接改指定文件，git 清理由用户在 Windows 环境统一处理
 
 ## 协作目标
+- 用户最新要求每次修复完成后提交本地 Git；Rhythm与website_v3分别提交，未经明确要求不推送远端。
 - `AGENTS.md` 保持精简，只保留会影响决策的长期约定；新增内容优先补充“关键链路”，避免堆砌背景信息。
 
 ## 开发硬约束
@@ -19,6 +20,8 @@
 - JS 版本号暴露排查使用 `tools/js-version-audit.mjs`；清理后执行 `yarn run build` 并复查，生产静态资源不要发布可泄露依赖信息的 source map。
 - 质量复盘约束：近期提交后多轮修 bug 的主要原因是只验证了局部代码，未按真实用户链路完整反查入口、模板、生成产物和浏览器行为。后续代码改动提交前必须完成对应层级闭环：读清调用链与数据形态；同步检查 PC/移动、源码/生成产物、权限/匿名/apiKey；前端改动执行 `yarn run build` 并用浏览器验证关键操作；Java/FTL 改动先提醒用户通过 IDEA 重新编译或重启服务端；无法验证的项必须在最终回复中明确列出，不能用猜测代替验证。
 - 每次完成改动后的最终回复必须明确列出实际修改的文件与行为，并提供覆盖完整用户链路的人工测试步骤；测试步骤需包含入口、核心操作、成功结果及相关的异常或边界场景。
+- 测试与临时验证必须隔离：长期维护的用例才进入 `src/test/java`；一次性 testcase、Node `.mjs` 验证脚本、shim、fixture 和生成文件不得直接堆入主线或默认入口，确需保留时放入明确的临时/实验目录并说明用途。
+- 提交前检查测试引用闭包：删除或修复与当前生产代码、依赖和路由不匹配的旧测试及其脚本入口，不得通过继续堆叠兼容夹具掩盖编译错误；至少验证 `test-compile` 和相关脚本不会引用已删除的类或文件。
 - 发布前检查基线：先看 `git status --short` 与未提交 diff，按新增/修改路由、模板、JS/CSS、SQL/Repository 分类；所有新增或改造的匿名入口必须确认会经过 `AnonymousViewCheckMidware` 或明确要求登录，不能让新 IP 直接访问新功能接口绕过 `/test` 极验；复核 `BeforeRequestHandler` 黑名单重定向、`AnonymousViewCheckMidware` 首访/每 5 次验证码、`CaptchaProcessor#validateCaptcha` 解封链路未被绕过；扫描新增公网静态资源和 CDN URL 是否暴露版本号、`sourceMappingURL` 或可枚举目录；接口按未鉴权访问、越权、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露逐项给结论。
 - 反漏扫底线：任何未提交代码审查、发布前检查、公开入口新增或改造都必须检查反漏扫；至少覆盖匿名访问链路、黑名单/验证码链路、`anonymous.viewSkips`、公开 API 鉴权、静态资源/CDN 版本号、`sourceMappingURL`、目录枚举、上传/下载返回路径；无法实际验证的项必须在最终回复中列出，不能跳过或默认通过。
 - CDN 防漏扫排查：当用户要求“CDN 防漏扫/刷新列表/替换目录”时，扫描项目内 `https://file.fishpi.cn/...` 具体资源（排除 `.codex-tasks`、`target`、`node_modules`、`cdn-version-replacements`），下载可访问资源，检测路径/查询参数/内容中的版本号与 `sourceMappingURL`；命中资源按 CDN 路径镜像到 `cdn-version-replacements/files/`，但路径版本号目录改为稳定目录名（如 `vditor/3.11.1/dist -> vditor/latest/dist`），文件名版本号去掉（如 `jquery.color-2.1.2.min.js -> jquery.color.min.js`），源码引用也同步改成新 URL；版本目录型库必须在 CDN 侧保留原目录并复制完整目录树到稳定目录，不能只上传入口文件；生成 `report.md`、`version-findings.json`、`replacement-validation.json` 和一行一个的 `refresh-urls.txt`；替换副本需复扫并对 JS 执行 `node --check`，下载失败或动态拼接 URL 单独记录，不伪造结果。
@@ -42,7 +45,9 @@
 - 处理方法取当前用户推荐顺序：`context.attr(User.USER)` -> `Sessions.getUser()` -> `ApiProcessor.getUserByKey(...)`；不要只依赖 `Sessions.getUser()`。
 - 聊天室 `/cr` 的两套样式分别走 `chat-room.js` 与 `chat-room-2.js`，但红包消息都通过 `/chat-room/getMessage` 返回原始 JSON（`msgType=redPacket`），领取统一走 `/chat-room/red-packet/open`。
 - 聊天室红包详情/打开后的弹层头部走前端通用 `Util.alert()`（`src/main/resources/js/common.js`），标题与关闭按钮布局异常优先排查这个公共弹层，而不是红包业务模板。
+- v3 reaction 入口在 `ApiV3ReactionProcessor`，文章/评论/聊天室均支持 GET/PUT/DELETE；PUT 是设置而非 toggle，与旧入口共用 `ReactionMutation` 和加锁写入。目标可见性由 `ApiV3ReactionTargetService` 校验，论坛实时事件逐接收者校验，提交后才发布；不要直接复用未过滤接收者的旧广播。
 - 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
+- 内容删除统一经`ReactionRepository#removeTargetInCurrentTransaction`按类型+ID清理reaction，调用方须先锁目标并在同事务提交；文章、管理员评论级联及本人评论删除均已接入，禁止只按ID清理。
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
 - 用户在线时间结算链路在 `processor/channel/UserChannel`；`onlineMinute` 是分钟数整型字段，结算毫秒差必须先用 long/TimeUnit 转分钟，不能先强转 `int`，否则单次连接超过约 24.85 天会溢出为负数。
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`；Evolve CDN 依赖是长缓存，主脚本和与主脚本版本强绑定的库（如 Popper）都需要带 `${staticResourceVersion}`。
@@ -60,6 +65,14 @@
 - 上传链路：编辑器贴图走 RhyPic 前端直传（`Util.rhypicTicket` + `pic.fishpi.cn/api/v1/files`，字段名 `file`）；头像/裁剪/涂鸦等 `/upload` 代理通道字段名必须是 `file[]`，由 `FileUploadProcessor#uploadViaRhypic` 签票转发。图床拒绝无扩展名文件：FormData 裸 Blob（cropper、聊天室涂鸦）必须带文件名（append 第三参数），后端同时按 Content-Type 为无后缀文件名补扩展名，并在 succMap 保留原名别名兼容 `succMap.blob` 类老前端。前端魔数校验 `isImage` 只认 JPEG(SOI FF D8 FF)/PNG/GIF，WebP 不在 `upload.suffix` 白名单，头像场景给明确提示。
 - 鱼游投稿链路由 `FishGameProcessor` + `FishGameMgmtService` + `FishGameQueryService` 负责，数据表为 `fish_game`、`fish_game_vote`、`fish_game_comment`；投稿必须通过 OAuth 说明网址校验后进入待审，管理员导入旧清单按已审核处理并按目标网址去重。`/activities` 只展示已审核记录并按点赞数排序，PC/移动模板和资源需同步维护。
 
+- v3 聊天室在线名单由 `ApiV3ChatOnlineQueryService` 合并当前实例旧连接、已认证 chat 订阅和 `ChatOnlineSnapshot` 节点采样，按当前资料过滤在线隐私与有效状态后分页；人数只计可见用户。节点采样原子发布仅用户名，不返回节点凭据；其他实例的 v3 连接未共享，不能宣称全站实时人数。
+
+- v3历史读取在`ApiV3RevisionQueryService`：本人或当前精确历史权限的合法读者，私密仍限双方；只投影清洗正文，不返编辑者ID，current仅已有历史且原文忽略空白不同，评论current.time=null。分组写入`ApiV3EmojiGroupService`仅本人type0，type1不可改删，删除保留全局图片/其他组/分享；旧写不共锁，不能宣称新旧全局唯一。
+
+- v3鱼游投稿/编辑在`ApiV3FishGameSubmissionService`：只校验旧OpenID授权URL参数及游戏同站回调，不抓取/证明归属；当前与待审OAuth分列，旧审核批准时随pending内容合并，手改URL清旧OAuth。先迁移20261023鱼游SQL；新旧写入口未整体共锁。图片成员`ApiV3EmojiItemService`以内部namespace先于actor锁串行，完整URL按BINARY精确身份，自定义添加镜像全部、移除全部级联本人组，历史损坏不自动清理。
+
+- v3会员昵称样式`ApiV3MembershipStyleQueryService`仅指定1..100个ID/profile.read，按当前有效账号/会员/档位支持投影bold/underline/color；无样式统一空对象，不能回用旧全站原configJson。捐助链接GET由`ApiV3DonationPage`固定配置站点/charge/point，不发Cookie或订单，浏览器仍需页面登录。
+
 ## 目录速览
 - 后端：`src/main/java/org/b3log/symphony`（入口 `Server.java`，核心分层 `processor/service/repository/model/util`）。
 - 资源：`src/main/resources`（配置、静态资源、`skins` 模板）。
@@ -68,11 +81,109 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- v3登录时间只在ApiV3TokenMgmtService.issue与AppLoginService.exchange签发根内记录，失败同回滚；刷新/普通认证/OAuth授权不记录。只更新userLatestLoginTime，缓存提交后失效，不复用会改在线标志和地理资料的updateOnlineStatus。
+- 职业来源事件未关联外部应用/请求时保留sourceAppId/externalRequestId为NULL，不能以空字符串占位；二者有组合唯一约束。消费验证须区分受控来源输入与真实业务捕获/结算。
+- 长篇段落双视图须只改变受限链接的标签，链接目标/属性保持一致；ShortLinkQueryService.linkArticleWithUrlTitles字面绑定配置来源并保留原URL为目标/安全标签，缺失标题仍不展开；旧Function入口保持原重写语义。正文/目标真正不对应继续409，不可忽略href差异放宽结构校验。段落测试用项目版本Flexmark，清洗/媒体仍为夹具，不能宣称完整渲染HTTP已验。
+- v3评论定位在ApiV3ParagraphQueryService.location，按与普通/段评oldest相同筛选SQL计当前位置，每页20；段评沿现有别名分组和active/orphaned，不能用旧缓存、创建时间或扫描客户端分页猜位置。只返ID/分页/分组，不给私密正文或匿名身份；客户端目标须绑定当前文章/读者，真实当前页挂载后再滚动，位置变化显式重查。
+- v3详情commentable/statement由ApiV3ArticlePolicy严格投影，异常旧值为null；Latke按注册字段提前getBoolean，历史CHAR须经v3ContentCommentable别名原样读取，不能用SELECT *或数字强转把坏值当true；新评论/编辑在幂等回调内经getV3CommentPolicyForUpdate锁文章后按原始锁定值校验，成功原键不被当前关闭状态阻断。客户端未知/关闭禁新写但须保留普通与长篇抽屉的原命令恢复入口。
+- v3问答详情的qna仅公开悬赏与采纳存在性，须随当前文章SQL快照查询；隐藏/匿名回答仍计已采纳，但不返回身份。v3采纳新键在锁定文章上要求type5且悬赏至少20，状态canAccept同步；旧入口与成功原键回放保持。
+- v3论坛读取用ApiV3ContentSnapshots绑定当前文章/作者与当前读者；聊天室通知actor仅由合法userOId解析，无ID不按旧用户名关联。评论/段落/通知/表态不从实体缓存恢复资格或正文；内部作者别名只供白名单DTO投影，不能裸返。修订历史本来走当前SQL；勿改回ArticleRepository.get/UserQueryService作为权限依据。 内容型积分/文章公告说明也须用已授权当前标题，不能在校验后再调旧通知缓存描述生成器。 公开资料/列表隐私与清风明月作者由DiscoveryQueryService.currentProfileUser当前查询，不用getByName/get实体缓存授权。 列表作者随分页SQL投影，DTO未提供快照时只读当前公开作者；v3头像共用ApiV3AvatarUrl原URL投影，不能调用旧AvatarQuery显示变换丢掉签名query。
+
+- 长篇阅读登记统一在LongArticleReadCaptureService：v3显式正文后POST双scope，旧Markdown/经典浏览量仅计当前有效登录他人、当前可列出署名有效长篇；排序当前用户锁→文章→claim/窗口同根或owner保存点。读者表已改article/user/window唯一，先停登记迁移20261030；Connector/J匹配未改行不代表计数成功，须锁读窗口OPEN。正常结算公式与历史匿名计数保留，不从SSR/预览或客户端发奖。结算先point pair→当前作者→文章/窗口，积分/历史/职业事件/两侧账本索引同严格根；负数或溢出回滚，缓存边界后刷新、通知提交后发、后台结束释放连接。
+
+- 本机 IDEA 的 `Rhythm Local` 使用 Java 25、HTTP 8081、独立 MySQL `rhythm-dev-mysql`/127.0.0.1:3319；8080/3306 属于 workphone，不能当作 Rhythm 验收；8081也可能被不同项目分占IPv4/IPv6，先核对监听进程与无凭据响应，再发送凭据，当前用户站临时target为[::1]:8081。私有配置在被忽略的 `.idea/rhythm-local/`，通过 `LATKE_LOCAL_PROPS` 加载；自动建表不替代 SQL 迁移（生成列、索引、种子）。Docker内mysql命令须显式`--default-character-set=utf8mb4`，默认latin1会损坏中文快照/迁移输入；读取正文/JSON快照须加--raw或使用HEX传输，否则mysql批量输出的反斜杠转义会污染换行/原文。环境恢复说明见 `docs/local-idea-environment.md`。
+- `ChatroomProcessor` 到 `ApiV3ChatRedPacketService` 必须请求时获取，不能字段注入：红包服务发布消息又依赖该处理器，Latke 启动会递归溢出。常规编译检查使用 `-Dlicense.skip=true`，避免既有 license:format 批量改源码头。
+- 单项本人关注状态在`ApiV3FollowQueryService#userState`，当前actor/target有效及关系EXISTS同一只读SQL，仅targetId/following；不调用吞错的旧isFollowing。客户端关注命令只保存未确认的明确PUT/DELETE，回放结果后必须GET当前状态，不能把历史receipt当最新状态。
+- v3游戏存档仅`ApiV3GameSaveInputs`精确目录，首批evolve-save单槽；`ApiV3GameSaveService`新旧HTTP共锁owner，CAS/metadata回执/版本同严格根，迁移只复制唯一旧记录不覆盖。旧登记游戏保存须JSON、盲写递增版本，其他cloud键保留；先迁移20261025_api_v3_game_save.sql。捆绑Latke会有损重写getBytes，存档须经同包`ApiV3GameSaveRawBody`读原Netty字节校验，不能换回框架归一化正文；企业认证JPEG/PNG上传也复用该原始字节适配器，测试必须覆盖parseForm真实有损预处理，不能只setBytes注入。 共享ApiV3WriteInputs也必须从原始Netty字节严格解析，不得回退到getBytes；三认证入口用有界重载（4096字节），刷新/退出先同源再验空体/空对象，格式拒绝不得消费或清Cookie；捆绑Latke会把入站Cookie预填到响应且丢属性，全局Before须先用ApiV3RefreshCookies移除fp_v3_refresh响应副本，只有认证端点显式签发/清除；隔离HTTP夹具须写真实Netty buffer并覆盖parseForm。允许空体的阅读登记同样须校验原始Netty字节：Latke遇非法JSON可能清空getBytes，不能据此当成真正空请求；回归须实际parseForm。
+- 本人QQ由ApiV3QqSettingsService独立第一方当前授权、settings.qq严格根与回执管理，公开/第三方profile响应不扩字段；旧Latke Strings.isNumeric实际是Double.parseDouble，禁止用于QQ纯数字验证。个人标签ApiV3ProfileTagsService按owner→统计namespace→当前目录锁，标签/creator/self/统计/设置/settings.tags回执同根，缓存边界后刷新；ApiV3ProfileTagInputs先验每个原项，不能复用旧Tag.formatTags静默丢弃/截4项。共享Tag.normalizeAlias但旧写未全共锁，不宣称新旧全局唯一或跨实例缓存强一致。
+- OAuth授权HTML及PC/mobile模板须用Referrer-Policy same-origin：浏览器no-referrer表单会发送Origin:null而被严格同源校验拒绝。token/consent等JSON响应仍no-referrer；不得为修页面把null Origin放行。授权HTML的form-action还须包含该次已绑定回调origin/原生scheme，否则浏览器会阻断表单303外站回调；完整回调仍由核心精确匹配，不用通配符。
+- OAuth token/revoke以`ApiV3OAuthProcessor.protocolAccess`只读当前绑定凭据作为端点身份，无效仍原anonymous；不写Cookie/IDENTITY/IP白名单或viewSkips，全局Before黑名单先执行。正确绑定的已用code/轮换refresh仅可进原家族重放撤销，最终写根仍重验；不能把预检owner用作其他资源身份。
+- v3三类红包`ApiV3ChatRedPacketService`本金/税/消息/持久份额/回执同根，ID绑定专属名单仅sender，旧open只桥接新head；历史红包原规则保持。共享删除primitive锁消息后检查新head，未领完409，须先迁移20261024_api_v3_chat_red_packet.sql及20261029_api_v3_point_source_scene.sql（账本场景列64字符）。0份额仍记领取但不造零额账；税仅精确有效VIP4免，禁止回退进程桶或把未领完消息删掉。
+- v3本人导出`ApiV3PostExportService`第一方当前密码/MFA，Latke默认RC，导出专用根须首次查询前选RR且不改全局隔离；完整RR本人快照→账户对→证明绑定重验→私有DB块/100积分/metadata/回执同严格根；24h下载逐块/总hash及当前授权后发ZIP，每分钟同事务清理并释放连接。先迁移20261024_api_v3_post_export.sql；禁止复用旧公开图床导出或把预算超限截断成功。
+- v3普通积分改名在`ApiV3UserNameService`：双activity.write/settings.write与幂等，账户对→namespace→当前有效用户，名称/现有费用/回执同严格根；新主账scene=settings.user-name分列dataId新名/memo旧名，显示经`UserNamePointData`编码，禁止连字符拼接。提交/回放后修索引及失效名称缓存，重放不覆盖后来改名；旧/settings/username扣费链本批未改。
+- 敏感设置仅第一方`ApiV3SecurityProofService`当前密码/已有TOTP；client命名空间→当前user/access→独立credential state，`AccountCredentialMgmtService`同严格根递增epoch并撤OpenID/v3/code/pending。Cookie/apiKey/OpenID每次当前SQL比版本，缺版本仅epoch0兼容；发行只用认证时Proof，不可重读新epoch升级旧身份。先部署20261023三份credential/MFA/contact迁移，旧重置自动登录绑定本次提交版本。
+- `ApiV3MfaService`准备10分钟、secret/otpauth仅当次，启用消费清secret；`ApiV3ContactSettingsService`先proof→无SQL锁发送→当前epoch/旧联系值快照重验后保存，HMAC码及旧值绑定，修改/消费/全撤同根。WS后续授权检查拒旧凭据；User/Shop关闭按建立时归属清理，不能因凭据失效跳过移除/在线结算。账号验证码邮件须走`Mails.sendAccountBindingCode`专用无debug/正文日志通道，不能复用旧MailSender.sendMessage。完整文件与验收见account-credential-work。
+- `ApiV3TransactionSavepoint`嵌套primitive须检测原owner仍active且TX未换；内层回滚保存点失败已中止根时，外层不可再次碰已关闭连接或覆盖原错。图片分享/导入/迁移在`ApiV3EmojiTransferService`，严格校验每个原始项后去重，坏项整批422；快照独立于源组，迁移仅本人emojis云数据，不开放任意cloud键。
+- v3转账`ApiV3PointTransferService`完整账户对先于严格根、用户按ID锁；主款/费/通知revision/回执同提交，精确有效VIP4及实际费收款者免。重放从本人回执取得锁提示，仅当前actor必须有效；私有fee账本元数据投影后返回，后置主账验证去重修索引。旧转账未整体改造。举报`ApiV3ReportPublicationService`预hint→排序用户→回执→当前目标，fresh重验绑定、重放不依赖目标；仅复用最早pending，旧入口未共用去重。新memo存储编码供两端管理模板直接输出，原始/编码长度均有界。聊天室存储userOId有字符串和整数两种，归属校验须兼容整数且不能浮点化ID。
+- v3复读投稿`ApiV3RepeaterPublicationService`绑定职业来源与回执同严格根；新旧点赞共用`RepeaterLikeMutationService`，用户→目标→本人likes，COUNT用当前锁定读取；只收敛本人重复，保留其他历史重复计数。旧toggle请求/成功字段保持，拒绝嵌套根，不能绕回旧分开计数写入。
+- v3邀请码购买`ApiV3InvitationPurchaseService`仅新业务检查当前邀请模式；账户对先于严格根，namespace→模式→当前用户→回执，扣费/码/回执同提交，TTL以真实码oId计龄。重放仅复核本人有效性并恢复原code，不保证旧码仍可注册；码不放入账本/失败日志字段。提交后主账锁验证并修复索引，内部transferId必须投影后返回；沿既有point来源及membership索引迁移，旧先造码再扣费保持且无code唯一约束，不宣称新旧整体原子或绝无碰撞。
+- v3复读机`ApiV3RepeaterQueryService`保留前N列表/前50排除后随机池语义，不假称全量分页；可选content.read与匿名盾，liked仅当前Bearer，失效作者不移除内容而author=null。常用表情PUT在`ApiV3EmotionSettingsService`：仅目录别名/有序数组，空数组恢复默认，严格根与settings.emotions回执仅替换本人type0；旧setEmotionList仍删全部类型且不共用actor锁，不宣称新旧整体串行。
+- v3职业成长提示/排行/公开资料由`ApiV3ProfessionGuideQueryService`、`ApiV3ProfessionRankingQueryService`、`ApiV3ProfessionPublicQueryService`只读投影；当前展示revision和等级scheme各自发布，scheme可绑定同职业退休revision。排行先按ranking隐私筛可见人群再连续编号，隐藏experience仍保留等级名次；公开资料十模块独立判断且experience跨贡献/动态省略，rarity/ranking共用可见榜口径。公开动态必须当前PUBLIC来源及目标可读，匿名来源不关联，HIDDEN对本人也无公开路径例外；超查询预算503而非伪造完整统计。
+- 本人匿名创作GET由`ApiV3AnonymousContentQueryService`提供元数据，评论先用有界讨论候选/正文预算及共享`UserMentionCandidates`精确解析，再绑定当前正文SHA2与actor快照做SQL计数分页；超预算503而非截断。管理员用Java精确角色判断，不能用CI数据库字符串比较扩大权限。邀请码状态POST仅投影stored status，不读/返预留字段，不把unused当可注册保证。
+- 主职业设置`ApiV3ProfessionPrimaryService`只选当前已发布职业、免费且不造progress，按列更新privacy中的selection/userProgressVersion；旧职业隐私整行写仍有并发覆盖局限。`ApiV3MedalDisplayService`按本人/定义/持有锁设置display而非toggle，重复定义或持有409；两者重放前重查当前账号，原回执不覆盖后续设置。
+- v3职业/勋章/会员读取分别在`ApiV3ProfessionQueryService`、`ApiV3MedalQueryService`、`ApiV3MembershipQueryService`。职业目录仅发布版本，本人进度按历史版本且不伪造零级；`ApiV3ProfessionDetailQueryService`提供本人真实详情及90天APPLIED非零记录，无progress为404，仅白名单概要、不返回来源正文/内部ID。本人勋章只读有效记录（含隐藏），公开仅有效展示，禁止复用会删过期记录的旧查询；会员仅本人状态和已知权益白名单，不裸返configJson/benefits。
+- 会员写入在`ApiV3MembershipSettingsService`/`ApiV3MembershipOpeningService`：仅支持的bold/underline/color可改，VIP4效果仅精确YEAR/MONTH两码，空旧配置只合并显式字段；完整defaults仅供开通。无效/用尽券422不扣费，有效/永久禁止重复开通，自然日期限与积分/券/记录/礼包同严格事务。内部回执转账ID必须投影后才HTTP返回；提交后按主账PK核验并幂等修复积分索引，先迁移20261022_api_v3_membership.sql。新旧开通均事务前取账户对锁，但旧赠包/缓存/提交策略未整体改造，不宣称新旧全部原子或缓存强一致。
+- 会员昵称styles已按用户最新要求改全量ID/configJson快照（只三展示字段，异常null），version为内容SHA-256，未变化不传list；仍profile.read。MembershipStyleCache代际由MembershipCache变更与档位提交后失效，最长30秒/自然到期兜底跨节点；HTTP no-store，客户端内存条件校验，不恢复userIds或裸返全部权益。
+- `ApiV3ProfessionSettingsService`的skip沿旧规则清空主职业，privacy沿旧六预设/十模块，仅按相关列和版本写入；`ApiV3MedalOrderService`按全部本人持有（含隐藏/过期）相邻移动后重编号，并列按order/oId，超技术预算503而非截断。两者每次及重放在严格根当前锁有效用户，回执不覆盖后续操作；旧隐私/勋章整行写未同步改造，不能宣称新旧整体原子化。
+- v3完整清单与后续分工见`docs/api-v3-progress.md`，当前跨仓库路由对照见`docs/api-v3-current-completion-audit.md`（动态候选/转发不是运行通过）；以总register可达的METHOD+path计数，源码/隔离测试/运行验收分列，用户侧职业/勋章/会员不可按后台整体排除。v3热度GET需content.read及`ApiV3RealtimeTargetService`当前授权，合计本节点旧连接与重新授权的文章订阅连接，仅近似连接数，不是全站或去重人数。
+- v3表情四个GET由`ApiV3EmotionProcessor`提供本人常用/目录/图片分组与条目，均profile.read；不调用会创建默认组的旧GET，items查询重复绑定owner。PC/mobile旧目录与v3共用`ApiV3EmotionOptions`，保持EOF分隔但对外去除；红包类型目录五类均已开放；heartbeat/rockPaperScissors创建及领取须显式风险确认，猜拳另需出拳，dice仍不支持。
+
+- v3 MBTI由`ApiV3Personality`严格规范16类型及可选-A/-T，大小写/首尾空白规范化、空值清空、无效422（用户已确认）；GET/目录需profile.read，PUT走settings.write及settings.personality幂等事务，锁当前有效用户仅写mbti/更新时间，沿用ProfileWriteQuota。旧`SettingsProcessor.checkMBTI`仍用于旧资料/注册，禁止顺手改变其规范化行为。
+- v3头像GET/PUT在`ApiV3SettingsProcessor`：GET由`ApiV3AvatarQueryService`只读本人当前有效账号URL，PUT用settings.avatar幂等事务和`UserSettingsMutation`锁用户后仅写URL/type/更新时间；允许任意合法HTTPS、255 UTF-16、保留签名query、不抓取远程内容。旧头像设置及页面展示规则保持，不能用`AvatarQueryService`处理后的缩放URL代替本人保存的地址。
+- OAuth同意页使用 `ApiV3AuthorizationRequestService`：服务端保存owner/client/完整回调/scope/state/PKCE及handle/proof哈希，确认只传request/proof/明确决定，禁止用表单覆盖user/scope。hint先owner过滤供client锁序，再锁请求重验，决定/签码严格同事务，批准和拒绝均一次性。HTTP必须仅取Sessions.currentCookieUser（全局Sessions可能已被apiKey提升），并接 `ApiV3ConsentSecurity` 的配置站点精确来源+非空Session CSRF；不能拿legacy CSRFMidware的Referer前缀替代，也不能回退apiKey/Bearer。state可省略、最多1024 UTF-8字节，回调禁止预置OAuth响应参数并编码state/码；HTTP在ApiV3OAuthProcessor，PC/mobile授权模板同步；普通业务信封不套OAuth协议。
+- 第三方PKCE核心在 `ApiV3AuthorizationCodeService`：签码必须加入服务端确认的授权请求事务，不能接收HTTP指定的user/scope。client→精确注册redirect→code→当前user，消费码与Token对严格同事务；匹配绑定及PKCE的重放撤销对应家族，错误证明不撤销。新表见20261019_api_v3_oauth.sql并已入repository.json，先迁移再联调。用户已确认HTTPS、仅开发HTTP回环及登记的原生专用scheme；`ApiV3OAuthRedirects`要求原生反向域名scheme+单斜线路径，完整URI（含端口/查询）精确匹配，不做动态端口例外；旧/openid凭据独立。
+- v3 Bearer认证必须直接SQL读取当前用户，所有客户端刷新均锁定当前用户状态，禁止回退UserQueryService/UserRepository.get的节点缓存。v3 Token写入统一先锁客户端再当前读Token；家族撤销必须按clientId/userId/familyId完整SQL更新，禁止分页截断或用旧活动快照回写state。`issueForClientInCurrentTransaction`由PKCE换码在同一授权码事务内调用、actor由服务端授权记录取得；局部保存点保护Token对。第一方Cookie仍只用于website_v3，不能把内部通用发行方法直接暴露成可指定用户的HTTP入口。
+- 已批准应用登记核心为 `ApiV3ClientRegistrationService#createApprovedInCurrentTransaction`：服务端生成client_id，客户端行和精确回调行在调用方事务内同保存点写入，scope仅允许已实现的v3权限；不做HTTP身份/审批/幂等，调用方须完整提供这些边界，用户已确认仅管理员登记和维护；`ApiV3ClientManagementProcessor/Service`提供第一方当前管理员的列表/详情/幂等登记，最多20回调、每个2048；先按账号重置顺序锁客户端命名空间，再锁user/token/request，重放也重验。停用由`ApiV3ClientDisableService`把status=1、全部目标Token撤销与回执同严格事务，不删登记/回调；票据/WS在后续当前授权检查失效，不承诺同步跨实例断连。`ApiV3ClientUpdateService`完整替换名称/scope/回调，实际权限或回调集合变更同事务撤销全部Token、删除旧code与pending请求，保留已决定历史；名称或排序变化保留授权，状态不变；禁止自助登记。
+- v3 注册选项在 `ApiV3AccountProcessor` / `ApiV3RegistrationPolicyService`：直接查询注册开关，邀请资格沿角色权限读取，仅为表单展示，不可作为后续写入授权。账号短信验证核心 `AccountVerificationService` 在调用方事务中先当前读锁用户，再按当前手机号/type/purpose/有效期锁并消费验证码，消费与账号变更同提交；同值重复码全部消费，禁止回退全局getVerifycode(code)。核心不含尝试限额，公开入口须先接共享限额。用户已同意旧register2新增code及新旧账号入口一起加固；reset-pwd及register2已接入，PC/移动页面已传code，不再重复询问。
+- 新旧话题写入共用 `ChatTopicWriteService` / `ChatTopicMgmtService`：账户对锁及缓存边界外包事务，当前用户→房间head→option/chatRoomTopic，16积分、话题及topic/0事件同保存点；v3 PUT由 `ApiV3ChatTopicService` 显式Bearer准入及幂等。v3沿用字符过滤且超64 UTF-16拒绝，旧入口保留过滤/截断；投影worker重读已提交最新状态恢复旧页面，topic WS仅发revision，不能冒充messageId=0。旧Bot准入先执行，不能称整个旧Bot处罚与话题原子化。
+- v3 弹幕 POST `/chat/barrager` 走 `ApiV3ChatBarrageService`：content.write、当前用户/手机/限制、纯文本清洗后32 UTF-16及#RRGGBB，费用与回执同幂等事务；`ChatBarrageQuota`共用旧用户名额度与admin例外，自动重试只计一次。提交后才发旧广播及当前实例的 `chat.barrager` 白名单事件，v3逐连接重验授权；即时动画不入历史/提交游标、不补播，不能声称跨实例或可靠送达。旧弹幕输入/扣款链路暂保留，展示插件前必须编码正文/昵称与作者路径，两套源码/产物同步。
+- 新旧聊天室撤回共用 `ChatMessageWithdrawalMgmtService`：事务前账户对锁及缓存边界，按作者ID检查、锁用户后锁cloud的sys-chat-revoke每日记录；费用0/32/64……，与消息/删除事件/reaction/职业撤销同保存点。用户已同意共享持久计次、改名/重启不清零及旧入口失败不扣款；旧管理跨作者/免计次保留，v3 DELETE仅本人、content.write及幂等，确认提交后才索引/通知。存储删除核心为 `ChatMessageMgmtService#removeInCurrentTransaction`，不得绕回独立扣费或用户名归属。
+- v3 GET `/chat/topic` 读取已提交持久话题（初始无记录兼容进程默认值），`/chat/barrager/price`读取当前进程价格，均需content.read；话题是纯文本，价格经ChatroomProcessor.get/setBarragerPrice成对访问。旧话题通知在channel.js/channel-2.js中必须文本编码话题/作者并编码作者路径，两套源码和min产物同步维护。
+- v3 普通消息 POST `/chat/messages` 走 `ApiV3ChatPublicationService`：content.write、白名单正文/客户端与幂等；先取得actor/sys账户对，再打开缓存边界和事务，当前用户/限制/适用处罚/消息/职业/最后发言时间同事务。仅applied后广播、活跃度与提醒；处罚由 `ChatMessagePenaltyMgmtService` 写禁言/思过簿/扣分通知，提醒走 `ChatMessageNoticeService` 独立严格提交并释放连接。普通正文不执行业务命令或AI。
+- 聊天风控重复确认和复读计数由 `ChatMessageAbuseState` 供新旧入口共用；普通保存核心不能替代准入。v3 禁言/风控读取走 `ChatMessageRestrictionQueryService`，要求已有事务并锁定当前记录，只读到期时间、不自行清理或提交；损坏/重复记录须报错，不能当作未限制。`ChatMessageRestrictions` 保留风险校验→确认→禁言顺序及全员禁言时的管理例外。
+- 普通聊天保存共用 `ChatMessageMgmtService`：`saveInCurrentTransaction` 用保存点绑定消息、变更序列和职业来源，外层须提交；旧入口用严格根事务 `saveLegacy`，确认提交后才回填消息ID。v3 普通正文已确认用 `ChatMessageText` 拒绝完整业务包装、执法/zf前缀及卡片JSON，须在保留词处理前后检查；该保存核心不负责禁言、重复确认、复读处罚或外部广播，不能据此直接开放发送。
+- 聊天发送基础校验共用ChatMessageValidation/ChatMessageValidationService，客户端标记共用ChatMessageClients；保留旧频控→保留词→trim/4096 UTF-16长度顺序和管理员例外。MIN_STEP_CHAT_TIME当前为0，不能擅自增加业务频控；基础校验不负责禁言、命令或费用。旧ChatRoomBot.muted/risksControlled在记录过期时自行开事务，v3事务体不能直接调用；v3须显式传Bearer用户，不能复用依赖Sessions的旧middleware。
+- 聊天室已提交变更经ChatRoomRepository及共享ReactionMgmtService写api_v3_chat_event和api_v3_chat_state/main；head行锁串行分配revision，不能用消息ID/时间作提交游标。ApiV3ChatTransaction以外层事务保存点绑定消息/reaction与事件，无法局部撤销时整笔回滚。取票POST /api/v3/chat/realtime-ticket要求content.read；ApiV3ChatStream有界消费已提交序列、逐连接授权，只发ID/版本，缺口或倒退发chat.sync_required。启动时初始化调度，清理只删旧事件、不重置head；两张表及种子须先迁移，非持久化在线另接，弹幕另发即时事件。
+- v3聊天室读取走`ApiV3ChatProcessor`/`ApiV3ChatQueryService`，统一要求content.read；历史记录的content是消息外壳JSON，必须经`ApiV3ChatMessageDto`白名单分普通Markdown/红包摘要/天气/音乐，禁止裸返外壳或红包who/内部字段。游标列表固定按ID范围查询、返回升序；上下文按半径有界读取。作者为消息发布时公开快照，不能从页面Cookie/apiKey补身份。
+- 当前Latke JDBC `commit()`会吞掉提交异常；v3幂等/Token/Socket根事务用`ApiV3Transactions.strict`提交，primitive不能绕回原提交。旧注解事务未全局替换，不能仅凭事务结束判定成功；升级jar需重跑提交故障专项。WS回调和后台worker必须显式释放JDBC线程资源，不能依赖HTTP收尾。
+- v3 Socket票据以channel/targetId绑定通知或单篇文章，按频道复核scope；文章授权经`ApiV3RealtimeTargetService`直接查询当前文章/作者/读者，讨论邀请解析与旧链路共用`UserMentionCandidates`，不得用缓存身份延续已撤销权限。文章取票在`/api/v3/articles/{articleId}/realtime-ticket`；ArticleRepository/CommentRepository和共享ReactionMgmtService在原事务内写`api_v3_article_revision`，后台只轮询已提交标记，逐连接授权后发仅ID的article.changed。通知与文章订阅索引隔离，禁止直接转发旧ArticleChannel完整事件；热度/在线人数另行接入。
+- 当前Latke WS升级不走HTTP顶层中间件，query还会覆盖ip。v3 realtime先由`ApiV3SocketHandshake`查精确无query路径/帧上限和显式风控，再等authentication.required后首帧票据认证；禁止Cookie/apiKey回退。通知写入与`api_v3_notification_revision`标记同事务，`ApiV3RealtimeService`只读已提交标记、逐连接重查原access后发本人空提示，不转发旧UserChannel JSON。批量通知删除用owner-aware方法，通用remove(Query)不自动追踪owner。上线前同步建表和repository.json。
+- v3 上传签票走 `ApiV3UploadProcessor` / `ApiV3UploadTicketService`，要求 uploads.write，当前用户只取Bearer并从数据库投影重读；`RhypicUploadTickets`只共用Ed25519协议，旧入口字段保持。v3的uploadURL是含/api/v1/files的完整公开地址，不能用internalUrl；短期凭据不落业务幂等表，每次取票新签发。文件直传字段file，旧/upload代理仍是file[]。
+- 改名卡新旧入口共用 `UserNameMgmtService`，用户名与背包同事务，旧改名卡根事务也须严格提交；v3 同时要求 activity.write/settings.write。注册、改名及未验证账号名称清理先锁会员统计 option，再当前读用户，最后锁背包，保持名称占用串行；注册保留原未验证账号策略。用户名规则共用 `UserNameRules`，缓存仅事务结束后失效并重读。普通积分改名仍有独立扣费链路，不能称其整体原子化。
+- 本人评论删除共用 `CommentRemovalMgmtService`：旧入口自带事务，v3 DELETE经comments.write和幂等事务；发布锁/账户对在事务前取得，相关用户按ID排序锁定后才锁文章/评论，扣费、计数、职业来源及清理同事务，索引/通知刷新/审计在提交后。用户已同意旧入口失败不扣费；真实MySQL与后台强删竞争仍待验证。
+- 评论发布/编辑延迟提醒统一走 `CommentNotificationMgmtService`，当前文章/评论锁内检查接收者可读性并保存通知，提交后刷新；不要直接用文章也在使用的旧 `addAtNotification` 写评论提醒。`@participants`仅按新建的提醒计数，收费仍沿用事件内独立转账；通知事务不等于整个异步事件事务。
+- 评论投票走 `CommentVoteMgmtService`，先排序锁用户再锁文章/评论，vote行、计数和点赞通知同事务，提交后刷新/记活跃度；旧控制器保留toggle及type=操作前投票。v3 `/comments/{id}/vote` 由 `ApiV3CommentVoteService` 提供GET(content.read)/PUT/DELETE(comments.write)，PUT是设置，幂等结果不覆盖后续投票；GET投影同时按actor及dataType筛选，只返id/vote/计数。`VoteMgmtService`只允许文章，禁止套其事务包装写评论。
+- 文章投票复用 `VoteMgmtService#setInCurrentTransaction`，旧toggle自行提交，v3 `/articles/{id}/vote` 经 `ApiV3ArticleVoteService` 加幂等事务（GET content.read，写 content.write）。文章计数、`tag_article`的redditScore及点赞通知同事务，关联只更新分数，保留原整数时间排名规则；刷新/活跃度在提交后。文章/评论共用 `ApiV3Votes` 输入及DTO，但查询、mutation和幂等operation均按资源类型隔离。
+- 文章感谢/打赏共用 `ArticleRewardMgmtService`，先取得actor/sys与actor/作者完整账户对，再同事务转账、计数、reward及通知；匿名免转账、感谢也计入原LIVENESS_REWARD。v3 `/articles/{id}/thanks`、`/reward`提供GET状态与幂等POST，正文始终经文章详情按当前读者读取，不能存进幂等结果。锁定但可读文章仍可投票/感谢/打赏。旧`/article/reward`已获用户批准收紧正文返回：通过`rewardForViewer`在扣款前校验显式读者，提交后重查读者/文章及购买资格，仅合法启用打赏返回原HTML；不得退回Sessions身份或只凭无操作结果放行。
+- 评论采纳共用 `CommentAcceptMgmtService`：显式传入当前操作者，事务内复核文章作者，并用文章行锁串行不同回答的采纳；转账/标记/reward/通知同事务，提交后索引/刷新/活跃度。旧入口已有其他采纳时保持无操作成功，v3返回409；同一目标重试不重复付款。旧Cookie入口的CSRF保留，v3走comments.write及Bearer可读性，不新增文章类型或匿名收费限制。
+- 评论感谢共用 `CommentThankMgmtService`：先投影接收者并预锁actor/sys及actor/接收者账户对，事务内按当前评论重验归属、查重；转账/感谢计数/reward/通知同事务，索引/刷新/活跃度在提交后。v3 POST `/comments/{id}/thanks` 用comments.write、显式Bearer可读性与幂等事务；旧缺失/失效目标仍保持无操作。投票和采纳只更新所属计数字段，不能把旧评论整行快照覆盖其他互动。
+- 评论发布核心为 `CommentMgmtService#addCommentInCurrentTransaction`，旧入口自带事务，v3须复用核心而非套旧方法。先按可信文章作者取得actor/sys和actor/作者全部账户对，事务中复核作者未变；正文/计数/版本/职业来源/回复已读/自动订阅/扣款同事务，计数写列白名单。回复已读经 `NotificationStateMgmtService#markDataReadInCurrentTransaction` 固定截止批量写，`afterCommentPublished` 提交后才刷新带未读数的消息、索引和广播；自动订阅不再由控制器二次写入。
+- 积分锁统一在 `AccountPairLocks`；旧直接转账与外层事务必须共用该池。多收款方通过 `ArticleMgmtService#withPublicationLocks`→`PointtransferMgmtService#executeWithTransferLocks`，在事务前按确定顺序取得完整账户对集合；持锁期间只允许重入原集合的子集，禁止临时扩展。`CommentPublishPoints`共用旧评论预留/扣费规则：普通支付作者、自评支付sys、私密额外付sys；任一匿名不实际扣费，但仍检查原余额门槛。
+- 评论编辑共用 `CommentMgmtService#updateCommentInCurrentTransaction` + `CommentEditing`，沿用文章发布锁/缓存边界，正文、版本和费用同事务；只更新正文/可见性/IP/UA，禁止整行旧快照覆盖计数或段评元数据。`afterCommentEdited` 只在提交后索引/发事件；v3 PUT 需comments.write、本人及目标文章可见性，幂等重放不发事件。评论/文章任一匿名免编辑费；普通评论超过五分钟即使正文不变仍收费，版本仅非空白变化时新增。
+- v3 长篇段落/段评和评论详情走 `ApiV3ParagraphProcessor` + `ApiV3ParagraphQueryService`，挂可选content.read与匿名校验。`LongArticleParagraphService.compatibleMarkdown` 用同次标题快照配对旧标识与公开安全视图，只返回安全正文/摘要；别名计数/筛选共用SQL条件，冲突409而不猜归属。历史快照不输出，v3回复也不复制；v3文章编辑在原事务中迁移临时锚点并检查冲突，旧编辑同步拦截仍待用户确认。匿名实时作者ID已获用户同意置空，须在权限/模板处理后脱敏。
+- v3 评论发布走 `ApiV3CommentProcessor` + `ApiV3CommentMgmtService`：文章作者付款目标须在事务前投影并预锁，锁内重验；`ApiV3CommentTarget` 校验同文章可读回复与服务端段落快照，幂等回放不再推送。`ArticleChannel` 按当前用户/文章/评论可见范围生成接收者独立数据；私密正文在模板渲染前清空，不能只依赖模板隐藏。评论提醒同样按当前可读范围过滤。
+- 评论发布/编辑正文校验共用 `CommentValidation` + `CommentValidationService`，分prepare（额度/保留词/长度）和moderate以保留旧目标校验先后顺序；额度经 `CommentWriteQuota` 同步共用，保留原角色例外。旧CommentProcessor写入从loginCheck的User.USER取身份，query/body apiKey一致；v3不得调用依赖Sessions的旧中间件，须显式传Bearer用户。
+- 文章内容校验共用 `ArticleValidation` + `ArticleValidationService`，旧 `ArticlePostValidationMidware` 只适配旧响应。v3 创建走 `ApiV3ArticleWriteProcessor` + `ApiV3ArticleMgmtService`，需要 content.write 与 commonAddArticle（不是管理权限articleAddArticle）；输入只认Bearer作者、幂等与本人草稿同事务，结果只返回id/permalink。v3不接受免审字段，思绪POST仍关闭；旧免审角色、额度例外与历史打赏长度规则保留，避免悄悄收紧旧API。
+- 用户投稿必须走 `ArticleSubmissionMgmtService#submitInCurrentTransaction`，手机/新人/宵禁/周报策略共用 `ArticleSubmissionPolicy`，周报奖励与底层正文/章节/版本/职业来源/扣款同事务。外层先经 `withPublicationLock`（服务锁→账户对锁→事务），用 `ArticlePublicationCaches` 暂缓缓存，仅确认新提交后调用 `afterArticlePublished`；v3按幂等applied判断，不能在重放上发事件。旧入口自带提交，v3不得直接套旧方法。`ArticleWriteQuota`与旧校验共用额度；频控包装需同步调用，底层SimpleCurrentLimiter的get/put不原子。
+- 文章编辑核心是 `ArticleMgmtService#updateArticleInCurrentTransaction`，正文/标签/章节/段评位置/版本与扣款同事务；仍用发布锁和缓存边界，提交后才调 `afterArticleEdited`。`ArticleEditPoints` 保留五分钟内免编辑费但仍需余额门槛、匿名免扣、新启用打赏固定费；旧实现rewardPoint=0不会关闭已启用打赏，不要暗改。段评迁移只写位置字段，文章和评论缓存也由该边界延后处理。v3 PUT 经 `ApiV3ArticleEditing` 在锁定本人文章后合并部分字段、校验并幂等提交；重放哈希只包含提交字段，不含当前数据库默认值。
+- v3 编辑源码走 `GET /me/articles/{articleId}/source`（content.read）与 `ApiV3ArticleEditorDto`：owner+ID联合过滤、字段投影，单次查询仅关联本人有效专栏；不复用公开详情或页面转义。正文/思绪/打赏正文保留原始串，锁定文章可由本人读取，但不代表具备写权限；响应只读字段不能原样回传PUT。
+- 文章删除共用 `ArticleMgmtService#removeArticleInCurrentTransaction` 与 `ArticleRemovalPolicy`，统计/作者/文章依序锁定；数据库清理和职业撤销同事务，提交后才执行 `afterArticleRemoved` 的索引/音频清理。v3 DELETE 先按 Bearer 检查本人和权限，再幂等提交；重放不重复清理。普通删除保留24小时/周报/互动限制，打赏计数查询失败不得当成0放行。投票/奖励清理必须同时匹配目标ID与类型，禁止恢复仅按dataId删除；文章奖励含购买、感谢、采纳三类，不包含评论感谢或用户奖励。
+- 思绪页面回放由 `ArticleQueryService` 的页面专用回调提供原始记录，PC/移动 `article.ftl` 用 `?js_string` 编码，`article.js`/`m-article.js` 用 Lute 清洗每帧重建 HTML；不要先清洗整段结构记录而破坏坐标。旧 API 字段保持原转义，自定义文章模板覆盖时需同步此链路。
+- v3 设置走 `ApiV3SettingsProcessor`，资料/隐私/显示采用部分更新；旧隐私/皮肤与 v3 共用 `UserSettingsMgmtService`。事务中只按列更新，不提前写用户/会话缓存；结束后锁行读取已提交数据刷新缓存，失败则清缓存；v3 榜单快照用设置修订号失效，防止旧加载覆盖清理。资料修改与旧入口共用 `ProfileWriteQuota`，仍走原内容审核。功能/位置/语言也走同一事务体；旧功能页的功能字段与显示模式须同事务更新。首页跳转新旧入口共用 `SettingsRedirects` 校验精确 origin 与部署路径，不能用 URL 字符串前缀判断站内。
+- 大事记个人投稿查询走 `ApiV3MilestoneProcessor` + `ApiV3MilestoneQueryService`，必须 owner+ID 联合过滤，不能复用公开详情。创建的事务内方法在 `MilestoneMgmtService`，`MilestoneSubmission` 白名单强制作者/待审状态/时间；缓存只在提交后清理。v3 投稿正文已确认采用 Markdown，在入口渲染清洗为 HTML 后保存，以兼容既有时间线；本人 content 返回保存后的 HTML。
+- 系统背包存在 `cloud` 的 `gameId=sys-bag`；增减物品统一经 `BagMgmtService` 锁用户再锁背包记录，`CloudService` 仅保留兼容包装。免签卡的新旧入口共用一次事务扣卡和增加天数，v3 加入幂等事务；`putBag` 正数参数是增量、`maxTake` 是最终数量上限，不要把旧累加代码误判为翻倍。
+- 签到/补签统一走`CheckinMgmtService`：先账户对锁，再同事务锁用户并写积分、连续记录和背包提示，提交后刷新缓存/积分索引。自然日规则为`DailyCheckinMutation`/`CheckinPatchMutation`；v3补签经幂等事务，旧补签共用核心，失败保留卡/提示且不额外发签到奖励；关闭的手动签到入口不得恢复。
+- 昨日活跃度奖励的新旧入口共用 `LivenessRewardMgmtService`；先持有积分账号对锁，再开启事务、锁用户并检查当天原始转账记录，奖励与 v3 幂等结果同事务。积分冗余索引只在提交后刷新。日常签到仍由 `LivenessMgmtService` 活跃度触发，不能通过新 API 恢复已关闭的手动签到入口。
+- v3 专栏管理走 `ApiV3ColumnProcessor`，与旧入口共用 `LongArticleColumnMgmtService` / `ColumnCoverMgmtService` 事务内方法；专栏元数据写入和章节归属校验共用父行锁，章节统计使用当前读，避免删除与新增章节竞争。排序允许只提交部分专栏，未提交项保持原排序。
+- v3 鱼游列表默认按总投票数、点赞数、时间排序（用户已确认），保留 `sort=likes`；不要依据旧的 `/activities` 点赞排序说明更改该默认值。
+- v3 清风明月发布/编辑/删除复用 `BreezemoonMgmtService` 的事务内方法，职业发布/撤销事件与内容同事务；`BreezemoonWriteQuota` 与旧入口共用业务频控。公开读取必须检查作者的 `userBreezemoonStatus`；关注流只读取关注用户公开有效内容且不回退全站；编辑不得改变作者、创建时间或审核状态。实时广播只在发布幂等首次确认提交后尽力发送。
+- v3 鱼游投票/评论复用 `FishGameMgmtService` 显式事务内方法，先锁父鱼游并验证已审核；投票与计数同事务，PUT 设置、DELETE 清除，旧入口仍 toggle。新旧业务额度共用 `FishGameWriteQuota`；后台元数据更新必须限定字段，不能用旧对象覆盖投票计数。
+- v3 社区读取走 `ApiV3CommunityQueryService`：鱼游/大事记必须按审核状态过滤；同城用户和文章均需检查作者公开位置，文章还排除匿名发表。统计只输出明确数字字段，在线总数已包含成员；鱼游新 API 必须使用真实分页，不能复用旧 getApproved 的 100 条截断。
+- v3 排行榜由 `ApiV3RankingProcessor` + `ApiV3RankingQueryService` 提供；邀请/赞助/优选/小冰共用 `RankingQueryService`，旧接口也调用该服务。游戏榜只投影排名指标，不得直接输出 cloud 存档；JSON 集合读取需兼容 `JSONArray` 与 `List`。
+- v3 通知的分类统一在 `ApiV3NotificationTypes`，读取走 `ApiV3NotificationQueryService`，状态写入走 `NotificationStateMgmtService` + 幂等事务；刷新通知必须在提交后发布。通知里的文章/评论需按 Bearer 阅读者重新检查可见性，禁止裸返 dataId、owner 或完整消息 JSON。
+- 内容删除通知引用由 `ContentNotificationReferences` 统一区分直接ID、组合ID和reward记录ID；奖励清理返回被删reward ID，同事务清理相应通知，禁止仅按dataId扫删通知。旧AT未存目标类型，文章/评论ID碰撞时保留歧义AT；不得推测归属。
+- 关注/收藏/订阅统一经 `FollowMgmtService#setInCurrentTransaction` + `FollowMutation`，锁定操作者与目标后维护关系/计数；旧入口自行提交事务，v3 加入幂等事务。缓存需在提交或回滚后失效；关注通知经 `NotificationMgmtService#addFollowNotificationInCurrentTransaction` 写入，提交后再刷新。
+- v3 写入幂等由 `ApiV3IdempotencyMgmtService` + `api_v3_request` 在同一事务内提交业务与结果；回调必须调用 `*InCurrentTransaction`，不得自行提交、嵌套事务或直接发送外部事件。草稿写入走 `ApiV3DraftProcessor` + `ApiV3DraftMgmtService`，复用 `ArticleDraftMgmtService` 的现有规则。
+- v3 个人读取在 `ApiV3PersonalProcessor` / `ApiV3PersonalQueryService`；scope 分 profile.read、content.read、activity.read，目标用户只能来自 Bearer。草稿详情必须用 owner+ID 联合过滤，积分 DTO 不得带双边余额或内部应用请求编号。
+- v3 主页评论与关注动态的查询片段在 `ApiV3ProfileQueries`：评论列表不聚合讨论帖，私密正文复用 `commentDto`；`watching` 是关注用户/标签动态，`watching/articles` 是 `ARTICLE_WATCH` 订阅，不能与 `following/articles` 收藏混淆。
+- v3 搜索/标签/领域/用户文章共用 `ApiV3DiscoveryQueryService` 的可见性、计数和分页条件；`ApiV3ContentDtoService` 只做公开 DTO 映射。用户主页子列表需用 Bearer 阅读者检查对应隐私开关；禁止从 Sessions 或旧 apiKey 补身份。
+- `/api/v3` 文章/评论读取走 `ApiV3ContentProcessor` + `ApiV3ContentQueryService`，可选 Bearer 需 `content.read`；当前用户只从 `ApiV3Processor.IDENTITY` 获取，禁止回退 Sessions/apiKey 或复用依赖会话的页面内容组装。详情与评论共用文章可见性检查，匿名作者 DTO 不返回真实身份，打赏和私密评论单独授权。
 - 职业成长系统完全独立于 `userAppRole`：定义、等级方案、自动化、来源事件、效果、用户汇总和贡献均走 `profession_*` / `user_profession*` 新表；效果和来源事件均先独立提交领取状态，再在所有权条件下完成事务，防止回滚后的并发覆盖。等级方案 `MIGRATE_ALL` 与 `SCHEDULED_SWITCH` 由 `ProfessionLevelMigrationService` 分批切换，定时方案由 `ProfessionScheduledSchemeService` 激活。首次选择职业的升级来源由 `ProfessionGrowthGuideQueryService` 根据已发布自动化规则动态提供，禁止在前端写死职业升级方式。停用职业由 `ProfessionRetirementMgmtService` 锁定定义与受影响用户，将系统通知与停用状态同事务提交，并在提交后刷新通知，禁止直接写通知表。
 - 职业管理数据读取分为 `/catalog-summary`（分页摘要）和 `/catalog-detail/{professionId}`（单职业完整配置）；导入必须先走 `/config/precheck`，排序经 `/catalog/order` 在同一事务内校验并保存全部职业顺序，二者均限管理员登录态与 CSRF。
 - 职业自动化执行器包含经验调整和系统通知；系统通知配置 `notificationContent` / `notificationWhen`（`ALWAYS`、`LEVEL_UP`），由 `ProfessionAutomationNotificationService` 在职业效果事务中经 `NotificationMgmtService` 发送，不能直接写通知表。通知效果必须排在经验效果之后，正文变量为 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；等级方案迁移不会回放来源事件，但会对新跨越的每级分别补发允许的等级奖励，并为已发布 `LEVEL_UP` 通知创建独立幂等效果。金手指外部职业经验效果没有 `automationRevisionId`，通知判断必须先识别这种外部效果，不能查询自动化版本，否则效果会进入 `APPLY_RETRY`。
 - Latke 原生仅提供轻量皮肤元信息能力（如 `Latkes#getSkinName` 读取 `/skins/<dir>/skin.properties`），不负责 Rhythm 的运行时选肤；Rhythm 当前皮肤链路在 `BeforeRequestHandler#resolveSkinDir` + `Sessions` + `processor/SkinRenderer` + `util/Templates`。
 - Latke IoC 会通过 Javassist 为每个 `@Singleton` Bean 生成子类代理，因此 `@Singleton` 类不能声明为 `final`；新增或修改 Bean 后需检查这一点，否则生产启动可能只显示 `Latke init failed`。
+- 项目内 Latke 的 `Cookie#setSameSite` 接收字符串（如 `"Strict"`），不是 Netty 枚举；v3 刷新 Cookie 统一经 `ApiV3RefreshCookies` 构造，真实框架类型检查在 token 专项脚本中。
 - Rhythm 当前“皮肤”本质是模板目录名：默认值来自 `symphony.properties` 的 `skinDirName=classic/pc`、`mobileSkinDirName=classic/mobile`；运行时先按 UA 分流 pc/mobile 默认皮肤，再按用户字段 `userSkin` / `userMobileSkin` 覆盖，设置页通过 `/settings/skin` 保存，`SkinQueryService` 负责扫描 `/skins/**/skin.properties` 识别可选主题。
 - Rhythm 侧 `SkinQueryService` 现已按 UTF-8 读取 `skin.properties`，皮肤名称/描述可直接写中文；但 `src/main/resources/lib/latke-core.jar` 内的 `Latkes#getSkinName` 仍是旧 `Properties.load`，若后续有代码依赖该方法读取皮肤元信息，需要同步改 Latke 并替换 jar。
 - 模板加载已支持“同设备 fallback”：若自定义皮肤缺少某个 FTL，`Templates` 会回退到默认皮肤的同路径模板（如 `foo/pc/header.ftl -> classic/pc/header.ftl`，`foo/mobile/common/comment.ftl -> classic/mobile/common/comment.ftl`）；因此新增皮肤可以按需覆盖，但至少要提供对应目录与 `skin.properties`。
@@ -135,16 +246,8 @@
 - 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
 - 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。
 
-## 反漏扫 / 搜索引擎 / 封禁链路（现行基线）
 
-- 威胁模型：单位漏扫通常从 `/` 起步；搜索引擎爬虫与搜索落地用户会直接从文章页进入。因此「文章页首访免验证码」是刻意设计，不要改成「未验证就零内容」，也不要为方便爬虫把 `/sitemap.xml` 加进公开豁免（会被漏扫利用）。
-- 蜘蛛识别顺序：`SearchEngines.detectCrawler(UA)` 判定身份 → `verifiedCrawler(ip, ua)` 做 PTR 反查 + 正向 A 双向校验（`SearchEngineDnsVerifier`），正向缓存 6 小时、负缓存 10 分钟。DNS 瞬断会让真爬虫被当匿名 10 分钟，排查「蜘蛛被弹验证码」时先看这里。
-- DuckDuckGo 没有可用 PTR（Azure 通用域名），只能靠本地 CIDR 文件 `src/main/resources/search-engines/duckduckgo-bot-prefixes.json` 匹配，不做 DNS 校验；该文件由部署脚本在打包前合并官方 JSON。
-- `BeforeRequestHandler` 的蜘蛛豁免只认 `verifiedCrawler` 的返回值，不要用 `Sessions.isBot()`：后者对 Iframely / BUbiNG / ltx71 等 UA 也为 true，等于给伪造 UA 开了后门。
-- `Firewall`：已验证蜘蛛不计数、不封禁；`ipset` 集合 `fishpi` 为永久封禁（`ipset add` 不带 timeout，`BANNED` 缓存无过期），解封唯一入口是后台 `/admin/ip`。该操作会 `ipset del`、清黑名单/计数/首访缓存、把 IP 加入内存白名单并回填通过时间；白名单与缓存都是内存态，服务重启后解封失效。
-- `ipset` 集合创建时未带 `timeout` 就无法对单条记录设置过期；要恢复过期能力必须用 `ipset swap` 重建集合并同步 iptables，不能直接 `ipset add ... timeout`。
-- 生产 nginx 为直连（未走 CDN），`$clientRealIp` 直接取 `$remote_addr`，XFF 等头不可伪造；`/etc/nginx/blockip.conf` 现在只是封禁记录文件，nginx 已不再 include，实际拦截靠 ipset。
-- 运维脚本 `scripts/anti_cc.sh`（`/scripts/` 已被 `.gitignore` 忽略，内含部署凭证，禁止提交）：保留「单 IP 400 req/min、503 超量、CONNECT/特殊字符」三段检测，封禁前做蜘蛛豁免（含 DuckDuckGo CIDR），单次运行内对 PTR/正向查询做缓存；日志固定写独立文件（默认 `/var/log/anti_cc.log`，不可写回退 `/tmp`）；封禁同样不带 timeout。解封需 `ipset del` 且删除记录行，只删 ipset 会被脚本按记录行判重重新加回。
-- SEO 基线：`robots.txt` 对 `/recent` `/qna` `/column` `/tag/` `/api/` `/article/1636516552191` `/article/*/revisions/` 等做 disallow；`articleType=1`（讨论帖）不再输出 NOINDEX；PC/移动 `article.ftl` 的 canonical 统一用 `${servePath}${article.permalink}`；PC/移动 `macro-head.ftl` 保留 `applicable-device`。
-- 匿名可见性过滤：首页最新文章、标签/列表、置顶、作者上/下一篇、时间导航、sitemap 统一排除 `articleAnonymousView == NOT_ALLOW`。Latke 的 `NOT_EQUAL` 生成标准 SQL `!=`，**NULL 行会被排除**，历史数据必须保证该字段非 NULL，否则内容会成片消失。
-- `/sitemap.xml` 是单文件、`setPage(1, Integer.MAX_VALUE)` 一次性取全部文章；超过 5 万条 URL 或响应过大时 Google Search Console / 百度会报「无法读取」。若需修复，应改为 sitemap index + 分片，而不是放宽访问控制。
+
+- v3公开资料`ApiV3DiscoveryQueryService.profile`返回cardBg/userPoint/onlineMinute，cardBg只读目标system_settings的单字段并校验图片URL，禁止裸返settings；余额和累计分钟沿用主页公开展示，userPointStatus为流水权限、userOnlineStatus为在线标志权限，不能混为余额/累计时长。
+
+- 聊天外观由ApiV3ChatAppearanceService管理固定v1目录，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；版本1目录视觉不可原地改版。

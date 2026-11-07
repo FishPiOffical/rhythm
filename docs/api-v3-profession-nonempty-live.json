@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-03",
+  "batch": 81,
+  "productionFilesChanged": [],
+  "documentationFilesChanged": [
+    "Both repos: docs/api-v3-progress.md, docs/api-v3-current-completion-audit.md, docs/api-v3-live-integration-work.md, docs/api-v3-profession-nonempty-live.json",
+    "website_v3/docs/V3_MIGRATION.md"
+  ],
+  "scope": "Positive non-empty v3 profession API/UI, pagination and privacy projection; controlled local stored-data fixture, NOT actual experience award or automation execution",
+  "baseline": {
+    "javaPid": 47272,
+    "listenerAndPublicCatalogJSONChecked": true,
+    "publishedAutomationCount": 0,
+    "userProgressRows": 0,
+    "succeededSourceEvents": 52,
+    "conclusion": "Successful sources with zero rules do not prove growth; formal configuration not imported"
+  },
+  "fixture": {
+    "owner": "Independent pre-existing development actor E",
+    "scope": "rhythm-dev-mysql / 127.0.0.1:3319 / b3log_symphony only",
+    "professionDefinitions": 1,
+    "levels": 2,
+    "currentExperience": 110,
+    "currentLevel": "advanced",
+    "contributionEvents": 24,
+    "effectRows": 26,
+    "eligibleRecentAppliedNonzero": 23,
+    "excludedRows": [
+      "91-day-old APPLIED +5",
+      "APPLIED delta0",
+      "terminal FAILED (not eligible for background consumer)"
+    ],
+    "terminalFixtureStatusesOnly": true,
+    "noNewAutomationOrSourceEvent": true,
+    "noAwardOrPointMutation": true,
+    "transactionalSeedAndCleanup": true
+  },
+  "realHTTP": {
+    "passedGroups": 8,
+    "groups": [
+      "Owner mine/selected definition/current110 experience/two-level route and contribution110",
+      "Records first20/second3, latest-5 and after110; 90-day/APPLIED/nonzero filtering; no source/automation IDs in response",
+      "Other account owner detail404 and anonymous401",
+      "Public profile and other-reader visible rank1/total1/current110",
+      "After warm read experience HIDDEN omits value while level/rank stay",
+      "Ranking HIDDEN yields zero visible population and no inferred rarity",
+      "Malformed stored module visibility503 rather than default public",
+      "Retired profession absent from public catalog/rank404 while owner/public historical progress stays RETIRED"
+    ]
+  },
+  "realBrowser": {
+    "actualBackend": true,
+    "loginThroughNormalUI": true,
+    "entry": "http://127.0.0.1:5173/settings/profession",
+    "ownerList": "V3 职业读取联调 / 进阶 / 经验110 / 门槛100",
+    "detailRouteAndContribution": true,
+    "recordPage1Items": 20,
+    "recordPage2Items": 3,
+    "negativeExperienceRendered": true,
+    "desktop": "1280x720",
+    "mobile": "390x844 viewport emulation, not physical device",
+    "mobileDocumentWidth": 390,
+    "mobileDetailWidth": 314,
+    "publicRoute": "/member/v3_local_e/profession",
+    "publicExperienceStateSequence": [
+      "HIDDEN",
+      "PUBLIC",
+      "HIDDEN"
+    ],
+    "rereadAfterWithdrawalRemovedOldValue": true,
+    "levelAndAllowedRankRetained": true,
+    "warnErrorLogs": [],
+    "afterCleanupPublicFixtureNameAbsent": true,
+    "logoutRestoredGuest": true,
+    "viewportReset": true,
+    "temporaryBrowserTabClosed": true
+  },
+  "cleanup": {
+    "professionMetadataProgressContributionsEffectsRemoved": true,
+    "originalPrivacyRowsRestoredExactly": true,
+    "temporaryDetail404": true,
+    "catalogFixtureAbsent": true,
+    "completeBusinessFingerprintUnchanged": true,
+    "fingerprintScope": [
+      "profession",
+      "profession_revision",
+      "profession_level_scheme",
+      "profession_level",
+      "user_profession",
+      "user_profession_contribution",
+      "user_profession_privacy",
+      "profession_event_effect",
+      "pointtransfer",
+      "pointtransfer_redc",
+      "api_v3_request",
+      "all user point balances"
+    ]
+  },
+  "validation": {
+    "newBuildOrFullSuiteRun": false,
+    "reason": "No production source, generated resource or public interface changes; actual local HTTP/browser evidence only",
+    "previousClientBaseline": "96 scripts /1074 PASS and type/client/SSR build remains prior evidence, not rerun here",
+    "mavenRun": false,
+    "migrationRequired": false,
+    "pendingIDEAJava": []
+  },
+  "security": {
+    "unauthorizedAndOwnership": "Real anonymous owner401 / other-owner404, existing profile scopes and current actor/owner checks retained",
+    "privacy": "Warm current privacy changes remove experience and population statistics; malformed visibility503; fixture restored",
+    "anonymousAndCaptcha": "Existing public profile/catalog middleware unchanged, no viewSkips or auth exceptions; production challenge/unlock not tested",
+    "csrf": "No new route or Cookie/API exception; only existing authentication login/logout used",
+    "xssInjectionSSRF": "No new production HTML/SQL/outbound behavior; CLI fixture uses encoded values and internal table names",
+    "sensitiveData": "Report has no bearer/cookie/password/phone/secret; metadata-only owner records omit source/automation IDs",
+    "bulkStaticCDNUploadDownload": "No new resource, upload/download, CDN or directory; no stress or production enumeration claim"
+  },
+  "manualSteps": [
+    "In an independent development DB, prepare disposable valid profession/revision/scheme/progress and dated terminal experience records; distinguish stored fixture from actual earned growth",
+    "Guest opens /settings/profession -> normal login -> actual mine110, two levels and contribution -> detail -> first20 and second3 recent records, including negative change",
+    "Repeat at390px, verify no horizontal overflow and successful previous/next records navigation",
+    "Open public /member/<owner>/profession; after current visibility PUBLIC then HIDDEN and explicit re-read, experience disappears while allowed level/rank remain; hiding ranking removes population stats",
+    "Verify other-owner404, unauthenticated401, malformed visibility503 and retired history behavior; clean fixture transactionally and confirm no original data, points or receipt changes"
+  ],
+  "remaining": [
+    "Actual published-rule consumption and experience effect application from real source events, including read reward/notification/level side effects",
+    "Full end-to-end award chain cannot be concluded from this read fixture or the52 no-rule source events",
+    "Production CAPTCHA/blacklist/CDN/directory, multi-instance and physical-device verification remains pending"
+  ],
+  "gitPolicy": "Local commits per completed batch; no push authorized"
+}

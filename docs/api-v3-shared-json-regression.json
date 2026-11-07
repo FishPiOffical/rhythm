@@ -1,0 +1,388 @@
+{
+  "date": "2026-10-31",
+  "scope": "Shared raw JSON fix; isolated Java25 runners, not deployed HTTP validation",
+  "runnerCount": 59,
+  "failures": 0,
+  "passLines": 941,
+  "rerunNotes": [
+    "Original run: 3 non-MySQL and 2 MySQL failures; missing local dependency paths and stale test fixture/source dependencies corrected; all five rerun successfully.",
+    "Upload migration fixture updated for six historical scope updates and pre-messaging upload policy."
+  ],
+  "results": [
+    {
+      "runner": "tools/api-v3-account-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/account-credential-state-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-app-login-service-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-article-stick-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-breezemoon-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-article-test.mjs",
+      "exitCode": 0,
+      "passLines": 66
+    },
+    {
+      "runner": "tools/api-v3-chat-publication-test.mjs",
+      "exitCode": 0,
+      "passLines": 42
+    },
+    {
+      "runner": "tools/api-v3-chat-test.mjs",
+      "exitCode": 0,
+      "passLines": 14
+    },
+    {
+      "runner": "tools/api-v3-client-disable-test.mjs",
+      "exitCode": 0,
+      "passLines": 10
+    },
+    {
+      "runner": "tools/api-v3-client-management-test.mjs",
+      "exitCode": 0,
+      "passLines": 10
+    },
+    {
+      "runner": "tools/api-v3-client-update-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/api-v3-column-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-comment-removal-test.mjs",
+      "exitCode": 0,
+      "passLines": 66
+    },
+    {
+      "runner": "tools/api-v3-comment-test.mjs",
+      "exitCode": 0,
+      "passLines": 41
+    },
+    {
+      "runner": "tools/api-v3-contact-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-emoji-group-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-chat-red-packet-test.mjs",
+      "exitCode": 0,
+      "passLines": 20
+    },
+    {
+      "runner": "tools/api-v3-emoji-item-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-emoji-transfer-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-fish-game-submission-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-follow-state-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-game-save-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-emotion-settings-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-identity-application-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/api-v3-invitation-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-markdown-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-medal-display-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-medal-order-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-invitation-purchase-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-membership-settings-test.mjs",
+      "exitCode": 0,
+      "passLines": 10
+    },
+    {
+      "runner": "tools/api-v3-membership-style-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-mfa-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-milestone-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-notification-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-membership-opening-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/api-v3-post-export-test.mjs",
+      "exitCode": 0,
+      "passLines": 10
+    },
+    {
+      "runner": "tools/api-v3-point-transfer-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-private-message-test.mjs",
+      "exitCode": 0,
+      "passLines": 20
+    },
+    {
+      "runner": "tools/api-v3-profession-primary-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    },
+    {
+      "runner": "tools/api-v3-profession-settings-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-reaction-test.mjs",
+      "exitCode": 0,
+      "passLines": 4
+    },
+    {
+      "runner": "tools/api-v3-profile-tags-test.mjs",
+      "exitCode": 0,
+      "passLines": 13
+    },
+    {
+      "runner": "tools/api-v3-repeater-write-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-security-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-report-test.mjs",
+      "exitCode": 0,
+      "passLines": 10
+    },
+    {
+      "runner": "tools/api-v3-socket-test.mjs",
+      "exitCode": 0,
+      "passLines": 55
+    },
+    {
+      "runner": "tools/api-v3-settings-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-upload-test.mjs",
+      "exitCode": 0,
+      "passLines": 7
+    },
+    {
+      "runner": "tools/api-v3-write-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-user-name-test.mjs",
+      "exitCode": 0,
+      "passLines": 6
+    },
+    {
+      "runner": "tools/api-v3-app-login-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 26
+    },
+    {
+      "runner": "tools/api-v3-article-read-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 11
+    },
+    {
+      "runner": "tools/api-v3-chat-red-packet-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-game-save-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 22
+    },
+    {
+      "runner": "tools/api-v3-identity-application-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 22
+    },
+    {
+      "runner": "tools/api-v3-post-export-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/api-v3-profile-tags-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 17
+    },
+    {
+      "runner": "tools/api-v3-user-name-mysql-test.mjs",
+      "exitCode": 0,
+      "passLines": 5
+    },
+    {
+      "runner": "tools/api-v3-chat-event-test.mjs",
+      "exitCode": 0,
+      "passLines": 165
+    }
+  ],
+  "changedFiles": [
+    "src/main/java/org/b3log/symphony/util/ApiV3WriteInputs.java",
+    "src/test/java/org/b3log/symphony/util/ApiV3WriteInputsTest.java",
+    "src/test/java/org/b3log/symphony/repository/ChatMessageWithdrawalEndpointTest.java",
+    "src/test/java/org/b3log/symphony/repository/PrivateMessagePublicationTest.java",
+    "src/test/java/org/b3log/symphony/repository/PrivateMessageReadStateTest.java",
+    "src/test/java/org/b3log/symphony/repository/ApiV3ChatPublicationTest.java",
+    "src/test/java/org/b3log/symphony/repository/PrivateMessageWithdrawalTest.java",
+    "src/test/java/org/b3log/symphony/util/ApiV3RealtimeProcessorTest.java",
+    "src/test/java/org/b3log/symphony/service/ApiV3ProfileTagsTest.java",
+    "src/test/java/org/b3log/symphony/service/ApiV3QqSettingsTest.java",
+    "src/test/java/org/b3log/symphony/service/ApiV3UploadTicketServiceTest.java",
+    "tools/account-credential-state-test.mjs",
+    "tools/api-v3-account-test.mjs",
+    "tools/api-v3-app-login-mysql-test.mjs",
+    "tools/api-v3-app-login-service-test.mjs",
+    "tools/api-v3-article-stick-test.mjs",
+    "tools/api-v3-article-test.mjs",
+    "tools/api-v3-breezemoon-test.mjs",
+    "tools/api-v3-chat-event-test.mjs",
+    "tools/api-v3-chat-publication-test.mjs",
+    "tools/api-v3-chat-red-packet-mysql-test.mjs",
+    "tools/api-v3-chat-red-packet-test.mjs",
+    "tools/api-v3-chat-test.mjs",
+    "tools/api-v3-client-disable-test.mjs",
+    "tools/api-v3-client-management-test.mjs",
+    "tools/api-v3-client-update-test.mjs",
+    "tools/api-v3-column-test.mjs",
+    "tools/api-v3-comment-removal-test.mjs",
+    "tools/api-v3-comment-test.mjs",
+    "tools/api-v3-contact-test.mjs",
+    "tools/api-v3-emoji-group-test.mjs",
+    "tools/api-v3-emoji-item-test.mjs",
+    "tools/api-v3-emoji-transfer-test.mjs",
+    "tools/api-v3-emotion-settings-test.mjs",
+    "tools/api-v3-fish-game-submission-test.mjs",
+    "tools/api-v3-follow-state-test.mjs",
+    "tools/api-v3-identity-application-mysql-test.mjs",
+    "tools/api-v3-identity-application-test.mjs",
+    "tools/api-v3-invitation-purchase-test.mjs",
+    "tools/api-v3-invitation-test.mjs",
+    "tools/api-v3-medal-display-test.mjs",
+    "tools/api-v3-medal-order-test.mjs",
+    "tools/api-v3-membership-opening-test.mjs",
+    "tools/api-v3-membership-settings-test.mjs",
+    "tools/api-v3-membership-style-test.mjs",
+    "tools/api-v3-mfa-test.mjs",
+    "tools/api-v3-milestone-test.mjs",
+    "tools/api-v3-notification-test.mjs",
+    "tools/api-v3-point-transfer-test.mjs",
+    "tools/api-v3-post-export-mysql-test.mjs",
+    "tools/api-v3-post-export-test.mjs",
+    "tools/api-v3-private-message-test.mjs",
+    "tools/api-v3-profession-primary-test.mjs",
+    "tools/api-v3-profession-settings-test.mjs",
+    "tools/api-v3-profile-tags-mysql-test.mjs",
+    "tools/api-v3-profile-tags-test.mjs",
+    "tools/api-v3-reaction-test.mjs",
+    "tools/api-v3-repeater-write-test.mjs",
+    "tools/api-v3-report-test.mjs",
+    "tools/api-v3-security-test.mjs",
+    "tools/api-v3-settings-test.mjs",
+    "tools/api-v3-socket-test.mjs",
+    "tools/api-v3-upload-test.mjs",
+    "tools/api-v3-user-name-mysql-test.mjs",
+    "tools/api-v3-user-name-test.mjs",
+    "tools/api-v3-write-test.mjs",
+    "AGENTS.md",
+    "API.md",
+    "UPDATE_LOG.md",
+    "docs/api-v3-progress.md",
+    "docs/api-v3-current-completion-audit.md",
+    "docs/api-v3-live-integration-work.md",
+    "docs/api-v3-shared-json-regression.json"
+  ],
+  "websiteMirrors": [
+    "docs/api-v3-current-completion-audit.md",
+    "docs/api-v3-live-integration-work.md",
+    "docs/api-v3-shared-json-regression.json"
+  ]
+}

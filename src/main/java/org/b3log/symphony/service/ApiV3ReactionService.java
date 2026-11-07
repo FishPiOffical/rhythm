@@ -1,0 +1,49 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.b3log.symphony.service;
+
+import org.b3log.latke.Keys;
+import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.service.annotation.Service;
+import org.b3log.symphony.util.ApiV3ReactionDto;
+import org.json.JSONObject;
+
+@Service
+public class ApiV3ReactionService {
+    @Inject private ApiV3ReactionTargetService targets;
+    @Inject private ReactionQueryService query;
+    @Inject private ReactionMgmtService management;
+    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject private ApiV3ReactionEventService events;
+    public JSONObject read(final JSONObject viewer, final String type, final String id) throws Exception {
+        targets.read(viewer, type, id);
+        return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, null == viewer ? "" : viewer.optString(Keys.OBJECT_ID)));
+    }
+    public JSONObject set(final JSONObject viewer, final String type, final String id, final String value, final String key) throws Exception {
+        final String actor = viewer.optString(Keys.OBJECT_ID);
+        final ApiV3IdempotencyMgmtService.Execution execution = idempotency.executeWithOutcome(actor, "reactions.set:" + type + ":" + id,
+                key, new JSONObject().put("value", value), () -> {
+                    final boolean changed = management.setInCurrentTransaction(actor, type, id, value,
+                            target -> targets.validate(viewer, type, target, true));
+                    return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, actor)).put("changed", changed);
+                });
+        if (execution.applied() && execution.result().optBoolean("changed")) events.publish(viewer, type, id);
+        return execution.result();
+    }
+}

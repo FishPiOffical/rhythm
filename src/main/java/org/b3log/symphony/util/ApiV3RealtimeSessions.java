@@ -1,0 +1,229 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.b3log.symphony.util;
+
+import org.b3log.symphony.service.ApiV3SocketTicketService.Grant;
+import org.b3log.symphony.model.ApiV3SocketTicket;
+import org.b3log.symphony.model.ApiV3ChatEvent;
+import org.json.JSONObject;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.LongSupplier;
+
+/** Bounded v3 resource-bound connection lifecycle; no page sessions or legacy event payloads. */
+public final class ApiV3RealtimeSessions {
+    public interface Transport { void send(String text);void close(); }
+    public interface Authority { Grant consume(String ticket) throws Exception;boolean authorized(Grant grant) throws Exception; }
+    public interface Guard { boolean allowed(String ip, boolean recordRequest); }
+    private static final int MAX_CONNECTIONS=4000, MAX_PER_IP=32, MAX_PER_USER=8, MAX_MESSAGES=60;
+    private static final long AUTH_TIMEOUT=5000, RECHECK_INTERVAL=15000;
+    private final Authority authority;
+    private final Guard guard;
+    private final LongSupplier clock;
+    private final Object admission=new Object();
+    private final ConcurrentHashMap<Object,Connection> connections=new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String,Set<Connection>> byUser=new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String,Set<Connection>> byArticle=new ConcurrentHashMap<>();
+    private final Set<Connection> chat=ConcurrentHashMap.newKeySet();
+    private final Map<String,Integer> ips=new HashMap<>(), users=new HashMap<>();
+    private static final class Connection {
+        final Object key;final Transport transport;final String ip;final long deadline;
+        final ReentrantLock lock=new ReentrantLock();
+        volatile Grant grant;long nextCheck,window;int messages;boolean closed;
+        Connection(Object key,Transport transport,String ip,long now){this.key=key;this.transport=transport;this.ip=ip;deadline=now+AUTH_TIMEOUT;window=now;}
+    }
+    public ApiV3RealtimeSessions(Authority authority,Guard guard,LongSupplier clock){this.authority=authority;this.guard=guard;this.clock=clock;}
+    public void open(Object key,Transport transport,String ip){
+        boolean accepted=false;
+        final Connection c=new Connection(key,transport,ip,clock.getAsLong());c.lock.lock();
+        try {
+            if(key!=null&&transport!=null&&ip!=null&&guard.allowed(ip,true))synchronized(admission){
+                if(!connections.containsKey(key)&&connections.size()<MAX_CONNECTIONS&&ips.getOrDefault(ip,0)<MAX_PER_IP){
+                    connections.put(key,c);ips.merge(ip,1,Integer::sum);accepted=true;
+                }
+            }
+            if(accepted)c.transport.send(new JSONObject().put("type","authentication.required").put("data",new JSONObject()).toString());
+        } catch(RuntimeException ignored){if(accepted)remove(c);accepted=false;}
+        finally{c.lock.unlock();}
+        if(!accepted&&transport!=null)try{transport.close();}catch(RuntimeException ignored){ }
+    }
+    public void receive(Object key,String text){
+        final Connection c=connections.get(key);if(c==null)return;
+        c.lock.lock();
+        try {
+            if(c.closed)return;
+            final long now=clock.getAsLong();
+            if(!guard.allowed(c.ip,true)||text==null||text.length()>1024)throw new IllegalArgumentException();
+            if(now-c.window>=60000){c.window=now;c.messages=0;}
+            if(++c.messages>MAX_MESSAGES)throw new IllegalArgumentException();
+            final byte[] bytes=text.getBytes(StandardCharsets.UTF_8);if(bytes.length>1024)throw new IllegalArgumentException();
+            final JSONObject body=ApiV3Json.parse(bytes);
+            if(c.grant==null){
+                if(now>=c.deadline||!body.keySet().equals(Set.of("type","ticket"))||!"authenticate".equals(body.opt("type"))
+                        ||!(body.opt("ticket") instanceof String ticket)||!ApiV3TokenUtil.isValidFormat(ticket))throw new IllegalArgumentException();
+                final Grant grant=authority.consume(ticket);
+                if(clock.getAsLong()>=c.deadline||!authority.authorized(grant))throw new IllegalArgumentException();
+                synchronized(admission){
+                    if(users.getOrDefault(grant.userId(),0)>=MAX_PER_USER)throw new IllegalArgumentException();
+                    c.grant=grant;users.merge(grant.userId(),1,Integer::sum);byUser.computeIfAbsent(grant.userId(),ignored->ConcurrentHashMap.newKeySet()).add(c);
+                    if(ApiV3SocketTicket.CHANNEL_ARTICLE.equals(grant.channel()))byArticle.computeIfAbsent(grant.targetId(),ignored->ConcurrentHashMap.newKeySet()).add(c);
+                    if(ApiV3SocketTicket.CHANNEL_CHAT.equals(grant.channel()))chat.add(c);
+                }
+                c.nextCheck=clock.getAsLong()+RECHECK_INTERVAL;
+                final var ready=new JSONObject().put("channel",grant.channel()).put("expiresAt",grant.expiresAt());
+                if(ApiV3SocketTicket.CHANNEL_ARTICLE.equals(grant.channel()))ready.put("articleId",grant.targetId());
+                c.transport.send(new JSONObject().put("type","ready").put("data",ready).toString());
+            }else{
+                if(!body.keySet().equals(Set.of("type"))||!"ping".equals(body.opt("type"))||!valid(c))throw new IllegalArgumentException();
+                c.transport.send(new JSONObject().put("type","pong").put("data",new JSONObject()).toString());
+            }
+        }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+    }
+    /** Only an owner-specific invalidation, never a legacy message or referenced content ID. */
+    public void notificationsChanged(String actor){ownerChanged(actor,ApiV3SocketTicket.CHANNEL_NOTIFICATIONS,"notifications.changed");}
+    public void messagesChanged(String actor){ownerChanged(actor,ApiV3SocketTicket.CHANNEL_MESSAGES,"messages.changed");}
+    private void ownerChanged(String actor,String channel,String type){
+        if(actor==null||actor.isEmpty())return;
+        final Set<Connection> recipients=byUser.get(actor);if(recipients==null)return;
+        for(Connection c:recipients){
+            c.lock.lock();try{
+                if(c.closed||c.grant==null||!actor.equals(c.grant.userId())||!channel.equals(c.grant.channel()))continue;
+                if(!valid(c)){remove(c);continue;}
+                c.transport.send(new JSONObject().put("type",type).put("data",new JSONObject()).toString());
+            }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+        }
+    }
+    /** A resource-bound invalidation only; comments and their authors/bodies never enter this payload. */
+    public void articleChanged(String articleId){
+        final Set<Connection> recipients=byArticle.get(articleId);if(recipients==null)return;
+        for(Connection c:recipients){
+            c.lock.lock();try{
+                if(c.closed||c.grant==null||!articleId.equals(c.grant.targetId())||!ApiV3SocketTicket.CHANNEL_ARTICLE.equals(c.grant.channel()))continue;
+                if(!valid(c)){remove(c);continue;}
+                c.transport.send(new JSONObject().put("type","article.changed").put("data",new JSONObject().put("articleId",articleId)).toString());
+            }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+        }
+    }
+    public void chatChanged(String kind,String messageId,long revision){
+        if(!ApiV3ChatEvent.validChange(kind,messageId)||revision<1)throw new IllegalArgumentException("invalid chat change");
+        if(ApiV3ChatEvent.TOPIC.equals(kind)){
+            broadcastChat("chat.topic_changed",new JSONObject().put("revision",Long.toString(revision)));
+            return;
+        }
+        broadcastChat("chat.message."+kind,new JSONObject().put("messageId",messageId).put("revision",Long.toString(revision)));
+    }
+    public void chatBarrage(final ApiV3BarrageEvent event){broadcastChat("chat.barrager",event.dto());}
+    public void chatSyncRequired(){broadcastChat("chat.sync_required",new JSONObject());}
+    private void broadcastChat(String type,JSONObject data){
+        for(Connection c:chat){
+            c.lock.lock();try{
+                if(c.closed||c.grant==null||!ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()))continue;
+                if(!valid(c)){remove(c);continue;}
+                c.transport.send(new JSONObject().put("type",type).put("data",data).toString());
+            }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+        }
+    }
+    public boolean hasChat(){return !chat.isEmpty();}
+    /** Only authenticated chat subscriptions establish chat presence. */
+    public Set<String> chatUserIds(){
+        final Set<String> ids=new java.util.HashSet<>();
+        for(Connection c:chat){
+            c.lock.lock();try{
+                if(c.closed||c.grant==null||!ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()))continue;
+                if(!valid(c)){remove(c);continue;}
+                ids.add(c.grant.userId());
+            }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+        }
+        return Set.copyOf(ids);
+    }
+    /** Connections, not distinct users; only this instance's authenticated article subscriptions. */
+    public int articleConnectionCount(final String articleId) {
+        final Set<Connection> targets = byArticle.get(articleId);
+        if (targets == null) return 0;
+        int count = 0;
+        for (final Connection c : targets) {
+            c.lock.lock();
+            try {
+                if (c.closed || c.grant == null || !articleId.equals(c.grant.targetId())
+                        || !ApiV3SocketTicket.CHANNEL_ARTICLE.equals(c.grant.channel())) continue;
+                if (!valid(c)) { remove(c); continue; }
+                count++;
+            } catch (final Exception e) { remove(c); }
+            finally { c.lock.unlock(); }
+        }
+        return count;
+    }
+    public void closeChat(){for(Connection c:chat)close(c.key);}
+    /** Called outside Netty event loops. A busy connection checks its deadline before it activates. */
+    public void tick(){
+        for(Connection c:connections.values()){
+            if(!c.lock.tryLock())continue;
+            try{
+                final long now=clock.getAsLong();
+                if(c.closed)continue;
+                if(!guard.allowed(c.ip,false)||(c.grant==null?now>=c.deadline:c.grant.expiresAt()<=now||now>=c.nextCheck&&!valid(c)))remove(c);
+            }catch(Exception e){remove(c);}finally{c.lock.unlock();}
+        }
+    }
+    /** Fast sweep has no database calls, so slow authority checks cannot retain idle unauthenticated sockets. */
+    public void sweep(){
+        for(Connection c:connections.values()){
+            if(!c.lock.tryLock())continue;
+            try{final long now=clock.getAsLong();if(!c.closed&&(!guard.allowed(c.ip,false)||(c.grant==null?now>=c.deadline:c.grant.expiresAt()<=now)))remove(c);}
+            catch(RuntimeException e){remove(c);}finally{c.lock.unlock();}
+        }
+    }
+    private boolean valid(Connection c)throws Exception{
+        if(c.closed||c.grant==null||c.grant.expiresAt()<=clock.getAsLong()||!guard.allowed(c.ip,false)||!authority.authorized(c.grant))return false;
+        c.nextCheck=clock.getAsLong()+RECHECK_INTERVAL;return true;
+    }
+    public void close(Object key){Connection c=connections.get(key);if(c==null)return;c.lock.lock();try{remove(c);}finally{c.lock.unlock();}}
+    public void closeAll(){for(Object key:connections.keySet())close(key);}
+    private void remove(Connection c){
+        if(c.closed)return;c.closed=true;
+        synchronized(admission){
+            connections.remove(c.key,c);decrement(ips,c.ip);if(c.grant!=null){
+                chat.remove(c);
+                decrement(users,c.grant.userId());final Set<Connection> owned=byUser.get(c.grant.userId());
+                if(owned!=null){owned.remove(c);if(owned.isEmpty())byUser.remove(c.grant.userId(),owned);}
+                if(ApiV3SocketTicket.CHANNEL_ARTICLE.equals(c.grant.channel())){
+                    final Set<Connection> targets=byArticle.get(c.grant.targetId());
+                    if(targets!=null){targets.remove(c);if(targets.isEmpty())byArticle.remove(c.grant.targetId(),targets);}
+                }
+            }
+        }
+        try{c.transport.close();}catch(RuntimeException ignored){ }
+    }
+    private static void decrement(Map<String,Integer> counts,String key){counts.computeIfPresent(key,(k,n)->n<=1?null:n-1);}
+    public int size(){return connections.size();}
+    public Set<String> owners(){return owners(ApiV3SocketTicket.CHANNEL_NOTIFICATIONS);}
+    public Set<String> messageOwners(){return owners(ApiV3SocketTicket.CHANNEL_MESSAGES);}
+    private Set<String> owners(String channel){
+        synchronized(admission){
+            final var result=new java.util.HashSet<String>();
+            byUser.forEach((owner,connections)->{if(connections.stream().anyMatch(c->c.grant!=null&&channel.equals(c.grant.channel())))result.add(owner);});
+            return Set.copyOf(result);
+        }
+    }
+    public Set<String> articleIds(){synchronized(admission){return Set.copyOf(byArticle.keySet());}}
+}

@@ -40,6 +40,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.processor.ApiProcessor;
+import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.OptionQueryService;
 import org.b3log.symphony.service.UserMgmtService;
@@ -211,10 +212,15 @@ public class AnonymousViewCheckMidware {
         final String requestURI = context.requestURI();
         final String articleId = getArticleId(requestURI);
         final boolean firstVisitArticle = StringUtils.isNotBlank(articleId);
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (NullPointerException ignored) {
+        // V3 resource identity must never inherit a page session or a legacy apiKey.
+        final boolean v3 = requestURI.startsWith(Latkes.getContextPath() + "/api/v3/");
+        final JSONObject v3Identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+        JSONObject currentUser = v3 ? (null == v3Identity ? null : v3Identity.optJSONObject("user")) : Sessions.getUser();
+        if (!v3) {
+            try {
+                currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+            } catch (NullPointerException ignored) {
+            }
         }
         if (null == currentUser) {
             final String ip = Requests.getRemoteAddr(context.getRequest());

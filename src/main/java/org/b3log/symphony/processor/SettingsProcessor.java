@@ -53,6 +53,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
+import org.b3log.symphony.util.ApiV3EmotionOptions;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
@@ -88,6 +89,9 @@ import java.util.*;
  */
 @Singleton
 public class SettingsProcessor {
+
+    @Inject
+    private UserNameMgmtService userNames;
 
     /**
      * Logger.
@@ -208,6 +212,12 @@ public class SettingsProcessor {
     @Inject
     private CloudService cloudService;
 
+    @Inject
+    private BagMgmtService bagMgmtService;
+
+    @Inject
+    private UserSettingsMgmtService userSettingsMgmtService;
+
     /**
      * Activity management service.
      */
@@ -226,7 +236,7 @@ public class SettingsProcessor {
     @Inject
     private SkinQueryService skinQueryService;
 
-    final private static SimpleCurrentLimiter updateProfilesLimiter = new SimpleCurrentLimiter(60 * 60, 5);
+
 
     /**
      * Register request handlers.
@@ -277,29 +287,14 @@ public class SettingsProcessor {
      * 使用改名卡
      */
     public void useNameCard(final RequestContext context) {
-        JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-        JSONObject requestJSONObject = context.requestJSON();
-        String userName = requestJSONObject.optString(User.USER_NAME);
-        if (cloudService.putBag(userId, "nameCard", -1, Integer.MAX_VALUE) == 0) {
-            try {
-                user.put(User.USER_NAME, userName);
-                userMgmtService.updateUserName(userId, user);
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("您的用户名已成功修改为：" + userName);
-            } catch (ServiceException e) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("您的用户名修改失败，请重试。原因：" + e.getLocalizedMessage());
-                cloudService.putBag(userId, "nameCard", 1, Integer.MAX_VALUE);
-            }
-        }
+        useNameCardAtomic(context, false);
     }
 
     /**
      * 使用补签卡
      */
     public void usePatchCheckinCard(final RequestContext context) {
-        JSONObject user = Sessions.getUser();
+        final JSONObject user = (JSONObject) context.attr(User.USER);
         final String userId = user.optString(Keys.OBJECT_ID);
         int result = activityMgmtService.patchCheckin(userId);
         if ( result == 0) {
@@ -318,7 +313,7 @@ public class SettingsProcessor {
                     context.renderMsg("今天还没签到，不可以补签哟");
                     break;
                 default:
-                    context.renderMsg("补签卡使用失败！如果吞卡请联系管理员");
+                    context.renderMsg("补签卡使用失败，卡片与补签记录未消耗。");
                     break;
             }
         }
@@ -328,21 +323,16 @@ public class SettingsProcessor {
      * 使用单日免签卡
      */
     public void use1dayCheckinCard(final RequestContext context) {
-        JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-        JSONObject bag = new JSONObject(cloudService.getBag(userId));
-        if (bag.optInt("sysCheckinRemain") > 0) {
-            if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
-                cloudService.putBag(userId, "sysCheckinRemain", bag.optInt("sysCheckinRemain") + 1, bag.optInt("sysCheckinRemain") + 1);
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("单日免签卡使用成功！您的免签天数已累积。");
-            }
-            return;
-        }
-        if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
-            cloudService.putBag(userId, "sysCheckinRemain", 1, 1);
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        final String actor = user.optString(Keys.OBJECT_ID);
+        try {
+            final JSONObject bag = bagMgmtService.useExemption(actor, "checkin1day");
             context.renderJSON(StatusCodes.SUCC);
-            context.renderMsg("单日免签卡使用成功！明天的签到将由系统自动进行～");
+            context.renderMsg("免签卡使用成功！免签天数已累积。");
+        } catch (final BagMutation.Unavailable e) {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有可用的免签卡，或剩余天数已达上限。");
+        } catch (final Exception e) {
+            context.renderCodeMsg(StatusCodes.ERR, "免签卡使用失败，请稍后重试。");
         }
     }
 
@@ -350,21 +340,16 @@ public class SettingsProcessor {
      * 使用两天免签卡
      */
     public void use2dayCheckinCard(final RequestContext context) {
-        JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-        JSONObject bag = new JSONObject(cloudService.getBag(userId));
-        if (bag.optInt("sysCheckinRemain") > 0) {
-            if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
-                cloudService.putBag(userId, "sysCheckinRemain", bag.optInt("sysCheckinRemain") + 2, bag.optInt("sysCheckinRemain") + 2);
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("两日免签卡使用成功！您的免签天数已累积。");
-            }
-            return;
-        }
-        if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
-            cloudService.putBag(userId, "sysCheckinRemain", 2, 2);
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        final String actor = user.optString(Keys.OBJECT_ID);
+        try {
+            final JSONObject bag = bagMgmtService.useExemption(actor, "checkin2days");
             context.renderJSON(StatusCodes.SUCC);
-            context.renderMsg("两天免签卡使用成功！未来两天的签到将由系统自动进行～");
+            context.renderMsg("免签卡使用成功！免签天数已累积。");
+        } catch (final BagMutation.Unavailable e) {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有可用的免签卡，或剩余天数已达上限。");
+        } catch (final Exception e) {
+            context.renderCodeMsg(StatusCodes.ERR, "免签卡使用失败，请稍后重试。");
         }
     }
 
@@ -399,24 +384,15 @@ public class SettingsProcessor {
      */
     public void use1dayCheckinCardApi(final RequestContext context) {
         initJson(context);
-
-        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final JSONObject bag = new JSONObject(cloudService.getBag(userId));
-        if (bag.optInt("sysCheckinRemain") > 0) {
-            if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
-                final int remain = bag.optInt("sysCheckinRemain") + 1;
-                cloudService.putBag(userId, "sysCheckinRemain", remain, remain);
-                renderBagResult(context, userId, "单日免签卡使用成功！您的免签天数已累积。");
-            }
-            return;
-        }
-
-        if (cloudService.putBag(userId, "checkin1day", -1, Integer.MAX_VALUE) == 0) {
-            cloudService.putBag(userId, "sysCheckinRemain", 1, 1);
-            renderBagResult(context, userId, "单日免签卡使用成功！明天的签到将由系统自动进行～");
-        } else {
-            context.renderCodeMsg(StatusCodes.ERR, "您没有单日免签卡。");
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        final String actor = user.optString(Keys.OBJECT_ID);
+        try {
+            final JSONObject bag = bagMgmtService.useExemption(actor, "checkin1day");
+            context.renderData(bag).renderCode(StatusCodes.SUCC).renderMsg("免签卡使用成功！免签天数已累积。");
+        } catch (final BagMutation.Unavailable e) {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有可用的免签卡，或剩余天数已达上限。");
+        } catch (final Exception e) {
+            context.renderCodeMsg(StatusCodes.ERR, "免签卡使用失败，请稍后重试。");
         }
     }
 
@@ -427,24 +403,15 @@ public class SettingsProcessor {
      */
     public void use2dayCheckinCardApi(final RequestContext context) {
         initJson(context);
-
-        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final JSONObject bag = new JSONObject(cloudService.getBag(userId));
-        if (bag.optInt("sysCheckinRemain") > 0) {
-            if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
-                final int remain = bag.optInt("sysCheckinRemain") + 2;
-                cloudService.putBag(userId, "sysCheckinRemain", remain, remain);
-                renderBagResult(context, userId, "两日免签卡使用成功！您的免签天数已累积。");
-            }
-            return;
-        }
-
-        if (cloudService.putBag(userId, "checkin2days", -1, Integer.MAX_VALUE) == 0) {
-            cloudService.putBag(userId, "sysCheckinRemain", 2, 2);
-            renderBagResult(context, userId, "两天免签卡使用成功！未来两天的签到将由系统自动进行～");
-        } else {
-            context.renderCodeMsg(StatusCodes.ERR, "您没有两日免签卡。");
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        final String actor = user.optString(Keys.OBJECT_ID);
+        try {
+            final JSONObject bag = bagMgmtService.useExemption(actor, "checkin2days");
+            context.renderData(bag).renderCode(StatusCodes.SUCC).renderMsg("免签卡使用成功！免签天数已累积。");
+        } catch (final BagMutation.Unavailable e) {
+            context.renderCodeMsg(StatusCodes.ERR, "您没有可用的免签卡，或剩余天数已达上限。");
+        } catch (final Exception e) {
+            context.renderCodeMsg(StatusCodes.ERR, "免签卡使用失败，请稍后重试。");
         }
     }
 
@@ -476,7 +443,7 @@ public class SettingsProcessor {
                 msg = "今天还没签到，不可以补签哟";
                 break;
             default:
-                msg = "补签卡使用失败！如果吞卡请联系管理员";
+                msg = "补签卡使用失败，卡片与补签记录未消耗。";
                 break;
         }
         context.renderCodeMsg(StatusCodes.ERR, msg);
@@ -488,31 +455,32 @@ public class SettingsProcessor {
      * @param context the specified context
      */
     public void useNameCardApi(final RequestContext context) {
-        initJson(context);
+        useNameCardAtomic(context, true);
+    }
 
-        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-
-        final JSONObject requestJSONObject = context.requestJSON();
-        final String userName = StringUtils.trim(requestJSONObject.optString(User.USER_NAME));
-        if (UserRegisterValidationMidware.invalidUserName(userName)) {
-            context.renderCodeMsg(StatusCodes.ERR, "用户名不合法，仅支持 1-64 位字母、数字和 -");
-            return;
-        }
-
-        if (cloudService.putBag(userId, "nameCard", -1, Integer.MAX_VALUE) != 0) {
-            context.renderCodeMsg(StatusCodes.ERR, "您没有改名卡。");
-            return;
-        }
-
+    private void useNameCardAtomic(final RequestContext context, final boolean api) {
+        if (api) initJson(context);
+        else context.renderJSON(StatusCodes.ERR);
+        final JSONObject user = (JSONObject) context.attr(User.USER);
+        if (null == user) { context.sendError(401); return; }
+        final String actor = user.optString(Keys.OBJECT_ID);
+        final String input = context.requestJSON().optString(User.USER_NAME);
+        final String name = api ? StringUtils.trim(input) : input;
         try {
-            final JSONObject user = userQueryService.getUser(userId);
-            user.put(User.USER_NAME, userName);
-            userMgmtService.updateUserName(userId, user);
-            renderBagResult(context, userId, "您的用户名已成功修改为：" + userName);
-        } catch (final ServiceException e) {
-            cloudService.putBag(userId, "nameCard", 1, Integer.MAX_VALUE);
-            context.renderCodeMsg(StatusCodes.ERR, "您的用户名修改失败，请重试。原因：" + e.getLocalizedMessage());
+            userNames.useCardLegacy(actor, name);
+            final String msg = "您的用户名已成功修改为：" + name;
+            if (api) renderBagResult(context, actor, msg);
+            else context.renderJSON(StatusCodes.SUCC).renderMsg(msg);
+        } catch (final UserNameMgmtService.Rejected e) {
+            context.renderCodeMsg(StatusCodes.ERR, switch (e.code) {
+                case "invalid_name" -> "用户名不合法，仅支持 1-64 位字母、数字和 -";
+                case "name_taken" -> "用户名已被使用，请更换后重试。";
+                case "item_unavailable" -> "您没有改名卡。";
+                case "deactivated" -> "永久停用账号不能修改用户名";
+                default -> "用户不存在或不可用";
+            });
+        } catch (final Exception e) {
+            context.renderCodeMsg(StatusCodes.ERR, "操作结果暂未确认，请刷新背包和资料后重试。");
         }
     }
 
@@ -549,7 +517,7 @@ public class SettingsProcessor {
             final String newName = requestJSONObject.optString(User.USER_NAME);
             user.put(User.USER_NAME, newName);
 
-            if (!updateProfilesLimiter.access(user.optString(Keys.OBJECT_ID))) {
+            if (!ProfileWriteQuota.access(user.optString(Keys.OBJECT_ID))) {
                 context.renderMsg("操作频繁，请稍候重试。");
                 context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
                 return;
@@ -622,7 +590,7 @@ public class SettingsProcessor {
             final String name = user.optString(User.USER_NAME);
             final String ip = Requests.getRemoteAddr(context.getRequest());
 
-            if (LoginProcessor.verifySMSCodeLimiterOfIPLong.access(ip) && LoginProcessor.verifySMSCodeLimiterOfIP.access(ip) && LoginProcessor.verifySMSCodeLimiterOfName.access(name) && LoginProcessor.verifySMSCodeLimiterOfPhone.access(userPhone)) {
+            if (AccountSmsQuota.access(ip, name, userPhone)) {
                 final String code = RandomStringUtils.randomNumeric(6);
                 if (!verifycodeMgmtService.sendVerifyCodeSMS(userPhone, code)) {
                     context.renderMsg("验证码发送失败，请稍候重试");
@@ -822,19 +790,9 @@ public class SettingsProcessor {
         }
 
         try {
-            JSONObject user = Sessions.getUser();
-            final String userId = user.optString(Keys.OBJECT_ID);
-            user = userQueryService.getUser(userId);
-
-            user.put(UserExt.USER_LANGUAGE, userLanguage);
-            user.put(UserExt.USER_TIMEZONE, userTimezone);
-
-            userMgmtService.updateUser(user.optString(Keys.OBJECT_ID), user);
-
+            userSettingsMgmtService.updateLegacy(((JSONObject) context.attr(User.USER)).optString(Keys.OBJECT_ID), "locale", new JSONObject().put(UserExt.USER_LANGUAGE, userLanguage).put(UserExt.USER_TIMEZONE, userTimezone));
             context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            context.renderMsg(e.getMessage());
-        }
+        } catch (final Exception e) { LOGGER.error("Update locale failed", e); context.renderMsg("更新失败，请稍后重试"); }
     }
 
     /**
@@ -976,17 +934,9 @@ public class SettingsProcessor {
         }
 
         try {
-            JSONObject user = Sessions.getUser();
-            final String userId = user.optString(Keys.OBJECT_ID);
-            user = userQueryService.getUser(userId);
-            user.put(UserExt.USER_GEO_STATUS, geoStatus);
-
-            userMgmtService.updateUser(user.optString(Keys.OBJECT_ID), user);
-
+            userSettingsMgmtService.updateLegacy(((JSONObject) context.attr(User.USER)).optString(Keys.OBJECT_ID), "location", new JSONObject().put(UserExt.USER_GEO_STATUS, geoStatus));
             context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            context.renderMsg(e.getMessage());
-        }
+        } catch (final Exception e) { LOGGER.error("Update location failed", e); context.renderMsg("更新失败，请稍后重试"); }
     }
 
     /**
@@ -996,57 +946,15 @@ public class SettingsProcessor {
      */
     public void updatePrivacy(final RequestContext context) {
         context.renderJSON(StatusCodes.ERR);
-
-        final Request request = context.getRequest();
-        JSONObject requestJSONObject;
+        JSONObject input;
+        try { input = context.requestJSON(); } catch (final Exception e) { input = new JSONObject(); }
+        final JSONObject changes = new JSONObject();
+        for (final String field : ApiV3Settings.PRIVACY.values()) changes.put(field,
+                input.optBoolean(field) ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
         try {
-            requestJSONObject = context.requestJSON();
-            request.setAttribute(Keys.REQUEST, requestJSONObject);
-        } catch (final Exception e) {
-            LOGGER.warn(e.getMessage());
-
-            requestJSONObject = new JSONObject();
-        }
-
-        final boolean articleStatus = requestJSONObject.optBoolean(UserExt.USER_ARTICLE_STATUS);
-        final boolean commentStatus = requestJSONObject.optBoolean(UserExt.USER_COMMENT_STATUS);
-        final boolean followingUserStatus = requestJSONObject.optBoolean(UserExt.USER_FOLLOWING_USER_STATUS);
-        final boolean followingTagStatus = requestJSONObject.optBoolean(UserExt.USER_FOLLOWING_TAG_STATUS);
-        final boolean followingArticleStatus = requestJSONObject.optBoolean(UserExt.USER_FOLLOWING_ARTICLE_STATUS);
-        final boolean watchingArticleStatus = requestJSONObject.optBoolean(UserExt.USER_WATCHING_ARTICLE_STATUS);
-        final boolean followerStatus = requestJSONObject.optBoolean(UserExt.USER_FOLLOWER_STATUS);
-        final boolean breezemoonStatus = requestJSONObject.optBoolean(UserExt.USER_BREEZEMOON_STATUS);
-        final boolean pointStatus = requestJSONObject.optBoolean(UserExt.USER_POINT_STATUS);
-        final boolean onlineStatus = requestJSONObject.optBoolean(UserExt.USER_ONLINE_STATUS);
-        final boolean uaStatus = requestJSONObject.optBoolean(UserExt.USER_UA_STATUS);
-        final boolean userJoinPointRank = requestJSONObject.optBoolean(UserExt.USER_JOIN_POINT_RANK);
-        final boolean userJoinUsedPointRank = requestJSONObject.optBoolean(UserExt.USER_JOIN_USED_POINT_RANK);
-
-        JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-        user = userQueryService.getUser(userId);
-
-        user.put(UserExt.USER_ONLINE_STATUS, onlineStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_ARTICLE_STATUS, articleStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_COMMENT_STATUS, commentStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_FOLLOWING_USER_STATUS, followingUserStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_FOLLOWING_TAG_STATUS, followingTagStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_FOLLOWING_ARTICLE_STATUS, followingArticleStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_WATCHING_ARTICLE_STATUS, watchingArticleStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_FOLLOWER_STATUS, followerStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_BREEZEMOON_STATUS, breezemoonStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_POINT_STATUS, pointStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_UA_STATUS, uaStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_JOIN_POINT_RANK, userJoinPointRank ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_JOIN_USED_POINT_RANK, userJoinUsedPointRank ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-
-        try {
-            userMgmtService.updateUser(user.optString(Keys.OBJECT_ID), user);
-
+            userSettingsMgmtService.updateLegacy(((JSONObject) context.attr(User.USER)).optString(Keys.OBJECT_ID), "privacy", changes);
             context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            context.renderMsg(e.getMessage());
-        }
+        } catch (final Exception e) { LOGGER.error("Update privacy failed", e); context.renderMsg("更新失败，请稍后重试"); }
     }
 
     /**
@@ -1093,40 +1001,15 @@ public class SettingsProcessor {
      */
     public void updateSkin(final RequestContext context) {
         context.renderJSON(StatusCodes.ERR);
-
-        JSONObject requestJSONObject;
+        JSONObject input;
+        try { input = context.requestJSON(); } catch (final Exception e) { input = new JSONObject(); }
+        final JSONObject changes = new JSONObject().put(UserExt.USER_SKIN, input.optString(UserExt.USER_SKIN))
+                .put(UserExt.USER_MOBILE_SKIN, input.optString(UserExt.USER_MOBILE_SKIN));
         try {
-            requestJSONObject = context.requestJSON();
-        } catch (final Exception e) {
-            LOGGER.warn(e.getMessage());
-            requestJSONObject = new JSONObject();
-        }
-
-        final String desktopSkin = skinQueryService.canonicalizeSkin(
-                requestJSONObject.optString(UserExt.USER_SKIN), SkinQueryService.DEVICE_PC);
-        final String mobileSkin = skinQueryService.canonicalizeSkin(
-                requestJSONObject.optString(UserExt.USER_MOBILE_SKIN), SkinQueryService.DEVICE_MOBILE);
-        if (!skinQueryService.isValidSkin(desktopSkin, SkinQueryService.DEVICE_PC)) {
-            context.renderMsg("桌面端主题不存在或类型不匹配");
-            return;
-        }
-        if (!skinQueryService.isValidSkin(mobileSkin, SkinQueryService.DEVICE_MOBILE)) {
-            context.renderMsg("移动端主题不存在或类型不匹配");
-            return;
-        }
-
-        try {
-            JSONObject user = Sessions.getUser();
-            final String userId = user.optString(Keys.OBJECT_ID);
-            user = userQueryService.getUser(userId);
-            user.put(UserExt.USER_SKIN, desktopSkin);
-            user.put(UserExt.USER_MOBILE_SKIN, mobileSkin);
-
-            userMgmtService.updateUser(userId, user);
+            userSettingsMgmtService.updateLegacy(((JSONObject) context.attr(User.USER)).optString(Keys.OBJECT_ID), "display", changes);
             context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            context.renderMsg(e.getMessage());
-        }
+        } catch (final ApiV3Exception e) { context.renderMsg(e.getMessage()); }
+        catch (final Exception e) { LOGGER.error("Update skins failed", e); context.renderMsg("更新失败，请稍后重试"); }
     }
 
     /**
@@ -1162,18 +1045,11 @@ public class SettingsProcessor {
         if (!Strings.isURL(indexRedirectURL)) {
             indexRedirectURL = "";
         }
-        if (StringUtils.isNotBlank(indexRedirectURL) && !StringUtils.startsWith(indexRedirectURL, Latkes.getServePath())) {
+        try {
+            indexRedirectURL = SettingsRedirects.normalize(indexRedirectURL, Latkes.getServePath());
+        } catch (final ApiV3Exception e) {
             context.renderMsg(langPropsService.get("onlyInternalURLLabel"));
             return;
-        }
-        if (StringUtils.isNotBlank(indexRedirectURL)) {
-            String tmp = StringUtils.substringBefore(indexRedirectURL, "?");
-            if (StringUtils.endsWith(tmp, "/")) {
-                tmp = StringUtils.substringBeforeLast(tmp, "/");
-            }
-            if (StringUtils.equalsIgnoreCase(tmp, Latkes.getServePath())) {
-                indexRedirectURL = "";
-            }
         }
 
         int userListPageSize;
@@ -1189,29 +1065,17 @@ public class SettingsProcessor {
             userListPageSize = Symphonys.ARTICLE_LIST_CNT;
         }
 
-        JSONObject user = Sessions.getUser();
-        final String userId = user.optString(Keys.OBJECT_ID);
-        user = userQueryService.getUser(userId);
-
-        user.put(UserExt.USER_LIST_PAGE_SIZE, userListPageSize);
-        user.put(UserExt.USER_COMMENT_VIEW_MODE, userCommentViewMode);
-        user.put(UserExt.USER_AVATAR_VIEW_MODE, userAvatarViewMode);
-        user.put(UserExt.USER_LIST_VIEW_MODE, userListViewMode);
-        user.put(UserExt.USER_NOTIFY_STATUS, notifyStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_SUB_MAIL_STATUS, subMailStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_KEYBOARD_SHORTCUTS_STATUS, keyboardShortcutsStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS, userReplyWatchArticleStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_FORWARD_PAGE_STATUS, forwardStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.CHAT_ROOM_PICTURE_STATUS, chatRoomPictureStatus ? UserExt.USER_XXX_STATUS_C_ENABLED : UserExt.USER_XXX_STATUS_C_DISABLED);
-        user.put(UserExt.USER_INDEX_REDIRECT_URL, indexRedirectURL);
-
+        final JSONObject changes = new JSONObject().put(UserExt.USER_LIST_PAGE_SIZE, userListPageSize)
+                .put(UserExt.USER_LIST_VIEW_MODE, userListViewMode).put(UserExt.USER_INDEX_REDIRECT_URL, indexRedirectURL)
+                .put(UserExt.USER_NOTIFY_STATUS, notifyStatus ? 0 : 1).put(UserExt.USER_SUB_MAIL_STATUS, subMailStatus ? 0 : 1)
+                .put(UserExt.USER_KEYBOARD_SHORTCUTS_STATUS, keyboardShortcutsStatus ? 0 : 1)
+                .put(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS, userReplyWatchArticleStatus ? 0 : 1)
+                .put(UserExt.USER_FORWARD_PAGE_STATUS, forwardStatus ? 0 : 1).put(UserExt.CHAT_ROOM_PICTURE_STATUS, chatRoomPictureStatus ? 0 : 1);
+        final JSONObject display = new JSONObject().put(UserExt.USER_COMMENT_VIEW_MODE, userCommentViewMode).put(UserExt.USER_AVATAR_VIEW_MODE, userAvatarViewMode);
         try {
-            userMgmtService.updateUser(user.optString(Keys.OBJECT_ID), user);
-
+            userSettingsMgmtService.updateLegacy(((JSONObject) context.attr(User.USER)).optString(Keys.OBJECT_ID), Map.of("functions", changes, "display", display));
             context.renderJSON(StatusCodes.SUCC);
-        } catch (final ServiceException e) {
-            context.renderMsg(e.getMessage());
-        }
+        } catch (final Exception e) { LOGGER.error("Update functions failed", e); context.renderMsg("更新失败，请稍后重试"); }
     }
 
     /**
@@ -1231,7 +1095,7 @@ public class SettingsProcessor {
         userNickname = Escapes.escapeHTML(userNickname);
         String mbti = checkMBTI(requestJSONObject.optString("mbti"));
 
-        final JSONObject user = Sessions.getUser();
+        final JSONObject user = (JSONObject) context.attr(User.USER);
         user.put("mbti", mbti);
         user.put(UserExt.USER_TAGS, userTags);
         user.put(User.USER_URL, userURL);
@@ -1240,7 +1104,7 @@ public class SettingsProcessor {
         user.put(UserExt.USER_NICKNAME, userNickname);
         user.put(UserExt.USER_AVATAR_TYPE, UserExt.USER_AVATAR_TYPE_C_UPLOAD);
 
-        if (!updateProfilesLimiter.access(user.optString(Keys.OBJECT_ID))) {
+        if (!ProfileWriteQuota.access(user.optString(Keys.OBJECT_ID))) {
             context.renderMsg("操作频繁，请稍候重试。");
             context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
             return;
@@ -1570,172 +1434,5 @@ public class SettingsProcessor {
         context.renderJSON(StatusCodes.SUCC).renderJSONValue("url", downloadURL);
     }
 
-    private static final String[][] emojiLists = {{
-            "smile",
-            "laughing",
-            "smirk",
-            "heart_eyes",
-            "kissing_heart",
-            "flushed",
-            "grin",
-            "stuck_out_tongue_closed_eyes",
-            "kissing",
-            "sleeping",
-            "anguished",
-            "open_mouth",
-            "expressionless",
-            "unamused",
-            "sweat_smile",
-            "weary",
-            "sob",
-            "joy",
-            "astonished",
-            "scream"
-    }, {
-            "tired_face",
-            "rage",
-            "triumph",
-            "yum",
-            "mask",
-            "sunglasses",
-            "dizzy_face",
-            "imp",
-            "smiling_imp",
-            "innocent",
-            "alien",
-            "yellow_heart",
-            "blue_heart",
-            "purple_heart",
-            "heart",
-            "green_heart",
-            "broken_heart",
-            "dizzy",
-            "anger",
-            "exclamation"
-    }, {
-            "question",
-            "zzz",
-            "notes",
-            "poop",
-            "+1",
-            "-1",
-            "ok_hand",
-            "punch",
-            "v",
-            "hand",
-            "point_up",
-            "point_down",
-            "pray",
-            "clap",
-            "muscle",
-            "ok_woman",
-            "no_good",
-            "raising_hand",
-            "massage",
-            "haircut"
-    }, {
-            "nail_care",
-            "see_no_evil",
-            "feet",
-            "kiss",
-            "eyes",
-            "trollface",
-            "snowman",
-            "zap",
-            "cat",
-            "dog",
-            "mouse",
-            "hamster",
-            "rabbit",
-            "frog",
-            "koala",
-            "pig",
-            "monkey",
-            "racehorse",
-            "camel",
-            "sheep"
-    }, {
-            "elephant",
-            "panda_face",
-            "snake",
-            "hatched_chick",
-            "hatching_chick",
-            "turtle",
-            "bug",
-            "honeybee",
-            "beetle",
-            "snail",
-            "octopus",
-            "whale",
-            "dolphin",
-            "dragon",
-            "goat",
-            "paw_prints",
-            "tulip",
-            "four_leaf_clover",
-            "rose",
-            "mushroom"
-    }, {
-            "seedling",
-            "shell",
-            "crescent_moon",
-            "partly_sunny",
-            "octocat",
-            "jack_o_lantern",
-            "ghost",
-            "santa",
-            "tada",
-            "camera",
-            "loudspeaker",
-            "hourglass",
-            "lock",
-            "key",
-            "bulb",
-            "hammer",
-            "moneybag",
-            "smoking",
-            "bomb",
-            "gun"
-    }, {
-            "hocho",
-            "pill",
-            "syringe",
-            "scissors",
-            "swimmer",
-            "black_joker",
-            "coffee",
-            "tea",
-            "sake",
-            "beer",
-            "wine_glass",
-            "pizza",
-            "hamburger",
-            "poultry_leg",
-            "meat_on_bone",
-            "dango",
-            "doughnut",
-            "icecream",
-            "shaved_ice",
-            "cake"
-    }, {
-            "cookie",
-            "lollipop",
-            "apple",
-            "green_apple",
-            "tangerine",
-            "lemon",
-            "cherries",
-            "grapes",
-            "watermelon",
-            "strawberry",
-            "peach",
-            "melon",
-            "banana",
-            "pear",
-            "pineapple",
-            "sweet_potato",
-            "eggplant",
-            "tomato",
-            Emotion.EOF_EMOJI // 标记结束以便在function.ftl中处理
-    }};
+    private static final String[][] emojiLists = ApiV3EmotionOptions.legacyGroups();
 }

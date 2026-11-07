@@ -1,0 +1,103 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.b3log.symphony.util;
+
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.function.Function;
+
+/** Explicit public projection of the persisted chat envelope and supported card types. */
+public final class ApiV3ChatMessageDto {
+    private static final int MAX_STORED_LENGTH=102400;
+    private ApiV3ChatMessageDto() { }
+    public static JSONObject from(final JSONObject row, final Function<String,String> render) {
+        final String id=row.optString("oId");
+        final JSONObject dto=new JSONObject().put("id",id).put("createdAt",number(id,0))
+                .put("type","unavailable").put("content","").put("contentHtml","").put("card",new JSONObject())
+                .put("author",new JSONObject().put("id","").put("userName","").put("userNickname","").put("userAvatarURL",""))
+                .put("client","").put("appearance",ApiV3ChatAppearance.defaults());
+        final JSONObject source;
+        try {
+            final String stored=row.optString("content");
+            if(stored.isEmpty()||stored.length()>MAX_STORED_LENGTH)return dto;
+            source=ApiV3Json.parse(stored.getBytes(StandardCharsets.UTF_8));
+        } catch(IllegalArgumentException e){return dto;}
+        final Object body=source.opt("content");
+        if(!(body instanceof String)&&!(body instanceof JSONObject))return dto;
+        final String content=body.toString();
+        if(content.length()>MAX_STORED_LENGTH)return dto;
+        final String authorId=source.optString("userOId");
+        dto.put("createdAt",number(source.opt("time"),number(id,0)))
+                .put("author",new JSONObject().put("id",authorId.matches("[1-9][0-9]{0,31}")?authorId:"")
+                        .put("userName",plain(source.opt("userName"),64)).put("userNickname",plain(source.opt("userNickname"),64))
+                        .put("userAvatarURL",ApiV3CommunityDto.safeUrl(source.optString("userAvatarURL"))))
+                .put("client",plain(source.opt("client"),64))
+                .put("appearance",ApiV3ChatAppearance.publicSnapshot(source.opt("appearance")));
+        final JSONObject card;
+        try {card=content.stripLeading().startsWith("{")?ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)):null;}
+        catch(IllegalArgumentException e){return dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));}
+        final String kind=card==null?"":card.optString("msgType");
+        // New cards retain validated plain text and signed URLs exactly. Historical projection stays unchanged.
+        if (card != null && card.optInt("cardVersion") == 3 && Set.of("music", "weather").contains(kind)) {
+            try {
+                final JSONObject payload=card.getJSONObject("payload");
+                final JSONObject normalized="music".equals(kind)?ApiV3ChatCardInputs.music(payload):ApiV3ChatCardInputs.weather(payload);
+                final JSONObject projected=new JSONObject(ApiV3ChatCardInputs.content(kind,normalized));
+                projected.remove("msgType");projected.remove("cardVersion");projected.remove("payload");
+                return dto.put("type",kind).put("card",projected);
+            } catch (RuntimeException invalidCard) { return dto; }
+        }
+        switch(kind){
+            case "redPacket" -> {
+                final String type=card.optString("type");
+                dto.put("type","redPacket").put("card",new JSONObject()
+                        .put("type",Set.of("random","average","specify","heartbeat","rockPaperScissors","dice").contains(type)?type:"unknown")
+                        .put("message",plain(card.opt("msg"),4096)).put("money",number(card.opt("money"),0))
+                        .put("count",number(card.opt("count"),0)).put("got",number(card.opt("got"),0)));
+            }
+            case "weather" -> {
+                final var weather=new JSONObject();
+                for(final String field:new String[]{"date","weatherCode","max","min","t","st"})weather.put(field,plain(card.opt(field),4096));
+                dto.put("type","weather").put("card",weather);
+            }
+            case "music" -> {
+                final String musicSource=plain(card.opt("source"),2048);
+                dto.put("type","music").put("card",new JSONObject().put("title",plain(card.opt("title"),4096))
+                        .put("source",musicSource.matches("[0-9]{1,32}")?musicSource:ApiV3CommunityDto.safeUrl(musicSource))
+                        .put("coverURL",ApiV3CommunityDto.safeUrl(card.optString("coverURL"))).put("from",plain(card.opt("from"),64)));
+            }
+            default -> dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));
+        }
+        return dto;
+    }
+    private static long number(final Object value,final long fallback){
+        if(value==null||!value.toString().matches("[0-9]{1,19}"))return fallback;
+        try{return Long.parseLong(value.toString());}catch(NumberFormatException e){return fallback;}
+    }
+    private static String plain(final Object value,final int limit){
+        if(!(value instanceof String)&&!(value instanceof Number))return "";
+        final String text=Jsoup.clean(value.toString(),"",Safelist.none()).strip();
+        final StringBuilder out=new StringBuilder();
+        text.codePoints().filter(c->!Character.isISOControl(c)).limit(limit).forEach(out::appendCodePoint);
+        return out.toString();
+    }
+}

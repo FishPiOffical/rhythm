@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-02",
+  "scope": "Unchanged deployed revision service current target gates and technical budgets; synthetic history fixtures only",
+  "results": [
+    {
+      "step": "owner-history-current",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "history-guest-rejected",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "step": "foreign-revision-id-rejected",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "invalid-target-history-list",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "invalid-target-history-detail",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "current-discussion-non-invitee",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "discussion-owner-history",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "oversized-history-object",
+      "status": 503,
+      "expected": 503,
+      "passed": true
+    },
+    {
+      "step": "after-oversized-cleanup",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "aggregate-history-budget",
+      "status": 503,
+      "expected": 503,
+      "passed": true
+    },
+    {
+      "step": "history-count-budget",
+      "status": 503,
+      "expected": 503,
+      "passed": true
+    },
+    {
+      "step": "after-count-cleanup",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "historyFingerprintRestored": true,
+  "articleRestored": true,
+  "limits": [
+    "Existing deployed revision code only; latest notification title Java has not been recompiled/verified",
+    "Synthetic fixture budgets do not prove concurrent revoke ordering or full browser/private-comment history matrix",
+    "First fixture attempt omitted required revisionAuthorId; MySQL rejected it, finally cleanup restored state; schema-corrected complete run passed"
+  ]
+}

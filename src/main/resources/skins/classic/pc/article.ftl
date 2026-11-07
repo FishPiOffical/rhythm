@@ -1059,8 +1059,8 @@
     Label.currentUserId = '${currentUser.oId}';
     Label.notificationCmtIds = '${notificationCmtIds}';
     </#if>
-    <#if 3 == article.articleType>
-    Article.playThought('${article.articleContent}');
+    <#if 3 == article.articleType && thoughtPlaybackContent??>
+    Article.playThought('${thoughtPlaybackContent?js_string}');
     </#if>
 
     <#if 6 == article.articleType>

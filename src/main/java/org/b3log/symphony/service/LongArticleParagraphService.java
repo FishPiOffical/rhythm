@@ -32,12 +32,15 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.util.Emotions;
+import org.b3log.symphony.util.ArticlePublicationCaches;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.Markdowns;
 import org.b3log.symphony.util.MediaPlayers;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Tag;
 import org.json.JSONObject;
 
@@ -117,27 +120,138 @@ public class LongArticleParagraphService {
         }
     }
 
+    public record RenderedContent(String html, List<Paragraph> paragraphs) {
+        public RenderedContent { paragraphs = List.copyOf(paragraphs); }
+    }
+
+    /** Internal title snapshot. The unrestricted value must never enter the public view. */
+    public record TitleSnapshot(String title, boolean publiclyReadable) { }
+
+    public static final class CompatibleContent {
+        private final String html;
+        private final List<Paragraph> paragraphs;
+        private final Map<String, String> aliases;
+        private final Map<String, Paragraph> byId;
+        private final Map<String, List<String>> alternatives;
+        private CompatibleContent(final String html, final List<Paragraph> paragraphs, final Map<String, String> aliases) {
+            this.html = html; this.paragraphs = List.copyOf(paragraphs); this.aliases = Map.copyOf(aliases);
+            final var indexed = new HashMap<String, Paragraph>();
+            for (final Paragraph paragraph : paragraphs) indexed.put(paragraph.id, paragraph);
+            byId = Map.copyOf(indexed);
+            final var reverse = new HashMap<String, List<String>>();
+            for (final var entry : aliases.entrySet()) reverse.computeIfAbsent(entry.getValue(), ignored -> new ArrayList<>()).add(entry.getKey());
+            reverse.replaceAll((id, ids) -> ids.stream().sorted().toList());
+            alternatives = Map.copyOf(reverse);
+        }
+        public String html() { return html; }
+        public List<Paragraph> paragraphs() { return paragraphs; }
+        public Map<String, String> aliases() { return aliases; }
+        public String canonicalId(final String id) { return aliases.get(id); }
+        public Paragraph find(final String id) {
+            final String canonical = canonicalId(id);
+            return null == canonical ? null : byId.get(canonical);
+        }
+        public List<String> idsFor(final String id) {
+            final String canonical = canonicalId(id);
+            return null == canonical ? List.of() : alternatives.get(canonical);
+        }
+    }
+
+    /** Retain page-compatible IDs, but use only publicly safe HTML and snapshots. */
+    public CompatibleContent compatibleMarkdown(final String articleId, final String markdown,
+            final java.util.function.Function<String, TitleSnapshot> titles) {
+        final Map<String, TitleSnapshot> memo = new HashMap<>();
+        final java.util.function.Function<String, TitleSnapshot> snapshot = id -> memo.computeIfAbsent(id, titles);
+        final String canonical = renderLinkedMarkdown(articleId, shortLinkQueryService.linkArticleWithUrlTitles(
+                StringUtils.defaultString(markdown), (id, url) -> snapshot.apply(id).title()));
+        final String safeLinks = shortLinkQueryService.linkArticleWithUrlTitles(StringUtils.defaultString(markdown), (id, url) -> {
+            final TitleSnapshot title = snapshot.apply(id);
+            // Keep the same expanded href/attributes as the identity view. Only its label is public.
+            return title.publiclyReadable() ? title.title() : title.title() == null ? null : url;
+        });
+        final String safe = renderLinkedMarkdown(articleId, safeLinks);
+        return compatibleRenderedContent(articleId, canonical, safe);
+    }
+
+    /** Only identity is taken from the canonical view. Its text/HTML is never returned. */
+    public CompatibleContent compatibleRenderedContent(final String articleId, final String canonicalHTML, final String safeHTML) {
+        final var canonical = extract(articleId, parse(canonicalHTML), true);
+        final Document safeDocument = parse(safeHTML);
+        final var safe = extract(articleId, safeDocument, true);
+        if (canonical.size() != safe.size()) throw incompatible();
+        final Map<String, String> aliases = new LinkedHashMap<>();
+        for (int i = 0; i < safe.size(); i++) {
+            final Paragraph original = canonical.get(i), visible = safe.get(i);
+            if (!correspondenceKey(original).equals(correspondenceKey(visible))) throw incompatible();
+            alias(aliases, original.id, original.id);
+            alias(aliases, visible.id, original.id);
+            visible.id = original.id;
+            visible.element.attr("data-long-paragraph-id", original.id);
+        }
+        safeDocument.outputSettings(new Document.OutputSettings().prettyPrint(false));
+        return new CompatibleContent(safeDocument.body().html(), safe, aliases);
+    }
+
+    private static void alias(final Map<String, String> aliases, final String id, final String canonical) {
+        final String previous = aliases.putIfAbsent(id, canonical);
+        if (null != previous && !previous.equals(canonical)) throw incompatible();
+    }
+
+    private static String correspondenceKey(final Paragraph paragraph) {
+        final Element element = paragraph.element.clone();
+        for (final Element node : element.getAllElements()) {
+            node.removeAttr("data-long-paragraph-id").removeAttr("data-long-paragraph-kind").removeAttr("data-long-paragraph-index");
+        }
+        // Only a link's label may differ. Attributes, surrounding DOM and ordinary text must agree.
+        for (final Element link : element.select("a")) link.empty().appendText("link");
+        normalizeNodeText(element);
+        return element.outerHtml();
+    }
+
+    private static void normalizeNodeText(final Node node) {
+        if (node instanceof TextNode text) text.text(WHITESPACE.matcher(text.getWholeText()).replaceAll(" ").trim());
+        for (final Node child : node.childNodes()) normalizeNodeText(child);
+    }
+
+    private static ApiV3Exception incompatible() {
+        return new ApiV3Exception(409, "paragraph_mapping_conflict", "段落标识暂时无法对应，请重新获取正文或联系管理员");
+    }
+
+    public RenderedContent annotateMarkdown(final String articleId, final String markdown) {
+        return annotateMarkdown(articleId, markdown, null);
+    }
+
+    public RenderedContent annotateMarkdown(final String articleId, final String markdown,
+                                           final java.util.function.Function<String, String> titleLookup) {
+        return annotate(articleId, renderMarkdown(articleId, markdown, titleLookup));
+    }
+
     public JSONObject annotateRenderedContent(final String articleId, final String renderedHTML) {
+        final RenderedContent content = annotate(articleId, renderedHTML);
+        final List<JSONObject> paragraphJSON = new ArrayList<>();
+        for (final Paragraph paragraph : content.paragraphs()) paragraphJSON.add(paragraph.toJSON());
+        return new JSONObject().put("html", content.html()).put("paragraphs", paragraphJSON);
+    }
+
+    private RenderedContent annotate(final String articleId, final String renderedHTML) {
         final Document document = parse(renderedHTML);
         final List<Paragraph> paragraphs = extract(articleId, document, true);
-        final List<JSONObject> paragraphJSON = new ArrayList<>();
-        for (final Paragraph paragraph : paragraphs) {
-            paragraphJSON.add(paragraph.toJSON());
-        }
         final Document.OutputSettings outputSettings = new Document.OutputSettings();
         outputSettings.prettyPrint(false);
         document.outputSettings(outputSettings);
-        final JSONObject ret = new JSONObject();
-        ret.put("html", document.body().html());
-        ret.put("paragraphs", paragraphJSON);
-        return ret;
+        return new RenderedContent(document.body().html(), paragraphs);
     }
 
     public Paragraph findParagraph(final String articleId, final String markdown, final String paragraphId) {
+        return findParagraph(articleId, markdown, paragraphId, null);
+    }
+
+    public Paragraph findParagraph(final String articleId, final String markdown, final String paragraphId,
+                                   final java.util.function.Function<String, String> titleLookup) {
         if (!isValidParagraphId(paragraphId)) {
             return null;
         }
-        for (final Paragraph paragraph : extractMarkdown(articleId, markdown)) {
+        for (final Paragraph paragraph : extractMarkdown(articleId, markdown, titleLookup)) {
             if (paragraphId.equals(paragraph.id)) {
                 return paragraph;
             }
@@ -167,16 +281,41 @@ public class LongArticleParagraphService {
     }
 
     public List<Paragraph> extractMarkdown(final String articleId, final String markdown) {
-        String content = shortLinkQueryService.linkArticle(StringUtils.defaultString(markdown));
+        return extractMarkdown(articleId, markdown, null);
+    }
+
+    public List<Paragraph> extractMarkdown(final String articleId, final String markdown,
+                                           final java.util.function.Function<String, String> titleLookup) {
+        return extract(articleId, parse(renderMarkdown(articleId, markdown, titleLookup)), false);
+    }
+
+    private String renderMarkdown(final String articleId, final String markdown, final java.util.function.Function<String, String> titleLookup) {
+        final String content = shortLinkQueryService.linkArticle(StringUtils.defaultString(markdown), titleLookup);
+        return renderLinkedMarkdown(articleId, content);
+    }
+
+    private String renderLinkedMarkdown(final String articleId, final String content) {
         String html = Markdowns.toHTML(Emotions.convert(content));
         html = Markdowns.clean(html, Latkes.getServePath() + "/article/" + articleId);
         html = MediaPlayers.renderAudio(html);
         html = MediaPlayers.renderVideo(html);
-        return extract(articleId, parse(html), false);
+        return html;
     }
 
     public void migrateCommentsInCurrentTransaction(final String articleId, final String oldMarkdown,
                                                      final String newMarkdown) throws RepositoryException {
+        migrateCommentsInCurrentTransaction(articleId, oldMarkdown, newMarkdown, null);
+    }
+
+    public void migrateCommentsInCurrentTransaction(final String articleId, final String oldMarkdown,
+            final String newMarkdown, final java.util.function.Function<String, TitleSnapshot> titles) throws RepositoryException {
+        migrateCommentsInCurrentTransaction(articleId, oldMarkdown, newMarkdown, titles, false);
+    }
+
+    public void migrateCommentsInCurrentTransaction(final String articleId, final String oldMarkdown,
+            final String newMarkdown, final java.util.function.Function<String, TitleSnapshot> titles,
+            final boolean requireUnambiguous) throws RepositoryException {
+        if (!commentRepository.hasTransactionBegun()) throw new IllegalStateException("paragraph migration transaction required");
         final List<JSONObject> comments = getParagraphComments(articleId);
         if (comments.isEmpty()) {
             return;
@@ -197,11 +336,26 @@ public class LongArticleParagraphService {
             commentsByParagraph.computeIfAbsent(comment.optString(Comment.COMMENT_PARAGRAPH_ID), key -> new ArrayList<>()).add(comment);
         }
 
+        CompatibleContent compatible = requireUnambiguous && null != titles ? compatibleMarkdown(articleId, oldMarkdown, titles) : null;
+        if (requireUnambiguous && null != titles) compatibleMarkdown(articleId, newMarkdown, titles);
+        if (null == compatible && null != titles && commentsByParagraph.keySet().stream().anyMatch(id -> !oldById.containsKey(id))) {
+            final Map<String, TitleSnapshot> memo = new HashMap<>();
+            final java.util.function.Function<String, TitleSnapshot> lookup = id -> memo.computeIfAbsent(id, titles);
+            final var publicParagraphs = extractMarkdown(articleId, oldMarkdown, id -> {
+                final TitleSnapshot title = lookup.apply(id);
+                return title.publiclyReadable() ? title.title() : null;
+            });
+            if (publicParagraphs.stream().anyMatch(p -> commentsByParagraph.containsKey(p.id) && !oldById.containsKey(p.id))) {
+                compatible = compatibleMarkdown(articleId, oldMarkdown, lookup);
+            }
+        }
+
         for (final Map.Entry<String, List<JSONObject>> entry : commentsByParagraph.entrySet()) {
             final String oldId = entry.getKey();
             Paragraph target = newById.get(oldId);
-            if (null == target && oldById.containsKey(oldId)) {
-                target = mapped.get(oldId);
+            final String canonical = oldById.containsKey(oldId) ? oldId : null == compatible ? null : compatible.canonicalId(oldId);
+            if (null == target && null != canonical) {
+                target = mapped.get(canonical);
             }
             if (null == target) {
                 target = matchOrphan(entry.getValue().get(0), newParagraphs, claimedNewIds);
@@ -214,6 +368,11 @@ public class LongArticleParagraphService {
     }
 
     private List<JSONObject> getParagraphComments(final String articleId) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!commentRepository.hasTransactionBegun()) throw new IllegalStateException("paragraph migration transaction required");
+            return commentRepository.select("SELECT * FROM `" + commentRepository.getName()
+                    + "` WHERE commentOnArticleId=? AND commentType=? ORDER BY oId FOR UPDATE", articleId, Comment.COMMENT_TYPE_C_PARAGRAPH);
+        }
         final Filter filter = CompositeFilterOperator.and(
                 new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId),
                 new PropertyFilter(Comment.COMMENT_TYPE, FilterOperator.EQUAL, Comment.COMMENT_TYPE_C_PARAGRAPH));
@@ -232,7 +391,9 @@ public class LongArticleParagraphService {
                 comment.put(Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE);
                 comment.put(Comment.COMMENT_SHARP_URL, buildCommentSharpURL(comment, target.id));
             }
-            commentRepository.update(comment.optString(Keys.OBJECT_ID), comment);
+            commentRepository.update(comment.optString(Keys.OBJECT_ID), comment,
+                    Comment.COMMENT_PARAGRAPH_ID, Comment.COMMENT_PARAGRAPH_KIND, Comment.COMMENT_PARAGRAPH_INDEX,
+                    Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_SHARP_URL);
         }
     }
 

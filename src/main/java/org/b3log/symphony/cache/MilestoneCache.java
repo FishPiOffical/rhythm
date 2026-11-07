@@ -24,7 +24,6 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
-import org.b3log.symphony.service.DomainQueryService;
 import org.b3log.symphony.service.MilestoneQueryService;
 import org.json.JSONObject;
 import org.b3log.symphony.model.Milestone;

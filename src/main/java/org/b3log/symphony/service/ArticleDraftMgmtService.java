@@ -45,20 +45,11 @@ public class ArticleDraftMgmtService {
     private ArticleDraftRepository articleDraftRepository;
 
     public JSONObject saveDraft(final String userId, final JSONObject request) throws ServiceException {
-        final JSONObject values = buildDraft(userId, request);
         final Transaction transaction = articleDraftRepository.beginTransaction();
         try {
-            final String draftId = StringUtils.trimToEmpty(request.optString(ArticleDraft.ARTICLE_DRAFT_ID));
-            final JSONObject draft = loadWritableDraft(userId, draftId, values);
-            final String id = draft.optString(Keys.OBJECT_ID);
-            if (StringUtils.isBlank(id)) {
-                final String newId = articleDraftRepository.add(draft);
-                draft.put(Keys.OBJECT_ID, newId);
-            } else {
-                articleDraftRepository.update(id, draft);
-            }
+            final JSONObject result = saveDraftInCurrentTransaction(userId, request);
             transaction.commit();
-            return toListItem(draft);
+            return result;
         } catch (final ServiceException e) {
             rollback(transaction);
             throw e;
@@ -95,11 +86,7 @@ public class ArticleDraftMgmtService {
     public void removeDraft(final String userId, final String draftId) throws ServiceException {
         final Transaction transaction = articleDraftRepository.beginTransaction();
         try {
-            final JSONObject draft = articleDraftRepository.getOwnedDraft(userId, draftId);
-            if (null == draft) {
-                throw new ServiceException("草稿不存在");
-            }
-            articleDraftRepository.remove(draft.optString(Keys.OBJECT_ID));
+            removeDraftInCurrentTransaction(userId, draftId);
             transaction.commit();
         } catch (final ServiceException e) {
             rollback(transaction);
@@ -110,12 +97,40 @@ public class ArticleDraftMgmtService {
         }
     }
 
+    /** Used by atomic v3 requests; the caller owns commit/rollback. No external events are emitted. */
+    public JSONObject saveDraftInCurrentTransaction(final String userId, final JSONObject request)
+            throws ServiceException, RepositoryException {
+        requireTransaction();
+        final JSONObject values = buildDraft(userId, request);
+        final String draftId = StringUtils.trimToEmpty(request.optString(ArticleDraft.ARTICLE_DRAFT_ID));
+        final JSONObject draft = loadWritableDraft(userId, draftId, values);
+        final String id = draft.optString(Keys.OBJECT_ID);
+        if (StringUtils.isBlank(id)) {
+            draft.put(Keys.OBJECT_ID, articleDraftRepository.add(draft));
+        } else {
+            articleDraftRepository.update(id, draft);
+        }
+        return toListItem(draft);
+    }
+
+    public void removeDraftInCurrentTransaction(final String userId, final String draftId)
+            throws ServiceException, RepositoryException {
+        requireTransaction();
+        final JSONObject draft = articleDraftRepository.getOwnedDraftForUpdate(userId, draftId);
+        if (null == draft) throw new ServiceException("草稿不存在");
+        articleDraftRepository.remove(draft.optString(Keys.OBJECT_ID));
+    }
+
+    private void requireTransaction() {
+        if (!articleDraftRepository.hasTransactionBegun()) throw new IllegalStateException("draft transaction required");
+    }
+
     private JSONObject loadWritableDraft(final String userId, final String draftId,
                                          final JSONObject values) throws RepositoryException, ServiceException {
         if (StringUtils.isBlank(draftId)) {
             return values;
         }
-        final JSONObject draft = articleDraftRepository.getOwnedDraft(userId, draftId);
+        final JSONObject draft = articleDraftRepository.getOwnedDraftForUpdate(userId, draftId);
         if (null == draft) {
             throw new ServiceException("草稿不存在");
         }

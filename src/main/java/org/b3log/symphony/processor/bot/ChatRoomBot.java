@@ -18,6 +18,10 @@
  */
 package org.b3log.symphony.processor.bot;
 
+import org.b3log.symphony.util.ChatMessageAbuseState;
+import org.b3log.symphony.util.ChatTopicInputs;
+import org.b3log.symphony.util.ChatBarrageQuota;
+
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -67,10 +71,8 @@ public class ChatRoomBot {
      * 警告记录池，不同的记录池有不同的次数
      */
     private static final SimpleCurrentLimiter RECORD_POOL_2_IN_24H = new SimpleCurrentLimiter(24 * 60 * 60, 1);
-    private static final SimpleCurrentLimiter RECORD_POOL_6_IN_15M = new SimpleCurrentLimiter(15 * 60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_5_IN_24H = new SimpleCurrentLimiter(24 * 60 * 60, 4);
     private static final SimpleCurrentLimiter RECORD_POOL_5_IN_1M = new SimpleCurrentLimiter(60, 5);
-    private static final SimpleCurrentLimiter RECORD_POOL_BARRAGER = new SimpleCurrentLimiter(60, 5);
     private static final SimpleCurrentLimiter RECORD_POOL_05_IN_1M = new SimpleCurrentLimiter(120, 1);
     /**
      * AI 对话限流器：每用户每分钟5次
@@ -78,17 +80,6 @@ public class ChatRoomBot {
     private static final SimpleCurrentLimiter RECORD_POOL_AI_5_IN_1M = new SimpleCurrentLimiter(60, 5);
 
 
-    /**
-     * 对应关系池
-     */
-    private static final Map<String, String> RECORD_MAP = Collections.synchronizedMap(new LinkedHashMap<String, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > 2000;
-        }
-    });
-
-    private static String latestMessage = "";
     private static String allLatestMessage = "";
 
     // 记录并分析消息是否可疑
@@ -97,7 +88,8 @@ public class ChatRoomBot {
         String reason = "";
         final JSONObject requestJSONObject = (JSONObject) context.attr(Keys.REQUEST);
         JSONObject currentUser = Sessions.getUser();
-        try {
+        if(ChatTopicInputs.isEnvelope(requestJSONObject.optString(Common.CONTENT)))currentUser=(JSONObject)context.attr(User.USER);
+        else try {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
         } catch (NullPointerException ignored) {
         }
@@ -129,7 +121,7 @@ public class ChatRoomBot {
         // ==? 发弹幕频率限制 ?==
         if (!userName.equals("admin")) {
             if (content.startsWith("[barrager]") && content.endsWith("[/barrager]")) {
-                if (!RECORD_POOL_BARRAGER.access(userName)) {
+                if (!ChatBarrageQuota.take(userName)) {
                     context.renderJSON(StatusCodes.ERR).renderMsg("弹幕发的太快啦！休息一下吧（每分钟最多5个）");
                     return false;
                 }
@@ -448,8 +440,7 @@ public class ChatRoomBot {
                             try {
                                 int cost = Integer.parseInt(cmd1.split("\\s")[1]);
                                 String unit = cmd1.split("\\s")[2];
-                                ChatroomProcessor.barragerCost = cost;
-                                ChatroomProcessor.barragerUnit = unit;
+                                ChatroomProcessor.setBarragerPrice(cost, unit);
                                 refreshBarrager(cost, unit);
                                 sendBotMsg("弹幕价格设置为: **" + cost + "** " + unit + "/次。\n" +
                                         "弹幕价格将在下次重启服务器后自动恢复为默认值 (5积分/次)。\n" +
@@ -566,12 +557,8 @@ public class ChatRoomBot {
                 return false;
             }
             // 二次确认
-            String key = userId + "_twice_confirm";
-            if (RECORD_MAP.getOrDefault(key, "").equals(content)) {
-                RECORD_MAP.remove(key);
-            } else {
+            if (!ChatMessageAbuseState.confirmRisk(userId, content)) {
                 context.renderJSON(StatusCodes.ERR).renderMsg("你的消息被机器人打回，原因：你处于风控名单，需要二次确认是否发送消息，请再次点击发送按钮确认发送。剩余风控时间为：" + risksControlDay + " 天 " + risksControlHour + " 小时 " + risksControlMinute + " 分 " + risksControlSecond + " 秒。");
-                RECORD_MAP.put(key, content);
                 return false;
             }
         }
@@ -622,20 +609,13 @@ public class ChatRoomBot {
         // ==! 判定恶意发送非法红包 !==
 
         // ==? 判定复读机 ?==
-        if (!content.startsWith("[redpacket]") && !content.endsWith("[/redpacket]")) {
-            if (content.equals(latestMessage)) {
-                // 与上条内容相同
-                if (RECORD_POOL_6_IN_15M.access(userName)) {
-                    if (RECORD_POOL_6_IN_15M.get(userName).getFrequency() == 5) {
-                        sendBotMsg("监测到 @" + userName + "  疑似使用自动复读机插件，请不要频繁复读。");
-                    }
-                } else {
-                    sendBotMsg("由于 @" + userName + "  频繁复读，现处以禁言 15 分钟、扣除积分 30 的处罚。");
-                    mute(userId, 15);
-                    abusePoint(userId, 30, "机器人罚单-聊天室复读频率过高");
-                    RECORD_POOL_6_IN_15M.remove(userName);
-                }
-            }
+        final var repetition = ChatMessageAbuseState.repeated(userName, content);
+        if (repetition == ChatMessageAbuseState.Repeat.WARN) {
+            sendBotMsg("监测到 @" + userName + "  疑似使用自动复读机插件，请不要频繁复读。");
+        } else if (repetition == ChatMessageAbuseState.Repeat.PENALIZE) {
+            sendBotMsg("由于 @" + userName + "  频繁复读，现处以禁言 15 分钟、扣除积分 30 的处罚。");
+            mute(userId, 15);
+            abusePoint(userId, 30, "机器人罚单-聊天室复读频率过高");
         }
         // ==! 判定复读机 !==
 
@@ -677,7 +657,7 @@ public class ChatRoomBot {
         }
         // ==! 发红包频率限制 !==
 
-        latestMessage = content;
+        ChatMessageAbuseState.accepted(content);
         allLatestMessage = content;
         if (!pass) {
             context.renderJSON(StatusCodes.ERR).renderMsg("你的消息被机器人打回，原因：" + reason);

@@ -19,6 +19,7 @@
 package org.b3log.symphony.repository;
 
 import org.b3log.latke.repository.AbstractRepository;
+import org.b3log.latke.Keys;
 import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
@@ -44,6 +45,28 @@ public class ReactionRepository extends AbstractRepository {
 
     public ReactionRepository() {
         super(Reaction.REACTION);
+    }
+
+    /** The caller must hold the target lock and commit content removal with this cleanup. */
+    public void removeTargetInCurrentTransaction(final String targetType, final String targetId) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("reaction removal requires transaction");
+        if (!Reaction.isValidTargetType(targetType)) throw new IllegalArgumentException("invalid reaction target type");
+        for (final JSONObject row : select("SELECT oId FROM `" + getName()
+                + "` WHERE reactionTargetType=? AND reactionTargetId=? ORDER BY oId FOR UPDATE", targetType, targetId)) {
+            remove(row.getString(Keys.OBJECT_ID));
+        }
+    }
+
+    public JSONObject lockEntity(final String table, final String id) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("reaction transaction required");
+        final List<JSONObject> rows = select("SELECT * FROM " + table + " WHERE oId=? FOR UPDATE", id);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    public List<JSONObject> getOwnedForUpdate(final String actor, final String type, final String id, final String group) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("reaction transaction required");
+        return select("SELECT * FROM " + getName() + " WHERE reactionUserId=? AND reactionTargetType=? AND reactionTargetId=? AND reactionGroup=?"
+                + " ORDER BY reactionUpdatedTime DESC,oId DESC FOR UPDATE", actor, type, id, group);
     }
 
     public JSONObject getByUserTargetGroup(final String userId, final String targetType,

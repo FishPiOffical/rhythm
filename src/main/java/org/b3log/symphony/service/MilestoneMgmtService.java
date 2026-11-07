@@ -31,6 +31,8 @@ import org.b3log.symphony.repository.MilestoneRepository;
 import org.b3log.symphony.cache.MilestoneCache;
 import org.b3log.latke.service.ServiceException;
 import org.json.JSONObject;
+import org.b3log.latke.Keys;
+import org.b3log.symphony.util.MilestoneSubmission;
 
 /**
  * Milestone management service.
@@ -59,18 +61,29 @@ public class MilestoneMgmtService {
      * @param milestone the specified milestone
      * @throws ServiceException service exception
      */
-    @Transactional
     public void addMilestone(final JSONObject milestone) throws ServiceException {
+        final Transaction tx = milestoneRepository.beginTransaction();
         try {
-            milestone.put(Milestone.MILESTONE_STATUS, Milestone.STATUS_C_PENDING); // Default status: pending
-            milestone.put(Milestone.MILESTONE_CREATE_TIME, System.currentTimeMillis());
-            milestone.put(Milestone.MILESTONE_UPDATE_TIME, System.currentTimeMillis());
-            milestoneRepository.add(milestone);
-            milestoneCache.clearTimelineEventsCache();
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Adds milestone failed", e);
+            addMilestoneInCurrentTransaction(milestone.optString(Milestone.MILESTONE_AUTHOR_ID), milestone);
+            tx.commit();
+        } catch (final Exception e) {
+            if (tx.isActive()) tx.rollback();
+            LOGGER.error("Adds milestone failed", e);
             throw new ServiceException(e);
         }
+        clearTimelineAfterCommit();
+    }
+
+    public JSONObject addMilestoneInCurrentTransaction(final String actor, final JSONObject input) throws RepositoryException {
+        if (!milestoneRepository.hasTransactionBegun()) throw new IllegalStateException("milestone transaction required");
+        final JSONObject row = MilestoneSubmission.pending(actor, input, System.currentTimeMillis());
+        final String id = milestoneRepository.add(row);
+        return row.put(Keys.OBJECT_ID, id);
+    }
+
+    public void clearTimelineAfterCommit() {
+        try { milestoneCache.clearTimelineEventsCache(); }
+        catch (final Exception e) { LOGGER.error("Clears committed milestone cache failed", e); }
     }
 
     /**

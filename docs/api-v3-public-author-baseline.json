@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-02",
+  "scope": "Actual author metadata and stored signed avatar read projection, no remote image fetch",
+  "detailHasCurrentNickname": true,
+  "detailPreservesCompleteAvatarURL": false,
+  "profilePreservesCompleteAvatarURL": false,
+  "listHasCurrentNickname": false,
+  "listPreservesCompleteAvatarURL": false,
+  "originalFieldsRestored": true
+}

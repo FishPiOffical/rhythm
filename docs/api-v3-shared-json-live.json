@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-31",
+  "environment": "Rhythm Local 8081, user confirmed IDEA rebuild/restart",
+  "results": [
+    {
+      "step": "single quote",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "duplicate",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "escaped duplicate",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "broken",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "invalid UTF8",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "whitespace",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "array",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "unknown field",
+      "status": 422,
+      "code": "invalid_request"
+    },
+    {
+      "step": "wrong media",
+      "status": 415,
+      "code": "unsupported_media_type"
+    },
+    {
+      "step": "over limit",
+      "status": 413,
+      "code": "body_too_large"
+    },
+    {
+      "step": "valid create same rejected key",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "idempotent create",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "unauthenticated",
+      "status": 401,
+      "code": "unauthorized"
+    },
+    {
+      "step": "cross owner delete",
+      "status": 404,
+      "code": "not_found"
+    },
+    {
+      "step": "broken delete",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "duplicate delete",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "whitespace delete",
+      "status": 400,
+      "code": "invalid_json"
+    },
+    {
+      "step": "true empty delete",
+      "status": 200,
+      "code": 0
+    },
+    {
+      "step": "empty delete replay",
+      "status": 200,
+      "code": 0
+    }
+  ],
+  "normalUnicodeExact": true,
+  "rejectedRequestsNoDurableChanges": true,
+  "sameRejectedKeyCanCreate": true,
+  "draftCleaned": true,
+  "balanceUnchanged": true,
+  "onlyCreateDeleteReceipts": true,
+  "browser": {
+    "origin": "http://127.0.0.1:5173",
+    "chain": [
+      "pre-post → normal editor",
+      "save draft",
+      "reload and restore login",
+      "load persisted draft",
+      "390px viewport no horizontal overflow",
+      "API cleanup own test draft",
+      "reload shows no drafts"
+    ],
+    "unicodeRetained": true,
+    "consoleWarningsErrors": 0,
+    "testDraftCleaned": true,
+    "limitations": [
+      "No real network-loss recovery or physical mobile device tested.",
+      "Editor document title remained generic after reload; metadata review remains separate."
+    ]
+  }
+}

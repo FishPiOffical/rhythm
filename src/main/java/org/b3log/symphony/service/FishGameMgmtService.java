@@ -20,10 +20,6 @@ package org.b3log.symphony.service;
 
 import org.apache.commons.lang.StringUtils;
 import org.b3log.latke.Keys;
-import org.b3log.latke.repository.CompositeFilterOperator;
-import org.b3log.latke.repository.FilterOperator;
-import org.b3log.latke.repository.PropertyFilter;
-import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
@@ -38,14 +34,12 @@ import org.b3log.symphony.repository.FishGameVoteRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.b3log.latke.ioc.Inject;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.List;
 /** 鱼游投稿与互动管理服务。 */
 @Service
 public class FishGameMgmtService {
-    private static final int MAX_COMMENT_LENGTH = 500;
 
     @Inject
     private FishGameRepository fishGameRepository;
@@ -86,8 +80,10 @@ public class FishGameMgmtService {
         game.put(FishGame.PENDING_DESCRIPTION, pending.optString(FishGame.DESCRIPTION));
         game.put(FishGame.PENDING_URL, pending.optString(FishGame.URL));
         game.put(FishGame.PENDING_ICON_URL, pending.optString(FishGame.ICON_URL));
+        game.put(FishGame.PENDING_OAUTH_LOGIN_URL, "");
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
-        updateWithTransaction(game);
+        updateWithTransaction(game, FishGame.EDIT_PENDING, FishGame.PENDING_NAME, FishGame.PENDING_DESCRIPTION,
+                FishGame.PENDING_URL, FishGame.PENDING_ICON_URL, FishGame.PENDING_OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
     }
     public JSONObject review(final String gameId, final int status, final JSONObject request) throws ServiceException {
         final JSONObject game = getRequired(gameId);
@@ -102,6 +98,7 @@ public class FishGameMgmtService {
             game.put(FishGame.DESCRIPTION, game.optString(FishGame.PENDING_DESCRIPTION));
             game.put(FishGame.URL, game.optString(FishGame.PENDING_URL));
             game.put(FishGame.ICON_URL, game.optString(FishGame.PENDING_ICON_URL));
+            game.put(FishGame.OAUTH_LOGIN_URL, game.optString(FishGame.PENDING_OAUTH_LOGIN_URL));
             clearPending(game);
         }
         if (hasPending && status != FishGame.STATUS_APPROVED) {
@@ -112,6 +109,7 @@ public class FishGameMgmtService {
             ensureUrlAvailable(manual.optString(FishGame.URL), gameId);
             game.put(FishGame.NAME, manual.optString(FishGame.NAME));
             game.put(FishGame.DESCRIPTION, manual.optString(FishGame.DESCRIPTION));
+            if (!game.optString(FishGame.URL).equals(manual.optString(FishGame.URL))) game.put(FishGame.OAUTH_LOGIN_URL, "");
             game.put(FishGame.URL, manual.optString(FishGame.URL));
             game.put(FishGame.ICON_URL, manual.optString(FishGame.ICON_URL));
         }
@@ -119,7 +117,9 @@ public class FishGameMgmtService {
                 && currentStatus == FishGame.STATUS_APPROVED ? currentStatus : status;
         game.put(FishGame.STATUS, finalStatus);
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
-        updateWithTransaction(game);
+        updateWithTransaction(game, FishGame.STATUS, FishGame.NAME, FishGame.DESCRIPTION, FishGame.URL, FishGame.ICON_URL,
+                FishGame.EDIT_PENDING, FishGame.PENDING_NAME, FishGame.PENDING_DESCRIPTION, FishGame.PENDING_URL,
+                FishGame.PENDING_ICON_URL, FishGame.OAUTH_LOGIN_URL, FishGame.PENDING_OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
         return game;
     }
     public JSONObject updateByAdmin(final String gameId, final JSONObject request) throws ServiceException {
@@ -128,10 +128,11 @@ public class FishGameMgmtService {
         ensureUrlAvailable(normalized.optString(FishGame.URL), gameId);
         game.put(FishGame.NAME, normalized.optString(FishGame.NAME));
         game.put(FishGame.DESCRIPTION, normalized.optString(FishGame.DESCRIPTION));
+        if (!game.optString(FishGame.URL).equals(normalized.optString(FishGame.URL))) game.put(FishGame.OAUTH_LOGIN_URL, "");
         game.put(FishGame.URL, normalized.optString(FishGame.URL));
         game.put(FishGame.ICON_URL, normalized.optString(FishGame.ICON_URL));
         game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
-        updateWithTransaction(game);
+        updateWithTransaction(game, FishGame.NAME, FishGame.DESCRIPTION, FishGame.URL, FishGame.ICON_URL, FishGame.OAUTH_LOGIN_URL, FishGame.UPDATED_TIME);
         return game;
     }
     public JSONObject addManual(final String adminId, final JSONObject request) throws ServiceException {
@@ -183,68 +184,85 @@ public class FishGameMgmtService {
         }
     }
     public JSONObject vote(final String userId, final String gameId, final String value) throws ServiceException {
-        if (!FishGameVote.VALUE_LIKE.equals(value) && !FishGameVote.VALUE_DISLIKE.equals(value)) {
-            throw new ServiceException("投票值不合法");
-        }
+        if (!FishGameVote.VALUE_LIKE.equals(value) && !FishGameVote.VALUE_DISLIKE.equals(value)) throw new ServiceException("投票值不合法");
         final Transaction tx = fishGameRepository.beginTransaction();
         try {
-            final JSONObject game = fishGameRepository.getForUpdate(gameId);
-            if (game == null) {
-                throw new ServiceException("鱼游不存在");
-            }
-            if (game.optInt(FishGame.STATUS) != FishGame.STATUS_APPROVED) {
-                throw new ServiceException("鱼游暂未公开");
-            }
-            final JSONObject old = fishGameVoteRepository.getByUserAndGame(userId, gameId);
-            String userVote = value;
-            if (old == null) {
-                final JSONObject vote = new JSONObject().put(Keys.OBJECT_ID, Ids.genTimeMillisId())
-                        .put(FishGameVote.GAME_ID, gameId).put(FishGameVote.USER_ID, userId)
-                        .put(FishGameVote.VALUE, value).put(FishGameVote.CREATED_TIME, System.currentTimeMillis());
-                fishGameVoteRepository.add(vote);
-            } else if (value.equals(old.optString(FishGameVote.VALUE))) {
-                fishGameVoteRepository.remove(old.optString(Keys.OBJECT_ID));
-                userVote = "";
-            } else {
-                old.put(FishGameVote.VALUE, value);
-                fishGameVoteRepository.update(old.optString(Keys.OBJECT_ID), old);
-            }
-            final int likes = count(gameId, FishGameVote.VALUE_LIKE);
-            final int dislikes = count(gameId, FishGameVote.VALUE_DISLIKE);
-            game.put(FishGame.LIKE_COUNT, likes);
-            game.put(FishGame.DISLIKE_COUNT, dislikes);
-            game.put(FishGame.UPDATED_TIME, System.currentTimeMillis());
-            fishGameRepository.update(gameId, game);
+            final JSONObject result = changeVoteInCurrentTransaction(userId, gameId, value, true, () -> { });
             tx.commit();
-            return new JSONObject().put(FishGame.LIKE_COUNT, likes).put(FishGame.DISLIKE_COUNT, dislikes)
-                    .put("fishGameUserVote", userVote);
-        } catch (final ServiceException e) {
-            rollback(tx);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(tx);
-            throw new ServiceException(e);
-        }
+            result.remove("changed");
+            return result;
+        } catch (final ServiceException e) { rollback(tx); throw e; }
+        catch (final RepositoryException | RuntimeException e) { rollback(tx); throw new ServiceException(e); }
     }
-    public JSONObject addComment(final String userId, final String gameId, final String content) throws ServiceException {
-        getApprovedRequired(gameId);
-        final String normalized = Jsoup.clean(StringUtils.trimToEmpty(content), Safelist.none()).trim();
-        if (normalized.isEmpty() || normalized.length() > MAX_COMMENT_LENGTH) {
-            throw new ServiceException("评论不能为空且不能超过 " + MAX_COMMENT_LENGTH + " 个字符");
+
+    /** v3 passes an explicit value or empty string to clear, never toggle. */
+    public JSONObject setVoteInCurrentTransaction(final String actor, final String gameId, final String value,
+                                                 final Runnable beforeMutation) throws ServiceException, RepositoryException {
+        return changeVoteInCurrentTransaction(actor, gameId, value, false, beforeMutation);
+    }
+
+    private JSONObject changeVoteInCurrentTransaction(final String actor, final String gameId, final String value,
+                                                      final boolean toggle, final Runnable beforeMutation) throws ServiceException, RepositoryException {
+        if (!fishGameRepository.hasTransactionBegun()) throw new IllegalStateException("fish game transaction required");
+        if (null == value || (!value.isEmpty() && !FishGameVote.VALUE_LIKE.equals(value) && !FishGameVote.VALUE_DISLIKE.equals(value)) || (toggle && value.isEmpty())) throw new ServiceException("投票值不合法");
+        final JSONObject game = approvedForUpdate(gameId);
+        beforeMutation.run();
+        final List<JSONObject> rows = fishGameVoteRepository.getOwnedForUpdate(actor, gameId);
+        final JSONObject old = rows.isEmpty() ? null : rows.getFirst();
+        final String desired = toggle && null != old && value.equals(old.optString(FishGameVote.VALUE)) ? "" : value;
+        boolean changed = false;
+        if (desired.isEmpty()) {
+            for (final JSONObject row : rows) fishGameVoteRepository.remove(row.optString(Keys.OBJECT_ID));
+            changed = !rows.isEmpty();
+        } else if (null == old) {
+            fishGameVoteRepository.add(new JSONObject().put(Keys.OBJECT_ID, Ids.genTimeMillisId()).put(FishGameVote.GAME_ID, gameId)
+                    .put(FishGameVote.USER_ID, actor).put(FishGameVote.VALUE, desired).put(FishGameVote.CREATED_TIME, System.currentTimeMillis()));
+            changed = true;
+        } else {
+            if (!desired.equals(old.optString(FishGameVote.VALUE))) {
+                old.put(FishGameVote.VALUE, desired);
+                fishGameVoteRepository.update(old.optString(Keys.OBJECT_ID), old);
+                changed = true;
+            }
+            for (int i = 1; i < rows.size(); i++) { fishGameVoteRepository.remove(rows.get(i).optString(Keys.OBJECT_ID)); changed = true; }
         }
-        final JSONObject comment = new JSONObject().put(Keys.OBJECT_ID, Ids.genTimeMillisId())
-                .put(FishGameComment.GAME_ID, gameId).put(FishGameComment.AUTHOR_ID, userId)
-                .put(FishGameComment.CONTENT, normalized).put(FishGameComment.CREATED_TIME, System.currentTimeMillis());
+        final long likes = fishGameVoteRepository.countByGameAndValue(gameId, FishGameVote.VALUE_LIKE);
+        final long dislikes = fishGameVoteRepository.countByGameAndValue(gameId, FishGameVote.VALUE_DISLIKE);
+        if (toggle || changed || likes != game.optLong(FishGame.LIKE_COUNT) || dislikes != game.optLong(FishGame.DISLIKE_COUNT)) {
+            game.put(FishGame.LIKE_COUNT, likes).put(FishGame.DISLIKE_COUNT, dislikes).put(FishGame.UPDATED_TIME, System.currentTimeMillis());
+            fishGameRepository.update(gameId, game);
+        }
+        return new JSONObject().put(FishGame.LIKE_COUNT, likes).put(FishGame.DISLIKE_COUNT, dislikes).put("fishGameUserVote", desired).put("changed", changed);
+    }
+
+    public JSONObject addComment(final String actor, final String gameId, final String content) throws ServiceException {
         final Transaction tx = fishGameCommentRepository.beginTransaction();
         try {
-            fishGameCommentRepository.add(comment);
-            tx.commit();
-            return comment;
-        } catch (final RepositoryException e) {
-            rollback(tx);
-            throw new ServiceException(e);
-        }
+            final JSONObject comment = addCommentInCurrentTransaction(actor, gameId, content, () -> { });
+            tx.commit(); return comment;
+        } catch (final ServiceException e) { rollback(tx); throw e; }
+        catch (final RepositoryException | RuntimeException e) { rollback(tx); throw new ServiceException(e); }
     }
+
+    public JSONObject addCommentInCurrentTransaction(final String actor, final String gameId, final String content,
+                                                    final Runnable beforeMutation) throws ServiceException, RepositoryException {
+        if (!fishGameCommentRepository.hasTransactionBegun()) throw new IllegalStateException("fish game comment transaction required");
+        approvedForUpdate(gameId);
+        final String normalized = fishGameValidationService.commentContent(content);
+        beforeMutation.run();
+        final JSONObject comment = new JSONObject().put(Keys.OBJECT_ID, Ids.genTimeMillisId()).put(FishGameComment.GAME_ID, gameId)
+                .put(FishGameComment.AUTHOR_ID, actor).put(FishGameComment.CONTENT, normalized).put(FishGameComment.CREATED_TIME, System.currentTimeMillis());
+        fishGameCommentRepository.add(comment);
+        return comment;
+    }
+
+    private JSONObject approvedForUpdate(final String gameId) throws ServiceException, RepositoryException {
+        final JSONObject game = fishGameRepository.getForUpdate(gameId);
+        if (null == game) throw new ServiceException("鱼游不存在");
+        if (FishGame.STATUS_APPROVED != game.optInt(FishGame.STATUS)) throw new ServiceException("鱼游暂未公开");
+        return game;
+    }
+
     private JSONObject getRequired(final String gameId) throws ServiceException {
         try {
             final JSONObject game = fishGameRepository.get(gameId);
@@ -276,10 +294,10 @@ public class FishGameMgmtService {
         }
     }
 
-    private void updateWithTransaction(final JSONObject game) throws ServiceException {
+    private void updateWithTransaction(final JSONObject game, final String... properties) throws ServiceException {
         final Transaction tx = fishGameRepository.beginTransaction();
         try {
-            fishGameRepository.update(game.optString(Keys.OBJECT_ID), game);
+            fishGameRepository.update(game.optString(Keys.OBJECT_ID), game, properties);
             tx.commit();
         } catch (final RepositoryException e) {
             rollback(tx);
@@ -287,16 +305,9 @@ public class FishGameMgmtService {
         }
     }
 
-    private int count(final String gameId, final String value) throws RepositoryException {
-        final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                new PropertyFilter(FishGameVote.GAME_ID, FilterOperator.EQUAL, gameId),
-                new PropertyFilter(FishGameVote.VALUE, FilterOperator.EQUAL, value)));
-        return (int) fishGameVoteRepository.count(query);
-    }
-
     private void clearPending(final JSONObject game) {
         game.put(FishGame.EDIT_PENDING, 0).put(FishGame.PENDING_NAME, "").put(FishGame.PENDING_DESCRIPTION, "")
-                .put(FishGame.PENDING_URL, "").put(FishGame.PENDING_ICON_URL, "");
+                .put(FishGame.PENDING_URL, "").put(FishGame.PENDING_ICON_URL, "").put(FishGame.PENDING_OAUTH_LOGIN_URL, "");
     }
 
     private void rollback(final Transaction tx) {

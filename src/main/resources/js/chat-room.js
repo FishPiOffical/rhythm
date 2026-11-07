@@ -127,6 +127,27 @@ var ChatRoom = {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
     },
+    cardImageURL: function (value) {
+        try {
+            const url = new URL(String(value || ''), window.location.href);
+            if (value && (url.protocol === 'https:' || url.protocol === 'http:')) return url.href;
+        } catch (ignore) { }
+        return Label.servePath + '/images/music/cat.gif';
+    },
+    renderMusicCard: function (card) {
+        const escape = ChatRoom.escapeReactionHtml;
+        return '<div class="music-player"><img class="music-player-img" src="' + escape(ChatRoom.cardImageURL(card.coverURL)) +
+            '"><div class="music-player-box"><div class="music-player-title">' + escape(card.title) +
+            '</div><div class="music-player-controller" data-source="' + escape(card.source) + '" data-cover="' + escape(card.coverURL) +
+            '" data-title="' + escape(card.title) + '" data-from="' + escape(card.from) +
+            '"><span onclick="ChatRoom.playSound.add(this)">加入列表</span> | <span onclick="ChatRoom.playSound.play(this)">立即播放</span></div></div></div>';
+    },
+    renderWeatherCard: function (id, card) {
+        const escape = ChatRoom.escapeReactionHtml;
+        return '<div id="weather_' + escape(id) + '" style="width:300px;height:280px;" data-date="' + escape(card.date) +
+            '" data-code="' + escape(card.weatherCode) + '" data-max="' + escape(card.max) + '" data-min="' + escape(card.min) +
+            '" data-t="' + escape(card.t) + '" data-st="' + escape(card.st) + '"></div>';
+    },
     getReactionUserDetails: function (item) {
         if (!item || !Array.isArray(item.userDetails)) {
             return [];
@@ -2096,6 +2117,40 @@ border-bottom: none;
     },
 
 
+    durableRedPackets: new Map(),
+    updateDurablePacketStatus: function (data) {
+        if (!data || !/^[1-9][0-9]{0,18}$/.test(String(data.oId))) return;
+        const packet = ChatRoom.durableRedPackets.get(String(data.oId));
+        const got = data.got, count = data.count;
+        if (!packet || !Number.isInteger(count) || count < 1 || count > 100 || !Number.isInteger(got) || got < 0 || got > count) return;
+        // Older partial events must not undo a completed packet or recover its pending claim.
+        if (got === count) { packet.complete = true; packet.pendingProof = null; }
+    },
+    confirmDurablePacket: function (oId, gesture) {
+        const packet = ChatRoom.durableRedPackets.get(String(oId));
+        if (!packet || !/^[1-9][0-9]{0,18}$/.test(String(oId))) return;
+        const rps = packet.type === 'rockPaperScissors';
+        const chosen = String(gesture);
+        const select = rps ? '<label class="red-packet-risk-field">请选择出拳 <select id="durablePacketGesture"><option value="">请选择</option>' +
+            ['石头', '剪刀', '布'].map((name, i) => '<option value="' + i + '"' + (chosen === String(i) ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>' : '';
+        Util.clearAlert();
+        Util.alert('<div><p>' + (rps ? '猜拳输时会扣除税后奖池等额积分，平局不获积分。' : '心跳红包可能抽到负积分，领取时将扣除积分。') +
+            '领取前须有足够积分；确认后将按本次选择结算。</p>' + select +
+            '<p class="red-packet-risk-actions"><button type="button" id="durablePacketConfirm">我理解扣分风险，确认领取</button> ' +
+            '<button type="button" id="durablePacketView">只查看详情</button> <button type="button" id="durablePacketCancel">取消</button></p></div>', '红包风险确认');
+        $('#alertDialogPanel').addClass('dialog-panel--packet-risk');
+        $('#durablePacketCancel').on('click', function () { Util.clearAlert(); });
+        $('#durablePacketView').on('click', function () { Util.clearAlert(); ChatRoom.unpackRedPacket(oId, undefined, {viewOnly: true}); });
+        $('#durablePacketConfirm').on('click', function () {
+            const proof = {riskAccepted: true, expectedUserId: String(Label.currentUserId)};
+            if (rps) {
+                const value = $('#durablePacketGesture').val();
+                if (!['0', '1', '2'].includes(value)) return;
+                proof.gesture = Number(value);
+            }
+            Util.clearAlert(); ChatRoom.unpackRedPacket(oId, undefined, proof);
+        });
+    },
     selectGesture: function (oId) {
         Util.alert(`<div class="form fn__flex-column select-center">
 <div>
@@ -2108,7 +2163,19 @@ border-bottom: none;
     /**
      * 拆开红包
      */
-    unpackRedPacket: function (oId, gesture) {
+    unpackRedPacket: function (oId, gesture, riskProof) {
+        const durable = ChatRoom.durableRedPackets.get(String(oId));
+        if (durable && ['heartbeat', 'rockPaperScissors'].includes(durable.type)) {
+            if (riskProof && riskProof.viewOnly === true || durable.complete || durable.claimed || durable.type === 'rockPaperScissors' && durable.senderId === String(Label.currentUserId)) {
+                riskProof = {viewOnly: true};
+            } else if (durable.pendingProof) {
+                riskProof = durable.pendingProof;
+            } else if (!riskProof || riskProof.riskAccepted !== true) {
+                ChatRoom.confirmDurablePacket(oId, gesture); return;
+            }
+            if (riskProof.riskAccepted === true) durable.pendingProof = riskProof;
+        }
+
         if (undefined === gesture || null === gesture) {
             gesture = "0"
         }
@@ -2119,13 +2186,10 @@ border-bottom: none;
             url: Label.servePath + "/chat-room/red-packet/open",
             async: true,
             method: "POST",
-            data: JSON.stringify({
-                oId: oId,
-                gesture: gesture,
-                dice: {
-                    bet: $("#betRadio>input[name=bet]:checked").val(),
-                    chips: $("#betRadio>input[name=chips]").val()
-                }
+            contentType: 'application/json',
+            data: JSON.stringify(durable ? Object.assign({oId: String(oId), expectedUserId: String(Label.currentUserId)}, riskProof || {}) : {
+                oId: oId, gesture: gesture,
+                dice: {bet: $("#betRadio>input[name=bet]:checked").val(), chips: $("#betRadio>input[name=chips]").val()}
             }),
             success: function (result) {
                 setTimeout(function () {
@@ -2133,6 +2197,11 @@ border-bottom: none;
                     $('#chatroom' + oId).css("pointer-events", "");
                 }, 300);
                 if (result.code !== -1) {
+                    if (durable) {
+                        durable.complete = Number(result.info.got) === Number(result.info.count);
+                        durable.claimed = (result.who || []).some(item => String(item.userId) === String(Label.currentUserId));
+                        if (!riskProof || riskProof.viewOnly !== true || durable.complete || durable.claimed) durable.pendingProof = null;
+                    }
                     let iGot = "抢红包人数较多，加载中...";
                     let gesture = "";
                     if (result.info.gesture !== undefined) {
@@ -2167,11 +2236,14 @@ ${result.info.msg}
                         }
                     }
                 } else {
+                    if (durable) durable.pendingProof = null;
                     Util.alert(result.msg);
                 }
             },
-            error: function (result) {
-                Util.alert(result.msg);
+            error: function () {
+                $($('#chatroom' + oId).find('.hongbao__item').find('div')[1]).html(redPacketMap.get(oId));
+                $('#chatroom' + oId).css('pointer-events', '');
+                Util.alert('领取结果未确认，请重新打开红包恢复本次领取，或只查看详情。');
             }
         });
     },
@@ -2209,9 +2281,16 @@ ${result.info.msg}
             let isMusic = false;
             let isPlusOne = Label.latestMessage === data.md;
             try {
-                let msgJSON = $.parseJSON(data.content.replace("<p>", "").replace("</p>", ""));
+                let msgJSON = $.parseJSON(data.md || data.content.replace("<p>", "").replace("</p>", ""));
                 if (msgJSON.msgType === "redPacket") {
                     isRedPacket = true;
+                    if (msgJSON.settlement === 'durable_v3' && /^[1-9][0-9]{0,18}$/.test(String(data.oId))) {
+                        const prior = ChatRoom.durableRedPackets.get(String(data.oId));
+                        ChatRoom.durableRedPackets.set(String(data.oId), {type: msgJSON.type, senderId: String(msgJSON.senderId),
+                            complete: Boolean(prior && prior.complete) || Number(msgJSON.got) === Number(msgJSON.count),
+                            claimed: (msgJSON.who || []).some(item => String(item.userId) === String(Label.currentUserId)),
+                            pendingProof: prior ? prior.pendingProof : null});
+                    }
                     let type = "未知类型红包";
                     let onclick = 'ChatRoom.unpackRedPacket(\'' + data.oId + '\')';
                     switch (msgJSON.type) {
@@ -2303,19 +2382,10 @@ ${result.info.msg}
                     }
                 } else if (msgJSON.msgType === "weather") {
                     isWeather = true;
-                    data.content = '<div id="weather_' + data.oId + '" style="width: 300px;height:280px;" data-date="' + msgJSON.date + '" data-code="' + msgJSON.weatherCode + '" data-max="' + msgJSON.max + '" data-min="' + msgJSON.min + '" data-t="' + msgJSON.t + '" data-st="' + msgJSON.st + '"></div>';
+                    data.content = ChatRoom.renderWeatherCard(data.oId, msgJSON);
                 } else if (msgJSON.msgType === 'music') {
                     isMusic = true;
-                    data.content = '<div class="music-player">' +
-                        '<img class="music-player-img" src="' + (msgJSON.coverURL === "" ? Label.servePath + "/images/music/cat.gif" : msgJSON.coverURL) + '" />' +
-                        '<div class="music-player-box"><div class="music-player-title">' + msgJSON.title + '</div>' +
-                        '<div class="music-player-controller"  data-source="' + msgJSON.source + '" data-cover="' + msgJSON.coverURL +
-                        '" data-title="' + msgJSON.title + '" data-from="' + msgJSON.from + '">' +
-                        '<span onclick="ChatRoom.playSound.add(this)">加入列表</span>' +
-                        ' | ' +
-                        '<span onclick="ChatRoom.playSound.play(this)">立即播放</span>' +
-                        '</div></div>' +
-                        '</div>'
+                    data.content = ChatRoom.renderMusicCard(msgJSON);
                 }
             } catch (err) {
             }
@@ -2909,7 +2979,7 @@ ${result.info.msg}
                 // console.log('加载完成');
                 currentEle.innerHTML = this.secondsToTime(this.ele.currentTime);
                 durationEle.innerHTML = this.secondsToTime(this.ele.duration);
-                titleEle.innerHTML = this.list[this.index].title;
+                titleEle.textContent = this.list[this.index].title;
                 let cover = this.list[this.index].cover;
                 coverEle.src = cover === '' ? Label.servePath + '/images/music/cat.gif' : cover;
             });
@@ -2964,8 +3034,8 @@ ${result.info.msg}
             for (let i = 0; i < this.list.length; i++) {
                 let item = this.list[i];
                 list += '<div class="music-list-item">' +
-                    '        <img src="' + item.cover + '" alt="">' +
-                    '        <div class="music-list-title">' + item.title + '</div>' +
+                    '        <img src="' + ChatRoom.escapeReactionHtml(ChatRoom.cardImageURL(item.cover)) + '" alt="">' +
+                    '        <div class="music-list-title">' + ChatRoom.escapeReactionHtml(item.title) + '</div>' +
                     '        <div class="music-list-controller">' +
                     '            <span style="color: #198cff" data-i="' + i + '" onclick="ChatRoom.playSound.playIndex(' + i + ')">播放</span>' +
                     '            <span style="color: red" data-i="' + i + '" onclick="ChatRoom.playSound.remove(' + i + ')">移除</span>' +
@@ -2997,20 +3067,33 @@ ${result.info.msg}
                 let sourceEle = music.source.split('=');
                 music.source = sourceEle[sourceEle.length - 1];
             }
-            //this.ele.src = music.source;
-            let iframeBox = document.querySelector('.music-detail');
-            iframeBox.innerHTML = '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height=86 src="//music.163.com/outchain/player?type=2&id=' + music.source + '&auto=1&height=66"></iframe>';
+            this.renderSource(music.source);
             this.playing = false;
             this.togglePlay();
             !this.isShow && this.show();
         },
         playIndex(idx) {
-            //this.ele.src = this.list[idx].source;
-            let iframeBox = document.querySelector('.music-detail');
-            iframeBox.innerHTML = '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="100%" height=86 src="//music.163.com/outchain/player?type=2&id=' + this.list[idx].source + '&auto=1&height=66"></iframe>';
+            this.renderSource(this.list[idx].source);
             this.playing = false;
             this.index = idx;
             this.togglePlay();
+        },
+        renderSource(source) {
+            const box = document.querySelector('.music-detail');
+            let player;
+            if (/^[0-9]{1,32}$/.test(source)) {
+                player = document.createElement('iframe');
+                player.src = 'https://music.163.com/outchain/player?type=2&id=' + source + '&auto=1&height=66';
+                player.width = '100%'; player.height = '86'; player.setAttribute('frameborder', 'no');
+            } else {
+                let url;
+                try { url = new URL(source); } catch (ignore) { return; }
+                if (url.protocol !== 'https:' || url.username || url.password) return;
+                player = document.createElement('audio');
+                player.src = source; player.controls = true; player.autoplay = true;
+                player.addEventListener('ended', () => this.autoNext());
+            }
+            box.replaceChildren(player);
         },
         autoNext() {
             if (this.mode === 0) {

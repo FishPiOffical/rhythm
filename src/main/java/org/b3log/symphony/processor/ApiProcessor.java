@@ -50,6 +50,7 @@ import org.b3log.symphony.repository.UploadRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
@@ -146,19 +147,27 @@ public class ApiProcessor {
     }
 
     public void getApiKeyInWeb(final RequestContext context) {
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (NullPointerException ignored) {
+        JSONObject currentUser=context.attr(User.USER) instanceof JSONObject suppliedUser?suppliedUser:null;
+        String supplied=context.param("apiKey");
+        if(StringUtils.isBlank(supplied))supplied=context.getRequest().getJSON().optString("apiKey");
+        if(StringUtils.isNotBlank(supplied)) {
+            try {currentUser=ApiProcessor.getUserByKey(supplied);}
+            catch(NullPointerException e){currentUser=Sessions.currentCookieUser(context.getRequest());}
+        } else if(currentUser==null||AccountCredentialVersions.snapshot(currentUser.optString(Keys.OBJECT_ID))==null) {
+            currentUser=Sessions.currentCookieUser(context.getRequest());
         }
+        if(currentUser==null){context.sendError(401);return;}
         String userId = currentUser.optString(Keys.OBJECT_ID);
         final String userPassword = currentUser.optString(User.USER_PASSWORD);
 
         final JSONObject cookieJSONObject = new JSONObject();
         cookieJSONObject.put(Keys.OBJECT_ID, userId);
+        final var credentialProof = AccountCredentialVersions.issuance(userId, null);
+        if (credentialProof == null) { context.sendError(401); return; }
+        cookieJSONObject.put("credentialEpoch", credentialProof.epoch());
 
         final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, userPassword + COOKIE_ITEM_SEPARATOR + random);
+        cookieJSONObject.put(Keys.TOKEN, credentialProof.password() + COOKIE_ITEM_SEPARATOR + random);
         final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
 
         context.renderJSON(StatusCodes.SUCC).renderJSON(new JSONObject().put("apiKey", key));
@@ -167,7 +176,9 @@ public class ApiProcessor {
     public void loginWebInApiKey(final RequestContext context) {
         JSONObject currentUser;
         try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
+            String supplied=context.param("apiKey");
+            if(StringUtils.isBlank(supplied))supplied=context.getRequest().getJSON().optString("apiKey");
+            currentUser = ApiProcessor.getUserByKey(supplied);
         } catch (NullPointerException ignored) {
             context.renderJSON(StatusCodes.ERR).renderMsg("ApiKey 错误。");
             return;
@@ -303,7 +314,8 @@ public class ApiProcessor {
      * @throws NullPointerException if apiKey is null or not found in keymaps
      */
     public static JSONObject getUserByKey(String apiKey) {
-        if (apiKey != null && apiKey.length() == 192) {
+        if (apiKey != null && !apiKey.isEmpty()) AccountCredentialVersions.clear();
+        if (apiKey != null && apiKey.length() >= 128 && apiKey.length() <= 1024) {
             JSONObject user = tryLogInWithApiKey(apiKey);
             if (null != user) {
                 return user;
@@ -318,6 +330,17 @@ public class ApiProcessor {
      * @param apiKey the specified apikey
      * @return returns user if logged in, returns {@code null} otherwise
      */
+    public static JSONObject getUserByKeyForSocket(String apiKey) {
+        final boolean http=AccountCredentialVersions.isHttp();
+        final boolean release=!http&&!AccountCredentialVersions.hasActiveTransaction();
+        final var previous=AccountCredentialVersions.saved();
+        try { return getUserByKey(apiKey); }
+        finally {
+            AccountCredentialVersions.remember(http?previous:null);
+            if(release)org.b3log.symphony.util.ApiV3Transactions.releaseThreadResources();
+        }
+    }
+
     private static JSONObject tryLogInWithApiKey(String apiKey) {
         try {
             final String value = Crypts.decryptByAES(apiKey, Symphonys.COOKIE_SECRET_API);
@@ -342,7 +365,8 @@ public class ApiProcessor {
             final String userPassword = ret.optString(User.USER_PASSWORD);
             final String token = cookieJSONObject.optString(Keys.TOKEN);
             final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
-            if (userPassword.equals(password)) {
+            if (AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
+                ret.put(User.USER_PASSWORD, password);
                 return ret;
             }
         } catch (final Exception e) {
@@ -352,6 +376,7 @@ public class ApiProcessor {
     }
 
     public void getKey(final RequestContext context) {
+        AccountCredentialVersions.clear();
         final JSONObject requestJSONObject = context.requestJSON();
         final String nameOrEmail = requestJSONObject.optString("nameOrEmail");
 
@@ -393,8 +418,9 @@ public class ApiProcessor {
                 return;
             }
 
-            final String userPassword = user.optString(User.USER_PASSWORD);
-            if (userPassword.equals(requestJSONObject.optString(User.USER_PASSWORD))) {
+            final var proof = AccountCredentialVersions.current(user.optString(Keys.OBJECT_ID));
+            final String userPassword = proof == null ? "" : proof.password();
+            if (proof != null && userPassword.equals(requestJSONObject.optString(User.USER_PASSWORD))) {
                 final String userId = user.optString(Keys.OBJECT_ID);
                 long code;
                 try {
@@ -407,8 +433,12 @@ public class ApiProcessor {
                     return;
                 }
 
+                AccountCredentialVersions.remember(proof);
+                final var issued = AccountCredentialVersions.issuance(userId, null);
+                if (issued == null) { context.sendError(401); return; }
                 final JSONObject cookieJSONObject = new JSONObject();
                 cookieJSONObject.put(Keys.OBJECT_ID, userId);
+                cookieJSONObject.put("credentialEpoch", issued.epoch());
 
                 final String random = RandomStringUtils.randomAlphanumeric(16);
                 cookieJSONObject.put(Keys.TOKEN, userPassword + COOKIE_ITEM_SEPARATOR + random);

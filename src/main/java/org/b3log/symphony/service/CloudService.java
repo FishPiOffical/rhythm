@@ -28,6 +28,7 @@ import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.util.Dates;
+import org.b3log.symphony.util.BagMutation;
 import org.b3log.symphony.service.MedalService;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -50,13 +51,16 @@ public class CloudService {
     @Inject
     private CloudRepository cloudRepository;
 
+    @Inject
+    private BagMgmtService bagMgmtService;
+
     /**
      * Medal service.
      */
     @Inject
     private MedalService medalService;
 
-    final public static String SYS_BAG = "sys-bag";
+    final public static String SYS_BAG = BagMutation.GAME_ID;
     final public static String SYS_MEDAL = "sys-medal";
     final public static String SYS_MUTE = "sys-mute";
     final public static String SYS_RISK = "sys-risk";
@@ -173,43 +177,13 @@ public class CloudService {
      * @param data
      */
     synchronized public void saveBag(String userId, String data) {
-        try {
-            final Transaction transaction = cloudRepository.beginTransaction();
-            Query cloudDeleteQuery = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("gameId", FilterOperator.EQUAL, CloudService.SYS_BAG)
-                    ));
-            cloudRepository.remove(cloudDeleteQuery);
-            JSONObject cloudJSON = new JSONObject();
-            cloudJSON.put("userId", userId)
-                    .put("gameId", CloudService.SYS_BAG)
-                    .put("data", data);
-            cloudRepository.add(cloudJSON);
-            transaction.commit();
-        } catch (RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Cannot save bag data to database.", e);
-        }
+        try { bagMgmtService.save(userId, new JSONObject(data)); }
+        catch (final Exception e) { LOGGER.log(Level.ERROR, "Cannot save bag data to database.", e); }
     }
 
-    /**
-     * 读取背包内容
-     *
-     * @param userId
-     * @return
-     */
-    synchronized public String getBag(String userId) {
-        try {
-            Query cloudQuery = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("userId", FilterOperator.EQUAL, userId),
-                            new PropertyFilter("gameId", FilterOperator.EQUAL, CloudService.SYS_BAG)
-                    ));
-            JSONObject result = cloudRepository.getFirst(cloudQuery);
-            return result.optString("data");
-        } catch (Exception e) {
-            return new JSONObject().toString();
-        }
+    synchronized public String getBag(final String userId) {
+        try { return bagMgmtService.read(userId).toString(); }
+        catch (final Exception e) { LOGGER.log(Level.ERROR, "Cannot read bag data.", e); return "{}"; }
     }
 
     /**
@@ -237,12 +211,8 @@ public class CloudService {
      * @return
      */
     synchronized public void removeBag(String userId, String item) {
-        JSONObject bagJSON = new JSONObject(getBag(userId));
-        if (!bagJSON.has(item)) {
-            return;
-        }
-        bagJSON.remove(item);
-        saveBag(userId, bagJSON.toString());
+        try { bagMgmtService.remove(userId, item); }
+        catch (final Exception e) { LOGGER.log(Level.ERROR, "Cannot remove bag item.", e); }
     }
 
     /**
@@ -255,36 +225,8 @@ public class CloudService {
      * @return 操作成功返回0，当number传递的是负数且比背包中物品数量多时返回-1
      */
     synchronized public int putBag(String userId, String item, int number, int maxTake) {
-        JSONObject bagJSON = new JSONObject(getBag(userId));
-        if (!bagJSON.has(item)) {
-            bagJSON.put(item, 0);
-        }
-        int has = bagJSON.getInt(item);
-        int sum = has + number;
-        if (number > 0) {
-            // 增加
-            if (sum > maxTake) {
-                sum = maxTake;
-                bagJSON.put(item, sum);
-                saveBag(userId, bagJSON.toString());
-                return 1;
-            } else {
-                bagJSON.put(item, sum);
-                saveBag(userId, bagJSON.toString());
-                return 0;
-            }
-        } else if (number < 0) {
-            // 扣除
-            if (sum >= 0) {
-                bagJSON.put(item, sum);
-                saveBag(userId, bagJSON.toString());
-                return 0;
-            } else {
-                return -1;
-            }
-        }
-
-        return -1;
+        try { return bagMgmtService.adjust(userId, item, number, maxTake); }
+        catch (final Exception e) { LOGGER.log(Level.ERROR, "Cannot adjust bag item.", e); return -1; }
     }
 
     /**

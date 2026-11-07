@@ -28,7 +28,17 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Reaction;
+import org.b3log.symphony.model.Comment;
+import org.b3log.symphony.repository.ApiV3ArticleRevisionRepository;
+import org.b3log.symphony.repository.ApiV3ChatEventRepository;
+import org.b3log.symphony.util.ApiV3ChatTransaction;
 import org.b3log.symphony.repository.ReactionRepository;
+import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.ArticleRepository;
+import org.b3log.symphony.repository.CommentRepository;
+import org.b3log.symphony.repository.ChatRoomRepository;
+import org.b3log.symphony.util.ReactionMutation;
+import java.util.List;
 import org.json.JSONObject;
 
 /**
@@ -41,6 +51,12 @@ public class ReactionMgmtService {
 
     @Inject
     private ReactionRepository reactionRepository;
+    @Inject private UserRepository userRepository;
+    @Inject private ArticleRepository articleRepository;
+    @Inject private CommentRepository commentRepository;
+    @Inject private ChatRoomRepository chatRoomRepository;
+    @Inject private ApiV3ArticleRevisionRepository realtimeRevisions;
+    @Inject private ApiV3ChatEventRepository chatEvents;
 
     public void toggleReaction(final String userId, final String targetType,
                                final String targetId, final String groupType,
@@ -49,49 +65,52 @@ public class ReactionMgmtService {
 
         final Transaction transaction = reactionRepository.beginTransaction();
         try {
-            final JSONObject existing = reactionRepository.getByUserTargetGroup(userId, targetType, targetId, groupType);
-            applyChange(existing, userId, targetType, targetId, groupType, value);
+            changeInCurrentTransaction(userId, targetType, targetId, groupType, value, true, null);
             transaction.commit();
-        } catch (final RepositoryException e) {
+        } catch (final RepositoryException | RuntimeException e) {
             rollback(transaction);
             LOGGER.log(Level.ERROR, "Toggle reaction failed", e);
             throw new ServiceException(e);
         }
     }
 
-    private void applyChange(final JSONObject existing, final String userId,
-                             final String targetType, final String targetId,
-                             final String groupType, final String value) throws RepositoryException {
-        if (existing == null) {
-            addReaction(userId, targetType, targetId, groupType, value);
-            return;
-        }
-        if (value.equals(existing.optString(Reaction.VALUE))) {
-            reactionRepository.remove(existing.optString(Keys.OBJECT_ID));
-            return;
-        }
-        updateReaction(existing, value);
+    public boolean setInCurrentTransaction(final String actor, final String type, final String id, final String value,
+                                           final ReactionMutation.TargetCheck check) throws RepositoryException {
+        return changeInCurrentTransaction(actor, type, id, Reaction.GROUP_EMOJI, value, false, check);
     }
 
-    private void addReaction(final String userId, final String targetType,
-                             final String targetId, final String groupType,
-                             final String value) throws RepositoryException {
-        final long now = System.currentTimeMillis();
-        final JSONObject reaction = new JSONObject();
-        reaction.put(Reaction.USER_ID, userId);
-        reaction.put(Reaction.TARGET_TYPE, targetType);
-        reaction.put(Reaction.TARGET_ID, targetId);
-        reaction.put(Reaction.GROUP, groupType);
-        reaction.put(Reaction.VALUE, value);
-        reaction.put(Reaction.CREATED_TIME, now);
-        reaction.put(Reaction.UPDATED_TIME, now);
-        reactionRepository.add(reaction);
+    private boolean changeInCurrentTransaction(final String actor, final String type, final String id, final String group,
+                                               final String value, final boolean toggle, final ReactionMutation.TargetCheck check) throws RepositoryException {
+        if(Reaction.TARGET_TYPE_CHAT.equals(type))return ApiV3ChatTransaction.write(()->{
+            final boolean changed=changeRowsInCurrentTransaction(actor,type,id,group,value,toggle,check);
+            if(changed)chatEvents.appendInCurrentTransaction(id,"reactions");
+            return changed;
+        });
+        return changeRowsInCurrentTransaction(actor,type,id,group,value,toggle,check);
     }
-
-    private void updateReaction(final JSONObject reaction, final String value) throws RepositoryException {
-        reaction.put(Reaction.VALUE, value);
-        reaction.put(Reaction.UPDATED_TIME, System.currentTimeMillis());
-        reactionRepository.update(reaction.optString(Keys.OBJECT_ID), reaction);
+    private boolean changeRowsInCurrentTransaction(final String actor, final String type, final String id, final String group,
+                                               final String value, final boolean toggle, final ReactionMutation.TargetCheck check) throws RepositoryException {
+        final String[] articleId = {""};
+        final boolean changed = ReactionMutation.change(new ReactionMutation.Store() {
+            public boolean active() { return reactionRepository.hasTransactionBegun(); }
+            public boolean lockActor(final String userId) throws RepositoryException { return null != reactionRepository.lockEntity(userRepository.getName(), userId); }
+            public JSONObject lockTarget(final String targetType, final String targetId) throws RepositoryException {
+                final String table = Reaction.TARGET_TYPE_ARTICLE.equals(targetType) ? articleRepository.getName()
+                        : Reaction.TARGET_TYPE_COMMENT.equals(targetType) ? commentRepository.getName() : chatRoomRepository.getName();
+                final JSONObject target = reactionRepository.lockEntity(table, targetId);
+                if (target != null) articleId[0] = Reaction.TARGET_TYPE_ARTICLE.equals(targetType) ? targetId
+                        : Reaction.TARGET_TYPE_COMMENT.equals(targetType) ? target.optString(Comment.COMMENT_ON_ARTICLE_ID) : "";
+                return target;
+            }
+            public List<JSONObject> existing(final String userId, final String targetType, final String targetId, final String groupType) throws RepositoryException {
+                return reactionRepository.getOwnedForUpdate(userId, targetType, targetId, groupType);
+            }
+            public void add(final JSONObject row) throws RepositoryException { reactionRepository.add(row); }
+            public void update(final String rowId, final JSONObject row) throws RepositoryException { reactionRepository.update(rowId, row); }
+            public void remove(final String rowId) throws RepositoryException { reactionRepository.remove(rowId); }
+        }, actor, type, id, group, value, toggle, check);
+        if (changed && !articleId[0].isEmpty()) realtimeRevisions.touchInCurrentTransaction(articleId[0]);
+        return changed;
     }
 
     private void validateArgs(final String userId, final String targetType,

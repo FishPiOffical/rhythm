@@ -39,8 +39,8 @@ import org.b3log.latke.util.Locales;
 import org.b3log.latke.util.Requests;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.model.*;
-import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.validate.UserForgetPwdValidationMidware;
 import org.b3log.symphony.processor.middleware.validate.UserRegister2ValidationMidware;
@@ -49,10 +49,15 @@ import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
+import org.b3log.symphony.util.PasswordResetQuota;
+import org.b3log.symphony.util.AccountSmsQuota;
+import org.b3log.symphony.util.RegistrationVerificationQuota;
+import org.b3log.symphony.util.ApiV3Exception;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +78,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class LoginProcessor {
+    @Inject private AccountPasswordResetService passwordResets;
+    @Inject private AccountRegistrationService registrations;
+    @Inject private AccountRegistrationRequestService registrationRequests;
 
     /**
      * Wrong password tries.
@@ -108,12 +116,6 @@ public class LoginProcessor {
      */
     @Inject
     private LangPropsService langPropsService;
-
-    /**
-     * Pointtransfer management service.
-     */
-    @Inject
-    private PointtransferMgmtService pointtransferMgmtService;
 
     /**
      * Data model service.
@@ -152,12 +154,6 @@ public class LoginProcessor {
     private InvitecodeMgmtService invitecodeMgmtService;
 
     /**
-     * Invitecode management service.
-     */
-    @Inject
-    private NotificationMgmtService notificationMgmtService;
-
-    /**
      * Role query service.
      */
     @Inject
@@ -169,15 +165,13 @@ public class LoginProcessor {
     @Inject
     private TagQueryService tagQueryService;
 
-    @Inject
-    private LivenessQueryService livenessQueryService;
-
     /**
      * Register request handlers.
      */
     public static void register() {
         final BeanManager beanManager = BeanManager.getInstance();
         final LoginCheckMidware loginCheck = beanManager.getReference(LoginCheckMidware.class);
+        final AnonymousViewCheckMidware anonymous = beanManager.getReference(AnonymousViewCheckMidware.class);
         final CSRFMidware csrfMidware = beanManager.getReference(CSRFMidware.class);
         final UserForgetPwdValidationMidware userForgetPwdValidationMidware = beanManager.getReference(UserForgetPwdValidationMidware.class);
         final UserRegisterValidationMidware userRegisterValidationMidware = beanManager.getReference(UserRegisterValidationMidware.class);
@@ -190,12 +184,12 @@ public class LoginProcessor {
         Dispatcher.get("/forget-pwd", loginProcessor::showForgetPwd);
         Dispatcher.post("/forget-pwd", loginProcessor::forgetPwd, userForgetPwdValidationMidware::handle);
         Dispatcher.get("/reset-pwd", loginProcessor::showResetPwd);
-        Dispatcher.post("/reset-pwd", loginProcessor::resetPwd);
+        Dispatcher.post("/reset-pwd", loginProcessor::resetPwd, anonymous::handle);
         Dispatcher.get("/api/reset-pwd/meta", loginProcessor::resetPwdMeta);
         Dispatcher.get("/register", loginProcessor::showRegister);
         Dispatcher.get("/verify", loginProcessor::verify);
-        Dispatcher.post("/register", loginProcessor::register, userRegisterValidationMidware::handle);
-        Dispatcher.post("/register2", loginProcessor::register2, userRegister2ValidationMidware::handle);
+        Dispatcher.post("/register", loginProcessor::register, anonymous::handle, userRegisterValidationMidware::handle);
+        Dispatcher.post("/register2", loginProcessor::register2, anonymous::handle, userRegister2ValidationMidware::handle);
         Dispatcher.post("/login", loginProcessor::login);
         Dispatcher.get("/logout", loginProcessor::logout);
     }
@@ -330,7 +324,7 @@ public class LoginProcessor {
             final String userId = user.optString(Keys.OBJECT_ID);
             final String ip = Requests.getRemoteAddr(context.getRequest());
             final String name = user.optString(User.USER_NAME);
-            if (verifySMSCodeLimiterOfIPLong.access(ip) && verifySMSCodeLimiterOfIP.access(ip) && verifySMSCodeLimiterOfName.access(name) && verifySMSCodeLimiterOfPhone.access(phone)) {
+            if (AccountSmsQuota.access(ip, name, phone)) {
                 final String code = RandomStringUtils.randomNumeric(6);
                 if (!verifycodeMgmtService.sendVerifyCodeSMS(phone, code)) {
                     context.renderMsg("验证码发送失败，请稍候重试");
@@ -374,7 +368,7 @@ public class LoginProcessor {
         final Map<String, Object> dataModel = renderer.getDataModel();
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (resetCodeLimiter.access(ip)) {
+        if (PasswordResetQuota.access(ip)) {
             final String code = context.param("code");
             final JSONObject verifycode = verifycodeQueryService.getVerifycode(code);
             if (null == verifycode) {
@@ -440,44 +434,20 @@ public class LoginProcessor {
      */
     public void resetPwd(final RequestContext context) {
         context.renderJSON(StatusCodes.ERR);
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (resetCodeLimiter.access(ip)) {
-            final Response response = context.getResponse();
-            final JSONObject requestJSONObject = context.requestJSON();
-            final String password = requestJSONObject.optString(User.USER_PASSWORD); // Hashed
-            final String userId = requestJSONObject.optString(UserExt.USER_T_ID);
-            final String code = requestJSONObject.optString(Keys.CODE);
-            final JSONObject verifycode = verifycodeQueryService.getVerifycode(code);
-            if (null == verifycode || !verifycode.optString(Verifycode.USER_ID).equals(userId)) {
-                context.renderMsg(langPropsService.get("verifycodeExpiredLabel"));
-                return;
-            }
-
-            String name = null;
-            String phone = null;
-            try {
-                final JSONObject user = userQueryService.getUser(userId);
-                if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) {
-                    context.renderMsg(langPropsService.get("resetPwdLabel") + " - " + "User Not Found");
-                    return;
-                }
-
-                name = user.optString(User.USER_NAME);
-                phone = user.optString("userPhone");
-
-                user.put(User.USER_PASSWORD, password);
-                userMgmtService.updatePassword(user);
-                verifycodeMgmtService.removeByCode(code);
-                context.renderJSON(StatusCodes.SUCC);
-                LOGGER.info("User [phone=" + phone + "] reseted password");
-                Sessions.login(response, userId, true);
-            } catch (final ServiceException e) {
-                final String msg = langPropsService.get("resetPwdLabel") + " - " + e.getMessage();
-                LOGGER.log(Level.ERROR, msg + "[name={}, phone={}]", name, phone);
-                context.renderMsg(msg);
-            }
-        } else {
-            context.renderMsg("验证码尝试次数过快，请稍候重试！");
+        final String ip=Requests.getRemoteAddr(context.getRequest());
+        if(!PasswordResetQuota.access(ip)){
+            context.renderMsg("验证码尝试次数过快，请稍候重试！");return;
+        }
+        final JSONObject body=context.requestJSON();
+        try{
+            final String id=passwordResets.completeForUserId(body.optString(UserExt.USER_T_ID),body.optString(Keys.CODE),body.optString(User.USER_PASSWORD));
+            Sessions.login(context.getResponse(),id,true);
+            context.renderJSON(StatusCodes.SUCC);
+            LOGGER.info("Account password reset completed");
+        }catch(ApiV3Exception e){
+            context.renderMsg(e.getMessage());
+        }catch(Exception e){
+            LOGGER.warn("Account password reset unavailable");context.renderMsg("重置密码暂不可用，请稍后重试");
         }
     }
 
@@ -496,7 +466,7 @@ public class LoginProcessor {
             return;
         }
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (verifyCodeLimiter.access(ip)) {
+        if (RegistrationVerificationQuota.access(ip)) {
             final JSONObject verifycode = verifycodeQueryService.getVerifycode(code);
             if (null == verifycode) {
                 context.renderCodeMsg(-1, "短信验证码不正确");
@@ -550,13 +520,14 @@ public class LoginProcessor {
             renderer.setTemplateName("verify/register.ftl");
         } else { // Register Step 2
             final String ip = Requests.getRemoteAddr(context.getRequest());
-            if (verifyCodeLimiter.access(ip)) {
+            if (RegistrationVerificationQuota.access(ip)) {
                 final JSONObject verifycode = verifycodeQueryService.getVerifycode(code);
                 if (null == verifycode) {
                     dataModel.put(Keys.MSG, langPropsService.get("verifycodeExpiredLabel"));
                     renderer.setTemplateName("error/custom.ftl");
                 } else {
                     renderer.setTemplateName("verify/register2.ftl");
+                    dataModel.put(Keys.CODE, code.matches("[0-9]{6}") ? code : "");
 
                     final String userId = verifycode.optString(Verifycode.USER_ID);
                     final JSONObject user = userQueryService.getUser(userId);
@@ -598,7 +569,7 @@ public class LoginProcessor {
         final JSONObject requestJSONObject = context.getRequest().getJSON();
         final String name = requestJSONObject.optString(User.USER_NAME);
         final String userPhone = requestJSONObject.optString("userPhone");
-        if (verifySMSCodeLimiterOfIPLong.access(ip) && verifySMSCodeLimiterOfIP.access(ip) && verifySMSCodeLimiterOfName.access(name) && verifySMSCodeLimiterOfPhone.access(userPhone)) {
+        if (AccountSmsQuota.access(ip, name, userPhone)) {
             // 敏感词检测
             CensorResult censorResult = CensorFactory.getTextCensor().censor(name);
             if (censorResult.isBlocked()) {
@@ -628,16 +599,11 @@ public class LoginProcessor {
                 verifycode.put(Verifycode.TYPE, Verifycode.TYPE_C_PHONE);
                 verifycode.put(Verifycode.USER_ID, newUserId);
                 verifycodeMgmtService.addVerifycode(verifycode);
-                LOGGER.log(Level.INFO, "Generated a verify code for registering [userName={}, phone={}, code={}]", name, userPhone, code);
+                LOGGER.info("Generated a registration verification code");
 
                 final String allowRegister = optionQueryService.getAllowRegister();
                 if ("2".equals(allowRegister) && StringUtils.isNotBlank(invitecode)) {
-                    final JSONObject ic = invitecodeQueryService.getInvitecode(invitecode);
-                    ic.put(Invitecode.USER_ID, newUserId);
-                    ic.put(Invitecode.USE_TIME, System.currentTimeMillis());
-                    final String icId = ic.optString(Keys.OBJECT_ID);
-
-                    invitecodeMgmtService.updateInvitecode(icId, ic);
+                    registrationRequests.reserveLegacy(newUserId,userPhone,invitecode);
                 }
 
                 if (!verifycodeMgmtService.sendVerifyCodeSMS(userPhone, code)) {
@@ -646,10 +612,15 @@ public class LoginProcessor {
                 }
 
                 context.renderJSON(StatusCodes.SUCC).renderMsg(langPropsService.get("verifycodeSentLabel"));
+            } catch (final ApiV3Exception e) {
+                context.renderMsg(e.getMessage());
             } catch (final ServiceException e) {
                 final String msg = langPropsService.get("registerFailLabel") + " - " + e.getMessage();
                 LOGGER.log(Level.ERROR, msg + "[name={}, phone={}]", name, userPhone);
                 context.renderMsg(msg);
+            } catch (final Exception e) {
+                LOGGER.warn("Registration request unavailable");
+                context.renderMsg("注册暂不可用，请稍后重试");
             }
         } else {
             context.renderMsg("验证码发送频率过快，请稍候重试");
@@ -662,139 +633,21 @@ public class LoginProcessor {
      * @param context the specified context
      */
     public void register2(final RequestContext context) {
-        final String ip = Requests.getRemoteAddr(context.getRequest());
-        if (verifyCodeLimiter.access(ip)) {
-            context.renderJSON(StatusCodes.ERR);
-
-            final Request request = context.getRequest();
-            final Response response = context.getResponse();
-            final JSONObject requestJSONObject = context.getRequest().getJSON();
-
-            final String password = requestJSONObject.optString(User.USER_PASSWORD); // Hashed
-            final int appRole = requestJSONObject.optInt(UserExt.USER_APP_ROLE);
-            String referral = context.param("r");
-            if (referral == null) {
-                referral = "";
-            }
-            final String userId = requestJSONObject.optString(UserExt.USER_T_ID);
-
-            String name = null;
-            String phone = null;
-            try {
-                final JSONObject user = userQueryService.getUser(userId);
-                if (null == user) {
-                    context.renderMsg(langPropsService.get("registerFailLabel") + " - " + "User Not Found").renderCode(-1);
-                    return;
-                }
-
-                name = user.optString(User.USER_NAME);
-                phone = user.optString("userPhone");
-
-                user.put(UserExt.USER_APP_ROLE, appRole);
-                user.put(User.USER_PASSWORD, password);
-                user.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
-                user.put("mbti", requestJSONObject.optString("mbti"));
-
-                userMgmtService.addUser(user);
-
-                Sessions.login(response, userId, false);
-
-                //final String ip = Requests.getRemoteAddr(request);
-                //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), ip, true, true);
-
-                if (StringUtils.isNotBlank(referral) && !UserRegisterValidationMidware.invalidUserName(referral)) {
-                    final JSONObject referralUser = userQueryService.getUserByName(referral);
-                    if (null != referralUser) {
-                        final String referralId = referralUser.optString(Keys.OBJECT_ID);
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                                Pointtransfer.TRANSFER_TYPE_C_INVITED_REGISTER,
-                                Pointtransfer.TRANSFER_SUM_C_INVITE_REGISTER, referralId, System.currentTimeMillis(), "");
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, referralId,
-                                Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER,
-                                Pointtransfer.TRANSFER_SUM_C_INVITE_REGISTER, userId, System.currentTimeMillis(), "");
-
-                        final JSONObject notification = new JSONObject();
-                        notification.put(Notification.NOTIFICATION_USER_ID, referralId);
-                        notification.put(Notification.NOTIFICATION_DATA_ID, userId);
-                        notificationMgmtService.addInvitationLinkUsedNotification(notification);
-                    }
-                }
-
-                final JSONObject ic = invitecodeQueryService.getInvitecodeByUserId(userId);
-                if (null != ic && Invitecode.STATUS_C_UNUSED == ic.optInt(Invitecode.STATUS)) {
-                    ic.put(Invitecode.STATUS, Invitecode.STATUS_C_USED);
-                    ic.put(Invitecode.USER_ID, userId);
-                    ic.put(Invitecode.USE_TIME, System.currentTimeMillis());
-                    final String icId = ic.optString(Keys.OBJECT_ID);
-
-                    invitecodeMgmtService.updateInvitecode(icId, ic);
-
-                    final String icGeneratorId = ic.optString(Invitecode.GENERATOR_ID);
-                    if (StringUtils.isNotBlank(icGeneratorId) && !Pointtransfer.ID_C_SYS.equals(icGeneratorId)) {
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, icGeneratorId,
-                                Pointtransfer.TRANSFER_TYPE_C_INVITECODE_USED,
-                                Pointtransfer.TRANSFER_SUM_C_INVITECODE_USED, userId, System.currentTimeMillis(), "");
-
-                        final JSONObject notification = new JSONObject();
-                        notification.put(Notification.NOTIFICATION_USER_ID, icGeneratorId);
-                        notification.put(Notification.NOTIFICATION_DATA_ID, userId);
-
-                        notificationMgmtService.addInvitecodeUsedNotification(notification);
-                    }
-                }
-
-                // 天降红包
-                String userName = user.optString(User.USER_NAME);
-                Thread.startVirtualThread(() -> {
-                    LOGGER.log(Level.INFO, "Red packet for joining matching...");
-                    for (final String uId : UserChannel.SESSIONS.keySet()) {
-                        // 获取活跃度
-                        try {
-                            Thread.sleep(500);
-                        } catch (Exception ignored) {
-                        }
-                        final JSONObject yesterdayLiveness = livenessQueryService.getYesterdayLiveness(uId);
-                        if (null != yesterdayLiveness) {
-                            final int currentLiveness = Liveness.calcPoint(yesterdayLiveness);
-                            final int livenessMax = Symphonys.ACTIVITY_YESTERDAY_REWARD_MAX;
-                            float liveness = (float) (Math.round((float) currentLiveness / livenessMax * 100 * 100)) / 100;
-                            if (liveness == 100) {
-                                // 满活跃，发放奖励
-                                // 范围 1-24
-                                int random = new Random().nextInt(24) + 1;
-                                LOGGER.log(Level.INFO, "Gave [from={}, for={}]", userName, uId);
-                                pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, uId,
-                                        Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_REDPACKET_FROM_SKY, random,
-                                        userName, System.currentTimeMillis(), "");
-                                // 发通知
-                                try {
-                                    final JSONObject notification = new JSONObject();
-                                    notification.put(Notification.NOTIFICATION_USER_ID, uId);
-                                    notification.put(Notification.NOTIFICATION_DATA_ID, userName + ":" + random);
-                                    notificationMgmtService.addRedPacketFromSkyNotification(notification);
-                                } catch (Exception e) {
-                                    LOGGER.log(Level.ERROR, "Cannot add red packet from sky notification", e);
-                                }
-                            }
-                        }
-                    }
-                    LOGGER.log(Level.INFO, "Red packet for joining match done.");
-                });
-
-                context.renderJSON(StatusCodes.SUCC);
-                LOGGER.log(Level.INFO, "Registered a user [name={}, phone={}]", name, phone);
-            } catch (final ServiceException e) {
-                final String msg = langPropsService.get("registerFailLabel") + " - " + e.getMessage();
-                LOGGER.log(Level.ERROR, msg + " [name={}, phone={}]", name, phone);
-                context.renderMsg(msg).renderCode(-1);
-            }
-        } else {
-            final JSONObject requestJSONObject = context.getRequest().getJSON();
-            final String userId = requestJSONObject.optString(UserExt.USER_T_ID);
-            final String password = requestJSONObject.optString(User.USER_PASSWORD); // Hashed
-            LOGGER.log(Level.WARN, "Detected a user registration attack [ip={}, userId={}, password={}]", ip, userId, password);
-            context.renderMsg("频率过快，请稍候重试").renderCode(-1);
+        context.renderJSON(StatusCodes.ERR);
+        final String ip=Requests.getRemoteAddr(context.getRequest());
+        if(!RegistrationVerificationQuota.access(ip)){
+            LOGGER.warn("Registration attempt limit reached");context.renderMsg("频率过快，请稍候重试");return;
         }
+        try{
+            final JSONObject body=context.requestJSON();
+            final String referral=context.param("r");
+            final String id=registrations.completeForUserId(body.optString(UserExt.USER_T_ID),body.optString(Keys.CODE),
+                    body.optString(User.USER_PASSWORD),body.optInt(UserExt.USER_APP_ROLE),body.optString("mbti"),referral==null?"":referral);
+            AccountCredentialVersions.remember(new AccountCredentialVersions.Proof(id,0,body.optString(User.USER_PASSWORD)));
+            Sessions.login(context.getResponse(),id,false);
+            context.renderJSON(StatusCodes.SUCC);LOGGER.info("Account registration completed");
+        }catch(ApiV3Exception e){context.renderMsg(e.getMessage());}
+        catch(Exception e){LOGGER.warn("Account registration unavailable");context.renderMsg("注册暂不可用，请稍后重试");}
     }
 
     /**
@@ -807,103 +660,107 @@ public class LoginProcessor {
         final Response response = context.getResponse();
         context.renderJSON(StatusCodes.ERR).renderMsg(langPropsService.get("loginFailLabel"));
         final JSONObject requestJSONObject = context.requestJSON();
-        final String nameOrEmail = requestJSONObject.optString("nameOrEmail");
-        final String ip = Requests.getRemoteAddr(request);
-
-        // IP-level lock: 5 minutes after too many failures
-        final Long unlockAt = LOGIN_IP_LOCK.get(ip);
-        if (unlockAt != null) {
-            if (System.currentTimeMillis() < unlockAt) {
-                context.renderMsg("尝试次数过多，请 5 分钟后再试");
-                return;
-            } else {
-                LOGIN_IP_LOCK.remove(ip);
-            }
-        }
-
         try {
-            JSONObject user = userQueryService.getUserByName(nameOrEmail);
-            if (null == user) {
-                user = userQueryService.getUserByEmail(nameOrEmail);
-            }
-
-            if (null == user) {
-                user = userQueryService.getUserByPhone(nameOrEmail);
-            }
-
-            boolean userFound = true;
-            if (null == user) {
-                userFound = false;
-                // fabricate a dummy user object to unify flow and avoid timing leaks
-                user = new JSONObject();
-                user.put(Keys.OBJECT_ID, "DUMMY");
-                user.put(User.USER_PASSWORD, "");
-                user.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
-            }
-
-            if (UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)) {
-                //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), "", false, true);
-                context.renderMsg(langPropsService.get("userBlockLabel"));
-                return;
-            }
-
-            if (UserExt.USER_STATUS_C_NOT_VERIFIED == user.optInt(UserExt.USER_STATUS)) {
-                context.renderMsg(langPropsService.get("notVerifiedLabel"));
-                return;
-            }
-
-            if (UserExt.USER_STATUS_C_INVALID_LOGIN == user.optInt(UserExt.USER_STATUS)
-                    || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
-                context.renderMsg(langPropsService.get("invalidLoginLabel"));
-                return;
-            }
-
-            final String userId = user.optString(Keys.OBJECT_ID);
-            JSONObject wrong = WRONG_PWD_TRIES.get(userId);
-            if (null == wrong) {
-                wrong = new JSONObject();
-            }
-
-            final int wrongCount = wrong.optInt(Common.WRON_COUNT);
-
-            final String userPassword = user.optString(User.USER_PASSWORD);
-            if (userFound && userPassword.equals(requestJSONObject.optString(User.USER_PASSWORD))) {
-                long code;
-                try {
-                    code = requestJSONObject.optLong("mfaCode");
-                } catch (Exception e) {
-                    code = 0;
-                }
-                if (!MFAProcessor.verifyLogin(userId, code)) {
-                    context.renderMsg("两步验证失败，请填写正确的一次性密码");
-                    return;
-                }
-
+            final LoginResult result = authenticate(requestJSONObject.optString("nameOrEmail"),
+                    requestJSONObject.optString(User.USER_PASSWORD), requestJSONObject.optString("mfaCode"),
+                    Requests.getRemoteAddr(request));
+            if (result.success()) {
+                final String userId = result.user().optString(Keys.OBJECT_ID);
                 final String token = Sessions.login(response, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
-
-                //userMgmtService.updateOnlineStatus(user.optString(Keys.OBJECT_ID), ip, true, true);
-
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue(Keys.TOKEN, token);
-
-                WRONG_PWD_TRIES.remove(userId);
-                LOGIN_IP_LOCK.remove(ip);
                 return;
             }
-
-            final int newWrongCount = wrongCount + 1;
-            wrong.put(Common.WRON_COUNT, newWrongCount);
-            WRONG_PWD_TRIES.put(userId, wrong);
-
-            if (newWrongCount > 2) {
-                LOGIN_IP_LOCK.put(ip, System.currentTimeMillis() + 5 * 60 * 1000);
-                context.renderMsg("尝试次数过多，已暂时锁定 5 分钟");
-            } else {
-                context.renderMsg(langPropsService.get("wrongPwdLabel"));
-            }
+            context.renderMsg(result.message());
         } catch (final ServiceException e) {
             context.renderMsg(langPropsService.get("loginFailLabel"));
         }
+    }
+
+    /**
+     * Shared credential verification for browser login and API v3. It deliberately owns
+     * the failure counters so a new authentication surface cannot bypass account locks.
+     */
+    public LoginResult authenticate(final String nameOrEmail, final String password, final String mfaCode,
+                                    final String ip) throws ServiceException {
+        AccountCredentialVersions.clear();
+        final Long unlockAt = LOGIN_IP_LOCK.get(ip);
+        if (null != unlockAt) {
+            if (System.currentTimeMillis() < unlockAt) return LoginResult.failure("too_many_attempts", "尝试次数过多，请稍后再试");
+            LOGIN_IP_LOCK.remove(ip);
+        }
+
+        JSONObject user = userQueryService.getUserByName(nameOrEmail);
+        if (null == user) user = userQueryService.getUserByEmail(nameOrEmail);
+        if (null == user) user = userQueryService.getUserByPhone(nameOrEmail);
+        final boolean userFound = null != user;
+        if (!userFound) {
+            // Keep password processing and failure accounting indistinguishable from an unknown account.
+            user = new JSONObject().put(Keys.OBJECT_ID, "DUMMY").put(User.USER_PASSWORD, "")
+                    .put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
+        }
+
+        if (UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS))
+            return LoginResult.failure("account_blocked", langPropsService.get("userBlockLabel"));
+        if (UserExt.USER_STATUS_C_NOT_VERIFIED == user.optInt(UserExt.USER_STATUS))
+            return LoginResult.failure("account_unverified", langPropsService.get("notVerifiedLabel"));
+        if (UserExt.USER_STATUS_C_INVALID_LOGIN == user.optInt(UserExt.USER_STATUS)
+                || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS))
+            return LoginResult.failure("account_unavailable", langPropsService.get("invalidLoginLabel"));
+
+        final String userId = user.optString(Keys.OBJECT_ID);
+        final var credentialProof = userFound ? AccountCredentialVersions.current(userId) : null;
+        final boolean passwordMatches = credentialProof != null && credentialProof.password().equals(password);
+        if (passwordMatches) {
+            final long code;
+            try {
+                code = StringUtils.isBlank(mfaCode) ? 0L : Long.parseLong(mfaCode);
+            } catch (final NumberFormatException e) {
+                return LoginResult.failure("invalid_mfa", "两步验证码错误");
+            }
+            if (!MFAProcessor.verifyLogin(userId, code)) {
+                return LoginResult.failure(StringUtils.isBlank(mfaCode) ? "mfa_required" : "invalid_mfa",
+                        StringUtils.isBlank(mfaCode) ? "需要两步验证码" : "两步验证码错误");
+            }
+            AccountCredentialVersions.remember(credentialProof);
+            if (AccountCredentialVersions.issuance(userId, null) == null) {
+                AccountCredentialVersions.clear();
+                return LoginResult.failure("invalid_credentials", langPropsService.get("wrongPwdLabel"));
+            }
+            WRONG_PWD_TRIES.remove(userId);
+            LOGIN_IP_LOCK.remove(ip);
+            return LoginResult.success(user);
+        }
+
+        JSONObject wrong = WRONG_PWD_TRIES.get(userId);
+        if (null == wrong) wrong = new JSONObject();
+        final int newWrongCount = wrong.optInt(Common.WRON_COUNT) + 1;
+        wrong.put(Common.WRON_COUNT, newWrongCount);
+        WRONG_PWD_TRIES.put(userId, wrong);
+        if (newWrongCount > 2) {
+            LOGIN_IP_LOCK.put(ip, System.currentTimeMillis() + 5 * 60 * 1000);
+            return LoginResult.failure("too_many_attempts", "尝试次数过多，请稍后再试");
+        }
+        return LoginResult.failure("invalid_credentials", langPropsService.get("wrongPwdLabel"));
+    }
+
+    public static final class LoginResult {
+        private final JSONObject user;
+        private final String code;
+        private final String message;
+
+        private LoginResult(final JSONObject user, final String code, final String message) {
+            this.user = user;
+            this.code = code;
+            this.message = message;
+        }
+
+        public static LoginResult success(final JSONObject user) { return new LoginResult(user, "", ""); }
+        public static LoginResult failure(final String code, final String message) { return new LoginResult(null, code, message); }
+        public boolean success() { return null != user; }
+        public JSONObject user() { return user; }
+        public String code() { return code; }
+        public String message() { return message; }
     }
 
     /**

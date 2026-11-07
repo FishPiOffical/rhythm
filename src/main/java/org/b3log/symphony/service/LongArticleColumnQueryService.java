@@ -303,7 +303,21 @@ public class LongArticleColumnQueryService {
      * @return latest columns
      */
     public List<JSONObject> getLatestColumns(final int fetchSize) {
-        return getColumns(fetchSize, LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING);
+        return getLatestColumns(fetchSize, 1);
+    }
+
+    public List<JSONObject> getLatestColumns(final int fetchSize, final int page) {
+        return getColumns(fetchSize, page, LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING);
+    }
+
+    public long countValidColumns() {
+        try {
+            return longArticleColumnRepository.count(new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_STATUS,
+                    FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID)).setPageCount(1));
+        } catch (final Exception e) {
+            LOGGER.warn("Counts valid long article columns failed", e);
+            return 0;
+        }
     }
 
     /**
@@ -313,19 +327,31 @@ public class LongArticleColumnQueryService {
      * @return hot columns
      */
     public List<JSONObject> getHotColumns(final int fetchSize) {
-        return getHotColumns(fetchSize, Collections.emptySet(), fetchSize);
+        return getHotColumns(fetchSize, 1);
+    }
+
+    public List<JSONObject> getHotColumns(final int fetchSize, final int page) {
+        return getHotColumns(fetchSize, Collections.emptySet(), fetchSize, page);
     }
 
     public List<JSONObject> getHotColumns(
             final int fetchSize,
             final Set<String> excludedColumnIds,
             final int scanSize) {
+        return getHotColumns(fetchSize, excludedColumnIds, scanSize, 1);
+    }
+
+    public List<JSONObject> getHotColumns(
+            final int fetchSize,
+            final Set<String> excludedColumnIds,
+            final int scanSize,
+            final int page) {
         if (fetchSize <= 0) {
             return Collections.emptyList();
         }
 
         try {
-            final List<JSONObject> columns = getHotColumnDocs(Math.max(fetchSize, scanSize));
+            final List<JSONObject> columns = getHotColumnDocs(Math.max(fetchSize, scanSize), page);
             return buildColumnCards(columns, fetchSize, excludedColumnIds);
         } catch (final Exception e) {
             LOGGER.error("Gets hot long article columns failed", e);
@@ -399,7 +425,7 @@ public class LongArticleColumnQueryService {
         }
     }
 
-    private List<JSONObject> getColumns(final int fetchSize, final String sortKey, final SortDirection sortDirection) {
+    private List<JSONObject> getColumns(final int fetchSize, final int page, final String sortKey, final SortDirection sortDirection) {
         if (fetchSize <= 0) {
             return Collections.emptyList();
         }
@@ -409,7 +435,7 @@ public class LongArticleColumnQueryService {
                     FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID))
                     .addSort(sortKey, sortDirection)
                     .setPageCount(1)
-                    .setPage(1, fetchSize);
+                    .setPage(Math.max(1, page), fetchSize);
             final List<JSONObject> columns = longArticleColumnRepository.getList(query);
             return buildColumnCards(columns, fetchSize, Collections.emptySet());
         } catch (final Exception e) {
@@ -418,13 +444,13 @@ public class LongArticleColumnQueryService {
         }
     }
 
-    private List<JSONObject> getHotColumnDocs(final int fetchSize) throws RepositoryException {
+    private List<JSONObject> getHotColumnDocs(final int fetchSize, final int page) throws RepositoryException {
         final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_STATUS,
                 FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID))
                 .addSort(LongArticleColumn.COLUMN_ARTICLE_COUNT, SortDirection.DESCENDING)
                 .addSort(LongArticleColumn.COLUMN_UPDATE_TIME, SortDirection.DESCENDING)
                 .setPageCount(1)
-                .setPage(1, fetchSize);
+                .setPage(Math.max(1, page), fetchSize);
         return longArticleColumnRepository.getList(query);
     }
 

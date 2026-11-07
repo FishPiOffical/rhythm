@@ -24,7 +24,7 @@
     Version: 1.0.0.0, Jan 16, 2020
     Author: Liang Ding
 -->
-<Configuration status="WARN" shutdownHook="disable">
+<Configuration status="WARN" shutdownHook="disable" packages="org.b3log.symphony.util">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout>
@@ -40,6 +40,9 @@
 
         <Logger name="org.b3log.symphony" level="Info"/>
         <Logger name="org.b3log.latke" level="Warn"/>
+        <!-- Malformed OAuth credentials can be present in Latke's pre-handler parser errors. -->
+        <Logger name="org.b3log.latke.http.Request" level="Warn"><OAuthTransportFilter/></Logger>
+        <Logger name="org.b3log.latke.http.ServerHandler" level="Warn"><OAuthTransportFilter/></Logger>
         <Logger name="org.b3log.latke.repository.jdbc.util" level="Info"/>
         <Logger name="io.netty" level="Warn"/>
         <Logger name="freemarker" level="Warn"/>

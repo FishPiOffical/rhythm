@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-03",
+  "scope": "Frontend-only action actor attribution fix; actual adapter and Vue component in isolated browser, not complete authenticated live backend/browser chain",
+  "files": [
+    "src/api/v3-notifications.ts",
+    "tools/v3-notifications-test.mjs"
+  ],
+  "defect": "Missing actor on vote/follow/watch notices was replaced with the related article/comment author and linked as the actor",
+  "behavior": "For types17,23..28,38,39 use only the actor field; preserve readable target content and normal content-notice author fallback",
+  "evidence": {
+    "before": "Actual adapter assertion failed: reader instead of undefined for missing actor",
+    "notificationRunnerPASS": 7,
+    "notificationPageRunnerPASS": 4,
+    "build": "vue-tsc and Vite client/SSR complete exit0",
+    "browser": {
+      "component": "NotificationsView.vue + actual v3-notifications.ts adapter; virtual stores/transport",
+      "currentActorLinks": "Both avatar/name link to /member/current_actor; click reached matching route",
+      "missingActorLinks": 0,
+      "targetBodyRetained": true,
+      "widths": [
+        1280,
+        390
+      ],
+      "horizontalOverflow": false,
+      "consoleErrors": 0,
+      "consoleWarnings": "Fixture omitted /article/7 route; Vue Router warned for the target link. No product claim from fixture routing."
+    },
+    "boundaryAudit": {
+      "sourceFiles": 338,
+      "findings": 0,
+      "dynamicCallsUnresolved": 47,
+      "separateServiceChecks": 2
+    },
+    "generatedAssets": {
+      "JS": 79,
+      "versionFindings": 0,
+      "mapFiles": 0,
+      "sourceMappingURLFiles": 0
+    }
+  },
+  "security": {
+    "routesAuthCSRF": "No endpoint, auth middleware, anonymous skip or Cookie changes",
+    "identity": "No target-author fallback when operation actor absent; normal anonymous/inaccessible suppression retained",
+    "HTMLSQLSSRF": "No new HTML interpolation, SQL, URL fetching or server inputs",
+    "staticUploads": "No new CDN, upload/download address or directory exposure"
+  },
+  "limits": [
+    "Authenticated full browser/backend notification navigation remains separate",
+    "Production anonymous/captcha/blacklist/unlock and full CDN/directory/upload/download audit not exercised",
+    "No Java/FTL or migrations; no rebuild confirmation needed"
+  ]
+}

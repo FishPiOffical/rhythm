@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony.processor.middleware.validate;
 
+import org.b3log.symphony.util.UserNameRules;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -63,12 +65,12 @@ public class UserRegisterValidationMidware {
     /**
      * Max user name length.
      */
-    public static final int MAX_USER_NAME_LENGTH = 64;
+    public static final int MAX_USER_NAME_LENGTH = UserNameRules.MAX_LENGTH;
 
     /**
      * Min user name length.
      */
-    public static final int MIN_USER_NAME_LENGTH = 1;
+    public static final int MIN_USER_NAME_LENGTH = UserNameRules.MIN_LENGTH;
 
     /**
      * Max password length.
@@ -132,34 +134,7 @@ public class UserRegisterValidationMidware {
      * @return {@code true} if it is invalid, returns {@code false} otherwise
      */
     public static boolean invalidUserName(final String name) {
-        if (StringUtils.isBlank(name)) {
-            return true;
-        }
-
-        if (name.equals("FileTransfer")) {
-            return true;
-        }
-
-        if (UserExt.isReservedUserName(name)) {
-            return true;
-        }
-
-        final int length = name.length();
-        if (length < MIN_USER_NAME_LENGTH || length > MAX_USER_NAME_LENGTH) {
-            return true;
-        }
-
-        char c;
-        for (int i = 0; i < length; i++) {
-            c = name.charAt(i);
-            if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || '-' == c) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
+        return UserNameRules.invalid(name);
     }
 
     /**

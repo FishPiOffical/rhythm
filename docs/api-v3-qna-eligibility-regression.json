@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-02",
+  "userApproved": true,
+  "scope": "V3-only acceptance callback checks the currently locked article type=5 and offer>=20 before any public or anonymous settlement; successful same-key receipts bypass fresh mutation as before",
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ApiV3CommentMgmtService.java",
+    "src/main/java/org/b3log/symphony/service/CommentAcceptMgmtService.java"
+  ],
+  "tests": {
+    "mutationRunner": "node tools/api-v3-comment-removal-test.mjs",
+    "mutationPassGroups": 69,
+    "queryRunner": "node tools/api-v3-comment-reward-query-test.mjs",
+    "queryPassGroups": 5,
+    "newEligibilityGroups": 3,
+    "nonQuestionCases": 10,
+    "subminimumOfferCases": 6,
+    "minimumAndReplayScenarios": 2,
+    "removedGuardControlFails": true,
+    "smokeScriptSyntaxPassed": true,
+    "routeContractCount": 292
+  },
+  "invariants": [
+    "Eligibility is called only in the v3 transaction callback; legacy accept() never invokes it",
+    "Locked current article is checked before transfer, acceptance flag, reward, notification or new receipt",
+    "Failure snapshots include all fixture tables including requests, balances and notifications",
+    "Anonymous answers still skip transfer but require an eligible question",
+    "Successful original-key replay after target type/offer changes returns original receipt; fresh key fails current eligibility"
+  ],
+  "deployment": {
+    "currentPid": 96544,
+    "newGuardRuntimeVerified": false,
+    "needsUserIDEARebuildRestart": true,
+    "migrationRequired": false
+  },
+  "limits": [
+    "Mutation tests run actual production acceptance core and idempotency coordinator with SQLite adapters; not full v3 IoC/HTTP or MySQL competition",
+    "Real question/acceptance/notification 21-check report preceded this guard change and does not prove its deployment",
+    "Guest question page was readable but its existing article projection lacks question-offer/accepted display metadata; client presentation needs follow-up",
+    "Production captcha/blacklist, CDN/directory/upload-download audit, true devices and multiple instances not revalidated by this batch"
+  ]
+}

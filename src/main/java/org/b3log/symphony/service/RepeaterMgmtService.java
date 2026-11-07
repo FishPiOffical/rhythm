@@ -61,29 +61,22 @@ public class RepeaterMgmtService {
                 request.optString(RepeaterContent.CONTENT), RepeaterContent.SOURCE_USER);
     }
 
+    @Inject
+    private RepeaterLikeMutationService repeaterLikeMutationService;
+
     public JSONObject toggleLike(final String userId, final String contentId) throws ServiceException {
-        final Transaction transaction = repeaterContentRepository.beginTransaction();
+        // This endpoint owns its root. Never commit an unrelated caller transaction.
+        if (repeaterContentRepository.hasTransactionBegun()) throw new ServiceException("复读机操作暂不可用");
+        final Transaction transaction = org.b3log.symphony.util.ApiV3Transactions.strict(repeaterContentRepository.beginTransaction());
         try {
-            final JSONObject content = repeaterQueryService.getValidContent(contentId);
-            final JSONObject existing = getLike(userId, contentId);
-            final boolean liked = null == existing;
-            if (liked) {
-                addLike(userId, contentId);
-            } else {
-                repeaterLikeRepository.remove(existing.optString(Keys.OBJECT_ID));
-            }
-            content.put(RepeaterContent.LIKE_COUNT, countLikes(contentId));
-            content.put(RepeaterContent.UPDATED_TIME, System.currentTimeMillis());
-            repeaterContentRepository.update(contentId, content);
+            final JSONObject result = repeaterLikeMutationService.setInCurrentTransaction(userId, contentId, null);
             transaction.commit();
-            return new JSONObject().put("liked", liked)
-                    .put(RepeaterContent.LIKE_COUNT, content.optInt(RepeaterContent.LIKE_COUNT));
-        } catch (final ServiceException e) {
+            return new JSONObject().put("liked", result.getBoolean("liked"))
+                    .put(RepeaterContent.LIKE_COUNT, result.getLong("likeCount"));
+        } catch (final Exception e) {
             rollback(transaction);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(transaction);
-            throw new ServiceException(e);
+            if (e instanceof org.b3log.symphony.util.ApiV3Exception api) throw new ServiceException(api.getMessage());
+            throw new ServiceException("复读机操作暂不可用");
         }
     }
 

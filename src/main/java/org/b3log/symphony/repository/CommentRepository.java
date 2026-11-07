@@ -26,6 +26,8 @@ import org.b3log.latke.repository.*;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.cache.CommentCache;
 import org.b3log.symphony.model.*;
+import org.b3log.symphony.util.ArticlePublicationCaches;
+import org.b3log.symphony.util.CommentEditing;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -76,11 +78,45 @@ public class CommentRepository extends AbstractRepository {
     @Inject
     private NotificationRepository notificationRepository;
 
+    @Inject
+    private RewardRepository rewardRepository;
+
+    @Inject
+    private VoteRepository voteRepository;
+
+    @Inject
+    private ReactionRepository reactionRepository;
+
+    @Inject private ApiV3ArticleRevisionRepository realtimeRevisions;
+
     /**
      * Public constructor.
      */
     public CommentRepository() {
         super(Comment.COMMENT);
+    }
+
+    @Override public String add(final JSONObject comment) throws RepositoryException {
+        requireWriteTransaction();
+        final String id = insertComment(comment);
+        realtimeRevisions.touchInCurrentTransaction(comment.optString(Comment.COMMENT_ON_ARTICLE_ID));
+        return id;
+    }
+    protected String insertComment(final JSONObject row) throws RepositoryException { return super.add(row); }
+    protected void updateComment(final String id, final JSONObject row, final String... fields) throws RepositoryException { super.update(id,row,fields); }
+    protected void removeCommentRow(final String id) throws RepositoryException { super.remove(id); }
+    private void requireWriteTransaction() { if (!hasTransactionBegun()) throw new IllegalStateException("comment transaction required"); }
+    private String currentArticle(final String id) throws RepositoryException {
+        requireWriteTransaction();
+        final var rows = select("SELECT commentOnArticleId FROM `" + getName() + "` WHERE oId=? FOR UPDATE",id);
+        return rows.isEmpty() ? "" : rows.getFirst().optString(Comment.COMMENT_ON_ARTICLE_ID);
+    }
+    private void changed(final String before, final JSONObject row, final String... fields) throws RepositoryException {
+        realtimeRevisions.touchInCurrentTransaction(before);
+        if (fields.length == 0 || java.util.Arrays.asList(fields).contains(Comment.COMMENT_ON_ARTICLE_ID)) {
+            final String after = row.optString(Comment.COMMENT_ON_ARTICLE_ID,before);
+            if (!before.equals(after)) realtimeRevisions.touchInCurrentTransaction(after);
+        }
     }
 
     /**
@@ -91,6 +127,7 @@ public class CommentRepository extends AbstractRepository {
      * @throws RepositoryException repository exception
      */
     public void removeComment(final String commentId) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("comment removal requires transaction");
         final JSONObject comment = get(commentId);
         if (null == comment) {
             return;
@@ -147,18 +184,36 @@ public class CommentRepository extends AbstractRepository {
             }
         }
 
-        notificationRepository.removeByDataId(commentId);
+        notificationRepository.removeContentReferences(commentId, false, articleRepository.getName());
+        for (final String rewardId : rewardRepository.removeByDataId(commentId, Reward.TYPE_C_COMMENT)) {
+            notificationRepository.removeRewardReferences(rewardId, Reward.TYPE_C_COMMENT);
+        }
+        voteRepository.removeByDataId(commentId, Vote.DATA_TYPE_C_COMMENT);
+        reactionRepository.removeTargetInCurrentTransaction(Reaction.TARGET_TYPE_COMMENT, commentId);
     }
 
     @Override
     public void remove(final String id) throws RepositoryException {
-        super.remove(id);
-
+        final String articleId = currentArticle(id);
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("removal transaction required");
+            ArticlePublicationCaches.afterTransaction("comment:" + id, () -> commentCache.removeComment(id));
+            removeCommentRow(id);
+            realtimeRevisions.touchInCurrentTransaction(articleId);
+            return;
+        }
+        removeCommentRow(id);
+        realtimeRevisions.touchInCurrentTransaction(articleId);
         commentCache.removeComment(id);
     }
 
     @Override
     public JSONObject get(final String id) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("comment transaction required");
+            final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", id);
+            return rows.isEmpty() ? null : rows.getFirst();
+        }
         JSONObject ret = commentCache.getComment(id);
         if (null != ret) {
             return ret;
@@ -174,9 +229,32 @@ public class CommentRepository extends AbstractRepository {
         return ret;
     }
 
+    public JSONObject getOwnedEditTarget(final String id, final String actor) throws RepositoryException {
+        final var rows = select(CommentEditing.ownedSql(getName(), false), id, actor);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    public JSONObject getOwnedForUpdate(final String id, final String actor) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("comment transaction required");
+        final var rows = select(CommentEditing.ownedSql(getName(), true), id, actor);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
     @Override
     public void update(final String id, final JSONObject comment, final String... propertyNames) throws RepositoryException {
-        super.update(id, comment, propertyNames);
+        final String articleId = currentArticle(id);
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("comment transaction required");
+            ArticlePublicationCaches.afterTransaction("comment:" + id, () -> {
+                commentCache.removeComment(id);
+                try { get(id); } catch (final RepositoryException e) { /* Refill on a later read. */ }
+            });
+            updateComment(id, comment, propertyNames);
+            changed(articleId,comment,propertyNames);
+            return;
+        }
+        updateComment(id, comment, propertyNames);
+        changed(articleId,comment,propertyNames);
 
         comment.put(Keys.OBJECT_ID, id);
         commentCache.putComment(comment);

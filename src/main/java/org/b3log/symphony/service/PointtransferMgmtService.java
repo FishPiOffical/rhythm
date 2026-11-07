@@ -27,6 +27,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.util.AccountPairLocks;
 import org.b3log.symphony.model.PointtransferSource;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.PointtransferRedcRepository;
@@ -38,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -56,55 +56,19 @@ public class PointtransferMgmtService {
      */
     private static final Logger LOGGER = LogManager.getLogger(PointtransferMgmtService.class);
 
-    /**
-     * Per-pair locks keyed by sorted fromId+toId to serialize transfers between the same pair of users.
-     */
-    private static final ConcurrentHashMap<String, ReentrantLock> TRANSFER_LOCKS = new ConcurrentHashMap<>();
-
-    /**
-     * Builds a lock key for a pair of user ids, ensuring A->B and B->A share the same lock.
-     *
-     * @param fromId from user id
-     * @param toId   to user id
-     * @return lock key
-     */
-    private static String buildLockKey(final String fromId, final String toId) {
-        if (fromId == null || toId == null) {
-            // Fall back to a simple key if null, though normal flow should avoid null ids
-            return String.valueOf(fromId) + "->" + String.valueOf(toId);
-        }
-        if (fromId.compareTo(toId) <= 0) {
-            return fromId + "->" + toId;
-        } else {
-            return toId + "->" + fromId;
-        }
-    }
-
-    /**
-     * Gets (or creates) a lock for the given pair of user ids.
-     *
-     * @param fromId from user id
-     * @param toId   to user id
-     * @return the lock associated with this user pair
-     */
     private static ReentrantLock getTransferLock(final String fromId, final String toId) {
-        final String key = buildLockKey(fromId, toId);
-        return TRANSFER_LOCKS.computeIfAbsent(key, k -> new ReentrantLock());
+        return AccountPairLocks.lock(fromId, toId);
     }
 
-    /**
-     * Executes an operation while holding the same account-pair lock used by point transfers.
-     * This lets an outer transaction retain the lock until it commits.
-     */
-    public <T> T executeWithTransferLock(final String fromId, final String toId,
-                                         final Callable<T> operation) throws Exception {
-        final ReentrantLock lock = getTransferLock(fromId, toId);
-        lock.lock();
-        try {
-            return operation.call();
-        } finally {
-            lock.unlock();
-        }
+    /** Retain the same pair lock as direct legacy transfers until the outer operation completes. */
+    public <T> T executeWithTransferLock(final String fromId, final String toId, final Callable<T> operation) throws Exception {
+        return AccountPairLocks.execute(List.of(new AccountPairLocks.Pair(fromId, toId)), operation);
+    }
+
+    /** All pairs must be known before the caller opens its business transaction. */
+    public <T> T executeWithTransferLocks(final String actor, final List<String> destinations, final Callable<T> operation) throws Exception {
+        if (pointtransferRepository.hasTransactionBegun()) throw new IllegalStateException("account-pair locks before transaction required");
+        return AccountPairLocks.execute(destinations.stream().map(destination -> new AccountPairLocks.Pair(actor, destination)).toList(), operation);
     }
 
     /**

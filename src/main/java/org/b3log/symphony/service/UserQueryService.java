@@ -18,7 +18,6 @@
  */
 package org.b3log.symphony.service;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +41,7 @@ import org.b3log.symphony.repository.FollowRepository;
 import org.b3log.symphony.repository.PointtransferRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.UserMentionCandidates;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -467,54 +467,9 @@ public class UserQueryService {
      */
     public Set<String> getUserNames(final String text) {
         final Set<String> ret = new HashSet<>();
-        int idx = text.indexOf('@');
-        if (-1 == idx) {
-            return ret;
+        for (final String name : UserMentionCandidates.parse(text)) {
+            if (null != getUserByName(name)) ret.add(name);
         }
-
-        String copy = text.trim();
-        copy = copy.replaceAll("\\n", " ");
-        String[] uNames = StringUtils.substringsBetween(copy, "@", " ");
-        String tail = StringUtils.substringAfterLast(copy, "@");
-        if (tail.contains(" ")) {
-            tail = null;
-        }
-
-        if (null != tail) {
-            if (null == uNames) {
-                uNames = new String[1];
-                uNames[0] = tail;
-            } else {
-                uNames = Arrays.copyOf(uNames, uNames.length + 1);
-                uNames[uNames.length - 1] = tail;
-            }
-        }
-
-        String[] uNames2 = StringUtils.substringsBetween(copy, "@", "<");
-        final Set<String> maybeUserNameSet;
-        if (null == uNames) {
-            uNames = uNames2;
-
-            if (null == uNames) {
-                return ret;
-            }
-
-            maybeUserNameSet = CollectionUtils.arrayToSet(uNames);
-        } else {
-            maybeUserNameSet = CollectionUtils.arrayToSet(uNames);
-
-            if (null != uNames2) {
-                maybeUserNameSet.addAll(CollectionUtils.arrayToSet(uNames2));
-            }
-        }
-
-        for (String maybeUserName : maybeUserNameSet) {
-            maybeUserName = maybeUserName.trim();
-            if (null != getUserByName(maybeUserName)) { // Found a user
-                ret.add(maybeUserName);
-            }
-        }
-
         return ret;
     }
 

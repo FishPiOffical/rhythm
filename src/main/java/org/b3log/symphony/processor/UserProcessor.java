@@ -809,9 +809,7 @@ public class UserProcessor {
             chatInfo.put("content", content);
             String chatInfoOId;
             try {
-                Transaction transaction = chatInfoRepository.beginTransaction();
-                chatInfoOId = chatInfoRepository.add(chatInfo);
-                transaction.commit();
+                chatInfoOId = chatInfoRepository.addLegacy(chatInfo);
             } catch (RepositoryException e) {
                 context.renderJSON(StatusCodes.ERR);
                 context.renderMsg("提交失败 " + e.getMessage());
@@ -821,10 +819,9 @@ public class UserProcessor {
             chatUnread.put("fromId", fromId);
             chatUnread.put("toId", toId);
             chatUnread.put("user_session", chatHex);
+            chatUnread.put("messageId", chatInfoOId);
             try {
-                Transaction transaction = chatUnreadRepository.beginTransaction();
-                chatUnreadRepository.add(chatUnread);
-                transaction.commit();
+                chatUnreadRepository.addLegacy(chatUnread);
             } catch (RepositoryException e) {
                 context.renderJSON(StatusCodes.ERR);
                 context.renderMsg("提交失败 " + e.getMessage());

@@ -38,12 +38,14 @@ import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Emotions;
+import org.b3log.symphony.util.CommentEditing;
+import org.b3log.symphony.util.CommentPublishPoints;
+import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.Runes;
 import org.b3log.symphony.util.ShuiTieDetector;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -79,6 +81,10 @@ public class CommentMgmtService {
      */
     @Inject
     private ArticleRepository articleRepository;
+
+    @Inject private ArticleMgmtService articleMgmtService;
+    @Inject private NotificationStateMgmtService notificationStateMgmtService;
+    @Inject private FollowMgmtService followMgmtService;
 
     /**
      * Option repository.
@@ -129,12 +135,6 @@ public class CommentMgmtService {
     private PointtransferMgmtService pointtransferMgmtService;
 
     /**
-     * Reward management service.
-     */
-    @Inject
-    private RewardMgmtService rewardMgmtService;
-
-    /**
      * Reward query service.
      */
     @Inject
@@ -155,62 +155,32 @@ public class CommentMgmtService {
     @Inject
     private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
 
+    @Inject
+    private CommentThankMgmtService commentThanks;
+
+    @Inject
+    private CommentAcceptMgmtService commentAcceptance;
+
     /**
      * Accepts a comment specified with the given comment id.
      *
-     * @param commentId
+     * @param commentId target comment
+     * @param actor authenticated article author
      * @throws ServiceException service exception
      */
-    public void acceptComment(final String commentId) throws ServiceException {
+    public void acceptComment(final String commentId, final String actor) throws ServiceException {
         try {
-            final JSONObject comment = commentRepository.get(commentId);
-            final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
-            final Query query = new Query().setFilter(new PropertyFilter(Comment.COMMENT_ON_ARTICLE_ID, FilterOperator.EQUAL, articleId));
-            final List<JSONObject> comments = commentRepository.getList(query);
-            for (final JSONObject c : comments) {
-                final int offered = c.optInt(Comment.COMMENT_QNA_OFFERED);
-                if (Comment.COMMENT_QNA_OFFERED_C_YES == offered) {
-                    return;
-                }
-            }
-
-            final String rewardId = Ids.genTimeMillisId();
-
-            final JSONObject article = articleRepository.get(articleId);
-            final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-            final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-            final int offerPoint = article.optInt(Article.ARTICLE_QNA_OFFER_POINT);
-            if (Comment.COMMENT_ANONYMOUS_C_PUBLIC == comment.optInt(Comment.COMMENT_ANONYMOUS)) {
-                final boolean succ = null != pointtransferMgmtService.transfer(articleAuthorId, commentAuthorId,
-                        Pointtransfer.TRANSFER_TYPE_C_QNA_OFFER, offerPoint, rewardId, System.currentTimeMillis(), "");
-                if (!succ) {
-                    throw new ServiceException(langPropsService.get("transferFailLabel"));
-                }
-            }
-
-            comment.put(Comment.COMMENT_QNA_OFFERED, Comment.COMMENT_QNA_OFFERED_C_YES);
-            final Transaction transaction = commentRepository.beginTransaction();
-            commentRepository.update(commentId, comment);
-            transaction.commit();
-
-            final JSONObject reward = new JSONObject();
-            reward.put(Keys.OBJECT_ID, rewardId);
-            reward.put(Reward.SENDER_ID, articleAuthorId);
-            reward.put(Reward.DATA_ID, articleId);
-            reward.put(Reward.TYPE, Reward.TYPE_C_ACCEPT_COMMENT);
-            rewardMgmtService.addReward(reward);
-
-            final JSONObject notification = new JSONObject();
-            notification.put(Notification.NOTIFICATION_USER_ID, commentAuthorId);
-            notification.put(Notification.NOTIFICATION_DATA_ID, rewardId);
-            notificationMgmtService.addCommentAcceptNotification(notification);
-
-            livenessMgmtService.incLiveness(articleAuthorId, Liveness.LIVENESS_ACCEPT_ANSWER);
-        } catch (final ServiceException e) {
-            throw e;
+            commentAcceptance.accept(actor, commentId);
+        } catch (final CommentAcceptMgmtService.Rejected e) {
+            final String message = switch (e.code) {
+                case "self" -> langPropsService.get("thankSelfLabel");
+                case "forbidden" -> langPropsService.get("sc403Label");
+                case "not_found" -> "Not found comment to accept";
+                default -> langPropsService.get("transferFailLabel");
+            };
+            throw new ServiceException(message);
         } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Accepts a comment [id=" + commentId + "] failed", e);
-
+            LOGGER.error("Accepts a comment failed [id={}]", commentId, e);
             throw new ServiceException(langPropsService.get("systemErrLabel"));
         }
     }
@@ -295,81 +265,13 @@ public class CommentMgmtService {
      */
     public void thankComment(final String commentId, final String senderId) throws ServiceException {
         try {
-            final JSONObject comment = commentRepository.get(commentId);
-
-            if (null == comment) {
-                return;
-            }
-
-            if (Comment.COMMENT_STATUS_C_INVALID == comment.optInt(Comment.COMMENT_STATUS)) {
-                return;
-            }
-
-            final JSONObject sender = userRepository.get(senderId);
-            if (null == sender) {
-                return;
-            }
-
-            if (UserExt.USER_STATUS_C_VALID != sender.optInt(UserExt.USER_STATUS)) {
-                return;
-            }
-
-            final String receiverId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-            final JSONObject receiver = userRepository.get(receiverId);
-            if (null == receiver) {
-                return;
-            }
-
-            if (UserExt.USER_STATUS_C_VALID != receiver.optInt(UserExt.USER_STATUS)) {
-                return;
-            }
-
-            if (receiverId.equals(senderId)) {
-                throw new ServiceException(langPropsService.get("thankSelfLabel"));
-            }
-
-            final int rewardPoint = Symphonys.POINT_THANK_COMMENT;
-
-            if (rewardQueryService.isRewarded(senderId, commentId, Reward.TYPE_C_COMMENT)) {
-                return;
-            }
-
-            final String rewardId = Ids.genTimeMillisId();
-
-            if (Comment.COMMENT_ANONYMOUS_C_PUBLIC == comment.optInt(Comment.COMMENT_ANONYMOUS)) {
-                final boolean succ = null != pointtransferMgmtService.transfer(senderId, receiverId,
-                        Pointtransfer.TRANSFER_TYPE_C_COMMENT_REWARD, rewardPoint, rewardId + "-" + comment.optString(Comment.COMMENT_ON_ARTICLE_ID), System.currentTimeMillis(), "");
-
-                if (!succ) {
-                    throw new ServiceException(langPropsService.get("transferFailLabel"));
-                }
-            }
-
-            final int thankCnt = comment.optInt(Comment.COMMENT_THANK_CNT);
-            comment.put(Comment.COMMENT_THANK_CNT, thankCnt + 1);
-            final Transaction transaction = commentRepository.beginTransaction();
-            commentRepository.update(commentId, comment);
-            transaction.commit();
-
-            final JSONObject reward = new JSONObject();
-            reward.put(Keys.OBJECT_ID, rewardId);
-            reward.put(Reward.SENDER_ID, senderId);
-            reward.put(Reward.DATA_ID, commentId);
-            reward.put(Reward.TYPE, Reward.TYPE_C_COMMENT);
-
-            rewardMgmtService.addReward(reward);
-
-            final JSONObject notification = new JSONObject();
-            notification.put(Notification.NOTIFICATION_USER_ID, receiverId);
-            notification.put(Notification.NOTIFICATION_DATA_ID, rewardId);
-
-            notificationMgmtService.addCommentThankNotification(notification);
-
-            livenessMgmtService.incLiveness(senderId, Liveness.LIVENESS_THANK);
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Thanks a comment[id=" + commentId + "] failed", e);
-
-            throw new ServiceException(e);
+            commentThanks.thank(senderId, commentId);
+        } catch (final CommentThankMgmtService.Rejected e) {
+            final String label = "self".equals(e.code) ? "thankSelfLabel" : "transferFailLabel";
+            throw new ServiceException(langPropsService.get(label));
+        } catch (final Exception e) {
+            LOGGER.error("Thanks a comment failed [id={}]", commentId, e);
+            throw new ServiceException(langPropsService.get("systemErrLabel"));
         }
     }
 
@@ -391,263 +293,179 @@ public class CommentMgmtService {
      * @return generated comment id
      * @throws ServiceException service exception
      */
-    public synchronized String addComment(final JSONObject requestJSONObject) throws ServiceException {
-        final long currentTimeMillis = System.currentTimeMillis();
-        final String commentAuthorId = requestJSONObject.optString(Comment.COMMENT_AUTHOR_ID);
-        JSONObject commenter;
+    public String addComment(final JSONObject request) throws ServiceException {
         try {
-            commenter = userRepository.get(commentAuthorId);
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Gets comment author failed", e);
+            final String articleId = request.optString(Comment.COMMENT_ON_ARTICLE_ID);
+            final JSONObject target = articleRepository.get(articleId);
+            if (null == target) throw new ServiceException(langPropsService.get("commentArticleErrorLabel"));
+            final String actor = request.optString(Comment.COMMENT_AUTHOR_ID);
+            final String expectedAuthor = target.optString(Article.ARTICLE_AUTHOR_ID);
+            final var publication = articleMgmtService.withPublicationLocks(actor, List.of(Pointtransfer.ID_C_SYS, expectedAuthor), () -> {
+                final Transaction tx = commentRepository.beginTransaction();
+                try {
+                    final var result = addCommentInCurrentTransaction(request, expectedAuthor);
+                    tx.commit();
+                    return result;
+                } finally { if (tx.isActive()) tx.rollback(); }
+            }, this::afterCommentPublished);
+            return publication.comment().optString(Keys.OBJECT_ID);
+        } catch (final ServiceException e) { throw e; }
+        catch (final Exception e) { LOGGER.error("Adds a comment failed", e); throw new ServiceException(langPropsService.get("systemErrLabel")); }
+    }
 
-            throw new ServiceException(langPropsService.get("systemErrLabel"));
+    /** Internal committed-state snapshots; never serialize these persistence objects to a client. */
+    public record Publication(JSONObject comment, JSONObject article, int viewMode,
+                              List<CommentPublishPoints.Payment> transfers, boolean refreshRead, boolean publicBoth) {
+        public Publication { transfers = List.copyOf(transfers); }
+    }
+
+    /** The caller must hold actor/sys and actor/expectedAuthor pair locks before starting its transaction. */
+    public Publication addCommentInCurrentTransaction(final JSONObject input, final String expectedAuthor) throws Exception {
+        return addCommentInCurrentTransaction(input, expectedAuthor, false);
+    }
+
+    /** v3 does not copy historical paragraph snapshots into new replies or legacy broadcasts. */
+    public Publication addCommentInCurrentTransaction(final JSONObject input, final String expectedAuthor,
+                                                     final boolean suppressReplySnapshot) throws Exception {
+        if (!commentRepository.hasTransactionBegun() || !ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("comment publication transaction and cache boundary required");
         }
-
-        if (null == commenter) {
-            LOGGER.log(Level.ERROR, "Not found user [id=" + commentAuthorId + "]");
-
-            throw new ServiceException(langPropsService.get("systemErrLabel"));
+        final JSONObject request = new JSONObject(input.toString());
+        final String actor = request.optString(Comment.COMMENT_AUTHOR_ID);
+        final String articleId = request.optString(Comment.COMMENT_ON_ARTICLE_ID);
+        if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
+        for (final String participant : List.of(actor, expectedAuthor).stream().distinct().sorted().toList()) {
+            if (null == userRepository.getForUpdate(participant)) throw new ServiceException(langPropsService.get("systemErrLabel"));
         }
-
-        if (UserExt.USER_STATUS_C_VALID != commenter.optInt(UserExt.USER_STATUS)) {
-            throw new ServiceException(langPropsService.get("userStatusInvalidLabel"));
-        }
-
-        final String articleId = requestJSONObject.optString(Comment.COMMENT_ON_ARTICLE_ID);
-        final String ip = requestJSONObject.optString(Comment.COMMENT_IP);
-        String ua = requestJSONObject.optString(Comment.COMMENT_UA);
-        final int commentAnonymous = requestJSONObject.optInt(Comment.COMMENT_ANONYMOUS);
-        final int commentVisible = requestJSONObject.optInt(Comment.COMMENT_VISIBLE);
-        final int commentViewMode = requestJSONObject.optInt(UserExt.USER_COMMENT_VIEW_MODE);
-
-        if (currentTimeMillis - commenter.optLong(UserExt.USER_LATEST_CMT_TIME) < Symphonys.MIN_STEP_CMT_TIME
+        final JSONObject commenter = userRepository.getForUpdate(actor);
+        if (UserExt.USER_STATUS_C_VALID != commenter.optInt(UserExt.USER_STATUS)) throw new ServiceException(langPropsService.get("userStatusInvalidLabel"));
+        final JSONObject article = articleRepository.getForUpdate(articleId);
+        if (null == article) throw new ServiceException(langPropsService.get("commentArticleErrorLabel"));
+        if (!expectedAuthor.equals(article.optString(Article.ARTICLE_AUTHOR_ID))) throw new ServiceException("文章作者已变化，请重试");
+        final long now = System.currentTimeMillis();
+        if (now - commenter.optLong(UserExt.USER_LATEST_CMT_TIME) < Symphonys.MIN_STEP_CMT_TIME
                 && !Role.ROLE_ID_C_ADMIN.equals(commenter.optString(User.USER_ROLE))
                 && !UserExt.COM_BOT_NAME.equals(commenter.optString(User.USER_NAME))) {
-            LOGGER.log(Level.WARN, "Adds comment too frequent [userName={}]", commenter.optString(User.USER_NAME));
             throw new ServiceException(langPropsService.get("tooFrequentCmtLabel"));
         }
-
-        JSONObject article;
-        try {
-            // check if admin allow to add comment
-            final JSONObject option = optionRepository.get(Option.ID_C_MISC_ALLOW_ADD_COMMENT);
-
-            if (!"0".equals(option.optString(Option.OPTION_VALUE))) {
-                throw new ServiceException(langPropsService.get("notAllowAddCommentLabel"));
-            }
-
-            final int balance = commenter.optInt(UserExt.USER_POINT);
-
-            if (Comment.COMMENT_ANONYMOUS_C_ANONYMOUS == commentAnonymous) {
-                final int anonymousPoint = Symphonys.ANONYMOUS_POST_POINT;
-                if (balance < anonymousPoint) {
-                    String anonymousEnabelPointLabel = langPropsService.get("anonymousEnabelPointLabel");
-                    anonymousEnabelPointLabel
-                            = anonymousEnabelPointLabel.replace("${point}", String.valueOf(anonymousPoint));
-                    throw new ServiceException(anonymousEnabelPointLabel);
-                }
-            }
-
-            article = articleRepository.get(articleId);
-
-            int pointSum = Pointtransfer.TRANSFER_SUM_C_ADD_COMMENT;
-
-            final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-            if (articleAuthorId.equals(commentAuthorId)) {
-                pointSum = Pointtransfer.TRANSFER_SUM_C_ADD_SELF_ARTICLE_COMMENT;
-            }
-
-//            if(Comment.COMMENT_ANONYMOUS_C_ANONYMOUS == commentAnonymous){
-//                pointSum += Pointtransfer.TRANSFER_SUM_C_ADD_ANONYMOUS_ARTICLE_COMMENT
-//            }
-            //仅楼主可见需要额外积分
-            if(Comment.COMMENT_VISIBLE_C_AUTHOR == commentVisible){
-                pointSum += Pointtransfer.TRANSFER_SUM_C_ADD_ONLY_AUTHOR_VISIBLE_ARTICLE_COMMENT;
-            }
-
-            if (balance - pointSum < 0) {
-                throw new ServiceException(langPropsService.get("insufficientBalanceLabel"));
-            }
-        } catch (final RepositoryException e) {
-            throw new ServiceException(e);
+        final JSONObject allow = optionRepository.get(Option.ID_C_MISC_ALLOW_ADD_COMMENT);
+        if (!"0".equals(allow.optString(Option.OPTION_VALUE))) throw new ServiceException(langPropsService.get("notAllowAddCommentLabel"));
+        final int anonymous = request.optInt(Comment.COMMENT_ANONYMOUS);
+        final int visible = request.optInt(Comment.COMMENT_VISIBLE);
+        final boolean anonymousComment = anonymous == Comment.COMMENT_ANONYMOUS_C_ANONYMOUS;
+        final boolean anonymousArticle = article.optInt(Article.ARTICLE_ANONYMOUS) == Article.ARTICLE_ANONYMOUS_C_ANONYMOUS;
+        final int balance = commenter.optInt(UserExt.USER_POINT);
+        if (anonymousComment && balance < Symphonys.ANONYMOUS_POST_POINT) {
+            throw new ServiceException(langPropsService.get("anonymousEnabelPointLabel").replace("${point}", String.valueOf(Symphonys.ANONYMOUS_POST_POINT)));
         }
-
-        final int articleAnonymous = article.optInt(Article.ARTICLE_ANONYMOUS);
-
-        final Transaction transaction = commentRepository.beginTransaction();
-
-        try {
-            article.put(Article.ARTICLE_COMMENT_CNT, article.optInt(Article.ARTICLE_COMMENT_CNT) + 1);
-            article.put(Article.ARTICLE_LATEST_CMTER_NAME, commenter.optString(User.USER_NAME));
-            if (Comment.COMMENT_ANONYMOUS_C_ANONYMOUS == commentAnonymous) {
-                article.put(Article.ARTICLE_LATEST_CMTER_NAME, UserExt.ANONYMOUS_USER_NAME);
+        final var pointPlan = CommentPublishPoints.plan(new CommentPublishPoints.Rates(
+                        Pointtransfer.TRANSFER_SUM_C_ADD_COMMENT, Pointtransfer.TRANSFER_SUM_C_ADD_SELF_ARTICLE_COMMENT,
+                        Pointtransfer.TRANSFER_SUM_C_ADD_ONLY_AUTHOR_VISIBLE_ARTICLE_COMMENT, Symphonys.ANONYMOUS_POST_POINT,
+                        Pointtransfer.TRANSFER_TYPE_C_ADD_COMMENT, Pointtransfer.TRANSFER_TYPE_C_ONLY_AUTHOR_VISIBLE_COMMENT),
+                actor, expectedAuthor, Pointtransfer.ID_C_SYS, anonymousComment, anonymousArticle, visible == Comment.COMMENT_VISIBLE_C_AUTHOR);
+        if (balance < pointPlan.requiredBalance()) throw new ServiceException(langPropsService.get("insufficientBalanceLabel"));
+        final String id = Ids.genTimeMillisId();
+        final String originalId = request.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
+        boolean refreshRead = false;
+        if (StringUtils.isNotBlank(originalId)) {
+            final JSONObject original = commentRepository.get(originalId);
+            if (null == original) throw new ServiceException(langPropsService.get("commentArticleErrorLabel"));
+            original.put(Comment.COMMENT_REPLY_CNT, Math.addExact(original.optInt(Comment.COMMENT_REPLY_CNT), 1));
+            commentRepository.update(originalId, original, Comment.COMMENT_REPLY_CNT);
+            if (original.optInt(Comment.COMMENT_TYPE) == Comment.COMMENT_TYPE_C_PARAGRAPH) {
+                request.put(Comment.COMMENT_TYPE, Comment.COMMENT_TYPE_C_PARAGRAPH)
+                        .put(Comment.COMMENT_PARAGRAPH_ID, original.optString(Comment.COMMENT_PARAGRAPH_ID))
+                        .put(Comment.COMMENT_PARAGRAPH_KIND, original.optString(Comment.COMMENT_PARAGRAPH_KIND))
+                        .put(Comment.COMMENT_PARAGRAPH_INDEX, original.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1))
+                        .put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, suppressReplySnapshot ? "" : original.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT))
+                        .put(Comment.COMMENT_PARAGRAPH_STATUS, original.optInt(Comment.COMMENT_PARAGRAPH_STATUS));
             }
-            article.put(Article.ARTICLE_LATEST_CMT_TIME, currentTimeMillis);
-
-            final String ret = Ids.genTimeMillisId();
-            final JSONObject comment = new JSONObject();
-            comment.put(Keys.OBJECT_ID, ret);
-
-            comment.put(Comment.COMMENT_AUTHOR_ID, commentAuthorId);
-            comment.put(Comment.COMMENT_ON_ARTICLE_ID, articleId);
-
-            final String originalCmtId = requestJSONObject.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
-            comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalCmtId);
-
-            if (StringUtils.isNotBlank(originalCmtId)) {
-                final JSONObject originalCmt = commentRepository.get(originalCmtId);
-                final int originalCmtReplyCnt = originalCmt.optInt(Comment.COMMENT_REPLY_CNT);
-                originalCmt.put(Comment.COMMENT_REPLY_CNT, originalCmtReplyCnt + 1);
-                commentRepository.update(originalCmtId, originalCmt);
-
-                if (Comment.COMMENT_TYPE_C_PARAGRAPH == originalCmt.optInt(Comment.COMMENT_TYPE)) {
-                    requestJSONObject.put(Comment.COMMENT_TYPE, Comment.COMMENT_TYPE_C_PARAGRAPH);
-                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_ID,
-                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_ID));
-                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_KIND,
-                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_KIND));
-                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_INDEX,
-                            originalCmt.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
-                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT,
-                            originalCmt.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
-                    requestJSONObject.put(Comment.COMMENT_PARAGRAPH_STATUS,
-                            originalCmt.optInt(Comment.COMMENT_PARAGRAPH_STATUS));
-                }
-
-                notificationMgmtService.makeRead(commentAuthorId, Arrays.asList(originalCmtId));
-            }
-
-            String content = requestJSONObject.optString(Comment.COMMENT_CONTENT);
-            content = Emotions.toAliases(content);
-            content = content.replaceAll("\\s+$", ""); // https://github.com/b3log/symphony/issues/389
-            content += " "; // in case of tailing @user
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
-
-            comment.put(Comment.COMMENT_CONTENT, content);
-            comment.put(Comment.COMMENT_CREATE_TIME, System.currentTimeMillis());
-            comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "#" + ret);
-            comment.put(Comment.COMMENT_STATUS, Comment.COMMENT_STATUS_C_VALID);
-            comment.put(Comment.COMMENT_IP, ip);
-            if (StringUtils.length(ua) > Common.MAX_LENGTH_UA) {
-                LOGGER.log(Level.WARN, "UA is too long [" + ua + "]");
-                ua = StringUtils.substring(ua, 0, Common.MAX_LENGTH_UA);
-            }
-            comment.put(Comment.COMMENT_UA, ua);
-            comment.put(Comment.COMMENT_ANONYMOUS, commentAnonymous);
-            comment.put(Comment.COMMENT_VISIBLE, commentVisible);
-
-            final JSONObject cmtCntOption = optionRepository.get(Option.ID_C_STATISTIC_CMT_COUNT);
-            final int cmtCnt = cmtCntOption.optInt(Option.OPTION_VALUE);
-            cmtCntOption.put(Option.OPTION_VALUE, String.valueOf(cmtCnt + 1));
-
-            articleRepository.update(articleId, article); // Updates article comment count, latest commenter name and time
-            optionRepository.update(Option.ID_C_STATISTIC_CMT_COUNT, cmtCntOption); // Updates global comment count
-            // Updates tag comment count and User-Tag relation
-            final String tagsString = article.optString(Article.ARTICLE_TAGS);
-            final String[] tagStrings = tagsString.split(",");
-            for (int i = 0; i < tagStrings.length; i++) {
-                final String tagTitle = tagStrings[i].trim();
-                final JSONObject tag = tagRepository.getByTitle(tagTitle);
-                tag.put(Tag.TAG_COMMENT_CNT, tag.optInt(Tag.TAG_COMMENT_CNT) + 1);
-                tag.put(Tag.TAG_RANDOM_DOUBLE, Math.random());
-
-                tagRepository.update(tag.optString(Keys.OBJECT_ID), tag);
-            }
-
-            // Updates user comment count, latest comment time
-            commenter.put(UserExt.USER_COMMENT_COUNT, commenter.optInt(UserExt.USER_COMMENT_COUNT) + 1);
-            commenter.put(UserExt.USER_LATEST_CMT_TIME, currentTimeMillis);
-            userRepository.update(commenter.optString(Keys.OBJECT_ID), commenter);
-
-            comment.put(Comment.COMMENT_THANK_CNT, 0);
-            comment.put(Comment.COMMENT_GOOD_CNT, 0);
-            comment.put(Comment.COMMENT_BAD_CNT, 0);
-            comment.put(Comment.COMMENT_SCORE, 0D);
-            comment.put(Comment.COMMENT_REPLY_CNT, 0);
-            comment.put(Comment.COMMENT_AUDIO_URL, "");
-            comment.put(Comment.COMMENT_QNA_OFFERED, Comment.COMMENT_QNA_OFFERED_C_NOT);
-            comment.put(Comment.COMMENT_TYPE, requestJSONObject.optInt(Comment.COMMENT_TYPE,
-                    Comment.COMMENT_TYPE_C_ARTICLE));
-            comment.put(Comment.COMMENT_PARAGRAPH_ID, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_ID));
-            comment.put(Comment.COMMENT_PARAGRAPH_KIND, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_KIND));
-            comment.put(Comment.COMMENT_PARAGRAPH_INDEX, requestJSONObject.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1));
-            comment.put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, requestJSONObject.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
-            comment.put(Comment.COMMENT_PARAGRAPH_STATUS, requestJSONObject.optInt(Comment.COMMENT_PARAGRAPH_STATUS,
-                    Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE));
-            if (Comment.COMMENT_TYPE_C_PARAGRAPH == comment.optInt(Comment.COMMENT_TYPE)
-                    && StringUtils.isNotBlank(comment.optString(Comment.COMMENT_PARAGRAPH_ID))) {
-                comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?paragraph="
-                        + comment.optString(Comment.COMMENT_PARAGRAPH_ID) + "#" + ret);
-            }
-
-            // Adds the comment
-            final String commentId = commentRepository.add(comment);
-
-            // Updates tag-article relation stat.
-            final List<JSONObject> tagArticleRels = tagArticleRepository.getByArticleId(articleId);
-            for (final JSONObject tagArticleRel : tagArticleRels) {
-                tagArticleRel.put(Article.ARTICLE_LATEST_CMT_TIME, currentTimeMillis);
-                tagArticleRel.put(Article.ARTICLE_COMMENT_CNT, article.optInt(Article.ARTICLE_COMMENT_CNT));
-
-                tagArticleRepository.update(tagArticleRel.optString(Keys.OBJECT_ID), tagArticleRel);
-            }
-
-            // Revision
-            final JSONObject revision = new JSONObject();
-            revision.put(Revision.REVISION_AUTHOR_ID, comment.optString(Comment.COMMENT_AUTHOR_ID));
-            final JSONObject revisionData = new JSONObject();
-            revisionData.put(Comment.COMMENT_CONTENT, content);
-            revision.put(Revision.REVISION_DATA, revisionData.toString());
-            revision.put(Revision.REVISION_DATA_ID, commentId);
-            revision.put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_COMMENT);
-            revisionRepository.add(revision);
-
-            professionSourceEventCaptureService.commentPublished(comment, article);
-
-            transaction.commit();
-
-            if (Comment.COMMENT_ANONYMOUS_C_PUBLIC == commentAnonymous && Article.ARTICLE_ANONYMOUS_C_PUBLIC == articleAnonymous) {
-                final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-                if (articleAuthorId.equals(commentAuthorId)) {
-                    pointtransferMgmtService.transfer(commentAuthorId, Pointtransfer.ID_C_SYS,
-                            Pointtransfer.TRANSFER_TYPE_C_ADD_COMMENT, Pointtransfer.TRANSFER_SUM_C_ADD_SELF_ARTICLE_COMMENT,
-                            commentId, System.currentTimeMillis(), "");
-                } else {
-                    pointtransferMgmtService.transfer(commentAuthorId, articleAuthorId,
-                            Pointtransfer.TRANSFER_TYPE_C_ADD_COMMENT, Pointtransfer.TRANSFER_SUM_C_ADD_COMMENT,
-                            commentId, System.currentTimeMillis(), "");
-                }
-
-                //如果是仅楼主，需要额外扣分
-                if(Comment.COMMENT_VISIBLE_C_AUTHOR == commentVisible){
-                    pointtransferMgmtService.transfer(commentAuthorId, Pointtransfer.ID_C_SYS,
-                            Pointtransfer.TRANSFER_TYPE_C_ONLY_AUTHOR_VISIBLE_COMMENT, Pointtransfer.TRANSFER_SUM_C_ADD_ONLY_AUTHOR_VISIBLE_ARTICLE_COMMENT,
-                            commentId, System.currentTimeMillis(), "");
-                }
-                // 检测是否水贴
-                if (ShuiTieDetector.isShuiTie(content)) {
-                    notificationMgmtService.addSysAnnounceShuiTieNotification(commentAuthorId);
-                } else {
-                    livenessMgmtService.incLiveness(commentAuthorId, Liveness.LIVENESS_COMMENT);
-                }
-            }
-
-            final JSONObject eventData = new JSONObject();
-            eventData.put(Comment.COMMENT, comment);
-            eventData.put(Article.ARTICLE, article);
-            eventData.put(UserExt.USER_COMMENT_VIEW_MODE, commentViewMode);
-            eventManager.fireEventAsynchronously(new Event<>(EventTypes.ADD_COMMENT_TO_ARTICLE, eventData));
-
-            return ret;
-        } catch (final RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-
-            LOGGER.log(Level.ERROR, "Adds a comment failed", e);
-            throw new ServiceException(e);
+            refreshRead = notificationStateMgmtService.markDataReadInCurrentTransaction(actor, originalId) > 0;
         }
+        String content = Emotions.toAliases(request.optString(Comment.COMMENT_CONTENT)).replaceAll("\\s+$", "") + " ";
+        content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
+        content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
+        final String ua = request.optString(Comment.COMMENT_UA);
+        final JSONObject comment = new JSONObject().put(Keys.OBJECT_ID, id).put(Comment.COMMENT_AUTHOR_ID, actor)
+                .put(Comment.COMMENT_ON_ARTICLE_ID, articleId).put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalId)
+                .put(Comment.COMMENT_CONTENT, content).put(Comment.COMMENT_CREATE_TIME, System.currentTimeMillis())
+                .put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "#" + id).put(Comment.COMMENT_STATUS, Comment.COMMENT_STATUS_C_VALID)
+                .put(Comment.COMMENT_IP, request.optString(Comment.COMMENT_IP)).put(Comment.COMMENT_UA, ua.substring(0, Math.min(ua.length(), Common.MAX_LENGTH_UA)))
+                .put(Comment.COMMENT_ANONYMOUS, anonymous).put(Comment.COMMENT_VISIBLE, visible)
+                .put(Comment.COMMENT_THANK_CNT, 0).put(Comment.COMMENT_GOOD_CNT, 0).put(Comment.COMMENT_BAD_CNT, 0)
+                .put(Comment.COMMENT_SCORE, 0D).put(Comment.COMMENT_REPLY_CNT, 0).put(Comment.COMMENT_AUDIO_URL, "")
+                .put(Comment.COMMENT_QNA_OFFERED, Comment.COMMENT_QNA_OFFERED_C_NOT)
+                .put(Comment.COMMENT_TYPE, request.optInt(Comment.COMMENT_TYPE, Comment.COMMENT_TYPE_C_ARTICLE))
+                .put(Comment.COMMENT_PARAGRAPH_ID, request.optString(Comment.COMMENT_PARAGRAPH_ID))
+                .put(Comment.COMMENT_PARAGRAPH_KIND, request.optString(Comment.COMMENT_PARAGRAPH_KIND))
+                .put(Comment.COMMENT_PARAGRAPH_INDEX, request.optInt(Comment.COMMENT_PARAGRAPH_INDEX, -1))
+                .put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, request.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT))
+                .put(Comment.COMMENT_PARAGRAPH_STATUS, request.optInt(Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE));
+        if (comment.optInt(Comment.COMMENT_TYPE) == Comment.COMMENT_TYPE_C_PARAGRAPH && !comment.optString(Comment.COMMENT_PARAGRAPH_ID).isBlank()) {
+            comment.put(Comment.COMMENT_SHARP_URL, "/article/" + articleId + "?paragraph=" + comment.optString(Comment.COMMENT_PARAGRAPH_ID) + "#" + id);
+        }
+        article.put(Article.ARTICLE_COMMENT_CNT, Math.addExact(article.optInt(Article.ARTICLE_COMMENT_CNT), 1));
+        article.put(Article.ARTICLE_LATEST_CMTER_NAME, anonymousComment ? UserExt.ANONYMOUS_USER_NAME : commenter.optString(User.USER_NAME));
+        article.put(Article.ARTICLE_LATEST_CMT_TIME, now);
+        articleRepository.update(articleId, article, Article.ARTICLE_COMMENT_CNT, Article.ARTICLE_LATEST_CMTER_NAME, Article.ARTICLE_LATEST_CMT_TIME);
+        final var total = optionRepository.get(Option.ID_C_STATISTIC_CMT_COUNT);
+        total.put(Option.OPTION_VALUE, String.valueOf(Math.addExact(total.optInt(Option.OPTION_VALUE), 1)));
+        optionRepository.update(Option.ID_C_STATISTIC_CMT_COUNT, total, Option.OPTION_VALUE);
+        for (final String tagTitle : article.optString(Article.ARTICLE_TAGS).split(",")) {
+            final JSONObject tag = tagRepository.getByTitle(tagTitle.trim());
+            tag.put(Tag.TAG_COMMENT_CNT, Math.addExact(tag.optInt(Tag.TAG_COMMENT_CNT), 1)).put(Tag.TAG_RANDOM_DOUBLE, Math.random());
+            tagRepository.update(tag.optString(Keys.OBJECT_ID), tag, Tag.TAG_COMMENT_CNT, Tag.TAG_RANDOM_DOUBLE);
+        }
+        commenter.put(UserExt.USER_COMMENT_COUNT, Math.addExact(commenter.optInt(UserExt.USER_COMMENT_COUNT), 1));
+        commenter.put(UserExt.USER_LATEST_CMT_TIME, now);
+        userRepository.update(actor, commenter, UserExt.USER_COMMENT_COUNT, UserExt.USER_LATEST_CMT_TIME);
+        commentRepository.add(comment);
+        final var relations = tagArticleRepository.select("SELECT * FROM `" + tagArticleRepository.getName() + "` WHERE article_oId=? FOR UPDATE", articleId);
+        for (final var relation : relations) {
+            relation.put(Article.ARTICLE_LATEST_CMT_TIME, now).put(Article.ARTICLE_COMMENT_CNT, article.optInt(Article.ARTICLE_COMMENT_CNT));
+            tagArticleRepository.update(relation.optString(Keys.OBJECT_ID), relation, Article.ARTICLE_LATEST_CMT_TIME, Article.ARTICLE_COMMENT_CNT);
+        }
+        revisionRepository.add(new JSONObject().put(Revision.REVISION_AUTHOR_ID, actor)
+                .put(Revision.REVISION_DATA, new JSONObject().put(Comment.COMMENT_CONTENT, content).toString())
+                .put(Revision.REVISION_DATA_ID, id).put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_COMMENT));
+        professionSourceEventCaptureService.commentPublished(comment, article);
+        if ((!actor.equals(expectedAuthor) && commenter.optInt(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS) == UserExt.USER_XXX_STATUS_C_ENABLED)
+                || article.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_DISCUSSION) {
+            followMgmtService.setInCurrentTransaction(actor, articleId, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH, true, null);
+        }
+        final var transfers = CommentPublishPoints.charge(new CommentPublishPoints.Store() {
+            public boolean inTransaction() { return commentRepository.hasTransactionBegun(); }
+            public int lockedBalance() throws Exception { return userRepository.getForUpdate(actor).optInt(UserExt.USER_POINT); }
+            public String debit(final CommentPublishPoints.Debit debit) {
+                return pointtransferMgmtService.transferInCurrentTransaction(actor, debit.recipient(), debit.type(), debit.amount(),
+                        id, System.currentTimeMillis(), "", PointtransferSource.EMPTY, false);
+            }
+        }, pointPlan);
+        return new Publication(comment, articleRepository.getForUpdate(articleId), request.optInt(UserExt.USER_COMMENT_VIEW_MODE),
+                transfers, refreshRead, !anonymousComment && !anonymousArticle);
+    }
+
+    public void afterCommentPublished(final Publication publication) {
+        if (commentRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("comment publication effects before transaction end");
+        final String actor = publication.comment().optString(Comment.COMMENT_AUTHOR_ID);
+        for (final var transfer : publication.transfers()) {
+            try { pointtransferMgmtService.indexTransferAsync(actor, transfer.recipient(), transfer.id()); }
+            catch (final RuntimeException e) { LOGGER.error("Index committed comment publication failed", e); }
+        }
+        if (publication.refreshRead()) {
+            try { notificationMgmtService.publishReadStateRefresh(actor); }
+            catch (final RuntimeException e) { LOGGER.error("Refresh committed comment reply read state failed", e); }
+        }
+        if (publication.publicBoth()) {
+            try {
+                if (ShuiTieDetector.isShuiTie(publication.comment().optString(Comment.COMMENT_CONTENT))) notificationMgmtService.addSysAnnounceShuiTieNotification(actor);
+                else livenessMgmtService.incLiveness(actor, Liveness.LIVENESS_COMMENT);
+            } catch (final Exception e) { LOGGER.error("Apply committed comment liveness failed", e); }
+        }
+        final var event = new JSONObject().put(Comment.COMMENT, publication.comment()).put(Article.ARTICLE, publication.article())
+                .put(UserExt.USER_COMMENT_VIEW_MODE, publication.viewMode());
+        try { eventManager.fireEventAsynchronously(new Event<>(EventTypes.ADD_COMMENT_TO_ARTICLE, event)); }
+        catch (final Exception e) { LOGGER.error("Dispatch committed comment publication failed", e); }
     }
 
     /**
@@ -658,72 +476,72 @@ public class CommentMgmtService {
      * @throws ServiceException service exception
      */
     public void updateComment(final String commentId, final JSONObject comment) throws ServiceException {
-        final Transaction transaction = commentRepository.beginTransaction();
-
         try {
-            final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-            final JSONObject author = userRepository.get(commentAuthorId);
-            if (UserExt.USER_STATUS_C_VALID != author.optInt(UserExt.USER_STATUS)) {
-                throw new ServiceException(langPropsService.get("userStatusInvalidLabel"));
-            }
+            final var result = articleMgmtService.withPublicationLock(comment.optString(Comment.COMMENT_AUTHOR_ID), () -> {
+                final Transaction tx = commentRepository.beginTransaction();
+                try {
+                    final var edit = updateCommentInCurrentTransaction(commentId, comment);
+                    tx.commit();
+                    return edit;
+                } finally { if (tx.isActive()) tx.rollback(); }
+            }, this::afterCommentEdited);
+            comment.put(Comment.COMMENT_CONTENT, result.comment().optString(Comment.COMMENT_CONTENT));
+        } catch (final ServiceException e) { throw e; }
+        catch (final Exception e) { LOGGER.error("Updates a comment failed [id={}]", commentId, e); throw new ServiceException(e); }
+    }
 
-            final JSONObject oldComment = commentRepository.get(commentId);
-            final String oldContent = oldComment.optString(Comment.COMMENT_CONTENT);
-
-            String content = comment.optString(Comment.COMMENT_CONTENT);
-            content = Emotions.toAliases(content);
-            content = content.replaceAll("\\s+$", ""); // https://github.com/b3log/symphony/issues/389
-            content += " "; // in case of tailing @user
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
-            content = Runes.removeControlChars(content);
-            comment.put(Comment.COMMENT_CONTENT, content);
-
-            commentRepository.update(commentId, comment);
-
-            final long now = System.currentTimeMillis();
-            final long createTime = comment.optLong(Keys.OBJECT_ID);
-            final boolean notIn5m = now - createTime > 1000 * 60 * 5;
-
-            final boolean contentChanged = !oldContent.replaceAll("\\s+", "").equals(content.replaceAll("\\s+", ""));
-            if (notIn5m && contentChanged) {
-                final JSONObject revision = new JSONObject();
-                revision.put(Revision.REVISION_AUTHOR_ID, commentAuthorId);
-                final JSONObject revisionData = new JSONObject();
-                revisionData.put(Comment.COMMENT_CONTENT, content);
-                revision.put(Revision.REVISION_DATA, revisionData.toString());
-                revision.put(Revision.REVISION_DATA_ID, commentId);
-                revision.put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_COMMENT);
-                revisionRepository.add(revision);
-            }
-
-            transaction.commit();
-
-            final JSONObject article = articleRepository.get(comment.optString(Comment.COMMENT_ON_ARTICLE_ID));
-            final int articleAnonymous = article.optInt(Article.ARTICLE_ANONYMOUS);
-            final int commentAnonymous = comment.optInt(Comment.COMMENT_ANONYMOUS);
-
-            if (Comment.COMMENT_ANONYMOUS_C_PUBLIC == commentAnonymous
-                    && Article.ARTICLE_ANONYMOUS_C_PUBLIC == articleAnonymous) {
-                if (notIn5m) {
-                    pointtransferMgmtService.transfer(commentAuthorId, Pointtransfer.ID_C_SYS,
-                            Pointtransfer.TRANSFER_TYPE_C_UPDATE_COMMENT,
-                            Pointtransfer.TRANSFER_SUM_C_UPDATE_COMMENT, commentId, now, "");
+    /** Join the caller's transaction. Authentication/visibility/moderation remain at the entry boundary. */
+    public CommentEditing.Result updateCommentInCurrentTransaction(final String commentId, final JSONObject request) throws Exception {
+        final String actor = request.optString(Comment.COMMENT_AUTHOR_ID);
+        try {
+            return CommentEditing.apply(new CommentEditing.Store() {
+                public boolean inTransaction() { return commentRepository.hasTransactionBegun(); }
+                public CommentEditing.State lockAndLoad(final String owner, final String id) throws Exception {
+                    if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
+                    final var author = userRepository.getForUpdate(owner);
+                    if (null == author || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID) {
+                        throw new ServiceException(langPropsService.get("userStatusInvalidLabel"));
+                    }
+                    final var target = commentRepository.getOwnedEditTarget(id, owner);
+                    if (null == target) return null;
+                    final var article = articleRepository.getForUpdate(target.optString(Comment.COMMENT_ON_ARTICLE_ID));
+                    return new CommentEditing.State(commentRepository.getOwnedForUpdate(id, owner), article);
                 }
-            }
-
-            final JSONObject eventData = new JSONObject();
-            eventData.put(Article.ARTICLE, article);
-            eventData.put(Comment.COMMENT, comment);
-            eventManager.fireEventAsynchronously(new Event<>(EventTypes.UPDATE_COMMENT, eventData));
-        } catch (final RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-
-            LOGGER.log(Level.ERROR, "Updates a comment [id=" + commentId + "] failed", e);
-            throw new ServiceException(e);
+                public String normalize(final String raw) {
+                    String content = Emotions.toAliases(raw).replaceAll("\\s+$", "") + " ";
+                    content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
+                    content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
+                    return Runes.removeControlChars(content);
+                }
+                public int balance() throws Exception { return userRepository.getForUpdate(actor).optInt(UserExt.USER_POINT); }
+                public void save(final String id, final JSONObject comment) throws Exception {
+                    commentRepository.update(id, comment, Comment.COMMENT_CONTENT, Comment.COMMENT_VISIBLE, Comment.COMMENT_IP, Comment.COMMENT_UA);
+                }
+                public void revision(final String id, final String owner, final String content) throws Exception {
+                    revisionRepository.add(new JSONObject().put(Revision.REVISION_AUTHOR_ID, owner)
+                            .put(Revision.REVISION_DATA, new JSONObject().put(Comment.COMMENT_CONTENT, content).toString())
+                            .put(Revision.REVISION_DATA_ID, id).put(Revision.REVISION_DATA_TYPE, Revision.DATA_TYPE_C_COMMENT));
+                }
+                public String charge(final String id, final int fee, final long now) {
+                    return pointtransferMgmtService.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
+                            Pointtransfer.TRANSFER_TYPE_C_UPDATE_COMMENT, fee, id, now, "", PointtransferSource.EMPTY, false);
+                }
+            }, actor, commentId, request, System.currentTimeMillis(), Pointtransfer.TRANSFER_SUM_C_UPDATE_COMMENT);
+        } catch (final CommentEditing.Rejected e) {
+            throw new ServiceException("insufficient_balance".equals(e.code) ? langPropsService.get("insufficientBalanceLabel") : "评论不存在或不可编辑");
         }
+    }
+
+    public void afterCommentEdited(final CommentEditing.Result edit) {
+        if (commentRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("comment edit effects before transaction end");
+        final String actor = edit.comment().optString(Comment.COMMENT_AUTHOR_ID);
+        for (final String transfer : edit.transfers()) {
+            try { pointtransferMgmtService.indexTransferAsync(actor, Pointtransfer.ID_C_SYS, transfer); }
+            catch (final RuntimeException e) { LOGGER.error("Index committed comment edit transfer failed", e); }
+        }
+        final var event = new JSONObject().put(Article.ARTICLE, edit.article()).put(Comment.COMMENT, edit.comment());
+        try { eventManager.fireEventAsynchronously(new Event<>(EventTypes.UPDATE_COMMENT, event)); }
+        catch (final Exception e) { LOGGER.error("Dispatch committed comment edit failed", e); }
     }
 
     /**

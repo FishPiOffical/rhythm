@@ -174,7 +174,7 @@ public class MilestoneProcessor {
      */
     public void submitMilestone(final RequestContext context) {
         try {
-            final JSONObject currentUser = Sessions.getUser();
+            final JSONObject currentUser = (JSONObject) context.attr(User.USER);
 
             final String title = context.param("title");
             final String date = context.param("date");
@@ -210,7 +210,7 @@ public class MilestoneProcessor {
             context.renderJSON(new JSONObject().put(Keys.CODE, 0).put(Keys.MSG, "提交成功，等待审核"));
         } catch (final Exception e) {
             LOGGER.error("Failed to submit milestone", e);
-            context.renderJSON(new JSONObject().put(Keys.CODE, 1).put(Keys.MSG, "提交失败：" + e.getMessage()));
+            context.renderJSON(new JSONObject().put(Keys.CODE, 1).put(Keys.MSG, "提交失败，请稍后重试"));
         }
     }
 

@@ -42,6 +42,7 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SearchEngines;
@@ -78,6 +79,8 @@ public class BeforeRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        ApiV3RefreshCookies.discardFrameworkEcho(context);
+        org.b3log.symphony.util.AccountCredentialVersions.beginHttp();
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
@@ -113,6 +116,23 @@ public class BeforeRequestHandler implements Handler {
             context.sendRedirect("/test");
             context.abort();
             return;
+        }
+
+        // CORS 头放在全局盾链（无UA→418、fillBotAttrs、Firewall 429、黑名单→/test）之后，
+        // 确保 OPTIONS 预检也走完整反漏扫校验链
+        final String origin = context.header("Origin");
+        if (origin != null && context.requestURI().startsWith("/api/v3")) {
+            context.setHeader("Access-Control-Allow-Origin", origin);
+            context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
+            context.setHeader("Access-Control-Allow-Credentials", "true");
+            context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
+            context.setHeader("Access-Control-Max-Age", "86400");
+            if ("OPTIONS".equals(context.method())) {
+                context.sendStatus(204);
+                context.abort();
+                return;
+            }
         }
 
         Locales.setLocale(Latkes.getLocale());
@@ -180,13 +200,17 @@ public class BeforeRequestHandler implements Handler {
                 Locales.setLocale(Locales.getLocale(optionLangValue));
             }
 
-            httpSession.setAttribute(Common.IP, getIpAddr(request));
+            httpSession.setAttribute(Common.IP, Requests.getRemoteAddr(request));
 
             JSONObject user = userQueryService.getCurrentUser(request);
             if (null == user) {
                 return;
             }
 
+            final var credentialProof=org.b3log.symphony.util.AccountCredentialVersions.snapshot(user.optString(Keys.OBJECT_ID));
+            if(credentialProof==null)return;
+            user.put(User.USER_PASSWORD,credentialProof.password());
+            httpSession.setAttribute("accountCredentialEpoch",String.valueOf(credentialProof.epoch()));
             httpSession.setAttribute(User.USER, user.toString());
 
             final String skin = Sessions.isMobile() ? user.optString(UserExt.USER_MOBILE_SKIN) : user.optString(UserExt.USER_SKIN);
@@ -264,23 +288,4 @@ public class BeforeRequestHandler implements Handler {
         return false;
     }
 
-    /**
-     * 获取 IP地址
-     * 使用 Nginx等反向代理软件， 则不能通过 request.getRemoteAddr()获取 IP地址
-     * 如果使用了多级反向代理的话，X-Forwarded-For的值并不止一个，而是一串IP地址，
-     * X-Forwarded-For中第一个非 unknown的有效IP字符串，则为真实IP地址
-     */
-    public static String getIpAddr(Request request) {
-        String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.length() == 0) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0) {
-            ip = request.getRemoteAddr();
-        }
-        return "[0:0:0:0:0:0:0:1]".equals(ip) ? "127.0.0.1" : ip;
-    }
 }

@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.annotation.Transactional;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
@@ -33,6 +34,8 @@ import org.b3log.symphony.model.Common;
 import org.b3log.symphony.repository.BreezemoonRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ReservedWords;
+import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3BreezemoonEdit;
 import org.json.JSONObject;
 
 /**
@@ -90,6 +93,11 @@ public class BreezemoonMgmtService {
      */
     @Transactional
     public String addBreezemoon(final JSONObject requestJSONObject) throws ServiceException {
+        return addBreezemoonInCurrentTransaction(requestJSONObject).optString(Keys.OBJECT_ID);
+    }
+
+    public JSONObject addBreezemoonInCurrentTransaction(final JSONObject requestJSONObject) throws ServiceException {
+        if (!breezemoonRepository.hasTransactionBegun()) throw new IllegalStateException("breezemoon transaction required");
         requestJSONObject.put(Breezemoon.BREEZEMOON_CONTENT, ReservedWords.processReservedWord(requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT)));
         final String content = requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT);
         final JSONObject bm = new JSONObject();
@@ -111,7 +119,7 @@ public class BreezemoonMgmtService {
             final String id = breezemoonRepository.add(bm);
             bm.put(Keys.OBJECT_ID, id);
             professionSourceEventCaptureService.breezemoonPublished(bm);
-            return id;
+            return bm;
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Adds a breezemoon failed", e);
 
@@ -133,42 +141,37 @@ public class BreezemoonMgmtService {
      */
     @Transactional
     public void updateBreezemoon(final JSONObject requestJSONObject) throws ServiceException {
-        requestJSONObject.put(Breezemoon.BREEZEMOON_CONTENT, ReservedWords.processReservedWord(requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT)));
-        final String content = requestJSONObject.optString(Breezemoon.BREEZEMOON_CONTENT);
-
-        final String id = requestJSONObject.optString(Keys.OBJECT_ID);
-        JSONObject old;
         try {
-            old = breezemoonRepository.get(id);
-        } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Gets a breezemoon [id=" + id + "] failed", e);
-
-            throw new ServiceException(langPropsService.get("systemErrLabel"));
-        }
-
-        if (null == old) {
-            throw new ServiceException(langPropsService.get("queryFailedLabel"));
-        }
-
-        old.put(Breezemoon.BREEZEMOON_CONTENT, content);
-        old.put(Breezemoon.BREEZEMOON_AUTHOR_ID, requestJSONObject.optString(Breezemoon.BREEZEMOON_AUTHOR_ID, old.optString(Breezemoon.BREEZEMOON_AUTHOR_ID)));
-        old.put(Breezemoon.BREEZEMOON_IP, requestJSONObject.optString(Breezemoon.BREEZEMOON_IP));
-        String ua = requestJSONObject.optString(Breezemoon.BREEZEMOON_UA);
-        if (StringUtils.length(ua) > Common.MAX_LENGTH_UA) {
-            ua = StringUtils.substring(ua, 0, Common.MAX_LENGTH_UA);
-        }
-        old.put(Breezemoon.BREEZEMOON_UA, ua);
-        old.put(Breezemoon.BREEZEMOON_STATUS, requestJSONObject.optInt(Breezemoon.BREEZEMOON_STATUS, Breezemoon.BREEZEMOON_STATUS_C_VALID));
-        final long now = System.currentTimeMillis();
-        old.put(Breezemoon.BREEZEMOON_UPDATED, now);
-
-        try {
-            breezemoonRepository.update(id, old);
-        } catch (final Exception e) {
+            final JSONObject old = breezemoonRepository.getForUpdate(requestJSONObject.optString(Keys.OBJECT_ID));
+            if (null == old) throw new ServiceException(langPropsService.get("queryFailedLabel"));
+            updateLocked(old, requestJSONObject);
+        } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Updates a breezemoon failed", e);
-
             throw new ServiceException(langPropsService.get("systemErrLabel"));
         }
+    }
+
+    public JSONObject updateOwnedInCurrentTransaction(final String userId, final String id, final JSONObject request,
+                                                      final Runnable beforeWrite) throws RepositoryException {
+        final JSONObject old = breezemoonRepository.getOwnedForUpdate(userId, id);
+        if (null == old || Breezemoon.BREEZEMOON_STATUS_C_VALID != old.optInt(Breezemoon.BREEZEMOON_STATUS)) throw ApiV3Requests.notFound();
+        beforeWrite.run();
+        final JSONObject updated = ApiV3BreezemoonEdit.apply(old,
+                ReservedWords.processReservedWord(request.optString(Breezemoon.BREEZEMOON_CONTENT)), request.optString(Breezemoon.BREEZEMOON_IP),
+                request.optString(Breezemoon.BREEZEMOON_UA), System.currentTimeMillis(), Common.MAX_LENGTH_UA);
+        breezemoonRepository.update(id, updated);
+        return updated;
+    }
+
+    private void updateLocked(final JSONObject old, final JSONObject request) throws RepositoryException {
+        final String content = ReservedWords.processReservedWord(request.optString(Breezemoon.BREEZEMOON_CONTENT));
+        old.put(Breezemoon.BREEZEMOON_CONTENT, content);
+        old.put(Breezemoon.BREEZEMOON_AUTHOR_ID, request.optString(Breezemoon.BREEZEMOON_AUTHOR_ID, old.optString(Breezemoon.BREEZEMOON_AUTHOR_ID)));
+        old.put(Breezemoon.BREEZEMOON_IP, request.optString(Breezemoon.BREEZEMOON_IP));
+        old.put(Breezemoon.BREEZEMOON_UA, StringUtils.substring(request.optString(Breezemoon.BREEZEMOON_UA), 0, Common.MAX_LENGTH_UA));
+        old.put(Breezemoon.BREEZEMOON_STATUS, request.optInt(Breezemoon.BREEZEMOON_STATUS, Breezemoon.BREEZEMOON_STATUS_C_VALID));
+        old.put(Breezemoon.BREEZEMOON_UPDATED, System.currentTimeMillis());
+        breezemoonRepository.update(old.optString(Keys.OBJECT_ID), old);
     }
 
     /**
@@ -180,7 +183,7 @@ public class BreezemoonMgmtService {
     @Transactional
     public void removeBreezemoon(final String id) throws ServiceException {
         try {
-            final JSONObject breezemoon = breezemoonRepository.get(id);
+            final JSONObject breezemoon = breezemoonRepository.getForUpdate(id);
             if (null == breezemoon) {
                 return;
             }
@@ -191,5 +194,11 @@ public class BreezemoonMgmtService {
 
             throw new ServiceException(langPropsService.get("systemErrLabel"));
         }
+    }
+    public void removeOwnedInCurrentTransaction(final String userId, final String id) throws RepositoryException {
+        final JSONObject row = breezemoonRepository.getOwnedForUpdate(userId, id);
+        if (null == row) throw ApiV3Requests.notFound();
+        professionSourceEventCaptureService.targetRemoved("breezemoon", id);
+        breezemoonRepository.remove(id);
     }
 }

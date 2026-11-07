@@ -64,6 +64,7 @@
                         <div id="registerTip2" class="tip"></div>
                         <button class="green" onclick="Verify.register2()">${registerLabel}</button>
                         <input id="userId2" type="hidden" value="${user.oId}">
+                        <input id="registerCode2" type="hidden" value="${(code!'')?html}">
 
                     </div>
                 </div>

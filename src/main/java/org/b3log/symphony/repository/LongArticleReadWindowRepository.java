@@ -47,9 +47,19 @@ public class LongArticleReadWindowRepository extends AbstractRepository {
                 + "`registeredCnt`=IF(`state`='OPEN',`registeredCnt`+VALUES(`registeredCnt`),`registeredCnt`),"
                 + "`anonymousCnt`=IF(`state`='OPEN',`anonymousCnt`+VALUES(`anonymousCnt`),`anonymousCnt`),"
                 + "`updatedAt`=IF(`state`='OPEN',VALUES(`updatedAt`),`updatedAt`)";
-        return AtomicRepositorySupport.executeUpdate(sql, increment.id(), increment.articleId(),
+        AtomicRepositorySupport.executeUpdate(sql, increment.id(), increment.articleId(),
                 increment.windowStart(), increment.registeredIncrement(), increment.anonymousIncrement(),
-                increment.occurredAt(), increment.occurredAt()) > 0;
+                increment.occurredAt(), increment.occurredAt());
+        // Connector/J CLIENT_FOUND_ROWS can report a matched, unchanged SETTLED row as 1.
+        final var rows = select("SELECT `state` FROM `" + getName()
+                + "` WHERE `articleId`=? AND `windowStart`=? FOR UPDATE", increment.articleId(), increment.windowStart());
+        return rows.size() == 1 && OPEN.equals(rows.getFirst().optString("state"));
+    }
+
+    public JSONObject getForUpdate(final String id) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("window transaction required");
+        final var rows = select("SELECT * FROM `" + getName() + "` WHERE `oId`=? FOR UPDATE", id);
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 
     public boolean startSettlement(final String windowId, final String settlementId, final long now)

@@ -26,6 +26,8 @@ import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.cache.UserCache;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -75,8 +77,49 @@ public class UserRepository extends AbstractRepository {
         return values.isEmpty() ? null : values.getFirst();
     }
 
+    /** Settings must not publish an uncommitted user into UserCache/Sessions. */
+    public void updateSettingsInCurrentTransaction(final String id, final JSONObject changes) throws RepositoryException {
+        updateColumnsInCurrentTransaction(id, changes);
+    }
+
+    /** Exact columns only, with no uncommitted user/cache publication. */
+    public void updateColumnsInCurrentTransaction(final String id, final JSONObject changes) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("user update transaction required");
+        super.update(id, changes, changes.keySet().toArray(new String[0]));
+    }
+
+    public void evictSettingsCaches(final String id) {
+        final JSONObject cached = userCache.getUser(id);
+        if (null != cached) userCache.removeUser(cached);
+        Sessions.invalidate(id);
+    }
+
+    public void evictUserNameCaches(final String id, final String oldName) {
+        if (hasTransactionBegun()) throw new IllegalStateException("username cache invalidation before transaction end");
+        userCache.removeUser(new JSONObject().put(Keys.OBJECT_ID, id).put(User.USER_NAME, oldName));
+        Sessions.invalidate(id);
+    }
+
+    /** Refresh only durable data, serialized with other settings writers by the owner row. */
+    public void refreshSettingsCache(final String id) throws RepositoryException {
+        if (hasTransactionBegun()) throw new IllegalStateException("settings cache refresh before transaction end");
+        final Transaction tx = beginTransaction();
+        try {
+            final JSONObject row = getForUpdate(id);
+            if (null != row) userCache.putUser(row);
+            tx.commit();
+        } catch (final RepositoryException | RuntimeException e) {
+            if (tx.isActive()) tx.rollback();
+            throw e;
+        }
+    }
+
     @Override
     public JSONObject get(final String id) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+            return getForUpdate(id);
+        }
         JSONObject ret = userCache.getUser(id);
         if (null != ret) {
             return ret;
@@ -95,6 +138,15 @@ public class UserRepository extends AbstractRepository {
 
     @Override
     public void update(final String id, final JSONObject user, final String... propertyNames) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+            ArticlePublicationCaches.afterTransaction("user:" + id, () -> {
+                try { refreshSettingsCache(id); }
+                catch (final RepositoryException | RuntimeException e) { evictSettingsCaches(id); }
+            });
+            super.update(id, user, propertyNames);
+            return;
+        }
         final ReentrantLock lock = getUserLock(id);
         lock.lock();
         try {

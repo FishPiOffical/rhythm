@@ -72,6 +72,9 @@ public final class Verifycode {
      */
     public static final String EXPIRED = "expired";
 
+    /** Server-owned registration name/referral/invitation binding; empty for existing proofs. */
+    public static final String ACCOUNT_CONTEXT = "accountContext";
+
     // Type constants
     /**
      * Type - Email.
