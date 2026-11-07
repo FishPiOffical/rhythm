@@ -42,6 +42,7 @@ public class ChatMessageMgmtServiceTest {
             };
             inject(repository,ChatRoomRepository.class,"changes",events);
             inject(management,ChatMessageMgmtService.class,"messages",repository);
+            inject(management,ChatMessageMgmtService.class,"appearances",new org.b3log.symphony.service.ApiV3ChatAppearanceService(){public JSONObject snapshotInCurrentTransaction(String actor){return org.b3log.symphony.util.ApiV3ChatAppearance.defaults();}});
             inject(management,ChatMessageMgmtService.class,"redPackets",new ChatRedPacketRepository(){public JSONObject current(String id,boolean lock){return null;}});
             inject(management,ChatMessageMgmtService.class,"professions",capture);
             inject(capture,ProfessionSourceEventCaptureService.class,"sourceEventRepository",new ProfessionSourceEventRepository(){
@@ -60,9 +61,9 @@ public class ChatMessageMgmtServiceTest {
     public static void main(String[] args)throws Exception {
         final var props=new Properties();props.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Publication()){
-            var input=f.envelope();String original=input.toString();
+            var input=f.envelope().put("appearance",new JSONObject().put("bubbleId","candy").put("frameId","gold").put("version",1));String original=input.toString();
             try{f.management.saveInCurrentTransaction(input,"1");Assert.fail();}catch(IllegalStateException expected){}
-            f.begin();var saved=f.management.saveInCurrentTransaction(input,"1");Assert.assertEquals(input.toString(),original);Assert.assertNotSame(saved,input);f.empty();
+            f.begin();var saved=f.management.saveInCurrentTransaction(input,"1");Assert.assertEquals(input.toString(),original);Assert.assertNotSame(saved,input);Assert.assertEquals(saved.getJSONObject("appearance").getString("bubbleId"),"classic");Assert.assertEquals(saved.getJSONObject("appearance").getString("frameId"),"none");f.empty();
             try{f.management.saveLegacy(input,"1");Assert.fail();}catch(IllegalStateException expected){}
             f.commit();Assert.assertEquals(query(f.reader,"SELECT * FROM chat").size(),1);Assert.assertEquals(f.head(f.reader),1L);
             var fact=new JSONObject(query(f.reader,"SELECT content FROM profession").getFirst().getString("content"));

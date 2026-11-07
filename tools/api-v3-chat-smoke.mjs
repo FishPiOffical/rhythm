@@ -10,7 +10,8 @@ async function request(path,{credential=token,status=200,online=false,resource}=
  assert.notEqual(value.code,0);assert.equal(value.data,null);
 }
 function message(row){
- assert.deepEqual(Object.keys(row).sort(),['author','card','client','content','contentHtml','createdAt','id','type']);
+ assert.deepEqual(Object.keys(row).sort(),['appearance','author','card','client','content','contentHtml','createdAt','id','type']);
+ assert.deepEqual(Object.keys(row.appearance).sort(),['bubbleId','frameId','version']);assert.equal(row.appearance.version,1);
  assert.match(row.id,/^[0-9]{1,32}$/);assert.ok(Number.isSafeInteger(row.createdAt)&&row.createdAt>=0);
  assert.deepEqual(Object.keys(row.author).sort(),['id','userAvatarURL','userName','userNickname']);
  const allowed={redPacket:['count','got','message','money','type'],weather:['date','max','min','st','t','weatherCode'],music:['coverURL','from','source','title'],text:[],unavailable:[]};

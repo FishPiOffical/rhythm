@@ -89,6 +89,7 @@ public class ApiV3Processor {
         ApiV3BreezemoonProcessor.register();
         ApiV3ReactionProcessor.register();
         ApiV3ChatProcessor.register();
+        ApiV3ChatAppearanceProcessor.register();
         ApiV3ChatMuteProcessor.register();
         ApiV3PrivateMessageProcessor.register();
         ApiV3FishGameProcessor.register();

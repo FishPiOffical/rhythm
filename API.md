@@ -4358,6 +4358,30 @@ JS
 >
 > 连接授权不超过取票时原访问令牌的有效期。刷新访问令牌不会延长已经建立的连接；到期后使用新的访问令牌重新取票并连接。本通道用于通知刷新，不发送通知正文或聊天消息。
 
+## API v3 个人聊天外观
+
+`GET /api/v3/me/chat-appearance` 读取本人有效外观，需要第一方网页身份与 profile.read。
+
+`PUT /api/v3/me/chat-appearance` 明确设置本人气泡与头像框，需要第一方网页身份、settings.write 和 Idempotency-Key。请求仅接受两个必填字符串：
+
+```json
+{"bubbleId":"paipai-orange","frameId":"fishpond-blue"}
+```
+
+气泡支持 `classic`（默认）、`paipai-orange`、`fishpond-blue`、`candy`（会员）；头像框支持 `none`（默认）、`paipai-orange`、`fishpond-blue`、`gold`（会员）。会员样式要求当前有效会员资格，不满足返回 HTTP 403（membership_required）；未知 ID 或多余字段返回 HTTP 422（invalid_request）。
+
+两个接口成功的 data 为：
+
+```json
+{"bubbleId":"paipai-orange","frameId":"fishpond-blue","version":1}
+```
+
+同键同内容重试返回首次结果，同键不同内容返回 HTTP 409（idempotency_conflict）。更新响应是该次操作结果；请 GET 确认当前选择。会员到期时读取与新消息采用有效默认项。主题不在此接口范围。
+
+聊天室消息查询（列表、详情、上下文）的每条消息增加 `appearance`，结构同上；它是消息实际发布时保存的外观，不是作者当前配置。修改外观只影响之后发布的消息，会员到期不剥除历史快照。旧消息无快照按 classic/none、version=1 展示。普通消息发送请求不增加外观参数，也不接受客户端提供 CSS 或资源 URL。
+
+version 为样式目录版本；客户端应保留已支持版本的历史视觉，未知版本或 ID 按默认展示。不支持此渲染协议的客户端可忽略该字段。
+
 ## API v3 聊天室消息
 
 ### 发送普通消息

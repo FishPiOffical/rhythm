@@ -105,6 +105,40 @@
       ]
     },
     {
+      "name": "user_chat_appearance",
+      "description": "用户当前聊天外观，消息另存发送快照",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID主键"
+        },
+        {
+          "name": "bubbleId",
+          "type": "String",
+          "length": 32,
+          "description": "气泡包ID"
+        },
+        {
+          "name": "frameId",
+          "type": "String",
+          "length": 32,
+          "description": "头像框包ID"
+        },
+        {
+          "name": "version",
+          "type": "int",
+          "description": "外观格式版本"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
+    },
+    {
       "name": "chat_red_packet",
       "description": "Durable chat red packet settlement",
       "keys": [

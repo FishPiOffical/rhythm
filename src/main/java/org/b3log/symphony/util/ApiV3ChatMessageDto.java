@@ -34,7 +34,7 @@ public final class ApiV3ChatMessageDto {
         final JSONObject dto=new JSONObject().put("id",id).put("createdAt",number(id,0))
                 .put("type","unavailable").put("content","").put("contentHtml","").put("card",new JSONObject())
                 .put("author",new JSONObject().put("id","").put("userName","").put("userNickname","").put("userAvatarURL",""))
-                .put("client","");
+                .put("client","").put("appearance",ApiV3ChatAppearance.defaults());
         final JSONObject source;
         try {
             final String stored=row.optString("content");
@@ -50,7 +50,8 @@ public final class ApiV3ChatMessageDto {
                 .put("author",new JSONObject().put("id",authorId.matches("[1-9][0-9]{0,31}")?authorId:"")
                         .put("userName",plain(source.opt("userName"),64)).put("userNickname",plain(source.opt("userNickname"),64))
                         .put("userAvatarURL",ApiV3CommunityDto.safeUrl(source.optString("userAvatarURL"))))
-                .put("client",plain(source.opt("client"),64));
+                .put("client",plain(source.opt("client"),64))
+                .put("appearance",ApiV3ChatAppearance.publicSnapshot(source.opt("appearance")));
         final JSONObject card;
         try {card=content.stripLeading().startsWith("{")?ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)):null;}
         catch(IllegalArgumentException e){return dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));}

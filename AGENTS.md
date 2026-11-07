@@ -249,3 +249,5 @@
 
 
 - v3公开资料`ApiV3DiscoveryQueryService.profile`返回cardBg/userPoint/onlineMinute，cardBg只读目标system_settings的单字段并校验图片URL，禁止裸返settings；余额和累计分钟沿用主页公开展示，userPointStatus为流水权限、userOnlineStatus为在线标志权限，不能混为余额/累计时长。
+
+- 聊天外观由ApiV3ChatAppearanceService管理固定v1目录，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；版本1目录视觉不可原地改版。

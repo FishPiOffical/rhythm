@@ -35,6 +35,7 @@ import org.json.JSONObject;
 @Service
 public class ChatMessageMgmtService {
     @Inject private ChatRoomRepository messages;
+    @Inject private ApiV3ChatAppearanceService appearances;
     @Inject private ChatRedPacketRepository redPackets;
     @Inject private ProfessionSourceEventCaptureService professions;
     @Inject private ReactionRepository reactions;
@@ -76,6 +77,7 @@ public class ChatMessageMgmtService {
         }
         return ApiV3ChatTransaction.write(() -> {
             final JSONObject saved = new JSONObject(envelope.toString());
+            saved.put("appearance", appearances.snapshotInCurrentTransaction(actor));
             saved.put(Keys.OBJECT_ID, messages.add(new JSONObject().put("content", saved.toString())));
             professions.chatroomMessagePublished(saved, actor);
             return saved;
