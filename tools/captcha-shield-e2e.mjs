@@ -299,8 +299,8 @@ async function navigate(driverUrl, sessionId, url) {
   return currentUrl(driverUrl, sessionId);
 }
 
-async function createChromeSession(driverUrl, entry) {
-  const profileDir = path.join(CONFIG_DIR, 'profiles', entry.key);
+async function createChromeSession(driverUrl, entry, profileRoot = path.join(CONFIG_DIR, 'profiles')) {
+  const profileDir = path.join(profileRoot, entry.key);
   fs.mkdirSync(profileDir, { recursive: true });
   const capabilities = {
     capabilities: {
@@ -495,10 +495,11 @@ async function runFirstAcceptanceFlow(config) {
   const entryB = entries.find(entry => entry.key === 'B');
   const driver = await startChromeDriver(config);
   const sessions = new Map();
+  const runProfileRoot = path.join(CONFIG_DIR, 'runs', `flow-${Date.now()}`);
   try {
     // Create each profile immediately before its test section so idle browser
     // windows do not open and then sit unused while another source is tested.
-    sessions.set(entryL.key, await createChromeSession(driver.driverUrl, entryL));
+    sessions.set(entryL.key, await createChromeSession(driver.driverUrl, entryL, runProfileRoot));
     await resetBrowserSession(driver.driverUrl, sessions.get(entryL.key));
     const lSession = sessions.get('L');
     console.log('\n=== 第一阶段：L 登录基线 ===');
@@ -512,7 +513,7 @@ async function runFirstAcceptanceFlow(config) {
     console.log('L 基线完成；管理员监控核对将在 A 登录管理员后执行。');
 
     console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
-    sessions.set(entryA.key, await createChromeSession(driver.driverUrl, entryA));
+    sessions.set(entryA.key, await createChromeSession(driver.driverUrl, entryA, runProfileRoot));
     await resetBrowserSession(driver.driverUrl, sessions.get(entryA.key));
     const aSession = sessions.get('A');
     await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
@@ -535,7 +536,7 @@ async function runFirstAcceptanceFlow(config) {
     console.log('A 登录后通过 5 次访问，未再次进入 /test。');
 
     console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
-    sessions.set(entryB.key, await createChromeSession(driver.driverUrl, entryB));
+    sessions.set(entryB.key, await createChromeSession(driver.driverUrl, entryB, runProfileRoot));
     await resetBrowserSession(driver.driverUrl, sessions.get(entryB.key));
     const bSession = sessions.get('B');
     await requireCaptcha(entryB, driver.driverUrl, bSession, sourceUrl(config, entryB.item));
@@ -550,6 +551,12 @@ async function runFirstAcceptanceFlow(config) {
       await webdriverRequest(driver.driverUrl, `/session/${sessionId}`, 'DELETE').catch(() => {});
     }
     await stopChromeDriver(driver);
+    try {
+      fs.rmSync(runProfileRoot, { recursive: true, force: true });
+    } catch {
+      // Chrome may release profile files slightly after DELETE; stale run
+      // folders are harmless and can be removed on a later run.
+    }
   }
 }
 
