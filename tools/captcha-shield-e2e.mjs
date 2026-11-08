@@ -433,6 +433,8 @@ class CdpClient {
     this.listeners = new Map();
     this.lastDocumentResponse = null;
     this.mainFrameId = null;
+    this.mainFrameNavigationVersion = 0;
+    this.lastCaptchaRedirect = null;
     this.socket = null;
   }
 
@@ -510,16 +512,18 @@ function printPageEvidence(client, state, evidence = {}) {
 
 async function cdpNavigate(client, url, evidence = {}) {
   client.lastDocumentResponse = null;
-  await client.send('Page.navigate', { url });
+  const navigationVersion = client.mainFrameNavigationVersion;
+  const result = await client.send('Page.navigate', { url });
+  if (result.errorText) throw new Error(`浏览器导航失败：${result.errorText}`);
   const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
   let state;
   while (Date.now() < deadline) {
     await sleep(200);
     state = await cdpPageState(client);
-    if (state && ['interactive', 'complete'].includes(state.readyState)) break;
+    if (client.mainFrameNavigationVersion > navigationVersion && state && ['interactive', 'complete'].includes(state.readyState)) break;
   }
   if (!state || !['interactive', 'complete'].includes(state.readyState)) {
-    throw new Error(`页面未在 ${PAGE_READY_TIMEOUT_MS / 1000} 秒内完成加载：${new URL(url).pathname || '/'}`);
+    throw new Error(`页面未在 ${PAGE_READY_TIMEOUT_MS / 1000} 秒内完成主框架导航：${new URL(url).pathname || '/'}`);
   }
   if (state.pendingImages) {
     const pending = await cdpEvaluate(client, '[...document.images].filter(image => image.src && !image.complete).slice(0, 5).map(image => image.src)');
@@ -577,9 +581,28 @@ async function startCdpSession(config, entry, profileRoot) {
   const frameTree = await client.send('Page.getFrameTree');
   client.mainFrameId = frameTree.frameTree?.frame?.id || null;
   client.on('Page.frameNavigated', event => {
-    if (!event.frame?.parentId) client.mainFrameId = event.frame.id;
+    if (!event.frame?.parentId) {
+      client.mainFrameId = event.frame.id;
+      client.mainFrameNavigationVersion++;
+    }
+  });
+  client.on('Page.navigatedWithinDocument', event => {
+    if (event.frameId === client.mainFrameId) client.mainFrameNavigationVersion++;
   });
   await client.send('Network.enable');
+  client.on('Network.requestWillBeSent', event => {
+    const redirect = event.redirectResponse;
+    if (!redirect) return;
+    const location = Object.entries(redirect.headers || {})
+      .find(([name]) => name.toLowerCase() === 'location')?.[1];
+    if (Number(redirect.status) < 300 || Number(redirect.status) >= 400 || !location) return;
+    try {
+      const target = new URL(String(location), redirect.url);
+      if (isCaptchaPath(target.href)) {
+        client.lastCaptchaRedirect = { url: event.request?.url || redirect.url, status: redirect.status };
+      }
+    } catch { /* Ignore malformed redirect metadata. */ }
+  });
   client.on('Network.responseReceived', event => {
     if (event.type === 'Document' && (!client.mainFrameId || event.frameId === client.mainFrameId)) {
       client.lastDocumentResponse = { status: event.response?.status, url: event.response?.url };
@@ -604,6 +627,7 @@ async function cdpWaitForCaptcha(entry, client) {
     if (!isCaptchaPath(href)) {
       console.log(`${entry.key} 已离开 /test，当前页面路径：${new URL(href).pathname || '/'}`);
       printPageEvidence(client, await cdpPageState(client), { sourceKey: entry.key });
+      client.lastCaptchaRedirect = null;
       return href;
     }
     await sleep(500);
@@ -621,14 +645,28 @@ async function cdpNavigateWithPacing(client, url, lastAt, evidence = {}) {
   return cdpNavigate(client, url, evidence);
 }
 
+async function cdpEnsureCaptchaTopLevel(entry, client, url, lastAt) {
+  const state = await cdpNavigateWithPacing(client, new URL('/test', url).href, lastAt, { sourceKey: entry.key });
+  if (!isCaptchaPath(state)) {
+    throw new Error(`${entry.key} 检测到请求跳转信号，但顶层访问 /test 后未显示验证码页`);
+  }
+}
+
 async function cdpRequireCaptcha(entry, client, url, lastAt, evidence = {}) {
   const href = await cdpNavigateWithPacing(client, url, lastAt, { ...evidence, sourceKey: entry.key });
-  if (!isCaptchaPath(href)) throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时未进入 /test`);
+  if (!isCaptchaPath(href) && !client.lastCaptchaRedirect) throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时未进入 /test`);
+  if (!isCaptchaPath(href)) {
+    console.log(`${entry.key} 检测到页面请求被重定向到 /test：HTTP ${client.lastCaptchaRedirect.status}`);
+    await cdpEnsureCaptchaTopLevel(entry, client, url, lastAt);
+  }
   await cdpWaitForCaptcha(entry, client);
 }
 
 async function cdpRequireNoCaptcha(entry, client, url, lastAt, evidence = {}) {
   const href = await cdpNavigateWithPacing(client, url, lastAt, { ...evidence, sourceKey: entry.key });
+  if (client.lastCaptchaRedirect) {
+    throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时有请求被重定向到 /test：HTTP ${client.lastCaptchaRedirect.status}`);
+  }
   if (isCaptchaPath(href)) throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时进入 /test`);
   return href;
 }
@@ -722,7 +760,15 @@ async function runFirstAcceptanceFlowCdp(config) {
     for (let count = 1; count <= 5; count++) {
       const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
       const href = await cdpNavigateWithPacing(a.client, target, aLastAt);
-      if (isCaptchaPath(href)) { redirectedAt = count; await cdpWaitForCaptcha(entryA, a.client); break; }
+      if (isCaptchaPath(href) || a.client.lastCaptchaRedirect) {
+        redirectedAt = count;
+        if (!isCaptchaPath(href)) {
+          console.log(`A 第 ${count} 次页面访问时检测到子请求跳转 /test，正在打开顶层验证码页。`);
+          await cdpEnsureCaptchaTopLevel(entryA, a.client, target, aLastAt);
+        }
+        await cdpWaitForCaptcha(entryA, a.client);
+        break;
+      }
     }
     if (!redirectedAt) throw new Error('A 通过 5 次主页/文章访问后仍未回到 /test');
     console.log(`A 已在第 ${redirectedAt} 次访问内重新进入 /test。`);
