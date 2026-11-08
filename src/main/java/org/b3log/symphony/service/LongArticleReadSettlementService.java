@@ -134,6 +134,19 @@ public class LongArticleReadSettlementService {
             if (null != result) {
                 messageService.send(result);
             }
+        } catch (final MissingArticleException e) {
+            try {
+                if (repairMissingArticleWindow(window, now)) {
+                    LOGGER.warn("长篇阅读窗口因目标文章不存在已自动收口 [windowId={}, articleId={}, windowStart={}, action=DISCARDED]",
+                            window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START));
+                } else {
+                    LOGGER.info("长篇阅读窗口无需重复修复 [windowId={}, articleId={}, windowStart={}]",
+                            window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START));
+                }
+            } catch (final Exception repairError) {
+                LOGGER.error("长篇阅读孤立窗口自动收口失败 [windowId={}, articleId={}, windowStart={}]",
+                        window.optString(Keys.OBJECT_ID), e.articleId(), window.optLong(LongArticleRead.WINDOW_START), repairError);
+            }
         } catch (final Exception e) {
             LOGGER.error("结算长篇阅读窗口失败 [windowId={}]", window.optString(Keys.OBJECT_ID), e);
         }
@@ -142,7 +155,7 @@ public class LongArticleReadSettlementService {
     private JSONObject settleWindowInTransaction(final JSONObject window, final long now) throws Exception {
         final String articleId = window.optString(LongArticleRead.ARTICLE_ID);
         final String author = articleRepository.getCommentPublicationAuthor(articleId);
-        if (StringUtils.isBlank(author)) throw new RepositoryException("结算目标文章不存在");
+        if (StringUtils.isBlank(author)) throw new MissingArticleException(articleId);
         // Capture locks users before article/window. Keep the same order and acquire the
         // shared point pair before any SQL lock, including legacy transfers on this pair.
         return pointtransferMgmtService.executeWithTransferLocks(Pointtransfer.ID_C_SYS, List.of(author), () -> {
@@ -164,6 +177,51 @@ public class LongArticleReadSettlementService {
                 }
             }
         });
+    }
+
+    /**
+     * Close only a still-open orphan. The audit row and the window transition share one transaction,
+     * so a failed repair leaves the window OPEN for a later retry instead of hiding the loss.
+     */
+    private boolean repairMissingArticleWindow(final JSONObject source, final long now) throws Exception {
+        final Transaction transaction = ApiV3Transactions.strict(windowRepository.beginTransaction());
+        try {
+            final String windowId = source.optString(Keys.OBJECT_ID);
+            final JSONObject window = windowRepository.getForUpdate(windowId);
+            if (window == null || !source.optString(LongArticleRead.ARTICLE_ID)
+                    .equals(window.optString(LongArticleRead.ARTICLE_ID))
+                    || !"OPEN".equals(window.optString(LongArticleRead.STATE))) {
+                transaction.commit();
+                return false;
+            }
+            final String articleId = window.optString(LongArticleRead.ARTICLE_ID);
+            if (StringUtils.isNotBlank(articleRepository.getCommentPublicationAuthor(articleId))) {
+                transaction.commit();
+                return false;
+            }
+            final String settlementId = settlementRepository.discardForMissingArticle(
+                    Ids.genTimeMillisId(), articleId, window.optLong(LongArticleRead.WINDOW_START), now);
+            if (!windowRepository.completeMissingArticle(windowId, settlementId, now)) {
+                throw new RepositoryException("孤立长篇阅读窗口状态未改变");
+            }
+            transaction.commit();
+            return true;
+        } finally {
+            if (transaction.isActive()) transaction.rollback();
+        }
+    }
+
+    private static final class MissingArticleException extends Exception {
+        private final String articleId;
+
+        private MissingArticleException(final String articleId) {
+            super("结算目标文章不存在");
+            this.articleId = articleId;
+        }
+
+        private String articleId() {
+            return articleId;
+        }
     }
 
     private JSONObject settleClaimedWindow(final SettlementAttempt attempt) throws Exception {

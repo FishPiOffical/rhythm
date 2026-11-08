@@ -51,7 +51,7 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
    var indexes=new PointtransferRedcRepository(){public String getName(){return "transfer_index";}public String add(JSONObject r)throws RepositoryException{return insert("transfer_index",r);}};
    var points=new PointtransferMgmtService(){public void indexTransferAsync(String from,String to,String id){if(active())unsafeIndexes++;}};
    inject(points,"pointtransferRepository",transfers);inject(points,"userRepository",users);
-   inject(settle,"articleRepository",articles);inject(settle,"windowRepository",windows);inject(settle,"settlementRepository",new LongArticleReadSettlementRepository(){public String getName(){return "symphony_article_long_read_settlement";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}public void complete(String id,String history,long now)throws RepositoryException{super.complete(id,history,now);if(fault.equals("settlement"))throw new RepositoryException("after settlement");}});
+   inject(settle,"articleRepository",articles);inject(settle,"windowRepository",windows);inject(settle,"settlementRepository",new LongArticleReadSettlementRepository(){public String getName(){return "symphony_article_long_read_settlement";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}public void complete(String id,String history,long now)throws RepositoryException{super.complete(id,history,now);if(fault.equals("settlement"))throw new RepositoryException("after settlement");}public String discardForMissingArticle(String id,String article,long start,long now)throws RepositoryException{if(fault.equals("discard"))throw new RepositoryException("during orphan repair");return super.discardForMissingArticle(id,article,start,now);}});
    inject(settle,"historyRepository",new LongArticleReadHistoryRepository(){public String add(JSONObject r)throws RepositoryException{return insert("symphony_article_long_read_history",r);}});
    inject(settle,"sourceEventRepository",new ProfessionSourceEventRepository(){public String add(JSONObject r)throws RepositoryException{return insert("events",r);}});
    inject(settle,"pointtransferMgmtService",points);inject(settle,"messageService",new LongArticleReadSettlementMessageService(){public void send(JSONObject row){ok(!active());messages++;if(failMessage)throw new IllegalStateException("after committed message");}});
@@ -99,6 +99,16 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
    System.out.println("PASS read settlement mysql 7 competing independent JDBC roots settle one history, ledger, event and two indexes");
    f.reset();f.seed(2,0);var owner=f.begin();try{f.run();throw new AssertionError("nested settlement allowed");}catch(IllegalStateException expected){ok(owner.isActive());}finally{owner.rollback();}f.untouched();
    System.out.println("PASS read settlement mysql 9 nested caller root rejected before touching or ending the owner");
+   f.reset();f.seed(2,0);sql(f.db,"DELETE FROM articles WHERE oId='10'");f.run();
+   ok(f.balance()==1000);ok(f.count("symphony_article_long_read_history")==0);ok(f.count("transfers")==0);ok(f.count("events")==0);
+   ok(f.one("SELECT state FROM symphony_article_long_read_window").getString("state").equals("SETTLED"));
+   ok(f.one("SELECT state FROM symphony_article_long_read_settlement").getString("state").equals("DISCARDED"));
+   f.run();ok(f.count("symphony_article_long_read_settlement")==1);
+   System.out.println("PASS read settlement mysql 10 missing article is transactionally discarded once and does not retry forever");
+   f.reset();f.seed(2,0);f.fault="discard";sql(f.db,"DELETE FROM articles WHERE oId='10'");f.run();f.fault="";
+   ok(f.one("SELECT state FROM symphony_article_long_read_window").getString("state").equals("OPEN"));ok(f.count("symphony_article_long_read_settlement")==0);f.run();
+   ok(f.one("SELECT state FROM symphony_article_long_read_window").getString("state").equals("SETTLED"));ok(f.count("symphony_article_long_read_settlement")==1);
+   System.out.println("PASS read settlement mysql 11 orphan repair failure rolls back and later retry repairs the window");
   }
  }
 }

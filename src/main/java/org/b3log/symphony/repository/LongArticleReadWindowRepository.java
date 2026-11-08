@@ -74,6 +74,15 @@ public class LongArticleReadWindowRepository extends AbstractRepository {
         AtomicRepositorySupport.executeUpdate(sql, SETTLED, now, now, windowId);
     }
 
+    /** Close an orphaned OPEN window only after its missing-article audit row is durable in the same transaction. */
+    public boolean completeMissingArticle(final String windowId, final String settlementId, final long now)
+            throws RepositoryException {
+        final String sql = "UPDATE `" + getName()
+                + "` SET `state`=?,`settlementId`=?,`settledAt`=?,`updatedAt`=?"
+                + " WHERE `oId`=? AND `state`=?";
+        return AtomicRepositorySupport.executeUpdate(sql, SETTLED, settlementId, now, now, windowId, OPEN) == 1;
+    }
+
     public List<JSONObject> getOpenBefore(final LongArticleReadWindowPage page) throws RepositoryException {
         final String filter = null == page.articleId() ? "" : "`articleId`=? AND ";
         final String sql = "SELECT * FROM `" + getName() + "` WHERE " + filter + "`state`=? AND `windowStart`<? "

@@ -46,6 +46,38 @@ public class LongArticleReadSettlementRepository extends AbstractRepository {
         return !stored.isEmpty() && claim.id().equals(stored.getFirst().getString("oId"));
     }
 
+    /**
+     * Record that a window was discarded because its target article no longer exists.
+     * The row is kept as an audit guard so a later scheduler run cannot recreate work.
+     */
+    public String discardForMissingArticle(final String requestedId, final String articleId,
+                                           final long windowStart, final long now) throws RepositoryException {
+        final List<JSONObject> existing = select("SELECT oId,state,historyId FROM `" + getName()
+                + "` WHERE articleId=? AND windowStart=? FOR UPDATE", articleId, windowStart);
+        if (existing.size() > 1) throw new RepositoryException("duplicate long article settlement");
+        if (existing.isEmpty()) {
+            AtomicRepositorySupport.executeUpdate("INSERT INTO `" + getName()
+                    + "` (oId,articleId,windowStart,historyId,state,createdAt,updatedAt) VALUES (?,?,?,'','DISCARDED',?,?)",
+                    requestedId, articleId, windowStart, now, now);
+            return requestedId;
+        }
+
+        final JSONObject row = existing.getFirst();
+        final String id = row.optString("oId");
+        final String state = row.optString("state");
+        final String historyId = row.optString("historyId");
+        if ("DISCARDED".equals(state) || "COMMITTED".equals(state)) return id;
+        if (!"PENDING".equals(state) || !historyId.isEmpty()) {
+            throw new RepositoryException("long article settlement state cannot be discarded");
+        }
+        if (AtomicRepositorySupport.executeUpdate("UPDATE `" + getName()
+                + "` SET state='DISCARDED',updatedAt=? WHERE oId=? AND state='PENDING' AND historyId=''",
+                now, id) != 1) {
+            throw new RepositoryException("long article settlement discard failed");
+        }
+        return id;
+    }
+
     public void complete(final String id, final String historyId, final long now) throws RepositoryException {
         final String sql = "UPDATE `" + getName() + "` SET `historyId`=?,`state`='COMMITTED',`updatedAt`=? "
                 + "WHERE `oId`=?";
