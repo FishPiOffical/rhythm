@@ -757,7 +757,8 @@ blockquote {
       border-right: 0;
     }
 
-    strong {
+    .security-stat-value {
+      margin-top: 0;
       color: #172b4d;
       font-size: 16px;
     }

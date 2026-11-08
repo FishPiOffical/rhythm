@@ -81,7 +81,7 @@
             </div>
             <div class="security-monitor">
                 <div class="security-monitor-heading"><h3>访问监控</h3><span>本次启动 · 最多100条</span></div>
-                <div class="security-stat-strip"><span>记录 <strong id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage">刚刚更新</span></div>
+                <div class="security-stat-strip"><span>记录 <strong class="security-stat-value" id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong class="security-stat-value" id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage">刚刚更新</span></div>
                 <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（10秒）</label></div>
                 <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
