@@ -61,6 +61,14 @@ function protectSecret(secret) {
   );
 }
 
+function unprotectSecret(protectedSecret) {
+  if (!protectedSecret) return '';
+  return powershell(
+    '$secure = ConvertTo-SecureString -String $env:RH_PROTECTED; $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure); try { [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }',
+    { RH_PROTECTED: protectedSecret },
+  );
+}
+
 function listLocalIps() {
   const command = [
     '$items = Get-NetIPAddress -ErrorAction Stop;',
@@ -240,6 +248,62 @@ async function webdriverRequest(driverUrl, endpoint, method = 'GET', body) {
   return payload.value;
 }
 
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+async function webdriverExecute(driverUrl, sessionId, script, args = []) {
+  return webdriverRequest(driverUrl, `/session/${sessionId}/execute/sync`, 'POST', { script, args });
+}
+
+async function webdriverFind(driverUrl, sessionId, using, value) {
+  return webdriverRequest(driverUrl, `/session/${sessionId}/element`, 'POST', { using, value });
+}
+
+function elementId(element) {
+  return element['element-6066-11e4-a52e-4f735466cecf'] || element.ELEMENT;
+}
+
+async function sendElementKeys(driverUrl, sessionId, element, text) {
+  const id = elementId(element);
+  return webdriverRequest(driverUrl, `/session/${sessionId}/element/${id}/value`, 'POST', { text, value: [...text] });
+}
+
+async function clickElement(driverUrl, sessionId, element) {
+  return webdriverRequest(driverUrl, `/session/${sessionId}/element/${elementId(element)}/click`, 'POST', {});
+}
+
+async function currentUrl(driverUrl, sessionId) {
+  return webdriverRequest(driverUrl, `/session/${sessionId}/url`);
+}
+
+async function navigate(driverUrl, sessionId, url) {
+  await webdriverRequest(driverUrl, `/session/${sessionId}/url`, 'POST', { url });
+  await sleep(500);
+  return currentUrl(driverUrl, sessionId);
+}
+
+async function createChromeSession(driverUrl, entry) {
+  const profileDir = path.join(CONFIG_DIR, 'profiles', entry.key);
+  fs.mkdirSync(profileDir, { recursive: true });
+  const capabilities = {
+    capabilities: {
+      alwaysMatch: {
+        browserName: 'chrome',
+        'goog:chromeOptions': {
+          args: [
+            `--user-data-dir=${profileDir}`,
+            '--new-window',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-notifications',
+          ],
+        },
+      },
+    },
+  };
+  const session = await webdriverRequest(driverUrl, '/session', 'POST', capabilities);
+  return session.sessionId;
+}
+
 function sourceEntries(config) {
   return [
     { key: 'L', label: 'L（回环）', item: config.ipPlan.loopback },
@@ -275,6 +339,173 @@ async function waitForCaptchaCompletion(entry, driverUrl, sessionId) {
     throw new Error(`${entry.key} 仍停留在 /test，未确认验证码已完成`);
   }
   console.log(`${entry.key} 已离开 /test，当前页面路径：${new URL(currentUrl).pathname || '/'}`);
+}
+
+async function startChromeDriver(config) {
+  const driverPath = findChromeDriver(config);
+  if (!driverPath) {
+    throw new Error('未找到 chromedriver.exe。请安装与 Chrome 主版本匹配的 ChromeDriver，或设置 CHROMEDRIVER_PATH 后重试；工具不会自动下载驱动。');
+  }
+  const driverPort = await findFreePort();
+  const driverUrl = `http://127.0.0.1:${driverPort}`;
+  const driverProcess = spawn(driverPath, [`--port=${driverPort}`, '--allowed-ips=127.0.0.1'], {
+    windowsHide: true,
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  let stderr = '';
+  driverProcess.stderr.on('data', chunk => { stderr += String(chunk); });
+  try {
+    await waitForDriver(driverUrl, driverProcess);
+  } catch (error) {
+    driverProcess.kill();
+    if (stderr.trim()) console.error(`ChromeDriver：${stderr.trim().split(/\r?\n/).slice(-1)[0]}`);
+    throw error;
+  }
+  return { driverUrl, driverProcess, stderr: () => stderr };
+}
+
+async function stopChromeDriver(driver) {
+  if (!driver) return;
+  driver.driverProcess.kill();
+}
+
+async function requireCaptcha(entry, driverUrl, sessionId, url) {
+  const current = await navigate(driverUrl, sessionId, url);
+  if (!isCaptchaPath(current)) {
+    throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时未进入 /test`);
+  }
+  await waitForCaptchaCompletion(entry, driverUrl, sessionId);
+}
+
+async function requireNoCaptcha(entry, driverUrl, sessionId, url) {
+  const current = await navigate(driverUrl, sessionId, url);
+  if (isCaptchaPath(current)) {
+    throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时意外进入 /test`);
+  }
+  return current;
+}
+
+async function loginWithAccount(entry, driverUrl, sessionId, config, account) {
+  const loginUrl = `${sourceUrl(config, entry.item)}login`;
+  const current = await navigate(driverUrl, sessionId, loginUrl);
+  if (isCaptchaPath(current)) await waitForCaptchaCompletion(entry, driverUrl, sessionId);
+  const usernameInput = await webdriverFind(driverUrl, sessionId, 'css selector', '#nameOrEmail');
+  const passwordInput = await webdriverFind(driverUrl, sessionId, 'css selector', '#loginPassword');
+  await sendElementKeys(driverUrl, sessionId, usernameInput, account.username);
+  await sendElementKeys(driverUrl, sessionId, passwordInput, unprotectSecret(account.passwordProtected));
+  const loginButton = await webdriverFind(driverUrl, sessionId, 'css selector', '#account_login button.green');
+  await clickElement(driverUrl, sessionId, loginButton);
+  await sleep(1200);
+  const afterLogin = await currentUrl(driverUrl, sessionId);
+  if (isCaptchaPath(afterLogin)) {
+    await waitForCaptchaCompletion(entry, driverUrl, sessionId);
+    return loginWithAccount(entry, driverUrl, sessionId, config, account);
+  }
+  const loggedIn = await webdriverExecute(driverUrl, sessionId, 'return !!document.querySelector(".avatar, .avatar-small, .nav-avatar, a[data-url*=\'/member/\'], a[href=\'/logout\']");');
+  if (!loggedIn) {
+    const tip = await webdriverExecute(driverUrl, sessionId, 'return (document.querySelector("#loginTip") || {}).textContent || "登录后仍停留在登录页";');
+    throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：${String(tip).trim() || '未检测到登录状态'}`);
+  }
+  console.log(`${entry.key} 已登录账号：${account.username}`);
+}
+
+async function collectArticleUrls(driverUrl, sessionId, config, entry) {
+  const links = await webdriverExecute(driverUrl, sessionId, `
+    return [...document.querySelectorAll('a[href]')].map(a => a.href)
+      .filter(href => { try { return new URL(href).pathname.startsWith('/article/'); } catch (_) { return false; } })
+      .filter((href, index, all) => all.indexOf(href) === index).slice(0, 20);
+  `);
+  const urls = Array.isArray(links) ? links : [];
+  if (urls.length < 10) {
+    throw new Error(`${entry.key} 首页只发现 ${urls.length} 个不同文章链接，第一阶段要求至少 10 个，未伪造文章地址`);
+  }
+  return urls.slice(0, 10).map(url => {
+    const parsed = new URL(url);
+    return `${sourceUrl(config, entry.item)}${parsed.pathname.replace(/^\//, '')}${parsed.search}${parsed.hash}`;
+  });
+}
+
+async function checkAdminMisc(entry, driverUrl, sessionId, config, section) {
+  const url = `${sourceUrl(config, entry.item)}admin/misc`;
+  const current = await navigate(driverUrl, sessionId, url);
+  if (isCaptchaPath(current)) throw new Error(`${entry.key} 核对 /admin/misc 时进入 /test`);
+  const pathName = new URL(current).pathname;
+  if (pathName === '/login' || pathName === '/401' || pathName === '/403') {
+    throw new Error(`${entry.key} 无法访问 /admin/misc（当前路径 ${pathName}）`);
+  }
+  const report = await webdriverExecute(driverUrl, sessionId, `return {
+    section: ${JSON.stringify(section)},
+    hasSecurityPanel: !!document.querySelector('.security-panel'),
+    eventRows: document.querySelectorAll('#securityEvents tr').length,
+    selfCheck: (document.querySelector('#securitySelfCheck') || {}).textContent || ''
+  };`);
+  if (!report?.hasSecurityPanel) throw new Error(`${entry.key} /admin/misc 未找到社区安全面板`);
+  console.log(`${entry.key} /admin/misc 已核对：${section}，监控行数 ${report.eventRows || 0}`);
+  return report;
+}
+
+async function runFirstAcceptanceFlow(config) {
+  if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
+    throw new Error('未找到完整阶段 1 配置，请先运行 configure 并确认 L 加 5 个额外 IP');
+  }
+  const baseline = config.accounts.find(account => account.key === 'baseline');
+  const admin = config.accounts.find(account => account.key === 'admin');
+  if (!baseline || !admin) throw new Error('配置中缺少普通登录基线账号或管理员账号');
+  const entries = sourceEntries(config);
+  const entryL = entries.find(entry => entry.key === 'L');
+  const entryA = entries.find(entry => entry.key === 'A');
+  const entryB = entries.find(entry => entry.key === 'B');
+  const driver = await startChromeDriver(config);
+  const sessions = new Map();
+  try {
+    for (const entry of [entryL, entryA, entryB]) sessions.set(entry.key, await createChromeSession(driver.driverUrl, entry));
+    const lSession = sessions.get('L');
+    const aSession = sessions.get('A');
+    const bSession = sessions.get('B');
+    console.log('\n=== 第一阶段：L 登录基线 ===');
+    await requireNoCaptcha(entryL, driver.driverUrl, lSession, sourceUrl(config, entryL.item));
+    await loginWithAccount(entryL, driver.driverUrl, lSession, config, baseline);
+    const articleUrls = await collectArticleUrls(driver.driverUrl, lSession, config, entryL);
+    for (let i = 0; i < 10; i++) await requireNoCaptcha(entryL, driver.driverUrl, lSession, sourceUrl(config, entryL.item));
+    for (const articleUrl of articleUrls) await requireNoCaptcha(entryL, driver.driverUrl, lSession, articleUrl);
+    console.log('L 基线通过：主页 10 次、10 个不同文章页均未进入 /test。');
+
+    console.log('L 基线完成；管理员监控核对将在 A 登录管理员后执行。');
+
+    console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
+    await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
+    const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
+    let redirectedAt = 0;
+    for (let count = 1; count <= 5; count++) {
+      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
+      const current = await navigate(driver.driverUrl, aSession, target);
+      if (isCaptchaPath(current)) { redirectedAt = count; await waitForCaptchaCompletion(entryA, driver.driverUrl, aSession); break; }
+    }
+    if (!redirectedAt) throw new Error('A 通过 5 次主页/文章访问后仍未回到 /test');
+    console.log(`A 已在第 ${redirectedAt} 次访问内重新进入 /test。`);
+    await loginWithAccount(entryA, driver.driverUrl, aSession, config, admin);
+    await checkAdminMisc(entryA, driver.driverUrl, aSession, config, 'A 验证码后管理员登录');
+
+    for (let count = 1; count <= 5; count++) {
+      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
+      await requireNoCaptcha(entryA, driver.driverUrl, aSession, target);
+    }
+    console.log('A 登录后通过 5 次访问，未再次进入 /test。');
+
+    console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
+    await requireCaptcha(entryB, driver.driverUrl, bSession, sourceUrl(config, entryB.item));
+    await loginWithAccount(entryB, driver.driverUrl, bSession, config, admin);
+    await checkAdminMisc(entryB, driver.driverUrl, bSession, config, 'B 验证码后管理员登录');
+    await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
+    console.log('A/B 源地址切换通过：B 登录后返回 A，再次进入 /test。');
+    await checkAdminMisc(entryA, driver.driverUrl, aSession, config, 'A/B 切换完成');
+    console.log('\n第一阶段业务流程完成。');
+  } finally {
+    for (const sessionId of [...sessions.values()].reverse()) {
+      await webdriverRequest(driver.driverUrl, `/session/${sessionId}`, 'DELETE').catch(() => {});
+    }
+    await stopChromeDriver(driver);
+  }
 }
 
 async function runBrowser(config) {
@@ -443,7 +674,8 @@ async function main() {
     else if (command === 'ips') printIps(listLocalIps());
     else if (command === 'driver') await configureDriver();
     else if (command === 'browser') await runBrowser(loadConfig());
-    else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser）`);
+    else if (command === 'flow') await runFirstAcceptanceFlow(loadConfig());
+    else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow）`);
   } catch (error) {
     console.error(`失败：${error.message}`);
     process.exitCode = 1;

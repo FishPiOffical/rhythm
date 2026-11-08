@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet('configure', 'show', 'ips', 'driver', 'edit', 'browser')]
+    [ValidateSet('configure', 'show', 'ips', 'driver', 'edit', 'browser', 'flow')]
     [string]$Command
 )
 
@@ -57,6 +57,7 @@ function Show-Menu {
     Write-Host '  4. 设置 ChromeDriver 路径'
     Write-Host '  5. 打开配置文件编辑'
     Write-Host '  6. 阶段 2：浏览器流程（遇到极验时手动完成）'
+    Write-Host '  7. 第一阶段完整业务流程'
     Write-Host '  0. 退出'
     Write-Host ''
 }
@@ -105,9 +106,14 @@ try {
                 Write-Host ''
                 Read-Host '阶段 2 浏览器流程完成，按 Enter 返回菜单' | Out-Null
             }
+            '7' {
+                Invoke-TestTool -Action 'flow'
+                Write-Host ''
+                Read-Host '第一阶段完整业务流程完成，按 Enter 返回菜单' | Out-Null
+            }
             '0' { break }
             default {
-                Write-Host '请输入 1、2、3、4、5、6 或 0。' -ForegroundColor Red
+                Write-Host '请输入 1、2、3、4、5、6、7 或 0。' -ForegroundColor Red
                 Start-Sleep -Seconds 1
             }
         }
