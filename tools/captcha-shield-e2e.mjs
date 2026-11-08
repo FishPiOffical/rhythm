@@ -83,6 +83,10 @@ function isLoopback(item) {
     || item.ip === '::1';
 }
 
+function isIpv4(item) {
+  return item.addressFamily === '2' && !item.ip.includes(':');
+}
+
 function printIps(items) {
   if (!items.length) {
     console.log('未发现可用网卡地址。');
@@ -93,14 +97,6 @@ function printIps(items) {
     const kind = isLoopback(item) ? 'L候选' : '额外IP候选';
     console.log(`  [${index + 1}] ${item.ip}/${item.prefixLength}  ${item.interfaceAlias}  ${item.addressFamily}  ${kind}`);
   });
-}
-
-function selectIp(items, indexText) {
-  const index = Number(indexText) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= items.length) {
-    throw new Error(`IP编号无效：${indexText}`);
-  }
-  return items[index];
 }
 
 function saveConfig(config) {
@@ -144,49 +140,59 @@ async function configure() {
   console.log('本阶段只保存配置，不访问服务，不验证账号，不执行压测。');
 
   const previous = loadConfig();
-  const port = await ask('服务端端口', previous?.port || '8080');
-  const expectedCommit = await ask('期望测试的 commit SHA（可留空）', previous?.expectedCommit || '');
+  let port;
+  let expectedCommit;
+  let accounts;
+  let loopback;
+  let extra;
 
-  const accounts = [];
-  for (const requirement of ACCOUNT_REQUIREMENTS) {
-    const old = previous?.accounts?.find(account => account.key === requirement.key);
-    console.log(`\n${requirement.label}：${requirement.roleHint}`);
-    const username = await ask('用户名', old?.username || '');
-    const role = await ask('权限组', old?.role || '');
-    const password = await ask('密码（直接输入，保存时会加密）');
-    if (!username || !password) throw new Error(`${requirement.label}的用户名和密码不能为空`);
-    accounts.push({
-      key: requirement.key,
-      label: requirement.label,
-      username,
-      role,
-      passwordProtected: protectSecret(password),
-    });
-  }
+  const reusePrevious = previous && previous.accounts?.length && previous.ipPlan?.extra?.length
+    ? (showConfig(previous), (await ask('是否复用上次填写的账号和 IP（输入 y 复用，其他键重新填写）', 'y')).toLowerCase() === 'y')
+    : false;
 
-  const ips = listLocalIps();
-  printIps(ips);
-  const loopbackCandidates = ips.map((item, index) => ({ item, index })).filter(({ item }) => isLoopback(item));
-  if (!loopbackCandidates.length) throw new Error('没有发现回环地址候选，无法固定 L');
-  const loopbackIndex = await ask('选择 L 的回环地址编号', String(loopbackCandidates[0].index + 1));
-  const loopback = selectIp(ips, loopbackIndex);
+  if (reusePrevious) {
+    port = previous.port;
+    expectedCommit = previous.expectedCommit || '';
+    accounts = previous.accounts;
+    loopback = previous.ipPlan.loopback;
+    extra = previous.ipPlan.extra;
+    console.log('已复用上次的端口、账号和 IP，下面只需重新确认三项检查。');
+  } else {
+    port = await ask('服务端端口', previous?.port || '8080');
+    expectedCommit = await ask('期望测试的 commit SHA（可留空）', previous?.expectedCommit || '');
 
-  const nonLoopback = ips.map((item, index) => ({ item, index })).filter(({ item }) => !isLoopback(item));
-  if (nonLoopback.length < REQUIRED_EXTRA_IPS) {
-    throw new Error(`可选额外 IP 只有 ${nonLoopback.length} 个，严格要求 ${REQUIRED_EXTRA_IPS} 个`);
-  }
-  console.log(`请从非回环地址中选择恰好 ${REQUIRED_EXTRA_IPS} 个编号，逗号分隔。`);
-  const extraText = await ask('额外 IP 编号');
-  const indexes = extraText.split(',').map(value => Number(value.trim()) - 1);
-  if (indexes.length !== REQUIRED_EXTRA_IPS || new Set(indexes).size !== REQUIRED_EXTRA_IPS) {
-    throw new Error(`必须选择恰好 ${REQUIRED_EXTRA_IPS} 个不同的额外 IP`);
-  }
-  const extra = indexes.map(index => {
-    if (!Number.isInteger(index) || index < 0 || index >= ips.length || isLoopback(ips[index])) {
-      throw new Error('额外 IP 编号必须指向非回环网卡地址');
+    accounts = [];
+    for (const requirement of ACCOUNT_REQUIREMENTS) {
+      const old = previous?.accounts?.find(account => account.key === requirement.key);
+      console.log(`\n${requirement.label}：${requirement.roleHint}`);
+      const username = await ask('用户名', old?.username || '');
+      const role = await ask('权限组', old?.role || '');
+      const password = await ask('密码（直接输入，保存时会加密）');
+      if (!username || !password) throw new Error(`${requirement.label}的用户名和密码不能为空`);
+      accounts.push({
+        key: requirement.key,
+        label: requirement.label,
+        username,
+        role,
+        passwordProtected: protectSecret(password),
+      });
     }
-    return ips[index];
-  });
+
+    const ips = listLocalIps();
+    printIps(ips);
+    const loopbackCandidate = ips.find(isLoopback);
+    if (!loopbackCandidate) throw new Error('没有发现回环地址候选，无法固定 L');
+    loopback = loopbackCandidate;
+
+    const ipv4Extra = ips.filter(item => !isLoopback(item) && isIpv4(item));
+    if (ipv4Extra.length < REQUIRED_EXTRA_IPS) {
+      const found = ipv4Extra.map(item => item.ip).join('、') || '无';
+      throw new Error(`当前仅发现 ${ipv4Extra.length} 个可用 IPv4 额外地址，严格需要 ${REQUIRED_EXTRA_IPS} 个，当前地址：${found}`);
+    }
+    extra = ipv4Extra.slice(0, REQUIRED_EXTRA_IPS);
+    console.log(`已自动选择前 ${REQUIRED_EXTRA_IPS} 个非 IPv6 额外 IP，不需要手填：`);
+    extra.forEach((item, index) => console.log(`   ${String.fromCharCode(65 + index)}：${item.ip}`));
+  }
 
   console.log('\n=== 三项确认（脚本完全信任勾选，不做额外环境检查）===');
   const environmentConfirmed = (await ask('1. 我已确认端口、runtimeMode、临时 jiyan.key、服务已启动且代码最新（输入 y）', ''))
