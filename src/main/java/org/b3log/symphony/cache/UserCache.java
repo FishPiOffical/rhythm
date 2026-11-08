@@ -146,11 +146,33 @@ public class UserCache {
      * @param user the specified user
      */
     public void putUser(final JSONObject user) {
-        final JSONObject cached = JSONs.clone(user);
-        ID_CACHE.put(user.optString(Keys.OBJECT_ID), cached);
-        NAME_CACHE.put(user.optString(User.USER_NAME), cached);
-        IP_CACHE.put(user.optString(UserExt.USER_LATEST_LOGIN_IP), user.optString(Keys.OBJECT_ID));
-        Sessions.put(user.optString(Keys.OBJECT_ID), user);
+        final String userId = user.optString(Keys.OBJECT_ID);
+        synchronized (IP_CACHE) {
+            final JSONObject previous = ID_CACHE.get(userId);
+            final JSONObject cached = null == previous ? JSONs.clone(user) : JSONs.clone(previous);
+            for (final String key : user.keySet()) {
+                cached.put(key, user.opt(key));
+            }
+            cached.put(Keys.OBJECT_ID, userId);
+            final String oldName = null == previous ? "" : previous.optString(User.USER_NAME);
+            final String name = cached.optString(User.USER_NAME);
+            final String oldIp = null == previous ? "" : previous.optString(UserExt.USER_LATEST_LOGIN_IP);
+            final String ip = cached.optString(UserExt.USER_LATEST_LOGIN_IP);
+            ID_CACHE.put(userId, cached);
+            if (!oldName.isEmpty() && !oldName.equals(name)) {
+                NAME_CACHE.remove(oldName);
+            }
+            NAME_CACHE.put(name, cached);
+            if (null != previous) {
+                if (!oldIp.equals(ip)) {
+                    removeIpMapping(oldIp, userId);
+                }
+            }
+            if (!ip.isEmpty()) {
+                IP_CACHE.put(ip, userId);
+            }
+            Sessions.put(userId, cached);
+        }
     }
 
     /**
@@ -159,7 +181,35 @@ public class UserCache {
      * @param user the specified user
      */
     public void removeUser(final JSONObject user) {
-        ID_CACHE.remove(user.optString(Keys.OBJECT_ID));
-        NAME_CACHE.remove(user.optString(User.USER_NAME));
+        final String userId = user.optString(Keys.OBJECT_ID);
+        synchronized (IP_CACHE) {
+            final JSONObject cached = ID_CACHE.remove(userId);
+            NAME_CACHE.remove(user.optString(User.USER_NAME));
+            if (null != cached) {
+                NAME_CACHE.remove(cached.optString(User.USER_NAME));
+            }
+            final String ip = null == cached
+                    ? user.optString(UserExt.USER_LATEST_LOGIN_IP)
+                    : cached.optString(UserExt.USER_LATEST_LOGIN_IP);
+            removeIpMapping(ip, userId);
+        }
+    }
+
+    /** Removes a user's IP mapping and preserves another cached account sharing that IP. */
+    private static void removeIpMapping(final String ip, final String userId) {
+        if (ip.isEmpty() || userId.isEmpty() || !userId.equals(IP_CACHE.get(ip))) {
+            return;
+        }
+
+        IP_CACHE.remove(ip);
+        synchronized (ID_CACHE) {
+            for (final JSONObject cached : ID_CACHE.values()) {
+                final String cachedUserId = cached.optString(Keys.OBJECT_ID);
+                if (!userId.equals(cachedUserId) && ip.equals(cached.optString(UserExt.USER_LATEST_LOGIN_IP))) {
+                    IP_CACHE.put(ip, cachedUserId);
+                    break;
+                }
+            }
+        }
     }
 }

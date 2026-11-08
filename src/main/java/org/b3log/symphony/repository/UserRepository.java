@@ -26,6 +26,7 @@ import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.cache.UserCache;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.util.JSONs;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.json.JSONObject;
@@ -155,10 +156,16 @@ public class UserRepository extends AbstractRepository {
                 return;
             }
 
+            // update() often receives only changed columns; keep the cached
+            // identity and latest-login-IP fields when refreshing the cache.
+            final JSONObject merged = JSONs.clone(old);
+            for (final String key : user.keySet()) {
+                merged.put(key, user.opt(key));
+            }
             userCache.removeUser(old);
             super.update(id, user, propertyNames);
-            user.put(Keys.OBJECT_ID, id);
-            userCache.putUser(user);
+            merged.put(Keys.OBJECT_ID, id);
+            userCache.putUser(merged);
         } finally {
             lock.unlock();
         }
