@@ -34,7 +34,10 @@ export async function requestFromIp({ origin, ip, pathname, userAgent }) {
         location: response.headers.location || null, localAddress, bytes,
         preview: preview.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80), durationMs: Date.now() - started }));
     });
-    request.on('error', error => reject(new Error(`E ${ip} 请求 ${target.pathname} 失败：${error.message}`)));
+    request.on('error', error => {
+      const detail = error.code === 'EADDRNOTAVAIL' ? '；本机已无法绑定此IP，请重新启动测试确认当前网卡IP，本轮不换源重试' : '';
+      reject(new Error(`E ${ip} 请求 ${target.pathname} 失败：${error.message}${detail}`));
+    });
   });
 }
 

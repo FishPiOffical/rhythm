@@ -9,7 +9,7 @@ import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
-import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
+import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, canonicalIp, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { requestFromIp } from './captcha-shield-pressure.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
@@ -94,7 +94,7 @@ function listLocalIps() {
 }
 
 function isLoopback(item) {
-  return item.interfaceAlias.toLowerCase().includes('loopback')
+  return String(item.interfaceAlias || '').toLowerCase().includes('loopback')
     || item.ip === '127.0.0.1'
     || item.ip === '::1';
 }
@@ -110,6 +110,65 @@ function isUsableIpv6(item) {
     && !ip.startsWith('fe80:')
     && !ip.startsWith('::1')
     && !ip.includes('%');
+}
+
+function orderedExtraIps(ips) {
+  const rank = item => {
+    if (isIpv4(item)) return 0;
+    const ip = canonicalIp(item.ip);
+    return ip.startsWith('2001:0:') || ip.startsWith('2001::') ? 2 : 1;
+  };
+  const unique = new Map();
+  for (const item of ips) {
+    if (net.isIP(item.ip) && !isLoopback(item) && (isIpv4(item) || isUsableIpv6(item))) {
+      const key = canonicalIp(item.ip);
+      if (!unique.has(key)) unique.set(key, item);
+    }
+  }
+  return [...unique.values()].sort((a, b) => rank(a) - rank(b));
+}
+
+function reconcileIpPlan(plan, ips) {
+  if (!plan?.loopback || !Array.isArray(plan.extra) || plan.extra.length !== REQUIRED_EXTRA_IPS) throw new Error('请先运行配置向导，保存L加5个额外IP');
+  const key = item => net.isIP(item?.ip) && !item.ip.includes('%') ? canonicalIp(item.ip) : null;
+  const available = [...ips.filter(item => key(item) && isLoopback(item)), ...orderedExtraIps(ips)];
+  const used = new Set();
+  const saved = [plan.loopback, ...plan.extra];
+  // Reserve every valid assignment before replacing missing ones, preserving A-E identities.
+  const resolved = saved.map((item, index) => {
+    const current = available.find(candidate => key(candidate) === key(item)
+      && (index === 0 ? isLoopback(candidate) : !isLoopback(candidate)));
+    if (!current || used.has(key(current))) return null;
+    used.add(key(current));
+    return item;
+  });
+  const changes = [];
+  for (let index = 0; index < resolved.length; index++) {
+    if (resolved[index]) continue;
+    const candidate = available.find(item => (index === 0 ? isLoopback(item) : !isLoopback(item)) && !used.has(key(item)));
+    if (!candidate) throw new Error('当前网卡不足L加5个不同可用IP；未修改配置，请恢复网卡后重试');
+    resolved[index] = candidate;
+    used.add(key(candidate));
+    changes.push({ label: index === 0 ? 'L' : String.fromCharCode(64 + index), oldIp: saved[index]?.ip || '(缺失)',
+      ip: candidate.ip, interfaceAlias: candidate.interfaceAlias });
+  }
+  return { ipPlan: changes.length ? { loopback: resolved[0], extra: resolved.slice(1) } : plan, changes };
+}
+
+function printIpChanges(changes) {
+  console.log('已保存的部分IP已失效或重复，保留其余地址，仅更新以下来源：');
+  for (const item of changes) console.log(`  ${item.label}：${item.oldIp} → ${item.ip}（${item.interfaceAlias}）`);
+}
+
+async function prepareTestIpConfig(config) {
+  if (!config) throw new Error('请先运行配置向导');
+  const { ipPlan, changes } = reconcileIpPlan(config.ipPlan, listLocalIps());
+  if (!changes.length) return config;
+  printIpChanges(changes);
+  if ((await ask('确认更新这些IP并继续（y）', 'y')).toLowerCase() !== 'y') throw new Error('未确认IP更新，未修改配置，未启动测试');
+  const updated = { ...config, ipPlan, updatedAt: new Date().toISOString() };
+  saveConfig(updated);
+  return updated;
 }
 
 function printIps(items) {
@@ -1171,16 +1230,18 @@ async function configure() {
   let extra;
 
   const reusePrevious = previous && previous.accounts?.length && previous.ipPlan?.extra?.length
-    ? (showConfig(previous), (await ask('是否复用上次填写的账号和 IP（输入 y 复用，其他键重新填写）', 'y')).toLowerCase() === 'y')
+    ? (showConfig(previous), (await ask('是否复用上次账号和端口（IP自动更新，y复用，其他键重填）', 'y')).toLowerCase() === 'y')
     : false;
 
   if (reusePrevious) {
     port = previous.port;
     expectedCommit = previous.expectedCommit || '';
     accounts = previous.accounts;
-    loopback = previous.ipPlan.loopback;
-    extra = previous.ipPlan.extra;
-    console.log('已复用上次的端口、账号和 IP，下面只需重新确认三项检查。');
+    const refreshed = reconcileIpPlan(previous.ipPlan, listLocalIps());
+    loopback = refreshed.ipPlan.loopback;
+    extra = refreshed.ipPlan.extra;
+    if (refreshed.changes.length) printIpChanges(refreshed.changes);
+    console.log('已复用端口和账号，保留有效IP；下面的第三项确认包含更新后的IP。');
   } else {
     port = await ask('服务端端口', previous?.port || '8080');
     expectedCommit = await ask('期望测试的 commit SHA（可留空）', previous?.expectedCommit || '');
@@ -1208,15 +1269,14 @@ async function configure() {
     if (!loopbackCandidate) throw new Error('没有发现回环地址候选，无法固定 L');
     loopback = loopbackCandidate;
 
-    const ipv4Extra = ips.filter(item => !isLoopback(item) && isIpv4(item));
-    const ipv6Extra = ips.filter(item => !isLoopback(item) && isUsableIpv6(item));
-    if (ipv4Extra.length + ipv6Extra.length < REQUIRED_EXTRA_IPS) {
-      const found = [...ipv4Extra, ...ipv6Extra].map(item => item.ip).join('、') || '无';
-      throw new Error(`当前仅发现 ${ipv4Extra.length} 个 IPv4 和 ${ipv6Extra.length} 个可用 IPv6 额外地址，严格需要 ${REQUIRED_EXTRA_IPS} 个，当前地址：${found}`);
+    const candidates = orderedExtraIps(ips);
+    if (candidates.length < REQUIRED_EXTRA_IPS) {
+      const found = candidates.map(item => item.ip).join('、') || '无';
+      throw new Error(`当前仅发现 ${candidates.length} 个不同可用额外地址，严格需要 ${REQUIRED_EXTRA_IPS} 个，当前地址：${found}`);
     }
-    extra = [...ipv4Extra, ...ipv6Extra].slice(0, REQUIRED_EXTRA_IPS);
+    extra = candidates.slice(0, REQUIRED_EXTRA_IPS);
     const ipv6Count = extra.filter(isUsableIpv6).length;
-    console.log(`已自动选择 ${REQUIRED_EXTRA_IPS} 个额外 IP，不需要手填（优先 IPv4，不足时补 IPv6）：`);
+    console.log(`已自动选择 ${REQUIRED_EXTRA_IPS} 个额外 IP（优先IPv4，再选原生IPv6，最后选Teredo）：`);
     extra.forEach((item, index) => console.log(`   ${String.fromCharCode(65 + index)}：${item.ip}${isUsableIpv6(item) ? '（IPv6）' : ''}`));
     if (ipv6Count > 0) {
       console.log(`其中 ${ipv6Count} 个为可路由 IPv6；后续浏览器和 HTTP 请求必须使用 IPv6 字面量方括号格式。`);
@@ -1264,19 +1324,22 @@ async function main() {
     else if (command === 'ips') printIps(listLocalIps());
     else if (command === 'driver') await configureDriver();
     else if (command === 'browser') {
-      const config = loadConfig();
+      const config = await prepareTestIpConfig(loadConfig());
       await runCdpAccountInitialization(config);
       await runBrowser(config);
     }
-    else if (command === 'flow') await runFirstAcceptanceFlowCdp(await prepareSecurityMonitorConfig(loadConfig()));
+    else if (command === 'flow') {
+      const config = await prepareTestIpConfig(loadConfig());
+      await runFirstAcceptanceFlowCdp(await prepareSecurityMonitorConfig(config));
+    }
     else if (command === 'suite') {
-      const config = loadConfig();
+      const config = await prepareTestIpConfig(loadConfig());
       const selected = await chooseAcceptanceModules(config, process.argv.slice(3).join(','));
       const prepared = await prepareSecurityMonitorConfig({ ...config, testModules: selected });
       await runFirstAcceptanceFlowCdp(prepared, selected);
     }
     else if (command === 'webdriver-flow') {
-      const config = loadConfig();
+      const config = await prepareTestIpConfig(loadConfig());
       await runCdpAccountInitialization(config);
       await runFirstAcceptanceFlow(config);
     }
