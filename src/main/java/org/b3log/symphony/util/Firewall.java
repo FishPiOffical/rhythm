@@ -94,7 +94,7 @@ public final class Firewall {
      * @return {@code true} if the request is allowed, {@code false} if already banned or ban was triggered
      */
     public static boolean recordAndMaybeBan(final String ip) {
-        return recordAndMaybeBan(ip, null);
+        return recordAndMaybeBan(ip, null, null, null);
     }
 
     /**
@@ -106,12 +106,21 @@ public final class Firewall {
      * @return {@code true} if the request is allowed, {@code false} if already banned or ban was triggered
      */
     public static boolean recordAndMaybeBan(final String ip, final String ua) {
+        return recordAndMaybeBan(ip, ua, null, null);
+    }
+
+    /** Records the request location for the admin security monitor without storing query data. */
+    public static boolean recordAndMaybeBan(final String ip, final String ua, final String method,
+                                            final String uri) {
         if (StringUtils.isBlank(ip) || !enabled) {
-            SecurityMonitor.record("cc", "allow", enabled ? "无效IP" : "开关关闭");
+            SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
+                    "cc", "allow", enabled ? "无效IP" : "开关关闭");
             return true;
         }
 
         if (null != SearchEngines.verifiedCrawler(ip, ua)) {
+            SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
+                    "cc", "allow", "已验证蜘蛛");
             return true;
         }
 
@@ -132,12 +141,14 @@ public final class Firewall {
 
         if (counter.count.sum() > effectiveThreshold) {
             banIpIfAbsent(ip, "请求频率超限");
-            SecurityMonitor.record("cc", "ban", "请求频率超限");
+            SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
+                    "cc", "ban", "请求频率超限");
             return false;
         }
 
         final boolean allowed = null == BANNED.getIfPresent(ip);
-        SecurityMonitor.record("cc", allowed ? "allow" : "deny", allowed ? "阈值内" : "已封禁");
+        SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
+                "cc", allowed ? "allow" : "deny", allowed ? "阈值内" : "已封禁");
         return allowed;
     }
 

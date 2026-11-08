@@ -99,7 +99,8 @@ public class BeforeRequestHandler implements Handler {
         // 先识别搜索引擎爬虫（含 DNS 反查校验），后续防火墙与验证盾据此豁免
         final boolean verifiedCrawler = fillBotAttrs(context);
 
-        if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT))) {
+        if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT),
+                context.method(), context.requestURI())) {
             logShield(context, ip, "拒绝", "请求频率超限", null);
             context.sendStatus(429);
             context.abort();

@@ -77,43 +77,24 @@
     </div>
 
     <#if permissions["miscBroadCast"].permissionGrant>
-    <div class="module">
-        <div class="module-header">
-            <h2>紧急公告发布</h2>
-        </div>
-        <div class="module-panel form fn-clear form--admin">
-            <form action="${servePath}/admin/broadcast/warn" method="POST">
-                <div class="fn__flex">
-                    <label>
-                        <div>公告内容</div>
-                        <textarea rows="20" name="warnBroadcastText"></textarea>
-                    </label>
-                </div>
-                <br/>
-                <button type="button" onclick="Util.insertWarnBroadcastModel(1)">模版：维护5分钟</button>
-                <button type="button" onclick="Util.insertWarnBroadcastModel(2)">模版：维护20秒</button>
-                <button type="submit" class="green fn-right">${submitLabel}</button>
-            </form>
-        </div>
-    </div>
-
     <div class="module security-panel">
         <div class="module-header"><h2>社区安全</h2></div>
         <div class="module-panel form fn-clear form--admin">
-            <p class="ft-small">运行模式：<strong>${securityRuntimeMode}</strong>。${securitySwitchEditable?then('当前可调整，重启后恢复默认值。','生产模式仅可查看。')}</p>
-            <div class="fn__flex" style="align-items:center;gap:10px;flex-wrap:wrap;">
+            <p class="security-mode">运行模式：<strong>${securityRuntimeMode}</strong><span>${securitySwitchEditable?then('可调整，重启后恢复默认值','生产模式只读')}</span></p>
+            <div class="security-controls">
                 <label><input type="checkbox" id="firewallEnabled" <#if firewallEnabled?? && firewallEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> CC 防护</label>
-                <label>每分钟请求数 <input type="number" id="firewallThreshold" min="1" value="${firewallThreshold!400}" style="width:110px;" <#if !securitySwitchEditable>disabled</#if>/></label>
+                <label>每分钟请求数 <input type="number" id="firewallThreshold" min="1" value="${firewallThreshold!400}" <#if !securitySwitchEditable>disabled</#if>/></label>
                 <label><input type="checkbox" id="verificationEnabled" <#if verificationShieldEnabled?? && verificationShieldEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> 验证码盾</label>
                 <label><input type="checkbox" id="firstVisitCaptchaEnabled" <#if firstVisitCaptchaEnabled?? && firstVisitCaptchaEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> 首访验证</label>
                 <button type="button" class="green" id="securitySaveButton" onclick="SecuritySwitches.save()" <#if !securitySwitchEditable>disabled</#if>>保存</button>
             </div>
-            <div class="security-monitor" style="margin-top:18px;"><h3>近期统计（本次启动）</h3>
-                <p>请求记录 <strong id="securityTotal">${securityStats.total}</strong>，近10分钟 <strong id="securityLast10">${securityStats.last10Minutes}</strong>。${securityStats.retention}</p>
-                <button type="button" onclick="SecuritySwitches.refresh()">刷新</button> <button type="button" onclick="SecuritySwitches.check()">执行自检</button><span id="securityRefreshMessage" class="ft-small"></span>
-                <div style="overflow-x:auto;max-width:100%;"><table class="table" style="min-width:520px;width:100%;"><thead><tr><th>时间</th><th>类型</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.type}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
-                <div id="securitySelfCheck" style="margin-top:12px;"><strong>自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
+            <div class="security-monitor">
+                <div class="security-monitor-heading"><h3>访问监控</h3><span>本次启动 · 最多100条</span></div>
+                <div class="security-stat-strip"><span>记录 <strong id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage">刚刚更新</span></div>
+                <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（10秒）</label></div>
+                <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
+            <div class="security-self-check" id="securitySelfCheck"><strong>自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
         </div>
     </div>
 
@@ -253,8 +234,11 @@ const SecuritySwitches = {
           .catch(err=>alert('保存失败：'+err.message)).finally(()=>{button.disabled=${securitySwitchEditable?then('false','true')};});
     },
     apply(data) { if(data.firewallEnabled!==undefined)document.getElementById('firewallEnabled').checked=!!data.firewallEnabled; if(data.threshold!==undefined)document.getElementById('firewallThreshold').value=data.threshold; if(data.verificationEnabled!==undefined)document.getElementById('verificationEnabled').checked=!!data.verificationEnabled; if(data.firstVisitCaptchaEnabled!==undefined)document.getElementById('firstVisitCaptchaEnabled').checked=!!data.firstVisitCaptchaEnabled; },
-    refresh() { fetch(this.servePath+'/admin/security/monitor').then(res=>res.json()).then(result=>{const d=result.data||{};document.getElementById('securityTotal').textContent=d.total||0;document.getElementById('securityLast10').textContent=d.last10Minutes||0;document.getElementById('securityEvents').innerHTML=(d.events||[]).map(e=>'<tr><td>'+e.time+'</td><td>'+e.type+'</td><td>'+e.result+'</td><td>'+e.reason+'</td></tr>').join('')||'<tr><td colspan="4">暂无记录</td></tr>';document.getElementById('securityRefreshMessage').textContent='已刷新';}).catch(err=>{document.getElementById('securityRefreshMessage').textContent='刷新失败：'+err.message;}); },
+    renderEvents(events) { const tbody=document.getElementById('securityEvents'); tbody.textContent=''; (events||[]).forEach(e=>{ const tr=document.createElement('tr'); ['time','ip','request','handler','flow','result','reason'].forEach(key=>{ const td=document.createElement('td'); td.textContent=key==='request'?((e.method||'-')+' '+(e.uri||'-')):(e[key]||'-'); tr.appendChild(td); }); tbody.appendChild(tr); }); if(!tbody.children.length){ const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=7; td.textContent='暂无记录'; tr.appendChild(td); tbody.appendChild(tr); } },
+    refresh(silent) { fetch(this.servePath+'/admin/security/monitor').then(res=>res.json()).then(result=>{const d=result.data||{};document.getElementById('securityTotal').textContent=d.total||0;document.getElementById('securityLast10').textContent=d.last10Minutes||0;this.renderEvents(d.events);document.getElementById('securityRefreshMessage').textContent=(silent?'自动更新：':'')+new Date().toLocaleTimeString();}).catch(err=>{if(!silent)document.getElementById('securityRefreshMessage').textContent='刷新失败：'+err.message;}); },
+    startAutoRefresh() { this.timer=setInterval(()=>{ const toggle=document.getElementById('securityAutoRefresh'); if(toggle.checked && !document.hidden)this.refresh(true); },10000); },
     check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
+SecuritySwitches.startAutoRefresh();
 </script>
 </@admin>

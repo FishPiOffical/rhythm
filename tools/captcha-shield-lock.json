@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
   "policyVersion": 1,
-  "approval": "Initial extraction and security panel integration authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "ba4525541a9862723832c710a6a0179f4cfac086295175e485df1e54a181e314"
+      "sha256": "de11452d2d72938c8bce9f92efe517ddc745ba12bee854febfb77d4b2b2ea90f"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -14,7 +14,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
       "method": "public void handle(final RequestContext context)",
-      "sha256": "c5a26d7b4047297ad324c4388717dc1b4c8745ce1f87302fb3cf229f8fa89458"
+      "sha256": "b8eeb6e36b30a6bda526a1f29ea10a9f5f26e8da5af477fb50de033dfd76b4c9"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",

@@ -659,3 +659,176 @@ blockquote {
     transform: translate(-50%, -70%) rotate(360deg);
   }
 }
+
+/* Admin security monitor: compact controls and readable long-form event rows. */
+.security-panel {
+  .security-mode {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 16px;
+    color: #52606d;
+
+    strong {
+      color: #172b4d;
+      letter-spacing: .02em;
+    }
+  }
+
+  .security-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding: 14px 16px;
+    border: 1px solid #e5e9ef;
+    border-radius: 8px;
+    background: #f8fafc;
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    input[type='number'] {
+      width: 92px;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+    }
+  }
+
+  .security-monitor {
+    margin-top: 20px;
+  }
+
+  .security-monitor-heading,
+  .security-stat-strip,
+  .security-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+
+  .security-monitor-heading {
+    justify-content: space-between;
+    border-bottom: 1px solid #e8edf3;
+    padding-bottom: 8px;
+
+    h3 {
+      margin: 0;
+      color: #172b4d;
+      font-size: 16px;
+    }
+
+    span,
+    .security-stat-strip,
+    #securityRefreshMessage {
+      color: #7b8794;
+      font-size: 12px;
+    }
+  }
+
+  .security-stat-strip {
+    margin: 10px 0;
+    color: #52606d;
+    font-size: 13px;
+
+    span {
+      padding-right: 14px;
+      border-right: 1px solid #dfe5ec;
+    }
+
+    span:last-child {
+      border-right: 0;
+    }
+
+    strong {
+      color: #172b4d;
+      font-size: 16px;
+    }
+  }
+
+  .security-actions {
+    margin-bottom: 10px;
+
+    label {
+      color: #52606d;
+      font-size: 12px;
+    }
+  }
+
+  .security-events-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e5e9ef;
+    border-radius: 6px;
+  }
+
+  .security-events {
+    min-width: 980px;
+    margin: 0;
+    table-layout: auto;
+
+    th,
+    td {
+      padding: 7px 9px;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f5f7fa;
+      color: #52606d;
+      font-size: 12px;
+    }
+
+    td {
+      color: #243b53;
+      font-size: 12px;
+    }
+
+    td:nth-child(3),
+    td:nth-child(4),
+    td:nth-child(5),
+    td:nth-child(7) {
+      white-space: normal;
+      min-width: 140px;
+    }
+  }
+
+  .security-self-check {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-left: 3px solid #4caf50;
+    background: #f7fbf8;
+    color: #52606d;
+    font-size: 12px;
+    line-height: 1.7;
+
+    strong {
+      color: #172b4d;
+    }
+  }
+}
+
+@media (max-width: 680px) {
+  .security-panel {
+    .security-controls {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .security-monitor-heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+}
