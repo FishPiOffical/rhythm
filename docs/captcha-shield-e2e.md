@@ -60,7 +60,7 @@ node tools/captcha-shield-e2e.mjs ips
 
 - 为 L、A、B、C、D、E 分别建立独立的 Chrome 用户目录；目录位于 `%LOCALAPPDATA%\RhythmCaptchaShieldE2E\profiles`，用于保留每个源地址自己的 Cookie，不把账号密码写入日志。
 - 依次打开对应地址的首页。IPv6 地址自动使用 `http://[地址]:端口/` 格式。
-- 读取浏览器当前 URL；如果服务把请求重定向到 `/test`，脚本会暂停并提示你在刚打开的 Chrome 窗口中手动完成极验。脚本不会模拟拖动、伪造 `/validateCaptcha` 响应或把未完成的验证当作成功。
+- 使用 ChromeDriver 的 `eager` 页面加载策略，先等待 DOM 可用；对仍在后台下载的图片等非关键资源只记录提示、不把整页测试卡死。读取浏览器当前 URL；如果服务把请求重定向到 `/test`，脚本会暂停并提示你在刚打开的 Chrome 窗口中手动完成极验。脚本不会模拟拖动、伪造 `/validateCaptcha` 响应或把未完成的验证当作成功。
 - 你按 Enter 后，脚本再次读取当前 URL；仍停留在 `/test` 会明确失败，离开后才继续下一个源地址。
 
 阶段 2 只验证“真实浏览器能打开、验证码页面能人工接管、完成后能继续”这条基础链路，不代替后续的 `/admin/misc` 日志核对、每 5 次访问、黑名单和压测阶段。若未配置 ChromeDriver，运行会直接报错并给出安装或 `CHROMEDRIVER_PATH` 提示，不会伪造通过结果。

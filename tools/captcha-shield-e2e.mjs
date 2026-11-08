@@ -23,6 +23,8 @@ const CONFIG_DIR = process.env.LOCALAPPDATA
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 const DRIVER_START_TIMEOUT_MS = 10_000;
 const DRIVER_REQUEST_TIMEOUT_MS = 15_000;
+const NAVIGATION_TIMEOUT_MS = 45_000;
+const PAGE_READY_TIMEOUT_MS = 15_000;
 
 const rl = readline.createInterface({ input, output });
 
@@ -227,12 +229,12 @@ async function waitForDriver(driverUrl, processHandle) {
   throw new Error(`等待 ChromeDriver 超时${lastError ? `：${lastError.message}` : ''}`);
 }
 
-async function webdriverRequest(driverUrl, endpoint, method = 'GET', body) {
+async function webdriverRequest(driverUrl, endpoint, method = 'GET', body, timeoutMs = DRIVER_REQUEST_TIMEOUT_MS) {
   const response = await fetch(`${driverUrl}${endpoint}`, {
     method,
     headers: body === undefined ? undefined : { 'content-type': 'application/json; charset=utf-8' },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(DRIVER_REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const raw = await response.text();
   let payload;
@@ -276,8 +278,24 @@ async function currentUrl(driverUrl, sessionId) {
 }
 
 async function navigate(driverUrl, sessionId, url) {
-  await webdriverRequest(driverUrl, `/session/${sessionId}/url`, 'POST', { url });
-  await sleep(500);
+  await webdriverRequest(driverUrl, `/session/${sessionId}/url`, 'POST', { url }, NAVIGATION_TIMEOUT_MS);
+  const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
+  let state = null;
+  while (Date.now() < deadline) {
+    state = await webdriverExecute(driverUrl, sessionId, 'return {readyState: document.readyState, pendingImages: [...document.images].filter(image => image.src && !image.complete).length};');
+    if (state?.readyState === 'complete' || state?.readyState === 'interactive') break;
+    await sleep(250);
+  }
+  if (!['complete', 'interactive'].includes(state?.readyState)) {
+    throw new Error(`页面未在 ${PAGE_READY_TIMEOUT_MS / 1000} 秒内完成加载：${new URL(url).pathname || '/'}`);
+  }
+  if (state.pendingImages) {
+    const pending = await webdriverExecute(driverUrl, sessionId, 'return [...document.images].filter(image => image.src && !image.complete).slice(0, 5).map(image => image.src);');
+    const paths = (Array.isArray(pending) ? pending : []).map(resource => {
+      try { return new URL(resource).pathname; } catch (_) { return '[未知资源]'; }
+    });
+    console.log(`提示：${new URL(url).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
+  }
   return currentUrl(driverUrl, sessionId);
 }
 
@@ -288,6 +306,7 @@ async function createChromeSession(driverUrl, entry) {
     capabilities: {
       alwaysMatch: {
         browserName: 'chrome',
+        pageLoadStrategy: 'eager',
         'goog:chromeOptions': {
           args: [
             `--user-data-dir=${profileDir}`,
@@ -458,10 +477,10 @@ async function runFirstAcceptanceFlow(config) {
   const driver = await startChromeDriver(config);
   const sessions = new Map();
   try {
-    for (const entry of [entryL, entryA, entryB]) sessions.set(entry.key, await createChromeSession(driver.driverUrl, entry));
+    // Create each profile immediately before its test section so idle browser
+    // windows do not open and then sit unused while another source is tested.
+    sessions.set(entryL.key, await createChromeSession(driver.driverUrl, entryL));
     const lSession = sessions.get('L');
-    const aSession = sessions.get('A');
-    const bSession = sessions.get('B');
     console.log('\n=== 第一阶段：L 登录基线 ===');
     await requireNoCaptcha(entryL, driver.driverUrl, lSession, sourceUrl(config, entryL.item));
     await loginWithAccount(entryL, driver.driverUrl, lSession, config, baseline);
@@ -473,6 +492,8 @@ async function runFirstAcceptanceFlow(config) {
     console.log('L 基线完成；管理员监控核对将在 A 登录管理员后执行。');
 
     console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
+    sessions.set(entryA.key, await createChromeSession(driver.driverUrl, entryA));
+    const aSession = sessions.get('A');
     await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
     const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
     let redirectedAt = 0;
@@ -493,6 +514,8 @@ async function runFirstAcceptanceFlow(config) {
     console.log('A 登录后通过 5 次访问，未再次进入 /test。');
 
     console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
+    sessions.set(entryB.key, await createChromeSession(driver.driverUrl, entryB));
+    const bSession = sessions.get('B');
     await requireCaptcha(entryB, driver.driverUrl, bSession, sourceUrl(config, entryB.item));
     await loginWithAccount(entryB, driver.driverUrl, bSession, config, admin);
     await checkAdminMisc(entryB, driver.driverUrl, bSession, config, 'B 验证码后管理员登录');
@@ -535,6 +558,7 @@ async function runBrowser(config) {
         capabilities: {
           alwaysMatch: {
             browserName: 'chrome',
+            pageLoadStrategy: 'eager',
             'goog:chromeOptions': {
               args: [
                 `--user-data-dir=${profileDir}`,
