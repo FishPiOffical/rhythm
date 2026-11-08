@@ -38,6 +38,7 @@
 - 验收菜单8通过 `tools/captcha-shield-suite.mjs` 组合模块并复用选择，菜单7固定L/A/B；日志须匹配本轮事件及统计，解封D按服务端实际IP格式操作；`results.json` 保留结果，失败保留浏览器，隔离HTTP夹具通过不能当真实极验或Linux ipset通过。
 - 验证码盾验收统一PRODUCTION，不开发DEVELOPMENT写入测试；可选`pressure`只用E真实绑定HTTP（不带Cookie、不跟跳转），按服务端固定分钟验证匿名阈值及429，监控独立L/adlered；应用封禁保留，Windows结果不证明ipset成功。
 - 验收工具启动前按当前网卡修复过期/重复IP：保留有效来源标签，仅缺位选IPv4→原生IPv6→Teredo，用户确认后保存，账号密文复用；运行中绑定失败不得换源重试，不能把未发出的请求算防火墙通过或失败。
+- 验收菜单7/8经`captcha-shield-report.mjs`保存逐项JPG及离线PDF/HTML；用独立Chrome后台页打印，不替换业务页、不补发E流量。截图失败必须暴露；失败保留现场，导出状态与业务结果分列，禁止补造历史截图或把隔离夹具当真实验收。
 - 用户脱敏基线（已审计）：对外接口用户对象统一走 `DesensitizeUtil`（移除密码/邮箱/手机/QQ/2FA/apiKey/token/IP/UA 等）或字段白名单；已知存量风险（用户知情暂不修）：`/reset-pwd?code=` 与 `/register?code=` 页面把完整 `user.userPhone` 输出到 HTML（LoginProcessor + verify/reset-pwd.ftl、verify/register2.ftl，匿名可见）；`TopProcessor#removePrivateData` 不移除签到/登录时间戳等活动字段。
 - `symphony.properties` 中提交的 `upload.rhypic.ticketPrivateKey` / `upload.rhypic.internalToken` 是开发调试专用，生产环境使用独立生成的密钥，审计时不要当作泄露误报。
 - 搜索引擎爬虫校验：`SearchEngines` 对 Google/Baidu/Bing/Sogou/Yandex 走 DNS 双向校验；DuckDuckGo 走本地 CIDR 资源 `src/main/resources/search-engines/duckduckgo-bot-prefixes.json`，该文件由 `scripts/deploy.ps1` 调用 `scripts/update-duckduckgo-bot-prefixes.ps1` 在打包前合并官方 JSON。

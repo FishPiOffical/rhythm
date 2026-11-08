@@ -11,6 +11,7 @@ import net from 'node:net';
 import readline from 'node:readline/promises';
 import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, canonicalIp, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { requestFromIp } from './captcha-shield-pressure.mjs';
+import { createEvidenceRecorder, exportPdfReport } from './captcha-shield-report.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -572,8 +573,9 @@ class CdpClient {
   }
 }
 
-async function cdpEvaluate(client, expression) {
-  const result = await client.send('Runtime.evaluate', {
+async function cdpEvaluate(client, expression, timeoutMs) {
+  const send = timeoutMs ? (method, params) => cdpCommandWithTimeout(client, method, params, timeoutMs) : (method, params) => client.send(method, params);
+  const result = await send('Runtime.evaluate', {
     expression,
     returnByValue: true,
     awaitPromise: true,
@@ -585,8 +587,90 @@ async function cdpEvaluate(client, expression) {
   return result.result?.value;
 }
 
-async function cdpPageState(client) {
-  return cdpEvaluate(client, '({readyState: document.readyState, href: location.href, pendingImages: [...document.images].filter(image => image.src && !image.complete).length, title: document.title || "", body: (document.body && document.body.innerText || "").slice(0, 4000)})');
+async function cdpPageState(client, timeoutMs) {
+  return cdpEvaluate(client, '({readyState: document.readyState, href: location.href, pendingImages: [...document.images].filter(image => image.src && !image.complete).length, title: document.title || "", body: (document.body && document.body.innerText || "").slice(0, 4000)})', timeoutMs);
+}
+
+async function cdpCommandWithTimeout(client, method, params = {}, timeoutMs = 15_000) {
+  let timer;
+  try {
+    return await Promise.race([client.send(method, params), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${method} 超过 ${timeoutMs / 1000} 秒`)), timeoutMs);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+
+async function captureEvidencePage(client, panel = false) {
+  let maskId;
+  try {
+    // Hide password fields only while rasterizing; never clear the user's failure scene.
+    maskId = await cdpEvaluate(client, `(() => {
+      const style=document.createElement('style'); style.id='captcha-e2e-mask-'+Date.now();
+      style.textContent='input[type="password"],#loginPassword { visibility:hidden!important }';
+      document.documentElement.appendChild(style); return style.id;
+    })()`, 15_000);
+    const masked = await cdpEvaluate(client, `[...document.querySelectorAll('input[type="password"],#loginPassword')]
+      .every(input=>getComputedStyle(input).visibility==='hidden')`, 15_000);
+    if (!masked) throw new Error('密码输入框遮挡未生效，拒绝保存截图');
+    const page = await cdpPageState(client, 15_000);
+    let clip;
+    if (panel) {
+      clip = await cdpEvaluate(client, `(() => {
+        const panel=document.querySelector('.security-panel'); if(!panel)return null;
+        const table=document.querySelector('#securityEvents')?.closest('table');
+        const width=Math.max(panel.getBoundingClientRect().width,(table?.scrollWidth||0)+48);
+        const style=document.getElementById(${JSON.stringify(maskId)});
+        if(!style)throw new Error('截图样式不可用');
+        style.textContent+=' .security-panel{width:'+width+'px!important;max-width:none!important} .security-events-wrap{overflow:visible!important;max-width:none!important}';
+        const box=panel.getBoundingClientRect();
+        return {x:Math.max(0,box.x+scrollX),y:Math.max(0,box.y+scrollY),width:Math.max(1,box.width),height:Math.max(1,Math.min(box.height,560)),scale:1};
+      })()`, 15_000);
+    }
+    const screenshot = await cdpCommandWithTimeout(client, 'Page.captureScreenshot', {
+      format: 'jpeg', quality: 78, captureBeyondViewport: Boolean(clip), ...(clip ? { clip } : {}),
+    });
+    if (!screenshot.data) throw new Error('Chrome 未返回截图');
+    return { data: screenshot.data, expanded: Boolean(clip), page: { url: page.href, title: contentSnippet(page.title),
+      status: client.lastDocumentResponse?.status, preview: contentSnippet(page.body) } };
+  } finally {
+    if (maskId) await cdpEvaluate(client, `document.getElementById(${JSON.stringify(maskId)})?.remove()`, 15_000);
+  }
+}
+
+async function printEvidencePdf(session, html) {
+  let targetId;
+  let printer;
+  try {
+    ({ targetId } = await cdpCommandWithTimeout(session.client, 'Target.createTarget', { url: 'about:blank', background: true }));
+    const endpoint = new URL(session.client.websocketUrl);
+    const targets = await (await fetch(`http://${endpoint.host}/json/list`, { signal: AbortSignal.timeout(5000) })).json();
+    const target = targets.find(item => item.id === targetId && item.webSocketDebuggerUrl);
+    if (!target) throw new Error('未找到独立报告页');
+    printer = await new CdpClient(target.webSocketDebuggerUrl).connect();
+    const tree = await cdpCommandWithTimeout(printer, 'Page.getFrameTree');
+    await cdpCommandWithTimeout(printer, 'Page.setDocumentContent', { frameId: tree.frameTree.frame.id, html });
+    // Background tabs may defer image.decode() indefinitely. Require real image
+    // dimensions and a laid-out document; Chrome's print pipeline decodes them.
+    const deadline = Date.now() + 15_000;
+    let ready = false;
+    while (Date.now() < deadline) {
+      ready = await cdpEvaluate(printer, `Boolean(document.body?.getBoundingClientRect().height
+        && document.readyState==='complete' && document.fonts.status==='loaded'
+        && [...document.images].every(image=>image.complete && image.naturalWidth>0))`, 5000);
+      if (ready) break;
+      await sleep(100);
+    }
+    if (!ready) throw new Error('报告图片或字体未成功加载');
+    const pdf = await cdpCommandWithTimeout(printer, 'Page.printToPDF', {
+      printBackground: true, preferCSSPageSize: true, displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: '<div style="font-size:8px;width:100%;text-align:center;color:#667">Rhythm · <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+    }, 45_000);
+    return pdf.data;
+  } finally {
+    printer?.close();
+    if (targetId) await cdpCommandWithTimeout(session.client, 'Target.closeTarget', { targetId });
+  }
 }
 
 function contentSnippet(text) {
@@ -919,8 +1003,7 @@ async function runFirstAcceptanceFlowCdp(config, selected = FIRST_FLOW_MODULES) 
       persist({ ...initialResult, status: 'FAIL' });
       throw error;
     }
-    const result = await runAcceptanceSuite({ config, selected, persist, runtime });
-    console.log(`\n所选 ${result.modules.length} 个模块全部通过。`);
+    await runAcceptanceSuite({ config, selected, persist, runtime });
   });
 }
 
@@ -933,27 +1016,43 @@ async function runCdpAccountInitialization(config) {
       fs.writeFileSync(resultPath, JSON.stringify({ status: 'FAIL', initialization: { status: 'FAIL', error: error.message } }, null, 2));
       throw error;
     }
-  });
+  }, { withReport: false });
 }
 
-async function runCdpTestTask(config, task) {
+async function runCdpTestTask(config, task, { withReport = true } = {}) {
   if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
     throw new Error('未找到完整配置，请先运行配置向导并确认 L 加 5 个额外 IP');
   }
+  const startedAt = new Date().toISOString();
   const runRoot = path.resolve(CONFIG_DIR, 'runs', `cdp-suite-${Date.now()}`);
   const profileRoot = path.join(runRoot, 'profiles');
   const resultPath = path.join(runRoot, 'results.json');
   fs.mkdirSync(runRoot, { recursive: true });
   const sessions = new Set();
+  const recorder = createEvidenceRecorder({ runRoot, capture: captureEvidencePage });
   let completed = false;
+  let taskError;
   try {
     console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
     await task({
       entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep, requestFromIp,
-      isCaptcha: isCaptchaPath, login: cdpLogin, articles: cdpCollectArticleUrls,
-      navigate: cdpNavigateWithPacing, ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
+      isCaptcha: isCaptchaPath, articles: cdpCollectArticleUrls,
+      checkpoint: data => recorder.checkpoint(data),
+      login: async (entry, client, loginConfig, account, lastAt, evidence) => {
+        await cdpLogin(entry, client, loginConfig, account, lastAt, evidence);
+        if (withReport) await recorder.checkpoint({ label: `${entry.key} 登录 ${account.username} 身份已核对`, session: { entry, client }, kind: 'login' });
+      },
+      navigate: async (client, target, lastAt, evidence, options) => {
+        const href = await cdpNavigateWithPacing(client, target, lastAt, evidence, options);
+        const page = await cdpPageState(client);
+        recorder.navigate({ source: evidence?.sourceKey, url: href, requestedUrl: target,
+          status: client.lastDocumentResponse?.status, title: contentSnippet(page.title), preview: contentSnippet(page.body),
+          fromCache: Boolean(client.lastDocumentResponse?.fromDiskCache || client.lastDocumentResponse?.fromServiceWorker) });
+        return href;
+      },
+      ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
       start: async entry => {
-        const session = await startCdpSession(config, entry, profileRoot);
+        const session = { ...await startCdpSession(config, entry, profileRoot), entry };
         sessions.add(session);
         return session;
       },
@@ -963,13 +1062,38 @@ async function runCdpTestTask(config, task) {
         for (const tracked of sessions) if (tracked.client === session.client) sessions.delete(tracked);
       },
     }, resultPath);
-    completed = true;
   } catch (error) {
     console.error(`失败原因：${error.message}`);
-    throw error;
+    taskError = error;
   } finally {
+    let result = fs.existsSync(resultPath) ? JSON.parse(fs.readFileSync(resultPath, 'utf8')) : { status: 'FAIL', modules: [] };
+    result = { ...result, startedAt, finishedAt: result.finishedAt || new Date().toISOString() };
+    if (taskError) {
+      result = { ...result, status: 'FAIL', error: taskError.message, finishedAt: new Date().toISOString() };
+      for (const session of withReport ? sessions : []) {
+        try {
+          await recorder.checkpoint({ label: `失败现场 ${session.entry.key}`, status: 'FAIL', session,
+            evidence: { error: taskError.message }, kind: 'failure' });
+        } catch (error) { console.error(error.message); }
+      }
+    }
+    if (withReport) try {
+      const session = [...sessions].at(-1);
+      if (!session) throw new Error('没有可连接的Chrome，无法打印PDF；原始结果和已采集证据保留');
+      console.log('正在生成截图与 PDF 报告……');
+      result.report = await exportPdfReport({ runRoot, result, recorder, print: html => printEvidencePdf(session, html) });
+      console.log(`图文报告：${path.join(runRoot, 'report.pdf')}`);
+      console.log(`截图目录：${path.join(runRoot, 'screenshots')}`);
+    } catch (error) {
+      result.report = { status: 'FAIL', error: error.message };
+      console.error(`报告生成失败：${error.message}`);
+      taskError ||= new Error(`测试结果已保存，但报告生成失败：${error.message}`, { cause: error });
+    }
+    fs.writeFileSync(resultPath, `${JSON.stringify(result, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    completed = !taskError;
     console.log(`本轮结果：${resultPath}`);
     if (completed) {
+      if (withReport) console.log(`\n所选 ${result.modules?.length || 0} 个模块全部通过，报告已生成。`);
       for (const session of [...sessions].reverse()) await closeCdpSession(session);
       if (path.dirname(path.resolve(profileRoot)) !== runRoot || path.basename(profileRoot) !== 'profiles') {
         throw new Error('临时用户目录不在本轮目录内，拒绝清理');
@@ -986,6 +1110,7 @@ async function runCdpTestTask(config, task) {
       console.error('Chrome 窗口和临时目录仍保留；确认现场后请手动关闭窗口。');
     }
   }
+  if (taskError) throw taskError;
 }
 
 async function requireCaptcha(entry, driverUrl, sessionId, url) {

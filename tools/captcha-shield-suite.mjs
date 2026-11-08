@@ -92,7 +92,17 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   let articles;
   let aLoggedIn;
   let documentProbeSequence = 0;
+  let currentStep;
   const save = () => persist(result);
+  async function addCheck(check, session, kind = 'check') {
+    currentStep = check.label;
+    const stored = { ...check };
+    currentModule.checks.push(stored);
+    save();
+    if (rt.checkpoint) stored.evidenceId = await rt.checkpoint({ label: check.label, status: check.status,
+      session, monitor: monitorSession, evidence: check, kind });
+    save();
+  }
   const source = key => {
     const entry = entries.find(item => item.key === key);
     if (!entry) throw new Error(`配置缺少 ${key} 来源地址`);
@@ -134,6 +144,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     return href;
   }
   async function login(session, account) {
+    currentStep = `${session.entry.key} 登录 ${account.username}`;
     await rt.login(session.entry, session.client, config, account, session.lastAt);
   }
   async function ensureMonitor() {
@@ -168,7 +179,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     })()`);
     return data;
   }
-  async function verifyMonitor(label, session, before, expected, minimumGrowth = 1) {
+  async function verifyMonitor(label, session, before, expected, minimumGrowth = 1, http) {
+    currentStep = label;
     const target = { ip: session.entry.item.ip, ...expected };
     // localhost may resolve to either loopback family. Learn the actual monitor IP from its own authenticated request.
     if (session.entry.item === source('L').item) {
@@ -201,14 +213,16 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       throw new Error(`${label}：监控接口有记录，但后台8列显示不一致`);
     }
     console.log(`通过：${label}；日志 ${match.ip} ${match.method} ${match.uri}；${match.handler}；${match.flow}；${match.result}/${match.reason}；${match.userStatus}；统计 ${counterKey} +${after.counts[counterKey] - (before.counts[counterKey] || 0)}`);
-    currentModule.checks.push({ label, status: 'PASS', event: match, counterKey, counterDelta: after.counts[counterKey] - (before.counts[counterKey] || 0) });
-    save();
+    await addCheck({ label, status: 'PASS', event: match, counterKey,
+      counterDelta: after.counts[counterKey] - (before.counts[counterKey] || 0),
+      http: http || session.client?.lastDocumentResponse }, session.client ? session : undefined, session.client ? 'check' : 'http');
     return match;
   }
   async function observe(label, session, action, expected) {
+    currentStep = label;
     const before = await monitor();
     const value = await action();
-    await verifyMonitor(label, session, before, expected);
+    await verifyMonitor(label, session, before, expected, 1, value?.status ? value : undefined);
     return value;
   }
   const cc = (pathname, extra = {}) => ({ method: 'GET', uri: pathname, type: 'cc', result: 'allow', flow: 'BeforeRequestHandler -> Firewall', ...extra });
@@ -267,6 +281,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await completeChallenge(a);
       let redirected = false;
       for (let i = 1; i <= 5; i++) {
+        currentStep = `A 周期累计访问 ${i}/5`;
         const pathname = i <= 2 ? '/' : paths[i - 3];
         const before = await monitor();
         const href = await navigate(a, pathname);
@@ -275,13 +290,14 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
           const event = await verifyMonitor('A 周期验证日志', a, before, { type: 'captcha', result: 'challenge', reason: '访问满5次',
             flow: 'AnonymousViewCheckMidware -> AnonymousCaptchaShield' });
           console.log(`通过：A 第 ${i} 次页面访问触发周期验证；日志 ${event.method} ${event.uri} ${event.reason}`);
-          currentModule.checks.push({ label: 'A 周期验证', status: 'PASS', pageVisits: i, event });
-          save();
+          await addCheck({ label: 'A 周期验证', status: 'PASS', pageVisits: i, event }, a);
           await completeChallenge(a);
           redirected = true;
           break;
         }
         requireOk(a, href, pathname);
+        await addCheck({ label: `A 周期累计访问 ${i}/5`, status: 'OBSERVED', pageVisits: i,
+          http: a.client.lastDocumentResponse }, a);
       }
       if (!redirected) throw new Error('A 五次页面访问内未重新触发验证码');
       await login(a, admin);
@@ -305,7 +321,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
         let href = await navigate(returned, '/');
         if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) {
           console.log('A 首次回访未进入/test，执行一次强刷（额外真实请求，单独记录）。');
-          currentModule.checks.push({ label: 'A 首次回访', status: 'OBSERVED', httpStatus: returned.client.lastDocumentResponse?.status, pathname: new URL(href).pathname });
+          await addCheck({ label: 'A 首次回访', status: 'OBSERVED', httpStatus: returned.client.lastDocumentResponse?.status, pathname: new URL(href).pathname }, returned);
           href = await navigate(returned, '/', { reload: true });
         }
         if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) throw new Error('A 回访及一次强刷均未进入/test');
@@ -339,6 +355,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await login(operator, admin);
       await noCaptcha(operator, '/admin/ip');
       console.log(`准备通过IP管理真实解封D：${targetIp}（按服务端实际IP格式）；仅验证应用内加白，Windows不证明ipset成功。`);
+      currentStep = 'D 管理解封操作';
       await rt.evaluate(operator.client, `(() => {
         const form = document.querySelector('#ipListForm');
         const input = form?.querySelector('textarea[name="ipList"]');
@@ -379,9 +396,10 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
         })};
       })()`;
       const before = await rt.evaluate(session.client, stateExpression);
+      currentStep = '生产设置控件只读';
       if (before.mode !== 'PRODUCTION' || before.controls.some(item => !item.disabled)) throw new Error('生产只读测试要求PRODUCTION且四项设置与保存均disabled');
-      currentModule.checks.push({ label: '生产设置控件只读', status: 'PASS', state: before });
-      save();
+      await addCheck({ label: '生产设置控件只读', status: 'PASS', state: before }, session);
+      currentStep = '有效页面凭据提交原设置仍403且状态未变';
       const denied = await rt.evaluate(session.client, `(async () => {
         const token = Array.from(document.scripts).map(script=>script.textContent).join(' ').match(/'csrfToken'\\s*:\\s*'([^']+)'/)?.[1];
         if (!token) throw new Error('无法从实际保存脚本读取CSRF令牌，未发送请求');
@@ -396,7 +414,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await noCaptcha(session, '/admin/misc');
       const after = await rt.evaluate(session.client, stateExpression);
       if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('生产保存请求后安全设置发生变化');
-      currentModule.checks.push({ label: '有效页面凭据提交原设置仍403且状态未变', status: 'PASS', httpStatus: denied.status });
+      await addCheck({ label: '有效页面凭据提交原设置仍403且状态未变', status: 'PASS', httpStatus: denied.status }, session);
+      currentStep = '后台结构自检（不代替真实请求测试）';
       const selfCheck = await rt.evaluate(session.client, `(async () => {
         const response=await fetch('/admin/security/self-check',{cache:'no-store',signal:AbortSignal.timeout(10000)});
         if(!response.ok || response.redirected)throw new Error('自检请求失败 HTTP '+response.status);
@@ -405,7 +424,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
         return result.data;
       })()`);
       if (selfCheck.status !== 'PASS' || selfCheck.checks.some(item => !item.passed)) throw new Error('后台结构自检未全部通过');
-      currentModule.checks.push({ label: '后台结构自检（不代替真实请求测试）', status: 'PASS', selfCheck });
+      await addCheck({ label: '后台结构自检（不代替真实请求测试）', status: 'PASS', selfCheck }, session);
       const guest = await open('Guest-L', 'L');
       for (const pathname of ['/admin/security/monitor', '/admin/security/self-check']) {
         await observe(`匿名拒绝 ${pathname}`, guest, async () => {
@@ -413,6 +432,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
           await noCaptcha(guest, '/login');
           const response = await rt.evaluate(guest.client, `(async()=>{const r=await fetch(${JSON.stringify(pathname)},{cache:'no-store',signal:AbortSignal.timeout(10000)});return {status:r.status,redirected:r.redirected,body:(await r.text()).slice(0,120)};})()`);
           if (response.status !== 403 || response.redirected) throw new Error(`匿名后台读取未403：${pathname} HTTP ${response.status}`);
+          return { status: response.status, url: url(guest, pathname), preview: response.body };
         }, cc(pathname, { userStatusPrefix: '访客' }));
       }
       console.log('通过：生产控件只读、真实保存403且状态未变、匿名后台拒绝、结构自检。');
@@ -433,15 +453,14 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await runPressureProbe({ origin: rt.sourceUrl(config, e.entry.item), ip: e.entry.item.ip,
         threshold: state.threshold, userAgent: state.ua, request: rt.requestFromIp, sleep: rt.sleep, monitor,
         observe: async (label, action, expected) => {
+          currentStep = label;
           const before = await monitor();
           const response = await action();
-          const event = await verifyMonitor(label, e, before, expected);
-          currentModule.checks.at(-1).http = response;
-          save();
+          const event = await verifyMonitor(label, e, before, expected, 1, response);
           return { response, event };
         },
         verify: (label, before, expected, minimumGrowth) => verifyMonitor(label, e, before, expected, minimumGrowth),
-        record: (label, evidence) => { currentModule.checks.push({ label, status: 'PASS', ...evidence }); save(); },
+        record: (label, evidence) => addCheck({ label, status: 'PASS', ...evidence }, undefined, 'http'),
         progress: evidence => { currentModule.pressure = evidence; save(); },
       });
     },
@@ -450,6 +469,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   try {
     for (const module of result.modules) {
       currentModule = module;
+      currentStep = module.name;
       module.status = 'RUNNING';
       save();
       console.log(`\n=== ${module.name}（${module.id}） ===`);
@@ -469,6 +489,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     result.finishedAt = new Date().toISOString();
     currentModule.status = 'FAIL';
     currentModule.error = error.message;
+    currentModule.checks.push({ label: currentStep || currentModule.name, status: 'FAIL', error: error.message });
     if (currentModule.pressure) currentModule.pressure = { ...currentModule.pressure, status: 'FAIL', error: error.message };
     save();
     throw error;

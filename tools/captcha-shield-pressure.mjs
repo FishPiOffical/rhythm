@@ -113,7 +113,7 @@ export async function runPressureProbe({ origin, ip, threshold, userAgent, reque
     const last = await verify('E 并发阈值内请求仍受验证码盾保护', beforeBurst, redirect('/about'), limit - 1);
     if (Math.floor(last.timestamp / WINDOW_MS) !== bucket) throw new Error('并发阶段跨过了服务端分钟边界，本轮不能判定阈值通过');
   }
-  record('E 阈值内请求完成', { requestCount: limit, burstRequestCount: limit - 1,
+  await record('E 阈值内请求完成', { requestCount: limit, burstRequestCount: limit - 1,
     peakConcurrency: Math.min(CONCURRENCY, limit - 1), burstDurationMs });
   const crossed = await observe('E 超过匿名阈值返回429且先于验证码跳转', () => single('/about', 429), {
     ...cc('/about'), result: 'ban', reason: '请求频率超限',
@@ -124,7 +124,7 @@ export async function runPressureProbe({ origin, ip, threshold, userAgent, reque
   const beforeUa = await monitor();
   const missingUa = await single('/test', 418, false);
   const afterUa = await monitor();
-  record('E 无UA先返回418（HTTP证据，控制台记录不入面板）', { http: missingUa,
+  await record('E 无UA先返回418（HTTP证据，控制台记录不入面板）', { http: missingUa,
     monitorRead: { beforeTotal: beforeUa.total, afterTotal: afterUa.total } });
   evidence = { ...evidence, status: 'PASS', boundaryRequestCount: limit + 1 };
   publish();
