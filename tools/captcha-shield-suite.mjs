@@ -13,6 +13,30 @@ export const FIRST_FLOW_MODULES = Object.freeze(['baseline', 'captcha', 'session
 // AdminProcessor.isSecurityOperator restricts monitor/self-check to this account.
 export const SECURITY_MONITOR_USERNAME = 'adlered';
 
+// IndexProcessor.showAbout redirects to the community's introduction article.
+const ABOUT_ARTICLE_PATH = '/article/1630569106133';
+
+export async function initializeBusinessAccounts(config, rt) {
+  const accounts = ['baseline', 'admin'].map(key => config.accounts.find(account => account.key === key));
+  if (accounts.some(account => !account?.username || !account.passwordProtected)) throw new Error('初始化缺少两个业务测试账号');
+  const loopback = rt.entries(config).find(entry => entry.key === 'L');
+  if (!loopback) throw new Error('初始化缺少 L 回环地址');
+  console.log(`=== 测试前初始化：两个业务账号通过 localhost:${config.port} 登录 ===`);
+  const browsers = [];
+  // Open both windows first; keep both available if either login fails.
+  for (const account of accounts) {
+    const entry = { ...loopback, key: `Init-${account.key}` };
+    console.log(`打开窗口 ${entry.key}：恢复 ${account.username} 最近登录IP；地址 ${rt.sourceUrl(config, entry.item)}`);
+    browsers.push({ ...await rt.start(entry), entry, lastAt: { value: 0 }, account });
+  }
+  for (const browser of browsers) {
+    await rt.login(browser.entry, browser.client, config, browser.account, browser.lastAt);
+  }
+  for (const browser of browsers) await rt.close(browser);
+  console.log('两个业务账号已通过localhost登录，初始化窗口已关闭；开始所选测试。');
+  return accounts.map(account => ({ username: account.username, source: `http://localhost:${config.port}/`, status: 'PASS' }));
+}
+
 export function parseTestModules(value) {
   const tokens = String(value).trim().split(/[,，\s]+/).filter(Boolean);
   if (!tokens.length) throw new Error('至少选择一个测试项目');
@@ -100,9 +124,9 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       throw new Error(`${session.entry.key} 预期 ${pathname} HTTP 200 且无验证码跳转，实际 ${new URL(href).pathname} HTTP ${status || '未知'}`);
     }
   }
-  async function noCaptcha(session, pathname) {
+  async function noCaptcha(session, pathname, expectedPath = pathname) {
     const href = await navigate(session, pathname);
-    requireOk(session, href, pathname);
+    requireOk(session, href, expectedPath);
     return href;
   }
   async function login(session, account) {
@@ -196,7 +220,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   async function completeChallenge(session) {
     await observe(`${session.entry.key} 人工极验提交`, session,
       () => rt.waitCaptcha(session.entry, session.client), { ...cc('/validateCaptcha'), method: 'POST', handler: 'CaptchaProcessor#validateCaptcha' });
-    await observe(`${session.entry.key} 验证后公开页恢复`, session, () => noCaptcha(session, '/about'), cc('/about', { handler: 'IndexProcessor#showAbout' }));
+    await observe(`${session.entry.key} 验证后/about跳转介绍文章`, session,
+      () => noCaptcha(session, '/about', ABOUT_ARTICLE_PATH), cc('/about', { handler: 'IndexProcessor#showAbout' }));
   }
   async function getArticles() {
     if (!articles) {
@@ -324,7 +349,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       while (Date.now() < deadline) {
         const href = await navigate(d, '/about');
         const snapshot = await monitor();
-        released = !rt.isCaptcha(href) && snapshot.events.some(event => canonicalIp(event.ip) === canonicalIp(d.entry.item.ip)
+        released = new URL(href).pathname === ABOUT_ARTICLE_PATH && d.client.lastDocumentResponse?.status === 200
+          && !d.client.lastCaptchaRedirect && snapshot.events.some(event => canonicalIp(event.ip) === canonicalIp(d.entry.item.ip)
           && event.uri === '/about' && event.userStatus === '访客+白名单IP（管理员解封）');
         if (released) break;
         await rt.sleep(1000);

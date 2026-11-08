@@ -9,7 +9,7 @@ import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
-import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
+import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -709,13 +709,21 @@ async function cdpWaitForCaptcha(entry, client) {
   console.log(`\n${entry.key} 已进入验证码页面（/test）。`);
   console.log('请在普通 Chrome 窗口中手动完成极验；脚本会自动检测页面离开 /test，不需要按 Enter。');
   const deadline = Date.now() + 180_000;
+  // Preserve lifecycle metadata: the user may finish while the monitor is read.
+  const initialHref = await cdpEvaluate(client, 'location.href');
+  const navigation = {
+    navigationVersion: isCaptchaPath(initialHref) ? client.mainFrameNavigationVersion : -1,
+    previousLoaderId: isCaptchaPath(initialHref) ? client.mainFrameLoaderId : null,
+  };
   while (Date.now() < deadline) {
     const href = await cdpEvaluate(client, 'location.href');
     if (!isCaptchaPath(href)) {
-      console.log(`${entry.key} 已离开 /test，当前页面路径：${new URL(href).pathname || '/'}`);
-      printPageEvidence(client, await cdpPageState(client), { sourceKey: entry.key });
+      const state = await cdpWaitForNavigation(client, href,
+        { ...navigation, deadline: Date.now() + PAGE_READY_TIMEOUT_MS }, { sourceKey: entry.key });
+      if (isCaptchaPath(state.href)) throw new Error(`${entry.key} 极验离开后又返回 /test，未恢复正常页面`);
+      console.log(`${entry.key} 已离开 /test，当前页面路径：${new URL(state.href).pathname || '/'}，主文档已就绪。`);
       client.lastCaptchaRedirect = null;
-      return href;
+      return state.href;
     }
     await sleep(500);
   }
@@ -834,6 +842,41 @@ async function chooseAcceptanceModules(config, argument) {
 }
 
 async function runFirstAcceptanceFlowCdp(config, selected = FIRST_FLOW_MODULES) {
+  return runCdpTestTask(config, async (runtime, resultPath) => {
+    const initialization = { status: 'RUNNING', accounts: [] };
+    const initialResult = {
+      status: 'RUNNING', initialization,
+      modules: selected.map(id => ({ id, status: 'NOT_RUN', checks: [] })),
+    };
+    const persist = data => fs.writeFileSync(resultPath, `${JSON.stringify({ ...data, initialization }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    persist(initialResult);
+    try {
+      initialization.accounts = await initializeBusinessAccounts(config, runtime);
+      initialization.status = 'PASS';
+    } catch (error) {
+      initialization.status = 'FAIL';
+      initialization.error = error.message;
+      persist({ ...initialResult, status: 'FAIL' });
+      throw error;
+    }
+    const result = await runAcceptanceSuite({ config, selected, persist, runtime });
+    console.log(`\n所选 ${result.modules.length} 个模块全部通过。`);
+  });
+}
+
+async function runCdpAccountInitialization(config) {
+  return runCdpTestTask(config, async (runtime, resultPath) => {
+    try {
+      const accounts = await initializeBusinessAccounts(config, runtime);
+      fs.writeFileSync(resultPath, JSON.stringify({ status: 'PASS', initialization: { status: 'PASS', accounts } }, null, 2));
+    } catch (error) {
+      fs.writeFileSync(resultPath, JSON.stringify({ status: 'FAIL', initialization: { status: 'FAIL', error: error.message } }, null, 2));
+      throw error;
+    }
+  });
+}
+
+async function runCdpTestTask(config, task) {
   if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
     throw new Error('未找到完整配置，请先运行配置向导并确认 L 加 5 个额外 IP');
   }
@@ -845,26 +888,21 @@ async function runFirstAcceptanceFlowCdp(config, selected = FIRST_FLOW_MODULES) 
   let completed = false;
   try {
     console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
-    const result = await runAcceptanceSuite({
-      config, selected,
-      persist: data => fs.writeFileSync(resultPath, `${JSON.stringify(data, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }),
-      runtime: {
-        entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep,
-        isCaptcha: isCaptchaPath, login: cdpLogin, articles: cdpCollectArticleUrls,
-        navigate: cdpNavigateWithPacing, ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
-        start: async entry => {
-          const session = await startCdpSession(config, entry, profileRoot);
-          sessions.add(session);
-          return session;
-        },
-        close: async session => {
-          await closeCdpSession(session);
-          // Suite sessions add entry/lastAt to the controller; track by the shared client.
-          for (const tracked of sessions) if (tracked.client === session.client) sessions.delete(tracked);
-        },
+    await task({
+      entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep,
+      isCaptcha: isCaptchaPath, login: cdpLogin, articles: cdpCollectArticleUrls,
+      navigate: cdpNavigateWithPacing, ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
+      start: async entry => {
+        const session = await startCdpSession(config, entry, profileRoot);
+        sessions.add(session);
+        return session;
       },
-    });
-    console.log(`\n所选 ${result.modules.length} 个模块全部通过。`);
+      close: async session => {
+        await closeCdpSession(session);
+        // Suite sessions add entry/lastAt to the controller; track by the shared client.
+        for (const tracked of sessions) if (tracked.client === session.client) sessions.delete(tracked);
+      },
+    }, resultPath);
     completed = true;
   } catch (error) {
     console.error(`失败原因：${error.message}`);
@@ -1224,7 +1262,11 @@ async function main() {
     else if (command === 'show') showConfig(loadConfig());
     else if (command === 'ips') printIps(listLocalIps());
     else if (command === 'driver') await configureDriver();
-    else if (command === 'browser') await runBrowser(loadConfig());
+    else if (command === 'browser') {
+      const config = loadConfig();
+      await runCdpAccountInitialization(config);
+      await runBrowser(config);
+    }
     else if (command === 'flow') await runFirstAcceptanceFlowCdp(await prepareSecurityMonitorConfig(loadConfig()));
     else if (command === 'suite') {
       const config = loadConfig();
@@ -1232,7 +1274,11 @@ async function main() {
       const prepared = await prepareSecurityMonitorConfig({ ...config, testModules: selected });
       await runFirstAcceptanceFlowCdp(prepared, selected);
     }
-    else if (command === 'webdriver-flow') await runFirstAcceptanceFlow(loadConfig());
+    else if (command === 'webdriver-flow') {
+      const config = loadConfig();
+      await runCdpAccountInitialization(config);
+      await runFirstAcceptanceFlow(config);
+    }
     else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow、suite）`);
   } catch (error) {
     console.error(`失败：${error.message}`);
