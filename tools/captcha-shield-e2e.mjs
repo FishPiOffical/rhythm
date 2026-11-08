@@ -12,6 +12,10 @@ import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
+const ACCOUNT_REQUIREMENTS = [
+  { key: 'baseline', label: '普通登录基线账号', roleHint: '普通用户（不要填 admin）' },
+  { key: 'admin', label: '管理员账号', roleHint: '必须属于 admin/管理员分组' },
+];
 const CONFIG_DIR = process.env.LOCALAPPDATA
   ? path.join(process.env.LOCALAPPDATA, 'RhythmCaptchaShieldE2E')
   : path.join(os.homedir(), '.rhythm-captcha-shield-e2e');
@@ -67,6 +71,12 @@ async function askSecret(question) {
 }
 
 function powershell(command, extraEnv = {}) {
+  // Node can inherit PowerShell 7 module paths. Passing them to Windows
+  // PowerShell 5.1 causes duplicate type-data imports and breaks DPAPI cmdlets.
+  const windowsPowerShellModules = [
+    process.env.WINDIR ? `${process.env.WINDIR}\\System32\\WindowsPowerShell\\v1.0\\Modules` : '',
+    process.env.ProgramFiles ? `${process.env.ProgramFiles}\\WindowsPowerShell\\Modules` : '',
+  ].filter(Boolean).join(';');
   return execFileSync('powershell.exe', [
     '-NoProfile',
     '-NonInteractive',
@@ -77,7 +87,7 @@ function powershell(command, extraEnv = {}) {
   ], {
     encoding: 'utf8',
     windowsHide: true,
-    env: { ...process.env, ...extraEnv },
+    env: { ...process.env, ...extraEnv, PSModulePath: windowsPowerShellModules },
     maxBuffer: 1024 * 1024,
   }).trim();
 }
@@ -179,20 +189,17 @@ async function configure() {
   const port = await ask('服务端端口', previous?.port || '8080');
   const expectedCommit = await ask('期望测试的 commit SHA（可留空）', previous?.expectedCommit || '');
 
-  let accounts = [];
-  const accountCountText = await ask('需要保存几个用户账号 N', String(previous?.accounts?.length || 2));
-  const accountCount = Number(accountCountText);
-  if (!Number.isInteger(accountCount) || accountCount < 1) {
-    throw new Error('N 必须是正整数');
-  }
-  for (let index = 0; index < accountCount; index++) {
-    const old = previous?.accounts?.[index];
-    const label = await ask(`账号 ${index + 1} 名称`, old?.label || `account-${index + 1}`);
-    const username = await ask(`账号 ${index + 1} 用户名`, old?.username || '');
-    const role = await ask(`账号 ${index + 1} 权限组（例如 admin、普通用户）`, old?.role || '');
-    const password = await askSecret(`账号 ${index + 1} 密码（不会明文保存）`);
+  const accounts = [];
+  for (const requirement of ACCOUNT_REQUIREMENTS) {
+    const old = previous?.accounts?.find(account => account.key === requirement.key);
+    console.log(`\n${requirement.label}：${requirement.roleHint}`);
+    const username = await ask('用户名', old?.username || '');
+    const role = await ask('权限组', old?.role || '');
+    const password = await askSecret('密码（不会明文保存）');
+    if (!username || !password) throw new Error(`${requirement.label}的用户名和密码不能为空`);
     accounts.push({
-      label,
+      key: requirement.key,
+      label: requirement.label,
       username,
       role,
       passwordProtected: protectSecret(password),
