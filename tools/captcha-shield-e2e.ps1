@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet('configure', 'show', 'ips', 'browser')]
+    [ValidateSet('configure', 'show', 'ips', 'driver', 'edit', 'browser')]
     [string]$Command
 )
 
@@ -29,6 +29,21 @@ function Invoke-TestTool {
     }
 }
 
+function Get-ConfigPath {
+    $base = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $HOME }
+    return Join-Path $base 'RhythmCaptchaShieldE2E\config.json'
+}
+
+function Edit-Config {
+    $configPath = Get-ConfigPath
+    if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
+        throw "找不到配置文件：$configPath。请先运行配置向导。"
+    }
+    Write-Host "正在打开配置文件：$configPath" -ForegroundColor Cyan
+    Write-Host '密码字段只保存为当前 Windows 用户 DPAPI 密文；不要删除 passwordProtected、ipPlan 或账号字段。' -ForegroundColor Yellow
+    Start-Process -FilePath 'notepad.exe' -ArgumentList @($configPath) -Wait
+}
+
 function Show-Menu {
     Clear-Host
     Write-Host '============================================' -ForegroundColor Cyan
@@ -39,14 +54,20 @@ function Show-Menu {
     Write-Host '  1. 配置向导（首次使用或修改配置）'
     Write-Host '  2. 查看已保存配置'
     Write-Host '  3. 查看本机网卡 IP'
-    Write-Host '  4. 阶段 2：浏览器流程（遇到极验时手动完成）'
+    Write-Host '  4. 设置 ChromeDriver 路径'
+    Write-Host '  5. 打开配置文件编辑'
+    Write-Host '  6. 阶段 2：浏览器流程（遇到极验时手动完成）'
     Write-Host '  0. 退出'
     Write-Host ''
 }
 
 try {
     if ($Command) {
-        Invoke-TestTool -Action $Command
+        if ($Command -eq 'edit') {
+            Edit-Config
+        } else {
+            Invoke-TestTool -Action $Command
+        }
         exit 0
     }
 
@@ -70,13 +91,23 @@ try {
                 Read-Host '按 Enter 返回菜单' | Out-Null
             }
             '4' {
+                Invoke-TestTool -Action 'driver'
+                Write-Host ''
+                Read-Host 'ChromeDriver 路径设置完成，按 Enter 返回菜单' | Out-Null
+            }
+            '5' {
+                Edit-Config
+                Write-Host ''
+                Read-Host '配置文件编辑完成，按 Enter 返回菜单' | Out-Null
+            }
+            '6' {
                 Invoke-TestTool -Action 'browser'
                 Write-Host ''
                 Read-Host '阶段 2 浏览器流程完成，按 Enter 返回菜单' | Out-Null
             }
             '0' { break }
             default {
-                Write-Host '请输入 1、2、3、4 或 0。' -ForegroundColor Red
+                Write-Host '请输入 1、2、3、4、5、6 或 0。' -ForegroundColor Red
                 Start-Sleep -Seconds 1
             }
         }

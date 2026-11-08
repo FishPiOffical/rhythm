@@ -144,11 +144,13 @@ function showConfig(config) {
   });
   console.log(`L：${config.ipPlan.loopback?.ip || '(未选择)'}`);
   config.ipPlan.extra.forEach((item, index) => console.log(`${String.fromCharCode(65 + index)}：${item.ip}`));
+  console.log(`ChromeDriver：${config.chromeDriverPath || '(未设置，将从 PATH 或环境变量查找)'}`);
   console.log(`最近保存：${config.updatedAt || '(未知)'}`);
 }
 
-function findChromeDriver() {
+function findChromeDriver(config) {
   const candidates = [
+    config?.chromeDriverPath,
     process.env.CHROMEDRIVER_PATH,
     path.join(process.cwd(), 'tools', 'chromedriver.exe'),
     path.join(process.env.LOCALAPPDATA || '', 'chromedriver', 'chromedriver.exe'),
@@ -167,6 +169,24 @@ function findChromeDriver() {
     // A missing driver is reported with an actionable message below.
   }
   return null;
+}
+
+async function configureDriver() {
+  const config = loadConfig();
+  if (!config) throw new Error('尚未找到配置文件，请先运行 configure 保存测试配置');
+  console.log('=== 设置 ChromeDriver ===');
+  console.log('只保存驱动路径，不会读取或保存账号密码。');
+  const current = config.chromeDriverPath || process.env.CHROMEDRIVER_PATH || '';
+  const entered = await ask('chromedriver.exe 路径', current);
+  if (!entered) throw new Error('ChromeDriver 路径不能为空');
+  const driverPath = path.resolve(entered);
+  if (!fs.existsSync(driverPath) || !fs.statSync(driverPath).isFile()) {
+    throw new Error(`找不到 ChromeDriver 文件：${driverPath}`);
+  }
+  config.chromeDriverPath = driverPath;
+  config.updatedAt = new Date().toISOString();
+  saveConfig(config);
+  console.log(`ChromeDriver 路径已保存：${driverPath}`);
 }
 
 async function findFreePort() {
@@ -261,7 +281,7 @@ async function runBrowser(config) {
   if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
     throw new Error('未找到完整阶段 1 配置，请先运行 configure 并确认 L 加 5 个额外 IP');
   }
-  const driverPath = findChromeDriver();
+  const driverPath = findChromeDriver(config);
   if (!driverPath) {
     throw new Error('未找到 chromedriver.exe。请安装与 Chrome 主版本匹配的 ChromeDriver，或设置 CHROMEDRIVER_PATH 后重试；工具不会自动下载驱动。');
   }
@@ -408,6 +428,7 @@ async function configure() {
     expectedCommit,
     accounts,
     ipPlan: { loopback, extra },
+    chromeDriverPath: previous?.chromeDriverPath || '',
     updatedAt: new Date().toISOString(),
   });
   console.log(`阶段 1 配置已保存：${CONFIG_PATH}`);
@@ -420,8 +441,9 @@ async function main() {
     if (command === 'configure') await configure();
     else if (command === 'show') showConfig(loadConfig());
     else if (command === 'ips') printIps(listLocalIps());
+    else if (command === 'driver') await configureDriver();
     else if (command === 'browser') await runBrowser(loadConfig());
-    else throw new Error(`未知命令：${command}（可用 configure、show、ips、browser）`);
+    else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser）`);
   } catch (error) {
     console.error(`失败：${error.message}`);
     process.exitCode = 1;
