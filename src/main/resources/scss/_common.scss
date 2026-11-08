@@ -690,6 +690,12 @@ blockquote {
       align-items: center;
       gap: 6px;
       white-space: nowrap;
+      line-height: 32px;
+    }
+
+    input[type='checkbox'] {
+      margin: 0;
+      vertical-align: middle;
     }
 
     input[type='number'] {
@@ -736,6 +742,7 @@ blockquote {
     margin: 10px 0;
     color: #52606d;
     font-size: 13px;
+    line-height: 24px;
 
     span {
       padding-right: 14px;
@@ -756,8 +763,17 @@ blockquote {
     margin-bottom: 10px;
 
     label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       color: #52606d;
       font-size: 12px;
+      line-height: 30px;
+    }
+
+    input[type='checkbox'] {
+      margin: 0;
+      vertical-align: middle;
     }
   }
 
@@ -769,7 +785,7 @@ blockquote {
   }
 
   .security-events {
-    min-width: 980px;
+    min-width: 1180px;
     margin: 0;
     table-layout: auto;
 

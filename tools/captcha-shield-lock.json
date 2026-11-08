@@ -5,7 +5,7 @@
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "de11452d2d72938c8bce9f92efe517ddc745ba12bee854febfb77d4b2b2ea90f"
+      "sha256": "69693fa47922e3bed781881d2cee31244c0255bddb3c936a894fd83f051452f9"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -114,6 +114,10 @@
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "private JSONObject securitySwitchData()",
       "sha256": "d9336cb64966a372cac7beaeb4b1ecb3f1e82be2f44c74ac9d93c5c3176f763a"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
+      "sha256": "4734e126297524dcb49dcb845c00a0813e4278660078fe80dc53572a43e64203"
     }
   ]
 }

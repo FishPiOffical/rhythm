@@ -31,6 +31,7 @@ public final class SecurityMonitor {
             .withZone(ZoneId.of("Asia/Hong_Kong"));
     private static final LongAdder TOTAL = new LongAdder();
     private static final ConcurrentHashMap<String, LongAdder> COUNTERS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, LongAdder> IP_VISITS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, String> HANDLER_CACHE = new ConcurrentHashMap<>();
     private static final long[] MINUTES = new long[MINUTE_BUCKETS];
     private static long minuteEpoch = System.currentTimeMillis() / 60000L;
@@ -70,6 +71,7 @@ public final class SecurityMonitor {
         event.put("timestamp", now);
         event.put("time", TIME_FORMAT.format(Instant.ofEpochMilli(now)));
         event.put("ip", clean(ip, "-"));
+        event.put("userStatus", userStatus(ip));
         event.put("method", clean(method, "-"));
         event.put("uri", clean(uri, "-"));
         event.put("handler", resolveHandler(uri, method));
@@ -124,6 +126,17 @@ public final class SecurityMonitor {
         } catch (final Exception ignored) {
             return "未匹配";
         }
+    }
+
+    private static String userStatus(final String ip) {
+        if (ip == null || ip.isBlank()) return "-";
+        if (Sessions.getUser() != null) return "已登录";
+        final String whitelistReason = AnonymousCaptchaShield.whitelistReason(ip);
+        if (whitelistReason != null) return "访客+白名单IP（" + whitelistReason + "）";
+        final LongAdder visits = IP_VISITS.computeIfAbsent(ip, ignored -> new LongAdder());
+        visits.increment();
+        if (IP_VISITS.size() > 100000) IP_VISITS.clear();
+        return "访客（访问次数 " + visits.sum() + "）";
     }
 
     private static String cacheHandler(final String key, final String handler) {

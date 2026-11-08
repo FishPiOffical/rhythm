@@ -70,6 +70,8 @@ public final class AnonymousCaptchaShield {
             .build();
     // 管理员解封/已有用户 IP 豁免，仅本次进程内有效。
     private static final Set<String> whiteList = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> whiteListReasons
+            = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）
@@ -159,6 +161,7 @@ public final class AnonymousCaptchaShield {
     /** 在管理员已完成系统解封后调用，保持原清理顺序和本次启动白名单策略。 */
     public static void administratorUnban(final String ip) {
         whiteList.add(ip);
+        whiteListReasons.put(ip, "管理员解封");
         ipBlacklistCache.invalidate(ip);
         ipVisitCountCache.invalidate(ip);
         ipFirstVisitTimeCache.invalidate(ip);
@@ -168,6 +171,20 @@ public final class AnonymousCaptchaShield {
     /** 管理员封禁前撤销验证码豁免，系统封禁仍由 Firewall 负责。 */
     public static void removeWhitelist(final String ip) {
         whiteList.remove(ip);
+        whiteListReasons.remove(ip);
+    }
+
+    /** Describes why an IP is treated as a captcha whitelist entry for admin telemetry. */
+    public static String whitelistReason(final String ip) {
+        final String explicitReason = whiteListReasons.get(ip);
+        if (explicitReason != null) {
+            return explicitReason;
+        }
+        if (UserCache.hasUserByIP(ip)) {
+            final String userName = UserCache.getUserNameByIP(ip);
+            return "同IP用户：" + (StringUtils.isBlank(userName) ? "已登录用户" : userName);
+        }
+        return null;
     }
 
     private static boolean isPublicInfoPage(final String requestURI) {
@@ -216,6 +233,7 @@ public final class AnonymousCaptchaShield {
                 } else if (UserCache.hasUserByIP(ip)) {
                     // 该 IP 上有用户登录过，按既定策略整台机器免验证
                     whiteList.add(ip);
+                    whiteListReasons.put(ip, whitelistReason(ip));
                     logShield(ip, requestURI, "放行", "同IP有用户登录", null);
                 } else {
                     final long now = System.currentTimeMillis();

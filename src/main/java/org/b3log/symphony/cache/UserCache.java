@@ -130,6 +130,16 @@ public class UserCache {
         return IP_CACHE.containsKey(ip);
     }
 
+    /** Returns the cached username associated with a previously logged-in IP. */
+    public static String getUserNameByIP(final String ip) {
+        final String userId = IP_CACHE.get(ip);
+        if (userId == null) {
+            return null;
+        }
+        final JSONObject user = ID_CACHE.get(userId);
+        return user == null ? null : user.optString(User.USER_NAME, null);
+    }
+
     /**
      * Adds or updates the specified user.
      *
