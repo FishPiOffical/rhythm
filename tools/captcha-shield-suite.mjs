@@ -10,6 +10,9 @@ export const TEST_MODULES = Object.freeze([
 
 export const FIRST_FLOW_MODULES = Object.freeze(['baseline', 'captcha', 'session']);
 
+// AdminProcessor.isSecurityOperator restricts monitor/self-check to this account.
+export const SECURITY_MONITOR_USERNAME = 'adlered';
+
 export function parseTestModules(value) {
   const tokens = String(value).trim().split(/[,，\s]+/).filter(Boolean);
   if (!tokens.length) throw new Error('至少选择一个测试项目');
@@ -48,6 +51,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   const baseline = config.accounts.find(account => account.key === 'baseline');
   const admin = config.accounts.find(account => account.key === 'admin');
   if (!baseline || !admin) throw new Error('配置缺少基线账号或管理员账号');
+  const monitorAccount = config.accounts.find(account => account.username === SECURITY_MONITOR_USERNAME);
+  if (!monitorAccount) throw new Error(`安全监控接口仅允许 ${SECURITY_MONITOR_USERNAME}，请补填监控账号后重试`);
   const entries = rt.entries(config);
   const sessions = new Map();
   const result = {
@@ -68,6 +73,10 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   async function open(key, sourceKey = key) {
     if (!sessions.has(key)) {
       const entry = { ...source(sourceKey), key };
+      const purpose = key === 'Monitor-L' ? `安全监控，${SECURITY_MONITOR_USERNAME} 登录`
+        : key === 'IP-admin' ? '管理员解封操作'
+        : key === 'Guest-L' ? '匿名后台权限检查' : `${sourceKey} 来源业务测试`;
+      console.log(`打开窗口 ${key}：${purpose}；地址 ${rt.sourceUrl(config, entry.item)}`);
       const session = await rt.start(entry);
       sessions.set(key, { ...session, entry, lastAt: { value: 0 } });
     }
@@ -93,9 +102,9 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   }
   async function ensureMonitor() {
     if (!monitorSession) {
-      console.log('准备：L 地址管理员登录，用于核对本轮监控（不计为登录基线通过）。');
+      console.log(`准备：L 地址 ${monitorAccount.username} 登录，用于核对本轮监控（不计为登录基线通过）。`);
       monitorSession = await open('Monitor-L', 'L');
-      await login(monitorSession, admin);
+      await login(monitorSession, monitorAccount);
       await noCaptcha(monitorSession, '/admin/misc');
       await rt.evaluate(monitorSession.client, `(() => {
         const checkbox = document.querySelector('#securityAutoRefresh');
@@ -110,7 +119,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     const data = await rt.evaluate(session.client, `(async () => {
       if (!document.querySelector('.security-panel')) throw new Error('未找到社区安全面板');
       const response = await fetch('/admin/security/monitor', {cache:'no-store', signal:AbortSignal.timeout(10000)});
-      if (!response.ok || response.redirected) throw new Error('监控请求失败 HTTP '+response.status);
+      if (!response.ok || response.redirected) throw new Error('监控接口 '+new URL(response.url).pathname+' 返回 HTTP '+response.status+'（与后台页面状态独立；仅允许 ${SECURITY_MONITOR_USERNAME}）');
       const body = await response.json();
       if (body.code !== 0 || !Array.isArray(body.data?.events) || !Number.isFinite(body.data?.total)) throw new Error('监控响应格式错误');
       const data = body.data;
@@ -128,7 +137,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     // localhost may resolve to either loopback family. Learn the actual monitor IP from its own authenticated request.
     if (session.entry.item === source('L').item) {
       const own = before.events.find(event => event.uri === '/admin/security/monitor'
-        && event.userStatus === `本人登录（用户：${admin.username}）`);
+        && event.userStatus === `本人登录（用户：${monitorAccount.username}）`);
       if (!own) throw new Error('无法从管理员监控请求确认 localhost 的实际来源IP');
       target.ip = own.ip;
     }
@@ -378,6 +387,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       module.status = 'RUNNING';
       save();
       console.log(`\n=== ${module.name}（${module.id}） ===`);
+      // Prepare and validate the monitor before creating a business window.
+      if (!monitorSession) await monitor();
       await modules[module.id]();
       module.status = 'PASS';
       save();

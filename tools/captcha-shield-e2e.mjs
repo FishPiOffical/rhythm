@@ -9,7 +9,7 @@ import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
-import { TEST_MODULES, FIRST_FLOW_MODULES, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
+import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -136,6 +136,29 @@ function saveConfig(config) {
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+}
+
+async function withSecurityMonitorAccount(config) {
+  if (!config?.accounts) throw new Error('请先运行配置向导');
+  const existing = config.accounts.find(account => account.username === SECURITY_MONITOR_USERNAME && account.passwordProtected);
+  if (existing) {
+    console.log(`安全监控复用已保存账号：${existing.username}（仅使用 L 地址）。`);
+    return config;
+  }
+  console.log(`安全监控和自检接口仅允许 ${SECURITY_MONITOR_USERNAME}，A/B 仍使用原管理员测试账号。`);
+  console.log('只需补填一次监控账号密码；须确认该账号属于管理员分组，后续自动复用。');
+  const password = await ask(`${SECURITY_MONITOR_USERNAME} 密码（直接输入，保存时会加密）`);
+  if (!password) throw new Error('监控账号密码不能为空');
+  return { ...config, accounts: [...config.accounts.filter(account => account.key !== 'monitor'), {
+    key: 'monitor', label: '安全监控账号', username: SECURITY_MONITOR_USERNAME,
+    role: 'admin', passwordProtected: protectSecret(password),
+  }] };
+}
+
+async function prepareSecurityMonitorConfig(config) {
+  const prepared = await withSecurityMonitorAccount(config);
+  if (prepared !== config) saveConfig(prepared);
+  return prepared;
 }
 
 function maskUsername(account) {
@@ -1157,6 +1180,9 @@ async function configure() {
     }
   }
 
+  const monitorConfig = await withSecurityMonitorAccount({ accounts });
+  accounts = monitorConfig.accounts;
+
   console.log('\n=== 三项确认（脚本完全信任勾选，不做额外环境检查）===');
   const environmentConfirmed = (await ask('1. 我已确认端口、runtimeMode、临时 jiyan.key、服务已启动且代码最新（输入 y）', ''))
     .toLowerCase() === 'y';
@@ -1195,10 +1221,12 @@ async function main() {
     else if (command === 'ips') printIps(listLocalIps());
     else if (command === 'driver') await configureDriver();
     else if (command === 'browser') await runBrowser(loadConfig());
-    else if (command === 'flow') await runFirstAcceptanceFlowCdp(loadConfig());
+    else if (command === 'flow') await runFirstAcceptanceFlowCdp(await prepareSecurityMonitorConfig(loadConfig()));
     else if (command === 'suite') {
       const config = loadConfig();
-      await runFirstAcceptanceFlowCdp(config, await chooseAcceptanceModules(config, process.argv.slice(3).join(',')));
+      const selected = await chooseAcceptanceModules(config, process.argv.slice(3).join(','));
+      const prepared = await prepareSecurityMonitorConfig({ ...config, testModules: selected });
+      await runFirstAcceptanceFlowCdp(prepared, selected);
     }
     else if (command === 'webdriver-flow') await runFirstAcceptanceFlow(loadConfig());
     else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow、suite）`);

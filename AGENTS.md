@@ -34,7 +34,7 @@
 - 新增 Repository（新表/集合）时：同步更新 `src/main/resources/repository.json`；`super("...")`/模型常量不要写 `symphony_` 前缀。
 - 安全基线（已审计）：防扫描验证码链路核心在 `BeforeRequestHandler` + `AnonymousViewCheckMidware#handle` + `CaptchaProcessor#validateCaptcha`；`LoginCheckMidware#handle` 负责登录态校验（含 apiKey），两套逻辑都不可被绕过。
 - 安全面板约定：CC/验证码/首访验证与请求阈值均为进程内临时状态，重启恢复默认；`DEVELOPMENT` 才允许统一保存，`PRODUCTION` 只读且服务端拒绝所有开关写入。统计与自检为有界内存数据，不写数据库、不代表完整生产审计。
-- 验证码盾自动化验收工具按 `.codex-tasks/captcha-shield-e2e` 分阶段开发；`tools/captcha-shield-e2e.mjs` 第一阶段只保存配置，账号密码使用 Windows 用户 DPAPI 加密，严格选择 L 加 5 个额外源 IP，不读取或保存 `jiyan.key`。
+- 验证码盾验收进度在 `.codex-tasks/captcha-shield-e2e`；工具固定 L 加5个源IP，密码用DPAPI，不读写`jiyan.key`。安全监控/自检服务端仅允许`adlered`，须以独立L会话读取；A/B保留业务测试账号，禁止为跑通工具放宽服务端权限。
 - 验收菜单8通过 `tools/captcha-shield-suite.mjs` 组合模块并复用选择，菜单7固定L/A/B；日志须匹配本轮事件及统计，解封D按服务端实际IP格式操作；`results.json` 保留结果，失败保留浏览器，隔离HTTP夹具通过不能当真实极验或Linux ipset通过。
 - 用户脱敏基线（已审计）：对外接口用户对象统一走 `DesensitizeUtil`（移除密码/邮箱/手机/QQ/2FA/apiKey/token/IP/UA 等）或字段白名单；已知存量风险（用户知情暂不修）：`/reset-pwd?code=` 与 `/register?code=` 页面把完整 `user.userPhone` 输出到 HTML（LoginProcessor + verify/reset-pwd.ftl、verify/register2.ftl，匿名可见）；`TopProcessor#removePrivateData` 不移除签到/登录时间戳等活动字段。
 - `symphony.properties` 中提交的 `upload.rhypic.ticketPrivateKey` / `upload.rhypic.internalToken` 是开发调试专用，生产环境使用独立生成的密钥，审计时不要当作泄露误报。
