@@ -21,7 +21,7 @@ package org.b3log.symphony.service;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3RealtimeSessions;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.ApiV3SocketHandshake;
@@ -63,7 +63,8 @@ public class ApiV3RealtimeService {
             sessions=new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority(){
                 public ApiV3SocketTicketService.Grant consume(String ticket)throws Exception{return tickets.consume(ticket);}
                 public boolean authorized(ApiV3SocketTicketService.Grant grant)throws Exception{return tickets.authorized(grant);}
-            },(ip,record)->!(AnonymousViewCheckMidware.isEnabled()&&AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip)!=null)
+            // 实时连接也须经过验证码盾；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+            },(ip,record)->!AnonymousCaptchaShield.isRestricted(ip)
                     &&(!record||Firewall.recordAndMaybeBan(ip)),System::currentTimeMillis);
             timer.scheduleAtFixedRate(()->{
                 sessions.sweep();

@@ -329,8 +329,9 @@ public final class Server extends BaseServer {
 
         if (Latkes.getRuntimeMode() == Latkes.RuntimeMode.DEVELOPMENT) {
             org.b3log.symphony.util.Firewall.setEnabled(false);
-            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setEnabled(false);
-            org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(false);
+            // 开发模式验证码盾初始状态；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+            AnonymousCaptchaShield.setEnabled(false);
+            AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
             LOGGER.warn("Development mode: CC firewall and verification shield are disabled.");
         }
 

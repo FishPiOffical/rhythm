@@ -38,7 +38,7 @@ import org.b3log.latke.util.Stopwatchs;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.UserExt;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
@@ -105,16 +105,9 @@ public class BeforeRequestHandler implements Handler {
             context.abort();
             return;
         }
-        // 黑名单判断
-        if (!verifiedCrawler
-                && AnonymousViewCheckMidware.isEnabled()
-                && AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null
-                && !context.requestURI().equals("/test")
-                && !context.requestURI().equals("/validateCaptcha")) {
-            // 已经在黑名单，强制跳转到验证码页面
-            logShield(context, ip, "跳转", "已在验证黑名单", null);
-            context.sendRedirect("/test");
-            context.abort();
+        // 验证码盾保护入口：须在爬虫/CC检查之后、CORS预检之前执行。
+        // 未经阿达明确允许，不得修改、移动、删除此调用或增加绕过分支。
+        if (AnonymousCaptchaShield.redirectIfChallenged(context, verifiedCrawler)) {
             return;
         }
 

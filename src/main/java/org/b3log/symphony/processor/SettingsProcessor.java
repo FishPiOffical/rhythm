@@ -560,7 +560,8 @@ public class SettingsProcessor {
         }
 
         final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
-        if (!CaptchaProcessor.jiyan(captcha)) {
+        // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        if (!AnonymousCaptchaShield.verifyProof(captcha)) {
             final String msg = langPropsService.get("sendFailedLabel") + " - " + langPropsService.get("captchaErrorLabel");
             context.renderMsg(msg);
             return;
@@ -634,7 +635,8 @@ public class SettingsProcessor {
         }
 
         final String captcha = requestJSONObject.optString(CaptchaProcessor.CAPTCHA);
-        if (!CaptchaProcessor.jiyan(captcha)) {
+        // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        if (!AnonymousCaptchaShield.verifyProof(captcha)) {
             final String msg = langPropsService.get("sendFailedLabel") + " - " + langPropsService.get("captchaErrorLabel");
             context.renderMsg(msg);
             return;

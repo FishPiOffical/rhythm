@@ -18,8 +18,6 @@
  */
 package org.b3log.symphony.processor.middleware;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -35,20 +33,14 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.util.AntPathMatcher;
 import org.b3log.latke.util.Requests;
 import org.b3log.latke.util.URLs;
-import org.b3log.symphony.cache.UserCache;
 import org.b3log.symphony.model.Article;
-import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.OptionQueryService;
-import org.b3log.symphony.service.UserMgmtService;
-import org.b3log.symphony.service.UserQueryService;
-import org.b3log.symphony.util.Firewall;
-import org.b3log.symphony.util.Headers;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.Sessions;
-import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -79,83 +71,10 @@ public class AnonymousViewCheckMidware {
     private ArticleRepository articleRepository;
 
     /**
-     * User query service.
-     */
-    @Inject
-    private UserQueryService userQueryService;
-
-    /**
-     * User management service.
-     */
-    @Inject
-    private UserMgmtService userMgmtService;
-
-    /**
      * Option query service.
      */
     @Inject
     private OptionQueryService optionQueryService;
-
-    // 访问计数缓存，2 小时过期；窗口必须足够长，否则慢速抓取（间隔超过 5 分钟）会让计数反复归零从而绕过验证码
-    public static final Cache<String, Integer> ipVisitCountCache = Caffeine.newBuilder()
-            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
-            .maximumSize(100000)
-            .build();
-    // 黑名单缓存，无过期，手动移除
-    public static final Cache<String, Boolean> ipBlacklistCache = Caffeine.newBuilder()
-            .maximumSize(100000)
-            .build();
-    // String类型的白名单（管理员在 /admin/ip 解封后加入，永久跳过验证码盾）
-    public static final Set<String> whiteList = java.util.concurrent.ConcurrentHashMap.newKeySet();
-
-    /**
-     * IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）
-     */
-    public static final Cache<String, Long> ipFirstVisitTimeCache = Caffeine.newBuilder()
-            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
-            .maximumSize(100000)
-            .build();
-
-    /**
-     * IP 最近一次通过验证码的时间（通过后重置计数逻辑时使用）
-     */
-    public static final Cache<String, Long> ipLastCaptchaPassTimeCache = Caffeine.newBuilder()
-            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
-            .maximumSize(100000)
-            .build();
-
-    /**
-     * Runtime enable flag for captcha checks (temporary, resets on restart).
-     */
-    private static volatile boolean enabled = true;
-
-    /**
-     * Whether to force captcha on the first visit within 2 hours (temporary, resets on restart).
-     */
-    private static volatile boolean firstVisitCaptchaEnabled = true;
-
-    // 计数窗口为 2 小时，阈值需相应放大，避免正常用户 2 小时内浏览 100 个页面被误封
-    private static final int AUTO_BAN_VISIT_THRESHOLD = 300;
-
-    private static final int CAPTCHA_VISIT_INTERVAL = 5;
-
-    private static final long FIRST_VISIT_CAPTCHA_WINDOW_MILLIS = 2L * 60L * 60L * 1000L;
-
-    public static void setEnabled(final boolean value) {
-        enabled = value;
-    }
-
-    public static boolean isEnabled() {
-        return enabled;
-    }
-
-    public static void setFirstVisitCaptchaEnabled(final boolean value) {
-        firstVisitCaptchaEnabled = value;
-    }
-
-    public static boolean isFirstVisitCaptchaEnabled() {
-        return firstVisitCaptchaEnabled;
-    }
 
     private static Cookie getCookie(final Request request, final String name) {
         final Set<Cookie> cookies = request.getCookies();
@@ -182,14 +101,6 @@ public class AnonymousViewCheckMidware {
         response.addCookie(cookie);
     }
 
-    private static boolean isPublicInfoPage(final String requestURI) {
-        final String contextPath = Latkes.getContextPath();
-        return requestURI.equals(contextPath + "/about")
-                || requestURI.equals(contextPath + "/download")
-                || requestURI.equals(contextPath + "/privacy")
-                || requestURI.equals(contextPath + "/agreement");
-    }
-
     /**
      * 输出匿名访问风控决策日志，统一前缀便于检索：{@code [SHIELD]}
      *
@@ -206,12 +117,12 @@ public class AnonymousViewCheckMidware {
     }
 
     public void handle(final RequestContext context) {
-        final boolean shieldEnabled = enabled;
+        // 验证码盾开关须在身份解析前取快照；未经阿达明确允许，不得修改、移动或删除此读取。
+        final boolean shieldEnabled = AnonymousCaptchaShield.isEnabled();
 
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
         final String articleId = getArticleId(requestURI);
-        final boolean firstVisitArticle = StringUtils.isNotBlank(articleId);
         // V3 resource identity must never inherit a page session or a legacy apiKey.
         final boolean v3 = requestURI.startsWith(Latkes.getContextPath() + "/api/v3/");
         final JSONObject v3Identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
@@ -222,78 +133,10 @@ public class AnonymousViewCheckMidware {
             } catch (NullPointerException ignored) {
             }
         }
-        if (null == currentUser) {
-            final String ip = Requests.getRemoteAddr(context.getRequest());
-            final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-            final boolean verifiedCrawler = null != SearchEngines.verifiedCrawler(ip, ua);
-            // 匿名非蜘蛛：白名单直接放行，其余按「首访 / 每 5 次」判断；通过验证码只豁免首访规则，不豁免次数规则
-            if (shieldEnabled && !verifiedCrawler) {
-                if (isPublicInfoPage(requestURI)) {
-                    logShield(ip, requestURI, "放行", "公开信息页", null);
-                } else if (whiteList.contains(ip)) {
-                    logShield(ip, requestURI, "放行", "白名单", null);
-                } else if (UserCache.hasUserByIP(ip)) {
-                    // 该 IP 上有用户登录过，按既定策略整台机器免验证
-                    whiteList.add(ip);
-                    logShield(ip, requestURI, "放行", "同IP有用户登录", null);
-                } else {
-                    final long now = System.currentTimeMillis();
-                    Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
-                    if (null == firstVisitTime) {
-                        firstVisitTime = now;
-                        ipFirstVisitTimeCache.put(ip, firstVisitTime);
-                    }
-
-                    final Integer visits = ipVisitCountCache.getIfPresent(ip);
-                    final int count = null == visits ? 1 : visits + 1;
-                    ipVisitCountCache.put(ip, count);
-
-                    // API 调用方无法通过验证码，不做累计封禁，交给 Firewall 的速率阈值处理
-                    if (!requestURI.contains("/api/")
-                            && count >= AUTO_BAN_VISIT_THRESHOLD && Firewall.banIpIfAbsent(ip, "匿名累计超限")) {
-                        logShield(ip, requestURI, "拒绝", "匿名累计超限", "次数=" + count);
-                    }
-
-                    // 2 小时内已通过验证码时，不再按「首访」弹窗，但每 5 次访问仍然需要验证
-                    final boolean passedRecently = null != ipLastCaptchaPassTimeCache.getIfPresent(ip);
-
-                    boolean needCaptcha = false;
-                    String reason = "";
-                    // 非文章页：2 小时内首次访问就需要验证码（可后台开关）；文章页豁免首访验证，便于搜索引擎落地用户直接阅读
-                    if (!passedRecently && firstVisitCaptchaEnabled && !firstVisitArticle && count == 1
-                            && (now - firstVisitTime) <= FIRST_VISIT_CAPTCHA_WINDOW_MILLIS) {
-                        needCaptcha = true;
-                        reason = "首次访问";
-                    }
-                    // 之后每访问 5 次需要一次验证码
-                    if (!needCaptcha && count % CAPTCHA_VISIT_INTERVAL == 0) {
-                        needCaptcha = true;
-                        reason = "访问满5次";
-                    }
-
-                    if (needCaptcha) {
-                        if (requestURI.contains("/api/")) {
-                            // API 调用方无法完成验证码，直接拒绝且不拉黑，避免把服务端客户端永久卡死
-                            logShield(ip, requestURI, "拒绝", "接口需验证码-" + reason, "次数=" + count);
-                            context.sendError(401);
-                        } else {
-                            logShield(ip, requestURI, "验证码", reason, "次数=" + count);
-                            ipBlacklistCache.put(ip, true);
-                            context.sendRedirect("/test");
-                        }
-                        context.abort();
-                        return;
-                    }
-
-                    if (count == 1 && firstVisitArticle) {
-                        logShield(ip, requestURI, "放行", "文章页首次访问", "次数=1 文章=" + articleId);
-                    } else if (passedRecently) {
-                        logShield(ip, requestURI, "放行", "已通过验证码", "次数=" + count);
-                    } else {
-                        logShield(ip, requestURI, "放行", "正常访问", "次数=" + count);
-                    }
-                }
-            }
+        // 验证码盾保护入口：须在下方登录要求、viewSkips 和阅读限制之前执行。
+        // 未经阿达明确允许，不得修改、移动、删除此调用或增加绕过分支。
+        if (!AnonymousCaptchaShield.checkAnonymous(context, currentUser, articleId, shieldEnabled)) {
+            return;
         }
 
         if (requestURI.startsWith(Latkes.getContextPath() + "/member/") || requestURI.startsWith(Latkes.getContextPath() + "/article/1636516552191")) {

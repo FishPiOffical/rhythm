@@ -81,6 +81,7 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- 验证码盾集中在 `util/AnonymousCaptchaShield`；原中间件保留身份解析与匿名阅读限制，全局入口须在 CC 后、CORS 前调用黑名单拦截。极验共享校验、状态及开关只经此类访问；未经阿达明确允许，禁止修改、移动、删除该类及各处受保护调用，禁止增加绕过分支。修改获批后才可同步策略版本、`tools/captcha-shield-lock.json` 与回归；部署前运行 `python tools/check-captcha-shield.py`，不得自动重建指纹来消除失败。范围和验收见 `docs/captcha-shield.md`。
 - v3登录时间只在ApiV3TokenMgmtService.issue与AppLoginService.exchange签发根内记录，失败同回滚；刷新/普通认证/OAuth授权不记录。只更新userLatestLoginTime，缓存提交后失效，不复用会改在线标志和地理资料的updateOnlineStatus。
 - 职业来源事件未关联外部应用/请求时保留sourceAppId/externalRequestId为NULL，不能以空字符串占位；二者有组合唯一约束。消费验证须区分受控来源输入与真实业务捕获/结算。
 - 长篇段落双视图须只改变受限链接的标签，链接目标/属性保持一致；ShortLinkQueryService.linkArticleWithUrlTitles字面绑定配置来源并保留原URL为目标/安全标签，缺失标题仍不展开；旧Function入口保持原重写语义。正文/目标真正不对应继续409，不可忽略href差异放宽结构校验。段落测试用项目版本Flexmark，清洗/媒体仍为夹具，不能宣称完整渲染HTTP已验。

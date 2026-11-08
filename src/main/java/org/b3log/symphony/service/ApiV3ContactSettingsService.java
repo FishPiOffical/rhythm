@@ -24,7 +24,6 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.AccountContactCodeRepository;
 import org.b3log.symphony.repository.AccountCredentialStateRepository;
 import org.b3log.symphony.repository.UserRepository;
-import org.b3log.symphony.processor.CaptchaProcessor;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +45,10 @@ public class ApiV3ContactSettingsService {
     private static final SecureRandom RANDOM=new SecureRandom();
     protected long now(){return System.currentTimeMillis();}
     protected String newCode(){return String.format(Locale.ROOT,"%06d",RANDOM.nextInt(1_000_000));}
-    protected boolean captcha(String proof){return CaptchaProcessor.jiyan(proof);}
+    protected boolean captcha(String proof) {
+        // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        return AnonymousCaptchaShield.verifyProof(proof);
+    }
     protected boolean allowed(String ip,String actor,String target,boolean phone){return !phone||AccountSmsQuota.access(ip,actor,target);}
     protected boolean send(String target,String code,boolean phone){return phone?sms.sendAccountVerifyCodeSMS(target,code):Mails.sendAccountBindingCode(target,code);}
 

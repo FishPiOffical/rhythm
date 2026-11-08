@@ -55,7 +55,6 @@ import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.*;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
@@ -68,6 +67,7 @@ import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Firewall;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -725,11 +725,8 @@ public class AdminProcessor {
                             continue;
                         }
                         Firewall.unbanIp(ip);
-                        AnonymousViewCheckMidware.whiteList.add(ip);
-                        AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipFirstVisitTimeCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
+                        // 验证码盾解封须在系统解封之后；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.administratorUnban(ip);
                         LogsService.simpleLog(context, "解封IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
                     break;
@@ -739,7 +736,8 @@ public class AdminProcessor {
                         if (ip.isEmpty()) {
                             continue;
                         }
-                        AnonymousViewCheckMidware.whiteList.remove(ip);
+                        // 系统封禁前撤销验证码豁免；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.removeWhitelist(ip);
                         Firewall.banIp(ip);
                         LogsService.simpleLog(context, "封禁IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
@@ -2632,8 +2630,9 @@ public class AdminProcessor {
         dataModel.put(Option.OPTIONS, misc);
         dataModel.put("firewallEnabled", Firewall.isEnabled());
         dataModel.put("firewallThreshold", Firewall.getThreshold());
-        dataModel.put("verificationShieldEnabled", AnonymousViewCheckMidware.isEnabled());
-        dataModel.put("firstVisitCaptchaEnabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+        dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
+        dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2717,10 +2716,12 @@ public class AdminProcessor {
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
     }
 
@@ -2736,10 +2737,12 @@ public class AdminProcessor {
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
     }
 

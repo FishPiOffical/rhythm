@@ -1,0 +1,105 @@
+{
+  "formatVersion": 1,
+  "policyVersion": 1,
+  "approval": "Initial extraction authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
+  "checks": [
+    {
+      "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
+      "sha256": "561a52ace2ce32793475d72bb9615ec1f33ab9ba32de80f7b0f6ed4ed80db974"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
+      "sha256": "f881879b5eb0a05047a098d60cc51cabd22dbf4df40df1879df585cc9fb62527"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "c5a26d7b4047297ad324c4388717dc1b4c8745ce1f87302fb3cf229f8fa89458"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public static void register()",
+      "sha256": "eb8f733cfdfaa9041d8cc80b08d1c58dcd1920e9e56d1ef0912ac2ec5b9acc07"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public void captcha(final RequestContext context)",
+      "sha256": "dfc074b17406874f0a94f793500cd5607954a1c7731095cb38c3e4f3777aca93"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
+      "method": "public void validateCaptcha(final RequestContext context)",
+      "sha256": "5de3c47bcf59ea0d6587dbb38bc252f251cf15aa7ac03b0c44435e90c4c505b6"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void modifyIp(final RequestContext context)",
+      "sha256": "f9d965afd75b79278816052f7fc222cc50e4fe5a61de10572b4367d9c93c06db"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void showMisc(final RequestContext context)",
+      "sha256": "a14951735de6d56c33942473ec4b4fd4158ed168d0a18003983ca5def1974886"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void toggleVerificationShield(final RequestContext context)",
+      "sha256": "aff5b9c1a5b0c01049def8da4d2b0f565bd0273cadaa74a0cd862395c106c09a"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void toggleFirstVisitCaptcha(final RequestContext context)",
+      "sha256": "e3c903bfba5b548966abd6ce4d999d27e5af8a5e24421528b9ed539a8177456f"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/Server.java",
+      "method": "public static void main(final String[] args) throws Exception",
+      "sha256": "24b820d6f223f6110457ea6b90fe4e9073d65b40a437ea5f23e058a3aaec96db"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3RealtimeService.java",
+      "method": "private synchronized ApiV3RealtimeSessions registry()",
+      "sha256": "d01ef0cf23595ead89b9aa6b4da7f8a4e1d04adff62e38decf683f527bfe3a6c"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/SettingsProcessor.java",
+      "method": "public void sendPhoneVC(final RequestContext context)",
+      "sha256": "4f7a8ccb7d8a21dc357ebcc6b134a98360f8854989d6bfd93f92bb04a3357b5d"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/SettingsProcessor.java",
+      "method": "public void sendEmailVC(final RequestContext context)",
+      "sha256": "1f7ec190f0348401a84294244b6af1118c60c1d9c0233238aef6c1a4c9ad56ca"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AccountRegistrationRequestService.java",
+      "method": "protected boolean captchaAccepted(String proof)",
+      "sha256": "c36fc13fe76066494337dc965a0c4c568d6b077e77fdc7303c795992faa70750"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AccountPasswordResetRequestService.java",
+      "method": "protected boolean captchaAccepted(String proof)",
+      "sha256": "c36fc13fe76066494337dc965a0c4c568d6b077e77fdc7303c795992faa70750"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3ContactSettingsService.java",
+      "method": "protected boolean captcha(String proof)",
+      "sha256": "422e624bb3ff06022d3ef700f55379f4bc58d209605de54681d38cce6ebfbbad"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/validate/UserRegisterValidationMidware.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "97917195e43b75b4faa2699346af40f0771649364b59e4264577f33959423818"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/middleware/validate/UserForgetPwdValidationMidware.java",
+      "method": "public void handle(final RequestContext context)",
+      "sha256": "f90d02f58c9b0090d68bb69a0811844b61295c5caa7ab0d3673fadbf0f7eeb79"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/Router.java",
+      "method": "public static void requestMapping()",
+      "sha256": "cea03ef494297521300e79187e2394fc19f634d2b8bcffdd8ab32647253e4771"
+    }
+  ]
+}

@@ -52,7 +52,7 @@ public class ApiV3RepeaterQueryTest {
             inject(query,"users",new UserRepository(){public String getName(){return "u";}public List<JSONObject>select(String s,Object...a)throws RepositoryException{return selectSQL(s,a);}});
             inject(query,"contents",new RepeaterContentRepository(){public String getName(){return "c";}public List<JSONObject>select(String s,Object...a)throws RepositoryException{return selectSQL(s,a);}});
             inject(query,"likes",new RepeaterLikeRepository(){public String getName(){return "k";}});
-            inject(controller,"query",query);inject(anonymous,"optionQueryService",new OptionQueryService());AnonymousViewCheckMidware.setEnabled(false);resetShield();
+            inject(controller,"query",query);inject(anonymous,"optionQueryService",new OptionQueryService());AnonymousCaptchaShield.setEnabled(false);resetShield();
             inject(auth,"apiV3TokenMgmtService",new ApiV3TokenMgmtService(){public JSONObject authenticate(String t){return Set.of("valid","wrong","disabled").contains(t)?new JSONObject().put("scope",t.equals("wrong")?"profile.read":"content.read").put("user",new JSONObject().put("oId",t.equals("disabled")?"3":"1")):null;}});
         }
         void sql(String q,Object...a)throws Exception{try(var p=db.prepareStatement(q)){for(int i=0;i<a.length;i++)p.setObject(i+1,a[i]);p.executeUpdate();}}
@@ -66,11 +66,31 @@ public class ApiV3RepeaterQueryTest {
         RequestContext http(String token,String route,Map<String,String>params)throws Exception{
             var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.GET,"/api/v3/repeater/"+route+"?apiKey=legacy");
             try{raw.headers().set("Cookie","legacy");if(token!=null)raw.headers().set("Authorization","Bearer "+token);var req=new Request(null,raw){public String getRemoteAddr(){return "198.51.100.7";}};var all=new HashMap<>(params);all.put("apiKey","legacy");req.setParams(all);
-                var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)){public void sendRedirect(String uri){setHeader("Location",uri);setStatus(302);}});c.attr("user",new JSONObject().put("oId","1"));c.addHandler(new org.b3log.latke.http.handler.RouteHandler());c.addHandler(route.equals("next")?controller::next:controller::items);c.handle();return c;
+                final int[] httpStatus={200};
+                var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)){
+                    public void setStatus(int value){httpStatus[0]=value;super.setStatus(value);}
+                    public void sendError(int value){setStatus(value);}
+                    public void sendRedirect(String uri){setHeader("Location",uri);setStatus(302);}
+                });c.attr("user",new JSONObject().put("oId","1"));c.addHandler(new org.b3log.latke.http.handler.RouteHandler());c.addHandler(route.equals("next")?controller::next:controller::items);c.handle();if(c.attr("test.status")==null)c.attr("test.status",httpStatus[0]);return c;
             }finally{raw.release();}
         }
-        void resetShield(){AnonymousViewCheckMidware.whiteList.clear();AnonymousViewCheckMidware.ipVisitCountCache.invalidateAll();AnonymousViewCheckMidware.ipFirstVisitTimeCache.invalidateAll();AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.invalidateAll();AnonymousViewCheckMidware.ipBlacklistCache.invalidateAll();AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(true);}
-        public void close()throws Exception{db.close();resetShield();AnonymousViewCheckMidware.setEnabled(true);}
+        void resetShield() throws Exception {
+            for (String key : List.of("ipVisitCountCache", "ipFirstVisitTimeCache", "ipLastCaptchaPassTimeCache", "ipBlacklistCache")) {
+                var field = AnonymousCaptchaShield.class.getDeclaredField(key);
+                field.setAccessible(true);
+                ((com.github.benmanes.caffeine.cache.Cache<?, ?>) field.get(null)).invalidateAll();
+            }
+            var field = AnonymousCaptchaShield.class.getDeclaredField("whiteList");
+            field.setAccessible(true);
+            ((Set<?>) field.get(null)).clear();
+            AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(true);
+        }
+        Integer shieldCount() throws Exception {
+            var field = AnonymousCaptchaShield.class.getDeclaredField("ipVisitCountCache");
+            field.setAccessible(true);
+            return (Integer) ((com.github.benmanes.caffeine.cache.Cache<?, ?>) field.get(null)).asMap().get("198.51.100.7");
+        }
+        public void close()throws Exception{db.close();resetShield();AnonymousCaptchaShield.setEnabled(true);}
     }
     interface Action{void run()throws Exception;}
     static void error(int status,Action a)throws Exception{try{a.run();Assert.fail("Expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);Assert.assertFalse(e.getMessage().contains("PRIVATE"));}}
@@ -103,10 +123,10 @@ public class ApiV3RepeaterQueryTest {
             ApiV3RepeaterProcessor.registerRoutes(f.controller,f.auth,f.anonymous);Dispatcher.mapping();
             var anon=f.http(null,"items",Map.of());Assert.assertEquals(anon.attr("test.status"),200);Assert.assertEquals(((JSONObject)anon.attr("test.data")).getJSONArray("items").length(),12);Assert.assertFalse(((JSONObject)anon.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));Assert.assertEquals(anon.getResponse().getHeader("Cache-Control"),"no-store");
             var valid=f.http("valid","items",Map.of());Assert.assertTrue(((JSONObject)valid.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));Assert.assertEquals(f.http("bad","items",Map.of()).attr("test.status"),401);Assert.assertEquals(f.http("wrong","items",Map.of()).attr("test.status"),403);Assert.assertEquals(f.http("disabled","items",Map.of()).attr("test.status"),404);Assert.assertEquals(f.http(null,"items",Map.of("type","other")).attr("test.status"),422);Assert.assertEquals(f.http(null,"next",Map.of("excludeId","x")).attr("test.status"),422);Assert.assertEquals(f.http(null,"items",Map.of("size","51")).attr("test.status"),422);Assert.assertEquals(f.http(null,"next",Map.of()).attr("test.status"),200);
-            f.resetShield();AnonymousViewCheckMidware.setEnabled(true);int before=f.reads;var blocked=f.http(null,"items",Map.of());Assert.assertEquals(blocked.getResponse().getHeader("Location"),"/test");Assert.assertEquals(f.reads,before);Assert.assertEquals(AnonymousViewCheckMidware.ipVisitCountCache.getIfPresent("198.51.100.7"),Integer.valueOf(1));
-            Assert.assertEquals(f.http("bad","items",Map.of()).attr("test.status"),401);Assert.assertEquals(AnonymousViewCheckMidware.ipVisitCountCache.getIfPresent("198.51.100.7"),Integer.valueOf(1));
+            f.resetShield();AnonymousCaptchaShield.setEnabled(true);int before=f.reads;var blocked=f.http(null,"items",Map.of());Assert.assertEquals(blocked.attr("test.status"),401);Assert.assertNull(blocked.getResponse().getHeader("Location"));Assert.assertEquals(f.reads,before);Assert.assertEquals(f.shieldCount(),Integer.valueOf(1));
+            Assert.assertEquals(f.http("bad","items",Map.of()).attr("test.status"),401);Assert.assertEquals(f.shieldCount(),Integer.valueOf(1));
             Assert.assertEquals(f.http("valid","items",Map.of()).attr("test.status"),200);
-            f.resetShield();AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(false);for(int visit=1;visit<=4;visit++)Assert.assertEquals(f.http(null,"items",Map.of()).attr("test.status"),200);Assert.assertEquals(f.http(null,"items",Map.of()).getResponse().getHeader("Location"),"/test");
+            f.resetShield();AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);for(int visit=1;visit<=4;visit++)Assert.assertEquals(f.http(null,"items",Map.of()).attr("test.status"),200);Assert.assertEquals(f.http(null,"items",Map.of()).attr("test.status"),401);
         }System.out.println("PASS 6 actual Dispatcher/controller optional auth and anonymous middleware wiring, Cookie/apiKey never personalize, valid/wrong/expired Bearer and input failures");
         System.out.println("Repeater isolated tests passed: 6 groups");
     }

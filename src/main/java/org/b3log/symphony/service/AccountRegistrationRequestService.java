@@ -26,7 +26,6 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.model.*;
-import org.b3log.symphony.processor.CaptchaProcessor;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
@@ -51,7 +50,10 @@ public class AccountRegistrationRequestService {
     protected long now(){return System.currentTimeMillis();}
     protected String newCode(){return String.format(Locale.ROOT,"%06d",RANDOM.nextInt(1_000_000));}
     protected boolean allowed(String ip,String name,String phone){return AccountSmsQuota.access(ip,name,phone);}
-    protected boolean captchaAccepted(String proof){return CaptchaProcessor.jiyan(proof);}
+    protected boolean captchaAccepted(String proof) {
+        // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+        return AnonymousCaptchaShield.verifyProof(proof);
+    }
     protected boolean acceptableName(String name){return !CensorFactory.getTextCensor().censor(name).isBlocked();}
     protected boolean send(String phone,String code){return sms.sendAccountVerifyCodeSMS(phone,code);}
     protected void unavailable(Exception failure){LOGGER.warn("Registration SMS request unavailable");}
