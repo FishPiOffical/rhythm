@@ -560,7 +560,7 @@ async function startCdpSession(config, entry, profileRoot) {
     '--no-default-browser-check',
     '--disable-notifications',
     'about:blank',
-  ], { windowsHide: false, stdio: 'ignore' });
+  ], { detached: true, windowsHide: false, stdio: 'ignore' });
   const endpoint = `http://127.0.0.1:${port}`;
   let websocketUrl;
   const deadline = Date.now() + DRIVER_START_TIMEOUT_MS;
@@ -818,7 +818,13 @@ async function runFirstAcceptanceFlowCdp(config) {
       for (const session of sessions.values()) preserveCdpSession(session);
       console.error('\n测试失败，已保留浏览器现场，未关闭 Chrome。');
       console.error(`临时用户目录：${runProfileRoot}`);
-      console.error('请查看仍打开的 Chrome 窗口；确认问题后可手动关闭窗口并删除该目录。');
+      console.error('脚本将在此暂停，不会继续清理浏览器；请查看 Chrome 窗口。');
+      try {
+        await ask('确认查看完成后按 Enter，脚本将退出（不会关闭 Chrome）');
+      } catch {
+        // Keep the failure path best-effort when stdin is already closed.
+      }
+      console.error('Chrome 窗口和临时目录仍保留；确认问题后可手动关闭窗口并删除该目录。');
     }
   }
 }
