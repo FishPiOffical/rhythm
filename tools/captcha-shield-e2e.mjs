@@ -517,21 +517,25 @@ function printPageEvidence(client, state, evidence = {}) {
   console.log(`${label}${evidence.reload ? '强制刷新' : '访问'} ${state.href || '(未知 URL)'} -> HTTP ${responseStatus || '未知'}${cached ? '（浏览器缓存/Service Worker）' : ''}；标题：${contentSnippet(state.title)}；内容：${contentSnippet(state.body)}`);
 }
 
-async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) {
+function cdpBeginNavigation(client) {
   client.lastDocumentResponse = null;
   client.lastCaptchaRedirect = null;
   client.readyDocumentLoaderId = null;
-  const navigationVersion = client.mainFrameNavigationVersion;
-  const previousLoaderId = client.mainFrameLoaderId;
-  const result = reload
-    ? await client.send('Page.reload', { ignoreCache: true })
-    : await client.send('Page.navigate', { url });
-  if (result.errorText) throw new Error(`浏览器导航失败：${result.errorText}`);
-  const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
+  return {
+    navigationVersion: client.mainFrameNavigationVersion,
+    previousLoaderId: client.mainFrameLoaderId,
+    deadline: Date.now() + PAGE_READY_TIMEOUT_MS,
+  };
+}
+
+async function cdpWaitForNavigation(client, url, navigation, evidence = {}, result = {}, pendingCheck) {
+  const { navigationVersion, previousLoaderId, deadline } = navigation;
   let state;
   let navigationReady = false;
   while (Date.now() < deadline) {
     await sleep(200);
+    if (pendingCheck && client.mainFrameNavigationVersion === navigationVersion
+        && client.mainFrameLoaderId === previousLoaderId) await pendingCheck();
     const loaderId = result.loaderId || (client.mainFrameLoaderId !== previousLoaderId ? client.mainFrameLoaderId : null);
     // Only accept DOM readiness and a response belonging to this navigation, never the previous page.
     if (!loaderId || client.mainFrameNavigationVersion <= navigationVersion
@@ -552,7 +556,7 @@ async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) 
     const paths = (Array.isArray(pending) ? pending : []).map(resource => {
       try { return new URL(resource).pathname; } catch (_) { return '[未知资源]'; }
     });
-    console.log(`提示：${new URL(url).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
+    console.log(`提示：${new URL(state.href).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
   }
   if (/\b503\b|service unavailable|服务不可用|暂不可用/i.test(`${state.title}\n${state.body}`)) {
     throw new Error(`页面返回或显示 503（${new URL(state.href || url).pathname || '/'}），已停止继续请求，避免扩大封禁：${state.title || 'Service Unavailable'}`);
@@ -562,7 +566,17 @@ async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) 
   if (Number(responseStatus) >= 400) {
     throw new Error(`页面主文档返回 HTTP ${responseStatus}（${new URL(responseUrl).pathname || '/'}），已停止继续请求`);
   }
-  printPageEvidence(client, state, { ...evidence, reload });
+  printPageEvidence(client, state, evidence);
+  return state;
+}
+
+async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) {
+  const navigation = cdpBeginNavigation(client);
+  const result = reload
+    ? await client.send('Page.reload', { ignoreCache: true })
+    : await client.send('Page.navigate', { url });
+  if (result.errorText) throw new Error(`浏览器导航失败：${result.errorText}`);
+  const state = await cdpWaitForNavigation(client, url, navigation, { ...evidence, reload }, result);
   return state.href;
 }
 
@@ -736,22 +750,37 @@ async function cdpLogin(entry, client, config, account, lastAt, evidence = {}) {
     return set('#nameOrEmail', ${username}) && set('#loginPassword', ${password});
   })()`);
   if (!filled) throw new Error(`${entry.key} 登录页缺少账号或密码输入框`);
-  await cdpEvaluate(client, 'document.querySelector("#account_login button.green")?.click()');
-  for (let attempt = 0; attempt < 20; attempt++) {
-    await sleep(500);
-    href = await cdpEvaluate(client, 'location.href');
-    if (!/\/login\/?(?:[?#]|$)/.test(new URL(href).pathname)) break;
-  }
+  const navigation = cdpBeginNavigation(client);
+  const clicked = await cdpEvaluate(client, `(() => {
+    const button = document.querySelector('#account_login button.green');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  if (!clicked) throw new Error(`${entry.key} 登录页缺少登录按钮`);
+  const state = await cdpWaitForNavigation(client, loginUrl, navigation,
+    { ...evidence, sourceKey: entry.key }, {}, async () => {
+      const tip = await cdpEvaluate(client, 'document.querySelector("#loginTip.error")?.textContent || ""');
+      if (String(tip).trim()) throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：${String(tip).trim()}`);
+    });
+  href = state.href;
   if (isCaptchaPath(href)) {
     await cdpWaitForCaptcha(entry, client);
     return cdpLogin(entry, client, config, account, lastAt, evidence);
   }
-  printPageEvidence(client, await cdpPageState(client), { ...evidence, sourceKey: entry.key });
-  const loggedIn = await cdpEvaluate(client, `!!document.querySelector('.avatar, .avatar-small, .nav-avatar, a[data-url*="/member/"], a[href="/logout"]')`);
-  if (!loggedIn) {
-    const tip = await cdpEvaluate(client, '(document.querySelector("#loginTip") || {}).textContent || "登录后未检测到登录状态"');
-    throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：${String(tip).trim()}`);
-  }
+  // These header links are rendered from currentUser in the PC/mobile templates.
+  // Article author avatars are not evidence of the current session's identity.
+  const identity = await cdpEvaluate(client, `(() => {
+    const pc = document.querySelector('#aPersonListPanel[data-url]');
+    const mobile = document.querySelector('.nav a.nav-avatar[href]');
+    const target = pc?.getAttribute('data-url') || mobile?.getAttribute('href');
+    if (!target) return null;
+    const url = new URL(target, location.href);
+    const match = /^\\/member\\/([^/]+)\\/?$/.exec(url.pathname);
+    return match ? decodeURIComponent(match[1]) : null;
+  })()`);
+  if (!identity) throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：页面已就绪，但页头没有当前用户标记`);
+  if (identity !== account.username) throw new Error(`${entry.key} 登录身份不符：预期 ${account.username}，实际 ${identity}`);
   console.log(`${entry.key} 已登录账号：${account.username}`);
 }
 
