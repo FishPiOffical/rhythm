@@ -87,6 +87,15 @@ function isIpv4(item) {
   return item.addressFamily === '2' && !item.ip.includes(':');
 }
 
+function isUsableIpv6(item) {
+  const ip = item.ip.toLowerCase();
+  return item.addressFamily === '23'
+    && ip.includes(':')
+    && !ip.startsWith('fe80:')
+    && !ip.startsWith('::1')
+    && !ip.includes('%');
+}
+
 function printIps(items) {
   if (!items.length) {
     console.log('未发现可用网卡地址。');
@@ -185,13 +194,18 @@ async function configure() {
     loopback = loopbackCandidate;
 
     const ipv4Extra = ips.filter(item => !isLoopback(item) && isIpv4(item));
-    if (ipv4Extra.length < REQUIRED_EXTRA_IPS) {
-      const found = ipv4Extra.map(item => item.ip).join('、') || '无';
-      throw new Error(`当前仅发现 ${ipv4Extra.length} 个可用 IPv4 额外地址，严格需要 ${REQUIRED_EXTRA_IPS} 个，当前地址：${found}`);
+    const ipv6Extra = ips.filter(item => !isLoopback(item) && isUsableIpv6(item));
+    if (ipv4Extra.length + ipv6Extra.length < REQUIRED_EXTRA_IPS) {
+      const found = [...ipv4Extra, ...ipv6Extra].map(item => item.ip).join('、') || '无';
+      throw new Error(`当前仅发现 ${ipv4Extra.length} 个 IPv4 和 ${ipv6Extra.length} 个可用 IPv6 额外地址，严格需要 ${REQUIRED_EXTRA_IPS} 个，当前地址：${found}`);
     }
-    extra = ipv4Extra.slice(0, REQUIRED_EXTRA_IPS);
-    console.log(`已自动选择前 ${REQUIRED_EXTRA_IPS} 个非 IPv6 额外 IP，不需要手填：`);
-    extra.forEach((item, index) => console.log(`   ${String.fromCharCode(65 + index)}：${item.ip}`));
+    extra = [...ipv4Extra, ...ipv6Extra].slice(0, REQUIRED_EXTRA_IPS);
+    const ipv6Count = extra.filter(isUsableIpv6).length;
+    console.log(`已自动选择 ${REQUIRED_EXTRA_IPS} 个额外 IP，不需要手填（优先 IPv4，不足时补 IPv6）：`);
+    extra.forEach((item, index) => console.log(`   ${String.fromCharCode(65 + index)}：${item.ip}${isUsableIpv6(item) ? '（IPv6）' : ''}`));
+    if (ipv6Count > 0) {
+      console.log(`其中 ${ipv6Count} 个为可路由 IPv6；后续浏览器和 HTTP 请求必须使用 IPv6 字面量方括号格式。`);
+    }
   }
 
   console.log('\n=== 三项确认（脚本完全信任勾选，不做额外环境检查）===');
