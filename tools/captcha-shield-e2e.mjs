@@ -616,8 +616,11 @@ async function startCdpSession(config, entry, profileRoot) {
   });
   await client.send('Page.setLifecycleEventsEnabled', { enabled: true });
   await client.send('Network.enable');
-  await client.send('Network.setCacheDisabled', { cacheDisabled: true });
+  // Start this session cold, then let repeat visits reuse cacheable resources.
+  await client.send('Network.setCacheDisabled', { cacheDisabled: false });
+  await client.send('Network.clearBrowserCache');
   await client.send('Network.setBypassServiceWorker', { bypass: true });
+  console.log(`${entry.key} 本轮已清理一次 HTTP 缓存，后续访问正常复用；A 回访的单次强刷除外。`);
   client.on('Network.requestWillBeSent', event => {
     const redirect = event.redirectResponse;
     if (!redirect) return;
