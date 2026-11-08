@@ -1,6 +1,6 @@
 # 验证码盾自动化验收工具
 
-工具按阶段开发。第一阶段只保存配置，不访问服务、不验证账号、不执行压测。
+工具按阶段开发。第一阶段只保存配置；第二阶段才打开真实浏览器并访问服务。
 
 ## 阶段 1
 
@@ -42,4 +42,23 @@ node tools/captcha-shield-e2e.mjs show
 node tools/captcha-shield-e2e.mjs ips
 ```
 
-阶段 1 不读取或保存 `jiyan.key`，也不会启动浏览器。后续阶段在阶段 1 验收通过后继续开发。
+阶段 1 不读取或保存 `jiyan.key`，也不会启动浏览器。
+
+## 阶段 2：ChromeDriver 浏览器流程
+
+阶段 1 验收通过后，先安装与本机 Chrome 主版本匹配的 `chromedriver.exe`，并确保它在 `PATH` 中；也可以设置环境变量 `CHROMEDRIVER_PATH` 指向驱动文件。工具不会自动下载驱动，也不会静默使用不匹配的版本。
+
+在项目根目录运行：
+
+```powershell
+.\tools\captcha-shield-e2e.cmd browser
+```
+
+或在菜单选择“4. 阶段 2：浏览器流程”。工具会：
+
+- 为 L、A、B、C、D、E 分别建立独立的 Chrome 用户目录；目录位于 `%LOCALAPPDATA%\RhythmCaptchaShieldE2E\profiles`，用于保留每个源地址自己的 Cookie，不把账号密码写入日志。
+- 依次打开对应地址的首页。IPv6 地址自动使用 `http://[地址]:端口/` 格式。
+- 读取浏览器当前 URL；如果服务把请求重定向到 `/test`，脚本会暂停并提示你在刚打开的 Chrome 窗口中手动完成极验。脚本不会模拟拖动、伪造 `/validateCaptcha` 响应或把未完成的验证当作成功。
+- 你按 Enter 后，脚本再次读取当前 URL；仍停留在 `/test` 会明确失败，离开后才继续下一个源地址。
+
+阶段 2 只验证“真实浏览器能打开、验证码页面能人工接管、完成后能继续”这条基础链路，不代替后续的 `/admin/misc` 日志核对、每 5 次访问、黑名单和压测阶段。当前机器若未安装 ChromeDriver，运行会直接报错并给出安装或 `CHROMEDRIVER_PATH` 提示，不会伪造通过结果。
