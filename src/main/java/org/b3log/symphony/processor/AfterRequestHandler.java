@@ -30,6 +30,7 @@ import org.b3log.latke.util.Stopwatchs;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.SecurityMonitor;
 import org.b3log.symphony.util.Symphonys;
 
 import java.util.Map;
@@ -52,6 +53,7 @@ public class AfterRequestHandler implements Handler {
     public void handle(final RequestContext context) {
         Locales.setLocale(null);
         Sessions.clearThreadLocalData();
+        SecurityMonitor.clearRequest();
         JdbcRepository.dispose();
 
         Stopwatchs.end();

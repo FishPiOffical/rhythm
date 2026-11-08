@@ -4,7 +4,9 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.handler.ContextHandlerMeta;
 import org.b3log.latke.http.handler.RouteHandler;
 import org.b3log.latke.http.handler.RouteResolution;
+import org.b3log.latke.model.User;
 import org.b3log.latke.util.Requests;
+import org.json.JSONObject;
 
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -36,6 +38,7 @@ public final class SecurityMonitor {
     private static final long[] MINUTES = new long[MINUTE_BUCKETS];
     private static long minuteEpoch = System.currentTimeMillis() / 60000L;
     private static final Deque<Map<String, Object>> EVENTS = new ArrayDeque<>();
+    private static final ThreadLocal<Map<String, Object>> CURRENT_EVENT = new ThreadLocal<>();
 
     private SecurityMonitor() {
     }
@@ -80,9 +83,10 @@ public final class SecurityMonitor {
         event.put("result", safeResult);
         event.put("reason", safeReason);
         synchronized (EVENTS) {
-            EVENTS.addFirst(Collections.unmodifiableMap(event));
+            EVENTS.addFirst(event);
             while (EVENTS.size() > MAX_EVENTS) EVENTS.removeLast();
         }
+        CURRENT_EVENT.set(event);
     }
 
     public static Map<String, Object> snapshot() {
@@ -106,8 +110,28 @@ public final class SecurityMonitor {
 
     public static List<Map<String, Object>> recentEvents() {
         synchronized (EVENTS) {
-            return new ArrayList<>(EVENTS);
+            final List<Map<String, Object>> copy = new ArrayList<>(EVENTS.size());
+            for (final Map<String, Object> event : EVENTS) {
+                copy.add(Collections.unmodifiableMap(new LinkedHashMap<>(event)));
+            }
+            return copy;
         }
+    }
+
+    /** Adds the authenticated user to the current request's already-recorded firewall event. */
+    public static void markAuthenticated(final JSONObject user) {
+        final Map<String, Object> event = CURRENT_EVENT.get();
+        if (event != null && user != null) {
+            final String userName = user.optString(User.USER_NAME, "未知用户");
+            synchronized (EVENTS) {
+                event.put("userStatus", "本人登录（用户：" + clean(userName, "未知用户") + "）");
+            }
+        }
+        CURRENT_EVENT.remove();
+    }
+
+    public static void clearRequest() {
+        CURRENT_EVENT.remove();
     }
 
     private static String resolveHandler(final String uri, final String method) {

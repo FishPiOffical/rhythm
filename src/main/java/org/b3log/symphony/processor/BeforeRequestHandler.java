@@ -44,6 +44,7 @@ import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.Firewall;
+import org.b3log.symphony.util.SecurityMonitor;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
@@ -214,6 +215,7 @@ public class BeforeRequestHandler implements Handler {
             Sessions.setAvatarViewMode(user.optInt(UserExt.USER_AVATAR_VIEW_MODE));
             Sessions.setUser(user);
             Sessions.setLoggedIn(true);
+            SecurityMonitor.markAuthenticated(user);
 
             final Locale locale = Locales.getLocale(user.optString(UserExt.USER_LANGUAGE));
             Locales.setLocale(locale);
