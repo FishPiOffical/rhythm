@@ -618,6 +618,14 @@ async function closeCdpSession(session) {
   if (!session.chromeProcess.killed) session.chromeProcess.kill();
 }
 
+function preserveCdpSession(session) {
+  if (!session) return;
+  // Disconnect the controller without sending Browser.close so the user can
+  // inspect the failed page and its cookies in the still-open Chrome window.
+  session.client.close();
+  if (typeof session.chromeProcess.unref === 'function') session.chromeProcess.unref();
+}
+
 async function cdpWaitForCaptcha(entry, client) {
   console.log(`\n${entry.key} 已进入验证码页面（/test）。`);
   console.log('请在普通 Chrome 窗口中手动完成极验；脚本会自动检测页面离开 /test，不需要按 Enter。');
@@ -737,6 +745,7 @@ async function runFirstAcceptanceFlowCdp(config) {
   const entryB = entries.find(entry => entry.key === 'B');
   const runProfileRoot = path.join(CONFIG_DIR, 'runs', `cdp-flow-${Date.now()}`);
   const sessions = new Map();
+  let completed = false;
   try {
     console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
     sessions.set(entryL.key, await startCdpSession(config, entryL, runProfileRoot));
@@ -800,9 +809,17 @@ async function runFirstAcceptanceFlowCdp(config) {
     console.log('A/B 源地址切换通过：B 登录后返回 A，再次进入 /test。');
     await cdpCheckAdminMisc(entryB, b.client, config, 'A/B 切换完成', bLastAt);
     console.log('\n第一阶段业务流程完成。');
+    completed = true;
   } finally {
-    for (const session of [...sessions.values()].reverse()) await closeCdpSession(session);
-    try { fs.rmSync(runProfileRoot, { recursive: true, force: true }); } catch { /* Chrome may still release files. */ }
+    if (completed) {
+      for (const session of [...sessions.values()].reverse()) await closeCdpSession(session);
+      try { fs.rmSync(runProfileRoot, { recursive: true, force: true }); } catch { /* Chrome may still release files. */ }
+    } else {
+      for (const session of sessions.values()) preserveCdpSession(session);
+      console.error('\n测试失败，已保留浏览器现场，未关闭 Chrome。');
+      console.error(`临时用户目录：${runProfileRoot}`);
+      console.error('请查看仍打开的 Chrome 窗口；确认问题后可手动关闭窗口并删除该目录。');
+    }
   }
 }
 
