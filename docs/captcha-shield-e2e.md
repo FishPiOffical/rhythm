@@ -4,6 +4,20 @@
 
 ## 阶段 1
 
+不需要记 Node 命令，直接双击项目里的以下文件即可：
+
+```text
+tools\captcha-shield-e2e.cmd
+```
+
+也可以在项目根目录运行 PowerShell 脚本：
+
+```powershell
+.\tools\captcha-shield-e2e.ps1
+```
+
+脚本会显示中文菜单。选择“1”进入配置向导，“2”查看已保存配置，“3”查看网卡 IP。
+
 ```powershell
 node tools/captcha-shield-e2e.mjs configure
 ```
