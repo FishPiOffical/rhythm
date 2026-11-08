@@ -103,7 +103,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecuritySelfCheck.java",
-      "sha256": "cdfa80478c993208c96a35741c4dd4c163af09c857aefc3cf912d0dabe00d68e"
+      "sha256": "0f0e759de52c7a97d28a89fcb2d6e8944021c0d1c3c4a3b3a31f3bb71f6f375f"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
@@ -117,7 +117,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
-      "sha256": "9bc5cb125e98aa8a796251fdbb4eb5f58d3c997abe0af2c3dd0c16f4b3241716"
+      "sha256": "e96bf799c446522c85b7642418c76e0950e59929a1b477beee5690f091541214"
     }
   ]
 }
