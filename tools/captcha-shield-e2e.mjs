@@ -25,8 +25,10 @@ const DRIVER_START_TIMEOUT_MS = 10_000;
 const DRIVER_REQUEST_TIMEOUT_MS = 15_000;
 const NAVIGATION_TIMEOUT_MS = 45_000;
 const PAGE_READY_TIMEOUT_MS = 15_000;
+const NAVIGATION_INTERVAL_MS = 1_500;
 
 const rl = readline.createInterface({ input, output });
+const lastNavigationAt = new Map();
 
 function ask(question, defaultValue = '') {
   const suffix = defaultValue ? ` [${defaultValue}]` : '';
@@ -278,6 +280,15 @@ async function currentUrl(driverUrl, sessionId) {
 }
 
 async function navigate(driverUrl, sessionId, url) {
+  const previousNavigation = lastNavigationAt.get(sessionId);
+  if (previousNavigation) {
+    const remaining = NAVIGATION_INTERVAL_MS - (Date.now() - previousNavigation);
+    if (remaining > 0) {
+      console.log(`请求节流：等待 ${(remaining / 1000).toFixed(1)} 秒后访问 ${new URL(url).pathname || '/'}`);
+      await sleep(remaining);
+    }
+  }
+  lastNavigationAt.set(sessionId, Date.now());
   await webdriverRequest(driverUrl, `/session/${sessionId}/url`, 'POST', { url }, NAVIGATION_TIMEOUT_MS);
   const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
   let state = null;
@@ -296,7 +307,16 @@ async function navigate(driverUrl, sessionId, url) {
     });
     console.log(`提示：${new URL(url).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
   }
-  return currentUrl(driverUrl, sessionId);
+  const actualUrl = await currentUrl(driverUrl, sessionId);
+  const failure = await webdriverExecute(driverUrl, sessionId, `return {
+    title: document.title || '',
+    body: (document.body && document.body.innerText || '').slice(0, 4000)
+  };`);
+  const failureText = `${failure?.title || ''}\n${failure?.body || ''}`;
+  if (/\b503\b|service unavailable|服务不可用|暂不可用/i.test(failureText)) {
+    throw new Error(`页面返回或显示 503（${new URL(actualUrl).pathname || '/'}），已停止继续请求，避免扩大封禁：${String(failure?.title || '').trim() || 'Service Unavailable'}`);
+  }
+  return actualUrl;
 }
 
 async function createChromeSession(driverUrl, entry, profileRoot = path.join(CONFIG_DIR, 'profiles')) {
