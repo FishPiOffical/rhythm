@@ -49,14 +49,14 @@ function Show-Menu {
     Write-Host '============================================' -ForegroundColor Cyan
     Write-Host '  Rhythm 验证码盾自动化验收工具' -ForegroundColor Cyan
     Write-Host '============================================' -ForegroundColor Cyan
-    Write-Host '阶段 1 配置账号和 IP；阶段 2 使用 ChromeDriver 打开真实浏览器并在 /test 暂停。' -ForegroundColor Yellow
+    Write-Host '阶段 1 配置账号和 IP；业务流程使用普通 Chrome + DevTools Protocol，并在 /test 暂停。' -ForegroundColor Yellow
     Write-Host ''
     Write-Host '  1. 配置向导（首次使用或修改配置）'
     Write-Host '  2. 查看已保存配置'
     Write-Host '  3. 查看本机网卡 IP'
     Write-Host '  4. 设置 ChromeDriver 路径'
     Write-Host '  5. 打开配置文件编辑'
-    Write-Host '  6. 阶段 2：浏览器流程（遇到极验时手动完成）'
+    Write-Host '  6. 基础浏览器流程（ChromeDriver，兼容入口）'
     Write-Host '  7. 第一阶段完整业务流程'
     Write-Host '  0. 退出'
     Write-Host ''

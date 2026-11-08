@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Phase 1 of the captcha-shield acceptance runner.
- * This phase only saves configuration and human confirmations; it never sends
- * requests to the service and never attempts to solve a captcha.
+ * Captcha-shield acceptance runner. Configuration, browser compatibility, and
+ * the staged business flow are exposed as separate commands.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -181,6 +180,16 @@ function findChromeDriver(config) {
     // A missing driver is reported with an actionable message below.
   }
   return null;
+}
+
+function findChromeExecutable() {
+  const candidates = [
+    process.env.CHROME_PATH,
+    path.join(process.env.ProgramFiles || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  ].filter(Boolean);
+  return candidates.find(candidate => fs.existsSync(candidate)) || null;
 }
 
 async function configureDriver() {
@@ -414,6 +423,286 @@ async function startChromeDriver(config) {
 async function stopChromeDriver(driver) {
   if (!driver) return;
   driver.driverProcess.kill();
+}
+
+class CdpClient {
+  constructor(websocketUrl) {
+    this.websocketUrl = websocketUrl;
+    this.nextId = 0;
+    this.pending = new Map();
+    this.socket = null;
+  }
+
+  async connect() {
+    this.socket = new WebSocket(this.websocketUrl);
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('连接 Chrome DevTools 超时')), DRIVER_START_TIMEOUT_MS);
+      this.socket.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true });
+      this.socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('连接 Chrome DevTools 失败')); }, { once: true });
+    });
+    this.socket.addEventListener('message', event => {
+      let message;
+      try { message = JSON.parse(String(event.data)); } catch { return; }
+      if (message.id && this.pending.has(message.id)) {
+        const { resolve, reject } = this.pending.get(message.id);
+        this.pending.delete(message.id);
+        if (message.error) reject(new Error(message.error.message || 'Chrome DevTools 命令失败'));
+        else resolve(message.result || {});
+      }
+    });
+    this.socket.addEventListener('close', () => {
+      for (const { reject } of this.pending.values()) reject(new Error('Chrome DevTools 连接已关闭'));
+      this.pending.clear();
+    });
+    await this.send('Page.enable');
+    await this.send('Runtime.enable');
+    return this;
+  }
+
+  send(method, params = {}) {
+    const id = ++this.nextId;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.socket.send(JSON.stringify({ id, method, params }));
+    });
+  }
+
+  close() {
+    try { this.socket?.close(); } catch { /* already closed */ }
+  }
+}
+
+async function cdpEvaluate(client, expression) {
+  const result = await client.send('Runtime.evaluate', {
+    expression,
+    returnByValue: true,
+    awaitPromise: true,
+  });
+  if (result.exceptionDetails) {
+    throw new Error(result.exceptionDetails.text || '页面脚本执行失败');
+  }
+  return result.result?.value;
+}
+
+async function cdpPageState(client) {
+  return cdpEvaluate(client, '({readyState: document.readyState, href: location.href, pendingImages: [...document.images].filter(image => image.src && !image.complete).length, title: document.title || "", body: (document.body && document.body.innerText || "").slice(0, 4000)})');
+}
+
+async function cdpNavigate(client, url) {
+  await client.send('Page.navigate', { url });
+  const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
+  let state;
+  while (Date.now() < deadline) {
+    await sleep(200);
+    state = await cdpPageState(client);
+    if (state && ['interactive', 'complete'].includes(state.readyState)) break;
+  }
+  if (!state || !['interactive', 'complete'].includes(state.readyState)) {
+    throw new Error(`页面未在 ${PAGE_READY_TIMEOUT_MS / 1000} 秒内完成加载：${new URL(url).pathname || '/'}`);
+  }
+  if (state.pendingImages) {
+    const pending = await cdpEvaluate(client, '[...document.images].filter(image => image.src && !image.complete).slice(0, 5).map(image => image.src)');
+    const paths = (Array.isArray(pending) ? pending : []).map(resource => {
+      try { return new URL(resource).pathname; } catch (_) { return '[未知资源]'; }
+    });
+    console.log(`提示：${new URL(url).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
+  }
+  if (/\b503\b|service unavailable|服务不可用|暂不可用/i.test(`${state.title}\n${state.body}`)) {
+    throw new Error(`页面返回或显示 503（${new URL(state.href || url).pathname || '/'}），已停止继续请求，避免扩大封禁：${state.title || 'Service Unavailable'}`);
+  }
+  return state.href;
+}
+
+async function startCdpSession(config, entry, profileRoot) {
+  const chromePath = findChromeExecutable();
+  if (!chromePath) throw new Error('未找到 Chrome，请设置 CHROME_PATH 或安装 Google Chrome');
+  const port = await findFreePort();
+  const profileDir = path.join(profileRoot, entry.key);
+  fs.mkdirSync(profileDir, { recursive: true });
+  const chromeProcess = spawn(chromePath, [
+    `--remote-debugging-port=${port}`,
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-allow-origins=*',
+    `--user-data-dir=${profileDir}`,
+    '--profile-directory=Default',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-notifications',
+    'about:blank',
+  ], { windowsHide: false, stdio: 'ignore' });
+  const endpoint = `http://127.0.0.1:${port}`;
+  let websocketUrl;
+  const deadline = Date.now() + DRIVER_START_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${endpoint}/json/list`, { signal: AbortSignal.timeout(1000) });
+      const targets = await response.json();
+      const target = targets.find(item => item.type === 'page' && item.webSocketDebuggerUrl);
+      if (target) { websocketUrl = target.webSocketDebuggerUrl; break; }
+    } catch { /* Chrome is still starting. */ }
+    await sleep(150);
+  }
+  if (!websocketUrl) {
+    chromeProcess.kill();
+    throw new Error('等待普通 Chrome DevTools 端口超时');
+  }
+  const client = await new CdpClient(websocketUrl).connect();
+  return { client, chromeProcess };
+}
+
+async function closeCdpSession(session) {
+  if (!session) return;
+  try { await session.client.send('Browser.close'); } catch { session.client.close(); }
+  await sleep(300);
+  if (!session.chromeProcess.killed) session.chromeProcess.kill();
+}
+
+async function cdpWaitForCaptcha(entry, client) {
+  console.log(`\n${entry.key} 已进入验证码页面（/test）。`);
+  console.log('请在普通 Chrome 窗口中手动完成极验；脚本不会模拟或伪造验证。');
+  await rl.question('完成后按 Enter 继续：');
+  const href = await cdpEvaluate(client, 'location.href');
+  if (isCaptchaPath(href)) throw new Error(`${entry.key} 仍停留在 /test，未确认验证码已完成`);
+  console.log(`${entry.key} 已离开 /test，当前页面路径：${new URL(href).pathname || '/'}`);
+}
+
+async function cdpNavigateWithPacing(client, url, lastAt) {
+  const remaining = NAVIGATION_INTERVAL_MS - (Date.now() - (lastAt.value || 0));
+  if (lastAt.value && remaining > 0) {
+    console.log(`请求节流：等待 ${(remaining / 1000).toFixed(1)} 秒后访问 ${new URL(url).pathname || '/'}`);
+    await sleep(remaining);
+  }
+  lastAt.value = Date.now();
+  return cdpNavigate(client, url);
+}
+
+async function cdpRequireCaptcha(entry, client, url, lastAt) {
+  const href = await cdpNavigateWithPacing(client, url, lastAt);
+  if (!isCaptchaPath(href)) throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时未进入 /test`);
+  await cdpWaitForCaptcha(entry, client);
+}
+
+async function cdpRequireNoCaptcha(entry, client, url, lastAt) {
+  const href = await cdpNavigateWithPacing(client, url, lastAt);
+  if (isCaptchaPath(href)) throw new Error(`${entry.key} 访问 ${new URL(url).pathname || '/'} 时进入 /test`);
+  return href;
+}
+
+async function cdpLogin(entry, client, config, account, lastAt) {
+  const loginUrl = `${sourceUrl(config, entry.item)}login`;
+  let href = await cdpNavigateWithPacing(client, loginUrl, lastAt);
+  if (isCaptchaPath(href)) {
+    await cdpWaitForCaptcha(entry, client);
+    href = await cdpNavigateWithPacing(client, loginUrl, lastAt);
+  }
+  if (new URL(href).pathname !== '/login') throw new Error(`${entry.key} 登录页被重定向到 ${new URL(href).pathname || '/'}`);
+  const username = JSON.stringify(account.username);
+  const password = JSON.stringify(unprotectSecret(account.passwordProtected));
+  const filled = await cdpEvaluate(client, `(() => {
+    const set = (selector, value) => { const el = document.querySelector(selector); if (!el) return false; const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(el, value); el.dispatchEvent(new Event('input', {bubbles:true})); el.dispatchEvent(new Event('change', {bubbles:true})); return true; };
+    return set('#nameOrEmail', ${username}) && set('#loginPassword', ${password});
+  })()`);
+  if (!filled) throw new Error(`${entry.key} 登录页缺少账号或密码输入框`);
+  await cdpEvaluate(client, 'document.querySelector("#account_login button.green")?.click()');
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await sleep(500);
+    href = await cdpEvaluate(client, 'location.href');
+    if (!/\/login\/?(?:[?#]|$)/.test(new URL(href).pathname)) break;
+  }
+  if (isCaptchaPath(href)) {
+    await cdpWaitForCaptcha(entry, client);
+    return cdpLogin(entry, client, config, account, lastAt);
+  }
+  const loggedIn = await cdpEvaluate(client, `!!document.querySelector('.avatar, .avatar-small, .nav-avatar, a[data-url*="/member/"], a[href="/logout"]')`);
+  if (!loggedIn) {
+    const tip = await cdpEvaluate(client, '(document.querySelector("#loginTip") || {}).textContent || "登录后未检测到登录状态"');
+    throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：${String(tip).trim()}`);
+  }
+  console.log(`${entry.key} 已登录账号：${account.username}`);
+}
+
+async function cdpCollectArticleUrls(client, config, entry) {
+  const links = await cdpEvaluate(client, ' [...document.querySelectorAll("a[href]")].map(a => a.href).filter(href => { try { return new URL(href).pathname.startsWith("/article/"); } catch (_) { return false; } }).filter((href, index, all) => all.indexOf(href) === index).slice(0, 20)');
+  if (!Array.isArray(links) || links.length < 10) throw new Error(`${entry.key} 首页只发现 ${Array.isArray(links) ? links.length : 0} 个不同文章链接，第一阶段要求至少 10 个`);
+  return links.slice(0, 10).map(url => {
+    const parsed = new URL(url);
+    return `${sourceUrl(config, entry.item)}${parsed.pathname.replace(/^\//, '')}${parsed.search}${parsed.hash}`;
+  });
+}
+
+async function cdpCheckAdminMisc(entry, client, config, section, lastAt) {
+  const href = await cdpNavigateWithPacing(client, `${sourceUrl(config, entry.item)}admin/misc`, lastAt);
+  if (isCaptchaPath(href)) throw new Error(`${entry.key} 核对 /admin/misc 时进入 /test`);
+  const pathname = new URL(href).pathname;
+  if (['/login', '/401', '/403'].includes(pathname)) throw new Error(`${entry.key} 无法访问 /admin/misc（当前路径 ${pathname}）`);
+  const report = await cdpEvaluate(client, `({section:${JSON.stringify(section)},hasSecurityPanel:!!document.querySelector('.security-panel'),eventRows:document.querySelectorAll('#securityEvents tr').length})`);
+  if (!report?.hasSecurityPanel) throw new Error(`${entry.key} /admin/misc 未找到社区安全面板`);
+  console.log(`${entry.key} /admin/misc 已核对：${section}，监控行数 ${report.eventRows || 0}`);
+}
+
+async function runFirstAcceptanceFlowCdp(config) {
+  if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
+    throw new Error('未找到完整阶段 1 配置，请先运行 configure 并确认 L 加 5 个额外 IP');
+  }
+  const baseline = config.accounts.find(account => account.key === 'baseline');
+  const admin = config.accounts.find(account => account.key === 'admin');
+  if (!baseline || !admin) throw new Error('配置中缺少普通登录基线账号或管理员账号');
+  const entries = sourceEntries(config);
+  const entryL = entries.find(entry => entry.key === 'L');
+  const entryA = entries.find(entry => entry.key === 'A');
+  const entryB = entries.find(entry => entry.key === 'B');
+  const runProfileRoot = path.join(CONFIG_DIR, 'runs', `cdp-flow-${Date.now()}`);
+  const sessions = new Map();
+  try {
+    console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
+    sessions.set(entryL.key, await startCdpSession(config, entryL, runProfileRoot));
+    const l = sessions.get('L');
+    const lLastAt = { value: 0 };
+    console.log('\n=== 第一阶段：L 登录基线 ===');
+    await cdpRequireNoCaptcha(entryL, l.client, sourceUrl(config, entryL.item), lLastAt);
+    await cdpLogin(entryL, l.client, config, baseline, lLastAt);
+    const articleUrls = await cdpCollectArticleUrls(l.client, config, entryL);
+    for (let i = 0; i < 10; i++) await cdpRequireNoCaptcha(entryL, l.client, sourceUrl(config, entryL.item), lLastAt);
+    for (const articleUrl of articleUrls) await cdpRequireNoCaptcha(entryL, l.client, articleUrl, lLastAt);
+    console.log('L 基线通过：主页 10 次、10 个不同文章页均未进入 /test。');
+
+    console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
+    sessions.set(entryA.key, await startCdpSession(config, entryA, runProfileRoot));
+    const a = sessions.get('A');
+    const aLastAt = { value: 0 };
+    await cdpRequireCaptcha(entryA, a.client, sourceUrl(config, entryA.item), aLastAt);
+    const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
+    let redirectedAt = 0;
+    for (let count = 1; count <= 5; count++) {
+      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
+      const href = await cdpNavigateWithPacing(a.client, target, aLastAt);
+      if (isCaptchaPath(href)) { redirectedAt = count; await cdpWaitForCaptcha(entryA, a.client); break; }
+    }
+    if (!redirectedAt) throw new Error('A 通过 5 次主页/文章访问后仍未回到 /test');
+    console.log(`A 已在第 ${redirectedAt} 次访问内重新进入 /test。`);
+    await cdpLogin(entryA, a.client, config, admin, aLastAt);
+    await cdpCheckAdminMisc(entryA, a.client, config, 'A 验证码后管理员登录', aLastAt);
+    for (let count = 1; count <= 5; count++) {
+      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
+      await cdpRequireNoCaptcha(entryA, a.client, target, aLastAt);
+    }
+    console.log('A 登录后通过 5 次访问，未再次进入 /test。');
+
+    console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
+    sessions.set(entryB.key, await startCdpSession(config, entryB, runProfileRoot));
+    const b = sessions.get('B');
+    const bLastAt = { value: 0 };
+    await cdpRequireCaptcha(entryB, b.client, sourceUrl(config, entryB.item), bLastAt);
+    await cdpLogin(entryB, b.client, config, admin, bLastAt);
+    await cdpCheckAdminMisc(entryB, b.client, config, 'B 验证码后管理员登录', bLastAt);
+    await cdpRequireCaptcha(entryA, a.client, sourceUrl(config, entryA.item), aLastAt);
+    console.log('A/B 源地址切换通过：B 登录后返回 A，再次进入 /test。');
+    await cdpCheckAdminMisc(entryA, a.client, config, 'A/B 切换完成', aLastAt);
+    console.log('\n第一阶段业务流程完成。');
+  } finally {
+    for (const session of [...sessions.values()].reverse()) await closeCdpSession(session);
+    try { fs.rmSync(runProfileRoot, { recursive: true, force: true }); } catch { /* Chrome may still release files. */ }
+  }
 }
 
 async function requireCaptcha(entry, driverUrl, sessionId, url) {
@@ -747,7 +1036,8 @@ async function main() {
     else if (command === 'ips') printIps(listLocalIps());
     else if (command === 'driver') await configureDriver();
     else if (command === 'browser') await runBrowser(loadConfig());
-    else if (command === 'flow') await runFirstAcceptanceFlow(loadConfig());
+    else if (command === 'flow') await runFirstAcceptanceFlowCdp(loadConfig());
+    else if (command === 'webdriver-flow') await runFirstAcceptanceFlow(loadConfig());
     else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow）`);
   } catch (error) {
     console.error(`失败：${error.message}`);
