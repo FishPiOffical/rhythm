@@ -1,4 +1,6 @@
 /** Selectable real-browser acceptance modules. Browser and persistence are injected. */
+import { runPressureProbe } from './captcha-shield-pressure.mjs';
+
 export const TEST_MODULES = Object.freeze([
   { id: 'baseline', name: '登录基线', detail: 'L：主页10次、不同文章10页' },
   { id: 'captcha', name: '验证码', detail: 'A：首访、周期验证、登录放行' },
@@ -6,6 +8,7 @@ export const TEST_MODULES = Object.freeze([
   { id: 'blacklist', name: '黑名单', detail: 'C：不同URL拦截、直接验证码页、验证恢复' },
   { id: 'unban', name: '管理解封', detail: 'D：真实解封、本次启动加白；会修改D状态' },
   { id: 'readonly', name: '生产只读', detail: 'L：控件、保存拒绝、权限、自检；须PRODUCTION' },
+  { id: 'pressure', name: 'CC压测', detail: 'E：8并发、302/429/418及监控；会封禁E，须PRODUCTION' },
 ].map(Object.freeze));
 
 export const FIRST_FLOW_MODULES = Object.freeze(['baseline', 'captcha', 'session']);
@@ -66,6 +69,7 @@ export function matchesCurrentEvent(event, before, expected) {
   return Object.entries(expected).every(([key, value]) => {
     if (key === 'ip') return canonicalIp(event.ip) === canonicalIp(value);
     if (key === 'userStatusPrefix') return String(event.userStatus).startsWith(value);
+    if (key === 'resultIn') return value.includes(event.result);
     return event[key] === value;
   });
 }
@@ -164,7 +168,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     })()`);
     return data;
   }
-  async function verifyMonitor(label, session, before, expected) {
+  async function verifyMonitor(label, session, before, expected, minimumGrowth = 1) {
     const target = { ip: session.entry.item.ip, ...expected };
     // localhost may resolve to either loopback family. Learn the actual monitor IP from its own authenticated request.
     if (session.entry.item === source('L').item) {
@@ -188,8 +192,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       throw new Error(`${label}：未找到本轮监控 ${JSON.stringify(target)}；该IP近期记录：${recent || '无'}。记录可能已超出100条保留范围，不能据此判通过。`);
     }
     const counterKey = `${match.type}.${match.result}`;
-    if (after.total <= before.total || Number(after.counts?.[counterKey] || 0) <= Number(before.counts?.[counterKey] || 0)) {
-      throw new Error(`${label}：匹配到记录但对应统计未增长 ${counterKey}`);
+    if (after.total <= before.total || Number(after.counts?.[counterKey] || 0) - Number(before.counts?.[counterKey] || 0) < minimumGrowth) {
+      throw new Error(`${label}：匹配到记录但对应统计增长不足 ${counterKey}（至少应增长${minimumGrowth}）`);
     }
     const visible = await rt.evaluate(monitorSession.client, `Array.from(document.querySelectorAll('#securityEvents tr')).map(row=>Array.from(row.cells).map(cell=>cell.textContent.trim()))`);
     const cells = [match.time, match.ip, match.userStatus, `${match.method} ${match.uri}`, match.handler, match.flow, match.result, match.reason];
@@ -411,7 +415,35 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
           if (response.status !== 403 || response.redirected) throw new Error(`匿名后台读取未403：${pathname} HTTP ${response.status}`);
         }, cc(pathname, { userStatusPrefix: '访客' }));
       }
-      console.log('通过：生产控件只读、真实保存403且状态未变、匿名后台拒绝、结构自检。开发模式修改另行验收。');
+      console.log('通过：生产控件只读、真实保存403且状态未变、匿名后台拒绝、结构自检。');
+    },
+    async pressure() {
+      const session = await ensureMonitor();
+      await noCaptcha(session, '/admin/misc');
+      const state = await rt.evaluate(session.client, `(() => {
+        const ids=['firewallEnabled','verificationEnabled','firstVisitCaptchaEnabled'];
+        return {mode:document.querySelector('.security-mode strong')?.textContent.trim(),
+          enabled:ids.every(id=>document.getElementById(id)?.checked===true),
+          threshold:Number(document.getElementById('firewallThreshold')?.value),ua:navigator.userAgent};
+      })()`);
+      if (state.mode !== 'PRODUCTION' || !state.enabled || !Number.isSafeInteger(state.threshold) || state.threshold < 1) {
+        throw new Error('CC压测要求PRODUCTION、三个安全开关开启且阈值有效；未向E发送压力请求');
+      }
+      const e = { entry: source('E') };
+      await runPressureProbe({ origin: rt.sourceUrl(config, e.entry.item), ip: e.entry.item.ip,
+        threshold: state.threshold, userAgent: state.ua, request: rt.requestFromIp, sleep: rt.sleep, monitor,
+        observe: async (label, action, expected) => {
+          const before = await monitor();
+          const response = await action();
+          const event = await verifyMonitor(label, e, before, expected);
+          currentModule.checks.at(-1).http = response;
+          save();
+          return { response, event };
+        },
+        verify: (label, before, expected, minimumGrowth) => verifyMonitor(label, e, before, expected, minimumGrowth),
+        record: (label, evidence) => { currentModule.checks.push({ label, status: 'PASS', ...evidence }); save(); },
+        progress: evidence => { currentModule.pressure = evidence; save(); },
+      });
     },
   };
   save();
@@ -437,6 +469,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     result.finishedAt = new Date().toISOString();
     currentModule.status = 'FAIL';
     currentModule.error = error.message;
+    if (currentModule.pressure) currentModule.pressure = { ...currentModule.pressure, status: 'FAIL', error: error.message };
     save();
     throw error;
   }

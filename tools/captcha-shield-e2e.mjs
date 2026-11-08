@@ -10,6 +10,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
 import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
+import { requestFromIp } from './captcha-shield-pressure.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -889,7 +890,7 @@ async function runCdpTestTask(config, task) {
   try {
     console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
     await task({
-      entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep,
+      entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep, requestFromIp,
       isCaptcha: isCaptchaPath, login: cdpLogin, articles: cdpCollectArticleUrls,
       navigate: cdpNavigateWithPacing, ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
       start: async entry => {
