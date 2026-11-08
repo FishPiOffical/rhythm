@@ -323,6 +323,14 @@ async function createChromeSession(driverUrl, entry) {
   return session.sessionId;
 }
 
+async function resetBrowserSession(driverUrl, sessionId) {
+  // A complete flow must start logged out even when a previous run left a
+  // persistent profile behind. Cookies are the authoritative session state;
+  // storage is cleared as well so old client flags cannot alter the flow.
+  await webdriverRequest(driverUrl, `/session/${sessionId}/cookie`, 'DELETE');
+  await webdriverExecute(driverUrl, sessionId, 'try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}');
+}
+
 function sourceEntries(config) {
   return [
     { key: 'L', label: 'L（回环）', item: config.ipPlan.loopback },
@@ -406,8 +414,19 @@ async function requireNoCaptcha(entry, driverUrl, sessionId, url) {
 
 async function loginWithAccount(entry, driverUrl, sessionId, config, account) {
   const loginUrl = `${sourceUrl(config, entry.item)}login`;
-  const current = await navigate(driverUrl, sessionId, loginUrl);
-  if (isCaptchaPath(current)) await waitForCaptchaCompletion(entry, driverUrl, sessionId);
+  let current = await navigate(driverUrl, sessionId, loginUrl);
+  if (isCaptchaPath(current)) {
+    await waitForCaptchaCompletion(entry, driverUrl, sessionId);
+    // /test normally returns to the originally requested page. Re-open the
+    // login form instead of assuming the browser stayed on /login.
+    current = await navigate(driverUrl, sessionId, loginUrl);
+    if (isCaptchaPath(current)) {
+      throw new Error(`${entry.key} 完成验证码后仍无法打开登录页`);
+    }
+  }
+  if (new URL(current).pathname !== '/login') {
+    throw new Error(`${entry.key} 登录页被重定向到 ${new URL(current).pathname || '/'}，请确认本次测试会话已清理`);
+  }
   const usernameInput = await webdriverFind(driverUrl, sessionId, 'css selector', '#nameOrEmail');
   const passwordInput = await webdriverFind(driverUrl, sessionId, 'css selector', '#loginPassword');
   await sendElementKeys(driverUrl, sessionId, usernameInput, account.username);
@@ -480,6 +499,7 @@ async function runFirstAcceptanceFlow(config) {
     // Create each profile immediately before its test section so idle browser
     // windows do not open and then sit unused while another source is tested.
     sessions.set(entryL.key, await createChromeSession(driver.driverUrl, entryL));
+    await resetBrowserSession(driver.driverUrl, sessions.get(entryL.key));
     const lSession = sessions.get('L');
     console.log('\n=== 第一阶段：L 登录基线 ===');
     await requireNoCaptcha(entryL, driver.driverUrl, lSession, sourceUrl(config, entryL.item));
@@ -493,6 +513,7 @@ async function runFirstAcceptanceFlow(config) {
 
     console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
     sessions.set(entryA.key, await createChromeSession(driver.driverUrl, entryA));
+    await resetBrowserSession(driver.driverUrl, sessions.get(entryA.key));
     const aSession = sessions.get('A');
     await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
     const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
@@ -515,6 +536,7 @@ async function runFirstAcceptanceFlow(config) {
 
     console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
     sessions.set(entryB.key, await createChromeSession(driver.driverUrl, entryB));
+    await resetBrowserSession(driver.driverUrl, sessions.get(entryB.key));
     const bSession = sessions.get('B');
     await requireCaptcha(entryB, driver.driverUrl, bSession, sourceUrl(config, entryB.item));
     await loginWithAccount(entryB, driver.driverUrl, bSession, config, admin);
