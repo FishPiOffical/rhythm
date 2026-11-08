@@ -25,7 +25,7 @@ node tools/captcha-shield-e2e.mjs configure
 向导会：
 
 - 读取 Windows 当前网卡的可用地址；选择 1 个回环地址 L 和严格 5 个额外地址 A-E。
-- 按当前测试流程固定保存 2 个账号：普通登录基线账号（例如 `adlered`）和管理员账号（必须属于 `admin/管理员` 分组）。密码使用当前 Windows 用户的 DPAPI 加密，配置保存在 `%LOCALAPPDATA%\\RhythmCaptchaShieldE2E\\config.json`，不会写入仓库。
+- 按当前测试流程固定保存 2 个账号：普通登录基线账号（例如 `adlered`）和管理员账号（必须属于 `admin/管理员` 分组）。密码会直接显示在输入行，但保存时使用当前 Windows 用户的 DPAPI 加密，配置保存在 `%LOCALAPPDATA%\\RhythmCaptchaShieldE2E\\config.json`，不会写入仓库。
 - 只要求三项人工确认：环境、账号、IP。勾选内容完全信任，不额外请求服务检查。
 
 查看已保存的非敏感配置：

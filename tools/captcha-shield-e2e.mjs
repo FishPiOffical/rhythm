@@ -28,48 +28,6 @@ function ask(question, defaultValue = '') {
   return rl.question(`${question}${suffix}: `).then(value => value.trim() || defaultValue);
 }
 
-async function askSecret(question) {
-  if (!input.isTTY || typeof input.setRawMode !== 'function') {
-    return ask(`${question}（当前终端无法隐藏输入）`);
-  }
-
-  output.write(`${question}: `);
-  return new Promise((resolve, reject) => {
-    let value = '';
-    const onData = chunk => {
-      const text = chunk.toString('utf8');
-      for (const char of text) {
-        if (char === '\u0003') {
-          input.setRawMode(false);
-          input.pause();
-          reject(new Error('用户取消输入'));
-          return;
-        }
-        if (char === '\r' || char === '\n') {
-          input.setRawMode(false);
-          input.pause();
-          input.removeListener('data', onData);
-          output.write('\n');
-          resolve(value);
-          return;
-        }
-        if (char === '\u007f' || char === '\b') {
-          if (value.length) {
-            value = value.slice(0, -1);
-            output.write('\b \b');
-          }
-          continue;
-        }
-        value += char;
-        output.write('*');
-      }
-    };
-    input.resume();
-    input.setRawMode(true);
-    input.on('data', onData);
-  });
-}
-
 function powershell(command, extraEnv = {}) {
   // Node can inherit PowerShell 7 module paths. Passing them to Windows
   // PowerShell 5.1 causes duplicate type-data imports and breaks DPAPI cmdlets.
@@ -195,7 +153,7 @@ async function configure() {
     console.log(`\n${requirement.label}：${requirement.roleHint}`);
     const username = await ask('用户名', old?.username || '');
     const role = await ask('权限组', old?.role || '');
-    const password = await askSecret('密码（不会明文保存）');
+    const password = await ask('密码（直接输入，保存时会加密）');
     if (!username || !password) throw new Error(`${requirement.label}的用户名和密码不能为空`);
     accounts.push({
       key: requirement.key,
