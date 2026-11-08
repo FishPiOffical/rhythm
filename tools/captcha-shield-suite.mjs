@@ -137,8 +137,20 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
         || new URL(href).pathname !== pathname) {
       const response = session.client.lastNavigationState?.response;
       const frames = response?.initiator?.stack?.callFrames || [];
-      const initiator = frames.slice(0, 3).map(frame => `${frame.url || '(inline)'}:${frame.lineNumber + 1}`).join(' <- ');
-      throw new Error(`${session.entry.key} 预期 ${pathname} HTTP 200 且无验证码跳转，实际 ${new URL(href).pathname} HTTP ${status || '未知'}${initiator ? `；导航发起脚本：${initiator}` : ''}`);
+      const initiator = frames.slice(0, 3).map(frame => {
+        let script = '(inline)';
+        try {
+          const url = new URL(frame.url);
+          script = `${url.origin}${url.pathname}`;
+        } catch { /* Inline scripts have no URL. */ }
+        return `${script}:${Number(frame.lineNumber || 0) + 1}`;
+      }).join(' <- ');
+      const unauthorized = session.client.lastNavigationUnauthorizedResponses || [];
+      const unauthorizedDetails = unauthorized.map(item => {
+        const stack = item.initiator.join(' <- ');
+        return `${item.type} ${item.method} ${item.url}${stack ? `（${stack}）` : ''}`;
+      }).join('; ');
+      throw new Error(`${session.entry.key} 预期 ${pathname} HTTP 200 且无验证码跳转，实际 ${new URL(href).pathname} HTTP ${status || '未知'}${initiator ? `；导航发起脚本：${initiator}` : ''}${unauthorizedDetails ? `；导航期间 XHR/Fetch HTTP 401：${unauthorizedDetails}` : ''}`);
     }
   }
   async function noCaptcha(session, pathname, expectedPath = pathname) {

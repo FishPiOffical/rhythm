@@ -12,6 +12,7 @@ import readline from 'node:readline/promises';
 import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, canonicalIp, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { requestFromIp } from './captcha-shield-pressure.mjs';
 import { createEvidenceRecorder, exportPdfReport } from './captcha-shield-report.mjs';
+import { beginUnauthorizedCapture, getUnauthorizedResponses, trackUnauthorizedResponses } from './captcha-shield-network-diagnostics.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -519,6 +520,7 @@ class CdpClient {
     this.listeners = new Map();
     this.lastDocumentResponse = null;
     this.documentInitiators = new Map();
+    this.lastNavigationUnauthorizedResponses = [];
     this.mainFrameId = null;
     this.mainFrameLoaderId = null;
     this.mainFramePendingLoaderId = null;
@@ -696,15 +698,17 @@ function cdpBeginNavigation(client) {
   client.lastCaptchaRedirect = null;
   client.readyDocumentLoaderId = null;
   client.lastNavigationState = null;
+  client.lastNavigationUnauthorizedResponses = [];
   return {
     navigationVersion: client.mainFrameNavigationVersion,
     previousLoaderId: client.mainFrameLoaderId,
+    unauthorizedResponseSequence: beginUnauthorizedCapture(client),
     deadline: Date.now() + PAGE_READY_TIMEOUT_MS,
   };
 }
 
 async function cdpWaitForNavigation(client, url, navigation, evidence = {}, pendingCheck) {
-  const { navigationVersion, previousLoaderId, deadline } = navigation;
+  const { navigationVersion, previousLoaderId, unauthorizedResponseSequence, deadline } = navigation;
   let state;
   let response;
   let candidate;
@@ -780,6 +784,7 @@ async function cdpWaitForNavigation(client, url, navigation, evidence = {}, pend
   }
   state = { ...state, response };
   client.lastNavigationState = state;
+  client.lastNavigationUnauthorizedResponses = getUnauthorizedResponses(client, unauthorizedResponseSequence);
   printPageEvidence(state, evidence);
   return state;
 }
@@ -855,6 +860,7 @@ async function startCdpSession(config, entry, profileRoot) {
   });
   await client.send('Page.setLifecycleEventsEnabled', { enabled: true });
   await client.send('Network.enable');
+  trackUnauthorizedResponses(client);
   // Start this session cold, then let repeat visits reuse cacheable resources.
   await client.send('Network.setCacheDisabled', { cacheDisabled: false });
   await client.send('Network.clearBrowserCache');
