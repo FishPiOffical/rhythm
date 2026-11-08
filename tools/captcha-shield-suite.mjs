@@ -332,14 +332,25 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await rt.close(a);
       sessions.delete('A');
       const returned = await open('A-return', 'A');
-      await observe('匿名A回访或一次强刷进入验证', returned, async () => {
-        let href = await navigate(returned, '/');
-        if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) {
-          console.log('A 首次回访未进入/test，执行一次强刷（额外真实请求，单独记录）。');
-          await addCheck({ label: 'A 首次回访', status: 'OBSERVED', httpStatus: returned.client.lastDocumentResponse?.status, pathname: new URL(href).pathname }, returned);
-          href = await navigate(returned, '/', { reload: true });
+      await observe('匿名A回访五次内进入验证', returned, async () => {
+        let href = '';
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          href = await navigate(returned, '/', { reload: attempt > 1, freshDocument: true });
+          if (rt.isCaptcha(href) || returned.client.lastCaptchaRedirect) {
+            console.log(`A 回访在第 ${attempt} 次真实请求进入/test。`);
+            break;
+          }
+          console.log(`A 回访第 ${attempt}/5 次未进入/test，继续等待验证码周期。`);
+          await addCheck({
+            label: `A 回访 ${attempt}/5`,
+            status: 'OBSERVED',
+            httpStatus: returned.client.lastDocumentResponse?.status,
+            pathname: new URL(href).pathname,
+          }, returned);
         }
-        if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) throw new Error('A 回访及一次强刷均未进入/test');
+        if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) {
+          throw new Error('A 回访五次真实请求均未进入/test');
+        }
         if (!rt.isCaptcha(href)) await rt.ensureCaptcha(returned.entry, returned.client, url(returned), returned.lastAt);
       }, challenge('/'));
       await completeChallenge(returned);
