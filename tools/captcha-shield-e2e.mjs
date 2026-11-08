@@ -518,6 +518,7 @@ class CdpClient {
     this.pending = new Map();
     this.listeners = new Map();
     this.lastDocumentResponse = null;
+    this.documentInitiators = new Map();
     this.mainFrameId = null;
     this.mainFrameLoaderId = null;
     this.mainFramePendingLoaderId = null;
@@ -860,6 +861,9 @@ async function startCdpSession(config, entry, profileRoot) {
   await client.send('Network.setBypassServiceWorker', { bypass: true });
   console.log(`${entry.key} 本轮已清理一次 HTTP 缓存，后续访问正常复用；A 回访的单次强刷除外。`);
   client.on('Network.requestWillBeSent', event => {
+    if (event.type === 'Document' && (!client.mainFrameId || event.frameId === client.mainFrameId)) {
+      client.documentInitiators.set(event.requestId, event.initiator || null);
+    }
     const redirect = event.redirectResponse;
     if (!redirect) return;
     const location = Object.entries(redirect.headers || {})
@@ -881,9 +885,12 @@ async function startCdpSession(config, entry, profileRoot) {
       client.lastDocumentResponse = {
         status: event.response?.status, url: event.response?.url, loaderId: event.loaderId,
         fromDiskCache: event.response?.fromDiskCache, fromServiceWorker: event.response?.fromServiceWorker,
+        initiator: client.documentInitiators.get(event.requestId) || null,
       };
+      client.documentInitiators.delete(event.requestId);
     }
   });
+  client.on('Network.loadingFailed', event => client.documentInitiators.delete(event.requestId));
   return { client, chromeProcess };
 }
 

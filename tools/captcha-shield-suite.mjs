@@ -135,7 +135,10 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     const status = session.client.lastDocumentResponse?.status;
     if (status !== 200 || rt.isCaptcha(href) || session.client.lastCaptchaRedirect
         || new URL(href).pathname !== pathname) {
-      throw new Error(`${session.entry.key} 预期 ${pathname} HTTP 200 且无验证码跳转，实际 ${new URL(href).pathname} HTTP ${status || '未知'}`);
+      const response = session.client.lastNavigationState?.response;
+      const frames = response?.initiator?.stack?.callFrames || [];
+      const initiator = frames.slice(0, 3).map(frame => `${frame.url || '(inline)'}:${frame.lineNumber + 1}`).join(' <- ');
+      throw new Error(`${session.entry.key} 预期 ${pathname} HTTP 200 且无验证码跳转，实际 ${new URL(href).pathname} HTTP ${status || '未知'}${initiator ? `；导航发起脚本：${initiator}` : ''}`);
     }
   }
   async function noCaptcha(session, pathname, expectedPath = pathname) {
