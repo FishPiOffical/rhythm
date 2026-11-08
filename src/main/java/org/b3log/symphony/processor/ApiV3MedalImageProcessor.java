@@ -22,6 +22,7 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.http.*;
 import org.b3log.latke.ioc.*;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3MedalImageService;
 import org.b3log.symphony.util.*;
 import java.util.Set;
@@ -31,7 +32,7 @@ public class ApiV3MedalImageProcessor {
     @Inject private ApiV3MedalImageService images;
     public static void register(){var beans=BeanManager.getInstance();var p=beans.getReference(ApiV3MedalImageProcessor.class);var auth=beans.getReference(ApiV3AuthMidware.class);
         Dispatcher.get("/api/v3/me/medals/image",p::mine,auth::profileRead);
-        Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::profileRead);
+        Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::optionalProfile,beans.getReference(AnonymousViewCheckMidware.class)::handle);
     }
     public void mine(RequestContext c){send(c,"");}
     public void displayed(RequestContext c){send(c,c.pathVar("userName"));}
@@ -39,7 +40,8 @@ public class ApiV3MedalImageProcessor {
         var response=c.getResponse();response.setHeader("Cache-Control","no-store");response.setHeader("Vary","Authorization");
         response.setHeader("X-Content-Type-Options","nosniff");response.setHeader("Content-Security-Policy","sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'");
         try{String size=ApiV3Requests.choice(c,"size","full",Set.of("full","mini"));
-            byte[] svg=images.image(ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID),name,c.param("medalId"),"mini".equals(size));
+            final var viewer=ApiV3Requests.viewer(c);
+            byte[] svg=images.image(viewer==null?"":viewer.optString(Keys.OBJECT_ID),name,c.param("medalId"),"mini".equals(size));
             response.setContentType("image/svg+xml; charset=UTF-8");response.setHeader("Content-Disposition","inline; filename=\"medal.svg\"");response.sendBytes(svg);
         }catch(ApiV3Exception e){ApiV3Processor.error(c,e.status,e.code,e.getMessage());}
         catch(Exception e){ApiV3Processor.error(c,503,"temporarily_unavailable","勋章图片暂不可用");}

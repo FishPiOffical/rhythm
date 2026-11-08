@@ -35,19 +35,24 @@ public class ApiV3MedalImageQueryService {
     @Inject private MedalRepository medals;
     @Inject private UserMedalRepository grants;
     public JSONObject definition(final String actor, final String name, final String medalId) {
-        if (actor == null || !actor.matches("[1-9][0-9]{0,18}") || medalId == null || medalId.isBlank() || medalId.length()>128
+        if (actor == null || (!actor.isEmpty() && !actor.matches("[1-9][0-9]{0,18}")) || medalId == null || medalId.isBlank() || medalId.length()>128
                 || medalId.codePoints().anyMatch(c -> Character.isISOControl(c) || c>=0xD800 && c<=0xDFFF)
                 || name == null || !name.isEmpty() && !name.matches("[A-Za-z0-9_-]{1,64}")) throw ApiV3Requests.invalid();
         final boolean owner = name.isEmpty();
+        if (owner && actor.isEmpty()) throw ApiV3Requests.invalid();
         try {
+            final boolean authenticated = !actor.isEmpty();
+            final long now = System.currentTimeMillis();
             final String sql = "SELECT DISTINCT m.medal_id,m.medal_name,m.medal_attr FROM `" + medals.getName()
                     + "` m JOIN `" + grants.getName() + "` g ON BINARY g.medal_id=BINARY m.medal_id JOIN `" + users.getName()
                     + "` u ON u.oId=g.user_id WHERE BINARY m.medal_id=? AND "
                     + (owner ? "u.oId=? AND u.userStatus=0 AND (g.expire_time<=0 OR g.expire_time>?)"
                     : "u.userName=? AND u.userStatus IN (0,3) AND g.display=? AND (g.expire_time=0 OR g.expire_time>?)")
-                    + " AND EXISTS (SELECT 1 FROM `" + users.getName() + "` a WHERE a.oId=? AND a.userStatus=0) LIMIT 2";
-            final var rows = owner ? medals.select(sql, medalId, actor, System.currentTimeMillis(), actor)
-                    : medals.select(sql, medalId, name, true, System.currentTimeMillis(), actor);
+                    + (authenticated ? " AND EXISTS (SELECT 1 FROM `" + users.getName() + "` a WHERE a.oId=? AND a.userStatus=0)" : "")
+                    + " LIMIT 2";
+            final var rows = owner ? medals.select(sql, medalId, actor, now, actor)
+                    : authenticated ? medals.select(sql, medalId, name, true, now, actor)
+                    : medals.select(sql, medalId, name, true, now);
             if (rows.isEmpty()) throw ApiV3Requests.notFound();
             if (rows.size() != 1) throw unavailable();
             return rows.getFirst();

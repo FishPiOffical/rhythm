@@ -39,11 +39,12 @@ public class ApiV3MedalImageTest {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
             Assert.assertEquals(f.query.definition("1","","7").getString("medal_id"),"7");status(404,()->f.query.definition("2","","7"));status(404,()->f.query.definition("2","Owner","7"));
-            f.sql("UPDATE g SET display=1");Assert.assertEquals(f.query.definition("2","Owner","7").getString("medal_name"),"鱼 & 测试");status(404,()->f.query.definition("3","Owner","7"));
-            f.sql("UPDATE g SET expire_time=1");status(404,()->f.query.definition("1","","7"));status(404,()->f.query.definition("2","Owner","7"));
+            status(404,()->f.query.definition("","Owner","7"));status(422,()->f.query.definition("","","7"));
+            f.sql("UPDATE g SET display=1");Assert.assertNotNull(f.query.definition("","Owner","7"));Assert.assertEquals(f.query.definition("2","Owner","7").getString("medal_name"),"鱼 & 测试");status(404,()->f.query.definition("3","Owner","7"));
+            f.sql("UPDATE g SET expire_time=1");status(404,()->f.query.definition("","Owner","7"));status(404,()->f.query.definition("1","","7"));status(404,()->f.query.definition("2","Owner","7"));
             f.sql("UPDATE g SET expire_time=-1");Assert.assertNotNull(f.query.definition("1","","7"));status(404,()->f.query.definition("2","Owner","7"));
             f.sql("UPDATE g SET expire_time=0");f.sql("UPDATE u SET userStatus=3 WHERE oId='1'");Assert.assertNotNull(f.query.definition("2","Owner","7"));status(404,()->f.query.definition("1","","7"));
-            f.sql("UPDATE u SET userStatus=4 WHERE oId='1'");status(404,()->f.query.definition("2","Owner","7"));
+            f.sql("UPDATE u SET userStatus=4 WHERE oId='1'");status(404,()->f.query.definition("","Owner","7"));status(404,()->f.query.definition("2","Owner","7"));
         }System.out.println("PASS medal image 1 real SQL owner/public/hidden/expiry/current actor and target statuses");
         try(var f=new Fixture()){status(422,()->f.query.definition("1","bad/name","7"));status(422,()->f.query.definition("1","","bad\nkey"));f.fail=true;status(503,()->f.query.definition("1","","7"));}
         System.out.println("PASS medal image 2 strict identity inputs and explicit repository failure");

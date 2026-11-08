@@ -9,10 +9,11 @@ try{
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys{public static String get(String k){return "http://127.0.0.1:3001/gen";}}');
  shim('org/b3log/symphony/util/ApiV3Requests','package org.b3log.symphony.util;public class ApiV3Requests{public static ApiV3Exception invalid(){return new ApiV3Exception(422,"invalid_request","bad");}public static ApiV3Exception notFound(){return new ApiV3Exception(404,"not_found","missing");}}');
  const source=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java','utf8');
- for(const route of ['/api/v3/me/medals/image','/api/v3/users/{userName}/medals/image'])if(!source.includes('Dispatcher.get("'+route+'",')||!source.includes('auth::profileRead'))throw Error('Missing route');
+ if(!source.includes('Dispatcher.get("/api/v3/me/medals/image",p::mine,auth::profileRead)')||
+    !source.includes('Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::optionalProfile,beans.getReference(AnonymousViewCheckMidware.class)::handle)'))throw Error('Missing protected image routes');
  if(!fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8').includes('ApiV3MedalImageProcessor.register();'))throw Error('Missing root');
  const sources=['repository/MedalRepository','repository/UserMedalRepository','util/ApiV3Exception','util/ApiV3MedalSvg','service/ApiV3MedalImageQueryService','service/ApiV3MedalImageService'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...shims,...sources.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3MedalImageTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3MedalImageTest']);
- console.log('PASS medal image 8 two profile.read routes and root source wiring');
+ console.log('PASS medal image 8 private authentication and public visitor gate and root source wiring');
 }finally{fs.rmSync(work,{recursive:true,force:true})}

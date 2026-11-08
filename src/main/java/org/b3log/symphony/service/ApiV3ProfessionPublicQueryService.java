@@ -42,12 +42,14 @@ import org.b3log.symphony.repository.BreezemoonRepository;
 import org.b3log.symphony.repository.RepeaterContentRepository;
 import org.b3log.symphony.repository.ChatRoomRepository;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3ProfessionDetailDto;
 import org.b3log.symphony.util.ApiV3ProfessionPublicDto;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.UserMentionCandidates;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -115,12 +117,17 @@ public class ApiV3ProfessionPublicQueryService {
         };
     }
     private List<JSONObject> progress(final String owner)throws RepositoryException {
+        return progress(owner,"");
+    }
+    private List<JSONObject> progress(final String owner,final String primary)throws RepositoryException {
         final var rows=bounded(progress.select("SELECT up.professionId,p.professionCode,p.status AS professionStatus,r.status AS revisionStatus,s.status AS schemeStatus,"
-                +"r.displayName,r.shortName,r.description,up.totalExperience,up.currentLevelCode AS levelCode,l.displayName AS levelName,l.requiredTotalExperience AS requiredExperience,l.levelCode AS actualLevelCode"
+                +(primary.isEmpty() ? "" : "r.defaultPresentationJson,")+"r.displayName,r.shortName,r.description,up.totalExperience,up.currentLevelCode AS levelCode,l.displayName AS levelName,l.requiredTotalExperience AS requiredExperience,l.levelCode AS actualLevelCode"
                 +" FROM `"+progress.getName()+"` up LEFT JOIN `"+professions.getName()+"` p ON p.oId=up.professionId LEFT JOIN `"+revisions.getName()
                 +"` r ON r.oId=up.professionRevisionId AND r.professionId=up.professionId LEFT JOIN `"+schemes.getName()
                 +"` s ON s.oId=up.levelSchemeId AND s.professionId=up.professionId LEFT JOIN `"+levels.getName()
-                +"` l ON l.schemeId=up.levelSchemeId AND l.levelCode=up.currentLevelCode WHERE up.userId=? ORDER BY up.totalExperience DESC,up.professionId ASC LIMIT ?",owner,LIMIT+1));
+                +"` l ON l.schemeId=up.levelSchemeId AND l.levelCode=up.currentLevelCode WHERE up.userId=?"
+                +(primary.isEmpty() ? "" : " AND up.professionId=?")+" ORDER BY up.totalExperience DESC,up.professionId ASC LIMIT ?",
+                primary.isEmpty() ? new Object[]{owner,LIMIT+1} : new Object[]{owner,primary,2}));
         final Set<String> ids=new HashSet<>();
         for(JSONObject row:rows){
             if(!ids.add(ApiV3ProfessionPublicDto.id(row,"professionId")))throw unavailable();
@@ -130,29 +137,76 @@ public class ApiV3ProfessionPublicQueryService {
         }
         return rows;
     }
-    public JSONObject profile(final String name,final String actorId){
+    public JSONObject summary(final String name,final String actorId) {
+        validateReader(name,actorId);
+        try {
+            final JSONObject owner=user("userName",name,false),actor=actorId.isEmpty()?null:user("oId",actorId,true);
+            final String ownerId=owner.getString("oId");
+            final JSONObject state=state(ownerId), visibility=new JSONObject(state.getString("moduleVisibilityJson"));
+            final String primary=state.getString("primaryProfessionId");
+            final JSONObject result=new JSONObject();
+            if(primary.isEmpty()||!visible(visibility,"primaryProfession",ownerId,actor))return result;
+            final var rows=progress(ownerId,primary);
+            final List<CheckedRead> checks=new ArrayList<>();
+            appendPrimary(result,primary,rows,false,checks,true);
+            if(!owner.similar(user("userName",name,false))||actor!=null&&!actor.similar(user("oId",actorId,true))
+                    ||!state.similar(state(ownerId))||!new JSONArray(rows).similar(new JSONArray(progress(ownerId,primary))))throw unavailable();
+            recheck(checks);
+            return result;
+        }catch(RepositoryException|org.json.JSONException e){
+            logFailure("summary",e);
+            throw unavailable();
+        }catch(ApiV3Exception e){if(e.status==503)logFailure("summary",e);throw e;}
+    }
+    private static void validateReader(final String name,final String actorId) {
         if(name==null||!name.matches("[A-Za-z0-9_-]{1,64}")||actorId==null||(!actorId.isEmpty()&&!actorId.matches("[0-9]{1,19}")))throw ApiV3Requests.invalid();
+    }
+    private void logFailure(final String stage,final Exception error) {
+        final var frames=error.getStackTrace();
+        String sqlState="";
+        for(Throwable cause=error;cause!=null;cause=cause.getCause()){
+            if(cause instanceof SQLException sql){
+                final String state=sql.getSQLState();
+                if(state!=null&&state.matches("[0-9A-Z]{5}"))sqlState=state;
+                break;
+            }
+        }
+        final var origin=frames.length>1&&frames[0].getMethodName().equals("unavailable")?frames[1]:frames.length>0?frames[0]:null;
+        LogManager.getLogger(getClass()).warn("Public profession read unavailable: stage={}, type={}, sqlState={}, at={}",
+                stage,error.getClass().getSimpleName(),sqlState,origin);
+    }
+    public JSONObject profile(final String name,final String actorId){
+        validateReader(name,actorId);
+        String stage="account";
         try{
             final JSONObject owner=user("userName",name,false),actor=actorId.isEmpty()?null:user("oId",actorId,true);
+            stage="privacy";
             final String ownerId=owner.getString("oId");final JSONObject state=state(ownerId),visibility=new JSONObject(state.getString("moduleVisibilityJson"));
             if(MODULES.stream().noneMatch(key->visible(visibility,key,ownerId,actor)))throw ApiV3Requests.notFound();
             final boolean experience=visible(visibility,"experience",ownerId,actor);
+            stage="progress";
             final var rows=progress(ownerId);final JSONObject result=new JSONObject();final List<CheckedRead> checks=new ArrayList<>();
-            if(visible(visibility,"primaryProfession",ownerId,actor))appendPrimary(result,state.getString("primaryProfessionId"),rows,experience);
+            if(visible(visibility,"primaryProfession",ownerId,actor))appendPrimary(result,state.getString("primaryProfessionId"),rows,experience,checks,false);
             if(visible(visibility,"allProfessions",ownerId,actor)){
                 final JSONArray list=new JSONArray();for(JSONObject row:rows)list.put(ApiV3ProfessionPublicDto.progress(row,experience));result.put("professions",list);
             }
+            stage="contributions";
             if(visible(visibility,"majorContributions",ownerId,actor)||visible(visibility,"contributionStats",ownerId,actor))appendContributions(result,ownerId,rows,visibility,actor,experience);
+            stage="rewards";
             if(visible(visibility,"rewards",ownerId,actor))appendRewards(result,ownerId);
+            stage="activity";
             if(visible(visibility,"activityFeed",ownerId,actor)||visible(visibility,"levelHistory",ownerId,actor))appendActivity(result,ownerId,visibility,actor,experience,checks);
+            stage="ranking";
             appendRanking(result,rows,visibility,ownerId,actor);
+            stage="recheck";
             // Prevent a multi-query response from mixing privacy/account/progress versions.
             if(!owner.similar(user("userName",name,false))||!(actor==null?actorId.isEmpty():actor.similar(user("oId",actorId,true)))
                     ||!state.similar(state(ownerId))||!new JSONArray(rows).similar(new JSONArray(progress(ownerId))))throw unavailable();
             recheck(checks);
             if(result.isEmpty())throw ApiV3Requests.notFound();
             return result;
-        }catch(RepositoryException|org.json.JSONException e){LogManager.getLogger(getClass()).warn("Public profession read unavailable");throw unavailable();}
+        }catch(RepositoryException|org.json.JSONException e){logFailure(stage,e);throw unavailable();}
+        catch(ApiV3Exception e){if(e.status==503)logFailure(stage,e);throw e;}
     }
     private void appendRanking(final JSONObject result,final List<JSONObject> rows,final JSONObject visibility,final String owner,final JSONObject actor) {
         final boolean showRarity=visible(visibility,"rarity",owner,actor), showRanking=visible(visibility,"ranking",owner,actor);
@@ -174,13 +228,23 @@ public class ApiV3ProfessionPublicQueryService {
         }
         if(showRanking)result.put("ranking",ranks);
     }
-    private void appendPrimary(final JSONObject result,final String primary,final List<JSONObject> rows,final boolean experience)throws RepositoryException {
+    private void appendPrimary(final JSONObject result,final String primary,final List<JSONObject> rows,final boolean experience,final List<CheckedRead> checks,final boolean summary)throws RepositoryException {
         if(primary.isEmpty())return;
-        for(JSONObject row:rows)if(primary.equals(row.getString("professionId"))){result.put("primaryProfession",ApiV3ProfessionPublicDto.progress(row,experience));return;}
-        final var definitions=professions.select("SELECT p.oId AS professionId,p.professionCode,r.displayName,r.shortName,r.description FROM `"+professions.getName()
+        for(JSONObject row:rows)if(primary.equals(row.getString("professionId"))){result.put("primaryProfession",withIcon(ApiV3ProfessionPublicDto.progress(row,experience),row,summary));return;}
+        final var definitions=checked(checks,professions,"SELECT p.oId AS professionId,p.professionCode,r.displayName,r.shortName,r.description"
+                +(summary ? ",r.defaultPresentationJson" : "")+" FROM `"+professions.getName()
                 +"` p JOIN `"+revisions.getName()+"` r ON r.oId=p.currentRevisionId AND r.professionId=p.oId WHERE p.oId=? AND p.status='PUBLISHED' AND r.status='PUBLISHED' LIMIT 2",primary);
         if(definitions.size()>1)throw unavailable();
-        if(!definitions.isEmpty())result.put("primaryProfession",ApiV3ProfessionPublicDto.definition(definitions.getFirst()).put("state","SELECTED"));
+        if(!definitions.isEmpty())result.put("primaryProfession",withIcon(ApiV3ProfessionPublicDto.definition(definitions.getFirst()).put("state","SELECTED"),definitions.getFirst(),summary));
+    }
+    private static JSONObject withIcon(final JSONObject dto,final JSONObject row,final boolean summary) {
+        if(!summary)return dto;
+        final JSONObject presentation=new JSONObject(row.optString("defaultPresentationJson","{}"));
+        for(String key:List.of("iconUrl","imageUrl","badgeUrl")){
+            final String icon=presentation.optString(key);
+            if(!icon.isBlank())return dto.put("iconUrl",icon);
+        }
+        return dto;
     }
     private void appendContributions(final JSONObject result,final String owner,final List<JSONObject> progressRows,final JSONObject visibility,final JSONObject actor,final boolean experience)throws RepositoryException {
         final var rows=bounded(contributions.select("SELECT professionId,actionCode,experienceSum,eventCount,lastOccurredAt FROM `"+contributions.getName()

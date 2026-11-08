@@ -41,6 +41,11 @@ public class ApiV3ProfessionPublicProcessor {
     public static void registerRoutes(final ApiV3ProfessionPublicProcessor p, final ApiV3AuthMidware auth,
                                       final AnonymousViewCheckMidware anonymous) {
         Dispatcher.get("/api/v3/users/{userName}/professions",p::profile,auth::optionalProfile,anonymous::handle);
+        Dispatcher.get("/api/v3/users/{userName}/professions/summary",p::summary,auth::optionalProfile,anonymous::handle);
+    }
+    public void summary(final RequestContext c) {
+        ApiV3Requests.read(c,()->query.summary(ApiV3Requests.text(c.pathVar("userName"),64,true),
+                ApiV3Requests.viewer(c)==null?"":ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID)));
     }
     public void profile(final RequestContext c) {
         ApiV3Requests.read(c,()->query.profile(ApiV3Requests.text(c.pathVar("userName"),64,true),
