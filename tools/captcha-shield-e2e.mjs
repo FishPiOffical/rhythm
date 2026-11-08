@@ -671,6 +671,10 @@ async function startCdpSession(config, entry, profileRoot) {
     try {
       const target = new URL(String(location), redirect.url);
       if (isCaptchaPath(target.href)) {
+        if (redirect.fromDiskCache || redirect.fromServiceWorker) {
+          console.log(`缓存跳转：${new URL(redirect.url).pathname} -> /test（非本轮服务端拦截；顶层页面仍单独核验）`);
+          return;
+        }
         client.lastCaptchaRedirect = { url: event.request?.url || redirect.url, status: redirect.status };
       }
     } catch { /* Ignore malformed redirect metadata. */ }

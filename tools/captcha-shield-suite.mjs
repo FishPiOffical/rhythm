@@ -63,6 +63,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   let monitorSession;
   let articles;
   let aLoggedIn;
+  let documentProbeSequence = 0;
   const save = () => persist(result);
   const source = key => {
     const entry = entries.find(item => item.key === key);
@@ -82,8 +83,15 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     }
     return sessions.get(key);
   }
-  async function navigate(session, pathname, options) {
-    return rt.navigate(session.client, url(session, pathname), session.lastAt, { sourceKey: session.entry.key }, options);
+  async function navigate(session, pathname, { freshDocument = false, ...options } = {}) {
+    const target = new URL(url(session, pathname));
+    if (freshDocument) {
+      // Cacheable redirects (notably favicon) can skip the server entirely.
+      // Vary only this document's query; keep subresource caching enabled.
+      target.searchParams.set('_captcha_e2e', `${result.startedAt}-${++documentProbeSequence}`);
+      console.log(`${session.entry.key} 本次边界请求：${target.href}（路径不变，避免复用旧跳转）`);
+    }
+    return rt.navigate(session.client, target.href, session.lastAt, { sourceKey: session.entry.key }, options);
   }
   function requireOk(session, href, pathname) {
     const status = session.client.lastDocumentResponse?.status;
@@ -283,12 +291,12 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       const missing = `/captcha-e2e-missing-${Date.now()}`;
       for (const pathname of ['/', '/about', '/login', '/article/0', missing, '/favicon.ico', '/api/user']) {
         await observe(`C 黑名单拦截 ${pathname}`, c, async () => {
-          const href = await navigate(c, pathname);
+          const href = await navigate(c, pathname, { freshDocument: true });
           if (!rt.isCaptcha(href) || c.client.lastDocumentResponse?.status !== 200) throw new Error(`C 黑名单访问 ${pathname} 未回到/test`);
         }, { ...challenge(pathname, 'redirect'), reason: '黑名单跳转' });
       }
       await observe('C 黑名单直接访问/test', c, async () => {
-        const href = await navigate(c, '/test');
+        const href = await navigate(c, '/test', { freshDocument: true });
         if (!rt.isCaptcha(href) || c.client.lastDocumentResponse?.status !== 200) throw new Error('C 直接/test未显示验证码页');
       }, cc('/test', { handler: 'CaptchaProcessor#captcha' }));
       await completeChallenge(c);
