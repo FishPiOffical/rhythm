@@ -520,6 +520,7 @@ class CdpClient {
     this.lastDocumentResponse = null;
     this.mainFrameId = null;
     this.mainFrameLoaderId = null;
+    this.mainFramePendingLoaderId = null;
     this.readyDocumentLoaderId = null;
     this.mainFrameNavigationVersion = 0;
     this.lastCaptchaRedirect = null;
@@ -588,7 +589,12 @@ async function cdpEvaluate(client, expression, timeoutMs) {
 }
 
 async function cdpPageState(client, timeoutMs) {
-  return cdpEvaluate(client, '({readyState: document.readyState, href: location.href, pendingImages: [...document.images].filter(image => image.src && !image.complete).length, title: document.title || "", body: (document.body && document.body.innerText || "").slice(0, 4000)})', timeoutMs);
+  return cdpEvaluate(client, `(() => {
+    const pending = [...document.images].filter(image => image.src && !image.complete);
+    return {readyState: document.readyState, href: location.href, pendingImages: pending.length,
+      pendingImageUrls: pending.slice(0, 5).map(image => image.src), title: document.title || "",
+      body: (document.body && document.body.innerText || "").slice(0, 4000)};
+  })()`, timeoutMs);
 }
 
 async function cdpCommandWithTimeout(client, method, params = {}, timeoutMs = 15_000) {
@@ -677,10 +683,10 @@ function contentSnippet(text) {
   return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 80) || '(空内容)';
 }
 
-function printPageEvidence(client, state, evidence = {}) {
+function printPageEvidence(state, evidence = {}) {
   const label = evidence.sourceKey ? `[${evidence.sourceKey}] ` : '';
-  const responseStatus = client.lastDocumentResponse?.status;
-  const cached = client.lastDocumentResponse?.fromDiskCache || client.lastDocumentResponse?.fromServiceWorker;
+  const responseStatus = state.response?.status;
+  const cached = state.response?.fromDiskCache || state.response?.fromServiceWorker;
   console.log(`${label}${evidence.reload ? '强制刷新' : '访问'} ${state.href || '(未知 URL)'} -> HTTP ${responseStatus || '未知'}${cached ? '（浏览器缓存/Service Worker）' : ''}；标题：${contentSnippet(state.title)}；内容：${contentSnippet(state.body)}`);
 }
 
@@ -688,6 +694,7 @@ function cdpBeginNavigation(client) {
   client.lastDocumentResponse = null;
   client.lastCaptchaRedirect = null;
   client.readyDocumentLoaderId = null;
+  client.lastNavigationState = null;
   return {
     navigationVersion: client.mainFrameNavigationVersion,
     previousLoaderId: client.mainFrameLoaderId,
@@ -695,22 +702,60 @@ function cdpBeginNavigation(client) {
   };
 }
 
-async function cdpWaitForNavigation(client, url, navigation, evidence = {}, result = {}, pendingCheck) {
+async function cdpWaitForNavigation(client, url, navigation, evidence = {}, pendingCheck) {
   const { navigationVersion, previousLoaderId, deadline } = navigation;
   let state;
+  let response;
+  let candidate;
+  let candidateSince = 0;
+  let reportedTransition = false;
   let navigationReady = false;
   while (Date.now() < deadline) {
     await sleep(200);
+    if (Date.now() >= deadline) break;
+    if (client.socket?.readyState !== WebSocket.OPEN) throw new Error('Chrome DevTools 连接已关闭，无法继续核验页面');
     if (pendingCheck && client.mainFrameNavigationVersion === navigationVersion
         && client.mainFrameLoaderId === previousLoaderId) await pendingCheck();
-    const loaderId = result.loaderId || (client.mainFrameLoaderId !== previousLoaderId ? client.mainFrameLoaderId : null);
-    // Only accept DOM readiness and a response belonging to this navigation, never the previous page.
+    // A document may initiate another navigation after Page.navigate returns.
+    // Follow the current loader, but never accept the previous page's response.
+    const loaderId = client.mainFrameLoaderId !== previousLoaderId ? client.mainFrameLoaderId : null;
     if (!loaderId || client.mainFrameNavigationVersion <= navigationVersion
-        || client.mainFrameLoaderId !== loaderId || client.readyDocumentLoaderId !== loaderId
-        || client.lastDocumentResponse?.loaderId !== loaderId) continue;
-    state = await cdpPageState(client);
-    if (state && ['interactive', 'complete'].includes(state.readyState)
-        && new URL(state.href).href.split('#')[0] === new URL(client.lastDocumentResponse.url).href.split('#')[0]) {
+        || (client.mainFramePendingLoaderId && client.mainFramePendingLoaderId !== loaderId)
+        || client.readyDocumentLoaderId !== loaderId
+        || client.lastDocumentResponse?.loaderId !== loaderId) {
+      candidate = null;
+      continue;
+    }
+    const version = client.mainFrameNavigationVersion;
+    response = client.lastDocumentResponse;
+    try {
+      state = await cdpPageState(client, Math.max(1, deadline - Date.now()));
+    } catch (error) {
+      if (!/Inspected target navigated or closed|Execution context was destroyed|Cannot find context with specified id/.test(error.message)) throw error;
+      // Retry a destroyed document only when the target is still alive. A closed
+      // tab/connection and all other protocol errors remain real failures.
+      await cdpCommandWithTimeout(client, 'Page.getFrameTree', {}, Math.max(1, deadline - Date.now()));
+      if (!reportedTransition) console.log('页面正在跳转，等待新主文档后重新读取（不刷新、不补发请求）。');
+      reportedTransition = true;
+      candidate = null;
+      continue;
+    }
+    if (version !== client.mainFrameNavigationVersion || loaderId !== client.mainFrameLoaderId
+        || (client.mainFramePendingLoaderId && client.mainFramePendingLoaderId !== loaderId)
+        || response !== client.lastDocumentResponse || !state
+        || !['interactive', 'complete'].includes(state.readyState)
+        || new URL(state.href).href.split('#')[0] !== new URL(response.url).href.split('#')[0]) {
+      candidate = null;
+      continue;
+    }
+    const identity = `${version}:${loaderId}:${state.href}`;
+    if (candidate !== identity) {
+      candidate = identity;
+      candidateSince = Date.now();
+    }
+    // Briefly observe the main document, not network idleness: images must not
+    // block acceptance, while immediate script redirects must finish first.
+    if (Date.now() - candidateSince >= 400) {
       navigationReady = true;
       break;
     }
@@ -719,8 +764,7 @@ async function cdpWaitForNavigation(client, url, navigation, evidence = {}, resu
     throw new Error(`页面未在 ${PAGE_READY_TIMEOUT_MS / 1000} 秒内完成主框架导航：${new URL(url).pathname || '/'}`);
   }
   if (state.pendingImages) {
-    const pending = await cdpEvaluate(client, '[...document.images].filter(image => image.src && !image.complete).slice(0, 5).map(image => image.src)');
-    const paths = (Array.isArray(pending) ? pending : []).map(resource => {
+    const paths = state.pendingImageUrls.map(resource => {
       try { return new URL(resource).pathname; } catch (_) { return '[未知资源]'; }
     });
     console.log(`提示：${new URL(state.href).pathname || '/'} 有 ${state.pendingImages} 个图片资源仍在后台加载，已忽略，不阻断本轮访问：${paths.join('、')}`);
@@ -728,12 +772,14 @@ async function cdpWaitForNavigation(client, url, navigation, evidence = {}, resu
   if (/\b503\b|service unavailable|服务不可用|暂不可用/i.test(`${state.title}\n${state.body}`)) {
     throw new Error(`页面返回或显示 503（${new URL(state.href || url).pathname || '/'}），已停止继续请求，避免扩大封禁：${state.title || 'Service Unavailable'}`);
   }
-  const responseStatus = client.lastDocumentResponse?.status;
-  const responseUrl = client.lastDocumentResponse?.url || state.href || url;
+  const responseStatus = response?.status;
+  const responseUrl = response?.url || state.href || url;
   if (Number(responseStatus) >= 400) {
     throw new Error(`页面主文档返回 HTTP ${responseStatus}（${new URL(responseUrl).pathname || '/'}），已停止继续请求`);
   }
-  printPageEvidence(client, state, evidence);
+  state = { ...state, response };
+  client.lastNavigationState = state;
+  printPageEvidence(state, evidence);
   return state;
 }
 
@@ -743,7 +789,7 @@ async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) 
     ? await client.send('Page.reload', { ignoreCache: true })
     : await client.send('Page.navigate', { url });
   if (result.errorText) throw new Error(`浏览器导航失败：${result.errorText}`);
-  const state = await cdpWaitForNavigation(client, url, navigation, { ...evidence, reload }, result);
+  const state = await cdpWaitForNavigation(client, url, navigation, { ...evidence, reload });
   return state.href;
 }
 
@@ -788,8 +834,15 @@ async function startCdpSession(config, entry, profileRoot) {
     if (!event.frame?.parentId) {
       client.mainFrameId = event.frame.id;
       client.mainFrameLoaderId = event.frame.loaderId;
+      client.mainFramePendingLoaderId = null;
       client.mainFrameNavigationVersion++;
     }
+  });
+  client.on('Page.frameStartedNavigating', event => {
+    if (event.frameId === client.mainFrameId) client.mainFramePendingLoaderId = event.loaderId;
+  });
+  client.on('Page.frameStoppedLoading', event => {
+    if (event.frameId === client.mainFrameId) client.mainFramePendingLoaderId = null;
   });
   client.on('Page.navigatedWithinDocument', event => {
     if (event.frameId === client.mainFrameId) client.mainFrameNavigationVersion++;
@@ -938,7 +991,7 @@ async function cdpLogin(entry, client, config, account, lastAt, evidence = {}) {
   })()`);
   if (!clicked) throw new Error(`${entry.key} 登录页缺少登录按钮`);
   const state = await cdpWaitForNavigation(client, loginUrl, navigation,
-    { ...evidence, sourceKey: entry.key }, {}, async () => {
+    { ...evidence, sourceKey: entry.key }, async () => {
       const tip = await cdpEvaluate(client, 'document.querySelector("#loginTip.error")?.textContent || ""');
       if (String(tip).trim()) throw new Error(`${entry.key} 登录账号 ${account.username} 未成功：${String(tip).trim()}`);
     });
@@ -1044,10 +1097,10 @@ async function runCdpTestTask(config, task, { withReport = true } = {}) {
       },
       navigate: async (client, target, lastAt, evidence, options) => {
         const href = await cdpNavigateWithPacing(client, target, lastAt, evidence, options);
-        const page = await cdpPageState(client);
+        const page = client.lastNavigationState;
         recorder.navigate({ source: evidence?.sourceKey, url: href, requestedUrl: target,
-          status: client.lastDocumentResponse?.status, title: contentSnippet(page.title), preview: contentSnippet(page.body),
-          fromCache: Boolean(client.lastDocumentResponse?.fromDiskCache || client.lastDocumentResponse?.fromServiceWorker) });
+          status: page.response?.status, title: contentSnippet(page.title), preview: contentSnippet(page.body),
+          fromCache: Boolean(page.response?.fromDiskCache || page.response?.fromServiceWorker) });
         return href;
       },
       ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
