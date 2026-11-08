@@ -1,6 +1,7 @@
 ﻿param(
-    [ValidateSet('configure', 'show', 'ips', 'driver', 'edit', 'browser', 'flow')]
-    [string]$Command
+    [ValidateSet('configure', 'show', 'ips', 'driver', 'edit', 'browser', 'flow', 'suite')]
+    [string]$Command,
+    [string]$Modules
 )
 
 $ErrorActionPreference = 'Stop'
@@ -8,7 +9,7 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $nodeScript = Join-Path $root 'tools\captcha-shield-e2e.mjs'
 
 function Invoke-TestTool {
-    param([Parameter(Mandatory = $true)][string]$Action)
+    param([Parameter(Mandatory = $true)][string]$Action, [string]$TestModules)
 
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         throw '未找到 Node.js。请先安装 Node.js 22 或更高版本。'
@@ -19,9 +20,13 @@ function Invoke-TestTool {
 
     Push-Location -LiteralPath $root
     try {
-        & node $nodeScript $Action
+        if ($TestModules) {
+            & node $nodeScript $Action $TestModules
+        } else {
+            & node $nodeScript $Action
+        }
         if ($LASTEXITCODE -ne 0) {
-            throw "配置工具退出码：$LASTEXITCODE"
+            throw "验收工具退出码：$LASTEXITCODE"
         }
     }
     finally {
@@ -49,7 +54,7 @@ function Show-Menu {
     Write-Host '============================================' -ForegroundColor Cyan
     Write-Host '  Rhythm 验证码盾自动化验收工具' -ForegroundColor Cyan
     Write-Host '============================================' -ForegroundColor Cyan
-    Write-Host '阶段 1 配置账号和 IP；业务流程使用普通 Chrome + DevTools Protocol，并在 /test 暂停。' -ForegroundColor Yellow
+    Write-Host '选择测试项目；遇验证码时手动完成，脚本自动继续。' -ForegroundColor Yellow
     Write-Host ''
     Write-Host '  1. 配置向导（首次使用或修改配置）'
     Write-Host '  2. 查看已保存配置'
@@ -57,7 +62,8 @@ function Show-Menu {
     Write-Host '  4. 设置 ChromeDriver 路径'
     Write-Host '  5. 打开配置文件编辑'
     Write-Host '  6. 基础浏览器流程（ChromeDriver，兼容入口）'
-    Write-Host '  7. 第一阶段完整业务流程'
+    Write-Host '  7. 首阶段组合（L/A/B）'
+    Write-Host '  8. 自选测试（单项或组合）'
     Write-Host '  0. 退出'
     Write-Host ''
 }
@@ -67,7 +73,7 @@ try {
         if ($Command -eq 'edit') {
             Edit-Config
         } else {
-            Invoke-TestTool -Action $Command
+            Invoke-TestTool -Action $Command -TestModules $Modules
         }
         exit 0
     }
@@ -109,11 +115,16 @@ try {
             '7' {
                 Invoke-TestTool -Action 'flow'
                 Write-Host ''
-                Read-Host '第一阶段完整业务流程完成，按 Enter 返回菜单' | Out-Null
+                Read-Host '首阶段组合完成，按 Enter 返回菜单' | Out-Null
+            }
+            '8' {
+                Invoke-TestTool -Action 'suite'
+                Write-Host ''
+                Read-Host '所选测试完成，按 Enter 返回菜单' | Out-Null
             }
             '0' { break }
             default {
-                Write-Host '请输入 1、2、3、4、5、6、7 或 0。' -ForegroundColor Red
+                Write-Host '请输入 1 至 8 或 0。' -ForegroundColor Red
                 Start-Sleep -Seconds 1
             }
         }

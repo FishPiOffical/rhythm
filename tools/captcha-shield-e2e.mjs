@@ -9,6 +9,7 @@ import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
+import { TEST_MODULES, FIRST_FLOW_MODULES, parseTestModules, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { stdin as input, stdout as output } from 'node:process';
 
 const REQUIRED_EXTRA_IPS = 5;
@@ -156,6 +157,7 @@ function showConfig(config) {
   console.log(`L：${config.ipPlan.loopback?.ip || '(未选择)'}`);
   config.ipPlan.extra.forEach((item, index) => console.log(`${String.fromCharCode(65 + index)}：${item.ip}`));
   console.log(`ChromeDriver：${config.chromeDriverPath || '(未设置，将从 PATH 或环境变量查找)'}`);
+  console.log(`上次自选测试：${config.testModules?.join(',') || '(未选择)'}`);
   console.log(`最近保存：${config.updatedAt || '(未知)'}`);
 }
 
@@ -469,6 +471,7 @@ class CdpClient {
   }
 
   send(method, params = {}) {
+    if (this.socket?.readyState !== WebSocket.OPEN) return Promise.reject(new Error('Chrome DevTools 连接已关闭'));
     const id = ++this.nextId;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
@@ -493,7 +496,8 @@ async function cdpEvaluate(client, expression) {
     awaitPromise: true,
   });
   if (result.exceptionDetails) {
-    throw new Error(result.exceptionDetails.text || '页面脚本执行失败');
+    const detail = result.exceptionDetails.exception?.description?.split('\n')[0];
+    throw new Error(detail || result.exceptionDetails.text || '页面脚本执行失败');
   }
   return result.result?.value;
 }
@@ -555,7 +559,7 @@ async function cdpNavigate(client, url, evidence = {}, { reload = false } = {}) 
   }
   const responseStatus = client.lastDocumentResponse?.status;
   const responseUrl = client.lastDocumentResponse?.url || state.href || url;
-  if (Number(responseStatus) >= 500) {
+  if (Number(responseStatus) >= 400) {
     throw new Error(`页面主文档返回 HTTP ${responseStatus}（${new URL(responseUrl).pathname || '/'}），已停止继续请求`);
   }
   printPageEvidence(client, state, { ...evidence, reload });
@@ -760,109 +764,72 @@ async function cdpCollectArticleUrls(client, config, entry) {
   });
 }
 
-async function cdpCheckAdminMisc(entry, client, config, section, lastAt, evidence = {}) {
-  const href = await cdpNavigateWithPacing(client, `${sourceUrl(config, entry.item)}admin/misc`, lastAt, { ...evidence, sourceKey: entry.key });
-  if (isCaptchaPath(href)) throw new Error(`${entry.key} 核对 /admin/misc 时进入 /test`);
-  const pathname = new URL(href).pathname;
-  if (['/login', '/401', '/403'].includes(pathname)) throw new Error(`${entry.key} 无法访问 /admin/misc（当前路径 ${pathname}）`);
-  const report = await cdpEvaluate(client, `({section:${JSON.stringify(section)},hasSecurityPanel:!!document.querySelector('.security-panel'),eventRows:document.querySelectorAll('#securityEvents tr').length})`);
-  if (!report?.hasSecurityPanel) throw new Error(`${entry.key} /admin/misc 未找到社区安全面板`);
-  console.log(`${entry.key} /admin/misc 已核对：${section}，监控行数 ${report.eventRows || 0}`);
+async function chooseAcceptanceModules(config, argument) {
+  if (!config) throw new Error('请先运行配置向导');
+  console.log('=== 自选测试 ===');
+  TEST_MODULES.forEach((module, index) => console.log(`  ${index + 1}. ${module.name}：${module.detail}`));
+  const previous = Array.isArray(config.testModules) ? config.testModules : FIRST_FLOW_MODULES;
+  const value = argument || await ask('输入编号或名称，多个用逗号分隔，all为全部', previous.join(','));
+  const selected = parseTestModules(value);
+  console.log(`本轮测试：${selected.map(id => TEST_MODULES.find(module => module.id === id).name).join(' → ')}`);
+  console.log('必要登录准备自动执行；真实极验仍需手动完成。');
+  saveConfig({ ...config, testModules: selected });
+  return selected;
 }
 
-async function runFirstAcceptanceFlowCdp(config) {
+async function runFirstAcceptanceFlowCdp(config, selected = FIRST_FLOW_MODULES) {
   if (!config?.port || !config.ipPlan?.loopback || config.ipPlan.extra?.length !== REQUIRED_EXTRA_IPS) {
-    throw new Error('未找到完整阶段 1 配置，请先运行 configure 并确认 L 加 5 个额外 IP');
+    throw new Error('未找到完整配置，请先运行配置向导并确认 L 加 5 个额外 IP');
   }
-  const baseline = config.accounts.find(account => account.key === 'baseline');
-  const admin = config.accounts.find(account => account.key === 'admin');
-  if (!baseline || !admin) throw new Error('配置中缺少普通登录基线账号或管理员账号');
-  const entries = sourceEntries(config);
-  const entryL = entries.find(entry => entry.key === 'L');
-  const entryA = entries.find(entry => entry.key === 'A');
-  const entryB = entries.find(entry => entry.key === 'B');
-  const runProfileRoot = path.join(CONFIG_DIR, 'runs', `cdp-flow-${Date.now()}`);
-  const sessions = new Map();
+  const runRoot = path.resolve(CONFIG_DIR, 'runs', `cdp-suite-${Date.now()}`);
+  const profileRoot = path.join(runRoot, 'profiles');
+  const resultPath = path.join(runRoot, 'results.json');
+  fs.mkdirSync(runRoot, { recursive: true });
+  const sessions = new Set();
   let completed = false;
   try {
     console.log('使用普通 Chrome + DevTools Protocol，不启动 ChromeDriver。');
-    sessions.set(entryL.key, await startCdpSession(config, entryL, runProfileRoot));
-    const l = sessions.get('L');
-    const lLastAt = { value: 0 };
-    console.log('\n=== 第一阶段：L 登录基线 ===');
-    await cdpRequireNoCaptcha(entryL, l.client, sourceUrl(config, entryL.item), lLastAt);
-    await cdpLogin(entryL, l.client, config, baseline, lLastAt);
-    const articleUrls = await cdpCollectArticleUrls(l.client, config, entryL);
-    for (let i = 0; i < 10; i++) await cdpRequireNoCaptcha(entryL, l.client, sourceUrl(config, entryL.item), lLastAt);
-    for (const articleUrl of articleUrls) await cdpRequireNoCaptcha(entryL, l.client, articleUrl, lLastAt);
-    console.log('L 基线通过：主页 10 次、10 个不同文章页均未进入 /test。');
-
-    console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
-    sessions.set(entryA.key, await startCdpSession(config, entryA, runProfileRoot));
-    const a = sessions.get('A');
-    const aLastAt = { value: 0 };
-    await cdpRequireCaptcha(entryA, a.client, sourceUrl(config, entryA.item), aLastAt);
-    const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
-    let redirectedAt = 0;
-    for (let count = 1; count <= 5; count++) {
-      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
-      const href = await cdpNavigateWithPacing(a.client, target, aLastAt);
-      if (isCaptchaPath(href) || a.client.lastCaptchaRedirect) {
-        redirectedAt = count;
-        if (!isCaptchaPath(href)) {
-          console.log(`A 第 ${count} 次页面访问时检测到子请求跳转 /test，正在打开顶层验证码页。`);
-          await cdpEnsureCaptchaTopLevel(entryA, a.client, target, aLastAt);
-        }
-        await cdpWaitForCaptcha(entryA, a.client);
-        break;
-      }
-    }
-    if (!redirectedAt) throw new Error('A 通过 5 次主页/文章访问后仍未回到 /test');
-    console.log(`A 已在第 ${redirectedAt} 次访问内重新进入 /test。`);
-    await cdpLogin(entryA, a.client, config, admin, aLastAt);
-    await cdpCheckAdminMisc(entryA, a.client, config, 'A 验证码后管理员登录', aLastAt);
-    for (let count = 1; count <= 5; count++) {
-      const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
-      await cdpRequireNoCaptcha(entryA, a.client, target, aLastAt);
-    }
-    console.log('A 登录后通过 5 次访问，未再次进入 /test。');
-
-    console.log('\n=== 第一阶段：B 登录态与 A 缓存切换 ===');
-    sessions.set(entryB.key, await startCdpSession(config, entryB, runProfileRoot));
-    const b = sessions.get('B');
-    const bLastAt = { value: 0 };
-    await cdpRequireCaptcha(entryB, b.client, sourceUrl(config, entryB.item), bLastAt);
-    await cdpLogin(entryB, b.client, config, admin, bLastAt);
-    await cdpCheckAdminMisc(entryB, b.client, config, 'B 验证码后管理员登录', bLastAt);
-    // A is still logged in at this point, so its authenticated requests would
-    // correctly bypass the anonymous shield. Start a fresh anonymous A
-    // session to test the intended cache-eviction boundary.
-    await closeCdpSession(a);
-    sessions.delete('A');
-    const entryAReturn = { ...entryA, key: 'A-return' };
-    sessions.set(entryAReturn.key, await startCdpSession(config, entryAReturn, runProfileRoot));
-    const aReturn = sessions.get('A-return');
-    const aReturnLastAt = { value: 0 };
-    await cdpRequireCaptcha(entryA, aReturn.client, sourceUrl(config, entryA.item), aReturnLastAt, {}, { refreshOnce: true });
-    console.log('A/B 回访验证通过：匿名 A 在回访或一次强制刷新后进入 /test；两次访问结果以日志为准。');
-    await cdpCheckAdminMisc(entryB, b.client, config, 'A/B 切换完成', bLastAt);
-    console.log('\n第一阶段业务流程完成。');
+    const result = await runAcceptanceSuite({
+      config, selected,
+      persist: data => fs.writeFileSync(resultPath, `${JSON.stringify(data, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }),
+      runtime: {
+        entries: sourceEntries, sourceUrl, evaluate: cdpEvaluate, sleep,
+        isCaptcha: isCaptchaPath, login: cdpLogin, articles: cdpCollectArticleUrls,
+        navigate: cdpNavigateWithPacing, ensureCaptcha: cdpEnsureCaptchaTopLevel, waitCaptcha: cdpWaitForCaptcha,
+        start: async entry => {
+          const session = await startCdpSession(config, entry, profileRoot);
+          sessions.add(session);
+          return session;
+        },
+        close: async session => {
+          await closeCdpSession(session);
+          // Suite sessions add entry/lastAt to the controller; track by the shared client.
+          for (const tracked of sessions) if (tracked.client === session.client) sessions.delete(tracked);
+        },
+      },
+    });
+    console.log(`\n所选 ${result.modules.length} 个模块全部通过。`);
     completed = true;
+  } catch (error) {
+    console.error(`失败原因：${error.message}`);
+    throw error;
   } finally {
+    console.log(`本轮结果：${resultPath}`);
     if (completed) {
-      for (const session of [...sessions.values()].reverse()) await closeCdpSession(session);
-      try { fs.rmSync(runProfileRoot, { recursive: true, force: true }); } catch { /* Chrome may still release files. */ }
-    } else {
-      for (const session of sessions.values()) preserveCdpSession(session);
-      console.error('\n测试失败，已保留浏览器现场，未关闭 Chrome。');
-      console.error(`临时用户目录：${runProfileRoot}`);
-      console.error('脚本将在此暂停，不会继续清理浏览器；请查看 Chrome 窗口。');
-      try {
-        await ask('确认查看完成后按 Enter，脚本将退出（不会关闭 Chrome）');
-      } catch {
-        // Keep the failure path best-effort when stdin is already closed.
+      for (const session of [...sessions].reverse()) await closeCdpSession(session);
+      if (path.dirname(path.resolve(profileRoot)) !== runRoot || path.basename(profileRoot) !== 'profiles') {
+        throw new Error('临时用户目录不在本轮目录内，拒绝清理');
       }
-      console.error('Chrome 窗口和临时目录仍保留；确认问题后可手动关闭窗口并删除该目录。');
+      try { fs.rmSync(profileRoot, { recursive: true, force: true }); }
+      catch (error) { console.error(`浏览器临时目录清理失败：${error.message}；目录：${profileRoot}`); }
+    } else {
+      for (const session of sessions) preserveCdpSession(session);
+      console.error('\n测试失败，已保留浏览器现场，未关闭 Chrome。');
+      console.error(`临时用户目录：${profileRoot}`);
+      console.error('脚本将在此暂停，不会继续清理浏览器；请查看 Chrome 窗口。');
+      try { await ask('确认查看完成后按 Enter，脚本将退出（不会关闭 Chrome）'); }
+      catch (error) { console.error(`无法等待终端输入：${error.message}`); }
+      console.error('Chrome 窗口和临时目录仍保留；确认现场后请手动关闭窗口。');
     }
   }
 }
@@ -1184,6 +1151,7 @@ async function configure() {
     accounts,
     ipPlan: { loopback, extra },
     chromeDriverPath: previous?.chromeDriverPath || '',
+    testModules: previous?.testModules || [...FIRST_FLOW_MODULES],
     updatedAt: new Date().toISOString(),
   });
   console.log(`阶段 1 配置已保存：${CONFIG_PATH}`);
@@ -1199,8 +1167,12 @@ async function main() {
     else if (command === 'driver') await configureDriver();
     else if (command === 'browser') await runBrowser(loadConfig());
     else if (command === 'flow') await runFirstAcceptanceFlowCdp(loadConfig());
+    else if (command === 'suite') {
+      const config = loadConfig();
+      await runFirstAcceptanceFlowCdp(config, await chooseAcceptanceModules(config, process.argv.slice(3).join(',')));
+    }
     else if (command === 'webdriver-flow') await runFirstAcceptanceFlow(loadConfig());
-    else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow）`);
+    else throw new Error(`未知命令：${command}（可用 configure、show、ips、driver、browser、flow、suite）`);
   } catch (error) {
     console.error(`失败：${error.message}`);
     process.exitCode = 1;
