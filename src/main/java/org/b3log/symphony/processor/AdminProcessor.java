@@ -471,6 +471,9 @@ public class AdminProcessor {
         Dispatcher.post("/admin/security/firewall", adminProcessor::toggleFirewall, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification", adminProcessor::toggleVerificationShield, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification-first", adminProcessor::toggleFirstVisitCaptcha, permissionMidware::check, csrfMidware::check);
+        Dispatcher.post("/admin/security/save", adminProcessor::saveSecuritySwitches, permissionMidware::check, csrfMidware::check);
+        Dispatcher.get("/admin/security/monitor", adminProcessor::securityMonitor, permissionMidware::check);
+        Dispatcher.get("/admin/security/self-check", adminProcessor::securitySelfCheck, permissionMidware::check);
         Dispatcher.get("/admin/ip", adminProcessor::showIp, middlewares);
         Dispatcher.post("/admin/ip", adminProcessor::modifyIp, middlewares);
         Dispatcher.get("/admin/pic", adminProcessor::showPic, middlewares);
@@ -2633,6 +2636,11 @@ public class AdminProcessor {
         // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
         dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
         dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
+        dataModel.put("securityRuntimeMode", Latkes.getRuntimeMode().name());
+        dataModel.put("securitySwitchEditable", Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode());
+        dataModel.put("securityStats", SecurityMonitor.snapshot());
+        dataModel.put("securityEvents", SecurityMonitor.recentEvents());
+        dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2679,7 +2687,7 @@ public class AdminProcessor {
      */
     public void toggleFirewall(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2709,7 +2717,7 @@ public class AdminProcessor {
      */
     public void toggleVerificationShield(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2730,7 +2738,7 @@ public class AdminProcessor {
      */
     public void toggleFirstVisitCaptcha(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2744,6 +2752,71 @@ public class AdminProcessor {
         // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
         data.put("enabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
+    }
+
+    /** Atomically applies all temporary security switches in development mode. */
+    public void saveSecuritySwitches(final RequestContext context) {
+        final JSONObject currentUser = getCurrentUser(context);
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        final String thresholdText = StringUtils.trim(context.param("threshold"));
+        final int threshold;
+        try {
+            threshold = Integer.parseInt(thresholdText);
+        } catch (final NumberFormatException e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须是正整数");
+            return;
+        }
+        if (threshold <= 0) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须大于0");
+            return;
+        }
+        final boolean firewallEnabled = Boolean.parseBoolean(context.param("firewallEnabled"));
+        final boolean verificationEnabled = Boolean.parseBoolean(context.param("verificationEnabled"));
+        final boolean firstVisitEnabled = Boolean.parseBoolean(context.param("firstVisitCaptchaEnabled"));
+        Firewall.setThreshold(threshold);
+        Firewall.setEnabled(firewallEnabled);
+        // 未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(verificationEnabled);
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(firstVisitEnabled);
+        final JSONObject data = securitySwitchData();
+        SecurityMonitor.record("settings", "update", "统一保存");
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("安全开关已保存");
+    }
+
+    public void securityMonitor(final RequestContext context) {
+        if (!isSecurityOperator(getCurrentUser(context))) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecurityMonitor.snapshot())
+                .put("events", SecurityMonitor.recentEvents()));
+    }
+
+    public void securitySelfCheck(final RequestContext context) {
+        if (!isSecurityOperator(getCurrentUser(context))) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecuritySelfCheck.run()));
+    }
+
+    private JSONObject securitySwitchData() {
+        return new JSONObject().put("firewallEnabled", Firewall.isEnabled())
+                .put("threshold", Firewall.getThreshold())
+                .put("verificationEnabled", AnonymousCaptchaShield.isEnabled())
+                .put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled())
+                .put("runtimeMode", Latkes.getRuntimeMode().name())
+                .put("editable", isSecurityEditable());
+    }
+
+    private boolean isSecurityEditable() {
+        return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
     }
 
     private JSONObject getCurrentUser(final RequestContext context) {

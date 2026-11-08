@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
   "policyVersion": 1,
-  "approval": "Initial extraction authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
+  "approval": "Initial extraction and security panel integration authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "561a52ace2ce32793475d72bb9615ec1f33ab9ba32de80f7b0f6ed4ed80db974"
+      "sha256": "ba4525541a9862723832c710a6a0179f4cfac086295175e485df1e54a181e314"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -39,17 +39,17 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void showMisc(final RequestContext context)",
-      "sha256": "a14951735de6d56c33942473ec4b4fd4158ed168d0a18003983ca5def1974886"
+      "sha256": "34f8ff905996992db535aab9eade15774bef227855383a76fbcc612a73bd5263"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void toggleVerificationShield(final RequestContext context)",
-      "sha256": "aff5b9c1a5b0c01049def8da4d2b0f565bd0273cadaa74a0cd862395c106c09a"
+      "sha256": "88236afbe43c081e6a12b8106486e864a26ac59649edcf8f5b55a8c6ed9e743c"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void toggleFirstVisitCaptcha(final RequestContext context)",
-      "sha256": "e3c903bfba5b548966abd6ce4d999d27e5af8a5e24421528b9ed539a8177456f"
+      "sha256": "3d73727f547ea6d5761a050aad379bc1f33903c8eec428eb4335402d36a54a80"
     },
     {
       "file": "src/main/java/org/b3log/symphony/Server.java",
@@ -100,6 +100,20 @@
       "file": "src/main/java/org/b3log/symphony/processor/Router.java",
       "method": "public static void requestMapping()",
       "sha256": "cea03ef494297521300e79187e2394fc19f634d2b8bcffdd8ab32647253e4771"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/SecuritySelfCheck.java",
+      "sha256": "cdfa80478c993208c96a35741c4dd4c163af09c857aefc3cf912d0dabe00d68e"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "public void saveSecuritySwitches(final RequestContext context)",
+      "sha256": "9234c239a2674341be964ba5ee02818d4335dc44c844a1ecc2e324e30941a527"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
+      "method": "private JSONObject securitySwitchData()",
+      "sha256": "d9336cb64966a372cac7beaeb4b1ecb3f1e82be2f44c74ac9d93c5c3176f763a"
     }
   ]
 }

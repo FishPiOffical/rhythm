@@ -142,6 +142,7 @@ public final class AnonymousCaptchaShield {
             logShield(ip, context.requestURI(), "跳转", "已在验证黑名单", null);
             context.sendRedirect("/test");
             context.abort();
+            SecurityMonitor.record("captcha", "redirect", "黑名单跳转");
             return true;
         }
         return false;
@@ -255,10 +256,12 @@ public final class AnonymousCaptchaShield {
                             // API 调用方无法完成验证码，直接拒绝且不拉黑，避免把服务端客户端永久卡死
                             logShield(ip, requestURI, "拒绝", "接口需验证码-" + reason, "次数=" + count);
                             context.sendError(401);
+                            SecurityMonitor.record("captcha", "deny", "接口需要验证码");
                         } else {
                             logShield(ip, requestURI, "验证码", reason, "次数=" + count);
                             ipBlacklistCache.put(ip, true);
                             context.sendRedirect("/test");
+                            SecurityMonitor.record("captcha", "challenge", reason);
                         }
                         context.abort();
                         return false;

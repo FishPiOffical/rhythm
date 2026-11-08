@@ -97,41 +97,22 @@
         </div>
     </div>
 
-    <div class="module">
-        <div class="module-header">
-            <h2>社区安全开关（临时，重启恢复默认开启）</h2>
-        </div>
+    <div class="module security-panel">
+        <div class="module-header"><h2>社区安全</h2></div>
         <div class="module-panel form fn-clear form--admin">
-            <div class="fn__flex">
-                <label style="width:100%;">
-                    <div>社区 CC 防火墙（BeforeRequestHandler → Firewall）</div><br>
-                    <div class="fn__flex">
-                        <label style="margin-right:12px;">
-                            <input type="checkbox" id="firewallEnabled" <#if firewallEnabled?? && firewallEnabled>checked</#if>/> 启用
-                        </label>
-                        <input type="number" id="firewallThreshold" min="1" value="${firewallThreshold!400}" style="width:120px;" placeholder="阈值/分钟">
-                        <button type="button" class="green" style="margin-left:8px;" onclick="SecuritySwitches.updateFirewall()">保存</button>
-                    </div><br><br>
-                    <div class="ft-small">阈值=每分钟请求数，超过则 ipset 封禁；默认 400。</div>
-                </label>
+            <p class="ft-small">运行模式：<strong>${securityRuntimeMode}</strong>。${securitySwitchEditable?then('当前可调整，重启后恢复默认值。','生产模式仅可查看。')}</p>
+            <div class="fn__flex" style="align-items:center;gap:10px;flex-wrap:wrap;">
+                <label><input type="checkbox" id="firewallEnabled" <#if firewallEnabled?? && firewallEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> CC 防护</label>
+                <label>每分钟请求数 <input type="number" id="firewallThreshold" min="1" value="${firewallThreshold!400}" style="width:110px;" <#if !securitySwitchEditable>disabled</#if>/></label>
+                <label><input type="checkbox" id="verificationEnabled" <#if verificationShieldEnabled?? && verificationShieldEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> 验证码盾</label>
+                <label><input type="checkbox" id="firstVisitCaptchaEnabled" <#if firstVisitCaptchaEnabled?? && firstVisitCaptchaEnabled>checked</#if> <#if !securitySwitchEditable>disabled</#if>/> 首访验证</label>
+                <button type="button" class="green" id="securitySaveButton" onclick="SecuritySwitches.save()" <#if !securitySwitchEditable>disabled</#if>>保存</button>
             </div>
-            <div class="fn__flex" style="margin-top:12px;">
-                <label style="width:100%;">
-                    <div>社区验证盾（AnonymousViewCheckMidware 验证码）</div><br>
-                    <div class="fn__flex">
-                        <label style="margin-right:12px;">
-                            <input type="checkbox" id="verificationEnabled" <#if verificationShieldEnabled?? && verificationShieldEnabled>checked</#if>/> 启用
-                        </label>
-                        <button type="button" class="green" onclick="SecuritySwitches.updateVerification()">保存</button>
-                    </div><br><br>
-                    <div class="ft-small">关闭后匿名访问不再触发验证码；重启会恢复默认开启。</div><br>
-                    <div class="fn__flex" style="margin-top:8px;">
-                        <label style="margin-right:12px;">
-                            <input type="checkbox" id="firstVisitCaptchaEnabled" <#if firstVisitCaptchaEnabled?? && firstVisitCaptchaEnabled>checked</#if>/> 首次访问（2 小时内）必需验证码
-                        </label>
-                        <button type="button" class="green" onclick="SecuritySwitches.updateFirstVisit()">保存</button>
-                    </div>
-                </label>
+            <div class="security-monitor" style="margin-top:18px;"><h3>近期统计（本次启动）</h3>
+                <p>请求记录 <strong id="securityTotal">${securityStats.total}</strong>，近10分钟 <strong id="securityLast10">${securityStats.last10Minutes}</strong>。${securityStats.retention}</p>
+                <button type="button" onclick="SecuritySwitches.refresh()">刷新</button> <button type="button" onclick="SecuritySwitches.check()">执行自检</button><span id="securityRefreshMessage" class="ft-small"></span>
+                <div style="overflow-x:auto;max-width:100%;"><table class="table" style="min-width:520px;width:100%;"><thead><tr><th>时间</th><th>类型</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.type}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
+                <div id="securitySelfCheck" style="margin-top:12px;"><strong>自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
             </div>
         </div>
     </div>
@@ -262,56 +243,18 @@ SalaryUtil.init();
 
 const SecuritySwitches = {
     servePath: '${servePath}',
-    updateFirewall() {
-        const enabled = document.getElementById('firewallEnabled').checked;
-        const threshold = document.getElementById('firewallThreshold').value;
-        fetch(this.servePath + '/admin/security/firewall', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'csrfToken': '${csrfToken}'
-            },
-            body: 'enabled=' + enabled + '&threshold=' + encodeURIComponent(threshold)
-        }).then(res => res.json()).then(res => {
-            alert(res.msg || '已更新');
-            if (res.data && res.data.threshold) {
-                document.getElementById('firewallThreshold').value = res.data.threshold;
-                document.getElementById('firewallEnabled').checked = !!res.data.enabled;
-            }
-        }).catch(err => alert('更新失败：' + err.message));
+    save() {
+        const threshold = document.getElementById('firewallThreshold').value.trim();
+        if (!/^\d+$/.test(threshold) || Number(threshold) < 1) { alert('每分钟请求数必须是正整数'); return; }
+        const body = new URLSearchParams({firewallEnabled: document.getElementById('firewallEnabled').checked, threshold, verificationEnabled: document.getElementById('verificationEnabled').checked, firstVisitCaptchaEnabled: document.getElementById('firstVisitCaptchaEnabled').checked});
+        const button = document.getElementById('securitySaveButton'); button.disabled = true;
+        fetch(this.servePath + '/admin/security/save', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','csrfToken':'${csrfToken}'}, body})
+          .then(res=>res.json()).then(result=>{alert(result.msg || '已保存'); if(result.data)this.apply(result.data);})
+          .catch(err=>alert('保存失败：'+err.message)).finally(()=>{button.disabled=${securitySwitchEditable?then('false','true')};});
     },
-    updateVerification() {
-        const enabled = document.getElementById('verificationEnabled').checked;
-        fetch(this.servePath + '/admin/security/verification', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'csrfToken': '${csrfToken}'
-            },
-            body: 'enabled=' + enabled
-        }).then(res => res.json()).then(res => {
-            alert(res.msg || '已更新');
-            if (res.data) {
-                document.getElementById('verificationEnabled').checked = !!res.data.enabled;
-            }
-        }).catch(err => alert('更新失败：' + err.message));
-    },
-    updateFirstVisit() {
-        const enabled = document.getElementById('firstVisitCaptchaEnabled').checked;
-        fetch(this.servePath + '/admin/security/verification-first', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'csrfToken': '${csrfToken}'
-            },
-            body: 'enabled=' + enabled
-        }).then(res => res.json()).then(res => {
-            alert(res.msg || '已更新');
-            if (res.data) {
-                document.getElementById('firstVisitCaptchaEnabled').checked = !!res.data.enabled;
-            }
-        }).catch(err => alert('更新失败：' + err.message));
-    }
+    apply(data) { if(data.firewallEnabled!==undefined)document.getElementById('firewallEnabled').checked=!!data.firewallEnabled; if(data.threshold!==undefined)document.getElementById('firewallThreshold').value=data.threshold; if(data.verificationEnabled!==undefined)document.getElementById('verificationEnabled').checked=!!data.verificationEnabled; if(data.firstVisitCaptchaEnabled!==undefined)document.getElementById('firstVisitCaptchaEnabled').checked=!!data.firstVisitCaptchaEnabled; },
+    refresh() { fetch(this.servePath+'/admin/security/monitor').then(res=>res.json()).then(result=>{const d=result.data||{};document.getElementById('securityTotal').textContent=d.total||0;document.getElementById('securityLast10').textContent=d.last10Minutes||0;document.getElementById('securityEvents').innerHTML=(d.events||[]).map(e=>'<tr><td>'+e.time+'</td><td>'+e.type+'</td><td>'+e.result+'</td><td>'+e.reason+'</td></tr>').join('')||'<tr><td colspan="4">暂无记录</td></tr>';document.getElementById('securityRefreshMessage').textContent='已刷新';}).catch(err=>{document.getElementById('securityRefreshMessage').textContent='刷新失败：'+err.message;}); },
+    check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
 </script>
 </@admin>

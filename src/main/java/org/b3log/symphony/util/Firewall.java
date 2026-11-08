@@ -107,6 +107,7 @@ public final class Firewall {
      */
     public static boolean recordAndMaybeBan(final String ip, final String ua) {
         if (StringUtils.isBlank(ip) || !enabled) {
+            SecurityMonitor.record("cc", "allow", enabled ? "无效IP" : "开关关闭");
             return true;
         }
 
@@ -131,10 +132,13 @@ public final class Firewall {
 
         if (counter.count.sum() > effectiveThreshold) {
             banIpIfAbsent(ip, "请求频率超限");
+            SecurityMonitor.record("cc", "ban", "请求频率超限");
             return false;
         }
 
-        return null == BANNED.getIfPresent(ip);
+        final boolean allowed = null == BANNED.getIfPresent(ip);
+        SecurityMonitor.record("cc", allowed ? "allow" : "deny", allowed ? "阈值内" : "已封禁");
+        return allowed;
     }
 
     public static boolean banIpIfAbsent(final String ip, final String reason) {
