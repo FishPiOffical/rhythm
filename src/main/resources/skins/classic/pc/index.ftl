@@ -919,7 +919,9 @@
         </#if>
     }
 
-    // Init [ChatRoom] channel
+    <#if isLoggedIn>
+    // The node channel requires login; anonymous home pages must not trigger
+    // a deliberate 401 that can be mistaken for an expired session.
     $.ajax({
         url: Label.servePath + '/chat-room/node/get',
         type: 'GET',
@@ -928,6 +930,7 @@
             ChatRoomChannel.init(result.data);
         }
     });
+    </#if>
 
     var chatRoomPictureStatus = "<#if 0 == chatRoomPictureStatus> blur</#if>";
 </script>
