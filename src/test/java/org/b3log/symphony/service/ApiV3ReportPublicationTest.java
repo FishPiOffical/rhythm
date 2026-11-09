@@ -85,49 +85,117 @@ public class ApiV3ReportPublicationTest {
  }
  static JSONObject body(int t,String id){return new JSONObject().put("targetType",t).put("targetId",id).put("reason",49).put("memo","");}
  interface A{void run()throws Exception;}static void error(int status,A a)throws Exception{try{a.run();Assert.fail("expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);Assert.assertFalse(e.getMessage().contains("PRIVATE"));}}
- public static void main(String[]a)throws Exception {
-  var p=new Properties();p.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(p);Latkes.setLocalProps(p);
-  try(var f=new F()){
-   var first=f.send(0,"10","a");Assert.assertEquals(first.keySet(),Set.of("id"));Assert.assertEquals(f.count("r"),1);Assert.assertEquals(f.locks.subList(0,3),List.of("user:1","user:2","receipt"));
-   Assert.assertEquals(f.send(0,"10","b").getString("id"),first.getString("id"));Assert.assertEquals(f.count("r"),1);
-   sql(f.db,"UPDATE r SET reportHandled=1");Assert.assertNotEquals(f.send(0,"10","c").getString("id"),first.getString("id"));Assert.assertEquals(f.send(0,"10","a").getString("id"),first.getString("id"));Assert.assertEquals(f.count("r"),2);
-   sql(f.db,"UPDATE u SET userStatus=4 WHERE oId='2'");Assert.assertEquals(f.send(0,"10","a").getString("id"),first.getString("id"));sql(f.db,"UPDATE u SET userStatus=0 WHERE oId='2'");
-   sql(f.db,"UPDATE a SET articleContent=?,articleType=1 WHERE oId='10'","x".repeat(1048577));Assert.assertEquals(f.send(0,"10","a").getString("id"),first.getString("id"));
-   sql(f.db,"DELETE FROM a WHERE oId='10'");sql(f.db,"DELETE FROM u WHERE oId='2'");Assert.assertEquals(f.send(0,"10","a").getString("id"),first.getString("id"));error(404,()->f.send(0,"10","fresh"));
-   sql(f.db,"UPDATE u SET userStatus=4 WHERE oId='1'");error(404,()->f.send(0,"10","a"));
-  }System.out.println("PASS publication 1 fixed user-before-receipt lock order, pending dedup, handled new-key, deleted target/author replay, actor revalidation");
-  try(var f=new F()){
-   f.send(0,"11","invited");error(404,()->f.send(0,"12","private"));error(404,()->f.send(0,"13","self"));f.send(1,"20","comment");error(404,()->f.send(1,"21","private-comment"));error(404,()->f.send(1,"22","self-comment"));f.send(2,"2","user");error(404,()->f.send(2,"4","disabled"));error(404,()->f.send(2,"1","self-user"));f.service.publish("1",body(3,"30").put("reason",4),"chat");Assert.assertEquals(rows(f.db,"SELECT reportType FROM r WHERE reportDataType=3").getFirst().getInt("reportType"),4);error(404,()->f.send(3,"31","chat-no-id"));
+ public static void main(String[] a) throws Exception {
+  var p = new Properties();
+  p.setProperty("runtimeDatabase", "NONE");
+  Latkes.setLatkeProps(p);
+  Latkes.setLocalProps(p);
+  try (var f = new F()) {
+   var first = f.send(0, "10", "a");
+   Assert.assertEquals(first.keySet(), Set.of("id"));
+   Assert.assertEquals(f.count("r"), 1);
+   Assert.assertEquals(f.locks.subList(0, 3), List.of("user:1", "user:2", "receipt"));
+   Assert.assertEquals(f.send(0, "10", "b").getString("id"), first.getString("id"));
+   Assert.assertEquals(f.count("r"), 1);
+   sql(f.db, "UPDATE r SET reportHandled=1");
+   Assert.assertNotEquals(f.send(0, "10", "c").getString("id"), first.getString("id"));
+   Assert.assertEquals(f.send(0, "10", "a").getString("id"), first.getString("id"));
+   Assert.assertEquals(f.count("r"), 2);
+
+   // 原回执可在目标状态变化后重放，发起人仍须通过当前身份校验。
+   sql(f.db, "UPDATE u SET userStatus=4 WHERE oId='2'");
+   Assert.assertEquals(f.send(0, "10", "a").getString("id"), first.getString("id"));
+   sql(f.db, "UPDATE u SET userStatus=0 WHERE oId='2'");
+   sql(f.db, "UPDATE a SET articleContent=?,articleType=1 WHERE oId='10'", "x".repeat(1048577));
+   Assert.assertEquals(f.send(0, "10", "a").getString("id"), first.getString("id"));
+   sql(f.db, "DELETE FROM a WHERE oId='10'");
+   sql(f.db, "DELETE FROM u WHERE oId='2'");
+   Assert.assertEquals(f.send(0, "10", "a").getString("id"), first.getString("id"));
+   error(404, () -> f.send(0, "10", "fresh"));
+   sql(f.db, "UPDATE u SET userStatus=4 WHERE oId='1'");
+   error(404, () -> f.send(0, "10", "a"));
+  }
+  System.out.println("PASS publication 1 fixed user-before-receipt lock order, pending dedup, handled new-key, deleted target/author replay, actor revalidation");
+  try (var f = new F()) {
+   f.send(0, "11", "invited");
+   error(404, () -> f.send(0, "12", "private"));
+   error(404, () -> f.send(0, "13", "self"));
+   f.send(1, "20", "comment");
+   error(404, () -> f.send(1, "21", "private-comment"));
+   error(404, () -> f.send(1, "22", "self-comment"));
+   f.send(2, "2", "user");
+   error(404, () -> f.send(2, "4", "disabled"));
+   error(404, () -> f.send(2, "1", "self-user"));
+   f.service.publish("1", body(3, "30").put("reason", 4), "chat");
+   Assert.assertEquals(rows(f.db, "SELECT reportType FROM r WHERE reportDataType=3").getFirst().getInt("reportType"), 4);
+   error(404, () -> f.send(3, "31", "chat-no-id"));
    Assert.assertEquals(f.count("r"),4);
-  }System.out.println("PASS publication 2 four targets, explicit discussion invitations/private-comment author access/self bans, no chat nickname fallback");
-  try(var f=new F()){
-   var b=body(0,"10").put("memo","  <b>Hello</b> &lt;script&gt;alert(1)&lt;/script&gt;  ");f.service.publish("1",b,"xss");var memo=rows(f.db,"SELECT reportMemo FROM r").getFirst().getString("reportMemo");Assert.assertFalse(memo.contains("<"));Assert.assertTrue(memo.contains("&lt;script&gt;"));
+  }
+  System.out.println("PASS publication 2 four targets, explicit discussion invitations/private-comment author access/self bans, no chat nickname fallback");
+  try (var f = new F()) {
+   var b = body(0, "10").put("memo", "  <b>Hello</b> &lt;script&gt;alert(1)&lt;/script&gt;  ");
+   f.service.publish("1", b, "xss");
+   var memo = rows(f.db, "SELECT reportMemo FROM r").getFirst().getString("reportMemo");
+   Assert.assertFalse(memo.contains("<"));
+   Assert.assertTrue(memo.contains("&lt;script&gt;"));
    error(422,()->f.service.publish("1",body(0,"10").put("memo","&".repeat(3000)),"expanded"));
    error(409,()->f.service.publish("1",body(0,"10"),"xss"));
    for(var bad:List.of(body(3,"30").put("reason",5),body(0,"10").put("reason",5),body(2,"2").put("reason",1),body(0,"10").put("targetId","1 OR 1=1"),body(0,"10").put("memo","a".repeat(10241)),body(0,"10").put("userId","2")))error(422,()->f.service.publish("1",bad,"bad"));
-  }System.out.println("PASS publication 3 typed reason/target/owner contract, storage-safe HTML encoding and entity expansion budget, idempotency body conflict");
-  for(var fault:List.of("hint","read","write","receipt","commit","savepoint"))try(var f=new F()) {f.fault=fault;error(503,()->f.send(0,"10","fault"));Assert.assertEquals(f.count("r"),0);Assert.assertEquals(f.count("receipts"),0);f.fault="";f.send(0,"10","fault");Assert.assertEquals(f.count("r"),1);}
+  }
+  System.out.println("PASS publication 3 typed reason/target/owner contract, storage-safe HTML encoding and entity expansion budget, idempotency body conflict");
+  for (var fault : List.of("hint", "read", "write", "receipt", "commit", "savepoint")) try (var f = new F()) {
+   f.fault = fault;
+   error(503, () -> f.send(0, "10", "fault"));
+   Assert.assertEquals(f.count("r"), 0);
+   Assert.assertEquals(f.count("receipts"), 0);
+   f.fault = "";
+   f.send(0, "10", "fault");
+   Assert.assertEquals(f.count("r"), 1);
+  }
   System.out.println("PASS publication 4 real strict SQL rollback on hint/locked-read/business/receipt/commit/savepoint failure, same-key recovery");
-  try(var f=new F()){f.fault="ack";error(503,()->f.send(0,"10","ack"));Assert.assertEquals(f.count("r"),1);f.fault="";f.send(0,"10","ack");Assert.assertEquals(f.count("r"),1);}
-  try(var f=new F()){f.changeAuthor=true;error(503,()->f.send(0,"10","changed"));Assert.assertEquals(f.count("r"),0);Assert.assertEquals(rows(f.db,"SELECT articleAuthorId FROM a WHERE oId='10'").getFirst().getString("articleAuthorId"),"2");}
+  try (var f = new F()) {
+   f.fault = "ack";
+   error(503, () -> f.send(0, "10", "ack"));
+   Assert.assertEquals(f.count("r"), 1);
+   f.fault = "";
+   f.send(0, "10", "ack");
+   Assert.assertEquals(f.count("r"), 1);
+  }
+  try (var f = new F()) {
+   f.changeAuthor = true;
+   error(503, () -> f.send(0, "10", "changed"));
+   Assert.assertEquals(f.count("r"), 0);
+   Assert.assertEquals(rows(f.db, "SELECT articleAuthorId FROM a WHERE oId='10'").getFirst().getString("articleAuthorId"), "2");
+  }
   System.out.println("PASS publication 5 lost commit acknowledgement replays durable ID, ownership changes never expand lock set and abort whole mutation");
-  try(var f=new F()){
-   for(String token:Arrays.asList(null,"bad","reader")){Assert.assertEquals(f.http(token,"auth",body(0,"10").toString(),false).attr("test.status"),"reader".equals(token)?403:401);Assert.assertEquals(f.roots,0);}
+  try (var f = new F()) {
+   for (String token : Arrays.asList(null, "bad", "reader")) {
+    Assert.assertEquals(f.http(token, "auth", body(0, "10").toString(), false).attr("test.status"), "reader".equals(token) ? 403 : 401);
+    Assert.assertEquals(f.roots, 0);
+   }
    Assert.assertEquals(f.http("writer",null,body(0,"10").toString(),false).attr("test.status"),422);
    Assert.assertEquals(f.http("writer","bad","{\"targetType\":0,\"targetId\":\"10\",\"reason\":49,\"userId\":\"2\"}",false).attr("test.status"),422);
-   var response=f.http("writer","http",body(0,"10").toString(),true);Assert.assertEquals(response.attr("test.status"),200);Assert.assertEquals(response.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(response.getResponse().getHeader("Vary"),"Authorization");Assert.assertEquals(f.count("r"),1);
-  }System.out.println("PASS publication 6 actual POST Dispatcher/auth/write middleware/controller, wrong scope and legacy identity rejected, body/key gate, no-store response");
+   var response = f.http("writer", "http", body(0, "10").toString(), true);
+   Assert.assertEquals(response.attr("test.status"), 200);
+   Assert.assertEquals(response.getResponse().getHeader("Cache-Control"), "no-store");
+   Assert.assertEquals(response.getResponse().getHeader("Vary"), "Authorization");
+   Assert.assertEquals(f.count("r"), 1);
+  }
+  System.out.println("PASS publication 6 actual POST Dispatcher/auth/write middleware/controller, wrong scope and legacy identity rejected, body/key gate, no-store response");
 
-  try(var f=new F()){
+  try (var f = new F()) {
    sql(f.db,"INSERT INTO chat VALUES('32','{\"userOId\":2}'),('33','{\"userOId\":179000000000000001}')");
    sql(f.db,"INSERT INTO u VALUES('179000000000000001',0,'longWriter','defaultRole')");
-   f.send(3,"32","integer-author");f.send(3,"33","long-author");Assert.assertEquals(f.count("r"),2);
+   f.send(3, "32", "integer-author");
+   f.send(3, "33", "long-author");
+   Assert.assertEquals(f.count("r"), 2);
    for(String invalid:List.of("1","2.0","2e0","-2","true","null","{}","[]","\"02\"","92233720368547758070")){
     sql(f.db,"INSERT OR REPLACE INTO chat VALUES('34',?)","{\"userOId\":"+invalid+"}");
     error(404,()->f.send(3,"34","bad-owner-"+Integer.toString(invalid.hashCode()).replace("-","n")));
    }
    Assert.assertEquals(f.count("r"),2);
-  }System.out.println("PASS publication 7 actual integer and 18-digit chat author IDs, no floating-point loss, malformed/self owners remain denied");
+  }
+  System.out.println("PASS publication 7 actual integer and 18-digit chat author IDs, no floating-point loss, malformed/self owners remain denied");
 
  }
 }

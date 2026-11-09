@@ -30,13 +30,15 @@ public class ApiV3ConsentSecurityTest {
         Assert.assertTrue(ApiV3ConsentSecurity.sameOrigin("http://localhost:8080","http://localhost:8080",null,"same-origin"));
         for(String origin:Arrays.asList("null","","http://fishpi.cn","https://fishpi.cn.evil","https://evil@fishpi.cn","https://fishpi.cn:444","https://fishpi.cn/","https://fishpi.cn?x=1","https://fishpi.cn#fragment","https://fishpi.cn https://evil","https://fishpi.cn:\n443"))Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site,origin,"https://fishpi.cn/safe",null),String.valueOf(origin));
         for(String referer:Arrays.asList(null,"","https://fishpi.cn.evil/path","http://fishpi.cn/path","https://fishpi.cn:444/path","https://evil@fishpi.cn/path","https://fishpi.cn/path#fragment"))Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site,null,referer,null),String.valueOf(referer));
-        Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site,"https://fishpi.cn",null,"cross-site"));Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site,"https://fishpi.cn",null,"same-site"));
+        Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site, "https://fishpi.cn", null, "cross-site"));
+        Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin(site, "https://fishpi.cn", null, "same-site"));
         Assert.assertFalse(ApiV3ConsentSecurity.sameOrigin("https://fishpi.cn.evil","https://fishpi.cn",null,null));
         System.out.println("PASS cookie consent origin checks use configured scheme/host/effective-port and fail closed for prefix hosts, credentials, paths, malformed/null origins and cross-site fetches");
         Assert.assertTrue(ApiV3ConsentSecurity.validCsrf("expected-token","expected-token"));
         for(String value:Arrays.asList(null,"","expected-token ","EXPECTED-TOKEN","other","x".repeat(257)))Assert.assertFalse(ApiV3ConsentSecurity.validCsrf("expected-token",value));
         Assert.assertFalse(ApiV3ConsentSecurity.validCsrf("\uD800","\uD801"));
-        Assert.assertFalse(ApiV3ConsentSecurity.validCsrf("",""));Assert.assertFalse(ApiV3ConsentSecurity.validCsrf(null,"expected-token"));
+        Assert.assertFalse(ApiV3ConsentSecurity.validCsrf("", ""));
+        Assert.assertFalse(ApiV3ConsentSecurity.validCsrf(null, "expected-token"));
         System.out.println("PASS consent CSRF requires a nonempty current-session token and compares the bounded original value without trim or identity fallback");
     }
 }

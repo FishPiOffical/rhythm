@@ -39,19 +39,27 @@ function run(bin, args, options = {}) {
   return r.stdout?.trim() || '';
 }
 const config=fs.readFileSync('src/main/resources/symphony.properties','utf8');
-const price=Number(config.match(/^pointChangeUsername=(\d+)$/m)?.[1]);if(!Number.isSafeInteger(price)||price<=0)throw Error('Review actual pointChangeUsername configuration');
+const price = Number(config.match(/^pointChangeUsername=(\d+)$/m)?.[1]);
+if (!Number.isSafeInteger(price) || price <= 0) throw Error('Review actual pointChangeUsername configuration');
 const repositories=JSON.parse(fs.readFileSync('src/main/resources/repository.json')).repositories;
 const selected={user:['oId','userName','userStatus','userPoint','userUsedPoint'],option:['oId','optionValue'],pointtransfer:null,pointtransfer_redc:null};
 const ddl=[];
 for(const [name,fields]of Object.entries(selected)){
- const table=repositories.find(r=>r.name===name);if(!table)throw Error('Missing repository '+name);
+ const table = repositories.find(r => r.name === name);
+ if (!table) throw Error('Missing repository ' + name);
  const keys=table.keys.filter(k=>fields===null||fields.includes(k.name));
  const columns=keys.map(k=>'`'+k.name+'` '+(k.type==='String'?(k.length>16383?'MEDIUMTEXT':'VARCHAR('+k.length+')'):k.type==='long'?'BIGINT':k.type==='int'?'INT':(()=>{throw Error('Unhandled schema type '+k.type)})())+' NOT NULL');
- columns.push('PRIMARY KEY (`oId`)');if(name==='user')columns.push('INDEX name_lookup (`userName`)');if(name==='pointtransfer_redc')columns.push('INDEX idx_pointtransfer_redc_raw_user (`rawId`,`userId`)');
+ columns.push('PRIMARY KEY (`oId`)');
+ if (name === 'user') columns.push('INDEX name_lookup (`userName`)');
+ if (name === 'pointtransfer_redc') columns.push('INDEX idx_pointtransfer_redc_raw_user (`rawId`,`userId`)');
  ddl.push('CREATE TABLE `'+name+'` ('+columns.join(',')+') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci');
 }
-const requestMigration=fs.readFileSync('sql/20261016_api_v3.sql','utf8').match(/CREATE TABLE IF NOT EXISTS `symphony_api_v3_request`[\s\S]*?;/)?.[0];if(!requestMigration)throw Error('Review receipt migration');ddl.push(requestMigration.replace('IF NOT EXISTS ','').replace('symphony_api_v3_request','api_v3_request').replace(/;$/,''));
-const schemaFile=path.join(dir,'schema.sql');fs.writeFileSync(schemaFile,ddl.join(';\n')+';');
+const requestMigration = fs.readFileSync('sql/20261016_api_v3.sql', 'utf8')
+ .match(/CREATE TABLE IF NOT EXISTS `symphony_api_v3_request`[\s\S]*?;/)?.[0];
+if (!requestMigration) throw Error('Review receipt migration');
+ddl.push(requestMigration.replace('IF NOT EXISTS ', '').replace('symphony_api_v3_request', 'api_v3_request').replace(/;$/, ''));
+const schemaFile = path.join(dir, 'schema.sql');
+fs.writeFileSync(schemaFile, ddl.join(';\n') + ';');
 try{
  const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={"admin"};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+(k==='POINT_CHANGE_USERNAME'?price:0)+';').join('')+'}');
@@ -68,7 +76,11 @@ try{
 
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3UserNameMysqlTest.java',...['main/SimpleCurrentLimiter','control/MainControl','cache/MainCache','cache/pair/CachePair'].map(n=>'src/main/java/pers/adlered/simplecurrentlimiter/'+n+'.java')],{stdio:'inherit'});
  const image=run('docker',['image','inspect',process.env.API_V3_MYSQL_IMAGE||'mysql:8.4','--format','{{.Id}}']);
- run('docker',['run','-d','--rm','--pull','never','--memory','768m','--label','rhythm.api-v3-verification=true','--label','rhythm.api-v3-username-verification='+id,'--name',container,'-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306',image,'--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);started=true;
+ run('docker', ['run', '-d', '--rm', '--pull', 'never', '--memory', '768m',
+  '--label', 'rhythm.api-v3-verification=true', '--label', 'rhythm.api-v3-username-verification=' + id,
+  '--name', container, '-e', 'MYSQL_ALLOW_EMPTY_PASSWORD=yes', '-e', 'MYSQL_ROOT_HOST=%', '-p', '127.0.0.1::3306',
+  image, '--skip-log-bin', '--performance-schema=OFF', '--innodb-buffer-pool-size=32M']);
+ started = true;
  console.log('Disposable container '+container+' (unique label '+id+'), image '+image);
  const deadline=Date.now()+90000;
  while(true){

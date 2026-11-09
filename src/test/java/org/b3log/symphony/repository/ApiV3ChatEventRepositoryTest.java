@@ -128,10 +128,26 @@ public class ApiV3ChatEventRepositoryTest {
     }
     static void exec(Connection c,String sql,Object...args)throws RepositoryException {try(var s=c.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);s.executeUpdate();}catch(SQLException e){throw new RepositoryException(e);}}
     public static void main(String[] args)throws Exception {
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            f.begin();f.add("900");Assert.assertEquals(f.head(f.reader),0L);Assert.assertTrue(f.page(f.reader,0,100,200).isEmpty());Assert.assertTrue(query(f.reader,"SELECT * FROM chat").isEmpty());f.commit();Assert.assertEquals(f.head(f.reader),1L);Assert.assertEquals(f.head(f.second),1L);Assert.assertEquals(f.page(f.second,0,1,200).getFirst().keySet(),Set.of("revision","messageId","kind"));Assert.assertFalse(f.page(f.reader,0,1,200).toString().contains("PRIVATE"));
-            f.atomic(()->f.add("100"));var page=f.page(f.reader,0,2,200);Assert.assertEquals(page.stream().map(r->r.getString("messageId")).toList(),List.of("900","100"));Assert.assertEquals(page.stream().map(r->r.getLong("revision")).toList(),List.of(1L,2L));
+            f.begin();
+            f.add("900");
+            // 独立读连接在提交前看不到新消息、事件或房间序号。
+            Assert.assertEquals(f.head(f.reader), 0L);
+            Assert.assertTrue(f.page(f.reader, 0, 100, 200).isEmpty());
+            Assert.assertTrue(query(f.reader, "SELECT * FROM chat").isEmpty());
+            f.commit();
+            Assert.assertEquals(f.head(f.reader), 1L);
+            Assert.assertEquals(f.head(f.second), 1L);
+            Assert.assertEquals(f.page(f.second, 0, 1, 200).getFirst().keySet(), Set.of("revision", "messageId", "kind"));
+            Assert.assertFalse(f.page(f.reader, 0, 1, 200).toString().contains("PRIVATE"));
+            f.atomic(() -> f.add("100"));
+            var page = f.page(f.reader, 0, 2, 200);
+            Assert.assertEquals(page.stream().map(r -> r.getString("messageId")).toList(), List.of("900", "100"));
+            Assert.assertEquals(page.stream().map(r -> r.getLong("revision")).toList(), List.of(1L, 2L));
         }
         System.out.println("PASS actual chat insert/event/head share the owner transaction; independent readers see committed IDs only, with sequence order independent of message IDs");
         try(var f=new Fixture()){
@@ -163,24 +179,83 @@ public class ApiV3ChatEventRepositoryTest {
         }
         System.out.println("PASS lost savepoint release or failed savepoint rollback falls back to real bundled full rollback/disposal instead of permitting a partial owner commit");
         try(var f=new Fixture()){
-            f.atomic(()->{for(int i=0;i<12;i++)f.add(""+(101+i));});Assert.assertEquals(f.head(f.reader),12L);Assert.assertEquals(f.page(f.reader,8,12,2).stream().map(r->r.getLong("revision")).toList(),List.of(9L,10L));Assert.assertEquals(f.page(f.reader,10,11,200).getFirst().getLong("revision"),11L);
-            exec(f.writer,"UPDATE event SET createdAt=1 WHERE revision<=2");String before=f.snapshot();f.faults.add("cleanup.remove");try{f.events.removeExpired(2);Assert.fail();}catch(RepositoryException expected){}Assert.assertEquals(f.snapshot(),before);f.faults.clear();
-            f.faults.add("commit");try{f.events.removeExpired(2);Assert.fail();}catch(IllegalStateException expected){}Assert.assertEquals(f.snapshot(),before);f.faults.clear();
-            Assert.assertEquals(f.events.removeExpired(2),2);Assert.assertEquals(f.events.removeExpired(2),0);Assert.assertEquals(f.head(f.reader),12L);Assert.assertEquals(f.page(f.reader,0,12,200).getFirst().getLong("revision"),3L);f.atomic(()->f.add("999"));Assert.assertEquals(f.head(f.reader),13L);
+            f.atomic(() -> {
+                for (int i = 0; i < 12; i++) f.add("" + (101 + i));
+            });
+            Assert.assertEquals(f.head(f.reader), 12L);
+            Assert.assertEquals(f.page(f.reader, 8, 12, 2).stream().map(r -> r.getLong("revision")).toList(), List.of(9L, 10L));
+            Assert.assertEquals(f.page(f.reader, 10, 11, 200).getFirst().getLong("revision"), 11L);
+
+            // 清理删除或提交失败时应保留完整事件快照，成功清理也不回退房间序号。
+            exec(f.writer, "UPDATE event SET createdAt=1 WHERE revision<=2");
+            String before = f.snapshot();
+            f.faults.add("cleanup.remove");
+            try {
+                f.events.removeExpired(2);
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            Assert.assertEquals(f.snapshot(), before);
+            f.faults.clear();
+            f.faults.add("commit");
+            try {
+                f.events.removeExpired(2);
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            Assert.assertEquals(f.snapshot(), before);
+            f.faults.clear();
+            Assert.assertEquals(f.events.removeExpired(2), 2);
+            Assert.assertEquals(f.events.removeExpired(2), 0);
+            Assert.assertEquals(f.head(f.reader), 12L);
+            Assert.assertEquals(f.page(f.reader, 0, 12, 200).getFirst().getLong("revision"), 3L);
+            f.atomic(() -> f.add("999"));
+            Assert.assertEquals(f.head(f.reader), 13L);
         }
         System.out.println("PASS bounded numeric revision ranges and cleanup preserve the committed head, expose retention gaps and roll back delete/strict-root commit failures");
         try(var f=new Fixture()){
             try{f.add("101");Assert.fail();}catch(IllegalStateException expected){}
-            f.begin();try{f.events.after(0,0,1);Assert.fail();}catch(IllegalStateException expected){}try{f.state.head();Assert.fail();}catch(IllegalStateException expected){}
-            for(String id:List.of("bad","1' OR 1=1","1".repeat(33)))try{f.events.appendInCurrentTransaction(id,"created");Assert.fail();}catch(IllegalArgumentException expected){}f.rollback();
-            for(long[] range:List.of(new long[]{-1,0,1},new long[]{2,1,1},new long[]{0,1,201}))try{f.events.after(range[0],range[1],(int)range[2]);Assert.fail();}catch(IllegalArgumentException expected){}
+            f.begin();
+            try {
+                f.events.after(0, 0, 1);
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            try {
+                f.state.head();
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            for (String id : List.of("bad", "1' OR 1=1", "1".repeat(33)))
+                try {
+                    f.events.appendInCurrentTransaction(id, "created");
+                    Assert.fail();
+                } catch (IllegalArgumentException expected) {
+                }
+            f.rollback();
+            for (long[] range : List.of(new long[]{-1, 0, 1}, new long[]{2, 1, 1}, new long[]{0, 1, 201}))
+                try {
+                    f.events.after(range[0], range[1], (int) range[2]);
+                    Assert.fail();
+                } catch (IllegalArgumentException expected) {
+                }
             exec(f.writer,"DELETE FROM state");f.begin();try{f.add("101");Assert.fail();}catch(RepositoryException expected){}f.commit();Assert.assertTrue(query(f.reader,"SELECT * FROM chat").isEmpty());
-            Assert.assertFalse(ApiV3ChatEvent.REPOSITORY.startsWith("symphony_"));Assert.assertFalse(ApiV3ChatEvent.STATE_REPOSITORY.startsWith("symphony_"));
+            Assert.assertFalse(ApiV3ChatEvent.REPOSITORY.startsWith("symphony_"));
+            Assert.assertFalse(ApiV3ChatEvent.STATE_REPOSITORY.startsWith("symphony_"));
         }
         System.out.println("PASS transaction/range/target guards and missing room seed fail closed without message writes; model names omit the deployment table prefix");
         try(var f=new Fixture()){
-            exec(f.writer,"UPDATE state SET revision=?",Long.MAX_VALUE);f.begin();try{f.add("101");Assert.fail();}catch(RepositoryException expected){}f.commit();
-            Assert.assertEquals(f.head(f.reader),Long.MAX_VALUE);Assert.assertTrue(query(f.reader,"SELECT * FROM chat").isEmpty());Assert.assertTrue(f.page(f.reader,0,Long.MAX_VALUE,200).isEmpty());
+            exec(f.writer, "UPDATE state SET revision=?", Long.MAX_VALUE);
+            f.begin();
+            try {
+                f.add("101");
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            f.commit();
+            Assert.assertEquals(f.head(f.reader), Long.MAX_VALUE);
+            Assert.assertTrue(query(f.reader, "SELECT * FROM chat").isEmpty());
+            Assert.assertTrue(f.page(f.reader, 0, Long.MAX_VALUE, 200).isEmpty());
         }
         System.out.println("PASS exhausted room sequence rejects the local message write instead of wrapping or allocating a negative revision");
         try(var f=new Fixture()){

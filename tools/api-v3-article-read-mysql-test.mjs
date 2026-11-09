@@ -40,9 +40,16 @@ function method(source, signature) {
 
 let container;
 const children = [];
-try{
- for(const [name,table,methods]of [['ArticleRepository','articles',['public String getCommentPublicationAuthor(','public JSONObject getForUpdate(']],['UserRepository','users',['public JSONObject getForUpdate(']]]){const source=fs.readFileSync(`src/main/java/org/b3log/symphony/repository/${name}.java`,'utf8');shim('org/b3log/symphony/repository/'+name,`package org.b3log.symphony.repository;import org.json.JSONObject;import java.util.List;import org.b3log.symphony.model.Article;import org.b3log.latke.repository.*;public class ${name} extends AbstractRepository{public ${name}(){super("${table}");}${methods.map(s=>method(source,s)).join('\n')}${settlement&&name==='UserRepository'?'public void refreshSettingsCache(String id)throws RepositoryException{}public void evictSettingsCaches(String id){}':''}}`)}
- const sandbox=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];shim('org/b3log/symphony/model/Tag',`package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
+try {
+ for (const [name, table, methods] of [
+  ['ArticleRepository', 'articles', ['public String getCommentPublicationAuthor(', 'public JSONObject getForUpdate(']],
+  ['UserRepository', 'users', ['public JSONObject getForUpdate(']]
+ ]) {
+  const source = fs.readFileSync(`src/main/java/org/b3log/symphony/repository/${name}.java`, 'utf8');
+  shim('org/b3log/symphony/repository/' + name, `package org.b3log.symphony.repository;import org.json.JSONObject;import java.util.List;import org.b3log.symphony.model.Article;import org.b3log.latke.repository.*;public class ${name} extends AbstractRepository{public ${name}(){super("${table}");}${methods.map(s=>method(source,s)).join('\n')}${settlement&&name==='UserRepository'?'public void refreshSettingsCache(String id)throws RepositoryException{}public void evictSettingsCaches(String id){}':''}}`)
+ }
+ const sandbox = fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java', 'utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];
+ shim('org/b3log/symphony/model/Tag', `package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
  const pointModel=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys{public static final String[] RESERVED_USER_NAMES={};'+(settlement?[...new Set([...pointModel.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(n=>'public static final int '+n+'=0;').join(''):'')+'}');
  if(settlement){

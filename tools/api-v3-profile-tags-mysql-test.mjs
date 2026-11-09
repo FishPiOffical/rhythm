@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /** 在 MySQL 8.4 中通过独立 JVM 验证个人标签锁竞争，配额、内容审核、缓存、DAO 和外围表使用适配器。 */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync,spawn} from 'node:child_process';import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync, spawn} from 'node:child_process';
+import crypto from 'node:crypto';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'),'src/main/resources/lib/latke-core.jar',process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-identity-')),shims=[];
@@ -27,7 +31,8 @@ function run(bin, args) {
   if (r.error) throw r.error;
   if (r.status !== 0) throw Error('Identity application tests failed');
 }
-let container;const children=[];
+let container;
+const children = [];
 function docker(args) {
   const r = spawnSync('docker', args, {encoding: 'utf8', timeout: 25000});
   if (r.status !== 0) throw Error(r.stderr);
@@ -69,7 +74,10 @@ try{
    body=body.replace('" TEXT PRIMARY KEY":type.equals("String")?" TEXT COLLATE NOCASE"', '" VARCHAR(19) PRIMARY KEY":type.equals("String")?(value.getInt("length")>4000?" MEDIUMTEXT COLLATE utf8mb4_0900_ai_ci":" VARCHAR("+value.getInt("length")+") COLLATE utf8mb4_0900_ai_ci")');
    body=body.replace('.replace("CHAR_LENGTH(","LENGTH(").replace("LOCATE(LOWER(tagTitle),LOWER(?))","INSTR(LOWER(?),LOWER(tagTitle))")','');
   }
-  const target=path.join(dir,'org/b3log/symphony/service/'+name+'.java');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,body);fixtures.push(target);
+  const target = path.join(dir, 'org/b3log/symphony/service/' + name + '.java');
+  fs.mkdirSync(path.dirname(target), {recursive: true});
+  fs.writeFileSync(target, body);
+  fixtures.push(target);
  }
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),...fixtures,'src/test/java/org/b3log/symphony/service/ApiV3ProfileTagsMysqlTest.java']);
  const image = docker(['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
@@ -86,7 +94,10 @@ try{
  const bound = docker(['port', container, '3306/tcp']);
  if (!/^127\.0\.0\.1:[0-9]+$/.test(bound) || bound.endsWith(':3306')) throw Error('Unsafe port binding');
  const base=['-Drhythm.tags.mysqlUrl=jdbc:mysql://'+bound+'/rhythm_tags?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=30000','-cp',[dir,cp].join(path.delimiter)],klass='org.b3log.symphony.service.ApiV3ProfileTagsMysqlTest';
- function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_tags;CREATE DATABASE rhythm_tags CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
+ function fresh() {
+  docker(['exec', container, 'mysql', '-uroot', '-e',
+   'DROP DATABASE IF EXISTS rhythm_tags;CREATE DATABASE rhythm_tags CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);
+ }
  function java(args) {
   const result = spawnSync(path.join(home, 'bin', 'java'), [...base, klass, ...args], {encoding: 'utf8', timeout: 45000});
   if (result.status !== 0) throw Error(result.stdout + ' ' + result.stderr);

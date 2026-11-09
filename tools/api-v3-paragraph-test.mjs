@@ -55,4 +55,6 @@ try {
     'src/test/java/org/b3log/symphony/service/LongArticleParagraphMigrationTest.java']);
   run(path.join(home, 'bin', 'java'), ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.service.LongArticleParagraphAnnotationTest']);
   run(path.join(home, 'bin', 'java'), ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.service.LongArticleParagraphMigrationTest']);
-} finally { fs.rmSync(work, { recursive: true, force: true }); }
+} finally {
+  fs.rmSync(work, { recursive: true, force: true });
+}

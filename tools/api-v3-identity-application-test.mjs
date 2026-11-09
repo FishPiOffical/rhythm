@@ -45,8 +45,37 @@ try{
  shim('org/b3log/symphony/processor/ApiV3Processor','package org.b3log.symphony.processor;public class ApiV3Processor {public static final String IDENTITY="apiV3Identity";public static String requestId(org.b3log.latke.http.RequestContext c){return "fixture-post-export";}public static void success(org.b3log.latke.http.RequestContext c,Object data){c.attr("test.status",200);c.attr("test.data",data);}public static void error(org.b3log.latke.http.RequestContext c,int status,String code,String msg){c.attr("test.status",status);c.attr("test.code",code);c.attr("test.message",msg);}}');
  shim('org/b3log/symphony/repository/ArticleRepository','package org.b3log.symphony.repository;public class ArticleRepository extends org.b3log.latke.repository.AbstractRepository {public ArticleRepository(){super("article");}}');
  shim('org/b3log/symphony/repository/CommentRepository','package org.b3log.symphony.repository;public class CommentRepository extends org.b3log.latke.repository.AbstractRepository {public CommentRepository(){super("comment");}}');
- const real=['model/UserExt','model/Role','model/Common','model/ApiV3Client','model/ApiV3Token','model/ApiV3AuthorizationRequest','model/ApiV3AuthorizationCode','model/AccountCredentialState','model/OpenIdRefreshToken','model/ApiV3Request','model/Pointtransfer','model/PointtransferSource','repository/ApiV3ClientRepository','repository/ApiV3TokenRepository','repository/ApiV3AuthorizationCodeRepository','repository/ApiV3AuthorizationRequestRepository','repository/AccountCredentialStateRepository','repository/OpenIdRefreshTokenRepository','repository/ApiV3RequestRepository','repository/PointtransferRepository','repository/ApiV3PostExportRepository','repository/ApiV3PostExportChunkRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3Json','util/ApiV3WriteInputs','util/ApiV3Transactions','util/ApiV3TransactionStatements','util/ApiV3MutationStore','util/ApiV3TokenUtil','util/MultiFactorAuthenticator','util/ApiV3SecurityInputs','util/AccountPairLocks','util/ArticlePublicationCaches','util/ApiV3PostExportFiles','service/AccountCredentialMgmtService','service/ApiV3SecurityProofService','service/ApiV3SecuritySettingsService','service/ApiV3IdempotencyMgmtService','service/PointtransferMgmtService','service/ApiV3PostExportSnapshotService','service/ApiV3PostExportService','processor/ApiV3SecurityProcessor','repository/ApiV3IdentityApplicationRepository','repository/ApiV3IdentityMaterialRepository','repository/ApiV3IdentityReviewerRepository','util/ApiV3OAuthTransportLogFilter','util/ApiV3IdentityImage','service/ApiV3IdentityApplicationService','processor/ApiV3IdentityApplicationProcessor','processor/ApiV3PostExportProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
- run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java',...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3SecurityTest.java','src/test/java/org/b3log/symphony/service/ApiV3IdentityApplicationTest.java']);
+ const real = [
+  'model/UserExt', 'model/Role', 'model/Common', 'model/ApiV3Client', 'model/ApiV3Token',
+  'model/ApiV3AuthorizationRequest', 'model/ApiV3AuthorizationCode',
+  'model/AccountCredentialState', 'model/OpenIdRefreshToken', 'model/ApiV3Request',
+  'model/Pointtransfer', 'model/PointtransferSource',
+  'repository/ApiV3ClientRepository', 'repository/ApiV3TokenRepository',
+  'repository/ApiV3AuthorizationCodeRepository', 'repository/ApiV3AuthorizationRequestRepository',
+  'repository/AccountCredentialStateRepository', 'repository/OpenIdRefreshTokenRepository',
+  'repository/ApiV3RequestRepository', 'repository/PointtransferRepository',
+  'repository/ApiV3PostExportRepository', 'repository/ApiV3PostExportChunkRepository',
+  'util/ApiV3Requests', 'util/ApiV3Exception', 'util/ApiV3Json', 'util/ApiV3WriteInputs',
+  'util/ApiV3Transactions', 'util/ApiV3TransactionStatements', 'util/ApiV3MutationStore', 'util/ApiV3TokenUtil',
+  'util/MultiFactorAuthenticator', 'util/ApiV3SecurityInputs', 'util/AccountPairLocks',
+  'util/ArticlePublicationCaches', 'util/ApiV3PostExportFiles',
+  'service/AccountCredentialMgmtService', 'service/ApiV3SecurityProofService',
+  'service/ApiV3SecuritySettingsService', 'service/ApiV3IdempotencyMgmtService',
+  'service/PointtransferMgmtService', 'service/ApiV3PostExportSnapshotService', 'service/ApiV3PostExportService',
+  'processor/ApiV3SecurityProcessor',
+  'repository/ApiV3IdentityApplicationRepository', 'repository/ApiV3IdentityMaterialRepository',
+  'repository/ApiV3IdentityReviewerRepository', 'util/ApiV3OAuthTransportLogFilter', 'util/ApiV3IdentityImage',
+  'service/ApiV3IdentityApplicationService', 'processor/ApiV3IdentityApplicationProcessor',
+  'processor/ApiV3PostExportProcessor', 'processor/middleware/ApiV3AuthMidware', 'processor/middleware/ApiV3WriteMidware'
+ ];
+ run(path.join(home, 'bin', 'javac'), [
+  '--release', '25', '-proc:none', '-cp', cp, '-d', dir,
+  ...shims,
+  'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java',
+  ...[...new Set(real)].map(s => 'src/main/java/org/b3log/symphony/' + s + '.java'),
+  'src/test/java/org/b3log/symphony/service/ApiV3SecurityTest.java',
+  'src/test/java/org/b3log/symphony/service/ApiV3IdentityApplicationTest.java'
+ ]);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3IdentityApplicationTest']);
 } finally {
  fs.rmSync(dir, { recursive: true, force: true });

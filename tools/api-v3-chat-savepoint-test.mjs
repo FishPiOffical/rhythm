@@ -35,7 +35,9 @@ DB h=new DB();h.failRelease=true;try{ApiV3ChatTransaction.write(()->1);throw new
 JdbcRepository.TX.remove();try{ApiV3ChatTransaction.write(()->1);throw new AssertionError();}catch(IllegalStateException expected){}pass("missing owner rejected");
 }}
 `);
-run(path.join(home,'bin/javac'),['--release','25','-proc:none','-cp',cp,'-d',work,repository,transaction,'src/main/java/org/b3log/symphony/util/ApiV3ChatTransaction.java',test]);run(path.join(home,'bin/java'),['-cp',[work,cp].join(path.delimiter),'ChatSavepointRegression']);
+run(path.join(home, 'bin/javac'), ['--release', '25', '-proc:none', '-cp', cp, '-d', work, repository, transaction,
+ 'src/main/java/org/b3log/symphony/util/ApiV3ChatTransaction.java', test]);
+run(path.join(home, 'bin/java'), ['-cp', [work, cp].join(path.delimiter), 'ChatSavepointRegression']);
 } finally {
  fs.rmSync(work, { recursive: true, force: true })
 }

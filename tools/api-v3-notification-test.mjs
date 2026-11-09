@@ -34,4 +34,6 @@ try {
     'src/test/java/org/b3log/symphony/repository/ApiV3NotificationRevisionTest.java']);
   run(java, ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.repository.ApiV3NotificationSqlTest']);
   run(java, ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.repository.ApiV3NotificationRevisionTest']);
-} finally { fs.rmSync(work, { recursive: true, force: true }); }
+} finally {
+  fs.rmSync(work, { recursive: true, force: true });
+}

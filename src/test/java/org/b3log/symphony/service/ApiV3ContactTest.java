@@ -162,49 +162,147 @@ public class ApiV3ContactTest {
  static void sql(Connection c,String q,Object...a)throws RepositoryException{ApiV3SecurityTest.sql(c,q,a);}static List<JSONObject> rows(Connection c,String q,Object...a)throws RepositoryException{return ApiV3SecurityTest.rows(c,q,a);}static void error(int status,ApiV3SecurityTest.A a)throws Exception{ApiV3SecurityTest.error(status,a);}
  static JSONObject body(boolean phone,boolean sending,String code){return new JSONObject().put("target",phone?PHONE:EMAIL).put("currentPassword",ApiV3SecurityTest.OLD).put(sending?"captcha":"code",sending?CAPTCHA:code);}
  public static void main(String[]args)throws Exception {
-  var p=new Properties();p.setProperty("runtimeDatabase","NONE");p.setProperty("contextPath","");Latkes.setLatkeProps(p);Latkes.setLocalProps(p);
+  var p = new Properties();
+  p.setProperty("runtimeDatabase", "NONE");
+  p.setProperty("contextPath", "");
+  Latkes.setLatkeProps(p);
+  Latkes.setLocalProps(p);
   for(boolean phone:List.of(true,false))try(var f=new F()){
-   f.request(phone);String first=f.delivered;var old=f.row();Assert.assertEquals(old.getString("target"),phone?PHONE:EMAIL);Assert.assertEquals(old.getString("clientId"),"website_v3");Assert.assertEquals(old.getLong("credentialEpoch"),0L);Assert.assertEquals(old.getLong("expiresAt"),f.clock+600000);Assert.assertTrue(old.getString("codeHash").matches("[0-9a-f]{64}"));Assert.assertTrue(old.getString("previousContactHash").matches("[0-9a-f]{64}"));
-   f.request(phone);Assert.assertNotEquals(f.delivered,first);error(422,()->f.change(phone,first));var changed=f.change(phone,f.delivered);Assert.assertEquals(changed.keySet(),Set.of("changed","reauthenticationRequired"));Assert.assertNull(f.row());Assert.assertEquals(rows(f.db,"SELECT "+(phone?"userPhone":"userEmail")+" AS target FROM u WHERE oId='1'").getFirst().getString("target"),phone?PHONE:EMAIL);Assert.assertEquals(rows(f.db,"SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"),1L);Assert.assertEquals(rows(f.db,"SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"),2);
-  }System.out.println("PASS contact 1 actual phone/email request outside locks, HMAC-only owner/client/epoch/target proofs, 10minute expiry, resend invalidates old, consume+change+all revoke atomic");
+   f.request(phone);
+   String first = f.delivered;
+   var old = f.row();
+   Assert.assertEquals(old.getString("target"), phone ? PHONE : EMAIL);
+   Assert.assertEquals(old.getString("clientId"), "website_v3");
+   Assert.assertEquals(old.getLong("credentialEpoch"), 0L);
+   Assert.assertEquals(old.getLong("expiresAt"), f.clock + 600000);
+   Assert.assertTrue(old.getString("codeHash").matches("[0-9a-f]{64}"));
+   Assert.assertTrue(old.getString("previousContactHash").matches("[0-9a-f]{64}"));
+   f.request(phone);
+   Assert.assertNotEquals(f.delivered, first);
+   error(422, () -> f.change(phone, first));
+   var changed = f.change(phone, f.delivered);
+   Assert.assertEquals(changed.keySet(), Set.of("changed", "reauthenticationRequired"));
+   Assert.assertNull(f.row());
+   Assert.assertEquals(rows(f.db, "SELECT " + (phone ? "userPhone" : "userEmail") + " AS target FROM u WHERE oId='1'")
+     .getFirst().getString("target"), phone ? PHONE : EMAIL);
+   Assert.assertEquals(rows(f.db, "SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"), 1L);
+   Assert.assertEquals(rows(f.db, "SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"), 2);
+  }
+  System.out.println("PASS contact 1 actual phone/email request outside locks, HMAC-only owner/client/epoch/target proofs, 10minute expiry, resend invalidates old, consume+change+all revoke atomic");
   for(String failure:List.of("delivery","throw","store","post-commit","post-begin"))try(var f=new F()){
-   f.request(true);String before=f.row().toString();if(failure.equals("delivery"))f.delivery=false;else if(failure.equals("throw"))f.providerThrows=true;else f.race=failure;error(503,()->f.request(true));Assert.assertEquals(f.row().toString(),before);
-  }System.out.println("PASS contact 2 provider reject/throw and post-delivery persistence/commit failures retain prior accepted code without leaking delivery exceptions");
+   f.request(true);
+   String before = f.row().toString();
+   if (failure.equals("delivery"))
+    f.delivery = false;
+   else if (failure.equals("throw"))
+    f.providerThrows = true;
+   else
+    f.race = failure;
+   error(503, () -> f.request(true));
+   Assert.assertEquals(f.row().toString(), before);
+  }
+  System.out.println("PASS contact 2 provider reject/throw and post-delivery persistence/commit failures retain prior accepted code without leaking delivery exceptions");
   // 在发送验证码期间修改凭据版本、原联系方式或占用状态，验证保存前复核。
   for(String race:List.of("epoch","previous","occupied"))try(var f=new F()){
-   f.request(true);String before=f.row().toString();f.race=race;error(422,()->f.request(true));Assert.assertEquals(f.row().toString(),before);
-  }System.out.println("PASS contact 3 provider-window epoch/old-contact/occupancy races reject new proof and preserve previous successful code");
-  for(String change:List.of("expiresAt=1","clientId='third'","credentialEpoch=1","target='13900000009'","purpose='email'","previousContactHash='"+"0".repeat(64)+"'","userId='2'","codeHash='"+"0".repeat(64)+"'"))try(var f=new F()){
-   f.request(true);sql(f.db,"UPDATE contact SET "+change);error(422,()->f.change(true,f.delivered));Assert.assertNotNull(f.row());Assert.assertEquals(rows(f.db,"SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"),"13800000001");
+   f.request(true);
+   String before = f.row().toString();
+   f.race = race;
+   error(422, () -> f.request(true));
+   Assert.assertEquals(f.row().toString(), before);
   }
-  try(var f=new F()){f.request(true);sql(f.db,"UPDATE u SET userPhone='13800000009' WHERE oId='1'");error(422,()->f.change(true,f.delivered));}
+  System.out.println("PASS contact 3 provider-window epoch/old-contact/occupancy races reject new proof and preserve previous successful code");
+  for(String change:List.of("expiresAt=1","clientId='third'","credentialEpoch=1","target='13900000009'","purpose='email'","previousContactHash='"+"0".repeat(64)+"'","userId='2'","codeHash='"+"0".repeat(64)+"'"))try(var f=new F()){
+   f.request(true);
+   sql(f.db, "UPDATE contact SET " + change);
+   error(422, () -> f.change(true, f.delivered));
+   Assert.assertNotNull(f.row());
+   Assert.assertEquals(rows(f.db, "SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"), "13800000001");
+  }
+  try (var f = new F()) {
+   f.request(true);
+   sql(f.db, "UPDATE u SET userPhone='13800000009' WHERE oId='1'");
+   error(422, () -> f.change(true, f.delivered));
+  }
   System.out.println("PASS contact 4 consumed proof current owner/client/purpose/target/epoch/old-contact/expiry/HMAC binding, wrong attempts retain code and contacts");
   // 先模拟提交前各阶段失败，再模拟成功提交后回执丢失。
   for(String fault:List.of("contact-write","revoke","commit"))try(var f=new F()){
-   f.request(true);String before=f.row().toString();f.fault=fault;error(503,()->f.change(true,f.delivered));Assert.assertEquals(f.row().toString(),before);Assert.assertEquals(rows(f.db,"SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"),"13800000001");Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM states").getFirst().getInt("n"),0);
+   f.request(true);
+   String before = f.row().toString();
+   f.fault = fault;
+   error(503, () -> f.change(true, f.delivered));
+   Assert.assertEquals(f.row().toString(), before);
+   Assert.assertEquals(rows(f.db, "SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"), "13800000001");
+   Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM states").getFirst().getInt("n"), 0);
   }
-  try(var f=new F()){f.request(true);f.fault="ack";error(503,()->f.change(true,f.delivered));Assert.assertNull(f.row());Assert.assertEquals(rows(f.db,"SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"),PHONE);f.fault="";error(403,()->f.change(true,f.delivered));}
+  try (var f = new F()) {
+   f.request(true);
+   f.fault = "ack";
+   error(503, () -> f.change(true, f.delivered));
+   Assert.assertNull(f.row());
+   Assert.assertEquals(rows(f.db, "SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"), PHONE);
+   f.fault = "";
+   error(403, () -> f.change(true, f.delivered));
+  }
   System.out.println("PASS contact 5 actual SQL contact/revocation/commit failures roll back field+consumption+epoch, lost acknowledgement leaves committed change and revoked old access");
   try(var f=new F()){
-   f.captcha=false;error(422,()->f.request(true));Assert.assertEquals(f.sent,0);f.captcha=true;f.quota=false;error(429,()->f.request(true));f.quota=true;f.allowed=false;int roots=f.roots;error(429,()->f.request(false));Assert.assertEquals(f.roots,roots);
+   f.captcha = false;
+   error(422, () -> f.request(true));
+   Assert.assertEquals(f.sent, 0);
+   f.captcha = true;
+   f.quota = false;
+   error(429, () -> f.request(true));
+   f.quota = true;
+   f.allowed = false;
+   int roots = f.roots;
+   error(429, () -> f.request(false));
+   Assert.assertEquals(f.roots, roots);
   }
   Assert.assertEquals(ApiV3ContactInputs.target(" New@Example.COM ",false),EMAIL);
   for(JSONObject bad:List.of(body(true,true,"").put("target","+8613900000001"),body(true,true,"").put("currentPassword","BAD"),body(true,true,"").put("captcha","{}"),body(false,true,"").put("target","a@example.com\nBcc:x@example.com"),body(true,false,"12345"),body(true,false,"123456").put("owner","2")))error(422,()->ApiV3ContactInputs.parse(bad,bad.getString("target").equals(EMAIL)?false:true,bad.has("captcha")));
   System.out.println("PASS contact 6 target/proof/body normalization, captcha/SMS/shared attempt gates before send, email lowercase and malformed address/header/code/owner rejection");
   for(String corrupt:List.of("codeHash=NULL","codeHash='bad'","previousContactHash='bad'","credentialEpoch='bad'"))try(var f=new F()){
-   f.request(true);sql(f.db,"UPDATE contact SET "+corrupt);error(503,()->f.change(true,f.delivered));Assert.assertNotNull(f.row());
+   f.request(true);
+   sql(f.db, "UPDATE contact SET " + corrupt);
+   error(503, () -> f.change(true, f.delivered));
+   Assert.assertNotNull(f.row());
   }
-  try(var f=new F()){f.request(true);sql(f.db,"UPDATE u SET userEmail='LEGACY@example.com' WHERE oId='1'");f.request(false);sql(f.db,"UPDATE u SET userEmail='legacy@example.com' WHERE oId='1'");error(422,()->f.change(false,f.delivered));}
+  try (var f = new F()) {
+   f.request(true);
+   sql(f.db, "UPDATE u SET userEmail='LEGACY@example.com' WHERE oId='1'");
+   f.request(false);
+   sql(f.db, "UPDATE u SET userEmail='legacy@example.com' WHERE oId='1'");
+   error(422, () -> f.change(false, f.delivered));
+  }
   System.out.println("PASS contact 8 malformed stored hashes/version fail closed, old email snapshot exact despite normalized target identity, post-provider root-begin failure sanitized");
   for(String timeChange:List.of("expiresAt=expiresAt+1","createdAt=createdAt+600001,expiresAt=expiresAt+600001"))try(var f=new F()){
-   f.request(true);sql(f.db,"UPDATE contact SET "+timeChange);error(422,()->f.change(true,f.delivered));Assert.assertNotNull(f.row());
+   f.request(true);
+   sql(f.db, "UPDATE contact SET " + timeChange);
+   error(422, () -> f.change(true, f.delivered));
+   Assert.assertNotNull(f.row());
   }
   try(var f=new F()){
-   ApiV3ContactSettingsProcessor.registerRoutes(f.contactController,f.auth,f.writes);Dispatcher.mapping();for(String token:Arrays.asList(null,"bad","wrong"))Assert.assertEquals(f.http("/api/v3/me/settings/phone/verification",body(true,true,"").toString(),true,token).attr("test.status"),"wrong".equals(token)?403:401);
-   for(boolean phone:List.of(true,false))Assert.assertEquals(f.http("/api/v3/me/settings/"+(phone?"phone":"email")+"/verification",body(phone,true,"").toString(),true,"owner").attr("test.status"),200);
-   var changed=f.http("/api/v3/me/settings/email",body(false,false,f.delivered).toString(),false,"owner");Assert.assertEquals(changed.attr("test.status"),200);Assert.assertEquals(changed.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(f.http("/api/v3/me/settings/phone",body(true,false,"100001").toString(),false,"owner").attr("test.status"),401);
+   ApiV3ContactSettingsProcessor.registerRoutes(f.contactController, f.auth, f.writes);
+   Dispatcher.mapping();
+   for (String token : Arrays.asList(null, "bad", "wrong"))
+    Assert.assertEquals(f.http("/api/v3/me/settings/phone/verification", body(true, true, "").toString(), true, token)
+      .attr("test.status"), "wrong".equals(token) ? 403 : 401);
+   for (boolean phone : List.of(true, false))
+    Assert.assertEquals(f.http("/api/v3/me/settings/" + (phone ? "phone" : "email") + "/verification",
+      body(phone, true, "").toString(), true, "owner").attr("test.status"), 200);
+   var changed = f.http("/api/v3/me/settings/email", body(false, false, f.delivered).toString(), false, "owner");
+   Assert.assertEquals(changed.attr("test.status"), 200);
+   Assert.assertEquals(changed.getResponse().getHeader("Cache-Control"), "no-store");
+   // 修改邮箱后，原凭据不能继续确认手机号码变更。
+   Assert.assertEquals(f.http("/api/v3/me/settings/phone", body(true, false, "100001").toString(), false, "owner")
+     .attr("test.status"), 401);
   }
-  try(var f=new F()){ApiV3ContactSettingsProcessor.registerRoutes(f.contactController,f.auth,f.writes);Dispatcher.mapping();f.request(true);Assert.assertEquals(f.http("/api/v3/me/settings/phone",body(true,false,f.delivered).toString(),false,"owner").attr("test.status"),200);}
+  try (var f = new F()) {
+   ApiV3ContactSettingsProcessor.registerRoutes(f.contactController, f.auth, f.writes);
+   Dispatcher.mapping();
+   f.request(true);
+   Assert.assertEquals(f.http("/api/v3/me/settings/phone", body(true, false, f.delivered).toString(), false, "owner")
+     .attr("test.status"), 200);
+  }
   System.out.println("PASS contact 7 all four real Dispatcher/auth/write/controller routes, Cookie/query identity rejected, current old access revoked and no-store success");
  }
 }

@@ -51,12 +51,17 @@ public class ApiV3IdentityApplicationMysqlTest extends ApiV3IdentityApplicationT
             catch(Exception error){throw new IllegalStateException(error);}return result;
         }
     }
-    public static void main(String[] args)throws Exception {
-        final var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+    public static void main(String[] args) throws Exception {
+        final var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         System.setProperty("rhythm.mysql.fixtureSetup",Boolean.toString(args[0].equals("setup")));
         try(var f=new Mysql()) {
             final var environment=rows(f.db,"SELECT VERSION() AS version,@@transaction_isolation AS isolation,@@sql_mode AS mode").getFirst();
-            Assert.assertTrue(environment.getString("version").startsWith("8.4."));Assert.assertEquals(environment.getString("isolation"),"REPEATABLE-READ");
+            Assert.assertTrue(environment.getString("version").startsWith("8.4."));
+            Assert.assertEquals(environment.getString("isolation"), "REPEATABLE-READ");
             Assert.assertTrue(environment.getString("mode").contains("STRICT_TRANS_TABLES"));
             Assert.assertEquals(rows(f.db,"SELECT DATA_TYPE AS kind FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='identity_material' AND COLUMN_NAME='data'").getFirst().getString("kind"),"longtext");
             final String race=args[1];
@@ -69,8 +74,10 @@ public class ApiV3IdentityApplicationMysqlTest extends ApiV3IdentityApplicationT
                     System.out.println("SETUP_READY "+race);
                 }
                 case "worker" -> {
-                    f.hold=args[2].equals("holder");f.release=args[3];
-                    System.out.println("STARTING_WORK");System.out.flush();
+                    f.hold = args[2].equals("holder");
+                    f.release = args[3];
+                    System.out.println("STARTING_WORK");
+                    System.out.flush();
                     try {
                         if(race.startsWith("decision")){
                             final String id=rows(f.db,"SELECT oId FROM identity_app").getFirst().getString("oId");
@@ -86,15 +93,29 @@ public class ApiV3IdentityApplicationMysqlTest extends ApiV3IdentityApplicationT
                             final var result=f.submit(image("png"),race.equals("same-key")?"shared":args[2]);
                             System.out.println("RESULT="+result.put("status",200));
                         }
-                    }catch(ApiV3Exception error){System.out.println("RESULT="+new JSONObject().put("status",error.status));}
+                    } catch (ApiV3Exception error) {
+                        System.out.println("RESULT=" + new JSONObject().put("status", error.status));
+                    }
                 }
                 case "verify" -> {
-                    Assert.assertEquals(f.count("identity_app"),1);Assert.assertEquals(f.count("receipt"),race.startsWith("decision")?2:1);
-                    final var app=rows(f.db,"SELECT status,materialReadAt,pendingOwnerId FROM identity_app").getFirst();
-                    if(race.startsWith("decision")){Assert.assertEquals(app.getString("status"),"approved");Assert.assertTrue(app.isNull("pendingOwnerId"));}
-                    else{Assert.assertEquals(app.getString("status"),"pending");Assert.assertEquals(app.getString("pendingOwnerId"),"1");}
-                    if(race.equals("open")||race.startsWith("decision")){Assert.assertEquals(f.count("identity_material"),0);Assert.assertEquals(app.getLong("materialReadAt"),NOW);}
-                    else{Assert.assertEquals(f.count("identity_material"),1);Assert.assertEquals(app.getLong("materialReadAt"),0L);}
+                    // 独立读连接核对竞态最终只留下一个申请及相符的材料状态。
+                    Assert.assertEquals(f.count("identity_app"), 1);
+                    Assert.assertEquals(f.count("receipt"), race.startsWith("decision") ? 2 : 1);
+                    final var app = rows(f.db, "SELECT status,materialReadAt,pendingOwnerId FROM identity_app").getFirst();
+                    if (race.startsWith("decision")) {
+                        Assert.assertEquals(app.getString("status"), "approved");
+                        Assert.assertTrue(app.isNull("pendingOwnerId"));
+                    } else {
+                        Assert.assertEquals(app.getString("status"), "pending");
+                        Assert.assertEquals(app.getString("pendingOwnerId"), "1");
+                    }
+                    if (race.equals("open") || race.startsWith("decision")) {
+                        Assert.assertEquals(f.count("identity_material"), 0);
+                        Assert.assertEquals(app.getLong("materialReadAt"), NOW);
+                    } else {
+                        Assert.assertEquals(f.count("identity_material"), 1);
+                        Assert.assertEquals(app.getLong("materialReadAt"), 0L);
+                    }
                     System.out.println("PASS identity mysql committed "+race+" one application/receipt and exact private-material state from independent JDBC connection");
                 }
                 default -> throw new IllegalArgumentException(args[0]);

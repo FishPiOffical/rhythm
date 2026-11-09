@@ -126,13 +126,42 @@ public class ApiV3ProfessionGuideQueryTest {
             error(503, () -> f.query.guides("1", "10"));
         }
         System.out.println("PASS 8 real definition-publication shape preserves current scheme rewards through its retired definition revision; draft historical binding rejected");
-        for(String sql:List.of("UPDATE r SET professionId='11' WHERE oId='100'","UPDATE r SET status='DRAFT' WHERE oId='100'","UPDATE s SET professionRevisionId='110' WHERE oId='200'","UPDATE s SET professionRevisionId='999' WHERE oId='200'","UPDATE s SET professionId='11' WHERE oId='200'","UPDATE s SET status='RETIRED' WHERE oId='200'","DELETE FROM r WHERE oId='100'","INSERT INTO s SELECT * FROM s WHERE oId='200'"))try(var f=new Fixture()){f.sql(sql);error(503,()->f.query.guides("1","10"));}
+        for (String sql : List.of("UPDATE r SET professionId='11' WHERE oId='100'",
+                "UPDATE r SET status='DRAFT' WHERE oId='100'", "UPDATE s SET professionRevisionId='110' WHERE oId='200'",
+                "UPDATE s SET professionRevisionId='999' WHERE oId='200'", "UPDATE s SET professionId='11' WHERE oId='200'",
+                "UPDATE s SET status='RETIRED' WHERE oId='200'", "DELETE FROM r WHERE oId='100'",
+                "INSERT INTO s SELECT * FROM s WHERE oId='200'")) try (var f = new Fixture()) {
+            f.sql(sql);
+            error(503, () -> f.query.guides("1", "10"));
+        }
         System.out.println("PASS 2 exact profession revision and scheme ownership/status, missing and duplicate metadata reject instead of mixing versions");
-        for(String sql:List.of("UPDATE ar SET automationId='401' WHERE oId='500'","UPDATE ar SET professionId='11' WHERE oId='500'","UPDATE ar SET status='DRAFT' WHERE oId='500'","UPDATE ar SET triggerType='private.trigger' WHERE oId='500'","DELETE FROM ar WHERE oId='500'","UPDATE rw SET levelId='302' WHERE oId='600'","UPDATE rw SET levelCode='L2' WHERE oId='600'","INSERT INTO ar SELECT * FROM ar WHERE oId='500'","INSERT INTO l SELECT * FROM l WHERE oId='300'"))try(var f=new Fixture()){f.sql(sql);error(503,()->f.query.guides("1","10"));}
+        for (String sql : List.of("UPDATE ar SET automationId='401' WHERE oId='500'",
+                "UPDATE ar SET professionId='11' WHERE oId='500'", "UPDATE ar SET status='DRAFT' WHERE oId='500'",
+                "UPDATE ar SET triggerType='private.trigger' WHERE oId='500'", "DELETE FROM ar WHERE oId='500'",
+                "UPDATE rw SET levelId='302' WHERE oId='600'", "UPDATE rw SET levelCode='L2' WHERE oId='600'",
+                "INSERT INTO ar SELECT * FROM ar WHERE oId='500'", "INSERT INTO l SELECT * FROM l WHERE oId='300'"))
+            try (var f = new Fixture()) {
+                f.sql(sql);
+                error(503, () -> f.query.guides("1", "10"));
+            }
         System.out.println("PASS 3 automation/current revision exact parent binding and reward same-scheme level ID/code binding; malformed and duplicate joins fail closed");
-        for(String raw:List.of("{}","{\"amount\":0}","{\"amount\":0.5}","{\"amount\":\"1\"}","{\"amount\":2147483648}","{\"amount\":1,\"effectId\":\"PRIVATE\"}","{\"amount\":1,\"memo\":\"<script>\"}","not json","{\"amount\":1,\"memo\":\""+"x".repeat(4096)+"\"}"))try(var f=new Fixture()){f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='600'",raw);error(503,()->f.query.guides("1","10"));}
-        for(String raw:List.of("{}","{\"medalId\":1}","{\"medalId\":\"m\",\"durationMillis\":-1}","{\"medalId\":\"m\",\"durationMillis\":\"1\"}","{\"medalId\":\"m\",\"data\":null}"))try(var f=new Fixture()){f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='601'",raw);error(503,()->f.query.guides("1","10"));}
-        try(var f=new Fixture()){f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='600'","{\n\"amount\": 4\n}");Assert.assertEquals(f.query.guides("1","10").getJSONArray("rewards").getJSONObject(0).getLong("amount"),4L);f.sql("UPDATE rw SET rewardType='SECRET' WHERE oId='600'");error(503,()->f.query.guides("1","10"));}
+        for (String raw : List.of("{}", "{\"amount\":0}", "{\"amount\":0.5}", "{\"amount\":\"1\"}",
+                "{\"amount\":2147483648}", "{\"amount\":1,\"effectId\":\"PRIVATE\"}", "{\"amount\":1,\"memo\":\"<script>\"}",
+                "not json", "{\"amount\":1,\"memo\":\"" + "x".repeat(4096) + "\"}")) try (var f = new Fixture()) {
+            f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='600'", raw);
+            error(503, () -> f.query.guides("1", "10"));
+        }
+        for (String raw : List.of("{}", "{\"medalId\":1}", "{\"medalId\":\"m\",\"durationMillis\":-1}",
+                "{\"medalId\":\"m\",\"durationMillis\":\"1\"}", "{\"medalId\":\"m\",\"data\":null}")) try (var f = new Fixture()) {
+            f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='601'", raw);
+            error(503, () -> f.query.guides("1", "10"));
+        }
+        try (var f = new Fixture()) {
+            f.sql("UPDATE rw SET rewardConfigJson=? WHERE oId='600'", "{\n\"amount\": 4\n}");
+            Assert.assertEquals(f.query.guides("1", "10").getJSONArray("rewards").getJSONObject(0).getLong("amount"), 4L);
+            f.sql("UPDATE rw SET rewardType='SECRET' WHERE oId='600'");
+            error(503, () -> f.query.guides("1", "10"));
+        }
         error(503,()->ApiV3ProfessionGuideDto.number(new JSONObject().put("n",new java.math.BigInteger("9223372036854775808")),"n"));
         error(503,()->ApiV3ProfessionGuideDto.text(new JSONObject().put("n","\uD800"),"n",64,false));
         System.out.println("PASS 4 strict reward JSON/numbers/types and Unicode, safe bound amount and medal summary, oversized/malformed values never coerce or leak");
@@ -165,7 +194,9 @@ public class ApiV3ProfessionGuideQueryTest {
             error(422, () -> f.query.guides(value, "10"));
             Assert.assertEquals(f.reads, 0);
         }
-        try(var f=new Fixture()){error(404,()->f.query.guides("3","10"));}
+        try (var f = new Fixture()) {
+            error(404, () -> f.query.guides("3", "10"));
+        }
         System.out.println("PASS 6 sanitized SQL failures at every stage, active actor and current profession version recheck, invalid IDs and disabled actors");
         try(var f=new Fixture()){
             ApiV3ProfessionGuideProcessor.registerRoutes(f.controller, f.auth);

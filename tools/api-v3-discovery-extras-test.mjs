@@ -12,7 +12,19 @@ const cp = [
  process.env.API_V3_JSOUP_JAR || `${ide}/lib/intellij.libraries.jsoup.jar`,
  process.env.API_V3_ENCODER_JAR || path.join(os.homedir(), '.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar')
 ].join(path.delimiter);
-const shims=[];function shim(name,source){const f=path.join(work,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,source);shims.push(f)}function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('discovery extras test failed')}
+const shims = [];
+function shim(name, source) {
+ const f = path.join(work, name + '.java');
+ fs.mkdirSync(path.dirname(f), { recursive: true });
+ fs.writeFileSync(f, source);
+ shims.push(f)
+}
+
+function run(cmd, args) {
+ const r = spawnSync(cmd, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('discovery extras test failed')
+}
 try{
  for(const[name,table]of[['UserRepository','user'],['ArticleRepository','article']])shim('org/b3log/symphony/repository/'+name,`package org.b3log.symphony.repository;public class ${name} extends org.b3log.latke.repository.AbstractRepository{public ${name}(){super("${table}");}}`);
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys{public static final String[] RESERVED_USER_NAMES={};public static final long STICK_ARTICLE_TIME=3600000L;}');
@@ -23,7 +35,10 @@ try{
  shim('org/b3log/symphony/util/ApiV3Requests','package org.b3log.symphony.util;import org.json.*;public class ApiV3Requests{public static ApiV3Exception invalid(){return new ApiV3Exception(422,"invalid_request","bad input");}public static JSONObject pagination(JSONArray l,int p,int s,long n){return new JSONObject().put("list",l).put("pagination",new JSONObject().put("p",p).put("size",s).put("total",n).put("pageCount",(n+s-1)/s));}}');
  const controller=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java','utf8');
  for(const line of ['Dispatcher.get("/api/v3/recent-members", processor::recent, auth::optionalProfile, anonymous::handle);','Dispatcher.get("/api/v3/articles/random", processor::random, auth::optionalContent, anonymous::handle);','Dispatcher.get("/api/v3/logs", processor::logs, auth::activityRead);'])if(!controller.includes(line))throw Error('extras route gate missing');
- const root=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8');if(root.indexOf('ApiV3DiscoveryExtrasProcessor.register();')>root.indexOf('ApiV3ContentProcessor.register();')||!root.includes('ApiV3DiscoveryExtrasProcessor.register();'))throw Error('static random route must precede article id routes');
+ const root = fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java', 'utf8');
+ if (root.indexOf('ApiV3DiscoveryExtrasProcessor.register();') > root.indexOf('ApiV3ContentProcessor.register();')
+   || !root.includes('ApiV3DiscoveryExtrasProcessor.register();'))
+  throw Error('static random route must precede article id routes');
  const sandbox=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];
  shim('org/b3log/symphony/model/Tag',`package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
  const sources = [

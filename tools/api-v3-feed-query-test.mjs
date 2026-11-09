@@ -27,7 +27,11 @@ try{
  const symphonys=put('Symphonys','package org.b3log.symphony.util;public class Symphonys{public static final long STICK_ARTICLE_TIME=1800000L;public static final String[] RESERVED_TAGS={},WHITE_LIST_TAGS={},RESERVED_USER_NAMES={};}');
  const requests=put('ApiV3Requests','package org.b3log.symphony.util;import org.json.*;public class ApiV3Requests{public static JSONObject pagination(JSONArray list,int p,int size,long total){return new JSONObject().put("list",list).put("pagination",new JSONObject().put("p",p).put("size",size).put("total",total).put("pageCount",(total+size-1)/size));}}');
  const tagSource=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8');
- const constants=['TAG_TITLE_C_SANDBOX','TAG_STATUS_C_VALID'].map(name=>{const value=tagSource.match(new RegExp('public static final (?:String|int) '+name+' = [^;]+;'));if(!value)throw Error('Review tag constant '+name);return value[0];});
+ const constants = ['TAG_TITLE_C_SANDBOX', 'TAG_STATUS_C_VALID'].map(name => {
+  const value = tagSource.match(new RegExp('public static final (?:String|int) ' + name + ' = [^;]+;'));
+  if (!value) throw Error('Review tag constant ' + name);
+  return value[0];
+ });
  const tag=put('Tag','package org.b3log.symphony.model;public class Tag{'+constants.join('')+'}');
  const fixture=fs.readFileSync('tools/fixtures/v3-feed-query.java.txt','utf8');
  const java=put('FeedQueryTest',fixture.replace('// PRODUCTION_RECORDS',records).replace('// PRODUCTION_METHOD',method));

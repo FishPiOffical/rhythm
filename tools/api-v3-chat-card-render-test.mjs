@@ -9,19 +9,30 @@ for (const file of files) {
   const context = {window:{localStorage:{},location:{href:'http://localhost/fixture'}},Label:{servePath:''},
     document:{querySelector:()=>({replaceChildren(node){replacement=node;}}),createElement:tag=>({tag,setAttribute(){},addEventListener(){}})},
     $:()=>({prop(){}}),Map,console,URL};
-  vm.createContext(context); vm.runInContext(fs.readFileSync('src/main/resources/js/'+file,'utf8'), context);
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync('src/main/resources/js/' + file, 'utf8'), context);
   const chat=context.ChatRoom;
   const payload='Song " & <img src=x onerror="bad()">';
   const html=chat.renderMusicCard({title:payload,from:payload,source:'123',coverURL:'javascript:bad()'});
-  assert.ok(html.includes('&lt;img'));assert.ok(html.includes('&quot;'));assert.ok(!html.includes('src="javascript:'));
-  assert.ok(!html.includes('<img src=x'));assert.ok(html.includes('/images/music/cat.gif'));
+  assert.ok(html.includes('&lt;img'));
+  assert.ok(html.includes('&quot;'));
+  assert.ok(!html.includes('src="javascript:'));
+  assert.ok(!html.includes('<img src=x'));
+  assert.ok(html.includes('/images/music/cat.gif'));
   const weather=chat.renderWeatherCard('123',{date:'2026-01-01',weatherCode:'CLEAR_DAY',min:'-1',max:'1',t:payload,st:payload});
-  assert.ok(weather.includes('&lt;img'));assert.ok(!weather.includes('data-t="Song "'));
-  chat.playSound.renderSource('123');assert.equal(replacement.tag,'iframe');assert.ok(replacement.src.includes('id=123&'));
-  chat.playSound.renderSource('https://audio.example/a.mp3?s=a%2Bb&n=1');assert.equal(replacement.tag,'audio');
+  assert.ok(weather.includes('&lt;img'));
+  assert.ok(!weather.includes('data-t="Song "'));
+  chat.playSound.renderSource('123');
+  assert.equal(replacement.tag, 'iframe');
+  assert.ok(replacement.src.includes('id=123&'));
+  chat.playSound.renderSource('https://audio.example/a.mp3?s=a%2Bb&n=1');
+  assert.equal(replacement.tag, 'audio');
   assert.equal(replacement.src,'https://audio.example/a.mp3?s=a%2Bb&n=1');
-  const previous=replacement;chat.playSound.renderSource('123" onload="bad()');assert.equal(replacement,previous);
-  chat.playSound.renderSource('javascript:bad()');assert.equal(replacement,previous);
+  const previous = replacement;
+  chat.playSound.renderSource('123" onload="bad()');
+  assert.equal(replacement, previous);
+  chat.playSound.renderSource('javascript:bad()');
+  assert.equal(replacement, previous);
   console.log('PASS card render '+file+' text/attribute encoding, image scheme, numeric player and opaque HTTPS audio source');
 }
 if (process.argv.includes('--serve')) {
@@ -43,8 +54,16 @@ document.querySelector('#result').textContent=valid?'PASS：文字、属性和em
   const server=http.createServer((req,res)=>{
     res.setHeader('Content-Security-Policy',"default-src 'self';script-src 'self' 'unsafe-inline';style-src 'unsafe-inline';img-src 'self';media-src 'self';frame-src 'self'");
     const name=req.url.slice(1);
-    if(files.includes(name)){res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(fs.readFileSync('src/main/resources/js/'+name));}
-    else if(req.url==='/first'||req.url==='/second'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(page(req.url==='/second'?'chat-room-2.min.js':'chat-room.min.js'));}
-    else {res.statusCode=404;res.end();}
-  });server.listen(0,'127.0.0.1',()=>console.log('FIXTURE http://127.0.0.1:'+server.address().port+'/first'));
+    if (files.includes(name)) {
+      res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+      res.end(fs.readFileSync('src/main/resources/js/' + name));
+    } else if (req.url === '/first' || req.url === '/second') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.end(page(req.url === '/second' ? 'chat-room-2.min.js' : 'chat-room.min.js'));
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  });
+  server.listen(0, '127.0.0.1', () => console.log('FIXTURE http://127.0.0.1:' + server.address().port + '/first'));
 }

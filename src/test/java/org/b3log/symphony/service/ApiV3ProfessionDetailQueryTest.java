@@ -95,39 +95,75 @@ public class ApiV3ProfessionDetailQueryTest {
     interface Action{void run()throws Exception;}
     static void error(int status,Action a)throws Exception{try{a.run();Assert.fail("Expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);Assert.assertFalse(e.getMessage().contains("SECRET"));}}
     static void safe(JSONObject o){for(String secret:List.of("SECRET","PRIVATE_SOURCE","sourceEventId","userId","professionRevisionId","levelSchemeId","effectKey","progressId","rarity"))Assert.assertFalse(o.toString().contains(secret),secret);}
-    public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var d=f.query.detail("1","10");safe(d);Assert.assertEquals(d.keySet(),Set.of("profession","levels","contributions"));
-            var p=d.getJSONObject("profession");Assert.assertEquals(p.getString("displayName"),"Old writer");Assert.assertEquals(p.getString("levelName"),"Old level");Assert.assertEquals(p.getLong("totalExperience"),50L);
-            Assert.assertEquals(d.getJSONArray("levels").length(),2);Assert.assertEquals(d.getJSONArray("levels").getJSONObject(1).getString("levelCode"),"L2");
-            Assert.assertEquals(d.getJSONArray("contributions").length(),2);Assert.assertEquals(d.getJSONArray("contributions").getJSONObject(1).getLong("experienceSum"),-5L);
-            Assert.assertEquals(f.query.detail("1","11").getJSONObject("profession").getString("state"),"RETIRED");Assert.assertEquals(f.query.detail("2","10").getJSONObject("profession").getString("displayName"),"New writer");
-            error(404,()->f.query.detail("3","10"));error(404,()->f.query.records("3","10",1,20));error(404,()->f.query.detail("2","11"));
+            var d = f.query.detail("1", "10");
+            safe(d);
+            Assert.assertEquals(d.keySet(), Set.of("profession", "levels", "contributions"));
+            var p = d.getJSONObject("profession");
+            Assert.assertEquals(p.getString("displayName"), "Old writer");
+            Assert.assertEquals(p.getString("levelName"), "Old level");
+            Assert.assertEquals(p.getLong("totalExperience"), 50L);
+            Assert.assertEquals(d.getJSONArray("levels").length(), 2);
+            Assert.assertEquals(d.getJSONArray("levels").getJSONObject(1).getString("levelCode"), "L2");
+            Assert.assertEquals(d.getJSONArray("contributions").length(), 2);
+            Assert.assertEquals(d.getJSONArray("contributions").getJSONObject(1).getLong("experienceSum"), -5L);
+            Assert.assertEquals(f.query.detail("1", "11").getJSONObject("profession").getString("state"), "RETIRED");
+            Assert.assertEquals(f.query.detail("2", "10").getJSONObject("profession").getString("displayName"), "New writer");
+            error(404, () -> f.query.detail("3", "10"));
+            error(404, () -> f.query.records("3", "10", 1, 20));
+            error(404, () -> f.query.detail("2", "11"));
             Assert.assertEquals(f.selectSQL("SELECT COUNT(*) AS total FROM up").getFirst().getInt("total"),3);
         }
         System.out.println("PASS 1 actual historical revision/scheme and owner level route/contribution views, retired owner data, signed sums, no zero-progress synthesis or private metadata");
         try(var f=new Fixture()){
-            var page=f.query.records("1","10",1,50);safe(page);Assert.assertEquals(page.getJSONObject("pagination").getLong("total"),65L);Assert.assertEquals(page.getJSONArray("list").length(),50);
-            Assert.assertEquals(page.getJSONArray("list").getJSONObject(0).getLong("experienceDelta"),-2L);Assert.assertEquals(f.query.records("1","10",2,50).getJSONArray("list").length(),15);Assert.assertTrue(f.query.records("1","10",3,50).getJSONArray("list").isEmpty());
+            var page = f.query.records("1", "10", 1, 50);
+            safe(page);
+            Assert.assertEquals(page.getJSONObject("pagination").getLong("total"), 65L);
+            Assert.assertEquals(page.getJSONArray("list").length(), 50);
+            Assert.assertEquals(page.getJSONArray("list").getJSONObject(0).getLong("experienceDelta"), -2L);
+            Assert.assertEquals(f.query.records("1", "10", 2, 50).getJSONArray("list").length(), 15);
+            Assert.assertTrue(f.query.records("1", "10", 3, 50).getJSONArray("list").isEmpty());
             Assert.assertEquals(f.query.records("2","10",1,20).getJSONObject("pagination").getLong("total"),1L);
             for(var row:page.getJSONArray("list"))Assert.assertEquals(((JSONObject)row).keySet(),Set.of("actionCode","experienceDelta","beforeExperience","afterExperience","beforeLevelCode","afterLevelCode","occurredAt"));
         }
         System.out.println("PASS 2 real count/page beyond fifty, owner/profession/nonzero/APPLIED/ninety-day filtering, signed adjustments and exact record DTO whitelist");
         try(var f=new Fixture()){
             for(String value:Arrays.asList(null,"","1 OR 1=1","x","1".repeat(20)))error(422,()->f.query.detail("1",value));
-            error(422,()->f.query.records("1","10",0,20));error(422,()->f.query.records("1","10",1,51));error(422,()->f.query.records("1","10",Integer.MAX_VALUE,20));error(404,()->f.query.detail("4","10"));
-            f.sql("UPDATE r SET status='DRAFT' WHERE oId='100'");error(503,()->f.query.detail("1","10"));f.sql("UPDATE r SET status='RETIRED' WHERE oId='100'");
-            f.sql("UPDATE s SET professionId='11' WHERE oId='300'");error(503,()->f.query.records("1","10",1,20));f.sql("UPDATE s SET professionId='10' WHERE oId='300'");
-            f.sql("INSERT INTO up SELECT '999',userId,professionId,professionRevisionId,levelSchemeId,totalExperience,currentLevelCode FROM up WHERE oId='500'");error(503,()->f.query.detail("1","10"));
+            error(422, () -> f.query.records("1", "10", 0, 20));
+            error(422, () -> f.query.records("1", "10", 1, 51));
+            error(422, () -> f.query.records("1", "10", Integer.MAX_VALUE, 20));
+            error(404, () -> f.query.detail("4", "10"));
+            f.sql("UPDATE r SET status='DRAFT' WHERE oId='100'");
+            error(503, () -> f.query.detail("1", "10"));
+            f.sql("UPDATE r SET status='RETIRED' WHERE oId='100'");
+            f.sql("UPDATE s SET professionId='11' WHERE oId='300'");
+            error(503, () -> f.query.records("1", "10", 1, 20));
+            f.sql("UPDATE s SET professionId='10' WHERE oId='300'");
+            f.sql("INSERT INTO up SELECT '999',userId,professionId,professionRevisionId,levelSchemeId,totalExperience,currentLevelCode FROM up WHERE oId='500'");
+            error(503, () -> f.query.detail("1", "10"));
         }
         System.out.println("PASS 3 invalid identities/pages, missing/disabled owners, draft/wrong-parent metadata and duplicate progress fail closed");
         try(var f=new Fixture()){
-            f.sql("UPDATE l SET isTopLevel=2 WHERE oId='401'");error(503,()->f.query.detail("1","10"));f.sql("UPDATE l SET isTopLevel=1 WHERE oId='401'");
-            f.sql("UPDATE l SET requiredTotalExperience=0.5 WHERE oId='401'");error(503,()->f.query.detail("1","10"));f.sql("UPDATE l SET requiredTotalExperience=100 WHERE oId='401'");
-            f.sql("UPDATE c SET eventCount=0.5 WHERE oId='600'");error(503,()->f.query.detail("1","10"));f.sql("UPDATE c SET eventCount=2 WHERE oId='600'");
-            f.sql("UPDATE c SET actionCode='<script>' WHERE oId='600'");error(503,()->f.query.detail("1","10"));f.sql("UPDATE c SET actionCode='article.publish' WHERE oId='600'");
-            f.sql("UPDATE e SET beforeExperience=-1 WHERE oId='7000'");error(503,()->f.query.records("1","10",1,20));
+            f.sql("UPDATE l SET isTopLevel=2 WHERE oId='401'");
+            error(503, () -> f.query.detail("1", "10"));
+            f.sql("UPDATE l SET isTopLevel=1 WHERE oId='401'");
+            f.sql("UPDATE l SET requiredTotalExperience=0.5 WHERE oId='401'");
+            error(503, () -> f.query.detail("1", "10"));
+            f.sql("UPDATE l SET requiredTotalExperience=100 WHERE oId='401'");
+            f.sql("UPDATE c SET eventCount=0.5 WHERE oId='600'");
+            error(503, () -> f.query.detail("1", "10"));
+            f.sql("UPDATE c SET eventCount=2 WHERE oId='600'");
+            f.sql("UPDATE c SET actionCode='<script>' WHERE oId='600'");
+            error(503, () -> f.query.detail("1", "10"));
+            f.sql("UPDATE c SET actionCode='article.publish' WHERE oId='600'");
+            f.sql("UPDATE e SET beforeExperience=-1 WHERE oId='7000'");
+            error(503, () -> f.query.records("1", "10", 1, 20));
             error(503,()->ApiV3ProfessionDetailDto.number(new JSONObject().put("n",new java.math.BigInteger("9223372036854775808")),"n",true));
             error(503,()->ApiV3ProfessionDetailDto.text(new JSONObject().put("n","\uD800"),"n",64,false));
         }
@@ -141,17 +177,40 @@ public class ApiV3ProfessionDetailQueryTest {
             error(503,()->f.query.detail("1","10"));
         }
         System.out.println("PASS 5 oversized route/contribution views reject the entire response instead of silently truncating metadata");
-        for(int stage=1;stage<=6;stage++)try(var f=new Fixture()){f.failAt=stage;error(503,()->f.query.detail("1","10"));}
-        for(int stage=1;stage<=6;stage++)try(var f=new Fixture()){f.failAt=stage;error(503,()->f.query.records("1","10",1,20));}
-        try(var f=new Fixture()){f.disableAt=6;error(404,()->f.query.detail("1","10"));}
-        try(var f=new Fixture()){f.changeAt=5;error(503,()->f.query.records("1","10",1,20));}
+        for (int stage = 1; stage <= 6; stage++) try (var f = new Fixture()) {
+            f.failAt = stage;
+            error(503, () -> f.query.detail("1", "10"));
+        }
+        for (int stage = 1; stage <= 6; stage++) try (var f = new Fixture()) {
+            f.failAt = stage;
+            error(503, () -> f.query.records("1", "10", 1, 20));
+        }
+        // 模拟查询途中账号失效或职业进度变化，检查最终复核拒绝不一致的结果。
+        try (var f = new Fixture()) {
+            f.disableAt = 6;
+            error(404, () -> f.query.detail("1", "10"));
+        }
+        try (var f = new Fixture()) {
+            f.changeAt = 5;
+            error(503, () -> f.query.records("1", "10", 1, 20));
+        }
         System.out.println("PASS 6 all SELECT stages sanitize failures, final active-owner check rejects concurrent disable and progress recheck prevents mixed routes");
         try(var f=new Fixture()){
-            ApiV3ProfessionDetailProcessor.registerRoutes(f.controller,f.auth);Dispatcher.mapping();
+            ApiV3ProfessionDetailProcessor.registerRoutes(f.controller, f.auth);
+            Dispatcher.mapping();
             for(String path:List.of("/api/v3/me/professions/10","/api/v3/me/professions/10/records")){
-                for(String t:Arrays.asList(null,"bad","wrong")){int before=f.reads;Assert.assertEquals(f.http(t,path,Map.of()).attr("test.status"),"wrong".equals(t)?403:401);Assert.assertEquals(f.reads,before);}
-                var c=f.http("owner",path,Map.of());Assert.assertEquals(c.attr("test.status"),200);Assert.assertEquals(c.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(c.getResponse().getHeader("Vary"),"Authorization");safe((JSONObject)c.attr("test.data"));
-                Assert.assertEquals(f.http("empty",path,Map.of()).attr("test.status"),404);Assert.assertEquals(f.http("disabled",path,Map.of()).attr("test.status"),404);
+                for (String t : Arrays.asList(null, "bad", "wrong")) {
+                    int before = f.reads;
+                    Assert.assertEquals(f.http(t, path, Map.of()).attr("test.status"), "wrong".equals(t) ? 403 : 401);
+                    Assert.assertEquals(f.reads, before);
+                }
+                var c = f.http("owner", path, Map.of());
+                Assert.assertEquals(c.attr("test.status"), 200);
+                Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
+                Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+                safe((JSONObject) c.attr("test.data"));
+                Assert.assertEquals(f.http("empty", path, Map.of()).attr("test.status"), 404);
+                Assert.assertEquals(f.http("disabled", path, Map.of()).attr("test.status"), 404);
             }
             Assert.assertEquals(((JSONObject)f.http("other","/api/v3/me/professions/10",Map.of()).attr("test.data")).getJSONObject("profession").getLong("totalExperience"),90L);
             Assert.assertEquals(f.http("owner","/api/v3/me/professions/10/records",Map.of("size","51")).attr("test.status"),422);

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /** 使用 MySQL、Connector/J 和真实导出表 DDL 验证导出核心，外围数据使用夹具，最终响应和缓存使用适配器。 */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync,spawn} from 'node:child_process';import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync, spawn} from 'node:child_process';
+import crypto from 'node:crypto';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'),'src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-post-export-mysql-')),shims=[];
@@ -58,13 +62,17 @@ try{
    source=source.replace('return rows(active()?writer:db,q.replace("OCTET_LENGTH(","length(CAST(").replace("articleContent)","articleContent AS BLOB))").replace("articleRewardContent)","articleRewardContent AS BLOB))").replace("commentContent)","commentContent AS BLOB))"),a);','return rows(active()?writer:db,q,a);');
    const migration=fs.readFileSync('sql/20261024_api_v3_post_export.sql','utf8');
    for(const [model,alias]of [['api_v3_post_export','artifacts'],['api_v3_post_export_chunk','chunks']]){
-    const ddl=migration.match(new RegExp('CREATE TABLE IF NOT EXISTS `symphony_'+model+'`[\\s\\S]*?;'))?.[0];if(!ddl)throw Error('Missing exact export DDL');
-    const line=source.split('\n').find(line=>line.includes('sql(db,"CREATE TABLE '+alias+'('));if(!line)throw Error('Missing fixture '+alias);
+    const ddl = migration.match(new RegExp('CREATE TABLE IF NOT EXISTS `symphony_' + model + '`[\\s\\S]*?;'))?.[0];
+    if (!ddl) throw Error('Missing exact export DDL');
+    const line = source.split('\n').find(line => line.includes('sql(db,"CREATE TABLE ' + alias + '('));
+    if (!line) throw Error('Missing fixture ' + alias);
     source=source.replace(line,'   sql(db,'+JSON.stringify(ddl.replace('`symphony_'+model+'`','`'+alias+'`'))+');');
    }
   }
   if(name==='ApiV3SecurityTest'&&source.includes('q.replace(" FOR UPDATE","")'))throw Error('Lock stripping remains');
-  const file=path.join(dir,name+'.java');fs.writeFileSync(file,source);fixtures.push(file);
+  const file = path.join(dir, name + '.java');
+  fs.writeFileSync(file, source);
+  fixtures.push(file);
  }
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),...fixtures,'src/test/java/org/b3log/symphony/service/ApiV3PostExportMysqlTest.java']);
  const image = docker(['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
@@ -87,7 +95,10 @@ try{
   if (r.status !== 0) throw Error(r.stdout + ' ' + r.stderr);
   return r.stdout;
  }
- function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_export;CREATE DATABASE rhythm_export CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
+ function fresh() {
+  docker(['exec', container, 'mysql', '-uroot', '-e',
+   'DROP DATABASE IF EXISTS rhythm_export;CREATE DATABASE rhythm_export CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);
+ }
  fresh();
  console.log(java(['normal']));
  for (const fault of ['chunks', 'job', 'charge', 'receipt', 'commit', 'ack']) {

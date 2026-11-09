@@ -4,9 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {spawnSync} from 'node:child_process';
-const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-profession-guide-')),shims=[];
+const ide = '/Applications/Android Studio.app/Contents', home = process.env.JAVA_HOME || `${ide}/jbr/Contents/Home`;
+const cp = [
+  'src/main/resources/lib/latke-core.jar',
+  process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+  process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-profession-guide-')), shims = [];
 function shim(name, body) {
   const file = path.join(dir, name + '.java');
   fs.mkdirSync(path.dirname(file), {recursive: true});
@@ -40,4 +44,6 @@ try{
  const real=['model/UserExt', 'model/Role', 'model/Profession', 'model/ProfessionRevision', 'model/ProfessionLevel', 'model/ProfessionLevelScheme', 'model/ProfessionLevelReward', 'model/ProfessionAutomation', 'model/ProfessionAutomationRevision', 'repository/ProfessionRepository', 'repository/ProfessionRevisionRepository', 'repository/ProfessionLevelRepository', 'repository/ProfessionLevelSchemeRepository', 'repository/ProfessionLevelRewardRepository', 'repository/ProfessionAutomationRepository', 'repository/ProfessionAutomationRevisionRepository', 'util/ApiV3Requests', 'util/ApiV3Exception', 'util/ApiV3Json', 'util/ApiV3ProfessionGuideDto', 'service/ApiV3ProfessionGuideQueryService', 'processor/ApiV3ProfessionGuideProcessor', 'processor/middleware/ApiV3AuthMidware'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3ProfessionGuideQueryTest.java']);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ProfessionGuideQueryTest']);
-}finally{fs.rmSync(dir,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(dir, {recursive: true, force: true});
+}

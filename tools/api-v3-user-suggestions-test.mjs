@@ -25,7 +25,13 @@ try{
  shim('org/b3log/symphony/service/ApiV3TokenMgmtService','package org.b3log.symphony.service;import java.util.*;import org.apache.commons.lang.StringUtils;import org.json.JSONObject;public class ApiV3TokenMgmtService{public JSONObject authenticate(String token){return null;}'+scope+'}');
  const source=['model/FishGame','model/FishGameVote','model/Milestone','util/ApiV3CommunityDto','util/ApiV3Exception','util/ApiV3Requests','util/ApiV3Json','util/ApiV3OAuthForms','service/ApiV3UserSuggestionQueryService','processor/ApiV3UserSuggestionProcessor','processor/middleware/ApiV3AuthMidware'];
  let test='src/test/java/org/b3log/symphony/service/ApiV3UserSuggestionsTest.java';
- if(mysql){const file=path.join(dir,'ApiV3UserSuggestionsTest.java');fs.writeFileSync(file,fs.readFileSync(test,'utf8').replace('DriverManager.getConnection("jdbc:sqlite::memory:")','DriverManager.getConnection(System.getProperty("suggest.mysql"))').replaceAll('oId TEXT PRIMARY KEY','oId VARCHAR(19) PRIMARY KEY'));test=file;}
+ if (mysql) {
+  const file = path.join(dir, 'ApiV3UserSuggestionsTest.java');
+  fs.writeFileSync(file, fs.readFileSync(test, 'utf8')
+   .replace('DriverManager.getConnection("jdbc:sqlite::memory:")', 'DriverManager.getConnection(System.getProperty("suggest.mysql"))')
+   .replaceAll('oId TEXT PRIMARY KEY', 'oId VARCHAR(19) PRIMARY KEY'));
+  test = file;
+ }
  run(home+'/bin/javac',['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...source.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){

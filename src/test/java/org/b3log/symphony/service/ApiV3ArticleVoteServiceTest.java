@@ -34,36 +34,80 @@ public class ApiV3ArticleVoteServiceTest {
         final var props=new Properties();props.setProperty("runtimeDatabase","NONE");
         for(String name:List.of("latkeProps","localProps")){var field=Latkes.class.getDeclaredField(name);field.setAccessible(true);field.set(null,props);}
         try(var f=new Articles()){
-            var viewer=f.viewer("outsider");var empty=f.articleApi.read(viewer,"10");Assert.assertEquals(empty.keySet(),Set.of("id","vote","upCount","downCount"));Assert.assertTrue(empty.isNull("vote"));
-            var first=f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"first-up");Assert.assertEquals(first.getInt("upCount"),1);
+            var viewer = f.viewer("outsider");
+            var empty = f.articleApi.read(viewer, "10");
+            Assert.assertEquals(empty.keySet(), Set.of("id", "vote", "upCount", "downCount"));
+            Assert.assertTrue(empty.isNull("vote"));
+            var first = f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
+            Assert.assertEquals(first.getInt("upCount"), 1);
             Assert.assertEquals(f.articleApi.read(viewer,"10").toString(),first.toString());
-            f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"first-up");f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"new-up");Assert.assertEquals(f.activityEvents,1);Assert.assertEquals(f.refreshed,List.of("older"));
-            Assert.assertEquals(f.text("SELECT articleContent FROM article WHERE oId='10'"),"SECRET-article");Assert.assertEquals(f.scalar("SELECT articleCommentCount FROM article WHERE oId='10'"),2L);
+            f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
+            f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "new-up");
+            Assert.assertEquals(f.activityEvents, 1);
+            Assert.assertEquals(f.refreshed, List.of("older"));
+            Assert.assertEquals(f.text("SELECT articleContent FROM article WHERE oId='10'"), "SECRET-article");
+            Assert.assertEquals(f.scalar("SELECT articleCommentCount FROM article WHERE oId='10'"), 2L);
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM tag_article WHERE articleCommentCount=2 AND articleLatestCmtTime=30"),2L);
             Assert.assertEquals(Double.parseDouble(f.text("SELECT redditScore FROM article WHERE oId='10'")),-30083.0);
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM tag_article WHERE redditScore=-30083"),2L);
-            String before=f.snapshot();expect(409,()->f.articleApi.set(viewer,"10",Vote.TYPE_C_DOWN,"first-up"));expect(409,()->f.articleApi.set(viewer,"10",-1,"first-up"));Assert.assertEquals(f.snapshot(),before);
-            var down=f.articleApi.set(viewer,"10",Vote.TYPE_C_DOWN,"down");Assert.assertEquals(down.getInt("upCount"),0);Assert.assertEquals(down.getInt("downCount"),1);
-            Assert.assertEquals(f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"first-up").toString(),first.toString());Assert.assertEquals(f.articleApi.read(viewer,"10").toString(),down.toString());
-            var clear=f.articleApi.set(viewer,"10",-1,"clear");Assert.assertTrue(clear.isNull("vote"));f.articleApi.set(viewer,"10",-1,"clear-new");Assert.assertEquals(f.activityEvents,2);
-            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"),0L);Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"),0L);
+            String before = f.snapshot();
+            expect(409, () -> f.articleApi.set(viewer, "10", Vote.TYPE_C_DOWN, "first-up"));
+            expect(409, () -> f.articleApi.set(viewer, "10", -1, "first-up"));
+            Assert.assertEquals(f.snapshot(), before);
+            var down = f.articleApi.set(viewer, "10", Vote.TYPE_C_DOWN, "down");
+            Assert.assertEquals(down.getInt("upCount"), 0);
+            Assert.assertEquals(down.getInt("downCount"), 1);
+            // 原键回放历史回执，随后读到的仍是后来设置的反对票。
+            Assert.assertEquals(f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up").toString(), first.toString());
+            Assert.assertEquals(f.articleApi.read(viewer, "10").toString(), down.toString());
+            var clear = f.articleApi.set(viewer, "10", -1, "clear");
+            Assert.assertTrue(clear.isNull("vote"));
+            f.articleApi.set(viewer, "10", -1, "clear-new");
+            Assert.assertEquals(f.activityEvents, 2);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"), 0L);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 0L);
             Assert.assertFalse(first.toString().contains("SECRET"));
-            f.exec("DELETE FROM article WHERE oId='10'");Assert.assertEquals(f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"first-up").toString(),first.toString());
-            expect(404,()->f.articleApi.read(viewer,"10"));expect(404,()->f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"missing-new"));
+            f.exec("DELETE FROM article WHERE oId='10'");
+            Assert.assertEquals(f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up").toString(), first.toString());
+            expect(404, () -> f.articleApi.read(viewer, "10"));
+            expect(404, () -> f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "missing-new"));
         }
         System.out.println("PASS real article aggregation sets/clears/replays atomically without toggle, preserves later state and non-vote fields, synchronizes tag scores and does not replay events");
         for(String failure:List.of("vote.select","vote.add","article.update","tag_article.select","tag_article.update","tag_article.second","notification.add")){
             try(var f=new Articles()){
-                String before=f.snapshot();f.fail=failure;
-                try{f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"failed");Assert.fail(failure);}catch(RepositoryException rejected){}
-                Assert.assertEquals(f.snapshot(),before,failure);Assert.assertEquals(f.activityEvents,0);Assert.assertTrue(f.refreshed.isEmpty());Assert.assertFalse(f.active());
+                String before = f.snapshot();
+                f.fail = failure;
+                try {
+                    f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "failed");
+                    Assert.fail(failure);
+                } catch (RepositoryException rejected) {
+                }
+                Assert.assertEquals(f.snapshot(), before, failure);
+                Assert.assertEquals(f.activityEvents, 0);
+                Assert.assertTrue(f.refreshed.isEmpty());
+                Assert.assertFalse(f.active());
             }
         }
         try(var f=new Articles()){
-            String before=f.snapshot();f.failResults=true;
-            try{f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"failed-receipt");Assert.fail();}catch(RepositoryException rejected){}
-            Assert.assertEquals(f.snapshot(),before);Assert.assertEquals(f.activityEvents,0);f.failResults=false;f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"failed-receipt");Assert.assertEquals(f.activityEvents,1);
-            before=f.snapshot();f.fail="vote.remove";try{f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_DOWN,"failed-remove");Assert.fail();}catch(RepositoryException rejected){}
+            String before = f.snapshot();
+            f.failResults = true;
+            try {
+                f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "failed-receipt");
+                Assert.fail();
+            } catch (RepositoryException rejected) {
+            }
+            Assert.assertEquals(f.snapshot(), before);
+            Assert.assertEquals(f.activityEvents, 0);
+            f.failResults = false;
+            f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "failed-receipt");
+            Assert.assertEquals(f.activityEvents, 1);
+            before = f.snapshot();
+            f.fail = "vote.remove";
+            try {
+                f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_DOWN, "failed-remove");
+                Assert.fail();
+            } catch (RepositoryException rejected) {
+            }
             Assert.assertEquals(f.snapshot(),before);
         }
         System.out.println("PASS vote/article/association/notification/receipt faults roll every write back, including a failure after the first association was updated");
@@ -92,15 +136,23 @@ public class ApiV3ArticleVoteServiceTest {
         }
         System.out.println("PASS legacy toggle and previous-type behavior, no down notification, admin-independent article-only wrappers and original integral ranking time component");
         try(var f=new Articles()){
-            expect(422,()->f.articleApi.set(f.viewer("older"),"10",Vote.TYPE_C_UP,"self"));expect(401,()->f.articleApi.read(null,"10"));
+            expect(422, () -> f.articleApi.set(f.viewer("older"), "10", Vote.TYPE_C_UP, "self"));
+            expect(401, () -> f.articleApi.read(null, "10"));
             f.exec("UPDATE article SET articleType=1,articleContent='@nobody ' WHERE oId='10'");
-            expect(404,()->f.articleApi.read(f.viewer("outsider"),"10"));expect(404,()->f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"not-invited"));
-            f.exec("UPDATE article SET articleContent='@outsider ' WHERE oId='10'");f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"invited");
-            f.exec("UPDATE user SET userRole='adminRole' WHERE oId='older'");f.articleApi.set(f.viewer("older"),"10",Vote.TYPE_C_DOWN,"admin-self");
+            expect(404, () -> f.articleApi.read(f.viewer("outsider"), "10"));
+            expect(404, () -> f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "not-invited"));
+            f.exec("UPDATE article SET articleContent='@outsider ' WHERE oId='10'");
+            f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "invited");
+            f.exec("UPDATE user SET userRole='adminRole' WHERE oId='older'");
+            f.articleApi.set(f.viewer("older"), "10", Vote.TYPE_C_DOWN, "admin-self");
         }
         for(String sql:List.of("UPDATE article SET articleStatus=1 WHERE oId='10'","UPDATE user SET userStatus=1 WHERE oId='older'","DELETE FROM article WHERE oId='10'")){
             try(var f=new Articles()){
-                f.exec(sql);String before=f.snapshot();expect(404,()->f.articleApi.read(f.viewer("outsider"),"10"));expect(404,()->f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"invalid-target"));Assert.assertEquals(f.snapshot(),before);
+                f.exec(sql);
+                String before = f.snapshot();
+                expect(404, () -> f.articleApi.read(f.viewer("outsider"), "10"));
+                expect(404, () -> f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "invalid-target"));
+                Assert.assertEquals(f.snapshot(), before);
             }
         }
         System.out.println("PASS explicit identity, ordinary self-vote rejection, admin exception and current discussion/invalid-article/invalid-author visibility (visibility adapter)");
@@ -111,8 +163,16 @@ public class ApiV3ArticleVoteServiceTest {
         }
         for(String sql:List.of("INSERT INTO vote VALUES('d1','10',0,'outsider',0),('d2','10',0,'outsider',1)","INSERT INTO vote VALUES('bad','10',0,'outsider',7)","UPDATE article SET articleGoodCnt=-1 WHERE oId='10'","UPDATE article SET articleGoodCnt=2147483647 WHERE oId='10'")){
             try(var f=new Articles()){
-                f.exec(sql);String before=f.snapshot();try{f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"corrupt");Assert.fail();}catch(IllegalStateException|ArithmeticException rejected){}
-                Assert.assertEquals(f.snapshot(),before);Assert.assertEquals(f.activityEvents,0);Assert.assertTrue(f.refreshed.isEmpty());
+                f.exec(sql);
+                String before = f.snapshot();
+                try {
+                    f.articleApi.set(f.viewer("outsider"), "10", Vote.TYPE_C_UP, "corrupt");
+                    Assert.fail();
+                } catch (IllegalStateException | ArithmeticException rejected) {
+                }
+                Assert.assertEquals(f.snapshot(), before);
+                Assert.assertEquals(f.activityEvents, 0);
+                Assert.assertTrue(f.refreshed.isEmpty());
             }
         }
         System.out.println("PASS duplicate/invalid article votes, negative counters and overflow fail without partial results or business writes");

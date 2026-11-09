@@ -92,71 +92,144 @@ public class ApiV3ProfessionRankingQueryTest {
     interface Action{void run()throws Exception;}
     static void error(int status,Action a)throws Exception{try{a.run();Assert.fail("Expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);Assert.assertFalse(e.getMessage().contains("SECRET"));}}
     static void safe(JSONObject o){for(String secret:List.of("PRIVATE_","userId","actualUserId","progressId","professionRevisionId","levelSchemeId","privacyId","moduleVisibilityJson","requiredExperience"))Assert.assertFalse(o.toString().contains(secret),secret);}
-    public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var result=f.query.ranking("1","10",1,50);safe(result);Assert.assertEquals(result.getJSONObject("pagination").getInt("total"),71);Assert.assertEquals(result.getJSONArray("list").length(),50);
-            var first=result.getJSONArray("list").getJSONObject(0);Assert.assertEquals(first.getString("userName"),"user4");Assert.assertEquals(first.getString("professionName"),"Historical writer");Assert.assertEquals(first.getString("levelName"),"Historical level");Assert.assertEquals(first.getInt("rank"),1);
+            var result = f.query.ranking("1", "10", 1, 50);
+            safe(result);
+            Assert.assertEquals(result.getJSONObject("pagination").getInt("total"), 71);
+            Assert.assertEquals(result.getJSONArray("list").length(), 50);
+            var first = result.getJSONArray("list").getJSONObject(0);
+            Assert.assertEquals(first.getString("userName"), "user4");
+            Assert.assertEquals(first.getString("professionName"), "Historical writer");
+            Assert.assertEquals(first.getString("levelName"), "Historical level");
+            Assert.assertEquals(first.getInt("rank"), 1);
             Assert.assertEquals(first.keySet(),Set.of("rank","userName","userNickname","userAvatarURL","professionId","professionCode","professionName","levelCode","levelName","totalExperience"));
-            var second=f.query.ranking("1","10",2,50);Assert.assertEquals(second.getJSONArray("list").length(),21);Assert.assertEquals(second.getJSONArray("list").getJSONObject(0).getInt("rank"),51);
-            Assert.assertTrue(f.query.ranking("1","10",3,50).getJSONArray("list").isEmpty());Assert.assertEquals(f.query.ranking("3","10",1,50).getJSONObject("pagination").getInt("total"),72);
+            var second = f.query.ranking("1", "10", 2, 50);
+            Assert.assertEquals(second.getJSONArray("list").length(), 21);
+            Assert.assertEquals(second.getJSONArray("list").getJSONObject(0).getInt("rank"), 51);
+            Assert.assertTrue(f.query.ranking("1", "10", 3, 50).getJSONArray("list").isEmpty());
+            Assert.assertEquals(f.query.ranking("3", "10", 1, 50).getJSONObject("pagination").getInt("total"), 72);
             Assert.assertEquals(f.selectSQL("SELECT COUNT(*) AS total FROM pr").getFirst().getInt("total"),5);
-        }System.out.println("PASS 1 complete visible filtering before count/page/rank beyond fifty, owner SELF, login visibility, historical metadata, no privacy defaults written or secret DTO fields");
+        }
+        System.out.println("PASS 1 complete visible filtering before count/page/rank beyond fifty, owner SELF, login visibility, historical metadata, no privacy defaults written or secret DTO fields");
         try(var f=new Fixture()){
-            f.sql("UPDATE up SET totalExperience=2000 WHERE userId IN ('9','10')");var list=f.query.ranking("1","10",1,50).getJSONArray("list");
-            int a=-1,b=-1;for(int i=0;i<list.length();i++){if(list.getJSONObject(i).getString("userName").equals("user10"))a=i;if(list.getJSONObject(i).getString("userName").equals("user9"))b=i;}Assert.assertTrue(a>=0&&b==a+1);
-            f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='4'",visibility("PUBLIC","SELF").toString());var hidden=f.query.ranking("1","10",1,20).getJSONArray("list");
+            f.sql("UPDATE up SET totalExperience=2000 WHERE userId IN ('9','10')");
+            var list = f.query.ranking("1", "10", 1, 50).getJSONArray("list");
+            int a = -1, b = -1;
+            for (int i = 0; i < list.length(); i++) {
+                if (list.getJSONObject(i).getString("userName").equals("user10")) a = i;
+                if (list.getJSONObject(i).getString("userName").equals("user9")) b = i;
+            }
+            Assert.assertTrue(a >= 0 && b == a + 1);
+            f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='4'", visibility("PUBLIC", "SELF").toString());
+            var hidden = f.query.ranking("1", "10", 1, 20).getJSONArray("list");
             for(Object item:hidden)if(((JSONObject)item).getString("userName").equals("user4"))Assert.assertFalse(((JSONObject)item).has("totalExperience"));
-        }System.out.println("PASS 2 stable equal-experience userId ordering; hidden experience preserves explicitly permitted rank/level but omits exact experience; no administrator bypass");
+        }
+        System.out.println("PASS 2 stable equal-experience userId ordering; hidden experience preserves explicitly permitted rank/level but omits exact experience; no administrator bypass");
         try(var f=new Fixture()){
             for(String invalid:List.of("{}",visibility("public","PUBLIC").toString(),visibility("PUBLIC","PUBLIC").put("ranking",true).toString(),"x")){
-                f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='2'",invalid);error(503,()->f.query.ranking("1","10",1,20));}
+                f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='2'", invalid);
+                error(503, () -> f.query.ranking("1", "10", 1, 20));
+            }
             f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='2'",visibility("HIDDEN","PUBLIC").toString());
-            f.sql("INSERT INTO pr VALUES('999','2',?,0)",visibility("PUBLIC","PUBLIC").toString());error(503,()->f.query.ranking("1","10",1,20));
-        }System.out.println("PASS 3 malformed/incomplete/typed/lowercase privacy and duplicate privacy fail closed with CI database fixture");
+            f.sql("INSERT INTO pr VALUES('999','2',?,0)", visibility("PUBLIC", "PUBLIC").toString());
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+        }
+        System.out.println("PASS 3 malformed/incomplete/typed/lowercase privacy and duplicate privacy fail closed with CI database fixture");
         try(var f=new Fixture()){
-            f.sql("UPDATE up SET totalExperience=0.5 WHERE userId='4'");error(503,()->f.query.ranking("1","10",1,20));f.sql("UPDATE up SET totalExperience=996 WHERE userId='4'");
-            f.sql("UPDATE s SET professionId='11' WHERE oId='300'");error(503,()->f.query.ranking("1","10",1,20));f.sql("UPDATE s SET professionId='10' WHERE oId='300'");
-            f.sql("UPDATE r SET status='published' WHERE oId='100'");error(503,()->f.query.ranking("1","10",1,20));
+            f.sql("UPDATE up SET totalExperience=0.5 WHERE userId='4'");
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+            f.sql("UPDATE up SET totalExperience=996 WHERE userId='4'");
+            f.sql("UPDATE s SET professionId='11' WHERE oId='300'");
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+            f.sql("UPDATE s SET professionId='10' WHERE oId='300'");
+            f.sql("UPDATE r SET status='published' WHERE oId='100'");
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
             error(503,()->ApiV3ProfessionRankingDto.number(new JSONObject().put("n",new java.math.BigInteger("9223372036854775808")),"n"));
             error(503,()->ApiV3ProfessionRankingDto.text(new JSONObject().put("n","\uD800"),"n",10,false));
-        }System.out.println("PASS 4 wrong historical parent, invalid status, fractions/overflow and malformed Unicode fail closed");
-        for(String change:List.of("UPDATE pr SET moduleVisibilityJson='{}' WHERE userId='2'","UPDATE u SET userStatus=4 WHERE oId='4'","UPDATE up SET totalExperience=99 WHERE userId='4'","UPDATE r SET displayName='Changed' WHERE oId='100'"))try(var f=new Fixture()){f.changeAt=4;f.changeSql=change;error(503,()->f.query.ranking("1","10",1,20));}
-        try(var f=new Fixture()){f.changeAt=6;f.changeSql="UPDATE u SET userStatus=4 WHERE oId='1'";error(404,()->f.query.ranking("1","10",1,20));}
-        for(int i=1;i<=6;i++)try(var f=new Fixture()){f.failAt=i;error(503,()->f.query.ranking("1","10",1,20));}
+        }
+        System.out.println("PASS 4 wrong historical parent, invalid status, fractions/overflow and malformed Unicode fail closed");
+        for (String change : List.of("UPDATE pr SET moduleVisibilityJson='{}' WHERE userId='2'",
+                "UPDATE u SET userStatus=4 WHERE oId='4'", "UPDATE up SET totalExperience=99 WHERE userId='4'",
+                "UPDATE r SET displayName='Changed' WHERE oId='100'")) try (var f = new Fixture()) {
+            f.changeAt = 4;
+            f.changeSql = change;
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+        }
+        try (var f = new Fixture()) {
+            f.changeAt = 6;
+            f.changeSql = "UPDATE u SET userStatus=4 WHERE oId='1'";
+            error(404, () -> f.query.ranking("1", "10", 1, 20));
+        }
+        for (int i = 1; i <= 6; i++) try (var f = new Fixture()) {
+            f.failAt = i;
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+        }
         System.out.println("PASS 5 final candidate/privacy/actor/status/metadata changes reject mixed response and all SQL failures return sanitized errors");
         try(var f=new Fixture()){
-            for(int i=76;i<=4100;i++)f.candidate(i,1,false);error(503,()->f.query.ranking("1","10",1,20));
-        }System.out.println("PASS 6 bounded complete population returns 503 instead of fake total or silently truncated ranking");
+            for (int i = 76; i <= 4100; i++) f.candidate(i, 1, false);
+            error(503, () -> f.query.ranking("1", "10", 1, 20));
+        }
+        System.out.println("PASS 6 bounded complete population returns 503 instead of fake total or silently truncated ranking");
         try(var f=new Fixture()){
             for(String bad:Arrays.asList(null,"","x","1 OR 1=1","1".repeat(20)))error(422,()->f.query.ranking("1",bad,1,20));
-            error(422,()->f.query.ranking("1","10",0,20));error(422,()->f.query.ranking("1","10",1,51));error(422,()->f.query.ranking("1","10",Integer.MAX_VALUE,20));
-            error(404,()->f.query.ranking("7","10",1,20));error(404,()->f.query.ranking("1","11",1,20));error(404,()->f.query.ranking("1","999",1,20));
-            f.sql("UPDATE p SET status='published' WHERE oId='10'");error(404,()->f.query.ranking("1","10",1,20));
-        }System.out.println("PASS 7 malformed identities/paging and missing, inactive or unpublished current targets reject before data projection");
+            error(422, () -> f.query.ranking("1", "10", 0, 20));
+            error(422, () -> f.query.ranking("1", "10", 1, 51));
+            error(422, () -> f.query.ranking("1", "10", Integer.MAX_VALUE, 20));
+            error(404, () -> f.query.ranking("7", "10", 1, 20));
+            error(404, () -> f.query.ranking("1", "11", 1, 20));
+            error(404, () -> f.query.ranking("1", "999", 1, 20));
+            f.sql("UPDATE p SET status='published' WHERE oId='10'");
+            error(404, () -> f.query.ranking("1", "10", 1, 20));
+        }
+        System.out.println("PASS 7 malformed identities/paging and missing, inactive or unpublished current targets reject before data projection");
         try(var f=new Fixture()){
-            ApiV3ProfessionRankingProcessor.registerRoutes(f.controller,f.auth);Dispatcher.mapping();
-            for(String t:Arrays.asList(null,"bad","wrong")){int before=f.reads;Assert.assertEquals(f.http(t,Map.of()).attr("test.status"),"wrong".equals(t)?403:401);Assert.assertEquals(before,f.reads);}
-            var c=f.http("owner",Map.of());Assert.assertEquals(c.attr("test.status"),200);Assert.assertEquals(c.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(c.getResponse().getHeader("Vary"),"Authorization");safe((JSONObject)c.attr("test.data"));
-            Assert.assertEquals(f.http("disabled",Map.of()).attr("test.status"),404);Assert.assertEquals(f.http("owner",Map.of("size","51")).attr("test.status"),422);
-        }System.out.println("PASS 8 actual route/controller/Bearer auth requires profile.read and current viewer, ignores Cookie/apiKey impersonation, validates paging and disables caching");
+            ApiV3ProfessionRankingProcessor.registerRoutes(f.controller, f.auth);
+            Dispatcher.mapping();
+            for (String t : Arrays.asList(null, "bad", "wrong")) {
+                int before = f.reads;
+                Assert.assertEquals(f.http(t, Map.of()).attr("test.status"), "wrong".equals(t) ? 403 : 401);
+                Assert.assertEquals(before, f.reads);
+            }
+            var c = f.http("owner", Map.of());
+            Assert.assertEquals(c.attr("test.status"), 200);
+            Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
+            Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+            safe((JSONObject) c.attr("test.data"));
+            Assert.assertEquals(f.http("disabled", Map.of()).attr("test.status"), 404);
+            Assert.assertEquals(f.http("owner", Map.of("size", "51")).attr("test.status"), 422);
+        }
+        System.out.println("PASS 8 actual route/controller/Bearer auth requires profile.read and current viewer, ignores Cookie/apiKey impersonation, validates paging and disables caching");
         try(var f=new Fixture()){
-            var logged=f.query.summary("10","1","4").orElseThrow();Assert.assertEquals(logged.getInt("rank"),1);Assert.assertEquals(logged.getInt("totalUsers"),71);
+            var logged = f.query.summary("10", "1", "4").orElseThrow();
+            Assert.assertEquals(logged.getInt("rank"), 1);
+            Assert.assertEquals(logged.getInt("totalUsers"), 71);
             Assert.assertEquals(logged.getDouble("surpassedPercent"),70*100D/71);
             Assert.assertEquals(logged.keySet(),Set.of("rank","totalUsers","surpassedPercent"));
-            Assert.assertTrue(f.query.summary("10","","4").isEmpty());Assert.assertTrue(f.query.summary("10","","3").isEmpty());
-            Assert.assertTrue(f.query.summary("10","1","2").isEmpty());Assert.assertTrue(f.query.summary("10","1","7").isEmpty());
+            Assert.assertTrue(f.query.summary("10", "", "4").isEmpty());
+            Assert.assertTrue(f.query.summary("10", "", "3").isEmpty());
+            Assert.assertTrue(f.query.summary("10", "1", "2").isEmpty());
+            Assert.assertTrue(f.query.summary("10", "1", "7").isEmpty());
             Assert.assertEquals(f.query.summary("10","3","3").orElseThrow().getInt("rank"),1);
             Assert.assertEquals(f.query.summary("10","","5").orElseThrow().getInt("totalUsers"),70);
-            error(422,()->f.query.summary("10",null,"4"));error(404,()->f.query.summary("10","7","4"));
-            f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='2'",visibility("HIDDEN","PUBLIC").toString(2));Assert.assertTrue(f.query.summary("10","1","2").isEmpty());
-        }System.out.println("PASS 9 shared summary uses the identical visible population for public/anonymous profiles, no hidden-target result, exact stable rank percentage, and valid formatted privacy JSON");
+            error(422, () -> f.query.summary("10", null, "4"));
+            error(404, () -> f.query.summary("10", "7", "4"));
+            f.sql("UPDATE pr SET moduleVisibilityJson=? WHERE userId='2'", visibility("HIDDEN", "PUBLIC").toString(2));
+            Assert.assertTrue(f.query.summary("10", "1", "2").isEmpty());
+        }
+        System.out.println("PASS 9 shared summary uses the identical visible population for public/anonymous profiles, no hidden-target result, exact stable rank percentage, and valid formatted privacy JSON");
         try(var f=new Fixture()){
             var budget=new ApiV3ProfessionRankingQueryService.CandidateBudget();
-            for(int i=0;i<54;i++)Assert.assertTrue(f.query.summary("10","1","4",budget).isPresent()); // 74 actual candidates * 2 * 54 = 7992.
-            Assert.assertTrue(f.query.summary("10","1","4",budget).isPresent()); // 8140 rows still fit.
+            // 每次查两遍实际 74 个候选，54 次累计 7992 行。
+            for (int i = 0; i < 54; i++) Assert.assertTrue(f.query.summary("10", "1", "4", budget).isPresent());
+            Assert.assertTrue(f.query.summary("10", "1", "4", budget).isPresent()); // 累计 8140 行仍在预算内。
             error(503,()->f.query.summary("10","1","4",budget));
-            Assert.assertTrue(f.query.summary("10","1","4").isPresent()); // Independent calls retain the single-board contract.
+            Assert.assertTrue(f.query.summary("10", "1", "4").isPresent()); // 独立请求仍按单个榜单的限制执行。
         }
         try(var f=new Fixture()){
             var budget=new ApiV3ProfessionRankingQueryService.CandidateBudget();
@@ -164,7 +237,8 @@ public class ApiV3ProfessionRankingQueryTest {
             // 共享请求预算的剩余额度按实际新增候选计扣，旧 COUNT 预估不参与。
             for(int i=76;i<200;i++)f.candidate(i,1,false);
             error(503,()->f.query.summary("10","1","4",budget));
-        }System.out.println("PASS 10 shared public-profile budget counts actual rows across both reads and all boards, catches concurrent population growth, and leaves standalone rankings unchanged");
+        }
+        System.out.println("PASS 10 shared public-profile budget counts actual rows across both reads and all boards, catches concurrent population growth, and leaves standalone rankings unchanged");
         System.out.println("Profession ranking isolated tests passed: 10 groups");
     }
 }

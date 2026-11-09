@@ -27,11 +27,18 @@ try{
  const tag=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8'),pattern=tag.match(/public static final String TAG_TITLE_PATTERN_STR = .*?;/)[0];
  shim('org/b3log/symphony/model/Tag','package org.b3log.symphony.model;import java.util.regex.Pattern;public class Tag{'+pattern+'public static final Pattern TAG_TITLE_PATTERN=Pattern.compile(TAG_TITLE_PATTERN_STR);}');
  shim('org/b3log/symphony/processor/ApiV3Processor','package org.b3log.symphony.processor;public class ApiV3Processor{public static final String IDENTITY="apiV3Identity";public static String requestId(org.b3log.latke.http.RequestContext c){return "suggest-test";}public static void success(org.b3log.latke.http.RequestContext c,Object d){c.attr("status",200);c.attr("data",d);}public static void error(org.b3log.latke.http.RequestContext c,int s,String code,String msg){c.attr("status",s);c.attr("code",code);}}');
- const tokens=fs.readFileSync('src/main/java/org/b3log/symphony/service/ApiV3TokenMgmtService.java','utf8');const scope=tokens.match(/public static boolean hasScope\([^]*?\n    }/)[0];
+ const tokens = fs.readFileSync('src/main/java/org/b3log/symphony/service/ApiV3TokenMgmtService.java', 'utf8');
+ const scope = tokens.match(/public static boolean hasScope\([^]*?\n    }/)[0];
  shim('org/b3log/symphony/service/ApiV3TokenMgmtService','package org.b3log.symphony.service;import java.util.*;import org.apache.commons.lang.StringUtils;import org.json.JSONObject;public class ApiV3TokenMgmtService{public JSONObject authenticate(String token){return null;}'+scope+'}');
  const source=['util/ApiV3Exception','util/ApiV3Requests','util/ApiV3Json','util/ApiV3OAuthForms','service/ApiV3TagSuggestionQueryService','processor/ApiV3TagSuggestionProcessor','processor/middleware/ApiV3AuthMidware'];
  let test='src/test/java/org/b3log/symphony/service/ApiV3TagSuggestionsTest.java';
- if(mysql){const file=path.join(dir,'ApiV3TagSuggestionsTest.java');fs.writeFileSync(file,fs.readFileSync(test,'utf8').replace('DriverManager.getConnection("jdbc:sqlite::memory:")','DriverManager.getConnection(System.getProperty("suggest.mysql"))').replaceAll('oId TEXT PRIMARY KEY','oId VARCHAR(19) PRIMARY KEY'));test=file;}
+ if (mysql) {
+  const file = path.join(dir, 'ApiV3TagSuggestionsTest.java');
+  fs.writeFileSync(file, fs.readFileSync(test, 'utf8')
+   .replace('DriverManager.getConnection("jdbc:sqlite::memory:")', 'DriverManager.getConnection(System.getProperty("suggest.mysql"))')
+   .replaceAll('oId TEXT PRIMARY KEY', 'oId VARCHAR(19) PRIMARY KEY'));
+  test = file;
+ }
  run(home+'/bin/javac',['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...source.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){

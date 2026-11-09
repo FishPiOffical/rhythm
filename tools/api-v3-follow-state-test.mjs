@@ -32,7 +32,13 @@ try{
  shim('org/b3log/symphony/service/ApiV3DiscoveryQueryService','package org.b3log.symphony.service;public class ApiV3DiscoveryQueryService{public org.json.JSONObject userRelations(String id,int p,int size,String kind){throw new AssertionError();}}');
  shim('org/b3log/symphony/service/ApiV3TokenMgmtService','package org.b3log.symphony.service;public class ApiV3TokenMgmtService{public org.json.JSONObject authenticate(String value){return null;}public static boolean hasScope(String scope,String required){return java.util.Arrays.asList(scope.split(" ")).contains(required);}}');
  let test='src/test/java/org/b3log/symphony/service/ApiV3FollowStateTest.java';
- if(mysql){const f=path.join(dir,'ApiV3FollowStateTest.java');fs.writeFileSync(f,fs.readFileSync(test,'utf8').replace('DriverManager.getConnection("jdbc:sqlite::memory:")','DriverManager.getConnection(System.getProperty("rhythm.follow.mysqlUrl"))').replaceAll('oId TEXT PRIMARY KEY','oId VARCHAR(19) PRIMARY KEY'));test=f;}
+ if (mysql) {
+  const f = path.join(dir, 'ApiV3FollowStateTest.java');
+  fs.writeFileSync(f, fs.readFileSync(test, 'utf8')
+   .replace('DriverManager.getConnection("jdbc:sqlite::memory:")', 'DriverManager.getConnection(System.getProperty("rhythm.follow.mysqlUrl"))')
+   .replaceAll('oId TEXT PRIMARY KEY', 'oId VARCHAR(19) PRIMARY KEY'));
+  test = f;
+ }
  const sources = [
   'model/Follow',
   'repository/FollowRepository',
@@ -48,10 +54,25 @@ try{
  run(home+'/bin/javac',['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...sources.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){
-  function docker(args){const r=spawnSync('docker',args,{encoding:'utf8',timeout:20000});if(r.status!==0)throw Error(r.stderr);return r.stdout.trim()}
-  container='rhythm-v3-follow-state-'+Date.now();docker(['run','-d','--rm','--pull','never','--memory','768m','--name',container,'-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306','mysql:8.4','--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);
-  const end=Date.now()+65000;while(true){const ping=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:4000});if(ping.status===0&&docker(['exec',container,'cat','/proc/1/comm'])==='mysqld')break;if(Date.now()>end)throw Error('MySQL startup timeout');await new Promise(r=>setTimeout(r,250));}
-  const bound=docker(['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(bound)||bound.endsWith(':3306'))throw Error('Unsafe MySQL port');docker(['exec',container,'mysql','-uroot','-e','CREATE DATABASE follow_state CHARACTER SET utf8mb4;']);
+  function docker(args) {
+   const r = spawnSync('docker', args, { encoding: 'utf8', timeout: 20000 });
+   if (r.status !== 0) throw Error(r.stderr);
+   return r.stdout.trim()
+  }
+  container = 'rhythm-v3-follow-state-' + Date.now();
+  docker(['run', '-d', '--rm', '--pull', 'never', '--memory', '768m', '--name', container,
+   '-e', 'MYSQL_ALLOW_EMPTY_PASSWORD=yes', '-e', 'MYSQL_ROOT_HOST=%', '-p', '127.0.0.1::3306',
+   'mysql:8.4', '--skip-log-bin', '--performance-schema=OFF', '--innodb-buffer-pool-size=32M']);
+  const end = Date.now() + 65000;
+  while (true) {
+   const ping = spawnSync('docker', ['exec', container, 'mysqladmin', '-uroot', 'ping'], { encoding: 'utf8', timeout: 4000 });
+   if (ping.status === 0 && docker(['exec', container, 'cat', '/proc/1/comm']) === 'mysqld') break;
+   if (Date.now() > end) throw Error('MySQL startup timeout');
+   await new Promise(r => setTimeout(r, 250));
+  }
+  const bound = docker(['port', container, '3306/tcp']);
+  if (!/^127\.0\.0\.1:[0-9]+$/.test(bound) || bound.endsWith(':3306')) throw Error('Unsafe MySQL port');
+  docker(['exec', container, 'mysql', '-uroot', '-e', 'CREATE DATABASE follow_state CHARACTER SET utf8mb4;']);
   opts.push('-Drhythm.follow.mysqlUrl=jdbc:mysql://'+bound+'/follow_state?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000');
  }
  run(home+'/bin/java',[...opts,'-cp' ,[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3FollowStateTest']);

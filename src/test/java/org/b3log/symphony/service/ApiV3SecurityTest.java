@@ -77,31 +77,101 @@ public class ApiV3SecurityTest {
  }
  interface A{void run()throws Exception;}static void error(int status,A a)throws Exception{try{a.run();Assert.fail("Expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);}}
  public static void main(String[]a)throws Exception {
-  var p=new Properties();p.setProperty("runtimeDatabase","NONE");p.setProperty("contextPath","");Latkes.setLatkeProps(p);Latkes.setLocalProps(p);
+  var p = new Properties();
+  p.setProperty("runtimeDatabase", "NONE");
+  p.setProperty("contextPath", "");
+  Latkes.setLatkeProps(p);
+  Latkes.setLocalProps(p);
   try(var f=new F()){
-   Assert.assertEquals(f.settings.mfa(identity()).keySet(),Set.of("enabled"));Assert.assertFalse(f.settings.mfa(identity()).getBoolean("enabled"));
-   var result=f.settings.password(identity(),body(),"ip");Assert.assertEquals(result.keySet(),Set.of("changed","reauthenticationRequired"));Assert.assertTrue(result.getBoolean("changed"));Assert.assertEquals(rows(f.db,"SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"),NEW);
-   Assert.assertEquals(rows(f.db,"SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"),1L);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM tokens WHERE userId='1' AND state=0").getFirst().getInt("n"),0);Assert.assertEquals(rows(f.db,"SELECT state FROM openid WHERE userId='1'").getFirst().getInt("state"),2);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM requests WHERE userId='1'").getFirst().getInt("n"),1);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM codes WHERE userId='1'").getFirst().getInt("n"),1);Assert.assertEquals(rows(f.db,"SELECT state FROM tokens WHERE userId='2'").getFirst().getInt("state"),0);Assert.assertEquals(f.locks.subList(0,5),List.of("namespace","client","user","token","epoch"));error(403,()->f.settings.mfa(identity()));
-  }System.out.println("PASS security 1 actual first-party SQL/status projection and strict password+epoch/all-client v3/OpenID/pending/code atomic revocation, lock order and other-owner isolation");
+   Assert.assertEquals(f.settings.mfa(identity()).keySet(), Set.of("enabled"));
+   Assert.assertFalse(f.settings.mfa(identity()).getBoolean("enabled"));
+   var result = f.settings.password(identity(), body(), "ip");
+   Assert.assertEquals(result.keySet(), Set.of("changed", "reauthenticationRequired"));
+   Assert.assertTrue(result.getBoolean("changed"));
+   Assert.assertEquals(rows(f.db, "SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"), NEW);
+
+   // 密码与凭据版本一并更新，只有当前账号的旧授权被撤销。
+   Assert.assertEquals(rows(f.db, "SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"), 1L);
+   Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM tokens WHERE userId='1' AND state=0").getFirst().getInt("n"), 0);
+   Assert.assertEquals(rows(f.db, "SELECT state FROM openid WHERE userId='1'").getFirst().getInt("state"), 2);
+   Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM requests WHERE userId='1'").getFirst().getInt("n"), 1);
+   Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM codes WHERE userId='1'").getFirst().getInt("n"), 1);
+   Assert.assertEquals(rows(f.db, "SELECT state FROM tokens WHERE userId='2'").getFirst().getInt("state"), 0);
+   Assert.assertEquals(f.locks.subList(0, 5), List.of("namespace", "client", "user", "token", "epoch"));
+   error(403, () -> f.settings.mfa(identity()));
+  }
+  System.out.println("PASS security 1 actual first-party SQL/status projection and strict password+epoch/all-client v3/OpenID/pending/code atomic revocation, lock order and other-owner isolation");
   try(var f=new F()){
-   error(422,()->f.settings.password(identity(),body().put("currentPassword",NEW),"ip"));sql(f.db,"UPDATE u SET secret2fa=? WHERE oId='1'",SECRET);Assert.assertTrue(f.settings.mfa(identity()).getBoolean("enabled"));error(422,()->f.settings.password(identity(),body(),"ip"));error(422,()->f.settings.password(identity(),body().put("currentTotp","000000"),"ip"));f.settings.password(identity(),body().put("currentTotp",totp()),"ip");
-  }System.out.println("PASS security 2 current database password and real TOTP algorithm, missing/wrong factor rejected, enabled state is bool only");
-  for(String mutation:List.of("UPDATE tokens SET clientId='third' WHERE oId='100'","UPDATE tokens SET state=2 WHERE oId='100'","UPDATE tokens SET expiresAt=1 WHERE oId='100'","UPDATE clients SET status=1 WHERE clientId='website_v3'","UPDATE u SET userStatus=4 WHERE oId='1'","UPDATE tokens SET scope='profile.read' WHERE oId='100'"))try(var f=new F()){sql(f.db,mutation);error(403,()->f.settings.password(identity(),body(),"ip"));Assert.assertEquals(rows(f.db,"SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"),OLD);}
+   error(422, () -> f.settings.password(identity(), body().put("currentPassword", NEW), "ip"));
+   sql(f.db, "UPDATE u SET secret2fa=? WHERE oId='1'", SECRET);
+   Assert.assertTrue(f.settings.mfa(identity()).getBoolean("enabled"));
+   error(422, () -> f.settings.password(identity(), body(), "ip"));
+   error(422, () -> f.settings.password(identity(), body().put("currentTotp", "000000"), "ip"));
+   f.settings.password(identity(), body().put("currentTotp", totp()), "ip");
+  }
+  System.out.println("PASS security 2 current database password and real TOTP algorithm, missing/wrong factor rejected, enabled state is bool only");
+  for (String mutation : List.of(
+    "UPDATE tokens SET clientId='third' WHERE oId='100'",
+    "UPDATE tokens SET state=2 WHERE oId='100'",
+    "UPDATE tokens SET expiresAt=1 WHERE oId='100'",
+    "UPDATE clients SET status=1 WHERE clientId='website_v3'",
+    "UPDATE u SET userStatus=4 WHERE oId='1'",
+    "UPDATE tokens SET scope='profile.read' WHERE oId='100'"))
+   try (var f = new F()) {
+    sql(f.db, mutation);
+    error(403, () -> f.settings.password(identity(), body(), "ip"));
+    Assert.assertEquals(rows(f.db, "SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"), OLD);
+   }
   System.out.println("PASS security 3 current first-party access/client/owner/scope validity; forged cached principal never upgrades a third-party or expired grant");
-  for(String fault:List.of("read","password","revoke","commit"))try(var f=new F()){f.fault=fault;error(503,()->f.settings.password(identity(),body(),"ip"));Assert.assertEquals(rows(f.db,"SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"),OLD);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM states").getFirst().getInt("n"),0);Assert.assertEquals(rows(f.db,"SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"),0);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM requests WHERE userId='1'").getFirst().getInt("n"),2);}
-  try(var f=new F()){f.fault="ack";error(503,()->f.settings.password(identity(),body(),"ip"));Assert.assertEquals(rows(f.db,"SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"),NEW);f.fault="";error(403,()->f.settings.password(identity(),body(),"ip"));}
+  for (String fault : List.of("read", "password", "revoke", "commit"))
+   try (var f = new F()) {
+    f.fault = fault;
+    error(503, () -> f.settings.password(identity(), body(), "ip"));
+    Assert.assertEquals(rows(f.db, "SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"), OLD);
+    Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM states").getFirst().getInt("n"), 0);
+    Assert.assertEquals(rows(f.db, "SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"), 0);
+    Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM requests WHERE userId='1'").getFirst().getInt("n"), 2);
+   }
+  // 提交回执丢失时，已提交的新密码仍生效，旧访问凭据也仍被拒绝。
+  try (var f = new F()) {
+   f.fault = "ack";
+   error(503, () -> f.settings.password(identity(), body(), "ip"));
+   Assert.assertEquals(rows(f.db, "SELECT userPassword FROM u WHERE oId='1'").getFirst().getString("userPassword"), NEW);
+   f.fault = "";
+   error(403, () -> f.settings.password(identity(), body(), "ip"));
+  }
   System.out.println("PASS security 4 actual JDBC read/password/revocation/commit rollback, lost-ack remains committed and revoked access cannot obtain ordinary replay");
   try(var f=new F()){
-   f.allowed=false;error(429,()->f.settings.password(identity(),body(),"ip"));Assert.assertEquals(f.roots,0);for(var bad:List.of(new JSONObject(),body().put("currentPassword",OLD.toUpperCase()),body().put("newPassword","x"),body().put("currentTotp",123456),body().put("userId","2")))error(422,()->f.settings.password(identity(),bad,"ip"));
-   ApiV3SecurityProcessor.registerRoutes(f.controller,f.auth,f.writes);Dispatcher.mapping();for(String token:Arrays.asList(null,"bad","wrong"))Assert.assertEquals(f.http(token,"/api/v3/me/security/mfa",null).attr("test.status"),"wrong".equals(token)?403:401);var state=f.http("owner","/api/v3/me/security/mfa",null);Assert.assertEquals(state.attr("test.status"),200);Assert.assertEquals(state.getResponse().getHeader("Cache-Control"),"no-store");f.allowed=true;Assert.assertEquals(f.http("owner","/api/v3/me/settings/password",body().toString()).attr("test.status"),200);Assert.assertEquals(f.http("owner","/api/v3/me/security/mfa",null).attr("test.status"),401);
+   f.allowed = false;
+   error(429, () -> f.settings.password(identity(), body(), "ip"));
+   Assert.assertEquals(f.roots, 0);
+   for (var bad : List.of(new JSONObject(), body().put("currentPassword", OLD.toUpperCase()),
+     body().put("newPassword", "x"), body().put("currentTotp", 123456), body().put("userId", "2")))
+    error(422, () -> f.settings.password(identity(), bad, "ip"));
+   ApiV3SecurityProcessor.registerRoutes(f.controller, f.auth, f.writes);
+   Dispatcher.mapping();
+   for (String token : Arrays.asList(null, "bad", "wrong"))
+    Assert.assertEquals(f.http(token, "/api/v3/me/security/mfa", null).attr("test.status"), "wrong".equals(token) ? 403 : 401);
+   var state = f.http("owner", "/api/v3/me/security/mfa", null);
+   Assert.assertEquals(state.attr("test.status"), 200);
+   Assert.assertEquals(state.getResponse().getHeader("Cache-Control"), "no-store");
+   f.allowed = true;
+   Assert.assertEquals(f.http("owner", "/api/v3/me/settings/password", body().toString()).attr("test.status"), 200);
+   Assert.assertEquals(f.http("owner", "/api/v3/me/security/mfa", null).attr("test.status"), 401);
   }System.out.println("PASS security 5 input/attempt gate before roots, real GET+PUT Dispatcher/auth/write middleware, no Cookie/apiKey identity, no-store and old access immediately rejected");
   try(var f=new F()){
-   f.settings.password(identity(),body().put("newPassword",OLD),"ip");Assert.assertEquals(rows(f.db,"SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"),1L);
+   f.settings.password(identity(), body().put("newPassword", OLD), "ip");
+   Assert.assertEquals(rows(f.db, "SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"), 1L);
   }
   try(var f=new F()){
-   sql(f.db,"UPDATE u SET secret2fa='INVALID_SECRET' WHERE oId='1'");error(503,()->f.settings.password(identity(),body().put("currentTotp","123456"),"ip"));
+   sql(f.db, "UPDATE u SET secret2fa='INVALID_SECRET' WHERE oId='1'");
+   error(503, () -> f.settings.password(identity(), body().put("currentTotp", "123456"), "ip"));
   }
-  var actualBudget=new ApiV3SecurityProofService();final var limited=new JSONObject().put("user",new JSONObject().put("oId","99991"));for(int i=0;i<12;i++)actualBudget.checkAttempts(limited,"budget-only-ip");error(429,()->actualBudget.checkAttempts(limited,"budget-only-ip"));
+  var actualBudget = new ApiV3SecurityProofService();
+  final var limited = new JSONObject().put("user", new JSONObject().put("oId", "99991"));
+  for (int i = 0; i < 12; i++)
+   actualBudget.checkAttempts(limited, "budget-only-ip");
+  error(429, () -> actualBudget.checkAttempts(limited, "budget-only-ip"));
   System.out.println("PASS security 6 actual bounded shared proof attempts, corrupt MFA secret fails closed without algorithm logging, same-password success still revokes credentials without relying on affected-row mode");
 
  }
