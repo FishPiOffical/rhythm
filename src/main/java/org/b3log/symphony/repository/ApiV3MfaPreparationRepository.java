@@ -21,8 +21,10 @@ package org.b3log.symphony.repository;
 import org.b3log.latke.repository.AbstractRepository;
 import org.b3log.latke.repository.annotation.Repository;
 
-/** At most one pending MFA preparation per account. oId is the account ID. */
+/** 每个账号最多保留一条待完成的 MFA 准备记录，oId 即账号 ID。 */
 @Repository
 public class ApiV3MfaPreparationRepository extends AbstractRepository {
-    public ApiV3MfaPreparationRepository(){super("api_v3_mfa_preparation");}
+    public ApiV3MfaPreparationRepository() {
+        super("api_v3_mfa_preparation");
+    }
 }

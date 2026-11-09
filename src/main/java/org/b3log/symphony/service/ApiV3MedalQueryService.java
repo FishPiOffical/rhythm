@@ -33,7 +33,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.List;
 
-/** Owner sees hidden grants; public profile sees only currently displayed, unexpired grants. No cleanup writes. */
+/** 本人可查看隐藏勋章，公开资料只显示当前展示且未过期的勋章。查询过程无清理写入。 */
 @Service
 public class ApiV3MedalQueryService {
     @Inject private UserRepository users;
@@ -56,7 +56,7 @@ public class ApiV3MedalQueryService {
                     : new Object[]{identity, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN};
             if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE " + userKey + "=? AND userStatus" + statuses,
                     userArgs).size() != 1) throw ApiV3Requests.notFound();
-            // Apply the same account, owner, visibility and time predicates to count and page.
+            // 总数和分页查询使用相同的账号、所有者、可见性与时间条件。
             final long now = System.currentTimeMillis();
             final String from = " FROM `" + grants.getName() + "` um JOIN `" + medals.getName()
                     + "` m ON m.medal_id=um.medal_id JOIN `" + users.getName() + "` u ON u.oId=um.user_id"

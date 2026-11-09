@@ -41,7 +41,7 @@ public class ApiV3TagSuggestionQueryService {
     @Inject private ArticleRepository articles;
     public static String prefix(String value) {
         if(value==null)return "";
-        // Same outer whitespace set as the browser's trim, including Unicode separators/BOM.
+        // 去除首尾空白时与浏览器 trim 使用同一字符集合，包括 Unicode 分隔符和 BOM。
         final String text=value.replaceAll("^[\\s\\p{Z}\\uFEFF]+|[\\s\\p{Z}\\uFEFF]+$", "");
         if(text.length()>64||!text.isEmpty()&&!Tag.TAG_TITLE_PATTERN.matcher(text).matches())throw ApiV3Requests.invalid();
         return text.toLowerCase(Locale.ROOT);

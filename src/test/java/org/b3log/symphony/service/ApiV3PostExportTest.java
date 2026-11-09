@@ -36,7 +36,7 @@ import java.nio.file.*;
 import java.lang.reflect.*;
 import java.util.zip.*;
 
-/** Actual snapshot ZIP, database chunks, proof, point transfer and strict receipt; external transport adapted. */
+/** 覆盖实际快照 ZIP、数据库分块、身份验证、积分转移与严格回执，外部传输由夹具适配。 */
 public class ApiV3PostExportTest extends ApiV3SecurityTest {
  static class F extends ApiV3SecurityTest.F {
   long clock=NOW;String exportFault="";int generated;boolean mutateEpoch;final ApiV3PostExportService export=new ApiV3PostExportService(){protected long now(){return clock;}};
@@ -71,18 +71,61 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
   }
   void insert(String table,JSONObject r)throws RepositoryException {var names=new ArrayList<>(r.keySet());sql(writer,"INSERT INTO "+table+" ("+String.join(",",names)+") VALUES ("+String.join(",",Collections.nCopies(names.size(),"?"))+")",names.stream().map(r::get).toArray());}
   int snapshotIsolationUpgrades;
-  @Override Transaction begin(){Transaction tx=super.begin();Connection previous=writer;final boolean[] raised={false};
-   writer=(Connection)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{Connection.class},(p,m,a)->{try{
-    if(m.getName().equals("getTransactionIsolation")&&exportFault.equals("weak-isolation"))return Connection.TRANSACTION_READ_COMMITTED;
-    if(exportFault.equals("read-committed")){
-     if(m.getName().equals("getTransactionIsolation"))return raised[0]?Connection.TRANSACTION_REPEATABLE_READ:Connection.TRANSACTION_READ_COMMITTED;
-     if(m.getName().equals("setTransactionIsolation")){Assert.assertEquals((Integer)a[0],Integer.valueOf(Connection.TRANSACTION_REPEATABLE_READ));raised[0]=true;snapshotIsolationUpgrades++;return null;}
+  // 用连接代理检查快照隔离级别，并区分提交前故障与提交后回执故障。
+  @Override
+  Transaction begin() {
+   Transaction tx = super.begin();
+   Connection previous = writer;
+   final boolean[] raised = {false};
+   writer = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Connection.class}, (p, m, a) -> {
+    try {
+     if (m.getName().equals("getTransactionIsolation") && exportFault.equals("weak-isolation"))
+      return Connection.TRANSACTION_READ_COMMITTED;
+     if (exportFault.equals("read-committed")) {
+      if (m.getName().equals("getTransactionIsolation"))
+       return raised[0] ? Connection.TRANSACTION_REPEATABLE_READ : Connection.TRANSACTION_READ_COMMITTED;
+      if (m.getName().equals("setTransactionIsolation")) {
+       Assert.assertEquals((Integer) a[0], Integer.valueOf(Connection.TRANSACTION_REPEATABLE_READ));
+       raised[0] = true;
+       snapshotIsolationUpgrades++;
+       return null;
+      }
+     }
+     if (m.getName().equals("commit") && roots >= 3 && exportFault.equals("commit"))
+      throw new SQLException("PRIVATE_COMMIT");
+     if (m.getName().equals("prepareStatement")) {
+      String q = (String) a[0];
+      var ps = (PreparedStatement) m.invoke(previous, a);
+      return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{PreparedStatement.class}, (x, n, b) -> {
+       try {
+        Object out = n.invoke(ps, b);
+        if (n.getName().equals("executeUpdate")
+                && (exportFault.equals("chunks") && q.startsWith("INSERT INTO `chunks`")
+                || exportFault.equals("job") && q.startsWith("INSERT INTO `artifacts`")
+                || exportFault.equals("charge") && q.startsWith("UPDATE u")))
+         throw new SQLException("PRIVATE_WRITE");
+        return out;
+       } catch (InvocationTargetException e) {
+        throw e.getCause();
+       }
+      });
+     }
+     Object out = m.invoke(previous, a);
+     if (m.getName().equals("commit") && roots == 3 && exportFault.equals("ack"))
+      throw new SQLException("PRIVATE_ACK");
+     return out;
+    } catch (InvocationTargetException e) {
+     throw e.getCause();
     }
-    if(m.getName().equals("commit")&&roots>=3&&exportFault.equals("commit"))throw new SQLException("PRIVATE_COMMIT");
-    if(m.getName().equals("prepareStatement")){String q=(String)a[0];var ps=(PreparedStatement)m.invoke(previous,a);return Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{PreparedStatement.class},(x,n,b)->{try{Object out=n.invoke(ps,b);if(n.getName().equals("executeUpdate")&&(exportFault.equals("chunks")&&q.startsWith("INSERT INTO `chunks`")||exportFault.equals("job")&&q.startsWith("INSERT INTO `artifacts`")||exportFault.equals("charge")&&q.startsWith("UPDATE u")))throw new SQLException("PRIVATE_WRITE");return out;}catch(InvocationTargetException e){throw e.getCause();}});}
-    Object out=m.invoke(previous,a);if(m.getName().equals("commit")&&roots==3&&exportFault.equals("ack"))throw new SQLException("PRIVATE_ACK");return out;
-   }catch(InvocationTargetException e){throw e.getCause();}});
-   try{var field=JdbcTransaction.class.getDeclaredField("connection");field.setAccessible(true);field.set(this.tx,writer);}catch(Exception e){throw new RuntimeException(e);}return tx;
+   });
+   try {
+    var field = JdbcTransaction.class.getDeclaredField("connection");
+    field.setAccessible(true);
+    field.set(this.tx, writer);
+   } catch (Exception e) {
+    throw new RuntimeException(e);
+   }
+   return tx;
   }
   JSONObject create(String key)throws Exception{return export.create(identity(),new JSONObject().put("currentPassword",OLD),key,"ip");}
   RequestContext http(String method,String path,String key,String content)throws Exception {

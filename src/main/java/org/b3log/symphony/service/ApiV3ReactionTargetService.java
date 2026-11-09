@@ -32,7 +32,7 @@ import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** The same viewer-explicit gate is used for HTTP and each forum event recipient. */
+/** HTTP 请求和论坛实时事件均按具体查看者使用同一可见性校验。 */
 @Service
 public class ApiV3ReactionTargetService {
     @Inject private ArticleRepository articles;
@@ -48,7 +48,7 @@ public class ApiV3ReactionTargetService {
         };
         return validate(viewer, type, row, false);
     }
-    /** Target row is already locked by the shared mutation service. */
+    /** 写入时，表态目标行已由共享写入服务锁定。 */
     public JSONObject validate(final JSONObject viewer, final String type, final JSONObject row, final boolean locked) throws RepositoryException {
         if (null == row) throw ApiV3Requests.notFound();
         if (Reaction.TARGET_TYPE_CHAT.equals(type)) {

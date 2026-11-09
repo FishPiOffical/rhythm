@@ -22,7 +22,7 @@ import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Public comment fields; identities, moderation state and paragraph snapshots are server-owned. */
+/** 仅接收公开的评论输入字段，身份、审核状态和段落快照由服务端决定。 */
 public final class ApiV3CommentInputs {
     private ApiV3CommentInputs() { }
     public static final Set<String> EDIT_FIELDS = Set.of("content", "visible");

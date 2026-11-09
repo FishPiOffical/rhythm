@@ -32,7 +32,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Owner-bound group mutation and receipt share a strict root. Existing readers remain read-only. */
+/** 本人表情分组修改与重放回执同严格事务提交，已有读取入口保持只读。 */
 @Service
 public class ApiV3EmojiGroupService {
     @Inject private UserRepository users;

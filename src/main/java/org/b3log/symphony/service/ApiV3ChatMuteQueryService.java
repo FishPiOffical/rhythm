@@ -30,46 +30,64 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.*;
 
-/** Read actual per-account restrictions, never the legacy username display snapshot. */
+/** 按账号读取当前禁言记录，并联查有效账号的公开资料。 */
 @Service
 public class ApiV3ChatMuteQueryService {
     @Inject private CloudRepository cloud;
     @Inject private UserRepository users;
     private static final int READ_BUDGET = 10000;
-    protected long now() { return System.currentTimeMillis(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     protected List<JSONObject> rows() throws RepositoryException {
         return cloud.select("SELECT c.userId,c.gameId,c.data,u.oId,u.userName,u.userNickname,u.userAvatarURL FROM `"
                 + cloud.getName() + "` c INNER JOIN `" + users.getName() + "` u ON u.oId=c.userId"
                 + " WHERE c.gameId=? AND u.userStatus=0 ORDER BY c.oId LIMIT " + (READ_BUDGET + 1), "sys-mute");
     }
     public JSONObject list(final int page, final int size) {
-        if(page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
+        if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50)
+            throw ApiV3Requests.invalid();
         try {
             final var rows = rows();
-            if(rows.size() > READ_BUDGET) throw unavailable();
+            if (rows.size() > READ_BUDGET)
+                throw unavailable();
             final long now = now();
             final var seen = new HashSet<String>();
             final var active = new ArrayList<JSONObject>();
-            for(final var row : rows) {
+            for (final var row : rows) {
                 final String id = row.optString("oId"), value = row.optString("data"), name = row.optString("userName");
-                if(!id.matches("[1-9][0-9]{0,18}") || !id.equals(row.optString("userId"))
+                if (!id.matches("[1-9][0-9]{0,18}") || !id.equals(row.optString("userId"))
                         || !"sys-mute".equals(row.optString("gameId")) || !seen.add(id)
-                        || !value.matches("[0-9]{1,19}")) throw unavailable();
+                        || !value.matches("[0-9]{1,19}"))
+                    throw unavailable();
                 final long until;
-                try { until = Long.parseLong(value); } catch(NumberFormatException e) { throw unavailable(); }
-                if(until <= now) continue;
-                if(!name.matches("[A-Za-z0-9_-]{1,64}")) throw unavailable();
+                try {
+                    until = Long.parseLong(value);
+                } catch (NumberFormatException e) {
+                    throw unavailable();
+                }
+                if (until <= now)
+                    continue;
+                if (!name.matches("[A-Za-z0-9_-]{1,64}"))
+                    throw unavailable();
                 final String nickname = row.optString("userNickname");
                 active.add(new JSONObject().put("id",id).put("userName",name)
                         .put("userNickname",nickname.length() <= 255 && nickname.codePoints().noneMatch(Character::isISOControl) ? nickname : "")
                         .put("userAvatarURL",ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL"))).put("expiresAt",until));
             }
+            // 只对未过期记录排序和分页，分页总数也取有效记录数。
             active.sort(Comparator.comparingLong((JSONObject row) -> row.getLong("expiresAt")).thenComparing(row -> row.getString("id")));
-            final int start = Math.min((page-1)*size, active.size());
+            final int start = Math.min((page - 1) * size, active.size());
             final JSONArray list = new JSONArray();
-            for(final var row : active.subList(start,Math.min(start+size,active.size()))) list.put(row);
-            return ApiV3Requests.pagination(list,page,size,active.size()).put("hasMore",start+list.length()<active.size());
-        } catch(RepositoryException e) { throw unavailable(); }
+            for (final var row : active.subList(start, Math.min(start + size, active.size())))
+                list.put(row);
+            return ApiV3Requests.pagination(list, page, size, active.size()).put("hasMore", start + list.length() < active.size());
+        } catch (RepositoryException e) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","思过崖暂不可用"); }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "思过崖暂不可用");
+    }
 }

@@ -50,7 +50,7 @@ public class ApiV3UploadTicketServiceTest {
     }
     static void status(int status,Throwing action)throws Exception{boolean failed=false;try{action.run();}catch(ApiV3Exception e){failed=true;Assert.assertEquals(e.status,status);}Assert.assertTrue(failed);}
     interface Throwing{void run()throws Exception;}
-    // Only the isolated runner's mutable configuration adapter is supported here.
+    // 此处依赖隔离执行器提供的可变配置适配器。
     static void config(String key,Object value)throws Exception{Symphonys.class.getField(key).set(null,value);}
     public static void main(String[] args)throws Exception {
         var pair=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();String privateKey=Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded());config("RHPIC_TICKET_PRIVATE_KEY",privateKey);
@@ -85,7 +85,7 @@ public class ApiV3UploadTicketServiceTest {
             var context=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));try{status(422,()->ApiV3WriteInputs.body(context,Set.of(),true));}finally{http.release();}
         }
         System.out.println("PASS real Latke request parser rejects caller identity, target, scope, credentials and lifetime fields");
-        // Execute the real policy UPDATE predicates, adapting only MySQL CONCAT to SQLite concatenation.
+        // 执行实际策略的 UPDATE 条件，仅将 MySQL CONCAT 适配为 SQLite 拼接表达式。
         final String source=java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/org/b3log/symphony/service/ApiV3TokenMgmtService.java"));
         final var matcher=java.util.regex.Pattern.compile("DEFAULT_SCOPES = \"([^\"]+)\"").matcher(source);Assert.assertTrue(matcher.find());final String defaults=matcher.group(1);Assert.assertTrue(defaults.length()<=255);Assert.assertTrue(Arrays.asList(defaults.split(" ")).contains("uploads.write"));
         final String old="profile.read content.read activity.read content.write comments.write reactions.write follows.write";

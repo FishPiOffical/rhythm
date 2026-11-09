@@ -28,7 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3AnonymousContentQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** An authenticated owner's anonymous creations are not another user's profile resources. */
+/** 仅登录用户本人可查看自己的匿名创作，其他用户的资料入口不提供这些内容。 */
 @Singleton
 public class ApiV3AnonymousContentProcessor {
     @Inject private ApiV3AnonymousContentQueryService query;

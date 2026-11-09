@@ -25,7 +25,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Set;
 
-/** Markdown submission boundary. Limits follow the existing milestone storage contract. */
+/** 校验里程碑投稿的 Markdown 输入，上限沿用里程碑的存储约定。 */
 public final class ApiV3MilestoneInputs {
     private ApiV3MilestoneInputs() { }
     public static final Set<String> FIELDS = Set.of("title", "date", "endDate", "content", "mediaURL", "mediaType", "mediaCaption", "link");

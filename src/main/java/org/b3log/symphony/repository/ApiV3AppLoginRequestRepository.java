@@ -29,26 +29,37 @@ import org.json.JSONObject;
 
 @Repository
 public class ApiV3AppLoginRequestRepository extends AbstractRepository {
-    public ApiV3AppLoginRequestRepository() { super(ApiV3AppLoginRequest.TABLE); }
-    @Override public Transaction beginTransaction() { return ApiV3Transactions.strict(super.beginTransaction()); }
-    /** Hint contains immutable bindings only; the owner must re-read them under the root lock. */
+    public ApiV3AppLoginRequestRepository() {
+        super(ApiV3AppLoginRequest.TABLE);
+    }
+
+    @Override
+    public Transaction beginTransaction() {
+        return ApiV3Transactions.strict(super.beginTransaction());
+    }
+
+    /** 仅预读不可变的绑定字段，调用方取得根事务的锁后必须重新读取。 */
     public JSONObject hint(final String hash) throws RepositoryException {
         return one("SELECT oId,userId,issuerTokenId,credentialEpoch,scope FROM `" + getName() + "` WHERE oId=?", hash);
     }
     public JSONObject currentForUpdate(final String hash) throws RepositoryException {
-        if (!hasTransactionBegun()) throw new IllegalStateException("app login transaction required");
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("app login transaction required");
         return one("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", hash);
     }
-    /** Called after the native client namespace lock, in the administrator's existing strict root. */
+    /** 在管理员已有的严格根事务中调用，调用前须持有原生客户端命名空间锁。 */
     public int invalidatePendingInCurrentTransaction() throws RepositoryException {
-        if (!hasTransactionBegun()) throw new IllegalStateException("app login transaction required");
-        return ApiV3TransactionStatements.execute("DELETE FROM `"+getName()+"` WHERE state IN (?,?,?,?)",
-                "WAITING","CLAIMED","APP_CONFIRMED","WEB_APPROVED");
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("app login transaction required");
+        return ApiV3TransactionStatements.execute("DELETE FROM `" + getName() + "` WHERE state IN (?,?,?,?)",
+                "WAITING", "CLAIMED", "APP_CONFIRMED", "WEB_APPROVED");
     }
     private JSONObject one(final String sql, final String hash) throws RepositoryException {
-        if (hash == null || !hash.matches("[A-Za-z0-9_-]{43}")) throw new IllegalArgumentException("request hash");
+        if (hash == null || !hash.matches("[A-Za-z0-9_-]{43}"))
+            throw new IllegalArgumentException("request hash");
         final var rows = select(sql, hash);
-        if (rows.size() > 1) throw new RepositoryException("duplicate app login request");
+        if (rows.size() > 1)
+            throw new RepositoryException("duplicate app login request");
         return rows.isEmpty() || !hash.equals(rows.getFirst().optString("oId")) ? null : rows.getFirst();
     }
 }

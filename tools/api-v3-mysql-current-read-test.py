@@ -70,8 +70,8 @@ try:
     while True:
         ready = subprocess.run(["docker", "exec", container, "mysqladmin", "-uroot", "ping"],
                                text=True, capture_output=True, timeout=5)
-        # The entrypoint briefly starts a temporary bootstrap server before execing mysqld.
-        # Testing that server races its intentional shutdown and can mimic a connection fault.
+        # 容器入口会先启动临时初始化服务，再启动正式的 mysqld。
+        # 临时服务会主动退出，此时连入可能产生与故障相似的断连。
         process = subprocess.run(["docker", "exec", container, "cat", "/proc/1/comm"],
                                  text=True, capture_output=True, timeout=5)
         if ready.returncode == 0 and process.stdout.strip() == "mysqld":

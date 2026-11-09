@@ -23,10 +23,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Transport shape only; the approved-registration primitive retains scope/name/callback policy. */
+/** 只校验传输结构，权限范围、名称和回调策略由客户端注册逻辑校验。 */
 public final class ApiV3ClientManagementInputs {
     private ApiV3ClientManagementInputs() { }
-    // User-approved per-client callback count; URI policy remains in the registration primitive.
+    // 这里只限制单个客户端的回调数量，URI 策略由注册逻辑处理。
     public static final int MAX_REDIRECTS = 20;
 
     public record Registration(String name, String scope, List<String> redirectUris) {

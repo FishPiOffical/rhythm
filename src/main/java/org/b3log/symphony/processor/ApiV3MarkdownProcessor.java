@@ -41,7 +41,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Read-only rendering of caller-supplied text. No target lookup, publication or shared Markdown cache. */
+/** 只读渲染调用方提交的文本，不查找目标、不发布内容，也不使用共享 Markdown 缓存。 */
 @Singleton
 public class ApiV3MarkdownProcessor {
     public static final int MAX_CONTENT_LENGTH = 1024000;
@@ -60,7 +60,7 @@ public class ApiV3MarkdownProcessor {
         ApiV3Requests.respond(context, () -> {
             final var viewer = ApiV3Requests.viewer(context);
             if (viewer == null) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
-            // Preview has its own budget; typing must not consume publication/write allowance.
+            // 预览使用独立额度，输入过程中的预览不占用发布或写入额度。
             final int user = COUNTS.get("user:" + viewer.optString(Keys.OBJECT_ID), key -> new AtomicInteger()).incrementAndGet();
             final int ip = COUNTS.get("ip:" + Requests.getRemoteAddr(context.getRequest()), key -> new AtomicInteger()).incrementAndGet();
             if (user > 120 || ip > 600) {

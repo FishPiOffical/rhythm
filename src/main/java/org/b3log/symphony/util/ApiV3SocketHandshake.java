@@ -30,43 +30,58 @@ import org.b3log.latke.http.WebSocketSession;
 import java.lang.reflect.Field;
 
 /**
- * Adapter for the bundled Latke handshake, before a v3 socket may accept credentials.
- * Its query parameters can overwrite the framework's ip parameter, so only an exact,
- * query-free request target is trusted. This provides transport metadata, never identity.
+ * v3 WebSocket 接收凭据前，从内置 Latke 的握手中读取传输元数据。
+ * 查询参数可以覆盖框架写入的 ip 参数，因此只接受与预期路径完全一致、没有查询串的请求。
  */
 public final class ApiV3SocketHandshake {
     private ApiV3SocketHandshake() { }
     public record Peer(String ip) { }
 
-    public static boolean writable(final WebSocketSession session){
-        try{final var c=(ChannelHandlerContext)Metadata.CONTEXT.get(session);return c!=null&&c.channel().isActive()&&c.channel().isWritable();}
-        catch(ReflectiveOperationException|RuntimeException|LinkageError e){return false;}
+    public static boolean writable(final WebSocketSession session) {
+        try {
+            final var c = (ChannelHandlerContext) Metadata.CONTEXT.get(session);
+            return c != null && c.channel().isActive() && c.channel().isWritable();
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            return false;
+        }
     }
 
-    /** Tight frame/fragment limits on this channel only, before requesting the authentication frame. */
-    public static boolean prepare(final WebSocketSession session){
-        try{
-            final var context=(ChannelHandlerContext)Metadata.CONTEXT.get(session);
-            if(context==null)return false;
-            final java.util.concurrent.Callable<Boolean> configure=()->{
-                final var handler=context.pipeline().get(Metadata.HANDLER);
-                final var handshaker=handler==null?null:(WebSocketServerHandshaker)Metadata.HANDSHAKER.get(handler);
-                if(handshaker==null||handshaker.version()!=WebSocketVersion.V13)return false;
-                final var decoder=context.pipeline().context(WebSocketFrameDecoder.class);
-                final var aggregator=context.pipeline().context(WebSocketFrameAggregator.class);
-                if(decoder==null||aggregator==null)return false;
-                context.pipeline().replace(decoder.name(),decoder.name(),new WebSocket13FrameDecoder(handshaker.decoderConfig().toBuilder().maxFramePayloadLength(1024).build()));
-                context.pipeline().replace(aggregator.name(),aggregator.name(),new WebSocketFrameAggregator(1024));
+    /** 请求认证帧之前，为当前连接设置单帧和分片聚合后的大小上限。 */
+    public static boolean prepare(final WebSocketSession session) {
+        try {
+            final var context = (ChannelHandlerContext) Metadata.CONTEXT.get(session);
+            if (context == null)
+                return false;
+            final java.util.concurrent.Callable<Boolean> configure = () -> {
+                final var handler = context.pipeline().get(Metadata.HANDLER);
+                final var handshaker = handler == null ? null : (WebSocketServerHandshaker) Metadata.HANDSHAKER.get(handler);
+                if (handshaker == null || handshaker.version() != WebSocketVersion.V13)
+                    return false;
+                final var decoder = context.pipeline().context(WebSocketFrameDecoder.class);
+                final var aggregator = context.pipeline().context(WebSocketFrameAggregator.class);
+                if (decoder == null || aggregator == null)
+                    return false;
+                context.pipeline().replace(decoder.name(), decoder.name(),
+                        new WebSocket13FrameDecoder(handshaker.decoderConfig().toBuilder().maxFramePayloadLength(1024).build()));
+                context.pipeline().replace(aggregator.name(), aggregator.name(), new WebSocketFrameAggregator(1024));
                 return true;
             };
-            if(context.executor().inEventLoop())return configure.call();
-            final var task=context.executor().submit(configure);
-            try{return task.get(5,java.util.concurrent.TimeUnit.SECONDS);}
-            catch(Exception e){task.cancel(false);return false;}
-        }catch(Exception|LinkageError e){return false;}
+            // 解码器和聚合器在连接所属的事件循环内替换。
+            if (context.executor().inEventLoop())
+                return configure.call();
+            final var task = context.executor().submit(configure);
+            try {
+                return task.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception e) {
+                task.cancel(false);
+                return false;
+            }
+        } catch (Exception | LinkageError e) {
+            return false;
+        }
     }
 
-    /** Null means unsupported framework metadata or rejected request; callers must close. */
+    /** 返回 null 表示框架元数据不受支持或请求已被拒绝，调用方须关闭连接。 */
     public static Peer inspect(final WebSocketSession session, final String expectedPath) {
         if (null == session || null == expectedPath || !expectedPath.startsWith("/")
                 || expectedPath.startsWith("//") || expectedPath.contains("?") || expectedPath.contains("#")) return null;
@@ -77,12 +92,12 @@ public final class ApiV3SocketHandshake {
             if (null == handler) return null;
             final var handshaker = (WebSocketServerHandshaker) Metadata.HANDSHAKER.get(handler);
             if (null == handshaker || !expectedPath.equals(handshaker.uri())) return null;
-            // Safe only after rejecting every query string, including ?ip=... and credentials.
+            // 确认握手路径没有查询串后，才读取框架写入的 IP。
             final String ip = session.getParameter("ip");
             if (null == ip || ip.length() > 128 || (!NetUtil.isValidIpV4Address(ip) && !NetUtil.isValidIpV6Address(ip))) return null;
             return new Peer(ip);
         } catch (final ReflectiveOperationException | RuntimeException | LinkageError e) {
-            // No session/Cookie/parameter fallback when a future Latke version changes internals.
+            // 框架内部结构不兼容时直接失败，避免回退到会话、Cookie 或请求参数。
             return null;
         }
     }
@@ -92,12 +107,20 @@ public final class ApiV3SocketHandshake {
         static final Class<? extends ChannelHandler> HANDLER = handlerType();
         static final Field HANDSHAKER = field(HANDLER, "handshaker");
         static Field field(final Class<?> type, final String name) {
-            try { final Field value = type.getDeclaredField(name);value.setAccessible(true);return value; }
-            catch (final ReflectiveOperationException e) { throw new IllegalStateException("unsupported Latke socket metadata", e); }
+            try {
+                final Field value = type.getDeclaredField(name);
+                value.setAccessible(true);
+                return value;
+            } catch (final ReflectiveOperationException e) {
+                throw new IllegalStateException("unsupported Latke socket metadata", e);
+            }
         }
         static Class<? extends ChannelHandler> handlerType() {
-            try { return Class.forName("org.b3log.latke.http.WebSocketHandler").asSubclass(ChannelHandler.class); }
-            catch (final ReflectiveOperationException e) { throw new IllegalStateException("unsupported Latke socket metadata", e); }
+            try {
+                return Class.forName("org.b3log.latke.http.WebSocketHandler").asSubclass(ChannelHandler.class);
+            } catch (final ReflectiveOperationException e) {
+                throw new IllegalStateException("unsupported Latke socket metadata", e);
+            }
         }
     }
 }

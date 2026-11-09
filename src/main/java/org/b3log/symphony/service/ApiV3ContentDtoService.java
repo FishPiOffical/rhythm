@@ -36,7 +36,7 @@ import org.b3log.symphony.util.Markdowns;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
-/** Common public content DTOs; no list queries or viewer identity resolution. */
+/** 公共内容的通用 DTO，由调用方提供内容与查看者。 */
 @Service
 public class ApiV3ContentDtoService {
     @Inject private UserRepository userRepository;
@@ -59,12 +59,12 @@ public class ApiV3ContentDtoService {
         }
     }
 
-    /** A caller with a current SQL author snapshot need not fall back to a cached user lookup. */
+    /** 调用方可提供 SQL 查询得到的当前作者快照，避免重新从用户缓存取资料。 */
     public JSONObject summary(final JSONObject article, final JSONObject author) {
         final boolean blocked = isBlocked(author);
         final boolean anonymous = Article.ARTICLE_ANONYMOUS_C_ANONYMOUS == article.optInt(Article.ARTICLE_ANONYMOUS);
         final boolean thought = Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE);
-        // Thought replay records are not a readable preview and must not be flattened into one.
+        // 思绪回放记录保留其原有含义，跳过普通预览转换。
         final String preview = blocked || thought ? "" : Jsoup.parse(render(article.optString(Article.ARTICLE_CONTENT))).text();
         return new JSONObject().put("id", article.optString(Keys.OBJECT_ID))
                 .put("title", blocked ? "内容不可用" : article.optString(Article.ARTICLE_TITLE))

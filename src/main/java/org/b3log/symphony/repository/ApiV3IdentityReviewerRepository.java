@@ -23,5 +23,7 @@ import org.b3log.latke.repository.annotation.Repository;
 
 @Repository
 public class ApiV3IdentityReviewerRepository extends AbstractRepository {
-    public ApiV3IdentityReviewerRepository(){super("api_v3_identity_reviewer");}
+    public ApiV3IdentityReviewerRepository() {
+        super("api_v3_identity_reviewer");
+    }
 }

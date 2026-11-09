@@ -31,7 +31,7 @@ import io.netty.handler.codec.http.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real ranking SQL with a SQLite database; controller/auth/Dispatcher use production classes. */
+/** 在 SQLite 执行实际排行 SQL，控制器、鉴权与 Dispatcher 使用生产实现。 */
 public class ApiV3ProfessionRankingQueryTest {
     static void inject(Object target,String key,Object value)throws Exception{var f=target.getClass().getDeclaredField(key);f.setAccessible(true);f.set(target,value);}
     static JSONObject visibility(String ranking,String experience){var j=new JSONObject();for(String k:List.of("primaryProfession","allProfessions","experience","rarity","majorContributions","contributionStats","activityFeed","levelHistory","rewards","ranking"))j.put(k,"PUBLIC");return j.put("ranking",ranking).put("experience",experience);}
@@ -161,7 +161,7 @@ public class ApiV3ProfessionRankingQueryTest {
         try(var f=new Fixture()){
             var budget=new ApiV3ProfessionRankingQueryService.CandidateBudget();
             for(int i=0;i<55;i++)f.query.summary("10","1","4",budget);
-            // Actual new candidates, not any old COUNT estimate, consume the remaining shared request allowance.
+            // 共享请求预算的剩余额度按实际新增候选计扣，旧 COUNT 预估不参与。
             for(int i=76;i<200;i++)f.candidate(i,1,false);
             error(503,()->f.query.summary("10","1","4",budget));
         }System.out.println("PASS 10 shared public-profile budget counts actual rows across both reads and all boards, catches concurrent population growth, and leaves standalone rankings unchanged");

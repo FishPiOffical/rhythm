@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-/** Strict inputs for private column mutations. */
+/** 校验本人专栏写入请求的字段与类型。 */
 public final class ApiV3ColumnInputs {
     private ApiV3ColumnInputs() { }
     public static String text(final JSONObject body, final String field, final int max, final boolean emptyAllowed) {

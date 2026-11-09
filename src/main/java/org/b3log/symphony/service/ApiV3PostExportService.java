@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Private replicated artifacts and their charge become visible in one strict database commit. */
+/** 私人导出文件和费用在同一个严格数据库事务中提交。 */
 @Service
 public class ApiV3PostExportService {
     @Inject private ApiV3SecurityProofService proofs;
@@ -61,40 +61,78 @@ public class ApiV3PostExportService {
         if(body==null||!Set.of("currentPassword","currentTotp").containsAll(body.keySet()))throw ApiV3Requests.invalid();
         final String password=ApiV3SecurityInputs.digest(body.opt("currentPassword")),totp=ApiV3SecurityInputs.totp(body.opt("currentTotp"));
         if(key==null||!key.matches("[A-Za-z0-9._:-]{1,128}"))throw ApiV3Requests.invalid();
-        proofs.checkAttempts(identity,ip);noRoot();
-        final String actor=actor(identity),receiptId=ApiV3TokenUtil.hash("request-key\0"+actor+"\0"+OPERATION+"\0"+key);
-        final JSONObject normalized=new JSONObject().put("formatVersion",1);final String requestHash=ApiV3TokenUtil.hash("request-body\0"+ApiV3Json.canonical(normalized));
-        final String initialBinding;JSONObject previous;
-        Transaction tx=begin();
+        proofs.checkAttempts(identity, ip);
+        noRoot();
+        final String actor = actor(identity), receiptId = ApiV3TokenUtil.hash("request-key\0" + actor + "\0" + OPERATION + "\0" + key);
+        final JSONObject normalized = new JSONObject().put("formatVersion", 1);
+        final String requestHash = ApiV3TokenUtil.hash("request-body\0" + ApiV3Json.canonical(normalized));
+        final String initialBinding;
+        JSONObject previous;
+        Transaction tx = begin();
         try {
             initialBinding=binding(requireCreation(identity,password,totp));
             previous=requests.getForUpdate(receiptId);
             if(previous!=null&&!requestHash.equals(previous.optString("requestHash")))throw new ApiV3Exception(409,"idempotency_conflict","相同幂等键不能用于不同请求内容");
             tx.commit();
-        }catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}finally{if(tx.isActive())tx.rollback();}
-        if(previous!=null){try{return replay(identity,actor,new JSONObject(previous.getString("responseJson")),key);}catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}}
-        try(var files=new ApiV3PostExportFiles()) {
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
+        if (previous != null) {
+            try {
+                return replay(identity, actor, new JSONObject(previous.getString("responseJson")), key);
+            } catch (ApiV3Exception e) {
+                throw e;
+            } catch (Exception e) {
+                throw unavailable();
+            }
+        }
+        try (var files = new ApiV3PostExportFiles()) {
+            // 先在独立的读取事务中生成一致性快照，再进入积分与文件写入事务。
             final var snapshot=snapshots.generate(actor,files,clock());
             final String jobId=Ids.genTimeMillisId(),billingId=billing(actor,key);
             final JSONObject receipt=points.executeWithTransferLocks(actor,List.of(Pointtransfer.ID_C_SYS),()->{
                 try(final var caches=ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
-                    final ApiV3MutationStore guarded=new ApiV3MutationStore(){
+                    final ApiV3MutationStore guarded = new ApiV3MutationStore() {
                         JSONObject current;
-                        public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                        public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-                        public JSONObject getForUpdate(String id)throws RepositoryException{current=requireCreation(identity,password,totp);return requests.getForUpdate(id);}
-                        public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                        public void update(String id,JSONObject row,String...fields)throws RepositoryException{requests.update(id,row,fields);}
+
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
+                        }
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
+
+                        public JSONObject getForUpdate(String id) throws RepositoryException {
+                            current = requireCreation(identity, password, totp);
+                            return requests.getForUpdate(id);
+                        }
+
+                        public String add(JSONObject row) throws RepositoryException {
+                            return requests.add(row);
+                        }
+
+                        public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                            requests.update(id, row, fields);
+                        }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomic(guarded,actor,OPERATION,key,normalized,()->{
-                        // Final proof is freshly read inside the transaction which performs the charge.
+                        // 扣费事务内重新读取凭据，并与生成快照前的凭据绑定比对。
                         final JSONObject current=requireCreation(identity,password,totp);
                         if(!initialBinding.equals(binding(current)))throw new ApiV3Exception(409,"security_changed","账号安全状态已变化，请重新发起导出");
-                        final int price=Pointtransfer.TRANSFER_SUM_C_DATA_EXPORT;if(price<=0)throw unavailable();
+                        final int price = Pointtransfer.TRANSFER_SUM_C_DATA_EXPORT;
+                        if (price <= 0)
+                            throw unavailable();
                         var balances=users.select("SELECT userPoint FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
                         if(balances.size()!=1)throw unavailable();
                         if(ApiV3PostExportSnapshotService.number(balances.getFirst(),"userPoint")<price)throw new ApiV3Exception(409,"insufficient_points","积分不足");
-                        final long readyAt=clock(),expiresAt=Math.addExact(readyAt,RETENTION);int count=writeChunks(actor,jobId,files,snapshot);
+                        final long readyAt = clock(), expiresAt = Math.addExact(readyAt, RETENTION);
+                        int count = writeChunks(actor, jobId, files, snapshot);
                         final String transfer=points.transferInCurrentTransaction(actor,Pointtransfer.ID_C_SYS,Pointtransfer.TRANSFER_TYPE_C_DATA_EXPORT,price,jobId,readyAt,"导出本人文章和评论",new PointtransferSource("","",OPERATION,billingId),false);
                         if(transfer==null||!transfer.matches("[1-9][0-9]{0,18}"))throw unavailable();
                         if(ApiV3TransactionStatements.execute("INSERT INTO `"+exports.getName()+"` (oId,userId,createdAt,capturedAt,expiresAt,articleCount,commentCount,sourceBytes,byteLength,sha256,chunkCount,paidPoints) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",jobId,actor,readyAt,snapshot.capturedAt(),expiresAt,snapshot.articles(),snapshot.comments(),snapshot.sourceBytes(),snapshot.bytes(),snapshot.sha256(),count,price)!=1)throw unavailable();
@@ -104,7 +142,11 @@ public class ApiV3PostExportService {
                 }
             });
             return replay(identity,actor,receipt,key);
-        }catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     private JSONObject replay(JSONObject identity,String actor,JSONObject receipt,String key)throws Exception {
         if(!receipt.keySet().equals(Set.of("jobId","paidPoints","indexTransferId")))throw unavailable();
@@ -146,8 +188,12 @@ public class ApiV3PostExportService {
             final var counts=chunks.select("SELECT COUNT(*) AS total FROM `"+chunks.getName()+"` WHERE jobId=? AND userId=?",job,actor);
             if(counts.size()!=1||ApiV3PostExportSnapshotService.number(counts.getFirst(),"total")!=count)throw unavailable();
             byte[] result=output.toByteArray();if(result.length!=expected||!ApiV3PostExportFiles.sha256(result).equals(ApiV3PostExportSnapshotService.text(row,"sha256")))throw unavailable();
-            // Recheck current first-party authorization and expiry after assembling, before any headers/body are sent.
-            proofs.read(identity);JSONObject after=find(actor,job,false);if(!ApiV3Json.canonical(row).equals(ApiV3Json.canonical(after)))throw unavailable();return result;
+            // 文件组装完成后再次确认第一方授权、有效期和元数据，然后交由处理器发送。
+            proofs.read(identity);
+            JSONObject after = find(actor, job, false);
+            if (!ApiV3Json.canonical(row).equals(ApiV3Json.canonical(after)))
+                throw unavailable();
+            return result;
         }catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}
     }
     private JSONObject find(String actor,String job,boolean locked)throws Exception {

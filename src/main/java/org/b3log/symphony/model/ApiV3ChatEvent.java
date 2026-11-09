@@ -20,7 +20,7 @@ package org.b3log.symphony.model;
 
 import java.util.Set;
 
-/** Committed public-room changes; no message contents, user snapshots or credentials. */
+/** 已提交的公开聊天室变更记录，消息正文、用户快照和凭据不随事件记录入库。 */
 public final class ApiV3ChatEvent {
     private ApiV3ChatEvent() { }
     public static final String REPOSITORY="api_v3_chat_event";

@@ -34,7 +34,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-/** Owner-paid stick time, charge and retry receipt share one strict transaction. */
+/** 作者付费置顶的时长、扣费和重试回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3ArticleStickService {
     private static final String OPERATION = "articles.stick";

@@ -27,18 +27,30 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Production settlement and point primitives, exact read DDL; connection-only cache/notification adapters. */
+/** 使用实际结算、积分操作和阅读统计 DDL，缓存与通知使用测试适配器。 */
 public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTest {
  static final long START=21600000L;
  static class S extends F {
   final LongArticleReadSettlementService settle=new LongArticleReadSettlementService();
   int messages,unsafeIndexes,refreshes;boolean failMessage,holdAuthor;String releaseGate;
-  @Override List<JSONObject> query(String q,Object...a)throws RepositoryException {
-   var out=super.query(q,a);
-   if(holdAuthor&&q.contains("`users`")&&q.endsWith("FOR UPDATE")){
-    holdAuthor=false;System.out.println("HOLDING_AUTHOR");System.out.flush();long end=System.currentTimeMillis()+20000;
-    try{while(!java.nio.file.Files.exists(java.nio.file.Path.of(releaseGate))){if(System.currentTimeMillis()>end)throw new IllegalStateException("release timeout");Thread.sleep(20);}}
-    catch(InterruptedException e){Thread.currentThread().interrupt();throw new RepositoryException(e);}
+  @Override
+  List<JSONObject> query(String q, Object... a) throws RepositoryException {
+   var out = super.query(q, a);
+   // 真实查询持有作者行锁后通知协调进程，保留锁直到另一进程观察到等待。
+   if (holdAuthor && q.contains("`users`") && q.endsWith("FOR UPDATE")) {
+    holdAuthor = false;
+    System.out.println("HOLDING_AUTHOR");
+    System.out.flush();
+    long end = System.currentTimeMillis() + 20000;
+    try {
+     while (!java.nio.file.Files.exists(java.nio.file.Path.of(releaseGate))) {
+      if (System.currentTimeMillis() > end) throw new IllegalStateException("release timeout");
+      Thread.sleep(20);
+     }
+    } catch (InterruptedException e) {
+     Thread.currentThread().interrupt();
+     throw new RepositoryException(e);
+    }
    }
    return out;
   }

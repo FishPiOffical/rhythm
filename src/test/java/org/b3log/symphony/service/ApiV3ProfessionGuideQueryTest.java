@@ -31,7 +31,7 @@ import io.netty.handler.codec.http.*;
 import java.sql.*;
 import java.util.*;
 
-/** Actual bounded service SQL, typed DTO and HTTP/auth/routes on isolated SQLite. */
+/** 在隔离的 SQLite 上执行实际限量查询与类型化 DTO，并走实际 HTTP、鉴权和路由。 */
 public class ApiV3ProfessionGuideQueryTest {
     static void inject(Object target,String key,Object value)throws Exception{var f=target.getClass().getDeclaredField(key);f.setAccessible(true);f.set(target,value);}
     static class Fixture implements AutoCloseable {
@@ -105,7 +105,7 @@ public class ApiV3ProfessionGuideQueryTest {
         System.out.println("PASS 1 actual published selection metadata, current scheme rewards only, duplicate trigger preservation, strict response whitelist, no owner progress synthesis");
         try(var f=new Fixture()){
             final var before=f.query.guides("1","10");
-            // Actual publishProfession shape: retire old definition, publish the new one, only move currentRevisionId.
+            // 模拟 publishProfession 的实际写入顺序：停用旧定义、发布新定义、仅更新 currentRevisionId。
             f.sql("UPDATE r SET status='RETIRED' WHERE oId='100'");
             f.sql("INSERT INTO r VALUES('102','10','PUBLISHED')");
             f.sql("UPDATE p SET currentRevisionId='102' WHERE oId='10'");

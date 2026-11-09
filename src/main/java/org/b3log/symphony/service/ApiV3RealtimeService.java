@@ -39,7 +39,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Transport adapter and bounded best-effort fanout. No business writes or legacy message forwarding. */
+/** 实时传输适配和有界广播，业务写入与旧消息转发由其他链路处理。 */
 @Service
 public class ApiV3RealtimeService {
     @Inject private ApiV3SocketTicketService tickets;
@@ -102,18 +102,50 @@ public class ApiV3RealtimeService {
         }
         return sessions;
     }
-    public void open(WebSocketSession session,String ip){
-        final ApiV3RealtimeSessions active=sessions==null?registry():sessions;
-        active.open(session,new ApiV3RealtimeSessions.Transport(){
-        public void send(String text){if(!ApiV3SocketHandshake.writable(session))throw new IllegalStateException("socket backpressure");session.sendText(text);}public void close(){session.close();}
-    },ip);}
-    public void receive(WebSocketSession session,String text){final var registry=sessions;if(registry!=null)registry.receive(session,text);else session.close();}
-    public void close(WebSocketSession session){final var registry=sessions;if(registry!=null)registry.close(session);}
-    private void executeWorker(Runnable work){workers.execute(()->{
-        try{work.run();}
-        finally{try{ApiV3Transactions.releaseThreadResources();}catch(RuntimeException ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 background JDBC cleanup failed");}}
-    });}
-    /** Read committed markers, including writes produced by legacy callers or another backend instance. */
+    public void open(WebSocketSession session, String ip) {
+        final ApiV3RealtimeSessions active = sessions == null ? registry() : sessions;
+        active.open(session, new ApiV3RealtimeSessions.Transport() {
+            public void send(String text) {
+                if (!ApiV3SocketHandshake.writable(session))
+                    throw new IllegalStateException("socket backpressure");
+                session.sendText(text);
+            }
+
+            public void close() {
+                session.close();
+            }
+        }, ip);
+    }
+
+    public void receive(WebSocketSession session, String text) {
+        final var registry = sessions;
+        if (registry != null)
+            registry.receive(session, text);
+        else
+            session.close();
+    }
+
+    public void close(WebSocketSession session) {
+        final var registry = sessions;
+        if (registry != null)
+            registry.close(session);
+    }
+
+    private void executeWorker(Runnable work) {
+        workers.execute(() -> {
+            try {
+                work.run();
+            } finally {
+                try {
+                    ApiV3Transactions.releaseThreadResources();
+                } catch (RuntimeException ignored) {
+                    org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 background JDBC cleanup failed");
+                }
+            }
+        });
+    }
+
+    /** 读取已提交的版本标记，包括旧入口或其他后端实例写入的标记。 */
     public synchronized void pollNotifications()throws Exception {
         if(sessions==null)return;tickets.requireNoTransaction();
         final Set<String> owners=sessions.owners();if(owners.isEmpty()){seen.clear();return;}
@@ -134,7 +166,7 @@ public class ApiV3RealtimeService {
             seenArticles.put(id,revision);
         }
     }
-    /** Coalesced per-owner refresh hints, never message history, bodies, peers or unread state. */
+    /** 按所有者合并刷新提示，仅发送变化提示，隐藏私信详情和未读状态。 */
     public synchronized void pollMessages()throws Exception {
         if(sessions==null)return;tickets.requireNoTransaction();
         final Set<String> owners=sessions.messageOwners();if(owners.isEmpty()){seenMessages.clear();return;}
@@ -146,7 +178,7 @@ public class ApiV3RealtimeService {
         }
     }
     private synchronized void resetChat(){if(chatStream!=null)chatStream.reset();}
-    /** Bounded, transient delivery on this instance; never part of the durable message cursor. */
+    /** 在本实例有界发送即时弹幕，弹幕独立于持久消息游标。 */
     public void publishBarrage(final org.b3log.symphony.util.ApiV3BarrageEvent event){
         tickets.requireNoTransaction();final var active=sessions;if(active==null||!active.hasChat())return;
         executeWorker(()->{tickets.requireNoTransaction();active.chatBarrage(event);});
@@ -166,13 +198,13 @@ public class ApiV3RealtimeService {
         });
         chatStream.poll();
     }
-    /** Read the same whitelist as the content.read detail endpoint once per committed event on this node. */
+    /** 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。 */
     private JSONObject chatSnapshot(final String kind, final String id) {
         if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind)) return null;
         try {
             return chatQuery.detail(id);
         } catch (RepositoryException | ApiV3Exception unavailable) {
-            // A later deletion or temporary read failure leaves only the reconciliation hint.
+            // 消息随后被删除或暂时读取失败时，仅保留重新同步提示。
             return null;
         }
     }

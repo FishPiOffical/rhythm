@@ -38,13 +38,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
-/** Owner conditions are repeated in count/page SQL; GET never mutates or returns bodies. */
+/** 计数和分页查询都限定所有者，GET 仅返回元数据。 */
 @Service
 public class ApiV3AnonymousContentQueryService {
     @Inject private UserRepository users;
     @Inject private ArticleRepository articles;
     @Inject private CommentRepository comments;
-    // Work budgets, never silent truncation or a substitute for honest pagination.
+    // 超出处理预算时返回错误，保持分页结果与总数一致。
     private static final int DISCUSSION_BUDGET = 512;
     private static final long DISCUSSION_BYTES = 2L * 1024 * 1024;
     private void requireActor(final String actor) throws RepositoryException {
@@ -132,8 +132,8 @@ public class ApiV3AnonymousContentQueryService {
 
     private List<JSONObject> allowedDiscussions(final String actor, final JSONObject viewer) throws RepositoryException {
         if (Role.ROLE_ID_C_ADMIN.equals(viewer.getString("userRole"))) return List.of();
-        // Restrict candidate work to distinct foreign discussion articles referenced by this owner's valid anonymous comments.
-        // Headers contain no bodies: their byte budget is checked before a bounded body projection is issued.
+        // 候选仅包括本人有效匿名评论涉及的他人讨论帖，按文章去重。
+        // 先用不含正文的记录核验字节预算，再执行有界正文查询。
         final var headers = articles.select("SELECT a.oId,SHA2(a.articleContent,256) AS contentHash,OCTET_LENGTH(a.articleContent) AS contentBytes"
                 + " FROM `" + articles.getName() + "` a JOIN `" + users.getName() + "` au ON au.oId=a.articleAuthorId"
                 + " WHERE a.articleType=? AND a.articleAuthorId<>? AND a.articleStatus<>? AND au.userStatus NOT IN (?,?)"

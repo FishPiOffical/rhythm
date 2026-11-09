@@ -35,12 +35,14 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.*;
 
-/** Current local connections plus the last configured-node sample; never returns stored node users. */
+/** 合并当前本地连接与配置节点的最近采样，按当前账号资料投影名单。 */
 @Service
 public class ApiV3ChatOnlineQueryService {
     @Inject private UserRepository users;
     @Inject private ApiV3RealtimeService realtime;
-    protected ChatOnlineSnapshot.Sample remote() { return ChatOnlineSnapshot.current(); }
+    protected ChatOnlineSnapshot.Sample remote() {
+        return ChatOnlineSnapshot.current();
+    }
     protected Set<String> localIds() {
         final var ids = new HashSet<>(realtime.chatUserIds());
         for (final var user : ChatroomChannel.onlineUsers.values()) {

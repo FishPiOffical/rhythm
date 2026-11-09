@@ -36,7 +36,7 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 
-/** Replaces only the authenticated owner's type-zero picker selection and the receipt atomically. */
+/** 只替换认证用户本人的 type=0 表情选择，并与回执同事务提交。 */
 @Service
 public class ApiV3EmotionSettingsService {
     @Inject private UserRepository users;
@@ -53,7 +53,7 @@ public class ApiV3EmotionSettingsService {
                 public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
                 public void update(final String receipt, final JSONObject row, final String... fields) throws RepositoryException { requests.update(receipt, row, fields); }
             };
-            // Project stored results too: internal receipt objects are never an unrestricted response.
+            // 从内部回执读取的结果也要经过投影，只返回对外字段。
             final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "settings.emotions", key, normalized,
                     () -> updateInCurrentTransaction(actor, normalized));
             return ApiV3EmotionSettingsInputs.effective(ApiV3EmotionSettingsInputs.normalize(

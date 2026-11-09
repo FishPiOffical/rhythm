@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.jsoup.Jsoup;
 import org.json.JSONObject;
 
-/** Fixed medal response fields. Raw styling JSON, grant data and grant identifiers never escape. */
+/** 仅返回固定的勋章字段，省略原始样式 JSON、授予记录及其标识。 */
 public final class ApiV3MedalDto {
     private ApiV3MedalDto() { }
     private static String text(final String value, final int limit) {

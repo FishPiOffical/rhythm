@@ -33,7 +33,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
-/** Read-only state and current indicative fees. Mutations recheck all qualifications under their existing locks. */
+/** 只读查询状态和当前参考费用。实际写入仍须持锁复核所有资格。 */
 @Service
 public class ApiV3CommentRewardQueryService {
     @Inject private CommentRepository comments;

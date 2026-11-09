@@ -31,7 +31,7 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 
-/** First-party MFA: short-lived preparations never enter ordinary idempotency receipts. */
+/** 第一方多因素认证，短期设置凭据不进入普通幂等回执。 */
 @Service
 public class ApiV3MfaService {
     @Inject private ApiV3SecurityProofService proofs;
@@ -115,7 +115,7 @@ public class ApiV3MfaService {
                 ApiV3TransactionStatements.execute("DELETE FROM `"+preparations.getName()+"` WHERE oId=? AND userId=?",actor,actor);
             }
             final int changed=ApiV3TransactionStatements.execute("UPDATE `"+users.getName()+"` SET secret2fa=?,userUpdateTime=? WHERE oId=?",next,now(),actor);
-            // The authenticated actor row is already locked. Some JDBC modes return zero for an unchanged disabled value.
+            // 已锁定认证用户行。部分 JDBC 模式下，重复写入相同的停用值会返回零。
             if(changed!=1&&!(changed==0&&!enable&&secret(current).isEmpty()))throw unavailable();
             credentials.revokeInCurrentTransaction(actor);
             return new JSONObject().put("enabled",enable);

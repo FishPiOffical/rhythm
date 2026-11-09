@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.net.URI;
 
-/** Immutable public payload for transient barrage delivery; never a complete user or legacy envelope. */
+/** 临时弹幕投递使用不可变的公开字段，省略完整用户对象和旧消息封装。 */
 public record ApiV3BarrageEvent(String id,String content,String color,long createdAt,
                                 String authorId,String userName,String userNickname,String userAvatarURL) {
     public ApiV3BarrageEvent {

@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** API v3 access and refresh token fields. Plain tokens are never persisted. */
+/** API v3 访问令牌和刷新令牌的存储字段，令牌明文不入库。 */
 public final class ApiV3Token {
     private ApiV3Token() {
     }

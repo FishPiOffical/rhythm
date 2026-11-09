@@ -39,7 +39,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-/** Read only the actual owner's historical progress, route and recent experience; no zero-state synthesis. */
+/** 只读查询本人已有的职业进度、路线和近期经验。 */
 @Service
 public class ApiV3ProfessionDetailQueryService {
     private static final int MAX_DETAILS = 512;
@@ -90,7 +90,7 @@ public class ApiV3ProfessionDetailQueryService {
         return value;
     }
     private void unchanged(final String actor, final String professionId, final JSONObject before) throws RepositoryException {
-        // Multi-query detail reads never mix two progress versions into an apparently complete route.
+        // 详情由多次查询组成，须确认各结果来自同一进度版本。
         final JSONObject after = current(actor, professionId);
         if (!before.similar(after)) throw ApiV3ProfessionDetailDto.unavailable();
         actor(actor);

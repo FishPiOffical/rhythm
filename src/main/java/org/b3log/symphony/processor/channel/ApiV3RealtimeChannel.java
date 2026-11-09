@@ -29,16 +29,44 @@ import org.b3log.symphony.util.ApiV3Transactions;
 
 @Singleton
 public class ApiV3RealtimeChannel implements WebSocketChannel {
-    @Inject private ApiV3RealtimeService realtime;
-    public static String path(){return Latkes.getContextPath()+"/api/v3/realtime";}
-    @Override public void onConnect(WebSocketSession session){
-        final var peer=ApiV3SocketHandshake.inspect(session,path());
-        if(peer==null||!ApiV3SocketHandshake.prepare(session)){session.close();return;}realtime.open(session,peer.ip());
+    @Inject
+    private ApiV3RealtimeService realtime;
+
+    public static String path() {
+        return Latkes.getContextPath() + "/api/v3/realtime";
     }
-    @Override public void onMessage(Message message){
-        try{realtime.receive(message.session,message.text);}
-        finally{try{ApiV3Transactions.releaseThreadResources();}catch(RuntimeException ignored){realtime.close(message.session);}}
+
+    @Override
+    public void onConnect(WebSocketSession session) {
+        final var peer = ApiV3SocketHandshake.inspect(session, path());
+        if (peer == null || !ApiV3SocketHandshake.prepare(session)) {
+            session.close();
+            return;
+        }
+        realtime.open(session, peer.ip());
     }
-    @Override public void onClose(WebSocketSession session){realtime.close(session);}
-    @Override public void onError(Error error){realtime.close(error.session);}
+
+    @Override
+    public void onMessage(Message message) {
+        try {
+            realtime.receive(message.session, message.text);
+        } finally {
+            // 每条消息处理后释放线程绑定的事务资源，释放失败时关闭连接。
+            try {
+                ApiV3Transactions.releaseThreadResources();
+            } catch (RuntimeException ignored) {
+                realtime.close(message.session);
+            }
+        }
+    }
+
+    @Override
+    public void onClose(WebSocketSession session) {
+        realtime.close(session);
+    }
+
+    @Override
+    public void onError(Error error) {
+        realtime.close(error.session);
+    }
 }

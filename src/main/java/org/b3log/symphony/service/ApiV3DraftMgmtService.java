@@ -30,7 +30,7 @@ import org.b3log.symphony.util.ApiV3DraftDto;
 import org.json.JSONObject;
 
 
-/** Owned draft writes using the original draft rules and the v3 atomic replay boundary. */
+/** 沿用原草稿规则写入本人草稿，业务写入和 API v3 重放回执同事务提交。 */
 @Service
 public class ApiV3DraftMgmtService {
     @Inject private ArticleDraftMgmtService draftMgmtService;

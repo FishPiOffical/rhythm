@@ -26,7 +26,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.util.ApiV3RedPacketTypes;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Red-packet discovery only. Creation and claims require a separate atomic implementation. */
+/** 仅提供红包查询，创建和领取由独立的原子操作处理。 */
 @Singleton
 public class ApiV3RedPacketProcessor {
     public static void register() {

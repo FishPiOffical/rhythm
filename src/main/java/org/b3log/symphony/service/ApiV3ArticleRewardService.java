@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Authenticated article thanks/purchase. Receipts contain no paid body; details always reauthorize reads. */
+/** 已认证用户的文章感谢和购买。回执不含付费正文，读取详情时重新校验权限。 */
 @Service
 public class ApiV3ArticleRewardService {
     @Inject private ArticleRepository articles;
@@ -85,7 +85,10 @@ public class ApiV3ArticleRewardService {
                 if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "文章已变化，请重试");
                 throw new ApiV3Exception(422, e.code, "转账条件未满足，请检查积分余额");
             }
-        }), execution -> { if (execution.applied()) mutations.afterApplied(applied.get()); });
+        }), execution -> {
+            if (execution.applied())
+                mutations.afterApplied(applied.get());
+        });
         return outcome.result();
     }
     private void permission(final JSONObject viewer, final ArticleRewardMgmtService.Kind kind) {
@@ -103,5 +106,7 @@ public class ApiV3ArticleRewardService {
         if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
         return viewer.getString(Keys.OBJECT_ID);
     }
-    private static ApiV3Exception missing() { return new ApiV3Exception(404, "not_found", "资源不存在或不可查看"); }
+    private static ApiV3Exception missing() {
+        return new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
+    }
 }

@@ -33,7 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Real first-party SQL authorization + strict transaction and one-shot material state; SQLite strips FOR UPDATE. */
+/** 覆盖第一方 SQL 授权、严格事务和一次性认证材料状态。SQLite 适配层移除 FOR UPDATE。 */
 public class ApiV3IdentityApplicationTest {
     static byte[] image(String format)throws Exception {
         final var image=new BufferedImage(2,2,BufferedImage.TYPE_INT_RGB);final var out=new ByteArrayOutputStream();
@@ -92,7 +92,7 @@ public class ApiV3IdentityApplicationTest {
                 if(key!=null)raw.headers().set("Idempotency-Key",key);raw.headers().set("Cookie","legacy");raw.headers().set("X-Real-IP","127.0.0.1");
                 raw.content().writeBytes(bytes==null?new byte[0]:bytes);
                 final Request request=new Request(null,raw);
-                // Exercise the bundled framework's lossy preprocessing instead of injecting pristine bytes.
+                // 让原始字节实际经过随包框架中会改变请求体的预处理。
                 final var parse=Request.class.getDeclaredMethod("parseForm");parse.setAccessible(true);parse.invoke(request);
                 if("image/png".equals(media)||"image/jpeg".equals(media)) {
                     if(bytes!=null&&bytes.length>0&&(bytes[0]&255)>=128)Assert.assertFalse(Arrays.equals(request.getBytes(),bytes),"fixture must expose framework binary rewriting");

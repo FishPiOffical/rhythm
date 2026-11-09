@@ -49,7 +49,7 @@ import java.net.URI;
 import java.util.UUID;
 import java.util.Set;
 
-/** Versioned public Web API. It does not delegate authentication to legacy API handlers. */
+/** 对外开放的版本化 Web API，认证由 v3 入口处理。 */
 @Singleton
 public class ApiV3Processor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3Processor.class);
@@ -190,6 +190,7 @@ public class ApiV3Processor {
                 return;
             }
             final JSONObject token = apiV3TokenMgmtService.issue(result.user().optString(Keys.OBJECT_ID));
+            // 刷新令牌通过 Cookie 交付，从 JSON 响应移除。
             setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
             audit(context, "login", "success", result.user().optString(Keys.OBJECT_ID));
@@ -201,6 +202,7 @@ public class ApiV3Processor {
     }
 
     public void refresh(final RequestContext context) {
+        // 先验证来源和正文，再读取并消费 Cookie 中的刷新令牌。
         if (!isSameOrigin(context)) {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
@@ -221,6 +223,7 @@ public class ApiV3Processor {
     }
 
     public void logout(final RequestContext context) {
+        // 来源和正文校验通过后，才撤销刷新令牌并清理 Cookie。
         if (!isSameOrigin(context)) {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
@@ -231,7 +234,7 @@ public class ApiV3Processor {
             audit(context, "logout", "success", null);
         } catch (final ServiceException ignored) {
             audit(context, "logout", "persistence_error", null);
-            // Logout remains idempotent even if persistence is temporarily unavailable.
+            // 存储暂不可用时仍保持退出操作幂等。
         }
         clearRefreshCookie(context);
         success(context, new JSONObject());

@@ -28,7 +28,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Explicit Bearer reader, article visibility and one idempotency transaction per set/clear. */
+/** 按 Bearer 身份检查文章可见性，设置或清除投票各使用一个幂等事务。 */
 @Service
 public class ApiV3ArticleVoteService {
     @Inject private ArticleRepository articles;
@@ -68,7 +68,10 @@ public class ApiV3ArticleVoteService {
                 if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "文章已变化，请重试");
                 throw new ApiV3Exception(422, e.code, "不能对本人文章投票");
             }
-        }), execution -> { if (execution.applied()) mutations.afterVote(actor, changed.get()); });
+        }), execution -> {
+            if (execution.applied())
+                mutations.afterVote(actor, changed.get());
+        });
         return outcome.result();
     }
     private void readable(final JSONObject viewer, final JSONObject article) throws Exception {
@@ -81,5 +84,7 @@ public class ApiV3ArticleVoteService {
         if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
         return viewer.getString(Keys.OBJECT_ID);
     }
-    private static ApiV3Exception missing() { return new ApiV3Exception(404, "not_found", "资源不存在或不可查看"); }
+    private static ApiV3Exception missing() {
+        return new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
+    }
 }

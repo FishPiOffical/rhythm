@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** Hash-only, one-use OAuth authorization code and the grant it approved. */
+/** 一次性 OAuth 授权码及其对应的授权范围，授权码只存哈希。 */
 public final class ApiV3AuthorizationCode {
     private ApiV3AuthorizationCode(){ }
     public static final String TABLE="api_v3_authorization_code";

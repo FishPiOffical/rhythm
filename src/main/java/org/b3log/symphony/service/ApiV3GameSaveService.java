@@ -28,7 +28,7 @@ import org.json.JSONObject;
 import java.util.Set;
 import java.math.BigDecimal;
 
-/** Private registered game slots. New/legacy writers share the current owner lock; raw payloads never enter receipts. */
+/** 已登记游戏的私人存档槽。新旧写入口共用当前账号锁，重放回执只保存元数据。 */
 @Service
 public class ApiV3GameSaveService {
     @Inject private ApiV3GameSaveRepository saves;
@@ -38,36 +38,70 @@ public class ApiV3GameSaveService {
     @Inject private ApiV3ClientRepository clients;
     @Inject private ApiV3TokenRepository tokens;
     @Inject private ApiV3RequestRepository requests;
-    protected long now(){return System.currentTimeMillis();}
-    public JSONObject get(JSONObject identity,String game) {
-        ApiV3GameSaveInputs.game(game);final String actor=actor(identity);
-        try {
-            authorize(identity,"activity.read",false);
-            final JSONObject row=saves.current(actor,game,false);if(row==null)throw missing();
-            final JSONObject result=project(row,actor,game,true);authorize(identity,"activity.read",false);return result;
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+    protected long now() {
+        return System.currentTimeMillis();
     }
-    public JSONObject save(JSONObject identity,String game,JSONObject body,String key) {
-        ApiV3GameSaveInputs.game(game);final String actor=actor(identity);final var input=ApiV3GameSaveInputs.save(body);
-        final JSONObject normalized=new JSONObject().put("gameId",game).put("expectedRevision",input.expectedRevision())
-                .put("sha256",input.content().sha256()).put("byteLength",input.content().byteLength());
+
+    public JSONObject get(JSONObject identity, String game) {
+        ApiV3GameSaveInputs.game(game);
+        final String actor = actor(identity);
         try {
-            final JSONObject result=ApiV3IdempotencyMgmtService.runAtomic(guarded(identity),actor,"game-saves.save",key,normalized,
-                    ()->write(actor,game,input.content(),input.expectedRevision(),false));
-            final JSONObject receipt=receipt(result,game,false);
-            if(receipt.getLong("revision")!=input.expectedRevision()+1||!receipt.getString("sha256").equals(input.content().sha256())
-                    ||receipt.getInt("byteLength")!=input.content().byteLength())throw unavailable();return receipt;
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+            authorize(identity, "activity.read", false);
+            final JSONObject row = saves.current(actor, game, false);
+            if (row == null)
+                throw missing();
+            final JSONObject result = project(row, actor, game, true);
+            authorize(identity, "activity.read", false);
+            return result;
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
-    public JSONObject migrate(JSONObject identity,String game,String key) {
-        ApiV3GameSaveInputs.game(game);final String actor=actor(identity);
+
+    public JSONObject save(JSONObject identity, String game, JSONObject body, String key) {
+        ApiV3GameSaveInputs.game(game);
+        final String actor = actor(identity);
+        final var input = ApiV3GameSaveInputs.save(body);
+        final JSONObject normalized = new JSONObject().put("gameId", game).put("expectedRevision", input.expectedRevision())
+                .put("sha256", input.content().sha256()).put("byteLength", input.content().byteLength());
         try {
-            final JSONObject result=ApiV3IdempotencyMgmtService.runAtomic(guarded(identity),actor,"game-saves.migrate",key,new JSONObject().put("gameId",game),()->{
-                if(saves.current(actor,game,true)!=null)throw conflict("当前已有新存档，不能迁移覆盖");
-                final var source=legacyContent(actor,game,true);if(source==null)throw missing();
-                return write(actor,game,source,0,false).put("migrated",true);
-            });return receipt(result,game,true);
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(guarded(identity), actor, "game-saves.save", key, normalized,
+                    () -> write(actor, game, input.content(), input.expectedRevision(), false));
+            // 读取回执后校验版本和内容摘要，确保结果对应本次提交。
+            final JSONObject receipt = receipt(result, game, false);
+            if (receipt.getLong("revision") != input.expectedRevision() + 1 || !receipt.getString("sha256").equals(input.content().sha256())
+                    || receipt.getInt("byteLength") != input.content().byteLength())
+                throw unavailable();
+            return receipt;
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
+    }
+
+    public JSONObject migrate(JSONObject identity, String game, String key) {
+        ApiV3GameSaveInputs.game(game);
+        final String actor = actor(identity);
+        try {
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(guarded(identity), actor, "game-saves.migrate", key,
+                    new JSONObject().put("gameId", game), () -> {
+                // 在持有账号锁的事务中确认新槽为空，再读取唯一旧存档。
+                if (saves.current(actor, game, true) != null)
+                    throw conflict("当前已有新存档，不能迁移覆盖");
+                final var source = legacyContent(actor, game, true);
+                if (source == null)
+                    throw missing();
+                return write(actor, game, source, 0, false).put("migrated", true);
+            });
+            return receipt(result, game, true);
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
     /** Called only for a whitelisted legacy endpoint after LoginCheck has established this exact credential snapshot. */
     public JSONObject legacySave(String actor,AccountCredentialVersions.Proof proof,String game,Object data) {
@@ -90,12 +124,27 @@ public class ApiV3GameSaveService {
         }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
     }
     private ApiV3MutationStore guarded(JSONObject identity) {
-        return new ApiV3MutationStore(){
-            public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-            public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-            public JSONObject getForUpdate(String id)throws RepositoryException {authorize(identity,"activity.write",true);return requests.getForUpdate(id);}
-            public String add(JSONObject value)throws RepositoryException{return requests.add(value);}
-            public void update(String id,JSONObject value,String...fields)throws RepositoryException{requests.update(id,value,fields);}
+        return new ApiV3MutationStore() {
+            public boolean hasTransactionBegun() {
+                return requests.hasTransactionBegun();
+            }
+
+            public Transaction beginTransaction() {
+                return ApiV3Transactions.strict(requests.beginTransaction());
+            }
+
+            public JSONObject getForUpdate(String id) throws RepositoryException {
+                authorize(identity, "activity.write", true);
+                return requests.getForUpdate(id);
+            }
+
+            public String add(JSONObject value) throws RepositoryException {
+                return requests.add(value);
+            }
+
+            public void update(String id, JSONObject value, String... fields) throws RepositoryException {
+                requests.update(id, value, fields);
+            }
         };
     }
     private JSONObject write(String actor,String game,ApiV3GameSaveInputs.Content data,long expected,boolean blind)throws Exception {

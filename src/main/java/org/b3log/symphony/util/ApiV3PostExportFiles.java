@@ -26,7 +26,7 @@ import java.security.*;
 import java.util.HexFormat;
 import java.util.zip.*;
 
-/** Temporary paths are never returned to HTTP or retained after a request. */
+/** 临时文件路径不会写入 HTTP 响应，临时文件在请求结束后清理。 */
 public final class ApiV3PostExportFiles implements AutoCloseable {
     public static final long ZIP_LIMIT=32L*1024*1024, SOURCE_LIMIT=256L*1024*1024, ROW_LIMIT=16L*1024*1024;
     public static final int CHUNK_BYTES=48*1024;

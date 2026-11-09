@@ -29,7 +29,7 @@ import org.b3log.symphony.util.ApiV3Invitation;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** Read the stored state of one supplied code. Never list codes or access reservation/owner fields. */
+/** 查询单个指定邀请码的状态，隐藏预留和所有者字段。 */
 @Service
 public class ApiV3InvitationQueryService {
     @Inject private UserRepository users;

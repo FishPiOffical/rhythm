@@ -37,7 +37,7 @@ import org.b3log.symphony.util.ApiV3ReactionDto;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Best-effort current-state events, only after a confirmed first commit. */
+/** 首次写入确认提交后，尽力发布当前状态事件。 */
 @Service
 public class ApiV3ReactionEventService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ReactionEventService.class);

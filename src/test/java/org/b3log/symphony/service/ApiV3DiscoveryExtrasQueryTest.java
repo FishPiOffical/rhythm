@@ -42,9 +42,49 @@ public class ApiV3DiscoveryExtrasQueryTest {
             var dto=new ApiV3ContentDtoService();inject(dto,"userRepository",new UserRepository(){public String getName(){return "x_user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});inject(dto,"avatarQueryService",new AvatarQueryService());inject(service,"dto",dto);
             for(int i=1;i<=25;i++)sql("INSERT INTO x_user VALUES (?,0,?,?,?,'PRIVATE_PASSWORD','PRIVATE_PHONE')",String.format("%03d",i),"User"+i,"Nickname "+i,"https://example.test/"+i+".png");
         }
-        static void inject(Object target,String field,Object value)throws Exception{Class<?> type=target.getClass();while(type!=null){try{var f=type.getDeclaredField(field);f.setAccessible(true);f.set(target,value);return;}catch(NoSuchFieldException e){type=type.getSuperclass();}}throw new IllegalStateException(field);}
-        void sql(String q,Object...a)throws SQLException{try(var s=db.prepareStatement(q)){for(int i=0;i<a.length;i++)s.setObject(i+1,a[i]);s.execute();}}
-        List<JSONObject> query(String q,Object...a)throws RepositoryException{if(fail)throw new RepositoryException("fixture");queries.add(q);q=q.replace("BINARY `type`","`type` COLLATE BINARY").replace("BINARY key3","key3 COLLATE BINARY");try(var s=db.prepareStatement(q)){for(int i=0;i<a.length;i++)s.setObject(i+1,a[i]);try(var rs=s.executeQuery()){var out=new ArrayList<JSONObject>();var m=rs.getMetaData();while(rs.next()){var row=new JSONObject();for(int i=1;i<=m.getColumnCount();i++)row.put(m.getColumnLabel(i),rs.getObject(i));out.add(row);}return out;}}catch(SQLException e){throw new RepositoryException(e);}}
+        static void inject(Object target, String field, Object value) throws Exception {
+            Class<?> type = target.getClass();
+            while (type != null) {
+                try {
+                    var f = type.getDeclaredField(field);
+                    f.setAccessible(true);
+                    f.set(target, value);
+                    return;
+                } catch (NoSuchFieldException e) {
+                    type = type.getSuperclass();
+                }
+            }
+            throw new IllegalStateException(field);
+        }
+
+        void sql(String q, Object... a) throws SQLException {
+            try (var s = db.prepareStatement(q)) {
+                for (int i = 0; i < a.length; i++) s.setObject(i + 1, a[i]);
+                s.execute();
+            }
+        }
+
+        List<JSONObject> query(String q, Object... a) throws RepositoryException {
+            if (fail) throw new RepositoryException("fixture");
+            // 先留存实际查询供断言，再将二进制比较语法适配到 SQLite。
+            queries.add(q);
+            q = q.replace("BINARY `type`", "`type` COLLATE BINARY").replace("BINARY key3", "key3 COLLATE BINARY");
+            try (var s = db.prepareStatement(q)) {
+                for (int i = 0; i < a.length; i++) s.setObject(i + 1, a[i]);
+                try (var rs = s.executeQuery()) {
+                    var out = new ArrayList<JSONObject>();
+                    var m = rs.getMetaData();
+                    while (rs.next()) {
+                        var row = new JSONObject();
+                        for (int i = 1; i <= m.getColumnCount(); i++) row.put(m.getColumnLabel(i), rs.getObject(i));
+                        out.add(row);
+                    }
+                    return out;
+                }
+            } catch (SQLException e) {
+                throw new RepositoryException(e);
+            }
+        }
         void article(String id,double random)throws SQLException{sql("INSERT INTO x_article VALUES (?,'001',0,0,0,1,'tag',0,?,?,100,200,?,?,'PRIVATE_REWARD','PRIVATE_IP',0,0,0)",id,"Article "+id,"/article/"+id,"<b>public preview</b>",random);}
         void log(String id,int pub,String type,String category,String time)throws SQLException{sql("INSERT INTO x_logs VALUES (?,?,?,?, 'PRIVATE_IP',?,'PRIVATE_LOG_BODY')",id,pub,type,time,category);}
         public void close()throws SQLException{db.close();}

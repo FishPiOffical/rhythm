@@ -29,7 +29,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Existing report categories only; no target data or reporter history is exposed. */
+/** 只公开已有的举报分类，隐藏目标数据和举报人历史。 */
 @Service
 public class ApiV3ReportQueryService {
     @Inject private UserRepository users;

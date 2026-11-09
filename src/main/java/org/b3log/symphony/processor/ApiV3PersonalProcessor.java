@@ -28,7 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3PersonalQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Personal resources never accept a target user from query, path or request body. */
+/** 个人资源的用户身份来自当前认证，查询参数、路径及正文均不接收目标用户。 */
 @Singleton
 public class ApiV3PersonalProcessor {
     @Inject private ApiV3PersonalQueryService personal;

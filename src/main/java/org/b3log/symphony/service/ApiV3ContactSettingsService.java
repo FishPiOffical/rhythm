@@ -34,7 +34,7 @@ import java.util.Locale;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** New-target proof, account update and complete credential revocation. Never uses global code lookup. */
+/** 验证新的联系方式、更新账号并撤销已有凭据。验证码按账号和用途查询。 */
 @Service
 public class ApiV3ContactSettingsService {
     @Inject private UserRepository users;
@@ -54,24 +54,43 @@ public class ApiV3ContactSettingsService {
 
     public JSONObject request(JSONObject identity,ApiV3ContactInputs.Input input,boolean phone,String ip)throws Exception {
         input=validated(input,phone,true);
-        proofs.checkAttempts(identity,ip);rootRequired();
-        final String actor;final long epoch;final TargetSnapshot before;
+        proofs.checkAttempts(identity, ip);
+        rootRequired();
+        final String actor;
+        final long epoch;
+        final TargetSnapshot before;
         var tx=begin();
         try {
             final JSONObject owner=proofs.requireInCurrentTransaction(identity,input.password(),input.totp());
-            actor=owner.getString("oId");epoch=version(owner);
+            actor = owner.getString("oId");
+            epoch = version(owner);
             before=requireNewTarget(actor,input.target(),phone);
             tx.commit();
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally{if(tx.isActive())tx.rollback();}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
         if(!allowed(ip,before.userName(),input.target(),phone))throw new ApiV3Exception(429,"rate_limited","验证码发送过于频繁，请稍后重试");
         if(!captcha(input.proof()))throw new ApiV3Exception(422,"invalid_captcha","请重新完成验证");
-        final String code=newCode();if(code==null||!code.matches("[0-9]{6}"))throw unavailable();
-        // Provider calls are outside SQL locks. Failure leaves the previous successful code intact.
-        final boolean accepted;try{accepted=send(input.target(),code,phone);}catch(Exception error){throw deliveryUnavailable();}
-        if(!accepted)throw deliveryUnavailable();
-        tx=begin();
+        final String code = newCode();
+        if (code == null || !code.matches("[0-9]{6}"))
+            throw unavailable();
+        // 在数据库事务外联系发送服务，发送失败时保留上一次成功发送的验证码。
+        final boolean accepted;
         try {
+            accepted = send(input.target(), code, phone);
+        } catch (Exception error) {
+            throw deliveryUnavailable();
+        }
+        if (!accepted)
+            throw deliveryUnavailable();
+        tx = begin();
+        try {
+            // 发送期间账号状态可能变化，持锁复核凭据版本和原联系方式后才保存新验证码。
             final JSONObject owner=proofs.requireInCurrentTransaction(identity,input.password(),input.totp());
             if(!actor.equals(owner.getString("oId"))||version(owner)!=epoch)throw invalidProof();
             if(!before.previous().equals(requireNewTarget(actor,input.target(),phone).previous()))throw invalidProof();
@@ -83,21 +102,36 @@ public class ApiV3ContactSettingsService {
             final int inserted=ApiV3TransactionStatements.execute("INSERT INTO `"+codes.getName()+"` (oId,userId,purpose,clientId,credentialEpoch,target,codeHash,previousContactHash,expiresAt,createdAt) VALUES(?,?,?,?,?,?,?,?,?,?)",
                     id,actor,purpose,ApiV3TokenMgmtService.WEBSITE_CLIENT,epoch,input.target(),codeHash(actor,purpose,input.target(),epoch,code),previousHash(actor,purpose,before.previous(),epoch),expiry,time);
             if(inserted!=1)throw unavailable();
-            tx.commit();return new JSONObject().put("accepted",true);
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally{if(tx.isActive())tx.rollback();}
+            tx.commit();
+            return new JSONObject().put("accepted", true);
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
 
     public JSONObject change(JSONObject identity,ApiV3ContactInputs.Input input,boolean phone,String ip)throws Exception {
         input=validated(input,phone,false);
-        proofs.checkAttempts(identity,ip);rootRequired();String actor=null;
+        proofs.checkAttempts(identity, ip);
+        rootRequired();
+        String actor = null;
         final var tx=begin();
         try {
             final JSONObject owner=proofs.requireInCurrentTransaction(identity,input.password(),input.totp());
-            actor=owner.getString("oId");final TargetSnapshot before=requireNewTarget(actor,input.target(),phone);
-            final long epoch=version(owner),time=clock();final String purpose=phone?"phone":"email";
+            actor = owner.getString("oId");
+            final TargetSnapshot before = requireNewTarget(actor, input.target(), phone);
+            final long epoch = version(owner), time = clock();
+            final String purpose = phone ? "phone" : "email";
             final var found=codes.select("SELECT oId,userId,purpose,clientId,credentialEpoch,target,codeHash,previousContactHash,expiresAt,createdAt FROM `"+codes.getName()+"` WHERE userId=? AND purpose=? FOR UPDATE",actor,purpose);
-            if(found.size()>1)throw unavailable();if(found.isEmpty())throw invalidProof();final JSONObject row=found.getFirst();
+            if (found.size() > 1)
+                throw unavailable();
+            if (found.isEmpty())
+                throw invalidProof();
+            final JSONObject row = found.getFirst();
             for(final String field:new String[]{"oId","userId","purpose","clientId","target","codeHash","previousContactHash"})if(!(row.opt(field) instanceof String))throw unavailable();
             if(!row.getString("codeHash").matches("[0-9a-f]{64}")||!row.getString("previousContactHash").matches("[0-9a-f]{64}"))throw unavailable();
             final long created=number(row,"createdAt"),expires=number(row,"expiresAt");
@@ -106,15 +140,27 @@ public class ApiV3ContactSettingsService {
                     ||!ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(row.optString("clientId"))||!input.target().equals(row.optString("target"))
                     ||!previousHash(actor,purpose,before.previous(),epoch).equals(row.optString("previousContactHash"))||number(row,"credentialEpoch")!=epoch||number(row,"expiresAt")<=time
                     ||!MessageDigest.isEqual(codeHash(actor,purpose,input.target(),epoch,input.proof()).getBytes(StandardCharsets.US_ASCII),row.getString("codeHash").getBytes(StandardCharsets.US_ASCII)))throw invalidProof();
-            final String field=phone?"userPhone":"userEmail";
+            // 联系方式写入、验证码消费和旧凭据撤销在同一个事务中提交。
+            final String field = phone ? "userPhone" : "userEmail";
             if(ApiV3TransactionStatements.execute("UPDATE `"+users.getName()+"` SET "+field+"=? WHERE oId=?",input.target(),actor)!=1)throw unavailable();
             if(ApiV3TransactionStatements.execute("DELETE FROM `"+codes.getName()+"` WHERE userId=? AND purpose=?",actor,purpose)!=1)throw unavailable();
             credentials.revokeInCurrentTransaction(actor);
-            tx.commit();return new JSONObject().put("changed",true).put("reauthenticationRequired",true);
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally {
-            try{if(tx.isActive())tx.rollback();}
-            finally{if(actor!=null&&!codes.hasTransactionBegun())try{users.evictSettingsCaches(actor);}catch(RuntimeException ignored){ }}
+            tx.commit();
+            return new JSONObject().put("changed", true).put("reauthenticationRequired", true);
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            try {
+                if (tx.isActive())
+                    tx.rollback();
+            } finally {
+                if (actor != null && !codes.hasTransactionBegun())
+                    try {
+                        users.evictSettingsCaches(actor);
+                    } catch (RuntimeException ignored) { }
+            }
         }
     }
     private record TargetSnapshot(String previous,String userName){ }

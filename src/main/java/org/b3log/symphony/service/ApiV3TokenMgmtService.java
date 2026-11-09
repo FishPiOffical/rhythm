@@ -44,7 +44,7 @@ import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-/** Issues, validates, rotates and revokes API v3 credentials. */
+/** 签发、验证、轮换及撤销 API v3 凭据。 */
 @Service
 public class ApiV3TokenMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3TokenMgmtService.class);
@@ -69,8 +69,9 @@ public class ApiV3TokenMgmtService {
         final Transaction transaction = beginRoot();
         try {
             final JSONObject client = ensureWebsiteClient();
-            final var expected=org.b3log.symphony.util.AccountCredentialVersions.snapshot(userId);
-            if(expected==null || org.b3log.symphony.util.AccountCredentialVersions.issuance(userId,null)==null)throw new ServiceException("unauthorized");
+            final var expected = org.b3log.symphony.util.AccountCredentialVersions.snapshot(userId);
+            if (expected == null || org.b3log.symphony.util.AccountCredentialVersions.issuance(userId, null) == null)
+                throw new ServiceException("unauthorized");
             final JSONObject result = issueInternal(userId, WEBSITE_CLIENT, client.optString(ApiV3Client.SCOPE), null, null);
             recordSuccessfulLoginInCurrentTransaction(userId, now());
             transaction.commit();
@@ -82,7 +83,7 @@ public class ApiV3TokenMgmtService {
         }
     }
 
-    /** Only explicit first-party sign-ins call this; rotation and OAuth grants do not. */
+    /** 仅在显式第一方登录时记录，凭据轮换和 OAuth 授权跳过此步骤。 */
     public void recordSuccessfulLoginInCurrentTransaction(final String userId, final long time) throws Exception {
         if (!apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login transaction required");
         if (userId == null || !userId.matches("[1-9][0-9]{0,18}") || time <= 0)
@@ -91,18 +92,21 @@ public class ApiV3TokenMgmtService {
                 + userRepository.getName() + "` WHERE oId=? FOR UPDATE", userId);
         if (rows.size() != 1 || rows.getFirst().optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
             throw new ServiceException("unauthorized");
-        // Matched-but-unchanged rows may report zero on some JDBC configurations.
+        // 部分 JDBC 配置会对匹配但未变化的行返回零，先跳过相同时间的写入。
         if (rows.getFirst().getLong(UserExt.USER_LATEST_LOGIN_TIME) == time) return;
         if (ApiV3TransactionStatements.execute("UPDATE `" + userRepository.getName()
                 + "` SET userLatestLoginTime=? WHERE oId=? AND userStatus=?", time, userId, UserExt.USER_STATUS_C_VALID) != 1)
             throw new ServiceException("login_activity_unavailable");
     }
 
-    /** Eviction cannot turn an already committed sign-in into a reported failure. */
+    /** 登录提交后再清理缓存，清理失败只记日志。 */
     public void evictLoginCacheAfterTransaction(final String userId) {
         if (apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login cache eviction before commit");
-        try { userRepository.evictSettingsCaches(userId); }
-        catch (final RuntimeException error) { LOGGER.warn("Cannot evict committed login activity cache", error); }
+        try {
+            userRepository.evictSettingsCaches(userId);
+        } catch (final RuntimeException error) {
+            LOGGER.warn("Cannot evict committed login activity cache", error);
+        }
     }
 
     /** Existing website cookie refresh cannot be used to refresh a different registered client's grant. */

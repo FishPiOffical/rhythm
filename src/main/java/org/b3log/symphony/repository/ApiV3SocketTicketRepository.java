@@ -28,15 +28,25 @@ import org.json.JSONObject;
 
 @Repository
 public class ApiV3SocketTicketRepository extends AbstractRepository {
-    public ApiV3SocketTicketRepository() { super(ApiV3SocketTicket.REPOSITORY); }
-    @Override public Transaction beginTransaction() { return ApiV3Transactions.strict(super.beginTransaction()); }
+    public ApiV3SocketTicketRepository() {
+        super(ApiV3SocketTicket.REPOSITORY);
+    }
+
+    @Override
+    public Transaction beginTransaction() {
+        return ApiV3Transactions.strict(super.beginTransaction());
+    }
+
+    /** 在消费事务中锁定票据，供调用方检查并更新当前记录。 */
     public JSONObject getForUpdate(final String hash) throws RepositoryException {
-        if (!hasTransactionBegun()) throw new IllegalStateException("socket ticket transaction required");
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("socket ticket transaction required");
         final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", hash);
         return rows.isEmpty() ? null : rows.getFirst();
     }
     public java.util.List<JSONObject> expiredBatchForUpdate(final long cutoff) throws RepositoryException {
-        if (!hasTransactionBegun()) throw new IllegalStateException("socket ticket transaction required");
-        return select("SELECT oId FROM `" + getName() + "` WHERE expiresAt<? ORDER BY expiresAt,oId LIMIT 200 FOR UPDATE",cutoff);
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("socket ticket transaction required");
+        return select("SELECT oId FROM `" + getName() + "` WHERE expiresAt<? ORDER BY expiresAt,oId LIMIT 200 FOR UPDATE", cutoff);
     }
 }

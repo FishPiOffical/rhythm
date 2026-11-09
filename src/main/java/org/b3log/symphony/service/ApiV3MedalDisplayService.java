@@ -28,7 +28,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** Explicit owner display setting and replay receipt share the existing strict v3 root transaction. */
+/** 本人勋章展示设置与重放回执在同一个 API v3 严格事务中提交。 */
 @Service
 public class ApiV3MedalDisplayService {
     @Inject private UserRepository users;
@@ -39,7 +39,7 @@ public class ApiV3MedalDisplayService {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         ApiV3MedalDisplay.medalId(medalId);
         try {
-            // Authentication may have used a cached account; replay must still require a current active owner.
+            // 认证可能命中账号缓存，重放时仍须确认账号当前有效。
             final var currentOwners = users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor, UserExt.USER_STATUS_C_VALID);
             if (currentOwners.size() != 1) throw ApiV3Requests.notFound();
             return idempotency.execute(actor, "medal.display", key, new JSONObject().put("medalId", medalId).put("displayed", displayed),
@@ -57,7 +57,7 @@ public class ApiV3MedalDisplayService {
         return ApiV3TransactionSavepoint.run(() -> {
             final var owners = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
             if (owners.size() != 1 || owners.getFirst().optInt("userStatus", -1) != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
-            // Current-read the definition before locking its owned holding.
+            // 先读取当前勋章定义，再锁定本人持有的勋章记录。
             final var definitions = medals.select("SELECT oId,medal_id FROM `" + medals.getName() + "` WHERE medal_id=? ORDER BY oId ASC LIMIT 2 FOR UPDATE", medalId);
             if (definitions.isEmpty()) throw ApiV3Requests.notFound();
             if (definitions.size() != 1) throw ApiV3MedalDisplay.inconsistent();

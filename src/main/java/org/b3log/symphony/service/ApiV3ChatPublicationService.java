@@ -35,7 +35,7 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Bearer-only ordinary text; all durable effects and its replay result commit together. */
+/** 通过 Bearer 身份发送普通文本，所有持久化写入与重放回执一起提交。 */
 @Service
 public class ApiV3ChatPublicationService {
     @Inject private UserRepository users;
@@ -100,7 +100,7 @@ public class ApiV3ChatPublicationService {
                                 if (value) confirmed.set(prepared);
                                 return value;
                             });
-                    // Automatic storage retries reuse one policy decision; successful replays never enter this callback.
+                    // 存储层自动重试复用同一次风控判定，已成功请求的回放不进入此回调。
                     final String name = current.getString(User.USER_NAME);
                     if (repeat.get() == null || !name.equals(repeat.get().name()) || !prepared.equals(repeat.get().content())) {
                         repeat.set(new RepeatDecision(name, prepared, ChatMessageAbuseState.repeated(name, prepared)));
@@ -121,7 +121,7 @@ public class ApiV3ChatPublicationService {
                 if (card == null) outcome = idempotency.executeWithOutcome(actor, "chat.messages.create", key,
                         new JSONObject().put("content", content).put("client", client), mutation);
                 else {
-                    // Current actor is locked before the receipt, including successful replays.
+                    // 先锁定当前用户，再读取回执；回放成功请求也遵循此顺序。
                     final ApiV3MutationStore store = new ApiV3MutationStore() {
                         public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
                         public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }

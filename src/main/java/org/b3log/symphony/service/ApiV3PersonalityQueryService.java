@@ -31,7 +31,7 @@ import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import java.util.List;
 
-/** Current-owner MBTI only; does not read the aggregate profile or use page-session identity. */
+/** 只查询当前账号本人的 MBTI，由调用方传入认证身份。 */
 @Service
 public class ApiV3PersonalityQueryService {
     @Inject private UserRepository users;

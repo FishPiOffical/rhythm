@@ -29,7 +29,7 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3ProfessionPublicQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Viewer-explicit public profession metadata; never derives identity from page credentials. */
+/** 公开职业信息显式使用当前读者，不从页面凭据推导其身份。 */
 @Singleton
 public class ApiV3ProfessionPublicProcessor {
     @Inject private ApiV3ProfessionPublicQueryService query;

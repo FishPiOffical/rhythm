@@ -21,8 +21,10 @@ package org.b3log.symphony.repository;
 import org.b3log.latke.repository.AbstractRepository;
 import org.b3log.latke.repository.annotation.Repository;
 
-/** Private export metadata; artifact bytes live in owner-bound database chunks. */
+/** 私有导出任务的元数据，文件内容分块存储在与所有者绑定的数据库记录中。 */
 @Repository
 public class ApiV3PostExportRepository extends AbstractRepository {
-    public ApiV3PostExportRepository(){super("api_v3_post_export");}
+    public ApiV3PostExportRepository() {
+        super("api_v3_post_export");
+    }
 }

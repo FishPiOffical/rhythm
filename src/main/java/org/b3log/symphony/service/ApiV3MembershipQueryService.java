@@ -30,7 +30,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Uncached owner status and paginated public plan metadata; no billing or configuration mutation. */
+/** 从数据库读取本人会员状态，按页返回公开档位元数据。 */
 @Service
 public class ApiV3MembershipQueryService {
     @Inject private UserRepository users;

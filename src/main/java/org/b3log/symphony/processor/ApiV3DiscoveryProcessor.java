@@ -39,7 +39,7 @@ import org.json.JSONObject;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-/** Discovery and public profiles. */
+/** 内容发现和公开资料。 */
 @Singleton
 public class ApiV3DiscoveryProcessor {
     private static final Set<String> ARTICLE_SORTS = Set.of("latest", "active", "hot", "comments");
@@ -81,7 +81,7 @@ public class ApiV3DiscoveryProcessor {
             final int size = ApiV3Requests.size(context);
             final String sort = sort(context);
             final String type = ApiV3Requests.choice(context, "type", "all", Set.of("all", "recent", "long"));
-            // This query intentionally uses bound DB predicates so index lag cannot disclose hidden content.
+            // 用绑定参数的数据库条件查询，避免搜索索引滞后时暴露隐藏内容。
             final JSONObject viewer = ApiV3Requests.viewer(context);
             final String key = null == viewer ? "ip:" + Requests.getRemoteAddr(context.getRequest())
                     : "user:" + viewer.optString(Keys.OBJECT_ID);

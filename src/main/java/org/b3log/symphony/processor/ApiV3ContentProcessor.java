@@ -33,7 +33,7 @@ import org.json.JSONObject;
 
 import java.util.Set;
 
-/** Read-only article and comment resources. */
+/** 文章和评论的只读资源。 */
 @Singleton
 public class ApiV3ContentProcessor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ContentProcessor.class);
@@ -103,7 +103,7 @@ public class ApiV3ContentProcessor {
     }
 
     private static void prepare(final RequestContext context) {
-        // Even public resources can contain viewer-dependent reward/comment content.
+        // 公开资源中的打赏和评论内容也可能因当前读者而异。
         context.getResponse().setHeader("Cache-Control", "no-store");
         context.getResponse().setHeader("Vary", "Authorization");
     }

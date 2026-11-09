@@ -37,7 +37,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Account transfers, public message, private assignments and replay receipts share one strict root. */
+/** 积分转账、公开消息、私有份额和重放回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3ChatRedPacketService {
     @Inject private UserRepository users;
@@ -62,18 +62,32 @@ public class ApiV3ChatRedPacketService {
     public boolean recognizes(String messageId)throws RepositoryException {
         return messageId!=null&&messageId.matches("[1-9][0-9]{0,18}")&&packets.current(messageId,false)!=null;
     }
-    public JSONObject create(JSONObject viewer,JSONObject body,String key)throws Exception {
-        try{return createCore(viewer,body,key);}catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+    public JSONObject create(JSONObject viewer, JSONObject body, String key) throws Exception {
+        try {
+            return createCore(viewer, body, key);
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
-    private JSONObject createCore(JSONObject viewer,JSONObject body,String key)throws Exception {
-        final String actor=actor(viewer);final var input=ApiV3RedPacketInputs.prepare(body,actor);
-        final String requestId=requestId(actor,"chat.red-packets.create",key);
-        final JSONObject previous=receiptHint(actor,requestId,"chat.red-packets.create");
-        final String fee=previous==null?feeRecipient():previous.getString("feeRecipientId");
-        if(!id(fee))throw unavailable();
-        final var ids=new TreeSet<String>(input.recipientIds());ids.add(actor);ids.add(fee);
-        final var saved=new AtomicReference<JSONObject>();final var repeat=new AtomicReference<ChatMessageAbuseState.Repeat>();
-        final var penalty=new AtomicReference<ChatMessagePenaltyMgmtService.Result>();final var confirmed=new AtomicReference<String>();
+
+    private JSONObject createCore(JSONObject viewer, JSONObject body, String key) throws Exception {
+        final String actor = actor(viewer);
+        final var input = ApiV3RedPacketInputs.prepare(body, actor);
+        final String requestId = requestId(actor, "chat.red-packets.create", key);
+        final JSONObject previous = receiptHint(actor, requestId, "chat.red-packets.create");
+        // 回放时从原回执确定手续费接收方，以便锁定原交易账号并修复索引。
+        final String fee = previous == null ? feeRecipient() : previous.getString("feeRecipientId");
+        if (!id(fee))
+            throw unavailable();
+        final var ids = new TreeSet<String>(input.recipientIds());
+        ids.add(actor);
+        ids.add(fee);
+        final var saved = new AtomicReference<JSONObject>();
+        final var repeat = new AtomicReference<ChatMessageAbuseState.Repeat>();
+        final var penalty = new AtomicReference<ChatMessagePenaltyMgmtService.Result>();
+        final var confirmed = new AtomicReference<String>();
         final var execution=points.executeWithTransferLocks(Pointtransfer.ID_C_SYS,List.of(actor,fee),()->{
             try(final var cache=ArticlePublicationCaches.open(requests::hasTransactionBegun)){
                 cacheActor(actor);
@@ -86,7 +100,11 @@ public class ApiV3ChatRedPacketService {
                         if(!"admin".equals(collector.optString(User.USER_NAME)))throw new ApiV3Exception(409,"recipient_changed","收款账号已变更，请重试");
                         final String command="[redpacket]"+input.normalized()+"[/redpacket]";
                         final String prepared;
-                        try{prepared=validation.prepare(owner,command);}catch(ChatMessageValidation.Rejected e){throw new ApiV3Exception(e.status,e.code,e.getMessage());}
+                        try {
+                            prepared = validation.prepare(owner, command);
+                        } catch (ChatMessageValidation.Rejected e) {
+                            throw new ApiV3Exception(e.status, e.code, e.getMessage());
+                        }
                         if(!command.equals(prepared))throw new ApiV3Exception(422,"invalid_content","红包内容不合法");
                         final long time=now();
                         ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),operator(owner),command,time,()->{
@@ -102,8 +120,11 @@ public class ApiV3ChatRedPacketService {
                         final JSONObject envelope=new JSONObject().put("userName",owner.getString(User.USER_NAME)).put("userNickname",owner.optString(UserExt.USER_NICKNAME))
                                 .put("userAvatarURL",owner.optString(UserExt.USER_AVATAR_URL)).put("userOId",Long.parseLong(actor))
                                 .put("content",card.toString()).put("time",time);
-                        final JSONObject message=messages.saveInCurrentTransaction(envelope,actor);final String messageId=message.getString(Keys.OBJECT_ID);
-                        if(!id(messageId))throw unavailable();
+                        // 先保存消息取得 ID，再以该 ID 关联账目和所有份额。
+                        final JSONObject message = messages.saveInCurrentTransaction(envelope, actor);
+                        final String messageId = message.getString(Keys.OBJECT_ID);
+                        if (!id(messageId))
+                            throw unavailable();
                         final var source=new PointtransferSource("","","chat.red-packets.create",requestId);
                         final String main=transfer(actor,Pointtransfer.ID_C_SYS,Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_SEND_RED_PACKET,price.principal(),messageId,time,source);
                         final String tax=price.tax()==0?"":transfer(Pointtransfer.ID_C_SYS,fee,Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,price.tax(),messageId,time,source);
@@ -116,16 +137,19 @@ public class ApiV3ChatRedPacketService {
                                 .put("recipientId",input.type().equals("specify")?input.recipientIds().get(i):"").put("claimUserId","").put("claimedAt",0).put("transferId","").put("gesture",-1).put("senderRefundPoints",0).put("senderTransferId",""));
                         for(String recipient:input.recipientIds())notifications.add(new JSONObject().put("userId",recipient).put("dataId",messageId)
                                 .put("dataType",Notification.DATA_TYPE_C_RED_PACKET).put("hasRead",false).put("content",""));
-                        users.updateColumnsInCurrentTransaction(actor,new JSONObject().put(UserExt.USER_LATEST_CMT_TIME,time));saved.set(message);
+                        users.updateColumnsInCurrentTransaction(actor, new JSONObject().put(UserExt.USER_LATEST_CMT_TIME, time));
+                        saved.set(message);
                         return new JSONObject().put("result",new JSONObject().put("id",messageId).put("createdAt",time).put("principalPoints",price.principal()).put("poolPoints",price.pool()).put("taxPoints",price.tax()))
                                 .put("feeRecipientId",fee).put("transferId",main).put("taxTransferId",tax);
                     }));
             }
         });
-        final JSONObject receipt=execution.result();final JSONObject result=creationResult(receipt);
+        final JSONObject receipt = execution.result();
+        final JSONObject result = creationResult(receipt);
         index(actor,Pointtransfer.ID_C_SYS,receipt.getString("transferId"),"chat.red-packets.create",requestId);
         if(!receipt.getString("taxTransferId").isEmpty())index(Pointtransfer.ID_C_SYS,fee,receipt.getString("taxTransferId"),"chat.red-packets.create",requestId);
-        if(execution.applied()){
+        // 仅首次提交后发布消息和通知，重放可以修复索引但不重复广播。
+        if (execution.applied()) {
             safely(()->admissionEffects.afterSharedAdmission(actor,saved.get().getString("userName"),repeat.get(),penalty.get()));
             safely(()->delivery.afterApiRedPacketPublished(saved.get()));
             for(String recipient:input.recipientIds())safely(()->notificationDelivery.publishRefreshNotification(recipient));

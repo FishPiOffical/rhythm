@@ -28,7 +28,7 @@ import org.b3log.symphony.util.ApiV3Transactions;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** Bounded cleanup. Used code records remain while any unexpired active member of their token family exists. */
+/** 限量清理。已用授权码所属令牌家族仍有未过期的有效成员时，保留该授权码记录。 */
 @Service
 public class ApiV3OAuthMaintenanceService {
     @Inject private ApiV3AuthorizationRequestRepository requests;

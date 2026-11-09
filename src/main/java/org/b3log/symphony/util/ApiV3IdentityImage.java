@@ -25,7 +25,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
 
-/** Private JPEG/PNG evidence. Bounded in-memory inspection; no URL, file path, EXIF log or public upload. */
+/** 在有界内存中检查私有 JPEG/PNG 材料，不生成 URL、文件路径、EXIF 日志或公开上传。 */
 public final class ApiV3IdentityImage {
     public static final int MAX_BYTES=5*1024*1024;
     private static final java.util.concurrent.Semaphore DECODERS=new java.util.concurrent.Semaphore(2);
@@ -39,7 +39,7 @@ public final class ApiV3IdentityImage {
                 &&input[4]==13&&input[5]==10&&input[6]==26&&input[7]==10;
         final boolean jpeg=input.length>=4&&(input[0]&255)==255&&(input[1]&255)==216&&(input[input.length-2]&255)==255&&(input[input.length-1]&255)==217;
         if("image/png".equals(mediaType)!=png||"image/jpeg".equals(mediaType)!=jpeg)throw ApiV3WriteInputs.invalid();
-        // PNG must terminate with its fixed IEND chunk, not a trailing HTML or second file.
+        // PNG 必须以固定的 IEND 块结束，拒绝尾随 HTML 或其他文件内容。
         if(png){byte[] end={0,0,0,0,73,69,78,68,(byte)174,66,96,(byte)130};
             for(int i=0;i<end.length;i++)if(input[input.length-end.length+i]!=end[i])throw ApiV3WriteInputs.invalid();}
         if(!DECODERS.tryAcquire())throw new ApiV3Exception(503,"temporarily_unavailable","图片解析繁忙，请稍后重试");
@@ -52,7 +52,7 @@ public final class ApiV3IdentityImage {
                 reader.setInput(stream,true,true);
                 final int width=reader.getWidth(0),height=reader.getHeight(0);
                 if(width<=0||height<=0)throw ApiV3WriteInputs.invalid();
-                // Resource budget is a retryable operational failure, never an accepted truncated image.
+                // 资源预算耗尽时返回可重试错误，拒绝截断的图片。
                 if((long)width*height>50_000_000L)throw new ApiV3Exception(503,"temporarily_unavailable","图片解析资源不足，请稍后重试或使用较小尺寸图片");
                 final var parameters=reader.getDefaultReadParam();
                 final int sample=Math.max(1,(Math.max(width,height)+255)/256);parameters.setSourceSubsampling(sample,sample,0,0);

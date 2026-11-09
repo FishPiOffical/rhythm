@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
 
-/** Server-owned explicit consent. HTTP adapters must supply the Cookie session actor and verify source/CSRF. */
+/** 服务端记录用户明确同意的授权。HTTP 入口须传入 Cookie 会话身份，并校验请求来源和 CSRF。 */
 @Service
 public class ApiV3AuthorizationRequestService {
     private static final long TTL=TimeUnit.MINUTES.toMillis(10);
@@ -75,7 +75,7 @@ public class ApiV3AuthorizationRequestService {
     }
     public Decision decide(String cookieActor,String rawRequest,String rawProof,boolean approved)throws Exception {
         actor(cookieActor);final String hash=requestHash(rawRequest),proof=consentHash(rawProof);
-        // A non-locking owner-bound hint gives only immutable client fields. All fields are checked again under lock.
+        // 无锁预读仅为取得绑定本人且不可变的客户端字段，持锁后再复核所有字段。
         if(requests.hasTransactionBegun())throw new IllegalStateException("authorization decision root already active");
         final var hint=requests.hintForOwner(hash,cookieActor);if(hint==null||!hash.equals(hint.optString(Keys.OBJECT_ID)))throw invalid();
         final Transaction tx=begin();try{

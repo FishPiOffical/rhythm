@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.ArticleDraft;
 import org.json.JSONObject;
 
-/** Atomic creation body; the store binds Bearer identity, validators and current-transaction services. */
+/** 原子创建所用的输入结构，存储层负责绑定 Bearer 身份、校验器和当前事务中的服务。 */
 public final class ApiV3ArticleCreation {
     private ApiV3ArticleCreation() { }
     public record Created(String id, String permalink) { }

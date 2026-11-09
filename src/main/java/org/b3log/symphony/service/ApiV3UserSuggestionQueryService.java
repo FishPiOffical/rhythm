@@ -29,7 +29,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Locale;
 
-/** Current, bounded public projections; never use the legacy process username cache. */
+/** 限量查询当前公开用户资料，直接读取数据库。 */
 @Service
 public class ApiV3UserSuggestionQueryService {
     @Inject private UserRepository users;

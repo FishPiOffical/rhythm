@@ -23,7 +23,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Position uses the same ID ordering and selection as ordinary/paragraph oldest pages. */
+/** 定位复用普通评论和段落评论正序分页的 ID 排序及筛选条件。 */
 public final class ApiV3CommentLocationQueries {
     public static final int PAGE_SIZE = 20;
     private ApiV3CommentLocationQueries() { }

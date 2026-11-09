@@ -26,7 +26,7 @@ import org.b3log.symphony.repository.ApiV3ClientRepository;
 import org.b3log.symphony.repository.ApiV3ClientRedirectRepository;
 import org.b3log.symphony.util.*;
 
-/** Credential-less browser access to OAuth token/revocation responses, only from current callback origins. */
+/** 仅允许当前回调来源的浏览器请求跨源读取 OAuth 令牌和撤销响应，且不启用跨源凭据。 */
 @Service
 public class ApiV3OAuthCorsService {
     @Inject private ApiV3ClientRepository clients;

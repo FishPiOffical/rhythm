@@ -36,7 +36,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.List;
 
-/** Database projections only: GET never creates default groups or contacts stored image URLs. */
+/** GET 只投影数据库记录，跳过默认分组创建和图片地址访问。 */
 @Service
 public class ApiV3EmotionQueryService {
     @Inject private UserRepository users;
@@ -104,7 +104,7 @@ public class ApiV3EmotionQueryService {
             requireActor(actor);
             if (groups.select("SELECT oId FROM `" + groups.getName() + "` WHERE oId=? AND emojiGroupUserId=?", groupId, actor).size() != 1)
                 throw ApiV3Requests.notFound();
-            // Repeat owner predicate in the data/count query; never rely on the earlier ownership read alone.
+            // 数据和总数查询都带所有者条件，确保先前的归属读取失效时也不会越权。
             final String from = " FROM `" + items.getName() + "` i JOIN `" + groups.getName()
                     + "` g ON g.oId=i.emojiGroupItemGroupId JOIN `" + emojis.getName()
                     + "` e ON e.oId=i.emojiGroupItemEmojiId WHERE g.oId=? AND g.emojiGroupUserId=? AND e.emojiStatus=0";

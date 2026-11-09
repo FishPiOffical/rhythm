@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Existing name rules and price; the name, charge and retry receipt share one strict transaction. */
+/** 沿用现有改名规则和费用，用户名、扣费及重试回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3UserNameService {
     @Inject private UserRepository users;
@@ -49,39 +49,62 @@ public class ApiV3UserNameService {
     public JSONObject rename(String actor,JSONObject body,String key)throws Exception {
         if(actor==null||!actor.matches("[1-9][0-9]{0,18}")||body==null||!body.keySet().equals(Set.of("userName"))
                 ||!(body.opt("userName") instanceof String name)||UserNameRules.invalid(name))throw ApiV3WriteInputs.invalid();
-        // A provider call never holds SQL or account locks; an old committed receipt does not depend on it.
+        // 在取得数据库锁和账号锁之前执行内容审核，已提交回执的回放不依赖本次审核结果。
         ApiV3Exception rejected=null;
         try {
             if(!allowed(actor))throw new ApiV3Exception(429,"too_many_requests","操作频繁，请稍候重试");
             inspect(name);
-        }catch(ApiV3Exception error){rejected=error;}catch(Exception error){rejected=unavailable();}
+        } catch (ApiV3Exception error) {
+            rejected = error;
+        } catch (Exception error) {
+            rejected = unavailable();
+        }
         final ApiV3Exception reviewFailure=rejected;
         final String billingId=ApiV3TokenUtil.hash(OPERATION+"\0"+actor+"\0"+key);
         final var renamed=new AtomicReference<UserNameMgmtService.Rename>();
         try {
             final JSONObject receipt=points.executeWithTransferLocks(actor,List.of(Pointtransfer.ID_C_SYS),()->{
                 try(final var caches=ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
-                    final ApiV3MutationStore guarded=new ApiV3MutationStore(){
-                        public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                        public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-                        public JSONObject getForUpdate(String id)throws RepositoryException {
-                            names.lockNamespaceInCurrentTransaction();requireActor(actor);return requests.getForUpdate(id);
+                    final ApiV3MutationStore guarded = new ApiV3MutationStore() {
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
                         }
-                        public String add(JSONObject value)throws RepositoryException{return requests.add(value);}
-                        public void update(String id,JSONObject value,String...fields)throws RepositoryException{requests.update(id,value,fields);}
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
+
+                        public JSONObject getForUpdate(String id) throws RepositoryException {
+                            names.lockNamespaceInCurrentTransaction();
+                            requireActor(actor);
+                            return requests.getForUpdate(id);
+                        }
+
+                        public String add(JSONObject value) throws RepositoryException {
+                            return requests.add(value);
+                        }
+
+                        public void update(String id, JSONObject value, String... fields) throws RepositoryException {
+                            requests.update(id, value, fields);
+                        }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomic(guarded,actor,OPERATION,key,new JSONObject().put("userName",name),()->
                             ApiV3TransactionSavepoint.run(()->{
                                 if(reviewFailure!=null)throw reviewFailure;
-                                JSONObject owner=requireActor(actor);final int price=Pointtransfer.TRANSFER_SUM_C_CHANGE_USERNAME;
+                                JSONObject owner = requireActor(actor);
+                                final int price = Pointtransfer.TRANSFER_SUM_C_CHANGE_USERNAME;
                                 if(price<=0)throw unavailable();
                                 if(number(owner.opt("userPoint"))<price)throw new ApiV3Exception(409,"insufficient_points","积分不足");
                                 final UserNameMgmtService.Rename result;
-                                try{result=names.renameInCurrentTransaction(actor,name);}catch(UserNameMgmtService.Rejected error){throw switch(error.code){
-                                    case "name_taken"->new ApiV3Exception(409,"name_taken","用户名已被使用");
-                                    case "invalid_name"->ApiV3WriteInputs.invalid();
-                                    default->ApiV3Requests.notFound();
-                                };}
+                                try {
+                                    result = names.renameInCurrentTransaction(actor, name);
+                                } catch (UserNameMgmtService.Rejected error) {
+                                    throw switch (error.code) {
+                                        case "name_taken" -> new ApiV3Exception(409, "name_taken", "用户名已被使用");
+                                        case "invalid_name" -> ApiV3WriteInputs.invalid();
+                                        default -> ApiV3Requests.notFound();
+                                    };
+                                }
                                 if(result.oldName()==null||result.oldName().length()>64)throw unavailable();
                                 renamed.set(result);
                                 final String transfer=points.transferInCurrentTransaction(actor,Pointtransfer.ID_C_SYS,
@@ -93,9 +116,17 @@ public class ApiV3UserNameService {
                 }
             });
             final JSONObject result=project(receipt);
-            repairIndex(actor,billingId,receipt.getString("indexTransferId"));return result;
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally {if(!requests.hasTransactionBegun())names.afterTransaction(actor,renamed.get());}
+            // 改名事务结束后按原账目修复索引；回放同样可以补齐索引。
+            repairIndex(actor, billingId, receipt.getString("indexTransferId"));
+            return result;
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            if (!requests.hasTransactionBegun())
+                names.afterTransaction(actor, renamed.get());
+        }
     }
     private JSONObject requireActor(String actor)throws RepositoryException {
         final var owners=users.select("SELECT oId,userStatus,userPoint FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);

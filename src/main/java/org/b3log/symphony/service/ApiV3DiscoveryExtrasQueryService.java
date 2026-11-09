@@ -41,7 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Fixed-size discovery and metadata-only logs. No legacy handlers, stored credentials or log bodies. */
+/** 按固定条数查询发现内容，日志只返回元数据。 */
 @Service
 public class ApiV3DiscoveryExtrasQueryService {
     public static final List<String> LOG_CATEGORIES = List.of("增加积分", "扣除积分", "发送系统通知", "调整用户背包", "移除勋章",

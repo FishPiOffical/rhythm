@@ -37,8 +37,11 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ClientUpdateProcessor {
-    @Inject private ApiV3ClientManagementService management;
-    @Inject private ApiV3ClientUpdateService service;
+    @Inject
+    private ApiV3ClientManagementService management;
+    @Inject
+    private ApiV3ClientUpdateService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ClientUpdateProcessor.class), beans.getReference(ApiV3AuthMidware.class),
@@ -50,11 +53,16 @@ public class ApiV3ClientUpdateProcessor {
     public void administrator(final RequestContext context) {
         context.getResponse().setHeader("Cache-Control", "no-store");
         context.getResponse().setHeader("Vary", "Authorization");
-        try { management.requireAdministrator(identity(context), false); context.handle(); }
-        catch (final ApiV3Exception e) { ApiV3Processor.error(context, e.status, e.code, e.getMessage()); context.abort(); }
-        catch (final RepositoryException e) {
+        try {
+            management.requireAdministrator(identity(context), false);
+            context.handle();
+        } catch (final ApiV3Exception e) {
+            ApiV3Processor.error(context, e.status, e.code, e.getMessage());
+            context.abort();
+        } catch (final RepositoryException e) {
             final var error = ApiV3ClientUpdateService.unavailable();
-            ApiV3Processor.error(context, error.status, error.code, error.getMessage()); context.abort();
+            ApiV3Processor.error(context, error.status, error.code, error.getMessage());
+            context.abort();
         }
     }
     public void update(final RequestContext context) {
@@ -64,5 +72,7 @@ public class ApiV3ClientUpdateProcessor {
                     ApiV3ClientManagementInputs.registration(body), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
-    private static JSONObject identity(final RequestContext context) { return (JSONObject) context.attr(ApiV3Processor.IDENTITY); }
+    private static JSONObject identity(final RequestContext context) {
+        return (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+    }
 }

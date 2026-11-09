@@ -20,17 +20,22 @@ package org.b3log.symphony.util;
 
 import java.net.URI;
 
-/** Stored avatar URL projection, preserving signed queries without fetching or page display transforms. */
+/** 校验并返回存储的头像 URL，保留签名查询参数，省略网络请求和页面展示转换。 */
 public final class ApiV3AvatarUrl {
     private ApiV3AvatarUrl() { }
     public static String stored(final String raw) {
         final String value = raw == null ? "" : raw.trim();
-        if (value.length() > 2048 || value.indexOf('\\') >= 0 || value.codePoints().anyMatch(Character::isISOControl)) return "";
+        if (value.length() > 2048 || value.indexOf('\\') >= 0 || value.codePoints().anyMatch(Character::isISOControl))
+            return "";
         try {
             final URI uri = new URI(value);
-            if (value.startsWith("/") && !value.startsWith("//") && uri.getRawAuthority() == null) return value;
-            if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) return "";
+            if (value.startsWith("/") && !value.startsWith("//") && uri.getRawAuthority() == null)
+                return value;
+            if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme()))
+                return "";
             return uri.getRawAuthority() != null && !uri.getRawAuthority().isBlank() && uri.getUserInfo() == null ? value : "";
-        } catch (final Exception ignored) { return ""; }
+        } catch (final Exception ignored) {
+            return "";
+        }
     }
 }

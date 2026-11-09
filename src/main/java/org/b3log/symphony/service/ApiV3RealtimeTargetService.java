@@ -32,7 +32,7 @@ import org.b3log.symphony.util.UserMentionCandidates;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Current database permissions for long-lived subscriptions; never page sessions or cached entities. */
+/** 按数据库当前状态校验长连接订阅权限。 */
 @Service
 public class ApiV3RealtimeTargetService {
     @Inject private ArticleRepository articles;

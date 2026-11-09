@@ -33,7 +33,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import java.util.Set;
 
-/** POST keeps the supplied invitation code out of URLs; the operation is read-only. */
+/** 使用 POST 正文提交邀请码以避免出现在 URL 中，操作本身只读。 */
 @Singleton
 public class ApiV3InvitationProcessor {
     private static final int MAX_BODY_BYTES = 1024;

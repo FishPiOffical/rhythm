@@ -27,7 +27,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.json.JSONObject;
 
-/** Resource-bound socket credentials. Caller identity must come from the v3 Bearer boundary. */
+/** 签发绑定资源的连接凭据，调用方须传入 API v3 Bearer 认证所得身份。 */
 @Service
 public class ApiV3SocketTicketService {
     public static final long TTL_MILLIS = 60_000;
@@ -45,7 +45,7 @@ public class ApiV3SocketTicketService {
     }
     protected long now() { return System.currentTimeMillis(); }
     public void requireNoTransaction(){if(tickets.hasTransactionBegun())throw new IllegalStateException("socket publication before transaction end");}
-    /** Small committed batches; keep expired grant hashes for one day, never plaintext credentials. */
+    /** 分小批提交清理，过期授权仅保留一天的凭据哈希。 */
     public int removeExpired() throws Exception {
         requireNoTransaction();
         final var tx=tickets.beginTransaction();
@@ -110,7 +110,7 @@ public class ApiV3SocketTicketService {
         } finally { if (tx.isActive()) tx.rollback(); }
     }
 
-    /** Recheck before delivering data and on heartbeat: no cached user or client status. */
+    /** 发送数据前和处理心跳时都要从数据库复核用户与客户端状态。 */
     public boolean authorized(final Grant grant) throws Exception {
         if (null == grant || grant.expiresAt() <= now()) return false;
         final String scope = scope(grant.channel(), grant.targetId());

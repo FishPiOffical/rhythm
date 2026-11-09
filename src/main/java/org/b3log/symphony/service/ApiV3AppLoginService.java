@@ -35,7 +35,7 @@ import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import static org.b3log.symphony.util.ApiV3AppLoginProtocol.*;
 
-/** Each transition rechecks the issuing website grant, native client and credential epoch in one strict root. */
+/** 每次状态转换都在同一个严格事务内复核网站签发授权、原生客户端和凭据版本。 */
 @Service
 public class ApiV3AppLoginService {
     @Inject private ApiV3AppLoginRequestRepository requests;
@@ -45,8 +45,14 @@ public class ApiV3AppLoginService {
     @Inject private UserRepository users;
     @Inject private ApiV3SecurityProofService proofs;
     @Inject private ApiV3TokenMgmtService grants;
-    protected long now() { return System.currentTimeMillis(); }
-    protected String handle() { return ApiV3TokenUtil.generate(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    protected String handle() {
+        return ApiV3TokenUtil.generate();
+    }
+
     protected JSONObject issue(final String actor, final String scope) throws Exception {
         return grants.issueForClientInCurrentTransaction(actor, ApiV3AppLoginRequest.APP_CLIENT, scope);
     }
@@ -67,7 +73,7 @@ public class ApiV3AppLoginService {
             if (!allowed.contains("profile.read")) throw forbidden();
             final String scope = String.join(" ",allowed), raw = handle(), hash = handleHash(raw);
             final Snapshot fresh = ApiV3AppLoginProtocol.create(now());
-            // Bounded opportunistic retention; expiry itself is enforced on every current read.
+            // 创建请求时顺带限量清理旧记录；每次读取当前请求仍独立检查过期时间。
             ApiV3TransactionStatements.execute("DELETE FROM `"+requests.getName()+"` WHERE expiresAt<? LIMIT 200",Math.max(0L,now()-86_400_000L));
             change("INSERT INTO `"+requests.getName()+"` (oId,userId,issuerTokenId,credentialEpoch,scope,state,codeChallenge,createdAt,expiresAt,updatedAt) VALUES(?,?,?,?,?,?,?,?,?,?)",
                     hash,owner,identity.getString("tokenId"),AccountCredentialStateRepository.epoch(state.opt("credentialEpoch")),scope,
@@ -75,7 +81,10 @@ public class ApiV3AppLoginService {
             return new JSONObject().put("request",raw).put("qrPayload",qr(raw)).put("expiresAt",fresh.expiresAt()).put("state","waiting");
         });
     }
-    public JSONObject webStatus(final JSONObject identity, final String raw) { return operation(identity,raw,null,"web-status"); }
+    public JSONObject webStatus(final JSONObject identity, final String raw) {
+        return operation(identity, raw, null, "web-status");
+    }
+
     public JSONObject webDecision(final JSONObject identity, final String raw, final String decision) {
         if (!Set.of("approve","deny").contains(decision)) throw ApiV3WriteInputs.invalid();
         return operation(identity,raw,null,"web-"+decision);
@@ -84,12 +93,18 @@ public class ApiV3AppLoginService {
         if (!canonical32(challenge)) throw ApiV3WriteInputs.invalid();
         return operation(null,raw,challenge,"claim");
     }
-    public JSONObject appStatus(final String raw, final String verifier) { return operation(null,raw,verifier,"app-status"); }
+    public JSONObject appStatus(final String raw, final String verifier) {
+        return operation(null, raw, verifier, "app-status");
+    }
+
     public JSONObject appDecision(final String raw, final String verifier, final String decision) {
         if (!Set.of("confirm","deny").contains(decision)) throw ApiV3WriteInputs.invalid();
         return operation(null,raw,verifier,"app-"+decision);
     }
-    public JSONObject exchange(final String raw, final String verifier) { return operation(null,raw,verifier,"exchange"); }
+    public JSONObject exchange(final String raw, final String verifier) {
+        return operation(null, raw, verifier, "exchange");
+    }
+
     private JSONObject operation(final JSONObject identity, final String raw, final String proof, final String action) {
         if (!canonical32(raw) || (proof!=null && !canonical32(proof))) throw ApiV3WriteInputs.invalid();
         final String hash = handleHash(raw);
@@ -107,6 +122,7 @@ public class ApiV3AppLoginService {
                 if (currentState == null || AccountCredentialStateRepository.epoch(currentState.opt("credentialEpoch"))!=hint.getLong("credentialEpoch")) throw forbidden();
                 final JSONObject row = requests.currentForUpdate(hash);
                 if (row==null) throw missing();
+                // 锁定请求后复核它与预读时用于鉴权的账号、签发凭据和权限范围一致。
                 for (String key : Set.of("oId","userId","issuerTokenId","credentialEpoch","scope"))
                     if (!row.get(key).toString().equals(hint.get(key).toString())) throw forbidden();
                 final var issuerRows = tokens.select("SELECT scope FROM `"+tokens.getName()+"` WHERE oId=? FOR UPDATE",hint.getString("issuerTokenId"));
@@ -130,6 +146,7 @@ public class ApiV3AppLoginService {
                 };
                 JSONObject issued = null;
                 if (action.equals("exchange")) {
+                    // 凭据签发、登录时间和请求消费随同一事务提交。
                     issued = issue(row.getString("userId"),row.getString("scope"));
                     grants.recordSuccessfulLoginInCurrentTransaction(row.getString("userId"), time);
                 }
@@ -142,8 +159,11 @@ public class ApiV3AppLoginService {
             });
             if (action.equals("exchange")) grants.evictLoginCacheAfterTransaction(hint.getString("userId"));
             return response;
-        } catch (ApiV3Exception error) { throw error; }
-        catch (Exception error) { throw unavailable(); }
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
     private JSONObject lockClient() throws Exception {
         clients.lockForAccountResetInCurrentTransaction();
@@ -169,27 +189,63 @@ public class ApiV3AppLoginService {
                 .put("expiresIn",issued.getLong("expiresIn")).put("refreshExpiresIn",issued.getLong("refreshExpiresIn"))
                 .put("scope",scope).put("clientId",ApiV3AppLoginRequest.APP_CLIENT);
     }
-    @FunctionalInterface private interface Work { JSONObject run() throws Exception; }
+    @FunctionalInterface
+    private interface Work {
+        JSONObject run() throws Exception;
+    }
+
     private JSONObject root(final Work work) {
         if (requests.hasTransactionBegun()) throw new IllegalStateException("app login strict root required");
-        Transaction tx=null;
-        try { tx=ApiV3Transactions.strict(requests.beginTransaction());final JSONObject result=work.run();tx.commit();return result; }
-        catch (Rejected error) { rollback(tx);throw switch(error.reason()) {
-            case BAD_PROOF -> new ApiV3Exception(403,"invalid_app_proof","APP绑定证明无效");
-            case EXPIRED -> new ApiV3Exception(410,"app_login_expired","扫码请求已过期");
-            case ALREADY_USED,DENIED -> new ApiV3Exception(410,"app_login_unavailable","扫码请求已失效");
-            default -> new ApiV3Exception(409,"app_login_conflict","扫码请求状态不允许此操作");
-        }; }
-        catch (ApiV3Exception error) { rollback(tx);throw error; }
-        catch (Exception error) { rollback(tx);throw unavailable(); }
+        Transaction tx = null;
+        try {
+            tx = ApiV3Transactions.strict(requests.beginTransaction());
+            final JSONObject result = work.run();
+            tx.commit();
+            return result;
+        } catch (Rejected error) {
+            rollback(tx);
+            throw switch (error.reason()) {
+                case BAD_PROOF -> new ApiV3Exception(403, "invalid_app_proof", "APP绑定证明无效");
+                case EXPIRED -> new ApiV3Exception(410, "app_login_expired", "扫码请求已过期");
+                case ALREADY_USED, DENIED -> new ApiV3Exception(410, "app_login_unavailable", "扫码请求已失效");
+                default -> new ApiV3Exception(409, "app_login_conflict", "扫码请求状态不允许此操作");
+            };
+        } catch (ApiV3Exception error) {
+            rollback(tx);
+            throw error;
+        } catch (Exception error) {
+            rollback(tx);
+            throw unavailable();
+        }
     }
-    private static void rollback(Transaction tx) { if (tx!=null && tx.isActive()) tx.rollback(); }
+
+    private static void rollback(Transaction tx) {
+        if (tx != null && tx.isActive())
+            tx.rollback();
+    }
+
     private static String actor(JSONObject identity) {
-        final JSONObject user=identity==null?null:identity.optJSONObject("user");final String actor=user==null?"":user.optString("oId");
-        if(!actor.matches("[1-9][0-9]{0,18}")) throw forbidden();return actor;
+        final JSONObject user = identity == null ? null : identity.optJSONObject("user");
+        final String actor = user == null ? "" : user.optString("oId");
+        if (!actor.matches("[1-9][0-9]{0,18}"))
+            throw forbidden();
+        return actor;
     }
-    private static void change(String sql,Object...args) throws Exception { if(ApiV3TransactionStatements.execute(sql,args)!=1) throw unavailable(); }
-    private static ApiV3Exception forbidden() { return new ApiV3Exception(403,"forbidden","当前授权不允许此扫码请求"); }
-    private static ApiV3Exception missing() { return new ApiV3Exception(404,"not_found","扫码请求不存在"); }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","扫码登录暂不可用"); }
+
+    private static void change(String sql, Object... args) throws Exception {
+        if (ApiV3TransactionStatements.execute(sql, args) != 1)
+            throw unavailable();
+    }
+
+    private static ApiV3Exception forbidden() {
+        return new ApiV3Exception(403, "forbidden", "当前授权不允许此扫码请求");
+    }
+
+    private static ApiV3Exception missing() {
+        return new ApiV3Exception(404, "not_found", "扫码请求不存在");
+    }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "扫码登录暂不可用");
+    }
 }

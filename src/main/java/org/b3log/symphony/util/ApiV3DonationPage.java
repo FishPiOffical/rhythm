@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.json.JSONObject;
 
-/** A configured local page link only; never creates a payment or browser session. */
+/** 返回配置站点的捐助页面链接，不创建支付单或浏览器会话。 */
 public final class ApiV3DonationPage {
     private ApiV3DonationPage() { }
 

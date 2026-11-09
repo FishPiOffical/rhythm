@@ -38,7 +38,7 @@ import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Display-only membership updates; never changes entitlement fields, expiry, state or tier. */
+/** 只更新会员展示设置，保留权益、有效期、状态和档位字段。 */
 @Service
 public class ApiV3MembershipSettingsService {
     @Inject private UserRepository users;
@@ -63,7 +63,7 @@ public class ApiV3MembershipSettingsService {
         } catch (final ApiV3Exception e) { throw e; }
         catch (final Exception e) { throw ApiV3MembershipConfiguration.unavailable(); }
         finally {
-            // Invalidate on rollback/uncertain acknowledgement/replay too; never publish a transaction snapshot.
+            // 回滚、提交结果不确定和重放时也失效缓存，避免对外发布事务内的快照。
             if (!requests.hasTransactionBegun()) { try { cache.remove(actor); } catch (final RuntimeException ignored) { } }
         }
     }

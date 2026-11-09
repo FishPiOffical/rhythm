@@ -27,7 +27,7 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** Read-only endpoint-local proof, not a Bearer token. Write services must always reauthorize in their own root. */
+/** 只读校验当前端点的专用凭据。写入服务仍须在自己的根事务中重新鉴权。 */
 @Service
 public class ApiV3OAuthCredentialQueryService {
     @Inject private ApiV3ClientRepository clients;

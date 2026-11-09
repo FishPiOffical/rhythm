@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** Server-owned, short-lived explicit-consent request. Raw handles/proofs are never persisted. */
+/** 服务端管理的短期授权确认请求，原始句柄和验证凭据不入库。 */
 public final class ApiV3AuthorizationRequest {
     private ApiV3AuthorizationRequest(){ }
     public static final String TABLE="api_v3_authorization_request";

@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Article;
 import org.json.JSONObject;
 
-/** Owned edit transition; never returns the private persistence object. */
+/** 所有者编辑文章时的状态变更，响应只使用公开投影。 */
 public final class ApiV3ArticleEditing {
     private ApiV3ArticleEditing() { }
     public record State(JSONObject article, JSONObject chapter) { }

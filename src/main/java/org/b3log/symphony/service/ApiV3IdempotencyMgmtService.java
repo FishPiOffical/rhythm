@@ -34,7 +34,7 @@ import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.json.JSONObject;
 
-/** Atomic mutation + replay result. Callbacks must join this transaction and have no external side effects. */
+/** 业务写入和重放回执同事务提交。回调必须加入当前事务，且不得产生外部副作用。 */
 @Service
 public class ApiV3IdempotencyMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3IdempotencyMgmtService.class);
@@ -42,7 +42,9 @@ public class ApiV3IdempotencyMgmtService {
     @Inject private ApiV3RequestRepository requestRepository;
 
     @FunctionalInterface
-    public interface Mutation { JSONObject apply() throws Exception; }
+    public interface Mutation {
+        JSONObject apply() throws Exception;
+    }
 
     public JSONObject execute(final String userId, final String operation, final String key,
                               final JSONObject normalizedRequest, final Mutation mutation) throws Exception {

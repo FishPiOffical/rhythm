@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Shared first-party current authentication and per-request password/TOTP proof. Internal projections only. */
+/** 共享第一方实时鉴权和逐请求的密码、TOTP 证明。结果仅供服务内部使用。 */
 @Service
 public class ApiV3SecurityProofService {
     private static final Cache<String,AtomicInteger> ATTEMPTS=Caffeine.newBuilder().maximumSize(100000).expireAfterWrite(10,TimeUnit.MINUTES).build();
@@ -45,7 +45,7 @@ public class ApiV3SecurityProofService {
                 ||ATTEMPTS.get("ip:"+(ip==null?"":ip),k->new AtomicInteger()).incrementAndGet()>60)
             throw new ApiV3Exception(429,"too_many_requests","安全验证过于频繁，请稍后重试");
     }
-    /** Caller owns strict root; this method establishes all shared credential lock ordering. */
+    /** 调用方持有严格根事务，此处按统一顺序取得凭据相关锁。 */
     public JSONObject requireInCurrentTransaction(final JSONObject identity,final String currentPassword,final String currentTotp)throws RepositoryException {
         ApiV3SecurityInputs.digest(currentPassword);if(currentTotp!=null&&!currentTotp.isEmpty())ApiV3SecurityInputs.totp(currentTotp);
         if(!users.hasTransactionBegun()||!tokens.hasTransactionBegun())throw new IllegalStateException("security root required");
@@ -61,14 +61,14 @@ public class ApiV3SecurityProofService {
         }
         return user;
     }
-    /** Private workflows without a password change: current first-party grant only, no password/MFA fields returned. */
+    /** 私人设置流程只校验当前第一方授权，返回的投影不含密码或多因素认证字段。 */
     public JSONObject authorizeFirstPartyInCurrentTransaction(final JSONObject identity, final String scope)throws RepositoryException {
         if(!java.util.Set.of("profile.read","settings.write").contains(scope))throw new IllegalArgumentException("private workflow scope");
         if(!users.hasTransactionBegun()||!tokens.hasTransactionBegun())throw new IllegalStateException("first-party root required");
         clients.lockForAccountResetInCurrentTransaction();
         return new JSONObject().put("oId",authorize(identity,scope,true).getString("oId"));
     }
-    /** Current first-party profile.read projection, for MFA enabled status only. No default state writes. */
+    /** 使用当前第一方 profile.read 授权查询 MFA 启用状态，整个过程只读。 */
     public JSONObject read(final JSONObject identity)throws RepositoryException{return authorize(identity,"profile.read",false);}
     private JSONObject authorize(final JSONObject identity,final String scope,final boolean lock)throws RepositoryException {
         final String actor=actor(identity),tokenId=identity.optString("tokenId");if(!tokenId.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.forbidden();

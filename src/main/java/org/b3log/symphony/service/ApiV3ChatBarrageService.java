@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Ephemeral display: fee and acceptance receipt are durable, transport is best-effort after commit. */
+/** 持久化弹幕费用和受理回执，事务提交后尽力发送即时弹幕。 */
 @Service
 public class ApiV3ChatBarrageService {
     @Inject private UserRepository users;

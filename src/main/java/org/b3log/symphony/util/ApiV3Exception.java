@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.util;
 
-/** Expected v3 protocol or resource error; safe for the JSON response boundary. */
+/** v3 协议或资源的预期错误，可由 JSON 响应层直接处理。 */
 public class ApiV3Exception extends RuntimeException {
     public final int status;
     public final String code;

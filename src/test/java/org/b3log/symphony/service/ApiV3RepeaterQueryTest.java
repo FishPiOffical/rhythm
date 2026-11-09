@@ -55,13 +55,39 @@ public class ApiV3RepeaterQueryTest {
             inject(controller,"query",query);inject(anonymous,"optionQueryService",new OptionQueryService());AnonymousCaptchaShield.setEnabled(false);resetShield();
             inject(auth,"apiV3TokenMgmtService",new ApiV3TokenMgmtService(){public JSONObject authenticate(String t){return Set.of("valid","wrong","disabled").contains(t)?new JSONObject().put("scope",t.equals("wrong")?"profile.read":"content.read").put("user",new JSONObject().put("oId",t.equals("disabled")?"3":"1")):null;}});
         }
-        void sql(String q,Object...a)throws Exception{try(var p=db.prepareStatement(q)){for(int i=0;i<a.length;i++)p.setObject(i+1,a[i]);p.executeUpdate();}}
-        List<JSONObject> selectSQL(String q,Object...a)throws RepositoryException{
-            reads++;Assert.assertTrue(q.startsWith("SELECT "));Assert.assertFalse(q.contains("SELECT *"));Assert.assertFalse(q.contains("userPassword"));
-            if(reads==failAt)throw new RepositoryException("PRIVATE_FAILURE");
-            try{if(reads==disableAt)sql("UPDATE u SET userStatus=4 WHERE oId='1'");if(reads==removeAt)sql("UPDATE c SET repeaterContentStatus=1 WHERE oId='101'");
-                try(var p=db.prepareStatement(q)){for(int i=0;i<a.length;i++)p.setObject(i+1,a[i]);try(var r=p.executeQuery()){var list=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnLabel(i),r.getObject(i));list.add(row);}return list;}}
-            }catch(Exception e){throw new RepositoryException(e);}
+        void sql(String q, Object... a) throws Exception {
+            try (var p = db.prepareStatement(q)) {
+                for (int i = 0; i < a.length; i++) p.setObject(i + 1, a[i]);
+                p.executeUpdate();
+            }
+        }
+
+        List<JSONObject> selectSQL(String q, Object... a) throws RepositoryException {
+            reads++;
+            Assert.assertTrue(q.startsWith("SELECT "));
+            Assert.assertFalse(q.contains("SELECT *"));
+            Assert.assertFalse(q.contains("userPassword"));
+            if (reads == failAt) throw new RepositoryException("PRIVATE_FAILURE");
+            try {
+                // 在指定轮次查询前改变账号或内容状态，模拟多次读取之间的变化。
+                if (reads == disableAt) sql("UPDATE u SET userStatus=4 WHERE oId='1'");
+                if (reads == removeAt) sql("UPDATE c SET repeaterContentStatus=1 WHERE oId='101'");
+                try (var p = db.prepareStatement(q)) {
+                    for (int i = 0; i < a.length; i++) p.setObject(i + 1, a[i]);
+                    try (var r = p.executeQuery()) {
+                        var list = new ArrayList<JSONObject>();
+                        while (r.next()) {
+                            var row = new JSONObject();
+                            for (int i = 1; i <= r.getMetaData().getColumnCount(); i++)
+                                row.put(r.getMetaData().getColumnLabel(i), r.getObject(i));
+                            list.add(row);
+                        }
+                        return list;
+                    }
+                }
+            } catch (Exception e) {
+                throw new RepositoryException(e);
+            }
         }
         RequestContext http(String token,String route,Map<String,String>params)throws Exception{
             var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.GET,"/api/v3/repeater/"+route+"?apiKey=legacy");

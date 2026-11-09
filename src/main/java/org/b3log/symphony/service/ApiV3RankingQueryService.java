@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Public board snapshots. Cache keys are a closed set of type/subtype pairs. */
+/** 公开排行榜快照，仅使用预设的类型与子类型组合作为缓存键。 */
 @Singleton
 public class ApiV3RankingQueryService {
     @Inject private RankingQueryService rankings;
@@ -44,7 +44,9 @@ public class ApiV3RankingQueryService {
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<>();
     private final Map<String, Object> locks = new ConcurrentHashMap<>();
     private static final java.util.concurrent.atomic.AtomicLong SETTINGS_REVISION = new java.util.concurrent.atomic.AtomicLong();
-    public static void invalidateSettings() { SETTINGS_REVISION.incrementAndGet(); }
+    public static void invalidateSettings() {
+        SETTINGS_REVISION.incrementAndGet();
+    }
     private record Snapshot(long at, long revision, String data) { }
 
     public JSONObject ranking(final String type, final String subType, final int p, final int size) throws Exception {

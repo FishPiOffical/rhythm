@@ -36,18 +36,30 @@ public class ApiV3PrivateMessageStateService {
     @Inject private ApiV3IdempotencyMgmtService idempotency;
     @Inject private ApiV3PrivateMessageQueryService query;
 
-    public JSONObject mark(JSONObject viewer,String peer,String key)throws Exception {
-        final String actor=viewer==null?"":viewer.optString(Keys.OBJECT_ID);
+    public JSONObject mark(JSONObject viewer, String peer, String key) throws Exception {
+        final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         ApiV3PrivateMessages.requireId(actor);
-        if(peer!=null){ApiV3PrivateMessages.requireId(peer);if(actor.equals(peer))throw ApiV3WriteInputs.invalid();}
-        try{
-            final var result=idempotency.execute(actor,peer==null?"private.read-all":"private.read:"+peer,key,new JSONObject(),
-                    ()->new JSONObject().put("changed",state.markInCurrentTransaction(actor,peer)));
-            // Absolute count refresh and cache eviction are safe after a replay, too.
-            try{afterMarked(actor);}catch(Exception e){LOGGER.warn("Private read state refresh unavailable");}
+        if (peer != null) {
+            ApiV3PrivateMessages.requireId(peer);
+            if (actor.equals(peer))
+                throw ApiV3WriteInputs.invalid();
+        }
+        try {
+            final var result = idempotency.execute(actor, peer == null ? "private.read-all" : "private.read:" + peer, key, new JSONObject(),
+                    () -> new JSONObject().put("changed", state.markInCurrentTransaction(actor, peer)));
+            // 回放也可以清缓存并重新查询当前未读总数。
+            try {
+                afterMarked(actor);
+            } catch (Exception e) {
+                LOGGER.warn("Private read state refresh unavailable");
+            }
             return result;
-        }catch(ApiV3Exception e){throw e;}
-        catch(Exception e){LOGGER.warn("Private read state unavailable");throw new ApiV3Exception(503,"temporarily_unavailable","私信暂不可用");}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            LOGGER.warn("Private read state unavailable");
+            throw new ApiV3Exception(503, "temporarily_unavailable", "私信暂不可用");
+        }
     }
     protected void afterMarked(String actor)throws Exception {
         ChatProcessor.invalidateChatListCache(actor,actor);

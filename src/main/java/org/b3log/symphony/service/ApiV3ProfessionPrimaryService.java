@@ -34,7 +34,7 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Free primary selection only; joins the shared strictly committed idempotency transaction. */
+/** 免费选择主职业，加入共享幂等事务并由其统一提交。 */
 @Service
 public class ApiV3ProfessionPrimaryService {
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
@@ -47,7 +47,7 @@ public class ApiV3ProfessionPrimaryService {
     public JSONObject set(final String actor, final String professionId, final String key) {
         id(actor); id(professionId);
         try {
-            // Replay bypasses the mutation; cached Token identities cannot extend a disabled account.
+            // 回放不进入写入回调，须在读取回执前确认缓存凭据对应的账号当前有效。
             if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor,
                     UserExt.USER_STATUS_C_VALID).size() != 1) throw ApiV3Requests.notFound();
             return idempotency.execute(actor, "professions.primary", key,
@@ -60,7 +60,7 @@ public class ApiV3ProfessionPrimaryService {
             throw new ApiV3Exception(503, "temporarily_unavailable", "职业设置暂不可用");
         }
     }
-    /** Lock current actor -> target profession -> privacy; never opens/commits a root transaction. */
+    /** 在调用方事务中依次锁定当前用户、目标职业和隐私设置。 */
     public JSONObject setInCurrentTransaction(final String actor, final String professionId) throws Exception {
         id(actor); id(professionId);
         if (!privacy.hasTransactionBegun()) throw new IllegalStateException("profession selection transaction required");

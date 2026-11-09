@@ -23,7 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-/** Pure transition rules. Persistence, current-account authorization and issuance belong to a transaction owner. */
+/** 仅定义登录状态转换，持久化、当前账号授权和签发由调用方在事务中完成。 */
 public final class ApiV3AppLoginProtocol {
     public static final long TTL_MILLIS = 120_000L;
     public static final String QR_PREFIX = "fishpi-login:v3:";
@@ -32,25 +32,36 @@ public final class ApiV3AppLoginProtocol {
     public enum Reason { INVALID, EXPIRED, BOUND_TO_OTHER_APP, BAD_PROOF, WRONG_STATE, ALREADY_USED, DENIED }
     public static final class Rejected extends IllegalArgumentException {
         private final Reason reason;
-        private Rejected(final Reason reason) { super("App login request rejected: " + reason.name()); this.reason = reason; }
-        public Reason reason() { return reason; }
+        private Rejected(final Reason reason) {
+            super("App login request rejected: " + reason.name());
+            this.reason = reason;
+        }
+
+        public Reason reason() {
+            return reason;
+        }
     }
-    /** No raw scan handle, APP verifier or issued token is part of a persisted snapshot. */
+    /** 持久化快照省略原始扫码句柄、APP 校验器和已签发令牌。 */
     public record Snapshot(State state, long createdAt, long expiresAt, String challenge) {
         public Snapshot {
             if (state == null || createdAt <= 0 || expiresAt <= createdAt
                     || expiresAt - createdAt != TTL_MILLIS || challenge == null
                     || (!challenge.isEmpty() && !canonical32(challenge))
                     || (state == State.WAITING && !challenge.isEmpty())
-                    || (state != State.WAITING && state != State.DENIED && challenge.isEmpty())) throw reject(Reason.INVALID);
+                    || (state != State.WAITING && state != State.DENIED && challenge.isEmpty()))
+                throw reject(Reason.INVALID);
         }
     }
     public static Snapshot create(final long now) {
         if (now <= 0 || now > Long.MAX_VALUE - TTL_MILLIS) throw reject(Reason.INVALID);
         return new Snapshot(State.WAITING, now, now + TTL_MILLIS, "");
     }
-    /** Exact opaque payload; no embedded URL, account credentials or alternate legacy login syntax. */
-    public static String qr(final String handle) { if (!canonical32(handle)) throw reject(Reason.INVALID); return QR_PREFIX + handle; }
+    /** 只接受规定的扫码载荷格式，禁止内嵌 URL、账号凭据或其他登录格式。 */
+    public static String qr(final String handle) {
+        if (!canonical32(handle))
+            throw reject(Reason.INVALID);
+        return QR_PREFIX + handle;
+    }
     public static String parseQr(final String payload) {
         if (payload == null || !payload.startsWith(QR_PREFIX)) throw reject(Reason.INVALID);
         final String handle = payload.substring(QR_PREFIX.length());
@@ -70,7 +81,8 @@ public final class ApiV3AppLoginProtocol {
         if (!canonical32(challenge)) throw reject(Reason.INVALID);
         if (current.state() == State.WAITING) return move(current, State.CLAIMED, challenge);
         if (!equal(current.challenge(), challenge)) throw reject(Reason.BOUND_TO_OTHER_APP);
-        return current; // Same APP retries do not reset either confirmation or the original expiry.
+        // 同一 APP 重试时，保留已有确认状态和原到期时间。
+        return current;
     }
     public static Snapshot confirmApp(final Snapshot current, final String verifier, final long now) {
         proof(current, verifier, now);
@@ -78,7 +90,7 @@ public final class ApiV3AppLoginProtocol {
         if (current.state() == State.APP_CONFIRMED || current.state() == State.WEB_APPROVED) return current;
         throw reject(Reason.WRONG_STATE);
     }
-    /** Caller must independently authorize the current first-party owner before either web decision. */
+    /** 网页确认或拒绝之前，调用方须独立校验当前第一方所有者的权限。 */
     public static Snapshot approveWeb(final Snapshot current, final long now) {
         active(current, now);
         if (current.state() == State.APP_CONFIRMED) return move(current, State.WEB_APPROVED, current.challenge());
@@ -93,7 +105,7 @@ public final class ApiV3AppLoginProtocol {
         proof(current, verifier, now);
         return move(current, State.DENIED, current.challenge());
     }
-    /** Caller atomically commits this transition together with exactly one APP token family. */
+    /** 调用方须将本次状态转换与唯一一组 APP 令牌在同一事务中提交。 */
     public static Snapshot consume(final Snapshot current, final String verifier, final long now) {
         proof(current, verifier, now);
         if (current.state() != State.WEB_APPROVED) throw reject(Reason.WRONG_STATE);
@@ -117,14 +129,26 @@ public final class ApiV3AppLoginProtocol {
         return MessageDigest.isEqual(left.getBytes(StandardCharsets.US_ASCII), right.getBytes(StandardCharsets.US_ASCII));
     }
     public static boolean canonical32(final String value) {
-        if (value == null || !value.matches("[A-Za-z0-9_-]{43}")) return false;
-        try { final byte[] decoded = Base64.getUrlDecoder().decode(value); return decoded.length == 32 && encode(decoded).equals(value); }
-        catch (final IllegalArgumentException ignored) { return false; }
+        if (value == null || !value.matches("[A-Za-z0-9_-]{43}"))
+            return false;
+        try {
+            final byte[] decoded = Base64.getUrlDecoder().decode(value);
+            return decoded.length == 32 && encode(decoded).equals(value);
+        } catch (final IllegalArgumentException ignored) {
+            return false;
+        }
     }
-    private static String encode(final byte[] bytes) { return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
+    private static String encode(final byte[] bytes) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
     private static byte[] sha256(final String value) {
-        try { return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.US_ASCII)); }
-        catch (final NoSuchAlgorithmException impossible) { throw new IllegalStateException("SHA-256 unavailable"); }
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.US_ASCII));
+        } catch (final NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 unavailable");
+        }
     }
-    private static Rejected reject(final Reason reason) { return new Rejected(reason); }
+    private static Rejected reject(final Reason reason) {
+        return new Rejected(reason);
+    }
 }

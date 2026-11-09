@@ -28,7 +28,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Bearer topic changes share admission state with ordinary/legacy chat and one idempotency transaction. */
+/** Bearer 身份修改话题时沿用普通消息和旧聊天室的准入状态，并在一个幂等事务中写入。 */
 @Service
 public class ApiV3ChatTopicService {
     @Inject private UserRepository users;
@@ -63,7 +63,7 @@ public class ApiV3ChatTopicService {
             final String name=current.getString(User.USER_NAME);
             if(decision.get()==null||!name.equals(decision.get().name())||!prepared.equals(decision.get().content()))decision.set(new Decision(name,prepared,ChatMessageAbuseState.repeated(name,prepared)));
             penalty.set(decision.get().repeat()==ChatMessageAbuseState.Repeat.PENALIZE?penalties.applyInCurrentTransaction(actor,time):null);
-            // User/restriction locks are still held; the storage core re-reads that same current user.
+            // 仍持有用户和限制记录的锁，写入核心会再次读取同一当前用户。
             final var result=topics.changeInCurrentTransaction(actor,text,verified->{});changed.set(result);
             return new JSONObject().put("text",result.topic().text()).put("cost",ChatTopicValue.COST).put("revision",Long.toString(result.topic().revision()));
         }));

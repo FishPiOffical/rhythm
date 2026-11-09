@@ -35,12 +35,15 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Administrative logical disable; the registration and callbacks remain available for audit. */
+/** 管理员逻辑停用客户端，保留登记信息与回调地址供审计。 */
 @Singleton
 public class ApiV3ClientDisableProcessor {
     private static final int MAX_BODY_BYTES = 1024;
-    @Inject private ApiV3ClientDisableService service;
-    @Inject private ApiV3ClientManagementService management;
+    @Inject
+    private ApiV3ClientDisableService service;
+    @Inject
+    private ApiV3ClientManagementService management;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ClientDisableProcessor.class), beans.getReference(ApiV3AuthMidware.class),
@@ -52,11 +55,16 @@ public class ApiV3ClientDisableProcessor {
     public void administrator(final RequestContext context) {
         context.getResponse().setHeader("Cache-Control", "no-store");
         context.getResponse().setHeader("Vary", "Authorization");
-        try { management.requireAdministrator(identity(context), false); context.handle(); }
-        catch (final ApiV3Exception e) { ApiV3Processor.error(context, e.status, e.code, e.getMessage()); context.abort(); }
-        catch (final RepositoryException e) {
+        try {
+            management.requireAdministrator(identity(context), false);
+            context.handle();
+        } catch (final ApiV3Exception e) {
+            ApiV3Processor.error(context, e.status, e.code, e.getMessage());
+            context.abort();
+        } catch (final RepositoryException e) {
             final var error = ApiV3ClientDisableService.unavailable();
-            ApiV3Processor.error(context, error.status, error.code, error.getMessage()); context.abort();
+            ApiV3Processor.error(context, error.status, error.code, error.getMessage());
+            context.abort();
         }
     }
     public void disable(final RequestContext context) {
@@ -69,5 +77,7 @@ public class ApiV3ClientDisableProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
-    private static JSONObject identity(final RequestContext context) { return (JSONObject) context.attr(ApiV3Processor.IDENTITY); }
+    private static JSONObject identity(final RequestContext context) {
+        return (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+    }
 }

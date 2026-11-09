@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** Committed per-owner private-message invalidation. No body, peer list or credentials. */
+/** 按所有者记录已提交的私信失效标记，省略正文、会话对方列表和凭据。 */
 public final class ApiV3PrivateRevision {
     private ApiV3PrivateRevision(){ }
     public static final String REPOSITORY="api_v3_private_revision";

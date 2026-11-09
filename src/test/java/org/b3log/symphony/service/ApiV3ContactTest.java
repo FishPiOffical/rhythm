@@ -32,7 +32,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.nio.charset.StandardCharsets;
 
-/** Contact integration reuses Security's real strict-root/proof/credential SQL fixture unchanged. */
+/** 联系方式集成测试复用安全测试中的严格根事务、身份验证与凭据 SQL 夹具。 */
 public class ApiV3ContactTest {
  static final String PHONE="13900000001",EMAIL="new@example.com";
  static final String CAPTCHA=new JSONObject().put("lot_number","lot").put("captcha_output","output").put("pass_token","pass").put("gen_time","time").toString();
@@ -40,7 +40,45 @@ public class ApiV3ContactTest {
  static class F extends ApiV3SecurityTest.F {
   boolean delivery=true,captcha=true,quota=true,providerThrows;int sent,codeSequence=100000;String delivered="",race="";long clock=ApiV3SecurityTest.NOW;
   ApiV3ContactSettingsProcessor contactController=new ApiV3ContactSettingsProcessor();
-  ApiV3ContactSettingsService contact=new ApiV3ContactSettingsService(){protected long now(){return clock;}protected String newCode(){return String.valueOf(++codeSequence);}protected boolean captcha(String p){return captcha;}protected boolean allowed(String ip,String name,String t,boolean p){Assert.assertEquals(name,"reader");return quota;}protected boolean send(String target,String code,boolean phone){Assert.assertFalse(active(),"provider cannot run under transaction");sent++;delivered=code;try{switch(race){case "epoch"->sql(db,"INSERT INTO states VALUES('1',1,0)");case "previous"->sql(db,"UPDATE u SET userPhone='13800000009' WHERE oId='1'");case "occupied"->sql(db,"UPDATE u SET userPhone=? WHERE oId='2'",PHONE);case "post-commit"->fault="commit";case "store"->fault="store";case "post-begin"->fault="begin";default->{}}}catch(Exception e){throw new RuntimeException(e);}if(providerThrows)throw new RuntimeException("PRIVATE_PROVIDER_"+target+code);return delivery;}};
+  ApiV3ContactSettingsService contact = new ApiV3ContactSettingsService() {
+   protected long now() {
+    return clock;
+   }
+
+   protected String newCode() {
+    return String.valueOf(++codeSequence);
+   }
+
+   protected boolean captcha(String p) {
+    return captcha;
+   }
+
+   protected boolean allowed(String ip, String name, String t, boolean p) {
+    Assert.assertEquals(name, "reader");
+    return quota;
+   }
+
+   protected boolean send(String target, String code, boolean phone) {
+    Assert.assertFalse(active(), "provider cannot run under transaction");
+    sent++;
+    delivered = code;
+    try {
+     switch (race) {
+      case "epoch" -> sql(db, "INSERT INTO states VALUES('1',1,0)");
+      case "previous" -> sql(db, "UPDATE u SET userPhone='13800000009' WHERE oId='1'");
+      case "occupied" -> sql(db, "UPDATE u SET userPhone=? WHERE oId='2'", PHONE);
+      case "post-commit" -> fault = "commit";
+      case "store" -> fault = "store";
+      case "post-begin" -> fault = "begin";
+      default -> {}
+     }
+    } catch (Exception e) {
+     throw new RuntimeException(e);
+    }
+    if (providerThrows) throw new RuntimeException("PRIVATE_PROVIDER_" + target + code);
+    return delivery;
+   }
+  };
   F()throws Exception {
    super();sql(db,"ALTER TABLE u ADD userName TEXT NOT NULL DEFAULT 'reader'");sql(db,"ALTER TABLE u ADD userPhone TEXT NOT NULL DEFAULT ''");sql(db,"ALTER TABLE u ADD userEmail TEXT NOT NULL DEFAULT ''");sql(db,"UPDATE u SET userPhone='13800000001',userEmail='old@example.com' WHERE oId='1'");sql(db,"UPDATE u SET userPhone='13800000002',userEmail='other@example.com',userName='other' WHERE oId='2'");
    sql(db,"CREATE TABLE contact(oId TEXT PRIMARY KEY,userId TEXT,purpose TEXT,clientId TEXT,credentialEpoch INT,target TEXT,codeHash TEXT,previousContactHash TEXT,expiresAt INT,createdAt INT,UNIQUE(userId,purpose))");
@@ -48,7 +86,43 @@ public class ApiV3ContactTest {
    ApiV3SecurityTest.inject(contact,"codes",codes);ApiV3SecurityTest.inject(contact,"users",userRepository());ApiV3SecurityTest.inject(contact,"proofs",proof);ApiV3SecurityTest.inject(contact,"credentials",credentials);ApiV3SecurityTest.inject(contactController,"settings",contact);
   }
   org.b3log.symphony.repository.UserRepository userRepository()throws Exception {var f=ApiV3SecurityProofService.class.getDeclaredField("users");f.setAccessible(true);return (org.b3log.symphony.repository.UserRepository)f.get(proof);}
-  @Override Transaction begin(){if(fault.equals("begin"))throw new IllegalStateException("PRIVATE_BEGIN");var result=super.begin();try{var original=writer;writer=(Connection)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{Connection.class},(p,m,a)->{try{if(m.getName().equals("prepareStatement")){String q=(String)a[0];var s=(PreparedStatement)m.invoke(original,a);return Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{PreparedStatement.class},(x,n,b)->{try{var out=n.invoke(s,b);if(n.getName().equals("executeUpdate")&&((fault.equals("store")&&q.startsWith("INSERT INTO `contact`"))||(fault.equals("contact-write")&&q.startsWith("UPDATE `u`"))))throw new SQLException("PRIVATE_CONTACT");return out;}catch(InvocationTargetException e){throw e.getCause();}});}return m.invoke(original,a);}catch(InvocationTargetException e){throw e.getCause();}});var f=org.b3log.latke.repository.jdbc.JdbcTransaction.class.getDeclaredField("connection");f.setAccessible(true);f.set(tx,writer);return result;}catch(Exception e){throw new IllegalStateException(e);}}
+  @Override
+  Transaction begin() {
+   if (fault.equals("begin")) throw new IllegalStateException("PRIVATE_BEGIN");
+   var result = super.begin();
+   try {
+    var original = writer;
+    // 在真实 SQL 写入后注入故障，便于断言根事务撤回已执行的写入。
+    writer = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Connection.class}, (p, m, a) -> {
+     try {
+      if (m.getName().equals("prepareStatement")) {
+       String q = (String) a[0];
+       var s = (PreparedStatement) m.invoke(original, a);
+       return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{PreparedStatement.class}, (x, n, b) -> {
+        try {
+         var out = n.invoke(s, b);
+         if (n.getName().equals("executeUpdate") && ((fault.equals("store") && q.startsWith("INSERT INTO `contact`"))
+                 || (fault.equals("contact-write") && q.startsWith("UPDATE `u`"))))
+          throw new SQLException("PRIVATE_CONTACT");
+         return out;
+        } catch (InvocationTargetException e) {
+         throw e.getCause();
+        }
+       });
+      }
+      return m.invoke(original, a);
+     } catch (InvocationTargetException e) {
+      throw e.getCause();
+     }
+    });
+    var f = org.b3log.latke.repository.jdbc.JdbcTransaction.class.getDeclaredField("connection");
+    f.setAccessible(true);
+    f.set(tx, writer);
+    return result;
+   } catch (Exception e) {
+    throw new IllegalStateException(e);
+   }
+  }
   JSONObject row()throws Exception{var r=rows(db,"SELECT * FROM contact ORDER BY purpose");return r.isEmpty()?null:r.getFirst();}
   void request(boolean phone)throws Exception{contact.request(ApiV3SecurityTest.identity(),input(phone,true,CAPTCHA),phone,"ip");}
   JSONObject change(boolean phone,String code)throws Exception{return contact.change(ApiV3SecurityTest.identity(),input(phone,false,code),phone,"ip");}
@@ -67,6 +141,7 @@ public class ApiV3ContactTest {
   for(String failure:List.of("delivery","throw","store","post-commit","post-begin"))try(var f=new F()){
    f.request(true);String before=f.row().toString();if(failure.equals("delivery"))f.delivery=false;else if(failure.equals("throw"))f.providerThrows=true;else f.race=failure;error(503,()->f.request(true));Assert.assertEquals(f.row().toString(),before);
   }System.out.println("PASS contact 2 provider reject/throw and post-delivery persistence/commit failures retain prior accepted code without leaking delivery exceptions");
+  // 在发送验证码期间修改凭据版本、原联系方式或占用状态，验证保存前复核。
   for(String race:List.of("epoch","previous","occupied"))try(var f=new F()){
    f.request(true);String before=f.row().toString();f.race=race;error(422,()->f.request(true));Assert.assertEquals(f.row().toString(),before);
   }System.out.println("PASS contact 3 provider-window epoch/old-contact/occupancy races reject new proof and preserve previous successful code");
@@ -75,6 +150,7 @@ public class ApiV3ContactTest {
   }
   try(var f=new F()){f.request(true);sql(f.db,"UPDATE u SET userPhone='13800000009' WHERE oId='1'");error(422,()->f.change(true,f.delivered));}
   System.out.println("PASS contact 4 consumed proof current owner/client/purpose/target/epoch/old-contact/expiry/HMAC binding, wrong attempts retain code and contacts");
+  // 先模拟提交前各阶段失败，再模拟成功提交后回执丢失。
   for(String fault:List.of("contact-write","revoke","commit"))try(var f=new F()){
    f.request(true);String before=f.row().toString();f.fault=fault;error(503,()->f.change(true,f.delivered));Assert.assertEquals(f.row().toString(),before);Assert.assertEquals(rows(f.db,"SELECT userPhone FROM u WHERE oId='1'").getFirst().getString("userPhone"),"13800000001");Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM states").getFirst().getInt("n"),0);
   }

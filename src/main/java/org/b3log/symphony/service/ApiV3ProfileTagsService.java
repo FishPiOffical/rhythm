@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Owner metadata and tag/creator/self relations share a root with the replay receipt. */
+/** 本人标签设置、标签及创建者和自用关系与重放回执在同一个根事务中提交。 */
 @Service
 public class ApiV3ProfileTagsService {
     @Inject private UserRepository users;
@@ -77,25 +77,47 @@ public class ApiV3ProfileTagsService {
                     if (requests.hasTransactionBegun()) throw new IllegalStateException("profile tags root required");
                     return ApiV3Transactions.strict(requests.beginTransaction());
                 }
-                public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                public JSONObject getForUpdate(String id) throws RepositoryException { owner(actor); authorized[0] = true; return requests.getForUpdate(id); }
-                public String add(JSONObject value) throws RepositoryException { return requests.add(value); }
-                public void update(String id, JSONObject value, String... fields) throws RepositoryException { requests.update(id, value, fields); }
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(String id) throws RepositoryException {
+                    owner(actor);
+                    authorized[0] = true;
+                    return requests.getForUpdate(id);
+                }
+
+                public String add(JSONObject value) throws RepositoryException {
+                    return requests.add(value);
+                }
+
+                public void update(String id, JSONObject value, String... fields) throws RepositoryException {
+                    requests.update(id, value, fields);
+                }
             };
             final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "settings.tags", key, normalized, () -> apply(actor, input));
             if (!result.keySet().equals(java.util.Set.of("tags")) || !(result.opt("tags") instanceof String value) || value.length() > 128) throw unavailable();
             return new JSONObject().put("tags", value);
-        } catch (ApiV3Exception error) { throw error; }
-        catch (Exception error) { throw unavailable(); }
-        finally {
-            if (authorized[0]) try { users.refreshSettingsCache(actor); }
-            catch (Exception ignored) { try { users.evictSettingsCaches(actor); } catch (Exception ignoredEviction) { } }
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            // 退出事务后刷新设置缓存；刷新失败时尝试清除缓存。
+            if (authorized[0])
+                try {
+                    users.refreshSettingsCache(actor);
+                } catch (Exception ignored) {
+                    try {
+                        users.evictSettingsCaches(actor);
+                    } catch (Exception ignoredEviction) { }
+                }
         }
     }
     private JSONObject apply(String actor, List<String> input) throws Exception {
         final JSONObject user = owner(actor);
         checkQuota(actor);
-        // A durable namespace serializes v3 tag lookup/create. Old tag writers do not all take it first.
+        // 用持久命名空间锁串行处理 API v3 标签查找和创建，部分旧写入口不遵循此锁顺序。
         final JSONObject statistic = options.getForUpdate(Option.ID_C_STATISTIC_TAG_COUNT);
         if (statistic == null) throw unavailable();
         final List<String> titles = new ArrayList<>();

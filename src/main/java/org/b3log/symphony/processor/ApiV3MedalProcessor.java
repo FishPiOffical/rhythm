@@ -29,7 +29,7 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3MedalQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Medal read projections, separate from legacy read methods that remove expired grants. */
+/** 勋章只读投影，独立于会清理过期授予记录的旧读取方法。 */
 @Singleton
 public class ApiV3MedalProcessor {
     @Inject private ApiV3MedalQueryService query;

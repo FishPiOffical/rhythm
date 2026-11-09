@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Public state never serializes the permanent-stick Long.MAX_VALUE sentinel. */
+/** 公开置顶状态不直接输出用于标记永久置顶的 Long.MAX_VALUE。 */
 public final class ApiV3ArticleStickState {
     private static final long MAX_SAFE_INTEGER = 9_007_199_254_740_991L;
     private ApiV3ArticleStickState() { }

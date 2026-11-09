@@ -25,7 +25,7 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** Password mutation and complete credential revocation share the caller-owned strict root. */
+/** 修改密码和撤销已有凭据在调用方的同一个严格事务中提交。 */
 @Service
 public class ApiV3SecuritySettingsService {
     @Inject private ApiV3SecurityProofService proof;

@@ -46,7 +46,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
-/** Approved community resources and explicit public location lists. */
+/** 查询经审核的社区资源和明确公开的地理位置列表。 */
 @Service
 public class ApiV3CommunityQueryService {
     @Inject private FishGameRepository gameRepository;

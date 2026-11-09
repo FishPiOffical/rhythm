@@ -46,10 +46,31 @@ public class ApiV3CommentRewardQueryTest {
             }
             final var service=new ApiV3CommentRewardQueryService();final boolean[] failed={false},hidden={false};final int[] offer={100},articleType={5};
             inject(service,"users",new UserRepository(){public String getName(){return "users";}});inject(service,"rewards",new RewardRepository(){public String getName(){return "rewards";}});
-            inject(service,"comments",new CommentRepository(){public String getName(){return "comments";}public List<JSONObject> select(String sql,Object...values)throws RepositoryException{
-                if(failed[0])throw new RepositoryException("fixture failure");Assert.assertTrue(sql.startsWith("SELECT "));
-                try(var s=db.prepareStatement(sql)){for(int i=0;i<values.length;i++)s.setObject(i+1,values[i]);try(var r=s.executeQuery()){var list=new ArrayList<JSONObject>();var m=r.getMetaData();while(r.next()){var row=new JSONObject();for(int i=1;i<=m.getColumnCount();i++)row.put(m.getColumnLabel(i),r.getObject(i));list.add(row);}return list;}}catch(SQLException e){throw new RepositoryException(e);}
-            }});
+            inject(service, "comments", new CommentRepository() {
+                public String getName() {
+                    return "comments";
+                }
+
+                public List<JSONObject> select(String sql, Object... values) throws RepositoryException {
+                    if (failed[0]) throw new RepositoryException("fixture failure");
+                    Assert.assertTrue(sql.startsWith("SELECT "));
+                    try (var s = db.prepareStatement(sql)) {
+                        for (int i = 0; i < values.length; i++) s.setObject(i + 1, values[i]);
+                        try (var r = s.executeQuery()) {
+                            var list = new ArrayList<JSONObject>();
+                            var m = r.getMetaData();
+                            while (r.next()) {
+                                var row = new JSONObject();
+                                for (int i = 1; i <= m.getColumnCount(); i++) row.put(m.getColumnLabel(i), r.getObject(i));
+                                list.add(row);
+                            }
+                            return list;
+                        }
+                    } catch (SQLException e) {
+                        throw new RepositoryException(e);
+                    }
+                }
+            });
             inject(service,"visibility",new ApiV3ContentQueryService(){public JSONObject viewableArticle(String id,JSONObject viewer){return hidden[0]?null:new JSONObject().put("oId",id).put("articleAuthorId","1").put("articleQnAOfferPoint",offer[0]).put("articleType",articleType[0]);}});
             final JSONObject owner=new JSONObject().put("oId","1"),author=new JSONObject().put("oId","2"),other=new JSONObject().put("oId","3");
             final var thanks=service.read(owner,"11",false);Assert.assertEquals(thanks.keySet(),Set.of("id","thanked","canThank","thankCount","thankPoint"));Assert.assertTrue(thanks.getBoolean("thanked"));Assert.assertFalse(thanks.getBoolean("canThank"));Assert.assertEquals(thanks.getInt("thankCount"),7);

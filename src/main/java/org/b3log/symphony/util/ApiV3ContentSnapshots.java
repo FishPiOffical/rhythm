@@ -22,7 +22,7 @@ import org.b3log.latke.Keys;
 import org.b3log.symphony.model.UserExt;
 import org.json.JSONObject;
 
-/** Current read snapshots: authorization fields and body are selected together, never from entity caches. */
+/** 从当前查询快照同时读取授权字段和正文，避免由实体缓存恢复可见性或内容。 */
 public final class ApiV3ContentSnapshots {
     private static final String STATUS = "v3ContentAuthorStatus";
     private static final String NAME = "v3ContentAuthorName";

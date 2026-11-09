@@ -27,7 +27,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 
-/** Approximate current-node article connection count, with current database authorization first. */
+/** 按数据库当前状态确认文章可见后，返回本节点的近似连接数。 */
 @Service
 public class ApiV3ArticleHeatQueryService {
     @Inject private ApiV3RealtimeTargetService targets;

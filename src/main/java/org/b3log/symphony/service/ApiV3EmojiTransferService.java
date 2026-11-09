@@ -33,7 +33,7 @@ import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.util.*;
 
-/** Immutable share snapshots, independent imports and owner cloud copies. No legacy self-committing calls. */
+/** 创建不可变的分享快照，独立导入分组并迁移本人云端数据。所有写入由当前事务统一提交。 */
 @Service
 public class ApiV3EmojiTransferService {
     @Inject private UserRepository users;
@@ -49,22 +49,51 @@ public class ApiV3EmojiTransferService {
     private static final SecureRandom RANDOM=new SecureRandom();
     private static final String ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    public JSONObject share(String actor,String groupId,String key){id(groupId);return execute(actor,"share",new JSONObject().put("groupId",groupId),key);}
-    public JSONObject importShare(String actor,JSONObject body,String key){return execute(actor,"import",new JSONObject().put("shareCode",ApiV3EmojiTransferInputs.code(body)),key);}
-    public JSONObject migrate(String actor,String key){return execute(actor,"migrate",new JSONObject(),key);}
+    public JSONObject share(String actor, String groupId, String key) {
+        id(groupId);
+        return execute(actor, "share", new JSONObject().put("groupId", groupId), key);
+    }
+
+    public JSONObject importShare(String actor, JSONObject body, String key) {
+        return execute(actor, "import", new JSONObject().put("shareCode", ApiV3EmojiTransferInputs.code(body)), key);
+    }
+
+    public JSONObject migrate(String actor, String key) {
+        return execute(actor, "migrate", new JSONObject(), key);
+    }
     private JSONObject execute(String actor,String operation,JSONObject input,String key) {
         id(actor);
         try {
-            final ApiV3MutationStore store=new ApiV3MutationStore(){
-                public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-                public JSONObject getForUpdate(String receipt)throws RepositoryException{lockNamespaceAndActor(actor);return requests.getForUpdate(receipt);}
-                public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                public void update(String receipt,JSONObject row,String...fields)throws RepositoryException{requests.update(receipt,row,fields);}
+            final ApiV3MutationStore store = new ApiV3MutationStore() {
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(String receipt) throws RepositoryException {
+                    // 读取回执前先按统一顺序锁定表情命名空间和账号。
+                    lockNamespaceAndActor(actor);
+                    return requests.getForUpdate(receipt);
+                }
+
+                public String add(JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(String receipt, JSONObject row, String... fields) throws RepositoryException {
+                    requests.update(receipt, row, fields);
+                }
             };
             final JSONObject row=ApiV3IdempotencyMgmtService.runAtomic(store,actor,"emoji."+operation,key,input,()->applyInCurrentTransaction(actor,operation,input));
             return result(operation,row);
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw ApiV3EmojiTransferInputs.unavailable();}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw ApiV3EmojiTransferInputs.unavailable();
+        }
     }
     public JSONObject applyInCurrentTransaction(String actor,String operation,JSONObject input)throws Exception {
         id(actor);
@@ -138,7 +167,7 @@ public class ApiV3EmojiTransferService {
         final var entries=new LinkedHashMap<String,JSONObject>();
         for(int i=0;i<array.length();i++) {
             final JSONObject entry=urls?ApiV3EmojiItemInputs.addition(new JSONObject().put("url",array.opt(i)),true):ApiV3EmojiTransferInputs.entry(array.opt(i));
-            // Validate every original item before deduplication; bad duplicate metadata still rejects the whole batch.
+            // 去重前逐项校验原始数据，重复项的元数据无效时也拒绝整批。
             final String url=entry.getString("url");
             final var existing=emojis.select("SELECT oId,emojiUrl,emojiStatus FROM `"+emojis.getName()+"` WHERE BINARY emojiUrl=BINARY ? LIMIT 2 FOR UPDATE",url);
             if(existing.size()>1)throw ApiV3EmojiTransferInputs.unavailable();

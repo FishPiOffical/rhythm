@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Set;
 
-/** Stored shares and cloud payloads receive the same strict validation as new requests. */
+/** 已保存的分享和云端数据沿用新请求的校验规则。 */
 public final class ApiV3EmojiTransferInputs {
     public static final int MAX_ITEMS=256, MAX_TEXT=1048576;
     private ApiV3EmojiTransferInputs() { }

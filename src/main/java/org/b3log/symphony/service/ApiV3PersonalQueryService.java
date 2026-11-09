@@ -49,7 +49,7 @@ import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Owned read resources. The processor passes only its authenticated user. */
+/** 读取个人资源，处理器传入已认证的本人身份。 */
 @Service
 public class ApiV3PersonalQueryService {
     @Inject private ArticleDraftRepository articleDraftRepository;

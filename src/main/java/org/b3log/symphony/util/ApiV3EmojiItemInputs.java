@@ -22,14 +22,14 @@ import org.json.JSONObject;
 import java.net.URI;
 import java.util.Set;
 
-/** Member metadata and full, case-sensitive HTTPS image identity. No remote fetch. */
+/** 校验分组成员元数据，以区分大小写的完整 HTTPS 地址标识图片，不访问远端。 */
 public final class ApiV3EmojiItemInputs {
     private ApiV3EmojiItemInputs() { }
     public static JSONObject metadata(final JSONObject body) {
         if(body==null||!Set.of("name","sort").containsAll(body.keySet()))throw ApiV3WriteInputs.invalid();
         final Object raw=body.has("name")?body.opt("name"):"";
         if(!(raw instanceof String name))throw ApiV3WriteInputs.invalid();
-        // Use the frozen group parser for the exact nonempty plain-text/Unicode rule.
+        // 复用分组解析器，保持非空纯文本和 Unicode 校验规则一致。
         final boolean empty=name.strip().isEmpty();
         final JSONObject value=ApiV3EmojiGroupInputs.normalize(new JSONObject().put("name",empty?"x"+name:name).put("sort",body.has("sort")?body.opt("sort"):0));
         return new JSONObject().put("name",empty?"":value.getString("name")).put("sort",value.getInt("sort"));

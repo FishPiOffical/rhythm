@@ -24,7 +24,7 @@ import org.jsoup.safety.Safelist;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** Closed, typed projection; arbitrary administrator/user configuration is never a response. */
+/** 只投影固定、带类型的会员字段，省略管理员和用户的原始配置。 */
 public final class ApiV3MembershipDto {
     private ApiV3MembershipDto() { }
 

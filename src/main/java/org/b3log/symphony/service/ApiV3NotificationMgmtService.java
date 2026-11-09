@@ -24,7 +24,7 @@ import org.b3log.symphony.util.ApiV3NotificationTypes;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 
-/** Idempotent owned notification state writes. Emits no external events inside its transaction. */
+/** 幂等修改本人通知状态，事务内不发布外部事件。 */
 @Service
 public class ApiV3NotificationMgmtService {
     @Inject private NotificationStateMgmtService stateMgmtService;

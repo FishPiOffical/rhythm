@@ -27,7 +27,7 @@ import org.json.JSONObject;
 import java.util.Map;
 import java.util.Set;
 
-/** Typed partial edit; only supplied values enter the replay hash. Current state is merged under row locks. */
+/** 部分编辑仅将请求明确提供的值计入幂等哈希，合并时在行锁内读取当前状态。 */
 public final class ApiV3ArticleEditInputs {
     private ApiV3ArticleEditInputs() { }
     private static final Map<String, String> KEYS = Map.ofEntries(
@@ -107,7 +107,7 @@ public final class ApiV3ArticleEditInputs {
         }
         if (request.optInt(Article.ARTICLE_QNA_OFFER_POINT) < current.optInt(Article.ARTICLE_QNA_OFFER_POINT)
                 || (type == Article.ARTICLE_TYPE_C_QNA && request.optInt(Article.ARTICLE_QNA_OFFER_POINT) < 20)) throw ApiV3WriteInputs.invalid();
-        // Legacy editing treats zero as retaining the enabled reward, including its original content.
+        // 沿用编辑规则，零值表示保留已开启的悬赏及其原内容。
         if (patch.has(Article.ARTICLE_REWARD_POINT) && patch.optInt(Article.ARTICLE_REWARD_POINT) == 0 && current.optInt(Article.ARTICLE_REWARD_POINT) > 0) {
             request.put(Article.ARTICLE_REWARD_POINT, current.optInt(Article.ARTICLE_REWARD_POINT))
                     .put(Article.ARTICLE_REWARD_CONTENT, current.optString(Article.ARTICLE_REWARD_CONTENT));
@@ -117,7 +117,7 @@ public final class ApiV3ArticleEditInputs {
         if ((reward > 0 && (rewardContent.isBlank() || rewardContent.length() < 4)) || (reward == 0 && !rewardContent.isBlank())) throw ApiV3WriteInputs.invalid();
         return request;
     }
-    /** Existing editor format: payload US elapsedMillis US ch-line US ch-line RS. CAN is deletion. */
+    /** 编辑器格式为 payload US elapsedMillis US ch-line US ch-line RS，其中 CAN 表示删除。 */
     private static void thought(final String content) {
         if (!content.endsWith("\u001e")) throw ApiV3WriteInputs.invalid();
         final String[] records = content.split("\u001e", -1);

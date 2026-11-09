@@ -20,7 +20,7 @@ package org.b3log.symphony.util;
 
 import org.json.JSONObject;
 
-/** A purchase always issues one server-priced code to the authenticated actor. */
+/** 每次购买向当前认证用户发放一个邀请码，价格由服务端决定。 */
 public final class ApiV3InvitationPurchaseInputs {
     private ApiV3InvitationPurchaseInputs() { }
     public static JSONObject parse(final JSONObject body) {

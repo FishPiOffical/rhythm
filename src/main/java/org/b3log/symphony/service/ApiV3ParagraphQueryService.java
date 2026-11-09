@@ -88,7 +88,7 @@ public class ApiV3ParagraphQueryService {
         return ApiV3ParagraphDto.comment(content.commentDto(row, article, viewer), normalize(row, rendered));
     }
 
-    /** Metadata-only location; never returns stored comment text or an author's identity. */
+    /** 只返回定位所需元数据，隐藏评论正文和作者身份。 */
     public JSONObject location(final String id, final JSONObject viewer) throws Exception {
         final JSONObject row = content.currentComment(id);
         if (row == null || row.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) throw ApiV3Requests.notFound();

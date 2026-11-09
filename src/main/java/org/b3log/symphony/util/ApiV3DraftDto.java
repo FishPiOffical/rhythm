@@ -22,7 +22,7 @@ import org.b3log.latke.Keys;
 import org.b3log.symphony.model.ArticleDraft;
 import org.json.JSONObject;
 
-/** Explicit owned-draft response fields, shared by reads and mutations. */
+/** 本人草稿读取和写入共用的响应字段白名单。 */
 public final class ApiV3DraftDto {
     private ApiV3DraftDto() { }
     public static JSONObject from(final JSONObject raw, final boolean detail) {

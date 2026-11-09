@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-/** Identical parameterized selection for paragraph rows and their pagination count. */
+/** 段落评论列表和分页总数共用同一套参数化筛选条件。 */
 public final class ApiV3ParagraphQueries {
     private ApiV3ParagraphQueries() { }
     public record Selection(String sql, List<Object> args) {

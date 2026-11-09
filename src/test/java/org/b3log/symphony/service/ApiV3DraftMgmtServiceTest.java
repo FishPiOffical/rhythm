@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Executes the real draft + idempotency services on one transactional in-memory store. No SQL/HTTP coverage. */
+/** 在同一个事务内存存储上运行实际草稿与幂等服务，覆盖范围限于服务层。 */
 public class ApiV3DraftMgmtServiceTest {
     @Test
     public void createReadUpdateAndDeleteReplayTheOriginalResult() throws Exception {
@@ -56,7 +56,7 @@ public class ApiV3DraftMgmtServiceTest {
         f.api.remove("user-a", id, "delete");
         f.api.remove("user-a", id, "delete");
         Assert.assertTrue(f.drafts.isEmpty());
-        // Replaying create after a later delete must not recreate the draft.
+        // 草稿删除后回放旧的创建请求，仍只返回原回执。
         Assert.assertEquals(f.api.save("user-a", null, "create", body).getString("id"), id);
         Assert.assertTrue(f.drafts.isEmpty());
     }
@@ -98,7 +98,7 @@ public class ApiV3DraftMgmtServiceTest {
     }
 
     private Fixture fixture() throws Exception {
-        // NONE ensures even the real repository superclass constructor cannot connect to a DB.
+        // 使用 NONE，确保实际 Repository 父类构造函数也无法连接数据库。
         final var field = Latkes.class.getDeclaredField("localProps");
         field.setAccessible(true);
         final Properties previous = (Properties) field.get(null);

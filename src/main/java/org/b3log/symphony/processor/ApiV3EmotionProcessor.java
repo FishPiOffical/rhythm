@@ -29,7 +29,7 @@ import org.b3log.symphony.service.ApiV3EmotionQueryService;
 import org.b3log.symphony.util.ApiV3EmotionOptions;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Owner-only, read-only emoji settings. */
+/** 仅本人可读取的表情设置。 */
 @Singleton
 public class ApiV3EmotionProcessor {
     @Inject private ApiV3EmotionQueryService query;

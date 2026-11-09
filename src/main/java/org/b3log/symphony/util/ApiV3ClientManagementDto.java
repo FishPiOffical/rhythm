@@ -23,7 +23,7 @@ import org.json.JSONObject;
 import java.util.Arrays;
 import java.util.Set;
 
-/** Even stored registrations pass the bounded public-field contract before reaching an administrator. */
+/** 管理员读取已保存的注册记录时，也只返回受约束的公开字段。 */
 public final class ApiV3ClientManagementDto {
     private ApiV3ClientManagementDto() { }
     public static JSONObject client(final JSONObject row) {
@@ -35,7 +35,7 @@ public final class ApiV3ClientManagementDto {
     }
     public static JSONObject redirect(final JSONObject row) {
         final String uri = string(row,"redirectUri",2048);
-        // Reading a registered development loopback callback does not approve its use in production.
+        // 读取已登记的开发环境回环地址，不代表生产环境允许使用该地址。
         if (!ApiV3OAuthRedirects.valid(uri,true)) throw unavailable();
         return new JSONObject().put("uri",uri).put("status",status(row));
     }

@@ -29,7 +29,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** Ephemeral credential grant; never store signed tickets in business replay receipts. */
+/** 签发短期上传凭据，业务重放回执不存储已签名凭据。 */
 @Service
 public class ApiV3UploadTicketService {
     @Inject private UserRepository users;
@@ -48,7 +48,7 @@ public class ApiV3UploadTicketService {
             ticket = RhypicUploadTickets.sign(Symphonys.RHPIC_TICKET_PRIVATE_KEY, user.getString(Keys.OBJECT_ID),
                     user.getString(User.USER_NAME), user.optString(UserExt.USER_NICKNAME), System.currentTimeMillis() / 1000);
         } catch (final Exception e) {
-            // Signing/configuration failures must not expose key material or ticket contents.
+            // 签名或配置失败时隐藏密钥和凭据内容。
             LogManager.getLogger(ApiV3UploadTicketService.class).warn("api_v3_upload_ticket result=unavailable requestId={}", ThreadContext.get("apiV3RequestId"));
             throw unavailable();
         }

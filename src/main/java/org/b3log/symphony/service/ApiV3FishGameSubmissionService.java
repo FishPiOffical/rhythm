@@ -41,7 +41,7 @@ import org.json.JSONObject;
 import java.net.URI;
 import java.util.Set;
 
-/** Creates a pending submission or pending edit, with a syntactically validated legacy OpenID login URL. */
+/** 校验旧版 OpenID 登录网址格式后，创建待审核投稿或编辑。 */
 @Service
 public class ApiV3FishGameSubmissionService {
     public static final String NAMESPACE="apiV3FishGameSubmission";

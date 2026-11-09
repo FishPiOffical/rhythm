@@ -27,7 +27,7 @@ import org.json.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Read-only current authorization and bounded revision snapshots, without repository caches. */
+/** 直接按数据库当前状态鉴权并有界读取历史修订快照。 */
 @Service
 public class ApiV3RevisionQueryService {
     private static final int MAX_REVISIONS=4096,MAX_BODY=1048576,MAX_HISTORY=8388608,HASH_BATCH=128;
@@ -38,12 +38,16 @@ public class ApiV3RevisionQueryService {
     @Inject private RolePermissionRepository permissions;
     private record Snapshot(JSONObject actor,JSONObject article,JSONObject comment,List<JSONObject> owners,List<JSONObject> grants,List<JSONObject> metas){ }
     public JSONObject list(final String actor,final int type,final String target,final int page,final int size) {
-        inputs(actor,type,target);if(page<1||page>Integer.MAX_VALUE/50||size<1||size>50)throw ApiV3Requests.invalid();
-        return execute(actor,type,target,null,page,size);
+        inputs(actor, type, target);
+        if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50)
+            throw ApiV3Requests.invalid();
+        return execute(actor, type, target, null, page, size);
     }
     public JSONObject detail(final String actor,final int type,final String target,final String revision) {
-        inputs(actor,type,target);if(!"current".equals(revision))id(revision);
-        return execute(actor,type,target,revision,1,20);
+        inputs(actor, type, target);
+        if (!"current".equals(revision))
+            id(revision);
+        return execute(actor, type, target, revision, 1, 20);
     }
     private JSONObject execute(final String actor,final int type,final String target,final String revision,final int page,final int size) {
         try{
@@ -53,24 +57,47 @@ public class ApiV3RevisionQueryService {
             for(final JSONObject meta:initial.metas())items.add(ApiV3RevisionDto.metadata(meta.getString("oId"),time(meta.getString("oId")),++index));
             final JSONObject current=type==0?initial.article():initial.comment();
             final JSONObject latest=initial.metas().isEmpty()?null:body(initial.metas().getLast(),type,target);
-            if(latest!=null&&changed(latest,current,type))items.add(ApiV3RevisionDto.metadata("current",type==0?integer(current,"articleUpdateTime"):null,++index));
+            // 仅在已有历史且正文忽略空白后有变化时追加当前版本。
+            if (latest != null && changed(latest, current, type))
+                items.add(ApiV3RevisionDto.metadata("current", type == 0 ? integer(current, "articleUpdateTime") : null, ++index));
             final JSONObject result;
             if(revision==null){
-                final long start=(long)(page-1)*size;final JSONArray selected=new JSONArray();
+                final long start = (long) (page - 1) * size;
+                final JSONArray selected = new JSONArray();
                 for(long i=start;i<Math.min(start+size,items.size());i++)selected.put(items.get((int)i));
                 result=new JSONObject().put("items",selected).put("pagination",new JSONObject().put("page",page).put("size",size).put("total",items.size()).put("pageCount",(items.size()+size-1)/size));
             }else{
-                JSONObject meta=null;for(final JSONObject item:items)if(revision.equals(item.getString("id"))){meta=item;break;}
+                JSONObject meta = null;
+                for (final JSONObject item : items)
+                    if (revision.equals(item.getString("id"))) {
+                        meta = item;
+                        break;
+                    }
                 if(meta==null)throw ApiV3Requests.notFound();
                 final JSONObject data;
                 if("current".equals(revision))data=current;
-                else{JSONObject stored=null;for(final JSONObject m:initial.metas())if(revision.equals(m.getString("oId"))){stored=m;break;}if(stored==null)throw ApiV3Requests.notFound();data=body(stored,type,target);}
+                else {
+                    JSONObject stored = null;
+                    for (final JSONObject m : initial.metas())
+                        if (revision.equals(m.getString("oId"))) {
+                            stored = m;
+                            break;
+                        }
+                    if (stored == null)
+                        throw ApiV3Requests.notFound();
+                    data = body(stored, type, target);
+                }
                 result=ApiV3RevisionDto.detail(meta,data,type==0);
             }
-            final Snapshot after=snapshot(actor,type,target);
+            // 返回前复查权限和历史元数据，避免将两次读取间发生的变化拼入同一份结果。
+            final Snapshot after = snapshot(actor, type, target);
             if(!fingerprint(initial).equals(fingerprint(after)))throw ApiV3RevisionDto.unavailable();
             return result;
-        }catch(ApiV3Exception e){throw e;}catch(Exception e){throw ApiV3RevisionDto.unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw ApiV3RevisionDto.unavailable();
+        }
     }
     private Snapshot snapshot(final String actor,final int type,final String target)throws RepositoryException {
         final JSONObject viewer=user(actor,true);
@@ -102,7 +129,7 @@ public class ApiV3RevisionQueryService {
         hashMetadata(metas,type,target);
         return new Snapshot(viewer,article,comment,owners,grants,metas);
     }
-    /** The first pass caps total hash input; each CASE rebinds its exact row size before SHA2. */
+    /** 首次查询限制哈希输入总量；计算 SHA2 前，每个 CASE 分支重新核对对应行的确切大小。 */
     private void hashMetadata(final List<JSONObject> metas,final int type,final String target)throws RepositoryException {
         for(int offset=0;offset<metas.size();offset+=HASH_BATCH){
             final List<JSONObject> batch=metas.subList(offset,Math.min(offset+HASH_BATCH,metas.size()));

@@ -28,13 +28,26 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3UserNameProcessor {
-    @Inject private ApiV3UserNameService settings;
-    public static void register(){final var b=BeanManager.getInstance();registerRoutes(b.getReference(ApiV3UserNameProcessor.class),b.getReference(ApiV3AuthMidware.class),b.getReference(ApiV3WriteMidware.class));}
+    @Inject
+    private ApiV3UserNameService settings;
+
+    public static void register() {
+        final var b = BeanManager.getInstance();
+        registerRoutes(b.getReference(ApiV3UserNameProcessor.class),
+                b.getReference(ApiV3AuthMidware.class), b.getReference(ApiV3WriteMidware.class));
+    }
+
     public static void registerRoutes(ApiV3UserNameProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
         Dispatcher.put("/api/v3/me/settings/user-name",p::rename,auth::activityWrite,auth::settingsWrite,writes::handle);
     }
-    public void rename(RequestContext c){ApiV3Requests.respond(c,()->{
-        final byte[] raw=c.getRequest().getBytes();if(raw!=null&&raw.length>4096)throw new ApiV3Exception(413,"body_too_large","请求体过大");
-        return settings.rename(ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID),ApiV3WriteInputs.body(c,Set.of("userName"),false),ApiV3WriteInputs.idempotencyKey(c));
-    });}
+
+    public void rename(RequestContext c) {
+        ApiV3Requests.respond(c, () -> {
+            final byte[] raw = c.getRequest().getBytes();
+            if (raw != null && raw.length > 4096)
+                throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+            return settings.rename(ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID),
+                    ApiV3WriteInputs.body(c, Set.of("userName"), false), ApiV3WriteInputs.idempotencyKey(c));
+        });
+    }
 }

@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Read-only discovery of recognized packet types; this does not authorize a money operation. */
+/** 供客户端只读查询已识别的红包类型，积分操作仍需独立授权。 */
 public final class ApiV3RedPacketTypes {
     private ApiV3RedPacketTypes() { }
 

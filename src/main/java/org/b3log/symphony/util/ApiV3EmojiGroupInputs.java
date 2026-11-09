@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Typed group settings; names are plain text, never markup. */
+/** 校验表情分组设置的字段类型，分组名称须为纯文本。 */
 public final class ApiV3EmojiGroupInputs {
     private static final Pattern MARKUP = Pattern.compile("<\\s*(?:/?\\s*[a-zA-Z]|!|\\?)");
     private ApiV3EmojiGroupInputs() { }

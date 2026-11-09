@@ -29,7 +29,7 @@ import java.sql.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Independent JVMs share InnoDB; cache, censor, quota and ancillary auth remain explicit fixture ports. */
+/** 独立 JVM 共用 InnoDB，缓存、内容过滤、配额和辅助鉴权由隔离夹具提供。 */
 public class ApiV3ProfileTagsMysqlTest {
     static class Mysql extends ApiV3ProfileTagsTest.Fixture {
         boolean hold; String release;
@@ -66,7 +66,7 @@ public class ApiV3ProfileTagsMysqlTest {
                 if (!holder&&race.equals("failure")) f.writeFault="UPDATE option_data";
                 System.out.println("STARTING_WORK");System.out.flush();
                 try {
-                    // Same-key contenders must use exactly the holder's original request.
+                    // 竞争同一幂等键的进程必须原样发送持有者的请求。
                     final JSONObject result=f.tagSettings.update(actor,new JSONObject().put("tags",race.equals("same-key")?"A":value),key);
                     System.out.println("RESULT="+result.put("status",200));
                 } catch (org.b3log.symphony.util.ApiV3Exception error) { System.out.println("RESULT="+new JSONObject().put("status",error.status)); }

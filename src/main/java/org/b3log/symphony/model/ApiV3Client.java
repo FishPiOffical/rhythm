@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** API v3 client registration fields. */
+/** API v3 客户端注册字段。 */
 public final class ApiV3Client {
     private ApiV3Client() {
     }

@@ -32,7 +32,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.*;
 
-/** Bearer-gated chat history, with bounded ID cursors and no page/session assembly. */
+/** 通过 Bearer 身份查询聊天室历史，使用受限的 ID 游标分页。 */
 @Service
 public class ApiV3ChatQueryService {
     @Inject private ChatRoomRepository messages;

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** One category map for listing, unread counts and bulk state mutations. */
+/** 通知列表、未读计数和批量状态更新共用分类映射。 */
 public final class ApiV3NotificationTypes {
     private ApiV3NotificationTypes() { }
     public static final Map<String, List<Integer>> CATEGORIES;

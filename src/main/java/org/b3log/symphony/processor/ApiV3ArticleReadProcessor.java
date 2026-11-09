@@ -32,10 +32,12 @@ import org.b3log.symphony.util.ApiV3Json;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
-/** Explicit post-display registration; all identity, window and counts are server-owned. */
+/** 正文展示后显式登记阅读，读者身份、统计窗口和计数均由服务端决定。 */
 @Singleton
 public class ApiV3ArticleReadProcessor {
-    @Inject private LongArticleReadCaptureService reads;
+    @Inject
+    private LongArticleReadCaptureService reads;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3ArticleReadProcessor.class);
@@ -47,16 +49,23 @@ public class ApiV3ArticleReadProcessor {
         Dispatcher.post("/api/v3/articles/{articleId}/reads", processor::record, auth::contentRead, auth::activityWrite, writes::handle);
     }
     private static void validateBody(final RequestContext context) {
+        // Latke 预处理可能清空非法 JSON，须读取原始字节来识别真正的空请求体。
         final byte[] bytes;
-        try { bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), 128); }
-        catch (final ApiV3GameSaveRawBody.TooLarge oversized) { throw ApiV3Requests.invalid(); }
+        try {
+            bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), 128);
+        } catch (final ApiV3GameSaveRawBody.TooLarge oversized) {
+            throw ApiV3Requests.invalid();
+        }
         if (bytes.length == 0) return;
         final String type = context.header("Content-Type");
         if (type == null || !"application/json".equalsIgnoreCase(type.split(";", 2)[0].trim()))
             throw new ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
         final JSONObject body;
-        try { body = ApiV3Json.parse(bytes); }
-        catch (final IllegalArgumentException malformed) { throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法"); }
+        try {
+            body = ApiV3Json.parse(bytes);
+        } catch (final IllegalArgumentException malformed) {
+            throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法");
+        }
         if (!body.isEmpty()) throw ApiV3Requests.invalid();
     }
 

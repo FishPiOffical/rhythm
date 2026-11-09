@@ -18,7 +18,7 @@
  */
 package org.b3log.symphony.model;
 
-/** Exact registered callback; not a prefix or client-provided redirect allow-list. */
+/** 注册回调地址按完整值精确匹配，以服务端保存的记录为准。 */
 public final class ApiV3ClientRedirect {
     private ApiV3ClientRedirect(){ }
     public static final String TABLE="api_v3_client_redirect";

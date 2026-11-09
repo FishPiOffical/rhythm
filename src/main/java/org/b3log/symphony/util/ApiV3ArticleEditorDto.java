@@ -23,7 +23,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.json.JSONObject;
 
-/** Owned editor source only. Raw Markdown/thought records must never be treated as rendered HTML. */
+/** 仅向文章所有者提供编辑源文。原始 Markdown 和思绪记录不可当作已渲染 HTML。 */
 public final class ApiV3ArticleEditorDto {
     private ApiV3ArticleEditorDto() { }
     public static String sql(final String articleTable, final String chapterTable, final String columnTable) {

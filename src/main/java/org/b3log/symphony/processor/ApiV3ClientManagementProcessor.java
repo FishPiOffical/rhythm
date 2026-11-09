@@ -36,7 +36,9 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ClientManagementProcessor {
-    @Inject private ApiV3ClientManagementService management;
+    @Inject
+    private ApiV3ClientManagementService management;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ClientManagementProcessor.class),beans.getReference(ApiV3AuthMidware.class),
@@ -47,29 +49,44 @@ public class ApiV3ClientManagementProcessor {
         Dispatcher.get("/api/v3/admin/oauth/clients/{clientId}",p::detail,auth::settingsWrite,p::administrator);
         Dispatcher.post("/api/v3/admin/oauth/clients",p::create,auth::settingsWrite,p::administrator,writes::handle);
     }
-    private static JSONObject identity(final RequestContext c) { return (JSONObject)c.attr(ApiV3Processor.IDENTITY); }
+
+    private static JSONObject identity(final RequestContext c) {
+        return (JSONObject) c.attr(ApiV3Processor.IDENTITY);
+    }
+
     public void administrator(final RequestContext c) {
         c.getResponse().setHeader("Cache-Control","no-store");
         c.getResponse().setHeader("Vary","Authorization");
-        try { management.requireAdministrator(identity(c),false);c.handle(); }
-        catch(ApiV3Exception e){ApiV3Processor.error(c,e.status,e.code,e.getMessage());c.abort();}
-        catch(RepositoryException e){final var error=ApiV3ClientManagementService.unavailable();ApiV3Processor.error(c,error.status,error.code,error.getMessage());c.abort();}
+        try {
+            management.requireAdministrator(identity(c), false);
+            c.handle();
+        } catch (ApiV3Exception e) {
+            ApiV3Processor.error(c, e.status, e.code, e.getMessage());
+            c.abort();
+        } catch (RepositoryException e) {
+            final var error = ApiV3ClientManagementService.unavailable();
+            ApiV3Processor.error(c, error.status, error.code, error.getMessage());
+            c.abort();
+        }
     }
     public void list(final RequestContext c) {
-        ApiV3Requests.read(c,()->read(()->management.list(identity(c),ApiV3Requests.page(c),ApiV3Requests.size(c))));
+        ApiV3Requests.read(c, () -> read(() -> management.list(identity(c), ApiV3Requests.page(c), ApiV3Requests.size(c))));
     }
     public void detail(final RequestContext c) {
-        ApiV3Requests.read(c,()->read(()->management.detail(identity(c),ApiV3ClientManagementInputs.clientId(c.pathVar("clientId")),
+        ApiV3Requests.read(c, () -> read(() -> management.detail(identity(c), ApiV3ClientManagementInputs.clientId(c.pathVar("clientId")),
                 ApiV3Requests.page(c),ApiV3Requests.size(c))));
     }
     public void create(final RequestContext c) {
-        ApiV3Requests.respond(c,()->{
-            final var body=ApiV3WriteInputs.body(c,Set.of("name","scope","redirectUris"),false);
-            return management.create(identity(c),ApiV3ClientManagementInputs.registration(body),ApiV3WriteInputs.idempotencyKey(c));
+        ApiV3Requests.respond(c, () -> {
+            final var body = ApiV3WriteInputs.body(c, Set.of("name", "scope", "redirectUris"), false);
+            return management.create(identity(c), ApiV3ClientManagementInputs.registration(body), ApiV3WriteInputs.idempotencyKey(c));
         });
     }
     private static Object read(final ApiV3Requests.ReadOperation operation) throws Exception {
-        try { return operation.run(); }
-        catch(RepositoryException e) { throw ApiV3ClientManagementService.unavailable(); }
+        try {
+            return operation.run();
+        } catch (RepositoryException e) {
+            throw ApiV3ClientManagementService.unavailable();
+        }
     }
 }

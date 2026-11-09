@@ -30,7 +30,7 @@ import org.json.JSONObject;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-/** Internal consent/exchange core. No HTTP entry may supply its own approved user or scope. */
+/** 授权同意与交换的内部实现，从服务端取得已批准的用户和权限范围。 */
 @Service
 public class ApiV3AuthorizationCodeService {
     public static final long CODE_TTL_MILLIS=TimeUnit.MINUTES.toMillis(5);
@@ -71,7 +71,7 @@ public class ApiV3AuthorizationCodeService {
         if(result.isEmpty())throw rejected();return String.join(" ",result);
     }
     public record ConsentClient(String clientId,String name,String redirectUri,String scope){ }
-    /** Shared current registration check; the request owner already owns the transaction. */
+    /** 在调用方的事务中复核客户端当前登记状态。 */
     public ConsentClient prepareConsentClientInCurrentTransaction(String client,String uri,String requestedScope)throws Exception {
         if(!codes.hasTransactionBegun())throw new IllegalStateException("consent transaction required");
         binding(client,uri);final var row=registered(client,uri);final String name=row.optString(ApiV3Client.NAME);
@@ -81,7 +81,7 @@ public class ApiV3AuthorizationCodeService {
     public void verifyConsentUserInCurrentTransaction(String actor)throws Exception {
         if(!codes.hasTransactionBegun())throw new IllegalStateException("consent transaction required");currentUser(actor);
     }
-    /** Only the server's confirmed consent handler may call this, after source/CSRF and approval checks. */
+    /** 仅供服务端授权确认处理器在校验请求来源、CSRF 和用户同意后调用。 */
     public Issued issueInCurrentTransaction(String approvedUser,String client,String uri,String approvedScope,String challenge,String method)throws Exception {
         if(!codes.hasTransactionBegun())throw new IllegalStateException("consent owner transaction required");
         binding(client,uri);ApiV3Pkce.requireS256(challenge,method);
@@ -98,7 +98,7 @@ public class ApiV3AuthorizationCodeService {
             return new Issued(raw,expires);
         });
     }
-    /** Owns the strict root: consume code and issue its token pair atomically, without replaying plaintext tokens. */
+    /** 在自身的严格事务中消费授权码并签发令牌对，明文令牌不用于重放。 */
     public JSONObject exchange(String client,String uri,String raw,String verifier)throws Exception {
         binding(client,uri);if(!ApiV3TokenUtil.isValidFormat(raw)||!ApiV3Pkce.validVerifier(verifier))throw rejected();
         if(codes.hasTransactionBegun())throw new IllegalStateException("exchange root transaction already active");

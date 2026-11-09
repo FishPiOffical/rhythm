@@ -29,7 +29,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3ProfessionQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** Read-only profession directory and authenticated owner's private state. */
+/** 只读职业目录及登录用户本人的私有职业状态。 */
 @Singleton
 public class ApiV3ProfessionProcessor {
     @Inject private ApiV3ProfessionQueryService query;

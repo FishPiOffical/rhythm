@@ -68,7 +68,7 @@ public class ApiV3NotificationProcessor {
         ApiV3Requests.read(context, () -> query.unread(userId(context)));
     }
     public void get(final RequestContext context) {
-        // Latke can resolve a static sibling through the dynamic node.
+        // Latke 可能通过动态路径节点匹配同层静态路由。
         if ("unread-count".equals(context.pathVar("notificationId"))) { unread(context); return; }
         ApiV3Requests.read(context, () -> query.get(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "notificationId")));
     }
@@ -94,7 +94,7 @@ public class ApiV3NotificationProcessor {
         });
     }
     private JSONObject refreshed(final RequestContext context, final JSONObject result) {
-        // The database transaction has already committed. Refresh is safe to repeat on a replay.
+        // 数据库事务已提交，幂等重放时可以再次刷新。
         try { notifications.publishRefreshNotification(userId(context)); }
         catch (final RuntimeException e) { LOGGER.warn("Notification refresh could not be scheduled requestId={}", ApiV3Processor.requestId(context)); }
         return result;

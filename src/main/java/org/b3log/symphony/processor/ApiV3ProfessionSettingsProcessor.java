@@ -34,7 +34,7 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Explicit skip and privacy replacements; no owner, version or arbitrary onboarding state input. */
+/** 显式更新跳过状态和隐私设置，入参不接受所有者、版本或任意引导状态。 */
 @Singleton
 public class ApiV3ProfessionSettingsProcessor {
     private static final int MAX_BODY_BYTES = 4096;

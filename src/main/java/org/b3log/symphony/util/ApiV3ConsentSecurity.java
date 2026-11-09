@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Set;
 
-/** Cookie consent writes trust the configured site origin, never an attacker-supplied Host header. */
+/** 使用 Cookie 的授权写入以配置中的站点 Origin 为准，不信任请求 Host。 */
 public final class ApiV3ConsentSecurity {
     private ApiV3ConsentSecurity(){ }
     public static boolean sameOrigin(String configuredSite,String origin,String referer,String fetchSite){

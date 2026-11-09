@@ -31,7 +31,7 @@ import java.sql.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Exact production QR DDL and real issue/credential-reset primitives; ancillary account DAO adapts test-only tables. */
+/** 使用生产二维码 DDL 和实际签发、凭据重置操作，辅助账号 DAO 适配测试专用表。 */
 public class ApiV3AppLoginMysqlTest extends ApiV3AppLoginServiceTest {
     static class Mysql extends Fixture {
         boolean hold;String release;String faultStage="";int tokenWrites;
@@ -105,7 +105,7 @@ public class ApiV3AppLoginMysqlTest extends ApiV3AppLoginServiceTest {
                         else if((race.equals("deny-first")&&holder)||(race.equals("consume-first")&&!holder))f.service.webDecision(identity(),RAW,"deny");
                         else if((race.equals("reset-first")&&holder)||(race.equals("consume-reset")&&!holder))f.settings.password(identity(),body(),"fixture-ip");
                         else f.service.exchange(RAW,PROOF);
-                        // Never print issued access/refresh tokens, even for this isolated database.
+                        // 即使使用隔离数据库，也禁止输出签发的访问令牌与刷新令牌。
                         System.out.println("RESULT="+new JSONObject().put("status",200));
                     }catch(ApiV3Exception error){System.out.println("RESULT="+new JSONObject().put("status",error.status));}
                 }

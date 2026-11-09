@@ -26,7 +26,7 @@ import org.b3log.latke.service.ServiceException;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Typed creation boundary. Semantic/tag/censor/permission checks still belong to the publication service. */
+/** 校验创建文章的输入类型，语义、标签、内容审查和权限由发布服务校验。 */
 public final class ApiV3ArticleInputs {
     private ApiV3ArticleInputs() { }
     public static final Set<String> FIELDS = Set.of("title", "content", "tags", "type", "rewardContent", "rewardPoint", "qnaOfferPoint",
@@ -70,7 +70,7 @@ public final class ApiV3ArticleInputs {
         if (!id.isEmpty() && !id.matches("[0-9]{1,19}")) throw ApiV3WriteInputs.invalid();
         return id;
     }
-    /** Matches the editor's explicit introduction-post reward exclusion, after tag normalization. */
+    /** 标签规范化后，按编辑器规则排除自我介绍帖的悬赏。 */
     public static void validateGoodPost(final JSONObject request) {
         final String tags = request.optString(Article.ARTICLE_TAGS);
         if ("yes".equals(request.optString(Article.ARTICLE_GOOD_POST)) && (tags.contains("新人报道") || tags.contains("新人报到"))) {
