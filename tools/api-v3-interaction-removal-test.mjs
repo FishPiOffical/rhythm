@@ -22,4 +22,6 @@ try{
  run(java,['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.repository.ContentInteractionRemovalTest']);
  run(java,['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.util.ArticleRemovalSqlTest']);
  run(java,['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.repository.ContentNotificationRemovalTest']);
-}finally{fs.rmSync(work,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true });
+}

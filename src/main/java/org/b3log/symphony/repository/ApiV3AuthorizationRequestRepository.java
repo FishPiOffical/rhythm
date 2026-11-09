@@ -33,16 +33,21 @@ public class ApiV3AuthorizationRequestRepository extends AbstractRepository {
         if(userId==null||!userId.matches("[1-9][0-9]{0,18}"))throw new IllegalArgumentException("account identity");
         return ApiV3TransactionStatements.execute("DELETE FROM `"+getName()+"` WHERE userId=? AND decision=?",userId,ApiV3AuthorizationRequest.PENDING);
     }
-    /** A projection only, so the decision root can acquire its client lock before locking the request. */
-    public JSONObject hintForOwner(final String hash,final String actor)throws RepositoryException {
-        return one("SELECT oId,clientId,redirectUri,scope FROM `"+getName()+"` WHERE oId=? AND userId=?",hash,actor);
+    /** 仅预读必要字段，使授权决策事务能先锁客户端，再锁授权请求。 */
+    public JSONObject hintForOwner(final String hash, final String actor) throws RepositoryException {
+        return one("SELECT oId,clientId,redirectUri,scope FROM `" + getName() + "` WHERE oId=? AND userId=?", hash, actor);
     }
-    public JSONObject getForOwnerForUpdate(final String hash,final String actor)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("consent transaction required");
-        return one("SELECT * FROM `"+getName()+"` WHERE oId=? AND userId=? FOR UPDATE",hash,actor);
+
+    public JSONObject getForOwnerForUpdate(final String hash, final String actor) throws RepositoryException {
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("consent transaction required");
+        return one("SELECT * FROM `" + getName() + "` WHERE oId=? AND userId=? FOR UPDATE", hash, actor);
     }
-    private JSONObject one(String sql,String hash,String actor)throws RepositoryException {
-        final var rows=select(sql,hash,actor);if(rows.size()>1)throw new RepositoryException("duplicate authorization request");
-        return rows.isEmpty()?null:rows.getFirst();
+
+    private JSONObject one(String sql, String hash, String actor) throws RepositoryException {
+        final var rows = select(sql, hash, actor);
+        if (rows.size() > 1)
+            throw new RepositoryException("duplicate authorization request");
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 }

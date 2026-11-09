@@ -6,7 +6,14 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'),'src/main/resources/lib/latke-core.jar',process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ path.join(os.homedir(), '.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'),
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_JSOUP_JAR || `${ide}/lib/intellij.libraries.jsoup.jar`,
+ process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-identity-')),shims=[];
 function shim(name, body) {
  const file = path.join(dir, name + '.java');
@@ -76,21 +83,46 @@ try{
    const ddl=fs.readFileSync('sql/20261025_api_v3_app_login.sql','utf8').match(/CREATE TABLE IF NOT EXISTS `symphony_api_v3_app_login_request`[\s\S]*?;/)?.[0]?.replace('`symphony_api_v3_app_login_request`','`qr`');
    if(!ddl)throw Error('Missing exact QR migration DDL');
    const original=source.split('\n').find(line=>line.includes('sql(db,"CREATE TABLE qr('));
-   if(!original)throw Error('Missing test QR table');source=source.replace(original,'            sql(db,'+JSON.stringify(ddl)+');');
+   if (!original) throw Error('Missing test QR table');
+   source = source.replace(original, '            sql(db,' + JSON.stringify(ddl) + ');');
   }
-  const target=path.join(dir,'org/b3log/symphony/service/'+name+'.java');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,source);fixtures.push(target);
+  const target = path.join(dir, 'org/b3log/symphony/service/' + name + '.java');
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, source);
+  fixtures.push(target);
  }
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),...fixtures,'src/test/java/org/b3log/symphony/service/ApiV3IdentityApplicationTest.java','src/test/java/org/b3log/symphony/service/ApiV3QqSettingsTest.java','src/test/java/org/b3log/symphony/util/ApiV3OAuthTransportLogTest.java','src/test/java/org/b3log/symphony/service/ApiV3ProfileTagsTest.java','src/test/java/org/b3log/symphony/service/ApiV3AppLoginMysqlTest.java']);
- const image=docker(['image','inspect','mysql:8.4','--format','{{.Id}}']);container='rhythm-v3-app-login-java-'+crypto.randomBytes(6).toString('hex');
+ const image = docker(['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
+ container = 'rhythm-v3-app-login-java-' + crypto.randomBytes(6).toString('hex');
  docker(['run','-d','--rm','--pull','never','--memory','768m','--name',container,'--label','rhythm.app-login-java-test=true','-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306',image,'--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);
- const deadline=Date.now()+65000;while(true){const ready=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:5000});const comm=spawnSync('docker',['exec',container,'cat','/proc/1/comm'],{encoding:'utf8',timeout:5000});if(ready.status===0&&comm.stdout.trim()==='mysqld')break;if(Date.now()>deadline)throw Error('MySQL startup timeout');await new Promise(r=>setTimeout(r,250));}
- const bound=docker(['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(bound)||bound.endsWith(':3306'))throw Error('Unsafe port binding');
+ const deadline = Date.now() + 65000;
+ while (true) {
+  const ready = spawnSync('docker', ['exec', container, 'mysqladmin', '-uroot', 'ping'], { encoding: 'utf8', timeout: 5000 });
+  const comm = spawnSync('docker', ['exec', container, 'cat', '/proc/1/comm'], { encoding: 'utf8', timeout: 5000 });
+  if (ready.status === 0 && comm.stdout.trim() === 'mysqld') break;
+  if (Date.now() > deadline) throw Error('MySQL startup timeout');
+  await new Promise(r => setTimeout(r, 250));
+ }
+ const bound = docker(['port', container, '3306/tcp']);
+ if (!/^127\.0\.0\.1:[0-9]+$/.test(bound) || bound.endsWith(':3306')) throw Error('Unsafe port binding');
  const base=['-Drhythm.appLogin.mysqlUrl=jdbc:mysql://'+bound+'/rhythm_app_login?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=30000','-cp',[dir,cp].join(path.delimiter)];
  const klass='org.b3log.symphony.service.ApiV3AppLoginMysqlTest';
- function java(args){const result=spawnSync(path.join(home,'bin','java'),[...base,klass,...args],{encoding:'utf8',timeout:45000});if(result.status!==0)throw Error(result.stdout+' '+result.stderr);return result.stdout;}
+ function java(args) {
+  const result = spawnSync(path.join(home, 'bin', 'java'), [...base, klass, ...args], { encoding: 'utf8', timeout: 45000 });
+  if (result.status !== 0) throw Error(result.stdout + ' ' + result.stderr);
+  return result.stdout;
+ }
  function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_app_login;CREATE DATABASE rhythm_app_login CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
- fresh();const unit=spawnSync(path.join(home,'bin','java'),['-Drhythm.mysql.fixtureReset=true',...base,'org.b3log.symphony.service.ApiV3AppLoginServiceTest'],{encoding:'utf8',timeout:60000});if(unit.status!==0)throw Error(unit.stdout+' '+unit.stderr);console.log(unit.stdout);
- for(const fault of ['token-first','token-second','consume','commit','ack']){fresh();console.log(java(['fault',fault]));}
+ fresh();
+ const unit = spawnSync(path.join(home, 'bin', 'java'),
+  ['-Drhythm.mysql.fixtureReset=true', ...base, 'org.b3log.symphony.service.ApiV3AppLoginServiceTest'],
+  { encoding: 'utf8', timeout: 60000 });
+ if (unit.status !== 0) throw Error(unit.stdout + ' ' + unit.stderr);
+ console.log(unit.stdout);
+ for (const fault of ['token-first', 'token-second', 'consume', 'commit', 'ack']) {
+  fresh();
+  console.log(java(['fault', fault]));
+ }
  function worker(extra) {
   const p = spawn(path.join(home, 'bin', 'java'), [...base, klass, ...extra]), state = { p, out: '', err: '', done: false };
   p.stdout.on('data', x => state.out += x);
@@ -116,9 +148,13 @@ try{
   }
  }
  for(const race of ['claim-same','claim-conflict','consume','deny-first','consume-first','reset-first','consume-reset']){
-  fresh();console.log(java(['setup',race]));const release=path.join(dir,'release-'+race);
-  const a=worker(['worker',race,'holder',release]);await until(a,'BEFORE_COMMIT');
-  const b=worker(['worker',race,'contender',release]);await until(b,'STARTING_WORK');
+  fresh();
+  console.log(java(['setup', race]));
+  const release = path.join(dir, 'release-' + race);
+  const a = worker(['worker', race, 'holder', release]);
+  await until(a, 'BEFORE_COMMIT');
+  const b = worker(['worker', race, 'contender', release]);
+  await until(b, 'STARTING_WORK');
   // 先从 InnoDB 观察真实锁等待，再释放持锁进程。
   let waited = false;
   const end = Date.now() + 10000;
@@ -131,7 +167,9 @@ try{
    if (b.done) throw Error('Contender did not block ' + b.out);
    await new Promise(r => setTimeout(r, 50));
   }
-  if(!waited)throw Error('No InnoDB lock wait for '+race);fs.writeFileSync(release,'release');await Promise.all([a.finished,b.finished]);
+  if (!waited) throw Error('No InnoDB lock wait for ' + race);
+  fs.writeFileSync(release, 'release');
+  await Promise.all([a.finished, b.finished]);
   const ra=JSON.parse(a.out.match(/RESULT=(.*)/)[1]),rb=JSON.parse(b.out.match(/RESULT=(.*)/)[1]);
   const expected=race==='claim-conflict'?409:race==='reset-first'?403:['claim-same','consume-reset'].includes(race)?200:410;
   if(ra.status!==200||rb.status!==expected)throw Error('Unexpected race results '+race+' '+a.out+' '+b.out);

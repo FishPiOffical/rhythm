@@ -33,10 +33,14 @@ public class ApiV3AuthorizationCodeRepository extends AbstractRepository {
         if(userId==null||!userId.matches("[1-9][0-9]{0,18}"))throw new IllegalArgumentException("account identity");
         return ApiV3TransactionStatements.execute("DELETE FROM `"+getName()+"` WHERE userId=? AND consumedAt=0",userId);
     }
-    public JSONObject getForUpdate(final String hash)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("authorization code transaction required");
-        final var rows=select("SELECT * FROM `"+getName()+"` WHERE oId=? FOR UPDATE",hash);
-        if(rows.size()>1)throw new RepositoryException("duplicate authorization code");
-        return rows.isEmpty()?null:rows.getFirst();
+
+    /** 在授权码消费事务内按哈希锁定记录，交由调用方检查并标记消费。 */
+    public JSONObject getForUpdate(final String hash) throws RepositoryException {
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("authorization code transaction required");
+        final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", hash);
+        if (rows.size() > 1)
+            throw new RepositoryException("duplicate authorization code");
+        return rows.isEmpty() ? null : rows.getFirst();
     }
 }

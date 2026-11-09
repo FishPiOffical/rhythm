@@ -21,25 +21,37 @@ function inspect(value) {
 async function request(path, status = 200, token) {
   const response = await fetch(new URL(`/api/v3/rankings/${path}`, base), { redirect: 'manual', signal: AbortSignal.timeout(30000),
     headers: { 'User-Agent': 'RhythmV3RankingSmoke', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-  assert.equal(response.status, status); assert.ok(response.headers.get('x-request-id'));
+  assert.equal(response.status, status);
+  assert.ok(response.headers.get('x-request-id'));
   const body = await response.json();
-  if (status !== 200) { assert.notEqual(body.code, 0); assert.equal(body.data, null); return; }
-  assert.equal(body.code, 0); inspect(body.data); return body.data;
+  if (status !== 200) {
+    assert.notEqual(body.code, 0);
+    assert.equal(body.data, null);
+    return;
+  }
+  assert.equal(body.code, 0);
+  inspect(body.data);
+  return body.data;
 }
 function page(data) {
   assert.ok(Array.isArray(data.list));
   const { p, size, total, pageCount } = data.pagination;
-  assert.ok(data.list.length <= size); assert.equal(pageCount, Math.ceil(total / size));
+  assert.ok(data.list.length <= size);
+  assert.equal(pageCount, Math.ceil(total / size));
   for (let i = 0; i < data.list.length; i++) {
-    const row = data.list[i]; assert.equal(row.rank, (p - 1) * size + i + 1);
-    assert.equal(typeof row.score, 'number'); assert.ok(Number.isFinite(row.score));
+    const row = data.list[i];
+    assert.equal(row.rank, (p - 1) * size + i + 1);
+    assert.equal(typeof row.score, 'number');
+    assert.ok(Number.isFinite(row.score));
     if (row.user) assert.deepEqual(Object.keys(row.user).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL'].sort());
   }
 }
 for (const type of ['links', 'balance', 'consumption', 'checkin', 'online', 'adr', 'mofish', 'smallmofish', 'lifeRestart', 'evolve', 'emoji', 'invite', 'donate', 'perfect']) {
   await check(`${type} first and second page`, async () => {
-    const first = await request(`${type}?size=2`); page(first);
-    const second = await request(`${type}?p=2&size=2`); page(second);
+    const first = await request(`${type}?size=2`);
+    page(first);
+    const second = await request(`${type}?p=2&size=2`);
+    page(second);
     const ids = [...first.list, ...second.list].map(row => row.user?.id ?? row.link?.id);
     assert.equal(new Set(ids).size, ids.length);
     if (first.list.length === 2) assert.ok(first.list[0].score >= first.list[1].score);

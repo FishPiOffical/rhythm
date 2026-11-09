@@ -89,7 +89,8 @@ public class ApiV3CommunitySqlTest {
     private Fixture fixture() throws Exception {
         final var field = Latkes.class.getDeclaredField("localProps"); field.setAccessible(true);
         final Properties previous = (Properties) field.get(null);
-        final Properties properties = new Properties(); if (null != previous) properties.putAll(previous);
+        final Properties properties = new Properties();
+        if (null != previous) properties.putAll(previous);
         properties.setProperty("runtimeDatabase", "NONE"); Latkes.setLocalProps(properties);
         try { return new Fixture(); } finally { Latkes.setLocalProps(previous); }
     }

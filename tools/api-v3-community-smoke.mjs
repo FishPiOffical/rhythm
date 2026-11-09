@@ -26,24 +26,41 @@ async function request(path, status = 200, token) {
       'User-Agent': 'RhythmV3CommunitySmoke', ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   });
-  assert.equal(response.status, status); assert.ok(response.headers.get('x-request-id'));
+  assert.equal(response.status, status);
+  assert.ok(response.headers.get('x-request-id'));
   const body = await response.json();
-  if (status === 200) { assert.equal(body.code, 0); inspect(body.data); }
-  else { assert.notEqual(body.code, 0); assert.equal(body.data, null); }
+  if (status === 200) {
+    assert.equal(body.code, 0);
+    inspect(body.data);
+  } else {
+    assert.notEqual(body.code, 0);
+    assert.equal(body.data, null);
+  }
   return body.data;
 }
 function page(data) {
-  assert.ok(Array.isArray(data.list)); assert.ok(data.list.length <= data.pagination.size);
+  assert.ok(Array.isArray(data.list));
+  assert.ok(data.list.length <= data.pagination.size);
   assert.equal(data.pagination.pageCount, Math.ceil(data.pagination.total / data.pagination.size));
   assert.equal(new Set(data.list.map(row => row.id)).size, data.list.length);
 }
 await check('approved games likes list', async () => {
-  const data = await request('/fish-games?size=2&sort=likes'); page(data); gameId = data.list[0]?.id;
+  const data = await request('/fish-games?size=2&sort=likes');
+  page(data);
+  gameId = data.list[0]?.id;
   if (data.list.length === 2) assert.ok(data.list[0].upCount >= data.list[1].upCount);
 });
-await check('default game ordering equals votes', async () => { const implicit = await request('/fish-games?size=2'); const explicit = await request('/fish-games?size=2&sort=votes'); assert.deepEqual(implicit.list.map(r => r.id), explicit.list.map(r => r.id)); });
+await check('default game ordering equals votes', async () => {
+  const implicit = await request('/fish-games?size=2');
+  const explicit = await request('/fish-games?size=2&sort=votes');
+  assert.deepEqual(implicit.list.map(r => r.id), explicit.list.map(r => r.id));
+});
 await check('approved games votes list', async () => page(await request('/fish-games?size=2&sort=votes')));
-await check('milestones', async () => { const data = await request('/milestones?size=2'); page(data); milestoneId = data.list[0]?.id; });
+await check('milestones', async () => {
+  const data = await request('/milestones?size=2');
+  page(data);
+  milestoneId = data.list[0]?.id;
+});
 if (gameId) {
   await check('game detail', async () => assert.equal((await request(`/fish-games/${gameId}`)).id, gameId));
   await check('game comments', async () => page(await request(`/fish-games/${gameId}/comments?size=2`)));
@@ -56,7 +73,8 @@ await check('statistics whitelist', async () => {
 const city = encodeURIComponent(process.env.API_V3_CITY || '上海');
 await check('public city users', async () => page(await request(`/cities/${city}/users?size=2`)));
 await check('public city articles', async () => {
-  const data = await request(`/cities/${city}/articles?size=2`); page(data);
+  const data = await request(`/cities/${city}/articles?size=2`);
+  page(data);
   for (const row of data.list) assert.equal(row.anonymous, false);
 });
 for (const path of ['/fish-games?size=51', '/fish-games?sort=unknown', '/milestones?p=0', `/cities/${city}/users?size=51`]) {

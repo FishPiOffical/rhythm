@@ -19,7 +19,10 @@ let domainId;
 const forbidden = /^(?:userPassword|userEmail|userPhone|userQQ|secret2fa|apiKey|token|accessToken|refreshToken|userLatestLoginIP|breezemoonIP|breezemoonUA|commentIP|commentUA|articleIP|articleUA|tagCSS|domainCSS|tagAd|userStatus|session)$/i;
 function inspect(value) {
   if (!value || typeof value !== 'object') return;
-  for (const [key, child] of Object.entries(value)) { assert.ok(!forbidden.test(key)); inspect(child); }
+  for (const [key, child] of Object.entries(value)) {
+    assert.ok(!forbidden.test(key));
+    inspect(child);
+  }
 }
 async function check(name, run) {
   try { await run(); console.log(`PASS ${name}`); }
@@ -36,9 +39,13 @@ async function request(path, status = 200, credential) {
   assert.ok(response.headers.get('x-request-id'));
   const body = await response.json();
   if (status === 200) {
-    assert.equal(body.code, 0); inspect(body.data);
+    assert.equal(body.code, 0);
+    inspect(body.data);
     assert.match(response.headers.get('cache-control') || '', /no-store/);
-  } else { assert.notEqual(body.code, 0); assert.equal(body.data, null); }
+  } else {
+    assert.notEqual(body.code, 0);
+    assert.equal(body.data, null);
+  }
   return body.data;
 }
 function page(data) {
@@ -51,20 +58,37 @@ function author(row) {
   assert.deepEqual(Object.keys(row.author).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL'].sort());
   if (row.anonymous) assert.equal(row.author.id, '');
 }
-await check('tags list', async () => { const data = await request('/tags?size=2'); page(data); tagId = data.list[0]?.id; });
-await check('domains list', async () => { const data = await request('/domains?size=2'); page(data); domainId = data.list[0]?.id; });
+await check('tags list', async () => {
+  const data = await request('/tags?size=2');
+  page(data);
+  tagId = data.list[0]?.id;
+});
+await check('domains list', async () => {
+  const data = await request('/domains?size=2');
+  page(data);
+  domainId = data.list[0]?.id;
+});
 if (tagId) {
   await check('tag detail', async () => assert.equal((await request(`/tags/${tagId}`)).id, tagId));
-  await check('tag articles', async () => { const data = await request(`/tags/${tagId}/articles?size=2`); page(data); data.list.forEach(author); });
+  await check('tag articles', async () => {
+    const data = await request(`/tags/${tagId}/articles?size=2`);
+    page(data);
+    data.list.forEach(author);
+  });
 }
 if (domainId) {
   await check('domain detail', async () => assert.equal((await request(`/domains/${domainId}`)).id, domainId));
   await check('domain tags', async () => page(await request(`/domains/${domainId}/tags?size=2`)));
-  await check('domain articles', async () => { const data = await request(`/domains/${domainId}/articles?size=2`); page(data); data.list.forEach(author); });
+  await check('domain articles', async () => {
+    const data = await request(`/domains/${domainId}/articles?size=2`);
+    page(data);
+    data.list.forEach(author);
+  });
 }
 await check('search', async () => {
   const data = await request(`/search?q=${encodeURIComponent("v3-smoke-%_'!" + Date.now())}&size=2`);
-  page(data); data.list.forEach(author);
+  page(data);
+  data.list.forEach(author);
 });
 for (const query of ['q=', `q=${'a'.repeat(101)}`, 'q=a%00b', 'q=test&size=51', 'q=test&p=0', 'q=test&sort=unknown']) {
   await check('invalid search input', () => request(`/search?${query}`, 422));
@@ -76,7 +100,9 @@ for (const path of ['/tags/no', '/domains/no', '/tags?size=51', '/domains?p=2147
   await check(`invalid input ${path}`, () => request(path, 422));
 }
 await check('breezemoons list', async () => {
-  const data = await request('/breezemoons?size=2'); page(data); data.list.forEach(author);
+  const data = await request('/breezemoons?size=2');
+  page(data);
+  data.list.forEach(author);
 });
 for (const path of ['/tags', '/domains', '/breezemoons', '/users/someone']) {
   await check(`invalid Bearer ${path}`, () => request(path, 401, 'invalid'));
@@ -89,7 +115,11 @@ const publicUser = process.env.API_V3_PUBLIC_USER;
 if (publicUser) {
   const root = `/users/${encodeURIComponent(publicUser)}`;
   await check('public profile', async () => {
-    const data = await request(root); assert.equal(data.userName.toLowerCase(), publicUser.toLowerCase());assert.equal(typeof data.cardBg,'string');assert.ok(Number.isSafeInteger(data.userPoint));assert.ok(Number.isSafeInteger(data.onlineMinute)&&data.onlineMinute>=0);
+    const data = await request(root);
+    assert.equal(data.userName.toLowerCase(), publicUser.toLowerCase());
+    assert.equal(typeof data.cardBg, 'string');
+    assert.ok(Number.isSafeInteger(data.userPoint));
+    assert.ok(Number.isSafeInteger(data.onlineMinute) && data.onlineMinute >= 0);
     assert.deepEqual(Object.keys(data).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL', 'userIntro', 'userURL', 'cardBg', 'userPoint', 'onlineMinute'].sort());
   });
   for (const suffix of suffixes) await check(`public user list ${suffix}`, async () => page(await request(`${root}${suffix}?size=2`)));
@@ -110,12 +140,17 @@ if (process.env.API_V3_ACTIVITY_PUBLIC_USER) {
   const name = encodeURIComponent(process.env.API_V3_ACTIVITY_PUBLIC_USER);
   for (const suffix of ['comments', 'watching', 'watching?source=users', 'watching?source=tags', 'watching/articles']) {
     await check(`public activity ${suffix}`, async () => {
-      const data = await request(`/users/${name}/${suffix}${suffix.includes('?') ? '&' : '?'}size=2`); page(data);
+      const data = await request(`/users/${name}/${suffix}${suffix.includes('?') ? '&' : '?'}size=2`);
+      page(data);
       for (const row of data.list) {
         author(row);
         if (suffix === 'comments') {
-          assert.equal(row.anonymous, false); author(row.article);
-          if (!row.contentVisible) { assert.equal(row.content, ''); assert.equal(row.contentHtml, ''); }
+          assert.equal(row.anonymous, false);
+          author(row.article);
+          if (!row.contentVisible) {
+            assert.equal(row.content, '');
+            assert.equal(row.contentHtml, '');
+          }
         }
         if (suffix === 'watching?source=users') assert.equal(row.anonymous, false);
       }

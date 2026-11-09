@@ -5,7 +5,13 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-discovery-extras-'));
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`,process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_ENCODER_JAR||path.join(os.homedir(),'.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar')].join(path.delimiter);
+const cp = [
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`,
+ process.env.API_V3_JSOUP_JAR || `${ide}/lib/intellij.libraries.jsoup.jar`,
+ process.env.API_V3_ENCODER_JAR || path.join(os.homedir(), '.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar')
+].join(path.delimiter);
 const shims=[];function shim(name,source){const f=path.join(work,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,source);shims.push(f)}function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('discovery extras test failed')}
 try{
  for(const[name,table]of[['UserRepository','user'],['ArticleRepository','article']])shim('org/b3log/symphony/repository/'+name,`package org.b3log.symphony.repository;public class ${name} extends org.b3log.latke.repository.AbstractRepository{public ${name}(){super("${table}");}}`);
@@ -20,8 +26,25 @@ try{
  const root=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8');if(root.indexOf('ApiV3DiscoveryExtrasProcessor.register();')>root.indexOf('ApiV3ContentProcessor.register();')||!root.includes('ApiV3DiscoveryExtrasProcessor.register();'))throw Error('static random route must precede article id routes');
  const sandbox=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];
  shim('org/b3log/symphony/model/Tag',`package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
- const sources=['model/UserExt','model/Article','model/Common','model/Comment','model/Role','repository/LogsRepository','util/ApiV3Exception','util/ApiV3ContentUtil','util/ApiV3ArticleStickState','service/ApiV3ContentDtoService','util/ApiV3ContentSnapshots','util/ApiV3ArticlePolicy','util/ApiV3AvatarUrl','service/ApiV3DiscoveryExtrasQueryService'];
+ const sources = [
+  'model/UserExt',
+  'model/Article',
+  'model/Common',
+  'model/Comment',
+  'model/Role',
+  'repository/LogsRepository',
+  'util/ApiV3Exception',
+  'util/ApiV3ContentUtil',
+  'util/ApiV3ArticleStickState',
+  'service/ApiV3ContentDtoService',
+  'util/ApiV3ContentSnapshots',
+  'util/ApiV3ArticlePolicy',
+  'util/ApiV3AvatarUrl',
+  'service/ApiV3DiscoveryExtrasQueryService'
+ ];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...shims,...sources.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3DiscoveryExtrasQueryTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3DiscoveryExtrasQueryTest']);
  console.log('PASS extras 11 three new route gates, current reader and static random route before article-id route (source check)');
-}finally{fs.rmSync(work,{recursive:true,force:true})}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true })
+}

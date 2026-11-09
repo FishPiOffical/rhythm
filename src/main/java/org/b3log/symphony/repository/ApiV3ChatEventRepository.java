@@ -54,19 +54,35 @@ public class ApiV3ChatEventRepository extends AbstractRepository {
         state.update(ApiV3ChatEvent.ROOM,new JSONObject().put("revision",revision).put("updatedAt",now),"revision","updatedAt");
         return revision;
     }
-    public long head()throws RepositoryException{return state.head();}
-    public List<JSONObject> after(long revision,long through,int limit)throws RepositoryException {
-        if(hasTransactionBegun())throw new IllegalStateException("chat snapshot inside writer transaction");
-        if(revision<0||through<revision||limit<1||limit>200)throw new IllegalArgumentException("invalid chat event range");
-        return select("SELECT revision,messageId,kind FROM `"+getName()+"` WHERE revision>? AND revision<=? ORDER BY revision ASC LIMIT ?",revision,through,limit);
+    public long head() throws RepositoryException {
+        return state.head();
     }
-    public int removeExpired(long cutoff)throws RepositoryException {
-        if(hasTransactionBegun())throw new IllegalStateException("chat cleanup inside writer transaction");
-        final var tx=beginTransaction();
-        try{
-            final var rows=select("SELECT oId FROM `"+getName()+"` WHERE createdAt<? ORDER BY revision ASC LIMIT 200 FOR UPDATE",cutoff);
-            for(final var row:rows)remove(row.getString("oId"));
-            tx.commit();return rows.size();
-        }finally{if(tx.isActive())tx.rollback();}
+
+    /** 按调用方固定的上界读取已提交事件，供轮询按顺序补齐游标。 */
+    public List<JSONObject> after(long revision, long through, int limit) throws RepositoryException {
+        if (hasTransactionBegun())
+            throw new IllegalStateException("chat snapshot inside writer transaction");
+        if (revision < 0 || through < revision || limit < 1 || limit > 200)
+            throw new IllegalArgumentException("invalid chat event range");
+        return select("SELECT revision,messageId,kind FROM `" + getName()
+                + "` WHERE revision>? AND revision<=? ORDER BY revision ASC LIMIT ?", revision, through, limit);
+    }
+
+    /** 每批锁定并清理过期事件，提交后才返回删除数。 */
+    public int removeExpired(long cutoff) throws RepositoryException {
+        if (hasTransactionBegun())
+            throw new IllegalStateException("chat cleanup inside writer transaction");
+        final var tx = beginTransaction();
+        try {
+            final var rows = select("SELECT oId FROM `" + getName()
+                    + "` WHERE createdAt<? ORDER BY revision ASC LIMIT 200 FOR UPDATE", cutoff);
+            for (final var row : rows)
+                remove(row.getString("oId"));
+            tx.commit();
+            return rows.size();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
 }

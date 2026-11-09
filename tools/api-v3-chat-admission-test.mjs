@@ -17,4 +17,6 @@ try{
  const limiter=['main/SimpleCurrentLimiter','control/MainControl','cache/MainCache','cache/pair/CachePair'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...real.map(s=>`src/main/java/org/b3log/symphony/${s}.java`),...limiter.map(s=>`src/main/java/pers/adlered/simplecurrentlimiter/${s}.java`),'src/test/java/org/b3log/symphony/util/ChatMessageAdmissionTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.util.ChatMessageAdmissionTest']);
-}finally{fs.rmSync(work,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true });
+}

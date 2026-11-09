@@ -75,14 +75,24 @@ try{
   const ready=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:5000});
   const process=spawnSync('docker',['exec',container,'cat','/proc/1/comm'],{encoding:'utf8',timeout:5000});
   if(ready.status===0&&process.stdout.trim()==='mysqld')break;
-  if(Date.now()>deadline)throw Error('Disposable mysql startup timeout');await new Promise(r=>setTimeout(r,350));
+  if (Date.now() > deadline) throw Error('Disposable mysql startup timeout');
+  await new Promise(r => setTimeout(r, 350));
  }
- const published=run('docker',['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(published))throw Error('Unsafe bind: '+published);const port=published.split(':')[1];if(port==='3306')throw Error('Do not use existing business port');
+ const published = run('docker', ['port', container, '3306/tcp']);
+ if (!/^127\.0\.0\.1:[0-9]+$/.test(published)) throw Error('Unsafe bind: ' + published);
+ const port = published.split(':')[1];
+ if (port === '3306') throw Error('Do not use existing business port');
  run('docker',['exec',container,'mysql','-uroot','-e','CREATE DATABASE `'+schema+'` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci']);
  const url='jdbc:mysql://127.0.0.1:'+port+'/'+schema+'?sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000';
  console.log('Test-only JDBC '+url+', actual configured price '+price);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3UserNameMysqlTest',url,schemaFile,String(price)],{stdio:'inherit'});
-}finally{
- if(started){run('docker',['rm','-f',container]);const r=spawnSync('docker',['ps','-aq','--filter','label=rhythm.api-v3-username-verification='+id],{encoding:'utf8',timeout:20000});if(r.status!==0||r.stdout.trim())throw Error('Disposable container cleanup not confirmed');console.log('Disposable MySQL container removed; unique label has no remaining containers');}
+} finally {
+ if (started) {
+  run('docker', ['rm', '-f', container]);
+  const r = spawnSync('docker', ['ps', '-aq', '--filter', 'label=rhythm.api-v3-username-verification=' + id],
+   {encoding: 'utf8', timeout: 20000});
+  if (r.status !== 0 || r.stdout.trim()) throw Error('Disposable container cleanup not confirmed');
+  console.log('Disposable MySQL container removed; unique label has no remaining containers');
+ }
  fs.rmSync(dir,{recursive:true,force:true});
 }

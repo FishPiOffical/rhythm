@@ -48,7 +48,9 @@ public class ApiV3BagSqlTest {
         Assert.assertFalse(BagMutation.dto(original).toString().contains("opaque"));
         for (final Object value : BagMutation.dto(original).getJSONArray("list")) Assert.assertEquals(((JSONObject)value).keySet(), Set.of("code", "count"));
         System.out.println("PASS existing card accumulation, no-card/overflow checks, capped adjustments and DTO whitelist");
-        final var prop = Latkes.class.getDeclaredField("localProps"); prop.setAccessible(true); final Object prior = prop.get(null);
+        final var prop = Latkes.class.getDeclaredField("localProps");
+        prop.setAccessible(true);
+        final Object prior = prop.get(null);
         final Properties p = new Properties(); p.setProperty("runtimeDatabase", "NONE"); prop.set(null, p);
         try (final Fixture f = new Fixture()) {
             try { f.repo.getBagRows("owner", true); Assert.fail(); } catch (final IllegalStateException expected) { }
@@ -77,7 +79,8 @@ public class ApiV3BagSqlTest {
             public boolean hasTransactionBegun() { try { return !db.getAutoCommit(); } catch (Exception e) { throw new IllegalStateException(e); } }
             public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
                 try (final var statement = db.prepareStatement(sql.replace(" FOR UPDATE", ""))) {
-                    for (int i=0;i<args.length;i++) statement.setObject(i+1,args[i]); final List<JSONObject> rows = new ArrayList<>();
+                    for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
+                    final List<JSONObject> rows = new ArrayList<>();
                     try (final var rs = statement.executeQuery()) { while (rs.next()) { final JSONObject row = new JSONObject(); for (int i=1;i<=rs.getMetaData().getColumnCount();i++) row.put(rs.getMetaData().getColumnLabel(i),rs.getObject(i)); rows.add(row); } }
                     return rows;
                 } catch (final Exception e) { throw new RepositoryException(e); }

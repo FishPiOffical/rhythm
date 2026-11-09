@@ -7,7 +7,14 @@ import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,jars=process.env.API_V3_MARKDOWN_JARS||'/tmp/rhythm-v3-markdown-jars';
 const deps=['flexmark','flexmark-formatter','flexmark-util','flexmark-ext-autolink','flexmark-ext-gfm-strikethrough','flexmark-ext-gfm-tasklist','flexmark-ext-tables','autolink'].map(n=>path.join(jars,n+'.jar'));
 for(const p of deps)if(!fs.existsSync(p))throw Error('Supply pom.xml flexmark 0.50.40 and autolink 0.6.0 jars in API_V3_MARKDOWN_JARS: '+p);
-const cp=[...deps,`${ide}/lib/intellij.libraries.jsoup.jar`,`${ide}/lib/intellij.libraries.caffeine.jar`,'src/main/resources/lib/latke-core.jar'].join(path.delimiter),dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-markdown-')),shims=[];
+const cp = [
+ ...deps,
+ `${ide}/lib/intellij.libraries.jsoup.jar`,
+ `${ide}/lib/intellij.libraries.caffeine.jar`,
+ 'src/main/resources/lib/latke-core.jar'
+].join(path.delimiter),
+ dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-markdown-')),
+ shims = [];
 function shim(name, body) {
  const p = path.join(dir, name + '.java');
  fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -42,4 +49,6 @@ try{
  const real=['util/ApiV3Exception','util/ApiV3Requests','util/ApiV3Json','util/ApiV3WriteInputs','processor/ApiV3MarkdownProcessor','processor/middleware/ApiV3AuthMidware'];
  run(home+'/bin/javac',['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java',...real.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/processor/ApiV3MarkdownTest.java']);
  run(home+'/bin/java',['-cp',dir+path.delimiter+cp,'org.b3log.symphony.processor.ApiV3MarkdownTest']);
-}finally{fs.rmSync(dir,{recursive:true,force:true})}
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true })
+}

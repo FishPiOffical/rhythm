@@ -27,7 +27,14 @@ function run(bin, args) {
   if (r.error) throw r.error;
   if (r.status !== 0) throw Error('Post export tests failed');
 }
-let container;const children=[];function docker(args){const r=spawnSync('docker',args,{encoding:'utf8',timeout:25000});if(r.status!==0)throw Error(r.stderr);return r.stdout.trim();}
+let container;
+const children = [];
+
+function docker(args) {
+ const r = spawnSync('docker', args, {encoding: 'utf8', timeout: 25000});
+ if (r.status !== 0) throw Error(r.stderr);
+ return r.stdout.trim();
+}
 try{
  const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={"admin"};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+((k==='POINT_BUY_INVITECODE'||k==='POINT_CHANGE_USERNAME'||k==='POINT_DATA_EXPORT')?100:0)+';').join('')+'}');
@@ -60,23 +67,89 @@ try{
   const file=path.join(dir,name+'.java');fs.writeFileSync(file,source);fixtures.push(file);
  }
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),...fixtures,'src/test/java/org/b3log/symphony/service/ApiV3PostExportMysqlTest.java']);
- const image=docker(['image','inspect','mysql:8.4','--format','{{.Id}}']);container='rhythm-v3-export-'+crypto.randomBytes(6).toString('hex');
+ const image = docker(['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
+ container = 'rhythm-v3-export-' + crypto.randomBytes(6).toString('hex');
  docker(['run','-d','--rm','--pull','never','--memory','768m','--name',container,'-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306',image,'--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);
- const deadline=Date.now()+90000;while(true){const ready=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:5000});const comm=spawnSync('docker',['exec',container,'cat','/proc/1/comm'],{encoding:'utf8',timeout:5000});if(ready.status===0&&comm.stdout.trim()==='mysqld')break;if(Date.now()>deadline)throw Error('MySQL startup timeout');await new Promise(r=>setTimeout(r,250));}
- const bound=docker(['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(bound)||bound.endsWith(':3306'))throw Error('Unsafe port');
+ const deadline = Date.now() + 90000;
+ while (true) {
+  const ready = spawnSync('docker', ['exec', container, 'mysqladmin', '-uroot', 'ping'], {encoding: 'utf8', timeout: 5000});
+  const comm = spawnSync('docker', ['exec', container, 'cat', '/proc/1/comm'], {encoding: 'utf8', timeout: 5000});
+  if (ready.status === 0 && comm.stdout.trim() === 'mysqld') break;
+  if (Date.now() > deadline) throw Error('MySQL startup timeout');
+  await new Promise(r => setTimeout(r, 250));
+ }
+ const bound = docker(['port', container, '3306/tcp']);
+ if (!/^127\.0\.0\.1:[0-9]+$/.test(bound) || bound.endsWith(':3306')) throw Error('Unsafe port');
  const jdbc='jdbc:mysql://'+bound+'/rhythm_export?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=30000';
  const args=['-Drhythm.export.mysqlUrl='+jdbc,'-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3PostExportMysqlTest'];
- function java(extra){const r=spawnSync(path.join(home,'bin','java'),[...args,...extra],{encoding:'utf8',timeout:45000});if(r.status!==0)throw Error(r.stdout+' '+r.stderr);return r.stdout;}
+ function java(extra) {
+  const r = spawnSync(path.join(home, 'bin', 'java'), [...args, ...extra], {encoding: 'utf8', timeout: 45000});
+  if (r.status !== 0) throw Error(r.stdout + ' ' + r.stderr);
+  return r.stdout;
+ }
  function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_export;CREATE DATABASE rhythm_export CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
- fresh();console.log(java(['normal']));
- for(const fault of ['chunks','job','charge','receipt','commit','ack']){fresh();console.log(java(['fault',fault]));}
- function worker(extra){const p=spawn(path.join(home,'bin','java'),[...args,...extra]),state={p,out:'',err:'',done:false};p.stdout.on('data',x=>state.out+=x);p.stderr.on('data',x=>state.err+=x);state.finished=new Promise((resolve,reject)=>{p.on('error',reject);p.on('close',code=>{state.done=true;code===0?resolve():reject(Error(state.out+' '+state.err));});});state.finished.catch(()=>{});children.push(state);return state;}
- async function until(s,marker){const end=Date.now()+15000;while(!s.out.includes(marker)){if(s.done)throw Error(s.out+' '+s.err);if(Date.now()>end)throw Error('Marker timeout '+marker);await new Promise(r=>setTimeout(r,20));}}
- fresh();java(['setup']);const release=path.join(dir,'release');const a=worker(['worker','holder',release]);await until(a,'BEFORE_FINAL_COMMIT');const b=worker(['worker','contender',release]);await until(b,'STARTING_CREATE');
- let waited=false;const end=Date.now()+10000;while(Date.now()<end){if(Number(docker(['exec',container,'mysql','-uroot','-N','-B','-e',"SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"]))>0){waited=true;break;}if(b.done)throw Error('Contender failed to block '+b.out);await new Promise(r=>setTimeout(r,50));}if(!waited)throw Error('No actual lock wait');fs.writeFileSync(release,'release');await Promise.all([a.finished,b.finished]);
- const ra=JSON.parse(a.out.match(/RESULT=(.*)/)[1]),rb=JSON.parse(b.out.match(/RESULT=(.*)/)[1]);if(ra.jobId!==rb.jobId)throw Error('Different jobs '+a.out+' '+b.out);console.log(java(['verify']));console.log('PASS export mysql 8 independent JVM same-key contention with observed InnoDB lock wait returns one job and one charge');
-}finally{
- for(const c of children)if(!c.done)c.p.kill('SIGKILL');await Promise.allSettled(children.map(c=>c.finished));
- if(container){docker(['rm','-f',container]);if(docker(['ps','-aq','--filter','name=^/'+container+'$']))throw Error('Container cleanup failed');console.log('Disposable MySQL removed; random loopback port only');}
+ fresh();
+ console.log(java(['normal']));
+ for (const fault of ['chunks', 'job', 'charge', 'receipt', 'commit', 'ack']) {
+  fresh();
+  console.log(java(['fault', fault]));
+ }
+ function worker(extra) {
+  const p = spawn(path.join(home, 'bin', 'java'), [...args, ...extra]),
+   state = {p, out: '', err: '', done: false};
+  p.stdout.on('data', x => state.out += x);
+  p.stderr.on('data', x => state.err += x);
+  state.finished = new Promise((resolve, reject) => {
+   p.on('error', reject);
+   p.on('close', code => {
+    state.done = true;
+    code === 0 ? resolve() : reject(Error(state.out + ' ' + state.err));
+   });
+  });
+  state.finished.catch(() => {});
+  children.push(state);
+  return state;
+ }
+ async function until(s, marker) {
+  const end = Date.now() + 15000;
+  while (!s.out.includes(marker)) {
+   if (s.done) throw Error(s.out + ' ' + s.err);
+   if (Date.now() > end) throw Error('Marker timeout ' + marker);
+   await new Promise(r => setTimeout(r, 20));
+  }
+ }
+ fresh();
+ java(['setup']);
+ const release = path.join(dir, 'release');
+ const a = worker(['worker', 'holder', release]);
+ await until(a, 'BEFORE_FINAL_COMMIT');
+ const b = worker(['worker', 'contender', release]);
+ await until(b, 'STARTING_CREATE');
+ // 观察到 InnoDB 锁等待后再放行持锁进程，确认第二个进程确实发生竞争。
+ let waited = false;
+ const end = Date.now() + 10000;
+ while (Date.now() < end) {
+  if (Number(docker(['exec', container, 'mysql', '-uroot', '-N', '-B', '-e', "SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"])) > 0) {
+   waited = true;
+   break;
+  }
+  if (b.done) throw Error('Contender failed to block ' + b.out);
+  await new Promise(r => setTimeout(r, 50));
+ }
+ if (!waited) throw Error('No actual lock wait');
+ fs.writeFileSync(release, 'release');
+ await Promise.all([a.finished, b.finished]);
+ const ra = JSON.parse(a.out.match(/RESULT=(.*)/)[1]), rb = JSON.parse(b.out.match(/RESULT=(.*)/)[1]);
+ if (ra.jobId !== rb.jobId) throw Error('Different jobs ' + a.out + ' ' + b.out);
+ console.log(java(['verify']));
+ console.log('PASS export mysql 8 independent JVM same-key contention with observed InnoDB lock wait returns one job and one charge');
+} finally {
+ for (const c of children) if (!c.done) c.p.kill('SIGKILL');
+ await Promise.allSettled(children.map(c => c.finished));
+ if (container) {
+  docker(['rm', '-f', container]);
+  if (docker(['ps', '-aq', '--filter', 'name=^/' + container + '$'])) throw Error('Container cleanup failed');
+  console.log('Disposable MySQL removed; random loopback port only');
+ }
  fs.rmSync(dir,{recursive:true,force:true});
 }

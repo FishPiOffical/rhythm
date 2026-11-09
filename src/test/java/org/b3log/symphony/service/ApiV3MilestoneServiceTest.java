@@ -37,14 +37,17 @@ import java.util.stream.Collectors;
 /** 在临时 SQLite 上执行实际创建服务、仓库 SQL 及 DTO，MySQL 与 HTTP 行为另行验收。 */
 public class ApiV3MilestoneServiceTest {
     public static void main(final String[] args) throws Exception {
-        final var prop = Latkes.class.getDeclaredField("localProps"); prop.setAccessible(true); final Object original = prop.get(null);
+        final var prop = Latkes.class.getDeclaredField("localProps");
+        prop.setAccessible(true);
+        final Object original = prop.get(null);
         final Properties p = new Properties(); p.setProperty("runtimeDatabase", "NONE"); prop.set(null, p);
         try (final Fixture f = new Fixture()) {
             final JSONObject input = new JSONObject().put(Milestone.MILESTONE_TITLE, "Title").put(Milestone.MILESTONE_DATE, 1792108800000L)
                     .put(Milestone.MILESTONE_CONTENT, "raw body").put(Milestone.MILESTONE_AUTHOR_ID, "forged")
                     .put(Milestone.MILESTONE_STATUS, Milestone.STATUS_C_APPROVED).put("userPassword", "secret").put(Keys.OBJECT_ID, "chosen-id");
             try { f.service.addMilestoneInCurrentTransaction("owner", input); Assert.fail(); } catch (final IllegalStateException expected) { }
-            final Transaction tx = f.begin(); final JSONObject row = f.service.addMilestoneInCurrentTransaction("owner", input);
+            final Transaction tx = f.begin();
+            final JSONObject row = f.service.addMilestoneInCurrentTransaction("owner", input);
             Assert.assertEquals(row.getString(Milestone.MILESTONE_AUTHOR_ID), "owner"); Assert.assertEquals(row.getInt(Milestone.MILESTONE_STATUS), 1);
             Assert.assertFalse(row.has("userPassword")); Assert.assertNotEquals(row.getString("oId"), "chosen-id"); Assert.assertEquals(f.clears, 0);
             tx.rollback(); Assert.assertNull(f.repo.getOwned("owner", row.getString("oId")));
@@ -61,7 +64,8 @@ public class ApiV3MilestoneServiceTest {
             Assert.assertEquals(f.repo.countOwned("owner", 2), 1L); Assert.assertEquals(f.repo.countOwned("owner", 3), 1L);
             Assert.assertNull(f.repo.getOwned("other", "a")); Assert.assertNull(f.repo.getOwned("owner", "c")); Assert.assertNull(f.repo.getOwned("owner", "d"));
             Assert.assertNull(f.repo.getOwned("owner' OR 1=1 --", "a"));
-            final var page1 = f.repo.pageOwned("owner", 0, 1, 2); final var page2 = f.repo.pageOwned("owner", 0, 2, 2);
+            final var page1 = f.repo.pageOwned("owner", 0, 1, 2);
+            final var page2 = f.repo.pageOwned("owner", 0, 2, 2);
             Assert.assertEquals(page1.size(), 2); Assert.assertEquals(page2.size(), 1);
             Assert.assertTrue(f.repo.pageOwned("owner", 0, 3, 2).isEmpty()); Assert.assertNotEquals(page1.getFirst().getString("oId"), page2.getFirst().getString("oId"));
             System.out.println("PASS actual owner/status/count SQL, disjoint pages, empty page and injection isolation");
@@ -77,7 +81,8 @@ public class ApiV3MilestoneServiceTest {
     private static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
         int clears, nextId; boolean failAdd;
-        final Repo repo = new Repo(); final MilestoneMgmtService service = new MilestoneMgmtService();
+        final Repo repo = new Repo();
+        final MilestoneMgmtService service = new MilestoneMgmtService();
         Fixture() throws Exception {
             exec("CREATE TABLE milestone(oId TEXT PRIMARY KEY,milestoneTitle TEXT,milestoneDate BIGINT,milestoneEndDate BIGINT DEFAULT 0,milestoneContent TEXT,milestoneMediaUrl TEXT DEFAULT '',milestoneMediaType TEXT DEFAULT '',milestoneMediaCaption TEXT DEFAULT '',milestoneLink TEXT DEFAULT '',milestoneAuthorId TEXT,milestoneStatus INT,milestoneCreateTime BIGINT,milestoneUpdateTime BIGINT DEFAULT 0)");
             inject("milestoneRepository", repo); inject("milestoneCache", new MilestoneCache() { public void clearTimelineEventsCache() { Assert.assertFalse(active()); clears++; } });
@@ -102,13 +107,17 @@ public class ApiV3MilestoneServiceTest {
             public boolean hasTransactionBegun() { return active(); }
             public Transaction beginTransaction() { return begin(); }
             public String add(final JSONObject row) throws RepositoryException {
-                final String id = "test-" + (++nextId); row.put("oId", id); final var keys = new ArrayList<>(row.keySet());
+                final String id = "test-" + (++nextId);
+                row.put("oId", id);
+                final var keys = new ArrayList<>(row.keySet());
                 exec("INSERT INTO milestone (" + String.join(",",keys) + ") VALUES (" + keys.stream().map(k -> "?").collect(Collectors.joining(",")) + ")", keys.stream().map(row::get).toArray());
-                if (failAdd) throw new RepositoryException("simulated failure"); return id;
+                if (failAdd) throw new RepositoryException("simulated failure");
+                return id;
             }
             public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
                 try (final var statement = db.prepareStatement(sql)) {
-                    for (int i=0;i<args.length;i++) statement.setObject(i+1,args[i]); final List<JSONObject> rows = new ArrayList<>();
+                    for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
+                    final List<JSONObject> rows = new ArrayList<>();
                     try (final var rs = statement.executeQuery()) { while (rs.next()) { final JSONObject row = new JSONObject(); for (int i=1;i<=rs.getMetaData().getColumnCount();i++) row.put(rs.getMetaData().getColumnLabel(i),rs.getObject(i)); rows.add(row); } }
                     return rows;
                 } catch (final Exception e) { throw new RepositoryException(e); }

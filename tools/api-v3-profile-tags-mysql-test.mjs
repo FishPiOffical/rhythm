@@ -72,28 +72,90 @@ try{
   const target=path.join(dir,'org/b3log/symphony/service/'+name+'.java');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,body);fixtures.push(target);
  }
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),...fixtures,'src/test/java/org/b3log/symphony/service/ApiV3ProfileTagsMysqlTest.java']);
- const image=docker(['image','inspect','mysql:8.4','--format','{{.Id}}']);container='rhythm-v3-tags-'+crypto.randomBytes(6).toString('hex');
+ const image = docker(['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
+ container = 'rhythm-v3-tags-' + crypto.randomBytes(6).toString('hex');
  docker(['run','-d','--rm','--pull','never','--memory','768m','--name',container,'-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306',image,'--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);
- const deadline=Date.now()+90000;while(true){const ready=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:5000});const comm=spawnSync('docker',['exec',container,'cat','/proc/1/comm'],{encoding:'utf8',timeout:5000});if(ready.status===0&&comm.stdout.trim()==='mysqld')break;if(Date.now()>deadline)throw Error('MySQL startup timeout');await new Promise(r=>setTimeout(r,250));}
- const bound=docker(['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(bound)||bound.endsWith(':3306'))throw Error('Unsafe port binding');
+ const deadline = Date.now() + 90000;
+ while (true) {
+  const ready = spawnSync('docker', ['exec', container, 'mysqladmin', '-uroot', 'ping'], {encoding: 'utf8', timeout: 5000});
+  const comm = spawnSync('docker', ['exec', container, 'cat', '/proc/1/comm'], {encoding: 'utf8', timeout: 5000});
+  if (ready.status === 0 && comm.stdout.trim() === 'mysqld') break;
+  if (Date.now() > deadline) throw Error('MySQL startup timeout');
+  await new Promise(r => setTimeout(r, 250));
+ }
+ const bound = docker(['port', container, '3306/tcp']);
+ if (!/^127\.0\.0\.1:[0-9]+$/.test(bound) || bound.endsWith(':3306')) throw Error('Unsafe port binding');
  const base=['-Drhythm.tags.mysqlUrl=jdbc:mysql://'+bound+'/rhythm_tags?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=30000','-cp',[dir,cp].join(path.delimiter)],klass='org.b3log.symphony.service.ApiV3ProfileTagsMysqlTest';
  function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_tags;CREATE DATABASE rhythm_tags CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
- function java(args){const result=spawnSync(path.join(home,'bin','java'),[...base,klass,...args],{encoding:'utf8',timeout:45000});if(result.status!==0)throw Error(result.stdout+' '+result.stderr);return result.stdout;}
- fresh();for(const test of ['ApiV3ProfileTagsTest','ApiV3QqSettingsTest']){const result=spawnSync(path.join(home,'bin','java'),['-Drhythm.mysql.fixtureReset=true',...base,'org.b3log.symphony.service.'+test],{encoding:'utf8',timeout:60000});if(result.status!==0)throw Error(result.stdout+' '+result.stderr);console.log(result.stdout);}
- function worker(extra){const p=spawn(path.join(home,'bin','java'),[...base,klass,...extra]),state={p,out:'',err:'',done:false};p.stdout.on('data',x=>state.out+=x);p.stderr.on('data',x=>state.err+=x);state.finished=new Promise((resolve,reject)=>{p.on('error',reject);p.on('close',code=>{state.done=true;code===0?resolve():reject(Error(state.out+' '+state.err));});});state.finished.catch(()=>{});children.push(state);return state;}
- async function until(state,marker){const end=Date.now()+15000;while(!state.out.includes(marker)){if(state.done)throw Error(state.out+' '+state.err);if(Date.now()>end)throw Error('Marker timeout '+marker);await new Promise(r=>setTimeout(r,20));}}
+ function java(args) {
+  const result = spawnSync(path.join(home, 'bin', 'java'), [...base, klass, ...args], {encoding: 'utf8', timeout: 45000});
+  if (result.status !== 0) throw Error(result.stdout + ' ' + result.stderr);
+  return result.stdout;
+ }
+ fresh();
+ for (const test of ['ApiV3ProfileTagsTest', 'ApiV3QqSettingsTest']) {
+  const result = spawnSync(path.join(home, 'bin', 'java'),
+   ['-Drhythm.mysql.fixtureReset=true', ...base, 'org.b3log.symphony.service.' + test], {encoding: 'utf8', timeout: 60000});
+  if (result.status !== 0) throw Error(result.stdout + ' ' + result.stderr);
+  console.log(result.stdout);
+ }
+ function worker(extra) {
+  const p = spawn(path.join(home, 'bin', 'java'), [...base, klass, ...extra]),
+   state = {p, out: '', err: '', done: false};
+  p.stdout.on('data', x => state.out += x);
+  p.stderr.on('data', x => state.err += x);
+  state.finished = new Promise((resolve, reject) => {
+   p.on('error', reject);
+   p.on('close', code => {
+    state.done = true;
+    code === 0 ? resolve() : reject(Error(state.out + ' ' + state.err));
+   });
+  });
+  state.finished.catch(() => {});
+  children.push(state);
+  return state;
+ }
+ async function until(state, marker) {
+  const end = Date.now() + 15000;
+  while (!state.out.includes(marker)) {
+   if (state.done) throw Error(state.out + ' ' + state.err);
+   if (Date.now() > end) throw Error('Marker timeout ' + marker);
+   await new Promise(r => setTimeout(r, 20));
+  }
+ }
  for(const race of ['same-key','shared-tag','different-key','clear','failure']){
-  fresh();console.log(java(['setup',race]));const release=path.join(dir,'release-'+race);
-  const a=worker(['worker',race,'holder',release]);await until(a,'BEFORE_COMMIT');
-  const b=worker(['worker',race,'contender',release]);await until(b,'STARTING_WORK');
-  let waited=false;const end=Date.now()+10000;while(Date.now()<end){if(Number(docker(['exec',container,'mysql','-uroot','-N','-B','-e',"SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"]))>0){waited=true;break;}if(b.done)throw Error('Contender did not block '+b.out);await new Promise(r=>setTimeout(r,50));}
-  if(!waited)throw Error('No InnoDB lock wait for '+race);fs.writeFileSync(release,'release');await Promise.all([a.finished,b.finished]);
+  fresh();
+  console.log(java(['setup', race]));
+  const release = path.join(dir, 'release-' + race);
+  const a = worker(['worker', race, 'holder', release]);
+  await until(a, 'BEFORE_COMMIT');
+  const b = worker(['worker', race, 'contender', release]);
+  await until(b, 'STARTING_WORK');
+  let waited = false;
+  const end = Date.now() + 10000;
+  while (Date.now() < end) {
+   if (Number(docker(['exec', container, 'mysql', '-uroot', '-N', '-B', '-e', "SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"])) > 0) {
+    waited = true;
+    break;
+   }
+   if (b.done) throw Error('Contender did not block ' + b.out);
+   await new Promise(r => setTimeout(r, 50));
+  }
+  if (!waited) throw Error('No InnoDB lock wait for ' + race);
+  fs.writeFileSync(release, 'release');
+  await Promise.all([a.finished, b.finished]);
   const resultA=JSON.parse(a.out.match(/RESULT=(.*)/)[1]),resultB=JSON.parse(b.out.match(/RESULT=(.*)/)[1]);
   if(resultA.status!==200||resultB.status!==(race==='failure'?503:200))throw Error('Unexpected race outcome '+JSON.stringify({resultA,resultB}));
-  console.log(java(['verify',race]));console.log('PASS tags mysql race '+race+' independent JVMs with observed InnoDB lock wait');
+  console.log(java(['verify', race]));
+  console.log('PASS tags mysql race ' + race + ' independent JVMs with observed InnoDB lock wait');
  }
-}finally{
- for(const child of children)if(!child.done)child.p.kill('SIGKILL');await Promise.allSettled(children.map(child=>child.finished));
- if(container){docker(['rm','-f',container]);if(docker(['ps','-aq','--filter','name=^/'+container+'$']))throw Error('Container cleanup failed');console.log('Disposable tags MySQL removed');}
+} finally {
+ for (const child of children) if (!child.done) child.p.kill('SIGKILL');
+ await Promise.allSettled(children.map(child => child.finished));
+ if (container) {
+  docker(['rm', '-f', container]);
+  if (docker(['ps', '-aq', '--filter', 'name=^/' + container + '$'])) throw Error('Container cleanup failed');
+  console.log('Disposable tags MySQL removed');
+ }
  fs.rmSync(dir,{recursive:true,force:true});
 }

@@ -54,7 +54,9 @@ public class ApiV3ColumnMgmtServiceTest {
         Assert.assertEquals(ColumnCoverMgmtService.normalizeCoverURL(" /image.png "), "/image.png");
         Assert.assertEquals(ColumnCoverMgmtService.normalizeCoverURL(""), "");
         System.out.println("PASS strict title/order inputs and existing cover validation");
-        final var props = Latkes.class.getDeclaredField("localProps"); props.setAccessible(true); final Object original = props.get(null);
+        final var props = Latkes.class.getDeclaredField("localProps");
+        props.setAccessible(true);
+        final Object original = props.get(null);
         final Properties local = new Properties(); local.setProperty("runtimeDatabase", "NONE"); props.set(null, local);
         try (final Fixture f = new Fixture()) {
             try { f.columns.getForUpdate("1"); Assert.fail(); } catch (final IllegalStateException expected) { }
@@ -96,7 +98,8 @@ public class ApiV3ColumnMgmtServiceTest {
     }
     private static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
-        final Columns columns = new Columns(); final Chapters chapters = new Chapters();
+        final Columns columns = new Columns();
+        final Chapters chapters = new Chapters();
         final LongArticleColumnMgmtService service = new LongArticleColumnMgmtService();
         final ColumnCoverMgmtService covers = new ColumnCoverMgmtService();
         String failId = "";
@@ -120,7 +123,8 @@ public class ApiV3ColumnMgmtServiceTest {
         boolean active() { try { return !db.getAutoCommit(); } catch (Exception e) { throw new IllegalStateException(e); } }
         List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
             try (final var statement = db.prepareStatement(sql.replace(" FOR UPDATE", ""))) {
-                for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]); final List<JSONObject> rows = new ArrayList<>();
+                for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
+                final List<JSONObject> rows = new ArrayList<>();
                 try (final var rs = statement.executeQuery()) { while (rs.next()) { final JSONObject row = new JSONObject(); for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) row.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i)); rows.add(row); } } return rows;
             } catch (final Exception e) { throw new RepositoryException(e); }
         }
@@ -144,7 +148,8 @@ public class ApiV3ColumnMgmtServiceTest {
             public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException { return Fixture.this.select(sql, args); }
             public String add(final JSONObject row) throws RepositoryException { return Fixture.this.add(getName(), row); }
             public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException {
-                Fixture.this.update(getName(), id, row, fields); if (id.equals(failId)) throw new RepositoryException("simulated failure");
+                Fixture.this.update(getName(), id, row, fields);
+                if (id.equals(failId)) throw new RepositoryException("simulated failure");
             }
         }
         class Chapters extends LongArticleChapterRepository {

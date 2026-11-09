@@ -7,7 +7,13 @@ import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const jsoup=process.env.API_V3_JSOUP_JAR||path.join(os.homedir(),'.m2/repository/org/jsoup/jsoup/1.21.1/jsoup-1.21.1.jar');
 if(!fs.existsSync(jsoup))throw Error('Set API_V3_JSOUP_JAR to the jsoup 1.21.1 dependency declared in pom.xml');
-const cp=[jsoup,'src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ jsoup,
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-fish-game-submission-')),shims=[];
 function shim(name, body) {
  const file = path.join(dir, name + '.java');
@@ -45,4 +51,6 @@ try{
  shim('org/b3log/symphony/cache/OptionCache','package org.b3log.symphony.cache;public class OptionCache {public void removeOption(String id){}public org.json.JSONObject getOption(String id){throw new AssertionError("cached option forbidden");}public void putOption(org.json.JSONObject value){throw new AssertionError("cached option forbidden");}}');
  const real=['model/UserExt','model/Role','model/Common','model/Notification','model/Profession','model/UserProfessionPrivacy','model/ApiV3Request','repository/ProfessionRepository','repository/UserProfessionPrivacyRepository','repository/ApiV3RequestRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3WriteInputs','util/ApiV3Json','util/ApiV3TokenUtil','util/ApiV3MutationStore','util/ApiV3Transactions','util/ApiV3TransactionSavepoint','util/ApiV3TransactionStatements','util/ArticlePublicationCaches','service/ApiV3IdempotencyMgmtService','service/ApiV3ProfessionPrimaryService','processor/ApiV3ProfessionPrimaryProcessor','model/Option','repository/OptionRepository','model/FishGame','model/FishGameVote','model/FishGameComment','repository/FishGameRepository','repository/FishGameVoteRepository','repository/FishGameCommentRepository','service/FishGameMgmtService','service/FishGameValidationService','service/ApiV3FishGameSubmissionService','processor/ApiV3FishGameSubmissionProcessor','util/ApiV3FishGameSubmissionInputs','util/FishGameWriteQuota','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/main/java/pers/adlered/simplecurrentlimiter/control/MainControl.java','src/main/java/pers/adlered/simplecurrentlimiter/main/SimpleCurrentLimiter.java','src/main/java/pers/adlered/simplecurrentlimiter/cache/pair/CachePair.java','src/main/java/pers/adlered/simplecurrentlimiter/cache/MainCache.java',]);
-}finally{fs.rmSync(dir,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true });
+}

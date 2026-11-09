@@ -5,7 +5,12 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-identity-')),shims=[];
 function shim(name, body) {
  const file = path.join(dir, name + '.java');
@@ -43,4 +48,6 @@ try{
  const real=['model/UserExt','model/Role','model/Common','model/ApiV3Client','model/ApiV3Token','model/ApiV3AuthorizationRequest','model/ApiV3AuthorizationCode','model/AccountCredentialState','model/OpenIdRefreshToken','model/ApiV3Request','model/Pointtransfer','model/PointtransferSource','repository/ApiV3ClientRepository','repository/ApiV3TokenRepository','repository/ApiV3AuthorizationCodeRepository','repository/ApiV3AuthorizationRequestRepository','repository/AccountCredentialStateRepository','repository/OpenIdRefreshTokenRepository','repository/ApiV3RequestRepository','repository/PointtransferRepository','repository/ApiV3PostExportRepository','repository/ApiV3PostExportChunkRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3Json','util/ApiV3WriteInputs','util/ApiV3Transactions','util/ApiV3TransactionStatements','util/ApiV3MutationStore','util/ApiV3TokenUtil','util/MultiFactorAuthenticator','util/ApiV3SecurityInputs','util/AccountPairLocks','util/ArticlePublicationCaches','util/ApiV3PostExportFiles','service/AccountCredentialMgmtService','service/ApiV3SecurityProofService','service/ApiV3SecuritySettingsService','service/ApiV3IdempotencyMgmtService','service/PointtransferMgmtService','service/ApiV3PostExportSnapshotService','service/ApiV3PostExportService','processor/ApiV3SecurityProcessor','repository/ApiV3IdentityApplicationRepository','repository/ApiV3IdentityMaterialRepository','repository/ApiV3IdentityReviewerRepository','util/ApiV3OAuthTransportLogFilter','util/ApiV3IdentityImage','service/ApiV3IdentityApplicationService','processor/ApiV3IdentityApplicationProcessor','processor/ApiV3PostExportProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java',...[...new Set(real)].map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3SecurityTest.java','src/test/java/org/b3log/symphony/service/ApiV3IdentityApplicationTest.java']);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3IdentityApplicationTest']);
-}finally{fs.rmSync(dir,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true });
+}

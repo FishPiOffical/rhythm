@@ -5,7 +5,12 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=['src/main/resources/lib/latke-core.jar',`${ide}/lib/intellij.libraries.caffeine.jar`,`${ide}/plugins/testng/lib/testng.jar`,`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ 'src/main/resources/lib/latke-core.jar',
+ `${ide}/lib/intellij.libraries.caffeine.jar`,
+ `${ide}/plugins/testng/lib/testng.jar`,
+ `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-mfa-')),shims=[];
 function shim(name, body) {
  const file = path.join(dir, name + '.java');
@@ -39,4 +44,6 @@ try{
  const real=['model/UserExt','model/Role','model/ApiV3Client','model/ApiV3Token','model/ApiV3AuthorizationRequest','model/ApiV3AuthorizationCode','model/AccountCredentialState','model/OpenIdRefreshToken','repository/ApiV3ClientRepository','repository/ApiV3TokenRepository','repository/ApiV3AuthorizationCodeRepository','repository/ApiV3AuthorizationRequestRepository','repository/AccountCredentialStateRepository','repository/OpenIdRefreshTokenRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3Json','util/ApiV3WriteInputs','util/ApiV3Transactions','util/ApiV3TransactionStatements','util/MultiFactorAuthenticator','util/ApiV3SecurityInputs','service/AccountCredentialMgmtService','service/ApiV3SecurityProofService','service/ApiV3SecuritySettingsService','processor/ApiV3SecurityProcessor','model/ApiV3Request','repository/ApiV3RequestRepository','repository/ApiV3MfaPreparationRepository','util/ApiV3MutationStore','util/ApiV3TokenUtil','util/ApiV3TransactionSavepoint','util/ApiV3MfaInputs','util/ApiV3MfaSecrets','service/ApiV3IdempotencyMgmtService','service/ApiV3MfaService','processor/ApiV3MfaProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3SecurityTest.java','src/test/java/org/b3log/symphony/service/ApiV3MfaTest.java']);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3MfaTest']);
-}finally{fs.rmSync(dir,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true });
+}

@@ -22,9 +22,14 @@ async function request(path, status, { method = 'PUT', credential = token, body 
       ...(cookie ? { Cookie: cookie } : {}), ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }), ...(key ? { 'Idempotency-Key': key } : {}) },
     ...(method === 'GET' ? {} : { body: JSON.stringify(body) })
   });
-  assert.equal(r.status, status); assert.ok(r.headers.get('x-request-id'));
+  assert.equal(r.status, status);
+  assert.ok(r.headers.get('x-request-id'));
   const json = await r.json();
-  if (status === 200) assert.equal(json.code, 0); else { assert.notEqual(json.code, 0); assert.equal(json.data, null); }
+  if (status === 200) assert.equal(json.code, 0);
+  else {
+    assert.notEqual(json.code, 0);
+    assert.equal(json.data, null);
+  }
   return json.data;
 }
 const sample = { content: 'v3 comment smoke' };
@@ -37,22 +42,28 @@ if (process.env.API_V3_LONG_ARTICLE_ID) await check('long article anchors, annot
   const article = process.env.API_V3_LONG_ARTICLE_ID;
   if (!/^[0-9]{1,32}$/.test(article)) throw new Error('Invalid long article fixture');
   const anchors = await request(`/articles/${article}/paragraphs?size=50&includeContent=true`, 200, { method: 'GET' });
-  assert.ok(Array.isArray(anchors.list)); assert.equal(typeof anchors.contentHtml, 'string');
+  assert.ok(Array.isArray(anchors.list));
+  assert.equal(typeof anchors.contentHtml, 'string');
   assert.ok(Number.isSafeInteger(anchors.pagination.total));
   for (const anchor of anchors.list) {
-    assert.match(anchor.id, /^[0-9a-f]{64}$/); assert.equal(anchor.state, 'active');
+    assert.match(anchor.id, /^[0-9a-f]{64}$/);
+    assert.equal(anchor.state, 'active');
     assert.ok(anchors.contentHtml.includes(`data-long-paragraph-id="${anchor.id}"`));
     assert.ok(Number.isSafeInteger(anchor.commentCount));
   }
   const plain = await request(`/articles/${article}/paragraphs?size=50`, 200, { method: 'GET' });
-  assert.ok(!Object.hasOwn(plain, 'contentHtml')); assert.deepEqual(plain.list, anchors.list);
+  assert.ok(!Object.hasOwn(plain, 'contentHtml'));
+  assert.deepEqual(plain.list, anchors.list);
   const anchor = anchors.list[0]?.id;
   if (anchor) {
     const comments = await request(`/articles/${article}/paragraph-comments?paragraphId=${anchor}&state=all&size=50`, 200, { method: 'GET' });
     for (const row of comments.list) {
-      assert.equal(row.articleId, article); assert.equal(row.type, 1); assert.equal(row.paragraph.id, anchor);
+      assert.equal(row.articleId, article);
+      assert.equal(row.type, 1);
+      assert.equal(row.paragraph.id, anchor);
       assert.ok(!Object.hasOwn(row.paragraph, 'snapshot'));
-      assert.ok(!Object.hasOwn(row, 'commentIP')); assert.ok(!Object.hasOwn(row, 'commentUA'));
+      assert.ok(!Object.hasOwn(row, 'commentIP'));
+      assert.ok(!Object.hasOwn(row, 'commentUA'));
       assert.deepEqual(await request(`/comments/${row.id}`, 200, { method: 'GET' }), row);
     }
   }
@@ -77,7 +88,8 @@ if (process.env.API_V3_COMMENT_WRITE === '1') {
   await check('owned edit, replay, conflict and old replay after newer edit', async () => {
     const key = `comment-smoke-${Date.now()}`, body = { content: `v3 comment smoke ${Date.now()}` };
     const first = await request(`/comments/${id}`, 200, { body, key });
-    assert.deepEqual(Object.keys(first).sort(), ['id', 'permalink']); assert.equal(first.id, id);
+    assert.deepEqual(Object.keys(first).sort(), ['id', 'permalink']);
+    assert.equal(first.id, id);
     assert.deepEqual(await request(`/comments/${id}`, 200, { body, key }), first);
     await request(`/comments/${id}`, 409, { body: { content: body.content + ' conflict' }, key });
     const newer = { content: body.content + ' newer' };
@@ -87,7 +99,8 @@ if (process.env.API_V3_COMMENT_WRITE === '1') {
       const article = process.env.API_V3_COMMENT_ARTICLE_ID, page = process.env.API_V3_COMMENT_PAGE || '1';
       if (!/^[0-9]{1,19}$/.test(article) || !/^[1-9][0-9]{0,6}$/.test(page)) throw new Error('Invalid readback fixture');
       const result = await request(`/articles/${article}/comments?p=${page}&size=50&sort=oldest`, 200, { method: 'GET' });
-      const edited = result.list.find(item => item.id === id); assert.ok(edited, 'Fixture must be on the configured ordinary-comment page');
+      const edited = result.list.find(item => item.id === id);
+      assert.ok(edited, 'Fixture must be on the configured ordinary-comment page');
       assert.equal(edited.content.trim(), newer.content);
     } else console.log('SKIP persisted readback: configure article ID and fixture page; paragraph comments require manual readback');
   });
@@ -101,23 +114,28 @@ if (process.env.API_V3_COMMENT_PUBLISH === '1') {
     if (process.env.API_V3_COMMENT_PARAGRAPH_ID) body.paragraphId = process.env.API_V3_COMMENT_PARAGRAPH_ID;
     if (process.env.API_V3_COMMENT_PARAGRAPH_AUTO === '1') {
       const anchors = await request(`/articles/${article}/paragraphs?size=1`, 200, { method: 'GET' });
-      assert.ok(anchors.list.length); body.paragraphId = anchors.list[0].id;
+      assert.ok(anchors.list.length);
+      body.paragraphId = anchors.list[0].id;
     }
     const route = `/articles/${article}/comments`;
     const first = await request(route, 200, { method: 'POST', body, key });
     assert.deepEqual(Object.keys(first).sort(), ['id', 'permalink']);
-    assert.match(first.id, /^[0-9]{1,19}$/); assert.ok(first.permalink.includes(first.id));
+    assert.match(first.id, /^[0-9]{1,19}$/);
+    assert.ok(first.permalink.includes(first.id));
     assert.deepEqual(await request(route, 200, { method: 'POST', body, key }), first);
     await request(route, 409, { method: 'POST', body: { ...body, content: `${body.content} conflict` }, key });
     const detail = await request(`/comments/${first.id}`, 200, { method: 'GET' });
-    assert.equal(detail.content.trim(), body.content); assert.equal(detail.contentVisible, true);
+    assert.equal(detail.content.trim(), body.content);
+    assert.equal(detail.contentVisible, true);
     if (first.permalink.includes('?paragraph=')) {
       const result = await request(`/articles/${article}/paragraph-comments?paragraphId=${detail.paragraph.id}&state=all&sort=latest&size=50`, 200, { method: 'GET' });
       assert.ok(result.list.some(item => item.id === first.id));
     } else {
       const result = await request(`/articles/${article}/comments?size=50`, 200, { method: 'GET' });
-      const row = result.list.find(item => item.id === first.id); assert.ok(row, 'Use a fixture where the new comment remains on page one');
-      assert.equal(row.content.trim(), body.content); assert.equal(row.parentId, body.parentId || '');
+      const row = result.list.find(item => item.id === first.id);
+      assert.ok(row, 'Use a fixture where the new comment remains on page one');
+      assert.equal(row.content.trim(), body.content);
+      assert.equal(row.parentId, body.parentId || '');
     }
   });
 } else console.log('SKIP persistent publication: explicitly set API_V3_COMMENT_PUBLISH=1 with a disposable article');

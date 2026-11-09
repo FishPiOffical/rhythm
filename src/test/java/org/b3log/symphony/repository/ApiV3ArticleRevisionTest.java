@@ -114,56 +114,166 @@ public class ApiV3ArticleRevisionTest {
     }
     static List<JSONObject> query(Connection c,String sql,Object...args)throws RepositoryException{try(var s=c.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(var r=s.executeQuery()){var out=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnLabel(i),r.getObject(i));out.add(row);}return out;}}catch(SQLException e){throw new RepositoryException(e);}}
     static void execute(Connection c,String sql,Object...args)throws RepositoryException{try(var s=c.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);s.executeUpdate();}catch(SQLException e){throw new RepositoryException(e);}}
-    public static void main(String[] args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");for(String name:List.of("latkeProps","localProps")){var f=Latkes.class.getDeclaredField(name);f.setAccessible(true);f.set(null,props);}
-        try(var f=new Fixture()){
-            f.begin();f.article("101");Assert.assertNull(f.revision("101"));Assert.assertTrue(query(f.reader,"SELECT * FROM article").isEmpty());f.commit();String first=f.revision("101");Assert.assertNotNull(first);Assert.assertEquals(f.snapshot(f.second,List.of("101")).get("101"),first);
-            f.begin();try(var cache=ArticlePublicationCaches.open(f::active)){f.articles.update("101",new JSONObject().put("articleContent","changed"),"articleContent");Assert.assertEquals(f.revision("101"),first);f.rollback();}Assert.assertEquals(f.revision("101"),first);Assert.assertEquals(query(f.reader,"SELECT articleContent FROM article").getFirst().getString("articleContent"),"PRIVATE-content");
-            f.atomic(()->f.articles.update("101",new JSONObject().put("articleContent","changed"),"articleContent"));Assert.assertNotEquals(f.revision("101"),first);String second=f.revision("101");
-            f.atomic(()->f.articles.remove("101"));Assert.assertNotEquals(f.revision("101"),second);Assert.assertTrue(query(f.reader,"SELECT * FROM article").isEmpty());
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        for (String name : List.of("latkeProps", "localProps")) {
+            var f = Latkes.class.getDeclaredField(name);
+            f.setAccessible(true);
+            f.set(null, props);
+        }
+        try (var f = new Fixture()) {
+            f.begin();
+            f.article("101");
+            Assert.assertNull(f.revision("101"));
+            Assert.assertTrue(query(f.reader, "SELECT * FROM article").isEmpty());
+            f.commit();
+            String first = f.revision("101");
+            Assert.assertNotNull(first);
+            Assert.assertEquals(f.snapshot(f.second, List.of("101")).get("101"), first);
+
+            f.begin();
+            try (var cache = ArticlePublicationCaches.open(f::active)) {
+                f.articles.update("101", new JSONObject().put("articleContent", "changed"), "articleContent");
+                Assert.assertEquals(f.revision("101"), first);
+                f.rollback();
+            }
+            Assert.assertEquals(f.revision("101"), first);
+            Assert.assertEquals(query(f.reader, "SELECT articleContent FROM article").getFirst().getString("articleContent"), "PRIVATE-content");
+            f.atomic(() -> f.articles.update("101", new JSONObject().put("articleContent", "changed"), "articleContent"));
+            Assert.assertNotEquals(f.revision("101"), first);
+            String second = f.revision("101");
+            f.atomic(() -> f.articles.remove("101"));
+            Assert.assertNotEquals(f.revision("101"), second);
+            Assert.assertTrue(query(f.reader, "SELECT * FROM article").isEmpty());
         }
         System.out.println("PASS real article add/edit/delete hooks couple markers to committed data, preserve generated-column filtering and hide uncommitted/rolled-back writes from independent readers");
-        for(boolean boundary:List.of(false,true))try(var f=new Fixture()){
-            f.atomic(()->{f.article("101");f.article("202");f.comment("301","101");},boundary);String first=f.revision("101"),other=f.revision("202");
-            f.atomic(()->f.comments.update("301",new JSONObject().put("commentContent","edited").put("commentOnArticleId","202"),"commentContent"),boundary);
-            Assert.assertNotEquals(f.revision("101"),first);Assert.assertEquals(f.revision("202"),other);first=f.revision("101");
-            f.atomic(()->f.comments.update("301",new JSONObject().put("commentOnArticleId","202"),"commentOnArticleId"),boundary);Assert.assertNotEquals(f.revision("101"),first);Assert.assertNotEquals(f.revision("202"),other);
-            first=f.revision("101");other=f.revision("202");f.atomic(()->f.comments.remove("301"),boundary);Assert.assertEquals(f.revision("101"),first);Assert.assertNotEquals(f.revision("202"),other);
+        for (boolean boundary : List.of(false, true)) try (var f = new Fixture()) {
+            f.atomic(() -> {
+                f.article("101");
+                f.article("202");
+                f.comment("301", "101");
+            }, boundary);
+            String first = f.revision("101"), other = f.revision("202");
+            // 正文更新没有写入所属文章列，真正迁移评论时才更新两篇文章的版本。
+            f.atomic(() -> f.comments.update("301", new JSONObject().put("commentContent", "edited")
+                    .put("commentOnArticleId", "202"), "commentContent"), boundary);
+            Assert.assertNotEquals(f.revision("101"), first);
+            Assert.assertEquals(f.revision("202"), other);
+            first = f.revision("101");
+            f.atomic(() -> f.comments.update("301", new JSONObject().put("commentOnArticleId", "202"), "commentOnArticleId"), boundary);
+            Assert.assertNotEquals(f.revision("101"), first);
+            Assert.assertNotEquals(f.revision("202"), other);
+            first = f.revision("101");
+            other = f.revision("202");
+            f.atomic(() -> f.comments.remove("301"), boundary);
+            Assert.assertEquals(f.revision("101"), first);
+            Assert.assertNotEquals(f.revision("202"), other);
         }
         System.out.println("PASS comment creation/edit/delete signal its current article in both cache modes; partial fields cannot forge a parent, while an applied internal move signals both parents");
-        for(String failure:List.of("article","comment","marker"))try(var f=new Fixture()){
-            f.atomic(()->{f.article("101");f.comment("301","101");});String before=f.revision("101");f.fail=failure;
-            try{f.atomic(()->{f.articles.update("101",new JSONObject().put("articleContent","bad"),"articleContent");f.comments.remove("301");});Assert.fail();}catch(RepositoryException expected){}
-            Assert.assertEquals(f.revision("101"),before);Assert.assertEquals(query(f.reader,"SELECT articleContent FROM article").getFirst().getString("articleContent"),"PRIVATE-content");Assert.assertEquals(query(f.reader,"SELECT * FROM comment").size(),1);
+        for (String failure : List.of("article", "comment", "marker")) try (var f = new Fixture()) {
+            f.atomic(() -> {
+                f.article("101");
+                f.comment("301", "101");
+            });
+            String before = f.revision("101");
+            f.fail = failure;
+            try {
+                f.atomic(() -> {
+                    f.articles.update("101", new JSONObject().put("articleContent", "bad"), "articleContent");
+                    f.comments.remove("301");
+                });
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            Assert.assertEquals(f.revision("101"), before);
+            Assert.assertEquals(query(f.reader, "SELECT articleContent FROM article").getFirst().getString("articleContent"), "PRIVATE-content");
+            Assert.assertEquals(query(f.reader, "SELECT * FROM comment").size(), 1);
         }
         System.out.println("PASS article/comment/marker failures propagate and the owning transaction rolls back the whole data/marker mutation");
-        for(String operation:List.of("article.add","article.remove","comment.add","comment.update","comment.remove"))try(var f=new Fixture()){
-            f.atomic(()->{f.article("101");f.comment("301","101");});String before=f.revision("101");
-            String rows=query(f.reader,"SELECT * FROM article").toString()+query(f.reader,"SELECT * FROM comment");f.fail="marker";
-            try{f.atomic(()->{switch(operation){
-                case "article.add"->f.article("202");case "article.remove"->f.articles.remove("101");case "comment.add"->f.comment("302","101");
-                case "comment.update"->f.comments.update("301",new JSONObject().put("commentContent","bad"),"commentContent");case "comment.remove"->f.comments.remove("301");
-                default->throw new AssertionError();
-            }});Assert.fail(operation);}catch(RepositoryException expected){}
-            Assert.assertEquals(f.revision("101"),before);Assert.assertNull(f.revision("202"));
-            Assert.assertEquals(query(f.reader,"SELECT * FROM article").toString()+query(f.reader,"SELECT * FROM comment"),rows,operation);
-        }
+        for (String operation : List.of("article.add", "article.remove", "comment.add", "comment.update", "comment.remove"))
+            try (var f = new Fixture()) {
+                f.atomic(() -> {
+                    f.article("101");
+                    f.comment("301", "101");
+                });
+                String before = f.revision("101");
+                String rows = query(f.reader, "SELECT * FROM article").toString() + query(f.reader, "SELECT * FROM comment");
+                f.fail = "marker";
+                try {
+                    f.atomic(() -> {
+                        switch (operation) {
+                            case "article.add" -> f.article("202");
+                            case "article.remove" -> f.articles.remove("101");
+                            case "comment.add" -> f.comment("302", "101");
+                            case "comment.update" -> f.comments.update("301", new JSONObject().put("commentContent", "bad"), "commentContent");
+                            case "comment.remove" -> f.comments.remove("301");
+                            default -> throw new AssertionError();
+                        }
+                    });
+                    Assert.fail(operation);
+                } catch (RepositoryException expected) {
+                }
+                Assert.assertEquals(f.revision("101"), before);
+                Assert.assertNull(f.revision("202"));
+                Assert.assertEquals(query(f.reader, "SELECT * FROM article").toString() + query(f.reader, "SELECT * FROM comment"), rows, operation);
+            }
         System.out.println("PASS each article/comment add/update/delete marker failure rolls its preceding data write back without a new visible revision");
-        try(var f=new Fixture()){
-            f.atomic(()->{f.article("101");f.comment("301","101");});String first=f.revision("101");
-            f.atomic(()->Assert.assertTrue(f.management.setInCurrentTransaction("1","article","101","thumbsup",null)));Assert.assertNotEquals(f.revision("101"),first);first=f.revision("101");
-            f.atomic(()->Assert.assertFalse(f.management.setInCurrentTransaction("1","article","101","thumbsup",null)));Assert.assertEquals(f.revision("101"),first);
-            f.atomic(()->Assert.assertTrue(f.management.setInCurrentTransaction("1","comment","301","thumbsup",null)));Assert.assertNotEquals(f.revision("101"),first);first=f.revision("101");
-            f.atomic(()->Assert.assertTrue(f.management.setInCurrentTransaction("1","comment","301","",null)));Assert.assertNotEquals(f.revision("101"),first);first=f.revision("101");
-            f.atomic(()->Assert.assertTrue(f.management.setInCurrentTransaction("1","chat","9","thumbsup",null)));Assert.assertEquals(f.revision("101"),first);Assert.assertNull(f.revision("9"));
-            f.fail="marker";try{f.atomic(()->f.management.setInCurrentTransaction("1","article","101","heart",null));Assert.fail();}catch(RepositoryException expected){}Assert.assertEquals(f.revision("101"),first);Assert.assertEquals(query(f.reader,"SELECT reactionValue FROM reaction WHERE reactionTargetType='article'").getFirst().getString("reactionValue"),"thumbsup");
+        try (var f = new Fixture()) {
+            f.atomic(() -> {
+                f.article("101");
+                f.comment("301", "101");
+            });
+            String first = f.revision("101");
+            f.atomic(() -> Assert.assertTrue(f.management.setInCurrentTransaction("1", "article", "101", "thumbsup", null)));
+            Assert.assertNotEquals(f.revision("101"), first);
+            first = f.revision("101");
+            f.atomic(() -> Assert.assertFalse(f.management.setInCurrentTransaction("1", "article", "101", "thumbsup", null)));
+            Assert.assertEquals(f.revision("101"), first);
+            f.atomic(() -> Assert.assertTrue(f.management.setInCurrentTransaction("1", "comment", "301", "thumbsup", null)));
+            Assert.assertNotEquals(f.revision("101"), first);
+            first = f.revision("101");
+            f.atomic(() -> Assert.assertTrue(f.management.setInCurrentTransaction("1", "comment", "301", "", null)));
+            Assert.assertNotEquals(f.revision("101"), first);
+            first = f.revision("101");
+            f.atomic(() -> Assert.assertTrue(f.management.setInCurrentTransaction("1", "chat", "9", "thumbsup", null)));
+            Assert.assertEquals(f.revision("101"), first);
+            Assert.assertNull(f.revision("9"));
+            f.fail = "marker";
+            try {
+                f.atomic(() -> f.management.setInCurrentTransaction("1", "article", "101", "heart", null));
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            Assert.assertEquals(f.revision("101"), first);
+            Assert.assertEquals(query(f.reader, "SELECT reactionValue FROM reaction WHERE reactionTargetType='article'")
+                    .getFirst().getString("reactionValue"), "thumbsup");
         }
         System.out.println("PASS real shared reaction service couples article/comment changes to the parent marker, leaves no-op/chat untouched and rolls reaction back on marker failure");
-        try(var f=new Fixture()){
-            try{f.article("101");Assert.fail();}catch(IllegalStateException expected){}
-            try{f.comments.remove("301");Assert.fail();}catch(IllegalStateException expected){}
-            f.begin();try{f.revisions.snapshot(List.of("101"));Assert.fail();}catch(IllegalStateException expected){}finally{f.rollback();}
-            f.atomic(()->{for(int i=0;i<205;i++)f.revisions.touchInCurrentTransaction(""+i);});Assert.assertEquals(f.snapshot(f.reader,java.util.stream.IntStream.range(0,205).mapToObj(i->""+i).toList()).size(),205);Assert.assertTrue(f.snapshot(f.reader,List.of("101' OR 1=1 --")).isEmpty());
+        try (var f = new Fixture()) {
+            try {
+                f.article("101");
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            try {
+                f.comments.remove("301");
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            f.begin();
+            try {
+                f.revisions.snapshot(List.of("101"));
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            } finally {
+                f.rollback();
+            }
+            f.atomic(() -> {
+                for (int i = 0; i < 205; i++) f.revisions.touchInCurrentTransaction("" + i);
+            });
+            Assert.assertEquals(f.snapshot(f.reader, java.util.stream.IntStream.range(0, 205).mapToObj(i -> "" + i).toList()).size(), 205);
+            Assert.assertTrue(f.snapshot(f.reader, List.of("101' OR 1=1 --")).isEmpty());
             Assert.assertFalse(ApiV3ArticleRevision.REPOSITORY.startsWith("symphony_"));
         }
         System.out.println("PASS write/snapshot transaction guards, bounded parameterized article snapshots and repository prefix invariants");

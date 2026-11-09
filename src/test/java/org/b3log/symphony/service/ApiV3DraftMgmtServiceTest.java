@@ -139,7 +139,11 @@ public class ApiV3DraftMgmtServiceTest {
             inject(api, "draftMgmtService", legacy);
             inject(api, "idempotencyMgmtService", replay);
         }
-        private Transaction begin() { Assert.assertNull(current); current = new Tx(); return current; }
+        private Transaction begin() {
+            Assert.assertNull(current);
+            current = new Tx();
+            return current;
+        }
         private final class Tx implements Transaction {
             private final Map<String, JSONObject> requestRows = copy(requests);
             private final Map<String, JSONObject> draftRows = copy(drafts);
@@ -152,7 +156,12 @@ public class ApiV3DraftMgmtServiceTest {
             @Override public Transaction beginTransaction() { return begin(); }
             @Override public boolean hasTransactionBegun() { return null != current; }
             @Override public JSONObject getForUpdate(final String id) { return current.requestRows.get(id); }
-            @Override public String add(final JSONObject row) { final String id = row.getString(Keys.OBJECT_ID); current.requestRows.put(id, row); return id; }
+            @Override
+            public String add(final JSONObject row) {
+                final String id = row.getString(Keys.OBJECT_ID);
+                current.requestRows.put(id, row);
+                return id;
+            }
             @Override public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
                 if (failResults) throw new RepositoryException("result storage unavailable");
                 current.requestRows.put(id, row);
@@ -166,7 +175,10 @@ public class ApiV3DraftMgmtServiceTest {
                 return null != row && user.equals(row.optString(ArticleDraft.USER_ID)) ? row : null;
             }
             @Override public String add(final JSONObject row) {
-                final String id = String.valueOf(ids.incrementAndGet()); row.put(Keys.OBJECT_ID, id); current.draftRows.put(id, row); return id;
+                final String id = String.valueOf(ids.incrementAndGet());
+                row.put(Keys.OBJECT_ID, id);
+                current.draftRows.put(id, row);
+                return id;
             }
             @Override public void update(final String id, final JSONObject row, final String... names) { current.draftRows.put(id, row); }
             @Override public void remove(final String id) { current.draftRows.remove(id); }

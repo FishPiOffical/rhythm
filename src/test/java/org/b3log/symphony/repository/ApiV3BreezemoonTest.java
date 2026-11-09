@@ -57,7 +57,9 @@ public class ApiV3BreezemoonTest {
         Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_CONTENT), "new"); Assert.assertEquals(edit.getLong(Breezemoon.BREEZEMOON_UPDATED), 3);
         Assert.assertEquals(old.getString(Breezemoon.BREEZEMOON_CONTENT), "old"); Assert.assertEquals(old.getLong(Breezemoon.BREEZEMOON_UPDATED), 2);
         System.out.println("PASS edit preserves author/creation/city/status and leaves the original untouched");
-        final var field = Latkes.class.getDeclaredField("localProps"); field.setAccessible(true); final Object original = field.get(null);
+        final var field = Latkes.class.getDeclaredField("localProps");
+        field.setAccessible(true);
+        final Object original = field.get(null);
         final Properties props = new Properties(); props.setProperty("runtimeDatabase", "NONE");
         final Rows repo;
         try { field.set(null, props); repo = new Rows(); } finally { field.set(null, original); }

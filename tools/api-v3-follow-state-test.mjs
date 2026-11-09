@@ -33,7 +33,18 @@ try{
  shim('org/b3log/symphony/service/ApiV3TokenMgmtService','package org.b3log.symphony.service;public class ApiV3TokenMgmtService{public org.json.JSONObject authenticate(String value){return null;}public static boolean hasScope(String scope,String required){return java.util.Arrays.asList(scope.split(" ")).contains(required);}}');
  let test='src/test/java/org/b3log/symphony/service/ApiV3FollowStateTest.java';
  if(mysql){const f=path.join(dir,'ApiV3FollowStateTest.java');fs.writeFileSync(f,fs.readFileSync(test,'utf8').replace('DriverManager.getConnection("jdbc:sqlite::memory:")','DriverManager.getConnection(System.getProperty("rhythm.follow.mysqlUrl"))').replaceAll('oId TEXT PRIMARY KEY','oId VARCHAR(19) PRIMARY KEY'));test=f;}
- const sources=['model/Follow','repository/FollowRepository','util/ApiV3Exception','util/ApiV3Requests','service/ApiV3FollowQueryService','processor/ApiV3FollowProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware','util/ApiV3WriteInputs','util/ApiV3Json'];
+ const sources = [
+  'model/Follow',
+  'repository/FollowRepository',
+  'util/ApiV3Exception',
+  'util/ApiV3Requests',
+  'service/ApiV3FollowQueryService',
+  'processor/ApiV3FollowProcessor',
+  'processor/middleware/ApiV3AuthMidware',
+  'processor/middleware/ApiV3WriteMidware',
+  'util/ApiV3WriteInputs',
+  'util/ApiV3Json'
+ ];
  run(home+'/bin/javac',['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...sources.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){
@@ -44,4 +55,11 @@ try{
   opts.push('-Drhythm.follow.mysqlUrl=jdbc:mysql://'+bound+'/follow_state?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000');
  }
  run(home+'/bin/java',[...opts,'-cp' ,[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3FollowStateTest']);
-}finally{if(container){const r=spawnSync('docker',['rm','-f',container],{encoding:'utf8',timeout:20000});if(r.status!==0)throw Error(r.stderr);console.log('Temporary follow-state MySQL removed');}fs.rmSync(dir,{recursive:true,force:true})}
+} finally {
+ if (container) {
+  const r = spawnSync('docker', ['rm', '-f', container], { encoding: 'utf8', timeout: 20000 });
+  if (r.status !== 0) throw Error(r.stderr);
+  console.log('Temporary follow-state MySQL removed');
+ }
+ fs.rmSync(dir, { recursive: true, force: true })
+}

@@ -5,7 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-article-realtime-')),shims=[];
 function shim(name, source) {
  const file = path.join(work, `${name}.java`);
@@ -29,4 +33,6 @@ try{
  'util/JSONs','util/ArticleSubmissionPolicy','util/ArticlePublicationCaches','util/ApiV3ArticleEditorDto','util/CommentEditing','util/ReactionMutation','service/ReactionMgmtService'];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...shims,...sources.map(s=>`src/main/java/org/b3log/symphony/${s}.java`),'src/test/java/org/b3log/symphony/repository/ApiV3ArticleRevisionTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.repository.ApiV3ArticleRevisionTest']);
-}finally{fs.rmSync(work,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true });
+}

@@ -15,9 +15,14 @@ async function request(path, { method = 'GET', body, key, status = 200, credenti
     headers: { 'User-Agent': 'RhythmV3BagSmoke', ...(credential ? { Authorization: `Bearer ${credential}` } : {}),
       ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }), ...(key ? { 'Idempotency-Key': key } : {}) },
     ...(method === 'GET' ? {} : { body: JSON.stringify(body || {}) }) });
-  assert.equal(response.status, status); assert.ok(response.headers.get('x-request-id'));
+  assert.equal(response.status, status);
+  assert.ok(response.headers.get('x-request-id'));
   const json = await response.json();
-  if (status === 200) assert.equal(json.code, 0); else { assert.notEqual(json.code, 0); assert.equal(json.data, null); }
+  if (status === 200) assert.equal(json.code, 0);
+  else {
+    assert.notEqual(json.code, 0);
+    assert.equal(json.data, null);
+  }
   return json.data;
 }
 for (const card of ['checkin1day', 'checkin2days']) await check(`${card} requires Bearer`, () => request(`/me/bag/${card}/use`, { method: 'POST', credential: null, key: randomUUID(), status: 401 }));
@@ -25,21 +30,33 @@ if (process.env.API_V3_READ_ONLY_TOKEN) await check('activity.write required', (
 const counts = bag => Object.fromEntries(bag.list.map(item => [item.code, item.count]));
 if (token) {
   await check('personal bag DTO', async () => {
-    const bag = await request('/me/bag'); assert.deepEqual(Object.keys(bag), ['list']);
-    for (const entry of bag.list) { assert.deepEqual(Object.keys(entry).sort(), ['code', 'count']); assert.equal(typeof entry.code, 'string'); assert.ok(Number.isInteger(entry.count)); }
+    const bag = await request('/me/bag');
+    assert.deepEqual(Object.keys(bag), ['list']);
+    for (const entry of bag.list) {
+      assert.deepEqual(Object.keys(entry).sort(), ['code', 'count']);
+      assert.equal(typeof entry.code, 'string');
+      assert.ok(Number.isInteger(entry.count));
+    }
   });
   if (process.env.API_V3_ALLOW_CARD_USE === '1') await check('use one card/replay/check fresh bag', async () => {
-    const code = process.env.API_V3_CARD_CODE || 'checkin1day'; assert.ok(['checkin1day', 'checkin2days'].includes(code));
+    const code = process.env.API_V3_CARD_CODE || 'checkin1day';
+    assert.ok(['checkin1day', 'checkin2days'].includes(code));
     const path = `/me/bag/${code}/use`, key = randomUUID(), before = counts(await request('/me/bag'));
     await request(path, { method: 'POST', body: { count: 2 }, key: randomUUID(), status: 422 });
     await request(path, { method: 'POST', status: 422 });
-    if (!(before[code] > 0)) { await request(path, { method: 'POST', key, status: 409 }); return; }
+    if (!(before[code] > 0)) {
+      await request(path, { method: 'POST', key, status: 409 });
+      return;
+    }
     const first = await request(path, { method: 'POST', key }), days = code === 'checkin1day' ? 1 : 2;
     assert.deepEqual(Object.keys(first).sort(), ['itemCode', 'remainingDays', 'bag'].sort());
-    assert.equal(first.itemCode, code); assert.equal(first.remainingDays, (before.sysCheckinRemain || 0) + days);
+    assert.equal(first.itemCode, code);
+    assert.equal(first.remainingDays, (before.sysCheckinRemain || 0) + days);
     assert.equal(counts(first.bag)[code], before[code] - 1);
     assert.deepEqual(await request(path, { method: 'POST', key }), first);
-    const after = counts(await request('/me/bag')); assert.equal(after[code], before[code] - 1); assert.equal(after.sysCheckinRemain, first.remainingDays);
+    const after = counts(await request('/me/bag'));
+    assert.equal(after[code], before[code] - 1);
+    assert.equal(after.sysCheckinRemain, first.remainingDays);
     for (const [item, count] of Object.entries(before)) if (![code, 'sysCheckinRemain'].includes(item)) assert.equal(after[item], count);
   });
 }

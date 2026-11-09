@@ -85,41 +85,158 @@ public class ApiV3NotificationRevisionTest {
         try(var s=connection.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(var r=s.executeQuery()){var out=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnLabel(i),r.getObject(i));out.add(row);}return out;}}catch(SQLException e){throw new RepositoryException(e);}
     }
     static void execute(Connection connection,String sql,Object...args)throws RepositoryException {try(var s=connection.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);s.executeUpdate();}catch(SQLException e){throw new RepositoryException(e);}}
-    public static void main(String[] args)throws Exception {
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");for(String key:List.of("latkeProps","localProps")){var field=Latkes.class.getDeclaredField(key);field.setAccessible(true);field.set(null,props);}
-        try(var f=new Fixture()){
-            f.begin();f.add("1","123",3);Assert.assertNull(f.revision("123"));Assert.assertEquals(f.count("123"),0L);f.commit();String one=f.revision("123");Assert.assertNotNull(one);Assert.assertTrue(one.matches("[0-9a-f]{32}"));Assert.assertEquals(f.count("123"),1L);Assert.assertEquals(f.second.snapshot(List.of("123")).get("123"),one);
-            f.begin();f.notifications.update("1",new JSONObject().put("hasRead",true),"hasRead");Assert.assertEquals(f.revision("123"),one);try{f.revisions.snapshot(List.of("123"));Assert.fail();}catch(IllegalStateException expected){}f.rollback();Assert.assertEquals(f.revision("123"),one);Assert.assertEquals(query(f.reader,"SELECT hasRead FROM notification").getFirst().getInt("hasRead"),0);
-            f.begin();f.notifications.update("1",new JSONObject().put("hasRead",true),"hasRead");f.commit();String two=f.revision("123");Assert.assertNotEquals(two,one);Assert.assertEquals(query(f.reader,"SELECT hasRead FROM notification").getFirst().getInt("hasRead"),1);
-            f.begin();f.notifications.remove("1");Assert.assertEquals(f.revision("123"),two);f.commit();Assert.assertNotEquals(f.revision("123"),two);Assert.assertEquals(f.count("123"),0L);
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        for (String key : List.of("latkeProps", "localProps")) {
+            var field = Latkes.class.getDeclaredField(key);
+            field.setAccessible(true);
+            field.set(null, props);
+        }
+        try (var f = new Fixture()) {
+            // 在事务提交前后分别用独立读连接观察通知和版本。
+            f.begin();
+            f.add("1", "123", 3);
+            Assert.assertNull(f.revision("123"));
+            Assert.assertEquals(f.count("123"), 0L);
+            f.commit();
+            String one = f.revision("123");
+            Assert.assertNotNull(one);
+            Assert.assertTrue(one.matches("[0-9a-f]{32}"));
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertEquals(f.second.snapshot(List.of("123")).get("123"), one);
+
+            f.begin();
+            f.notifications.update("1", new JSONObject().put("hasRead", true), "hasRead");
+            Assert.assertEquals(f.revision("123"), one);
+            try {
+                f.revisions.snapshot(List.of("123"));
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
+            f.rollback();
+            Assert.assertEquals(f.revision("123"), one);
+            Assert.assertEquals(query(f.reader, "SELECT hasRead FROM notification").getFirst().getInt("hasRead"), 0);
+
+            f.begin();
+            f.notifications.update("1", new JSONObject().put("hasRead", true), "hasRead");
+            f.commit();
+            String two = f.revision("123");
+            Assert.assertNotEquals(two, one);
+            Assert.assertEquals(query(f.reader, "SELECT hasRead FROM notification").getFirst().getInt("hasRead"), 1);
+
+            f.begin();
+            f.notifications.remove("1");
+            Assert.assertEquals(f.revision("123"), two);
+            f.commit();
+            Assert.assertNotEquals(f.revision("123"), two);
+            Assert.assertEquals(f.count("123"), 0L);
         }
         System.out.println("PASS actual add/read/delete hooks and revision writes share one transaction; independent readers see only committed versions and rollback emits no new marker");
-        try(var f=new Fixture()){
-            f.begin();f.add("1","123",3);f.commit();String before=f.revision("123");
-            f.failMarker=true;f.begin();try{f.add("2","123",3);Assert.fail();}catch(RepositoryException expected){f.rollback();}f.failMarker=false;Assert.assertEquals(f.count("123"),1L);Assert.assertEquals(f.revision("123"),before);
-            f.failData=true;f.begin();try{f.notifications.remove("1");Assert.fail();}catch(RepositoryException expected){f.rollback();}f.failData=false;Assert.assertEquals(f.count("123"),1L);Assert.assertEquals(f.revision("123"),before);
-            try{f.notifications.remove("1");Assert.fail();}catch(IllegalStateException expected){}
+        try (var f = new Fixture()) {
+            f.begin();
+            f.add("1", "123", 3);
+            f.commit();
+            String before = f.revision("123");
+            f.failMarker = true;
+            f.begin();
+            try {
+                f.add("2", "123", 3);
+                Assert.fail();
+            } catch (RepositoryException expected) {
+                f.rollback();
+            }
+            f.failMarker = false;
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertEquals(f.revision("123"), before);
+
+            f.failData = true;
+            f.begin();
+            try {
+                f.notifications.remove("1");
+                Assert.fail();
+            } catch (RepositoryException expected) {
+                f.rollback();
+            }
+            f.failData = false;
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertEquals(f.revision("123"), before);
+            try {
+                f.notifications.remove("1");
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
         }
         System.out.println("PASS marker/data failures roll notification and marker back in the owning transaction; missing-transaction writes fail closed");
-        try(var f=new Fixture()){
-            f.begin();f.add("1","123",3);f.add("2","123",6);f.add("3","321",3);f.commit();String other=f.revision("321"),before=f.revision("123");
-            f.begin();f.notifications.removeByUserIdAndType("123",3);f.commit();Assert.assertEquals(f.count("123"),1L);Assert.assertEquals(f.count("321"),1L);Assert.assertNotEquals(f.revision("123"),before);Assert.assertEquals(f.revision("321"),other);
-            f.begin();f.notifications.removeByUserId("123");f.commit();Assert.assertEquals(f.count("123"),0L);Assert.assertEquals(f.count("321"),1L);Assert.assertEquals(f.revision("321"),other);
+        try (var f = new Fixture()) {
+            f.begin();
+            f.add("1", "123", 3);
+            f.add("2", "123", 6);
+            f.add("3", "321", 3);
+            f.commit();
+            String other = f.revision("321"), before = f.revision("123");
+            f.begin();
+            f.notifications.removeByUserIdAndType("123", 3);
+            f.commit();
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertEquals(f.count("321"), 1L);
+            Assert.assertNotEquals(f.revision("123"), before);
+            Assert.assertEquals(f.revision("321"), other);
+            f.begin();
+            f.notifications.removeByUserId("123");
+            f.commit();
+            Assert.assertEquals(f.count("123"), 0L);
+            Assert.assertEquals(f.count("321"), 1L);
+            Assert.assertEquals(f.revision("321"), other);
         }
         System.out.println("PASS legacy owned/type bulk deletion updates only its owner's marker and preserves other notification types/owners");
-        try(var f=new Fixture()){
-            f.begin();f.add("1","123",3);f.add("2","321",3);f.commit();String other=f.revision("321");
-            f.begin();f.notifications.update("1",new JSONObject().put("hasRead",true).put("userId","321"),"hasRead");f.commit();Assert.assertEquals(f.count("123"),1L);Assert.assertEquals(f.revision("321"),other);String before=f.revision("123");
-            f.begin();f.notifications.update("1",new JSONObject().put("userId","321"),"userId");f.commit();Assert.assertEquals(f.count("123"),0L);Assert.assertEquals(f.count("321"),2L);Assert.assertNotEquals(f.revision("123"),before);Assert.assertNotEquals(f.revision("321"),other);
+        try (var f = new Fixture()) {
+            f.begin();
+            f.add("1", "123", 3);
+            f.add("2", "321", 3);
+            f.commit();
+            String other = f.revision("321");
+            f.begin();
+            f.notifications.update("1", new JSONObject().put("hasRead", true).put("userId", "321"), "hasRead");
+            f.commit();
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertEquals(f.revision("321"), other);
+            String before = f.revision("123");
+            f.begin();
+            f.notifications.update("1", new JSONObject().put("userId", "321"), "userId");
+            f.commit();
+            Assert.assertEquals(f.count("123"), 0L);
+            Assert.assertEquals(f.count("321"), 2L);
+            Assert.assertNotEquals(f.revision("123"), before);
+            Assert.assertNotEquals(f.revision("321"), other);
         }
         System.out.println("PASS exact-column updates do not signal an unapplied owner field; an internal ownership move invalidates both actual affected owners");
-        try(var f=new Fixture()){
-            f.begin();f.add("1","123",3);f.commit();String before=f.revision("123");
-            f.begin();f.notifications.remove("1");f.add("2","123",3);execute(f.writer,"UPDATE symphony_api_v3_notification_revision SET updatedAt=1 WHERE oId='123'");f.commit();Assert.assertEquals(f.count("123"),1L);Assert.assertNotEquals(f.revision("123"),before);
+        try (var f = new Fixture()) {
+            f.begin();
+            f.add("1", "123", 3);
+            f.commit();
+            String before = f.revision("123");
+            f.begin();
+            f.notifications.remove("1");
+            f.add("2", "123", 3);
+            execute(f.writer, "UPDATE symphony_api_v3_notification_revision SET updatedAt=1 WHERE oId='123'");
+            f.commit();
+            Assert.assertEquals(f.count("123"), 1L);
+            Assert.assertNotEquals(f.revision("123"), before);
         }
         System.out.println("PASS replacement with unchanged notification counts and a backwards timestamp still produces a distinct committed marker");
-        try(var f=new Fixture()){
-            var owners=new ArrayList<String>();f.begin();for(int i=0;i<205;i++){owners.add(""+i);f.revisions.touchInCurrentTransaction(""+i);}f.commit();f.snapshotQueries=0;Assert.assertEquals(f.first.snapshot(owners).size(),205);Assert.assertEquals(f.snapshotQueries,2);Assert.assertTrue(f.first.snapshot(List.of("0' OR 1=1 --")).isEmpty());
+        try (var f = new Fixture()) {
+            var owners = new ArrayList<String>();
+            f.begin();
+            for (int i = 0; i < 205; i++) {
+                owners.add("" + i);
+                f.revisions.touchInCurrentTransaction("" + i);
+            }
+            f.commit();
+            f.snapshotQueries = 0;
+            Assert.assertEquals(f.first.snapshot(owners).size(), 205);
+            Assert.assertEquals(f.snapshotQueries, 2);
+            Assert.assertTrue(f.first.snapshot(List.of("0' OR 1=1 --")).isEmpty());
             Assert.assertFalse(ApiV3NotificationRevision.REPOSITORY.startsWith("symphony_"));
         }
         System.out.println("PASS marker snapshots use bounded parameterized batches, preserve owner isolation and do not order by timestamps or notification counts");

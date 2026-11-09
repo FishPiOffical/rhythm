@@ -43,13 +43,17 @@ public abstract class ApiV3RevisionRepository extends AbstractRepository {
             statement.setString(1,owner);statement.setString(2,UUID.randomUUID().toString().replace("-",""));statement.setLong(3,System.currentTimeMillis());statement.executeUpdate();
         }catch(SQLException e){throw new RepositoryException(e);}
     }
-    /** Bounded parameterized batches. Call outside a writer transaction to read only committed markers. */
-    public Map<String,String> snapshot(Collection<String> owners)throws RepositoryException {
-        if(hasTransactionBegun())throw new IllegalStateException("revision snapshot inside writer transaction");
-        final var result=new HashMap<String,String>();final var ids=new ArrayList<>(new LinkedHashSet<>(owners));
-        for(int start=0;start<ids.size();start+=200){
-            final var batch=ids.subList(start,Math.min(start+200,ids.size()));
-            for(final var row:select("SELECT oId,revision FROM `"+getName()+"` WHERE oId IN ("+String.join(",",Collections.nCopies(batch.size(),"?"))+")",batch.toArray()))result.put(row.getString("oId"),row.getString("revision"));
+    /** 在写事务之外分批查询，只读取已提交的修订标记，所有 ID 均通过参数绑定。 */
+    public Map<String, String> snapshot(Collection<String> owners) throws RepositoryException {
+        if (hasTransactionBegun())
+            throw new IllegalStateException("revision snapshot inside writer transaction");
+        final var result = new HashMap<String, String>();
+        final var ids = new ArrayList<>(new LinkedHashSet<>(owners));
+        for (int start = 0; start < ids.size(); start += 200) {
+            final var batch = ids.subList(start, Math.min(start + 200, ids.size()));
+            for (final var row : select("SELECT oId,revision FROM `" + getName()
+                    + "` WHERE oId IN (" + String.join(",", Collections.nCopies(batch.size(), "?")) + ")", batch.toArray()))
+                result.put(row.getString("oId"), row.getString("revision"));
         }
         return result;
     }

@@ -35,4 +35,11 @@ try{
   const bound=docker(['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(bound)||bound.endsWith(':3306'))throw Error('Unsafe test port');docker(['exec',container,'mysql','-uroot','-e','CREATE DATABASE suggestions CHARACTER SET utf8mb4;']);opts.push('-Dsuggest.mysql=jdbc:mysql://'+bound+'/suggestions?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000');
  }
  run(home+'/bin/java',[...opts,'-cp',dir+path.delimiter+cp,'org.b3log.symphony.service.ApiV3ChatMutesTest']);
-}finally{if(container){const r=spawnSync('docker',['rm','-f',container],{encoding:'utf8',timeout:20000});if(r.status)throw Error(r.stderr);console.log('Temporary suggestions MySQL removed')}fs.rmSync(dir,{recursive:true,force:true})}
+} finally {
+ if (container) {
+  const r = spawnSync('docker', ['rm', '-f', container], { encoding: 'utf8', timeout: 20000 });
+  if (r.status) throw Error(r.stderr);
+  console.log('Temporary suggestions MySQL removed')
+ }
+ fs.rmSync(dir, { recursive: true, force: true })
+}

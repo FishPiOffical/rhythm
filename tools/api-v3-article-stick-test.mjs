@@ -5,7 +5,13 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=[process.env.API_V3_JSOUP_JAR||ide+'/lib/intellij.libraries.jsoup.jar','src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp = [
+ process.env.API_V3_JSOUP_JAR || ide + '/lib/intellij.libraries.jsoup.jar',
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-article-stick-')),shims=[];
 function shim(name, body) {
  const file = path.join(dir, name + '.java');
@@ -54,4 +60,6 @@ try{
  const real=['util/ApiV3ArticleStickState','service/ApiV3ContentDtoService','util/ApiV3ContentSnapshots','util/ApiV3ArticlePolicy','util/ApiV3AvatarUrl','model/Article','model/Comment','util/ApiV3ContentUtil','service/ApiV3ArticleStickService','processor/ApiV3ArticleStickProcessor','model/UserExt','model/Role','model/Common','model/Notification','model/Profession','model/UserProfessionPrivacy','model/ApiV3Request','model/Pointtransfer','model/PointtransferSource','repository/ProfessionRepository','repository/UserProfessionPrivacyRepository','repository/ApiV3RequestRepository','repository/PointtransferRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3WriteInputs','util/ApiV3Json','util/ApiV3TokenUtil','util/ApiV3MutationStore','util/ApiV3Transactions','util/ApiV3TransactionSavepoint','util/ApiV3TransactionStatements','util/AccountPairLocks','util/ArticlePublicationCaches','service/ApiV3IdempotencyMgmtService','service/ApiV3ProfessionPrimaryService','processor/ApiV3ProfessionPrimaryProcessor','service/PointtransferMgmtService','service/ApiV3InvitationPurchaseService','processor/ApiV3InvitationPurchaseProcessor','util/ApiV3InvitationPurchaseInputs','model/Invitecode','repository/InvitecodeRepository','model/Option','repository/OptionRepository','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
  run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3ArticleStickStateTest.java']);
  run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ArticleStickStateTest']);
-}finally{fs.rmSync(dir,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true });
+}

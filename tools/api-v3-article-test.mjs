@@ -26,4 +26,6 @@ try{
     ...limiter.map(s=>`src/main/java/pers/adlered/simplecurrentlimiter/${s}.java`),
     ...['ApiV3ArticleInputsTest','WriteQuotaTest','ArticlePublishPointsTest','ArticlePublicationCachesTest','ArticleSubmissionPolicyTest','ArticleSubmissionTest','ArticleValidationTest','ApiV3ArticleCreationTest','ArticleEditPointsTest','ApiV3ArticleEditInputsTest','ApiV3ArticleEditingTest','ArticleThoughtTemplateTest','ArticleRemovalPolicyTest','ArticleRemovalSqlTest','ApiV3ArticleEditorDtoTest'].map(n=>`src/test/java/org/b3log/symphony/util/${n}.java`)]);
   for(const name of ['ApiV3ArticleInputsTest','WriteQuotaTest','ArticlePublishPointsTest','ArticlePublicationCachesTest','ArticleSubmissionPolicyTest','ArticleSubmissionTest','ArticleValidationTest','ApiV3ArticleCreationTest','ArticleEditPointsTest','ApiV3ArticleEditInputsTest','ApiV3ArticleEditingTest','ArticleThoughtTemplateTest','ArticleRemovalPolicyTest','ArticleRemovalSqlTest','ApiV3ArticleEditorDtoTest'])run(java,['-cp',[classes,cp].join(path.delimiter),`org.b3log.symphony.util.${name}`,...(name==='ArticleThoughtTemplateTest'?[path.join(os.tmpdir(),'rhythm-thought-template-fixtures.json')]:[])]);
-}finally{fs.rmSync(work,{recursive:true,force:true});}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true });
+}

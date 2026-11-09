@@ -47,14 +47,18 @@ public class ApiV3TokenRepository extends AbstractRepository {
     }
 
     public JSONObject getByHashForUpdate(final String tokenHash) throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("token transaction required");
-        final var rows=select("SELECT * FROM `"+getName()+"` WHERE tokenHash=? FOR UPDATE",tokenHash);
-        if(rows.size()>1)throw new RepositoryException("duplicate v3 token hash");
-        return rows.isEmpty()?null:rows.getFirst();
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("token transaction required");
+        final var rows = select("SELECT * FROM `" + getName() + "` WHERE tokenHash=? FOR UPDATE", tokenHash);
+        if (rows.size() > 1)
+            throw new RepositoryException("duplicate v3 token hash");
+        return rows.isEmpty() ? null : rows.getFirst();
     }
-    protected Connection currentConnection(){
-        final var transaction=JdbcRepository.TX.get();
-        if(transaction==null||!transaction.isActive())throw new IllegalStateException("token transaction required");
+
+    protected Connection currentConnection() {
+        final var transaction = JdbcRepository.TX.get();
+        if (transaction == null || !transaction.isActive())
+            throw new IllegalStateException("token transaction required");
         return transaction.getConnection();
     }
     /** The reset owner holds client and current user locks; do not paginate account revocation. */
@@ -64,21 +68,42 @@ public class ApiV3TokenRepository extends AbstractRepository {
         return ApiV3TransactionStatements.execute("UPDATE `"+getName()+"` SET state=?,updatedAt=? WHERE userId=? AND state=?",
                 ApiV3Token.STATE_REVOKED,now,userId,ApiV3Token.STATE_ACTIVE);
     }
-    /** No page limit: every active member of this exact user/client family is revoked together. */
-    public int revokeFamilyInCurrentTransaction(final String clientId,final String userId,final String familyId,final long now)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("token transaction required");
-        if(clientId==null||clientId.isBlank()||userId==null||userId.isBlank()||familyId==null||familyId.isBlank())throw new IllegalArgumentException("token family");
-        try(var statement=currentConnection().prepareStatement("UPDATE `"+getName()+"` SET state=?,updatedAt=? WHERE clientId=? AND userId=? AND familyId=? AND state=?")){
-            statement.setInt(1,ApiV3Token.STATE_REVOKED);statement.setLong(2,now);statement.setString(3,clientId);statement.setString(4,userId);statement.setString(5,familyId);statement.setInt(6,ApiV3Token.STATE_ACTIVE);
+    /** 在同一事务中撤销指定客户端、用户和家族的全部有效令牌，不分页。 */
+    public int revokeFamilyInCurrentTransaction(final String clientId, final String userId, final String familyId,
+                                                final long now) throws RepositoryException {
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("token transaction required");
+        if (clientId == null || clientId.isBlank() || userId == null || userId.isBlank() || familyId == null || familyId.isBlank())
+            throw new IllegalArgumentException("token family");
+        try (var statement = currentConnection().prepareStatement("UPDATE `" + getName()
+                + "` SET state=?,updatedAt=? WHERE clientId=? AND userId=? AND familyId=? AND state=?")) {
+            statement.setInt(1, ApiV3Token.STATE_REVOKED);
+            statement.setLong(2, now);
+            statement.setString(3, clientId);
+            statement.setString(4, userId);
+            statement.setString(5, familyId);
+            statement.setInt(6, ApiV3Token.STATE_ACTIVE);
             return statement.executeUpdate();
-        }catch(SQLException e){throw new RepositoryException(e);}
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
     }
-    /** Updating an old authentication snapshot must never restore a concurrently revoked token. */
-    public void markAccessUsedInCurrentTransaction(final String id,final long now)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("token transaction required");
-        try(var statement=currentConnection().prepareStatement("UPDATE `"+getName()+"` SET lastUsedAt=?,updatedAt=? WHERE oId=? AND tokenType=? AND state=? AND expiresAt>?")){
-            statement.setLong(1,now);statement.setLong(2,now);statement.setString(3,id);statement.setString(4,ApiV3Token.TYPE_ACCESS);statement.setInt(5,ApiV3Token.STATE_ACTIVE);statement.setLong(6,now);statement.executeUpdate();
-        }catch(SQLException e){throw new RepositoryException(e);}
+    /** 只更新仍有效且未过期的访问令牌，避免旧鉴权快照影响已撤销的记录。 */
+    public void markAccessUsedInCurrentTransaction(final String id, final long now) throws RepositoryException {
+        if (!hasTransactionBegun())
+            throw new IllegalStateException("token transaction required");
+        try (var statement = currentConnection().prepareStatement("UPDATE `" + getName()
+                + "` SET lastUsedAt=?,updatedAt=? WHERE oId=? AND tokenType=? AND state=? AND expiresAt>?")) {
+            statement.setLong(1, now);
+            statement.setLong(2, now);
+            statement.setString(3, id);
+            statement.setString(4, ApiV3Token.TYPE_ACCESS);
+            statement.setInt(5, ApiV3Token.STATE_ACTIVE);
+            statement.setLong(6, now);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
     }
 
 }

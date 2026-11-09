@@ -37,8 +37,17 @@ try{
  if(!source.includes('Dispatcher.get("/api/v3/me/medals/image",p::mine,auth::profileRead)')||
     !source.includes('Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::optionalProfile,beans.getReference(AnonymousViewCheckMidware.class)::handle)'))throw Error('Missing protected image routes');
  if(!fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8').includes('ApiV3MedalImageProcessor.register();'))throw Error('Missing root');
- const sources=['repository/MedalRepository','repository/UserMedalRepository','util/ApiV3Exception','util/ApiV3MedalSvg','service/ApiV3MedalImageQueryService','service/ApiV3MedalImageService'];
+ const sources = [
+  'repository/MedalRepository',
+  'repository/UserMedalRepository',
+  'util/ApiV3Exception',
+  'util/ApiV3MedalSvg',
+  'service/ApiV3MedalImageQueryService',
+  'service/ApiV3MedalImageService'
+ ];
  run(path.join(home,'bin','javac'),['--release','25','-proc:none','-cp',cp,'-d',work,...shims,...sources.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3MedalImageTest.java']);
  run(path.join(home,'bin','java'),['-cp',[work,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3MedalImageTest']);
  console.log('PASS medal image 8 private authentication and public visitor gate and root source wiring');
-}finally{fs.rmSync(work,{recursive:true,force:true})}
+} finally {
+ fs.rmSync(work, { recursive: true, force: true })
+}

@@ -6,8 +6,15 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 const settlement=process.argv.includes('--settlement');
-const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-article-read-')),files=[];
-const cp=['src/main/resources/lib/latke-core.jar',`${ide}/lib/intellij.libraries.caffeine.jar`,path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')].join(path.delimiter);
+const ide = '/Applications/Android Studio.app/Contents',
+ home = process.env.JAVA_HOME || `${ide}/jbr/Contents/Home`,
+ dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-article-read-')),
+ files = [];
+const cp = [
+ 'src/main/resources/lib/latke-core.jar',
+ `${ide}/lib/intellij.libraries.caffeine.jar`,
+ path.join(os.homedir(), '.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')
+].join(path.delimiter);
 const run = (cmd, args, options = {}) => {
  const r = spawnSync(cmd, args, { encoding: 'utf8', timeout: 45000, ...options });
  if (r.status !== 0) throw Error(r.stdout + ' ' + r.stderr);
@@ -48,8 +55,19 @@ try{
  const real=['model/Article','model/Comment','model/UserExt','model/Common','model/Role','model/LongArticleRead','model/LongArticleReadClaim','model/LongArticleReadWindowIncrement','model/LongArticleReadWindowPage','repository/LongArticleReadUserRepository','repository/LongArticleReadAnonRepository','repository/LongArticleReadWindowRepository','repository/AtomicRepositorySupport','util/ApiV3Exception','util/ApiV3Requests','util/ApiV3ContentUtil','util/ApiV3Transactions','util/ApiV3TransactionSavepoint','util/ApiV3Json','util/ApiV3WriteInputs','service/LongArticleReadCaptureRequest','service/LongArticleReadCaptureService','processor/ApiV3ArticleReadProcessor','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
  if(settlement)real.push('model/Pointtransfer','model/PointtransferSource','model/ProfessionSourceEvent','model/LongArticleReadSettlementClaim','repository/PointtransferRepository','repository/LongArticleReadHistoryRepository','repository/LongArticleReadSettlementRepository','util/AccountPairLocks','util/ArticlePublicationCaches','service/PointtransferMgmtService','service/LongArticleReadSettlementService');
  run(path.join(home,'bin/javac'),['--release','25','-proc:none','-cp',cp,'-d',dir,...files,'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java',...real.map(n=>'src/main/java/org/b3log/symphony/'+n+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3ArticleReadMysqlTest.java',...(settlement?['src/test/java/org/b3log/symphony/service/ApiV3ArticleReadSettlementMysqlTest.java']:[])]);
- const image=run('docker',['image','inspect','mysql:8.4','--format','{{.Id}}']);container='rhythm-v3-read-'+crypto.randomBytes(6).toString('hex');run('docker',['run','-d','--rm','--pull','never','--memory','768m','--name',container,'-e','MYSQL_ALLOW_EMPTY_PASSWORD=yes','-e','MYSQL_ROOT_HOST=%','-p','127.0.0.1::3306',image,'--skip-log-bin','--performance-schema=OFF','--innodb-buffer-pool-size=32M']);
- const deadline=Date.now()+90000;while(true){const ready=spawnSync('docker',['exec',container,'mysqladmin','-uroot','ping'],{encoding:'utf8',timeout:5000});const comm=spawnSync('docker',['exec',container,'cat','/proc/1/comm'],{encoding:'utf8',timeout:5000});if(ready.status===0&&comm.stdout.trim()==='mysqld')break;if(Date.now()>deadline)throw Error('MySQL startup timeout');await new Promise(r=>setTimeout(r,250))}
+ const image = run('docker', ['image', 'inspect', 'mysql:8.4', '--format', '{{.Id}}']);
+ container = 'rhythm-v3-read-' + crypto.randomBytes(6).toString('hex');
+ run('docker', ['run', '-d', '--rm', '--pull', 'never', '--memory', '768m', '--name', container,
+  '-e', 'MYSQL_ALLOW_EMPTY_PASSWORD=yes', '-e', 'MYSQL_ROOT_HOST=%', '-p', '127.0.0.1::3306',
+  image, '--skip-log-bin', '--performance-schema=OFF', '--innodb-buffer-pool-size=32M']);
+ const deadline = Date.now() + 90000;
+ while (true) {
+  const ready = spawnSync('docker', ['exec', container, 'mysqladmin', '-uroot', 'ping'], { encoding: 'utf8', timeout: 5000 });
+  const comm = spawnSync('docker', ['exec', container, 'cat', '/proc/1/comm'], { encoding: 'utf8', timeout: 5000 });
+  if (ready.status === 0 && comm.stdout.trim() === 'mysqld') break;
+  if (Date.now() > deadline) throw Error('MySQL startup timeout');
+  await new Promise(r => setTimeout(r, 250))
+ }
  const sql=q=>run('docker',['exec','-i',container,'mysql','--default-character-set=utf8mb4','-uroot','-N','-B'],{input:q});
  sql('CREATE DATABASE read_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;');
  const articleProcessor=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ArticleProcessor.java','utf8'),classic=fs.readFileSync('src/main/java/org/b3log/symphony/service/ArticleMgmtService.java','utf8');
@@ -57,13 +75,16 @@ try{
  const old=fs.readFileSync('sql/20260123_long_article_read.sql','utf8'),window=fs.readFileSync('sql/20260809_profession_pending.sql','utf8').match(/CREATE TABLE IF NOT EXISTS `symphony_article_long_read_window`[\s\S]*?;/)[0];
  sql('USE read_test;'+['user','anon'].map(t=>old.match(new RegExp('CREATE TABLE IF NOT EXISTS `symphony_article_long_read_'+t+'`[\\s\\S]*?;'))[0]).join('\n')+window+"INSERT INTO symphony_article_long_read_user VALUES ('100','10','2',1793318399999);");
  sql('USE read_test;\n'+fs.readFileSync('sql/20261030_api_v3_article_reads.sql','utf8'));
- const mapped=sql('USE read_test;SELECT windowStart FROM symphony_article_long_read_user;');if(mapped!==String(Math.floor(1793318399999/21600000)*21600000))throw Error('Old first-read mapping failed');sql('USE read_test;\n'+fs.readFileSync('sql/20261030_api_v3_article_reads.sql','utf8'));
+ const mapped = sql('USE read_test;SELECT windowStart FROM symphony_article_long_read_user;');
+ if (mapped !== String(Math.floor(1793318399999 / 21600000) * 21600000)) throw Error('Old first-read mapping failed');
+ sql('USE read_test;\n' + fs.readFileSync('sql/20261030_api_v3_article_reads.sql', 'utf8'));
  sql('USE read_test;ALTER TABLE symphony_article_long_read_user DROP INDEX uk_article_user_window,DROP COLUMN windowStart;');
  sql('USE read_test;\n'+fs.readFileSync('sql/20261030_api_v3_article_reads.sql','utf8'));
  if(sql('USE read_test;SELECT windowStart FROM symphony_article_long_read_user;')!==mapped)throw Error('Auto-created table migration lost original window');
  console.log('PASS article read mysql 0 exact migration preserves old original window, repeat and auto-created missing-index schema');
  sql('USE read_test;CREATE TABLE users(oId VARCHAR(19) PRIMARY KEY,userStatus INT);CREATE TABLE articles(oId VARCHAR(19) PRIMARY KEY,articleAuthorId VARCHAR(19),articleStatus INT,articleType INT,articleAnonymous INT,articleShowInList INT,articleTags VARCHAR(128),articleAnonymousView INT);');
- const port=run('docker',['port',container,'3306/tcp']);if(!/^127\.0\.0\.1:[0-9]+$/.test(port)||port.endsWith(':3306'))throw Error('Unsafe port');
+ const port = run('docker', ['port', container, '3306/tcp']);
+ if (!/^127\.0\.0\.1:[0-9]+$/.test(port) || port.endsWith(':3306')) throw Error('Unsafe port');
  console.log(run(path.join(home,'bin/java'),['-Drhythm.read.mysqlUrl=jdbc:mysql://'+port+'/read_test?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&useAffectedRows=false&connectTimeout=5000&socketTimeout=20000','-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ArticleReadMysqlTest']));
  if(settlement){
  const reliability=fs.readFileSync('sql/20260809_profession_pending.sql','utf8'),gate=reliability.match(/CREATE TABLE IF NOT EXISTS `symphony_article_long_read_settlement`[\s\S]*?;/)[0],history=old.match(/CREATE TABLE IF NOT EXISTS `symphony_article_long_read_history`[\s\S]*?;/)[0];
@@ -114,9 +135,11 @@ try{
   await new Promise(r => setTimeout(r, 50))
  }
  if (!blocked) throw Error('No observed InnoDB lock wait');
- fs.writeFileSync(path.join(dir,'release-settlement'),'release');await Promise.all([holder.finished,contender.finished]);
+ fs.writeFileSync(path.join(dir, 'release-settlement'), 'release');
+ await Promise.all([holder.finished, contender.finished]);
  if(!holder.out.includes('SETTLEMENT_DONE')||!contender.out.includes('SETTLEMENT_DONE'))throw Error('Settlement worker did not complete');
- console.log(run(path.join(home,'bin/java'),[...settleArgs,'verify']));console.log('Observed InnoDB LOCK WAIT between independent JVMs before release');
+ console.log(run(path.join(home, 'bin/java'), [...settleArgs, 'verify']));
+ console.log('Observed InnoDB LOCK WAIT between independent JVMs before release');
 
  }
 

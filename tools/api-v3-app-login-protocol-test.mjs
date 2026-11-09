@@ -11,4 +11,11 @@ function run(bin, args) {
  if (result.error) throw result.error;
  if (result.status !== 0) throw Error(`${bin} failed: ${result.status}`)
 }
-try{run('javac',['--release','25','-proc:none','-d',dir,'src/main/java/org/b3log/symphony/util/ApiV3AppLoginProtocol.java','src/test/java/org/b3log/symphony/util/ApiV3AppLoginProtocolTest.java']);run('java',['-cp',dir,'org.b3log.symphony.util.ApiV3AppLoginProtocolTest'])}finally{rmSync(dir,{recursive:true,force:true})}
+try {
+ run('javac', ['--release', '25', '-proc:none', '-d', dir,
+  'src/main/java/org/b3log/symphony/util/ApiV3AppLoginProtocol.java',
+  'src/test/java/org/b3log/symphony/util/ApiV3AppLoginProtocolTest.java']);
+ run('java', ['-cp', dir, 'org.b3log.symphony.util.ApiV3AppLoginProtocolTest'])
+} finally {
+ rmSync(dir, { recursive: true, force: true })
+}

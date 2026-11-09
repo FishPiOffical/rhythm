@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.Set;
 
-/** A ranking entry exposes only public identity and historical profession display metadata. */
+/** 排行条目仅公开身份字段与历史职业展示信息，经验值按可见性投影。 */
 public final class ApiV3ProfessionRankingDto {
     private ApiV3ProfessionRankingDto() { }
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
@@ -34,7 +34,11 @@ public final class ApiV3ProfessionRankingDto {
     public static String text(final JSONObject row, final String key, final int max, final boolean empty) {
         if (!(row.opt(key) instanceof String value) || value.length() > max || (!empty && value.isBlank())
                 || value.codePoints().anyMatch(Character::isISOControl)) throw unavailable();
-        try { ApiV3Json.canonical(value); } catch (final IllegalArgumentException e) { throw unavailable(); }
+        try {
+            ApiV3Json.canonical(value);
+        } catch (final IllegalArgumentException e) {
+            throw unavailable();
+        }
         return value;
     }
     public static long number(final JSONObject row, final String key) {
@@ -43,7 +47,9 @@ public final class ApiV3ProfessionRankingDto {
             final long result = new BigDecimal(value.toString()).longValueExact();
             if (result < 0) throw unavailable();
             return result;
-        } catch (final ArithmeticException | NumberFormatException e) { throw unavailable(); }
+        } catch (final ArithmeticException | NumberFormatException e) {
+            throw unavailable();
+        }
     }
     public static JSONObject visibility(final JSONObject row) {
         final Object stored = row.opt("privacyId");
@@ -54,7 +60,11 @@ public final class ApiV3ProfessionRankingDto {
         }
         text(row, "privacyId", 19, false);
         if (!(row.opt("moduleVisibilityJson") instanceof String json) || json.isBlank() || json.length() > 4096) throw unavailable();
-        try { ApiV3Json.canonical(json); } catch (final IllegalArgumentException e) { throw unavailable(); }
+        try {
+            ApiV3Json.canonical(json);
+        } catch (final IllegalArgumentException e) {
+            throw unavailable();
+        }
         final JSONObject result = new JSONObject(json);
         if (!result.keySet().equals(MODULES)) throw unavailable();
         for (final String module : MODULES) {
