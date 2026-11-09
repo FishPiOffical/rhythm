@@ -4,6 +4,10 @@
 
 # 261109
 
+## 聊天室举报原因
+
+`GET /api/v3/report/options` 为聊天室消息返回垃圾广告、低俗色情、违法违规、涉嫌侵权、人身攻击和其他。`POST /api/v3/reports` 按同一目录校验提交的原因。
+
 ## 旧客户端红包领取兼容
 
 `POST /chat-room/red-packet/open` 兼容省略 `riskAccepted` 的旧版领取请求。猜拳仍需出拳，旧客户端可传 `"0"`、`"1"` 或 `"2"`。心跳和猜拳可能扣除积分。传 `viewOnly=true` 可只看详情。

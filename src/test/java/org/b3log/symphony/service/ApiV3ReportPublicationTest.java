@@ -97,14 +97,14 @@ public class ApiV3ReportPublicationTest {
    sql(f.db,"UPDATE u SET userStatus=4 WHERE oId='1'");error(404,()->f.send(0,"10","a"));
   }System.out.println("PASS publication 1 fixed user-before-receipt lock order, pending dedup, handled new-key, deleted target/author replay, actor revalidation");
   try(var f=new F()){
-   f.send(0,"11","invited");error(404,()->f.send(0,"12","private"));error(404,()->f.send(0,"13","self"));f.send(1,"20","comment");error(404,()->f.send(1,"21","private-comment"));error(404,()->f.send(1,"22","self-comment"));f.send(2,"2","user");error(404,()->f.send(2,"4","disabled"));error(404,()->f.send(2,"1","self-user"));f.send(3,"30","chat");error(404,()->f.send(3,"31","chat-no-id"));
+   f.send(0,"11","invited");error(404,()->f.send(0,"12","private"));error(404,()->f.send(0,"13","self"));f.send(1,"20","comment");error(404,()->f.send(1,"21","private-comment"));error(404,()->f.send(1,"22","self-comment"));f.send(2,"2","user");error(404,()->f.send(2,"4","disabled"));error(404,()->f.send(2,"1","self-user"));f.service.publish("1",body(3,"30").put("reason",4),"chat");Assert.assertEquals(rows(f.db,"SELECT reportType FROM r WHERE reportDataType=3").getFirst().getInt("reportType"),4);error(404,()->f.send(3,"31","chat-no-id"));
    Assert.assertEquals(f.count("r"),4);
   }System.out.println("PASS publication 2 four targets, explicit discussion invitations/private-comment author access/self bans, no chat nickname fallback");
   try(var f=new F()){
    var b=body(0,"10").put("memo","  <b>Hello</b> &lt;script&gt;alert(1)&lt;/script&gt;  ");f.service.publish("1",b,"xss");var memo=rows(f.db,"SELECT reportMemo FROM r").getFirst().getString("reportMemo");Assert.assertFalse(memo.contains("<"));Assert.assertTrue(memo.contains("&lt;script&gt;"));
    error(422,()->f.service.publish("1",body(0,"10").put("memo","&".repeat(3000)),"expanded"));
    error(409,()->f.service.publish("1",body(0,"10"),"xss"));
-   for(var bad:List.of(body(3,"30").put("reason",0),body(0,"10").put("reason",5),body(2,"2").put("reason",1),body(0,"10").put("targetId","1 OR 1=1"),body(0,"10").put("memo","a".repeat(10241)),body(0,"10").put("userId","2")))error(422,()->f.service.publish("1",bad,"bad"));
+   for(var bad:List.of(body(3,"30").put("reason",5),body(0,"10").put("reason",5),body(2,"2").put("reason",1),body(0,"10").put("targetId","1 OR 1=1"),body(0,"10").put("memo","a".repeat(10241)),body(0,"10").put("userId","2")))error(422,()->f.service.publish("1",bad,"bad"));
   }System.out.println("PASS publication 3 typed reason/target/owner contract, storage-safe HTML encoding and entity expansion budget, idempotency body conflict");
   for(var fault:List.of("hint","read","write","receipt","commit","savepoint"))try(var f=new F()) {f.fault=fault;error(503,()->f.send(0,"10","fault"));Assert.assertEquals(f.count("r"),0);Assert.assertEquals(f.count("receipts"),0);f.fault="";f.send(0,"10","fault");Assert.assertEquals(f.count("r"),1);}
   System.out.println("PASS publication 4 real strict SQL rollback on hint/locked-read/business/receipt/commit/savepoint failure, same-key recovery");

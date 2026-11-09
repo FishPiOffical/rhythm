@@ -14566,7 +14566,7 @@ curl 'http://localhost:8080/api/v3/report/options' -H 'Authorization: Bearer ACC
 | data.targets | 举报目标数组 | [] |
 | - targetType | 0文章、1评论、2用户、3聊天室消息 | 0 |
 | - label | 目标名称 | 文章 |
-| - reasons | 当前目标可用理由 | [] |
+| - reasons | 当前目标可用理由。聊天室消息支持垃圾广告、低俗色情、违法违规、涉嫌侵权、人身攻击、其他 | [] |
 | -- reason | 理由编号 | 49 |
 | -- label | 理由名称 | 其他 |
 

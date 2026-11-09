@@ -65,7 +65,7 @@ public class ApiV3ReportTest {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
             var data=f.query.options("1");Assert.assertEquals(data.keySet(),Set.of("targets"));var t=data.getJSONArray("targets");Assert.assertEquals(t.length(),4);
-            int[][] values={{0,1,2,3,4,49},{0,1,2,3,4,49},{5,6,7,49},{49}};
+            int[][] values={{0,1,2,3,4,49},{0,1,2,3,4,49},{5,6,7,49},{0,1,2,3,4,49}};
             for(int i=0;i<4;i++){var target=t.getJSONObject(i);Assert.assertEquals(target.keySet(),Set.of("targetType","label","reasons"));Assert.assertEquals(target.getInt("targetType"),i);var r=target.getJSONArray("reasons");Assert.assertEquals(r.length(),values[i].length);for(int j=0;j<r.length();j++){Assert.assertEquals(r.getJSONObject(j).keySet(),Set.of("reason","label"));Assert.assertEquals(r.getJSONObject(j).getInt("reason"),values[i][j]);Assert.assertFalse(r.getJSONObject(j).getString("label").isBlank());}}
             Assert.assertFalse(data.toString().contains("PRIVATE"));t.remove(0);Assert.assertEquals(f.query.options("1").getJSONArray("targets").length(),4);
         }
