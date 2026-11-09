@@ -26,6 +26,7 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Votes;
 import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -92,16 +93,9 @@ public class ApiV3CommentVoteService {
         });
         // 原投票字段仍是操作回执。重放时另外读取当前状态，供页面更新。
         final JSONObject receipt = outcome.result();
-        try {
-            final JSONObject state = outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id);
-            return receipt.put("interaction", state);
-        } catch (final ApiV3Exception e) {
-            if (e.status != 403 && e.status != 404) {
-                throw e;
-            }
-            // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
-            return receipt.put("interaction", JSONObject.NULL);
-        }
+        // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
+        return ApiV3Requests.withCommittedInteraction(receipt,
+                () -> outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id));
     }
 
     private void readable(final JSONObject viewer, final JSONObject article, final JSONObject comment) throws Exception {

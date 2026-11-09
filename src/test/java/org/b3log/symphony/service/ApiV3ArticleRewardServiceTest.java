@@ -51,7 +51,8 @@ public class ApiV3ArticleRewardServiceTest {
             // 感谢和购买可以使用同一键，各自生成回执并按业务类型记账。
             var thank = f.rewardApi.apply(viewer, "10", THANK, "same-key");
             var paid = f.rewardApi.apply(viewer, "10", REWARD, "same-key");
-            Assert.assertEquals(thank.keySet(), Set.of("id", "thanked"));
+            Assert.assertEquals(thank.keySet(), Set.of("id", "thanked", "interaction"));
+            Assert.assertTrue(thank.getJSONObject("interaction").similar(f.rewardApi.read(viewer, "10", THANK)));
             Assert.assertEquals(paid.keySet(), Set.of("id", "rewarded"));
             Assert.assertEquals(f.scalar("SELECT userPoint FROM user WHERE oId='outsider'"), 50L);
             Assert.assertEquals(f.scalar("SELECT userPoint FROM user WHERE oId='older'"), 950L);
@@ -82,6 +83,20 @@ public class ApiV3ArticleRewardServiceTest {
             expect(404, () -> f.rewardApi.apply(viewer, "10", REWARD, "now-unreadable"));
         }
         System.out.println("PASS article thanks and purchase commit exact fees/counter/reward/notification once, preserve reward activity category, isolate kinds and never cache paid bodies in receipts");
+        try (var f = new Rewards()) {
+            final var viewer = f.viewer("outsider");
+            f.failInteractionRead = true;
+            final var first = f.rewardApi.apply(viewer, "10", THANK, "read-failed");
+            Assert.assertTrue(first.getBoolean("thanked"));
+            Assert.assertFalse(first.has("interaction"));
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 1L);
+            Assert.assertEquals(f.scalar("SELECT userPoint FROM user WHERE oId='outsider'"), 80L);
+            Assert.assertTrue(f.rewardApi.apply(viewer, "10", THANK, "read-failed").similar(first));
+            f.failInteractionRead = false;
+            final var replay = f.rewardApi.apply(viewer, "10", THANK, "read-failed");
+            Assert.assertEquals(replay.getJSONObject("interaction").getInt("thankCount"), 1);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 1L);
+        }
         for (var kind : List.of(THANK, REWARD)) {
             for (String failure : List.of("reward.select", "reward.add", "notification.add", "debit-null", "debit-blank", "debit-failure")) {
                 try (var f = new Rewards()) {
@@ -248,7 +263,14 @@ public class ApiV3ArticleRewardServiceTest {
 
     static class Rewards extends ApiV3ArticleVoteServiceTest.Articles {
         final ArticleRewardMgmtService mutations = new ArticleRewardMgmtService();
-        final ApiV3ArticleRewardService rewardApi = new ApiV3ArticleRewardService();
+        boolean failInteractionRead;
+        final ApiV3ArticleRewardService rewardApi = new ApiV3ArticleRewardService() {
+            @Override
+            public JSONObject read(final JSONObject viewer, final String id, final ArticleRewardMgmtService.Kind kind) throws Exception {
+                if (failInteractionRead) throw new RepositoryException("补查数据库暂不可用");
+                return super.read(viewer, id, kind);
+            }
+        };
 
         Rewards() throws Exception {
             exec("ALTER TABLE article ADD COLUMN articleThankCnt INT DEFAULT 0");

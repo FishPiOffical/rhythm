@@ -58,7 +58,9 @@ if(process.env.API_V3_COMMENT_THANK==='1'){
  if (!token || !/^\d{1,19}$/.test(id || '')) throw new Error('Explicit thanks requires token and disposable comment ID');
  await check('thanks, same-key replay and new-key duplicate',async()=>{
   const key=`thanks-smoke-${Date.now()}`,first=await request(id,200,{key});
-  assert.deepEqual(first, {id, thanked: true});
+  assert.equal(first.id, id);
+  assert.equal(first.thanked, true);
+  assert.equal(first.interaction?.thanked, true);
   assert.deepEqual(await request(id, 200, {key}), first);
   assert.deepEqual(await request(id,200,{key:`${key}-again`}),first);
  });

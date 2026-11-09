@@ -85,6 +85,15 @@ public class ApiV3FollowQueryService {
     public JSONObject articleState(final JSONObject viewer, final String targetId, final boolean watch) throws RepositoryException {
         final String actor = checkedActor(viewer, targetId);
         if (content.viewableArticle(targetId, viewer) == null) throw ApiV3Requests.notFound();
+        return articleState(actor, targetId, watch);
+    }
+
+    public JSONObject articleState(final ApiV3ContentQueryService.VisibleArticle snapshot, final boolean watch) throws RepositoryException {
+        final String targetId = snapshot.id();
+        return articleState(checkedActor(snapshot.viewer(), targetId), targetId, watch);
+    }
+
+    private JSONObject articleState(final String actor, final String targetId, final boolean watch) throws RepositoryException {
         return state(follows.select("SELECT ? AS targetId, EXISTS (SELECT 1 FROM `" + follows.getName()
                         + "` f WHERE f.followerId=? AND f.followingId=? AND f.followingType=?) AS following FROM `"
                         + users.getName() + "` a WHERE a.oId=? AND a.userStatus=?", targetId, actor, targetId,

@@ -43,7 +43,8 @@ public class ApiV3ParagraphReadTest {
                 statement.execute("CREATE TABLE comment(oId TEXT PRIMARY KEY,commentOnArticleId TEXT,commentAuthorId TEXT,"
                         + "commentOriginalCommentId TEXT,commentContent TEXT,commentCreateTime BIGINT,commentAnonymous INT,"
                         + "commentVisible INT,commentStatus INT,commentType INT,commentParagraphId TEXT,commentParagraphKind TEXT,"
-                        + "commentParagraphIndex INT,commentParagraphSnapshot TEXT,commentParagraphStatus INT,commentScore DOUBLE,commentIP TEXT,commentUA TEXT)");
+                        + "commentParagraphIndex INT,commentParagraphSnapshot TEXT,commentParagraphStatus INT,commentScore DOUBLE,commentIP TEXT,commentUA TEXT,"
+                        + "commentGoodCnt INT DEFAULT 0,commentBadCnt INT DEFAULT 0,commentThankCnt INT DEFAULT 0)");
             }
             for (int i = 1; i <= 130; i++) insert(db, String.format("%03d", i), "10", A, 1, 0, 0, i % 5);
             for (int i = 131; i <= 133; i++) insert(db, String.valueOf(i), "10", A, 1, 0, 1, 0);
@@ -164,7 +165,9 @@ public class ApiV3ParagraphReadTest {
 
     private static void insert(final Connection db, final String id, final String article, final String anchor,
                                final int type, final int status, final int paragraphStatus, final int score) throws Exception {
-        try (final var statement = db.prepareStatement("INSERT INTO comment VALUES(?,?,?,'001','body',0,0,1,?,?,?,'paragraph',0,'snapshot',?,?,'SECRET-ip','SECRET-ua')")) {
+        try (final var statement = db.prepareStatement("INSERT INTO comment(oId,commentOnArticleId,commentAuthorId,commentOriginalCommentId,commentContent,commentCreateTime,"
+                + "commentAnonymous,commentVisible,commentStatus,commentType,commentParagraphId,commentParagraphKind,commentParagraphIndex,"
+                + "commentParagraphSnapshot,commentParagraphStatus,commentScore,commentIP,commentUA) VALUES(?,?,?,'001','body',0,0,1,?,?,?,'paragraph',0,'snapshot',?,?,'SECRET-ip','SECRET-ua')")) {
             statement.setString(1, id);
             statement.setString(2, article);
             statement.setString(3, "actor");

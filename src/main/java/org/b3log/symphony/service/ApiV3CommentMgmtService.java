@@ -149,16 +149,9 @@ public class ApiV3CommentMgmtService {
                 });
         // 重放保留原操作回执，同时按当前权限返回最新状态。
         final JSONObject receipt = outcome.result();
-        try {
-            final JSONObject state = outcome.applied() ? new JSONObject(receipt.toString()) : rewardQueries.read(viewer, id, false);
-            return receipt.put("interaction", state);
-        } catch (final ApiV3Exception e) {
-            if (e.status != 403 && e.status != 404) {
-                throw e;
-            }
-            // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
-            return receipt.put("interaction", JSONObject.NULL);
-        }
+        // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
+        return ApiV3Requests.withCommittedInteraction(receipt,
+                () -> outcome.applied() ? new JSONObject(receipt.toString()) : rewardQueries.read(viewer, id, false));
     }
 
     private void thankPermission(final JSONObject actor) throws Exception {

@@ -67,6 +67,20 @@ public final class ApiV3Requests {
         }
     }
 
+    public static JSONObject withCommittedInteraction(final JSONObject receipt, final ReadOperation read) {
+        try {
+            receipt.put("interaction", read.run());
+        } catch (final Exception e) {
+            if (e instanceof ApiV3Exception failure && (failure.status == 403 || failure.status == 404)) {
+                receipt.put("interaction", JSONObject.NULL);
+            } else {
+                // 写入已经提交，状态补查失败时保留成功回执，由客户端单独重读。
+                LOGGER.warn("已提交的互动状态补查失败 requestId={}", ThreadContext.get("apiV3RequestId"), e);
+            }
+        }
+        return receipt;
+    }
+
     public static int page(final RequestContext context) { return number(context, "p", 1, Integer.MAX_VALUE / 50); }
     public static int size(final RequestContext context) { return number(context, "size", 20, 50); }
 

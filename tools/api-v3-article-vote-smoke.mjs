@@ -42,20 +42,21 @@ if(process.env.API_V3_ARTICLE_VOTE_WRITE==='1'){
  if (!token || !/^\d{1,19}$/.test(id || '')) throw new Error('Explicit write requires token and disposable other-user article ID');
  await check('set/read/replay/change/clear with stable receipt and no toggle',async()=>{
   const key=`article-vote-${Date.now()}`,first=await request(id,200,{method:'PUT',key});
-  assert.deepEqual(Object.keys(first).sort(), ['downCount', 'id', 'upCount', 'vote']);
+  const {interaction: firstState, ...firstReceipt} = first;
+  assert.deepEqual(Object.keys(firstReceipt).sort(), ['downCount', 'id', 'upCount', 'vote']);
   assert.equal(first.vote, 'up');
-  assert.deepEqual(await request(id, 200), first);
+  assert.deepEqual(await request(id, 200), firstState);
   assert.deepEqual(await request(id, 200, {method: 'PUT', key}), first);
   assert.deepEqual(await request(id,200,{method:'PUT',key:`${key}-same`}),first);
   const down = await request(id, 200, {method: 'PUT', key: `${key}-down`, body: {vote: 'down'}});
   assert.equal(down.vote, 'down');
-  assert.deepEqual(await request(id, 200, {method: 'PUT', key}), first);
-  assert.deepEqual(await request(id, 200), down);
+  assert.deepEqual(await request(id, 200, {method: 'PUT', key}), {...firstReceipt, interaction: down.interaction});
+  assert.deepEqual(await request(id, 200), down.interaction);
   await request(id, 409, {method: 'PUT', key, body: {vote: 'down'}});
   await request(id, 409, {method: 'DELETE', key});
   const cleared = await request(id, 200, {method: 'DELETE', key: `${key}-clear`});
   assert.equal(cleared.vote, null);
-  assert.deepEqual(await request(id, 200), cleared);
+  assert.deepEqual(await request(id, 200), cleared.interaction);
   assert.deepEqual(await request(id, 200, {method: 'DELETE', key: `${key}-clear`}), cleared);
   assert.deepEqual(await request(id,200,{method:'DELETE',key:`${key}-clear-again`}),cleared);
  });

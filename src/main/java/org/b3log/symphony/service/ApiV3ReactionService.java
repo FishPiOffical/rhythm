@@ -23,7 +23,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.util.ApiV3ReactionDto;
 import org.b3log.symphony.model.Reaction;
-import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
 @Service
@@ -44,6 +44,11 @@ public class ApiV3ReactionService {
         return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, null == viewer ? "" : viewer.optString(Keys.OBJECT_ID)));
     }
 
+    public JSONObject read(final ApiV3ContentQueryService.VisibleArticle snapshot) throws Exception {
+        return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(Reaction.TARGET_TYPE_ARTICLE, snapshot.id(),
+                snapshot.viewer().getString(Keys.OBJECT_ID)));
+    }
+
     public JSONObject set(final JSONObject viewer, final String type, final String id, final String value, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
         // 写入时校验锁定的目标，并在同一事务中构造回执。
@@ -59,15 +64,8 @@ public class ApiV3ReactionService {
         if (Reaction.TARGET_TYPE_COMMENT.equals(type) || Reaction.TARGET_TYPE_ARTICLE.equals(type)
                 || Reaction.TARGET_TYPE_CHAT.equals(type)) {
             // 重放的原表态可能已被其他会话修改，页面使用当前可见状态。
-            try {
-                final JSONObject state = execution.applied() ? new JSONObject(receipt.toString()) : read(viewer, type, id);
-                receipt.put("interaction", state);
-            } catch (final ApiV3Exception e) {
-                if (e.status != 403 && e.status != 404) {
-                    throw e;
-                }
-                receipt.put("interaction", JSONObject.NULL);
-            }
+            ApiV3Requests.withCommittedInteraction(receipt,
+                    () -> execution.applied() ? new JSONObject(receipt.toString()) : read(viewer, type, id));
         }
         return receipt;
     }

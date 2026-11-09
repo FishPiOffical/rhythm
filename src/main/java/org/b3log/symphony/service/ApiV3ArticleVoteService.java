@@ -25,6 +25,7 @@ import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Votes;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,6 +61,17 @@ public class ApiV3ArticleVoteService {
         return ApiV3Votes.dto(id, current, article.optInt(Article.ARTICLE_GOOD_CNT), article.optInt(Article.ARTICLE_BAD_CNT));
     }
 
+    public JSONObject read(final ApiV3ContentQueryService.VisibleArticle snapshot) throws Exception {
+        snapshot.requireVoteOrThanksTarget();
+        final String actor = actor(snapshot.viewer()), id = snapshot.id();
+        final var rows = votes.select("SELECT `type` AS currentVote FROM `" + votes.getName()
+                + "` WHERE userId=? AND dataType=? AND dataId=? LIMIT 2", actor, Vote.DATA_TYPE_C_ARTICLE, id);
+        if (rows.size() > 1) throw new IllegalStateException("duplicate stored article votes");
+        final int current = rows.isEmpty() || rows.getFirst().isNull("currentVote") ? -1 : rows.getFirst().getInt("currentVote");
+        final JSONObject article = snapshot.article();
+        return ApiV3Votes.dto(id, current, article.optInt(Article.ARTICLE_GOOD_CNT), article.optInt(Article.ARTICLE_BAD_CNT));
+    }
+
     public JSONObject set(final JSONObject viewer, final String id, final int choice, final String key) throws Exception {
         final String actor = actor(viewer);
         final var normalized = new JSONObject().put("vote", ApiV3Votes.value(choice));
@@ -85,13 +97,8 @@ public class ApiV3ArticleVoteService {
         });
         final JSONObject receipt = outcome.result();
         // 重放保留原投票回执，嵌套状态返回当前投票。
-        try {
-            final JSONObject current = outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id);
-            receipt.put("interaction", current);
-        } catch (final ApiV3Exception e) {
-            if (e.status != 403 && e.status != 404) throw e;
-            receipt.put("interaction", JSONObject.NULL);
-        }
+        ApiV3Requests.withCommittedInteraction(receipt,
+                () -> outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id));
         return receipt;
     }
 

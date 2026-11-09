@@ -25,6 +25,7 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -59,16 +60,31 @@ public class ApiV3ArticleRewardService {
         if (rows.isEmpty()) throw missing();
         final var article = rows.getFirst();
         readable(viewer, article);
-        final boolean recorded = !rewards.select("SELECT oId FROM `" + rewards.getName() + "` WHERE senderId=? AND dataId=? AND `type`=? LIMIT 1",
-                actor, id, ArticleRewardMgmtService.rewardType(kind)).isEmpty();
+        final boolean recorded = hasReward(actor, id, kind);
         if (kind == ArticleRewardMgmtService.Kind.THANK) {
-            final int count = article.optInt(Article.ARTICLE_THANK_CNT);
-            if (count < 0) throw new IllegalStateException("negative stored article thank count");
-            return new JSONObject().put("id", id).put("thanked", recorded).put("thankCount", count)
-                    .put("thankPoint", article.optInt(Article.ARTICLE_ANONYMOUS) == Article.ARTICLE_ANONYMOUS_C_ANONYMOUS ? 0 : Pointtransfer.TRANSFER_SUM_C_ARTICLE_THANK);
+            return thankState(id, article, recorded);
         }
         return new JSONObject().put("id", id).put("rewarded", recorded || actor.equals(article.optString(Article.ARTICLE_AUTHOR_ID)))
                 .put("rewardPoint", article.optInt(Article.ARTICLE_REWARD_POINT));
+    }
+
+    public JSONObject readThanks(final ApiV3ContentQueryService.VisibleArticle snapshot) throws Exception {
+        snapshot.requireVoteOrThanksTarget();
+        final String actor = actor(snapshot.viewer()), id = snapshot.id();
+        final boolean recorded = hasReward(actor, id, ArticleRewardMgmtService.Kind.THANK);
+        return thankState(id, snapshot.article(), recorded);
+    }
+
+    private boolean hasReward(final String actor, final String id, final ArticleRewardMgmtService.Kind kind) throws Exception {
+        return !rewards.select("SELECT oId FROM `" + rewards.getName() + "` WHERE senderId=? AND dataId=? AND `type`=? LIMIT 1",
+                actor, id, ArticleRewardMgmtService.rewardType(kind)).isEmpty();
+    }
+
+    private static JSONObject thankState(final String id, final JSONObject article, final boolean recorded) {
+        final int count = article.optInt(Article.ARTICLE_THANK_CNT);
+        if (count < 0) throw new IllegalStateException("negative stored article thank count");
+        return new JSONObject().put("id", id).put("thanked", recorded).put("thankCount", count)
+                .put("thankPoint", article.optInt(Article.ARTICLE_ANONYMOUS) == Article.ARTICLE_ANONYMOUS_C_ANONYMOUS ? 0 : Pointtransfer.TRANSFER_SUM_C_ARTICLE_THANK);
     }
 
     public JSONObject apply(final JSONObject viewer, final String id, final ArticleRewardMgmtService.Kind kind, final String key) throws Exception {
@@ -108,12 +124,7 @@ public class ApiV3ArticleRewardService {
         final JSONObject receipt = outcome.result();
         if (kind == ArticleRewardMgmtService.Kind.THANK) {
             // 提交后读取当前感谢计数，重放时也使用当前值。
-            try {
-                receipt.put("interaction", read(viewer, id, kind));
-            } catch (final ApiV3Exception e) {
-                if (e.status != 403 && e.status != 404) throw e;
-                receipt.put("interaction", JSONObject.NULL);
-            }
+            ApiV3Requests.withCommittedInteraction(receipt, () -> read(viewer, id, kind));
         }
         return receipt;
     }

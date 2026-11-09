@@ -76,7 +76,7 @@ public class ApiV3CommentVoteServiceTest {
             var first = f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first");
             Assert.assertEquals(first.getString("vote"), "up");
             Assert.assertEquals(first.getInt("upCount"), 1);
-            Assert.assertEquals(f.api.read(viewer, "30").toString(), first.toString());
+            Assert.assertTrue(f.api.read(viewer, "30").similar(first.getJSONObject("interaction")));
             Assert.assertEquals(f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first").toString(), first.toString());
             Assert.assertEquals(f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-new-key").toString(), first.toString());
             Assert.assertEquals(f.activityEvents, 1);
@@ -89,8 +89,11 @@ public class ApiV3CommentVoteServiceTest {
             var down = f.api.set(viewer, "30", Vote.TYPE_C_DOWN, "down-new");
             Assert.assertEquals(down.getInt("upCount"), 0);
             Assert.assertEquals(down.getInt("downCount"), 1);
-            Assert.assertEquals(f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first").toString(), first.toString());
-            Assert.assertEquals(f.api.read(viewer, "30").toString(), down.toString());
+            var replay = f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first");
+            Assert.assertTrue(replay.getJSONObject("interaction").similar(down.getJSONObject("interaction")));
+            replay.remove("interaction");
+            Assert.assertTrue(replay.similar(first.getJSONObject("interaction")));
+            Assert.assertTrue(f.api.read(viewer, "30").similar(down.getJSONObject("interaction")));
             Assert.assertEquals(f.activityEvents, 2);
             var cleared = f.api.set(viewer, "30", -1, "clear-first");
             Assert.assertTrue(cleared.isNull("vote"));
@@ -101,7 +104,10 @@ public class ApiV3CommentVoteServiceTest {
             Assert.assertFalse(cleared.toString().contains("SECRET"));
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"), 0L);
             f.transaction(() -> f.remove("owner", "30"));
-            Assert.assertEquals(f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first").toString(), first.toString());
+            var deletedReplay = f.api.set(viewer, "30", Vote.TYPE_C_UP, "up-first");
+            Assert.assertTrue(deletedReplay.has("interaction") && deletedReplay.isNull("interaction"));
+            deletedReplay.remove("interaction");
+            Assert.assertTrue(deletedReplay.similar(first.getJSONObject("interaction")));
             expect(404, () -> f.api.read(viewer, "30"));
             expect(404, () -> f.api.set(viewer, "30", Vote.TYPE_C_UP, "missing-new"));
         }

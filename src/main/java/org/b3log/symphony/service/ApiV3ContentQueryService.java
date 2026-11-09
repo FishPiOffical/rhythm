@@ -95,15 +95,51 @@ public class ApiV3ContentQueryService {
      * 资源不存在或不可见时统一返回 null，避免输出元数据。
      */
     public JSONObject viewableArticle(final String id, final JSONObject viewer) throws RepositoryException {
+        final VisibleArticle snapshot = authorizeArticle(id, viewer, false);
+        return snapshot == null ? null : snapshot.article();
+    }
+
+    public VisibleArticle authorizeArticle(final String id, final JSONObject viewer,
+                                           final boolean includeInteractions) throws RepositoryException {
         final JSONObject currentViewer = viewer == null ? null : currentViewer(viewer.optString(Keys.OBJECT_ID));
         if (viewer != null && isBlocked(currentViewer)) return null;
-        final JSONObject article = currentArticle(id);
+        final JSONObject article = currentArticle(id, includeInteractions);
         if (null == article) return null;
         final Set<String> invited = null != currentViewer && Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
                 ? UserMentionCandidates.parse(article.optString(Article.ARTICLE_CONTENT)) : Collections.emptySet();
         if (!ApiV3ContentUtil.canViewArticle(article, currentViewer, invited)) return null;
         final JSONObject author = ApiV3ContentSnapshots.author(article, Article.ARTICLE_AUTHOR_ID);
-        return isBlocked(author) ? null : article;
+        return isBlocked(author) ? null : new VisibleArticle(id, article, currentViewer, author);
+    }
+
+    // 只由文章授权入口创建，聚合读共享这一次读取的文章和账号状态。
+    public static final class VisibleArticle {
+        private final String id;
+        private final JSONObject article;
+        private final JSONObject viewer;
+        private final JSONObject author;
+
+        private VisibleArticle(final String id, final JSONObject article, final JSONObject viewer, final JSONObject author) {
+            this.id = id;
+            this.article = article;
+            this.viewer = viewer;
+            this.author = author;
+        }
+
+        String id() { return id; }
+        JSONObject article() { return article; }
+        JSONObject viewer() { return viewer; }
+
+        void requireVoteOrThanksTarget() {
+            final int status = article.optInt(Article.ARTICLE_STATUS);
+            if ((status != Article.ARTICLE_STATUS_C_VALID && status != Article.ARTICLE_STATUS_C_LOCKED)
+                    || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID)
+                throw new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
+        }
+    }
+
+    public JSONObject detail(final VisibleArticle snapshot) {
+        return detail(snapshot.article(), snapshot.viewer());
     }
 
     public java.util.function.Function<String, LongArticleParagraphService.TitleSnapshot> paragraphTitleSnapshot() {
@@ -127,7 +163,12 @@ public class ApiV3ContentQueryService {
     }
 
     private JSONObject currentArticle(final String id) throws RepositoryException {
-        final var rows = articleRepository.select(ApiV3ContentSnapshots.article(articleRepository.getName(), userRepository.getName(), commentRepository.getName()), id,
+        return currentArticle(id, false);
+    }
+
+    private JSONObject currentArticle(final String id, final boolean includeInteractions) throws RepositoryException {
+        final var rows = articleRepository.select(ApiV3ContentSnapshots.article(articleRepository.getName(),
+                userRepository.getName(), commentRepository.getName(), includeInteractions), id,
                 UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED);
         if (rows.size() > 1) throw new IllegalStateException("duplicate article");
         return rows.isEmpty() ? null : rows.getFirst();

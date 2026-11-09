@@ -46,19 +46,23 @@ if (token && process.env.API_V3_ALLOW_RELATION_WRITES === '1') {
     await check(`write/replay/cleanup ${path}`, async () => {
       if (await exists(path, id)) { console.log(`SKIP existing fixture relationship ${path}`); return; }
       const target = `${path}/${id}`, key = randomUUID(), removeKey = randomUUID();
+      const hasInteraction = path.endsWith('/collections') || path.endsWith('/subscriptions');
+      const expected = (following, changed, current = following) => ({
+        following, changed, ...(hasInteraction ? {interaction: {targetId: id, following: current}} : {}),
+      });
       let created = false;
       try {
         const first = await request(target, { method: 'PUT', key }); created = true;
-        assert.deepEqual(first, { following: true, changed: true });
+        assert.deepEqual(first, expected(true, true));
         assert.deepEqual(await request(target, { method: 'PUT', key }), first);
-        assert.deepEqual(await request(target, { method: 'PUT', key: randomUUID() }), { following: true, changed: false });
+        assert.deepEqual(await request(target, { method: 'PUT', key: randomUUID() }), expected(true, false));
         assert.ok(await exists(path, id));
         await request(target, { method: 'DELETE', key, status: 409 });
         const removed = await request(target, { method: 'DELETE', key: removeKey });
-        assert.deepEqual(removed, { following: false, changed: true });
+        assert.deepEqual(removed, expected(false, true));
         assert.deepEqual(await request(target, { method: 'DELETE', key: removeKey }), removed);
-        assert.deepEqual(await request(target, { method: 'DELETE', key: randomUUID() }), { following: false, changed: false });
-        assert.deepEqual(await request(target, { method: 'PUT', key }), first); // old replay must not recreate
+        assert.deepEqual(await request(target, { method: 'DELETE', key: randomUUID() }), expected(false, false));
+        assert.deepEqual(await request(target, { method: 'PUT', key }), expected(true, true, false)); // old replay must not recreate
         assert.equal(await exists(path, id), false); created = false;
       } finally { if (created) await request(target, { method: 'DELETE', key: randomUUID() }); }
     });

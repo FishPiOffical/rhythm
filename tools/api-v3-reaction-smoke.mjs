@@ -78,13 +78,13 @@ for (const [type, variable] of [['articles', 'API_V3_REACTION_ARTICLE_ID'], ['co
       assert.equal((await request(path, { method: 'PUT', value: 'heart', key: randomUUID() })).changed, false);
       const replaced = await request(path, { method: 'PUT', value: 'fire', key: replaceKey });
       assert.equal(replaced.currentUserReaction, 'fire');
-      assert.deepEqual(await request(path, { method: 'PUT', value: 'heart', key: firstKey }), first);
+      assert.deepEqual(await request(path, { method: 'PUT', value: 'heart', key: firstKey }), {...first, interaction: await request(path)});
       assert.equal((await request(path)).currentUserReaction, 'fire');
       const cleared = await request(path, { method: 'DELETE', key: clearKey });
       assert.equal(cleared.currentUserReaction, '');
       assert.deepEqual(await request(path, { method: 'DELETE', key: clearKey }), cleared);
       assert.equal((await request(path, { method: 'DELETE', key: randomUUID() })).changed, false);
-      assert.deepEqual(await request(path, { method: 'PUT', value: 'fire', key: replaceKey }), replaced);
+      assert.deepEqual(await request(path, { method: 'PUT', value: 'fire', key: replaceKey }), {...replaced, interaction: await request(path)});
       assert.equal((await request(path)).currentUserReaction, ''); changed = false;
     } finally { if (changed) await request(path, { method: 'DELETE', key: randomUUID() }); }
   });

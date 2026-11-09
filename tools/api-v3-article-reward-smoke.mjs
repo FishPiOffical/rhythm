@@ -51,12 +51,16 @@ for(const [kind,flag,idKey] of [['thanks','API_V3_ARTICLE_THANK_WRITE','API_V3_A
    }
   }
   const result = await request(path, 200, {method: 'POST', key});
-  assert.deepEqual(result, {id, [kind === 'thanks' ? 'thanked' : 'rewarded']: true});
+  const {interaction, ...receipt} = result;
+  assert.deepEqual(receipt, {id, [kind === 'thanks' ? 'thanked' : 'rewarded']: true});
   assert.deepEqual(await request(path, 200, {method: 'POST', key}), result);
   assert.deepEqual(await request(path, 200, {method: 'POST', key: `${key}-again`}), result);
   const after = await request(path, 200);
   assert.equal(after[kind === 'thanks' ? 'thanked' : 'rewarded'], true);
-  if(kind==='thanks')assert.equal(after.thankCount,before.thankCount+(before.thanked?0:1));
+  if(kind==='thanks'){
+   assert.deepEqual(interaction, after);
+   assert.equal(after.thankCount,before.thankCount+(before.thanked?0:1));
+  }
   else {
    const detail = await request(`/articles/${id}`, 200);
    assert.equal(detail.rewarded, true);

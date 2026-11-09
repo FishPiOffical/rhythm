@@ -46,10 +46,16 @@ public final class ApiV3ContentSnapshots {
     }
 
     public static String article(final String articles, final String users, final String comments) {
+        return article(articles, users, comments, false);
+    }
+
+    public static String article(final String articles, final String users, final String comments,
+                                 final boolean includeInteractions) {
         return "SELECT a.oId,a.articleAuthorId,a.articleStatus,a.articleType,a.articleAnonymousView,"
                 + "a.articleContent,a.articleTitle,a.articleAnonymous,a.articleRewardPoint,a.articleRewardContent,"
                 + "a.articleQnAOfferPoint,a.articlePerfect,a.articleStatement,a.articleTags,a.articlePermalink,"
                 + "a.articleCreateTime,a.articleUpdateTime,a.articleCommentCount,a.articleViewCount,a.articleStick,"
+                + (includeInteractions ? "a.articleGoodCnt,a.articleBadCnt,a.articleThankCnt," : "")
                 + "a.articleShowInList," + ApiV3ArticlePolicy.commentableColumn("a") + "," + authorColumns()
                 + ",CASE WHEN a.articleType=5 THEN EXISTS(SELECT 1 FROM " + table(comments)
                 + " ac WHERE ac.commentOnArticleId=a.oId AND ac.commentQnAOffered=1) ELSE 0 END AS " + QNA_ACCEPTED

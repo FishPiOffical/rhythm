@@ -1788,7 +1788,7 @@ curl --request POST 'https://fishpi.cn/api/v3/comments/1770000000003/thanks' \
 >
 > 评论不存在、不可阅读或作者不可用时返回 HTTP 404；缺少权限返回 HTTP 403；感谢自己、积分不足或参数不合法返回 HTTP 422，评论归属变化时返回 HTTP 409，操作过于频繁返回 HTTP 429。保存失败不扣款。
 
-> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。状态补查失败时省略该字段。
 
 ### 读取评论采纳状态
 
@@ -1935,7 +1935,7 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000003/thanks' \
 >
 > 感谢本人文章、余额或参数条件不满足时返回 HTTP 422；目标不可用或不可阅读返回 HTTP 404，缺少权限返回 HTTP 403，文章归属变化返回 HTTP 409，操作过于频繁返回 HTTP 429。
 
-> 成功响应可包含 `data.interaction`，表示当前感谢状态。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前感谢状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 读取文章打赏状态
@@ -2082,7 +2082,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 >
 > 相同请求键及相同 vote 重试返回原结果，不重复修改计数或发送提醒。换用新键设置相同值也不重复计数；同键改变 vote 或改为清除操作返回 HTTP 409。重放结果包含原操作时的计数，不覆盖后续投票；获取最新状态请调用读取接口。
 
-> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 清除文章投票
@@ -2124,7 +2124,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 
 ## API v3 评论投票
 
-> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 读取评论投票
@@ -2200,7 +2200,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 >
 > 相同请求键及相同 vote 重试返回原结果，不重复修改计数或发送提醒。换用新键设置相同值也不重复计数；同键改变 vote 或改为清除操作返回 HTTP 409。重放结果包含原操作时的计数，不覆盖后续投票；获取最新状态请调用读取接口。
 
-> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。状态补查失败时省略该字段。
 
 ### 清除评论投票
 
@@ -2239,7 +2239,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 
 > 请求体可省略或为 `{}`，不接受其他字段。同键重试返回原结果，换新键重复清除也不重复改变计数；重放不会覆盖后续投票。目标和权限限制与设置接口一致，保存失败不改变投票及计数。
 
-> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。状态补查失败时省略该字段。
 
 ## API v3 内容发现与公开主页
 
@@ -6414,7 +6414,7 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/articles/1770000000000/r
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
-> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 清除文章表态
@@ -6455,7 +6455,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/articles/177000000000
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
-> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 读取评论表态
@@ -6532,7 +6532,7 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/comments/1770000000000/r
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
-> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。状态补查失败时省略该字段。
 
 ### 清除评论表态
 
@@ -6572,7 +6572,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/comments/177000000000
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
-> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。状态补查失败时省略该字段。
 
 ### 读取聊天室消息表态
 
@@ -6649,7 +6649,7 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/chat/messages/1770000000
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
-> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。
+> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。状态补查失败时省略该字段。
 
 
 ### 清除聊天室消息表态
@@ -6692,7 +6692,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1770000
 
 ## API v3 清风明月写入与详情
 
-> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。
+> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。状态补查失败时省略该字段。
 
 
 ### 发布清风明月
@@ -7137,7 +7137,7 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/collections/177000000
 
 > 目标不存在或不可访问时返回 HTTP 404；添加收藏、订阅还需账号具备相应功能权限。
 
-> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 取消收藏文章
@@ -7176,7 +7176,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/collections/177000
 
 > 可以清理已删除或当前不可访问目标的关系。关系不存在时成功返回 `changed=false`。
 
-> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 本人的订阅文章列表
@@ -7247,7 +7247,7 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/subscriptions/1770000
 
 > 目标不存在或不可访问时返回 HTTP 404；添加收藏、订阅还需账号具备相应功能权限。
 
-> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 取消订阅文章
@@ -7288,7 +7288,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 
 ## API v3 排行榜
 
-> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务或状态补查失败时可能省略该字段。
 
 
 ### 获取排行榜

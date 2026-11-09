@@ -26,7 +26,6 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
-import org.b3log.symphony.model.Reaction;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3ArticleRewardService;
@@ -34,7 +33,6 @@ import org.b3log.symphony.service.ApiV3ArticleVoteService;
 import org.b3log.symphony.service.ApiV3ContentQueryService;
 import org.b3log.symphony.service.ApiV3FollowQueryService;
 import org.b3log.symphony.service.ApiV3ReactionService;
-import org.b3log.symphony.service.ArticleRewardMgmtService;
 import org.json.JSONObject;
 
 import java.util.Set;
@@ -86,15 +84,16 @@ public class ApiV3ContentProcessor {
         prepare(context);
         try {
             final String id = articleId(context);
-            final JSONObject article = contentQueryService.viewableArticle(id, viewer(context));
+            final JSONObject viewer = viewer(context);
+            final boolean includeInteractions = viewer != null && "true".equals(context.param("includeInteractions"));
+            final var article = contentQueryService.authorizeArticle(id, viewer, includeInteractions);
             if (null == article) {
                 ApiV3Processor.error(context, 404, "not_found", "文章不存在或不可访问");
                 return;
             }
-            final JSONObject viewer = viewer(context);
-            final JSONObject detail = contentQueryService.detail(article, viewer);
-            if (viewer != null && "true".equals(context.param("includeInteractions"))) {
-                detail.put("interactions", articleInteractions(viewer, id));
+            final JSONObject detail = contentQueryService.detail(article);
+            if (includeInteractions) {
+                detail.put("interactions", articleInteractions(article));
             }
             ApiV3Processor.success(context, detail);
         } catch (final IllegalArgumentException e) {
@@ -104,15 +103,15 @@ public class ApiV3ContentProcessor {
         }
     }
 
-    private JSONObject articleInteractions(final JSONObject viewer, final String id) {
-        // 复用独立读接口的可见性校验。单项状态读取失败时省略该字段，
+    private JSONObject articleInteractions(final ApiV3ContentQueryService.VisibleArticle article) {
+        // 复用详情已经授权的文章快照。单项状态读取失败时省略该字段，
         // 保留读者有权查看的文章内容。
         final JSONObject snapshot = new JSONObject();
-        addInteraction(snapshot, "vote", () -> votes.read(viewer, id));
-        addInteraction(snapshot, "thanks", () -> rewards.read(viewer, id, ArticleRewardMgmtService.Kind.THANK));
-        addInteraction(snapshot, "reactions", () -> reactions.read(viewer, Reaction.TARGET_TYPE_ARTICLE, id));
-        addInteraction(snapshot, "collection", () -> follows.articleState(viewer, id, false));
-        addInteraction(snapshot, "subscription", () -> follows.articleState(viewer, id, true));
+        addInteraction(snapshot, "vote", () -> votes.read(article));
+        addInteraction(snapshot, "thanks", () -> rewards.readThanks(article));
+        addInteraction(snapshot, "reactions", () -> reactions.read(article));
+        addInteraction(snapshot, "collection", () -> follows.articleState(article, false));
+        addInteraction(snapshot, "subscription", () -> follows.articleState(article, true));
         return snapshot;
     }
 

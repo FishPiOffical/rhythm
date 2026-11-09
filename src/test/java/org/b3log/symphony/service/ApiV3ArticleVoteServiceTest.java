@@ -48,7 +48,7 @@ public class ApiV3ArticleVoteServiceTest {
             Assert.assertTrue(empty.isNull("vote"));
             var first = f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
             Assert.assertEquals(first.getInt("upCount"), 1);
-            Assert.assertEquals(f.articleApi.read(viewer, "10").toString(), first.toString());
+            Assert.assertTrue(f.articleApi.read(viewer, "10").similar(first.getJSONObject("interaction")));
             f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
             f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "new-up");
             Assert.assertEquals(f.activityEvents, 1);
@@ -66,8 +66,11 @@ public class ApiV3ArticleVoteServiceTest {
             Assert.assertEquals(down.getInt("upCount"), 0);
             Assert.assertEquals(down.getInt("downCount"), 1);
             // 原键回放历史回执，随后读到的仍是后来设置的反对票。
-            Assert.assertEquals(f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up").toString(), first.toString());
-            Assert.assertEquals(f.articleApi.read(viewer, "10").toString(), down.toString());
+            var replay = f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
+            Assert.assertTrue(replay.getJSONObject("interaction").similar(down.getJSONObject("interaction")));
+            replay.remove("interaction");
+            Assert.assertTrue(replay.similar(first.getJSONObject("interaction")));
+            Assert.assertTrue(f.articleApi.read(viewer, "10").similar(down.getJSONObject("interaction")));
             var clear = f.articleApi.set(viewer, "10", -1, "clear");
             Assert.assertTrue(clear.isNull("vote"));
             f.articleApi.set(viewer, "10", -1, "clear-new");
@@ -76,7 +79,10 @@ public class ApiV3ArticleVoteServiceTest {
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 0L);
             Assert.assertFalse(first.toString().contains("SECRET"));
             f.exec("DELETE FROM article WHERE oId='10'");
-            Assert.assertEquals(f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up").toString(), first.toString());
+            var deletedReplay = f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "first-up");
+            Assert.assertTrue(deletedReplay.has("interaction") && deletedReplay.isNull("interaction"));
+            deletedReplay.remove("interaction");
+            Assert.assertTrue(deletedReplay.similar(first.getJSONObject("interaction")));
             expect(404, () -> f.articleApi.read(viewer, "10"));
             expect(404, () -> f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "missing-new"));
         }

@@ -32,7 +32,6 @@ import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.model.Tag;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ApiV3ContentUtil;
-import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
@@ -92,15 +91,9 @@ public class ApiV3FollowMgmtService {
                     .put("changed", stored.getBoolean("changed"));
             if (type == Follow.FOLLOWING_TYPE_C_ARTICLE || type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH) {
                 // 重放保留原操作回执，另行读取当前可见的关系状态。
-                try {
-                    final JSONObject current = execution.applied()
-                            ? new JSONObject().put("targetId", targetId).put("following", stored.getBoolean("following"))
-                            : followQueries.articleState(viewer, targetId, type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
-                    receipt.put("interaction", current);
-                } catch (final ApiV3Exception e) {
-                    if (e.status != 403 && e.status != 404) throw e;
-                    receipt.put("interaction", JSONObject.NULL);
-                }
+                ApiV3Requests.withCommittedInteraction(receipt, () -> execution.applied()
+                        ? new JSONObject().put("targetId", targetId).put("following", stored.getBoolean("following"))
+                        : followQueries.articleState(viewer, targetId, type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH));
             }
             return receipt;
         } finally {
