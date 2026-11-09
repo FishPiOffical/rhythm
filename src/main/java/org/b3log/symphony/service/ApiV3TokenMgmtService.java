@@ -207,7 +207,7 @@ public class ApiV3TokenMgmtService {
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) return null;
             markAccessUsed(row);
             return new JSONObject().put("user", user).put("scope", row.optString(ApiV3Token.SCOPE))
-                    .put("tokenId", row.optString(Keys.OBJECT_ID));
+                    .put("tokenId", row.optString(Keys.OBJECT_ID)).put("clientId", row.optString(ApiV3Token.CLIENT_ID));
         } catch (final Exception e) {
             return null;
         }

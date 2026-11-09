@@ -29,12 +29,14 @@ import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.model.Role;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.ApiV3PublicColumnQueryService;
+import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3WriteInputs;
@@ -62,6 +64,8 @@ public class ApiV3Processor {
     private ApiV3PublicColumnQueryService publicColumns;
     @Inject
     private LoginProcessor loginProcessor;
+    @Inject
+    private RoleQueryService roleQueryService;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
@@ -254,7 +258,21 @@ public class ApiV3Processor {
             return;
         }
         context.getResponse().setHeader("Cache-Control", "no-store");
-        success(context, userDto(user, true));
+        context.getResponse().setHeader("Vary", "Authorization");
+        final String roleId = user.optString(User.USER_ROLE);
+        final JSONObject role = roleQueryService.getRole(roleId);
+        final boolean administrator = Role.ROLE_ID_C_ADMIN.equals(roleId)
+                && ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(identity.optString("clientId"));
+        success(context, userDto(user, true)
+                .put("isAdmin", administrator)
+                .put("userRole", role == null ? "" : role.optString(Role.ROLE_NAME))
+                .put("userRoleId", roleId)
+                .put("userNo", user.optString(UserExt.USER_NO))
+                .put("userAppRole", user.optInt(UserExt.USER_APP_ROLE))
+                .put("userCity", user.optInt(UserExt.USER_GEO_STATUS, -1) == UserExt.USER_GEO_STATUS_C_PUBLIC
+                        ? user.optString(UserExt.USER_CITY) : "")
+                .put("userOnlineFlag", user.optBoolean(UserExt.USER_ONLINE_FLAG))
+                .put("onlineMinute", Math.max(0, user.optInt(UserExt.ONLINE_MINUTE))));
     }
 
     public void columns(final RequestContext context) {
