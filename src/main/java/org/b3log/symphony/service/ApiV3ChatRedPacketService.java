@@ -292,9 +292,14 @@ public class ApiV3ChatRedPacketService {
         if(legacyPacket==null)throw ApiV3Requests.notFound();
         final JSONObject proof=new JSONObject();
         if(ApiV3RedPacketInputs.risky(legacyPacket.optString("type"))&&!viewOnly){
-            if(!Boolean.TRUE.equals(body.opt("riskAccepted")))throw new ApiV3Exception(422,"risk_confirmation_required","请明确确认可能扣除积分的风险");
+            final boolean legacyRequest=!body.has("riskAccepted");
+            if(!legacyRequest&&!Boolean.TRUE.equals(body.opt("riskAccepted")))throw new ApiV3Exception(422,"risk_confirmation_required","请明确确认可能扣除积分的风险");
             proof.put("riskAccepted",true);
-            if(legacyPacket.optString("type").equals("rockPaperScissors"))proof.put("gesture",body.opt("gesture"));
+            if(legacyPacket.optString("type").equals("rockPaperScissors")){
+                final Object gesture=body.opt("gesture");
+                // Classic clients send the selected gesture as a string.
+                proof.put("gesture",legacyRequest&&gesture instanceof String value&&value.matches("[012]")?Integer.parseInt(value):gesture);
+            }
         }
         try{if(!viewOnly)claim(viewer,messageId,proof,"legacy."+ApiV3TokenUtil.hash(actor+"\0"+messageId));}
         catch(ApiV3Exception e){if(!Set.of("red_packet_empty","recipient_required").contains(e.code))throw e;}
