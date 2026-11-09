@@ -249,7 +249,7 @@
 - 文章页实时链路走 `ArticleChannel`：新增评论仍是 `type=comment`，评论 reaction 增量走 `type=commentReaction`，帖子本体 reaction 增量走 `type=articleReaction`；联调这类 Java 推送改动时，前端强刷还不够，必须让用户重启或重新编译服务端。
 - 账号设置手机/邮箱验证码链路：PC/移动模板在 `skins/classic/*/home/settings/account.ftl`，前端在 `settings.js`，发送接口在 `SettingsProcessor#sendPhoneVC/sendEmailVC`；验证码形态调整需同步前端提交字段与后端校验方式。
 - `AnonymousViewCheckMidware#handle`：匿名访客的验证码判定顺序为「登录态/apiKey → 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同 IP 有用户登录过就永久免验证，属既定设计）→ 2 小时内已通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 每 5 次访问」。计数窗口为 2 小时，累计 300 次触发 `Firewall` 封禁；`/api/` 命中验证码规则时返回 401 且不拉黑，避免服务端客户端被永久卡住。`sitemap.xml` 不在豁免名单内，仍依赖已验证蜘蛛通行。
-- `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。监听前解析 `yui.fishpi.cn`，按后台顺序调用 `Firewall.unbanIp` 与 `AnonymousCaptchaShield.administratorUnban`，每次启动恢复验证码白名单；仍保留原 CC 阈值。
+- `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。监听前解析 `yui.fishpi.cn` 并解封，加入 CC 与验证码白名单；CC 白名单不覆盖手动封禁，其他 IP 阈值不变。依赖可信代理正确设置来源 IP。
 - 历史遗留：部分接口未在路由层挂登录中间件而在方法内鉴权（如 `MedalProcessor#requireAdmin/requireLogin`、`UserProcessor` 的 goldFingerKey 系列）；新增接口不要复用该模式，优先路由层显式鉴权。
 - 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
 - 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。

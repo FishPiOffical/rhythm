@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "policyVersion": 1,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09; only the Server.main fingerprint is updated for this addition, with shield rules unchanged.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
@@ -54,7 +54,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/Server.java",
       "method": "public static void main(final String[] args) throws Exception",
-      "sha256": "ac588df17c1a528fa326b7a571134c4ab2a7421f81d2c51e3e423c9b3df9977c"
+      "sha256": "a57b6f7006b9c9d2e33068d91dea7bae4bcf0b65f42854037578ac260c7ed5f3"
     },
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3RealtimeService.java",

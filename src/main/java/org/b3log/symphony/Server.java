@@ -358,9 +358,10 @@ public final class Server extends BaseServer {
             for (final InetAddress address : InetAddress.getAllByName("yui.fishpi.cn")) {
                 final String ip = address.getHostAddress();
                 Firewall.unbanIp(ip);
+                Firewall.addCcWhitelist(ip);
                 // 启动时复用后台解封流程；阿达已授权为 SSR 域名解析结果加白。
                 AnonymousCaptchaShield.administratorUnban(ip);
-                LOGGER.info("SSR server startup unban requested and captcha whitelist added [host=yui.fishpi.cn, ip={}]", ip);
+                LOGGER.info("SSR server startup unban requested and CC/captcha whitelist added [host=yui.fishpi.cn, ip={}]", ip);
             }
         } catch (final Exception e) {
             LOGGER.warn("SSR server startup unban/whitelist failed [host=yui.fishpi.cn]", e);
