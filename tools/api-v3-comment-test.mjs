@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Isolated shared comment validation/quota checks. No Maven, application requests or output artifacts. */
+/** 隔离测试共享评论校验及配额，不请求应用或生成持久产物。 */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,9 +13,13 @@ const sources=['model/Comment','model/Role','model/UserExt','util/ApiV3ContentUt
 const limiter=['main/SimpleCurrentLimiter','control/MainControl','cache/MainCache','cache/pair/CachePair'];
 const suites=['ApiV3ArticlePolicyTest','CommentValidationTest','CommentWriteQuotaTest','ApiV3CommentInputsTest','ApiV3CommentPublicationTest','ApiV3ParagraphReadTest','CommentEditingTest','CommentPublishPointsTest'];
 const work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-comment-test-'));
-function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error('Comment preparation tests failed');}
+function run(cmd, args) {
+ const r = spawnSync(cmd, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw new Error('Comment preparation tests failed');
+}
 try{
- // UserExt's reserved-name configuration is unrelated to these visibility tests.
+ // 这组可见性测试独立于 UserExt 的保留名称配置。
  const shim=path.join(work,'Symphonys.java');
  fs.writeFileSync(shim,'package org.b3log.symphony.util; public final class Symphonys { public static final String[] RESERVED_USER_NAMES = {}; }');
  const classes=path.join(work,'classes'),cp=[latke,testng,sqlite].join(path.delimiter);

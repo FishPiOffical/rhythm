@@ -28,40 +28,98 @@ import static org.b3log.symphony.service.ApiV3SocketTicketServiceTest.*;
 /** 使用实际实时连接注册表、授权核心及 SQLite 状态，传输和 IP 检查由夹具控制。 */
 public class ApiV3RealtimeSessionsTest {
     static class Transport implements ApiV3RealtimeSessions.Transport {
-        final List<JSONObject> sent=new ArrayList<>();boolean closed,failSend;
-        public void send(String text){if(failSend)throw new IllegalStateException("slow transport");sent.add(new JSONObject(text));}
-        public void close(){closed=true;}
+        final List<JSONObject> sent = new ArrayList<>();
+        boolean closed,failSend;
+
+        public void send(String text) {
+            if (failSend) throw new IllegalStateException("slow transport");
+            sent.add(new JSONObject(text));
+        }
+
+        public void close() {
+            closed = true;
+        }
     }
     static class Live extends Fixture {
-        boolean allowed=true,slowConsume;int consumes;final ApiV3RealtimeSessions registry;
-        Live()throws Exception{
-            registry=new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority(){
-                public ApiV3SocketTicketService.Grant consume(String ticket)throws Exception{consumes++;var result=core.consume(ticket);if(slowConsume)clock+=5001;return result;}
-                public boolean authorized(ApiV3SocketTicketService.Grant grant)throws Exception{return core.authorized(grant);}
-            },(ip,record)->allowed,()->clock);
+        boolean allowed = true,slowConsume;
+        int consumes;
+        final ApiV3RealtimeSessions registry;
+
+        Live() throws Exception {
+            registry = new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority() {
+                public ApiV3SocketTicketService.Grant consume(String ticket) throws Exception {
+                    consumes++;
+                    var result = core.consume(ticket);
+                    if (slowConsume) clock += 5001;
+                    return result;
+                }
+
+                public boolean authorized(ApiV3SocketTicketService.Grant grant) throws Exception {
+                    return core.authorized(grant);
+                }
+            }, (ip, record) -> allowed, () -> clock);
         }
-        Transport open(Object key,String ip){var out=new Transport();registry.open(key,out,ip);return out;}
-        Transport authenticate(Object key,String actor,String parent)throws Exception{
-            var out=open(key,"192.0.2."+(registry.size()+1));registry.receive(key,new JSONObject().put("type","authenticate").put("ticket",core.issue(actor,parent).ticket()).toString());return out;
+
+        Transport open(Object key, String ip) {
+            var out = new Transport();
+            registry.open(key, out, ip);
+            return out;
         }
-        Transport article(Object key,String articleId)throws Exception{
-            var out=open(key,"192.0.2."+(registry.size()+1));registry.receive(key,new JSONObject().put("type","authenticate").put("ticket",core.issueArticle("123","456",articleId).ticket()).toString());return out;
+
+        Transport authenticate(Object key, String actor, String parent) throws Exception {
+            var out = open(key, "192.0.2." + (registry.size() + 1));
+            registry.receive(key, new JSONObject().put("type", "authenticate").put("ticket", core.issue(actor, parent).ticket()).toString());
+            return out;
         }
-        Transport messages(Object key,String actor,String parent)throws Exception{
-            var out=open(key,"192.0.2."+(registry.size()+1));registry.receive(key,new JSONObject().put("type","authenticate").put("ticket",core.issueMessages(actor,parent).ticket()).toString());return out;
+
+        Transport article(Object key, String articleId) throws Exception {
+            var out = open(key, "192.0.2." + (registry.size() + 1));
+            registry.receive(key, new JSONObject().put("type", "authenticate").put("ticket", core.issueArticle("123", "456", articleId).ticket()).toString());
+            return out;
         }
-        Transport chat(Object key)throws Exception{
-            var out=open(key,"192.0.2."+(registry.size()+1));registry.receive(key,new JSONObject().put("type","authenticate").put("ticket",core.issueChat("123","456").ticket()).toString());return out;
+
+        Transport messages(Object key, String actor, String parent) throws Exception {
+            var out = open(key, "192.0.2." + (registry.size() + 1));
+            registry.receive(key, new JSONObject().put("type", "authenticate").put("ticket", core.issueMessages(actor, parent).ticket()).toString());
+            return out;
+        }
+
+        Transport chat(Object key) throws Exception {
+            var out = open(key, "192.0.2." + (registry.size() + 1));
+            registry.receive(key, new JSONObject().put("type", "authenticate").put("ticket", core.issueChat("123", "456").ticket()).toString());
+            return out;
         }
     }
     public static void main(String[] args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");for(String key:List.of("latkeProps","localProps")){var field=Latkes.class.getDeclaredField(key);field.setAccessible(true);field.set(null,props);}
-        try(var f=new Live()){
-            var a=f.authenticate("a","123","456");var b=f.authenticate("b","321","654");var pending=f.open("pending","192.0.2.99");
-            Assert.assertEquals(a.sent.get(0).getString("type"),"authentication.required");Assert.assertEquals(a.sent.get(1).getString("type"),"ready");Assert.assertEquals(a.sent.get(1).getJSONObject("data").keySet(),Set.of("channel","expiresAt"));
-            f.registry.notificationsChanged("123");Assert.assertEquals(a.sent.size(),3);Assert.assertEquals(a.sent.get(2).keySet(),Set.of("type","data"));Assert.assertEquals(a.sent.get(2).getJSONObject("data").length(),0);Assert.assertEquals(b.sent.size(),2);Assert.assertEquals(pending.sent.size(),1);
-            f.registry.receive("a","{\"type\":\"ping\"}");Assert.assertEquals(a.sent.getLast().getString("type"),"pong");
-            write("UPDATE symphony_api_v3_token SET state=2 WHERE oId='456'");f.registry.notificationsChanged("123");Assert.assertTrue(a.closed);Assert.assertFalse(b.closed);Assert.assertEquals(f.registry.size(),2);
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        for (String key : List.of("latkeProps", "localProps")) {
+            var field = Latkes.class.getDeclaredField(key);
+            field.setAccessible(true);
+            field.set(null, props);
+        }
+        try (var f = new Live()) {
+            var a = f.authenticate("a", "123", "456");
+            var b = f.authenticate("b", "321", "654");
+            var pending = f.open("pending", "192.0.2.99");
+            Assert.assertEquals(a.sent.get(0).getString("type"), "authentication.required");
+            Assert.assertEquals(a.sent.get(1).getString("type"), "ready");
+            Assert.assertEquals(a.sent.get(1).getJSONObject("data").keySet(), Set.of("channel", "expiresAt"));
+
+            // 同时保留其他账号和未认证连接，检查通知只发给当前授权的目标。
+            f.registry.notificationsChanged("123");
+            Assert.assertEquals(a.sent.size(), 3);
+            Assert.assertEquals(a.sent.get(2).keySet(), Set.of("type", "data"));
+            Assert.assertEquals(a.sent.get(2).getJSONObject("data").length(), 0);
+            Assert.assertEquals(b.sent.size(), 2);
+            Assert.assertEquals(pending.sent.size(), 1);
+            f.registry.receive("a", "{\"type\":\"ping\"}");
+            Assert.assertEquals(a.sent.getLast().getString("type"), "pong");
+            write("UPDATE symphony_api_v3_token SET state=2 WHERE oId='456'");
+            f.registry.notificationsChanged("123");
+            Assert.assertTrue(a.closed);
+            Assert.assertFalse(b.closed);
+            Assert.assertEquals(f.registry.size(), 2);
         }
         System.out.println("PASS challenge-first authentication, owner-only whitelist invalidation, ping and parent revocation before delivery with real grant state");
         for(String bad:List.of("{}","{\"type\":\"authenticate\",\"ticket\":\"bad\"}","{\"type\":\"authenticate\",\"apiKey\":\"PRIVATE\"}","{\"type\":\"ping\"}","{\"type\":\"authenticate\",\"type\":\"authenticate\",\"ticket\":\"x\"}","x".repeat(1025),"中".repeat(400)))try(var f=new Live()){

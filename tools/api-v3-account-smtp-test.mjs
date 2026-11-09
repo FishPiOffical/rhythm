@@ -1,11 +1,24 @@
 #!/usr/bin/env node
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 const home=process.env.JAVA_HOME||'/Applications/Android Studio.app/Contents/jbr/Contents/Home';
 const dependencies=[process.env.API_V3_JODD_HTTP_JAR||'/tmp/rhythm-jodd-http-5.0.13.jar',process.env.API_V3_JODD_CORE_JAR||'/tmp/rhythm-jodd-core-5.0.13.jar',process.env.API_V3_MAIL_JAR||'/tmp/rhythm-javax-mail-1.6.2.jar',process.env.API_V3_ACTIVATION_JAR||path.join(os.homedir(),'.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar')];
 for(const file of dependencies)if(!fs.existsSync(file))throw Error('Set the API_V3_*_JAR variables to the pom.xml Jodd/JavaMail/Activation dependencies');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-real-smtp-')),files=[];
-function put(pkg,name,body){const file=path.join(dir,pkg.replaceAll('.','/'),name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'package '+pkg+';'+body);files.push(file);}
-function run(exe,args){const r=spawnSync(exe,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('SMTP tests failed');}
+function put(pkg, name, body) {
+ const file = path.join(dir, pkg.replaceAll('.', '/'), name + '.java');
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, 'package ' + pkg + ';' + body);
+ files.push(file);
+}
+
+function run(exe, args) {
+ const r = spawnSync(exe, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('SMTP tests failed');
+}
 try{
 const source=fs.readFileSync('src/main/java/org/b3log/symphony/util/Mails.java','utf8');
 const values={MAIL_CHANNEL:'local',MAIL_LOCAL_PORT:'25',MAIL_LOCAL_HOST:'fixture.invalid',MAIL_LOCAL_TRANSPORT_PROTOCOL:'smtp',MAIL_LOCAL_ISDEBUG:'true',MAIL_LOCAL_SMTP_AUTH:'false',MAIL_LOCAL_SMTP_SSL:'false',MAIL_LOCAL_SMTP_STARTTLS:'false',MAIL_LOCAL_SMTP_SENDER:'from@example.com',MAIL_LOCAL_SMTP_USERNAME:'fixture',MAIL_LOCAL_SMTP_PASSWORD:'fixture'};

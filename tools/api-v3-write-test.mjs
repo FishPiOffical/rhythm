@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Compile only the real v3 write protocol/transaction helpers and their tests into a temporary directory.
- * No Maven, server startup, application DB/build output, or generated stubs. JDBC fault cases use temporary SQLite.
- * JAVA_HOME: Java 25; API_V3_TESTNG_JAR: installed TestNG jar. Defaults to Android Studio on macOS.
+/** 只将真实的 v3 写入协议、事务辅助代码和对应测试编译到临时目录。
+ * JDBC 故障用例使用临时 SQLite，无需 Maven、运行中服务、应用数据库、编译产物或生成的替身。
+ * JAVA_HOME 指向 Java 25，API_V3_TESTNG_JAR 指向已安装的 TestNG，macOS 默认从 Android Studio 取用。
  */
 import fs from 'node:fs';
 import os from 'node:os';

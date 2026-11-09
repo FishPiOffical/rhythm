@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-/** Compiles the real whole FishGameMgmtService; actual SQL/transactions use temporary SQLite adapters. */
+/** 编译完整的 FishGameMgmtService，并通过临时 SQLite 适配器执行实际 SQL 和事务。 */
 public class ApiV3FishGameMgmtServiceTest {
     public static void main(final String[] args) throws Exception {
         try (final Fixture f = fixture()) {

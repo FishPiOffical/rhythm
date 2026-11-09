@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated real fish-game service and SQL tests; never connects to the application database.
- * HTTP, OAuth validation, MySQL row locks and v3 coordination are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离测试实际鱼游服务和 SQL，使用独立测试数据库。
+ * 覆盖范围不含 HTTP、OAuth 校验、MySQL 行锁及 API v3 协调流程。
+ * 若不使用默认 IDE 安装，请配置 JAVA_HOME（Java 25）、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

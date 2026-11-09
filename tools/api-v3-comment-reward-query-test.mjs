@@ -1,11 +1,24 @@
 #!/usr/bin/env node
 /** 在 SQLite 或 --mysql 模式执行生产读取 SQL、实际鉴权与控制器，应用 IoC 另行验证。 */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import{spawnSync}from'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-comment-rewards-'));
 const mysql=process.argv.includes('--mysql');let container;
 const cp=[...(mysql?[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')]:[]),`${ide}/lib/intellij.libraries.caffeine.jar`,'src/main/resources/lib/latke-core.jar',`${ide}/plugins/testng/lib/testng.jar`,`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter),shims=[];
-function shim(name,body){const f=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,body);shims.push(f)}
-function run(binary,args){const r=spawnSync(binary,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('comment reward read test failed')}
+function shim(name, body) {
+ const f = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(f), { recursive: true });
+ fs.writeFileSync(f, body);
+ shims.push(f)
+}
+
+function run(binary, args) {
+ const r = spawnSync(binary, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('comment reward read test failed')
+}
 try{
  for(const name of ['User','Comment','Reward'])shim('org/b3log/symphony/repository/'+name+'Repository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;public class '+name+'Repository extends AbstractRepository{public '+name+'Repository(){super("'+name.toLowerCase()+'");}}');
  shim('org/b3log/symphony/model/UserExt','package org.b3log.symphony.model;public class UserExt{public static final int USER_STATUS_C_VALID=0,USER_XXX_STATUS_C_ENABLED=0;public static final String USER_NICKNAME="userNickname",USER_AVATAR_URL="userAvatarURL";}');

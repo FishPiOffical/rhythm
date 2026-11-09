@@ -169,17 +169,27 @@ public final class ApiV3ClientUpdateTest {
         equal(query(x.f.reader,"SELECT state FROM tokens WHERE oId='5000'").getFirst().getInt("state"),0);
         equal(query(x.f.reader,"SELECT state FROM tokens WHERE oId='11'").getFirst().getInt("state"),0);
     }
-    public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
         try(var x=new UpdateFixture()){
             String proofs=x.proofs();
             for(String token:Arrays.asList(null,"invalid"))equal(x.http(TARGET,token,body("New","content.read",List.of(FIRST)),"denied").getInt("status"),401);
             for(String token:List.of("12","13","14"))equal(x.http(TARGET,token,body("New","content.read",List.of(FIRST)),"denied").getInt("status"),403);
             equal(x.snapshot(),x.before);
             var result=data(x.http(TARGET,"11",body(" New name ","profile.read content.read profile.read",List.of(SECOND,FIRST)),"name"));
-            equal(result.keySet(),Set.of("clientId","name","scope","status","redirectUris"));equal(result.getString("name"),"New name");equal(result.getString("scope"),"content.read profile.read");equal(result.getInt("status"),0);
-            equal(x.proofs(),proofs);check(x.f.clientNamespaceLocked,"sorted namespace lock acquired");
-            var decision=x.consentService.decide("1",x.oldConsent.requestId(),x.oldConsent.consentToken(),false);check(!decision.approved(),"name-only preserves actual outstanding consent usability");
+            equal(result.keySet(), Set.of("clientId", "name", "scope", "status", "redirectUris"));
+            equal(result.getString("name"), "New name");
+            equal(result.getString("scope"), "content.read profile.read");
+            equal(result.getInt("status"), 0);
+            equal(x.proofs(), proofs);
+            check(x.f.clientNamespaceLocked, "sorted namespace lock acquired");
+            var decision = x.consentService.decide("1", x.oldConsent.requestId(), x.oldConsent.consentToken(), false);
+            check(!decision.approved(), "name-only preserves actual outstanding consent usability");
         }
         System.out.println("PASS 1 actual PUT/current-admin gates and pure name/scoped-word/URI-order normalization; name-only keeps tokens/codes/consent proofs, actual old consent can still complete");
         for(boolean uriChange:List.of(false,true))try(var x=new UpdateFixture()){
@@ -199,9 +209,13 @@ public final class ApiV3ClientUpdateTest {
         System.out.println("PASS 3 actual code-exchange and consent-decision cores reject deleted old proof even after callback/scope definitions are restored; no manufactured denied or consumed/family state");
         try(var x=new UpdateFixture()){
             var first=x.update("key","Updated","content.read",List.of(SECOND,FIRST));
-            var replay=x.update("key"," Updated ","content.read content.read",List.of(FIRST,SECOND));equal(ApiV3Json.canonical(first),ApiV3Json.canonical(replay));
-            x.update("later","Later","content.read profile.read",List.of("https://later.example/cb"));String after=x.snapshot();
-            equal(ApiV3Json.canonical(x.update("key","Updated","content.read",List.of(FIRST,SECOND))),ApiV3Json.canonical(first));equal(x.snapshot(),after);
+            var replay = x.update("key", " Updated ", "content.read content.read", List.of(FIRST, SECOND));
+            equal(ApiV3Json.canonical(first), ApiV3Json.canonical(replay));
+            x.update("later", "Later", "content.read profile.read", List.of("https://later.example/cb"));
+            String after = x.snapshot();
+            // 老键重放返回原回执，数据库仍保留之后的更新。
+            equal(ApiV3Json.canonical(x.update("key", "Updated", "content.read", List.of(FIRST, SECOND))), ApiV3Json.canonical(first));
+            equal(x.snapshot(), after);
             denied(409,()->x.update("key","Other","content.read",List.of(FIRST,SECOND)));
             exec(x.f.writer,"UPDATE clients SET status=1 WHERE clientId=?",TARGET);equal(x.update("disabled","Disabled metadata","content.read",List.of(FIRST)).getInt("status"),1);
             equal(query(x.f.reader,"SELECT status FROM clients WHERE clientId=?",TARGET).getFirst().getInt("status"),1);
@@ -218,25 +232,40 @@ public final class ApiV3ClientUpdateTest {
         }
         System.out.println("PASS 5 full-replacement required fields, strict JSON/key/path/20-callback/2048 URI boundaries and protected website reject without metadata/proof/receipt changes");
         try(var x=new UpdateFixture()){
-            x.update("first","One","content.read",List.of(FIRST));String before=x.snapshot();exec(x.f.writer,"UPDATE user SET userRole='defaultRole' WHERE oId='1'");
-            denied(403,()->x.update("first","One","content.read",List.of(FIRST)));equal(x.snapshot(),before);
+            x.update("first", "One", "content.read", List.of(FIRST));
+            String before = x.snapshot();
+            exec(x.f.writer, "UPDATE user SET userRole='defaultRole' WHERE oId='1'");
+            denied(403, () -> x.update("first", "One", "content.read", List.of(FIRST)));
+            equal(x.snapshot(), before);
         }
         try(var x=new UpdateFixture()){
-            x.f.beforeBegin=()->exec(x.f.writer,"UPDATE tokens SET state=2 WHERE oId='11'");equal(x.http(TARGET,"11",body("Changed","content.read",List.of(FIRST)),"inflight").getInt("status"),403);
-            equal(query(x.f.reader,"SELECT name FROM clients WHERE clientId=?",TARGET).getFirst().getString("name"),"External");equal(query(x.f.reader,"SELECT * FROM requests").size(),0);
+            x.f.beforeBegin = () -> exec(x.f.writer, "UPDATE tokens SET state=2 WHERE oId='11'");
+            equal(x.http(TARGET, "11", body("Changed", "content.read", List.of(FIRST)), "inflight").getInt("status"), 403);
+            equal(query(x.f.reader, "SELECT name FROM clients WHERE clientId=?", TARGET).getFirst().getString("name"), "External");
+            equal(query(x.f.reader, "SELECT * FROM requests").size(), 0);
         }
         System.out.println("PASS 6 replay and preflight race recheck current first-party administrator/token within root, preventing post-revocation metadata or privilege changes");
         for(String fault:List.of("metadata.after","redirect.delete.after","redirect.insert.after","token.after","code.after","consent.after","receipt.add.after","receipt.update.after","release.after","commit"))try(var x=new UpdateFixture()){
-            x.f.faults.add(fault);denied(503,()->x.update("fault","Changed","content.read",List.of("https://new.example/cb")));equal(x.snapshot(),x.before);check(!x.f.active()&&JdbcRepository.TX.get()==null,"failed root clean "+fault);
-            x.f.faults.clear();x.update("fault","Changed","content.read",List.of("https://new.example/cb"));invalidated(x);
+            x.f.faults.add(fault);
+            denied(503, () -> x.update("fault", "Changed", "content.read", List.of("https://new.example/cb")));
+            equal(x.snapshot(), x.before);
+            check(!x.f.active() && JdbcRepository.TX.get() == null, "failed root clean " + fault);
+            x.f.faults.clear();
+            x.update("fault", "Changed", "content.read", List.of("https://new.example/cb"));
+            invalidated(x);
         }
         System.out.println("PASS 7 every metadata/callback/token/code/pending-consent/receipt write and actual strict JDBC savepoint/commit fault rolls back all effects; same-key recovery is safe");
         try(var x=new UpdateFixture()){
             x.f.faults.add("observer");x.update("observe","Changed","content.read",List.of(FIRST));
         }
         try(var x=new UpdateFixture()){
-            x.f.faults.add("commit.after");denied(503,()->x.update("ack","Changed","content.read",List.of(FIRST)));invalidated(x);equal(query(x.f.reader,"SELECT * FROM requests").size(),1);
-            String after=x.snapshot();equal(x.update("ack","Changed","content.read",List.of(FIRST)).getString("name"),"Changed");equal(x.snapshot(),after);
+            x.f.faults.add("commit.after");
+            denied(503, () -> x.update("ack", "Changed", "content.read", List.of(FIRST)));
+            invalidated(x);
+            equal(query(x.f.reader, "SELECT * FROM requests").size(), 1);
+            String after = x.snapshot();
+            equal(x.update("ack", "Changed", "content.read", List.of(FIRST)).getString("name"), "Changed");
+            equal(x.snapshot(), after);
         }
         System.out.println("PASS 8 separate observer never sees partial replacement; actual committed-but-lost JDBC acknowledgement preserves all invalidations and original receipt for non-overwriting retry");
         for(String sql:List.of("UPDATE clients SET status=9 WHERE clientId='external_app'","UPDATE clients SET scope='unknown.scope' WHERE clientId='external_app'","UPDATE redirects SET redirectUri='https://user:PRIVATE@app.example/cb' WHERE clientId='external_app'"))try(var x=new UpdateFixture()){

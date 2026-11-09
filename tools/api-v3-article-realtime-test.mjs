@@ -1,11 +1,24 @@
 #!/usr/bin/env node
-/** Actual article/comment hooks and reaction service with separate SQLite readers; no application DB, MySQL locks or HTTP. */
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
+/** 使用独立的 SQLite 读取连接测试实际文章、评论钩子及表态服务。 */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-article-realtime-')),shims=[];
-function shim(name,source){const file=path.join(work,`${name}.java`);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,source);shims.push(file);}
-function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error('Article realtime tests failed');}
+function shim(name, source) {
+ const file = path.join(work, `${name}.java`);
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, source);
+ shims.push(file);
+}
+
+function run(cmd, args) {
+ const r = spawnSync(cmd, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw new Error('Article realtime tests failed');
+}
 try{
  for(const [type,key] of [['Article','article'],['Comment','comment']])shim(`org/b3log/symphony/cache/${type}Cache`,`package org.b3log.symphony.cache; public class ${type}Cache {public org.json.JSONObject get${type}(String id){return null;}public void put${type}(org.json.JSONObject row){}public void remove${type}(String id){}}`);
  for(const [name,table]of [['User','user'],['ChatRoom','chat'],['Revision','revision'],['Option','option']])shim(`org/b3log/symphony/repository/${name}Repository`,`package org.b3log.symphony.repository; public class ${name}Repository extends org.b3log.latke.repository.AbstractRepository {public ${name}Repository(){super("${table}");}@Override public String getName(){return "${table}";}}`);

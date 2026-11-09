@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-/** Executes production SQL on isolated SQLite. FOR UPDATE is removed: MySQL locking is NOT tested. */
+/** 在隔离的 SQLite 上执行生产 SQL。适配时移除 FOR UPDATE，MySQL 锁行为需另行验证。 */
 public class ApiV3NotificationSqlTest {
     @Test
     public void categoryMapIsDisjointAndAllCurrentTypesAreRepresented() throws Exception {

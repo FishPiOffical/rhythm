@@ -190,21 +190,76 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
  public static void main(String[] args)throws Exception {
   var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
   try(var f=new F()) {
-   JSONObject result=f.create("a");String job=result.getString("jobId");Assert.assertEquals(result.getString("status"),"ready");Assert.assertEquals(result.getInt("articleCount"),6);Assert.assertEquals(result.getInt("commentCount"),8);Assert.assertEquals(f.balance(),400);Assert.assertEquals(f.n("transfers"),1);Assert.assertEquals(f.n("transfer_index"),2);Assert.assertEquals(f.n("export_receipts"),1);
-   var entries=unzip(f.export.download(identity(),job));Assert.assertEquals(entries.size(),21);JSONObject manifest=new JSONObject(entries.get("manifest.json"));Assert.assertEquals(manifest.getJSONArray("articles").length(),6);Assert.assertEquals(manifest.getJSONArray("comments").length(),8);Assert.assertEquals(entries.get("articles/6.reward.md"),"PAID_SECRET");Assert.assertEquals(entries.get("articles/1.md"),"body 1\n中文🙂");Assert.assertEquals(manifest.getJSONArray("articles").getJSONObject(0).getLong("createdAt"),123);
-   String all=entries.toString();for(String forbidden:List.of("OTHER_TITLE","OTHER_BODY","OTHER_PRIVATE","OTHER_REWARD","PRIVATE_IP","userPassword","articleAuthorId","commentIP"))Assert.assertFalse(all.contains(forbidden),forbidden);
-   Assert.assertEquals(f.create("a").getString("jobId"),job);Assert.assertEquals(f.generated,1);Assert.assertEquals(f.balance(),400);Assert.assertEquals(f.n("transfers"),1);Assert.assertFalse(result.has("indexTransferId"));Assert.assertFalse(result.toString().contains("upload"));
+   JSONObject result = f.create("a");
+   String job = result.getString("jobId");
+   Assert.assertEquals(result.getString("status"), "ready");
+   Assert.assertEquals(result.getInt("articleCount"), 6);
+   Assert.assertEquals(result.getInt("commentCount"), 8);
+   Assert.assertEquals(f.balance(), 400);
+   Assert.assertEquals(f.n("transfers"), 1);
+   Assert.assertEquals(f.n("transfer_index"), 2);
+   Assert.assertEquals(f.n("export_receipts"), 1);
+
+   // 校验下载包既保留本人原文，也排除他人内容和敏感字段。
+   var entries = unzip(f.export.download(identity(), job));
+   Assert.assertEquals(entries.size(), 21);
+   JSONObject manifest = new JSONObject(entries.get("manifest.json"));
+   Assert.assertEquals(manifest.getJSONArray("articles").length(), 6);
+   Assert.assertEquals(manifest.getJSONArray("comments").length(), 8);
+   Assert.assertEquals(entries.get("articles/6.reward.md"), "PAID_SECRET");
+   Assert.assertEquals(entries.get("articles/1.md"), "body 1\n中文🙂");
+   Assert.assertEquals(manifest.getJSONArray("articles").getJSONObject(0).getLong("createdAt"), 123);
+   String all = entries.toString();
+   for (String forbidden : List.of("OTHER_TITLE", "OTHER_BODY", "OTHER_PRIVATE", "OTHER_REWARD", "PRIVATE_IP",
+       "userPassword", "articleAuthorId", "commentIP")) Assert.assertFalse(all.contains(forbidden), forbidden);
+
+   Assert.assertEquals(f.create("a").getString("jobId"), job);
+   Assert.assertEquals(f.generated, 1);
+   Assert.assertEquals(f.balance(), 400);
+   Assert.assertEquals(f.n("transfers"), 1);
+   Assert.assertFalse(result.has("indexTransferId"));
+   Assert.assertFalse(result.toString().contains("upload"));
   }System.out.println("PASS export 1 complete own hidden/invalid/anonymous/private/reward matrix, UTF8 ZIP fixed ID entries and genuine timestamps; excludes foreign content/account data, idempotent charge/index once");
   try(var f=new F()){
    for(int i=1000;i<1260;i++)sql(f.db,"INSERT INTO comments VALUES(?,'1',?,'999','',321,1,1,0,1,'IP')",String.valueOf(i),"batch "+i);
-   var job=f.create("all");Assert.assertEquals(job.getInt("commentCount"),268);Assert.assertEquals(new JSONObject(unzip(f.export.download(identity(),job.getString("jobId"))).get("manifest.json")).getJSONArray("comments").length(),268);
+   var job = f.create("all");
+   Assert.assertEquals(job.getInt("commentCount"), 268);
+   Assert.assertEquals(new JSONObject(unzip(f.export.download(identity(), job.getString("jobId"))).get("manifest.json"))
+       .getJSONArray("comments").length(), 268);
   }System.out.println("PASS export 2 explicit complete count and keyset enumeration beyond default pagination, no foreign target visibility requirement");
   for(String failure:List.of("snapshot","chunks","job","charge","receipt","commit"))try(var f=new F()){
-   f.exportFault=failure;error(503,()->f.create("fault"));Assert.assertEquals(f.balance(),500);for(String table:List.of("artifacts","chunks","transfers","export_receipts"))Assert.assertEquals(f.n(table),0,failure+table);f.exportFault="";Assert.assertEquals(f.create("fault").getString("status"),"ready");Assert.assertEquals(f.balance(),400);
+   f.exportFault = failure;
+   error(503, () -> f.create("fault"));
+   Assert.assertEquals(f.balance(), 500);
+   for (String table : List.of("artifacts", "chunks", "transfers", "export_receipts"))
+    Assert.assertEquals(f.n(table), 0, failure + table);
+   f.exportFault = "";
+   Assert.assertEquals(f.create("fault").getString("status"), "ready");
+   Assert.assertEquals(f.balance(), 400);
   }System.out.println("PASS export 3 real JDBC snapshot/chunk/job/charge/receipt/commit fault rollback; failed request never charges and same key can recover");
   try(var f=new F()) {
-   f.exportFault="ack";error(503,()->f.create("ack"));Assert.assertEquals(f.balance(),400);Assert.assertEquals(f.n("artifacts"),1);f.exportFault="";String job=f.create("ack").getString("jobId");Assert.assertEquals(f.balance(),400);Assert.assertEquals(f.generated,1);Assert.assertEquals(f.n("transfer_index"),2);
-   var other=identity().put("tokenId","102").put("user",new JSONObject().put("oId","2"));error(404,()->f.export.download(other,job));sql(f.db,"UPDATE tokens SET state=2 WHERE oId='100'");error(403,()->f.export.download(identity(),job));sql(f.db,"UPDATE tokens SET state=0 WHERE oId='100'");f.clock=NOW+86_400_000L;error(410,()->f.export.download(identity(),job));Assert.assertEquals(f.export.purgeExpired(),1);Assert.assertEquals(f.n("artifacts"),0);Assert.assertEquals(f.n("chunks"),0);Assert.assertEquals(f.create("ack").getString("status"),"expired");Assert.assertEquals(f.balance(),400);
+   f.exportFault = "ack";
+   error(503, () -> f.create("ack"));
+   Assert.assertEquals(f.balance(), 400);
+   Assert.assertEquals(f.n("artifacts"), 1);
+   f.exportFault = "";
+   String job = f.create("ack").getString("jobId");
+   Assert.assertEquals(f.balance(), 400);
+   Assert.assertEquals(f.generated, 1);
+   Assert.assertEquals(f.n("transfer_index"), 2);
+
+   var other = identity().put("tokenId", "102").put("user", new JSONObject().put("oId", "2"));
+   error(404, () -> f.export.download(other, job));
+   sql(f.db, "UPDATE tokens SET state=2 WHERE oId='100'");
+   error(403, () -> f.export.download(identity(), job));
+   sql(f.db, "UPDATE tokens SET state=0 WHERE oId='100'");
+   f.clock = NOW + 86_400_000L;
+   error(410, () -> f.export.download(identity(), job));
+   Assert.assertEquals(f.export.purgeExpired(), 1);
+   Assert.assertEquals(f.n("artifacts"), 0);
+   Assert.assertEquals(f.n("chunks"), 0);
+   Assert.assertEquals(f.create("ack").getString("status"), "expired");
+   Assert.assertEquals(f.balance(), 400);
   }System.out.println("PASS export 4 lost commit acknowledgment replays same artifact once; current first-party owner/authorization and exact expiry, transactional content purge and expired receipt replay");
   for(String damage:List.of("DELETE FROM chunks","UPDATE chunks SET data='AAAA'","UPDATE chunks SET userId='2'","UPDATE artifacts SET sha256='"+"a".repeat(64)+"'","UPDATE chunks SET sequenceNo=99"))try(var f=new F()){String job=f.create("damage").getString("jobId");sql(f.db,damage);error(503,()->f.export.download(identity(),job));}
   System.out.println("PASS export 5 missing/corrupt/foreign/reordered chunk and digest fail before download bytes");

@@ -1,9 +1,22 @@
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import{spawnSync}from'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-chat-mutes-')),shims=[];
 const mysql=process.argv.includes('--mysql');let container;
 const cp=[...(mysql?[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')]:[]),`${ide}/lib/intellij.libraries.caffeine.jar`,'src/main/resources/lib/latke-core.jar',`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
-function shim(name,body){const p=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,body);shims.push(p)}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status)throw Error('Chat mute tests failed')}
+function shim(name, body) {
+ const p = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(p), { recursive: true });
+ fs.writeFileSync(p, body);
+ shims.push(p)
+}
+
+function run(bin, args) {
+ const r = spawnSync(bin, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status) throw Error('Chat mute tests failed')
+}
 try{
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;public class UserRepository extends AbstractRepository{public UserRepository(){super("user");}}');
  shim('org/b3log/symphony/repository/CloudRepository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;public class CloudRepository extends AbstractRepository{public CloudRepository(){super("cloud");}}');

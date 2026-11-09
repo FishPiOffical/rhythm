@@ -1,11 +1,25 @@
 #!/usr/bin/env node
-/** Exact production follow-state SQL over SQLite; auth/controller compile is separate from full app IoC. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import{spawnSync}from'node:child_process';
+/** 执行正式关注状态 SQL，认证与控制器独立于应用 IoC 编译。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-follow-state-'));
-const mysql=process.argv.includes('--mysql');let container;
+const mysql = process.argv.includes('--mysql');
+let container;
 const cp=[...(mysql?[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')]:[]),`${ide}/lib/intellij.libraries.caffeine.jar`,'src/main/resources/lib/latke-core.jar',`${ide}/plugins/testng/lib/testng.jar`,`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter),shims=[];
-function shim(name,body){const f=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,body);shims.push(f)}
-function run(binary,args){const r=spawnSync(binary,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('follow state test failed')}
+function shim(name, body) {
+ const f = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(f), { recursive: true });
+ fs.writeFileSync(f, body);
+ shims.push(f)
+}
+
+function run(binary, args) {
+ const r = spawnSync(binary, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('follow state test failed')
+}
 try{
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository{public UserRepository(){super("user");}}');
  shim('org/b3log/symphony/repository/TagRepository','package org.b3log.symphony.repository;public class TagRepository extends org.b3log.latke.repository.AbstractRepository{public TagRepository(){super("tag");}}');

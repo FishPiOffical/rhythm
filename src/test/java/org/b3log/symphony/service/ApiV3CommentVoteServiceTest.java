@@ -28,7 +28,7 @@ import org.json.JSONObject;
 import org.testng.Assert;
 import java.util.*;
 
-/** Actual v3 vote service, mutation core, idempotency and SQL; runtime/visibility repositories are adapters. */
+/** 验证实际的 v3 评论投票、变更逻辑、幂等和 SQL。运行环境和可见性查询由适配器提供。 */
 public class ApiV3CommentVoteServiceTest {
     public static void main(String[] args)throws Exception {
         final var props=new Properties();props.setProperty("runtimeDatabase","NONE");

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Executes the exact production articles method in SQLite. DTO/Repository/pagination are adapters.
+// 在 SQLite 中原样执行正式文章查询方法，DTO、仓储与分页使用适配器。
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,8 +12,17 @@ const source=fs.readFileSync('src/main/java/org/b3log/symphony/service/ApiV3Disc
 const method=source.slice(source.indexOf('    public JSONObject articles('),source.indexOf('    public JSONObject targetUser(')).trim();
 const records=source.slice(source.indexOf('    public record Following('),source.indexOf('    public JSONObject tags('));
 if(!method.startsWith('public JSONObject articles(')||!method.endsWith('}'))throw Error('Review production method boundary');
-function put(name,value){const file=path.join(work,name+'.java');fs.writeFileSync(file,value);return file;}
-function run(command,args){const result=spawnSync(command,args,{stdio:'inherit'});if(result.error)throw result.error;if(result.status!==0)throw Error('Feed query verification failed');}
+function put(name, value) {
+ const file = path.join(work, name + '.java');
+ fs.writeFileSync(file, value);
+ return file;
+}
+
+function run(command, args) {
+ const result = spawnSync(command, args, { stdio: 'inherit' });
+ if (result.error) throw result.error;
+ if (result.status !== 0) throw Error('Feed query verification failed');
+}
 try{
  const symphonys=put('Symphonys','package org.b3log.symphony.util;public class Symphonys{public static final long STICK_ARTICLE_TIME=1800000L;public static final String[] RESERVED_TAGS={},WHITE_LIST_TAGS={},RESERVED_USER_NAMES={};}');
  const requests=put('ApiV3Requests','package org.b3log.symphony.util;import org.json.*;public class ApiV3Requests{public static JSONObject pagination(JSONArray list,int p,int size,long total){return new JSONObject().put("list",list).put("pagination",new JSONObject().put("p",p).put("size",size).put("total",total).put("pageCount",(total+size-1)/size));}}');

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Default: denials/read-only checks.
- * API_V3_TOKEN needs activity.read + activity.write. Optional API_V3_READ_ONLY_TOKEN checks scope rejection.
- * API_V3_ALLOW_PATCH_USE=1 permanently consumes a card on a disposable eligible account; no undo.
+/** 确认 IDEA 重新编译或重启后运行，默认验证拒绝路径和只读接口。
+ * API_V3_TOKEN 需要 activity.read 和 activity.write。可选的 API_V3_READ_ONLY_TOKEN 用于验证权限不足。
+ * API_V3_ALLOW_PATCH_USE=1 会在符合条件的临时账号中永久消耗一张补签卡。
  */
 import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN,path='/me/bag/patchCheckinCard/use';let failures=0;

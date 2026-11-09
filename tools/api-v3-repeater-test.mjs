@@ -1,14 +1,37 @@
 #!/usr/bin/env node
-/** Java25 isolated real SQL/controller/auth/routes; SQLite, Token, repository names and envelope adapters. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+/** 用 Java 25 隔离验证复读查询的 SQL、控制器、鉴权和路由，SQLite、令牌、仓库名和响应封装使用适配器。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||(fs.existsSync(ide)?`${ide}/jbr/Contents/Home`:'');
 // Shared captcha dependencies come from the built application; do not replace its protection with more shims.
 if(!process.env.API_V3_RUNTIME_CLASSPATH)throw Error('Set API_V3_RUNTIME_CLASSPATH to the built application classes and dependency jars (Java 25).');
 const cp=[process.env.API_V3_RUNTIME_CLASSPATH,process.env.API_V3_CAFFEINE_JAR,process.env.API_V3_TESTNG_JAR,process.env.API_V3_SQLITE_JAR].filter(Boolean).join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-repeater-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit',timeout:60000});if(r.error)throw r.error;if(r.status!==0)throw Error('Repeater tests failed');}
+function shim(name, body) {
+  const file = path.join(dir, name + '.java');
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  fs.writeFileSync(file, body);
+  shims.push(file);
+}
+
+function method(source, signature) {
+  const begin = source.indexOf(signature);
+  if (begin < 0) throw Error(signature);
+  let depth = 0;
+  for (let i = source.indexOf('{', begin); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+  }
+  throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+  const r = spawnSync(bin, args, {stdio: 'inherit', timeout: 60000});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error('Repeater tests failed');
+}
 try{
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}}');
  shim('org/b3log/symphony/repository/ArticleRepository','package org.b3log.symphony.repository;public class ArticleRepository extends org.b3log.latke.repository.AbstractRepository {public ArticleRepository(){super("article");}}');

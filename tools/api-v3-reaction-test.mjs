@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated reaction transition, SQL and DTO tests; never connects to the application database.
- * HTTP, target visibility, MySQL locks and event delivery are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离验证表态状态转换、SQL 和 DTO，不连接应用数据库。
+ * HTTP、目标可见性、MySQL 行锁和事件投递须另行验证。
+ * 未使用默认 IDE 安装时，请配置 Java 25 的 JAVA_HOME、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

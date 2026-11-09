@@ -88,40 +88,111 @@ public class ApiV3CommitFailureTest {
         return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store,"123","commit-test","same-key",new JSONObject(),store::debit);
     }
     public static void main(String[] args)throws Exception {
-        var properties=new java.util.Properties();properties.setProperty("runtimeDatabase","NONE");properties.setProperty("jdbc.tablePrefix","symphony_");
-        for(String name:new String[]{"latkeProps","localProps"}){var field=org.b3log.latke.Latkes.class.getDeclaredField(name);field.setAccessible(true);field.set(null,properties);}
+        var properties = new java.util.Properties();
+        properties.setProperty("runtimeDatabase", "NONE");
+        properties.setProperty("jdbc.tablePrefix", "symphony_");
+        for (String name : new String[]{"latkeProps", "localProps"}) {
+            var field = org.b3log.latke.Latkes.class.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(null, properties);
+        }
         try(var s=new Store()){
-            s.fault=Fault.BEFORE_COMMIT;var tx=s.begin(false);s.debit();tx.commit();
-            Assert.assertFalse(tx.isActive());Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),500L);Assert.assertEquals(s.commits,1);
+            s.fault = Fault.BEFORE_COMMIT;
+            var tx = s.begin(false);
+            s.debit();
+            tx.commit();
+            Assert.assertFalse(tx.isActive());
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 500L);
+            Assert.assertEquals(s.commits, 1);
         }
         System.out.println("PASS regression reproduced on actual bundled JdbcTransaction: commit returns after JDBC rejection and connection disposal");
         try(var s=new Store()){
-            s.fault=Fault.BEFORE_COMMIT;var tx=s.begin(true);s.debit();boolean failed=false;
-            try{tx.commit();}catch(IllegalStateException e){failed=true;Assert.assertTrue(e.getCause() instanceof SQLException);}
-            Assert.assertTrue(failed);Assert.assertTrue(tx.isActive());tx.rollback();Assert.assertFalse(tx.isActive());Assert.assertEquals(s.rollbacks,1);Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),500L);Assert.assertNull(JdbcRepository.TX.get());
+            s.fault = Fault.BEFORE_COMMIT;
+            var tx = s.begin(true);
+            s.debit();
+            boolean failed = false;
+            try {
+                tx.commit();
+            } catch (IllegalStateException e) {
+                failed = true;
+                Assert.assertTrue(e.getCause() instanceof SQLException);
+            }
+            Assert.assertTrue(failed);
+            Assert.assertTrue(tx.isActive());
+            tx.rollback();
+            Assert.assertFalse(tx.isActive());
+            Assert.assertEquals(s.rollbacks, 1);
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 500L);
+            Assert.assertNull(JdbcRepository.TX.get());
         }
         System.out.println("PASS strict commit propagates JDBC failure, retains rollback ownership and clears actual framework state after rollback");
         try(var s=new Store()){
-            s.fault=Fault.BEFORE_COMMIT;boolean failed=false;try{execute(s);}catch(IllegalStateException expected){failed=true;}
-            Assert.assertTrue(failed);Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),500L);Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"),0L);Assert.assertNull(s.marker());
-            s.fault=Fault.NONE;Assert.assertTrue(execute(s).applied());Assert.assertFalse(execute(s).applied());Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),400L);
+            s.fault = Fault.BEFORE_COMMIT;
+            boolean failed = false;
+            try {
+                execute(s);
+            } catch (IllegalStateException expected) {
+                failed = true;
+            }
+            Assert.assertTrue(failed);
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 500L);
+            Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"), 0L);
+            Assert.assertNull(s.marker());
+            s.fault = Fault.NONE;
+            Assert.assertTrue(execute(s).applied());
+            Assert.assertFalse(execute(s).applied());
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 400L);
         }
         System.out.println("PASS real coordinator cannot return success on rejected JDBC commit; receipt/debit rollback and same-key retry applies once");
         try(var s=new Store()){
-            s.fault=Fault.AFTER_COMMIT;boolean failed=false;try{execute(s);}catch(IllegalStateException expected){failed=true;}
-            Assert.assertTrue(failed);Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),400L);Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"),1L);String marker=s.marker();Assert.assertNotNull(marker);
-            s.fault=Fault.NONE;var replay=execute(s);Assert.assertFalse(replay.applied());Assert.assertEquals(replay.result().getInt("balance"),400);Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),400L);Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"),1L);Assert.assertEquals(s.marker(),marker);
+            // 提交落盘但确认丢失后，回放要复用原回执与版本，余额不再扣减。
+            s.fault = Fault.AFTER_COMMIT;
+            boolean failed = false;
+            try {
+                execute(s);
+            } catch (IllegalStateException expected) {
+                failed = true;
+            }
+            Assert.assertTrue(failed);
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 400L);
+            Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"), 1L);
+            String marker = s.marker();
+            Assert.assertNotNull(marker);
+            s.fault = Fault.NONE;
+            var replay = execute(s);
+            Assert.assertFalse(replay.applied());
+            Assert.assertEquals(replay.result().getInt("balance"), 400);
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 400L);
+            Assert.assertEquals(s.scalar("SELECT COUNT(*) FROM receipt"), 1L);
+            Assert.assertEquals(s.marker(), marker);
         }
         System.out.println("PASS injected lost acknowledgement after real commit fails request; fresh same-key retry replays durable receipt without a second debit");
         try(var s=new Store()){
-            var tx=s.begin(true);s.debit();tx.commit();Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),400L);Assert.assertFalse(tx.isActive());Assert.assertNull(JdbcRepository.TX.get());
-            try{tx.commit();Assert.fail();}catch(IllegalStateException expected){}
+            var tx = s.begin(true);
+            s.debit();
+            tx.commit();
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 400L);
+            Assert.assertFalse(tx.isActive());
+            Assert.assertNull(JdbcRepository.TX.get());
+            try {
+                tx.commit();
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
         }
         var other=new Transaction(){public void commit(){}public void rollback(){}public boolean isActive(){return false;}};Assert.assertSame(ApiV3Transactions.strict(other),other);
         System.out.println("PASS normal durable commit/disposal, inactive reuse guard and non-JDBC transaction behavior");
         try(var s=new Store()){
-            s.begin(true);s.debit();final Connection read=DriverManager.getConnection(s.url);JdbcRepository.CONN.set(read);
-            ApiV3Transactions.releaseThreadResources();Assert.assertFalse(s.hasTransactionBegun());Assert.assertEquals(s.scalar("SELECT balance FROM wallet"),500L);Assert.assertTrue(read.isClosed());Assert.assertNull(JdbcRepository.CONN.get());Assert.assertNull(JdbcRepository.TX.get());
+            s.begin(true);
+            s.debit();
+            final Connection read = DriverManager.getConnection(s.url);
+            JdbcRepository.CONN.set(read);
+            ApiV3Transactions.releaseThreadResources();
+            Assert.assertFalse(s.hasTransactionBegun());
+            Assert.assertEquals(s.scalar("SELECT balance FROM wallet"), 500L);
+            Assert.assertTrue(read.isClosed());
+            Assert.assertNull(JdbcRepository.CONN.get());
+            Assert.assertNull(JdbcRepository.TX.get());
         }
         System.out.println("PASS socket/background cleanup explicitly rolls back abandoned writes and releases the actual framework read connection/thread-locals");
     }

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-/** Run only after IDEA compilation/restart. Defaults to rejection checks, no content creation.
- * API_V3_TOKEN: content.write + content.read, posting/editing permission, bound phone and sufficient points.
- * API_V3_SCOPELESS_TOKEN: optional token lacking content.write; API_V3_SESSION_COOKIE / API_V3_LEGACY_KEY: optional old credentials.
- * API_V3_ARTICLE_WRITE=1 explicitly creates a draft and a persistent public article in a disposable test account.
- * API_V3_ARTICLE_BODY: optional JSON creation fields (title/content/tags default to a test introduction).
- * Newly created articles cannot be deleted until 24 hours old; clean up through the normal UI when eligible.
- * API_V3_ARTICLE_DELETE=1 + API_V3_ARTICLE_DELETE_ID explicitly deletes an eligible disposable existing article.
- * Uses the existing development environment, never bypasses captcha or blacklists; never prints credentials/content.
+/** 在 IDEA 编译或重启后运行，默认只验证拒绝路径。
+ * API_V3_TOKEN 需要 content.write、content.read 及发帖和编辑权限，账号须绑定手机且积分充足。
+ * API_V3_SCOPELESS_TOKEN 可用于缺少 content.write 的场景，API_V3_SESSION_COOKIE 和 API_V3_LEGACY_KEY 提供可选旧凭据。
+ * API_V3_ARTICLE_WRITE=1 会在临时测试账号中创建一个草稿并发布一篇持久的公开文章。
+ * API_V3_ARTICLE_BODY 可提供创建用 JSON，标题、正文和标签默认使用测试介绍。
+ * 新文章满 24 小时才可删除，达到条件后通过正常页面清理。
+ * API_V3_ARTICLE_DELETE=1 与 API_V3_ARTICLE_DELETE_ID 显式删除符合条件的现有临时文章。
+ * 使用现有开发环境并保留验证码和黑名单校验，日志禁止输出凭据或内容。
  */
 import assert from 'node:assert/strict';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080';
@@ -69,7 +69,7 @@ if (process.env.API_V3_ARTICLE_WRITE === '1') {
       await request(`/articles/${first.id}`, 403, { method: 'PUT', body: { type: 3 }, key: `${key}-convert-thought` });
     } finally {
       if (draft?.id) {
-        // Only clean up the draft created by this run if publication did not consume it.
+        // 发布未消费草稿时，只清理本轮创建的草稿。
         try {
           await request(`/me/drafts/${draft.id}`, 200, { method: 'GET' });
           await request(`/me/drafts/${draft.id}`, 200, { method: 'DELETE', key: `${key}-cleanup` });

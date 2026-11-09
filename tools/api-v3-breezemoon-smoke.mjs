@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** After IDEA rebuild/restart. Read-only unless API_V3_ALLOW_BREEZEMOON_WRITES=1.
- * API_V3_TOKEN: disposable account with content.read/content.write and publish/remove permissions, bound phone.
- * Creates only one temporary breezemoon and deletes it in finally. Shared business quota still applies.
- * API_V3_PRIVATE_BREEZEMOON_ID optionally checks an inaccessible fixture (use an unrelated token).
+/** 在 IDEA 重新编译或重启后运行，API_V3_ALLOW_BREEZEMOON_WRITES=1 才启用写入。
+ * API_V3_TOKEN 使用已绑定手机并具备 content.read/content.write、发布与删除权限的临时账号。
+ * 仅创建一条临时清风明月，并在 finally 中删除。共享业务配额照常生效。
+ * 可选的 API_V3_PRIVATE_BREEZEMOON_ID 用于检查不可访问的夹具，请使用无关账号的令牌。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

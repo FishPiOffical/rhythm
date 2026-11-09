@@ -25,7 +25,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Set;
 
-/** Actual source projection and DTO; SQLite does not exercise the HTTP middleware or MySQL. */
+/** 验证实际的原文投影和 DTO。SQLite 用例不覆盖 HTTP 中间件及 MySQL。 */
 public class ApiV3ArticleEditorDtoTest {
     public static void main(final String[] args) throws Exception {
         final String raw = "<script>alert('raw')</script>\n正文\\\u001f20\u001f0-0\u001f0-0\u001e";

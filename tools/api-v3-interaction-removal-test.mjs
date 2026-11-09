@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Actual typed repository cleanup with SQLite JDBC/transaction adapters; no HTTP/MySQL/cache runtime. */
+/** 使用 SQLite JDBC 与事务适配器测试实际按类型执行的仓储清理。 */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,7 +11,11 @@ const latke='src/main/resources/lib/latke-core.jar',suffix=process.platform==='w
 const java=path.join(home,'bin',`java${suffix}`),javac=path.join(home,'bin',`javac${suffix}`);
 for(const file of [java,javac,testng,sqlite,latke])if(!fs.existsSync(file))throw new Error('Configure Java 25, TestNG and SQLite paths');
 const work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-interaction-removal-'));
-function run(command,args){const r=spawnSync(command,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error('Typed interaction removal tests failed');}
+function run(command, args) {
+ const r = spawnSync(command, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw new Error('Typed interaction removal tests failed');
+}
 try{
  const cp=[latke,testng,sqlite].join(path.delimiter);
  run(javac,['--release','25','-proc:none','-cp',cp,'-d',work,...['model/Vote','model/Reward','model/Reaction','model/Notification', 'model/ApiV3NotificationRevision', 'repository/ApiV3RevisionRepository','repository/ApiV3NotificationRevisionRepository','repository/VoteRepository','repository/RewardRepository','repository/ReactionRepository','repository/NotificationRepository','util/ApiV3NotificationTypes','util/ContentNotificationReferences'].map(s=>`src/main/java/org/b3log/symphony/${s}.java`),'src/test/java/org/b3log/symphony/repository/ContentInteractionRemovalTest.java','src/test/java/org/b3log/symphony/repository/ContentNotificationRemovalTest.java','src/test/java/org/b3log/symphony/util/ArticleRemovalSqlTest.java']);

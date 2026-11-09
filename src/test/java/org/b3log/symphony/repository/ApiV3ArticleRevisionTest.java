@@ -32,7 +32,7 @@ import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real repository hooks and shared reaction service; SQLite data/cache adapters, not MySQL or HTTP. */
+/** 用 SQLite 数据和缓存适配器验证实际的仓库钩子与共用表态服务。MySQL 和 HTTP 需另行验证。 */
 public class ApiV3ArticleRevisionTest {
     interface Work { void run() throws Exception; }
     static void inject(Object bean,Class<?> owner,String field,Object value)throws Exception{var f=owner.getDeclaredField(field);f.setAccessible(true);f.set(bean,value);}

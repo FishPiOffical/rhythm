@@ -27,7 +27,7 @@ import org.testng.Assert;
 import java.sql.*;
 import java.util.*;
 
-/** Actual grant core, socket repository SQL and scope predicate with SQLite persistence adapters. */
+/** 用 SQLite 持久化适配器验证实际的票据授权逻辑、WebSocket 仓库 SQL 和权限范围判定。 */
 public class ApiV3SocketTicketServiceTest {
     static Fixture current;
     public static class Users extends AbstractRepository {

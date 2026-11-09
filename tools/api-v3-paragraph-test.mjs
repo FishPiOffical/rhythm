@@ -36,7 +36,10 @@ try {
   };
   const files = [];
   for (const [name, source] of Object.entries(shims)) {
-    const file = path.join(work, name); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, source); files.push(file);
+    const file = path.join(work, name);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, source);
+    files.push(file);
   }
   const repository=path.join(os.homedir(),'.m2/repository');
   const jars=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?jars(path.join(dir,e.name)):/\.jar$/.test(e.name)&&!/(sources|javadoc)\.jar$/.test(e.name)?[path.join(dir,e.name)]:[]);

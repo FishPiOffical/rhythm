@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-/** Read-only integration checks after IDEA compilation/restart.
- * API_V3_BASE_URL defaults to http://localhost:8080.
- * Optional API_V3_TOKEN carries content.read + profile.read.
- * API_V3_PUBLIC_USER selects a user with public articles/breezemoons/follow lists.
- * API_V3_PRIVATE_USER selects a user with those lists set private.
- * API_V3_PRIVATE_USER_TOKEN is that user's own Bearer (same scopes).
- * API_V3_ACTIVITY_PUBLIC_USER has public comments/watching lists; API_V3_ACTIVITY_PRIVATE_USER has both private.
- * API_V3_ACTIVITY_PRIVATE_TOKEN belongs to that private user.
- * Fixtures are never created or modified. Tokens and response bodies are not printed.
+/** 在 IDEA 编译或重启后执行只读集成检查。
+ * API_V3_BASE_URL 默认为 http://localhost:8080。
+ * 可选的 API_V3_TOKEN 需要 content.read 和 profile.read。
+ * API_V3_PUBLIC_USER 使用公开文章、清风明月和关注列表的用户。
+ * API_V3_PRIVATE_USER 使用将上述列表设为私密的用户。
+ * API_V3_PRIVATE_USER_TOKEN 使用该用户本人的 Bearer，权限相同。
+ * API_V3_ACTIVITY_PUBLIC_USER 的评论和订阅列表公开，API_V3_ACTIVITY_PRIVATE_USER 的两类列表均私密。
+ * API_V3_ACTIVITY_PRIVATE_TOKEN 属于该私密用户。
+ * 使用现有夹具，日志禁止输出令牌或响应正文。
  */
 import assert from 'node:assert/strict';
 

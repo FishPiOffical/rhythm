@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Isolated Java 25 token tests. No Maven or application class output.
- * Set JAVA_HOME and API_V3_TESTNG_JAR if Java/TestNG are not in the default IDE location.
+/** 用 Java 25 隔离验证令牌，无需 Maven 或应用编译产物。
+ * Java 或 TestNG 不在默认 IDE 路径时，请配置 JAVA_HOME 和 API_V3_TESTNG_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

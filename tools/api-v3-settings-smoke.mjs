@@ -9,10 +9,38 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080', token = process.env.API_V3_TOKEN;
 let failures=0;
-async function check(name, run) { try { await run(); console.log(`PASS ${name}`); } catch(e) { failures++; console.error(`FAIL ${name}: ${e.code || e.name || 'request failed'}`); } }
-async function request(path, {method='GET', body, key, status=200, credential=token}={}) {
-  const r=await fetch(new URL(`/api/v3${path}`,base), {method,redirect:'manual',signal:AbortSignal.timeout(20000),headers:{'User-Agent':'RhythmV3SettingsSmoke',...(credential?{Authorization:`Bearer ${credential}`} : {}),...(method==='GET'?{}:{'Content-Type':'application/json'}),...(key?{'Idempotency-Key':key}:{})},...(method==='GET'?{}:{body:JSON.stringify(body||{})})});
-  assert.equal(r.status,status); assert.ok(r.headers.get('x-request-id')); const json=await r.json(); if(status===200)assert.equal(json.code,0);else{assert.notEqual(json.code,0);assert.equal(json.data,null);}return json.data;
+async function check(name, run) {
+  try {
+    await run();
+    console.log(`PASS ${name}`);
+  } catch (e) {
+    failures++;
+    console.error(`FAIL ${name}: ${e.code || e.name || 'request failed'}`);
+  }
+}
+
+async function request(path, {method = 'GET', body, key, status = 200, credential = token} = {}) {
+  const r = await fetch(new URL(`/api/v3${path}`, base), {
+    method,
+    redirect: 'manual',
+    signal: AbortSignal.timeout(20000),
+    headers: {
+      'User-Agent': 'RhythmV3SettingsSmoke',
+      ...(credential ? {Authorization: `Bearer ${credential}`} : {}),
+      ...(method === 'GET' ? {} : {'Content-Type': 'application/json'}),
+      ...(key ? {'Idempotency-Key': key} : {})
+    },
+    ...(method === 'GET' ? {} : {body: JSON.stringify(body || {})})
+  });
+  assert.equal(r.status, status);
+  assert.ok(r.headers.get('x-request-id'));
+  const json = await r.json();
+  if (status === 200) assert.equal(json.code, 0);
+  else {
+    assert.notEqual(json.code, 0);
+    assert.equal(json.data, null);
+  }
+  return json.data;
 }
 for(const group of ['profile','privacy','display','functions','location','locale']) {
   await check(`read requires Bearer ${group}`,()=>request(`/me/settings/${group}`,{credential:null,status:401}));
@@ -39,14 +67,19 @@ if(token) {
     try {
       await request(path,{method:'PUT',body:{userId:'other'},key:randomUUID(),status:422});
       await request(path,{method:'PUT',body:{[field]:value},status:422});
-      const first=await request(path,{method:'PUT',body:{[field]:value},key});started=true;assert.equal(first[field],value);
+      const first = await request(path, {method: 'PUT', body: {[field]: value}, key});
+      started = true;
+      assert.equal(first[field], value);
       for(const [name,old] of Object.entries(before))if(name!==field)assert.deepEqual(first[name],old);
       assert.deepEqual(await request(path,{method:'PUT',body:{[field]:value},key}),first);
       await request(path,{method:'PUT',body:{[field]:before[field]},key,status:409});
       assert.equal((await request(path))[field],value);
       await request(path,{method:'PUT',body:{[field]:before[field]},key:restoreKey});
-      await request(path,{method:'PUT',body:{[field]:value},key});assert.equal((await request(path))[field],before[field]);
-    } finally { if(started)await request(path,{method:'PUT',body:{[field]:before[field]},key:restoreKey}); }
+      await request(path, {method: 'PUT', body: {[field]: value}, key});
+      assert.equal((await request(path))[field], before[field]);
+    } finally {
+      if (started) await request(path, {method: 'PUT', body: {[field]: before[field]}, key: restoreKey});
+    }
   });
 }
 process.exitCode=failures?1:0;

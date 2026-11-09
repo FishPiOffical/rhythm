@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-/** Mutating development integration test: creates temporary drafts and deletes only those drafts.
- * Run after applying sql/20261016_api_v3.sql and IDEA recompilation/restart.
- * API_V3_BASE_URL defaults to http://localhost:8080.
- * Required API_V3_TOKEN has content.read + content.write.
- * Optional API_V3_OTHER_TOKEN tests another user attempting to edit/delete the created draft.
- * Optional API_V3_READONLY_TOKEN lacks content.write.
- * No credentials or response bodies are printed. IDs are printed only if cleanup fails.
+/** 开发环境写入验收，仅创建并删除本轮临时草稿。
+ * 应用 sql/20261016_api_v3.sql 并通过 IDEA 重新编译或重启后运行。
+ * API_V3_BASE_URL 默认为 http://localhost:8080。
+ * 必需的 API_V3_TOKEN 需要 content.read 和 content.write。
+ * 可选的 API_V3_OTHER_TOKEN 用于验证其他用户编辑或删除本轮草稿时被拒绝。
+ * 可选的 API_V3_READONLY_TOKEN 缺少 content.write。
+ * 日志禁止输出凭据或响应正文，仅在清理失败时打印 ID。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

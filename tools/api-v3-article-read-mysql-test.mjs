@@ -1,13 +1,38 @@
 #!/usr/bin/env node
-/** Production read capture/repository/HTTP code on a disposable MySQL; never connects to the application database. */
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import{spawnSync,spawn}from'node:child_process';
+/** 在临时 MySQL 上运行正式阅读登记、仓储及 HTTP 代码，与应用数据库隔离。 */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawnSync, spawn } from 'node:child_process';
 const settlement=process.argv.includes('--settlement');
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-article-read-')),files=[];
 const cp=['src/main/resources/lib/latke-core.jar',`${ide}/lib/intellij.libraries.caffeine.jar`,path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')].join(path.delimiter);
-const run=(cmd,args,options={})=>{const r=spawnSync(cmd,args,{encoding:'utf8',timeout:45000,...options});if(r.status!==0)throw Error(r.stdout+' '+r.stderr);return r.stdout.trim()};
-const shim=(name,source)=>{const f=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,source);files.push(f)};
-function method(source,signature){const i=source.indexOf(signature);let depth=0;for(let j=source.indexOf('{',i);j<source.length;j++){if(source[j]==='{')depth++;if(source[j]==='}'&&--depth===0)return source.slice(i,j+1)}throw Error(signature)}
-let container;const children=[];
+const run = (cmd, args, options = {}) => {
+ const r = spawnSync(cmd, args, { encoding: 'utf8', timeout: 45000, ...options });
+ if (r.status !== 0) throw Error(r.stdout + ' ' + r.stderr);
+ return r.stdout.trim()
+};
+
+const shim = (name, source) => {
+ const f = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(f), { recursive: true });
+ fs.writeFileSync(f, source);
+ files.push(f)
+};
+
+function method(source, signature) {
+ const i = source.indexOf(signature);
+ let depth = 0;
+ for (let j = source.indexOf('{', i); j < source.length; j++) {
+  if (source[j] === '{') depth++;
+  if (source[j] === '}' && --depth === 0) return source.slice(i, j + 1)
+ }
+ throw Error(signature)
+}
+
+let container;
+const children = [];
 try{
  for(const [name,table,methods]of [['ArticleRepository','articles',['public String getCommentPublicationAuthor(','public JSONObject getForUpdate(']],['UserRepository','users',['public JSONObject getForUpdate(']]]){const source=fs.readFileSync(`src/main/java/org/b3log/symphony/repository/${name}.java`,'utf8');shim('org/b3log/symphony/repository/'+name,`package org.b3log.symphony.repository;import org.json.JSONObject;import java.util.List;import org.b3log.symphony.model.Article;import org.b3log.latke.repository.*;public class ${name} extends AbstractRepository{public ${name}(){super("${table}");}${methods.map(s=>method(source,s)).join('\n')}${settlement&&name==='UserRepository'?'public void refreshSettingsCache(String id)throws RepositoryException{}public void evictSettingsCaches(String id){}':''}}`)}
  const sandbox=fs.readFileSync('src/main/java/org/b3log/symphony/model/Tag.java','utf8').match(/TAG_TITLE_C_SANDBOX = "([^"]+)"/)[1];shim('org/b3log/symphony/model/Tag',`package org.b3log.symphony.model;public class Tag{public static final String TAG_TITLE_C_SANDBOX=${JSON.stringify(sandbox)};}`);
@@ -49,14 +74,59 @@ try{
  console.log(run(path.join(home,'bin/java'),['-Drhythm.read.mysqlUrl=jdbc:mysql://'+port+'/read_test?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&useAffectedRows=false&connectTimeout=5000&socketTimeout=20000','-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ArticleReadSettlementMysqlTest']));
  const settleArgs=['-Drhythm.read.mysqlUrl=jdbc:mysql://'+port+'/read_test?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&useAffectedRows=false&connectTimeout=5000&socketTimeout=20000','-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ArticleReadSettlementMysqlTest'];
  run(path.join(home,'bin/java'),[...settleArgs,'setup']);
- const worker=role=>{const child=spawn(path.join(home,'bin/java'),[...settleArgs,'worker',role,path.join(dir,'release-settlement')]),state={child,out:'',err:'',done:false};child.stdout.on('data',x=>state.out+=x);child.stderr.on('data',x=>state.err+=x);state.finished=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>{state.done=true;code===0?resolve():reject(Error(state.out+' '+state.err))})});state.finished.catch(()=>{});children.push(state);return state};
- const until=async(state,marker)=>{const end=Date.now()+15000;while(!state.out.includes(marker)){if(state.done||Date.now()>end)throw Error('Worker did not reach '+marker+' '+state.out+' '+state.err);await new Promise(r=>setTimeout(r,20))}};
- const holder=worker('holder');await until(holder,'HOLDING_AUTHOR');const contender=worker('contender');await until(contender,'STARTING_SETTLEMENT');
- let blocked=false;const end=Date.now()+10000;while(Date.now()<end){if(Number(sql("SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT';"))>0){blocked=true;break}if(contender.done)throw Error('Contender escaped held author lock');await new Promise(r=>setTimeout(r,50))}if(!blocked)throw Error('No observed InnoDB lock wait');
+ const worker = role => {
+  const child = spawn(path.join(home, 'bin/java'), [...settleArgs, 'worker', role, path.join(dir, 'release-settlement')]),
+   state = { child, out: '', err: '', done: false };
+  child.stdout.on('data', x => state.out += x);
+  child.stderr.on('data', x => state.err += x);
+  state.finished = new Promise((resolve, reject) => {
+   child.on('error', reject);
+   child.on('close', code => {
+    state.done = true;
+    code === 0 ? resolve() : reject(Error(state.out + ' ' + state.err))
+   })
+  });
+  state.finished.catch(() => {});
+  children.push(state);
+  return state
+ };
+
+ const until = async (state, marker) => {
+  const end = Date.now() + 15000;
+  while (!state.out.includes(marker)) {
+   if (state.done || Date.now() > end) throw Error('Worker did not reach ' + marker + ' ' + state.out + ' ' + state.err);
+   await new Promise(r => setTimeout(r, 20))
+  }
+ };
+ const holder = worker('holder');
+ await until(holder, 'HOLDING_AUTHOR');
+ const contender = worker('contender');
+ await until(contender, 'STARTING_SETTLEMENT');
+ // 第二个 JVM 必须在 InnoDB 中真实等待作者锁。
+ let blocked = false;
+ const end = Date.now() + 10000;
+ while (Date.now() < end) {
+  if (Number(sql("SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT';")) > 0) {
+   blocked = true;
+   break
+  }
+  if (contender.done) throw Error('Contender escaped held author lock');
+  await new Promise(r => setTimeout(r, 50))
+ }
+ if (!blocked) throw Error('No observed InnoDB lock wait');
  fs.writeFileSync(path.join(dir,'release-settlement'),'release');await Promise.all([holder.finished,contender.finished]);
  if(!holder.out.includes('SETTLEMENT_DONE')||!contender.out.includes('SETTLEMENT_DONE'))throw Error('Settlement worker did not complete');
  console.log(run(path.join(home,'bin/java'),[...settleArgs,'verify']));console.log('Observed InnoDB LOCK WAIT between independent JVMs before release');
 
  }
 
-}finally{for(const state of children)if(!state.done)state.child.kill('SIGKILL');await Promise.allSettled(children.map(s=>s.finished));if(container){run('docker',['rm','-f',container]);console.log('Disposable read MySQL removed')}fs.rmSync(dir,{recursive:true,force:true})}
+} finally {
+ for (const state of children)
+  if (!state.done) state.child.kill('SIGKILL');
+ await Promise.allSettled(children.map(s => s.finished));
+ if (container) {
+  run('docker', ['rm', '-f', container]);
+  console.log('Disposable read MySQL removed')
+ }
+ fs.rmSync(dir, { recursive: true, force: true })
+}

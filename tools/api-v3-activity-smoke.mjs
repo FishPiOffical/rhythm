@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run after applying the default-client scope update and IDEA rebuild/restart; log in again.
- * API_V3_TOKEN: disposable account with activity.read/activity.write.
- * Defaults to read-only. API_V3_ALLOW_REWARD_CLAIM=1 claims a real eligible reward once.
- * Reward points cannot be undone by this script. A no-reward account checks HTTP 409 without transfer.
- * API_V3_READ_ONLY_TOKEN optionally checks missing write scope.
+/** 更新默认客户端权限后，通过 IDEA 重新编译或重启并重新登录。
+ * API_V3_TOKEN 使用具有 activity.read/activity.write 的临时账号。
+ * 默认只读。API_V3_ALLOW_REWARD_CLAIM=1 真实领取一次符合条件的奖励。
+ * 奖励积分会保留。无奖励账号可验证 HTTP 409 且无转账。
+ * 可选的 API_V3_READ_ONLY_TOKEN 用于验证缺少写入权限。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

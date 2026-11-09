@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated milestone service, SQL and owner metadata tests; never connects to the application database.
- * HTTP, MySQL, v3 coordination and milestone content policy/rendering are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离测试里程碑服务、SQL 和本人元数据，使用独立测试数据库。
+ * 覆盖范围不含 HTTP、MySQL、API v3 协调流程以及里程碑内容规则与渲染。
+ * 若不使用默认 IDE 安装，请配置 JAVA_HOME（Java 25）、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

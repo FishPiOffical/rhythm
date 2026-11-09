@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/** Real input policy and actual repository SQL; no application DB, censor or profession executor. */
+/** 验证实际的入参规则和仓库 SQL。应用数据库、内容审核和职业执行器需另行验证。 */
 public class ApiV3BreezemoonTest {
     public static void main(final String[] args) throws Exception {
         Assert.assertEquals(ApiV3BreezemoonInputs.content(new JSONObject().put("content", "  测试\n[链接](https://example.test)  ")), "测试\n[链接](https://example.test)");

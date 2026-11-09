@@ -83,26 +83,64 @@ public class ApiV3ChatQueryServiceTest {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);Latkes.setServerScheme("http");Latkes.setServerHost("localhost");Latkes.setServerPort("8080");Latkes.setContextPath("");
         try(var f=new Fixture()){
             for(int i=101;i<=110;i++)f.message(""+i,"message-"+i);
-            var first=f.service.list(null,null,3);Assert.assertEquals(ids(first),List.of("108","109","110"));Assert.assertTrue(first.getBoolean("hasMore"));Assert.assertEquals(first.getString("nextBefore"),"108");Assert.assertEquals(first.getString("nextAfter"),"110");
-            var older=f.service.list(first.getString("nextBefore"),null,3);Assert.assertEquals(ids(older),List.of("105","106","107"));
-            f.message("111","new");Assert.assertEquals(ids(f.service.list("108",null,3)),ids(older));Assert.assertEquals(ids(f.service.list(null,"107",3)),List.of("108","109","110"));Assert.assertTrue(f.service.list(null,"107",3).getBoolean("hasMore"));
-            Assert.assertEquals(ids(f.service.list(null,"110",3)),List.of("111"));Assert.assertFalse(f.service.list(null,"110",3).getBoolean("hasMore"));
-            var empty=f.service.list("101",null,3);Assert.assertTrue(ids(empty).isEmpty());Assert.assertFalse(empty.getBoolean("hasMore"));Assert.assertEquals(empty.getString("nextBefore"),"");
-            var dto=f.service.detail("105");Assert.assertEquals(dto.getString("content"),"message-105");Assert.assertEquals(dto.getLong("createdAt"),1700000000000L);noPrivate(dto);
+            var first = f.service.list(null, null, 3);
+            Assert.assertEquals(ids(first), List.of("108", "109", "110"));
+            Assert.assertTrue(first.getBoolean("hasMore"));
+            Assert.assertEquals(first.getString("nextBefore"), "108");
+            Assert.assertEquals(first.getString("nextAfter"), "110");
+            var older = f.service.list(first.getString("nextBefore"), null, 3);
+            Assert.assertEquals(ids(older), List.of("105", "106", "107"));
+
+            // 新消息加入后，旧游标仍定位到同一页，正向游标可取到新增内容。
+            f.message("111", "new");
+            Assert.assertEquals(ids(f.service.list("108", null, 3)), ids(older));
+            Assert.assertEquals(ids(f.service.list(null, "107", 3)), List.of("108", "109", "110"));
+            Assert.assertTrue(f.service.list(null, "107", 3).getBoolean("hasMore"));
+            Assert.assertEquals(ids(f.service.list(null, "110", 3)), List.of("111"));
+            Assert.assertFalse(f.service.list(null, "110", 3).getBoolean("hasMore"));
+            var empty = f.service.list("101", null, 3);
+            Assert.assertTrue(ids(empty).isEmpty());
+            Assert.assertFalse(empty.getBoolean("hasMore"));
+            Assert.assertEquals(empty.getString("nextBefore"), "");
+            var dto = f.service.detail("105");
+            Assert.assertEquals(dto.getString("content"), "message-105");
+            Assert.assertEquals(dto.getLong("createdAt"), 1700000000000L);
+            noPrivate(dto);
         }
         System.out.println("PASS actual bounded cursor SQL returns chronological slices without overlap, supports incremental reads and remains stable when newer messages arrive");
         try(var f=new Fixture()){
             for(int i=101;i<=110;i++)f.message(""+i,"message-"+i);
-            var around=f.service.context("105",2);Assert.assertEquals(ids(around),List.of("103","104","105","106","107"));Assert.assertTrue(around.getBoolean("hasMoreBefore"));Assert.assertTrue(around.getBoolean("hasMoreAfter"));Assert.assertEquals(around.getString("nextBefore"),"103");Assert.assertEquals(around.getString("nextAfter"),"107");
-            var edge=f.service.context("101",2);Assert.assertEquals(ids(edge),List.of("101","102","103"));Assert.assertFalse(edge.getBoolean("hasMoreBefore"));Assert.assertEquals(edge.getString("nextBefore"),"101");
-            try(var s=f.db.createStatement()){s.executeUpdate("DELETE FROM chat_room WHERE oId='105'");}reject(404,()->f.service.detail("105"));reject(404,()->f.service.context("105",2));
+            var around = f.service.context("105", 2);
+            Assert.assertEquals(ids(around), List.of("103", "104", "105", "106", "107"));
+            Assert.assertTrue(around.getBoolean("hasMoreBefore"));
+            Assert.assertTrue(around.getBoolean("hasMoreAfter"));
+            Assert.assertEquals(around.getString("nextBefore"), "103");
+            Assert.assertEquals(around.getString("nextAfter"), "107");
+            var edge = f.service.context("101", 2);
+            Assert.assertEquals(ids(edge), List.of("101", "102", "103"));
+            Assert.assertFalse(edge.getBoolean("hasMoreBefore"));
+            Assert.assertEquals(edge.getString("nextBefore"), "101");
+            try (var s = f.db.createStatement()) {
+                s.executeUpdate("DELETE FROM chat_room WHERE oId='105'");
+            }
+            reject(404, () -> f.service.detail("105"));
+            reject(404, () -> f.service.context("105", 2));
             Assert.assertEquals(ids(f.service.list("108",null,3)),List.of("104","106","107"));
         }
         System.out.println("PASS context includes an existing anchor and bounded neighbors once, reports both edges and rejects a withdrawn/missing anchor");
         try(var f=new Fixture()){
             for(String id:List.of(""," ","x","1' OR 1=1 --","1".repeat(33)))reject(422,()->f.service.list(id,null,20));
-            reject(422,()->f.service.list("1","2",20));reject(422,()->f.service.list(null,null,0));reject(422,()->f.service.list(null,null,51));reject(422,()->f.service.context("1",26));Assert.assertTrue(f.sql.isEmpty());
-            f.unavailable=true;try{f.service.list(null,null,20);Assert.fail();}catch(RepositoryException expected){}
+            reject(422, () -> f.service.list("1", "2", 20));
+            reject(422, () -> f.service.list(null, null, 0));
+            reject(422, () -> f.service.list(null, null, 51));
+            reject(422, () -> f.service.context("1", 26));
+            Assert.assertTrue(f.sql.isEmpty());
+            f.unavailable = true;
+            try {
+                f.service.list(null, null, 20);
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
         }
         System.out.println("PASS malformed/injected/conflicting cursors and out-of-range limits reject before SQL; database errors propagate rather than becoming an empty successful history");
         try(var f=new Fixture()){

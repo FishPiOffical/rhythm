@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated approved-game SQL and public metadata tests; never connects to the application database.
- * HTTP, city visibility and milestone HTML rendering are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离测试已审核鱼游 SQL 和公开元数据，使用独立测试数据库。
+ * 覆盖范围不含 HTTP、城市可见性及里程碑 HTML 渲染。
+ * 若不使用默认 IDE 安装，请配置 JAVA_HOME（Java 25）、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

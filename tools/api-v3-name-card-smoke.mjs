@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Default checks do not rename.
- * API_V3_TOKEN: activity.read + activity.write + settings.write.
- * API_V3_ACTIVITY_ONLY_TOKEN / API_V3_SETTINGS_ONLY_TOKEN: optional missing-scope checks.
- * API_V3_ALLOW_NAME_CARD_USE=1 and API_V3_NEW_USER_NAME explicitly permit one rename/card consumption.
- * Use a disposable account. No automatic rename back (that would consume a second card).
+/** 确认 IDEA 重新编译或重启后运行，默认仅检查改名的拒绝路径。
+ * API_V3_TOKEN 需要 activity.read、activity.write 和 settings.write。
+ * 可选的 API_V3_ACTIVITY_ONLY_TOKEN 与 API_V3_SETTINGS_ONLY_TOKEN 用于验证权限不足。
+ * API_V3_ALLOW_NAME_CARD_USE=1 与 API_V3_NEW_USER_NAME 显式启用一次改名并消耗一张卡。
+ * 使用临时账号并保留修改后的名称，再次改名会消耗另一张卡。
  */
 import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN,path='/me/bag/nameCard/use';let failures=0;

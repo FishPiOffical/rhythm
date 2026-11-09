@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-/** Actual approved-game SQL on isolated SQLite; public metadata helper tests. */
+/** 在隔离的 SQLite 上验证实际的已审核游戏查询，并验证公开元数据处理。 */
 public class ApiV3CommunitySqlTest {
     @Test
     public void approvedGamesHaveRealPaginationAndBothClosedSortModes() throws Exception {

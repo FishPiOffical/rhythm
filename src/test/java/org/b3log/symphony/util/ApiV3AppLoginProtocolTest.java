@@ -24,7 +24,10 @@ import static org.b3log.symphony.util.ApiV3AppLoginProtocol.*;
 public final class ApiV3AppLoginProtocolTest {
     private static void check(boolean value) { if (!value) throw new AssertionError(); }
     private static void reject(Reason reason, Runnable action) {
-        try { action.run(); throw new AssertionError("expected rejection " + reason); }
+        try {
+            action.run();
+            throw new AssertionError("expected rejection " + reason);
+        }
         catch (Rejected e) { check(e.reason() == reason); }
     }
     public static void main(String[] args) {

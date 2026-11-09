@@ -1,9 +1,22 @@
 #!/usr/bin/env node
-// Compile the production chat savepoint helper; inject only JDBC owner/connection lifecycles.
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync}from'node:child_process';
+// 编译正式聊天保存点辅助方法，只注入 JDBC 事务所有者与连接的生命周期。
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 const home=process.env.JAVA_HOME||'/Applications/Android Studio.app/Contents/jbr/Contents/Home',cp=path.resolve('src/main/resources/lib/latke-core.jar'),work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-chat-savepoint-'));
-function write(file,source){const f=path.join(work,file);fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,source);return f}
-function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('Chat savepoint regression failed')}
+function write(file, source) {
+ const f = path.join(work, file);
+ fs.mkdirSync(path.dirname(f), { recursive: true });
+ fs.writeFileSync(f, source);
+ return f
+}
+
+function run(cmd, args) {
+ const r = spawnSync(cmd, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('Chat savepoint regression failed')
+}
 try{const repository=write('JdbcRepository.java',`package org.b3log.latke.repository.jdbc;public class JdbcRepository{public static final ThreadLocal<JdbcTransaction> TX=new ThreadLocal<>();}`);
 const transaction=write('JdbcTransaction.java',`package org.b3log.latke.repository.jdbc;public class JdbcTransaction{public boolean active=true;public int aborted;public java.sql.Connection connection;public boolean isActive(){return active;}public java.sql.Connection getConnection(){return connection;}public void rollback(){aborted++;active=false;connection=null;if(JdbcRepository.TX.get()==this)JdbcRepository.TX.remove();}}`);
 const test=write('ChatSavepointRegression.java',`import java.sql.*;import java.lang.reflect.*;import org.b3log.latke.repository.jdbc.*;import org.b3log.latke.repository.RepositoryException;import org.b3log.symphony.util.ApiV3ChatTransaction;

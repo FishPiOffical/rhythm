@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-/** Notification HTTP tests after SQL scope upgrade, IDEA restart and a fresh v3 login.
- * API_V3_BASE_URL defaults to localhost:8080.
- * API_V3_TOKEN: notifications.read + notifications.write.
- * API_V3_OTHER_TOKEN: another user with the same scopes (optional).
- * API_V3_READONLY_TOKEN: notifications.read without notifications.write (optional).
- * API_V3_NOTIFICATION_ID: an owned test notification; marks it read (optional).
- * API_V3_DELETE_NOTIFICATION_ID: an owned disposable notification; permanently deletes it (optional).
- * Bulk mutations are deliberately left to the manual checklist; this script does not clear a real inbox.
+/** 完成 SQL 权限迁移、通过 IDEA 重启并重新登录 v3 后执行通知 HTTP 测试。
+ * API_V3_BASE_URL 默认为 localhost:8080。
+ * API_V3_TOKEN 需要 notifications.read 和 notifications.write。
+ * 可选的 API_V3_OTHER_TOKEN 使用具有相同权限的另一账号。
+ * 可选的 API_V3_READONLY_TOKEN 只有 notifications.read。
+ * 可选的 API_V3_NOTIFICATION_ID 指向本人测试通知，运行时会标记已读。
+ * 可选的 API_V3_DELETE_NOTIFICATION_ID 指向本人临时通知，运行时会永久删除。
+ * 批量写入和清空收件箱需人工验收。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

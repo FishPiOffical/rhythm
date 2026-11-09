@@ -1,12 +1,35 @@
 #!/usr/bin/env node
-/** Runs real endpoints, write services and SQL with isolated repository connections; never Maven. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+/** 在隔离仓储连接上运行实际表情成员入口、写服务及 SQL。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-emoji-item-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('Emoji item tests failed');}
+function shim(name, body) {
+ const file = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, body);
+ shims.push(file);
+}
+
+function method(source, signature) {
+ const begin = source.indexOf(signature);
+ if (begin < 0) throw Error(signature);
+ let depth = 0;
+ for (let i = source.indexOf('{', begin); i < source.length; i++) {
+  if (source[i] === '{') depth++;
+  if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+ }
+ throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+ const r = spawnSync(bin, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('Emoji item tests failed');
+}
 try{
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={};}');
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}}');

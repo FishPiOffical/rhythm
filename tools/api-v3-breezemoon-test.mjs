@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated breezemoon inputs and SQL tests; never connects to the application database.
- * HTTP, censor, profession events and MySQL locks are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离测试清风明月输入与 SQL，使用独立测试数据库。
+ * 覆盖范围不含 HTTP、内容审核、职业事件及 MySQL 锁。
+ * 若不使用默认 IDE 安装，请配置 JAVA_HOME（Java 25）、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

@@ -26,7 +26,8 @@ import java.util.List;
 
 public class ApiV3ArticleEditInputsTest {
     public static void main(final String[] args) {
-        final var current = current(); final String before = current.toString();
+        final var current = current();
+        final String before = current.toString();
         final var patch = ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", " new title "));
         Assert.assertEquals(patch.length(), 1);
         final String hashInput = ApiV3Json.canonical(patch);

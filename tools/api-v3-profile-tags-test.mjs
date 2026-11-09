@@ -1,12 +1,35 @@
 #!/usr/bin/env node
-/** Actual strict profile tags, tag/link/count/receipt SQL and cache boundary; explicit quota/censor/cache/DAO and SQLite adapters. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+/** 验证个人标签、关联、计数、回执 SQL 和缓存边界，配额、内容审核、缓存、DAO 和 SQLite 使用适配器。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-identity-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('Identity application tests failed');}
+function shim(name, body) {
+  const file = path.join(dir, name + '.java');
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  fs.writeFileSync(file, body);
+  shims.push(file);
+}
+
+function method(source, signature) {
+  const begin = source.indexOf(signature);
+  if (begin < 0) throw Error(signature);
+  let depth = 0;
+  for (let i = source.indexOf('{', begin); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+  }
+  throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+  const r = spawnSync(bin, args, {stdio: 'inherit'});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error('Identity application tests failed');
+}
 try{
  const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_TAGS={"系统公告","回收站"};public static final String[] WHITE_LIST_TAGS={"Elasticsearch","CoffeeScript","C#"};public static final String[] RESERVED_USER_NAMES={"admin"};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+((k==='POINT_BUY_INVITECODE'||k==='POINT_CHANGE_USERNAME'||k==='POINT_DATA_EXPORT')?100:0)+';').join('')+'}');

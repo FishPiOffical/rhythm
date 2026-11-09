@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run after IDEA rebuild/restart. Defaults to auth checks and personal list reads.
- * API_V3_TOKEN: disposable owner token with content.read/content.write.
- * API_V3_COLUMN_ID: existing test column; mutations require API_V3_ALLOW_COLUMN_WRITES=1.
- * Original title/cover restored after mutation. Order and deletion are manual tests.
- * API_V3_OTHER_COLUMN_ID: a column owned by a different account (must return 404).
+/** 在 IDEA 重新编译或重启后运行，默认检查鉴权并读取本人列表。
+ * API_V3_TOKEN 使用具有 content.read/content.write 的临时所有者账号。
+ * API_V3_COLUMN_ID 指向现有测试专栏，写入需要 API_V3_ALLOW_COLUMN_WRITES=1。
+ * 修改后恢复原标题和封面，排序和删除需人工测试。
+ * API_V3_OTHER_COLUMN_ID 指向其他账号的专栏，预期返回 404。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -31,7 +31,7 @@ if (token && process.env.API_V3_ALLOW_COLUMN_WRITES === '1') {
     let original, latest;
     const firstKey = randomUUID(), coverKey = randomUUID();
     try {
-      // Obtain original from all personal pages to avoid assuming the fixture is on page one.
+      // 遍历本人列表各页取得夹具原值，避免依赖所在页。
       for (let p = 1; ; p++) {
         const page = await request(`/me/columns?p=${p}&size=50`);
         original = page.list.find(c => c.id === id); if (original || page.list.length < 50) break;

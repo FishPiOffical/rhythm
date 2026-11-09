@@ -26,11 +26,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Set;
 
-/** Actual creation coordinator; SQLite adapters replace the application services, not framework classes. */
+/** 验证实际的文章创建协调流程。SQLite 适配器替代应用服务，框架类保留。 */
 public class ApiV3ArticleCreationTest {
     public static void main(final String[] args) throws Exception {
         try (final Fixture f = new Fixture()) {
-            final var request = input("1"); final String original = ApiV3Json.canonical(request);
+            final var request = input("1");
+            final String original = ApiV3Json.canonical(request);
             try { ApiV3ArticleCreation.apply(f, request); Assert.fail(); } catch (final IllegalStateException expected) { }
             f.begin();
             try { ApiV3ArticleCreation.apply(f, request); Assert.fail(); } catch (final IllegalStateException expected) { }

@@ -95,19 +95,93 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
     }
     return;
    }
-   f.reset();f.seed(2,150);f.run();f.committed(820);var e=f.one("SELECT * FROM events");ok(e.getString("eventType").equals("long_article.read_settled"));ok(e.getString("subjectUserId").equals("1"));var payload=new JSONObject(e.getString("payloadJson"));ok(payload.getInt("countedAnonymousReaderCount")==100);ok(payload.getInt("rewardPoint")==820);f.run();f.committed(820);ok(f.messages==1);
+   f.reset();
+   f.seed(2, 150);
+   f.run();
+   f.committed(820);
+   var e = f.one("SELECT * FROM events");
+   ok(e.getString("eventType").equals("long_article.read_settled"));
+   ok(e.getString("subjectUserId").equals("1"));
+   var payload = new JSONObject(e.getString("payloadJson"));
+   ok(payload.getInt("countedAnonymousReaderCount") == 100);
+   ok(payload.getInt("rewardPoint") == 820);
+   f.run();
+   f.committed(820);
+   ok(f.messages == 1);
    System.out.println("PASS read settlement mysql 1 actual formula, anonymous cap, author credit/history/profession payload and repeat once");
-   for(int[] counts:new int[][]{{-1,0},{0,-1},{Integer.MAX_VALUE,0},{Integer.MAX_VALUE,150}}){f.reset();f.seed(counts[0],counts[1]);f.run();f.untouched();}
+   for (int[] counts : new int[][]{{-1, 0}, {0, -1}, {Integer.MAX_VALUE, 0}, {Integer.MAX_VALUE, 150}}) {
+    f.reset();
+    f.seed(counts[0], counts[1]);
+    f.run();
+    f.untouched();
+   }
    System.out.println("PASS read settlement mysql 2 corrupt negative/overflow counts fail closed without subtracting author points or consuming window");
-   for(String fault:List.of("history","points","transfers","events","index","settlement","commit")){f.reset();f.seed(2,0);f.fault=fault;f.run();f.fault="";f.untouched();f.run();f.committed(20);ok(f.count("transfer_index")==2);ok(f.unsafeIndexes==0);}
+   // 分别在各持久化步骤注入失败，再验证整笔回滚和后续重试。
+   for (String fault : List.of("history", "points", "transfers", "events", "index", "settlement", "commit")) {
+    f.reset();
+    f.seed(2, 0);
+    f.fault = fault;
+    f.run();
+    f.fault = "";
+    f.untouched();
+    f.run();
+    f.committed(20);
+    ok(f.count("transfer_index") == 2);
+    ok(f.unsafeIndexes == 0);
+   }
    System.out.println("PASS read settlement mysql 3 every write and real commit failure rolls back history/credit/event/index/gate with no premature notification, then retries once");
-   f.reset();f.seed(2,0);f.fault="ack";f.run();f.fault="";f.committed(20);ok(f.messages==0);f.run();f.committed(20);ok(f.count("transfer_index")==2);ok(f.messages==0);
+   f.reset();
+   f.seed(2, 0);
+   f.fault = "ack";
+   f.run();
+   f.fault = "";
+   f.committed(20);
+   ok(f.messages == 0);
+   f.run();
+   f.committed(20);
+   ok(f.count("transfer_index") == 2);
+   ok(f.messages == 0);
    System.out.println("PASS read settlement mysql 4 lost commit acknowledgement never publishes false completion or duplicates payout/index/event on retry");
-   f.reset();f.seed(2,0);f.failMessage=true;f.run();f.failMessage=false;f.committed(20);f.run();f.committed(20);ok(f.messages==1);
+   f.reset();
+   f.seed(2, 0);
+   f.failMessage = true;
+   f.run();
+   f.failMessage = false;
+   f.committed(20);
+   f.run();
+   f.committed(20);
+   ok(f.messages == 1);
    System.out.println("PASS read settlement mysql 5 post-commit notification failure does not change or repeat completed payout");
-   f.reset();f.seed(0,0);f.run();ok(f.balance()==1000);ok(f.count("transfers")==0);ok(f.count("transfer_index")==0);ok(f.count("events")==1);ok(f.count("symphony_article_long_read_history")==1);
+   f.reset();
+   f.seed(0, 0);
+   f.run();
+   ok(f.balance() == 1000);
+   ok(f.count("transfers") == 0);
+   ok(f.count("transfer_index") == 0);
+   ok(f.count("events") == 1);
+   ok(f.count("symphony_article_long_read_history") == 1);
    System.out.println("PASS read settlement mysql 6 zero window retains historical event/history behavior without zero ledger/index");
-   f.reset();f.seed(2,0);var pool=Executors.newFixedThreadPool(2);try{var gate=new CountDownLatch(1);var jobs=new ArrayList<Future<?>>();for(int i=0;i<2;i++)jobs.add(pool.submit(()->{try(var s=new S()){gate.await();s.run();}catch(Exception error){throw new RuntimeException(error);}}));gate.countDown();for(var j:jobs)j.get(20,TimeUnit.SECONDS);f.committed(20);ok(f.count("transfer_index")==2);}finally{pool.shutdownNow();}
+   f.reset();
+   f.seed(2, 0);
+   var pool = Executors.newFixedThreadPool(2);
+   try {
+    var gate = new CountDownLatch(1);
+    var jobs = new ArrayList<Future<?>>();
+    for (int i = 0; i < 2; i++) jobs.add(pool.submit(() -> {
+     try (var s = new S()) {
+      gate.await();
+      s.run();
+     } catch (Exception error) {
+      throw new RuntimeException(error);
+     }
+    }));
+    gate.countDown();
+    for (var j : jobs) j.get(20, TimeUnit.SECONDS);
+    f.committed(20);
+    ok(f.count("transfer_index") == 2);
+   } finally {
+    pool.shutdownNow();
+   }
    System.out.println("PASS read settlement mysql 7 competing independent JDBC roots settle one history, ledger, event and two indexes");
    f.reset();f.seed(2,0);var owner=f.begin();try{f.run();throw new AssertionError("nested settlement allowed");}catch(IllegalStateException expected){ok(owner.isActive());}finally{owner.rollback();}f.untouched();
    System.out.println("PASS read settlement mysql 9 nested caller root rejected before touching or ending the owner");

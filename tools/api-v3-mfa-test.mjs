@@ -1,12 +1,35 @@
 #!/usr/bin/env node
-/** Actual security proof, credential revocation, SQL, strict JDBC root, auth and Dispatcher. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+/** 测试实际安全证明、凭据撤销、SQL、严格 JDBC 根事务、鉴权及 Dispatcher。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',`${ide}/lib/intellij.libraries.caffeine.jar`,`${ide}/plugins/testng/lib/testng.jar`,`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-mfa-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('MFA tests failed');}
+function shim(name, body) {
+ const file = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, body);
+ shims.push(file);
+}
+
+function method(source, signature) {
+ const begin = source.indexOf(signature);
+ if (begin < 0) throw Error(signature);
+ let depth = 0;
+ for (let i = source.indexOf('{', begin); i < source.length; i++) {
+  if (source[i] === '{') depth++;
+  if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+ }
+ throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+ const r = spawnSync(bin, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('MFA tests failed');
+}
 try{
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={};}');
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}public void evictSettingsCaches(String actor){}}');

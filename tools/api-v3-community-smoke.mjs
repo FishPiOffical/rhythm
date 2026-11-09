@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Read-only community HTTP checks after IDEA restart.
- * API_V3_BASE_URL defaults to localhost:8080. Optional API_V3_TOKEN carries content.read/profile.read.
- * Optional API_V3_PENDING_GAME_ID and API_V3_PENDING_MILESTONE_ID test unpublished resources.
- * API_V3_CITY defaults to 上海; empty results are valid. City privacy still needs two-account manual fixtures.
+/** 在 IDEA 重启后执行社区只读 HTTP 检查。
+ * API_V3_BASE_URL 默认为 localhost:8080，可选的 API_V3_TOKEN 需要 content.read/profile.read。
+ * 可选的 API_V3_PENDING_GAME_ID 和 API_V3_PENDING_MILESTONE_ID 用于验证未发布资源。
+ * API_V3_CITY 默认为上海，空结果有效。城市隐私仍需使用两个账号人工验证。
  */
 import assert from 'node:assert/strict';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080';

@@ -27,7 +27,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.*;
 
-/** Actual CloudRepository SQL and bag transitions with SQLite; not MySQL locking or the whole service. */
+/** 用 SQLite 验证实际的 CloudRepository SQL 和背包状态变更。MySQL 锁及完整服务需另行验证。 */
 public class ApiV3BagSqlTest {
     public static void main(final String[] args) throws Exception {
         final JSONObject original = new JSONObject().put("checkin1day", 2).put("checkin2days", 1).put(BagMutation.REMAIN, 3).put("other", 9).put("opaque", "private");

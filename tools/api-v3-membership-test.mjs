@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Java25 real route/controller/auth/SQL/DTO on SQLite; token persistence and response envelope are adapted. */
+/** 使用 Java 25 和 SQLite 测试实际路由、控制器、鉴权、SQL 与 DTO，令牌持久化及响应信封使用适配器。 */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,7 +18,11 @@ function method(source, signature) {
   let depth = 0; for (let i = source.indexOf('{', start); i < source.length; i++) { if (source[i] === '{') depth++; if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1); }
   throw new Error('Unclosed production method');
 }
-function run(command, args) { const result = spawnSync(command, args, { stdio: 'inherit' }); if (result.error) throw result.error; if (result.status !== 0) throw new Error('Membership tests failed'); }
+function run(command, args) {
+ const result = spawnSync(command, args, { stdio: 'inherit' });
+ if (result.error) throw result.error;
+ if (result.status !== 0) throw new Error('Membership tests failed');
+}
 try {
   shim('org/b3log/symphony/util/Symphonys', 'package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={};}');
   shim('org/b3log/symphony/repository/UserRepository', 'package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}}');

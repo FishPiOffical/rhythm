@@ -25,7 +25,7 @@ import java.io.StringWriter;
 import java.nio.file.*;
 import java.util.*;
 
-/** Render the actual two templates with hostile public values and publish isolated browser fixtures. */
+/** 用包含恶意内容的公开字段渲染两套实际模板，并输出隔离的浏览器测试夹具。 */
 public class ApiV3OAuthTemplateTest {
     public static void main(String[] args)throws Exception {
         Path out=Path.of("/tmp/rhythm-v3-oauth-http-fixture");Files.createDirectories(out);

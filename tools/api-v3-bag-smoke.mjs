@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** After default-client scope upgrade, IDEA rebuild/restart and a fresh login.
- * API_V3_TOKEN: disposable account with activity.read/activity.write.
- * Read-only unless API_V3_ALLOW_CARD_USE=1. Card use is persistent and is not undone.
+/** 升级默认客户端权限后，通过 IDEA 重新编译或重启并重新登录。
+ * API_V3_TOKEN 使用具有 activity.read/activity.write 的临时账号。
+ * API_V3_ALLOW_CARD_USE=1 才会真实用卡，用卡结果会持久保留。
  * API_V3_CARD_CODE=checkin1day|checkin2days (default checkin1day).
- * Optional API_V3_READ_ONLY_TOKEN verifies missing write scope.
+ * 可选的 API_V3_READ_ONLY_TOKEN 用于验证缺少写入权限。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

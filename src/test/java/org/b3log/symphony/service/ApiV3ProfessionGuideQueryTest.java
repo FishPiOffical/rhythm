@@ -93,14 +93,25 @@ public class ApiV3ProfessionGuideQueryTest {
     static void error(int status,Action a)throws Exception{try{a.run();Assert.fail("Expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);Assert.assertFalse(e.getMessage().contains("PRIVATE"));}}
     static void safe(JSONObject o){for(String s:List.of("PRIVATE","configurationJson","rewardConfigJson","currentRevisionId","schemeId","levelId","automationId","effectId","userId"))Assert.assertFalse(o.toString().contains(s),s);}
     public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var d=f.query.guides("1","10");safe(d);Assert.assertEquals(d.keySet(),Set.of("professionId","triggers","rewards"));Assert.assertEquals(d.getString("professionId"),"10");
-            Assert.assertEquals(d.getJSONArray("triggers").length(),2);Assert.assertEquals(d.getJSONArray("triggers").getJSONObject(0).keySet(),Set.of("triggerType"));
-            Assert.assertEquals(d.getJSONArray("rewards").getJSONObject(0).getLong("amount"),12L);Assert.assertEquals(d.getJSONArray("rewards").getJSONObject(1).keySet(),Set.of("rewardType"));
-            Assert.assertEquals(f.query.guides("2","10").toString(),d.toString());Assert.assertTrue(f.query.guides("1","12").getJSONArray("triggers").isEmpty());
+            var d = f.query.guides("1", "10");
+            safe(d);
+            Assert.assertEquals(d.keySet(), Set.of("professionId", "triggers", "rewards"));
+            Assert.assertEquals(d.getString("professionId"), "10");
+            Assert.assertEquals(d.getJSONArray("triggers").length(), 2);
+            Assert.assertEquals(d.getJSONArray("triggers").getJSONObject(0).keySet(), Set.of("triggerType"));
+            Assert.assertEquals(d.getJSONArray("rewards").getJSONObject(0).getLong("amount"), 12L);
+            Assert.assertEquals(d.getJSONArray("rewards").getJSONObject(1).keySet(), Set.of("rewardType"));
+            Assert.assertEquals(f.query.guides("2", "10").toString(), d.toString());
+            Assert.assertTrue(f.query.guides("1", "12").getJSONArray("triggers").isEmpty());
             Assert.assertTrue(f.query.guides("1","12").getJSONArray("rewards").isEmpty());
-            error(404,()->f.query.guides("1","11"));error(404,()->f.query.guides("1","99"));
+            error(404, () -> f.query.guides("1", "11"));
+            error(404, () -> f.query.guides("1", "99"));
         }
         System.out.println("PASS 1 actual published selection metadata, current scheme rewards only, duplicate trigger preservation, strict response whitelist, no owner progress synthesis");
         try(var f=new Fixture()){
@@ -109,8 +120,10 @@ public class ApiV3ProfessionGuideQueryTest {
             f.sql("UPDATE r SET status='RETIRED' WHERE oId='100'");
             f.sql("INSERT INTO r VALUES('102','10','PUBLISHED')");
             f.sql("UPDATE p SET currentRevisionId='102' WHERE oId='10'");
-            final var after=f.query.guides("1","10");Assert.assertTrue(before.similar(after));
-            f.sql("UPDATE r SET status='DRAFT' WHERE oId='100'");error(503,()->f.query.guides("1","10"));
+            final var after = f.query.guides("1", "10");
+            Assert.assertTrue(before.similar(after));
+            f.sql("UPDATE r SET status='DRAFT' WHERE oId='100'");
+            error(503, () -> f.query.guides("1", "10"));
         }
         System.out.println("PASS 8 real definition-publication shape preserves current scheme rewards through its retired definition revision; draft historical binding rejected");
         for(String sql:List.of("UPDATE r SET professionId='11' WHERE oId='100'","UPDATE r SET status='DRAFT' WHERE oId='100'","UPDATE s SET professionRevisionId='110' WHERE oId='200'","UPDATE s SET professionRevisionId='999' WHERE oId='200'","UPDATE s SET professionId='11' WHERE oId='200'","UPDATE s SET status='RETIRED' WHERE oId='200'","DELETE FROM r WHERE oId='100'","INSERT INTO s SELECT * FROM s WHERE oId='200'"))try(var f=new Fixture()){f.sql(sql);error(503,()->f.query.guides("1","10"));}
@@ -123,20 +136,54 @@ public class ApiV3ProfessionGuideQueryTest {
         error(503,()->ApiV3ProfessionGuideDto.number(new JSONObject().put("n",new java.math.BigInteger("9223372036854775808")),"n"));
         error(503,()->ApiV3ProfessionGuideDto.text(new JSONObject().put("n","\uD800"),"n",64,false));
         System.out.println("PASS 4 strict reward JSON/numbers/types and Unicode, safe bound amount and medal summary, oversized/malformed values never coerce or leak");
-        try(var f=new Fixture()){for(int i=0;i<511;i++){f.sql("INSERT INTO a VALUES(?,?,?,'PUBLISHED',0)","8"+i,"10","9"+i);f.sql("INSERT INTO ar VALUES(?,?,?,'PUBLISHED','article.published','PRIVATE')","9"+i,"8"+i,"10");}error(503,()->f.query.guides("1","10"));}
-        try(var f=new Fixture()){for(int i=0;i<511;i++)f.sql("INSERT INTO rw VALUES(?,?,?,?,?,?,0)","8"+i,"200","300","L1","POINT","{\"amount\":1}");error(503,()->f.query.guides("1","10"));}
+        try (var f = new Fixture()) {
+            for (int i = 0; i < 511; i++) {
+                f.sql("INSERT INTO a VALUES(?,?,?,'PUBLISHED',0)", "8" + i, "10", "9" + i);
+                f.sql("INSERT INTO ar VALUES(?,?,?,'PUBLISHED','article.published','PRIVATE')", "9" + i, "8" + i, "10");
+            }
+            error(503, () -> f.query.guides("1", "10"));
+        }
+        try (var f = new Fixture()) {
+            for (int i = 0; i < 511; i++) f.sql("INSERT INTO rw VALUES(?,?,?,?,?,?,0)", "8" + i, "200", "300", "L1", "POINT", "{\"amount\":1}");
+            error(503, () -> f.query.guides("1", "10"));
+        }
         System.out.println("PASS 5 actual limit-plus-one technical budgets reject oversized sources/rewards without truncation");
-        for(int stage=1;stage<=6;stage++)try(var f=new Fixture()){f.failAt=stage;error(503,()->f.query.guides("1","10"));}
-        try(var f=new Fixture()){f.disableAt=6;error(404,()->f.query.guides("1","10"));}
-        try(var f=new Fixture()){f.changeAt=5;error(503,()->f.query.guides("1","10"));}
-        for(String value:Arrays.asList(null,"","1 OR 1=1","x","1".repeat(20)))try(var f=new Fixture()){error(422,()->f.query.guides("1",value));error(422,()->f.query.guides(value,"10"));Assert.assertEquals(f.reads,0);}
+        for (int stage = 1; stage <= 6; stage++) try (var f = new Fixture()) {
+            f.failAt = stage;
+            error(503, () -> f.query.guides("1", "10"));
+        }
+        try (var f = new Fixture()) {
+            f.disableAt = 6;
+            error(404, () -> f.query.guides("1", "10"));
+        }
+        try (var f = new Fixture()) {
+            f.changeAt = 5;
+            error(503, () -> f.query.guides("1", "10"));
+        }
+        for (String value : Arrays.asList(null, "", "1 OR 1=1", "x", "1".repeat(20))) try (var f = new Fixture()) {
+            error(422, () -> f.query.guides("1", value));
+            error(422, () -> f.query.guides(value, "10"));
+            Assert.assertEquals(f.reads, 0);
+        }
         try(var f=new Fixture()){error(404,()->f.query.guides("3","10"));}
         System.out.println("PASS 6 sanitized SQL failures at every stage, active actor and current profession version recheck, invalid IDs and disabled actors");
         try(var f=new Fixture()){
-            ApiV3ProfessionGuideProcessor.registerRoutes(f.controller,f.auth);Dispatcher.mapping();
-            for(String t:Arrays.asList(null,"bad","wrong")){int before=f.reads;Assert.assertEquals(f.http(t,"10").attr("test.status"),"wrong".equals(t)?403:401);Assert.assertEquals(f.reads,before);}
-            var c=f.http("owner","10");Assert.assertEquals(c.attr("test.status"),200);Assert.assertEquals(c.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(c.getResponse().getHeader("Vary"),"Authorization");safe((JSONObject)c.attr("test.data"));
-            Assert.assertEquals(f.http("other","10").attr("test.status"),200);Assert.assertEquals(f.http("disabled","10").attr("test.status"),404);Assert.assertEquals(f.http("owner","11").attr("test.status"),404);Assert.assertEquals(f.http("owner","invalid").attr("test.status"),422);
+            ApiV3ProfessionGuideProcessor.registerRoutes(f.controller, f.auth);
+            Dispatcher.mapping();
+            for (String t : Arrays.asList(null, "bad", "wrong")) {
+                int before = f.reads;
+                Assert.assertEquals(f.http(t, "10").attr("test.status"), "wrong".equals(t) ? 403 : 401);
+                Assert.assertEquals(f.reads, before);
+            }
+            var c = f.http("owner", "10");
+            Assert.assertEquals(c.attr("test.status"), 200);
+            Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
+            Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+            safe((JSONObject) c.attr("test.data"));
+            Assert.assertEquals(f.http("other", "10").attr("test.status"), 200);
+            Assert.assertEquals(f.http("disabled", "10").attr("test.status"), 404);
+            Assert.assertEquals(f.http("owner", "11").attr("test.status"), 404);
+            Assert.assertEquals(f.http("owner", "invalid").attr("test.status"), 422);
         }
         System.out.println("PASS 7 actual Dispatcher/controller/auth route rejects Cookie/apiKey fallback and wrong scope, active Bearer-only metadata and no-store envelope");
         System.out.println("Profession guide isolated tests passed: 8 groups");

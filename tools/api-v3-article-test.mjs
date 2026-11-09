@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Isolated creation input, shared quotas, points/cache boundaries and submission-policy transition tests; no HTTP.
- * Uses Java 25, TestNG and SQLite. Transaction tests use an adapter, not the application database or points service.
+/** 隔离测试文章创建输入、共享配额、积分与缓存边界，以及投稿规则转换。
+ * 使用 Java 25、TestNG 和 SQLite，事务测试使用数据库与积分服务适配器，不经过 HTTP。
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,7 +15,11 @@ const sources=['model/Article','model/Reward','model/Role','censor/CensorResult'
   'util/ApiV3Exception','util/ApiV3Json','util/ApiV3WriteInputs','util/ApiV3ArticleInputs','util/ApiV3ArticleEditorDto','util/ApiV3ArticleEditInputs','util/ApiV3ArticleEditing','util/ArticlePublishPoints','util/ArticleEditPoints','util/ArticleRemovalPolicy','util/ArticlePublicationCaches','util/ArticleSubmissionPolicy','util/ArticleSubmission','util/ArticleValidation','util/ApiV3ArticleCreation','util/ArticleWriteQuota','util/ProfileWriteQuota','util/BreezemoonWriteQuota','util/FishGameWriteQuota'];
 const limiter=['main/SimpleCurrentLimiter','control/MainControl','cache/MainCache','cache/pair/CachePair'];
 const work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-article-test-'));
-function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error('Article preparation tests failed');}
+function run(cmd, args) {
+ const r = spawnSync(cmd, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw new Error('Article preparation tests failed');
+}
 try{
   const classes=path.join(work,'classes'),cp=[latke,testng,sqlite].join(path.delimiter);
   run(javac,['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',classes,...sources.map(s=>`src/main/java/org/b3log/symphony/${s}.java`),

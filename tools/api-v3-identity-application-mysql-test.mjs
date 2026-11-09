@@ -1,14 +1,45 @@
 #!/usr/bin/env node
-/** Production identity workflow on exact MySQL material/application DDL; explicit authentication and ancillary adapters. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync,spawn} from 'node:child_process';import crypto from 'node:crypto';
+/** 按正式材料及申请表 DDL 在 MySQL 上测试企业认证流程，认证及配套服务使用显式适配器。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync, spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar'),'src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-identity-mysql-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('Identity application tests failed');}
-let container;const children=[];
-function docker(args){const result=spawnSync('docker',args,{encoding:'utf8',timeout:25000});if(result.status!==0)throw Error(result.stderr);return result.stdout.trim();}
+function shim(name, body) {
+ const file = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, body);
+ shims.push(file);
+}
+
+function method(source, signature) {
+ const begin = source.indexOf(signature);
+ if (begin < 0) throw Error(signature);
+ let depth = 0;
+ for (let i = source.indexOf('{', begin); i < source.length; i++) {
+  if (source[i] === '{') depth++;
+  if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+ }
+ throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+ const r = spawnSync(bin, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('Identity application tests failed');
+}
+
+let container;
+const children = [];
+
+function docker(args) {
+ const result = spawnSync('docker', args, { encoding: 'utf8', timeout: 25000 });
+ if (result.status !== 0) throw Error(result.stderr);
+ return result.stdout.trim();
+}
 try{
  const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={"admin"};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+((k==='POINT_BUY_INVITECODE'||k==='POINT_CHANGE_USERNAME'||k==='POINT_DATA_EXPORT')?100:0)+';').join('')+'}');
@@ -53,13 +84,46 @@ try{
  function java(args){const result=spawnSync(path.join(home,'bin','java'),[...base,klass,...args],{encoding:'utf8',timeout:45000});if(result.status!==0)throw Error(result.stdout+' '+result.stderr);return result.stdout;}
  function fresh(){docker(['exec',container,'mysql','-uroot','-e','DROP DATABASE IF EXISTS rhythm_identity;CREATE DATABASE rhythm_identity CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;']);}
  fresh();const unit=spawnSync(path.join(home,'bin','java'),['-Drhythm.mysql.fixtureReset=true',...base,'org.b3log.symphony.service.ApiV3IdentityApplicationTest'],{encoding:'utf8',timeout:60000});if(unit.status!==0)throw Error(unit.stdout+' '+unit.stderr);console.log(unit.stdout);
- function worker(extra){const p=spawn(path.join(home,'bin','java'),[...base,klass,...extra]),state={p,out:'',err:'',done:false};p.stdout.on('data',x=>state.out+=x);p.stderr.on('data',x=>state.err+=x);state.finished=new Promise((resolve,reject)=>{p.on('error',reject);p.on('close',code=>{state.done=true;code===0?resolve():reject(Error(state.out+' '+state.err));});});state.finished.catch(()=>{});children.push(state);return state;}
- async function until(state,marker){const end=Date.now()+15000;while(!state.out.includes(marker)){if(state.done)throw Error(state.out+' '+state.err);if(Date.now()>end)throw Error('Marker timeout '+marker);await new Promise(r=>setTimeout(r,20));}}
+ function worker(extra) {
+  const p = spawn(path.join(home, 'bin', 'java'), [...base, klass, ...extra]), state = { p, out: '', err: '', done: false };
+  p.stdout.on('data', x => state.out += x);
+  p.stderr.on('data', x => state.err += x);
+  state.finished = new Promise((resolve, reject) => {
+   p.on('error', reject);
+   p.on('close', code => {
+    state.done = true;
+    code === 0 ? resolve() : reject(Error(state.out + ' ' + state.err));
+   });
+  });
+  state.finished.catch(() => {});
+  children.push(state);
+  return state;
+ }
+
+ async function until(state, marker) {
+  const end = Date.now() + 15000;
+  while (!state.out.includes(marker)) {
+   if (state.done) throw Error(state.out + ' ' + state.err);
+   if (Date.now() > end) throw Error('Marker timeout ' + marker);
+   await new Promise(r => setTimeout(r, 20));
+  }
+ }
  for(const race of ['same-key','different-key','open','decision-same','decision-conflict']){
   fresh();console.log(java(['setup',race]));const release=path.join(dir,'release-'+race);
   const a=worker(['worker',race,'holder',release]);await until(a,'BEFORE_COMMIT');
   const b=worker(['worker',race,'contender',release]);await until(b,'STARTING_WORK');
-  let waited=false;const end=Date.now()+10000;while(Date.now()<end){if(Number(docker(['exec',container,'mysql','-uroot','-N','-B','-e',"SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"]))>0){waited=true;break;}if(b.done)throw Error('Contender did not block '+b.out);await new Promise(r=>setTimeout(r,50));}
+  // 先从 InnoDB 观察真实锁等待，再释放持锁进程。
+  let waited = false;
+  const end = Date.now() + 10000;
+  while (Date.now() < end) {
+   if (Number(docker(['exec', container, 'mysql', '-uroot', '-N', '-B', '-e',
+    "SELECT COUNT(*) FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'"])) > 0) {
+    waited = true;
+    break;
+   }
+   if (b.done) throw Error('Contender did not block ' + b.out);
+   await new Promise(r => setTimeout(r, 50));
+  }
   if(!waited)throw Error('No InnoDB lock wait for '+race);fs.writeFileSync(release,'release');await Promise.all([a.finished,b.finished]);
   const resultA=JSON.parse(a.out.match(/RESULT=(.*)/)[1]),resultB=JSON.parse(b.out.match(/RESULT=(.*)/)[1]);
   if(race==='same-key'&&(resultA.status!==200||resultB.status!==200||!resultA.id||resultA.id!==resultB.id))throw Error('Same-key returned different applications');
@@ -67,10 +131,17 @@ try{
   if(race==='open'&&(resultA.status!==200||resultB.status!==410))throw Error('Duplicate or lost one-shot read');
   if(race==='decision-same'&&(resultA.status!==200||resultB.status!==200||resultA.decision!=='approved'||resultB.decision!=='approved'||resultA.id!==resultB.id))throw Error('Decision replay conflict');
   if(race==='decision-conflict'&&(resultA.status!==200||resultB.status!==409))throw Error('Conflicting decision accepted');
-  console.log(java(['verify',race]));console.log('PASS identity mysql race '+race+' independent JVMs with observed InnoDB lock wait');
+  console.log(java(['verify', race]));
+  console.log('PASS identity mysql race ' + race + ' independent JVMs with observed InnoDB lock wait');
  }
-}finally{
- for(const child of children)if(!child.done)child.p.kill('SIGKILL');await Promise.allSettled(children.map(c=>c.finished));
- if(container){docker(['rm','-f',container]);if(docker(['ps','-aq','--filter','name=^/'+container+'$']))throw Error('Container cleanup failed');console.log('Disposable identity MySQL removed; random loopback port only');}
+} finally {
+ for (const child of children)
+  if (!child.done) child.p.kill('SIGKILL');
+ await Promise.allSettled(children.map(c => c.finished));
+ if (container) {
+  docker(['rm', '-f', container]);
+  if (docker(['ps', '-aq', '--filter', 'name=^/' + container + '$'])) throw Error('Container cleanup failed');
+  console.log('Disposable identity MySQL removed; random loopback port only');
+ }
  fs.rmSync(dir,{recursive:true,force:true});
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated notification SQL/state tests on temporary in-memory SQLite; never connects to the app DB.
- * SELECTs strip FOR UPDATE and marker UPSERT uses SQLite syntax; MySQL locking and HTTP/rendering are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 在临时内存 SQLite 中验证通知 SQL 与状态，不连接应用数据库。
+ * 查询会移除 FOR UPDATE，失效标记的 UPSERT 使用 SQLite 语法，MySQL 行锁和 HTTP 渲染须另行验证。
+ * 未使用默认 IDE 安装时，请配置 Java 25 的 JAVA_HOME、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

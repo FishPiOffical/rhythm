@@ -1,4 +1,4 @@
-/** Actual source and generated chat renderers; browser fixture mode never connects to the application. */
+/** 校验聊天渲染器源码与生成产物，浏览器夹具独立于应用。 */
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';

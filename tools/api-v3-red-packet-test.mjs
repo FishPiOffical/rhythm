@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Isolated Java 25 discovery contract test. No network/server/database/payment calls. */
+/** 用 Java 25 隔离验证红包类型发现契约，无需网络、服务、数据库或积分交易。 */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

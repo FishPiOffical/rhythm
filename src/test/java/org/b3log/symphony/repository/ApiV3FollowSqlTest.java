@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/** Executes real FollowRepository SQL on SQLite; FOR UPDATE is removed, so MySQL locking is not tested. */
+/** 在 SQLite 上执行实际的 FollowRepository SQL。适配时移除 FOR UPDATE，MySQL 锁行为需另行验证。 */
 public class ApiV3FollowSqlTest {
     public static void main(final String[] args) throws Exception {
         final var propsField = Latkes.class.getDeclaredField("localProps"); propsField.setAccessible(true);

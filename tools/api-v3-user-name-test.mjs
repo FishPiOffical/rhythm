@@ -1,14 +1,37 @@
 #!/usr/bin/env node
-/** Actual rename/points/receipt SQL and strict JDBC; temporary SQLite and transport/cache adapters. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+/** 在临时 SQLite 中验证真实改名、积分、回执 SQL 和严格 JDBC，传输与缓存使用适配器。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const encoder=process.env.API_V3_ENCODER_JAR||path.join(os.homedir(),'.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar');
 if(!fs.existsSync(encoder))throw Error('Set API_V3_ENCODER_JAR to the encoder 1.2.2 dependency from pom.xml');
 const cp=[encoder,'src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-user-name-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('User-name tests failed');}
+function shim(name, body) {
+  const file = path.join(dir, name + '.java');
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  fs.writeFileSync(file, body);
+  shims.push(file);
+}
+
+function method(source, signature) {
+  const begin = source.indexOf(signature);
+  if (begin < 0) throw Error(signature);
+  let depth = 0;
+  for (let i = source.indexOf('{', begin); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+  }
+  throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+  const r = spawnSync(bin, args, {stdio: 'inherit'});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error('User-name tests failed');
+}
 try{
  const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={"admin"};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+((k==='POINT_BUY_INVITECODE'||k==='POINT_CHANGE_USERNAME')?100:0)+';').join('')+'}');

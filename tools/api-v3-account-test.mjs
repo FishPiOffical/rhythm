@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Actual account policy/controller, model constants, username rules and response helpers.
-// Settings/user/permission storage and global anonymous middleware are explicit adapters.
+// 运行实际账号规则、控制器、模型常量、用户名校验和响应辅助方法。
+// 设置、用户、权限存储及全局匿名中间件使用显式适配器。
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,9 +8,29 @@ import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`].join(path.delimiter);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-account-test-')),shims=[];
-function shim(name,source){const file=path.join(dir,`${name}.java`);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,source);shims.push(file);}
-function method(signature){const source=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8'),start=source.indexOf(signature);if(start<0)throw new Error(signature);let depth=0;for(let i=source.indexOf('{',start);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(start,i+1);}throw new Error('Unclosed method');}
-function run(binary,args){const r=spawnSync(binary,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error('Account tests failed');}
+function shim(name, source) {
+ const file = path.join(dir, `${name}.java`);
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, source);
+ shims.push(file);
+}
+
+function method(signature) {
+ const source = fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java', 'utf8'), start = source.indexOf(signature);
+ if (start < 0) throw new Error(signature);
+ let depth = 0;
+ for (let i = source.indexOf('{', start); i < source.length; i++) {
+  if (source[i] === '{') depth++;
+  if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1);
+ }
+ throw new Error('Unclosed method');
+}
+
+function run(binary, args) {
+ const r = spawnSync(binary, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw new Error('Account tests failed');
+}
 try{
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static String get(String key){return "fixture-public-id";}public static final String[] RESERVED_USER_NAMES={"admin"};}');
  shim('org/b3log/symphony/repository/OptionRepository','package org.b3log.symphony.repository;public class OptionRepository extends org.b3log.latke.repository.AbstractRepository {public OptionRepository(){super("option");}}');

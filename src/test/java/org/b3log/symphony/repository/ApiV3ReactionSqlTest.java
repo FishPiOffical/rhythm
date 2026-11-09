@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-/** Real shared transition and repository SQL. SQLite strips FOR UPDATE; no HTTP or channel tests. */
+/** 验证实际的共用表态变更逻辑和仓库 SQL。SQLite 适配移除 FOR UPDATE，HTTP 和实时通道需另行验证。 */
 public class ApiV3ReactionSqlTest {
     public static void main(final String[] args) throws Exception {
         final JSONArray catalog = ApiV3ReactionDto.emojis();

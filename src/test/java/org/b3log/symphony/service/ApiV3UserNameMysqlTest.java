@@ -131,18 +131,79 @@ public class ApiV3UserNameMysqlTest {
         try(Connection observer=connect()){
             for(String statement:Files.readString(Path.of(args[1])).split(";"))if(!statement.isBlank())execute(observer,statement);
             var version=rows(observer,"SELECT VERSION() AS version,@@sql_mode AS mode,@@transaction_isolation AS isolation").getFirst();Assert.assertTrue(version.getString("mode").contains("STRICT_TRANS_TABLES"));System.out.println("MySQL "+version+" Connector-J "+observer.getMetaData().getDriverVersion()+" real configured price="+price);
-            Fixture f=new Fixture();seed(observer);var first=f.rename("101","first","New");Assert.assertEquals(first.getInt("paidPoints"),price);Assert.assertEquals(name(observer,"101"),"New");Assert.assertEquals(scalar(observer,"SELECT userPoint AS v FROM `user` WHERE oId='101'"),(long)price*4);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM pointtransfer"),1L);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM api_v3_request"),1L);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM pointtransfer_redc"),2L);
-            f.rename("101","later","Newest");Assert.assertEquals(f.rename("101","first","New").toString(),first.toString());Assert.assertEquals(name(observer,"101"),"Newest");Assert.assertEquals(scalar(observer,"SELECT userPoint AS v FROM `user` WHERE oId='101'"),(long)price*3);reject(409,()->f.rename("101","first","Different"));
+            Fixture f = new Fixture();
+            seed(observer);
+            var first = f.rename("101", "first", "New");
+            Assert.assertEquals(first.getInt("paidPoints"), price);
+            Assert.assertEquals(name(observer, "101"), "New");
+            Assert.assertEquals(scalar(observer, "SELECT userPoint AS v FROM `user` WHERE oId='101'"), (long) price * 4);
+            Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM pointtransfer"), 1L);
+            Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM api_v3_request"), 1L);
+            Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM pointtransfer_redc"), 2L);
+            f.rename("101", "later", "Newest");
+            Assert.assertEquals(f.rename("101", "first", "New").toString(), first.toString());
+            Assert.assertEquals(name(observer, "101"), "Newest");
+            Assert.assertEquals(scalar(observer, "SELECT userPoint AS v FROM `user` WHERE oId='101'"), (long) price * 3);
+            reject(409, () -> f.rename("101", "first", "Different"));
             System.out.println("PASS mysql 1 real configured fee, name/ledger/receipt commit, index and idempotent replay preserve later name");
-            for(String stage:List.of("name","points","ledger","receipt","commit")){seed(observer);fault.set(stage);reject(503,()->f.rename("101","rollback","New"));fault.remove();Assert.assertEquals(name(observer,"101"),"Old");Assert.assertEquals(scalar(observer,"SELECT userPoint AS v FROM `user` WHERE oId='101'"),(long)price*5);for(String table:List.of("pointtransfer","api_v3_request","pointtransfer_redc"))Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM "+table),0L);f.rename("101","rollback","New");}
+            for (String stage : List.of("name", "points", "ledger", "receipt", "commit")) {
+                seed(observer);
+                fault.set(stage);
+                reject(503, () -> f.rename("101", "rollback", "New"));
+                fault.remove();
+                Assert.assertEquals(name(observer, "101"), "Old");
+                Assert.assertEquals(scalar(observer, "SELECT userPoint AS v FROM `user` WHERE oId='101'"), (long) price * 5);
+                for (String table : List.of("pointtransfer", "api_v3_request", "pointtransfer_redc"))
+                    Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM " + table), 0L);
+                f.rename("101", "rollback", "New");
+            }
             System.out.println("PASS mysql 2 real JDBC rollback after name/debit/ledger/receipt and commit faults, same-key retry recovers");
-            seed(observer);fault.set("lost-ack");reject(503,()->f.rename("101","ack","New"));fault.remove();Assert.assertEquals(name(observer,"101"),"New");Assert.assertEquals(f.rename("101","ack","New").getString("userName"),"New");Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM pointtransfer"),1L);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM pointtransfer_redc"),2L);
+            seed(observer);
+            fault.set("lost-ack");
+            reject(503, () -> f.rename("101", "ack", "New"));
+            fault.remove();
+            Assert.assertEquals(name(observer, "101"), "New");
+            Assert.assertEquals(f.rename("101", "ack", "New").getString("userName"), "New");
+            Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM pointtransfer"), 1L);
+            Assert.assertEquals(scalar(observer, "SELECT COUNT(*) AS v FROM pointtransfer_redc"), 2L);
             System.out.println("PASS mysql 3 post-commit acknowledgement loss replays one durable charge and repairs index");
             for(String next:List.of("-","---","abc-def","n".repeat(64))){seed(observer);String old="p".repeat(64);execute(observer,"UPDATE `user` SET userName=? WHERE oId='101'",old);f.rename("101","bounded",next);JSONObject row=rows(observer,"SELECT * FROM pointtransfer").getFirst();Assert.assertEquals(row.getString("dataId"),next);Assert.assertEquals(row.getString("memo"),old);Assert.assertEquals(UserNamePointData.description(row,"{oldName} -> {newName}"),old+" -> "+next);Assert.assertEquals(name(observer,"101"),next);}
             System.out.println("PASS mysql 4 real VARCHAR lengths accept hyphens and 64-to-64 rename, production formatter preserves names");
-            seed(observer);namespaceHeld=new CountDownLatch(1);releaseNamespace=new CountDownLatch(1);namespaceAttempt=new CountDownLatch(1);namespaceOrder.clear();var pool=Executors.newFixedThreadPool(2);try{
-                Future<JSONObject> a=pool.submit(()->{Thread.currentThread().setName("rename-A");return new Fixture().rename("101","race-A","Shared");});Assert.assertTrue(namespaceHeld.await(10,TimeUnit.SECONDS));Future<Integer> b=pool.submit(()->{Thread.currentThread().setName("rename-B");try{new Fixture().rename("102","race-B","Shared");return 200;}catch(ApiV3Exception e){return e.status;}});Assert.assertTrue(namespaceAttempt.await(10,TimeUnit.SECONDS));Thread.sleep(200);Assert.assertFalse(b.isDone(),"second real connection must wait for namespace row");releaseNamespace.countDown();Assert.assertEquals(a.get(15,TimeUnit.SECONDS).getString("userName"),"Shared");Assert.assertEquals(b.get(15,TimeUnit.SECONDS),Integer.valueOf(409));
-            }finally{releaseNamespace.countDown();pool.shutdownNow();Assert.assertTrue(pool.awaitTermination(10,TimeUnit.SECONDS));namespaceHeld=null;namespaceAttempt=null;}
+            // 先让 A 持有命名空间行锁，再让 B 用独立连接争用相同用户名。
+            seed(observer);
+            namespaceHeld = new CountDownLatch(1);
+            releaseNamespace = new CountDownLatch(1);
+            namespaceAttempt = new CountDownLatch(1);
+            namespaceOrder.clear();
+            var pool = Executors.newFixedThreadPool(2);
+            try {
+                Future<JSONObject> a = pool.submit(() -> {
+                    Thread.currentThread().setName("rename-A");
+                    return new Fixture().rename("101", "race-A", "Shared");
+                });
+                Assert.assertTrue(namespaceHeld.await(10, TimeUnit.SECONDS));
+                Future<Integer> b = pool.submit(() -> {
+                    Thread.currentThread().setName("rename-B");
+                    try {
+                        new Fixture().rename("102", "race-B", "Shared");
+                        return 200;
+                    } catch (ApiV3Exception e) {
+                        return e.status;
+                    }
+                });
+                Assert.assertTrue(namespaceAttempt.await(10, TimeUnit.SECONDS));
+                Thread.sleep(200);
+                Assert.assertFalse(b.isDone(), "second real connection must wait for namespace row");
+                releaseNamespace.countDown();
+                Assert.assertEquals(a.get(15, TimeUnit.SECONDS).getString("userName"), "Shared");
+                Assert.assertEquals(b.get(15, TimeUnit.SECONDS), Integer.valueOf(409));
+            } finally {
+                releaseNamespace.countDown();
+                pool.shutdownNow();
+                Assert.assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
+                namespaceHeld = null;
+                namespaceAttempt = null;
+            }
             Assert.assertEquals(name(observer,"101"),"Shared");Assert.assertEquals(name(observer,"102"),"Other");Assert.assertEquals(scalar(observer,"SELECT userPoint AS v FROM `user` WHERE oId='102'"),(long)price*5);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM pointtransfer"),1L);Assert.assertEquals(scalar(observer,"SELECT COUNT(*) AS v FROM api_v3_request"),1L);Assert.assertTrue(namespaceOrder.indexOf("rename-A")<namespaceOrder.indexOf("rename-B"));
             System.out.println("PASS mysql 5 actual FOR UPDATE namespace blocks competing connection; one name/charge/receipt wins and loser remains unchanged");
             Assert.assertTrue(lockingQueries.get()>50);System.out.println("Executed "+lockingQueries+" unmodified FOR UPDATE queries; adapter caches/censor, no HTTP/IoC end-to-end claim");

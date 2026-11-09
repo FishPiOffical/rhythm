@@ -1,16 +1,43 @@
 #!/usr/bin/env node
-/** Disposable MySQL 8.4 + real Connector/J and production rename/points/receipt transaction core. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';
+/** 使用临时 MySQL 8.4 和真实 Connector/J 验证生产改名、积分和回执事务。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const driver=process.env.API_V3_MYSQL_DRIVER||path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar');
 const encoder=process.env.API_V3_ENCODER_JAR||'/tmp/rhythm-v3-encoder-1.2.2.jar';
 for(const p of [driver,encoder])if(!fs.existsSync(p))throw Error('Missing test dependency: '+p);
 const cp=[driver,encoder,'src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`].join(path.delimiter);
 const id=crypto.randomBytes(6).toString('hex'),container='rhythm-v3-username-'+id,schema='rhythm_v3_username_'+id;
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-username-mysql-')),shims=[];let started=false;
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args,options={}){const r=spawnSync(bin,args,{encoding:'utf8',timeout:120000,...options});if(r.error)throw r.error;if(r.status!==0)throw Error(`${bin} failed (${r.status}): ${r.stderr||''}`);return r.stdout?.trim()||'';}
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-username-mysql-')), shims = [];
+let started = false;
+
+function shim(name, body) {
+  const file = path.join(dir, name + '.java');
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  fs.writeFileSync(file, body);
+  shims.push(file);
+}
+
+function method(source, signature) {
+  const begin = source.indexOf(signature);
+  if (begin < 0) throw Error(signature);
+  let depth = 0;
+  for (let i = source.indexOf('{', begin); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+  }
+  throw Error('Unclosed method');
+}
+
+function run(bin, args, options = {}) {
+  const r = spawnSync(bin, args, {encoding: 'utf8', timeout: 120000, ...options});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error(`${bin} failed (${r.status}): ${r.stderr||''}`);
+  return r.stdout?.trim() || '';
+}
 const config=fs.readFileSync('src/main/resources/symphony.properties','utf8');
 const price=Number(config.match(/^pointChangeUsername=(\d+)$/m)?.[1]);if(!Number.isSafeInteger(price)||price<=0)throw Error('Review actual pointChangeUsername configuration');
 const repositories=JSON.parse(fs.readFileSync('src/main/resources/repository.json')).repositories;

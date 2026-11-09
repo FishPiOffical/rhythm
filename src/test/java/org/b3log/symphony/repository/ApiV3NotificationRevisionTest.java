@@ -27,7 +27,7 @@ import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 
-/** Actual notification write hooks/revision SQL with separate SQLite writer/readers; no MySQL locks or HTTP. */
+/** 用独立的 SQLite 读写连接验证实际的通知写入钩子和版本 SQL。MySQL 锁及 HTTP 需另行验证。 */
 public class ApiV3NotificationRevisionTest {
     static class Fixture implements AutoCloseable {
         final Path file=Files.createTempFile("rhythm-notification-revision-",".sqlite");final String url="jdbc:sqlite:"+file;

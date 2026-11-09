@@ -75,18 +75,62 @@ public class ApiV3ArticleReadMysqlTest {
  public static void main(String[] a)throws Exception{
   var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
   try(var f=new F()){
-   f.reset();ok(f.service.recordCurrent("10","2"));ok(!f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==1);ok(rows(f.db,"SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n")==1);f.clock+=W;ok(f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==2);ok(f.count("symphony_article_long_read_window")==2);
+   // 同一读者在同一窗口只计一次，跨窗口后可重新登记。
+   f.reset();
+   ok(f.service.recordCurrent("10", "2"));
+   ok(!f.service.recordCurrent("10", "2"));
+   ok(f.count("symphony_article_long_read_user") == 1);
+   ok(rows(f.db, "SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n") == 1);
+   f.clock += W;
+   ok(f.service.recordCurrent("10", "2"));
+   ok(f.count("symphony_article_long_read_user") == 2);
+   ok(f.count("symphony_article_long_read_window") == 2);
    System.out.println("PASS article read mysql 1 same-window dedup and next-window fresh claim/counter on exact migrated schema");
-   f.reset();for(int state:List.of(1,2,3,4,99)){sql(f.db,"UPDATE users SET userStatus=? WHERE oId='2'",state);status(404,()->f.service.recordCurrent("10","2"));}sql(f.db,"UPDATE users SET userStatus=0 WHERE oId='2'");status(409,()->f.service.recordCurrent("10","1"));status(401,()->f.service.recordCurrent("10",null));status(422,()->f.service.recordCurrent("10' OR 1=1","2"));ok(f.count("symphony_article_long_read_user")==0);
+   f.reset();
+   for (int state : List.of(1, 2, 3, 4, 99)) {
+    sql(f.db, "UPDATE users SET userStatus=? WHERE oId='2'", state);
+    status(404, () -> f.service.recordCurrent("10", "2"));
+   }
+   sql(f.db, "UPDATE users SET userStatus=0 WHERE oId='2'");
+   status(409, () -> f.service.recordCurrent("10", "1"));
+   status(401, () -> f.service.recordCurrent("10", null));
+   status(422, () -> f.service.recordCurrent("10' OR 1=1", "2"));
+   ok(f.count("symphony_article_long_read_user") == 0);
    System.out.println("PASS article read mysql 2 current active reader only, self/anonymous/injection rejected without writes");
    for(String change:List.of("articleType=0","articleType=1","articleAnonymous=1","articleStatus=1","articleStatus=2","articleShowInList=0","articleTags='Sandbox'","articleTags='B3log-private'")){f.reset();sql(f.db,"UPDATE articles SET "+change);status(404,()->f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==0);}
    f.reset();sql(f.db,"UPDATE users SET userStatus=4 WHERE oId='1'");status(404,()->f.service.recordCurrent("10","2"));sql(f.db,"UPDATE users SET userStatus=3 WHERE oId='1'");ok(f.service.recordCurrent("10","2"));
    System.out.println("PASS article read mysql 3 current valid signed/listable long article and author eligibility before claim");
-   for(String fault:List.of("counter","commit")){f.reset();f.fault=fault;status(503,()->f.service.recordCurrent("10","2"));f.fault="";ok(f.count("symphony_article_long_read_user")==0);ok(f.count("symphony_article_long_read_window")==0);ok(f.service.recordCurrent("10","2"));}
-   f.reset();f.fault="ack";status(503,()->f.service.recordCurrent("10","2"));f.fault="";ok(!f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==1);
+   for (String fault : List.of("counter", "commit")) {
+    f.reset();
+    f.fault = fault;
+    status(503, () -> f.service.recordCurrent("10", "2"));
+    f.fault = "";
+    ok(f.count("symphony_article_long_read_user") == 0);
+    ok(f.count("symphony_article_long_read_window") == 0);
+    ok(f.service.recordCurrent("10", "2"));
+   }
+   // 已提交但确认丢失时，重试只能读到已有登记。
+   f.reset();
+   f.fault = "ack";
+   status(503, () -> f.service.recordCurrent("10", "2"));
+   f.fault = "";
+   ok(!f.service.recordCurrent("10", "2"));
+   ok(f.count("symphony_article_long_read_user") == 1);
    System.out.println("PASS article read mysql 4 post-counter/commit rollback and lost-ack retry never double counts");
-   f.reset();var owner=f.begin();ok(f.service.recordCurrent("10","2"));ok(owner.isActive());owner.rollback();ok(f.count("symphony_article_long_read_user")==0);
-   owner=f.begin();f.fault="counter";status(503,()->f.service.recordCurrent("10","2"));f.fault="";ok(owner.isActive());ok(rows(f.writer,"SELECT COUNT(*) n FROM symphony_article_long_read_user").getFirst().getInt("n")==0);ApiV3Transactions.strict(owner).commit();ok(f.count("symphony_article_long_read_window")==0);
+   f.reset();
+   var owner = f.begin();
+   ok(f.service.recordCurrent("10", "2"));
+   ok(owner.isActive());
+   owner.rollback();
+   ok(f.count("symphony_article_long_read_user") == 0);
+   owner = f.begin();
+   f.fault = "counter";
+   status(503, () -> f.service.recordCurrent("10", "2"));
+   f.fault = "";
+   ok(owner.isActive());
+   ok(rows(f.writer, "SELECT COUNT(*) n FROM symphony_article_long_read_user").getFirst().getInt("n") == 0);
+   ApiV3Transactions.strict(owner).commit();
+   ok(f.count("symphony_article_long_read_window") == 0);
    System.out.println("PASS article read mysql 5 nested operation never commits owner and savepoint failure rolls back only claim/counter");
    f.reset();ok(f.service.recordCurrent("10","3"));sql(f.db,"UPDATE symphony_article_long_read_window SET state='SETTLING'");status(503,()->f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==1);ok(rows(f.db,"SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n")==1);
    System.out.println("PASS article read mysql 6 CLIENT_FOUND_ROWS matched settling window cannot consume a reader claim");

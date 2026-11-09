@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** After IDEA rebuild/restart. Read-only unless API_V3_ALLOW_GAME_VOTE_WRITES=1.
- * API_V3_TOKEN: disposable account with content.read/reactions.write/comments.write.
- * API_V3_APPROVED_GAME_ID: approved disposable game. Existing own votes are skipped; new votes are cleared.
- * Comment write requires separate API_V3_ALLOW_GAME_COMMENT_WRITE=1: one visible comment is created and cannot be deleted through v3.
- * Pending fixtures: API_V3_PENDING_GAME_ID. No submissions or OAuth calls.
+/** 在 IDEA 重新编译或重启后运行，投票写入需要 API_V3_ALLOW_GAME_VOTE_WRITES=1。
+ * API_V3_TOKEN 使用具有 content.read/reactions.write/comments.write 的临时账号。
+ * API_V3_APPROVED_GAME_ID 指向已审核的临时游戏。跳过既有本人投票并清除本次新增投票。
+ * API_V3_ALLOW_GAME_COMMENT_WRITE=1 另行启用评论写入。会创建一条可见评论，v3 无删除入口。
+ * API_V3_PENDING_GAME_ID 指向待审夹具。脚本覆盖读取、投票和评论。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

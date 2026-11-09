@@ -167,47 +167,90 @@ public final class ApiV3ClientManagementTest {
     static void equal(Object actual,Object expected){check(Objects.equals(actual,expected),"expected="+expected+" actual="+actual);}
     static JSONObject data(JSONObject value){equal(value.getInt("status"),200);return value.getJSONObject("data");}
     static void denied(int status,Work work)throws Exception{try{work.run();throw new AssertionError("expected refusal");}catch(ApiV3Exception e){equal(e.status,status);}}
-    public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()){
             for(String token:Arrays.asList(null,"invalid"))equal(f.get(BASE,token).getInt("status"),401);
             for(String token:List.of("12","13","14"))equal(f.get(BASE,token).getInt("status"),403);
             equal(f.request("POST",BASE,"12",body(),"third",Map.of()).getInt("status"),403);
             check(query(f.reader,"SELECT * FROM requests").isEmpty(),"denied users create no receipt");
-            var page=data(f.get(BASE,"11"));equal(page.getJSONArray("list").length(),1);equal(page.getJSONArray("list").getJSONObject(0).keySet(),Set.of("clientId","name","scope","status"));
-            equal(f.get(BASE+"/website_v3","11").getInt("status"),404);equal(f.get(BASE+"/missing","11").getInt("status"),404);
+            var page = data(f.get(BASE, "11"));
+            equal(page.getJSONArray("list").length(), 1);
+            equal(page.getJSONArray("list").getJSONObject(0).keySet(), Set.of("clientId", "name", "scope", "status"));
+            equal(f.get(BASE + "/website_v3", "11").getInt("status"), 404);
+            equal(f.get(BASE + "/missing", "11").getInt("status"), 404);
         }
         System.out.println("PASS 1 real routes require settings.write plus current first-party admin; Cookie/query identity and third-party admin tokens fail, website client is hidden");
         try(var f=new Fixture()){
             for(String change:List.of("UPDATE user SET userRole='defaultRole' WHERE oId='1'","UPDATE user SET userStatus=4 WHERE oId='1'","UPDATE tokens SET state=2 WHERE oId='11'","UPDATE tokens SET tokenType='refresh' WHERE oId='11'","UPDATE tokens SET expiresAt=1 WHERE oId='11'","UPDATE tokens SET clientId='external_app' WHERE oId='11'","UPDATE tokens SET userId='2' WHERE oId='11'","UPDATE tokens SET scope='content.read' WHERE oId='11'","UPDATE clients SET status=1 WHERE clientId='website_v3'")){
-                exec(f.writer,change);equal(f.get(BASE,"11").getInt("status"),403);
-                exec(f.writer,"UPDATE user SET userRole='adminRole',userStatus=0 WHERE oId='1'");exec(f.writer,"UPDATE tokens SET userId='1',clientId='website_v3',tokenType='access',state=0,scope='settings.write',expiresAt=? WHERE oId='11'",System.currentTimeMillis()+3600000);exec(f.writer,"UPDATE clients SET status=0 WHERE clientId='website_v3'");
+                exec(f.writer, change);
+                equal(f.get(BASE, "11").getInt("status"), 403);
+                exec(f.writer, "UPDATE user SET userRole='adminRole',userStatus=0 WHERE oId='1'");
+                exec(f.writer, "UPDATE tokens SET userId='1',clientId='website_v3',tokenType='access',state=0,scope='settings.write',expiresAt=? WHERE oId='11'",
+                        System.currentTimeMillis() + 3600000);
+                exec(f.writer, "UPDATE clients SET status=0 WHERE clientId='website_v3'");
             }
-            f.faults.add("user.read");equal(f.get(BASE,"11").getInt("status"),503);
+            f.faults.add("user.read");
+            equal(f.get(BASE, "11").getInt("status"), 503);
         }
         System.out.println("PASS 2 current DB role/account/token ownership, type, state, expiry, website and scope override stale authentication snapshots; admin-gate errors are private and storage failure is 503");
         try(var f=new Fixture()){
-            f.faults.add("observe");var result=data(f.post(body(),"create"));String id=result.getString("clientId");
-            check(id.matches("app_[A-Za-z0-9_-]{43}"),"server generated client ID");equal(result.keySet(),Set.of("clientId","name","scope","status","redirectUris"));equal(result.getString("name"),"App <name>");equal(result.getString("scope"),"content.read profile.read");equal(result.getJSONArray("redirectUris").getString(0),URI);
-            equal(query(f.reader,"SELECT * FROM redirects WHERE clientId=?",id).size(),2);equal(query(f.reader,"SELECT * FROM requests").size(),1);
+            // 先让独立读连接观察未提交数据，再检查提交后的公开字段、回调和回执。
+            f.faults.add("observe");
+            var result = data(f.post(body(), "create"));
+            String id = result.getString("clientId");
+            check(id.matches("app_[A-Za-z0-9_-]{43}"), "server generated client ID");
+            equal(result.keySet(), Set.of("clientId", "name", "scope", "status", "redirectUris"));
+            equal(result.getString("name"), "App <name>");
+            equal(result.getString("scope"), "content.read profile.read");
+            equal(result.getJSONArray("redirectUris").getString(0), URI);
+            equal(query(f.reader, "SELECT * FROM redirects WHERE clientId=?", id).size(), 2);
+            equal(query(f.reader, "SELECT * FROM requests").size(), 1);
             check(!f.active()&&JdbcRepository.TX.get()==null,"successful root disposed");
             check(f.clientNamespaceLocked,"client namespace locked in sorted order before new registration");
             check(f.locks.indexOf("client")<f.locks.indexOf("user")&&f.locks.indexOf("user")<f.locks.indexOf("token")&&f.locks.indexOf("token")<f.locks.indexOf("request"),"client-user-token-receipt lock order");
-            f.faults.remove("observe");var replay=data(f.post(body(),"create"));equal(ApiV3Json.canonical(replay),ApiV3Json.canonical(result));equal(query(f.reader,"SELECT * FROM requests").size(),1);
+            f.faults.remove("observe");
+            var replay = data(f.post(body(), "create"));
+            equal(ApiV3Json.canonical(replay), ApiV3Json.canonical(result));
+            equal(query(f.reader, "SELECT * FROM requests").size(), 1);
             equal(f.post(new JSONObject(body()).put("name","Other").toString(),"create").getInt("status"),409);
-            var detail=data(f.get(BASE+"/"+id,"11"));equal(detail.keySet(),Set.of("clientId","name","scope","status","redirects"));equal(detail.getJSONObject("redirects").getJSONArray("list").length(),2);
+            var detail = data(f.get(BASE + "/" + id, "11"));
+            equal(detail.keySet(), Set.of("clientId", "name", "scope", "status", "redirects"));
+            equal(detail.getJSONObject("redirects").getJSONArray("list").length(), 2);
             for(Object item:detail.getJSONObject("redirects").getJSONArray("list"))equal(((JSONObject)item).keySet(),Set.of("uri","status"));
         }
         System.out.println("PASS 3 POST uses actual approved-registration primitive and strict idempotency root: generated ID/exact callbacks, atomic visibility, lock order, committed replay, conflict and bounded detail whitelist");
         try(var f=new Fixture()){
-            f.create("replay");String before=f.snapshot();exec(f.writer,"UPDATE user SET userRole='defaultRole' WHERE oId='1'");denied(403,()->f.create("replay"));equal(f.snapshot(),before);check(!f.active()&&JdbcRepository.TX.get()==null,"replay refusal root disposed");
-            exec(f.writer,"UPDATE user SET userRole='adminRole' WHERE oId='1'");exec(f.writer,"UPDATE tokens SET state=2 WHERE oId='11'");denied(403,()->f.create("replay"));equal(f.snapshot(),before);
-            exec(f.writer,"UPDATE tokens SET state=0 WHERE oId='11'");f.beforeBegin=()->exec(f.writer,"UPDATE user SET userRole='defaultRole' WHERE oId='1'");equal(f.post(body(),"raced").getInt("status"),403);equal(f.snapshot(),before);
+            f.create("replay");
+            String before = f.snapshot();
+            exec(f.writer, "UPDATE user SET userRole='defaultRole' WHERE oId='1'");
+            denied(403, () -> f.create("replay"));
+            equal(f.snapshot(), before);
+            check(!f.active() && JdbcRepository.TX.get() == null, "replay refusal root disposed");
+            exec(f.writer, "UPDATE user SET userRole='adminRole' WHERE oId='1'");
+            exec(f.writer, "UPDATE tokens SET state=2 WHERE oId='11'");
+            denied(403, () -> f.create("replay"));
+            equal(f.snapshot(), before);
+            exec(f.writer, "UPDATE tokens SET state=0 WHERE oId='11'");
+            f.beforeBegin = () -> exec(f.writer, "UPDATE user SET userRole='defaultRole' WHERE oId='1'");
+            equal(f.post(body(), "raced").getInt("status"), 403);
+            equal(f.snapshot(), before);
         }
         System.out.println("PASS 4 replay always rechecks current admin/token under its strict root; role change after HTTP preflight cannot register or replay a receipt");
         for(String fault:List.of("client.after","redirect.after","receipt.add.after","receipt.update.after","release.after","commit"))try(var f=new Fixture()){
-            String before=f.snapshot();f.faults.add(fault);denied(503,()->f.create("failed"));equal(f.snapshot(),before);check(!f.active()&&JdbcRepository.TX.get()==null,"failed root rolled back/disposed "+fault);check(f.disposals>0,"framework close invoked");
-            f.faults.clear();f.create("failed");equal(query(f.reader,"SELECT * FROM requests").size(),1);
+            String before = f.snapshot();
+            f.faults.add(fault);
+            denied(503, () -> f.create("failed"));
+            equal(f.snapshot(), before);
+            check(!f.active() && JdbcRepository.TX.get() == null, "failed root rolled back/disposed " + fault);
+            check(f.disposals > 0, "framework close invoked");
+            f.faults.clear();
+            f.create("failed");
+            equal(query(f.reader, "SELECT * FROM requests").size(), 1);
         }
         System.out.println("PASS 5 client/callback/receipt writes, savepoint release and real strict JDBC commit rejection roll back every row, dispose root resources and permit a safe retry");
         try(var f=new Fixture()){

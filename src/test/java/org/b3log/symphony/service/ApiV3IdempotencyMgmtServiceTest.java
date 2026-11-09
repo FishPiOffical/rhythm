@@ -111,7 +111,7 @@ public class ApiV3IdempotencyMgmtServiceTest {
         return ApiV3IdempotencyMgmtService.runAtomic(store, user, operation, key, body, () -> new JSONObject().put("value", store.increment()));
     }
 
-    /** Transactional in-memory adapter: tests actual engine code, not SQL locking behavior. */
+    /** 使用带事务语义的内存适配器验证实际幂等逻辑，SQL 锁行为需另行验证。 */
     private static final class Store implements ApiV3MutationStore {
         private final ReentrantLock lock = new ReentrantLock();
         private final ThreadLocal<Tx> current = new ThreadLocal<>();

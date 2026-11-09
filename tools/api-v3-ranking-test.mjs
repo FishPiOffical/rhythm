@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Ranking protocol tests; no server, upstream service or database queries are executed.
- * Set JAVA_HOME (Java 25) and API_V3_TESTNG_JAR if outside the default IDE installation.
+/** 隔离验证排行榜协议，无需启动服务、访问上游或查询数据库。
+ * 未使用默认 IDE 安装时，请配置 Java 25 的 JAVA_HOME 和 API_V3_TESTNG_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

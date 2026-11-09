@@ -43,7 +43,11 @@ public class ApiV3RankingDtoTest {
         for (final String type : ApiV3RankingDto.TYPES) {
             Assert.assertNotNull(ApiV3RankingDto.subType(type, null));
             for (final String input : new String[]{"https://evil.example/", "family", "userPassword", "-1", "4", "days;DROP TABLE user", "\n"}) {
-                try { ApiV3RankingDto.subType(type, input); if (!input.isBlank() || Set.of("evolve", "xiaoice").contains(type)) Assert.fail("Invalid subtype accepted"); }
+                try {
+                    ApiV3RankingDto.subType(type, input);
+                    if (!input.isBlank() || Set.of("evolve", "xiaoice").contains(type))
+                        Assert.fail("Invalid subtype accepted");
+                }
                 catch (final ApiV3Exception expected) { Assert.assertEquals(expected.status, 422); }
             }
         }

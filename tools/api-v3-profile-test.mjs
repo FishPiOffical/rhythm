@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Isolated public profile SQL tests; never connects to the application database.
- * HTTP, profile privacy and HTML rendering are not covered.
- * Set JAVA_HOME (Java 25), API_V3_TESTNG_JAR and API_V3_SQLITE_JAR if outside the default IDE installation.
+/** 隔离验证公开资料 SQL，不连接应用数据库。
+ * HTTP、资料隐私和 HTML 渲染须另行验证。
+ * 未使用默认 IDE 安装时，请配置 Java 25 的 JAVA_HOME、API_V3_TESTNG_JAR 和 API_V3_SQLITE_JAR。
  */
 import fs from 'node:fs';
 import os from 'node:os';

@@ -132,14 +132,20 @@ public final class ApiV3ClientDisableTest {
         }
         public void close()throws Exception{f.close();}
     }
-    public static void main(String[]args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
-        try(var x=new DisableFixture()){
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
+        try (var x = new DisableFixture()) {
             for(String token:Arrays.asList(null,"invalid"))equal(x.http("external_app",token,null,"bad",Map.of("apiKey","fake")).getInt("status"),401);
             for(String token:List.of("12","13","14"))equal(x.http("external_app",token,null,"bad",Map.of()).getInt("status"),403);
             equal(x.snapshot(),x.before);
             var result=data(x.http("external_app","11",null,"disable",Map.of("clientId","website_v3","userId","2")));
-            equal(result.keySet(),Set.of("clientId","status"));equal(result.getString("clientId"),"external_app");equal(result.getInt("status"),1);
+            equal(result.keySet(), Set.of("clientId", "status"));
+            equal(result.getString("clientId"), "external_app");
+            equal(result.getInt("status"), 1);
             equal(query(x.f.reader,"SELECT status FROM clients WHERE clientId='external_app'").getFirst().getInt("status"),1);
             equal(query(x.f.reader,"SELECT * FROM tokens WHERE clientId='external_app' AND (state<>2 OR state IS NULL)").size(),0);
             equal(query(x.f.reader,"SELECT * FROM tokens WHERE clientId='external_app'").size(),182);
@@ -151,9 +157,12 @@ public final class ApiV3ClientDisableTest {
         }
         System.out.println("PASS 1 actual DELETE route, current first-party admin and settings.write; fake identities fail, complete client-bound revocation exceeds 50 rows across users/types/states and preserves other clients/callbacks");
         try(var x=new DisableFixture()){
-            var result=x.disable("external_app","key");String after=x.snapshot();
-            equal(ApiV3Json.canonical(x.disable("external_app","key")),ApiV3Json.canonical(result));equal(x.snapshot(),after);
-            denied(409,()->x.disable("other_app","key"));equal(x.snapshot(),after);
+            var result = x.disable("external_app", "key");
+            String after = x.snapshot();
+            equal(ApiV3Json.canonical(x.disable("external_app", "key")), ApiV3Json.canonical(result));
+            equal(x.snapshot(), after);
+            denied(409, () -> x.disable("other_app", "key"));
+            equal(x.snapshot(), after);
             exec(x.f.writer,"DELETE FROM clients WHERE clientId='external_app'");
             equal(x.disable("external_app","key").getString("clientId"),"external_app");
             denied(404,()->x.disable("external_app","new"));
@@ -181,13 +190,17 @@ public final class ApiV3ClientDisableTest {
             equal(x.http("external_app","11"," ".repeat(1025),"big-body",Map.of()).getInt("status"),413);
             equal(x.http("external_app","11","{\"a\":\""+"鱼".repeat(400)+"\"}","utf8-body",Map.of()).getInt("status"),413);
             equal(x.snapshot(),x.before);
-            exec(x.f.writer,"UPDATE clients SET status=9 WHERE clientId='external_app'");denied(503,()->x.disable("external_app","bad-state"));
+            exec(x.f.writer, "UPDATE clients SET status=9 WHERE clientId='external_app'");
+            denied(503, () -> x.disable("external_app", "bad-state"));
             equal(query(x.f.reader,"SELECT * FROM requests").size(),0);
         }
         System.out.println("PASS 4 protected website/missing targets, bounded path and empty-object body/key validation reject before mutation; malformed stored status503 has no partial receipt");
         try(var x=new DisableFixture()){
-            x.disable("external_app","done");String before=x.snapshot();
-            exec(x.f.writer,"UPDATE user SET userRole='defaultRole' WHERE oId='1'");denied(403,()->x.disable("external_app","done"));equal(x.snapshot(),before);
+            x.disable("external_app", "done");
+            String before = x.snapshot();
+            exec(x.f.writer, "UPDATE user SET userRole='defaultRole' WHERE oId='1'");
+            denied(403, () -> x.disable("external_app", "done"));
+            equal(x.snapshot(), before);
         }
         try(var x=new DisableFixture()){
             x.f.beforeBegin=()->exec(x.f.writer,"UPDATE tokens SET state=2 WHERE oId='11'");
@@ -197,24 +210,35 @@ public final class ApiV3ClientDisableTest {
         }
         System.out.println("PASS 5 replay and HTTP-preflight races recheck current administrator/token inside root; revoked authority cannot disable a client or recover a privileged receipt");
         for(String fault:List.of("client.update.after","token.update.after","receipt.add.after","receipt.update.after","release.after","commit"))try(var x=new DisableFixture()){
-            x.f.faults.add(fault);denied(503,()->x.disable("external_app","failure"));equal(x.snapshot(),x.before);
+            x.f.faults.add(fault);
+            denied(503, () -> x.disable("external_app", "failure"));
+            equal(x.snapshot(), x.before);
             check(!x.f.active()&&JdbcRepository.TX.get()==null,"failure closes actual strict root "+fault);
-            x.f.faults.clear();x.disable("external_app","failure");equal(query(x.f.reader,"SELECT * FROM requests").size(),1);
+            x.f.faults.clear();
+            x.disable("external_app", "failure");
+            equal(query(x.f.reader, "SELECT * FROM requests").size(), 1);
         }
         System.out.println("PASS 6 actual client/token/receipt update, savepoint-release and real strict JDBC commit failures roll back all rows, release root and allow safe same-key retry");
         try(var x=new DisableFixture()){
-            x.f.faults.add("observer");x.disable("external_app","observe");
+            x.f.faults.add("observer");
+            x.disable("external_app", "observe");
             check(!x.snapshot().equals(x.before),"committed disable visible after root only");
         }
         try(var x=new DisableFixture()){
-            x.f.faults.add("commit.after");denied(503,()->x.disable("external_app","ack"));
+            // 提交已落盘但客户端未收到确认时，同键重放应恢复回执。
+            x.f.faults.add("commit.after");
+            denied(503, () -> x.disable("external_app", "ack"));
             equal(query(x.f.reader,"SELECT status FROM clients WHERE clientId='external_app'").getFirst().getInt("status"),1);
             equal(query(x.f.reader,"SELECT * FROM requests").size(),1);
-            String persisted=x.snapshot();equal(x.disable("external_app","ack").getInt("status"),1);equal(x.snapshot(),persisted);
+            String persisted = x.snapshot();
+            equal(x.disable("external_app", "ack").getInt("status"), 1);
+            equal(x.snapshot(), persisted);
         }
         System.out.println("PASS 7 separate observer sees no partial disable; actual JDBC committed-but-lost acknowledgement retains durable state and replay recovers without rewriting timestamps");
         for(String fault:List.of("user.read","token.read","client.read","request.read"))try(var x=new DisableFixture()){
-            x.f.faults.add(fault);denied(503,()->x.disable("external_app","read-fault"));equal(x.snapshot(),x.before);
+            x.f.faults.add(fault);
+            denied(503, () -> x.disable("external_app", "read-fault"));
+            equal(x.snapshot(), x.before);
         }
         System.out.println("PASS 8 current guard/target/receipt storage faults fail closed503 without state changes or leaked credentials");
         try(var x=new DisableFixture()){
@@ -229,12 +253,18 @@ public final class ApiV3ClientDisableTest {
                 @Override public String add(JSONObject row)throws RepositoryException{x.f.insert("tickets",row);return row.getString("oId");}
                 @Override public void update(String id,JSONObject row,String...names)throws RepositoryException{exec(x.f.writer,"UPDATE tickets SET consumedAt=? WHERE oId=?",row.getLong("consumedAt"),id);}
             };
-            inject(socket,socket.getClass(),"tickets",tickets);inject(socket,socket.getClass(),"clients",x.f.clients);inject(socket,socket.getClass(),"tokens",x.f.tokens);
+            inject(socket, socket.getClass(), "tickets", tickets);
+            inject(socket, socket.getClass(), "clients", x.f.clients);
+            inject(socket, socket.getClass(), "tokens", x.f.tokens);
             inject(socket,socket.getClass(),"users",new org.b3log.symphony.repository.UserRepository(){@Override public String getName(){return "user";}});
-            var issued=socket.issueChat("1","12");var live=socket.consume(issued.ticket());check(socket.authorized(live),"issued grant currently authorized");
-            var pending=socket.issueChat("1","12");x.disable("external_app","socket");
+            var issued = socket.issueChat("1", "12");
+            var live = socket.consume(issued.ticket());
+            check(socket.authorized(live), "issued grant currently authorized");
+            var pending = socket.issueChat("1", "12");
+            x.disable("external_app", "socket");
             check(!socket.authorized(live),"existing current-authority grant denied after disable");
-            denied(401,()->socket.consume(pending.ticket()));denied(401,()->socket.issueChat("1","12"));
+            denied(401, () -> socket.consume(pending.ticket()));
+            denied(401, () -> socket.issueChat("1", "12"));
             check(!x.f.active()&&JdbcRepository.TX.get()==null,"failed ticket root disposed");
         }
         System.out.println("PASS 9 actual SocketTicket current parent/client SQL rejects existing grants, unconsumed old tickets and new issuance after committed disable; no real socket/network claimed");

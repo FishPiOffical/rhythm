@@ -33,7 +33,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import java.lang.reflect.Field;
 import java.util.*;
 
-/** Actual policy, controller, URI decoding and response envelope; storage/role lookup are explicit fixtures. */
+/** 验证实际的注册策略、控制器、URI 解码和响应封装。存储和角色查询由显式测试夹具提供。 */
 public class ApiV3RegistrationPolicyTest {
     static class Fixture {
         String mode="0";boolean missing,storageFailure,exists=true,allow=true;int userReads,permissionReads;

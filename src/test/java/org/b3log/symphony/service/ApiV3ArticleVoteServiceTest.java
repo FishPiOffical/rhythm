@@ -28,7 +28,7 @@ import org.json.JSONObject;
 import org.testng.Assert;
 import java.util.*;
 
-/** Real article aggregation/core/SQL/receipts with the shared SQLite adapters; not HTTP/MySQL/IoC. */
+/** 用共用的 SQLite 适配器验证实际的文章票数聚合、投票逻辑、SQL 和回执。HTTP、MySQL 和 IoC 不在本用例覆盖范围内。 */
 public class ApiV3ArticleVoteServiceTest {
     public static void main(String[] args)throws Exception {
         final var props=new Properties();props.setProperty("runtimeDatabase","NONE");

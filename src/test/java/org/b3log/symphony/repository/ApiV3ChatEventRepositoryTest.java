@@ -34,7 +34,7 @@ import java.nio.file.*;
 import java.lang.reflect.*;
 import java.util.*;
 
-/** Real hooks/savepoints/event SQL; only row persistence and framework pool construction are adapted. */
+/** 验证实际的写入钩子、保存点和事件 SQL，仅数据行持久化及框架连接池构造使用适配器。 */
 public class ApiV3ChatEventRepositoryTest {
     interface Work{void run()throws Exception;}
     static void inject(Object target,Class<?> type,String name,Object value)throws Exception{var f=type.getDeclaredField(name);f.setAccessible(true);f.set(target,value);}

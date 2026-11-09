@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-/** Run only after IDEA compilation/restart. Default mode checks rejections, never writes content.
- * API_V3_TOKEN: comments.write (+ content.read for optional readback) and commonUpdateComment.
- * API_V3_SCOPELESS_TOKEN / API_V3_SESSION_COOKIE / API_V3_LEGACY_KEY: optional credential fixtures.
- * API_V3_OTHER_COMMENT_ID: another account's comment; must return 404.
- * API_V3_COMMENT_WRITE=1 + API_V3_COMMENT_ID explicitly edits an existing disposable owned comment twice.
- * API_V3_COMMENT_ARTICLE_ID + API_V3_COMMENT_PAGE (default 1): optional ordinary-comment readback fixture.
- * API_V3_LONG_ARTICLE_ID enables read-only anchor/HTML/paragraph/detail checks.
- * API_V3_COMMENT_PARAGRAPH_AUTO=1 obtains a current v3 anchor for an explicitly enabled publication.
- * API_V3_COMMENT_PUBLISH=1 + API_V3_COMMENT_ARTICLE_ID publishes one disposable comment; optional parent/paragraph fixture.
- * Edits/publications/fees are persistent; this does not restore old content. Never run against a production fixture.
+/** 在 IDEA 编译或重启后运行，默认只验证拒绝路径。
+ * API_V3_TOKEN 需要 comments.write 和 commonUpdateComment，可选的回读还需要 content.read。
+ * API_V3_SCOPELESS_TOKEN、API_V3_SESSION_COOKIE 和 API_V3_LEGACY_KEY 是可选凭据夹具。
+ * API_V3_OTHER_COMMENT_ID 指向其他账号的评论，预期返回 404。
+ * API_V3_COMMENT_WRITE=1 与 API_V3_COMMENT_ID 显式编辑本人临时评论两次。
+ * API_V3_COMMENT_ARTICLE_ID 和 API_V3_COMMENT_PAGE 可指定普通评论的回读夹具，页码默认 1。
+ * API_V3_LONG_ARTICLE_ID 启用锚点、HTML、段落和详情的只读检查。
+ * 已显式启用发布时，API_V3_COMMENT_PARAGRAPH_AUTO=1 会先取得当前 v3 锚点。
+ * API_V3_COMMENT_PUBLISH=1 与 API_V3_COMMENT_ARTICLE_ID 发布一条临时评论，可选指定父评论或段落。
+ * 编辑、发布和扣费会持久保留，原内容需自行处理。请仅使用开发环境夹具。
  */
 import assert from 'node:assert/strict';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080';

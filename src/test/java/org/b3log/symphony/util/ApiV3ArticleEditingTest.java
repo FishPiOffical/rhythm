@@ -25,7 +25,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Set;
 
-/** Actual owned edit coordinator; SQLite adapters do not execute the real service or MySQL locks. */
+/** 验证实际的本人文章编辑协调流程。真实应用服务和 MySQL 锁行为需另行验证。 */
 public class ApiV3ArticleEditingTest {
     public static void main(final String[] args) throws Exception {
         try (final Store store = new Store()) {

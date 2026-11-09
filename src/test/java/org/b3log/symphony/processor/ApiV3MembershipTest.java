@@ -126,20 +126,26 @@ public final class ApiV3MembershipTest {
     static void equal(Object actual,Object expected){check(Objects.equals(actual,expected),"expected="+expected+" actual="+actual);}
     static JSONObject data(JSONObject response){equal(response.getInt("status"),200);return response.getJSONObject("data");}
     public static void main(String[] args) throws Exception {
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");
-        Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try(var f=new Fixture()) {
             for(String route:List.of(ME,LEVELS))for(String token:Arrays.asList(null,"invalid"))equal(f.get(route,token).getInt("status"),401);
-            equal(f.get(ME,"content").getInt("status"),403);equal(f.get(LEVELS,"profile").getInt("status"),403);
+            equal(f.get(ME, "content").getInt("status"), 403);
+            equal(f.get(LEVELS, "profile").getInt("status"), 403);
             check(f.sql.isEmpty(),"denied routes never query repositories");
             check(RouteHandler.doMatch(ME,"POST")==null&&RouteHandler.doMatch(LEVELS,"PUT")==null,"no accidental write registration");
             System.out.println("PASS 1 actual route mapping/auth rejects missing/invalid Bearer and wrong scopes before SQL; no write route");
 
             var config=new JSONObject().put("bold",true).put("underline",false).put("color","galaxy").put("checkinCard",3)
                     .put("internalToken","PRIVATE-token").put("userEmail","PRIVATE-email").put("nested",new JSONObject().put("password","PRIVATE"));
-            f.membership("1",1,0,config.toString());f.membership("2",1,0,"{\"bold\":false}");
+            f.membership("1", 1, 0, config.toString());
+            f.membership("2", 1, 0, "{\"bold\":false}");
             var own=data(f.request(ME,"profile",Map.of("userId","2","apiKey","legacy","lvCode","VIP1")));
-            equal(own.keySet(),Set.of("active","levelCode","expiresAt","config"));check(own.getBoolean("active"),"permanent active");
+            equal(own.keySet(), Set.of("active", "levelCode", "expiresAt", "config"));
+            check(own.getBoolean("active"), "permanent active");
             equal(own.getJSONObject("config").keySet(),Set.of("bold","underline","color","checkinCard"));
             check(own.getJSONObject("config").getBoolean("bold"),"Bearer owner selected instead of Cookie/query");
             check(!data(f.get(ME,"other")).getJSONObject("config").getBoolean("bold"),"other Bearer selects its own record");
@@ -149,33 +155,64 @@ public final class ApiV3MembershipTest {
 
             f.exec("UPDATE membership SET expiresAt=? WHERE userId='1'",System.currentTimeMillis()-1);
             check(!data(f.get(ME,"profile")).getBoolean("active"),"expired inactive");
-            f.exec("UPDATE membership SET expiresAt=0,state=0 WHERE userId='1'");check(!data(f.get(ME,"profile")).getBoolean("active"),"disabled inactive");
-            f.exec("DELETE FROM membership WHERE userId='1'");check(!data(f.get(ME,"profile")).getBoolean("active"),"missing inactive");
-            f.exec("UPDATE user SET userStatus=4 WHERE oId='1'");equal(f.get(ME,"profile").getInt("status"),404);
-            f.exec("UPDATE user SET userStatus=0 WHERE oId='1'");f.membership("1",1,0,"{}");f.membership("1",1,0,"{}");equal(f.get(ME,"profile").getInt("status"),503);
-            f.exec("DELETE FROM membership WHERE userId='1'");f.membership("1",1,0,"{}");
-            f.exec("UPDATE membership SET expiresAt='broken' WHERE userId='1'");equal(f.get(ME,"profile").getInt("status"),503);
+            f.exec("UPDATE membership SET expiresAt=0,state=0 WHERE userId='1'");
+            check(!data(f.get(ME, "profile")).getBoolean("active"), "disabled inactive");
+            f.exec("DELETE FROM membership WHERE userId='1'");
+            check(!data(f.get(ME, "profile")).getBoolean("active"), "missing inactive");
+            f.exec("UPDATE user SET userStatus=4 WHERE oId='1'");
+            equal(f.get(ME, "profile").getInt("status"), 404);
+
+            // 恢复有效账号，分别注入重复会员记录和损坏的有效期。
+            f.exec("UPDATE user SET userStatus=0 WHERE oId='1'");
+            f.membership("1", 1, 0, "{}");
+            f.membership("1", 1, 0, "{}");
+            equal(f.get(ME, "profile").getInt("status"), 503);
+            f.exec("DELETE FROM membership WHERE userId='1'");
+            f.membership("1", 1, 0, "{}");
+            f.exec("UPDATE membership SET expiresAt='broken' WHERE userId='1'");
+            equal(f.get(ME, "profile").getInt("status"), 503);
             f.exec("UPDATE membership SET expiresAt=0 WHERE userId='1'");
             System.out.println("PASS 3 expiry/permanence/disabled/missing membership, current deactivated owner, duplicate membership and damaged expiry fail safely");
 
             for(String raw:List.of("broken","[]","{\"bold\":true,\"bold\":false}","x".repeat(102401),"{\"x\":"+"[".repeat(40)+"0"+"]".repeat(40)+"}")){
-                f.exec("UPDATE membership SET configJson=? WHERE userId='1'",raw);check(data(f.get(ME,"profile")).getJSONObject("config").isEmpty(),"malformed optional config omitted");
+                f.exec("UPDATE membership SET configJson=? WHERE userId='1'", raw);
+                check(data(f.get(ME, "profile")).getJSONObject("config").isEmpty(), "malformed optional config omitted");
             }
             equal(ApiV3MembershipDto.configuration("{\"bold\":\"true\",\"color\":\"url(https://PRIVATE)\",\"checkinCard\":-1,\"metal\":{\"token\":\"PRIVATE\"}}").length(),0);
             equal(ApiV3MembershipDto.configuration("{\"checkinCard\":1.5,\"jointVip\":[\"PRIVATE\"]}").length(),0);
             System.out.println("PASS 4 malformed/duplicate/oversized/deep JSON, wrong types, nested values and unsafe colors never expose raw configuration");
 
             for(int i=1;i<=53;i++)f.exec("INSERT INTO membership_level VALUES(?,?,?,?,?,?,?,?)",String.format("%03d",i),"VIP1","<b>会员</b>",100,"月卡",30,config.toString(),"PRIVATE-ops");
-            var first=data(f.request(LEVELS,"content",Map.of("size","50")));equal(first.getJSONArray("list").length(),50);equal(first.getJSONObject("pagination").getLong("total"),53L);
-            var level=first.getJSONArray("list").getJSONObject(0);equal(level.keySet(),Set.of("id","code","name","price","durationType","durationValue","benefits"));equal(level.getString("name"),"会员");equal(level.getString("id"),"001");
-            var second=data(f.request(LEVELS,"content",Map.of("p","2","size","50")));equal(second.getJSONArray("list").length(),3);equal(second.getJSONArray("list").getJSONObject(0).getString("id"),"051");
+            var first = data(f.request(LEVELS, "content", Map.of("size", "50")));
+            equal(first.getJSONArray("list").length(), 50);
+            equal(first.getJSONObject("pagination").getLong("total"), 53L);
+            var level = first.getJSONArray("list").getJSONObject(0);
+            equal(level.keySet(), Set.of("id", "code", "name", "price", "durationType", "durationValue", "benefits"));
+            equal(level.getString("name"), "会员");
+            equal(level.getString("id"), "001");
+            var second = data(f.request(LEVELS, "content", Map.of("p", "2", "size", "50")));
+            equal(second.getJSONArray("list").length(), 3);
+            equal(second.getJSONArray("list").getJSONObject(0).getString("id"), "051");
             equal(data(f.request(LEVELS,"content",Map.of("p","3","size","50"))).getJSONArray("list").length(),0);
-            f.exec("UPDATE membership_level SET benefits='invalid' WHERE oId='001'");check(data(f.get(LEVELS,"content")).getJSONArray("list").getJSONObject(0).getJSONObject("benefits").isEmpty(),"bad optional benefits omitted");
+            f.exec("UPDATE membership_level SET benefits='invalid' WHERE oId='001'");
+            check(data(f.get(LEVELS, "content")).getJSONArray("list").getJSONObject(0).getJSONObject("benefits").isEmpty(), "bad optional benefits omitted");
             System.out.println("PASS 5 actual bounded level SQL sorts/paginates by price/id, returns precise counts and strips ops fields/HTML and malformed benefits");
 
-            for(var params:List.of(Map.of("size","51"),Map.of("p","0"),Map.of("p","2147483647"),Map.of("p","1 OR 1=1"))){int before=f.sql.size();equal(f.request(LEVELS,"content",params).getInt("status"),422);equal(f.sql.size(),before);}
-            for(String table:List.of("user","membership","membership_level")){f.failTable=table;var response=f.get(table.equals("membership_level")?LEVELS:ME,"both");equal(response.getInt("status"),503);equal(response.getString("code"),"temporarily_unavailable");check(!response.toString().contains("PRIVATE"),"DB error sanitized");}
-            f.failTable="";f.exec("DELETE FROM membership_level");check(data(f.get(LEVELS,"content")).getJSONArray("list").isEmpty(),"empty catalog");
+            for (var params : List.of(Map.of("size", "51"), Map.of("p", "0"), Map.of("p", "2147483647"), Map.of("p", "1 OR 1=1"))) {
+                int before = f.sql.size();
+                equal(f.request(LEVELS, "content", params).getInt("status"), 422);
+                equal(f.sql.size(), before);
+            }
+            for (String table : List.of("user", "membership", "membership_level")) {
+                f.failTable = table;
+                var response = f.get(table.equals("membership_level") ? LEVELS : ME, "both");
+                equal(response.getInt("status"), 503);
+                equal(response.getString("code"), "temporarily_unavailable");
+                check(!response.toString().contains("PRIVATE"), "DB error sanitized");
+            }
+            f.failTable = "";
+            f.exec("DELETE FROM membership_level");
+            check(data(f.get(LEVELS, "content")).getJSONArray("list").isEmpty(), "empty catalog");
             System.out.println("PASS 6 invalid pagination rejects before DB; each repository failure is controlled 503 and never an inactive/empty success");
 
             f.exec("INSERT INTO membership_level VALUES('001','VIP1','会员',0,'月卡',1,'{}','PRIVATE-ops')");
