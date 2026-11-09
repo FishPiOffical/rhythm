@@ -73,7 +73,8 @@ public class ApiV3AppLoginMysqlTest extends ApiV3AppLoginServiceTest {
         System.setProperty("rhythm.mysql.fixtureSetup",Boolean.toString(args[0].equals("setup")||args[0].equals("fault")));
         try(var f=new Mysql()) {
             final var environment=rows(f.db,"SELECT VERSION() AS version,@@transaction_isolation AS isolation,@@sql_mode AS mode").getFirst();
-            Assert.assertTrue(environment.getString("version").startsWith("8.4."));Assert.assertEquals(environment.getString("isolation"),"REPEATABLE-READ");
+            Assert.assertTrue(environment.getString("version").startsWith("8.4."));
+            Assert.assertEquals(environment.getString("isolation"), "REPEATABLE-READ");
             Assert.assertTrue(environment.getString("mode").contains("STRICT_TRANS_TABLES"));
             Assert.assertEquals(rows(f.db,"SELECT TABLE_COLLATION AS kind FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='qr'").getFirst().getString("kind"),"utf8mb4_bin");
             final String race=args[1];
@@ -85,20 +86,30 @@ public class ApiV3AppLoginMysqlTest extends ApiV3AppLoginServiceTest {
                 case "fault" -> {
                     f.approved();
                     if(race.equals("commit")||race.equals("ack"))f.fault=race;else f.faultStage=race;
-                    error(503,()->f.service.exchange(RAW,PROOF));f.fault="";f.faultStage="";
+                    error(503, () -> f.service.exchange(RAW, PROOF));
+                    f.fault = "";
+                    f.faultStage = "";
                     if(race.equals("ack")) {
-                        Assert.assertEquals(f.row().getString("state"),"CONSUMED");Assert.assertEquals(f.pairs(),2);
+                        Assert.assertEquals(f.row().getString("state"), "CONSUMED");
+                        Assert.assertEquals(f.pairs(), 2);
                         error(410,()->f.service.exchange(RAW,PROOF));
                     }else{
-                        Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");Assert.assertEquals(f.pairs(),0);
-                        f.service.exchange(RAW,PROOF);Assert.assertEquals(f.pairs(),2);Assert.assertEquals(f.row().getString("state"),"CONSUMED");
+                        Assert.assertEquals(f.row().getString("state"), "WEB_APPROVED");
+                        Assert.assertEquals(f.pairs(), 0);
+                        f.service.exchange(RAW, PROOF);
+                        Assert.assertEquals(f.pairs(), 2);
+                        Assert.assertEquals(f.row().getString("state"), "CONSUMED");
                     }
-                    final var pair=rows(f.db,"SELECT familyId,tokenHash FROM tokens WHERE clientId='fishpi_app_v3'");Assert.assertEquals(pair.size(),2);
-                    Assert.assertEquals(pair.get(0).getString("familyId"),pair.get(1).getString("familyId"));Assert.assertNotEquals(pair.get(0).getString("tokenHash"),pair.get(1).getString("tokenHash"));
+                    final var pair = rows(f.db, "SELECT familyId,tokenHash FROM tokens WHERE clientId='fishpi_app_v3'");
+                    Assert.assertEquals(pair.size(), 2);
+                    Assert.assertEquals(pair.get(0).getString("familyId"), pair.get(1).getString("familyId"));
+                    Assert.assertNotEquals(pair.get(0).getString("tokenHash"), pair.get(1).getString("tokenHash"));
                     System.out.println("PASS app login mysql actual production native-pair "+race+" failure/commit recovery preserves exact terminal state and one persisted family");
                 }
                 case "worker" -> {
-                    final boolean holder=args[2].equals("holder");f.hold=holder;f.release=args[3];
+                    final boolean holder = args[2].equals("holder");
+                    f.hold = holder;
+                    f.release = args[3];
                     System.out.println("STARTING_WORK");System.out.flush();
                     try {
                         if(race.startsWith("claim"))f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(race.equals("claim-same")||holder?PROOF:RAW));
@@ -113,14 +124,24 @@ public class ApiV3AppLoginMysqlTest extends ApiV3AppLoginServiceTest {
                     Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM qr").getFirst().getInt("n"),1);
                     final String state=f.row().getString("state");
                     if(race.startsWith("claim")) {
-                        Assert.assertEquals(state,"CLAIMED");Assert.assertEquals(f.row().getString("codeChallenge"),ApiV3AppLoginProtocol.challenge(PROOF));Assert.assertEquals(f.pairs(),0);
-                    } else if(race.equals("deny-first")) {Assert.assertEquals(state,"DENIED");Assert.assertEquals(f.pairs(),0);}
-                    else if(race.equals("reset-first")) {Assert.assertEquals(state,"WEB_APPROVED");Assert.assertEquals(f.pairs(),0);}
+                        Assert.assertEquals(state, "CLAIMED");
+                        Assert.assertEquals(f.row().getString("codeChallenge"), ApiV3AppLoginProtocol.challenge(PROOF));
+                        Assert.assertEquals(f.pairs(), 0);
+                    } else if (race.equals("deny-first")) {
+                        Assert.assertEquals(state, "DENIED");
+                        Assert.assertEquals(f.pairs(), 0);
+                    } else if (race.equals("reset-first")) {
+                        Assert.assertEquals(state, "WEB_APPROVED");
+                        Assert.assertEquals(f.pairs(), 0);
+                    }
                     else {
-                        Assert.assertEquals(state,"CONSUMED");Assert.assertEquals(f.pairs(),2);
+                        Assert.assertEquals(state, "CONSUMED");
+                        Assert.assertEquals(f.pairs(), 2);
                         final var pair=rows(f.db,"SELECT tokenType,familyId,tokenHash,scope FROM tokens WHERE clientId='fishpi_app_v3' ORDER BY tokenType");
-                        Assert.assertEquals(pair.get(0).getString("tokenType"),"access");Assert.assertEquals(pair.get(1).getString("tokenType"),"refresh");
-                        Assert.assertEquals(pair.get(0).getString("familyId"),pair.get(1).getString("familyId"));Assert.assertNotEquals(pair.get(0).getString("tokenHash"),pair.get(1).getString("tokenHash"));
+                        Assert.assertEquals(pair.get(0).getString("tokenType"), "access");
+                        Assert.assertEquals(pair.get(1).getString("tokenType"), "refresh");
+                        Assert.assertEquals(pair.get(0).getString("familyId"), pair.get(1).getString("familyId"));
+                        Assert.assertNotEquals(pair.get(0).getString("tokenHash"), pair.get(1).getString("tokenHash"));
                     }
                     if(race.equals("reset-first")||race.equals("consume-reset")) {
                         Assert.assertEquals(rows(f.db,"SELECT credentialEpoch FROM states WHERE oId='1'").getFirst().getLong("credentialEpoch"),1L);

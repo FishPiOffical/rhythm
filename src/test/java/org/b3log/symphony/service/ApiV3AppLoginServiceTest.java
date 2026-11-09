@@ -123,64 +123,171 @@ public class ApiV3AppLoginServiceTest {
         }
     }
     public static void main(String[] args)throws Exception {
-        final var properties=new Properties();properties.setProperty("runtimeDatabase","NONE");properties.setProperty("contextPath","");Latkes.setLatkeProps(properties);Latkes.setLocalProps(properties);
+        final var properties = new Properties();
+        properties.setProperty("runtimeDatabase", "NONE");
+        properties.setProperty("contextPath", "");
+        Latkes.setLatkeProps(properties);
+        Latkes.setLocalProps(properties);
         try(var f=new Fixture()){
-            f.create();Assert.assertEquals(f.row().getString("oId"),ApiV3AppLoginProtocol.handleHash(RAW));Assert.assertFalse(f.row().toString().contains(RAW));
+            f.create();
+            Assert.assertEquals(f.row().getString("oId"), ApiV3AppLoginProtocol.handleHash(RAW));
+            Assert.assertFalse(f.row().toString().contains(RAW));
             Assert.assertEquals(f.service.webStatus(identity(),RAW).getString("state"),"waiting");
-            error(409,()->f.service.webDecision(identity(),RAW,"approve"));error(403,()->f.service.appStatus(RAW,PROOF));
-            final var claimed=f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF));Assert.assertEquals(claimed.getJSONObject("account").keySet(),Set.of("id","userName","userNickname","userAvatarURL"));
+            error(409, () -> f.service.webDecision(identity(), RAW, "approve"));
+            error(403, () -> f.service.appStatus(RAW, PROOF));
+            final var claimed = f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF));
+            Assert.assertEquals(claimed.getJSONObject("account").keySet(), Set.of("id", "userName", "userNickname", "userAvatarURL"));
             Assert.assertEquals(f.service.appStatus(RAW,PROOF).getString("state"),"claimed");
-            error(409,()->f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(RAW)));error(403,()->f.service.appDecision(RAW,RAW,"confirm"));
-            f.service.appDecision(RAW,PROOF,"confirm");error(409,()->f.service.exchange(RAW,PROOF));f.service.webDecision(identity(),RAW,"approve");
-            final var result=f.service.exchange(RAW,PROOF);Assert.assertEquals(result.keySet(),Set.of("accessToken","refreshToken","tokenType","expiresIn","refreshExpiresIn","scope","clientId"));Assert.assertEquals(result.getString("clientId"),"fishpi_app_v3");
+            error(409, () -> f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(RAW)));
+            error(403, () -> f.service.appDecision(RAW, RAW, "confirm"));
+            // 原生端确认后仍不能兑换，须由网站端再批准。
+            f.service.appDecision(RAW, PROOF, "confirm");
+            error(409, () -> f.service.exchange(RAW, PROOF));
+            f.service.webDecision(identity(), RAW, "approve");
+            final var result = f.service.exchange(RAW, PROOF);
+            Assert.assertEquals(result.keySet(), Set.of("accessToken", "refreshToken", "tokenType", "expiresIn", "refreshExpiresIn", "scope", "clientId"));
+            Assert.assertEquals(result.getString("clientId"), "fishpi_app_v3");
             Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),f.clock);
-            Assert.assertEquals(f.row().getString("state"),"CONSUMED");Assert.assertEquals(f.pairs(),2);Assert.assertEquals(f.issued,1);error(410,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.pairs(),2);Assert.assertFalse(f.row().toString().contains(PROOF));
-        }System.out.println("PASS app login service 1 real owner/epoch/issuer SQL, ordered double consent and same-root single token-pair consume; metadata/token response whitelists");
-        for(String mutation:List.of("UPDATE tokens SET state=2 WHERE oId='100'","UPDATE tokens SET expiresAt=1 WHERE oId='100'","UPDATE tokens SET clientId='third' WHERE oId='100'","UPDATE clients SET status=1 WHERE clientId='website_v3'","UPDATE clients SET status=1 WHERE clientId='fishpi_app_v3'","UPDATE u SET userStatus=4 WHERE oId='1'","INSERT INTO states VALUES('1',1,0)","UPDATE tokens SET scope='profile.read' WHERE oId='100'","UPDATE clients SET scope='settings.write' WHERE clientId='fishpi_app_v3'"))try(var f=new Fixture()){
-            f.approved();sql(f.db,mutation);error(403,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.pairs(),0);Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");
-        }System.out.println("PASS app login service 2 current issuer expiry/revocation/client binding, owner status/epoch and native/website scope rechecked before issuance");
-        for(String failure:List.of("half","response","commit","activity"))try(var f=new Fixture()){
-            f.approved();if(failure.equals("commit"))f.fault="commit";else if(failure.equals("activity"))f.fault="password";else f.issueFault=failure;
-            error(503,()->f.service.exchange(RAW,PROOF));f.fault="";f.issueFault="";Assert.assertEquals(f.pairs(),0);Assert.assertEquals(f.row().getString("state"),"WEB_APPROVED");Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),7L);
-            f.service.exchange(RAW,PROOF);Assert.assertEquals(f.pairs(),2);
+            Assert.assertEquals(f.row().getString("state"), "CONSUMED");
+            Assert.assertEquals(f.pairs(), 2);
+            Assert.assertEquals(f.issued, 1);
+            error(410, () -> f.service.exchange(RAW, PROOF));
+            Assert.assertEquals(f.pairs(), 2);
+            Assert.assertFalse(f.row().toString().contains(PROOF));
         }
-        try(var f=new Fixture()){f.approved();f.fault="ack";error(503,()->f.service.exchange(RAW,PROOF));f.fault="";Assert.assertEquals(f.pairs(),2);Assert.assertEquals(f.row().getString("state"),"CONSUMED");error(410,()->f.service.exchange(RAW,PROOF));Assert.assertEquals(f.issued,1);}
+        System.out.println("PASS app login service 1 real owner/epoch/issuer SQL, ordered double consent and same-root single token-pair consume; metadata/token response whitelists");
+        for(String mutation:List.of("UPDATE tokens SET state=2 WHERE oId='100'","UPDATE tokens SET expiresAt=1 WHERE oId='100'","UPDATE tokens SET clientId='third' WHERE oId='100'","UPDATE clients SET status=1 WHERE clientId='website_v3'","UPDATE clients SET status=1 WHERE clientId='fishpi_app_v3'","UPDATE u SET userStatus=4 WHERE oId='1'","INSERT INTO states VALUES('1',1,0)","UPDATE tokens SET scope='profile.read' WHERE oId='100'","UPDATE clients SET scope='settings.write' WHERE clientId='fishpi_app_v3'"))try(var f=new Fixture()){
+            f.approved();
+            sql(f.db, mutation);
+            error(403, () -> f.service.exchange(RAW, PROOF));
+            Assert.assertEquals(f.pairs(), 0);
+            Assert.assertEquals(f.row().getString("state"), "WEB_APPROVED");
+        }
+        System.out.println("PASS app login service 2 current issuer expiry/revocation/client binding, owner status/epoch and native/website scope rechecked before issuance");
+        for(String failure:List.of("half","response","commit","activity"))try(var f=new Fixture()){
+            f.approved();
+            if (failure.equals("commit")) f.fault = "commit";
+            else if (failure.equals("activity")) f.fault = "password";
+            else f.issueFault = failure;
+            error(503, () -> f.service.exchange(RAW, PROOF));
+            f.fault = "";
+            f.issueFault = "";
+            Assert.assertEquals(f.pairs(), 0);
+            Assert.assertEquals(f.row().getString("state"), "WEB_APPROVED");
+            Assert.assertEquals(rows(f.db, "SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"), 7L);
+            f.service.exchange(RAW, PROOF);
+            Assert.assertEquals(f.pairs(), 2);
+        }
+        try (var f = new Fixture()) {
+            f.approved();
+            f.fault = "ack";
+            error(503, () -> f.service.exchange(RAW, PROOF));
+            f.fault = "";
+            Assert.assertEquals(f.pairs(), 2);
+            Assert.assertEquals(f.row().getString("state"), "CONSUMED");
+            error(410, () -> f.service.exchange(RAW, PROOF));
+            Assert.assertEquals(f.issued, 1);
+        }
         System.out.println("PASS app login service 3 token half-write/invalid response/strict commit rollback; lost commit ACK stays consumed without another issuance");
-        try(var f=new Fixture()){f.create();f.clock=NOW+120000;error(410,()->f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF)));Assert.assertEquals(f.row().getString("state"),"WAITING");}
-        try(var f=new Fixture()){f.create();f.service.webDecision(identity(),RAW,"deny");error(410,()->f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF)));Assert.assertEquals(f.pairs(),0);}
-        try(var f=new Fixture()){f.create();f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF));f.service.appDecision(RAW,PROOF,"deny");error(410,()->f.service.webDecision(identity(),RAW,"approve"));}
+        try (var f = new Fixture()) {
+            f.create();
+            f.clock = NOW + 120000;
+            error(410, () -> f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF)));
+            Assert.assertEquals(f.row().getString("state"), "WAITING");
+        }
+        try (var f = new Fixture()) {
+            f.create();
+            f.service.webDecision(identity(), RAW, "deny");
+            error(410, () -> f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF)));
+            Assert.assertEquals(f.pairs(), 0);
+        }
+        try (var f = new Fixture()) {
+            f.create();
+            f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF));
+            f.service.appDecision(RAW, PROOF, "deny");
+            error(410, () -> f.service.webDecision(identity(), RAW, "approve"));
+        }
         System.out.println("PASS app login service 4 exact two-minute expiry and either-side denial never restore a pending grant");
-        try(var f=new Fixture()){f.create();final int roots=f.roots;error(404,()->f.service.webStatus(new JSONObject().put("tokenId","102").put("user",new JSONObject().put("oId","2")),RAW));Assert.assertEquals(f.roots,roots);f.changeHint=true;error(403,()->f.service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF)));Assert.assertEquals(f.row().getString("state"),"WAITING");}
-        for(String raw:Arrays.asList(null,"login:"+RAW,"https://example.com",RAW+" ",RAW+"="))try(var f=new Fixture()){error(422,()->f.service.claim(raw,ApiV3AppLoginProtocol.challenge(PROOF)));Assert.assertEquals(f.roots,0);}
-        try(var f=new Fixture()) {f.fault="begin";error(503,()->f.service.create(identity()));f.fault="";Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM qr").getFirst().getInt("n"),0);f.create();}
+        try (var f = new Fixture()) {
+            f.create();
+            final int roots = f.roots;
+            error(404, () -> f.service.webStatus(new JSONObject().put("tokenId", "102").put("user", new JSONObject().put("oId", "2")), RAW));
+            Assert.assertEquals(f.roots, roots);
+            f.changeHint = true;
+            error(403, () -> f.service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF)));
+            Assert.assertEquals(f.row().getString("state"), "WAITING");
+        }
+        for (String raw : Arrays.asList(null, "login:" + RAW, "https://example.com", RAW + " ", RAW + "="))
+            try (var f = new Fixture()) {
+                error(422, () -> f.service.claim(raw, ApiV3AppLoginProtocol.challenge(PROOF)));
+                Assert.assertEquals(f.roots, 0);
+            }
+        try (var f = new Fixture()) {
+            f.fault = "begin";
+            error(503, () -> f.service.create(identity()));
+            f.fault = "";
+            Assert.assertEquals(rows(f.db, "SELECT COUNT(*) AS n FROM qr").getFirst().getInt("n"), 0);
+            f.create();
+        }
         System.out.println("PASS app login service 5 foreign-owner hint filtering, current immutable binding race, malformed capabilities and begin failure mapped to503 without any request row");
         try(var f=new Fixture()) {
-            f.realGrant=true;f.approved();final JSONObject pair=f.service.exchange(RAW,PROOF);Assert.assertEquals(f.pairs(),2);
+            f.realGrant = true;
+            f.approved();
+            final JSONObject pair = f.service.exchange(RAW, PROOF);
+            Assert.assertEquals(f.pairs(), 2);
             final var rows=rows(f.db,"SELECT * FROM tokens WHERE clientId='fishpi_app_v3' ORDER BY tokenType");
-            Assert.assertEquals(rows.get(0).getString("familyId"),rows.get(1).getString("familyId"));Assert.assertEquals(rows.get(0).getString("parentId"),"");
-            Assert.assertFalse(f.row().toString().contains(pair.getString("accessToken")));Assert.assertFalse(rows.get(0).toString().contains(pair.getString("accessToken")));
+            Assert.assertEquals(rows.get(0).getString("familyId"), rows.get(1).getString("familyId"));
+            Assert.assertEquals(rows.get(0).getString("parentId"), "");
+            Assert.assertFalse(f.row().toString().contains(pair.getString("accessToken")));
+            Assert.assertFalse(rows.get(0).toString().contains(pair.getString("accessToken")));
             Assert.assertEquals(rows.get(0).getString("tokenHash"),ApiV3TokenUtil.hash(pair.getString("accessToken")));
-            final long signedIn=f.clock;f.clock+=100;final var grants=(ApiV3TokenMgmtService)field(f.service,"grants");final JSONObject refreshed=grants.refreshForClient("fishpi_app_v3",pair.getString("refreshToken"));Assert.assertEquals(f.pairs(),4);Assert.assertEquals(rows(f.db,"SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),signedIn,"native refresh must not record another login");
-            try {grants.refreshForClient("fishpi_app_v3",pair.getString("refreshToken"));Assert.fail("rotated refresh must reject");}catch(org.b3log.latke.service.ServiceException expected){}
+            final long signedIn = f.clock;
+            f.clock += 100;
+            final var grants = (ApiV3TokenMgmtService) field(f.service, "grants");
+            final JSONObject refreshed = grants.refreshForClient("fishpi_app_v3", pair.getString("refreshToken"));
+            Assert.assertEquals(f.pairs(), 4);
+            Assert.assertEquals(rows(f.db, "SELECT userLatestLoginTime FROM u WHERE oId='1'").getFirst().getLong("userLatestLoginTime"),
+                    signedIn, "native refresh must not record another login");
+            try {
+                grants.refreshForClient("fishpi_app_v3", pair.getString("refreshToken"));
+                Assert.fail("rotated refresh must reject");
+            } catch (org.b3log.latke.service.ServiceException expected) {
+            }
             Assert.assertEquals(rows(f.db,"SELECT COUNT(*) AS n FROM tokens WHERE clientId='fishpi_app_v3' AND state=0").getFirst().getInt("n"),0);
             Assert.assertEquals(rows(f.db,"SELECT state FROM tokens WHERE oId='100'").getFirst().getInt("state"),0);
-        }System.out.println("PASS app login service 6 real production token issue/savepoint/random hashes/family, native refresh rotation and replay family revocation preserve website issuer");
+        }
+        System.out.println("PASS app login service 6 real production token issue/savepoint/random hashes/family, native refresh rotation and replay family revocation preserve website issuer");
         try(var f=new Fixture()) {
-            final var endpoint=new org.b3log.symphony.processor.ApiV3AppLoginProcessor();inject(endpoint,"service",f.service);f.endpoint=endpoint;final boolean[] permit={false};final int[] checks={0};
+            final var endpoint = new org.b3log.symphony.processor.ApiV3AppLoginProcessor();
+            inject(endpoint, "service", f.service);
+            f.endpoint = endpoint;
+            final boolean[] permit = {false};
+            final int[] checks = {0};
             final var anonymous=new org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware(){public void handle(org.b3log.latke.http.RequestContext c){checks[0]++;if(!permit[0]){org.b3log.symphony.processor.ApiV3Processor.error(c,302,"captcha","fixture anonymous gate");c.abort();return;}c.handle();}};
-            org.b3log.symphony.processor.ApiV3AppLoginProcessor.registerRoutes(endpoint,f.auth,f.writes,anonymous);org.b3log.latke.http.Dispatcher.mapping();
-            Assert.assertEquals(f.post(null,"requests","{}").attr("test.status"),401);Assert.assertEquals(f.post("wrong","requests","{}").attr("test.status"),403);Assert.assertEquals(f.roots,0);
-            Assert.assertEquals(f.post("owner","requests","{\"userId\":\"2\"}").attr("test.status"),422);Assert.assertEquals(f.post("owner","requests","{\"x\":1,\"x\":2}").attr("test.status"),400);
-            final var created=f.post("owner","requests","{}");Assert.assertEquals(created.attr("test.status"),200);Assert.assertEquals(created.getResponse().getHeader("Cache-Control"),"no-store");
+            org.b3log.symphony.processor.ApiV3AppLoginProcessor.registerRoutes(endpoint, f.auth, f.writes, anonymous);
+            org.b3log.latke.http.Dispatcher.mapping();
+            Assert.assertEquals(f.post(null, "requests", "{}").attr("test.status"), 401);
+            Assert.assertEquals(f.post("wrong", "requests", "{}").attr("test.status"), 403);
+            Assert.assertEquals(f.roots, 0);
+            Assert.assertEquals(f.post("owner", "requests", "{\"userId\":\"2\"}").attr("test.status"), 422);
+            Assert.assertEquals(f.post("owner", "requests", "{\"x\":1,\"x\":2}").attr("test.status"), 400);
+            final var created = f.post("owner", "requests", "{}");
+            Assert.assertEquals(created.attr("test.status"), 200);
+            Assert.assertEquals(created.getResponse().getHeader("Cache-Control"), "no-store");
             final String claim=new JSONObject().put("request",RAW).put("codeChallenge",ApiV3AppLoginProtocol.challenge(PROOF)).toString();
-            Assert.assertEquals(f.post(null,"claim",claim).attr("test.status"),302);Assert.assertEquals(f.row().getString("state"),"WAITING");permit[0]=true;
+            Assert.assertEquals(f.post(null, "claim", claim).attr("test.status"), 302);
+            Assert.assertEquals(f.row().getString("state"), "WAITING");
+            permit[0] = true;
             Assert.assertEquals(f.post(null,"claim",claim).attr("test.status"),200);
             final String nativeBody=new JSONObject().put("request",RAW).put("codeVerifier",PROOF).toString();
             Assert.assertEquals(f.post(null,"app-status",nativeBody).attr("test.status"),200);
             Assert.assertEquals(f.post(null,"app-decision",new JSONObject(nativeBody).put("decision","confirm").toString()).attr("test.status"),200);
             Assert.assertEquals(f.post("owner","status",new JSONObject().put("request",RAW).toString()).attr("test.status"),200);
             Assert.assertEquals(f.post("owner","decision",new JSONObject().put("request",RAW).put("decision","approve").toString()).attr("test.status"),200);
-            Assert.assertEquals(f.post(null,"exchange",nativeBody).attr("test.status"),200);Assert.assertEquals(f.pairs(),2);Assert.assertEquals(checks[0],5);
-        }System.out.println("PASS app login service 7 actual seven POST Dispatcher/JSON/auth/write paths, native anonymous-gate adapter called, proof-only exchange and no-store; Cookie/apiKey do not authorize website operations");
+            Assert.assertEquals(f.post(null, "exchange", nativeBody).attr("test.status"), 200);
+            Assert.assertEquals(f.pairs(), 2);
+            Assert.assertEquals(checks[0], 5);
+        }
+        System.out.println("PASS app login service 7 actual seven POST Dispatcher/JSON/auth/write paths, native anonymous-gate adapter called, proof-only exchange and no-store; Cookie/apiKey do not authorize website operations");
     }
 }

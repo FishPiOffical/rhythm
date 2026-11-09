@@ -42,10 +42,18 @@ public class ApiV3ColumnMgmtServiceTest {
     public static void main(final String[] args) throws Exception {
         Assert.assertEquals(ApiV3ColumnInputs.text(new JSONObject().put("title", " title "), "title", 64, false), "title");
         for (final Object value : List.of("", "x".repeat(65), "x\ny", 1)) {
-            try { ApiV3ColumnInputs.text(new JSONObject().put("title", value), "title", 64, false); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3ColumnInputs.text(new JSONObject().put("title", value), "title", 64, false);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         for (final JSONArray ids : List.of(new JSONArray(), new JSONArray().put("1").put("1"), new JSONArray().put(1), new JSONArray().put("x"), new JSONArray().put("1".repeat(20)))) {
-            try { ApiV3ColumnInputs.order(new JSONObject().put("columnIds", ids)); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3ColumnInputs.order(new JSONObject().put("columnIds", ids));
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         Assert.assertEquals(ApiV3ColumnInputs.order(new JSONObject().put("columnIds", new JSONArray().put("2").put("1"))), List.of("2", "1"));
         for (final String url : List.of("javascript:alert(1)", "//example.test/x", "https://example.test/x\"", "https://example.test/" + "a".repeat(1024))) {

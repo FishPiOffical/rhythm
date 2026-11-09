@@ -43,7 +43,12 @@ public class ApiV3ReactionSqlTest {
         Assert.assertEquals(catalog.length(), Reaction.emojiValues().size());
         for (final String value : Reaction.emojiValues()) Assert.assertEquals(ApiV3ReactionDto.value(new JSONObject().put("value", value)), value);
         for (final Object value : List.of("", "unknown", "heart' OR 1=1", 123, JSONObject.NULL)) {
-            try { ApiV3ReactionDto.value(new JSONObject().put("value", value)); Assert.fail(); } catch (final ApiV3Exception expected) { Assert.assertEquals(expected.status, 422); }
+            try {
+                ApiV3ReactionDto.value(new JSONObject().put("value", value));
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+                Assert.assertEquals(expected.status, 422);
+            }
         }
         final JSONObject raw = new JSONObject().put("targetId", "12").put("targetType", "comment").put("currentUserReaction", "heart").put("token", "SECRET-token")
                 .put("summary", new JSONArray().put(new JSONObject().put("value", "heart").put("emoji", "SECRET-spoof").put("count", 2).put("selected", true)
@@ -51,7 +56,8 @@ public class ApiV3ReactionSqlTest {
                                 .put("avatarURL", "javascript:SECRET()").put("userEmail", "SECRET-email")))));
         final JSONObject dto = ApiV3ReactionDto.from(raw);
         Assert.assertEquals(dto.keySet(), Set.of("targetId", "targetType", "groupType", "currentUserReaction", "summary"));
-        Assert.assertFalse(dto.toString().contains("SECRET")); Assert.assertEquals(dto.getJSONArray("summary").getJSONObject(0).getString("emoji"), Reaction.emojiOf("heart"));
+        Assert.assertFalse(dto.toString().contains("SECRET"));
+        Assert.assertEquals(dto.getJSONArray("summary").getJSONObject(0).getString("emoji"), Reaction.emojiOf("heart"));
         Assert.assertEquals(dto.getJSONArray("summary").getJSONObject(0).getJSONArray("userDetails").getJSONObject(0).keySet(), Set.of("userName", "displayName", "avatarURL"));
         System.out.println("PASS closed catalog/typed values and nested response whitelist");
         final var field = Latkes.class.getDeclaredField("localProps"); field.setAccessible(true); final Object original = field.get(null);

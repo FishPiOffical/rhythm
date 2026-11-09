@@ -37,20 +37,30 @@ public class ApiV3ArticleEditInputsTest {
         Assert.assertEquals(merged.getString(Article.ARTICLE_CONTENT), "    old markdown\nbody");
         Assert.assertEquals(merged.getInt(Article.ARTICLE_REWARD_POINT), 25);
         Assert.assertFalse(merged.getBoolean(Article.ARTICLE_COMMENTABLE));
-        Assert.assertEquals(merged.getString(LongArticleColumn.COLUMN_ID), "10"); Assert.assertEquals(merged.getString(LongArticleColumn.CHAPTER_NO), "2");
-        Assert.assertFalse(merged.has("userPassword")); Assert.assertFalse(merged.has(Article.ARTICLE_AUTHOR_ID));
-        Assert.assertEquals(current.toString(), before); Assert.assertEquals(ApiV3Json.canonical(patch), hashInput);
+        Assert.assertEquals(merged.getString(LongArticleColumn.COLUMN_ID), "10");
+        Assert.assertEquals(merged.getString(LongArticleColumn.CHAPTER_NO), "2");
+        Assert.assertFalse(merged.has("userPassword"));
+        Assert.assertFalse(merged.has(Article.ARTICLE_AUTHOR_ID));
+        Assert.assertEquals(current.toString(), before);
+        Assert.assertEquals(ApiV3Json.canonical(patch), hashInput);
         System.out.println("PASS partial edit preserves content, numeric boolean flags and chapter while leaving stored/replay inputs unchanged");
         for (final JSONObject bad : List.of(new JSONObject(), new JSONObject().put("anonymous", true), new JSONObject().put("authorId", "other"),
                 new JSONObject().put("draftId", "1"), new JSONObject().put("bypassCensor", true), new JSONObject().put("goodPost", true),
                 new JSONObject().put("type", 4), new JSONObject().put("commentable", 1), new JSONObject().put("title", " "),
                 new JSONObject().put("chapterNo", "2147483648"), new JSONObject().put("columnId", "1 OR 1=1"), new JSONObject().put("content", "abc"))) {
-            try { ApiV3ArticleEditInputs.normalize(bad); Assert.fail(bad.keySet().toString()); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3ArticleEditInputs.normalize(bad);
+                Assert.fail(bad.keySet().toString());
+            } catch (final ApiV3Exception expected) { }
         }
         System.out.println("PASS immutable/unknown fields, invalid types, IDs, chapter capacity and required text boundaries");
         final var zero = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("rewardPoint", 0).put("rewardContent", "ignored new reward")));
-        Assert.assertEquals(zero.getInt(Article.ARTICLE_REWARD_POINT), 25); Assert.assertEquals(zero.getString(Article.ARTICLE_REWARD_CONTENT), "old paid content");
-        try { ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("qnaOfferPoint", 19))); Assert.fail(); } catch (final ApiV3Exception expected) { }
+        Assert.assertEquals(zero.getInt(Article.ARTICLE_REWARD_POINT), 25);
+        Assert.assertEquals(zero.getString(Article.ARTICLE_REWARD_CONTENT), "old paid content");
+        try {
+            ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("qnaOfferPoint", 19)));
+            Assert.fail();
+        } catch (final ApiV3Exception expected) { }
         final var moved = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("columnId", "11")));
         Assert.assertEquals(moved.getString(LongArticleColumn.CHAPTER_NO), "");
         final var detached = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("columnId", "")));
@@ -61,16 +71,28 @@ public class ApiV3ArticleEditInputsTest {
         final var changed = ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", record)));
         Assert.assertEquals(changed.getString(Article.ARTICLE_CONTENT), record);
         ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", "1\u001f0-0\u001f0-0\u001e")));
-        try { ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 3))); Assert.fail(); }
+        try {
+            ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 3)));
+            Assert.fail();
+        }
         catch (final ApiV3Exception e) { Assert.assertEquals(e.code, "thought_disabled"); }
-        try { ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 0))); Assert.fail(); }
+        try {
+            ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 0)));
+            Assert.fail();
+        }
         catch (final ApiV3Exception e) { Assert.assertEquals(e.code, "content_required"); }
         System.out.println("PASS historical thought insert/delete/legacy records without restoring creation through conversion");
         for (final String bad : List.of("text only", "x\u001fno-time\u001f0-0\u001f0-0\u001e", "x\u001f9007199254740992\u001f0-0\u001f0-0\u001e",
                 "x\u001f1\u001f-1-0\u001f0-0\u001e", "x\u001f1\u001f0-0\u001f0-0")) {
-            try { ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", bad))); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", bad)));
+                Assert.fail();
+            } catch (final ApiV3Exception expected) { }
         }
-        try { ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", record))); Assert.fail(); } catch (final ApiV3Exception expected) { }
+        try {
+            ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", record)));
+            Assert.fail();
+        } catch (final ApiV3Exception expected) { }
         System.out.println("PASS malformed thought protocol, unsafe numeric capacity and separators in ordinary Markdown rejected");
     }
     static JSONObject current() {

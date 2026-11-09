@@ -98,7 +98,11 @@ public class ApiV3MarkdownTest {
         System.out.println("PASS preview 2 MIME, strict raw UTF8/JSON, unknown/typed fields, controls and length boundaries");
         var empty=json("{\"content\":\"\"}");check(status(empty)==200);check(((JSONObject)empty.attr("data")).getString("html").isEmpty());
         var c=json(new JSONObject().put("content","# 中文😀\n\n**bold**\n\n| a | b |\n| --- | --- |\n| c | d |\n\n<script>alert(1)</script><img src=x onerror=alert(2)><a href=javascript:alert(3)>bad</a><iframe src=https://evil.invalid></iframe>").toString());check(status(c)==200);
-        var data=(JSONObject)c.attr("data");check(data.keySet().equals(Set.of("html")));var html=data.getString("html");check(html.contains("<h1>中文😀</h1>")&&html.contains("<strong>bold</strong>")&&html.contains("<table>"));check(!html.contains("<script")&&!html.contains("onerror")&&!html.contains("javascript:")&&!html.contains("iframe"));
+        var data = (JSONObject) c.attr("data");
+        check(data.keySet().equals(Set.of("html")));
+        var html = data.getString("html");
+        check(html.contains("<h1>中文😀</h1>") && html.contains("<strong>bold</strong>") && html.contains("<table>"));
+        check(!html.contains("<script") && !html.contains("onerror") && !html.contains("javascript:") && !html.contains("iframe"));
         check(c.getResponse().getHeader("Cache-Control").equals("no-store"));check(c.getResponse().getHeader("Vary").equals("Authorization"));check(c.getResponse().getHeader("Set-Cookie")==null);
         System.out.println("PASS preview 3 actual private Flexmark/Jsoup Markdown and XSS cleaning, empty text, no-store whitelist response");
         var counts = ApiV3MarkdownProcessor.class.getDeclaredField("COUNTS");

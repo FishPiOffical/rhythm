@@ -94,27 +94,109 @@ public class ApiV3DiscoveryExtrasQueryTest {
     static void status(int n,Runnable r){try{r.run();throw new AssertionError("expected "+n);}catch(ApiV3Exception e){Assert.assertEquals(e.status,n);}}
     public static void main(String[] args)throws Exception{
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
-        try(var f=new Fixture()){f.sql("UPDATE x_user SET userStatus=2 WHERE oId='025'");var out=f.service.recent();Assert.assertEquals(list(out).length(),20);Assert.assertEquals(list(out).getJSONObject(0).getString("id"),"024");Assert.assertEquals(list(out).getJSONObject(19).getString("id"),"005");for(Object value:list(out))Assert.assertEquals(((JSONObject)value).keySet(),Set.of("id","userName","userNickname","userAvatarURL"));Assert.assertFalse(out.toString().contains("PRIVATE"));}
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_user SET userStatus=2 WHERE oId='025'");
+            var out = f.service.recent();
+            Assert.assertEquals(list(out).length(), 20);
+            Assert.assertEquals(list(out).getJSONObject(0).getString("id"), "024");
+            Assert.assertEquals(list(out).getJSONObject(19).getString("id"), "005");
+            for (Object value : list(out))
+                Assert.assertEquals(((JSONObject) value).keySet(), Set.of("id", "userName", "userNickname", "userAvatarURL"));
+            Assert.assertFalse(out.toString().contains("PRIVATE"));
+        }
         System.out.println("PASS extras 1 newest twenty currently activated users, complete ordered rows and four-field public DTO only");
-        try(var f=new Fixture()){f.sql("UPDATE x_user SET userStatus=3");Assert.assertEquals(list(f.service.recent()).length(),0);f.fail=true;status(503,()->f.service.recent());}
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_user SET userStatus=3");
+            Assert.assertEquals(list(f.service.recent()).length(), 0);
+            f.fail = true;
+            status(503, () -> f.service.recent());
+        }
         System.out.println("PASS extras 2 restricted-login/pending/stopped users excluded from recent registration; SQL failure differs from valid empty list");
-        try(var f=new Fixture()){f.article("101",.7);f.article("102",.5);f.article("103",.1);f.article("104",.9);var out=f.service.random(null,4,"");Assert.assertEquals(ids(out),Set.of("101","102","103","104"));Assert.assertEquals(list(out).length(),4);Assert.assertEquals(list(out).getJSONObject(0).getString("id"),"102");Assert.assertEquals(list(out).getJSONObject(3).getString("id"),"103");Assert.assertEquals(f.queries.stream().filter(q->q.startsWith("SELECT a.oId,")).count(),2L);Assert.assertFalse(out.toString().contains("PRIVATE"));}
+        try (var f = new Fixture()) {
+            f.article("101", .7);
+            f.article("102", .5);
+            f.article("103", .1);
+            f.article("104", .9);
+            var out = f.service.random(null, 4, "");
+            Assert.assertEquals(ids(out), Set.of("101", "102", "103", "104"));
+            Assert.assertEquals(list(out).length(), 4);
+            Assert.assertEquals(list(out).getJSONObject(0).getString("id"), "102");
+            Assert.assertEquals(list(out).getJSONObject(3).getString("id"), "103");
+            Assert.assertEquals(f.queries.stream().filter(q -> q.startsWith("SELECT a.oId,")).count(), 2L);
+            Assert.assertFalse(out.toString().contains("PRIVATE"));
+        }
         System.out.println("PASS extras 3 random pivot boundary included once, wrap fills remainder, no duplicates and actual common article projection omits raw private fields");
         for(String assignment:List.of("articleStatus=1","articleType="+org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION,"articleShowInList=0","articleTags='Sandbox'","articleTags='B3log-private'","articleRandomDouble=-1","articleRandomDouble=2")){
-            try(var f=new Fixture()){f.article("101",.7);f.article("102",.9);f.sql("UPDATE x_article SET "+assignment+" WHERE oId='101'");Assert.assertEquals(ids(f.service.random(null,20,"")),Set.of("102"));}
+            try (var f = new Fixture()) {
+                f.article("101", .7);
+                f.article("102", .9);
+                f.sql("UPDATE x_article SET " + assignment + " WHERE oId='101'");
+                Assert.assertEquals(ids(f.service.random(null, 20, "")), Set.of("102"));
+            }
         }
         System.out.println("PASS extras 4 unavailable/discussion/hidden/sandbox/sync and out-of-range random candidates excluded before limits");
-        try(var f=new Fixture()){f.article("101",.7);f.sql("UPDATE x_article SET articleAnonymousView=1");Assert.assertEquals(list(f.service.random(null,8,"")).length(),0);Assert.assertEquals(list(f.service.random(new JSONObject(),8,"")).length(),1);for(int state:List.of(1,2,4,99)){f.sql("UPDATE x_user SET userStatus=? WHERE oId='001'",state);Assert.assertEquals(list(f.service.random(new JSONObject(),8,"")).length(),0);}}
+        try (var f = new Fixture()) {
+            f.article("101", .7);
+            f.sql("UPDATE x_article SET articleAnonymousView=1");
+            Assert.assertEquals(list(f.service.random(null, 8, "")).length(), 0);
+            Assert.assertEquals(list(f.service.random(new JSONObject(), 8, "")).length(), 1);
+            for (int state : List.of(1, 2, 4, 99)) {
+                f.sql("UPDATE x_user SET userStatus=? WHERE oId='001'", state);
+                Assert.assertEquals(list(f.service.random(new JSONObject(), 8, "")).length(), 0);
+            }
+        }
         System.out.println("PASS extras 5 visitor restriction and current author state hold for both random segments");
-        try(var f=new Fixture()){f.article("101",.7);f.article("102",.8);f.sql("UPDATE x_article SET articleAnonymous=1 WHERE oId='101'");var out=f.service.random(null,8,"102");Assert.assertEquals(ids(out),Set.of("101"));var author=list(out).getJSONObject(0).getJSONObject("author");Assert.assertEquals(author.getString("id"),"");Assert.assertEquals(author.getString("userName"),"匿名用户");Assert.assertFalse(out.toString().contains("User1"));status(422,()->f.service.random(null,0,""));status(422,()->f.service.random(null,21,""));status(422,()->f.service.random(null,8,"1' OR 1=1"));}
+        try (var f = new Fixture()) {
+            f.article("101", .7);
+            f.article("102", .8);
+            f.sql("UPDATE x_article SET articleAnonymous=1 WHERE oId='101'");
+            var out = f.service.random(null, 8, "102");
+            Assert.assertEquals(ids(out), Set.of("101"));
+            var author = list(out).getJSONObject(0).getJSONObject("author");
+            Assert.assertEquals(author.getString("id"), "");
+            Assert.assertEquals(author.getString("userName"), "匿名用户");
+            Assert.assertFalse(out.toString().contains("User1"));
+            status(422, () -> f.service.random(null, 0, ""));
+            status(422, () -> f.service.random(null, 21, ""));
+            status(422, () -> f.service.random(null, 8, "1' OR 1=1"));
+        }
         System.out.println("PASS extras 6 explicit exclude ID is filtered at SQL, anonymous identity remains hidden and input bounds reject injection");
-        try(var f=new Fixture()){f.article("101",.7);f.fail=true;status(503,()->f.service.random(null,8,""));}
+        try (var f = new Fixture()) {
+            f.article("101", .7);
+            f.fail = true;
+            status(503, () -> f.service.random(null, 8, ""));
+        }
         System.out.println("PASS extras 7 discovery storage failure never becomes a fake recommendation-empty success");
-        try(var f=new Fixture()){for(int i=1;i<=22;i++)f.log(String.valueOf(100+i),1,"simple","增加积分","2026-10-28 01:02:03");f.log("999",0,"simple","增加积分","2026-10-28 01:02:03");f.log("998",1,"censor-log","增加积分","2026-10-28 01:02:03");f.log("997",1,"simple","UNKNOWN_PRIVATE_CATEGORY","2026-10-28 01:02:03");f.log("996",1,"simple","封禁ip","2026-10-28 01:02:03");var out=f.service.logs(2,20);Assert.assertEquals(out.getJSONObject("pagination").getInt("total"),22);Assert.assertEquals(list(out).length(),2);Assert.assertEquals(list(out).getJSONObject(0).getString("id"),"102");Assert.assertEquals(list(out).getJSONObject(0).keySet(),Set.of("id","time","category"));Assert.assertFalse(out.toString().contains("PRIVATE"));Assert.assertTrue(f.queries.stream().filter(q->q.contains("x_logs")).noneMatch(q->q.contains("key2")||q.contains(",data")||q.startsWith("SELECT *")));}
+        try (var f = new Fixture()) {
+            for (int i = 1; i <= 22; i++)
+                f.log(String.valueOf(100 + i), 1, "simple", "增加积分", "2026-10-28 01:02:03");
+            f.log("999", 0, "simple", "增加积分", "2026-10-28 01:02:03");
+            f.log("998", 1, "censor-log", "增加积分", "2026-10-28 01:02:03");
+            f.log("997", 1, "simple", "UNKNOWN_PRIVATE_CATEGORY", "2026-10-28 01:02:03");
+            f.log("996", 1, "simple", "封禁ip", "2026-10-28 01:02:03");
+            var out = f.service.logs(2, 20);
+            Assert.assertEquals(out.getJSONObject("pagination").getInt("total"), 22);
+            Assert.assertEquals(list(out).length(), 2);
+            Assert.assertEquals(list(out).getJSONObject(0).getString("id"), "102");
+            Assert.assertEquals(list(out).getJSONObject(0).keySet(), Set.of("id", "time", "category"));
+            Assert.assertFalse(out.toString().contains("PRIVATE"));
+            Assert.assertTrue(f.queries.stream().filter(q -> q.contains("x_logs"))
+                    .noneMatch(q -> q.contains("key2") || q.contains(",data") || q.startsWith("SELECT *")));
+        }
         System.out.println("PASS extras 8 public simple exact-category filtering precedes log count/page; query and response never select log body, address or unknown category");
-        try(var f=new Fixture()){f.log("101",1,"simple","增加积分","2026-02-30 01:02:03");status(503,()->f.service.logs(1,20));f.fail=true;status(503,()->f.service.logs(1,20));status(422,()->f.service.logs(0,20));status(422,()->f.service.logs(1,51));}
+        try (var f = new Fixture()) {
+            f.log("101", 1, "simple", "增加积分", "2026-02-30 01:02:03");
+            status(503, () -> f.service.logs(1, 20));
+            f.fail = true;
+            status(503, () -> f.service.logs(1, 20));
+            status(422, () -> f.service.logs(0, 20));
+            status(422, () -> f.service.logs(1, 51));
+        }
         System.out.println("PASS extras 9 malformed legacy time and SQL failures fail closed without echoing raw log data");
-        try(var f=new Fixture()){Assert.assertEquals(list(f.service.logs(1,20)).length(),0);Assert.assertEquals(list(f.service.random(null,20,"")).length(),0);}
+        try (var f = new Fixture()) {
+            Assert.assertEquals(list(f.service.logs(1, 20)).length(), 0);
+            Assert.assertEquals(list(f.service.random(null, 20, "")).length(), 0);
+        }
         System.out.println("PASS extras 10 legitimate empty records differ from read failures, without mock output");
     }
 }

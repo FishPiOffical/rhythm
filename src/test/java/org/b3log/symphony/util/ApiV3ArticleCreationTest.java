@@ -32,13 +32,21 @@ public class ApiV3ArticleCreationTest {
         try (final Fixture f = new Fixture()) {
             final var request = input("1");
             final String original = ApiV3Json.canonical(request);
-            try { ApiV3ArticleCreation.apply(f, request); Assert.fail(); } catch (final IllegalStateException expected) { }
+            try {
+                ApiV3ArticleCreation.apply(f, request);
+                Assert.fail();
+            } catch (final IllegalStateException expected) { }
             f.begin();
-            try { ApiV3ArticleCreation.apply(f, request); Assert.fail(); } catch (final IllegalStateException expected) { }
+            try {
+                ApiV3ArticleCreation.apply(f, request);
+                Assert.fail();
+            } catch (final IllegalStateException expected) { }
             try (final var ignored = ArticlePublicationCaches.open(f::inTransaction)) {
                 final var dto = ApiV3ArticleCreation.apply(f, request);
-                Assert.assertEquals(dto.keySet(), Set.of("id", "permalink")); Assert.assertEquals(dto.getString("id"), "123");
-                Assert.assertEquals(dto.getString("permalink"), "/article/123"); Assert.assertTrue(f.inTransaction());
+                Assert.assertEquals(dto.keySet(), Set.of("id", "permalink"));
+                Assert.assertEquals(dto.getString("id"), "123");
+                Assert.assertEquals(dto.getString("permalink"), "/article/123");
+                Assert.assertTrue(f.inTransaction());
                 Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM drafts WHERE owner='owner'"), 0);
                 Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM drafts WHERE owner='other'"), 1);
                 Assert.assertEquals(ApiV3Json.canonical(request), original); f.commit();
@@ -51,7 +59,10 @@ public class ApiV3ArticleCreationTest {
             try (final Fixture f = new Fixture()) {
                 f.begin();
                 try (final var ignored = ArticlePublicationCaches.open(f::inTransaction)) {
-                    try { ApiV3ArticleCreation.apply(f, input(invalid)); Assert.fail(); }
+                    try {
+                        ApiV3ArticleCreation.apply(f, input(invalid));
+                        Assert.fail();
+                    }
                     catch (final ApiV3Exception e) { Assert.assertEquals(e.status, 404); f.rollback(); }
                 }
                 Assert.assertEquals(f.scalar("SELECT balance FROM account"), 100);
@@ -62,12 +73,18 @@ public class ApiV3ArticleCreationTest {
         System.out.println("PASS missing/foreign draft rolls publication and debit back without touching either owner's draft");
         for (final boolean permission : new boolean[]{true, false}) {
             try (final Fixture f = new Fixture()) {
-                f.authorized = permission; f.rejected = permission; f.begin();
+                f.authorized = permission;
+                f.rejected = permission;
+                f.begin();
                 try (final var ignored = ArticlePublicationCaches.open(f::inTransaction)) {
-                    try { ApiV3ArticleCreation.apply(f, input("1")); Assert.fail(); }
+                    try {
+                        ApiV3ArticleCreation.apply(f, input("1"));
+                        Assert.fail();
+                    }
                     catch (final ApiV3Exception e) { Assert.assertEquals(e.status, permission ? 422 : 403); f.rollback(); }
                 }
-                Assert.assertFalse(f.published); Assert.assertEquals(f.scalar("SELECT balance FROM account"), 100);
+                Assert.assertFalse(f.published);
+                Assert.assertEquals(f.scalar("SELECT balance FROM account"), 100);
                 Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM drafts"), 2);
             }
         }

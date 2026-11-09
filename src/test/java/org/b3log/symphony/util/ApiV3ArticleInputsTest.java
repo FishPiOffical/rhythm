@@ -32,7 +32,9 @@ public class ApiV3ArticleInputsTest {
         final JSONObject normal = ApiV3ArticleInputs.normalize(valid());
         Assert.assertEquals(normal.getString(Article.ARTICLE_TITLE), "title");
         Assert.assertEquals(normal.getString(Article.ARTICLE_CONTENT), "    code\n\nparagraph");
-        Assert.assertFalse(normal.has(Article.ARTICLE_AUTHOR_ID)); Assert.assertFalse(normal.has(Article.ARTICLE_IP)); Assert.assertFalse(normal.has(Article.ARTICLE_UA));
+        Assert.assertFalse(normal.has(Article.ARTICLE_AUTHOR_ID));
+        Assert.assertFalse(normal.has(Article.ARTICLE_IP));
+        Assert.assertFalse(normal.has(Article.ARTICLE_UA));
         Assert.assertEquals(normal.getInt(Article.ARTICLE_ANONYMOUS), Article.ARTICLE_ANONYMOUS_C_PUBLIC);
         Assert.assertTrue(normal.getBoolean(Article.ARTICLE_COMMENTABLE));
         for (final int type : new int[]{0,1,2,5,6}) {
@@ -40,25 +42,41 @@ public class ApiV3ArticleInputsTest {
             if (type==5) input.put("qnaOfferPoint",20);
             Assert.assertEquals(ApiV3ArticleInputs.normalize(input).getInt(Article.ARTICLE_TYPE),type);
         }
-        try { ApiV3ArticleInputs.normalize(valid().put("type",3)); Assert.fail(); }
-        catch(final ApiV3Exception expected){Assert.assertEquals(expected.status,403);Assert.assertEquals(expected.code,"thought_disabled");}
+        try {
+            ApiV3ArticleInputs.normalize(valid().put("type", 3));
+            Assert.fail();
+        } catch (final ApiV3Exception expected) {
+            Assert.assertEquals(expected.status, 403);
+            Assert.assertEquals(expected.code, "thought_disabled");
+        }
         System.out.println("PASS supported article types, disabled thought publishing, no actor metadata and Markdown whitespace preservation");
         for(final JSONObject bad:List.of(valid().put("title"," "),valid().put("title","x".repeat(256)),valid().put("content","abc"),valid().put("content","x".repeat(1024001)),
                 valid().put("title","x\ny"),valid().put("content","x\u0001y"),valid().put("type",4),valid().put("type","0"),valid().put("anonymous",1),
                 valid().put("showInList",2),valid().put("statement",4),valid().put("authorId","other"),valid().put("articleAuthorId","other"),valid().put("status",0),valid().put("bypassCensor",true),valid().put("apiKey","key"))) {
-            try{ApiV3ArticleInputs.normalize(bad);Assert.fail();}catch(final ApiV3Exception expected){}
+            try {
+                ApiV3ArticleInputs.normalize(bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) { }
         }
         for(final JSONObject bad:List.of(valid().put("rewardPoint",-1),valid().put("rewardPoint",1),valid().put("rewardContent","body"),valid().put("rewardPoint",1).put("rewardContent","x".repeat(102401)),
                 valid().put("type",5).put("qnaOfferPoint",19),valid().put("qnaOfferPoint",-1),valid().put("qnaOfferPoint",1.5))) {
-            try{ApiV3ArticleInputs.normalize(bad);Assert.fail();}catch(final ApiV3Exception expected){}
+            try {
+                ApiV3ArticleInputs.normalize(bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) { }
         }
-        final JSONObject paid=ApiV3ArticleInputs.normalize(valid().put("rewardPoint",1).put("rewardContent","paid"));Assert.assertEquals(paid.getString(Article.ARTICLE_REWARD_CONTENT),"paid");
+        final JSONObject paid = ApiV3ArticleInputs.normalize(valid().put("rewardPoint", 1).put("rewardContent", "paid"));
+        Assert.assertEquals(paid.getString(Article.ARTICLE_REWARD_CONTENT), "paid");
         System.out.println("PASS field/type/length/control-character boundaries and reward/QnA prerequisites");
         final JSONObject column=ApiV3ArticleInputs.normalize(valid().put("type",6).put("columnId","123").put("chapterNo","2147483647").put("columnCoverURL","/images/cover.png").put("draftId","456"));
-        Assert.assertEquals(column.getString(LongArticleColumn.COLUMN_ID),"123");Assert.assertEquals(column.getString(ArticleDraft.ARTICLE_DRAFT_ID),"456");
+        Assert.assertEquals(column.getString(LongArticleColumn.COLUMN_ID), "123");
+        Assert.assertEquals(column.getString(ArticleDraft.ARTICLE_DRAFT_ID), "456");
         for(final JSONObject bad:List.of(valid().put("columnId","1 OR 1=1"),valid().put("draftId","9".repeat(20)),valid().put("chapterNo","01"),valid().put("chapterNo","2147483648"),
                 valid().put("chapterNo",1),valid().put("columnTitle","x".repeat(65)),valid().put("columnCoverURL","javascript:alert(1)"))) {
-            try{ApiV3ArticleInputs.normalize(bad);Assert.fail();}catch(final ApiV3Exception expected){}
+            try {
+                ApiV3ArticleInputs.normalize(bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) { }
         }
         System.out.println("PASS existing cover validation, column/draft identifiers and bounded chapter numbers");
     }

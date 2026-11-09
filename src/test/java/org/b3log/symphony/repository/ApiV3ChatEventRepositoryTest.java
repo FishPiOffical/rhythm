@@ -214,7 +214,11 @@ public class ApiV3ChatEventRepositoryTest {
         }
         System.out.println("PASS bounded numeric revision ranges and cleanup preserve the committed head, expose retention gaps and roll back delete/strict-root commit failures");
         try(var f=new Fixture()){
-            try{f.add("101");Assert.fail();}catch(IllegalStateException expected){}
+            try {
+                f.add("101");
+                Assert.fail();
+            } catch (IllegalStateException expected) {
+            }
             f.begin();
             try {
                 f.events.after(0, 0, 1);
@@ -239,7 +243,15 @@ public class ApiV3ChatEventRepositoryTest {
                     Assert.fail();
                 } catch (IllegalArgumentException expected) {
                 }
-            exec(f.writer,"DELETE FROM state");f.begin();try{f.add("101");Assert.fail();}catch(RepositoryException expected){}f.commit();Assert.assertTrue(query(f.reader,"SELECT * FROM chat").isEmpty());
+            exec(f.writer, "DELETE FROM state");
+            f.begin();
+            try {
+                f.add("101");
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            f.commit();
+            Assert.assertTrue(query(f.reader, "SELECT * FROM chat").isEmpty());
             Assert.assertFalse(ApiV3ChatEvent.REPOSITORY.startsWith("symphony_"));
             Assert.assertFalse(ApiV3ChatEvent.STATE_REPOSITORY.startsWith("symphony_"));
         }

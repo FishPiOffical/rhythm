@@ -64,14 +64,31 @@ public class ApiV3ReportTest {
     public static void main(String[]args)throws Exception {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var data=f.query.options("1");Assert.assertEquals(data.keySet(),Set.of("targets"));var t=data.getJSONArray("targets");Assert.assertEquals(t.length(),4);
+            var data = f.query.options("1");
+            Assert.assertEquals(data.keySet(), Set.of("targets"));
+            var t = data.getJSONArray("targets");
+            Assert.assertEquals(t.length(), 4);
             int[][] values={{0,1,2,3,4,49},{0,1,2,3,4,49},{5,6,7,49},{0,1,2,3,4,49}};
-            for(int i=0;i<4;i++){var target=t.getJSONObject(i);Assert.assertEquals(target.keySet(),Set.of("targetType","label","reasons"));Assert.assertEquals(target.getInt("targetType"),i);var r=target.getJSONArray("reasons");Assert.assertEquals(r.length(),values[i].length);for(int j=0;j<r.length();j++){Assert.assertEquals(r.getJSONObject(j).keySet(),Set.of("reason","label"));Assert.assertEquals(r.getJSONObject(j).getInt("reason"),values[i][j]);Assert.assertFalse(r.getJSONObject(j).getString("label").isBlank());}}
-            Assert.assertFalse(data.toString().contains("PRIVATE"));t.remove(0);Assert.assertEquals(f.query.options("1").getJSONArray("targets").length(),4);
+            for (int i = 0; i < 4; i++) {
+                var target = t.getJSONObject(i);
+                Assert.assertEquals(target.keySet(), Set.of("targetType", "label", "reasons"));
+                Assert.assertEquals(target.getInt("targetType"), i);
+                var r = target.getJSONArray("reasons");
+                Assert.assertEquals(r.length(), values[i].length);
+                for (int j = 0; j < r.length(); j++) {
+                    Assert.assertEquals(r.getJSONObject(j).keySet(), Set.of("reason", "label"));
+                    Assert.assertEquals(r.getJSONObject(j).getInt("reason"), values[i][j]);
+                    Assert.assertFalse(r.getJSONObject(j).getString("label").isBlank());
+                }
+            }
+            Assert.assertFalse(data.toString().contains("PRIVATE"));
+            t.remove(0);
+            Assert.assertEquals(f.query.options("1").getJSONArray("targets").length(), 4);
         }
         System.out.println("PASS 1 exact existing four targets/reason sets and labels, fresh whitelist DTO, no target or user disclosure");
         try(var f=new Fixture()){
-            for(String id:Arrays.asList(null,"","0","1 OR 1=1","1".repeat(20)))error(422,()->f.query.options(id));Assert.assertEquals(f.reads,0);
+            for (String id : Arrays.asList(null, "", "0", "1 OR 1=1", "1".repeat(20))) error(422, () -> f.query.options(id));
+            Assert.assertEquals(f.reads, 0);
             error(404,()->f.query.options("2"));error(404,()->f.query.options("9"));
             try(var s=f.db.createStatement()){s.execute("INSERT INTO u VALUES('1',0,'PRIVATE')");}error(404,()->f.query.options("1"));
             f.fail=true;error(503,()->f.query.options("1"));
@@ -79,8 +96,17 @@ public class ApiV3ReportTest {
         System.out.println("PASS 2 parameterized actual SQL, invalid IDs before query, disabled/missing/duplicate actors and sanitized driver failures");
         try(var f=new Fixture()){
             ApiV3ReportProcessor.registerRoutes(f.controller,f.auth,new org.b3log.symphony.processor.middleware.ApiV3WriteMidware());Dispatcher.mapping();
-            for(String token:Arrays.asList(null,"bad","wrong")){int reads=f.reads;Assert.assertEquals(f.http(token).attr("test.status"),"wrong".equals(token)?403:401);Assert.assertEquals(f.reads,reads);}
-            var c=f.http("owner");Assert.assertEquals(c.attr("test.status"),200);Assert.assertEquals(c.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(c.getResponse().getHeader("Vary"),"Authorization");Assert.assertEquals(((JSONObject)c.attr("test.data")).getJSONArray("targets").length(),4);Assert.assertEquals(f.http("disabled").attr("test.status"),404);
+            for (String token : Arrays.asList(null, "bad", "wrong")) {
+                int reads = f.reads;
+                Assert.assertEquals(f.http(token).attr("test.status"), "wrong".equals(token) ? 403 : 401);
+                Assert.assertEquals(f.reads, reads);
+            }
+            var c = f.http("owner");
+            Assert.assertEquals(c.attr("test.status"), 200);
+            Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
+            Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+            Assert.assertEquals(((JSONObject) c.attr("test.data")).getJSONArray("targets").length(), 4);
+            Assert.assertEquals(f.http("disabled").attr("test.status"), 404);
         }
         System.out.println("PASS 3 real Dispatcher/controller content.read gate, Cookie/apiKey cannot supply identity, no-store envelope");
         System.out.println("Report options isolated tests passed: 3 groups");

@@ -98,7 +98,8 @@ public class ApiV3QqSettingsTest {
             Assert.assertEquals(f.stored(), "789");
             error(409, () -> f.qq.update(identity(), new JSONObject().put("qq", "1"), "same"));
             Assert.assertEquals(rows(f.db, "SELECT userQQ FROM u WHERE oId='2'").getFirst().getString("userQQ"), "00999");
-            f.qq.update(identity(), new JSONObject().put("qq", ""), "clear"); Assert.assertEquals(f.stored(), "");
+            f.qq.update(identity(), new JSONObject().put("qq", ""), "clear");
+            Assert.assertEquals(f.stored(), "");
         }
         System.out.println("PASS qq 2 owner-only projection and atomic setting/receipt, normalized replay, no later-value overwrite, conflict and clear");
         try (var f = new Fixture()) {
@@ -106,13 +107,21 @@ public class ApiV3QqSettingsTest {
             final var third = new JSONObject().put("tokenId", "101").put("user", new JSONObject().put("oId", "1"));
             error(403, () -> f.qq.read(third)); error(403, () -> f.qq.update(third, new JSONObject().put("qq", "456"), "third"));
             f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid"); sql(f.db, "UPDATE tokens SET state=1 WHERE oId='100'");
-            error(403, () -> f.qq.read(identity())); error(403, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid")); Assert.assertEquals(f.count("receipt"), 1);
+            error(403, () -> f.qq.read(identity()));
+            error(403, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid"));
+            Assert.assertEquals(f.count("receipt"), 1);
         }
-        try (var f = new Fixture()) { sql(f.db, "UPDATE u SET userQQ='NaN' WHERE oId='1'"); Assert.assertEquals(f.qq.read(identity()).getString("qq"), "NaN"); error(422, () -> f.qq.update(identity(), new JSONObject().put("qq", "NaN"), "legacy")); }
+        try (var f = new Fixture()) {
+            sql(f.db, "UPDATE u SET userQQ='NaN' WHERE oId='1'");
+            Assert.assertEquals(f.qq.read(identity()).getString("qq"), "NaN");
+            error(422, () -> f.qq.update(identity(), new JSONObject().put("qq", "NaN"), "legacy"));
+        }
         System.out.println("PASS qq 3 real SQL first-party/current-grant checks apply to reads and replays; legacy invalid stored value is not falsely cleared");
         for (String failure : List.of("UPDATE `u`", "receipt", "commit")) try (var f = new Fixture()) {
             if (failure.startsWith("UPDATE")) f.writeFault = failure; else f.fault = failure;
-            error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "fault")); Assert.assertEquals(f.stored(), "00123"); Assert.assertEquals(f.count("receipt"), 0);
+            error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "fault"));
+            Assert.assertEquals(f.stored(), "00123");
+            Assert.assertEquals(f.count("receipt"), 0);
         }
         try (var f = new Fixture()) {
             f.fault = "ack";
@@ -125,8 +134,11 @@ public class ApiV3QqSettingsTest {
         System.out.println("PASS qq 4 setting/receipt/commit failures roll back; lost commit ACK replays a single committed result");
         try (var f = new Fixture()) {
             ApiV3ProfileSettingsProcessor.registerRoutes(f.endpointQq, f.auth, f.writes); Dispatcher.mapping();
-            Assert.assertEquals(f.requestQq("GET", null, null, null).attr("test.status"), 401); Assert.assertEquals(f.requestQq("GET", "scope", null, null).attr("test.status"), 403);
-            final var read = f.requestQq("GET", "owner", null, null); Assert.assertEquals(read.attr("test.status"), 200); Assert.assertEquals(read.getResponse().getHeader("Cache-Control"), "no-store");
+            Assert.assertEquals(f.requestQq("GET", null, null, null).attr("test.status"), 401);
+            Assert.assertEquals(f.requestQq("GET", "scope", null, null).attr("test.status"), 403);
+            final var read = f.requestQq("GET", "owner", null, null);
+            Assert.assertEquals(read.attr("test.status"), 200);
+            Assert.assertEquals(read.getResponse().getHeader("Cache-Control"), "no-store");
             Assert.assertEquals(f.requestQq("PUT", "owner", null, "{\"qq\":\"456\"}").attr("test.status"), 422);
             Assert.assertEquals(f.requestQq("PUT", "owner", "http", "{\"qq\":\"000456\"}").attr("test.status"), 200);
             Assert.assertEquals(f.requestQq("PUT", "owner", "unknown", "{\"qq\":\"1\",\"userId\":\"2\"}").attr("test.status"), 422);

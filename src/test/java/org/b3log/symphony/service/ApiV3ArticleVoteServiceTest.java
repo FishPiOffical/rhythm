@@ -113,12 +113,21 @@ public class ApiV3ArticleVoteServiceTest {
         System.out.println("PASS vote/article/association/notification/receipt faults roll every write back, including a failure after the first association was updated");
         try(var f=new Articles()){
             f.exec("INSERT INTO comment(oId,commentAuthorId,commentOnArticleId,commentOriginalCommentId,commentContent) VALUES('10','owner','10','','same ID')");
-            var viewer=f.viewer("outsider");f.api.set(viewer,"10",Vote.TYPE_C_UP,"shared-key");Assert.assertTrue(f.articleApi.read(viewer,"10").isNull("vote"));
-            f.articleApi.set(viewer,"10",Vote.TYPE_C_UP,"shared-key");Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"),2L);
+            var viewer = f.viewer("outsider");
+            f.api.set(viewer, "10", Vote.TYPE_C_UP, "shared-key");
+            Assert.assertTrue(f.articleApi.read(viewer, "10").isNull("vote"));
+            f.articleApi.set(viewer, "10", Vote.TYPE_C_UP, "shared-key");
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"), 2L);
             Assert.assertTrue(f.articleApi.read(f.viewer("owner"),"10").isNull("vote"));
-            f.articleApi.set(viewer,"10",-1,"clear-article");Assert.assertEquals(f.api.read(viewer,"10").getString("vote"),"up");Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"),1L);
+            f.articleApi.set(viewer, "10", -1, "clear-article");
+            Assert.assertEquals(f.api.read(viewer, "10").getString("vote"), "up");
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM vote"), 1L);
             expect(404,()->f.articleApi.read(viewer,"10 OR 1=1"));
-            try{ApiV3Votes.articleReadSql("article;DROP TABLE user","vote");Assert.fail();}catch(IllegalArgumentException rejected){}
+        try {
+            ApiV3Votes.articleReadSql("article;DROP TABLE user", "vote");
+            Assert.fail();
+        } catch (IllegalArgumentException rejected) {
+        }
         }
         System.out.println("PASS article/comment resource and receipt isolation with identical IDs/keys, reader binding and SQL parameter/table guards preserve unrelated votes");
         try(var f=new Articles()){
@@ -182,7 +191,9 @@ public class ApiV3ArticleVoteServiceTest {
             expect(403,()->f.core("older",(a,b)->{throw new ApiV3Exception(403,"forbidden","denied");}));
             Assert.assertEquals(f.snapshot(),before);
             f.fail="refresh-event";f.articleApi.set(f.viewer("outsider"),"10",Vote.TYPE_C_UP,"refresh-failure");
-            Assert.assertEquals(f.scalar("SELECT articleGoodCnt FROM article WHERE oId='10'"),1L);Assert.assertEquals(f.activityEvents,1);Assert.assertFalse(f.active());
+            Assert.assertEquals(f.scalar("SELECT articleGoodCnt FROM article WHERE oId='10'"), 1L);
+            Assert.assertEquals(f.activityEvents, 1);
+            Assert.assertFalse(f.active());
         }
         System.out.println("PASS explicit transaction/read authorization and author binding protect the core; post-commit refresh failure does not undo a committed article vote");
     }

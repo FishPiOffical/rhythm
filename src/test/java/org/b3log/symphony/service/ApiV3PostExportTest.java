@@ -261,51 +261,175 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
    Assert.assertEquals(f.create("ack").getString("status"), "expired");
    Assert.assertEquals(f.balance(), 400);
   }System.out.println("PASS export 4 lost commit acknowledgment replays same artifact once; current first-party owner/authorization and exact expiry, transactional content purge and expired receipt replay");
-  for(String damage:List.of("DELETE FROM chunks","UPDATE chunks SET data='AAAA'","UPDATE chunks SET userId='2'","UPDATE artifacts SET sha256='"+"a".repeat(64)+"'","UPDATE chunks SET sequenceNo=99"))try(var f=new F()){String job=f.create("damage").getString("jobId");sql(f.db,damage);error(503,()->f.export.download(identity(),job));}
+  for (String damage : List.of("DELETE FROM chunks", "UPDATE chunks SET data='AAAA'", "UPDATE chunks SET userId='2'",
+    "UPDATE artifacts SET sha256='" + "a".repeat(64) + "'", "UPDATE chunks SET sequenceNo=99"))
+   try (var f = new F()) {
+    String job = f.create("damage").getString("jobId");
+    sql(f.db, damage);
+    error(503, () -> f.export.download(identity(), job));
+   }
   System.out.println("PASS export 5 missing/corrupt/foreign/reordered chunk and digest fail before download bytes");
-  try(var f=new F()){f.mutateEpoch=true;error(409,()->f.create("epoch"));Assert.assertEquals(f.balance(),500);Assert.assertEquals(f.n("artifacts"),0);}
-  try(var f=new F()){sql(f.db,"UPDATE u SET userPoint=99 WHERE oId='1'");error(409,()->f.create("balance"));Assert.assertEquals(f.balance(),99);Assert.assertEquals(f.n("chunks"),0);}
-  try(var f=new F()){sql(f.db,"UPDATE tokens SET clientId='third' WHERE oId='100'");error(403,()->f.create("third"));Assert.assertEquals(f.generated,0);}
-  try(var f=new F()){error(422,()->f.export.create(identity(),new JSONObject().put("currentPassword",NEW),"x","ip"));Assert.assertEquals(f.generated,0);sql(f.db,"UPDATE u SET secret2fa=? WHERE oId='1'",SECRET);error(422,()->f.create("mfa"));Assert.assertEquals(f.generated,0);}
-  try(var f=new F()){for(JSONObject invalid:List.of(new JSONObject(),new JSONObject().put("currentPassword",OLD).put("userId","2"),new JSONObject().put("currentPassword",123)))error(422,()->f.export.create(identity(),invalid,"i","ip"));error(422,()->f.export.create(identity(),new JSONObject().put("currentPassword",OLD),"bad key","ip"));}
+  try (var f = new F()) {
+   f.mutateEpoch = true;
+   error(409, () -> f.create("epoch"));
+   Assert.assertEquals(f.balance(), 500);
+   Assert.assertEquals(f.n("artifacts"), 0);
+  }
+  try (var f = new F()) {
+   sql(f.db, "UPDATE u SET userPoint=99 WHERE oId='1'");
+   error(409, () -> f.create("balance"));
+   Assert.assertEquals(f.balance(), 99);
+   Assert.assertEquals(f.n("chunks"), 0);
+  }
+  try (var f = new F()) {
+   sql(f.db, "UPDATE tokens SET clientId='third' WHERE oId='100'");
+   error(403, () -> f.create("third"));
+   Assert.assertEquals(f.generated, 0);
+  }
+  try (var f = new F()) {
+   error(422, () -> f.export.create(identity(), new JSONObject().put("currentPassword", NEW), "x", "ip"));
+   Assert.assertEquals(f.generated, 0);
+   sql(f.db, "UPDATE u SET secret2fa=? WHERE oId='1'", SECRET);
+   error(422, () -> f.create("mfa"));
+   Assert.assertEquals(f.generated, 0);
+  }
+  try (var f = new F()) {
+   for (JSONObject invalid : List.of(new JSONObject(), new JSONObject().put("currentPassword", OLD).put("userId", "2"),
+     new JSONObject().put("currentPassword", 123)))
+    error(422, () -> f.export.create(identity(), invalid, "i", "ip"));
+   error(422, () -> f.export.create(identity(), new JSONObject().put("currentPassword", OLD), "bad key", "ip"));
+  }
   System.out.println("PASS export 6 initial and final real password/MFA/epoch proof, first-party-only creation, insufficient balance and strict input fail without artifacts/charge");
-  try(var files=new ApiV3PostExportFiles()) {Assert.assertTrue(Files.isDirectory(files.directory));try{ApiV3PostExportFiles.entry(new ZipOutputStream(OutputStream.nullOutputStream()),"articles/../bad.md","x",NOW);Assert.fail();}catch(IOException expected){}try{ApiV3PostExportFiles.utf8("\ud800");Assert.fail();}catch(IOException expected){}}
-  try(var f=new F()){sql(f.db,"UPDATE articles SET articleContent=NULL WHERE oId='1'");error(503,()->f.create("null"));Assert.assertEquals(f.balance(),500);}
+  try (var files = new ApiV3PostExportFiles()) {
+   Assert.assertTrue(Files.isDirectory(files.directory));
+   try {
+    ApiV3PostExportFiles.entry(new ZipOutputStream(OutputStream.nullOutputStream()), "articles/../bad.md", "x", NOW);
+    Assert.fail();
+   } catch (IOException expected) {
+   }
+   try {
+    ApiV3PostExportFiles.utf8("\ud800");
+    Assert.fail();
+   } catch (IOException expected) {
+   }
+  }
+  try (var f = new F()) {
+   sql(f.db, "UPDATE articles SET articleContent=NULL WHERE oId='1'");
+   error(503, () -> f.create("null"));
+   Assert.assertEquals(f.balance(), 500);
+  }
   System.out.println("PASS export 7 fixed entry paths, strict source unicode and missing source fail closed, temporary files delete and root ownership checked");
   try(var f=new F()) {
-   ApiV3PostExportProcessor.registerRoutes(f.endpoint,f.auth,f.writes);Dispatcher.mapping();
-   var created=f.http("POST","/api/v3/me/exports/posts","http",new JSONObject().put("currentPassword",OLD).toString());Assert.assertEquals(created.attr("test.status"),200);String job=((JSONObject)created.attr("test.data")).getString("jobId");
-   var state=f.http("GET","/api/v3/me/exports/posts/"+job,null,null);Assert.assertEquals(state.attr("test.status"),200);Assert.assertEquals(state.getResponse().getHeader("Cache-Control"),"no-store");
-   var download=f.http("GET","/api/v3/me/exports/posts/"+job+"/download",null,null);Assert.assertEquals(download.getResponse().getContentType(),"application/zip");Assert.assertEquals(download.getResponse().getHeader("Content-Disposition"),"attachment; filename=\"posts-"+job+".zip\"");Assert.assertEquals(download.getResponse().getHeader("X-Content-Type-Options"),"nosniff");Assert.assertTrue(f.sent.length>0);f.sent=null;
-   sql(f.db,"DELETE FROM chunks");var error=f.http("GET","/api/v3/me/exports/posts/"+job+"/download",null,null);Assert.assertEquals(error.attr("test.status"),503);Assert.assertNull(f.sent);Assert.assertNull(error.getResponse().getHeader("Content-Disposition"));
+   ApiV3PostExportProcessor.registerRoutes(f.endpoint, f.auth, f.writes);
+   Dispatcher.mapping();
+   var created = f.http("POST", "/api/v3/me/exports/posts", "http", new JSONObject().put("currentPassword", OLD).toString());
+   Assert.assertEquals(created.attr("test.status"), 200);
+   String job = ((JSONObject) created.attr("test.data")).getString("jobId");
+   var state = f.http("GET", "/api/v3/me/exports/posts/" + job, null, null);
+   Assert.assertEquals(state.attr("test.status"), 200);
+   Assert.assertEquals(state.getResponse().getHeader("Cache-Control"), "no-store");
+   var download = f.http("GET", "/api/v3/me/exports/posts/" + job + "/download", null, null);
+   Assert.assertEquals(download.getResponse().getContentType(), "application/zip");
+   Assert.assertEquals(download.getResponse().getHeader("Content-Disposition"), "attachment; filename=\"posts-" + job + ".zip\"");
+   Assert.assertEquals(download.getResponse().getHeader("X-Content-Type-Options"), "nosniff");
+   Assert.assertTrue(f.sent.length > 0);
+   f.sent = null;
+
+   // 缺块时返回错误，并且不写出附件头或文件字节。
+   sql(f.db, "DELETE FROM chunks");
+   var error = f.http("GET", "/api/v3/me/exports/posts/" + job + "/download", null, null);
+   Assert.assertEquals(error.attr("test.status"), 503);
+   Assert.assertNull(f.sent);
+   Assert.assertNull(error.getResponse().getHeader("Content-Disposition"));
   }
-  try(var f=new F()){sql(f.db,"UPDATE tokens SET scope='settings.write' WHERE oId='100'");error(403,()->f.create("missing-read"));Assert.assertEquals(f.generated,0);Assert.assertEquals(f.balance(),500);}
+  try (var f = new F()) {
+   sql(f.db, "UPDATE tokens SET scope='settings.write' WHERE oId='100'");
+   error(403, () -> f.create("missing-read"));
+   Assert.assertEquals(f.generated, 0);
+   Assert.assertEquals(f.balance(), 500);
+  }
   System.out.println("PASS export 8 actual POST/status/download Dispatcher gates and attachment headers; download transport-only adapter, malformed artifact returns JSON without attachment, scopes checked before fee");
   try(var f=new F()){
-   byte[] random=new byte[300000];new Random(42).nextBytes(random);String body=Base64.getEncoder().encodeToString(random);sql(f.db,"UPDATE articles SET articleContent=? WHERE oId='1'",body);
-   var job=f.create("chunks");Assert.assertTrue(f.n("chunks")>1);byte[] bytes=f.export.download(identity(),job.getString("jobId"));Assert.assertEquals(ApiV3PostExportFiles.sha256(bytes),job.getString("sha256"));Assert.assertEquals(unzip(bytes).get("articles/1.md"),body);
+   byte[] random = new byte[300000];
+   new Random(42).nextBytes(random);
+   String body = Base64.getEncoder().encodeToString(random);
+   sql(f.db, "UPDATE articles SET articleContent=? WHERE oId='1'", body);
+   var job = f.create("chunks");
+   Assert.assertTrue(f.n("chunks") > 1);
+   byte[] bytes = f.export.download(identity(), job.getString("jobId"));
+   Assert.assertEquals(ApiV3PostExportFiles.sha256(bytes), job.getString("sha256"));
+   Assert.assertEquals(unzip(bytes).get("articles/1.md"), body);
   }
-  for(String failure:List.of("oversize","weak-isolation"))try(var f=new F()){f.exportFault=failure;error(503,()->f.create("budget"));Assert.assertEquals(f.balance(),500);Assert.assertEquals(f.n("artifacts"),0);}
-  try(var f=new F()){var tx=f.begin();try{try{f.create("nested");Assert.fail();}catch(IllegalStateException expected){}}finally{if(tx.isActive())tx.rollback();}Assert.assertEquals(f.balance(),500);}
-  try(var stream=ApiV3PostExportFiles.bounded(OutputStream.nullOutputStream(),3)){stream.write(new byte[3]);try{stream.write(1);Assert.fail();}catch(IOException expected){}}
+  for (String failure : List.of("oversize", "weak-isolation"))
+   try (var f = new F()) {
+    f.exportFault = failure;
+    error(503, () -> f.create("budget"));
+    Assert.assertEquals(f.balance(), 500);
+    Assert.assertEquals(f.n("artifacts"), 0);
+   }
+  try (var f = new F()) {
+   var tx = f.begin();
+   try {
+    try {
+     f.create("nested");
+     Assert.fail();
+    } catch (IllegalStateException expected) {
+    }
+   } finally {
+    if (tx.isActive()) tx.rollback();
+   }
+   Assert.assertEquals(f.balance(), 500);
+  }
+  try (var stream = ApiV3PostExportFiles.bounded(OutputStream.nullOutputStream(), 3)) {
+   stream.write(new byte[3]);
+   try {
+    stream.write(1);
+    Assert.fail();
+   } catch (IOException expected) {
+   }
+  }
   try(var f=new F()){
-   f.exportFault="read-committed";var job=f.create("snapshot-isolation");Assert.assertEquals(f.snapshotIsolationUpgrades,1);Assert.assertEquals(f.balance(),400);
-   var files=unzip(f.export.download(identity(),job.getString("jobId")));Assert.assertTrue(files.containsKey("manifest.json"));Assert.assertEquals(files.get("articles/6.reward.md"),"PAID_SECRET");
-   Assert.assertEquals(f.create("snapshot-isolation").getString("jobId"),job.getString("jobId"));Assert.assertEquals(f.snapshotIsolationUpgrades,1);Assert.assertEquals(f.balance(),400);
+   f.exportFault = "read-committed";
+   var job = f.create("snapshot-isolation");
+   Assert.assertEquals(f.snapshotIsolationUpgrades, 1);
+   Assert.assertEquals(f.balance(), 400);
+   var files = unzip(f.export.download(identity(), job.getString("jobId")));
+   Assert.assertTrue(files.containsKey("manifest.json"));
+   Assert.assertEquals(files.get("articles/6.reward.md"), "PAID_SECRET");
+   Assert.assertEquals(f.create("snapshot-isolation").getString("jobId"), job.getString("jobId"));
+   Assert.assertEquals(f.snapshotIsolationUpgrades, 1);
+   Assert.assertEquals(f.balance(), 400);
   }
   System.out.println("PASS export 9 multi-chunk incompressible source round-trip/full digest, explicit source/compressed size budgets, READ_COMMITTED upgraded before snapshot, unsupported snapshot isolation and nested root refused without charge");
 
   final var logged=new ArrayList<String>();
   final var appender=new org.apache.logging.log4j.core.appender.AbstractAppender("export-private-audit",null,null,false,org.apache.logging.log4j.core.config.Property.EMPTY_ARRAY){
    @Override public void append(org.apache.logging.log4j.core.LogEvent event){logged.add(event.getMessage().getFormattedMessage());if(event.getThrown()!=null){var text=new StringWriter();event.getThrown().printStackTrace(new PrintWriter(text));logged.add(text.toString());}}
-  };appender.start();final var loggers=new ArrayList<org.apache.logging.log4j.core.Logger>();
-  for(Class<?> type:List.of(ApiV3PostExportTest.class,ApiV3Requests.class,ApiV3PostExportService.class,ApiV3PostExportSnapshotService.class,ApiV3IdempotencyMgmtService.class,PointtransferMgmtService.class)){var logger=(org.apache.logging.log4j.core.Logger)org.apache.logging.log4j.LogManager.getLogger(type);logger.addAppender(appender);loggers.add(logger);}
+  };
+  appender.start();
+  final var loggers = new ArrayList<org.apache.logging.log4j.core.Logger>();
+  for (Class<?> type : List.of(ApiV3PostExportTest.class, ApiV3Requests.class, ApiV3PostExportService.class,
+    ApiV3PostExportSnapshotService.class, ApiV3IdempotencyMgmtService.class, PointtransferMgmtService.class)) {
+   var logger = (org.apache.logging.log4j.core.Logger) org.apache.logging.log4j.LogManager.getLogger(type);
+   logger.addAppender(appender);
+   loggers.add(logger);
+  }
   try(var f=new F()){
-   ApiV3PostExportProcessor.registerRoutes(f.endpoint,f.auth,f.writes);Dispatcher.mapping();f.exportFault="snapshot";
-   var result=f.http("POST","/api/v3/me/exports/posts","private",new JSONObject().put("currentPassword",OLD).toString());Assert.assertEquals(result.attr("test.status"),503);Assert.assertFalse(String.valueOf(result.attr("test.message")).contains("EXPORT_PRIVATE"));
+   ApiV3PostExportProcessor.registerRoutes(f.endpoint, f.auth, f.writes);
+   Dispatcher.mapping();
+   f.exportFault = "snapshot";
+   var result = f.http("POST", "/api/v3/me/exports/posts", "private", new JSONObject().put("currentPassword", OLD).toString());
+   Assert.assertEquals(result.attr("test.status"), 503);
+   Assert.assertFalse(String.valueOf(result.attr("test.message")).contains("EXPORT_PRIVATE"));
    org.apache.logging.log4j.LogManager.getLogger(ApiV3PostExportTest.class).error("EXPORT_LOG_POSITIVE_CONTROL");
-   String actual=String.join("\n",logged);Assert.assertTrue(actual.contains("EXPORT_LOG_POSITIVE_CONTROL"));for(String secret:List.of("EXPORT_PRIVATE_SOURCE_SENTINEL",OLD,"PAID_SECRET","OTHER_PRIVATE","rhythm-private-export-"))Assert.assertFalse(actual.contains(secret),secret);
-  }finally{for(var logger:loggers)logger.removeAppender(appender);appender.stop();}
+   String actual = String.join("\n", logged);
+   Assert.assertTrue(actual.contains("EXPORT_LOG_POSITIVE_CONTROL"));
+   for (String secret : List.of("EXPORT_PRIVATE_SOURCE_SENTINEL", OLD, "PAID_SECRET", "OTHER_PRIVATE", "rhythm-private-export-"))
+    Assert.assertFalse(actual.contains(secret), secret);
+  } finally {
+   for (var logger : loggers) logger.removeAppender(appender);
+   appender.stop();
+  }
   System.out.println("PASS export 10 production exception sanitization through real HTTP wrapper and Log4j appender with positive control, no source/password/temp path in response/logs");
 
  }

@@ -111,32 +111,47 @@ public class ApiV3ChatAppearanceTest {
         for(JSONObject invalid:List.of(input("../../evil","none"),input("classic","url(https://bad)"),input("classic","none").put("userId","2"),input("classic","none").put("version",1)))error(422,()->ApiV3ChatAppearance.input(invalid));
         try(var f=new Fixture()){
             Assert.assertTrue(f.appearance.read(identity()).similar(ApiV3ChatAppearance.defaults()));
-            f.appearance.update(identity(),input("paipai-orange","paipai-orange"),"orange");final JSONObject one=f.snapshot("10"),two=f.snapshot("11");
-            f.appearance.update(identity(),input("fishpond-blue","paipai-orange"),"blue");final JSONObject three=f.snapshot("12"),four=f.snapshot("13");
+            f.appearance.update(identity(), input("paipai-orange", "paipai-orange"), "orange");
+            final JSONObject one = f.snapshot("10"), two = f.snapshot("11");
+            f.appearance.update(identity(), input("fishpond-blue", "paipai-orange"), "blue");
+            final JSONObject three = f.snapshot("12"), four = f.snapshot("13");
             for(JSONObject message:List.of(one,two,f.projected("10"),f.projected("11")))Assert.assertEquals(message.getJSONObject("appearance").getString("bubbleId"),"paipai-orange");
             for(JSONObject message:List.of(three,four))Assert.assertEquals(message.getJSONObject("appearance").getString("bubbleId"),"fishpond-blue");
             Assert.assertEquals(three.getJSONObject("appearance").getString("frameId"),"paipai-orange");
-            f.appearance.update(identity(),input("paipai-orange","paipai-orange"),"orange");Assert.assertEquals(f.appearance.read(identity()).getString("bubbleId"),"fishpond-blue");
+            f.appearance.update(identity(), input("paipai-orange", "paipai-orange"), "orange");
+            Assert.assertEquals(f.appearance.read(identity()).getString("bubbleId"), "fishpond-blue");
             error(409,()->f.appearance.update(identity(),input("classic","none"),"orange"));
             Assert.assertEquals(rows(f.db,"SELECT COUNT(*) n FROM chat_appearance WHERE oId='2'").getFirst().getInt("n"),0);
         }
         System.out.println("PASS appearance 1 exact catalog, independent sender snapshot for four messages, later choice/replay never rewrites history");
         try(var f=new Fixture()){
-            error(403,()->f.appearance.update(identity(),input("candy","gold"),"vip"));Assert.assertEquals(f.count("receipt"),0);
-            sql(f.db,"INSERT INTO member_data VALUES('1',1,?)",NOW+10000);f.appearance.update(identity(),input("candy","gold"),"vip");final JSONObject old=f.snapshot("20");
-            sql(f.db,"UPDATE member_data SET expiresAt=1");Assert.assertEquals(f.appearance.read(identity()).getString("bubbleId"),"classic");Assert.assertEquals(f.snapshot("21").getJSONObject("appearance").getString("frameId"),"none");
-            Assert.assertTrue(old.getJSONObject("appearance").similar(f.projected("20").getJSONObject("appearance")));Assert.assertEquals(f.projected("20").getJSONObject("appearance").getString("frameId"),"gold");
+            error(403, () -> f.appearance.update(identity(), input("candy", "gold"), "vip"));
+            Assert.assertEquals(f.count("receipt"), 0);
+            sql(f.db, "INSERT INTO member_data VALUES('1',1,?)", NOW + 10000);
+            f.appearance.update(identity(), input("candy", "gold"), "vip");
+            final JSONObject old = f.snapshot("20");
+            sql(f.db, "UPDATE member_data SET expiresAt=1");
+            Assert.assertEquals(f.appearance.read(identity()).getString("bubbleId"), "classic");
+            Assert.assertEquals(f.snapshot("21").getJSONObject("appearance").getString("frameId"), "none");
+            Assert.assertTrue(old.getJSONObject("appearance").similar(f.projected("20").getJSONObject("appearance")));
+            Assert.assertEquals(f.projected("20").getJSONObject("appearance").getString("frameId"), "gold");
         }
         System.out.println("PASS appearance 2 current VIP checked on selection/send; expired entitlement never strips a valid historical snapshot");
         try(var f=new Fixture()){
-            f.fault="receipt";error(503,()->f.appearance.update(identity(),input("paipai-orange","none"),"rollback"));Assert.assertEquals(f.count("receipt"),0);Assert.assertEquals(rows(f.db,"SELECT COUNT(*) n FROM chat_appearance").getFirst().getInt("n"),0);
-            f.fault="";f.appearance.update(identity(),input("paipai-orange","none"),"rollback");Assert.assertEquals(f.count("receipt"),1);
+            f.fault = "receipt";
+            error(503, () -> f.appearance.update(identity(), input("paipai-orange", "none"), "rollback"));
+            Assert.assertEquals(f.count("receipt"), 0);
+            Assert.assertEquals(rows(f.db, "SELECT COUNT(*) n FROM chat_appearance").getFirst().getInt("n"), 0);
+            f.fault = "";
+            f.appearance.update(identity(), input("paipai-orange", "none"), "rollback");
+            Assert.assertEquals(f.count("receipt"), 1);
             sql(f.db,"UPDATE tokens SET state=1 WHERE oId='100'");error(403,()->f.appearance.read(identity()));error(403,()->f.appearance.update(identity(),input("paipai-orange","none"),"rollback"));
         }
         System.out.println("PASS appearance 3 rollback keeps choice/receipt atomic and revoked identity cannot recover a prior command");
         try(var f=new Fixture()){
             ApiV3ChatAppearanceProcessor.registerRoutes(f.endpointAppearance,f.auth,f.writes);Dispatcher.mapping();
-            Assert.assertEquals(f.requestAppearance("GET",null,null,null).attr("test.status"),401);Assert.assertEquals(f.requestAppearance("PUT","scope","scope",input("classic","none").toString()).attr("test.status"),403);
+            Assert.assertEquals(f.requestAppearance("GET", null, null, null).attr("test.status"), 401);
+            Assert.assertEquals(f.requestAppearance("PUT", "scope", "scope", input("classic", "none").toString()).attr("test.status"), 403);
             Assert.assertEquals(f.requestAppearance("PUT","owner","http",input("fishpond-blue","none").toString()).attr("test.status"),200);
             Assert.assertEquals(f.appearance.read(identity()).getString("bubbleId"),"fishpond-blue");
         }

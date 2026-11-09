@@ -50,13 +50,71 @@ public class ApiV3TagSuggestionsTest {
   var s=new ApiV3TagSuggestionQueryService();inject(s,"users",new UserRepository(){public String getName(){return "users";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return ApiV3TagSuggestionsTest.select(sql,args);}});inject(s,"tags",new TagRepository(){public String getName(){return "tags";}public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return ApiV3TagSuggestionsTest.select(sql,args);}});inject(s,"relations",new TagArticleRepository(){public String getName(){return "links";}});inject(s,"articles",new ArticleRepository(){public String getName(){return "articles";}});
   var hot=s.suggestions("1","");check(hot.keySet().equals(Set.of("list")));check(hot.getJSONArray("list").length()==7);check(hot.getJSONArray("list").getString(0).equals("Test9"));check(s.suggestions("1"," c ").getJSONArray("list").length()==2);check(s.suggestions("1","C++").getJSONArray("list").getString(0).equals("C++"));check(s.suggestions("1","a_").getJSONArray("list").length()==1);check(s.suggestions("1","Stale").getJSONArray("list").isEmpty());check(s.suggestions("1","Disabled").getJSONArray("list").isEmpty());check(s.suggestions("1","Unref").getJSONArray("list").isEmpty());check(s.suggestions("1","中").getJSONArray("list").getString(0).equals("中文"));
   System.out.println("PASS tag suggestions 1 actual SQL hot seven/prefix case/Chinese/C++/literal underscore, valid tags and existing article association");
-  check(ApiV3TagSuggestionQueryService.prefix("\uFEFF\u00a0C#\u3000").equals("c#"));check(ApiV3TagSuggestionQueryService.prefix("x".repeat(64)).length()==64);for(String bad:List.of("a b","%","bad/","<html>","😄","x".repeat(65),"x\u0000")){try{s.suggestions("1",bad);throw new AssertionError();}catch(ApiV3Exception e){check(e.status==422);}}
-  try{s.suggestions("2","c");throw new AssertionError();}catch(ApiV3Exception e){check(e.status==404);}fail=true;try{s.suggestions("1","c");throw new AssertionError();}catch(ApiV3Exception e){check(e.status==503);check(!e.getMessage().contains("private"));}fail=false;
+  check(ApiV3TagSuggestionQueryService.prefix("\uFEFF\u00a0C#\u3000").equals("c#"));
+  check(ApiV3TagSuggestionQueryService.prefix("x".repeat(64)).length() == 64);
+  for (String bad : List.of("a b", "%", "bad/", "<html>", "😄", "x".repeat(65), "x\u0000")) {
+   try {
+    s.suggestions("1", bad);
+    throw new AssertionError();
+   } catch (ApiV3Exception e) {
+    check(e.status == 422);
+   }
+  }
+  try {
+   s.suggestions("2", "c");
+   throw new AssertionError();
+  } catch (ApiV3Exception e) {
+   check(e.status == 404);
+  }
+  fail = true;
+  try {
+   s.suggestions("1", "c");
+   throw new AssertionError();
+  } catch (ApiV3Exception e) {
+   check(e.status == 503);
+   check(!e.getMessage().contains("private"));
+  }
+  fail = false;
   System.out.println("PASS tag suggestions 2 confirmed character/trim/64 boundary, invalid actor and fail-closed database errors");
-  var p=new ApiV3TagSuggestionProcessor();inject(p,"query",s);var auth=new ApiV3AuthMidware();inject(auth,"apiV3TokenMgmtService",new ApiV3TokenMgmtService(){public JSONObject authenticate(String token){return Set.of("good","wrong").contains(token)?new JSONObject().put("user",new JSONObject().put("oId","1")).put("scope",token.equals("good")?"content.read":"profile.read"):null;}});ApiV3TagSuggestionProcessor.registerRoutes(p,auth);Dispatcher.mapping();
-  for(String token:Arrays.asList(null,"Basic good","Bearer expired"))check(status(request(p,token,null))==401);check(status(request(p,"Bearer wrong",null))==403);for(String query:List.of("prefix=a&prefix=b","prefix=%FF","prefix=%25","prefix=a&owner=2"))check(status(request(p,"Bearer good",query))==422);var c=request(p,"Bearer good","prefix=C%2B%2B");check(status(c)==200);check(((JSONObject)c.attr("data")).getJSONArray("list").getString(0).equals("C++"));check("no-store".equals(c.getResponse().getHeader("Cache-Control")));check(status(request(p,"Bearer good",null))==200);
+  var p = new ApiV3TagSuggestionProcessor();
+  inject(p, "query", s);
+  var auth = new ApiV3AuthMidware();
+  inject(auth, "apiV3TokenMgmtService", new ApiV3TokenMgmtService() {
+   public JSONObject authenticate(String token) {
+    return Set.of("good", "wrong").contains(token)
+            ? new JSONObject().put("user", new JSONObject().put("oId", "1"))
+                    .put("scope", token.equals("good") ? "content.read" : "profile.read")
+            : null;
+   }
+  });
+  ApiV3TagSuggestionProcessor.registerRoutes(p, auth);
+  Dispatcher.mapping();
+  for (String token : Arrays.asList(null, "Basic good", "Bearer expired")) check(status(request(p, token, null)) == 401);
+  check(status(request(p, "Bearer wrong", null)) == 403);
+  for (String query : List.of("prefix=a&prefix=b", "prefix=%FF", "prefix=%25", "prefix=a&owner=2"))
+   check(status(request(p, "Bearer good", query)) == 422);
+  var c = request(p, "Bearer good", "prefix=C%2B%2B");
+  check(status(c) == 200);
+  check(((JSONObject) c.attr("data")).getJSONArray("list").getString(0).equals("C++"));
+  check("no-store".equals(c.getResponse().getHeader("Cache-Control")));
+  check(status(request(p, "Bearer good", null)) == 200);
   System.out.println("PASS tag suggestions 3 actual registered route/Bearer/content.read, strict query and percent-encoded punctuation, no Cookie/apiKey fallback");
-  var field=ApiV3TagSuggestionProcessor.class.getDeclaredField("COUNTS");field.setAccessible(true);((com.github.benmanes.caffeine.cache.Cache<?,?>)field.get(null)).invalidateAll();for(int i=0;i<120;i++)check(status(request(p,"Bearer good","prefix=none"))==200);check(status(request(p,"Bearer good",null))==429);((com.github.benmanes.caffeine.cache.Cache<?,?>)field.get(null)).invalidateAll();field=ApiV3TagSuggestionProcessor.class.getDeclaredField("QUERIES");field.setAccessible(true);var sem=(java.util.concurrent.Semaphore)field.get(null);sem.acquire(4);try{check(status(request(p,"Bearer good",null))==503);}finally{sem.release(4);}check(status(request(p,"Bearer good",null))==200);
+  var field = ApiV3TagSuggestionProcessor.class.getDeclaredField("COUNTS");
+  field.setAccessible(true);
+  ((com.github.benmanes.caffeine.cache.Cache<?, ?>) field.get(null)).invalidateAll();
+  for (int i = 0; i < 120; i++) check(status(request(p, "Bearer good", "prefix=none")) == 200);
+  check(status(request(p, "Bearer good", null)) == 429);
+  ((com.github.benmanes.caffeine.cache.Cache<?, ?>) field.get(null)).invalidateAll();
+  field = ApiV3TagSuggestionProcessor.class.getDeclaredField("QUERIES");
+  field.setAccessible(true);
+  var sem = (java.util.concurrent.Semaphore) field.get(null);
+  sem.acquire(4);
+  try {
+   check(status(request(p, "Bearer good", null)) == 503);
+  } finally {
+   sem.release(4);
+  }
+  check(status(request(p, "Bearer good", null)) == 200);
   System.out.println("PASS tag suggestions 4 bounded rate/concurrency rejection and recovery without mutation");
   }
  }

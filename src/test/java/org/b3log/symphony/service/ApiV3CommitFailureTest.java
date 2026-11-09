@@ -180,7 +180,18 @@ public class ApiV3CommitFailureTest {
             } catch (IllegalStateException expected) {
             }
         }
-        var other=new Transaction(){public void commit(){}public void rollback(){}public boolean isActive(){return false;}};Assert.assertSame(ApiV3Transactions.strict(other),other);
+        var other = new Transaction() {
+            public void commit() {
+            }
+
+            public void rollback() {
+            }
+
+            public boolean isActive() {
+                return false;
+            }
+        };
+        Assert.assertSame(ApiV3Transactions.strict(other), other);
         System.out.println("PASS normal durable commit/disposal, inactive reuse guard and non-JDBC transaction behavior");
         try(var s=new Store()){
             s.begin(true);

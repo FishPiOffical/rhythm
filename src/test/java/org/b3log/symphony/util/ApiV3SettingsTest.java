@@ -37,23 +37,47 @@ public class ApiV3SettingsTest {
                 new JSONObject().put("userURL", "https://example.test/" + "x".repeat(100)), new JSONObject().put("userURL", "javascript:alert(1)"),
                 new JSONObject().put("userURL", "https://user:pass@example.test/"), new JSONObject().put("userNickname", "x\ny"), new JSONObject().put("userNickname", 1),
                 new JSONObject().put("userId", "other"), new JSONObject().put("userEmail", "private@example.test"))) {
-            try { ApiV3Settings.normalize("profile", bad); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3Settings.normalize("profile", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         for (final JSONObject bad : List.of(new JSONObject().put("articles", 0), new JSONObject().put("articles", "false"), new JSONObject().put("userArticleStatus", true))) {
-            try { ApiV3Settings.normalize("privacy", bad); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3Settings.normalize("privacy", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         for (final JSONObject bad : List.of(new JSONObject().put("commentViewMode", 2), new JSONObject().put("avatarViewMode", 0.5), new JSONObject().put("skin", "x".repeat(33)), new JSONObject().put("skin", "../pc"), new JSONObject().put("skin", "/classic/pc"), new JSONObject().put("mobileSkin", "classic\\mobile"))) {
-            try { ApiV3Settings.normalize("display", bad); Assert.fail(); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3Settings.normalize("display", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         System.out.println("PASS typed partial settings, limits, privacy booleans, modes, URLs and skin path boundary");
         for (final JSONObject bad : List.of(new JSONObject().put("listPageSize",9),new JSONObject().put("listPageSize",97),new JSONObject().put("listViewMode",2),new JSONObject().put("notifications",1))) {
-            try { ApiV3Settings.normalize("functions",bad);Assert.fail(); }catch(final ApiV3Exception expected){}
+            try {
+                ApiV3Settings.normalize("functions", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         Assert.assertEquals(ApiV3Settings.normalize("functions",new JSONObject().put("listPageSize",96)).getInt("userListPageSize"),96);
         Assert.assertEquals(ApiV3Settings.normalize("location",new JSONObject().put("publicLocation",false)).getInt("userGeoStatus"),1);
-        try{ApiV3Settings.normalize("location",new JSONObject().put("city","Beijing"));Assert.fail();}catch(final ApiV3Exception expected){}
+        try {
+            ApiV3Settings.normalize("location", new JSONObject().put("city", "Beijing"));
+            Assert.fail();
+        } catch (final ApiV3Exception expected) {
+        }
         for(final JSONObject bad:List.of(new JSONObject().put("language","ja_JP"),new JSONObject().put("timezone","Not/AZone"),new JSONObject().put("language",1))) {
-            try{ApiV3Settings.normalize("locale",bad);Assert.fail();}catch(final ApiV3Exception expected){}
+            try {
+                ApiV3Settings.normalize("locale", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         Assert.assertEquals(ApiV3Settings.normalize("locale",new JSONObject().put("timezone","Asia/Shanghai")).getString("userTimezone"),"Asia/Shanghai");
         final String site="https://fishpi.cn/rhythm";
@@ -74,9 +98,11 @@ public class ApiV3SettingsTest {
             try{SettingsRedirects.normalize(bad,site);Assert.fail(bad);}catch(final ApiV3Exception expected){}
         }
         final JSONObject options=SettingsLocaleOptions.dto();
-        Assert.assertTrue(options.getJSONArray("languages").toList().contains("zh_CN"));Assert.assertFalse(options.getJSONArray("timezones").isEmpty());
+        Assert.assertTrue(options.getJSONArray("languages").toList().contains("zh_CN"));
+        Assert.assertFalse(options.getJSONArray("timezones").isEmpty());
         for(final Object value:options.getJSONArray("timezones")) {
-            final JSONObject zone=(JSONObject)value;Assert.assertEquals(zone.keySet(),Set.of("id","name"));
+            final JSONObject zone = (JSONObject) value;
+            Assert.assertEquals(zone.keySet(), Set.of("id", "name"));
             ApiV3Settings.normalize("locale",new JSONObject().put("timezone",zone.getString("id")));
         }
         Assert.assertTrue(org.b3log.latke.util.Strings.isURL("https://fishpi.cn.evil/recent"));
@@ -126,10 +152,19 @@ public class ApiV3SettingsTest {
             Assert.assertEquals(ApiV3Settings.normalize("avatar",new JSONObject().put("avatarURL"," " + good + " ")).getString("userAvatarURL"),good);
         }
         for (final Object bad : List.of("", " ", "http://example.test/a.png", "/avatar.png", "//example.test/a", "javascript:alert(1)", "data:image/png,xx", "https://user:pass@example.test/a", "https://example.test:65536/a", "https://example.test:/a", "https://example.test/a\\b", "https://example.test/a b", "https://example.test/a\npath", "https:///a", "https://example.test/" + "x".repeat(235), 1, JSONObject.NULL)) {
-            try { ApiV3Settings.normalize("avatar",new JSONObject().put("avatarURL",bad));Assert.fail(String.valueOf(bad)); } catch(final ApiV3Exception expected) { Assert.assertEquals(expected.status,422); }
+            try {
+                ApiV3Settings.normalize("avatar", new JSONObject().put("avatarURL", bad));
+                Assert.fail(String.valueOf(bad));
+            } catch (final ApiV3Exception expected) {
+                Assert.assertEquals(expected.status, 422);
+            }
         }
         for (final JSONObject bad : List.of(new JSONObject(),new JSONObject().put("avatarURL","https://example.test/x").put("userAvatarType",2),new JSONObject().put("userId","other"))) {
-            try { ApiV3Settings.normalize("avatar",bad);Assert.fail(); }catch(final ApiV3Exception expected){}
+            try {
+                ApiV3Settings.normalize("avatar", bad);
+                Assert.fail();
+            } catch (final ApiV3Exception expected) {
+            }
         }
         System.out.println("PASS external HTTPS avatars, signed URLs, exact 255 limit and invalid protocols/credentials/ports/fields");
         try (final Fixture f = new Fixture()) {
@@ -151,8 +186,20 @@ public class ApiV3SettingsTest {
             Assert.assertEquals(changes.getString("mbti"),type+suffix);
         }
         Assert.assertEquals(ApiV3Settings.normalize("personality",new JSONObject().put("mbti"," ")).getString("mbti"),"");
-        final Locale oldLocale=Locale.getDefault();try{Locale.setDefault(Locale.forLanguageTag("tr-TR"));Assert.assertEquals(ApiV3Personality.normalize("intj-a"),"INTJ-A");}finally{Locale.setDefault(oldLocale);}
-        for(final Object bad:List.of("INTJ-A-extra","INTJ-","INTJ-X","INTJ A","INTJ\nA","<html>","ＩＮＴＪ","ınfj","İNFJ",1,JSONObject.NULL))try{ApiV3Settings.normalize("personality",new JSONObject().put("mbti",bad));Assert.fail();}catch(final ApiV3Exception expected){Assert.assertEquals(expected.status,422);}
+        final Locale oldLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Assert.assertEquals(ApiV3Personality.normalize("intj-a"), "INTJ-A");
+        } finally {
+            Locale.setDefault(oldLocale);
+        }
+        for (final Object bad : List.of("INTJ-A-extra", "INTJ-", "INTJ-X", "INTJ A", "INTJ\nA", "<html>",
+                "ＩＮＴＪ", "ınfj", "İNFJ", 1, JSONObject.NULL)) try {
+            ApiV3Settings.normalize("personality", new JSONObject().put("mbti", bad));
+            Assert.fail();
+        } catch (final ApiV3Exception expected) {
+            Assert.assertEquals(expected.status, 422);
+        }
         try(var f=new Fixture()){
             f.begin();var dto=UserSettingsMutation.apply(f,"owner","personality",new JSONObject().put("mbti","enfp-t"),true,999);f.commit();
             Assert.assertEquals(dto.keySet(),Set.of("mbti"));Assert.assertEquals(dto.getString("mbti"),"ENFP-T");Assert.assertEquals(f.row("owner").getLong("userUpdateTime"),999L);Assert.assertEquals(f.row("other").optString("mbti"),"");Assert.assertEquals(f.row("owner").getInt("userPoint"),100);

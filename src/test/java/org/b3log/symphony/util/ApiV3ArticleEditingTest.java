@@ -31,15 +31,21 @@ public class ApiV3ArticleEditingTest {
         try (final Store store = new Store()) {
             final var patch = ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title"));
             final String hashInput = ApiV3Json.canonical(patch);
-            try { ApiV3ArticleEditing.apply(store, "owner", patch); Assert.fail(); } catch (final IllegalStateException expected) { }
+            try {
+                ApiV3ArticleEditing.apply(store, "owner", patch);
+                Assert.fail();
+            } catch (final IllegalStateException expected) { }
             store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
                 final var result = ApiV3ArticleEditing.apply(store, "owner", patch);
                 Assert.assertEquals(result.keySet(), Set.of("id", "permalink"));
-                Assert.assertEquals(result.getString("id"), "1"); Assert.assertTrue(store.inTransaction()); store.commit();
+                Assert.assertEquals(result.getString("id"), "1");
+                Assert.assertTrue(store.inTransaction());
+                store.commit();
             }
             Assert.assertEquals(store.scalar("SELECT balance FROM account"), 95);
-            Assert.assertEquals(store.title(), "new title"); Assert.assertEquals(ApiV3Json.canonical(patch), hashInput);
+            Assert.assertEquals(store.title(), "new title");
+            Assert.assertEquals(ApiV3Json.canonical(patch), hashInput);
             System.out.println("PASS owned partial edit in caller transaction, preserved replay patch and ID/permalink-only result");
         }
         for (int scenario = 0; scenario < 3; scenario++) {
@@ -49,29 +55,42 @@ public class ApiV3ArticleEditingTest {
                 if (scenario == 2) store.current.put(Article.ARTICLE_STATUS, Article.ARTICLE_STATUS_C_INVALID);
                 store.db.setAutoCommit(false);
                 try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
-                    try { ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title"))); Assert.fail(); }
+                    try {
+                        ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
+                        Assert.fail();
+                    }
                     catch (final ApiV3Exception e) { Assert.assertEquals(e.status, scenario == 2 ? 403 : 404); store.rollback(); }
                 }
-                Assert.assertFalse(store.validated); Assert.assertFalse(store.saved); Assert.assertEquals(store.scalar("SELECT balance FROM account"), 100);
+                Assert.assertFalse(store.validated);
+                Assert.assertFalse(store.saved);
+                Assert.assertEquals(store.scalar("SELECT balance FROM account"), 100);
             }
         }
         System.out.println("PASS missing/foreign/locked article rejected before moderation or saving");
         try (final Store store = new Store()) {
             store.fail = true; store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
-                try { ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title"))); Assert.fail(); }
+                try {
+                    ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
+                    Assert.fail();
+                }
                 catch (final IllegalStateException expected) { store.rollback(); }
             }
-            Assert.assertEquals(store.title(), "old title"); Assert.assertEquals(store.scalar("SELECT balance FROM account"), 100);
+            Assert.assertEquals(store.title(), "old title");
+            Assert.assertEquals(store.scalar("SELECT balance FROM account"), 100);
             System.out.println("PASS save failure rolls content and debit back together");
         }
         try (final Store store = new Store()) {
             store.reject = true; store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
-                try { ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title"))); Assert.fail(); }
+                try {
+                    ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
+                    Assert.fail();
+                }
                 catch (final ApiV3Exception expected) { store.rollback(); }
             }
-            Assert.assertFalse(store.saved); Assert.assertEquals(store.title(), "old title");
+            Assert.assertFalse(store.saved);
+            Assert.assertEquals(store.title(), "old title");
             System.out.println("PASS validation failure cannot change persisted content");
         }
     }

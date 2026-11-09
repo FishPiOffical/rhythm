@@ -38,14 +38,17 @@ public class ApiV3ArticleEditorDtoTest {
         Assert.assertEquals(dto.keySet(), Set.of("id", "title", "content", "tags", "type", "rewardContent", "rewardPoint",
                 "qnaOfferPoint", "commentable", "showInList", "statement", "anonymous", "status", "editorType",
                 "createdAt", "updatedAt", "permalink", "columnId", "columnTitle", "columnCoverURL", "chapterNo"));
-        Assert.assertEquals(dto.getString("content"), raw); Assert.assertEquals(dto.getString("rewardContent"), "私密打赏正文");
-        Assert.assertFalse(dto.getBoolean("commentable")); Assert.assertTrue(dto.getBoolean("anonymous"));
+        Assert.assertEquals(dto.getString("content"), raw);
+        Assert.assertEquals(dto.getString("rewardContent"), "私密打赏正文");
+        Assert.assertFalse(dto.getBoolean("commentable"));
+        Assert.assertTrue(dto.getBoolean("anonymous"));
         Assert.assertEquals(row.getString("articleIP"), "secret-ip");
         System.out.println("PASS editor DTO preserves raw source and owned paid content without author/IP/UA/credential fields");
         Assert.assertTrue(ApiV3ArticleEditorDto.from(new JSONObject().put(Article.ARTICLE_COMMENTABLE, 1)).getBoolean("commentable"));
         Assert.assertTrue(ApiV3ArticleEditorDto.from(new JSONObject().put(Article.ARTICLE_COMMENTABLE, true)).getBoolean("commentable"));
         Assert.assertFalse(ApiV3ArticleEditorDto.from(new JSONObject().put(Article.ARTICLE_COMMENTABLE, false)).getBoolean("commentable"));
-        Assert.assertEquals(dto.getString("columnId"), ""); Assert.assertEquals(dto.getString("chapterNo"), "");
+        Assert.assertEquals(dto.getString("columnId"), "");
+        Assert.assertEquals(dto.getString("chapterNo"), "");
         System.out.println("PASS legacy numeric and boolean comment flags normalize with empty chapter defaults");
         try (final var db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
             try (final var s = db.createStatement()) {
@@ -57,12 +60,17 @@ public class ApiV3ArticleEditorDtoTest {
                 s.execute("INSERT INTO columns VALUES('c1','owner','own column','/cover.png',0)");
             }
             final var owned = read(db, "1", "owner");
-            Assert.assertNotNull(owned); Assert.assertEquals(owned.getString("columnId"), "c1");
-            Assert.assertEquals(owned.getString("chapterNo"), "7"); Assert.assertEquals(owned.getString("columnTitle"), "own column");
-            Assert.assertEquals(owned.getInt("status"), Article.ARTICLE_STATUS_C_LOCKED); Assert.assertTrue(owned.getBoolean("anonymous"));
+            Assert.assertNotNull(owned);
+            Assert.assertEquals(owned.getString("columnId"), "c1");
+            Assert.assertEquals(owned.getString("chapterNo"), "7");
+            Assert.assertEquals(owned.getString("columnTitle"), "own column");
+            Assert.assertEquals(owned.getInt("status"), Article.ARTICLE_STATUS_C_LOCKED);
+            Assert.assertTrue(owned.getBoolean("anonymous"));
             Assert.assertEquals(owned.getString("rewardContent"), "paid");
-            Assert.assertNull(read(db, "1", "other")); Assert.assertNull(read(db, "absent", "owner"));
-            Assert.assertNull(read(db, "1' OR 1=1 --", "owner")); Assert.assertNull(read(db, "1", "owner' OR 1=1 --"));
+            Assert.assertNull(read(db, "1", "other"));
+            Assert.assertNull(read(db, "absent", "owner"));
+            Assert.assertNull(read(db, "1' OR 1=1 --", "owner"));
+            Assert.assertNull(read(db, "1", "owner' OR 1=1 --"));
             System.out.println("PASS actual SQL owner+ID binding, locked anonymous source, paid fields and own chapter projection");
             try (final var s = db.createStatement()) { s.execute("UPDATE columns SET columnAuthorId='other'"); }
             hidden(read(db, "1", "owner"));
@@ -75,7 +83,10 @@ public class ApiV3ArticleEditorDtoTest {
             System.out.println("PASS foreign, disabled and absent column metadata cannot leak through owned article source");
         }
         for (final String bad : new String[]{"article;DROP TABLE x", "a.b", "`article`", ""}) {
-            try { ApiV3ArticleEditorDto.sql(bad, "chapter", "columns"); Assert.fail(); } catch (final IllegalArgumentException expected) { }
+            try {
+                ApiV3ArticleEditorDto.sql(bad, "chapter", "columns");
+                Assert.fail();
+            } catch (final IllegalArgumentException expected) { }
         }
         Assert.assertTrue(ApiV3ArticleEditorDto.sql("symphony_article", "symphony_long_article_chapter", "symphony_long_article_column").contains("`symphony_article`"));
         System.out.println("PASS internal table identifier validation and configured prefix support");

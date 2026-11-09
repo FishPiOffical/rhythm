@@ -104,14 +104,22 @@ public final class ApiV3MembershipStyleTest {
             final var expired = f.http("profile", "version=" + revision(response));
             check(!data(expired).getBoolean("unchanged"), "natural expiry changes version without a write");
             equal(data(expired).getJSONArray("list").length(), 1);
-            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#ABCDEF\"}' WHERE userId='1'"); invalidate(); final var changed=f.http("profile","version="+revision(expired)); check(!revision(changed).equals(revision(expired)),"same member count but changed config changes content version"); equal(config(changed,"1").getString("color"),"#ABCDEF");
+            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#ABCDEF\"}' WHERE userId='1'");
+            invalidate();
+            final var changed = f.http("profile", "version=" + revision(expired));
+            check(!revision(changed).equals(revision(expired)), "same member count but changed config changes content version");
+            equal(config(changed, "1").getString("color"), "#ABCDEF");
             f.db.exec("UPDATE user SET userStatus=4 WHERE oId='1'"); equal(f.http("profile","version="+revision(changed)).getInt("status"),404);
         }
         System.out.println("PASS snapshot 2 full sorted member directory, normalized config, shared cache/unchanged response, same-count edits, natural expiry and current actor authorization");
         try(var f=new F()) {
             f.level("VIP4_MONTH","{\"bold\":true}"); f.membership("1","VIP4_MONTH",0,"{"); f.membership("2","VIP4_MONTH",0,"{\"bold\":true}");
             final var bad=f.http("profile",null); equal(bad.getInt("status"),200); check(item(bad,"1").isNull("configJson"),"invalid row explicitly unknown"); check(config(bad,"2").getBoolean("bold"),"other user remains available");
-            f.db.exec("UPDATE membership SET configJson='{\"bold\":false}' WHERE userId='1'"); invalidate(); final var fixed=f.http("profile","version="+revision(bad)); check(!data(fixed).getBoolean("unchanged"),"repair invalidates version"); check(!config(fixed,"1").getBoolean("bold"),"repaired config");
+            f.db.exec("UPDATE membership SET configJson='{\"bold\":false}' WHERE userId='1'");
+            invalidate();
+            final var fixed = f.http("profile", "version=" + revision(bad));
+            check(!data(fixed).getBoolean("unchanged"), "repair invalidates version");
+            check(!config(fixed, "1").getBoolean("bold"), "repaired config");
             f.db.exec("INSERT INTO membership SELECT * FROM membership WHERE userId='1'"); invalidate(); check(item(f.http("profile",null),"1").isNull("configJson"),"duplicate binding not arbitrary choice");
             f.db.exec("UPDATE membership SET expiresAt=-1 WHERE userId='2'"); invalidate(); check(item(f.http("profile",null),"2").isNull("configJson"),"bad expiry unknown");
             f.db.failTable="membership"; invalidate(); equal(f.http("profile",null).getInt("status"),503);
@@ -120,7 +128,10 @@ public final class ApiV3MembershipStyleTest {
         try(var f=new F()) {
             f.level("VIP1_MONTH","{\"color\":\"#FFFFFF\"}");f.membership("1","VIP1_MONTH",0,"{\"bold\":true,\"color\":\"galaxy\"}");
             final var empty=config(f.http("profile",null),"1"); check(empty.isEmpty(),"no unsupported fields or VIP4 effects granted");
-            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#112233\"}'"); f.time+=30000; final var reread=f.http("profile",null); equal(config(reread,"1").getString("color"),"#112233");
+            f.db.exec("UPDATE membership SET configJson='{\"color\":\"#112233\"}'");
+            f.time += 30000;
+            final var reread = f.http("profile", null);
+            equal(config(reread, "1").getString("color"), "#112233");
             final int reads=f.db.sql.size(); f.http("other","version="+revision(reread)); equal(f.db.sql.size(),reads+1); check(f.db.sql.stream().allMatch(q->q.startsWith("SELECT ")),"all reads, no state creation");
         }
         System.out.println("PASS snapshot 4 entitlement projection, 30-second refresh for other nodes/out-of-band writes, per-reader auth with shared snapshot and no writes");

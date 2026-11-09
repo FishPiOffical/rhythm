@@ -44,15 +44,20 @@ import java.util.stream.Collectors;
 public class ApiV3FishGameMgmtServiceTest {
     public static void main(final String[] args) throws Exception {
         try (final Fixture f = fixture()) {
-            try { f.service.setVoteInCurrentTransaction("actor", "approved", "like", () -> { }); Assert.fail(); } catch (final IllegalStateException expected) { }
+            try {
+                f.service.setVoteInCurrentTransaction("actor", "approved", "like", () -> { });
+                Assert.fail();
+            } catch (final IllegalStateException expected) { }
             f.db.setAutoCommit(false);
             Assert.assertTrue(f.vote("actor", "like").getBoolean("changed"));
             Assert.assertFalse(f.vote("actor", "like").getBoolean("changed"));
             Assert.assertEquals(f.vote("other", "dislike").getLong(FishGame.DISLIKE_COUNT), 1L);
             final JSONObject replacement = f.vote("actor", "dislike");
-            Assert.assertEquals(replacement.getLong(FishGame.LIKE_COUNT), 0L); Assert.assertEquals(replacement.getLong(FishGame.DISLIKE_COUNT), 2L);
+            Assert.assertEquals(replacement.getLong(FishGame.LIKE_COUNT), 0L);
+            Assert.assertEquals(replacement.getLong(FishGame.DISLIKE_COUNT), 2L);
             Assert.assertTrue(f.votes.getOwnedForUpdate("actor' OR 1=1 --", "approved").isEmpty());
-            Assert.assertEquals(f.vote("actor", "").getLong(FishGame.DISLIKE_COUNT), 1L); Assert.assertFalse(f.vote("actor", "").getBoolean("changed"));
+            Assert.assertEquals(f.vote("actor", "").getLong(FishGame.DISLIKE_COUNT), 1L);
+            Assert.assertFalse(f.vote("actor", "").getBoolean("changed"));
             f.db.commit(); f.db.setAutoCommit(true); System.out.println("PASS real service set/replace/clear, ownership, SQL counts and transaction guard");
             final JSONObject toggled = f.service.vote("actor", "approved", "like");
             Assert.assertEquals(toggled.keySet(), java.util.Set.of(FishGame.LIKE_COUNT, FishGame.DISLIKE_COUNT, "fishGameUserVote"));
@@ -63,9 +68,17 @@ public class ApiV3FishGameMgmtServiceTest {
             f.db.setAutoCommit(false);
             f.vote("actor", "like"); f.db.commit();
             f.failGameUpdate = true;
-            try { f.vote("actor", "dislike"); Assert.fail(); } catch (final RepositoryException expected) { f.db.rollback(); }
+            try {
+                f.vote("actor", "dislike");
+                Assert.fail();
+            } catch (final RepositoryException expected) {
+                f.db.rollback();
+            }
             Assert.assertEquals(f.votes.getOwnedForUpdate("actor", "approved").getFirst().getString(FishGameVote.VALUE), "like");
-            Assert.assertEquals(f.games.get("approved").getLong(FishGame.LIKE_COUNT), 1L); f.db.rollback(); f.db.setAutoCommit(true); f.failGameUpdate = false;
+            Assert.assertEquals(f.games.get("approved").getLong(FishGame.LIKE_COUNT), 1L);
+            f.db.rollback();
+            f.db.setAutoCommit(true);
+            f.failGameUpdate = false;
             for (final String id : List.of("pending", "rejected", "disabled", "missing")) {
                 try { f.service.vote("actor", id, "like"); Assert.fail(); } catch (final ServiceException expected) { }
                 try { f.service.addComment("actor", id, "text"); Assert.fail(); } catch (final ServiceException expected) { }
@@ -78,10 +91,18 @@ public class ApiV3FishGameMgmtServiceTest {
             for (final String bad : List.of("", "<script>bad()</script>", "x".repeat(501))) {
                 try { f.service.addComment("actor", "approved", bad); Assert.fail(); } catch (final ServiceException expected) { }
             }
-            f.db.setAutoCommit(false); f.failCommentAdd = true;
-            try { f.service.addCommentInCurrentTransaction("actor", "approved", "failed", () -> { }); Assert.fail(); } catch (final RepositoryException expected) { f.db.rollback(); }
+            f.db.setAutoCommit(false);
+            f.failCommentAdd = true;
+            try {
+                f.service.addCommentInCurrentTransaction("actor", "approved", "failed", () -> { });
+                Assert.fail();
+            } catch (final RepositoryException expected) {
+                f.db.rollback();
+            }
             Assert.assertEquals(f.select("SELECT COUNT(1) AS total FROM fish_game_comment").getFirst().getLong("total"), 1L);
-            f.db.rollback(); f.db.setAutoCommit(true); f.failCommentAdd = false;
+            f.db.rollback();
+            f.db.setAutoCommit(true);
+            f.failCommentAdd = false;
             System.out.println("PASS real comment service strips HTML, validates normalized length and rolls back failed insert");
             final JSONObject admin = new JSONObject().put(FishGame.NAME, "name").put(FishGame.DESCRIPTION, "description")
                     .put(FishGame.URL, "https://game.example.test/").put(FishGame.ICON_URL, "https://game.example.test/icon.png");

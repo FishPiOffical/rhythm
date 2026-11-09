@@ -59,45 +59,143 @@ public class ApiV3PublicColumnQueryTest {
     public static void main(String[] args)throws Exception {
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var page=f.service.list(null,1,1,true);Assert.assertEquals(page.getJSONObject("pagination").getLong("total"),2L);Assert.assertEquals(list(page).getJSONObject(0).getString("id"),"1");Assert.assertEquals(list(page).getJSONObject(0).getLong("articleCount"),2L);Assert.assertEquals(list(page).getJSONObject(0).getLong("updatedAt"),102L);Assert.assertEquals(f.service.detail(null,"1").getJSONArray("chapters").getJSONObject(0).getString("id"),"101");
+            var page = f.service.list(null, 1, 1, true);
+            Assert.assertEquals(page.getJSONObject("pagination").getLong("total"), 2L);
+            Assert.assertEquals(list(page).getJSONObject(0).getString("id"), "1");
+            Assert.assertEquals(list(page).getJSONObject(0).getLong("articleCount"), 2L);
+            Assert.assertEquals(list(page).getJSONObject(0).getLong("updatedAt"), 102L);
+            Assert.assertEquals(f.service.detail(null, "1").getJSONArray("chapters").getJSONObject(0).getString("id"), "101");
             System.out.println("PASS public column 1 current visible counts, hot order and ascending detail replace stale stored totals/time");
         }
         for(String predicate:List.of("articleAnonymous=1","articleShowInList=0","articleStatus=1","articleType=0","articleTags='Sandbox'","articleTags='B3log-private'")){
-            try(var f=new Fixture()){f.sql("UPDATE x_article SET "+predicate+" WHERE oId='102'");var detail=f.service.detail(null,"1");Assert.assertEquals(detail.getJSONArray("chapters").length(),1);var card=detail.getJSONObject("column");Assert.assertEquals(card.getLong("articleCount"),1L);Assert.assertEquals(card.getLong("updatedAt"),101L);Assert.assertFalse(detail.toString().contains("Chapter 102"));}
+            try (var f = new Fixture()) {
+                f.sql("UPDATE x_article SET " + predicate + " WHERE oId='102'");
+                var detail = f.service.detail(null, "1");
+                Assert.assertEquals(detail.getJSONArray("chapters").length(), 1);
+                var card = detail.getJSONObject("column");
+                Assert.assertEquals(card.getLong("articleCount"), 1L);
+                Assert.assertEquals(card.getLong("updatedAt"), 101L);
+                Assert.assertFalse(detail.toString().contains("Chapter 102"));
+            }
         }
         System.out.println("PASS public column 2 anonymous, hidden, invalid, non-long, sandbox and external-sync chapters excluded before every projection/count");
-        try(var f=new Fixture()){f.sql("UPDATE x_article SET articleAnonymousView=1 WHERE oId='201'");Assert.assertEquals(f.service.list(null,1,20,false).getJSONObject("pagination").getLong("total"),1L);status(404,()->f.service.detail(null,"2"));status(404,()->f.service.chapters(null,"2",1,20));Assert.assertEquals(f.service.list(new JSONObject(),1,20,false).getJSONObject("pagination").getLong("total"),2L);Assert.assertEquals(list(f.service.chapters(new JSONObject(),"2",1,20)).length(),1);}
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_article SET articleAnonymousView=1 WHERE oId='201'");
+            Assert.assertEquals(f.service.list(null, 1, 20, false).getJSONObject("pagination").getLong("total"), 1L);
+            status(404, () -> f.service.detail(null, "2"));
+            status(404, () -> f.service.chapters(null, "2", 1, 20));
+            Assert.assertEquals(f.service.list(new JSONObject(), 1, 20, false).getJSONObject("pagination").getLong("total"), 2L);
+            Assert.assertEquals(list(f.service.chapters(new JSONObject(), "2", 1, 20)).length(), 1);
+        }
         System.out.println("PASS public column 3 current anonymous-view restriction applies to board, existence, detail and paginated chapters");
-        try(var f=new Fixture()){f.sql("UPDATE x_user SET userStatus=4 WHERE oId='u'");Assert.assertEquals(list(f.service.list(null,1,20,false)).length(),0);status(404,()->f.service.detail(null,"1"));}
-        try(var f=new Fixture()){f.sql("UPDATE x_article SET articleAuthorId='login-only' WHERE oId='102'");Assert.assertEquals(f.service.detail(null,"1").getJSONArray("chapters").length(),1);f.sql("UPDATE x_column SET columnStatus=1 WHERE oId='1'");status(404,()->f.service.detail(null,"1"));}
-        for(int state:List.of(1,2,4,99)){try(var f=new Fixture()){f.sql("UPDATE x_user SET userStatus=? WHERE oId='u'",state);Assert.assertEquals(list(f.service.list(null,1,20,false)).length(),0);}}
-        try(var f=new Fixture()){f.sql("UPDATE x_user SET userStatus=3 WHERE oId='u'");Assert.assertEquals(list(f.service.list(null,1,20,false)).length(),2);f.sql("UPDATE x_article SET articleStatus=2 WHERE oId='101'");Assert.assertEquals(f.service.detail(null,"1").getJSONArray("chapters").length(),2);}
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_user SET userStatus=4 WHERE oId='u'");
+            Assert.assertEquals(list(f.service.list(null, 1, 20, false)).length(), 0);
+            status(404, () -> f.service.detail(null, "1"));
+        }
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_article SET articleAuthorId='login-only' WHERE oId='102'");
+            Assert.assertEquals(f.service.detail(null, "1").getJSONArray("chapters").length(), 1);
+            f.sql("UPDATE x_column SET columnStatus=1 WHERE oId='1'");
+            status(404, () -> f.service.detail(null, "1"));
+        }
+        for (int state : List.of(1, 2, 4, 99)) {
+            try (var f = new Fixture()) {
+                f.sql("UPDATE x_user SET userStatus=? WHERE oId='u'", state);
+                Assert.assertEquals(list(f.service.list(null, 1, 20, false)).length(), 0);
+            }
+        }
+        try (var f = new Fixture()) {
+            f.sql("UPDATE x_user SET userStatus=3 WHERE oId='u'");
+            Assert.assertEquals(list(f.service.list(null, 1, 20, false)).length(), 2);
+            f.sql("UPDATE x_article SET articleStatus=2 WHERE oId='101'");
+            Assert.assertEquals(f.service.detail(null, "1").getJSONArray("chapters").length(), 2);
+        }
         System.out.println("PASS public column 4 inactive authors, mismatched ownership and invalid/empty columns cannot reveal chapter associations");
-        try(var f=new Fixture()){for(int i=3;i<=22;i++)f.article(""+(100+i),"1","u",i);var page=f.service.chapters(null,"1",2,20);Assert.assertEquals(page.getJSONObject("pagination").getLong("total"),22L);Assert.assertEquals(list(page).length(),2);Assert.assertEquals(list(page).getJSONObject(0).getInt("chapterNo"),21);Assert.assertEquals(list(f.service.chapters(null,"1",Integer.MAX_VALUE,50)).length(),0);var card=f.service.detail(null,"1").getJSONObject("column");Assert.assertEquals(card.getJSONArray("chapters").getJSONObject(0).getInt("chapterNo"),22);}
+        try (var f = new Fixture()) {
+            for (int i = 3; i <= 22; i++) f.article("" + (100 + i), "1", "u", i);
+            var page = f.service.chapters(null, "1", 2, 20);
+            Assert.assertEquals(page.getJSONObject("pagination").getLong("total"), 22L);
+            Assert.assertEquals(list(page).length(), 2);
+            Assert.assertEquals(list(page).getJSONObject(0).getInt("chapterNo"), 21);
+            Assert.assertEquals(list(f.service.chapters(null, "1", Integer.MAX_VALUE, 50)).length(), 0);
+            var card = f.service.detail(null, "1").getJSONObject("column");
+            Assert.assertEquals(card.getJSONArray("chapters").getJSONObject(0).getInt("chapterNo"), 22);
+        }
         System.out.println("PASS public column 5 genuine chapter pagination, two visible latest previews and long-safe extreme offsets");
-        try(var f=new Fixture()){var text=f.service.detail(null,"1").toString();for(String secret:List.of("columnAuthorId","articleContent","userStatus","articleAnonymousView","999999"))Assert.assertFalse(text.contains(secret));Assert.assertFalse(f.service.detail(null,"1").getJSONObject("column").getJSONArray("chapters").getJSONObject(0).getString("preview").contains("<script>"));status(422,()->f.service.detail(null,"x' OR 1=1"));status(422,()->f.service.chapters(null,"1",0,20));}
+        try (var f = new Fixture()) {
+            var text = f.service.detail(null, "1").toString();
+            for (String secret : List.of("columnAuthorId", "articleContent", "userStatus", "articleAnonymousView", "999999"))
+                Assert.assertFalse(text.contains(secret));
+            Assert.assertFalse(f.service.detail(null, "1").getJSONObject("column").getJSONArray("chapters")
+                    .getJSONObject(0).getString("preview").contains("<script>"));
+            status(422, () -> f.service.detail(null, "x' OR 1=1"));
+            status(422, () -> f.service.chapters(null, "1", 0, 20));
+        }
         System.out.println("PASS public column 6 whitelist, plain preview sanitization, bound target and page validation");
-        try(var f=new Fixture()){f.fail=true;status(503,()->f.service.list(null,1,20,false));status(503,()->f.service.detail(null,"1"));status(503,()->f.service.chapters(null,"1",1,20));}
+        try (var f = new Fixture()) {
+            f.fail = true;
+            status(503, () -> f.service.list(null, 1, 20, false));
+            status(503, () -> f.service.detail(null, "1"));
+            status(503, () -> f.service.chapters(null, "1", 1, 20));
+        }
         System.out.println("PASS public column 7 SQL failures never become fake empty boards or missing columns");
-        try(var f=new Fixture()){var latest=f.service.list(null,1,1,false);Assert.assertEquals(list(latest).getJSONObject(0).getString("id"),"2");f.sql("UPDATE x_article SET articleShowInList=0 WHERE oId='201'");var after=f.service.list(null,1,1,false);Assert.assertEquals(after.getJSONObject("pagination").getLong("total"),1L);Assert.assertEquals(list(after).getJSONObject(0).getString("id"),"1");Assert.assertEquals(list(f.service.list(null,2,1,false)).length(),0);}
+        try (var f = new Fixture()) {
+            var latest = f.service.list(null, 1, 1, false);
+            Assert.assertEquals(list(latest).getJSONObject(0).getString("id"), "2");
+            f.sql("UPDATE x_article SET articleShowInList=0 WHERE oId='201'");
+            var after = f.service.list(null, 1, 1, false);
+            Assert.assertEquals(after.getJSONObject("pagination").getLong("total"), 1L);
+            Assert.assertEquals(list(after).getJSONObject(0).getString("id"), "1");
+            Assert.assertEquals(list(f.service.list(null, 2, 1, false)).length(), 0);
+        }
         System.out.println("PASS public column 8 eligibility precedes board page/count so hidden-only columns leave no holes or raw-count signals");
         try(var f=new Fixture()){
-            var context=f.service.articleContext(null,"101");Assert.assertEquals(context.getString("articleId"),"101");Assert.assertEquals(context.getInt("chapterNo"),1);Assert.assertTrue(context.isNull("previous"));Assert.assertEquals(context.getJSONObject("next").getString("id"),"102");Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"),2);Assert.assertFalse(context.toString().contains("articleContent"));Assert.assertFalse(context.getJSONObject("column").has("chapters"));
+            var context = f.service.articleContext(null, "101");
+            Assert.assertEquals(context.getString("articleId"), "101");
+            Assert.assertEquals(context.getInt("chapterNo"), 1);
+            Assert.assertTrue(context.isNull("previous"));
+            Assert.assertEquals(context.getJSONObject("next").getString("id"), "102");
+            Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"), 2);
+            Assert.assertFalse(context.toString().contains("articleContent"));
+            Assert.assertFalse(context.getJSONObject("column").has("chapters"));
             Assert.assertEquals(f.service.articleContext(null,"102").getJSONObject("previous").getString("id"),"101");
-            f.sql("UPDATE x_article SET articleShowInList=0 WHERE oId='101'");Assert.assertTrue(f.service.articleContext(null,"101").isNull("column"));context=f.service.articleContext(null,"102");Assert.assertTrue(context.isNull("previous"));Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"),1);
+            f.sql("UPDATE x_article SET articleShowInList=0 WHERE oId='101'");
+            Assert.assertTrue(f.service.articleContext(null, "101").isNull("column"));
+            context = f.service.articleContext(null, "102");
+            Assert.assertTrue(context.isNull("previous"));
+            Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"), 1);
         }
         System.out.println("PASS public column 10 bounded current article context and neighbors use the visible chapter order/count");
         try(var f=new Fixture()){
-            f.sql("DELETE FROM x_chapter WHERE articleId='101'");Assert.assertTrue(f.service.articleContext(null,"101").isNull("column"));f.sql("UPDATE x_article SET articleType=0 WHERE oId='102'");Assert.assertTrue(f.service.articleContext(null,"102").isNull("column"));status(404,()->f.service.articleContext(null,"999"));status(422,()->f.service.articleContext(null,"1' OR 1=1"));f.sql("UPDATE x_user SET userStatus=4 WHERE oId='u'");status(404,()->f.service.articleContext(null,"101"));
+            f.sql("DELETE FROM x_chapter WHERE articleId='101'");
+            Assert.assertTrue(f.service.articleContext(null, "101").isNull("column"));
+            f.sql("UPDATE x_article SET articleType=0 WHERE oId='102'");
+            Assert.assertTrue(f.service.articleContext(null, "102").isNull("column"));
+            status(404, () -> f.service.articleContext(null, "999"));
+            status(422, () -> f.service.articleContext(null, "1' OR 1=1"));
+            f.sql("UPDATE x_user SET userStatus=4 WHERE oId='u'");
+            status(404, () -> f.service.articleContext(null, "101"));
         }
         System.out.println("PASS public column 11 unassigned/non-long return null, missing/inactive authors 404, malformed article ID 422");
         try(var f=new Fixture()){
-            f.sql("UPDATE x_article SET articleAnonymousView=1 WHERE oId='101'");status(404,()->f.service.articleContext(null,"101"));Assert.assertFalse(f.service.articleContext(new JSONObject(),"101").isNull("column"));
-            f.sql("UPDATE x_article SET articleType=1,articleContent='private @invited ' WHERE oId='101'");status(404,()->f.service.articleContext(new JSONObject().put("userName","other"),"101"));Assert.assertTrue(f.service.articleContext(new JSONObject().put("userName","invited"),"101").isNull("column"));Assert.assertTrue(f.service.articleContext(new JSONObject().put("oId","u"),"101").isNull("column"));
+            f.sql("UPDATE x_article SET articleAnonymousView=1 WHERE oId='101'");
+            status(404, () -> f.service.articleContext(null, "101"));
+            Assert.assertFalse(f.service.articleContext(new JSONObject(), "101").isNull("column"));
+            f.sql("UPDATE x_article SET articleType=1,articleContent='private @invited ' WHERE oId='101'");
+            status(404, () -> f.service.articleContext(new JSONObject().put("userName", "other"), "101"));
+            Assert.assertTrue(f.service.articleContext(new JSONObject().put("userName", "invited"), "101").isNull("column"));
+            Assert.assertTrue(f.service.articleContext(new JSONObject().put("oId", "u"), "101").isNull("column"));
         }
         System.out.println("PASS public column 12 anonymous-view and discussion permissions checked before disclosing even absent associations");
         try(var f=new Fixture()){
-            for(int i=3;i<100;i++)f.article(""+(100+i),"1","u",i);var context=f.service.articleContext(null,"150");Assert.assertEquals(context.getJSONObject("previous").getString("id"),"149");Assert.assertEquals(context.getJSONObject("next").getString("id"),"151");Assert.assertTrue(context.toString().length()<2000);f.fail=true;status(503,()->f.service.articleContext(null,"101"));
+            for (int i = 3; i < 100; i++) f.article("" + (100 + i), "1", "u", i);
+            var context = f.service.articleContext(null, "150");
+            Assert.assertEquals(context.getJSONObject("previous").getString("id"), "149");
+            Assert.assertEquals(context.getJSONObject("next").getString("id"), "151");
+            Assert.assertTrue(context.toString().length() < 2000);
+            f.fail = true;
+            status(503, () -> f.service.articleContext(null, "101"));
         }
         System.out.println("PASS public column 13 context size independent of full directory and SQL failure is 503");
 

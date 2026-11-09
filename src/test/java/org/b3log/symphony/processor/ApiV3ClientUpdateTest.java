@@ -294,7 +294,9 @@ public final class ApiV3ClientUpdateTest {
             };
             inject(socket,socket.getClass(),"tickets",tickets);inject(socket,socket.getClass(),"clients",x.f.clients);inject(socket,socket.getClass(),"tokens",x.f.tokens);
             inject(socket,socket.getClass(),"users",new org.b3log.symphony.repository.UserRepository(){@Override public String getName(){return "user";}});
-            var issued=socket.issueChat("1","12");var live=socket.consume(issued.ticket());check(socket.authorized(live),"issued grant currently authorized");
+            var issued = socket.issueChat("1", "12");
+            var live = socket.consume(issued.ticket());
+            check(socket.authorized(live), "issued grant currently authorized");
             var pending=socket.issueChat("1","12");x.update("socket","Changed","content.read",List.of(FIRST,SECOND));
             check(!socket.authorized(live),"existing current-authority grant denied after authorization change");
             denied(401,()->socket.consume(pending.ticket()));denied(401,()->socket.issueChat("1","12"));

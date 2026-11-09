@@ -59,7 +59,9 @@ public class ApiV3ProfileTagsMysqlTest {
         if (action.equals("setup")) { try (var f=new Mysql()) { Assert.assertEquals(f.tagCount(),1); } System.out.println("SETUP_OK");return; }
         if (action.equals("worker")) {
             try (var f=new Mysql()) {
-                final boolean holder=args[2].equals("holder");f.hold=holder;f.release=args[3];
+                final boolean holder = args[2].equals("holder");
+                f.hold = holder;
+                f.release = args[3];
                 final String actor=!holder&&race.equals("shared-tag")?"2":"1";
                 final String value=race.equals("shared-tag")?"Shared":holder?"A":race.equals("clear")?"":"B";
                 final String key=race.equals("same-key")?"same":holder?"holder":"contender";
@@ -75,9 +77,11 @@ public class ApiV3ProfileTagsMysqlTest {
         if (action.equals("verify")) {
             try (var f=new Mysql()) {
                 final boolean same=race.equals("same-key"),shared=race.equals("shared-tag"),clear=race.equals("clear"),failure=race.equals("failure");
-                Assert.assertEquals(f.tagCount(),same||shared||clear||failure?2:3);Assert.assertEquals(f.statistic(),f.tagCount());
+                Assert.assertEquals(f.tagCount(), same || shared || clear || failure ? 2 : 3);
+                Assert.assertEquals(f.statistic(), f.tagCount());
                 Assert.assertEquals(f.count("receipt"),same||failure?1:2);
-                Assert.assertEquals(f.self(),clear?0:1);Assert.assertEquals(f.storedTags(),shared?"Shared":clear?"":same||failure?"A":"B");
+                Assert.assertEquals(f.self(), clear ? 0 : 1);
+                Assert.assertEquals(f.storedTags(), shared ? "Shared" : clear ? "" : same || failure ? "A" : "B");
                 if (shared) {
                     Assert.assertEquals(rows(f.db,"SELECT userTags FROM u WHERE oId='2'").getFirst().getString("userTags"),"Shared");
                     Assert.assertEquals(rows(f.db,"SELECT COUNT(*) n FROM tag_data WHERE tagTitle='Shared'").getFirst().getInt("n"),1);

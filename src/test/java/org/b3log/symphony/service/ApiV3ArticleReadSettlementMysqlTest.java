@@ -89,7 +89,14 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
    if(args.length>0){
     switch(args[0]){
      case "setup" -> {f.reset();f.seed(2,0);System.out.println("SETUP_READY");}
-     case "worker" -> {f.holdAuthor=args[1].equals("holder");f.releaseGate=args[2];System.out.println("STARTING_SETTLEMENT");System.out.flush();f.run();System.out.println("SETTLEMENT_DONE");}
+     case "worker" -> {
+      f.holdAuthor = args[1].equals("holder");
+      f.releaseGate = args[2];
+      System.out.println("STARTING_SETTLEMENT");
+      System.out.flush();
+      f.run();
+      System.out.println("SETTLEMENT_DONE");
+     }
      case "verify" -> {f.committed(20);ok(f.count("transfer_index")==2);System.out.println("PASS read settlement mysql 8 independent JVM contention commits one payout/history/event and two indexes");}
      default -> throw new IllegalArgumentException(args[0]);
     }
@@ -183,7 +190,18 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
     pool.shutdownNow();
    }
    System.out.println("PASS read settlement mysql 7 competing independent JDBC roots settle one history, ledger, event and two indexes");
-   f.reset();f.seed(2,0);var owner=f.begin();try{f.run();throw new AssertionError("nested settlement allowed");}catch(IllegalStateException expected){ok(owner.isActive());}finally{owner.rollback();}f.untouched();
+   f.reset();
+   f.seed(2, 0);
+   var owner = f.begin();
+   try {
+    f.run();
+    throw new AssertionError("nested settlement allowed");
+   } catch (IllegalStateException expected) {
+    ok(owner.isActive());
+   } finally {
+    owner.rollback();
+   }
+   f.untouched();
    System.out.println("PASS read settlement mysql 9 nested caller root rejected before touching or ending the owner");
    f.reset();f.seed(2,0);sql(f.db,"DELETE FROM articles WHERE oId='10'");f.run();
    ok(f.balance()==1000);ok(f.count("symphony_article_long_read_history")==0);ok(f.count("transfers")==0);ok(f.count("events")==0);
@@ -191,7 +209,12 @@ public class ApiV3ArticleReadSettlementMysqlTest extends ApiV3ArticleReadMysqlTe
    ok(f.one("SELECT state FROM symphony_article_long_read_settlement").getString("state").equals("DISCARDED"));
    f.run();ok(f.count("symphony_article_long_read_settlement")==1);
    System.out.println("PASS read settlement mysql 10 missing article is transactionally discarded once and does not retry forever");
-   f.reset();f.seed(2,0);f.fault="discard";sql(f.db,"DELETE FROM articles WHERE oId='10'");f.run();f.fault="";
+   f.reset();
+   f.seed(2, 0);
+   f.fault = "discard";
+   sql(f.db, "DELETE FROM articles WHERE oId='10'");
+   f.run();
+   f.fault = "";
    ok(f.one("SELECT state FROM symphony_article_long_read_window").getString("state").equals("OPEN"));ok(f.count("symphony_article_long_read_settlement")==0);f.run();
    ok(f.one("SELECT state FROM symphony_article_long_read_window").getString("state").equals("SETTLED"));ok(f.count("symphony_article_long_read_settlement")==1);
    System.out.println("PASS read settlement mysql 11 orphan repair failure rolls back and later retry repairs the window");

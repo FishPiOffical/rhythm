@@ -65,28 +65,84 @@ public class ApiV3RegistrationPolicyTest {
     public static void main(String[] args)throws Exception{
         var properties=new Properties();properties.setProperty("runtimeDatabase","NONE");
         org.b3log.latke.Latkes.setLatkeProps(properties);org.b3log.latke.Latkes.setLocalProps(properties);
-        var f=new Fixture();var open=f.policy.options(null);Assert.assertEquals(open.getString("mode"),"open");Assert.assertTrue(open.getBoolean("enabled"));Assert.assertFalse(open.getBoolean("inviteCodeRequired"));Assert.assertFalse(open.getBoolean("referralAccepted"));
-        f.mode="2";var invitation=f.policy.options("");Assert.assertEquals(invitation.getString("mode"),"invitation");Assert.assertTrue(invitation.getBoolean("inviteCodeRequired"));
-        f.mode="1";var closed=f.policy.options("Referrer");Assert.assertFalse(closed.getBoolean("enabled"));Assert.assertFalse(closed.getBoolean("referralAccepted"));Assert.assertFalse(closed.getBoolean("inviteCodeRequired"));Assert.assertEquals(f.userReads,0);
-        Assert.assertEquals(open.getJSONObject("username").getInt("maxLength"),64);Assert.assertEquals(open.getJSONArray("appRoles").getJSONObject(0).getInt("value"),0);Assert.assertEquals(open.getJSONArray("appRoles").getJSONObject(1).getInt("value"),1);
+        var f = new Fixture();
+        var open = f.policy.options(null);
+        Assert.assertEquals(open.getString("mode"), "open");
+        Assert.assertTrue(open.getBoolean("enabled"));
+        Assert.assertFalse(open.getBoolean("inviteCodeRequired"));
+        Assert.assertFalse(open.getBoolean("referralAccepted"));
+        f.mode = "2";
+        var invitation = f.policy.options("");
+        Assert.assertEquals(invitation.getString("mode"), "invitation");
+        Assert.assertTrue(invitation.getBoolean("inviteCodeRequired"));
+        f.mode = "1";
+        var closed = f.policy.options("Referrer");
+        Assert.assertFalse(closed.getBoolean("enabled"));
+        Assert.assertFalse(closed.getBoolean("referralAccepted"));
+        Assert.assertFalse(closed.getBoolean("inviteCodeRequired"));
+        Assert.assertEquals(f.userReads, 0);
+        Assert.assertEquals(open.getJSONObject("username").getInt("maxLength"), 64);
+        Assert.assertEquals(open.getJSONArray("appRoles").getJSONObject(0).getInt("value"), 0);
+        Assert.assertEquals(open.getJSONArray("appRoles").getJSONObject(1).getInt("value"), 1);
         System.out.println("PASS current open/invitation/closed registration options preserve the old write policy; closing registration overrides invitation links and only public username/role choices are returned");
 
-        f=new Fixture();f.mode="2";Assert.assertFalse(f.policy.options(" Referrer ").getBoolean("inviteCodeRequired"));Assert.assertTrue(f.policy.options("Referrer").getBoolean("referralAccepted"));
-        f.allow=false;Assert.assertTrue(f.policy.options("Referrer").getBoolean("inviteCodeRequired"));Assert.assertFalse(f.policy.options("Referrer").getBoolean("referralAccepted"));
-        f.exists=false;int previous=f.permissionReads;Assert.assertFalse(f.policy.options("Referrer").getBoolean("referralAccepted"));Assert.assertEquals(f.permissionReads,previous);
+        f = new Fixture();
+        f.mode = "2";
+        Assert.assertFalse(f.policy.options(" Referrer ").getBoolean("inviteCodeRequired"));
+        Assert.assertTrue(f.policy.options("Referrer").getBoolean("referralAccepted"));
+        f.allow = false;
+        Assert.assertTrue(f.policy.options("Referrer").getBoolean("inviteCodeRequired"));
+        Assert.assertFalse(f.policy.options("Referrer").getBoolean("referralAccepted"));
+        f.exists = false;
+        int previous = f.permissionReads;
+        Assert.assertFalse(f.policy.options("Referrer").getBoolean("referralAccepted"));
+        Assert.assertEquals(f.permissionReads, previous);
         System.out.println("PASS referral input does not itself waive an invitation code: the current resolved user's invitation permission is required, withdrawing it takes effect on the next read and nonexistent users do not trigger permission lookup");
 
         f=new Fixture();for(String name:List.of("x".repeat(65),"bad_name","bad/name","管理员","Referrer\nname","FileTransfer","adminUser")){
-            try{f.policy.options(name);Assert.fail(name);}catch(ApiV3Exception e){Assert.assertEquals(e.status,422);}
+            try {
+                f.policy.options(name);
+                Assert.fail(name);
+            } catch (ApiV3Exception e) {
+                Assert.assertEquals(e.status, 422);
+            }
         }
-        Assert.assertEquals(f.userReads,0);f.missing=true;try{f.policy.options(null);Assert.fail();}catch(ApiV3Exception e){Assert.assertEquals(e.status,503);}
-        f.missing=false;for(String invalid:List.of("","3","open")){f.mode=invalid;try{f.policy.options(null);Assert.fail();}catch(ApiV3Exception e){Assert.assertEquals(e.status,503);}}
+        Assert.assertEquals(f.userReads, 0);
+        f.missing = true;
+        try {
+            f.policy.options(null);
+            Assert.fail();
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.status, 503);
+        }
+        f.missing = false;
+        for (String invalid : List.of("", "3", "open")) {
+            f.mode = invalid;
+            try {
+                f.policy.options(null);
+                Assert.fail();
+            } catch (ApiV3Exception e) {
+                Assert.assertEquals(e.status, 503);
+            }
+        }
         System.out.println("PASS referral length/character/reserved-name rules reject before lookup; missing or unknown registration settings fail closed instead of inventing an open mode");
 
-        f=new Fixture();f.mode="2";var ok=f.call("referral=Referrer&apiKey=ignored-fixture");Assert.assertEquals(ok.getInt("status"),200);Assert.assertEquals(ok.getJSONObject("json").getInt("code"),0);
-        var data=ok.getJSONObject("json").getJSONObject("data");Assert.assertEquals(data.keySet(),Set.of("mode","enabled","inviteCodeRequired","referralAccepted","username","appRoles"));Assert.assertFalse(ok.toString().contains("PRIVATE_"));Assert.assertFalse(ok.toString().contains("ignored-fixture"));
-        var bad=f.call("referral=bad%2Fname");Assert.assertEquals(bad.getInt("status"),422);Assert.assertTrue(bad.getJSONObject("json").isNull("data"));
-        f.storageFailure=true;var unavailable=f.call(null);Assert.assertEquals(unavailable.getInt("status"),500);Assert.assertTrue(unavailable.getJSONObject("json").isNull("data"));
+        f = new Fixture();
+        f.mode = "2";
+        var ok = f.call("referral=Referrer&apiKey=ignored-fixture");
+        Assert.assertEquals(ok.getInt("status"), 200);
+        Assert.assertEquals(ok.getJSONObject("json").getInt("code"), 0);
+        var data = ok.getJSONObject("json").getJSONObject("data");
+        Assert.assertEquals(data.keySet(), Set.of("mode", "enabled", "inviteCodeRequired", "referralAccepted", "username", "appRoles"));
+        Assert.assertFalse(ok.toString().contains("PRIVATE_"));
+        Assert.assertFalse(ok.toString().contains("ignored-fixture"));
+        var bad = f.call("referral=bad%2Fname");
+        Assert.assertEquals(bad.getInt("status"), 422);
+        Assert.assertTrue(bad.getJSONObject("json").isNull("data"));
+        f.storageFailure = true;
+        var unavailable = f.call(null);
+        Assert.assertEquals(unavailable.getInt("status"), 500);
+        Assert.assertTrue(unavailable.getJSONObject("json").isNull("data"));
         System.out.println("PASS actual account controller plus real request query decoding and envelope helpers return no-store JSON with request ID; Cookie/apiKey/context users confer no registration authority and private inviter fields never appear");
     }
 }

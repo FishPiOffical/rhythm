@@ -44,7 +44,8 @@ public class ApiV3FollowStateTest {
                 sql.execute("CREATE TABLE follows(oId TEXT PRIMARY KEY,followerId TEXT,followingId TEXT,followingType INT)");
                 sql.execute("INSERT INTO follows VALUES('11','1','2',0),('12','1','2',0),('13','2','3',0),('14','1','3',1),('15','3','1',0)");
             }
-            final var service=new ApiV3FollowQueryService();final boolean[] fail={false};
+            final var service = new ApiV3FollowQueryService();
+            final boolean[] fail = {false};
             inject(service,"users",new UserRepository(){public String getName(){return "users";}});
             inject(service,"follows",new FollowRepository(){
                 public String getName() {
@@ -71,8 +72,11 @@ public class ApiV3FollowStateTest {
             inject(service,"tags",new org.b3log.symphony.repository.TagRepository(){public String getName(){return "tags";}});
             inject(service,"content",new ApiV3ContentQueryService(){public JSONObject viewableArticle(String id,JSONObject viewer){return id.equals("3")?new JSONObject().put("oId",id):null;}});
             final JSONObject owner=new JSONObject().put("oId","1"),other=new JSONObject().put("oId","2");
-            Assert.assertEquals(service.userState(owner,"2").keySet(),Set.of("targetId","following"));Assert.assertTrue(service.userState(owner,"2").getBoolean("following"));
-            Assert.assertFalse(service.userState(owner,"3").getBoolean("following"));Assert.assertFalse(service.userState(other,"1").getBoolean("following"));Assert.assertTrue(service.userState(other,"3").getBoolean("following"));
+            Assert.assertEquals(service.userState(owner, "2").keySet(), Set.of("targetId", "following"));
+            Assert.assertTrue(service.userState(owner, "2").getBoolean("following"));
+            Assert.assertFalse(service.userState(owner, "3").getBoolean("following"));
+            Assert.assertFalse(service.userState(other, "1").getBoolean("following"));
+            Assert.assertTrue(service.userState(other, "3").getBoolean("following"));
             Assert.assertFalse(service.userState(owner,"1").getBoolean("following"));
             System.out.println("PASS follow state 1 one SQL snapshot projects only target/boolean, owner and user-type isolation, duplicate rows do not duplicate results");
             for(String invalid:List.of("0","2 OR 1=1","2/3","99999999999999999999"))error(422,()->service.userState(owner,invalid));
@@ -98,9 +102,20 @@ public class ApiV3FollowStateTest {
             Assert.assertFalse(service.articleState(owner,"3",true).getBoolean("following"));
             error(404,()->service.articleState(owner,"9",false));error(404,()->service.articleState(new JSONObject().put("oId","4"),"3",true));
             try(var sql=db.createStatement()){sql.execute("INSERT INTO follows VALUES('21','1','3',2),('22','1','3',2),('23','2','3',3)");}
-            Assert.assertTrue(service.articleState(owner,"3",false).getBoolean("following"));Assert.assertFalse(service.articleState(owner,"3",true).getBoolean("following"));
-            Assert.assertFalse(service.articleState(other,"3",false).getBoolean("following"));Assert.assertTrue(service.articleState(other,"3",true).getBoolean("following"));
-            fail[0]=true;try{service.tagState(owner,"3");Assert.fail();}catch(RepositoryException expected){}try{service.articleState(owner,"3",true);Assert.fail();}catch(RepositoryException expected){}fail[0]=false;
+            Assert.assertTrue(service.articleState(owner, "3", false).getBoolean("following"));
+            Assert.assertFalse(service.articleState(owner, "3", true).getBoolean("following"));
+            Assert.assertFalse(service.articleState(other, "3", false).getBoolean("following"));
+            Assert.assertTrue(service.articleState(other, "3", true).getBoolean("following"));
+            fail[0] = true;
+            try {
+                service.tagState(owner, "3");
+                Assert.fail();
+            } catch (RepositoryException expected) { }
+            try {
+                service.articleState(owner, "3", true);
+                Assert.fail();
+            } catch (RepositoryException expected) { }
+            fail[0] = false;
             for(String invalid:List.of("0","3 OR 1=1","99999999999999999999")){error(422,()->service.tagState(owner,invalid));error(422,()->service.articleState(owner,invalid,false));}
             System.out.println("PASS follow state 5 tag status, current article visibility, owner/type isolation, duplicate relations and propagated database errors");
             final var endpoint=new org.b3log.symphony.processor.ApiV3FollowProcessor();inject(endpoint,"query",service);
@@ -114,7 +129,10 @@ public class ApiV3FollowStateTest {
                     final var context=new org.b3log.latke.http.RequestContext(request,new org.b3log.latke.http.Response(null,new io.netty.handler.codec.http.DefaultHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpResponseStatus.OK)));
                     context.addHandler(new org.b3log.latke.http.handler.RouteHandler());context.addHandler(endpoint::userState);context.handle();
                     Assert.assertEquals(context.attr("status"),token.isEmpty()?401:token.equals("wrong")?403:200);
-                    if(token.equals("owner")){Assert.assertEquals(context.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertTrue(((JSONObject)context.attr("data")).getBoolean("following"));}
+                    if (token.equals("owner")) {
+                        Assert.assertEquals(context.getResponse().getHeader("Cache-Control"), "no-store");
+                        Assert.assertTrue(((JSONObject) context.attr("data")).getBoolean("following"));
+                    }
                 }finally{raw.release();}
             }
             for(String path:List.of("/api/v3/me/follows/tags/3","/api/v3/me/collections/3","/api/v3/me/subscriptions/3"))for(String token:List.of("","owner","wrong")){
@@ -125,7 +143,10 @@ public class ApiV3FollowStateTest {
                     final var context=new org.b3log.latke.http.RequestContext(request,new org.b3log.latke.http.Response(null,new io.netty.handler.codec.http.DefaultHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpResponseStatus.OK)));
                     context.addHandler(new org.b3log.latke.http.handler.RouteHandler());context.addHandler(path.contains("/tags/")?endpoint::tagState:path.contains("/collections/")?endpoint::collectionState:endpoint::subscriptionState);context.handle();
                     Assert.assertEquals(context.attr("status"),token.isEmpty()?401:token.equals("owner")?403:200);
-                    if(token.equals("wrong")){Assert.assertEquals(context.getResponse().getHeader("Cache-Control"),"no-store");Assert.assertEquals(((JSONObject)context.attr("data")).keySet(),Set.of("targetId","following"));}
+                    if (token.equals("wrong")) {
+                        Assert.assertEquals(context.getResponse().getHeader("Cache-Control"), "no-store");
+                        Assert.assertEquals(((JSONObject) context.attr("data")).keySet(), Set.of("targetId", "following"));
+                    }
                 }finally{raw.release();}
             }
             System.out.println("PASS follow state 6 three actual Dispatcher/auth/controller endpoints require content.read, reject legacy credentials and return no-store whitelist");

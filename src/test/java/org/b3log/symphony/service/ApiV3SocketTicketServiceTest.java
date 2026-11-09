@@ -251,13 +251,20 @@ public class ApiV3SocketTicketServiceTest {
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
             int discussion=org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION;
             write("UPDATE symphony_article SET articleType=?,articleContent=? WHERE oId='789'",discussion,"@Reader invited");
-            var grant=f.core.consume(f.core.issueArticle("123","456","789").ticket());Assert.assertTrue(f.core.authorized(grant));
-            write("UPDATE symphony_user SET userName='Renamed' WHERE oId='123'");Assert.assertFalse(f.core.authorized(grant));
-            write("UPDATE symphony_article SET articleContent='@Renamed<br>invited' WHERE oId='789'");Assert.assertTrue(f.core.authorized(grant));
-            write("UPDATE symphony_article SET articleContent='@RenamedX not an invitation' WHERE oId='789'");Assert.assertFalse(f.core.authorized(grant));
-            write("UPDATE symphony_user SET userRole=? WHERE oId='123'",org.b3log.symphony.model.Role.ROLE_ID_C_ADMIN);Assert.assertTrue(f.core.authorized(grant));
-            write("UPDATE symphony_user SET userRole='defaultRole' WHERE oId='123'");Assert.assertFalse(f.core.authorized(grant));
-            write("UPDATE symphony_article SET articleAuthorId='123' WHERE oId='789'");Assert.assertTrue(f.core.authorized(grant));
+            var grant = f.core.consume(f.core.issueArticle("123", "456", "789").ticket());
+            Assert.assertTrue(f.core.authorized(grant));
+            write("UPDATE symphony_user SET userName='Renamed' WHERE oId='123'");
+            Assert.assertFalse(f.core.authorized(grant));
+            write("UPDATE symphony_article SET articleContent='@Renamed<br>invited' WHERE oId='789'");
+            Assert.assertTrue(f.core.authorized(grant));
+            write("UPDATE symphony_article SET articleContent='@RenamedX not an invitation' WHERE oId='789'");
+            Assert.assertFalse(f.core.authorized(grant));
+            write("UPDATE symphony_user SET userRole=? WHERE oId='123'", org.b3log.symphony.model.Role.ROLE_ID_C_ADMIN);
+            Assert.assertTrue(f.core.authorized(grant));
+            write("UPDATE symphony_user SET userRole='defaultRole' WHERE oId='123'");
+            Assert.assertFalse(f.core.authorized(grant));
+            write("UPDATE symphony_article SET articleAuthorId='123' WHERE oId='789'");
+            Assert.assertTrue(f.core.authorized(grant));
         }
         System.out.println("PASS discussion invitation/name/role changes use current rows; exact shared legacy mention parsing and author/admin exceptions remain");
         try(var f=new Fixture()){

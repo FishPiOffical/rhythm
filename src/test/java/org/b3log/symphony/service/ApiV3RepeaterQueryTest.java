@@ -124,31 +124,99 @@ public class ApiV3RepeaterQueryTest {
     public static void main(String[]a)throws Exception{
         var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
         try(var f=new Fixture()){
-            var d=f.query.items("1","",12);safe(d);var rows=d.getJSONArray("items");Assert.assertEquals(rows.length(),12);Assert.assertEquals(rows.getJSONObject(0).getString("id"),"101");Assert.assertTrue(rows.getJSONObject(0).getBoolean("liked"));Assert.assertFalse(rows.getJSONObject(1).getBoolean("liked"));Assert.assertTrue(rows.getJSONObject(0).isNull("author"));Assert.assertTrue(rows.getJSONObject(1).isNull("author"));Assert.assertEquals(rows.getJSONObject(2).getJSONObject("author").getString("name"),"Bob");Assert.assertEquals(rows.getJSONObject(2).keySet(),Set.of("id","type","content","likeCount","createdTime","liked","author"));Assert.assertFalse(f.query.items("","",12).getJSONArray("items").getJSONObject(0).getBoolean("liked"));
-            var jokes=f.query.items("","joke",50).getJSONArray("items");Assert.assertEquals(jokes.length(),27);for(int i=0;i<jokes.length();i++)Assert.assertEquals(jokes.getJSONObject(i).getString("type"),"joke");
-            f.sql("UPDATE c SET repeaterContent='' WHERE oId='101'");Assert.assertEquals(f.query.items("","",1).getJSONArray("items").getJSONObject(0).getString("content"),"");
-        }System.out.println("PASS 1 actual SQL pool order/type/size, valid content with removed authors and seed author null, owner-bound duplicate-safe likes, strict whitelist and legacy short content");
+            var d = f.query.items("1", "", 12);
+            safe(d);
+            var rows = d.getJSONArray("items");
+            Assert.assertEquals(rows.length(), 12);
+            Assert.assertEquals(rows.getJSONObject(0).getString("id"), "101");
+            Assert.assertTrue(rows.getJSONObject(0).getBoolean("liked"));
+            Assert.assertFalse(rows.getJSONObject(1).getBoolean("liked"));
+            Assert.assertTrue(rows.getJSONObject(0).isNull("author"));
+            Assert.assertTrue(rows.getJSONObject(1).isNull("author"));
+            Assert.assertEquals(rows.getJSONObject(2).getJSONObject("author").getString("name"), "Bob");
+            Assert.assertEquals(rows.getJSONObject(2).keySet(), Set.of("id", "type", "content", "likeCount", "createdTime", "liked", "author"));
+            Assert.assertFalse(f.query.items("", "", 12).getJSONArray("items").getJSONObject(0).getBoolean("liked"));
+            var jokes = f.query.items("", "joke", 50).getJSONArray("items");
+            Assert.assertEquals(jokes.length(), 27);
+            for (int i = 0; i < jokes.length(); i++) Assert.assertEquals(jokes.getJSONObject(i).getString("type"), "joke");
+            f.sql("UPDATE c SET repeaterContent='' WHERE oId='101'");
+            Assert.assertEquals(f.query.items("", "", 1).getJSONArray("items").getJSONObject(0).getString("content"), "");
+        }
+        System.out.println("PASS 1 actual SQL pool order/type/size, valid content with removed authors and seed author null, owner-bound duplicate-safe likes, strict whitelist and legacy short content");
         try(var f=new Fixture()){
-            for(int i=0;i<200;i++){var item=f.query.next("","","101").getJSONObject("item");int id=Integer.parseInt(item.getString("id"));Assert.assertTrue(id>=102&&id<=150);}
-            f.sql("DELETE FROM c WHERE oId<>'101'");Assert.assertTrue(f.query.next("","","101").isNull("item"));Assert.assertEquals(f.query.next("","","").getJSONObject("item").getString("id"),"101");f.sql("DELETE FROM c");Assert.assertTrue(f.query.next("","","").isNull("item"));
-        }System.out.println("PASS 2 next exclusively uses top 50 before exclusion; excluded only item and empty pool return explicit null");
+            for (int i = 0; i < 200; i++) {
+                var item = f.query.next("", "", "101").getJSONObject("item");
+                int id = Integer.parseInt(item.getString("id"));
+                Assert.assertTrue(id >= 102 && id <= 150);
+            }
+            f.sql("DELETE FROM c WHERE oId<>'101'");
+            Assert.assertTrue(f.query.next("", "", "101").isNull("item"));
+            Assert.assertEquals(f.query.next("", "", "").getJSONObject("item").getString("id"), "101");
+            f.sql("DELETE FROM c");
+            Assert.assertTrue(f.query.next("", "", "").isNull("item"));
+        }
+        System.out.println("PASS 2 next exclusively uses top 50 before exclusion; excluded only item and empty pool return explicit null");
         try(var f=new Fixture()){
-            f.sql("UPDATE c SET repeaterContentLikeCount=100,repeaterContentCreatedTime=5 WHERE oId IN ('101','102')");Assert.assertEquals(f.query.items("","",2).getJSONArray("items").getJSONObject(0).getString("id"),"102");
-            for(String t:List.of("unknown","JOKE","joke OR 1=1"," "))error(422,()->f.query.items("",t,12));for(int n:new int[]{0,51,Integer.MAX_VALUE})error(422,()->f.query.items("","",n));error(422,()->f.query.next("","","1 OR 1=1"));error(404,()->f.query.items("3","",12));
-        }System.out.println("PASS 3 deterministic tie ordering and strict type/size/exclude/active actor validation");
-        for(String field:List.of("repeaterContent","repeaterContentType"))try(var f=new Fixture()){f.sql("UPDATE c SET "+field+"=? WHERE oId='101'","x".repeat(501));error(503,()->f.query.items("","",12));}
-        try(var f=new Fixture()){f.sql("UPDATE c SET repeaterContentLikeCount=-1 WHERE oId='101'");/* negative sorted last; select every row by narrowed type */f.sql("DELETE FROM c WHERE oId<>'101'");error(503,()->f.query.items("","",12));}
-        try(var f=new Fixture()){f.sql("INSERT INTO u SELECT * FROM u WHERE oId='2'");error(503,()->f.query.items("","",12));}
-        JSONObject numeric=new JSONObject().put("id","1").put("type","joke").put("content","").put("authorId","").put("likeCount",new java.math.BigDecimal("1.000")).put("createdTime",new java.math.BigInteger("10")).put("liked",0);Assert.assertEquals(ApiV3RepeaterDto.item(numeric).getLong("likeCount"),1L);error(503,()->ApiV3RepeaterDto.item(new JSONObject(numeric.toString()).put("likeCount",new java.math.BigDecimal("1.5"))));error(503,()->ApiV3RepeaterDto.item(new JSONObject(numeric.toString()).put("likeCount",new java.math.BigInteger("9223372036854775808"))));
+            f.sql("UPDATE c SET repeaterContentLikeCount=100,repeaterContentCreatedTime=5 WHERE oId IN ('101','102')");
+            Assert.assertEquals(f.query.items("", "", 2).getJSONArray("items").getJSONObject(0).getString("id"), "102");
+            for (String t : List.of("unknown", "JOKE", "joke OR 1=1", " ")) error(422, () -> f.query.items("", t, 12));
+            for (int n : new int[]{0, 51, Integer.MAX_VALUE}) error(422, () -> f.query.items("", "", n));
+            error(422, () -> f.query.next("", "", "1 OR 1=1"));
+            error(404, () -> f.query.items("3", "", 12));
+        }
+        System.out.println("PASS 3 deterministic tie ordering and strict type/size/exclude/active actor validation");
+        for (String field : List.of("repeaterContent", "repeaterContentType"))
+            try (var f = new Fixture()) {
+                f.sql("UPDATE c SET " + field + "=? WHERE oId='101'", "x".repeat(501));
+                error(503, () -> f.query.items("", "", 12));
+            }
+        try (var f = new Fixture()) {
+            f.sql("UPDATE c SET repeaterContentLikeCount=-1 WHERE oId='101'");
+            // 负数记录排在末尾，只保留该行以确保查询读到它。
+            f.sql("DELETE FROM c WHERE oId<>'101'");
+            error(503, () -> f.query.items("", "", 12));
+        }
+        try (var f = new Fixture()) {
+            f.sql("INSERT INTO u SELECT * FROM u WHERE oId='2'");
+            error(503, () -> f.query.items("", "", 12));
+        }
+        JSONObject numeric = new JSONObject().put("id", "1").put("type", "joke").put("content", "").put("authorId", "")
+                .put("likeCount", new java.math.BigDecimal("1.000")).put("createdTime", new java.math.BigInteger("10")).put("liked", 0);
+        Assert.assertEquals(ApiV3RepeaterDto.item(numeric).getLong("likeCount"), 1L);
+        error(503, () -> ApiV3RepeaterDto.item(new JSONObject(numeric.toString()).put("likeCount", new java.math.BigDecimal("1.5"))));
+        error(503, () -> ApiV3RepeaterDto.item(new JSONObject(numeric.toString()).put("likeCount", new java.math.BigInteger("9223372036854775808"))));
         System.out.println("PASS 4 oversized/corrupt stored projections and duplicate joins fail closed without truncation or leaking raw persistence");
-        for(int stage=1;stage<=5;stage++)try(var f=new Fixture()){f.failAt=stage;error(503,()->f.query.items("1","",12));}
-        try(var f=new Fixture()){f.removeAt=2;error(503,()->f.query.items("","",12));}
-        try(var f=new Fixture()){f.disableAt=5;error(404,()->f.query.items("1","",12));}
+        for (int stage = 1; stage <= 5; stage++)
+            try (var f = new Fixture()) {
+                f.failAt = stage;
+                error(503, () -> f.query.items("1", "", 12));
+            }
+        try (var f = new Fixture()) {
+            f.removeAt = 2;
+            error(503, () -> f.query.items("", "", 12));
+        }
+        try (var f = new Fixture()) {
+            f.disableAt = 5;
+            error(404, () -> f.query.items("1", "", 12));
+        }
         System.out.println("PASS 5 sanitized failures, current pool and actor final checks, no writes");
         try(var f=new Fixture()){
-            ApiV3RepeaterProcessor.registerRoutes(f.controller,f.auth,f.anonymous);Dispatcher.mapping();
-            var anon=f.http(null,"items",Map.of());Assert.assertEquals(anon.attr("test.status"),200);Assert.assertEquals(((JSONObject)anon.attr("test.data")).getJSONArray("items").length(),12);Assert.assertFalse(((JSONObject)anon.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));Assert.assertEquals(anon.getResponse().getHeader("Cache-Control"),"no-store");
-            var valid=f.http("valid","items",Map.of());Assert.assertTrue(((JSONObject)valid.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));Assert.assertEquals(f.http("bad","items",Map.of()).attr("test.status"),401);Assert.assertEquals(f.http("wrong","items",Map.of()).attr("test.status"),403);Assert.assertEquals(f.http("disabled","items",Map.of()).attr("test.status"),404);Assert.assertEquals(f.http(null,"items",Map.of("type","other")).attr("test.status"),422);Assert.assertEquals(f.http(null,"next",Map.of("excludeId","x")).attr("test.status"),422);Assert.assertEquals(f.http(null,"items",Map.of("size","51")).attr("test.status"),422);Assert.assertEquals(f.http(null,"next",Map.of()).attr("test.status"),200);
+            ApiV3RepeaterProcessor.registerRoutes(f.controller, f.auth, f.anonymous);
+            Dispatcher.mapping();
+            var anon = f.http(null, "items", Map.of());
+            Assert.assertEquals(anon.attr("test.status"), 200);
+            Assert.assertEquals(((JSONObject) anon.attr("test.data")).getJSONArray("items").length(), 12);
+            Assert.assertFalse(((JSONObject) anon.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));
+            Assert.assertEquals(anon.getResponse().getHeader("Cache-Control"), "no-store");
+            var valid = f.http("valid", "items", Map.of());
+            Assert.assertTrue(((JSONObject) valid.attr("test.data")).getJSONArray("items").getJSONObject(0).getBoolean("liked"));
+            Assert.assertEquals(f.http("bad", "items", Map.of()).attr("test.status"), 401);
+            Assert.assertEquals(f.http("wrong", "items", Map.of()).attr("test.status"), 403);
+            Assert.assertEquals(f.http("disabled", "items", Map.of()).attr("test.status"), 404);
+            Assert.assertEquals(f.http(null, "items", Map.of("type", "other")).attr("test.status"), 422);
+            Assert.assertEquals(f.http(null, "next", Map.of("excludeId", "x")).attr("test.status"), 422);
+            Assert.assertEquals(f.http(null, "items", Map.of("size", "51")).attr("test.status"), 422);
+            Assert.assertEquals(f.http(null, "next", Map.of()).attr("test.status"), 200);
             f.resetShield();AnonymousCaptchaShield.setEnabled(true);int before=f.reads;var blocked=f.http(null,"items",Map.of());Assert.assertEquals(blocked.attr("test.status"),401);Assert.assertNull(blocked.getResponse().getHeader("Location"));Assert.assertEquals(f.reads,before);Assert.assertEquals(f.shieldCount(),Integer.valueOf(1));
             Assert.assertEquals(f.http("bad","items",Map.of()).attr("test.status"),401);Assert.assertEquals(f.shieldCount(),Integer.valueOf(1));
             Assert.assertEquals(f.http("valid","items",Map.of()).attr("test.status"),200);

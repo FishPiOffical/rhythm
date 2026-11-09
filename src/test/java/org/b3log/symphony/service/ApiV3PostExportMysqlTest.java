@@ -51,7 +51,10 @@ public class ApiV3PostExportMysqlTest extends ApiV3PostExportTest {
   var p=new Properties();p.setProperty("runtimeDatabase","NONE");p.setProperty("contextPath","");Latkes.setLatkeProps(p);Latkes.setLocalProps(p);
   boolean attached=Set.of("worker","verify").contains(args[0]);System.setProperty("rhythm.mysql.fixtureSetup",String.valueOf(!attached));
   try(var f=new Mysql()){
-   var env=rows(f.db,"SELECT VERSION() AS version,@@transaction_isolation AS isolation,@@sql_mode AS mode").getFirst();Assert.assertTrue(env.getString("version").startsWith("8.4."));Assert.assertEquals(env.getString("isolation"),"REPEATABLE-READ");Assert.assertTrue(env.getString("mode").contains("STRICT_TRANS_TABLES"));
+   var env = rows(f.db, "SELECT VERSION() AS version,@@transaction_isolation AS isolation,@@sql_mode AS mode").getFirst();
+   Assert.assertTrue(env.getString("version").startsWith("8.4."));
+   Assert.assertEquals(env.getString("isolation"), "REPEATABLE-READ");
+   Assert.assertTrue(env.getString("mode").contains("STRICT_TRANS_TABLES"));
    Assert.assertEquals(rows(f.db,"SELECT DATA_TYPE AS kind FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='artifacts' AND COLUMN_NAME='paidPoints'").getFirst().getString("kind"),"int");
    Assert.assertEquals(rows(f.db,"SELECT DATA_TYPE AS kind FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='chunks' AND COLUMN_NAME='data'").getFirst().getString("kind"),"mediumtext");
    switch(args[0]){
@@ -59,19 +62,54 @@ public class ApiV3PostExportMysqlTest extends ApiV3PostExportTest {
     case "normal" -> {
      f.readCommitted=true;
      byte[] data=new byte[300000];new Random(7).nextBytes(data);String body=Base64.getEncoder().encodeToString(data);sql(f.db,"UPDATE articles SET articleContent=? WHERE oId='1'",body);
-     JSONObject job=f.create("mysql");Assert.assertTrue(f.snapshotObserved);Assert.assertTrue(f.regularObserved);committed(f);Assert.assertTrue(f.n("chunks")>1);var zip=unzip(f.export.download(identity(),job.getString("jobId")));Assert.assertEquals(zip.get("articles/1.md"),body);Assert.assertEquals(zip.get("articles/6.reward.md"),"PAID_SECRET");Assert.assertEquals(new JSONObject(zip.get("manifest.json")).getJSONArray("comments").length(),8);Assert.assertEquals(f.create("mysql").getString("jobId"),job.getString("jobId"));committed(f);
+     JSONObject job = f.create("mysql");
+     Assert.assertTrue(f.snapshotObserved);
+     Assert.assertTrue(f.regularObserved);
+     committed(f);
+     Assert.assertTrue(f.n("chunks") > 1);
+     var zip = unzip(f.export.download(identity(), job.getString("jobId")));
+     Assert.assertEquals(zip.get("articles/1.md"), body);
+     Assert.assertEquals(zip.get("articles/6.reward.md"), "PAID_SECRET");
+     Assert.assertEquals(new JSONObject(zip.get("manifest.json")).getJSONArray("comments").length(), 8);
+     Assert.assertEquals(f.create("mysql").getString("jobId"), job.getString("jobId"));
+     committed(f);
      System.out.println("PASS export mysql 1 exact artifact/chunk DDL, real per-root READ_COMMITTED baseline upgraded to RR snapshot/UTF8 ZIP/multi-chunk hash and atomic 100-point charge/receipt; same-key replay once "+env);
     }
     case "fault" -> {
-     f.exportFault=args[1];try{f.create("fault");Assert.fail("fault must fail");}catch(ApiV3Exception e){Assert.assertEquals(e.status,503);}
-     if(args[1].equals("ack")){Assert.assertEquals(f.balance(),400);Assert.assertEquals(f.n("artifacts"),1);}else{Assert.assertEquals(f.balance(),500);for(String table:List.of("artifacts","chunks","transfers","export_receipts"))Assert.assertEquals(f.n(table),0L,table);}
-     f.exportFault="";var job=f.create("fault");committed(f);Assert.assertEquals(f.export.download(identity(),job.getString("jobId")).length,job.getInt("byteLength"));
+     f.exportFault = args[1];
+     try {
+      f.create("fault");
+      Assert.fail("fault must fail");
+     } catch (ApiV3Exception e) {
+      Assert.assertEquals(e.status, 503);
+     }
+     if (args[1].equals("ack")) {
+      Assert.assertEquals(f.balance(), 400);
+      Assert.assertEquals(f.n("artifacts"), 1);
+     } else {
+      Assert.assertEquals(f.balance(), 500);
+      for (String table : List.of("artifacts", "chunks", "transfers", "export_receipts"))
+       Assert.assertEquals(f.n(table), 0L, table);
+     }
+     f.exportFault = "";
+     var job = f.create("fault");
+     committed(f);
+     Assert.assertEquals(f.export.download(identity(), job.getString("jobId")).length, job.getInt("byteLength"));
      System.out.println("PASS export mysql fault "+args[1]+" actual JDBC rollback/lost-ack and same-key recovery with one complete ready artifact and charge");
     }
     case "worker" -> {
-     f.hold=args[1].equals("holder");f.release=args[2];System.out.println("STARTING_CREATE");System.out.flush();var job=f.create("race");System.out.println("RESULT="+job);
+     f.hold = args[1].equals("holder");
+     f.release = args[2];
+     System.out.println("STARTING_CREATE");
+     System.out.flush();
+     var job = f.create("race");
+     System.out.println("RESULT=" + job);
     }
-    case "verify" -> {committed(f);Assert.assertEquals(rows(f.db,"SELECT SUM(sum) AS total FROM transfers").getFirst().getInt("total"),100);System.out.println("PASS export mysql final committed artifact/chunks/receipt/100-point ledger verified from independent JDBC connection");}
+    case "verify" -> {
+     committed(f);
+     Assert.assertEquals(rows(f.db, "SELECT SUM(sum) AS total FROM transfers").getFirst().getInt("total"), 100);
+     System.out.println("PASS export mysql final committed artifact/chunks/receipt/100-point ledger verified from independent JDBC connection");
+    }
     default -> throw new IllegalArgumentException(args[0]);
    }
   }

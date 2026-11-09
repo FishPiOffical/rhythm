@@ -134,7 +134,22 @@ public class ApiV3ArticleReadMysqlTest {
    System.out.println("PASS article read mysql 5 nested operation never commits owner and savepoint failure rolls back only claim/counter");
    f.reset();ok(f.service.recordCurrent("10","3"));sql(f.db,"UPDATE symphony_article_long_read_window SET state='SETTLING'");status(503,()->f.service.recordCurrent("10","2"));ok(f.count("symphony_article_long_read_user")==1);ok(rows(f.db,"SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n")==1);
    System.out.println("PASS article read mysql 6 CLIENT_FOUND_ROWS matched settling window cannot consume a reader claim");
-   f.reset();var endpoint=new ApiV3ArticleReadProcessor();inject(endpoint,"reads",f.service);var auth=new ApiV3AuthMidware();inject(auth,"apiV3TokenMgmtService",new ApiV3TokenMgmtService());ApiV3ArticleReadProcessor.registerRoutes(endpoint,auth,new ApiV3WriteMidware());Dispatcher.mapping();for(String token:Arrays.asList(null,"bad"))ok(http(endpoint,token,"{}").attr("test.status").equals(401));for(String token:List.of("read-only","activity-only"))ok(http(endpoint,token,"{}").attr("test.status").equals(403));ok(http(endpoint,"valid","{\"userId\":\"3\"}").attr("test.status").equals(422));var out=http(endpoint,"valid","{}");ok(out.attr("test.status").equals(200));ok(((JSONObject)out.attr("test.data")).keySet().equals(Set.of("articleId","recorded")));ok(out.getResponse().getHeader("Cache-Control").equals("no-store"));
+   f.reset();
+   var endpoint = new ApiV3ArticleReadProcessor();
+   inject(endpoint, "reads", f.service);
+   var auth = new ApiV3AuthMidware();
+   inject(auth, "apiV3TokenMgmtService", new ApiV3TokenMgmtService());
+   ApiV3ArticleReadProcessor.registerRoutes(endpoint, auth, new ApiV3WriteMidware());
+   Dispatcher.mapping();
+   for (String token : Arrays.asList(null, "bad"))
+    ok(http(endpoint, token, "{}").attr("test.status").equals(401));
+   for (String token : List.of("read-only", "activity-only"))
+    ok(http(endpoint, token, "{}").attr("test.status").equals(403));
+   ok(http(endpoint, "valid", "{\"userId\":\"3\"}").attr("test.status").equals(422));
+   var out = http(endpoint, "valid", "{}");
+   ok(out.attr("test.status").equals(200));
+   ok(((JSONObject) out.attr("test.data")).keySet().equals(Set.of("articleId", "recorded")));
+   ok(out.getResponse().getHeader("Cache-Control").equals("no-store"));
    System.out.println("PASS article read mysql 7 actual Dispatcher/Bearer/scopes/write/input and response boundary; Cookie/apiKey cannot substitute identity");
    for(String malformed:List.of("{\"x\":1,\"x\":2}","not-json","[]"," ","{\"x\":"))ok(http(endpoint,"valid",malformed).attr("test.status").equals(400));
    ok(httpRaw(endpoint,"valid",new byte[]{(byte)255},"application/json").attr("test.status").equals(400));
@@ -142,7 +157,27 @@ public class ApiV3ArticleReadMysqlTest {
    ok(httpRaw(endpoint,"valid","{}".getBytes(StandardCharsets.UTF_8),"text/plain").attr("test.status").equals(415));
    ok(httpRaw(endpoint,"valid",new byte[0],null).attr("test.status").equals(200));
    System.out.println("PASS article read mysql 10 original Netty bytes survive real parseForm; duplicate/malformed/array/whitespace/UTF8/oversize and media checks cannot collapse into empty success");
-   f.reset();var pool=Executors.newFixedThreadPool(2);try{var gate=new CountDownLatch(1);var tasks=new ArrayList<Future<Boolean>>();for(int i=0;i<2;i++)tasks.add(pool.submit(()->{try(var x=new F()){gate.await();return x.service.recordCurrent("10","2");}}));gate.countDown();int success=0;for(var task:tasks)if(task.get(15,TimeUnit.SECONDS))success++;ok(success==1);ok(f.count("symphony_article_long_read_user")==1);ok(rows(f.db,"SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n")==1);}finally{pool.shutdownNow();}
+   f.reset();
+   var pool = Executors.newFixedThreadPool(2);
+   try {
+    var gate = new CountDownLatch(1);
+    var tasks = new ArrayList<Future<Boolean>>();
+    for (int i = 0; i < 2; i++)
+     tasks.add(pool.submit(() -> {
+      try (var x = new F()) {
+       gate.await();
+       return x.service.recordCurrent("10", "2");
+      }
+     }));
+    gate.countDown();
+    int success = 0;
+    for (var task : tasks) if (task.get(15, TimeUnit.SECONDS)) success++;
+    ok(success == 1);
+    ok(f.count("symphony_article_long_read_user") == 1);
+    ok(rows(f.db, "SELECT registeredCnt n FROM symphony_article_long_read_window").getFirst().getInt("n") == 1);
+   } finally {
+    pool.shutdownNow();
+   }
    System.out.println("PASS article read mysql 8 independent JDBC transactions racing same reader commit one claim and one increment");
    f.reset();f.service.record(new LongArticleReadCaptureRequest("10", null, "ip", "ua"));f.service.record(new LongArticleReadCaptureRequest("10", "1", "ip", "ua"));ok(f.count("symphony_article_long_read_user")==0);ok(f.count("symphony_article_long_read_anon")==0);f.service.record(new LongArticleReadCaptureRequest("10", "2", "ip", "ua"));ok(!f.service.recordCurrent("10", "2"));ok(f.count("symphony_article_long_read_user")==1);
    sql(f.db,"UPDATE articles SET articleShowInList=0");f.service.record(new LongArticleReadCaptureRequest("10", "3", "ip", "ua"));ok(f.count("symphony_article_long_read_user")==1);

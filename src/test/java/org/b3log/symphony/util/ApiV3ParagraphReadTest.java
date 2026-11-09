@@ -57,7 +57,8 @@ public class ApiV3ParagraphReadTest {
                 Assert.assertEquals(rows.size(), p < 3 ? 50 : p == 3 ? 30 : 0);
                 for (final var row : rows) {
                     Assert.assertTrue(ids.add(row.getString(Keys.OBJECT_ID)));
-                    Assert.assertFalse(row.has(Comment.COMMENT_IP)); Assert.assertFalse(row.has(Comment.COMMENT_UA));
+                    Assert.assertFalse(row.has(Comment.COMMENT_IP));
+                    Assert.assertFalse(row.has(Comment.COMMENT_UA));
                     Assert.assertFalse(row.has(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
                     Assert.assertEquals(row.getString(Comment.COMMENT_ON_ARTICLE_ID), "10");
                     Assert.assertEquals(row.getInt(Comment.COMMENT_TYPE), 1);
@@ -124,7 +125,8 @@ public class ApiV3ParagraphReadTest {
         Assert.assertEquals(dto.getString("permalink"), "/article/10?paragraph=" + A + "#20");
         Assert.assertFalse(safe.has("paragraph"));
         final var ordinary = ApiV3ParagraphDto.comment(safe, new JSONObject(source.toString()).put(Comment.COMMENT_TYPE, 0));
-        Assert.assertTrue(ordinary.isNull("paragraph")); Assert.assertEquals(ordinary.getString("permalink"), "/article/10#20");
+        Assert.assertTrue(ordinary.isNull("paragraph"));
+        Assert.assertEquals(ordinary.getString("permalink"), "/article/10#20");
         System.out.println("PASS metadata enrichment preserves hidden/anonymous DTO, ignores internal body/identity/URL and never mutates base");
 
         final var visibility = new ApiV3ContentUtilTest();

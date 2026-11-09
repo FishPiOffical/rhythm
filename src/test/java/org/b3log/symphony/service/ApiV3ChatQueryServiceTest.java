@@ -145,65 +145,123 @@ public class ApiV3ChatQueryServiceTest {
         System.out.println("PASS malformed/injected/conflicting cursors and out-of-range limits reject before SQL; database errors propagate rather than becoming an empty successful history");
         try(var f=new Fixture()){
             f.message("101","<script>alert(1)</script><p onclick='bad()' style='color:red'>hello</p><a href='javascript:bad()'>bad</a><img src='x' onerror='bad()'>");
-            var dto=f.service.detail("101");Assert.assertEquals(dto.keySet(),Set.of("id","createdAt","type","content","contentHtml","author","client","card"));noPrivate(dto);Assert.assertEquals(dto.getString("type"),"text");Assert.assertTrue(dto.getString("content").contains("<script>"));
-            String html=dto.getString("contentHtml");for(String bad:List.of("<script","onclick","onerror","javascript:","style="))Assert.assertFalse(html.contains(bad),html);Assert.assertTrue(html.contains("hello"));
-            var author=dto.getJSONObject("author");Assert.assertEquals(author.keySet(),Set.of("id","userName","userNickname","userAvatarURL"));Assert.assertEquals(author.getString("userNickname"),"Nickname");Assert.assertEquals(author.getString("id"),"123");
+            var dto = f.service.detail("101");
+            Assert.assertEquals(dto.keySet(), Set.of("id", "createdAt", "type", "content", "contentHtml", "author", "client", "card"));
+            noPrivate(dto);
+            Assert.assertEquals(dto.getString("type"), "text");
+            Assert.assertTrue(dto.getString("content").contains("<script>"));
+            String html = dto.getString("contentHtml");
+            for (String bad : List.of("<script", "onclick", "onerror", "javascript:", "style="))
+                Assert.assertFalse(html.contains(bad), html);
+            Assert.assertTrue(html.contains("hello"));
+            var author = dto.getJSONObject("author");
+            Assert.assertEquals(author.keySet(), Set.of("id", "userName", "userNickname", "userAvatarURL"));
+            Assert.assertEquals(author.getString("userNickname"), "Nickname");
+            Assert.assertEquals(author.getString("id"), "123");
         }
         System.out.println("PASS text retains raw Markdown separately while the extracted production chat sanitizer removes executable HTML; envelope/author fields are explicit whitelists");
         try(var f=new Fixture()){
             var packet=new JSONObject().put("msgType","redPacket").put("type","rockPaperScissors").put("money",256).put("count",1).put("got",0).put("msg","<b>领取</b>").put("gesture","PRIVATE-gesture").put("token","PRIVATE-key").put("who",new JSONArray().put(new JSONObject().put("ip","PRIVATE-ip"))).put("recivers","PRIVATE-recipients");
-            f.message("101",packet.toString());f.message("102",packet);
-            for(String id:List.of("101","102")){var dto=f.service.detail(id);noPrivate(dto);Assert.assertEquals(dto.getString("type"),"redPacket");Assert.assertEquals(dto.getString("content"),"");Assert.assertEquals(dto.getString("contentHtml"),"");Assert.assertEquals(dto.getJSONObject("card").keySet(),Set.of("type","money","count","got","message"));Assert.assertEquals(dto.getJSONObject("card").getString("message"),"领取");}
+            f.message("101", packet.toString());
+            f.message("102", packet);
+            for (String id : List.of("101", "102")) {
+                var dto = f.service.detail(id);
+                noPrivate(dto);
+                Assert.assertEquals(dto.getString("type"), "redPacket");
+                Assert.assertEquals(dto.getString("content"), "");
+                Assert.assertEquals(dto.getString("contentHtml"), "");
+                Assert.assertEquals(dto.getJSONObject("card").keySet(), Set.of("type", "money", "count", "got", "message"));
+                Assert.assertEquals(dto.getJSONObject("card").getString("message"), "领取");
+            }
             f.message("103",new JSONObject().put("msgType","music").put("title","<b>Song</b>").put("source","javascript:bad()").put("coverURL","https://name:password@example.com/img").put("from","netease").put("token","PRIVATE").toString());
-            var music=f.service.detail("103");noPrivate(music);Assert.assertEquals(music.getString("type"),"music");Assert.assertEquals(music.getJSONObject("card").getString("source"),"");Assert.assertEquals(music.getJSONObject("card").getString("coverURL"),"");Assert.assertEquals(music.getJSONObject("card").getString("title"),"Song");
-            f.message("104",new JSONObject().put("msgType","weather").put("date","2026-10-18").put("weatherCode","CLEAR_DAY").put("max","25").put("min","18").put("t","22").put("st","体感").put("userEmail","PRIVATE").toString());var weather=f.service.detail("104");noPrivate(weather);Assert.assertEquals(weather.getJSONObject("card").keySet(),Set.of("date","weatherCode","max","min","t","st"));
+            var music = f.service.detail("103");
+            noPrivate(music);
+            Assert.assertEquals(music.getString("type"), "music");
+            Assert.assertEquals(music.getJSONObject("card").getString("source"), "");
+            Assert.assertEquals(music.getJSONObject("card").getString("coverURL"), "");
+            Assert.assertEquals(music.getJSONObject("card").getString("title"), "Song");
+            f.message("104",new JSONObject().put("msgType","weather").put("date","2026-10-18").put("weatherCode","CLEAR_DAY").put("max","25").put("min","18").put("t","22").put("st","体感").put("userEmail","PRIVATE").toString());
+            var weather = f.service.detail("104");
+            noPrivate(weather);
+            Assert.assertEquals(weather.getJSONObject("card").keySet(), Set.of("date", "weatherCode", "max", "min", "t", "st"));
         }
         System.out.println("PASS string/object rich cards preserve supported display fields, hide red-packet private state and unknown metadata, and reject unsafe media URLs");
         try(var f=new Fixture()){
-            f.raw("101","{broken");f.raw("102","{\"content\":\"one\",\"content\":\"two\"}");f.raw("103","x".repeat(102401));
+            f.raw("101","{broken");
+            f.raw("102","{\"content\":\"one\",\"content\":\"two\"}");
+            f.raw("103","x".repeat(102401));
             f.raw("104",new JSONObject().put("content",new JSONArray()).toString());
-            for(String id:List.of("101","102","103","104")){var dto=f.service.detail(id);Assert.assertEquals(dto.getString("type"),"unavailable");Assert.assertEquals(dto.getString("content"),"");}
-            Assert.assertEquals(ids(f.service.list(null,null,2)),List.of("103","104"));Assert.assertEquals(ids(f.service.list("103",null,2)),List.of("101","102"));
-            f.raw("105",new JSONObject().put("userOId",0).put("userName","马库斯").put("time","bad").put("content","hello").toString());var bot=f.service.detail("105");Assert.assertEquals(bot.getJSONObject("author").getString("id"),"");Assert.assertEquals(bot.getJSONObject("author").getString("userName"),"马库斯");Assert.assertEquals(bot.getLong("createdAt"),105L);
+            for (String id : List.of("101", "102", "103", "104")) {
+                var dto = f.service.detail(id);
+                Assert.assertEquals(dto.getString("type"), "unavailable");
+                Assert.assertEquals(dto.getString("content"), "");
+            }
+            Assert.assertEquals(ids(f.service.list(null, null, 2)), List.of("103", "104"));
+            Assert.assertEquals(ids(f.service.list("103", null, 2)), List.of("101", "102"));
+            f.raw("105",new JSONObject().put("userOId",0).put("userName","马库斯").put("time","bad").put("content","hello").toString());
+            var bot = f.service.detail("105");
+            Assert.assertEquals(bot.getJSONObject("author").getString("id"), "");
+            Assert.assertEquals(bot.getJSONObject("author").getString("userName"), "马库斯");
+            Assert.assertEquals(bot.getLong("createdAt"), 105L);
         }
         System.out.println("PASS malformed/duplicate/oversized stored envelopes become cursor-preserving placeholders without raw data; bot snapshots keep their public display identity");
         try(var f=new Fixture()){
             for(int i=101;i<=180;i++)f.message(""+i,"message");
             Assert.assertEquals(f.service.list(null,null,50).getJSONArray("list").length(),50);
-            var context=f.service.context("140",25);Assert.assertEquals(context.getJSONArray("list").length(),51);Assert.assertEquals(new HashSet<>(ids(context)).size(),51);
+            var context = f.service.context("140", 25);
+            Assert.assertEquals(context.getJSONArray("list").length(), 51);
+            Assert.assertEquals(new HashSet<>(ids(context)).size(), 51);
             String nested="{\"content\":{\"x\":"+"[".repeat(40)+"0"+"]".repeat(40)+"}}";
-            f.raw("181",nested);Assert.assertEquals(f.service.detail("181").getString("type"),"unavailable");
+            f.raw("181", nested);
+            Assert.assertEquals(f.service.detail("181").getString("type"), "unavailable");
             f.message("182",new JSONObject().put("msgType","music").put("source","123456").put("coverURL","https://file.fishpi.cn/cover.png").put("title","Song").toString());
             Assert.assertEquals(f.service.detail("182").getJSONObject("card").getString("source"),"123456");
         }
         System.out.println("PASS maximum history/context sizes stay bounded with distinct messages; deeply nested stored data is unavailable and numeric music IDs remain usable");
         try(var f=new Fixture()){
-            f.message("101","hello");for(String credential:Arrays.asList(null,"Bearer INVALID")){var denied=f.request(credential,Map.of("apiKey","legacy"),null,f.processor::list);Assert.assertEquals(denied.getInt("status"),401);}Assert.assertTrue(f.sql.isEmpty());
-            f.scope="profile.read";Assert.assertEquals(f.request("Bearer VALID",Map.of(),"101",f.processor::detail).getInt("status"),403);Assert.assertTrue(f.sql.isEmpty());f.scope="content.read";
-            var list=f.request("Bearer VALID",Map.of("size","1"),null,f.processor::list);Assert.assertEquals(list.getInt("status"),200);Assert.assertEquals(ids(list.getJSONObject("data")),List.of("101"));
+            f.message("101", "hello");
+            for (String credential : Arrays.asList(null, "Bearer INVALID")) {
+                var denied = f.request(credential, Map.of("apiKey", "legacy"), null, f.processor::list);
+                Assert.assertEquals(denied.getInt("status"), 401);
+            }
+            Assert.assertTrue(f.sql.isEmpty());
+            f.scope = "profile.read";
+            Assert.assertEquals(f.request("Bearer VALID", Map.of(), "101", f.processor::detail).getInt("status"), 403);
+            Assert.assertTrue(f.sql.isEmpty());
+            f.scope = "content.read";
+            var list = f.request("Bearer VALID", Map.of("size", "1"), null, f.processor::list);
+            Assert.assertEquals(list.getInt("status"), 200);
+            Assert.assertEquals(ids(list.getJSONObject("data")), List.of("101"));
             Assert.assertEquals(f.request("Bearer VALID",Map.of(),"101",f.processor::detail).getJSONObject("data").getString("id"),"101");
             Assert.assertEquals(f.request("Bearer VALID",Map.of("radius","1"),"101",f.processor::context).getJSONObject("data").getString("anchorId"),"101");
             Assert.assertEquals(f.request("Bearer VALID",Map.of("before","bad"),null,f.processor::list).getInt("status"),422);
             Assert.assertEquals(f.request("Bearer VALID",Map.of("before","101","after","101"),null,f.processor::list).getInt("status"),422);
             Assert.assertEquals(f.request("Bearer VALID",Map.of(),"999",f.processor::detail).getInt("status"),404);
-            f.unavailable=true;Assert.assertEquals(f.request("Bearer VALID",Map.of(),null,f.processor::list).getInt("status"),500);
+            f.unavailable = true;
+            Assert.assertEquals(f.request("Bearer VALID", Map.of(), null, f.processor::list).getInt("status"), 500);
         }
         System.out.println("PASS actual Bearer/scope middleware, controller, request parsing and SQL chain rejects Cookie/apiKey fallback and returns controlled 401/403/422/404/500 errors");
         try(var f=new Fixture()){
             org.b3log.symphony.processor.channel.ChatroomChannel.discussing="聊聊 <T> 与 emoji 😀";
             org.b3log.symphony.processor.ChatroomProcessor.setBarragerPrice(7,"测试单位");
             var topic=f.request("Bearer VALID",Map.of(),null,f.processor::topic).getJSONObject("data");
-            Assert.assertEquals(topic.keySet(),Set.of("text"));Assert.assertEquals(topic.getString("text"),"聊聊 <T> 与 emoji 😀");
+            Assert.assertEquals(topic.keySet(), Set.of("text"));
+            Assert.assertEquals(topic.getString("text"), "聊聊 <T> 与 emoji 😀");
             var price=f.request("Bearer VALID",Map.of(),null,f.processor::barragerPrice).getJSONObject("data");
-            Assert.assertEquals(price.keySet(),Set.of("amount","unit"));Assert.assertEquals(price.getInt("amount"),7);Assert.assertEquals(price.getString("unit"),"测试单位");
+            Assert.assertEquals(price.keySet(), Set.of("amount", "unit"));
+            Assert.assertEquals(price.getInt("amount"), 7);
+            Assert.assertEquals(price.getString("unit"), "测试单位");
             for(var handler:List.<Consumer<RequestContext>>of(f.processor::topic,f.processor::barragerPrice)){
                 Assert.assertEquals(f.request(null,Map.of("apiKey","legacy"),null,handler).getInt("status"),401);
-                f.scope="profile.read";Assert.assertEquals(f.request("Bearer VALID",Map.of(),null,handler).getInt("status"),403);f.scope="content.read";
+                f.scope = "profile.read";
+                Assert.assertEquals(f.request("Bearer VALID", Map.of(), null, handler).getInt("status"), 403);
+                f.scope = "content.read";
             }
             Assert.assertTrue(f.sql.isEmpty());
             f.currentTopic=new org.b3log.symphony.util.ChatTopicValue("持久话题","Author",17);
             Assert.assertEquals(f.request("Bearer VALID",Map.of(),null,f.processor::topic).getJSONObject("data").getString("text"),"持久话题");
-            f.topicFailure=true;Assert.assertEquals(f.request("Bearer VALID",Map.of(),null,f.processor::topic).getInt("status"),500);
+            f.topicFailure = true;
+            Assert.assertEquals(f.request("Bearer VALID", Map.of(), null, f.processor::topic).getInt("status"), 500);
         } finally {
             org.b3log.symphony.processor.channel.ChatroomChannel.discussing="暂无";
             org.b3log.symphony.processor.ChatroomProcessor.setBarragerPrice(5,"积分");

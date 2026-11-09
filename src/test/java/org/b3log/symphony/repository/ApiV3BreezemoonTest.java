@@ -40,11 +40,17 @@ public class ApiV3BreezemoonTest {
         Assert.assertEquals(ApiV3BreezemoonInputs.content(new JSONObject().put("content", "  测试\n[链接](https://example.test)  ")), "测试\n[链接](https://example.test)");
         Assert.assertEquals(ApiV3BreezemoonInputs.content(new JSONObject().put("content", "x".repeat(512))).length(), 512);
         for (final Object value : new Object[]{"", " ", "x".repeat(513), 123, JSONObject.NULL, "a\u0001b"}) {
-            try { ApiV3BreezemoonInputs.content(new JSONObject().put("content", value)); Assert.fail("Invalid content accepted"); }
+            try {
+                ApiV3BreezemoonInputs.content(new JSONObject().put("content", value));
+                Assert.fail("Invalid content accepted");
+            }
             catch (final ApiV3Exception expected) { Assert.assertEquals(expected.status, 422); }
         }
         Assert.assertEquals(ApiV3BreezemoonInputs.publishable("<b>正文</b>"), "正文");
-        try { ApiV3BreezemoonInputs.publishable("<script>alert(1)</script>"); Assert.fail(); } catch (final ApiV3Exception expected) { }
+        try {
+            ApiV3BreezemoonInputs.publishable("<script>alert(1)</script>");
+            Assert.fail();
+        } catch (final ApiV3Exception expected) { }
         System.out.println("PASS content type/length/control checks and legacy publish HTML stripping");
         Assert.assertEquals(ApiV3BreezemoonInputs.editable("  <b>编辑</b>  "), "<b>编辑</b>");
         final JSONObject old = new JSONObject().put("oId", "id").put(Breezemoon.BREEZEMOON_AUTHOR_ID, "owner")
@@ -52,17 +58,26 @@ public class ApiV3BreezemoonTest {
                 .put(Breezemoon.BREEZEMOON_CITY, "city").put(Breezemoon.BREEZEMOON_CONTENT, "old");
         final JSONObject edit = ApiV3BreezemoonEdit.apply(old, "new", "test-ip", "a".repeat(300), 3, 255);
         Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_AUTHOR_ID), "owner");
-        Assert.assertEquals(edit.getLong(Breezemoon.BREEZEMOON_CREATED), 1); Assert.assertEquals(edit.getInt(Breezemoon.BREEZEMOON_STATUS), 1);
-        Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_CITY), "city"); Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_UA).length(), 255);
-        Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_CONTENT), "new"); Assert.assertEquals(edit.getLong(Breezemoon.BREEZEMOON_UPDATED), 3);
-        Assert.assertEquals(old.getString(Breezemoon.BREEZEMOON_CONTENT), "old"); Assert.assertEquals(old.getLong(Breezemoon.BREEZEMOON_UPDATED), 2);
+        Assert.assertEquals(edit.getLong(Breezemoon.BREEZEMOON_CREATED), 1);
+        Assert.assertEquals(edit.getInt(Breezemoon.BREEZEMOON_STATUS), 1);
+        Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_CITY), "city");
+        Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_UA).length(), 255);
+        Assert.assertEquals(edit.getString(Breezemoon.BREEZEMOON_CONTENT), "new");
+        Assert.assertEquals(edit.getLong(Breezemoon.BREEZEMOON_UPDATED), 3);
+        Assert.assertEquals(old.getString(Breezemoon.BREEZEMOON_CONTENT), "old");
+        Assert.assertEquals(old.getLong(Breezemoon.BREEZEMOON_UPDATED), 2);
         System.out.println("PASS edit preserves author/creation/city/status and leaves the original untouched");
         final var field = Latkes.class.getDeclaredField("localProps");
         field.setAccessible(true);
         final Object original = field.get(null);
         final Properties props = new Properties(); props.setProperty("runtimeDatabase", "NONE");
         final Rows repo;
-        try { field.set(null, props); repo = new Rows(); } finally { field.set(null, original); }
+        try {
+            field.set(null, props);
+            repo = new Rows();
+        } finally {
+            field.set(null, original);
+        }
         try (final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
             repo.db = db;
             db.createStatement().execute("CREATE TABLE users(oId TEXT PRIMARY KEY,userStatus INTEGER,userBreezemoonStatus INTEGER)");
@@ -70,7 +85,8 @@ public class ApiV3BreezemoonTest {
             db.createStatement().execute("INSERT INTO users VALUES('public',0,0),('private',0,1),('blocked',1,0),('deactivated',4,0)");
             db.createStatement().execute("INSERT INTO breezemoon VALUES('1','public',0),('2','public',0),('3','private',0),('4','blocked',0),('5','deactivated',0),('6','public',1)");
             final var first = repo.getV3Page("users", null, 1, 1, 1, 4, 0);
-            Assert.assertEquals(first.total(), 2L); Assert.assertEquals(first.rows().getFirst().getString("oId"), "2");
+            Assert.assertEquals(first.total(), 2L);
+            Assert.assertEquals(first.rows().getFirst().getString("oId"), "2");
             Assert.assertEquals(repo.getV3Page("users", null, 2, 1, 1, 4, 0).rows().getFirst().getString("oId"), "1");
             Assert.assertTrue(repo.getV3Page("users", null, 3, 1, 1, 4, 0).rows().isEmpty());
             Assert.assertEquals(repo.getV3Page("users", "private", 1, 20, 1, 4, 0).total(), 1L);
@@ -79,12 +95,16 @@ public class ApiV3BreezemoonTest {
             db.createStatement().execute("CREATE TABLE follows(followerId TEXT,followingId TEXT,followingType INTEGER)");
             db.createStatement().execute("INSERT INTO follows VALUES('reader','public',0),('reader','public',0),('reader','private',0),('reader','blocked',0),('reader','deactivated',0),('reader','unused-tag',1),('other','private',0)");
             final var following = repo.getV3FollowingPage("users", "follows", "reader", 1, 1, 1, 4, 0);
-            Assert.assertEquals(following.total(), 2L); Assert.assertEquals(following.rows().getFirst().getString("oId"), "2");
+            Assert.assertEquals(following.total(), 2L);
+            Assert.assertEquals(following.rows().getFirst().getString("oId"), "2");
             Assert.assertEquals(repo.getV3FollowingPage("users", "follows", "reader", 2, 1, 1, 4, 0).rows().getFirst().getString("oId"), "1");
             Assert.assertEquals(repo.getV3FollowingPage("users", "follows", "no-follows", 1, 20, 1, 4, 0).total(), 0L);
             Assert.assertEquals(repo.getV3FollowingPage("users", "follows", "reader' OR 1=1 --", 1, 20, 1, 4, 0).total(), 0L);
             System.out.println("PASS following feed privacy/status/type, deduplication, paging, owner binding and no fallback");
-            try { repo.getOwnedForUpdate("public", "1"); Assert.fail(); } catch (final IllegalStateException expected) { }
+            try {
+                repo.getOwnedForUpdate("public", "1");
+                Assert.fail();
+            } catch (final IllegalStateException expected) { }
             db.setAutoCommit(false);
             Assert.assertNotNull(repo.getForUpdate("1"));
             Assert.assertNotNull(repo.getOwnedForUpdate("public", "1"));

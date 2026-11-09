@@ -286,7 +286,9 @@ public final class ApiV3ClientManagementTest {
         System.out.println("PASS 8 stored DTO validates bounded fields, scope/status enums and callback shape, rejects credential-bearing/bad records and preserves valid URI case/query byte-for-byte");
         try(var f=new Fixture()){
             var callbacks=new JSONArray();for(int i=0;i<20;i++)callbacks.put("https://app.example/cb/"+i);
-            var payload=new JSONObject(body()).put("redirectUris",callbacks);var result=data(f.post(payload.toString(),"twenty"));equal(result.getJSONArray("redirectUris").length(),20);
+            var payload = new JSONObject(body()).put("redirectUris", callbacks);
+            var result = data(f.post(payload.toString(), "twenty"));
+            equal(result.getJSONArray("redirectUris").length(), 20);
             String before=f.snapshot();callbacks.put("https://app.example/cb/20");equal(f.post(payload.toString(),"too-many").getInt("status"),422);equal(f.snapshot(),before);
             String base="https://app.example/";String longest=base+"x".repeat(2048-base.length());
             equal(data(f.post(new JSONObject(body()).put("redirectUris",new JSONArray().put(longest)).toString(),"longest")).getJSONArray("redirectUris").getString(0),longest);
@@ -295,7 +297,11 @@ public final class ApiV3ClientManagementTest {
         }
         System.out.println("PASS 9 user-approved 20 callbacks/2048 URI boundary enforced before mutation, 21 and 2049 rejected; development loopback remains valid and exact");
         try(var f=new Fixture()){
-            f.faults.add("commit.after");denied(503,()->f.create("ack"));var persisted=query(f.reader,"SELECT clientId FROM clients WHERE clientId LIKE 'app_%'");equal(persisted.size(),1);equal(query(f.reader,"SELECT * FROM requests").size(),1);
+            f.faults.add("commit.after");
+            denied(503, () -> f.create("ack"));
+            var persisted = query(f.reader, "SELECT clientId FROM clients WHERE clientId LIKE 'app_%'");
+            equal(persisted.size(), 1);
+            equal(query(f.reader, "SELECT * FROM requests").size(), 1);
             var id=persisted.getFirst().getString("clientId");exec(f.writer,"UPDATE clients SET name='Later change' WHERE clientId=?",id);
             var replay=f.create("ack");equal(replay.getString("clientId"),id);equal(replay.getString("name"),"App <name>");equal(query(f.reader,"SELECT name FROM clients WHERE clientId=?",id).getFirst().getString("name"),"Later change");equal(query(f.reader,"SELECT clientId FROM clients WHERE clientId LIKE 'app_%'").size(),1);
         }

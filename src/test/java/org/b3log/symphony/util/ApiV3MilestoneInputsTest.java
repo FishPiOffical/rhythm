@@ -43,7 +43,11 @@ public class ApiV3MilestoneInputsTest {
                 valid().put("mediaURL", "https://example.test/x"), valid().put("mediaType", "audio"), valid().put("link", "javascript:alert(1)"),
                 valid().put("link", "//example.test/x"), valid().put("link", "https://user:pass@example.test/"), valid().put("link", "https://example.test/\\x"),
                 valid().put("content", "x\u0001y"), valid().put("title", "x\ny"), valid().put("status", "approved"), valid().put("authorId", "other"), valid().put("content", 1))) {
-            try { ApiV3MilestoneInputs.normalize(input); Assert.fail(input.toString()); } catch (final ApiV3Exception expected) { }
+            try {
+                ApiV3MilestoneInputs.normalize(input);
+                Assert.fail(input.toString());
+            } catch (final ApiV3Exception expected) {
+            }
         }
         System.out.println("PASS typed Markdown inputs, storage lengths, strict calendar, interval, metadata and safe URLs");
         final Configuration config = new Configuration();
@@ -58,14 +62,17 @@ public class ApiV3MilestoneInputsTest {
                     while (expressions.find()) {
                         final var out = new StringWriter();
                         new Template("value", new StringReader(expressions.group()), config).process(Map.of("milestone", Map.of("milestoneTitle", payload, "milestoneContent", payload, "milestoneMediaCaption", payload, "milestoneLink", payload, "milestoneMediaUrl", payload)), out);
-                        Assert.assertFalse(out.toString().contains("<img")); Assert.assertFalse(out.toString().contains("</textarea>")); checked++;
+                        Assert.assertFalse(out.toString().contains("<img"));
+                        Assert.assertFalse(out.toString().contains("</textarea>"));
+                        checked++;
                     }
                     Assert.assertTrue(checked > 0);
                 } else {
                     for (final String expression : List.of("${e.title?html?js_string}", "${e.media.caption?html?js_string}")) {
                         Assert.assertTrue(source.contains(expression));
                         final var out = new StringWriter(); new Template("timeline", new StringReader(expression), config).process(Map.of("e", Map.of("title", payload, "media", Map.of("caption", payload))), out);
-                        Assert.assertFalse(out.toString().contains("<img")); Assert.assertFalse(out.toString().contains("</script>"));
+                        Assert.assertFalse(out.toString().contains("<img"));
+                        Assert.assertFalse(out.toString().contains("</script>"));
                     }
                 }
             }
