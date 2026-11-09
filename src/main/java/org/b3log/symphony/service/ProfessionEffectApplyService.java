@@ -85,64 +85,55 @@ public class ProfessionEffectApplyService {
         if (null == claim) {
             return;
         }
-        final NotificationKind notificationKind = notificationKind(effectId);
         final Transaction transaction = ApiV3Transactions.strict(effectRepository.beginTransaction());
-        JSONObject appliedEffect = null;
+        JSONObject effect;
+        NotificationKind kind;
         try {
             final long now = System.currentTimeMillis();
-            final JSONObject effect = effectExecutionService.lockClaimed(claim);
+            effect = effectExecutionService.lockClaimed(claim);
             if (null == effect) {
                 transaction.commit();
                 return;
             }
+            kind = notificationKind(effect);
             final JSONObject summary = summaryForUpdate(effect, now);
             final ApplyContext context = applyContext(effect, summary, now);
             rewardGrantService.grantCrossed(effect, context.crossedLevels(), now);
             updateSummary(context);
-            if (notificationKind == NotificationKind.OTHER) {
+            if (kind == NotificationKind.OTHER) {
                 updateContribution(context);
             }
             updateEffect(context);
             privacyMgmtService.touchProgressInCurrentTransaction(
                     effect.getString(ProfessionEventEffect.USER_ID), now);
             transaction.commit();
-            appliedEffect = effect;
         } catch (final Exception e) {
             retry(claim, transaction, e);
+            return;
         }
-        if (null != appliedEffect && notificationKind == NotificationKind.NOTIFICATION) {
-            sendNotification(effectId, appliedEffect);
+        if (kind == NotificationKind.NOTIFICATION) {
+            sendNotification(effectId, effect);
         }
     }
 
-    private NotificationKind notificationKind(final String effectId) {
-        JSONObject effect = null;
-        try {
-            effect = effectRepository.get(effectId);
-            if (null == effect) {
-                throw new IllegalStateException("职业效果不存在");
-            }
-            return notificationService.isNotificationEffect(effect) ? NotificationKind.NOTIFICATION : NotificationKind.OTHER;
-        } catch (final Throwable failure) {
-            logNotificationFailure(effectId, effect, failure);
-            return NotificationKind.UNKNOWN;
-        }
+    private NotificationKind notificationKind(final JSONObject effect) throws RepositoryException {
+        return notificationService.isNotificationEffect(effect) ? NotificationKind.NOTIFICATION : NotificationKind.OTHER;
     }
 
     private void sendNotification(final String effectId, final JSONObject effect) {
         try {
             notificationService.send(effect);
-        } catch (final Throwable failure) {
+        } catch (final Exception failure) {
             logNotificationFailure(effectId, effect, failure);
         }
     }
 
-    private void logNotificationFailure(final String effectId, final JSONObject effect, final Throwable failure) {
+    private void logNotificationFailure(final String effectId, final JSONObject effect, final Exception failure) {
         LOGGER.warn("职业通知处理失败 [effectId={}, eventKey={}, error={}]", effectId,
                 null == effect ? "" : effect.optString(ProfessionEventEffect.EVENT_KEY), failure.toString());
     }
 
-    private enum NotificationKind { NOTIFICATION, OTHER, UNKNOWN }
+    private enum NotificationKind { NOTIFICATION, OTHER }
 
     private ApplyContext applyContext(final JSONObject effect, final JSONObject summary, final long now)
             throws RepositoryException {

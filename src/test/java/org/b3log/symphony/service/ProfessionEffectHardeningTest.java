@@ -32,6 +32,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -69,21 +70,49 @@ public class ProfessionEffectHardeningTest {
 
     @Test(timeOut = 60000)
     public void notificationFailureDoesNotRetryCommittedEffect() throws Exception {
-        for (final String scenario : List.of("notification", "classification", "other", "business")) {
+        for (final String scenario : List.of("notification", "classification", "other", "business", "commit")) {
             final Fixture fixture = new Fixture(scenario);
             fixture.run();
-            if ("business".equals(scenario)) {
+            Assert.assertEquals(fixture.classifications, 1);
+            Assert.assertEquals(fixture.unlockedReads, 0);
+            if (List.of("classification", "business", "commit").contains(scenario)) {
                 Assert.assertEquals(fixture.retries, 1);
                 Assert.assertFalse(fixture.committed);
+                Assert.assertTrue(fixture.rolledBack);
                 Assert.assertEquals(fixture.sends, 0);
+                Assert.assertNotEquals(fixture.persistedStatus, "APPLIED");
+                if ("classification".equals(scenario)) {
+                    Assert.assertEquals(fixture.effect.optString("status"), "PENDING_APPLY");
+                    Assert.assertEquals(fixture.effectUpdates, 0);
+                    Assert.assertEquals(fixture.contributions, 0);
+                }
             } else {
                 Assert.assertEquals(fixture.retries, 0);
                 Assert.assertTrue(fixture.committed);
+                Assert.assertFalse(fixture.rolledBack);
                 Assert.assertEquals(fixture.effect.getString("status"), "APPLIED");
+                Assert.assertEquals(fixture.persistedStatus, "APPLIED");
                 Assert.assertEquals(fixture.contributions, "other".equals(scenario) ? 1 : 0);
                 Assert.assertEquals(fixture.sends, "notification".equals(scenario) ? 1 : 0);
             }
         }
+    }
+
+    @Test(timeOut = 60000)
+    public void notificationErrorPropagatesAfterCommit() throws Exception {
+        final Fixture fixture = new Fixture("notificationError");
+        try {
+            fixture.run();
+            Assert.fail("Error must propagate");
+        } catch (final InvocationTargetException expected) {
+            Assert.assertTrue(expected.getCause() instanceof LinkageError);
+        }
+        Assert.assertTrue(fixture.committed);
+        Assert.assertFalse(fixture.rolledBack);
+        Assert.assertEquals(fixture.persistedStatus, "APPLIED");
+        Assert.assertEquals(fixture.retries, 0);
+        Assert.assertEquals(fixture.sends, 1);
+        Assert.assertEquals(fixture.contributions, 0);
     }
 
     @Test(timeOut = 60000)
@@ -146,27 +175,32 @@ public class ProfessionEffectHardeningTest {
         final String scenario;
         final JSONObject effect = row("1", "event", "source", 1, 10).put("professionId", "profession")
                 .put("professionRevisionId", "revision").put("levelSchemeId", "scheme")
-                .put("actionCode", "action").put("occurredAt", 1L).put("reversesEffectId", "");
+                .put("actionCode", "action").put("occurredAt", 1L).put("reversesEffectId", "")
+                .put("status", "PENDING_APPLY");
         final JSONObject summary = new JSONObject().put("oId", "2").put("levelSchemeId", "scheme")
                 .put("professionRevisionId", "revision").put("totalExperience", 0L)
                 .put("currentLevelCode", "L1").put("highestReachedExperience", 0L).put("dataVersion", 0L);
         final ProfessionEffectApplyService service = new ProfessionEffectApplyService();
-        boolean committed;
-        int retries, sends, contributions;
+        boolean committed, rolledBack;
+        String persistedStatus = "PENDING_APPLY";
+        int retries, sends, contributions, classifications, unlockedReads, effectUpdates;
 
         Fixture(final String scenario) throws Exception {
             this.scenario = scenario;
             inject(service, "effectRepository", new ProfessionEventEffectRepository() {
-                @Override public JSONObject get(final String id) { return effect; }
+                @Override public JSONObject get(final String id) { unlockedReads++; return effect; }
                 @Override public Transaction beginTransaction() {
                     return new Transaction() {
                         boolean active = true;
-                        @Override public void commit() { committed = true; active = false; }
-                        @Override public void rollback() { active = false; }
+                        @Override public void commit() {
+                            if ("commit".equals(scenario)) throw new IllegalStateException("commit failure");
+                            persistedStatus = effect.getString("status"); committed = true; active = false;
+                        }
+                        @Override public void rollback() { rolledBack = true; active = false; }
                         @Override public boolean isActive() { return active; }
                     };
                 }
-                @Override public void update(final String id, final JSONObject value, final String... fields) { }
+                @Override public void update(final String id, final JSONObject value, final String... fields) { effectUpdates++; }
             });
             inject(service, "effectExecutionService", new ProfessionEffectExecutionService() {
                 @Override public Claim claim(final String id) { return new Claim(id, 1); }
@@ -175,12 +209,15 @@ public class ProfessionEffectHardeningTest {
             });
             inject(service, "notificationService", new ProfessionAutomationNotificationService() {
                 @Override public boolean isNotificationEffect(final JSONObject value) throws RepositoryException {
+                    classifications++;
                     if ("classification".equals(scenario)) throw new RepositoryException("classification failure");
-                    return "notification".equals(scenario);
+                    return "notification".equals(scenario) || "notificationError".equals(scenario);
                 }
                 @Override public void send(final JSONObject value) {
                     Assert.assertTrue(committed, "notification must run after commit");
-                    sends++; throw new AssertionError("notification failure");
+                    sends++;
+                    if ("notificationError".equals(scenario)) throw new LinkageError("notification error");
+                    throw new IllegalStateException("notification failure");
                 }
             });
             inject(service, "userProfessionRepository", new UserProfessionRepository() {
