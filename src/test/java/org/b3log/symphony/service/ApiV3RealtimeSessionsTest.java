@@ -134,11 +134,37 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(chat.sent.get(1).getJSONObject("data").keySet(),Set.of("channel","expiresAt"));
             Assert.assertEquals(chat.sent.get(1).getJSONObject("data").getString("channel"),"chat");Assert.assertEquals(f.registry.owners(),Set.of("321"));Assert.assertEquals(f.registry.articleIds(),Set.of("789"));
             f.registry.chatSyncRequired();Assert.assertEquals(chat.sent.getLast().getString("type"),"chat.sync_required");Assert.assertEquals(chat.sent.getLast().getJSONObject("data").length(),0);
-            f.registry.chatChanged("created","789",1);var event=chat.sent.getLast();Assert.assertEquals(event.getString("type"),"chat.message.created");Assert.assertEquals(event.getJSONObject("data").toString(),new JSONObject().put("messageId","789").put("revision","1").toString());
+            var stored = new JSONObject().put("userOId","123").put("userName","sender").put("userNickname","昵称")
+                    .put("userAvatarURL","https://fishpi.cn/avatar.png").put("content","hello").put("userPhone","PRIVATE")
+                    .put("appearance",new JSONObject().put("version",1).put("bubbleId","candy").put("frameId","gold"));
+            var snapshot = org.b3log.symphony.util.ApiV3ChatMessageDto.from(
+                    new JSONObject().put("oId","789").put("content",stored.toString()), text -> "<p>"+text+"</p>");
+            f.registry.chatChanged("created","789",1,snapshot);
+            var event=chat.sent.getLast();
+            Assert.assertEquals(event.getString("type"),"chat.message.created");
+            var data=event.getJSONObject("data");
+            Assert.assertEquals(data.keySet(),Set.of("messageId","revision","message"));
+            Assert.assertEquals(data.getString("messageId"),"789");
+            Assert.assertEquals(data.getString("revision"),"1");
+            Assert.assertTrue(data.getJSONObject("message").similar(snapshot));
+            Assert.assertEquals(data.getJSONObject("message").getJSONObject("author").getString("userName"),"sender");
+            Assert.assertEquals(data.getJSONObject("message").getString("contentHtml"),"<p>hello</p>");
+            Assert.assertEquals(data.getJSONObject("message").getJSONObject("appearance").getString("frameId"),"gold");
+            Assert.assertFalse(event.toString().contains("PRIVATE"));
+            Assert.assertTrue(duplicate.sent.getLast().similar(event));
+            Assert.assertEquals(pending.sent.size(),1);
+            f.registry.chatChanged("deleted","789",2,snapshot);
+            Assert.assertEquals(chat.sent.getLast().getJSONObject("data").keySet(),Set.of("messageId","revision"));
+            f.registry.chatChanged("updated","987",3,snapshot);
+            Assert.assertFalse(chat.sent.getLast().getJSONObject("data").has("message"));
+            f.registry.chatChanged("updated","789",4,new JSONObject(snapshot.toString()).put("content","鱼".repeat(100_000)));
+            Assert.assertFalse(chat.sent.getLast().getJSONObject("data").has("message"));
             Assert.assertEquals(article.sent.size(),2);Assert.assertEquals(notifications.sent.size(),2);
             int before=chat.sent.size();f.registry.notificationsChanged("123");f.registry.articleChanged("789");Assert.assertEquals(chat.sent.size(),before);
             f.registry.closeChat();Assert.assertTrue(chat.closed);Assert.assertFalse(article.closed);Assert.assertFalse(notifications.closed);Assert.assertFalse(f.registry.hasChat());
-            var replacement=f.chat("replacement");write("UPDATE symphony_api_v3_token SET state=2 WHERE oId='456'");Assert.assertTrue(f.registry.chatUserIds().isEmpty());Assert.assertTrue(replacement.closed);Assert.assertFalse(f.registry.hasChat());
+            var replacement=f.chat("replacement");write("UPDATE symphony_api_v3_token SET state=2 WHERE oId='456'");
+            f.registry.chatChanged("created","789",5,snapshot);Assert.assertEquals(replacement.sent.size(),2);
+            Assert.assertTrue(f.registry.chatUserIds().isEmpty());Assert.assertTrue(replacement.closed);Assert.assertFalse(f.registry.hasChat());
         }
         try(var f=new Live()){
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");

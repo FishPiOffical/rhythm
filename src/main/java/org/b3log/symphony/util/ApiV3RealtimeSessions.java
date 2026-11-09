@@ -124,22 +124,28 @@ public final class ApiV3RealtimeSessions {
             }catch(Exception e){remove(c);}finally{c.lock.unlock();}
         }
     }
-    public void chatChanged(String kind,String messageId,long revision){
+    public void chatChanged(String kind,String messageId,long revision,JSONObject snapshot){
         if(!ApiV3ChatEvent.validChange(kind,messageId)||revision<1)throw new IllegalArgumentException("invalid chat change");
         if(ApiV3ChatEvent.TOPIC.equals(kind)){
             broadcastChat("chat.topic_changed",new JSONObject().put("revision",Long.toString(revision)));
             return;
         }
-        broadcastChat("chat.message."+kind,new JSONObject().put("messageId",messageId).put("revision",Long.toString(revision)));
+        final JSONObject data=new JSONObject().put("messageId",messageId).put("revision",Long.toString(revision));
+        if(snapshot!=null&&(ApiV3ChatEvent.CREATED.equals(kind)||ApiV3ChatEvent.UPDATED.equals(kind))
+                &&messageId.equals(snapshot.optString("id"))&&snapshot.toString().getBytes(StandardCharsets.UTF_8).length<=256*1024){
+            data.put("message",snapshot);
+        }
+        broadcastChat("chat.message."+kind,data);
     }
     public void chatBarrage(final ApiV3BarrageEvent event){broadcastChat("chat.barrager",event.dto());}
     public void chatSyncRequired(){broadcastChat("chat.sync_required",new JSONObject());}
     private void broadcastChat(String type,JSONObject data){
+        final String frame=new JSONObject().put("type",type).put("data",data).toString();
         for(Connection c:chat){
             c.lock.lock();try{
                 if(c.closed||c.grant==null||!ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()))continue;
                 if(!valid(c)){remove(c);continue;}
-                c.transport.send(new JSONObject().put("type",type).put("data",data).toString());
+                c.transport.send(frame);
             }catch(Exception e){remove(c);}finally{c.lock.unlock();}
         }
     }

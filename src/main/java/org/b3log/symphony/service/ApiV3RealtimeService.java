@@ -21,6 +21,10 @@ package org.b3log.symphony.service;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.latke.repository.RepositoryException;
+import org.b3log.symphony.model.ApiV3ChatEvent;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.json.JSONObject;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3RealtimeSessions;
 import org.b3log.symphony.util.Firewall;
@@ -43,6 +47,7 @@ public class ApiV3RealtimeService {
     @Inject private ApiV3ArticleRevisionRepository articleRevisions;
     @Inject private ApiV3PrivateRevisionRepository privateRevisions;
     @Inject private ApiV3ChatEventRepository chatEvents;
+    @Inject private ApiV3ChatQueryService chatQuery;
     @Inject private ChatTopicDeliveryService topicDelivery;
     private ApiV3ChatStream chatStream;
     private final ThreadPoolExecutor workers=new ThreadPoolExecutor(4,4,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(256),
@@ -154,10 +159,22 @@ public class ApiV3RealtimeService {
             public long head()throws Exception{return chatEvents.head();}
             public java.util.List<org.json.JSONObject> after(long revision,long through,int limit)throws Exception{return chatEvents.after(revision,through,limit);}
         },new ApiV3ChatStream.Sink(){
-            public void changed(String kind,String id,long revision){sessions.chatChanged(kind,id,revision);}
+            public void changed(String kind,String id,long revision){
+                sessions.chatChanged(kind,id,revision,chatSnapshot(kind,id));
+            }
             public void syncRequired(){sessions.chatSyncRequired();}
         });
         chatStream.poll();
+    }
+    /** Read the same whitelist as the content.read detail endpoint once per committed event on this node. */
+    private JSONObject chatSnapshot(final String kind, final String id) {
+        if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind)) return null;
+        try {
+            return chatQuery.detail(id);
+        } catch (RepositoryException | ApiV3Exception unavailable) {
+            // A later deletion or temporary read failure leaves only the reconciliation hint.
+            return null;
+        }
     }
     public int cleanupChatEvents()throws Exception {
         tickets.requireNoTransaction();int removed=0;
