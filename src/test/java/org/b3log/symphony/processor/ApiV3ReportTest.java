@@ -31,7 +31,7 @@ import io.netty.handler.codec.http.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real SQL projection and real Dispatcher/auth/controller; no running server or MySQL. */
+/** 执行实际 SQL 投影、Dispatcher、鉴权和控制器，测试范围限于隔离环境。 */
 public class ApiV3ReportTest {
     static void inject(Object target,String key,Object value)throws Exception{var f=target.getClass().getDeclaredField(key);f.setAccessible(true);f.set(target,value);}
     static class Fixture implements AutoCloseable {

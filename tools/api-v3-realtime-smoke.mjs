@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-/** Run after confirmed IDEA rebuild/restart and socket-ticket schema installation.
- * API_V3_TOKEN needs notifications.read; API_V3_NO_NOTIFICATION_SCOPE_TOKEN optionally tests 403.
- * Default: denial checks. API_V3_ALLOW_REALTIME_CONNECT=1 explicitly issues grants and opens sockets.
- * API_V3_REALTIME_ARTICLE_ID optionally checks article tickets using API_V3_ARTICLE_TOKEN (or API_V3_TOKEN).
- * API_V3_REALTIME_CHAT=1 checks chat tickets using API_V3_CHAT_TOKEN (or API_V3_TOKEN).
- * API_V3_REALTIME_MESSAGES=1 checks private tickets using API_V3_MESSAGES_TOKEN (or API_V3_TOKEN).
- * No notification/content mutations; event changes must be triggered manually. Never print credentials or raw responses.
+/** 确认 IDEA 重新编译或重启并安装连接票据表结构后运行。
+ * API_V3_TOKEN 需要 notifications.read。可选的 API_V3_NO_NOTIFICATION_SCOPE_TOKEN 用于验证 403。
+ * 默认只验证拒绝路径，API_V3_ALLOW_REALTIME_CONNECT=1 才会签发票据并建立连接。
+ * API_V3_REALTIME_ARTICLE_ID 可选验证文章票据，凭据取 API_V3_ARTICLE_TOKEN 或 API_V3_TOKEN。
+ * API_V3_REALTIME_CHAT=1 验证聊天室票据，凭据取 API_V3_CHAT_TOKEN 或 API_V3_TOKEN。
+ * API_V3_REALTIME_MESSAGES=1 验证私信票据，凭据取 API_V3_MESSAGES_TOKEN 或 API_V3_TOKEN。
+ * 通知和内容事件需人工触发，日志禁止输出凭据或原始响应。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;let failures=0;

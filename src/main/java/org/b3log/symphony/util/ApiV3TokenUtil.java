@@ -24,7 +24,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.regex.Pattern;
 
-/** Stateless helpers; persisted credentials are always SHA-256 hashes. */
+/** 生成和校验 v3 令牌，持久化凭据只使用 SHA-256 哈希。 */
 public final class ApiV3TokenUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_-]{43,256}");
@@ -42,7 +42,7 @@ public final class ApiV3TokenUtil {
         return null != token && TOKEN.matcher(token).matches();
     }
 
-    /** Cookie Max-Age and token response durations both use seconds. */
+    /** Cookie Max-Age 和令牌响应中的有效时长都以秒为单位。 */
     public static int cookieMaxAgeSeconds(final long seconds) {
         return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, seconds));
     }

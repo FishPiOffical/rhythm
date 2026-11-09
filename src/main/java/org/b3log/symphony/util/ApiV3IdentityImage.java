@@ -44,7 +44,9 @@ public final class ApiV3IdentityImage {
             for(int i=0;i<end.length;i++)if(input[input.length-end.length+i]!=end[i])throw ApiV3WriteInputs.invalid();}
         if(!DECODERS.tryAcquire())throw new ApiV3Exception(503,"temporarily_unavailable","图片解析繁忙，请稍后重试");
         try(var stream=new MemoryCacheImageInputStream(new ByteArrayInputStream(input))) {
-            final var readers=ImageIO.getImageReaders(stream);if(!readers.hasNext())throw ApiV3WriteInputs.invalid();
+            final var readers = ImageIO.getImageReaders(stream);
+            if (!readers.hasNext())
+                throw ApiV3WriteInputs.invalid();
             final var reader=readers.next();
             try {
                 final String format=reader.getFormatName().toLowerCase(Locale.ROOT);
@@ -56,7 +58,10 @@ public final class ApiV3IdentityImage {
                 if((long)width*height>50_000_000L)throw new ApiV3Exception(503,"temporarily_unavailable","图片解析资源不足，请稍后重试或使用较小尺寸图片");
                 final var parameters=reader.getDefaultReadParam();
                 final int sample=Math.max(1,(Math.max(width,height)+255)/256);parameters.setSourceSubsampling(sample,sample,0,0);
-                final var decoded=reader.read(0,parameters);if(decoded==null)throw ApiV3WriteInputs.invalid();decoded.flush();
+                final var decoded = reader.read(0, parameters);
+                if (decoded == null)
+                    throw ApiV3WriteInputs.invalid();
+                decoded.flush();
             } finally {reader.dispose();}
             return new Image(input.clone(),mediaType,hash(input));
         } catch(ApiV3Exception error){throw error;}

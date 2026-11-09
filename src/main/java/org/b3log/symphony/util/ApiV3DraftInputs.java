@@ -24,18 +24,21 @@ import org.b3log.symphony.model.LongArticleColumn;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Draft request DTO; unfinished drafts retain the existing editor's content rules. */
+/** 草稿请求字段，未完成的草稿沿用编辑器的内容规则。 */
 public final class ApiV3DraftInputs {
     private ApiV3DraftInputs() { }
     public static final Set<String> FIELDS = Set.of("title", "content", "thoughtContent", "tags", "type", "columnId", "columnTitle",
             "chapterNo", "rewardContent", "rewardPoint", "qnaOfferPoint", "commentable", "anonymous", "notifyFollowers", "showInList", "statement");
 
     public static JSONObject normalize(final JSONObject body) {
-        if (!FIELDS.containsAll(body.keySet())) throw ApiV3WriteInputs.invalid();
+        if (!FIELDS.containsAll(body.keySet()))
+            throw ApiV3WriteInputs.invalid();
         final int type = ApiV3WriteInputs.integer(body, "type", Article.ARTICLE_TYPE_C_NORMAL, 0, Article.ARTICLE_TYPE_C_LONG);
-        if (Article.isInvalidArticleType(type)) throw ApiV3WriteInputs.invalid();
+        if (Article.isInvalidArticleType(type))
+            throw ApiV3WriteInputs.invalid();
         final String columnId = ApiV3WriteInputs.string(body, "columnId", ArticleDraft.MAX_COLUMN_ID_LENGTH, true);
-        if (!columnId.isEmpty() && !columnId.matches("[0-9]{1,19}")) throw ApiV3WriteInputs.invalid();
+        if (!columnId.isEmpty() && !columnId.matches("[0-9]{1,19}"))
+            throw ApiV3WriteInputs.invalid();
         return new JSONObject().put(Article.ARTICLE_TITLE, ApiV3WriteInputs.string(body, "title", ArticleDraft.MAX_TITLE_LENGTH, true))
                 .put(Article.ARTICLE_CONTENT, ApiV3WriteInputs.string(body, "content", ArticleDraft.MAX_CONTENT_LENGTH, false))
                 .put(ArticleDraft.THOUGHT_CONTENT, ApiV3WriteInputs.string(body, "thoughtContent", ArticleDraft.MAX_THOUGHT_CONTENT_LENGTH, false))

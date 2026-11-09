@@ -31,7 +31,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 /** 仅登录用户本人可查看自己的匿名创作，其他用户的资料入口不提供这些内容。 */
 @Singleton
 public class ApiV3AnonymousContentProcessor {
-    @Inject private ApiV3AnonymousContentQueryService query;
+    @Inject
+    private ApiV3AnonymousContentQueryService query;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3AnonymousContentProcessor.class);

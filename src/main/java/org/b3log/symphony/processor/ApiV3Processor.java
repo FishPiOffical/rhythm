@@ -296,13 +296,21 @@ public class ApiV3Processor {
 
     private static int pageSize(final RequestContext context, final int defaultSize) {
         int size = defaultSize;
-        try { size = Integer.parseInt(context.param("size")); } catch (final Exception ignored) { }
+        try {
+            size = Integer.parseInt(context.param("size"));
+        } catch (final Exception ignored) {
+            // 缺失或无法解析时沿用默认每页条数。
+        }
         return Math.max(1, Math.min(size, 50));
     }
 
     private static int page(final RequestContext context, final int defaultPage) {
         int p = defaultPage;
-        try { p = Integer.parseInt(context.param("p")); } catch (final Exception ignored) { }
+        try {
+            p = Integer.parseInt(context.param("p"));
+        } catch (final Exception ignored) {
+            // 缺失或无法解析时沿用默认页码。
+        }
         return Math.max(1, p);
     }
 

@@ -41,7 +41,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.List;
 
-/** Administrator-approved public-client registration; there are no credential or self-service operations. */
+/** 管理员批准公开客户端登记，只处理登记元数据。 */
 @Service
 public class ApiV3ClientManagementService {
     @Inject private ApiV3ClientRepository clients;
@@ -51,7 +51,7 @@ public class ApiV3ClientManagementService {
     @Inject private ApiV3RequestRepository requests;
     @Inject private ApiV3ClientRegistrationService registration;
 
-    /** Never trust an identity/client supplied in JSON; authenticate() exposes only a trustworthy token row ID. */
+    /** 从 authenticate() 取得可信令牌行 ID，再复核当前身份与客户端。 */
     public String requireAdministrator(final JSONObject identity, final boolean lock) throws RepositoryException {
         final JSONObject viewer = identity == null ? null : identity.optJSONObject("user");
         final String actor = viewer == null ? "" : viewer.optString("oId");
@@ -60,8 +60,8 @@ public class ApiV3ClientManagementService {
         if (lock && !requests.hasTransactionBegun()) throw new IllegalStateException("admin root transaction required");
         if (lock) clients.lockForAccountResetInCurrentTransaction();
         final String suffix = lock ? " FOR UPDATE" : "";
-        // Reserve the client namespace in the same sorted order as account reset before inserting a new client.
-        // Then current website client, user, token and receipt locks retain their common direction.
+        // 创建客户端之前按账号重置使用的固定顺序锁定客户端命名空间。
+        // 随后依次锁定当前网站客户端、用户、令牌和回执。
         final var website = clients.select("SELECT clientId,status,scope FROM `" + clients.getName() + "` WHERE clientId=?" + suffix,
                 ApiV3TokenMgmtService.WEBSITE_CLIENT);
         final var current = users.select("SELECT oId,userRole,userStatus FROM `" + users.getName() + "` WHERE oId=?" + suffix, actor);
@@ -112,7 +112,7 @@ public class ApiV3ClientManagementService {
         final String actor = viewer == null ? "" : viewer.optString("oId");
         if (!actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.forbidden();
         final ApiV3ClientManagementInputs.Registration validated = ApiV3ClientManagementInputs.registration(input.normalized());
-        // Every attempt, including replay, authenticates under the root before locking/reading its receipt.
+        // 每次尝试均在根事务中鉴权，再锁定并读取回执，重放同样遵循此顺序。
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
             public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
             public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }

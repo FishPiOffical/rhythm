@@ -35,12 +35,12 @@ public class ApiV3ChatAppearanceProcessor {
     @Inject
     private ApiV3ChatAppearanceService appearance;
 
-    public static void register(){
+    public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ChatAppearanceProcessor.class);
         registerRoutes(p, beans.getReference(ApiV3AuthMidware.class), beans.getReference(ApiV3WriteMidware.class));
     }
-    public static void registerRoutes(ApiV3ChatAppearanceProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
+    public static void registerRoutes(ApiV3ChatAppearanceProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.get("/api/v3/me/chat-appearance",p::read,auth::profileRead);
         Dispatcher.put("/api/v3/me/chat-appearance",p::save,auth::settingsWrite,writes::handle);
     }

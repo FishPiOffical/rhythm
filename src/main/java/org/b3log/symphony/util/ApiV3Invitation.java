@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.Set;
 
-/** Known-code lookup only; no registration availability or reservation projection. */
+/** 仅查询已知邀请码，省略注册可用性和预留信息。 */
 public final class ApiV3Invitation {
     private ApiV3Invitation() { }
     public static String code(final JSONObject body) {

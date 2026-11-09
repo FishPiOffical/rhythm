@@ -27,7 +27,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.*;
 import org.testng.Assert;
 
-/** Actual service and query text execute through real JDBC; no application connection or legacy query delegation. */
+/** 通过隔离 JDBC 执行实际专栏服务和查询 SQL。 */
 public class ApiV3PublicColumnQueryTest {
     static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");

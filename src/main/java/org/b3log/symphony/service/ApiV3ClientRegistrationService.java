@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.json.JSONObject;
 
-/** Registration primitive for an already approved application, never a public self-registration grant. */
+/** 登记已经获批的应用，供管理员注册流程调用。 */
 @Service
 public class ApiV3ClientRegistrationService {
     @Inject private ApiV3ClientRepository clients;
@@ -46,12 +46,12 @@ public class ApiV3ClientRegistrationService {
     protected String rowId(){return Ids.genTimeMillisId();}
     protected String clientId(){return "app_"+ApiV3TokenUtil.generate();}
 
-    /** Only public registration fields. The ID is generated here, never selected by a requester. */
+    /** 只接收公开注册字段，由服务端在此生成 ID。 */
     public record Registered(String clientId,String name,String scope,List<String> redirectUris){
         public Registered{redirectUris=List.copyOf(redirectUris);}
     }
 
-    /** Pure normalization shared by approved creation and administrative full replacement. */
+    /** 已批准的创建与管理员完整替换共用此无副作用的规范化逻辑。 */
     public record Definition(String name,String scope,List<String> redirectUris){
         public Definition{redirectUris=List.copyOf(redirectUris);}
     }
@@ -64,7 +64,7 @@ public class ApiV3ClientRegistrationService {
         return new Definition(display,permissions,callbacks);
     }
 
-    /** The caller owns approval, authentication, idempotency and the strict root commit. */
+    /** 调用方负责审批、认证、幂等与严格根事务提交。 */
     public Registered createApprovedInCurrentTransaction(String name,String scope,List<String> redirectUris)throws Exception {
         if(!clients.hasTransactionBegun()||!redirects.hasTransactionBegun())throw new IllegalStateException("registration owner transaction required");
         final Definition definition=normalizeDefinition(name,scope,redirectUris);

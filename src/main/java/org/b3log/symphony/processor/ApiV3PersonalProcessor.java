@@ -31,7 +31,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 /** 个人资源的用户身份来自当前认证，查询参数、路径及正文均不接收目标用户。 */
 @Singleton
 public class ApiV3PersonalProcessor {
-    @Inject private ApiV3PersonalQueryService personal;
+    @Inject
+    private ApiV3PersonalQueryService personal;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();

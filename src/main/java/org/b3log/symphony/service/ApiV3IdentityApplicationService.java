@@ -33,7 +33,7 @@ import org.json.JSONObject;
 import java.util.Base64;
 import java.util.Set;
 
-/** Private enterprise review records and one-shot material delivery; no private-message or public-upload bridge. */
+/** 管理私有企业认证审核记录，材料通过独立入口一次性递交。 */
 @Service
 public class ApiV3IdentityApplicationService {
     @Inject private ApiV3IdentityApplicationRepository applications;
@@ -52,7 +52,8 @@ public class ApiV3IdentityApplicationService {
             final var receipt=ApiV3IdempotencyMgmtService.runAtomic(guarded(identity,"settings.write",false),actor,"identity.enterprise.create",key,normalized,()->{
                 final var pending=applications.select("SELECT oId FROM `"+applications.getName()+"` WHERE pendingOwnerId=? FOR UPDATE",actor);
                 if(!pending.isEmpty())throw new ApiV3Exception(409,"application_pending","已有待处理认证申请");
-                final String id=Ids.genTimeMillisId();final long time=timestamp();
+                final String id = Ids.genTimeMillisId();
+                final long time = timestamp();
                 change("INSERT INTO `"+applications.getName()+"` (oId,userId,type,status,pendingOwnerId,createdAt,materialReadAt,reviewedAt,note) VALUES(?,?,?,?,?,?,?,?,?)",
                         id,actor,"enterprise","pending",actor,time,0L,0L,"");
                 change("INSERT INTO `"+materials.getName()+"` (oId,userId,mediaType,byteLength,sha256,data) VALUES(?,?,?,?,?,?)",
@@ -61,16 +62,23 @@ public class ApiV3IdentityApplicationService {
             });
             if(!receipt.keySet().equals(Set.of("id","createdAt"))||!receipt.optString("id").matches("[1-9][0-9]{0,18}")||receipt.optLong("createdAt")<=0)throw unavailable();
             return new JSONObject().put("id",receipt.getString("id")).put("createdAt",receipt.getLong("createdAt"));
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
     public JSONObject list(JSONObject identity,int page,int size,boolean review,String status) {
         if(page<1||page>Integer.MAX_VALUE/50||size<1||size>50)throw ApiV3WriteInputs.invalid();
         if(review&&!Set.of("pending","approved","rejected").contains(status))throw ApiV3WriteInputs.invalid();
         return read(identity,"profile.read",review,()->{
-            final String where=review?"status=?":"userId=?";final String value=review?status:actor(identity);
+            final String where = review ? "status=?" : "userId=?";
+            final String value = review ? status : actor(identity);
             final long count=applications.select("SELECT COUNT(*) AS total FROM `"+applications.getName()+"` WHERE "+where,value).getFirst().getLong("total");
             final var rows=applications.select("SELECT "+columns()+" FROM `"+applications.getName()+"` WHERE "+where+" ORDER BY oId DESC LIMIT ?,?",value,(page-1)*size,size);
-            final JSONArray result=new JSONArray();for(JSONObject row:rows)result.put(project(row,review));
+            final JSONArray result = new JSONArray();
+            for (JSONObject row : rows)
+                result.put(project(row, review));
             return ApiV3Requests.pagination(result,page,size,count);
         });
     }
@@ -78,7 +86,9 @@ public class ApiV3IdentityApplicationService {
         id(id);
         return read(identity,"profile.read",false,()->{
             final var rows=applications.select("SELECT "+columns()+" FROM `"+applications.getName()+"` WHERE oId=? AND userId=?",id,actor(identity));
-            if(rows.size()!=1)throw ApiV3Requests.notFound();return project(rows.getFirst(),false);
+            if (rows.size() != 1)
+                throw ApiV3Requests.notFound();
+            return project(rows.getFirst(), false);
         });
     }
     public record Opened(byte[] bytes,String mediaType) { }
@@ -88,10 +98,15 @@ public class ApiV3IdentityApplicationService {
                 ||!Set.of("approved","rejected").contains(status))throw ApiV3WriteInputs.invalid();
         final Object raw=body.has("note")?body.opt("note"):"";
         if(!(raw instanceof String input))throw ApiV3WriteInputs.invalid();
-        for(int i=0;i<input.length();i++){
-            final char c=input.charAt(i);if(Character.isISOControl(c))throw ApiV3WriteInputs.invalid();
-            if(Character.isHighSurrogate(c)){if(++i>=input.length()||!Character.isLowSurrogate(input.charAt(i)))throw ApiV3WriteInputs.invalid();}
-            else if(Character.isLowSurrogate(c))throw ApiV3WriteInputs.invalid();
+        for (int i = 0; i < input.length(); i++) {
+            final char c = input.charAt(i);
+            if (Character.isISOControl(c))
+                throw ApiV3WriteInputs.invalid();
+            if (Character.isHighSurrogate(c)) {
+                if (++i >= input.length() || !Character.isLowSurrogate(input.charAt(i)))
+                    throw ApiV3WriteInputs.invalid();
+            } else if (Character.isLowSurrogate(c))
+                throw ApiV3WriteInputs.invalid();
         }
         final String note=input.strip();
         if(note.length()>256||note.matches("(?s).*<[^>]*>.*"))throw ApiV3WriteInputs.invalid();
@@ -111,28 +126,42 @@ public class ApiV3IdentityApplicationService {
             if(!receipt.keySet().equals(Set.of("id","status","reviewedAt","note"))||!id.equals(receipt.optString("id"))
                     ||!status.equals(receipt.optString("status"))||!note.equals(receipt.optString("note"))||receipt.optLong("reviewedAt")<=0)throw unavailable();
             return new JSONObject().put("id",id).put("status",status).put("reviewedAt",receipt.getLong("reviewedAt")).put("note",note);
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
-    /** POST, deliberately no replay receipt: every committed read permanently consumes the private bytes. */
-    public Opened open(JSONObject identity,String id) {
-        id(id);Transaction transaction=null;
+    /** POST 每次读取并提交时永久消费私有材料，因此不生成重放回执。 */
+    public Opened open(JSONObject identity, String id) {
+        id(id);
+        Transaction transaction = null;
         try {
-            transaction=begin();authorize(identity,"settings.write",true);
+            transaction = begin();
+            authorize(identity, "settings.write", true);
             final JSONObject application=application(id);
             if(!"pending".equals(application.optString("status"))||application.optLong("materialReadAt")!=0)throw gone();
             final var rows=materials.select("SELECT userId,mediaType,byteLength,sha256,data FROM `"+materials.getName()+"` WHERE oId=? FOR UPDATE",id);
-            if(rows.size()!=1)throw unavailable();final JSONObject stored=rows.getFirst();
+            if (rows.size() != 1)
+                throw unavailable();
+            final JSONObject stored = rows.getFirst();
             if(!application.getString("userId").equals(stored.optString("userId")))throw unavailable();
-            final int length=stored.getInt("byteLength");final String encoded=stored.getString("data");
+            final int length = stored.getInt("byteLength");
+            final String encoded = stored.getString("data");
             if(length<=0||length>ApiV3IdentityImage.MAX_BYTES||encoded.length()>((ApiV3IdentityImage.MAX_BYTES+2)/3)*4)throw unavailable();
             final byte[] decoded=Base64.getDecoder().decode(encoded);
             if(decoded.length!=length||!ApiV3IdentityImage.hash(decoded).equals(stored.optString("sha256"))
                     ||!Set.of("image/jpeg","image/png").contains(stored.optString("mediaType")))throw unavailable();
+            // 材料删除和已读标记一起提交，提交成功后才将材料交给处理器。
             change("DELETE FROM `"+materials.getName()+"` WHERE oId=? AND userId=?",id,application.getString("userId"));
             change("UPDATE `"+applications.getName()+"` SET materialReadAt=? WHERE oId=? AND status=? AND materialReadAt=0",timestamp(),id,"pending");
             transaction.commit();
             return new Opened(decoded,stored.getString("mediaType"));
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
         finally{if(transaction!=null&&transaction.isActive())transaction.rollback();}
     }
     private ApiV3MutationStore guarded(JSONObject identity,String scope,boolean review) {

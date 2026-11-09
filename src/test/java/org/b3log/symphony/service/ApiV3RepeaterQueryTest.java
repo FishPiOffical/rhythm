@@ -31,7 +31,7 @@ import io.netty.handler.codec.http.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real SELECT statements and real controller/auth/Dispatcher; only database transport is adapted. */
+/** 执行实际查询 SQL、控制器、鉴权和 Dispatcher，仅适配数据库连接。 */
 public class ApiV3RepeaterQueryTest {
     static void inject(Object target,String key,Object value)throws Exception{var f=target.getClass().getDeclaredField(key);f.setAccessible(true);f.set(target,value);}
     static class Fixture implements AutoCloseable {

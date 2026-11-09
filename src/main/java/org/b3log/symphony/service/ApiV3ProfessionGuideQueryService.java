@@ -38,7 +38,7 @@ import org.json.JSONObject;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Bounded, read-only published growth metadata; no automation actions, conditions or progress mutation. */
+/** 有界读取已发布的职业成长元数据，投影不含自动化操作或条件。 */
 @Service
 public class ApiV3ProfessionGuideQueryService {
     private static final int MAX_ROWS = 512;
@@ -71,8 +71,8 @@ public class ApiV3ProfessionGuideQueryService {
         final JSONObject row=rows.getFirst();
         final String revision=ApiV3ProfessionGuideDto.text(row,"currentRevisionId",19,false);
         final String scheme=ApiV3ProfessionGuideDto.text(row,"currentLevelSchemeId",19,false);
-        // Definition publication changes the current revision independently from the level scheme.
-        // A still-current scheme may therefore legitimately refer to a retired definition revision.
+        // 发布职业定义会更新其当前版本，版本独立于等级方案。
+        // 因此仍在使用的等级方案也可能引用已停用的定义版本。
         final String schemeRevision=ApiV3ProfessionGuideDto.text(row,"schemeRevisionId",19,false);
         if (!revision.matches("[0-9]{1,19}") || !scheme.matches("[0-9]{1,19}")
                 || !revision.equals(row.opt("revisionId")) || !professionId.equals(row.opt("revisionProfessionId"))

@@ -30,7 +30,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 
 @Singleton
 public class ApiV3ArticleHeatProcessor {
-    @Inject private ApiV3ArticleHeatQueryService query;
+    @Inject
+    private ApiV3ArticleHeatQueryService query;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ArticleHeatProcessor.class);

@@ -56,16 +56,16 @@ public class ApiV3OAuthProcessor {
     private static final Set<String> TOKEN = Set.of("grant_type", "client_id", "redirect_uri", "code", "code_verifier", "refresh_token", "scope");
     private static final Set<String> REVOKE = Set.of("client_id", "token", "token_type_hint");
 
-    public static void register(){
+    public static void register() {
         ApiV3OAuthTransportLogFilter.requireInstalled();
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3OAuthProcessor.class);
         final var anonymous = beans.getReference(AnonymousViewCheckMidware.class);
-        registerRoutes(p,anonymous);
+        registerRoutes(p, anonymous);
         beans.getReference(ApiV3OAuthMaintenanceService.class).start();
     }
-    public static void registerRoutes(ApiV3OAuthProcessor p,AnonymousViewCheckMidware anonymous){
-        p.anonymous=anonymous;
+    public static void registerRoutes(ApiV3OAuthProcessor p, AnonymousViewCheckMidware anonymous) {
+        p.anonymous = anonymous;
         Dispatcher.get("/api/v3/oauth/authorize",p::authorize,p::privacy,p::rate,anonymous::handle);
         Dispatcher.post("/api/v3/oauth/consent",p::consent,p::privacy,p::rate,p::cookieOnly);
         Dispatcher.post("/api/v3/oauth/token",p::token,p::privacy,p::rate,p::protocolToken);

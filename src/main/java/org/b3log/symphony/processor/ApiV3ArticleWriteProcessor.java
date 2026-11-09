@@ -35,7 +35,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ArticleWriteProcessor {
-    @Inject private ApiV3ArticleMgmtService management;
+    @Inject
+    private ApiV3ArticleMgmtService management;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3ArticleWriteProcessor.class);

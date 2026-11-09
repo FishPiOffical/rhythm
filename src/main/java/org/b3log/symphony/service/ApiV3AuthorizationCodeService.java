@@ -41,12 +41,24 @@ public class ApiV3AuthorizationCodeService {
     @Inject private ApiV3TokenRepository tokenRows;
     @Inject private UserRepository users;
     @Inject private ApiV3TokenMgmtService tokens;
-    public record Issued(String code,long expiresAt){
-        @Override public String toString(){return "Issued[code=<redacted>, expiresAt="+expiresAt+"]";}
+    public record Issued(String code, long expiresAt) {
+        @Override
+        public String toString() {
+            return "Issued[code=<redacted>, expiresAt=" + expiresAt + "]";
+        }
     }
-    protected long now(){return System.currentTimeMillis();}
-    private static ApiV3Exception rejected(){return new ApiV3Exception(400,"invalid_grant","授权凭据无效或已失效");}
-    protected boolean development(){return Latkes.RuntimeMode.DEVELOPMENT==Latkes.getRuntimeMode();}
+
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    private static ApiV3Exception rejected() {
+        return new ApiV3Exception(400, "invalid_grant", "授权凭据无效或已失效");
+    }
+
+    protected boolean development() {
+        return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
+    }
     private void binding(String client,String uri){
         if(client==null||!client.matches("[\\x21-\\x7E]{1,64}")||uri==null||uri.isEmpty()||uri.length()>2048)throw rejected();
         if(!ApiV3OAuthRedirects.valid(uri,development()))throw rejected();
@@ -63,31 +75,49 @@ public class ApiV3AuthorizationCodeService {
         if(rows.size()!=1||!id.equals(rows.getFirst().optString(Keys.OBJECT_ID))||rows.getFirst().optInt(UserExt.USER_STATUS,-1)!=UserExt.USER_STATUS_C_VALID)throw rejected();
     }
     private static String scopes(String scope,JSONObject client,boolean shrink){
-        if(scope==null||scope.isBlank()||scope.length()>255)throw rejected();final var result=new TreeSet<String>();
+        if (scope == null || scope.isBlank() || scope.length() > 255)
+            throw rejected();
+        final var result = new TreeSet<String>();
         for(String item:scope.split(" ",-1)){
             if(item.isEmpty()||!item.matches("[\\x21\\x23-\\x5B\\x5D-\\x7E]+"))throw rejected();
-            if(ApiV3TokenMgmtService.hasScope(client.optString(ApiV3Client.SCOPE),item))result.add(item);else if(!shrink)throw rejected();
+            if (ApiV3TokenMgmtService.hasScope(client.optString(ApiV3Client.SCOPE), item))
+                result.add(item);
+            else if (!shrink)
+                throw rejected();
         }
-        if(result.isEmpty())throw rejected();return String.join(" ",result);
+        if (result.isEmpty())
+            throw rejected();
+        return String.join(" ", result);
     }
     public record ConsentClient(String clientId,String name,String redirectUri,String scope){ }
     /** 在调用方的事务中复核客户端当前登记状态。 */
     public ConsentClient prepareConsentClientInCurrentTransaction(String client,String uri,String requestedScope)throws Exception {
         if(!codes.hasTransactionBegun())throw new IllegalStateException("consent transaction required");
-        binding(client,uri);final var row=registered(client,uri);final String name=row.optString(ApiV3Client.NAME);
-        if(name.isBlank()||name.length()>128)throw new IllegalStateException("invalid client display name");ApiV3Json.canonical(name);
+        binding(client, uri);
+        final var row = registered(client, uri);
+        final String name = row.optString(ApiV3Client.NAME);
+        if (name.isBlank() || name.length() > 128)
+            throw new IllegalStateException("invalid client display name");
+        ApiV3Json.canonical(name);
         return new ConsentClient(client,name,uri,scopes(requestedScope,row,false));
     }
     public void verifyConsentUserInCurrentTransaction(String actor)throws Exception {
-        if(!codes.hasTransactionBegun())throw new IllegalStateException("consent transaction required");currentUser(actor);
+        if (!codes.hasTransactionBegun())
+            throw new IllegalStateException("consent transaction required");
+        currentUser(actor);
     }
     /** 仅供服务端授权确认处理器在校验请求来源、CSRF 和用户同意后调用。 */
     public Issued issueInCurrentTransaction(String approvedUser,String client,String uri,String approvedScope,String challenge,String method)throws Exception {
         if(!codes.hasTransactionBegun())throw new IllegalStateException("consent owner transaction required");
-        binding(client,uri);ApiV3Pkce.requireS256(challenge,method);
+        binding(client, uri);
+        ApiV3Pkce.requireS256(challenge, method);
         return ApiV3TransactionSavepoint.run(()->{
-            final var registration=registered(client,uri);currentUser(approvedUser);final String scope=scopes(approvedScope,registration,false);
-            final long time=now(),expires=Math.addExact(time,TTL);if(time<=0)throw new IllegalStateException("invalid grant clock");
+            final var registration = registered(client, uri);
+            currentUser(approvedUser);
+            final String scope = scopes(approvedScope, registration, false);
+            final long time = now(), expires = Math.addExact(time, TTL);
+            if (time <= 0)
+                throw new IllegalStateException("invalid grant clock");
             final String raw=ApiV3TokenUtil.generate(),hash=ApiV3TokenUtil.hash("oauth-code\0"+raw);
             final var row=new JSONObject().put(Keys.OBJECT_ID,hash).put(ApiV3AuthorizationCode.CLIENT_ID,client)
                     .put(ApiV3AuthorizationCode.USER_ID,approvedUser).put(ApiV3AuthorizationCode.REDIRECT_URI,uri)
@@ -100,12 +130,16 @@ public class ApiV3AuthorizationCodeService {
     }
     /** 在自身的严格事务中消费授权码并签发令牌对，明文令牌不用于重放。 */
     public JSONObject exchange(String client,String uri,String raw,String verifier)throws Exception {
-        binding(client,uri);if(!ApiV3TokenUtil.isValidFormat(raw)||!ApiV3Pkce.validVerifier(verifier))throw rejected();
+        binding(client, uri);
+        if (!ApiV3TokenUtil.isValidFormat(raw) || !ApiV3Pkce.validVerifier(verifier))
+            throw rejected();
         if(codes.hasTransactionBegun())throw new IllegalStateException("exchange root transaction already active");
         final Transaction transaction=ApiV3Transactions.strict(codes.beginTransaction());
-        try{
-            final var registration=registered(client,uri);final String hash=ApiV3TokenUtil.hash("oauth-code\0"+raw);
-            final var code=codes.getForUpdate(hash);final long time=now();
+        try {
+            final var registration = registered(client, uri);
+            final String hash = ApiV3TokenUtil.hash("oauth-code\0" + raw);
+            final var code = codes.getForUpdate(hash);
+            final long time = now();
             if(code==null||!hash.equals(code.optString(Keys.OBJECT_ID))||!client.equals(code.optString(ApiV3AuthorizationCode.CLIENT_ID))
                     ||!uri.equals(code.optString(ApiV3AuthorizationCode.REDIRECT_URI))
                     ||!ApiV3Pkce.matches(code.optString(ApiV3AuthorizationCode.CHALLENGE),verifier))throw rejected();
@@ -114,19 +148,29 @@ public class ApiV3AuthorizationCodeService {
             final String storedFamily=code.optString(ApiV3AuthorizationCode.FAMILY_ID);
             if(!actor.matches("[1-9][0-9]{0,18}")||created<=0||created>Long.MAX_VALUE-TTL||expires!=created+TTL||consumed<0||consumed>time
                     ||(consumed==0?!storedFamily.isEmpty():!storedFamily.matches("[0-9a-f]{32}")))throw rejected();
-            if(code.optLong(ApiV3AuthorizationCode.CONSUMED_AT)>0){
-                final String family=code.optString(ApiV3AuthorizationCode.FAMILY_ID);if(family.isEmpty())throw rejected();
-                tokenRows.revokeFamilyInCurrentTransaction(client,actor,family,time);transaction.commit();throw rejected();
+            if (code.optLong(ApiV3AuthorizationCode.CONSUMED_AT) > 0) {
+                final String family = code.optString(ApiV3AuthorizationCode.FAMILY_ID);
+                if (family.isEmpty())
+                    throw rejected();
+                // 凭据绑定已核验，先提交原令牌家族的撤销，再返回授权码无效。
+                tokenRows.revokeFamilyInCurrentTransaction(client, actor, family, time);
+                transaction.commit();
+                throw rejected();
             }
             if(time<=0||code.optLong(ApiV3AuthorizationCode.CREATED_AT)>time||code.optLong(ApiV3AuthorizationCode.EXPIRES_AT)<=time)throw rejected();
-            currentUser(actor);final String scope=scopes(code.getString(ApiV3AuthorizationCode.SCOPE),registration,true);
+            currentUser(actor);
+            final String scope = scopes(code.getString(ApiV3AuthorizationCode.SCOPE), registration, true);
             final JSONObject issued=tokens.issueForClientInCurrentTransaction(actor,client,scope);
             final var refresh=tokenRows.getByHashForUpdate(ApiV3TokenUtil.hash(issued.getString("refreshToken")));
             if(refresh==null||!client.equals(refresh.optString(ApiV3Token.CLIENT_ID))||!actor.equals(refresh.optString(ApiV3Token.USER_ID))
                     ||!ApiV3Token.TYPE_REFRESH.equals(refresh.optString(ApiV3Token.TOKEN_TYPE))||refresh.optString(ApiV3Token.FAMILY_ID).isEmpty())throw new IllegalStateException("issued refresh binding lost");
             code.put(ApiV3AuthorizationCode.CONSUMED_AT,time).put(ApiV3AuthorizationCode.FAMILY_ID,refresh.getString(ApiV3Token.FAMILY_ID));
             codes.update(hash,code,ApiV3AuthorizationCode.CONSUMED_AT,ApiV3AuthorizationCode.FAMILY_ID);
-            transaction.commit();return issued;
-        }finally{if(transaction.isActive())transaction.rollback();}
+            transaction.commit();
+            return issued;
+        } finally {
+            if (transaction.isActive())
+                transaction.rollback();
+        }
     }
 }

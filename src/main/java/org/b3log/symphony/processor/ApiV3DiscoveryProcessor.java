@@ -45,8 +45,10 @@ public class ApiV3DiscoveryProcessor {
     private static final Set<String> ARTICLE_SORTS = Set.of("latest", "active", "hot", "comments");
     private static final Cache<String, Boolean> SEARCH_REQUESTS = Caffeine.newBuilder().maximumSize(100000)
             .expireAfterWrite(1, TimeUnit.SECONDS).build();
-    @Inject private ApiV3DiscoveryQueryService discovery;
-    @Inject private ApiV3ContentQueryService content;
+    @Inject
+    private ApiV3DiscoveryQueryService discovery;
+    @Inject
+    private ApiV3ContentQueryService content;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
@@ -149,8 +151,13 @@ public class ApiV3DiscoveryProcessor {
         });
     }
 
-    public void watching(final RequestContext context) { watching(context, false); }
-    public void watchedArticles(final RequestContext context) { watching(context, true); }
+    public void watching(final RequestContext context) {
+        watching(context, false);
+    }
+
+    public void watchedArticles(final RequestContext context) {
+        watching(context, true);
+    }
     private void watching(final RequestContext context, final boolean watched) {
         ApiV3Requests.read(context, () -> {
             final JSONObject user = targetUser(context);

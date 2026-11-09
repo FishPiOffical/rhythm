@@ -30,7 +30,7 @@ import org.b3log.symphony.util.UserNameRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Public registration form policy, not proof that a later registration is authorized. */
+/** 返回公开注册表单规则，实际注册仍需独立检查资格。 */
 @Service
 public class ApiV3RegistrationPolicyService {
     @Inject private OptionRepository options;
@@ -45,7 +45,7 @@ public class ApiV3RegistrationPolicyService {
         final String value=setting==null?"":setting.optString(Option.OPTION_VALUE);
         final String mode=switch(value){case "0"->"open";case "1"->"closed";case "2"->"invitation";default->throw new ApiV3Exception(503,"temporarily_unavailable","注册状态暂不可用");};
         boolean accepted=false;
-        // Closing registration takes precedence over every invitation permission, as in the old write entry.
+        // 沿用旧写入口的优先级，关闭注册时邀请码也无法开放注册。
         if(!"closed".equals(mode)&&!name.isEmpty()){
             final JSONObject inviter=users.getUserByName(name);
             if(inviter!=null){

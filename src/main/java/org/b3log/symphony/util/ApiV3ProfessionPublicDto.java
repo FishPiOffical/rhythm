@@ -20,7 +20,7 @@ package org.b3log.symphony.util;
 
 import org.json.JSONObject;
 
-/** Exact public profession projections, with experience independently omitted throughout. */
+/** 按白名单投影公开职业字段，各处均独立省略经验值。 */
 public final class ApiV3ProfessionPublicDto {
     private ApiV3ProfessionPublicDto() { }
     public static String text(final JSONObject row,final String key,final int max,final boolean empty) {
@@ -42,7 +42,7 @@ public final class ApiV3ProfessionPublicDto {
     public static JSONObject progress(final JSONObject row,final boolean experience) {
         final JSONObject value=definition(row).put("state","PUBLISHED".equals(row.getString("professionStatus"))?"ACTIVE":"RETIRED")
                 .put("levelCode",text(row,"levelCode",64,false)).put("levelName",text(row,"levelName",64,false));
-        // Validate even hidden numeric data without exposing it through another module.
+        // 隐藏的数值也要校验，但不能借其他模块暴露。
         final long total=number(row,"totalExperience",false), required=number(row,"requiredExperience",false);
         if(experience)value.put("totalExperience",total).put("requiredExperience",required);
         return value;

@@ -29,7 +29,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Actual public profile query fragments on disposable SQLite, no application data. */
+/** 在临时 SQLite 上执行实际公开资料查询片段。 */
 public class ApiV3ProfileQueriesTest {
     @Test
     public void followingSourcesAreDistinctDeduplicatedAndOwnerBound() throws Exception {
@@ -70,7 +70,7 @@ public class ApiV3ProfileQueriesTest {
             exec(db, "UPDATE c SET commentStatus=? WHERE oId='9'", Comment.COMMENT_STATUS_C_INVALID);
             exec(db, "UPDATE a SET articleAuthorId='deactivated' WHERE oId='10'");
             exec(db, "UPDATE a SET articleTags='B3log-test' WHERE oId='11'");
-            // Paragraph comments and private comments stay in the feed; rendering hides private content separately.
+            // 段落评论和私密评论保留在动态列表查询中，渲染阶段单独隐藏私密正文。
             article(db, "12", "author", false); comment(db, "12", "owner", "12");
             exec(db, "UPDATE c SET commentType=?,commentVisible=? WHERE oId='12'", Comment.COMMENT_TYPE_C_PARAGRAPH, Comment.COMMENT_VISIBLE_C_AUTHOR);
             final var anonymous = ApiV3ProfileQueries.comments("c", "a", "u", "owner", true, 1, 4, "Sandbox");

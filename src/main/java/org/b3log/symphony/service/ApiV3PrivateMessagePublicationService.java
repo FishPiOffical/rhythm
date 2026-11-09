@@ -32,7 +32,7 @@ public class ApiV3PrivateMessagePublicationService {
     @Inject private PrivateMessagePublicationService publication;
     @Inject private ApiV3IdempotencyMgmtService idempotency;
     protected String prepare(String content){return ReservedWords.processReservedWord(content).trim();}
-    /** Cache eviction is safe on replay and repairs a lost successful commit acknowledgement. */
+    /** 成功提交但响应丢失时，重放可以补做会话列表缓存清理。 */
     protected void afterPublished(String actor,String peer){ChatProcessor.invalidateChatListCache(actor,peer);}
     public JSONObject send(JSONObject viewer,String peer,String content,String key)throws Exception {
         final String actor=viewer==null?"":viewer.optString(Keys.OBJECT_ID);

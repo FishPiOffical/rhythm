@@ -32,7 +32,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 /** 仅本人可读取的表情设置。 */
 @Singleton
 public class ApiV3EmotionProcessor {
-    @Inject private ApiV3EmotionQueryService query;
+    @Inject
+    private ApiV3EmotionQueryService query;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3EmotionProcessor p = beans.getReference(ApiV3EmotionProcessor.class);
@@ -42,9 +43,24 @@ public class ApiV3EmotionProcessor {
         Dispatcher.get("/api/v3/me/settings/emoji-groups", p::groups, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/emoji-groups/{groupId}/emojis", p::items, auth::profileRead);
     }
-    public void emotions(final RequestContext c) { ApiV3Requests.read(c, () -> query.emotions(actor(c))); }
-    public void options(final RequestContext c) { ApiV3Requests.read(c, ApiV3EmotionOptions::options); }
-    public void groups(final RequestContext c) { ApiV3Requests.read(c, () -> query.groups(actor(c), ApiV3Requests.page(c), ApiV3Requests.size(c))); }
-    public void items(final RequestContext c) { ApiV3Requests.read(c, () -> query.items(actor(c), ApiV3Requests.id(c, "groupId"), ApiV3Requests.page(c), ApiV3Requests.size(c))); }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    public void emotions(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.emotions(actor(c)));
+    }
+
+    public void options(final RequestContext c) {
+        ApiV3Requests.read(c, ApiV3EmotionOptions::options);
+    }
+
+    public void groups(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.groups(actor(c), ApiV3Requests.page(c), ApiV3Requests.size(c)));
+    }
+
+    public void items(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.items(actor(c), ApiV3Requests.id(c, "groupId"),
+                ApiV3Requests.page(c), ApiV3Requests.size(c)));
+    }
+
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

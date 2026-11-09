@@ -34,7 +34,7 @@ import java.sql.DriverManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Actual creation service, repository SQL and DTO; temporary SQLite does not prove MySQL/HTTP behavior. */
+/** 在临时 SQLite 上执行实际创建服务、仓库 SQL 及 DTO，MySQL 与 HTTP 行为另行验收。 */
 public class ApiV3MilestoneServiceTest {
     public static void main(final String[] args) throws Exception {
         final var prop = Latkes.class.getDeclaredField("localProps"); prop.setAccessible(true); final Object original = prop.get(null);

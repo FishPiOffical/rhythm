@@ -32,7 +32,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3MedalDisplayProcessor {
-    @Inject private ApiV3MedalDisplayService management;
+    @Inject
+    private ApiV3MedalDisplayService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3MedalDisplayProcessor p = beans.getReference(ApiV3MedalDisplayProcessor.class);

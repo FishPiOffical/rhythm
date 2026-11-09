@@ -95,6 +95,8 @@ public class ApiV3BreezemoonMgmtService {
             final JSONObject data = new JSONObject().put("oId", result.getString("id")).put("breezemoonContent", result.getString("contentHtml"))
                     .put("breezemoonAuthorName", author.optString("userName")).put("breezemoonAuthorThumbnailURL48", author.optString("userAvatarURL"));
             UserChannel.sendCmdToAll(new JSONObject().put("bz", data).put("command", "bz-update"));
-        } catch (final Exception e) { LOGGER.warn("Failed to publish committed v3 breezemoon update"); }
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to publish committed v3 breezemoon update");
+        }
     }
 }

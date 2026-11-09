@@ -32,7 +32,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/** Real service SELECTs, typed DTO, Dispatcher/auth/controller; isolated SQLite/Token/repository/envelope adapters. */
+/** 执行实际服务查询、类型化 DTO、Dispatcher、鉴权和控制器，隔离数据库、令牌、仓库及响应封装由夹具适配。 */
 public class ApiV3ProfessionDetailQueryTest {
     static void inject(Object target,String key,Object value)throws Exception{var f=target.getClass().getDeclaredField(key);f.setAccessible(true);f.set(target,value);}
     static class Fixture implements AutoCloseable {

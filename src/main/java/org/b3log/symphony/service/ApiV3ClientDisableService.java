@@ -37,7 +37,7 @@ import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.json.JSONObject;
 
-/** Logical client disable and complete client-bound token revocation share a strictly committed receipt. */
+/** 客户端逻辑停用、撤销其全部令牌以及回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3ClientDisableService {
     private static final int DISABLED = 1;
@@ -57,7 +57,7 @@ public class ApiV3ClientDisableService {
             public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
             public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
             public JSONObject getForUpdate(final String id) throws RepositoryException {
-                // Includes sorted client namespace locking before user/token/request, even on replay.
+                // 先按固定顺序锁定客户端命名空间，再锁定用户、令牌和请求，重放也遵循此顺序。
                 management.requireAdministrator(identity, true);
                 return requests.getForUpdate(id);
             }
@@ -73,7 +73,7 @@ public class ApiV3ClientDisableService {
         catch (final Exception e) { throw unavailable(); }
     }
 
-    /** Called only after the root's current administrator guard; never creates or commits a root. */
+    /** 仅在调用方根事务复核当前管理员后调用，由调用方统一提交。 */
     private JSONObject disableInCurrentTransaction(final String clientId) throws Exception {
         if (!requests.hasTransactionBegun()) throw new IllegalStateException("client disable transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
@@ -89,7 +89,7 @@ public class ApiV3ClientDisableService {
                         + "` SET status=? WHERE oId=? AND clientId=?", DISABLED, current.getString("oId"), clientId);
                 if (updated != 1) throw unavailable();
             }
-            // A single owner-bound statement covers every user/family/type/state; never paginate token revocation.
+            // 按客户端一次撤销所有用户、家族、类型和状态的令牌，避免分页遗漏。
             final int changed = ApiV3TransactionStatements.execute("UPDATE `" + tokens.getName()
                     + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                     ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);

@@ -74,7 +74,7 @@ public class ApiV3TokenUtilTest {
         Assert.assertEquals(ApiV3TokenUtil.cookieMaxAgeSeconds(-1), 0);
     }
 
-    /** Also runnable in isolation without starting the server or a Maven build. */
+    /** 可通过隔离工具单独执行，无需启动服务。 */
     public static void main(final String[] args) throws Exception {
         final ApiV3TokenUtilTest test = new ApiV3TokenUtilTest();
         test.tokensHaveFullEntropyAndNoDuplicatesInSample();

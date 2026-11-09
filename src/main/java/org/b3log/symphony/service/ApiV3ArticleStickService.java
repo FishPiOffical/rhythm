@@ -44,7 +44,9 @@ public class ApiV3ArticleStickService {
     @Inject private PointtransferMgmtService points;
     @Inject private PointtransferRepository transfers;
     @Inject private PointtransferRedcRepository indexes;
-    protected long now() { return System.currentTimeMillis(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
 
     public JSONObject stick(JSONObject viewer, String articleId, String key) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString("oId");
@@ -55,14 +57,33 @@ public class ApiV3ArticleStickService {
             final JSONObject receipt = points.executeWithTransferLocks(actor, List.of(Pointtransfer.ID_C_SYS), () -> {
                 try (final var cache = ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
                     ArticlePublicationCaches.afterTransaction("stick-user:" + actor, () -> {
-                        try { users.refreshSettingsCache(actor); } catch (Exception error) { users.evictSettingsCaches(actor); }
+                        try {
+                            users.refreshSettingsCache(actor);
+                        } catch (Exception error) {
+                            users.evictSettingsCaches(actor);
+                        }
                     });
                     final ApiV3MutationStore store = new ApiV3MutationStore() {
-                        public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                        public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                        public JSONObject getForUpdate(String id) throws RepositoryException { requireActor(actor); return requests.getForUpdate(id); }
-                        public String add(JSONObject row) throws RepositoryException { return requests.add(row); }
-                        public void update(String id, JSONObject row, String... fields) throws RepositoryException { requests.update(id, row, fields); }
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
+                        }
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
+
+                        public JSONObject getForUpdate(String id) throws RepositoryException {
+                            requireActor(actor);
+                            return requests.getForUpdate(id);
+                        }
+
+                        public String add(JSONObject row) throws RepositoryException {
+                            return requests.add(row);
+                        }
+
+                        public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                            requests.update(id, row, fields);
+                        }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomic(store, actor, OPERATION, key, new JSONObject().put("id", articleId),
                         () -> ApiV3TransactionSavepoint.run(() -> {
@@ -90,8 +111,11 @@ public class ApiV3ArticleStickService {
             final JSONObject result = project(receipt, articleId);
             repairIndex(actor, articleId, sourceId, receipt.getString("indexTransferId"));
             return result;
-        } catch (ApiV3Exception error) { throw error; }
-        catch (Exception error) { throw unavailable(); }
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        }
     }
     private JSONObject requireActor(String actor) throws RepositoryException {
         final JSONObject user = users.getForUpdate(actor);
@@ -122,15 +146,24 @@ public class ApiV3ArticleStickService {
             }
             transaction.commit();
         } catch (Exception error) {
-            if (transaction != null && transaction.isActive()) try { transaction.rollback(); } catch (RuntimeException ignored) { }
+            if (transaction != null && transaction.isActive())
+                try {
+                    transaction.rollback();
+                } catch (RuntimeException ignored) { }
             org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Committed article stick indexing delayed");
         }
     }
     private static boolean ledgerId(String id) { return id != null && id.matches("[1-9][0-9]{0,18}"); }
     private static long exact(Object value) {
         if (!(value instanceof Number number)) throw unavailable();
-        try { return new BigDecimal(number.toString()).longValueExact(); }
-        catch (ArithmeticException | NumberFormatException error) { throw unavailable(); }
+        try {
+            return new BigDecimal(number.toString()).longValueExact();
+        } catch (ArithmeticException | NumberFormatException error) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503, "temporarily_unavailable", "文章置顶暂不可用"); }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "文章置顶暂不可用");
+    }
 }

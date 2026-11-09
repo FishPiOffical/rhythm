@@ -28,7 +28,7 @@ import org.testng.Assert;
 import java.sql.*;
 import java.util.*;
 
-/** Read-only owner/type exact SQL, without calling user caches or legacy isFollowing that swallows errors. */
+/** 检查按本人和关系类型精确读取的 SQL，以及查询故障能否明确返回。 */
 public class ApiV3FollowStateTest {
     interface Work {void run()throws Exception;}
     static void error(int status,Work work)throws Exception{try{work.run();Assert.fail("expected "+status);}catch(ApiV3Exception e){Assert.assertEquals(e.status,status);}}

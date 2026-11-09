@@ -32,7 +32,7 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** New reports and their owner-bound replay receipts share a strict root transaction. */
+/** 新举报与绑定所有者的重放回执在同一个严格根事务中提交。 */
 @Service
 public class ApiV3ReportPublicationService {
     @Inject private UserRepository users;
@@ -42,29 +42,56 @@ public class ApiV3ReportPublicationService {
     @Inject private ReportRepository reports;
     @Inject private ApiV3RequestRepository requests;
     private record Target(JSONObject row,JSONObject article,String author,Set<String> owners) { }
-    protected String newId(){return Ids.genTimeMillisId();}
+    protected String newId() {
+        return Ids.genTimeMillisId();
+    }
     public JSONObject publish(final String actor,final JSONObject body,final String key)throws Exception {
-        id(actor);final JSONObject normalized=ApiV3ReportInputs.normalize(body);
+        id(actor);
+        final JSONObject normalized = ApiV3ReportInputs.normalize(body);
         try {
             final Map<String,JSONObject> lockedUsers=new HashMap<>();
-            Target initial;Exception preflightFailure=null;
-            try { initial=target(normalized,false); }
-            catch(Exception e) { preflightFailure=e;initial=null; }
-            final Target hint=initial;final Exception hintFailure=preflightFailure;
-            final var owners=new TreeSet<String>();owners.add(actor);if(hint!=null)owners.addAll(hint.owners());
-            final ApiV3MutationStore store=new ApiV3MutationStore(){
-                public Transaction beginTransaction(){lockedUsers.clear();return ApiV3Transactions.strict(requests.beginTransaction());}
-                public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
+            Target initial;
+            Exception preflightFailure = null;
+            try {
+                initial = target(normalized, false);
+            } catch (Exception e) {
+                preflightFailure = e;
+                initial = null;
+            }
+            final Target hint = initial;
+            final Exception hintFailure = preflightFailure;
+            final var owners = new TreeSet<String>();
+            owners.add(actor);
+            if (hint != null)
+                owners.addAll(hint.owners());
+            final ApiV3MutationStore store = new ApiV3MutationStore() {
+                public Transaction beginTransaction() {
+                    lockedUsers.clear();
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
                 public JSONObject getForUpdate(String receipt)throws RepositoryException {
-                    // Lock the fixed account set before the receipt; never expand locks from fresh targets.
+                    // 锁定回执前先锁定预先确定的账号集合，后续目标读取不扩大锁范围。
                     for(final String owner:owners)lockedUsers.put(owner,lockUser(owner,owner.equals(actor)));
                     return requests.getForUpdate(receipt);
                 }
-                public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                public void update(String receipt,JSONObject row,String...fields)throws RepositoryException{requests.update(receipt,row,fields);}
+                public String add(JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(String receipt, JSONObject row, String... fields) throws RepositoryException {
+                    requests.update(receipt, row, fields);
+                }
             };
             final JSONObject durable=ApiV3IdempotencyMgmtService.runAtomic(store,actor,"report.publish",key,normalized,()->ApiV3TransactionSavepoint.run(()->{
-                if(hint==null){if(hintFailure!=null)throw hintFailure;throw ApiV3Requests.notFound();}
+                if (hint == null) {
+                    if (hintFailure != null)
+                        throw hintFailure;
+                    throw ApiV3Requests.notFound();
+                }
                 final Target current=target(normalized,true);
                 if(!current.author().equals(hint.author()) || !current.owners().equals(hint.owners())
                         || !current.article().optString("oId").equals(hint.article().optString("oId"))) throw unavailable();
@@ -80,16 +107,20 @@ public class ApiV3ReportPublicationService {
                             || type==1&&!ApiV3ContentUtil.canViewCommentContent(current.row(),article,viewer)) throw ApiV3Requests.notFound();
                 }
                 final var pending=reports.select("SELECT oId FROM `"+reports.getName()+"` WHERE reportUserId=? AND reportDataType=? AND reportDataId=? AND reportHandled=0 ORDER BY oId LIMIT 2 FOR UPDATE",actor,type,normalized.getString("targetId"));
-                // Existing duplicate pending rows remain untouched; the oldest is the stable receipt.
+                // 历史重复待处理记录保留原样，使用最早一条生成稳定回执。
                 if(!pending.isEmpty())return result(pending.getFirst().getString("oId"));
-                final String reportId=newId();id(reportId);
+                final String reportId = newId();
+                id(reportId);
                 if(ApiV3TransactionStatements.execute("INSERT INTO `"+reports.getName()+"` (oId,reportUserId,reportDataId,reportDataType,reportType,reportMemo,reportHandled) VALUES(?,?,?,?,?,?,0)",
                         reportId,actor,normalized.getString("targetId"),type,normalized.getInt("reason"),org.apache.commons.lang.StringEscapeUtils.escapeHtml(normalized.getString("memo")))!=1)throw unavailable();
                 return result(reportId);
             }));
             return result(durable.getString("id"));
-        }catch(ApiV3Exception e){throw e;}
-        catch(Exception e){throw unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     private JSONObject lockUser(final String owner,final boolean required)throws RepositoryException {
         id(owner);
@@ -100,15 +131,23 @@ public class ApiV3ReportPublicationService {
         return rows.getFirst();
     }
     private Target target(final JSONObject request,final boolean lock)throws RepositoryException {
-        final int type=request.getInt("targetType");final String target=request.getString("targetId");
+        final int type = request.getInt("targetType");
+        final String target = request.getString("targetId");
         if(type==2) return new Target(new JSONObject().put("oId",target),new JSONObject(),target,Set.of(target));
         final String suffix=lock?" FOR UPDATE":"";
-        JSONObject row,article=new JSONObject();String author;
+        JSONObject row, article = new JSONObject();
+        String author;
         if(type==3) {
             row=one(chat.select("SELECT oId,SUBSTR(content,1,102401) AS content FROM `"+chat.getName()+"` WHERE oId=?"+suffix,target));
-            final String raw=row.getString("content");if(raw.length()>102400)throw unavailable();
+            final String raw = row.getString("content");
+            if (raw.length() > 102400)
+                throw unavailable();
             final JSONObject envelope;
-            try{envelope=ApiV3Json.parse(raw.getBytes(StandardCharsets.UTF_8));}catch(IllegalArgumentException e){throw ApiV3Requests.notFound();}
+            try {
+                envelope = ApiV3Json.parse(raw.getBytes(StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException e) {
+                throw ApiV3Requests.notFound();
+            }
             final Object owner=envelope.opt("userOId");
             if(owner instanceof String value)author=value;
             else if(owner instanceof Integer || owner instanceof Long || owner instanceof java.math.BigInteger)author=owner.toString();
@@ -119,15 +158,28 @@ public class ApiV3ReportPublicationService {
         if(type==1) {
             if(!lock)row=comment(target,false);
             else {
-                // Parent before child follows article deletion order. Verify the hint again after locking.
-                final JSONObject hint=comment(target,false);article=article(hint.getString("commentOnArticleId"),true);
-                row=comment(target,true);if(!article.getString("oId").equals(row.getString("commentOnArticleId")))throw unavailable();
+                // 沿用文章删除的先父后子顺序，持锁后复核预读结果。
+                final JSONObject hint = comment(target, false);
+                article = article(hint.getString("commentOnArticleId"), true);
+                row = comment(target, true);
+                if (!article.getString("oId").equals(row.getString("commentOnArticleId")))
+                    throw unavailable();
             }
             if(integer(row,"commentStatus")!=Comment.COMMENT_STATUS_C_VALID || !Set.of(0,1).contains(integer(row,"commentVisible")))throw ApiV3Requests.notFound();
-            if(!lock)article=article(row.getString("commentOnArticleId"),false);author=row.getString("commentAuthorId");
-        }else{article=article(target,lock);row=article;author=article.getString("articleAuthorId");}
-        idOrNotFound(author);final String parentAuthor=article.getString("articleAuthorId");idOrNotFound(parentAuthor);
-        final Set<String> owners=new HashSet<>();owners.add(author);owners.add(parentAuthor);
+            if (!lock)
+                article = article(row.getString("commentOnArticleId"), false);
+            author = row.getString("commentAuthorId");
+        } else {
+            article = article(target, lock);
+            row = article;
+            author = article.getString("articleAuthorId");
+        }
+        idOrNotFound(author);
+        final String parentAuthor = article.getString("articleAuthorId");
+        idOrNotFound(parentAuthor);
+        final Set<String> owners = new HashSet<>();
+        owners.add(author);
+        owners.add(parentAuthor);
         return new Target(row,article,author,owners);
     }
     private JSONObject comment(final String target,final boolean lock)throws RepositoryException {

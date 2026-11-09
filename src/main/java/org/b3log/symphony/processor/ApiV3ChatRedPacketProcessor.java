@@ -37,7 +37,7 @@ public class ApiV3ChatRedPacketProcessor {
                 beans.getReference(ApiV3AuthMidware.class), beans.getReference(ApiV3WriteMidware.class));
     }
 
-    public static void registerRoutes(ApiV3ChatRedPacketProcessor processor,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
+    public static void registerRoutes(ApiV3ChatRedPacketProcessor processor, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.post("/api/v3/chat/red-packets",processor::create,auth::contentWrite,auth::activityWrite,writes::handle);
         Dispatcher.get("/api/v3/chat/red-packets/{id}",processor::detail,auth::contentRead);
         Dispatcher.post("/api/v3/chat/red-packets/{id}/claims",processor::claim,auth::activityWrite,writes::handle);

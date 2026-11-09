@@ -28,7 +28,7 @@ import org.testng.Assert;
 import java.util.*;
 import static org.b3log.symphony.service.ArticleRewardMgmtService.Kind.*;
 
-/** Actual article reward aggregation/core/receipts with SQLite and explicit runtime/visibility adapters. */
+/** 使用 SQLite 执行实际文章打赏汇总、业务操作和回执，运行环境及可见性由夹具适配。 */
 public class ApiV3ArticleRewardServiceTest {
     public static void main(String[] args)throws Exception {
         final var props=new Properties();props.setProperty("runtimeDatabase","NONE");

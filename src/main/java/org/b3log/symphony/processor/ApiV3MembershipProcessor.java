@@ -29,7 +29,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 
 @Singleton
 public class ApiV3MembershipProcessor {
-    @Inject private ApiV3MembershipQueryService query;
+    @Inject
+    private ApiV3MembershipQueryService query;
 
     public static void register() {
         final var beans = BeanManager.getInstance();

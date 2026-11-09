@@ -37,7 +37,7 @@ public class ApiV3UserNameProcessor {
                 b.getReference(ApiV3AuthMidware.class), b.getReference(ApiV3WriteMidware.class));
     }
 
-    public static void registerRoutes(ApiV3UserNameProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
+    public static void registerRoutes(ApiV3UserNameProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.put("/api/v3/me/settings/user-name",p::rename,auth::activityWrite,auth::settingsWrite,writes::handle);
     }
 

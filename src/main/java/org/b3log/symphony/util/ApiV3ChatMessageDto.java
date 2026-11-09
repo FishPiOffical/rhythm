@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Explicit public projection of the persisted chat envelope and supported card types. */
+/** 将持久化聊天消息和支持的卡片类型按白名单投影为公开字段。 */
 public final class ApiV3ChatMessageDto {
     private static final int MAX_STORED_LENGTH=102400;
     private ApiV3ChatMessageDto() { }
@@ -56,7 +56,7 @@ public final class ApiV3ChatMessageDto {
         try {card=content.stripLeading().startsWith("{")?ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)):null;}
         catch(IllegalArgumentException e){return dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));}
         final String kind=card==null?"":card.optString("msgType");
-        // New cards retain validated plain text and signed URLs exactly. Historical projection stays unchanged.
+        // 新卡片精确保留已校验的纯文本和签名 URL，历史消息沿用原投影。
         if (card != null && card.optInt("cardVersion") == 3 && Set.of("music", "weather").contains(kind)) {
             try {
                 final JSONObject payload=card.getJSONObject("payload");

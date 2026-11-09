@@ -30,12 +30,16 @@ public class ApiV3SettingsMgmtService {
     @Inject private UserSettingsMgmtService settings;
     @Inject private ApiV3IdempotencyMgmtService idempotency;
     @Inject private SkinQueryService skins;
-    public JSONObject read(final String actor, final String group) throws Exception { return settings.read(actor, group); }
+    public JSONObject read(final String actor, final String group) throws Exception {
+        return settings.read(actor, group);
+    }
     public JSONObject update(final String actor, final String group, final JSONObject changes, final String key) throws Exception {
         try {
             return idempotency.execute(actor, "settings." + group, key, changes,
                     () -> settings.updateInCurrentTransaction(actor, group, changes, true));
-        } finally { settings.refresh(actor); }
+        } finally {
+            settings.refresh(actor);
+        }
     }
     public JSONObject localeOptions() {
         return SettingsLocaleOptions.dto();

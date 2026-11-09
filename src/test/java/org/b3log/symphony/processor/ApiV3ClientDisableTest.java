@@ -39,7 +39,7 @@ import java.sql.*;
 import java.util.*;
 import static org.b3log.symphony.processor.ApiV3ClientManagementTest.*;
 
-/** Actual logical-disable SQL, production admin guard/routes and bundled JDBC failures on temporary SQLite. */
+/** 在临时 SQLite 上执行实际逻辑停用 SQL、生产管理员校验及路由，并覆盖随包 JDBC 的故障。 */
 public final class ApiV3ClientDisableTest {
     static final String BASE = "/api/v3/admin/oauth/clients/";
     static final class DisableFixture implements AutoCloseable {

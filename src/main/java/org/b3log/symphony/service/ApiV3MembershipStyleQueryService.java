@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 
-/** Shared full display snapshot. Authorization is rechecked even for an unchanged version. */
+/** 共享完整展示快照，版本未变化时也会重新校验权限。 */
 @Service
 public class ApiV3MembershipStyleQueryService {
     private static final long CACHE_MS = 30_000;
@@ -67,7 +67,7 @@ public class ApiV3MembershipStyleQueryService {
         final String joins = " FROM `" + users.getName() + "` u JOIN `" + memberships.getName()
                 + "` m ON m.userId=u.oId AND m.state=1 LEFT JOIN `" + levels.getName() + "` l ON l.lvCode=m.lvCode";
         final String visible = " WHERE u.userStatus=0 AND (m.expiresAt=0 OR m.expiresAt>? OR m.expiresAt<0 OR m.expiresAt IS NULL)";
-        // Bound the raw inputs in the same statement, before the repository materializes them.
+        // 在同一条 SQL 中限制原始输入大小，再由 Repository 读取结果。
         final String bytes = "CASE WHEN LENGTH(m.configJson)<=102400 THEN LENGTH(m.configJson) ELSE 0 END"
                 + "+CASE WHEN LENGTH(l.benefits)<=102400 THEN LENGTH(l.benefits) ELSE 0 END";
         final var rows = memberships.select("SELECT u.oId AS userId,m.lvCode,m.expiresAt,"
@@ -76,7 +76,7 @@ public class ApiV3MembershipStyleQueryService {
                 + "CASE WHEN budget.sourceBytes<=" + MAX_BYTES + " AND LENGTH(l.benefits)<=102400 THEN l.benefits ELSE NULL END AS benefits,budget.sourceBytes"
                 + joins + " CROSS JOIN (SELECT COALESCE(SUM(" + bytes + "),0) AS sourceBytes" + joins + visible + ") budget"
                 + visible + " ORDER BY u.oId LIMIT " + (MAX_ROWS + 1), time, time);
-        if (rows.size() > MAX_ROWS) throw unavailable(); // Never return a successful truncated directory.
+        if (rows.size() > MAX_ROWS) throw unavailable(); // 超限时返回错误，避免把截断名单当成完整结果。
         if (!rows.isEmpty() && expiry(rows.getFirst().opt("sourceBytes")) > MAX_BYTES) throw unavailable();
         final Map<String, Object> configs = new TreeMap<>();
         final Set<String> seen = new HashSet<>();
@@ -91,7 +91,7 @@ public class ApiV3MembershipStyleQueryService {
                 if (expiry != 0) until = Math.min(until, expiry);
                 configs.put(id, ApiV3Json.canonical(style(row)));
             } catch (ApiV3Exception | IllegalArgumentException invalidRow) {
-                // A broken member must not take down every other nickname. Null is unknown, not an empty configuration.
+                // 单个会员数据异常时保留其余昵称，null 表示配置未知。
                 seen.add(id); configs.put(id, JSONObject.NULL);
             }
         }
@@ -102,7 +102,7 @@ public class ApiV3MembershipStyleQueryService {
         final String revision;
         try { revision = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(encoded.getBytes(StandardCharsets.UTF_8))); }
         catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
-        // If a write invalidated during this read, the next request must rebuild instead of trusting this cache.
+        // 读取期间若有写入使快照失效，下次请求须重建快照。
         cached = new Snapshot(revision, encoded, until, generation);
         return cached;
     }

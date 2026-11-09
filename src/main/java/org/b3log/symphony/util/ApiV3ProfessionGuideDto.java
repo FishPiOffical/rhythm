@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import java.math.BigDecimal;
 import java.util.Set;
 
-/** Only the growth sources and reward summaries already displayed by the selection page. */
+/** 仅返回职业选择页已展示的成长来源和奖励摘要。 */
 public final class ApiV3ProfessionGuideDto {
     private ApiV3ProfessionGuideDto() { }
     private static final Set<String> TRIGGERS = Set.of("long_article.read_settled", "article.published", "comment.published",

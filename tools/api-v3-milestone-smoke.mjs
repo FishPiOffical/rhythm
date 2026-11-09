@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Read-only checks after IDEA rebuild/restart.
- * API_V3_TOKEN: content.read owner token; API_V3_OTHER_TOKEN: another account with content.read.
- * Optional API_V3_OWN_PENDING_MILESTONE_ID / API_V3_OWN_REJECTED_MILESTONE_ID check owner/public separation.
- * Optional API_V3_NO_CONTENT_SCOPE_TOKEN checks 403.
- * API_V3_ALLOW_MILESTONE_SUBMISSION=1 submits one persistent pending test record (no v3 delete).
+/** 在 IDEA 重新编译或重启后运行，默认只读。
+ * API_V3_TOKEN 使用记录所有者的 content.read 令牌，API_V3_OTHER_TOKEN 使用另一个具有 content.read 的账号。
+ * 可选的 API_V3_OWN_PENDING_MILESTONE_ID 和 API_V3_OWN_REJECTED_MILESTONE_ID 用于验证本人及公开可见性。
+ * 可选的 API_V3_NO_CONTENT_SCOPE_TOKEN 用于验证 403。
+ * API_V3_ALLOW_MILESTONE_SUBMISSION=1 会持久提交一条待审测试记录，v3 无删除入口。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

@@ -22,7 +22,7 @@ import org.b3log.symphony.model.Vote;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Shared forum vote contract; public state never includes actor or author identities. */
+/** v3 论坛投票约定，公开状态省略投票者和作者身份。 */
 public final class ApiV3Votes {
     private ApiV3Votes() { }
     public static final Set<String> FIELDS = Set.of("vote");

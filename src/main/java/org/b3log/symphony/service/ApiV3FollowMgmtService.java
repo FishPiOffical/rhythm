@@ -77,7 +77,7 @@ public class ApiV3FollowMgmtService {
             catch (final Exception e) { LOGGER.warn("Failed to refresh committed v3 follow notification"); }
             return new JSONObject().put("following", stored.getBoolean("following")).put("changed", stored.getBoolean("changed"));
         } finally {
-            // Repository updates populate caches before commit. Evict after both commit and rollback.
+            // Repository 会在提交前填充缓存，提交或回滚后都要清除该缓存。
             follows.invalidateCaches(targetId, type);
         }
     }

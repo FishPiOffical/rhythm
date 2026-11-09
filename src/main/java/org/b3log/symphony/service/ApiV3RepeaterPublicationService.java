@@ -30,7 +30,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** Content, profession source fact and the replay receipt share one strict root. */
+/** 复读内容、职业来源事件和重放回执在同一个严格根事务中提交。 */
 @Service
 public class ApiV3RepeaterPublicationService {
     @Inject private UserRepository users;

@@ -36,8 +36,10 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ProfileSettingsProcessor {
-    @Inject private ApiV3QqSettingsService qq;
-    @Inject private ApiV3ProfileTagsService tags;
+    @Inject
+    private ApiV3QqSettingsService qq;
+    @Inject
+    private ApiV3ProfileTagsService tags;
     public static void register() {
         ApiV3OAuthTransportLogFilter.requireInstalled();
         final var beans = BeanManager.getInstance();
@@ -52,17 +54,23 @@ public class ApiV3ProfileSettingsProcessor {
         Dispatcher.get("/api/v3/me/settings/tags", p::tags, auth::profileRead);
         Dispatcher.put("/api/v3/me/settings/tags", p::updateTags, auth::settingsWrite, writes::handle);
     }
-    public void qq(RequestContext context) { ApiV3Requests.read(context, () -> qq.read(identity(context))); }
+    public void qq(RequestContext context) {
+        ApiV3Requests.read(context, () -> qq.read(identity(context)));
+    }
     public void updateQq(RequestContext context) { ApiV3Requests.respond(context, () -> {
         final byte[] bytes = context.getRequest().getBytes();
         if (bytes != null && bytes.length > 4096) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
         return qq.update(identity(context), ApiV3WriteInputs.body(context, Set.of("qq"), false), ApiV3WriteInputs.idempotencyKey(context));
     }); }
-    public void tags(RequestContext context) { ApiV3Requests.read(context, () -> tags.read(ApiV3Requests.viewer(context).getString("oId"))); }
+    public void tags(RequestContext context) {
+        ApiV3Requests.read(context, () -> tags.read(ApiV3Requests.viewer(context).getString("oId")));
+    }
     public void updateTags(RequestContext context) { ApiV3Requests.respond(context, () -> {
         final byte[] bytes = context.getRequest().getBytes();
         if (bytes != null && bytes.length > 4096) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
         return tags.update(ApiV3Requests.viewer(context).getString("oId"), ApiV3WriteInputs.body(context, Set.of("tags"), false), ApiV3WriteInputs.idempotencyKey(context));
     }); }
-    private static JSONObject identity(RequestContext context) { return (JSONObject) context.attr(ApiV3Processor.IDENTITY); }
+    private static JSONObject identity(RequestContext context) {
+        return (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+    }
 }

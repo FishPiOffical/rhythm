@@ -37,7 +37,8 @@ import java.util.Set;
 @Singleton
 public class ApiV3InvitationProcessor {
     private static final int MAX_BODY_BYTES = 1024;
-    @Inject private ApiV3InvitationQueryService query;
+    @Inject
+    private ApiV3InvitationQueryService query;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3InvitationProcessor.class);

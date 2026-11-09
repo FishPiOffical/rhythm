@@ -32,7 +32,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3CommunityProcessor {
-    @Inject private ApiV3CommunityQueryService community;
+    @Inject
+    private ApiV3CommunityQueryService community;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3CommunityProcessor processor = beans.getReference(ApiV3CommunityProcessor.class);
@@ -63,7 +64,9 @@ public class ApiV3CommunityProcessor {
     public void milestone(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.milestone(ApiV3Requests.id(context, "milestoneId")));
     }
-    public void statistics(final RequestContext context) { ApiV3Requests.read(context, community::statistics); }
+    public void statistics(final RequestContext context) {
+        ApiV3Requests.read(context, community::statistics);
+    }
     public void cityUsers(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.cityUsers(city(context), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
@@ -71,5 +74,7 @@ public class ApiV3CommunityProcessor {
         ApiV3Requests.read(context, () -> community.cityArticles(city(context), ApiV3Requests.viewer(context), ApiV3Requests.page(context), ApiV3Requests.size(context),
                 ApiV3Requests.choice(context, "sort", "latest", Set.of("latest", "active", "hot", "comments"))));
     }
-    private static String city(final RequestContext context) { return ApiV3Requests.text(context.pathVar("cityName"), 64, true); }
+    private static String city(final RequestContext context) {
+        return ApiV3Requests.text(context.pathVar("cityName"), 64, true);
+    }
 }

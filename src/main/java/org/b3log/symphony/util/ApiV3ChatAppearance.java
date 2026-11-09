@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Immutable v1 pack catalog. Historical snapshots never re-check the author's current membership. */
+/** 不可变的 v1 聊天气泡样式目录，历史快照无需重验作者当前的会员状态。 */
 public final class ApiV3ChatAppearance {
     private ApiV3ChatAppearance() { }
     private static final Set<String> BUBBLES=Set.of("classic","candy","paipai-orange","fishpond-blue");
@@ -36,7 +36,12 @@ public final class ApiV3ChatAppearance {
     public static boolean premium(JSONObject value){return "candy".equals(value.optString("bubbleId"))||"gold".equals(value.optString("frameId"));}
     public static JSONObject effective(JSONObject value,boolean vip){
         final JSONObject current=publicSnapshot(value);
-        if(!vip){if("candy".equals(current.optString("bubbleId")))current.put("bubbleId","classic");if("gold".equals(current.optString("frameId")))current.put("frameId","none");}
+        if (!vip) {
+            if ("candy".equals(current.optString("bubbleId")))
+                current.put("bubbleId", "classic");
+            if ("gold".equals(current.optString("frameId")))
+                current.put("frameId", "none");
+        }
         return current;
     }
     public static JSONObject publicSnapshot(Object raw){

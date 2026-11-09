@@ -32,7 +32,8 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 
 @Singleton
 public class ApiV3VoteProcessor {
-    @Inject private ApiV3ArticleVoteService articles;
+    @Inject
+    private ApiV3ArticleVoteService articles;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3VoteProcessor.class);

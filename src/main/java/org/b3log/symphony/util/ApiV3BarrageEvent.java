@@ -32,12 +32,20 @@ public record ApiV3BarrageEvent(String id,String content,String color,long creat
         userAvatarURL=safeAvatar(userAvatarURL);
     }
     private static void valid(String value,int max){
-        if(value==null||value.length()>max)throw new IllegalArgumentException("barrage public text");ApiV3Json.canonical(value);
+        if (value == null || value.length() > max)
+            throw new IllegalArgumentException("barrage public text");
+        ApiV3Json.canonical(value);
     }
     private static String safeAvatar(String value){
-        if(value==null||value.length()>2048)return "";
-        try{final URI url=URI.create(value);return ("https".equalsIgnoreCase(url.getScheme())||"http".equalsIgnoreCase(url.getScheme()))
-                &&url.getHost()!=null&&url.getUserInfo()==null?url.toASCIIString():"";}catch(IllegalArgumentException e){return "";}
+        if (value == null || value.length() > 2048)
+            return "";
+        try {
+            final URI url = URI.create(value);
+            return ("https".equalsIgnoreCase(url.getScheme()) || "http".equalsIgnoreCase(url.getScheme()))
+                    && url.getHost() != null && url.getUserInfo() == null ? url.toASCIIString() : "";
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
     }
     public JSONObject dto(){
         return new JSONObject().put("id",id).put("content",content).put("color",color).put("createdAt",createdAt)

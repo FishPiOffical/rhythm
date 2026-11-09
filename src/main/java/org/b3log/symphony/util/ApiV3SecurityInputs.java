@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Security proofs are validated but never normalized into ordinary idempotency receipts. */
+/** 校验安全凭据，但不将它们纳入普通幂等回执。 */
 public final class ApiV3SecurityInputs {
     private ApiV3SecurityInputs() { }
 

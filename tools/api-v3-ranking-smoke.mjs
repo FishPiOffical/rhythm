@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Read-only HTTP checks after IDEA rebuild/restart.
- * API_V3_BASE_URL defaults to http://localhost:8080; API_V3_TOKEN optionally carries content.read.
- * API_V3_TEST_XIAOICE=1 opts into the external board (upstream unavailability may return 503).
- * Blacklist/captcha behavior and PC/mobile display still require manual checks.
+/** 在 IDEA 重新编译或重启后运行只读 HTTP 检查。
+ * API_V3_BASE_URL 默认为 http://localhost:8080，可选的 API_V3_TOKEN 使用 content.read。
+ * API_V3_TEST_XIAOICE=1 启用外部排行榜检查，上游不可用时可能返回 503。
+ * 黑名单、验证码和 PC、移动端显示仍需人工验证。
  */
 import assert from 'node:assert/strict';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080';

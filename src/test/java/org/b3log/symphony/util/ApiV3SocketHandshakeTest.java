@@ -28,7 +28,7 @@ import org.b3log.latke.http.WebSocketSession;
 import org.testng.Assert;
 import java.util.Map;
 
-/** Uses the actual bundled Latke session/handler fields and Netty pipeline, not replicas. */
+/** 使用随包发布的 Latke 会话和处理器字段，以及实际 Netty 管道。 */
 public class ApiV3SocketHandshakeTest {
     static final String PATH="/api/v3/socket";
     static class Fixture implements AutoCloseable {

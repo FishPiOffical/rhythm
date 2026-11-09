@@ -49,7 +49,17 @@ public final class ApiV3Settings {
     public static final Map<String, String> LOCATION = Map.of("publicLocation", "userGeoStatus");
     public static final Map<String, String> LOCALE = Map.of("language", "userLanguage", "timezone", "userTimezone");
     public static Map<String, String> fields(final String group) {
-        return switch (group) { case "personality" -> PERSONALITY; case "avatar" -> AVATAR; case "profile" -> PROFILE; case "privacy" -> PRIVACY; case "display" -> DISPLAY; case "functions" -> FUNCTIONS; case "location" -> LOCATION; case "locale" -> LOCALE; default -> throw new IllegalArgumentException("unknown settings group"); };
+        return switch (group) {
+            case "personality" -> PERSONALITY;
+            case "avatar" -> AVATAR;
+            case "profile" -> PROFILE;
+            case "privacy" -> PRIVACY;
+            case "display" -> DISPLAY;
+            case "functions" -> FUNCTIONS;
+            case "location" -> LOCATION;
+            case "locale" -> LOCALE;
+            default -> throw new IllegalArgumentException("unknown settings group");
+        };
     }
     public static JSONObject normalize(final String group, final JSONObject body) {
         return normalize(group, body, "");
@@ -67,7 +77,15 @@ public final class ApiV3Settings {
             } else if ("listPageSize".equals(key)) {
                 changes.put(fields.get(key), ApiV3WriteInputs.integer(body, key, 20, 10, 96));
             } else {
-                final int max = switch (key) { case "mbti" -> 6; case "userNickname" -> 20; case "userIntro", "avatarURL" -> 255; case "userURL" -> 100; case "indexRedirectURL" -> 255; case "language", "timezone" -> 64; default -> 32; };
+                final int max = switch (key) {
+                    case "mbti" -> 6;
+                    case "userNickname" -> 20;
+                    case "userIntro", "avatarURL" -> 255;
+                    case "userURL" -> 100;
+                    case "indexRedirectURL" -> 255;
+                    case "language", "timezone" -> 64;
+                    default -> 32;
+                };
                 String value = ApiV3WriteInputs.string(body, key, max, true);
                 if (value.codePoints().anyMatch(cp -> Character.isISOControl(cp) && !("userIntro".equals(key) && (cp == '\n' || cp == '\r' || cp == '\t')))) throw ApiV3WriteInputs.invalid();
                 if (Set.of("skin", "mobileSkin").contains(key) && (!value.matches("[A-Za-z0-9_/-]{1,32}") || value.contains("..") || value.startsWith("/"))) throw ApiV3WriteInputs.invalid();
@@ -79,7 +97,11 @@ public final class ApiV3Settings {
                         if (!Strings.isURL(value) || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) || null == uri.getHost() || null != uri.getUserInfo()) throw ApiV3WriteInputs.invalid();
                     } catch (final java.net.URISyntaxException e) { throw ApiV3WriteInputs.invalid(); }
                 }
-                if ("indexRedirectURL".equals(key)) { value = SettingsRedirects.normalize(value, site); if (value.length() > 255) throw ApiV3WriteInputs.invalid(); }
+                if ("indexRedirectURL".equals(key)) {
+                    value = SettingsRedirects.normalize(value, site);
+                    if (value.length() > 255)
+                        throw ApiV3WriteInputs.invalid();
+                }
                 if ("language".equals(key) && !Languages.getAvailableLanguages().contains(value)) throw ApiV3WriteInputs.invalid();
                 if ("timezone".equals(key) && !Arrays.asList(TimeZone.getAvailableIDs()).contains(value)) throw ApiV3WriteInputs.invalid();
                 changes.put(fields.get(key), value);
@@ -87,7 +109,7 @@ public final class ApiV3Settings {
         }
         return changes;
     }
-    /** Stores the caller's HTTPS URL without fetching it or altering signed query parameters. */
+    /** 保存调用方提供的 HTTPS 地址，保留签名查询参数且不访问该地址。 */
     public static String avatarURL(final String value) {
         if (null == value || value.isBlank() || value.length() > 255 || value.indexOf('\\') >= 0
                 || value.codePoints().anyMatch(cp -> Character.isISOControl(cp) || Character.isWhitespace(cp))) throw ApiV3WriteInputs.invalid();

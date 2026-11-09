@@ -1,10 +1,9 @@
 #!/usr/bin/env node
-/** Read-only personal resource checks after IDEA compilation/restart.
- * API_V3_BASE_URL defaults to localhost:8080. API_V3_TOKEN is a valid Bearer
- * with profile.read, content.read and activity.read.
- * Optional API_V3_OWN_DRAFT_ID and API_V3_OTHER_DRAFT_ID are existing fixtures.
- * Optional API_V3_OWN_ARTICLE_ID and API_V3_OTHER_ARTICLE_ID check editor source ownership.
- * Optional API_V3_SCOPELESS_TOKEN lacks all three required read scopes.
+/** 在 IDEA 编译或重启后只读检查个人资源。
+ * API_V3_BASE_URL 默认为 localhost:8080。API_V3_TOKEN 需要有效 Bearer 及 profile.read、content.read、activity.read。
+ * 可选的 API_V3_OWN_DRAFT_ID 和 API_V3_OTHER_DRAFT_ID 指向已有草稿夹具。
+ * 可选的 API_V3_OWN_ARTICLE_ID 和 API_V3_OTHER_ARTICLE_ID 用于验证编辑原文的所有权。
+ * 可选的 API_V3_SCOPELESS_TOKEN 缺少上述三项读取权限。
  */
 import assert from 'node:assert/strict';
 const base = process.env.API_V3_BASE_URL || 'http://localhost:8080';

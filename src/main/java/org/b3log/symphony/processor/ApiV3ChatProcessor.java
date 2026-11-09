@@ -50,7 +50,7 @@ public class ApiV3ChatProcessor {
     @Inject
     private ApiV3ChatBarrageService barrages;
 
-    public static void register(){
+    public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ChatProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);

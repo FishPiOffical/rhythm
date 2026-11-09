@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** Closed user-editable display fields; service-owned benefits remain untouched. */
+/** 用户只可编辑明确列出的展示字段，权益字段由服务端管理。 */
 public final class ApiV3MembershipConfiguration {
     private ApiV3MembershipConfiguration() { }
     private static final Set<String> FIELDS = Set.of("bold", "underline", "color");
@@ -59,7 +59,7 @@ public final class ApiV3MembershipConfiguration {
                 if (!(value instanceof String color) || !colorAllowed(code, color)) throw unavailable();
             } else if (!(value instanceof Boolean)) throw unavailable();
         }
-        // JSON escaping can expand a valid input; bound the value actually persisted.
+        // JSON 转义可能增加长度，因此限制实际入库值的长度。
         bounded(defaults.toString());
         return defaults;
     }
@@ -74,12 +74,12 @@ public final class ApiV3MembershipConfiguration {
             if ("color".equals(key) && !colorAllowed(level.getString("lvCode"), (String) value)) throw ApiV3WriteInputs.invalid();
             result.put(key, value);
         }
-        // Preserve every service-owned key, but keep the resulting storage bounded too.
+        // 保留所有服务端管理的键，同时限制合并后入库数据的大小。
         if (result.toString().getBytes(StandardCharsets.UTF_8).length > MAX_CONFIG_BYTES) throw unavailable();
         return result;
     }
 
-    /** Compare only supported display field types; defaults and entitlement differences are legitimate. */
+    /** 只比较支持的展示字段类型，允许默认值和权益差异。 */
     public static JSONObject displayDefinition(final JSONObject level) {
         final JSONObject defaults = defaults(level), result = new JSONObject();
         for (final String field : FIELDS) if (defaults.has(field)) result.put(field, "color".equals(field) ? "string" : "boolean");

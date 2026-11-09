@@ -29,18 +29,25 @@ import org.b3log.symphony.util.ApiV3Requests;
 
 @Singleton
 public class ApiV3CommentRewardProcessor {
-    @Inject private ApiV3CommentRewardQueryService query;
-    public static void register(){
-        final var beans=BeanManager.getInstance();
-        registerRoutes(beans.getReference(ApiV3CommentRewardProcessor.class),beans.getReference(ApiV3AuthMidware.class));
+    @Inject
+    private ApiV3CommentRewardQueryService query;
+    public static void register() {
+        final var beans = BeanManager.getInstance();
+        registerRoutes(beans.getReference(ApiV3CommentRewardProcessor.class), beans.getReference(ApiV3AuthMidware.class));
     }
-    public static void registerRoutes(final ApiV3CommentRewardProcessor processor,final ApiV3AuthMidware auth){
+    public static void registerRoutes(final ApiV3CommentRewardProcessor processor, final ApiV3AuthMidware auth) {
         Dispatcher.get("/api/v3/comments/{commentId}/thanks",processor::thanks,auth::contentRead);
         Dispatcher.get("/api/v3/comments/{commentId}/accept",processor::accept,auth::contentRead);
     }
-    public void thanks(final RequestContext context){read(context,false);}
-    public void accept(final RequestContext context){read(context,true);}
-    private void read(final RequestContext context,final boolean acceptance){
-        ApiV3Requests.respond(context,()->query.read(ApiV3Requests.viewer(context),ApiV3Requests.id(context,"commentId"),acceptance));
+    public void thanks(final RequestContext context) {
+        read(context, false);
+    }
+
+    public void accept(final RequestContext context) {
+        read(context, true);
+    }
+    private void read(final RequestContext context, final boolean acceptance) {
+        ApiV3Requests.respond(context, () -> query.read(ApiV3Requests.viewer(context),
+                ApiV3Requests.id(context, "commentId"), acceptance));
     }
 }

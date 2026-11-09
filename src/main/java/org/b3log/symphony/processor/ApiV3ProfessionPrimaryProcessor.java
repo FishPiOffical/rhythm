@@ -34,7 +34,8 @@ import java.util.Set;
 /** 通过 Bearer 身份显式选择主职业，跳过引导和隐私设置由其他入口处理。 */
 @Singleton
 public class ApiV3ProfessionPrimaryProcessor {
-    @Inject private ApiV3ProfessionPrimaryService service;
+    @Inject
+    private ApiV3ProfessionPrimaryService service;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ProfessionPrimaryProcessor.class);

@@ -63,7 +63,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/** Directory, search and public profile read models. No legacy handler delegation. */
+/** 提供目录、搜索和公开资料的只读投影。 */
 @Service
 public class ApiV3DiscoveryQueryService {
     @Inject private TagRepository tagRepository;
@@ -138,7 +138,7 @@ public class ApiV3DiscoveryQueryService {
         return ApiV3Requests.pagination(list, p, size, total);
     }
 
-    /** All filtering precedes count and pagination. SQL identifiers are internal, values are bound. */
+    /** 先筛选再计数和分页。SQL 标识符来自内部定义，查询值通过参数绑定。 */
     public JSONObject articles(final JSONObject viewer, final int p, final int size, final String sort,
                                final String type, final Selection selection) throws RepositoryException {
         final StringBuilder from = new StringBuilder(" FROM ").append(articleRepository.getName())
@@ -240,7 +240,7 @@ public class ApiV3DiscoveryQueryService {
         return user;
     }
 
-    /** Current privacy/status/name lookup; cached users must never decide public profile access. */
+    /** 查询当前隐私、状态和用户名，公开资料权限以数据库当前状态为准。 */
     private JSONObject currentProfileUser(final String field, final String value) throws RepositoryException {
         if (!java.util.Set.of("oId", "userName").contains(field)) throw new IllegalArgumentException("profile lookup");
         final var rows = userRepository.select("SELECT * FROM `" + userRepository.getName() + "` WHERE " + field + "=? LIMIT 2", value);
@@ -278,7 +278,7 @@ public class ApiV3DiscoveryQueryService {
         if (!ApiV3ContentUtil.canViewUserList(user, viewer, field)) throw ApiV3Requests.forbidden();
     }
 
-    /** kind is an internal enum selected by the processor, never an SQL identifier from input. */
+    /** kind 是由处理器选择的内部枚举，SQL 标识符由内部映射确定。 */
     public JSONObject userRelations(final String userId, final int p, final int size, final String kind) throws RepositoryException {
         final boolean tags = "tags".equals(kind);
         final boolean followers = "followers".equals(kind);

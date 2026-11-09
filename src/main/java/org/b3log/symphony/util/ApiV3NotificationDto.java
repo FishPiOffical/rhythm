@@ -22,7 +22,7 @@ import org.b3log.latke.Keys;
 import org.b3log.symphony.model.Notification;
 import org.json.JSONObject;
 
-/** Raw notification references/owner/content are never copied into a response. */
+/** 响应只使用通知字段的公开投影，省略原始引用、所有者和内容字段。 */
 public final class ApiV3NotificationDto {
     private ApiV3NotificationDto() { }
     public static JSONObject base(final JSONObject row) {

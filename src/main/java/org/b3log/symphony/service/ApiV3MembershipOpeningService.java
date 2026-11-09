@@ -56,7 +56,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
-/** Purchases, coupon consumption, membership, activation and starter bag share one strict receipt transaction. */
+/** 购买、优惠券核销、会员开通及新手礼包与回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3MembershipOpeningService {
     @Inject private UserRepository users;
@@ -93,7 +93,7 @@ public class ApiV3MembershipOpeningService {
                 }
             });
             final JSONObject result=publicResult(durable);
-            // Invalidation also runs on replay; no transaction snapshot is published to legacy readers.
+            // 回放也会清除缓存，避免旧读取入口看到事务内的快照。
             invalidate(actor);
             index(actor,billingId,durable.getString("indexTransferId"));
             return result;
@@ -112,7 +112,7 @@ public class ApiV3MembershipOpeningService {
                     transferId,actor,Pointtransfer.ID_C_SYS,Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT,"membership.open",billingId);
             if (rows.size()!=1 || !rows.getFirst().optString("oId").matches("[1-9][0-9]{0,18}")) throw unavailable();
             final String raw=rows.getFirst().getString("oId");
-            // The committed parent row serializes replay repairs without changing the legacy async writer.
+            // 以已提交的主账目行锁串行处理回放修复，旧异步写入按原方式运行。
             for (final String owner:List.of(actor,Pointtransfer.ID_C_SYS)) {
                 final var existing=transferIndex.select("SELECT oId FROM `"+transferIndex.getName()+"` WHERE userId=? AND rawId=? LIMIT 2 FOR UPDATE",owner,raw);
                 if (existing.isEmpty() && ApiV3TransactionStatements.execute("INSERT INTO `"+transferIndex.getName()+"` (oId,userId,rawId) VALUES (?,?,?)",Ids.genTimeMillisId(),owner,raw)!=1) throw unavailable();

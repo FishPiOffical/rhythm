@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** Main payment, fee, recipient notification and owner receipt share one strict root. */
+/** 转账主账、手续费、收款方通知和本人回执在同一个严格根事务中提交。 */
 @Service
 public class ApiV3PointTransferService {
     @Inject private UserRepository users;
@@ -72,8 +72,8 @@ public class ApiV3PointTransferService {
         final String requestId=ApiV3TokenUtil.hash("request-key\0"+actor+"\0"+OPERATION+"\0"+key);
         final String billingId=ApiV3TokenUtil.hash(OPERATION+"\0"+actor+"\0"+key);
         try {
-            // A durable receipt supplies only a lock hint. The root still verifies its key/body and current actor.
-            // This permits replay after the receiver renames or deactivates without reopening a completed transfer.
+            // 持久回执只用来确定加锁对象，根事务仍须复核幂等键、请求体和当前用户。
+            // 收款人改名或停用后仍能回放已完成的回执，避免重新执行该笔转账。
             final JSONObject hint=receiptHint(actor,requestId);
             final Targets targets=hint==null?resolve(input.userName()):targets(hint);
             final var destinations=new ArrayList<String>();destinations.add(targets.receiverId());destinations.add(targets.feeId());

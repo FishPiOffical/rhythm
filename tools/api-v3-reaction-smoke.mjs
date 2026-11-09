@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** After IDEA rebuild/restart. Read-only unless API_V3_ALLOW_REACTION_WRITES=1.
- * API_V3_TOKEN: disposable account with content.read/reactions.write.
- * Explicit fixtures: API_V3_REACTION_ARTICLE_ID, API_V3_REACTION_COMMENT_ID, API_V3_REACTION_CHAT_ID.
- * Existing own reactions are skipped. Newly added reactions are cleared in finally.
- * Discussions/private comments and event recipients require separate manual fixtures.
+/** 在 IDEA 重新编译或重启后运行，API_V3_ALLOW_REACTION_WRITES=1 才启用写入。
+ * API_V3_TOKEN 使用具有 content.read/reactions.write 的临时账号。
+ * 用 API_V3_REACTION_ARTICLE_ID、API_V3_REACTION_COMMENT_ID、API_V3_REACTION_CHAT_ID 显式指定夹具。
+ * 跳过已有的本人表态，在 finally 中清理本次新增的表态。
+ * 讨论帖、私密评论和事件接收者需要单独的人工夹具。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

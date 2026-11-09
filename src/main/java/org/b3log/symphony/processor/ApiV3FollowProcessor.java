@@ -38,9 +38,12 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3FollowProcessor {
-    @Inject private ApiV3FollowMgmtService follows;
-    @Inject private ApiV3FollowQueryService query;
-    @Inject private ApiV3DiscoveryQueryService discovery;
+    @Inject
+    private ApiV3FollowMgmtService follows;
+    @Inject
+    private ApiV3FollowQueryService query;
+    @Inject
+    private ApiV3DiscoveryQueryService discovery;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3FollowProcessor p = beans.getReference(ApiV3FollowProcessor.class);
@@ -69,35 +72,78 @@ public class ApiV3FollowProcessor {
     public void userState(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.userState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId")));
     }
-    public void tagState(final RequestContext c) { ApiV3Requests.read(c, () -> query.tagState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId"))); }
-    public void collectionState(final RequestContext c) { articleState(c, false); }
-    public void subscriptionState(final RequestContext c) { articleState(c, true); }
+    public void tagState(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.tagState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId")));
+    }
+
+    public void collectionState(final RequestContext c) {
+        articleState(c, false);
+    }
+
+    public void subscriptionState(final RequestContext c) {
+        articleState(c, true);
+    }
     private void articleState(final RequestContext c, final boolean watch) {
         ApiV3Requests.read(c, () -> query.articleState(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId"), watch));
     }
-    public void users(final RequestContext c) { relations(c, "users"); }
-    public void tags(final RequestContext c) { relations(c, "tags"); }
+    public void users(final RequestContext c) {
+        relations(c, "users");
+    }
+
+    public void tags(final RequestContext c) {
+        relations(c, "tags");
+    }
     private void relations(final RequestContext c, final String kind) {
         ApiV3Requests.read(c, () -> discovery.userRelations(actor(c), ApiV3Requests.page(c), ApiV3Requests.size(c), kind));
     }
-    public void collections(final RequestContext c) { articles(c, false); }
-    public void subscriptions(final RequestContext c) { articles(c, true); }
+    public void collections(final RequestContext c) {
+        articles(c, false);
+    }
+
+    public void subscriptions(final RequestContext c) {
+        articles(c, true);
+    }
     private void articles(final RequestContext c, final boolean watch) {
         ApiV3Requests.read(c, () -> query.articles(ApiV3Requests.viewer(c), watch, ApiV3Requests.page(c), ApiV3Requests.size(c)));
     }
-    public void followUser(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_USER, true); }
-    public void unfollowUser(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_USER, false); }
-    public void followTag(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_TAG, true); }
-    public void unfollowTag(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_TAG, false); }
-    public void collect(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_ARTICLE, true); }
-    public void uncollect(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_ARTICLE, false); }
-    public void subscribe(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH, true); }
-    public void unsubscribe(final RequestContext c) { set(c, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH, false); }
+    public void followUser(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_USER, true);
+    }
+
+    public void unfollowUser(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_USER, false);
+    }
+
+    public void followTag(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_TAG, true);
+    }
+
+    public void unfollowTag(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_TAG, false);
+    }
+
+    public void collect(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_ARTICLE, true);
+    }
+
+    public void uncollect(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_ARTICLE, false);
+    }
+
+    public void subscribe(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH, true);
+    }
+
+    public void unsubscribe(final RequestContext c) {
+        set(c, Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH, false);
+    }
     private void set(final RequestContext c, final int type, final boolean enabled) {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);
             return follows.set(ApiV3Requests.viewer(c), ApiV3Requests.id(c, "targetId"), type, enabled, ApiV3WriteInputs.idempotencyKey(c));
         });
     }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

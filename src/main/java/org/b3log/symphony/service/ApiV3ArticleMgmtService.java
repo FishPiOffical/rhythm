@@ -102,7 +102,7 @@ public class ApiV3ArticleMgmtService {
                 throw new ApiV3Exception(status, e.code, e.getMessage().replace("<br>", "\n"));
             } catch (final ServiceException e) {
                 for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
-                // Legacy duplicate-title errors may identify another (including anonymous) author.
+                // 旧链路的重复标题错误可能暴露另一位作者，包括匿名作者。
                 throw new ApiV3Exception(422, "publication_rejected", "发布条件未满足，请检查标题、余额和账号状态");
             }
         }), outcome -> { if (outcome.applied()) articles.afterArticlePublished(publication.get()); });

@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Existing profession presets and complete CUSTOM maps, with strict JSON transport types. */
+/** 严格校验职业预设和完整 CUSTOM 映射的 JSON 类型。 */
 public final class ApiV3ProfessionSettingsInputs {
     private ApiV3ProfessionSettingsInputs() { }
     private static final Set<String> PRESETS = Set.of("ALL_PUBLIC", "LEVEL_ONLY", "PRIMARY_ONLY", "SELF_ONLY", "FULLY_HIDDEN", "CUSTOM");
@@ -49,7 +49,7 @@ public final class ApiV3ProfessionSettingsInputs {
             if (supplied == null || !supplied.keySet().equals(MODULES)) throw ApiV3WriteInputs.invalid();
             visibility = new JSONObject(supplied.toString());
         } else {
-            // Legacy presets ignore an optional map. Validate its shape, but never persist its values.
+            // 预设允许携带可选映射，但仅校验结构，不持久化其值。
             visibility = presetVisibility(preset);
         }
         return new JSONObject().put("preset", preset).put("moduleVisibility", visibility);

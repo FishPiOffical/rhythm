@@ -29,25 +29,63 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ApiV3MarkdownTest {
-    static void check(boolean v){if(!v)throw new AssertionError();}
-    static RequestContext request(String token,String mime,byte[] body)throws Exception{
-        var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,"/api/v3/markdown/preview?apiKey=old",Unpooled.wrappedBuffer(body));
-        try{
-            if(token!=null)raw.headers().set("Authorization",token);
-            if(mime!=null)raw.headers().set("Content-Type",mime);
-            raw.headers().set("Cookie","legacy=valid");
-            var req=new Request(null,raw){public String getRemoteAddr(){return "192.0.2.62";}};req.setParams(new HashMap<>(Map.of("apiKey","old")));
-            var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));
-            c.addHandler(new org.b3log.latke.http.handler.RouteHandler());c.addHandler(new ApiV3MarkdownProcessor()::preview);c.handle();return c;
-        }finally{raw.release();}
+    static void check(boolean v) {
+        if (!v) throw new AssertionError();
+    }
+
+    static RequestContext request(String token, String mime, byte[] body) throws Exception {
+        var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, io.netty.handler.codec.http.HttpMethod.POST,
+                "/api/v3/markdown/preview?apiKey=old", Unpooled.wrappedBuffer(body));
+        try {
+            if (token != null) raw.headers().set("Authorization", token);
+            if (mime != null) raw.headers().set("Content-Type", mime);
+            raw.headers().set("Cookie", "legacy=valid");
+            var req = new Request(null, raw) {
+                public String getRemoteAddr() {
+                    return "192.0.2.62";
+                }
+            };
+            req.setParams(new HashMap<>(Map.of("apiKey", "old")));
+            var c = new RequestContext(req, new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
+            c.addHandler(new org.b3log.latke.http.handler.RouteHandler());
+            c.addHandler(new ApiV3MarkdownProcessor()::preview);
+            c.handle();
+            return c;
+        } finally {
+            raw.release();
+        }
     }
     static byte[] bytes(String s){return s.getBytes(StandardCharsets.UTF_8);}
     static RequestContext json(String body)throws Exception{return request("Bearer good","application/json; charset=UTF-8",bytes(body));}
     static int status(RequestContext c){return (Integer)c.attr("status");}
     public static void main(String[] args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");props.setProperty("serverScheme","https");props.setProperty("serverHost","fishpi.cn");props.setProperty("serverPort","443");props.setProperty("runtimeMode","PRODUCTION");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);Latkes.setServerScheme("https");Latkes.setServerHost("fishpi.cn");Latkes.setServerPort("443");Latkes.setContextPath("");
-        var auth=new ApiV3AuthMidware();var f=ApiV3AuthMidware.class.getDeclaredField("apiV3TokenMgmtService");f.setAccessible(true);f.set(auth,new ApiV3TokenMgmtService(){public JSONObject authenticate(String token){return Set.of("good","wrong").contains(token)?new JSONObject().put("user",new JSONObject().put("oId","1")).put("scope",token.equals("good")?"content.read":"profile.read"):null;}});
-        ApiV3MarkdownProcessor.registerRoutes(new ApiV3MarkdownProcessor(),auth);Dispatcher.mapping();
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        props.setProperty("serverScheme", "https");
+        props.setProperty("serverHost", "fishpi.cn");
+        props.setProperty("serverPort", "443");
+        props.setProperty("runtimeMode", "PRODUCTION");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
+        Latkes.setServerScheme("https");
+        Latkes.setServerHost("fishpi.cn");
+        Latkes.setServerPort("443");
+        Latkes.setContextPath("");
+        var auth = new ApiV3AuthMidware();
+        var f = ApiV3AuthMidware.class.getDeclaredField("apiV3TokenMgmtService");
+        f.setAccessible(true);
+        f.set(auth, new ApiV3TokenMgmtService() {
+            public JSONObject authenticate(String token) {
+                return Set.of("good", "wrong").contains(token)
+                        ? new JSONObject().put("user", new JSONObject().put("oId", "1"))
+                                .put("scope", token.equals("good") ? "content.read" : "profile.read")
+                        : null;
+            }
+        });
+        ApiV3MarkdownProcessor.registerRoutes(new ApiV3MarkdownProcessor(), auth);
+        Dispatcher.mapping();
         for(String token:Arrays.asList(null,"Basic good","Bearer expired","Bearer revoked"))check(status(request(token,"application/json",bytes("{}")))==401);
         check(status(request("Bearer wrong","application/json",bytes("{}")))==403);
         System.out.println("PASS preview 1 actual registered route, required content.read, no Cookie/apiKey fallback");
@@ -63,10 +101,23 @@ public class ApiV3MarkdownTest {
         var data=(JSONObject)c.attr("data");check(data.keySet().equals(Set.of("html")));var html=data.getString("html");check(html.contains("<h1>中文😀</h1>")&&html.contains("<strong>bold</strong>")&&html.contains("<table>"));check(!html.contains("<script")&&!html.contains("onerror")&&!html.contains("javascript:")&&!html.contains("iframe"));
         check(c.getResponse().getHeader("Cache-Control").equals("no-store"));check(c.getResponse().getHeader("Vary").equals("Authorization"));check(c.getResponse().getHeader("Set-Cookie")==null);
         System.out.println("PASS preview 3 actual private Flexmark/Jsoup Markdown and XSS cleaning, empty text, no-store whitelist response");
-        var counts=ApiV3MarkdownProcessor.class.getDeclaredField("COUNTS");counts.setAccessible(true);((com.github.benmanes.caffeine.cache.Cache<?,?>)counts.get(null)).invalidateAll();
+        var counts = ApiV3MarkdownProcessor.class.getDeclaredField("COUNTS");
+        counts.setAccessible(true);
+        ((com.github.benmanes.caffeine.cache.Cache<?, ?>) counts.get(null)).invalidateAll();
         for(int i=0;i<120;i++)check(status(json("{\"content\":\"x\"}"))==200);
         var limited=json("{\"content\":\"x\"}");check(status(limited)==429);check("60".equals(limited.getResponse().getHeader("Retry-After")));
-        ((com.github.benmanes.caffeine.cache.Cache<?,?>)counts.get(null)).invalidateAll();var sem=ApiV3MarkdownProcessor.class.getDeclaredField("RENDERS");sem.setAccessible(true);var permits=(java.util.concurrent.Semaphore)sem.get(null);permits.acquire(4);try{check(status(json("{\"content\":\"x\"}"))==503);}finally{permits.release(4);}check(status(json("{\"content\":\"x\"}"))==200);
+        // 清空请求计数，再占满渲染许可，单独验证并发忙碌和释放后的恢复。
+        ((com.github.benmanes.caffeine.cache.Cache<?, ?>) counts.get(null)).invalidateAll();
+        var sem = ApiV3MarkdownProcessor.class.getDeclaredField("RENDERS");
+        sem.setAccessible(true);
+        var permits = (java.util.concurrent.Semaphore) sem.get(null);
+        permits.acquire(4);
+        try {
+            check(status(json("{\"content\":\"x\"}")) == 503);
+        } finally {
+            permits.release(4);
+        }
+        check(status(json("{\"content\":\"x\"}")) == 200);
         System.out.println("PASS preview 4 independent bounded rate and concurrent-render guard, recovery after busy");
     }
 }

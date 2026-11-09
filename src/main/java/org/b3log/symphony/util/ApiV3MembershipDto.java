@@ -59,7 +59,11 @@ public final class ApiV3MembershipDto {
             if (source.opt(key) instanceof Boolean value) result.put(key, value);
         }
         if (source.opt("checkinCard") instanceof Number value) {
-            try { final long n = nonnegative(value); if (n <= Integer.MAX_VALUE) result.put("checkinCard", n); }
+            try {
+                final long n = nonnegative(value);
+                if (n <= Integer.MAX_VALUE)
+                    result.put("checkinCard", n);
+            }
             catch (ApiV3Exception ignored) { /* Invalid optional display value is omitted. */ }
         }
         if (source.opt("color") instanceof String color && (color.matches("#[0-9a-fA-F]{6}")

@@ -23,7 +23,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
 
-/** Locked target checks. Paragraph metadata always comes from server-owned content. */
+/** 在持锁期间检查评论目标，段落元数据始终取自服务端保存的内容。 */
 public final class ApiV3CommentTarget {
     private ApiV3CommentTarget() { }
     public record Paragraph(String id, String kind, int index, String snapshot) { }
@@ -41,7 +41,7 @@ public final class ApiV3CommentTarget {
             if (parent.optInt(Comment.COMMENT_TYPE) == Comment.COMMENT_TYPE_C_PARAGRAPH) {
                 if (article.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_LONG
                         || (!paragraphId.isEmpty() && !paragraphId.equals(parent.optString(Comment.COMMENT_PARAGRAPH_ID)))) throw missing();
-                // The shared publication core inherits all paragraph fields, including orphan status.
+                // 发布流程继承完整的段落字段，其中包括孤立状态。
                 return;
             }
             if (!paragraphId.isEmpty()) throw ApiV3WriteInputs.invalid();

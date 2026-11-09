@@ -33,7 +33,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ActivityProcessor {
-    @Inject private ApiV3ActivityMgmtService management;
+    @Inject
+    private ApiV3ActivityMgmtService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3ActivityProcessor p = beans.getReference(ApiV3ActivityProcessor.class);
@@ -42,7 +43,9 @@ public class ApiV3ActivityProcessor {
         Dispatcher.get("/api/v3/me/activity/yesterday-reward", p::status, auth::activityRead);
         Dispatcher.post("/api/v3/me/activity/yesterday-reward", p::claim, auth::activityWrite, writes::handle);
     }
-    public void status(final RequestContext c) { ApiV3Requests.read(c, () -> management.status(actor(c))); }
+    public void status(final RequestContext c) {
+        ApiV3Requests.read(c, () -> management.status(actor(c)));
+    }
     public void claim(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             final var body = ApiV3WriteInputs.body(c, Set.of("expectedDate"), true);
@@ -50,5 +53,7 @@ public class ApiV3ActivityProcessor {
             return management.claim(actor(c), ApiV3WriteInputs.idempotencyKey(c), expectedDate);
         });
     }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

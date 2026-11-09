@@ -1,9 +1,34 @@
 #!/usr/bin/env node
-/** Real medal-image service SQL/DTO on isolated SQLite; repository/framework configuration and Markdown adapters. No live DB or Maven. */
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import{spawnSync}from'node:child_process';
-const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,work=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-medal-image-'));
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`,process.env.API_V3_JSOUP_JAR||`${ide}/lib/intellij.libraries.jsoup.jar`,process.env.API_V3_ENCODER_JAR||path.join(os.homedir(),'.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar')].join(path.delimiter);
-const shims=[];function shim(name,source){const f=path.join(work,name+'.java');fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,source);shims.push(f)}function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('medal image test failed')}
+/** 在隔离 SQLite 中执行勋章图片的实际查询和 DTO。仓库、框架配置与 Markdown 使用适配器。 */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+
+const ide = '/Applications/Android Studio.app/Contents',
+  home = process.env.JAVA_HOME || `${ide}/jbr/Contents/Home`,
+  work = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-medal-image-'));
+const cp = [
+  'src/main/resources/lib/latke-core.jar',
+  process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+  process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`,
+  process.env.API_V3_JSOUP_JAR || `${ide}/lib/intellij.libraries.jsoup.jar`,
+  process.env.API_V3_ENCODER_JAR || path.join(os.homedir(), '.m2/repository/org/owasp/encoder/encoder/1.2.2/encoder-1.2.2.jar')
+].join(path.delimiter);
+const shims = [];
+
+function shim(name, source) {
+  const f = path.join(work, name + '.java');
+  fs.mkdirSync(path.dirname(f), {recursive: true});
+  fs.writeFileSync(f, source);
+  shims.push(f)
+}
+
+function run(cmd, args) {
+  const r = spawnSync(cmd, args, {stdio: 'inherit'});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error('medal image test failed')
+}
 try{
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository{public UserRepository(){super("user");}}');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys{public static String get(String k){return "http://127.0.0.1:3001/gen";}}');

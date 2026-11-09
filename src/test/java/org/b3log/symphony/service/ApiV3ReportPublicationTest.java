@@ -31,7 +31,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.nio.file.*;
 
-/** Actual parameterized SQL, coordinator, savepoints and strict bundled JDBC commit. */
+/** 执行实际参数化 SQL、事务协调器、保存点及随包 JDBC 的严格提交。 */
 public class ApiV3ReportPublicationTest {
  static void inject(Object t,String n,Object v)throws Exception{Class<?> c=t.getClass();while(c!=null){try{var f=c.getDeclaredField(n);f.setAccessible(true);f.set(t,v);return;}catch(NoSuchFieldException e){c=c.getSuperclass();}}throw new NoSuchFieldException(n);}
  static List<JSONObject> rows(Connection c,String q,Object...a)throws RepositoryException {try(var p=c.prepareStatement(q.replace(" FOR UPDATE",""))){for(int i=0;i<a.length;i++)p.setObject(i+1,a[i]);try(var r=p.executeQuery()){var result=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnLabel(i),r.getObject(i));result.add(row);}return result;}}catch(SQLException e){throw new RepositoryException(e);}}

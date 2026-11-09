@@ -25,7 +25,7 @@ import org.testng.Assert;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SocketTicketServiceTest.*;
 
-/** Actual registry with actual grant core and SQLite state; transport and IP guard are controlled adapters. */
+/** 使用实际实时连接注册表、授权核心及 SQLite 状态，传输和 IP 检查由夹具控制。 */
 public class ApiV3RealtimeSessionsTest {
     static class Transport implements ApiV3RealtimeSessions.Transport {
         final List<JSONObject> sent=new ArrayList<>();boolean closed,failSend;

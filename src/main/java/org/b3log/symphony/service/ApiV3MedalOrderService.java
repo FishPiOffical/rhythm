@@ -31,7 +31,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import java.util.*;
 
-/** Adjacent move within all owner holdings, including hidden/expired, with complete order normalization. */
+/** 在本人全部勋章中相邻移动，包含隐藏及过期勋章，并重新规范化完整顺序。 */
 @Service
 public class ApiV3MedalOrderService {
     private static final int MAX_HOLDINGS = 4096;
@@ -68,13 +68,13 @@ public class ApiV3MedalOrderService {
         if (actor==null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         ApiV3MedalDisplay.medalId(medalId);final String normalized=ApiV3MedalOrderInputs.direction(direction);
         return ApiV3TransactionSavepoint.run(() -> {
-            owner(actor); // Compatible with display's user -> definition -> holding order.
+            owner(actor); // 沿用展示设置的锁顺序：用户、定义、持有记录。
             final var hints=grants.select("SELECT medal_id FROM `"+grants.getName()+"` WHERE user_id=? LIMIT " + (MAX_HOLDINGS + 1),actor);
             if (hints.size() > MAX_HOLDINGS) throw unavailable();
             final Set<String> identifiers=new TreeSet<>();
             for(final var hint:hints) identifiers.add(storedId(hint.opt("medal_id")));
             if (!identifiers.contains(medalId)) throw ApiV3Requests.notFound();
-            // Lock definitions in a stable shared order, before any owned holding lock.
+            // 先按统一顺序锁定勋章定义，再锁定本人持有记录。
             for(final String id:identifiers) {
                 final var definitions=medals.select("SELECT oId,medal_id FROM `"+medals.getName()+"` WHERE medal_id=? ORDER BY oId ASC LIMIT 2 FOR UPDATE",id);
                 if(definitions.size()!=1 || !id.equals(definitions.getFirst().optString("medal_id"))) throw ApiV3MedalDisplay.inconsistent();

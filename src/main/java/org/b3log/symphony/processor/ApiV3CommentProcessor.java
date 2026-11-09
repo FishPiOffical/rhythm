@@ -35,8 +35,10 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 
 @Singleton
 public class ApiV3CommentProcessor {
-    @Inject private ApiV3CommentMgmtService comments;
-    @Inject private ApiV3CommentVoteService votes;
+    @Inject
+    private ApiV3CommentMgmtService comments;
+    @Inject
+    private ApiV3CommentVoteService votes;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3CommentProcessor.class);

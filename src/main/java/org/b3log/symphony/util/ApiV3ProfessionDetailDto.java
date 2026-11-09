@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Owner profession views contain only typed display and progress fields. */
+/** 本人职业详情仅返回类型明确的展示和进度字段。 */
 public final class ApiV3ProfessionDetailDto {
     private ApiV3ProfessionDetailDto() { }
     public static ApiV3Exception unavailable() {
@@ -68,7 +68,7 @@ public final class ApiV3ProfessionDetailDto {
     }
     private static String action(final JSONObject row) {
         final String code = text(row,"actionCode",64,false);
-        // The existing profession automation registry and external/migration producers use this grammar.
+        // 职业自动化登记、外部事件和迁移事件都使用这套命名规则。
         if (!code.matches("[a-z][a-z0-9._-]{0,63}")) throw unavailable();
         return code;
     }

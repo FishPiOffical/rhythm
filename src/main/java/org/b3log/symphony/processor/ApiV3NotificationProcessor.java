@@ -41,9 +41,12 @@ import java.util.Set;
 @Singleton
 public class ApiV3NotificationProcessor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3NotificationProcessor.class);
-    @Inject private ApiV3NotificationQueryService query;
-    @Inject private ApiV3NotificationMgmtService management;
-    @Inject private NotificationMgmtService notifications;
+    @Inject
+    private ApiV3NotificationQueryService query;
+    @Inject
+    private ApiV3NotificationMgmtService management;
+    @Inject
+    private NotificationMgmtService notifications;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
@@ -69,7 +72,10 @@ public class ApiV3NotificationProcessor {
     }
     public void get(final RequestContext context) {
         // Latke 可能通过动态路径节点匹配同层静态路由。
-        if ("unread-count".equals(context.pathVar("notificationId"))) { unread(context); return; }
+        if ("unread-count".equals(context.pathVar("notificationId"))) {
+            unread(context);
+            return;
+        }
         ApiV3Requests.read(context, () -> query.get(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "notificationId")));
     }
     public void mark(final RequestContext context) {
@@ -84,8 +90,13 @@ public class ApiV3NotificationProcessor {
             return refreshed(context, management.remove(userId(context), ApiV3Requests.id(context, "notificationId"), ApiV3WriteInputs.idempotencyKey(context)));
         });
     }
-    public void markCategory(final RequestContext context) { bulk(context, false); }
-    public void removeCategory(final RequestContext context) { bulk(context, true); }
+    public void markCategory(final RequestContext context) {
+        bulk(context, false);
+    }
+
+    public void removeCategory(final RequestContext context) {
+        bulk(context, true);
+    }
     private void bulk(final RequestContext context, final boolean remove) {
         ApiV3Requests.respond(context, () -> {
             final JSONObject body = ApiV3WriteInputs.body(context, Set.of("type"), !remove);
@@ -95,9 +106,14 @@ public class ApiV3NotificationProcessor {
     }
     private JSONObject refreshed(final RequestContext context, final JSONObject result) {
         // 数据库事务已提交，幂等重放时可以再次刷新。
-        try { notifications.publishRefreshNotification(userId(context)); }
-        catch (final RuntimeException e) { LOGGER.warn("Notification refresh could not be scheduled requestId={}", ApiV3Processor.requestId(context)); }
+        try {
+            notifications.publishRefreshNotification(userId(context));
+        } catch (final RuntimeException e) {
+            LOGGER.warn("Notification refresh could not be scheduled requestId={}", ApiV3Processor.requestId(context));
+        }
         return result;
     }
-    private static String userId(final RequestContext context) { return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID); }
+    private static String userId(final RequestContext context) {
+        return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID);
+    }
 }

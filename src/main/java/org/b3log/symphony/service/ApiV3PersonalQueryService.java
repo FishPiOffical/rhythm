@@ -98,7 +98,7 @@ public class ApiV3PersonalQueryService {
         final JSONArray list = new JSONArray();
         if (null != raw) for (int i = 0; i < raw.length(); i++) {
             final JSONObject row = raw.getJSONObject(i);
-            // Never expose from/to balances, internal request IDs, application credentials or data IDs.
+            // 投影时隐藏双方余额、内部请求 ID、应用凭据及数据 ID。
             list.put(new JSONObject().put("time", row.optLong(Pointtransfer.TIME)).put("amount", row.optLong(Pointtransfer.SUM))
                     .put("type", row.optInt(Pointtransfer.TYPE)).put("operation", row.optString(Common.OPERATION))
                     .put("balance", row.optLong(Common.BALANCE)).put("displayType", row.optString(Common.DISPLAY_TYPE))

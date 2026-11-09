@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Real protocol implementation; no application server or database. */
+/** 在隔离环境中验证实际排行响应协议。 */
 public class ApiV3RankingDtoTest {
     private static JSONObject profile() {
         return new JSONObject().put("id", "12").put("userName", "public").put("userNickname", "Public").put("userAvatarURL", "/avatar.png")

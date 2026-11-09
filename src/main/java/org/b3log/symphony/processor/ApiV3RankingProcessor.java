@@ -31,7 +31,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 
 @Singleton
 public class ApiV3RankingProcessor {
-    @Inject private ApiV3RankingQueryService rankings;
+    @Inject
+    private ApiV3RankingQueryService rankings;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3RankingProcessor processor = beans.getReference(ApiV3RankingProcessor.class);

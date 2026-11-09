@@ -35,7 +35,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ColumnProcessor {
-    @Inject private ApiV3ColumnMgmtService management;
+    @Inject
+    private ApiV3ColumnMgmtService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3ColumnProcessor p = beans.getReference(ApiV3ColumnProcessor.class);
@@ -70,5 +71,7 @@ public class ApiV3ColumnProcessor {
             return management.remove(actor(c), ApiV3Requests.id(c, "columnId"), ApiV3WriteInputs.idempotencyKey(c));
         });
     }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

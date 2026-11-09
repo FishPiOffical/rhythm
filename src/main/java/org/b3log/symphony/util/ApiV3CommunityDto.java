@@ -29,7 +29,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-/** Public community metadata, with no review queue or user contact fields. */
+/** 仅投影公开的社区元数据，省略待审核记录和用户联系方式。 */
 public final class ApiV3CommunityDto {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.systemDefault());
     private ApiV3CommunityDto() { }

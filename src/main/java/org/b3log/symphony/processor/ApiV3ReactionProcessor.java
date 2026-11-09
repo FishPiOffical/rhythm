@@ -36,7 +36,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ReactionProcessor {
-    @Inject private ApiV3ReactionService reactions;
+    @Inject
+    private ApiV3ReactionService reactions;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3ReactionProcessor p = beans.getReference(ApiV3ReactionProcessor.class);
@@ -54,19 +55,47 @@ public class ApiV3ReactionProcessor {
         Dispatcher.put("/api/v3/chat/messages/{targetId}/reactions", p::setChat, auth::reactionsWrite, writes::handle);
         Dispatcher.delete("/api/v3/chat/messages/{targetId}/reactions", p::clearChat, auth::reactionsWrite, writes::handle);
     }
-    public void emojis(final RequestContext c) { ApiV3Requests.read(c, () -> new JSONObject().put("list", ApiV3ReactionDto.emojis())); }
-    public void article(final RequestContext c) { read(c, Reaction.TARGET_TYPE_ARTICLE); }
-    public void comment(final RequestContext c) { read(c, Reaction.TARGET_TYPE_COMMENT); }
-    public void chat(final RequestContext c) { read(c, Reaction.TARGET_TYPE_CHAT); }
+    public void emojis(final RequestContext c) {
+        ApiV3Requests.read(c, () -> new JSONObject().put("list", ApiV3ReactionDto.emojis()));
+    }
+
+    public void article(final RequestContext c) {
+        read(c, Reaction.TARGET_TYPE_ARTICLE);
+    }
+
+    public void comment(final RequestContext c) {
+        read(c, Reaction.TARGET_TYPE_COMMENT);
+    }
+
+    public void chat(final RequestContext c) {
+        read(c, Reaction.TARGET_TYPE_CHAT);
+    }
     private void read(final RequestContext c, final String type) {
         ApiV3Requests.read(c, () -> reactions.read(ApiV3Requests.viewer(c), type, ApiV3Requests.id(c, "targetId")));
     }
-    public void setArticle(final RequestContext c) { set(c, Reaction.TARGET_TYPE_ARTICLE, false); }
-    public void clearArticle(final RequestContext c) { set(c, Reaction.TARGET_TYPE_ARTICLE, true); }
-    public void setComment(final RequestContext c) { set(c, Reaction.TARGET_TYPE_COMMENT, false); }
-    public void clearComment(final RequestContext c) { set(c, Reaction.TARGET_TYPE_COMMENT, true); }
-    public void setChat(final RequestContext c) { set(c, Reaction.TARGET_TYPE_CHAT, false); }
-    public void clearChat(final RequestContext c) { set(c, Reaction.TARGET_TYPE_CHAT, true); }
+    public void setArticle(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_ARTICLE, false);
+    }
+
+    public void clearArticle(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_ARTICLE, true);
+    }
+
+    public void setComment(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_COMMENT, false);
+    }
+
+    public void clearComment(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_COMMENT, true);
+    }
+
+    public void setChat(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_CHAT, false);
+    }
+
+    public void clearChat(final RequestContext c) {
+        set(c, Reaction.TARGET_TYPE_CHAT, true);
+    }
     private void set(final RequestContext c, final String type, final boolean clear) {
         ApiV3Requests.respond(c, () -> {
             final JSONObject body = ApiV3WriteInputs.body(c, clear ? Set.of() : Set.of("value"), clear);

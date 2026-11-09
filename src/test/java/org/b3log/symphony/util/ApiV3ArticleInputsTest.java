@@ -25,7 +25,7 @@ import org.json.JSONObject;
 import org.testng.Assert;
 import java.util.List;
 
-/** Creation input boundary only; no database, permission, censor, rewards or publication events. */
+/** 验证创建文章的入参边界，数据库和发布相关步骤另行测试。 */
 public class ApiV3ArticleInputsTest {
     private static JSONObject valid() { return new JSONObject().put("title", " title ").put("content", "    code\n\nparagraph"); }
     public static void main(final String[] args) {

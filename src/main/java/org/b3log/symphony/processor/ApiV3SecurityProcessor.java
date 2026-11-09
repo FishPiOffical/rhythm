@@ -38,7 +38,7 @@ public class ApiV3SecurityProcessor {
                 b.getReference(ApiV3AuthMidware.class), b.getReference(ApiV3WriteMidware.class));
     }
 
-    public static void registerRoutes(final ApiV3SecurityProcessor p,final ApiV3AuthMidware auth,final ApiV3WriteMidware writes){
+    public static void registerRoutes(final ApiV3SecurityProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
         Dispatcher.get("/api/v3/me/security/mfa",p::mfa,auth::profileRead);
         Dispatcher.put("/api/v3/me/settings/password",p::password,auth::settingsWrite,writes::handle);
     }

@@ -35,7 +35,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Project only display metadata and owner state; never return grants, effects or configuration JSON. */
+/** 只投影展示元数据和本人状态，隐藏权限授予、效果及配置 JSON。 */
 @Service
 public class ApiV3ProfessionQueryService {
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
@@ -116,7 +116,7 @@ public class ApiV3ProfessionQueryService {
                         .put("levelName", text(row, "levelName")).put("levelDescription", text(row, "levelDescription"))
                         .put("requiredExperience", row.getLong("requiredExperience")));
             }
-            // Current account revocation during the read must not return an owner-only response.
+            // 读取过程中账号失效时，须停止返回仅本人可读的响应。
             requireActor(actor);
             return ApiV3Requests.pagination(list, p, size, total).put("state", state);
         });

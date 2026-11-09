@@ -32,7 +32,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3EmojiGroupProcessor {
-    @Inject private ApiV3EmojiGroupService service;
+    @Inject
+    private ApiV3EmojiGroupService service;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3EmojiGroupProcessor.class);
@@ -54,7 +55,9 @@ public class ApiV3EmojiGroupProcessor {
             return service.delete(actor(context), ApiV3Requests.id(context, "groupId"), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
-    private static String actor(final RequestContext context) { return ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext context) {
+        return ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+    }
     private static org.json.JSONObject body(final RequestContext context, final boolean empty) {
         final byte[] bytes = context.getRequest().getBytes();
         if (bytes != null && bytes.length > 16384) throw new ApiV3Exception(413, "body_too_large", "请求体过大");

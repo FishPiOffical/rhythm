@@ -35,7 +35,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-/** Actual query/controller/DTO and auth scope boundary; token authority and Markdown conversion are adapted. */
+/** 覆盖实际查询、控制器、DTO 和权限范围，令牌验证及 Markdown 转换由夹具适配。 */
 public class ApiV3ChatQueryServiceTest {
     static void inject(Object bean,String field,Object value)throws Exception{var f=bean.getClass().getDeclaredField(field);f.setAccessible(true);f.set(bean,value);}
     interface Work{void run()throws Exception;}

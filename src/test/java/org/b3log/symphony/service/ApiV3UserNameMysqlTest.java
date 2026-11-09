@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-/** Real MySQL/Connector-J/FOR UPDATE with production rename, ledger and receipt coordinators. */
+/** 通过实际 MySQL、Connector/J 和 FOR UPDATE 执行生产改名、账本及回执协调流程。 */
 public class ApiV3UserNameMysqlTest {
     static String url;static int price;
     static final ThreadLocal<String> fault=ThreadLocal.withInitial(()->"");

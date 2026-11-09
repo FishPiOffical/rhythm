@@ -41,11 +41,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.Optional;
 
-/** Complete bounded candidates are authorized before counting, sorting, numbering and paging. No default rows are written. */
+/** 对有界的完整候选集合先鉴权，再计数、排序、编号和分页，查询过程只读。 */
 @Service
 public class ApiV3ProfessionRankingQueryService {
     private static final int MAX_CANDIDATES = 4096;
-    /** Request-local budget shared by public profiles across professions; count actual initial and verification reads. */
+    /** 公开资料在单次请求中跨职业共用读取预算，计入实际初读和复核查询。 */
     public static final class CandidateBudget {
         private static final int MAX_READ_ROWS = 8192;
         private int readRows;
@@ -121,7 +121,7 @@ public class ApiV3ProfessionRankingQueryService {
     public Optional<JSONObject> summary(final String professionId, final String viewerId, final String targetUserId) {
         return summary(professionId, viewerId, targetUserId, new CandidateBudget());
     }
-    /** Public profile callers share one budget across every target profession in the response. */
+    /** 同一个公开资料响应中的所有目标职业共享一个读取预算。 */
     public Optional<JSONObject> summary(final String professionId, final String viewerId, final String targetUserId,
                                         final CandidateBudget budget) {
         id(professionId); id(targetUserId);
@@ -160,7 +160,7 @@ public class ApiV3ProfessionRankingQueryService {
             }
             visible.sort(Comparator.<JSONObject>comparingLong(row -> ApiV3ProfessionRankingDto.number(row, "totalExperience")).reversed()
                     .thenComparing(row -> row.getString("userId")));
-            // Detect changed privacy, candidates, owner status, historical metadata and current actor; never return mixed snapshots.
+            // 复核隐私、候选、所有者状态、历史元数据和当前查看者，避免返回混合快照。
             final List<JSONObject> after = candidates(professionId, budget);
             if (candidates.size() != after.size()) throw ApiV3ProfessionRankingDto.unavailable();
             for (int i = 0; i < candidates.size(); i++) if (!candidates.get(i).similar(after.get(i))) throw ApiV3ProfessionRankingDto.unavailable();

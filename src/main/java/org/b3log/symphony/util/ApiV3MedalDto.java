@@ -36,7 +36,10 @@ public final class ApiV3MedalDto {
             final String[] vars = data.split(";", -1);
             if (!data.isEmpty()) for (int i = 0; i < vars.length; i++) {
                 description = description.replace("{var" + (i + 1) + "}", vars[i]);
-                if (description.length() > 1024) { description = ""; break; }
+                if (description.length() > 1024) {
+                    description = "";
+                    break;
+                }
             }
         }
         final JSONObject dto = new JSONObject().put("id", text(row.optString("medal_id"), 128))

@@ -27,15 +27,29 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3MembershipStyleProcessor {
-    @Inject private ApiV3MembershipStyleQueryService query;
-    public static void register(){final var b=BeanManager.getInstance();registerRoutes(b.getReference(ApiV3MembershipStyleProcessor.class),b.getReference(ApiV3AuthMidware.class));}
-    public static void registerRoutes(ApiV3MembershipStyleProcessor p,ApiV3AuthMidware auth){Dispatcher.get("/api/v3/membership/styles",p::styles,auth::profileRead);}
-    public void styles(RequestContext context){ApiV3Requests.read(context,()->{
-        final String raw=context.getRequest().getQueryString();
-        if(raw!=null&&raw.length()>128)throw ApiV3Requests.invalid();
-        final String version;
-        try{version=raw==null||raw.isEmpty()?null:ApiV3OAuthForms.parse(raw,Set.of("version")).get("version");}
-        catch(ApiV3Exception error){throw ApiV3Requests.invalid();}
-        return query.styles(ApiV3Requests.viewer(context).getString("oId"),ApiV3MembershipStyleQueryService.version(version));
-    });}
+    @Inject
+    private ApiV3MembershipStyleQueryService query;
+
+    public static void register() {
+        final var b = BeanManager.getInstance();
+        registerRoutes(b.getReference(ApiV3MembershipStyleProcessor.class), b.getReference(ApiV3AuthMidware.class));
+    }
+
+    public static void registerRoutes(ApiV3MembershipStyleProcessor p, ApiV3AuthMidware auth) {
+        Dispatcher.get("/api/v3/membership/styles",p::styles,auth::profileRead);
+    }
+
+    public void styles(RequestContext context) {
+        ApiV3Requests.read(context, () -> {
+            final String raw = context.getRequest().getQueryString();
+            if (raw != null && raw.length() > 128) throw ApiV3Requests.invalid();
+            final String version;
+            try {
+                version = raw == null || raw.isEmpty() ? null : ApiV3OAuthForms.parse(raw, Set.of("version")).get("version");
+            } catch (ApiV3Exception error) {
+                throw ApiV3Requests.invalid();
+            }
+            return query.styles(ApiV3Requests.viewer(context).getString("oId"), ApiV3MembershipStyleQueryService.version(version));
+        });
+    }
 }

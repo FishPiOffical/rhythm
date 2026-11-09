@@ -43,17 +43,24 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3RealtimeProcessor {
-    @Inject private ApiV3SocketTicketService tickets;
-    @Inject private ApiV3NotificationRevisionRepository revisions;
-    @Inject private ApiV3ArticleRevisionRepository articleRevisions;
-    @Inject private ApiV3PrivateRevisionRepository privateRevisions;
-    @Inject private ApiV3RealtimeTargetService targets;
-    @Inject private ApiV3ChatEventRepository chatEvents;
-    public static void register(){
-        final var beans=BeanManager.getInstance();
-        final var p=beans.getReference(ApiV3RealtimeProcessor.class);
-        final var auth=beans.getReference(ApiV3AuthMidware.class);
-        final var writes=beans.getReference(ApiV3WriteMidware.class);
+    @Inject
+    private ApiV3SocketTicketService tickets;
+    @Inject
+    private ApiV3NotificationRevisionRepository revisions;
+    @Inject
+    private ApiV3ArticleRevisionRepository articleRevisions;
+    @Inject
+    private ApiV3PrivateRevisionRepository privateRevisions;
+    @Inject
+    private ApiV3RealtimeTargetService targets;
+    @Inject
+    private ApiV3ChatEventRepository chatEvents;
+
+    public static void register() {
+        final var beans = BeanManager.getInstance();
+        final var p = beans.getReference(ApiV3RealtimeProcessor.class);
+        final var auth = beans.getReference(ApiV3AuthMidware.class);
+        final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/realtime/tickets",p::ticket,auth::notificationsRead,writes::handle);
         Dispatcher.post("/api/v3/articles/{articleId}/realtime-ticket",p::articleTicket,auth::contentRead,writes::handle);
         Dispatcher.post("/api/v3/chat/realtime-ticket",p::chatTicket,auth::contentRead,writes::handle);
@@ -61,54 +68,73 @@ public class ApiV3RealtimeProcessor {
         Dispatcher.webSocket("/api/v3/realtime",beans.getReference(ApiV3RealtimeChannel.class));
         beans.getReference(ApiV3RealtimeService.class).start();
     }
-    public void ticket(RequestContext context){
-        ApiV3Requests.respond(context,()->{
-            ApiV3WriteInputs.body(context,Set.of(),true);
-            final var identity=(JSONObject)context.attr(ApiV3Processor.IDENTITY);
-            final String actor=ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
-            try{revisions.snapshot(Set.of(actor));}
-            catch(RepositoryException e){throw new ApiV3Exception(503,"realtime_unavailable","实时通知服务暂不可用");}
-            final var issued=tickets.issue(actor,identity.getString("tokenId"));
-            return new JSONObject().put("ticket",issued.ticket()).put("expiresIn",issued.expiresIn())
-                    .put("path",ApiV3RealtimeChannel.path()).put("channel","notifications");
+
+    public void ticket(RequestContext context) {
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            final var identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+            final String actor = ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+            // 确认版本快照可读取后再签发绑定当前令牌的订阅票据。
+            try {
+                revisions.snapshot(Set.of(actor));
+            } catch (RepositoryException e) {
+                throw new ApiV3Exception(503, "realtime_unavailable", "实时通知服务暂不可用");
+            }
+            final var issued = tickets.issue(actor, identity.getString("tokenId"));
+            return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
+                    .put("path", ApiV3RealtimeChannel.path()).put("channel", "notifications");
         });
     }
-    public void articleTicket(RequestContext context){
-        ApiV3Requests.respond(context,()->{
-            ApiV3WriteInputs.body(context,Set.of(),true);
-            final String id=ApiV3Requests.id(context,"articleId");
-            final var identity=(JSONObject)context.attr(ApiV3Processor.IDENTITY);
-            final String actor=ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
-            try{
-                if(!targets.articleVisible(actor,id))throw ApiV3Requests.notFound();
+
+    public void articleTicket(RequestContext context) {
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            final String id = ApiV3Requests.id(context, "articleId");
+            final var identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+            final String actor = ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+            try {
+                if (!targets.articleVisible(actor, id)) throw ApiV3Requests.notFound();
                 articleRevisions.snapshot(Set.of(id));
-            }catch(RepositoryException e){throw new ApiV3Exception(503,"realtime_unavailable","实时文章服务暂不可用");}
-            final var issued=tickets.issueArticle(actor,identity.getString("tokenId"),id);
-            return new JSONObject().put("ticket",issued.ticket()).put("expiresIn",issued.expiresIn())
-                    .put("path",ApiV3RealtimeChannel.path()).put("channel","article").put("articleId",id);
+            } catch (RepositoryException e) {
+                throw new ApiV3Exception(503, "realtime_unavailable", "实时文章服务暂不可用");
+            }
+            final var issued = tickets.issueArticle(actor, identity.getString("tokenId"), id);
+            return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
+                    .put("path", ApiV3RealtimeChannel.path()).put("channel", "article").put("articleId", id);
         });
     }
-    public void chatTicket(RequestContext context){
-        ApiV3Requests.respond(context,()->{
-            ApiV3WriteInputs.body(context,Set.of(),true);
-            final var identity=(JSONObject)context.attr(ApiV3Processor.IDENTITY);
-            final String actor=ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
-            try{final long head=chatEvents.head();chatEvents.after(head,head,1);}
-            catch(RepositoryException e){throw new ApiV3Exception(503,"realtime_unavailable","实时聊天室服务暂不可用");}
-            final var issued=tickets.issueChat(actor,identity.getString("tokenId"));
-            return new JSONObject().put("ticket",issued.ticket()).put("expiresIn",issued.expiresIn()).put("path",ApiV3RealtimeChannel.path()).put("channel","chat");
+
+    public void chatTicket(RequestContext context) {
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            final var identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+            final String actor = ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+            // 在当前游标用空区间探测聊天室事件读取。
+            try {
+                final long head = chatEvents.head();
+                chatEvents.after(head, head, 1);
+            } catch (RepositoryException e) {
+                throw new ApiV3Exception(503, "realtime_unavailable", "实时聊天室服务暂不可用");
+            }
+            final var issued = tickets.issueChat(actor, identity.getString("tokenId"));
+            return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
+                    .put("path", ApiV3RealtimeChannel.path()).put("channel", "chat");
         });
     }
-    public void messagesTicket(RequestContext context){
-        ApiV3Requests.respond(context,()->{
-            ApiV3WriteInputs.body(context,Set.of(),true);
-            final var identity=(JSONObject)context.attr(ApiV3Processor.IDENTITY);
-            final String actor=ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
-            try{privateRevisions.snapshot(Set.of(actor));}
-            catch(RepositoryException e){throw new ApiV3Exception(503,"realtime_unavailable","实时私信服务暂不可用");}
-            final var issued=tickets.issueMessages(actor,identity.getString("tokenId"));
-            return new JSONObject().put("ticket",issued.ticket()).put("expiresIn",issued.expiresIn())
-                    .put("path",ApiV3RealtimeChannel.path()).put("channel","messages");
+
+    public void messagesTicket(RequestContext context) {
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            final var identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+            final String actor = ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+            try {
+                privateRevisions.snapshot(Set.of(actor));
+            } catch (RepositoryException e) {
+                throw new ApiV3Exception(503, "realtime_unavailable", "实时私信服务暂不可用");
+            }
+            final var issued = tickets.issueMessages(actor, identity.getString("tokenId"));
+            return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
+                    .put("path", ApiV3RealtimeChannel.path()).put("channel", "messages");
         });
     }
 

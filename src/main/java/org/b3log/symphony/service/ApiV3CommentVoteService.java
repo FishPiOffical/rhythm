@@ -29,7 +29,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Bearer-explicit comment votes: projected reads and idempotent set/clear mutations. */
+/** 通过显式 Bearer 身份读取评论投票投影，并幂等设置或清除投票。 */
 @Service
 public class ApiV3CommentVoteService {
     @Inject private CommentRepository comments;

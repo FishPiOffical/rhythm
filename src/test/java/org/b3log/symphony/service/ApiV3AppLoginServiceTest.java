@@ -27,7 +27,7 @@ import org.testng.Assert;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Actual QR persistence SQL, first-party authorization and strict commit; token pair insertion is an explicit transaction port. */
+/** 执行实际二维码持久化 SQL、第一方授权和严格提交，令牌对写入使用事务适配器。 */
 public class ApiV3AppLoginServiceTest {
     static final String RAW=Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[32]);
     static final String PROOF=Base64.getUrlEncoder().withoutPadding().encodeToString("01234567890123456789012345678901".getBytes(java.nio.charset.StandardCharsets.US_ASCII));

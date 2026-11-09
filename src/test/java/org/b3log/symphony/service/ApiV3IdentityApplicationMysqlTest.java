@@ -31,7 +31,7 @@ import java.sql.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Production identity service with MySQL exact private DDL; fixtures explicitly adapt base account/receipt storage. */
+/** 使用认证申请的实际 MySQL DDL 和生产服务，基础账号及回执存储由夹具适配。 */
 public class ApiV3IdentityApplicationMysqlTest extends ApiV3IdentityApplicationTest {
     static class Mysql extends Fixture {
         boolean hold;String release;

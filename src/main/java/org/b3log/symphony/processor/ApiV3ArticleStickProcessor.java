@@ -28,7 +28,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3ArticleStickProcessor {
-    @Inject private ApiV3ArticleStickService sticks;
+    @Inject
+    private ApiV3ArticleStickService sticks;
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ArticleStickProcessor.class), beans.getReference(ApiV3AuthMidware.class), beans.getReference(ApiV3WriteMidware.class));

@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Real SQL, owner/credential proof, idempotency and DTO; isolated SQLite substitutes FOR UPDATE transport. */
+/** 覆盖实际 SQL、本人凭据校验、幂等与 DTO，行锁语法由隔离 SQLite 夹具适配。 */
 public class ApiV3ChatAppearanceTest {
     static class Fixture extends ApiV3IdentityApplicationTest.Fixture {
         final ApiV3ChatAppearanceService appearance=new ApiV3ChatAppearanceService(){protected long now(){return NOW;}};
@@ -43,8 +43,18 @@ public class ApiV3ChatAppearanceTest {
                 public String getName(){return "chat_appearance";}
                 public boolean hasTransactionBegun(){return active();}
                 public List<JSONObject> select(String q,Object...a)throws RepositoryException{return selectSQL(q,a);}
-                public String add(JSONObject row)throws RepositoryException{Assert.assertTrue(active());sql(writer,"INSERT INTO chat_appearance VALUES(?,?,?,?,?)",row.getString("oId"),row.getString("bubbleId"),row.getString("frameId"),row.getInt("version"),row.getLong("updatedAt"));return row.getString("oId");}
-                public void update(String id,JSONObject row,String...fields)throws RepositoryException{Assert.assertTrue(active());sql(writer,"UPDATE chat_appearance SET bubbleId=?,frameId=?,version=?,updatedAt=? WHERE oId=?",row.getString("bubbleId"),row.getString("frameId"),row.getInt("version"),row.getLong("updatedAt"),id);}
+                public String add(JSONObject row) throws RepositoryException {
+                    Assert.assertTrue(active());
+                    sql(writer, "INSERT INTO chat_appearance VALUES(?,?,?,?,?)", row.getString("oId"),
+                            row.getString("bubbleId"), row.getString("frameId"), row.getInt("version"), row.getLong("updatedAt"));
+                    return row.getString("oId");
+                }
+
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                    Assert.assertTrue(active());
+                    sql(writer, "UPDATE chat_appearance SET bubbleId=?,frameId=?,version=?,updatedAt=? WHERE oId=?",
+                            row.getString("bubbleId"), row.getString("frameId"), row.getInt("version"), row.getLong("updatedAt"), id);
+                }
             };
             final var users=new UserRepository(){
                 public String getName(){return "u";}public boolean hasTransactionBegun(){return active();}
@@ -54,20 +64,45 @@ public class ApiV3ChatAppearanceTest {
             inject(appearance,"users",users);inject(appearance,"appearances",choice);inject(appearance,"memberships",members);
             inject(appearance,"requests",ApiV3QqSettingsTest.field(service,ApiV3IdentityApplicationService.class,"requests"));inject(appearance,"proofs",proof);inject(endpointAppearance,"appearance",appearance);
         }
-        JSONObject snapshot(String message)throws Exception {
-            final var tx=begin();try{final var envelope=new JSONObject().put("userOId","1").put("userName","owner").put("content","text").put("time",NOW).put("appearance",appearance.snapshotInCurrentTransaction("1"));sql(writer,"INSERT INTO chat_data VALUES(?,?)",message,envelope.toString());tx.commit();return projected(message);}finally{if(tx.isActive())tx.rollback();}
+        JSONObject snapshot(String message) throws Exception {
+            // 发送时将样式写入消息快照，提交后从存储重新读取并执行 DTO 投影。
+            final var tx = begin();
+            try {
+                final var envelope = new JSONObject().put("userOId", "1").put("userName", "owner")
+                        .put("content", "text").put("time", NOW)
+                        .put("appearance", appearance.snapshotInCurrentTransaction("1"));
+                sql(writer, "INSERT INTO chat_data VALUES(?,?)", message, envelope.toString());
+                tx.commit();
+                return projected(message);
+            } finally {
+                if (tx.isActive()) tx.rollback();
+            }
         }
         JSONObject projected(String id)throws Exception{return ApiV3ChatMessageDto.from(rows(db,"SELECT * FROM chat_data WHERE oId=?",id).getFirst(),v->"<p>"+v+"</p>");}
         RequestContext requestAppearance(String method,String token,String key,String body)throws Exception {
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.valueOf(method),"/api/v3/me/chat-appearance");
             try{
-                if(token!=null)raw.headers().set("Authorization","Bearer "+token);if(key!=null)raw.headers().set("Idempotency-Key",key);
-                raw.headers().set("Content-Type","application/json");raw.headers().set("Cookie","legacy");raw.headers().set("X-Real-IP","127.0.0.1");
-                final byte[] bytes=(body==null?"":body).getBytes(java.nio.charset.StandardCharsets.UTF_8);raw.content().clear().writeBytes(bytes);
-                final var req=new Request(null,raw);req.setBytes(bytes);req.setParams(new HashMap<>(Map.of("apiKey","legacy")));
-                final var c=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));
-                c.addHandler(new org.b3log.latke.http.handler.RouteHandler());c.addHandler(x->{if(method.equals("GET"))endpointAppearance.read(x);else endpointAppearance.save(x);});c.handle();return c;
-            }finally{raw.release();}
+                if (token != null) raw.headers().set("Authorization", "Bearer " + token);
+                if (key != null) raw.headers().set("Idempotency-Key", key);
+                raw.headers().set("Content-Type", "application/json");
+                raw.headers().set("Cookie", "legacy");
+                raw.headers().set("X-Real-IP", "127.0.0.1");
+                final byte[] bytes = (body == null ? "" : body).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                raw.content().clear().writeBytes(bytes);
+                final var req = new Request(null, raw);
+                req.setBytes(bytes);
+                req.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
+                final var c = new RequestContext(req, new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
+                c.addHandler(new org.b3log.latke.http.handler.RouteHandler());
+                c.addHandler(x -> {
+                    if (method.equals("GET")) endpointAppearance.read(x);
+                    else endpointAppearance.save(x);
+                });
+                c.handle();
+                return c;
+            } finally {
+                raw.release();
+            }
         }
     }
     static JSONObject input(String bubble,String frame){return new JSONObject().put("bubbleId",bubble).put("frameId",frame);}

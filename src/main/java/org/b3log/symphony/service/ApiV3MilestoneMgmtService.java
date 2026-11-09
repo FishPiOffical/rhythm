@@ -32,7 +32,7 @@ public class ApiV3MilestoneMgmtService {
     @Inject private ApiV3IdempotencyMgmtService idempotency;
     public JSONObject create(final String actor, final JSONObject normalized, final String key) throws Exception {
         final var execution = idempotency.executeWithOutcome(actor, "milestones.create", key, normalized, () -> {
-            // Existing milestone consumers expect HTML; compile the Markdown at the submission boundary.
+            // 现有里程碑读取方使用 HTML，在提交入口将 Markdown 转为 HTML。
             final String html = Markdowns.clean(Markdowns.toHTML(normalized.getString(Milestone.MILESTONE_CONTENT)), "");
             if (html.isBlank() || html.length() > 102400) throw new ApiV3Exception(422, "invalid_request", "正文为空或过长");
             final JSONObject input = new JSONObject(normalized.toString()).put(Milestone.MILESTONE_CONTENT, html);

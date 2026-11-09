@@ -33,7 +33,7 @@ import java.nio.file.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Actual service/input/receipt/strict JDBC; explicit DAO/cache/censor/quota and SQLite SQL adapters. */
+/** 执行实际服务、输入校验、回执及严格 JDBC 事务，仓库、缓存、内容过滤、配额和 SQLite 语法由夹具适配。 */
 public class ApiV3ProfileTagsTest {
     static class Fixture extends ApiV3QqSettingsTest.Fixture {
         boolean blocked, quota, relationFaultOnce, replaceInsertedId; int checked, relationWrites, failRelation; List<String> cachePhases = new ArrayList<>();

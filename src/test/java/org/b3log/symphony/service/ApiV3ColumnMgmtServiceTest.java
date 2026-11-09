@@ -37,7 +37,7 @@ import java.sql.DriverManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Real services and SQL with temporary SQLite transactions; MySQL concurrency is not simulated. */
+/** 使用临时 SQLite 事务执行实际服务和 SQL，覆盖范围限于 SQLite。 */
 public class ApiV3ColumnMgmtServiceTest {
     public static void main(final String[] args) throws Exception {
         Assert.assertEquals(ApiV3ColumnInputs.text(new JSONObject().put("title", " title "), "title", 64, false), "title");

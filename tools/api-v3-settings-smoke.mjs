@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** After default-client SQL scope upgrade, IDEA rebuild/restart and new login.
- * API_V3_TOKEN: disposable account with profile.read/settings.write.
- * Defaults to reads only. API_V3_ALLOW_SETTINGS_WRITES=1 changes then restores one field per group.
- * Restore attempts also run on errors. Do not concurrently edit this account while running.
- * API_V3_READ_ONLY_TOKEN optionally verifies missing write scope.
+/** 默认客户端的 SQL 权限迁移完成后，重新编译或重启 IDEA 服务并重新登录。
+ * API_V3_TOKEN 使用具有 profile.read/settings.write 的临时账号。
+ * 默认只读。API_V3_ALLOW_SETTINGS_WRITES=1 会修改并恢复每组的一个字段。
+ * 出错后也会尝试恢复，运行期间请避免并发编辑此账号。
+ * 可选的 API_V3_READ_ONLY_TOKEN 用于验证缺少写入权限。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

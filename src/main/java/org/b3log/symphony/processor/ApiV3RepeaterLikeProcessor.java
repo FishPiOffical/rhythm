@@ -32,20 +32,33 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3RepeaterLikeProcessor {
-    @Inject private ApiV3RepeaterLikeService service;
-    public static void register(){
-        final var beans=BeanManager.getInstance();final var p=beans.getReference(ApiV3RepeaterLikeProcessor.class);
-        final var auth=beans.getReference(ApiV3AuthMidware.class);final var writes=beans.getReference(ApiV3WriteMidware.class);
+    @Inject
+    private ApiV3RepeaterLikeService service;
+
+    public static void register() {
+        final var beans = BeanManager.getInstance();
+        final var p = beans.getReference(ApiV3RepeaterLikeProcessor.class);
+        final var auth = beans.getReference(ApiV3AuthMidware.class);
+        final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.put("/api/v3/repeater/items/{itemId}/like",p::like,auth::contentWrite,writes::handle);
         Dispatcher.delete("/api/v3/repeater/items/{itemId}/like",p::unlike,auth::contentWrite,writes::handle);
     }
-    public void like(final RequestContext context){set(context,true);}
-    public void unlike(final RequestContext context){set(context,false);}
-    private void set(final RequestContext context,final boolean liked){
-        ApiV3Requests.respond(context,()->{
-            final byte[] bytes=context.getRequest().getBytes();if(bytes!=null&&bytes.length>4096)throw new ApiV3Exception(413,"body_too_large","请求体过大");
-            ApiV3WriteInputs.body(context,Set.of(),true);
-            return service.set(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID),ApiV3Requests.id(context,"itemId"),liked,ApiV3WriteInputs.idempotencyKey(context));
+
+    public void like(final RequestContext context) {
+        set(context, true);
+    }
+
+    public void unlike(final RequestContext context) {
+        set(context, false);
+    }
+
+    private void set(final RequestContext context, final boolean liked) {
+        ApiV3Requests.respond(context, () -> {
+            final byte[] bytes = context.getRequest().getBytes();
+            if (bytes != null && bytes.length > 4096) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            return service.set(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID), ApiV3Requests.id(context, "itemId"),
+                    liked, ApiV3WriteInputs.idempotencyKey(context));
         });
     }
 }

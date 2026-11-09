@@ -33,7 +33,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3BagProcessor {
-    @Inject private ApiV3BagMgmtService management;
+    @Inject
+    private ApiV3BagMgmtService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3BagProcessor p = beans.getReference(ApiV3BagProcessor.class);
@@ -44,8 +45,13 @@ public class ApiV3BagProcessor {
         Dispatcher.post("/api/v3/me/bag/patchCheckinCard/use", p::patch, auth::activityWrite, writes::handle);
         Dispatcher.post("/api/v3/me/bag/nameCard/use", p::name, auth::activityWrite, auth::settingsWrite, writes::handle);
     }
-    public void oneDay(final RequestContext c) { use(c, "checkin1day"); }
-    public void twoDays(final RequestContext c) { use(c, "checkin2days"); }
+    public void oneDay(final RequestContext c) {
+        use(c, "checkin1day");
+    }
+
+    public void twoDays(final RequestContext c) {
+        use(c, "checkin2days");
+    }
     public void patch(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);

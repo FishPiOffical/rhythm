@@ -32,7 +32,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 /** 只读职业目录及登录用户本人的私有职业状态。 */
 @Singleton
 public class ApiV3ProfessionProcessor {
-    @Inject private ApiV3ProfessionQueryService query;
+    @Inject
+    private ApiV3ProfessionQueryService query;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ProfessionProcessor.class);

@@ -53,7 +53,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/** Public profiles are read-only bounded metadata projections, with current viewer and independent module privacy. */
+/** 公开职业资料是有界的只读元数据投影，按当前查看者和各模块独立隐私设置裁剪。 */
 @Service
 public class ApiV3ProfessionPublicQueryService {
     private static final Set<String> MODULES=Set.of("primaryProfession","allProfessions","experience","rarity","majorContributions",
@@ -199,7 +199,7 @@ public class ApiV3ProfessionPublicQueryService {
             stage="ranking";
             appendRanking(result,rows,visibility,ownerId,actor);
             stage="recheck";
-            // Prevent a multi-query response from mixing privacy/account/progress versions.
+            // 响应由多次查询组成，复核隐私、账号和进度，避免混用不同版本。
             if(!owner.similar(user("userName",name,false))||!(actor==null?actorId.isEmpty():actor.similar(user("oId",actorId,true)))
                     ||!state.similar(state(ownerId))||!new JSONArray(rows).similar(new JSONArray(progress(ownerId))))throw unavailable();
             recheck(checks);

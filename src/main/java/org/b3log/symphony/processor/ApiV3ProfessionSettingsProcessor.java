@@ -38,7 +38,8 @@ import java.util.Set;
 @Singleton
 public class ApiV3ProfessionSettingsProcessor {
     private static final int MAX_BODY_BYTES = 4096;
-    @Inject private ApiV3ProfessionSettingsService service;
+    @Inject
+    private ApiV3ProfessionSettingsService service;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ProfessionSettingsProcessor.class);

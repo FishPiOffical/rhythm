@@ -31,7 +31,9 @@ public final class ApiV3EmojiTransferInputs {
     public static String code(final JSONObject body) {
         if(body==null||!body.keySet().equals(Set.of("shareCode"))||!(body.opt("shareCode") instanceof String code)||code.length()>128)throw ApiV3WriteInputs.invalid();
         final String normalized=code.strip().toUpperCase(Locale.ROOT);
-        if(!normalized.matches("[A-Z0-9]{8,16}"))throw ApiV3WriteInputs.invalid();return normalized;
+        if (!normalized.matches("[A-Z0-9]{8,16}"))
+            throw ApiV3WriteInputs.invalid();
+        return normalized;
     }
     public static JSONArray array(final Object raw) {
         if(!(raw instanceof String text)||text.isBlank())throw ApiV3WriteInputs.invalid();
@@ -39,7 +41,9 @@ public final class ApiV3EmojiTransferInputs {
         try {
             final JSONObject wrapped=ApiV3Json.parse(("{\"items\":"+text+"}").getBytes(StandardCharsets.UTF_8));
             if(!wrapped.keySet().equals(Set.of("items"))||!(wrapped.opt("items") instanceof JSONArray array))throw ApiV3WriteInputs.invalid();
-            if(array.length()>MAX_ITEMS)throw unavailable();return array;
+            if (array.length() > MAX_ITEMS)
+                throw unavailable();
+            return array;
         }catch(ApiV3Exception error){throw error;}catch(Exception error){throw ApiV3WriteInputs.invalid();}
     }
     public static JSONObject entry(final Object raw) {

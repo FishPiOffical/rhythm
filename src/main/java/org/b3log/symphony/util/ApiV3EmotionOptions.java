@@ -22,7 +22,7 @@ import org.b3log.symphony.model.Emotion;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Same ordered picker groups as the classic PC/mobile settings page. */
+/** 返回有序的表情选项分组，顺序与 PC 和移动端设置页一致。 */
 public final class ApiV3EmotionOptions {
     private ApiV3EmotionOptions() { }
     public static final String DEFAULTS = "smile,flushed,joy,sob,yum,trollface,tada,heart,+1,ok_hand,pray";

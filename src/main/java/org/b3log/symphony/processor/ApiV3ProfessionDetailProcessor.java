@@ -30,7 +30,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 
 @Singleton
 public class ApiV3ProfessionDetailProcessor {
-    @Inject private ApiV3ProfessionDetailQueryService query;
+    @Inject
+    private ApiV3ProfessionDetailQueryService query;
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ProfessionDetailProcessor.class), beans.getReference(ApiV3AuthMidware.class));

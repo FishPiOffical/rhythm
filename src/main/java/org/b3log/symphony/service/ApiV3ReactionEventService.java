@@ -66,7 +66,9 @@ public class ApiV3ReactionEventService {
                 try {
                     targets.read(viewer(session), type, id);
                     session.sendText(json);
-                } catch (final Exception deniedOrDisconnected) { /* Do not disclose a restricted target to this session. */ }
+                } catch (final Exception deniedOrDisconnected) {
+                    // 此会话无权读取或已断开，跳过发送。
+                }
             }
         } catch (final Exception e) { LOGGER.warn("Failed to publish committed v3 reaction update"); }
     }

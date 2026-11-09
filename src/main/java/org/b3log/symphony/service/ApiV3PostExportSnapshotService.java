@@ -31,7 +31,7 @@ import java.nio.file.Files;
 import java.util.zip.*;
 import java.math.BigDecimal;
 
-/** Complete, owner-only primary-table snapshot. No visibility predicates and no joined foreign content. */
+/** 只从主表读取本人完整快照，包含本人不可公开内容，不联查其他人的内容。 */
 @Service
 public class ApiV3PostExportSnapshotService {
     @Inject private ArticleRepository articles;
@@ -45,9 +45,8 @@ public class ApiV3PostExportSnapshotService {
             final var jdbc=JdbcRepository.TX.get();
             if(jdbc==null)throw unavailable();
             final var connection=jdbc.getConnection();
-            // Latke borrows connections as READ_COMMITTED by default. This dedicated root has
-            // not queried any source rows yet; choose a stable snapshot before the first SELECT.
-            // The pool/Latke reapplies its configured isolation on the next connection borrow.
+            // Latke 默认以 READ_COMMITTED 借出连接。在此专用根事务首次查询前选择稳定快照。
+            // 下次借用连接时，连接池和 Latke 会重新应用配置中的隔离级别。
             int isolation=connection.getTransactionIsolation();
             if(isolation!=java.sql.Connection.TRANSACTION_REPEATABLE_READ&&isolation!=java.sql.Connection.TRANSACTION_SERIALIZABLE){
                 connection.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);

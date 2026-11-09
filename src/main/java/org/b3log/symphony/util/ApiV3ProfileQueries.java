@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** Bound query fragments. Table names come only from Repository#getName. */
+/** 使用绑定参数构造查询片段，表名仅来自 Repository#getName。 */
 public final class ApiV3ProfileQueries {
     private ApiV3ProfileQueries() { }
     public record Fragment(String sql, List<Object> args) { }
@@ -37,7 +37,7 @@ public final class ApiV3ProfileQueries {
         final List<Object> args = new ArrayList<>();
         final List<String> predicates = new ArrayList<>();
         if ("all".equals(source) || "users".equals(source)) {
-            // Author-based discovery must never reveal that an anonymous article belongs to a followed user.
+            // 按作者发现文章时排除匿名文章，避免暴露它与被关注用户的关系。
             predicates.add("(a.articleAnonymous=? AND EXISTS (SELECT 1 FROM " + follows
                     + " fu WHERE fu.followerId=? AND fu.followingId=a.articleAuthorId AND fu.followingType=?))");
             args.add(Article.ARTICLE_ANONYMOUS_C_PUBLIC); args.add(owner); args.add(Follow.FOLLOWING_TYPE_C_USER);
@@ -55,7 +55,7 @@ public final class ApiV3ProfileQueries {
         return new Fragment(" AND (" + String.join(" OR ", predicates) + ")", List.copyOf(args));
     }
 
-    /** Public profile discovery excludes discussion threads, just like the article discovery lists. */
+    /** 公开资料和文章发现列表都排除讨论帖。 */
     public static Fragment comments(final String comments, final String articles, final String users, final String owner,
                                     final boolean anonymousViewer, final int invalidUserStatus, final int deactivatedUserStatus, final String sandboxTag) {
         final StringBuilder from = new StringBuilder(" FROM ").append(comments).append(" c JOIN ").append(articles)
@@ -65,7 +65,10 @@ public final class ApiV3ProfileQueries {
         final List<Object> args = new ArrayList<>(List.of(owner, Comment.COMMENT_ANONYMOUS_C_PUBLIC, Comment.COMMENT_STATUS_C_VALID,
                 Article.ARTICLE_STATUS_C_INVALID, Article.ARTICLE_TYPE_C_DISCUSSION, Article.ARTICLE_SHOW_IN_LIST_C_NOT,
                 sandboxTag, "B3log%", invalidUserStatus, deactivatedUserStatus));
-        if (anonymousViewer) { from.append(" AND a.articleAnonymousView<>?"); args.add(Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW); }
+        if (anonymousViewer) {
+            from.append(" AND a.articleAnonymousView<>?");
+            args.add(Article.ARTICLE_ANONYMOUS_VIEW_C_NOT_ALLOW);
+        }
         return new Fragment(from.toString(), List.copyOf(args));
     }
 }

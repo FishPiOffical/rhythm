@@ -33,7 +33,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3UploadProcessor {
-    @Inject private ApiV3UploadTicketService tickets;
+    @Inject
+    private ApiV3UploadTicketService tickets;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3UploadProcessor.class);

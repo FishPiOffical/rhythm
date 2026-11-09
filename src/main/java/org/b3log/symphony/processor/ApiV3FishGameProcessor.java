@@ -35,7 +35,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3FishGameProcessor {
-    @Inject private ApiV3FishGameMgmtService management;
+    @Inject
+    private ApiV3FishGameMgmtService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3FishGameProcessor p = beans.getReference(ApiV3FishGameProcessor.class);
@@ -45,8 +46,13 @@ public class ApiV3FishGameProcessor {
         Dispatcher.delete("/api/v3/fish-games/{gameId}/vote", p::clearVote, auth::reactionsWrite, writes::handle);
         Dispatcher.post("/api/v3/fish-games/{gameId}/comments", p::comment, auth::commentsWrite, writes::handle);
     }
-    public void vote(final RequestContext c) { vote(c, false); }
-    public void clearVote(final RequestContext c) { vote(c, true); }
+    public void vote(final RequestContext c) {
+        vote(c, false);
+    }
+
+    public void clearVote(final RequestContext c) {
+        vote(c, true);
+    }
     private void vote(final RequestContext c, final boolean clear) {
         ApiV3Requests.respond(c, () -> {
             final JSONObject body = ApiV3WriteInputs.body(c, clear ? Set.of() : Set.of("value"), clear);
@@ -63,5 +69,7 @@ public class ApiV3FishGameProcessor {
             return management.comment(actor(c), ApiV3Requests.id(c, "gameId"), content, ApiV3WriteInputs.idempotencyKey(c));
         });
     }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

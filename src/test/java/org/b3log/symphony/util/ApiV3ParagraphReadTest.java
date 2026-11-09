@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Executes the exact query fragments used by the service, without an application/database connection. */
+/** 在隔离环境中执行服务实际使用的查询片段。 */
 public class ApiV3ParagraphReadTest {
     private static final String A = "a".repeat(64), B = "b".repeat(64);
     public static void main(final String[] args) throws Exception {

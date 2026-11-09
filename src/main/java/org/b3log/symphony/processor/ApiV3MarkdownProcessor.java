@@ -69,8 +69,11 @@ public class ApiV3MarkdownProcessor {
             }
             final String content = input(context);
             if (!RENDERS.tryAcquire()) throw new ApiV3Exception(503, "render_busy", "预览暂不可用，请稍后重试");
-            try { return new JSONObject().put("html", Markdowns.toPrivateHTML(content)); }
-            finally { RENDERS.release(); }
+            try {
+                return new JSONObject().put("html", Markdowns.toPrivateHTML(content));
+            } finally {
+                RENDERS.release();
+            }
         });
     }
     public static String input(final RequestContext context) {
@@ -78,11 +81,17 @@ public class ApiV3MarkdownProcessor {
         if (type == null || !"application/json".equals(type.split(";", 2)[0].trim().toLowerCase(Locale.ROOT)))
             throw new ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
         final byte[] bytes;
-        try { bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), ApiV3Json.MAX_BODY_BYTES); }
-        catch (final ApiV3GameSaveRawBody.TooLarge e) { throw new ApiV3Exception(413, "body_too_large", "请求体过大"); }
+        try {
+            bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), ApiV3Json.MAX_BODY_BYTES);
+        } catch (final ApiV3GameSaveRawBody.TooLarge e) {
+            throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+        }
         final JSONObject body;
-        try { body = ApiV3Json.parse(bytes); }
-        catch (final IllegalArgumentException e) { throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法"); }
+        try {
+            body = ApiV3Json.parse(bytes);
+        } catch (final IllegalArgumentException e) {
+            throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法");
+        }
         if (!body.keySet().equals(Set.of("content")) || !(body.opt("content") instanceof String content)
                 || content.length() > MAX_CONTENT_LENGTH) throw ApiV3WriteInputs.invalid();
         for (int i = 0; i < content.length(); i++) {

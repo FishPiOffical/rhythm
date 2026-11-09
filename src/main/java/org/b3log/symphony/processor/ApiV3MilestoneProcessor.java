@@ -35,8 +35,10 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3MilestoneProcessor {
-    @Inject private ApiV3MilestoneQueryService query;
-    @Inject private ApiV3MilestoneMgmtService management;
+    @Inject
+    private ApiV3MilestoneQueryService query;
+    @Inject
+    private ApiV3MilestoneMgmtService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3MilestoneProcessor p = beans.getReference(ApiV3MilestoneProcessor.class);
@@ -53,10 +55,20 @@ public class ApiV3MilestoneProcessor {
     public void list(final RequestContext c) {
         ApiV3Requests.read(c, () -> {
             final String status = ApiV3Requests.choice(c, "status", "all", Set.of("all", "pending", "approved", "rejected"));
-            final int code = switch (status) { case "pending" -> 1; case "approved" -> 2; case "rejected" -> 3; default -> 0; };
+            final int code = switch (status) {
+                case "pending" -> 1;
+                case "approved" -> 2;
+                case "rejected" -> 3;
+                default -> 0;
+            };
             return query.list(actor(c), code, ApiV3Requests.page(c), ApiV3Requests.size(c));
         });
     }
-    public void detail(final RequestContext c) { ApiV3Requests.read(c, () -> query.detail(actor(c), ApiV3Requests.id(c, "milestoneId"))); }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    public void detail(final RequestContext c) {
+        ApiV3Requests.read(c, () -> query.detail(actor(c), ApiV3Requests.id(c, "milestoneId")));
+    }
+
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

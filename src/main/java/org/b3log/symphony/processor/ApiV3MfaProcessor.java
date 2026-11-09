@@ -38,7 +38,7 @@ public class ApiV3MfaProcessor {
                 b.getReference(ApiV3AuthMidware.class), b.getReference(ApiV3WriteMidware.class));
     }
 
-    public static void registerRoutes(ApiV3MfaProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
+    public static void registerRoutes(ApiV3MfaProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.post("/api/v3/me/security/mfa/preparations",p::prepare,auth::settingsWrite,writes::handle);
         Dispatcher.put("/api/v3/me/security/mfa",p::enable,auth::settingsWrite,writes::handle);
         Dispatcher.delete("/api/v3/me/security/mfa",p::disable,auth::settingsWrite,writes::handle);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Real paragraph parser/annotation and local Flexmark conversion, isolated from persistence.
- * Sanitization, emotion and media adapters remain controlled; this does NOT validate the full production Markdown pipeline.
+/** 执行实际段落解析、标注和本地 Flexmark 转换，持久层隔离。
+ * 清洗、表情与媒体使用受控适配器，完整生产 Markdown 链路需另行验收。
  */
 import fs from 'node:fs';
 import os from 'node:os';

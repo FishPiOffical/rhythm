@@ -37,7 +37,7 @@ import java.sql.*;
 import java.util.*;
 import static org.b3log.symphony.processor.ApiV3ClientManagementTest.*;
 
-/** Actual full-replacement SQL and strict root, plus live consent/code/SocketTicket invalidation checks. */
+/** 执行实际全量替换 SQL 和严格根事务，并检查仍有效的授权同意、授权码和 SocketTicket 是否失效。 */
 public final class ApiV3ClientUpdateTest {
     static final String BASE="/api/v3/admin/oauth/clients/", TARGET="external_app";
     static final String FIRST="https://App.example:8443/Callback?exact=%2B", SECOND="com.example.client:/oauth2redirect", VERIFIER="v".repeat(43);

@@ -34,7 +34,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3EmotionSettingsProcessor {
-    @Inject private ApiV3EmotionSettingsService service;
+    @Inject
+    private ApiV3EmotionSettingsService service;
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3EmotionSettingsProcessor.class);

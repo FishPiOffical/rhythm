@@ -28,14 +28,14 @@ import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.json.JSONObject;
 
-/** API v3 identity only accepts an Authorization Bearer credential. */
+/** API v3 仅从 Authorization 请求头接受 Bearer 凭据作为身份。 */
 @Singleton
 public class ApiV3AuthMidware {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3AuthMidware.class);
     @Inject
     private ApiV3TokenMgmtService apiV3TokenMgmtService;
 
-    /** Public resources may be anonymous, but an explicitly supplied credential must be valid. */
+    /** 公开资源允许匿名访问，显式提交的凭据必须通过验证。 */
     public void optionalContent(final RequestContext context) {
         optional(context, "content.read");
     }

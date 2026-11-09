@@ -28,7 +28,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** Current grant and definition only; never calls the legacy query's expired-grant cleanup. */
+/** 只读取当前授予记录和勋章定义，跳过旧查询附带的过期记录清理。 */
 @Service
 public class ApiV3MedalImageQueryService {
     @Inject private UserRepository users;

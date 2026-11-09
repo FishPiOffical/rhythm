@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
-/** Same published content length and HTML stripping rules as the legacy POST. */
+/** v3 发布沿用现有的正文长度与 HTML 清理规则。 */
 public final class ApiV3BreezemoonInputs {
     private ApiV3BreezemoonInputs() { }
     public static String content(final JSONObject body) {
@@ -30,7 +30,7 @@ public final class ApiV3BreezemoonInputs {
         if (value.isEmpty() || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) throw ApiV3WriteInputs.invalid();
         return value;
     }
-    /** Legacy PUT keeps source markup; only the rendered HTML may be inserted into a page. */
+    /** 编辑时保留源标记，页面只能插入经过渲染的 HTML。 */
     public static String editable(final String filtered) {
         return content(new JSONObject().put("content", filtered));
     }

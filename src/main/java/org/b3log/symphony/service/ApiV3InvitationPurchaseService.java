@@ -51,7 +51,7 @@ import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
 
-/** The charge, generated credential and owner-only replay receipt commit together. */
+/** 扣费、新生成的邀请码和仅本人可读的回执一并提交。 */
 @Service
 public class ApiV3InvitationPurchaseService {
     @Inject private UserRepository users;
@@ -81,7 +81,7 @@ public class ApiV3InvitationPurchaseService {
                         public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
                         public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
                         public JSONObject getForUpdate(String id)throws RepositoryException {
-                            // Match registration/reset namespace -> registration option -> current account order.
+                            // 沿用注册与重置的锁顺序：命名空间、注册选项、当前账号。
                             if(options.getForUpdate(Option.ID_C_STATISTIC_MEMBER_COUNT)==null) throw unavailable();
                             options.getForUpdate(Option.ID_C_MISC_ALLOW_REGISTER);
                             requireActor(actor);
@@ -119,7 +119,7 @@ public class ApiV3InvitationPurchaseService {
             if(number(requireActor(actor).opt("userPoint"))<paid) throw new ApiV3Exception(409,"insufficient_points","积分不足");
             final String code=newCode();
             if(code==null || !code.matches("[A-Za-z0-9]{16}")) throw unavailable();
-            // No schema-wide code uniqueness exists; do not overwrite a coincident legacy code.
+            // 数据库没有全局邀请码唯一约束，遇到与旧码重复的候选时应另选。
             if(!invitations.select("SELECT oId FROM `"+invitations.getName()+"` WHERE code=? LIMIT 1 FOR UPDATE",code).isEmpty()) throw unavailable();
             final String id=newId();
             if(id==null || !id.matches("[1-9][0-9]{0,18}")) throw unavailable();

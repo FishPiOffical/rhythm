@@ -60,9 +60,20 @@ public class ApiV3RealtimeService {
     private final ConcurrentHashMap<String,String> seenMessages=new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String,String> seenArticles=new ConcurrentHashMap<>();
     private volatile ApiV3RealtimeSessions sessions;
-    public void start(){registry();}
-    public Set<String> chatUserIds(){final var active=sessions;return active==null?Set.of():active.chatUserIds();}
-    public int articleConnectionCount(final String articleId){final var active=sessions;return active==null?0:active.articleConnectionCount(articleId);}
+    public void start() {
+        registry();
+    }
+
+    public Set<String> chatUserIds() {
+        final var active = sessions;
+        return active == null ? Set.of() : active.chatUserIds();
+    }
+
+    public int articleConnectionCount(final String articleId) {
+        final var active = sessions;
+        return active == null ? 0 : active.articleConnectionCount(articleId);
+    }
+
     private synchronized ApiV3RealtimeSessions registry(){
         if(sessions==null){
             sessions=new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority(){
@@ -146,56 +157,114 @@ public class ApiV3RealtimeService {
     }
 
     /** 读取已提交的版本标记，包括旧入口或其他后端实例写入的标记。 */
-    public synchronized void pollNotifications()throws Exception {
-        if(sessions==null)return;tickets.requireNoTransaction();
-        final Set<String> owners=sessions.owners();if(owners.isEmpty()){seen.clear();return;}
-        final var snapshot=revisions.snapshot(owners);seen.keySet().retainAll(owners);
-        for(final String owner:owners){
-            final String revision=snapshot.getOrDefault(owner,"");final String previous=seen.get(owner);
-            if(!revision.equals(previous)&&(!revision.isEmpty()||previous!=null))sessions.notificationsChanged(owner);
-            seen.put(owner,revision);
+    public synchronized void pollNotifications() throws Exception {
+        if (sessions == null)
+            return;
+        tickets.requireNoTransaction();
+        final Set<String> owners = sessions.owners();
+        if (owners.isEmpty()) {
+            seen.clear();
+            return;
+        }
+        final var snapshot = revisions.snapshot(owners);
+        seen.keySet().retainAll(owners);
+        for (final String owner : owners) {
+            final String revision = snapshot.getOrDefault(owner, "");
+            final String previous = seen.get(owner);
+            if (!revision.equals(previous) && (!revision.isEmpty() || previous != null))
+                sessions.notificationsChanged(owner);
+            seen.put(owner, revision);
         }
     }
-    public synchronized void pollArticles()throws Exception {
-        if(sessions==null)return;tickets.requireNoTransaction();
-        final Set<String> ids=sessions.articleIds();if(ids.isEmpty()){seenArticles.clear();return;}
-        final var snapshot=articleRevisions.snapshot(ids);seenArticles.keySet().retainAll(ids);
-        for(final String id:ids){
-            final String revision=snapshot.getOrDefault(id,"");final String previous=seenArticles.get(id);
-            if(!revision.equals(previous)&&(!revision.isEmpty()||previous!=null))sessions.articleChanged(id);
-            seenArticles.put(id,revision);
+
+    public synchronized void pollArticles() throws Exception {
+        if (sessions == null)
+            return;
+        tickets.requireNoTransaction();
+        final Set<String> ids = sessions.articleIds();
+        if (ids.isEmpty()) {
+            seenArticles.clear();
+            return;
+        }
+        final var snapshot = articleRevisions.snapshot(ids);
+        seenArticles.keySet().retainAll(ids);
+        for (final String id : ids) {
+            final String revision = snapshot.getOrDefault(id, "");
+            final String previous = seenArticles.get(id);
+            if (!revision.equals(previous) && (!revision.isEmpty() || previous != null))
+                sessions.articleChanged(id);
+            seenArticles.put(id, revision);
         }
     }
     /** 按所有者合并刷新提示，仅发送变化提示，隐藏私信详情和未读状态。 */
-    public synchronized void pollMessages()throws Exception {
-        if(sessions==null)return;tickets.requireNoTransaction();
-        final Set<String> owners=sessions.messageOwners();if(owners.isEmpty()){seenMessages.clear();return;}
-        final var snapshot=privateRevisions.snapshot(owners);seenMessages.keySet().retainAll(owners);
-        for(final String owner:owners){
-            final String revision=snapshot.getOrDefault(owner,"");final String previous=seenMessages.get(owner);
-            if(!revision.equals(previous)&&(!revision.isEmpty()||previous!=null))sessions.messagesChanged(owner);
-            seenMessages.put(owner,revision);
+    public synchronized void pollMessages() throws Exception {
+        if (sessions == null)
+            return;
+        tickets.requireNoTransaction();
+        final Set<String> owners = sessions.messageOwners();
+        if (owners.isEmpty()) {
+            seenMessages.clear();
+            return;
+        }
+        final var snapshot = privateRevisions.snapshot(owners);
+        seenMessages.keySet().retainAll(owners);
+        for (final String owner : owners) {
+            final String revision = snapshot.getOrDefault(owner, "");
+            final String previous = seenMessages.get(owner);
+            if (!revision.equals(previous) && (!revision.isEmpty() || previous != null))
+                sessions.messagesChanged(owner);
+            seenMessages.put(owner, revision);
         }
     }
-    private synchronized void resetChat(){if(chatStream!=null)chatStream.reset();}
-    /** 在本实例有界发送即时弹幕，弹幕独立于持久消息游标。 */
-    public void publishBarrage(final org.b3log.symphony.util.ApiV3BarrageEvent event){
-        tickets.requireNoTransaction();final var active=sessions;if(active==null||!active.hasChat())return;
-        executeWorker(()->{tickets.requireNoTransaction();active.chatBarrage(event);});
+
+    private synchronized void resetChat() {
+        if (chatStream != null)
+            chatStream.reset();
     }
-    public void pollTopic()throws Exception {tickets.requireNoTransaction();topicDelivery.refreshCommitted();}
-    public synchronized void pollChat()throws Exception {
-        if(sessions==null)return;tickets.requireNoTransaction();
-        if(!sessions.hasChat()){resetChat();return;}
-        if(chatStream==null)chatStream=new ApiV3ChatStream(new ApiV3ChatStream.Source(){
-            public long head()throws Exception{return chatEvents.head();}
-            public java.util.List<org.json.JSONObject> after(long revision,long through,int limit)throws Exception{return chatEvents.after(revision,through,limit);}
-        },new ApiV3ChatStream.Sink(){
-            public void changed(String kind,String id,long revision){
-                sessions.chatChanged(kind,id,revision,chatSnapshot(kind,id));
-            }
-            public void syncRequired(){sessions.chatSyncRequired();}
+
+    /** 在本实例有界发送即时弹幕，弹幕独立于持久消息游标。 */
+    public void publishBarrage(final org.b3log.symphony.util.ApiV3BarrageEvent event) {
+        tickets.requireNoTransaction();
+        final var active = sessions;
+        if (active == null || !active.hasChat())
+            return;
+        executeWorker(() -> {
+            tickets.requireNoTransaction();
+            active.chatBarrage(event);
         });
+    }
+
+    public void pollTopic() throws Exception {
+        tickets.requireNoTransaction();
+        topicDelivery.refreshCommitted();
+    }
+
+    public synchronized void pollChat() throws Exception {
+        if (sessions == null)
+            return;
+        tickets.requireNoTransaction();
+        if (!sessions.hasChat()) {
+            resetChat();
+            return;
+        }
+        if (chatStream == null)
+            chatStream = new ApiV3ChatStream(new ApiV3ChatStream.Source() {
+                public long head() throws Exception {
+                    return chatEvents.head();
+                }
+
+                public java.util.List<org.json.JSONObject> after(long revision, long through, int limit) throws Exception {
+                    return chatEvents.after(revision, through, limit);
+                }
+            }, new ApiV3ChatStream.Sink() {
+                public void changed(String kind, String id, long revision) {
+                    sessions.chatChanged(kind, id, revision, chatSnapshot(kind, id));
+                }
+
+                public void syncRequired() {
+                    sessions.chatSyncRequired();
+                }
+            });
         chatStream.poll();
     }
     /** 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。 */
@@ -208,10 +277,16 @@ public class ApiV3RealtimeService {
             return null;
         }
     }
-    public int cleanupChatEvents()throws Exception {
-        tickets.requireNoTransaction();int removed=0;
-        final long cutoff=System.currentTimeMillis()-7L*24*60*60*1000;
-        for(int batch=0;batch<5;batch++){final int count=chatEvents.removeExpired(cutoff);removed+=count;if(count<200)break;}
+    public int cleanupChatEvents() throws Exception {
+        tickets.requireNoTransaction();
+        int removed = 0;
+        final long cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000;
+        for (int batch = 0; batch < 5; batch++) {
+            final int count = chatEvents.removeExpired(cutoff);
+            removed += count;
+            if (count < 200)
+                break;
+        }
         return removed;
     }
 }

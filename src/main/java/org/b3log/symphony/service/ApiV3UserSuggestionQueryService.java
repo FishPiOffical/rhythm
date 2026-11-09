@@ -59,7 +59,11 @@ public class ApiV3UserSuggestionQueryService {
                         .put("userAvatarURL", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL"))));
             }
             return new JSONObject().put("list", list);
-        } catch (RepositoryException e) { throw unavailable(); }
+        } catch (RepositoryException e) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503, "temporarily_unavailable", "用户联想暂不可用"); }
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "用户联想暂不可用");
+    }
 }

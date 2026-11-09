@@ -23,7 +23,7 @@ import org.json.JSONObject;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/** Ordered aliases from the existing public picker; no template sentinel or arbitrary emoji names. */
+/** 接收公开选择器中的有序别名，拒绝模板占位值和未登记的表情名称。 */
 public final class ApiV3EmotionSettingsInputs {
     private ApiV3EmotionSettingsInputs() { }
     public static Set<String> allowed() {

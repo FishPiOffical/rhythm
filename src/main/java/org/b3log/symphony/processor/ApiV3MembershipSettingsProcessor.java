@@ -34,19 +34,21 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3MembershipSettingsProcessor {
-    @Inject private ApiV3MembershipSettingsService service;
+    @Inject
+    private ApiV3MembershipSettingsService service;
     public static void register() {
-        final var beans=BeanManager.getInstance();
-        final var p=beans.getReference(ApiV3MembershipSettingsProcessor.class);
-        final var auth=beans.getReference(ApiV3AuthMidware.class);
-        final var writes=beans.getReference(ApiV3WriteMidware.class);
+        final var beans = BeanManager.getInstance();
+        final var p = beans.getReference(ApiV3MembershipSettingsProcessor.class);
+        final var auth = beans.getReference(ApiV3AuthMidware.class);
+        final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.put("/api/v3/me/membership/config",p::update,auth::settingsWrite,writes::handle);
     }
     public void update(final RequestContext context) {
-        ApiV3Requests.respond(context,()->{
-            final byte[] bytes=context.getRequest().getBytes();
-            if(bytes!=null && bytes.length>4096)throw new ApiV3Exception(413,"body_too_large","请求体过大");
-            return service.update(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID),ApiV3WriteInputs.body(context,Set.of("bold","underline","color"),false),ApiV3WriteInputs.idempotencyKey(context));
+        ApiV3Requests.respond(context, () -> {
+            final byte[] bytes = context.getRequest().getBytes();
+            if (bytes != null && bytes.length > 4096) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+            return service.update(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID),
+                    ApiV3WriteInputs.body(context, Set.of("bold", "underline", "color"), false), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
 }

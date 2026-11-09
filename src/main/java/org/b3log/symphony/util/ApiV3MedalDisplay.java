@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import java.util.Set;
 
-/** Display is an explicit boolean setting; medal IDs remain exact bounded definition keys, including "0". */
+/** 展示设置必须是布尔值，勋章 ID 按长度受限的原始键匹配，包括 "0"。 */
 public final class ApiV3MedalDisplay {
     private ApiV3MedalDisplay() { }
     public static String medalId(final String id) {

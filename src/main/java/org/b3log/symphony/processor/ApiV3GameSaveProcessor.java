@@ -34,12 +34,12 @@ public class ApiV3GameSaveProcessor {
     @Inject
     private ApiV3GameSaveService service;
 
-    public static void register(){
+    public static void register() {
         ApiV3OAuthTransportLogFilter.requireInstalled();
         final var b = BeanManager.getInstance();
         registerRoutes(b.getReference(ApiV3GameSaveProcessor.class),b.getReference(ApiV3AuthMidware.class),b.getReference(ApiV3WriteMidware.class));
     }
-    public static void registerRoutes(ApiV3GameSaveProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){
+    public static void registerRoutes(ApiV3GameSaveProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
         Dispatcher.get("/api/v3/game-save-options",p::options,auth::activityRead);
         Dispatcher.get("/api/v3/me/game-saves/{gameId}",p::get,auth::activityRead);
         Dispatcher.put("/api/v3/me/game-saves/{gameId}",p::save,auth::activityWrite,writes::handle);

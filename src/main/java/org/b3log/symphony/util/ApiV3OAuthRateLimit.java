@@ -23,11 +23,24 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Independent bounded OAuth admission; does not consume the ordinary Bearer mutation budget. */
+/** OAuth 使用独立的有界限流计数，不占用普通 Bearer 写入额度。 */
 public final class ApiV3OAuthRateLimit {
-    private static final Cache<String,AtomicInteger> COUNTS=Caffeine.newBuilder().maximumSize(100000).expireAfterWrite(1,TimeUnit.MINUTES).build();
-    private ApiV3OAuthRateLimit(){ }
-    public static boolean ip(String value){return take("ip:"+value,120);}
-    public static boolean actor(String value){return take("actor:"+value,30);}
-    private static boolean take(String key,int limit){return COUNTS.get(key,k->new AtomicInteger()).incrementAndGet()<=limit;}
+    private static final Cache<String, AtomicInteger> COUNTS = Caffeine.newBuilder()
+            .maximumSize(100000)
+            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .build();
+
+    private ApiV3OAuthRateLimit() { }
+
+    public static boolean ip(String value) {
+        return take("ip:" + value, 120);
+    }
+
+    public static boolean actor(String value) {
+        return take("actor:" + value, 30);
+    }
+
+    private static boolean take(String key, int limit) {
+        return COUNTS.get(key, k -> new AtomicInteger()).incrementAndGet() <= limit;
+    }
 }

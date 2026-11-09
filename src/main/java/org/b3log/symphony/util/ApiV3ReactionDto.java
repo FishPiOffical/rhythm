@@ -22,7 +22,7 @@ import org.b3log.symphony.model.Reaction;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Explicit public projection, including nested tooltip profiles. */
+/** 表态响应按白名单投影，包括提示框内嵌的公开用户资料。 */
 public final class ApiV3ReactionDto {
     private ApiV3ReactionDto() { }
     public static JSONObject from(final JSONObject raw) {

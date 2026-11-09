@@ -46,7 +46,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
-/** Owned notification DTOs. Related content is resolved with the explicit Bearer viewer. */
+/** 本人通知投影。关联内容按显式 Bearer 查看者身份解析。 */
 @Service
 public class ApiV3NotificationQueryService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3NotificationQueryService.class);
@@ -128,7 +128,7 @@ public class ApiV3NotificationQueryService {
                 if (!article(dto, dataId, viewer)) return unavailable(dto);
             } else return unavailable(dto);
         } catch (final JSONException | NullPointerException | IndexOutOfBoundsException e) {
-            // Historical notifications can outlive their target or contain old, malformed references.
+            // 历史通知的目标可能已删除，也可能留下格式异常的旧引用。
             LOGGER.warn("Cannot render legacy notification id={}", row.optString(Keys.OBJECT_ID));
             return unavailable(dto);
         }
@@ -162,14 +162,16 @@ public class ApiV3NotificationQueryService {
                     final String href = anchor.attr("href");
                     final var location = java.net.URI.create(href);
                     if (("/article/" + articleId).equals(location.getPath()) && id.equals(location.getFragment())) dto.put("url", href);
-                } catch (final IllegalArgumentException ignored) { /* Keep the current target URL. */ }
+                } catch (final IllegalArgumentException ignored) {
+                    // 保留当前目标 URL。
+                }
             }
         }
         if (includeContent && publicComment.optBoolean("contentVisible")) description(dto, publicComment.optString("contentHtml"));
         return true;
     }
 
-    /** Content descriptions must use the authorized current target, not legacy cached title/link generators. */
+    /** 从已授权的当前目标生成内容说明，避免旧标题或链接缓存参与投影。 */
     private static boolean contentDescriptionType(final int type) {
         return type == Notification.DATA_TYPE_C_POINT_PERFECT_ARTICLE || type == Notification.DATA_TYPE_C_POINT_ARTICLE_THANK
                 || type == Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD || type == Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT
@@ -235,7 +237,7 @@ public class ApiV3NotificationQueryService {
         }
         description(dto, sourceText ? Escapes.escapeHTML(text) : text);
         final String actorId = message.optString("userOId");
-        // Names in legacy messages may have been reassigned; only a stable ID identifies the actor.
+        // 旧消息中的用户名可能已被重新分配，仅用稳定用户 ID 关联操作者。
         final JSONObject actor = actorId.matches("[1-9][0-9]{0,18}") ? contentQueryService.currentAuthor(actorId) : null;
         if (null != actor) dto.put("actor", contentDtoService.author(actor, false));
         dto.put("url", "/cr");

@@ -237,7 +237,7 @@ public class ApiV3TokenMgmtService {
         }
     }
 
-    /** OAuth revocation accepts either member of a client-bound family; legacy refresh-only revocation stays unchanged. */
+    /** OAuth 撤销可用客户端令牌家族中的访问令牌或刷新令牌，旧撤销入口保持仅接受刷新令牌。 */
     public void revokeTokenForClient(final String clientId,final String credential)throws ServiceException {
         if(clientId==null||clientId.isBlank()||clientId.length()>64)throw new ServiceException("unauthorized");
         if(!ApiV3TokenUtil.isValidFormat(credential))return;
@@ -253,7 +253,7 @@ public class ApiV3TokenMgmtService {
         return new HashSet<>(Arrays.asList(StringUtils.split(StringUtils.trimToEmpty(scopes), ' '))).contains(required);
     }
 
-    /** Authorization-code exchange joins the code-consumption transaction; this never commits it. */
+    /** 授权码交换加入消费授权码的事务，由调用方统一提交。 */
     public JSONObject issueForClientInCurrentTransaction(final String userId,final String clientId,final String scope)throws Exception {
         if(!apiV3TokenRepository.hasTransactionBegun())throw new IllegalStateException("client grant transaction required");
         if(userId==null||!userId.matches("[0-9]{1,19}")||clientId==null||clientId.isBlank()||clientId.length()>64
@@ -261,7 +261,7 @@ public class ApiV3TokenMgmtService {
         return ApiV3TransactionSavepoint.run(()->{
             final JSONObject client=apiV3ClientRepository.getByClientIdForUpdate(clientId);
             if(client==null||client.optInt(ApiV3Client.STATUS,-1)!=ApiV3Client.STATUS_ACTIVE)throw new ServiceException("client_disabled");
-            // Fresh projection, not UserCache or a request-supplied user snapshot.
+            // 使用当前数据库投影确认用户状态，避免信任缓存或请求携带的用户快照。
             final var users=userRepository.select("SELECT oId,userStatus FROM `"+userRepository.getName()+"` WHERE oId=? FOR UPDATE",userId);
             if(users.size()!=1||users.getFirst().optInt(UserExt.USER_STATUS,-1)!=UserExt.USER_STATUS_C_VALID)throw new ServiceException("unauthorized");
             final String normalized=normalizeScope(scope);

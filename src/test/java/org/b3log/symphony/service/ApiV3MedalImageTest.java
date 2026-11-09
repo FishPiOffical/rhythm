@@ -17,13 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.b3log.symphony.service;
-import java.sql.*;import java.util.*;import java.nio.charset.StandardCharsets;
-import org.b3log.latke.Latkes;import org.b3log.latke.repository.RepositoryException;import org.b3log.symphony.repository.*;import org.b3log.symphony.util.*;import org.json.*;import org.testng.Assert;
+import java.sql.*;
+import java.util.*;
+import java.nio.charset.StandardCharsets;
+import org.b3log.latke.Latkes;
+import org.b3log.latke.repository.RepositoryException;
+import org.b3log.symphony.repository.*;
+import org.b3log.symphony.util.*;
+import org.json.*;
+import org.testng.Assert;
+
 public class ApiV3MedalImageTest {
     static final String SVG="<svg xmlns='http://www.w3.org/2000/svg' width='120' height='28'><defs><linearGradient id='g'><stop offset='0' stop-color='red'/></linearGradient></defs><rect width='120' height='28' fill='url(#g)'/><g transform='translate(1 2)'><text x='4' y='20' style='fill:red;font-size:12px'>测试</text></g><animate attributeName='opacity' values='0;1;0' dur='2s' repeatCount='indefinite'/></svg>";
-    static byte[] bytes(String v){return v.getBytes(StandardCharsets.UTF_8);}
-    static void status(int expected,Runnable task){try{task.run();throw new AssertionError("expected "+expected);}catch(ApiV3Exception e){Assert.assertEquals(e.status,expected);}}
-    static void inject(Object target,String field,Object value)throws Exception{var f=target.getClass().getDeclaredField(field);f.setAccessible(true);f.set(target,value);}
+    static byte[] bytes(String v) {
+        return v.getBytes(StandardCharsets.UTF_8);
+    }
+
+    static void status(int expected, Runnable task) {
+        try {
+            task.run();
+            throw new AssertionError("expected " + expected);
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.status, expected);
+        }
+    }
+
+    static void inject(Object target, String field, Object value) throws Exception {
+        var f = target.getClass().getDeclaredField(field);
+        f.setAccessible(true);
+        f.set(target, value);
+    }
     static class Fixture implements AutoCloseable{
         final Connection db=DriverManager.getConnection("jdbc:sqlite::memory:");final ApiV3MedalImageQueryService query=new ApiV3MedalImageQueryService();boolean fail;
         Fixture()throws Exception{
@@ -31,7 +54,22 @@ public class ApiV3MedalImageTest {
             sql("INSERT INTO u VALUES ('1','Owner',0),('2','Reader',0),('3','Pending',2),('4','Restricted',3),('5','Closed',4)");sql("INSERT INTO m VALUES ('7','鱼 & 测试','backcolor=ff0000')");sql("INSERT INTO g VALUES ('1','7',0,0)");
             inject(query,"users",new UserRepository(){public String getName(){return "u";}});inject(query,"grants",new UserMedalRepository(){public String getName(){return "g";}});inject(query,"medals",new MedalRepository(){public String getName(){return "m";}public List<JSONObject> select(String s,Object...a)throws RepositoryException{return rows(s,a);}});
         }
-        List<JSONObject> rows(String q,Object...a)throws RepositoryException{if(fail)throw new RepositoryException("fixture");try(var s=db.prepareStatement(q.replace("BINARY g.medal_id","g.medal_id COLLATE BINARY").replace("BINARY m.medal_id","m.medal_id COLLATE BINARY"))){for(int i=0;i<a.length;i++)s.setObject(i+1,a[i]);try(var rs=s.executeQuery()){var out=new ArrayList<JSONObject>();while(rs.next())out.add(new JSONObject().put("medal_id",rs.getString(1)).put("medal_name",rs.getString(2)).put("medal_attr",rs.getString(3)));return out;}}catch(SQLException e){throw new RepositoryException(e);}}
+        List<JSONObject> rows(String q, Object... a) throws RepositoryException {
+            if (fail) throw new RepositoryException("fixture");
+            try (var s = db.prepareStatement(q.replace("BINARY g.medal_id", "g.medal_id COLLATE BINARY")
+                    .replace("BINARY m.medal_id", "m.medal_id COLLATE BINARY"))) {
+                for (int i = 0; i < a.length; i++) s.setObject(i + 1, a[i]);
+                try (var rs = s.executeQuery()) {
+                    var out = new ArrayList<JSONObject>();
+                    while (rs.next())
+                        out.add(new JSONObject().put("medal_id", rs.getString(1)).put("medal_name", rs.getString(2))
+                                .put("medal_attr", rs.getString(3)));
+                    return out;
+                }
+            } catch (SQLException e) {
+                throw new RepositoryException(e);
+            }
+        }
         void sql(String q)throws SQLException{try(var s=db.createStatement()){s.execute(q);}}
         public void close()throws Exception{db.close();}
     }
@@ -72,7 +110,19 @@ public class ApiV3MedalImageTest {
 
         try(var f=new Fixture()){
             ApiV3MedalImageService service=new ApiV3MedalImageService(){protected byte[] render(String p){return bytes(SVG);}};var field=ApiV3MedalImageService.class.getDeclaredField("query");field.setAccessible(true);field.set(service,f.query);Assert.assertTrue(service.image("1","","7",false).length>0);
-            ApiV3MedalImageService revoked=new ApiV3MedalImageService(){protected byte[] render(String p){try{f.sql("DELETE FROM g");}catch(Exception e){throw new RuntimeException(e);}return bytes(SVG);}};field.set(revoked,f.query);status(404,()->revoked.image("1","","7",false));
+            // 在渲染过程中撤销授权，验证返回图片前会重新检查权限。
+            ApiV3MedalImageService revoked = new ApiV3MedalImageService() {
+                protected byte[] render(String p) {
+                    try {
+                        f.sql("DELETE FROM g");
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    return bytes(SVG);
+                }
+            };
+            field.set(revoked, f.query);
+            status(404, () -> revoked.image("1", "", "7", false));
         }System.out.println("PASS medal image 7 actual orchestration rechecks grant after rendering and never serves a revoked cached result");
     }
 }

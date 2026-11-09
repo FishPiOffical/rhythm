@@ -85,7 +85,7 @@ public class ApiV3IdempotencyMgmtService {
                 final JSONObject row = new JSONObject().put(Keys.OBJECT_ID, id).put(ApiV3Request.USER_ID, userId)
                         .put(ApiV3Request.OPERATION, operation).put(ApiV3Request.REQUEST_HASH, hash)
                         .put(ApiV3Request.RESPONSE_JSON, "{}").put(ApiV3Request.CREATED_AT, System.currentTimeMillis());
-                // Inserting the deterministic primary key serializes equal requests across application instances.
+                // 通过插入确定性的主键，在应用实例之间串行处理同一幂等请求。
                 store.add(row);
                 final JSONObject result = mutation.apply();
                 final String response = result.toString();
@@ -97,7 +97,7 @@ public class ApiV3IdempotencyMgmtService {
                 return new Execution(result, true);
             } catch (final Exception e) {
                 if (transaction.isActive()) transaction.rollback();
-                // A concurrent insert/deadlock can lose the first attempt; a fresh transaction then reads its committed result.
+                // 并发插入或死锁可能使首次尝试失败，随后用新事务读取已提交回执。
                 if (attempt < MAX_ATTEMPTS && storageFailure(e)) continue;
                 LOGGER.info("api_v3_write operation={} userId={} result=failed requestId={}", operation, userId, ThreadContext.get("apiV3RequestId"));
                 throw e;

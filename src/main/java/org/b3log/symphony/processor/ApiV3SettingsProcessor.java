@@ -37,9 +37,12 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 
 @Singleton
 public class ApiV3SettingsProcessor {
-    @Inject private ApiV3SettingsMgmtService management;
-    @Inject private ApiV3AvatarQueryService avatars;
-    @Inject private ApiV3PersonalityQueryService personalities;
+    @Inject
+    private ApiV3SettingsMgmtService management;
+    @Inject
+    private ApiV3AvatarQueryService avatars;
+    @Inject
+    private ApiV3PersonalityQueryService personalities;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3SettingsProcessor p = beans.getReference(ApiV3SettingsProcessor.class);
@@ -65,29 +68,90 @@ public class ApiV3SettingsProcessor {
         Dispatcher.put("/api/v3/me/settings/privacy", p::updatePrivacy, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/display", p::updateDisplay, auth::settingsWrite, writes::handle);
     }
-    public void personality(final RequestContext c) { ApiV3Requests.read(c, () -> personalities.read(actor(c))); }
-    public void personalityOptions(final RequestContext c) { ApiV3Requests.read(c, ApiV3Personality::options); }
-    public void avatar(final RequestContext c) { ApiV3Requests.read(c, () -> avatars.read(actor(c))); }
-    public void profile(final RequestContext c) { read(c, "profile"); }
-    public void privacy(final RequestContext c) { read(c, "privacy"); }
-    public void display(final RequestContext c) { read(c, "display"); }
-    public void skins(final RequestContext c) { ApiV3Requests.read(c, management::skins); }
-    public void updatePersonality(final RequestContext c) { update(c, "personality"); }
-    public void updateAvatar(final RequestContext c) { update(c, "avatar"); }
-    public void updateProfile(final RequestContext c) { update(c, "profile"); }
-    public void updatePrivacy(final RequestContext c) { update(c, "privacy"); }
-    public void updateDisplay(final RequestContext c) { update(c, "display"); }
-    public void functions(final RequestContext c) { read(c, "functions"); }
-    public void location(final RequestContext c) { read(c, "location"); }
-    public void locale(final RequestContext c) { read(c, "locale"); }
-    public void localeOptions(final RequestContext c) { ApiV3Requests.read(c, management::localeOptions); }
-    public void updateFunctions(final RequestContext c) { update(c, "functions"); }
-    public void updateLocation(final RequestContext c) { update(c, "location"); }
-    public void updateLocale(final RequestContext c) { update(c, "locale"); }
-    private void read(final RequestContext c, final String group) { ApiV3Requests.read(c, () -> management.read(actor(c), group)); }
+    public void personality(final RequestContext c) {
+        ApiV3Requests.read(c, () -> personalities.read(actor(c)));
+    }
+
+    public void personalityOptions(final RequestContext c) {
+        ApiV3Requests.read(c, ApiV3Personality::options);
+    }
+
+    public void avatar(final RequestContext c) {
+        ApiV3Requests.read(c, () -> avatars.read(actor(c)));
+    }
+
+    public void profile(final RequestContext c) {
+        read(c, "profile");
+    }
+
+    public void privacy(final RequestContext c) {
+        read(c, "privacy");
+    }
+
+    public void display(final RequestContext c) {
+        read(c, "display");
+    }
+
+    public void skins(final RequestContext c) {
+        ApiV3Requests.read(c, management::skins);
+    }
+
+    public void updatePersonality(final RequestContext c) {
+        update(c, "personality");
+    }
+
+    public void updateAvatar(final RequestContext c) {
+        update(c, "avatar");
+    }
+
+    public void updateProfile(final RequestContext c) {
+        update(c, "profile");
+    }
+
+    public void updatePrivacy(final RequestContext c) {
+        update(c, "privacy");
+    }
+
+    public void updateDisplay(final RequestContext c) {
+        update(c, "display");
+    }
+
+    public void functions(final RequestContext c) {
+        read(c, "functions");
+    }
+
+    public void location(final RequestContext c) {
+        read(c, "location");
+    }
+
+    public void locale(final RequestContext c) {
+        read(c, "locale");
+    }
+
+    public void localeOptions(final RequestContext c) {
+        ApiV3Requests.read(c, management::localeOptions);
+    }
+
+    public void updateFunctions(final RequestContext c) {
+        update(c, "functions");
+    }
+
+    public void updateLocation(final RequestContext c) {
+        update(c, "location");
+    }
+
+    public void updateLocale(final RequestContext c) {
+        update(c, "locale");
+    }
+
+    private void read(final RequestContext c, final String group) {
+        ApiV3Requests.read(c, () -> management.read(actor(c), group));
+    }
     private void update(final RequestContext c, final String group) {
         ApiV3Requests.respond(c, () -> management.update(actor(c), group, ApiV3Settings.normalize(group,
                 ApiV3WriteInputs.body(c, ApiV3Settings.fields(group).keySet(), false), Latkes.getServePath()), ApiV3WriteInputs.idempotencyKey(c)));
     }
-    private static String actor(final RequestContext c) { return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID); }
+    private static String actor(final RequestContext c) {
+        return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
+    }
 }

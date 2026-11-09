@@ -32,7 +32,8 @@ import org.b3log.symphony.util.ApiV3Requests;
 /** 勋章只读投影，独立于会清理过期授予记录的旧读取方法。 */
 @Singleton
 public class ApiV3MedalProcessor {
-    @Inject private ApiV3MedalQueryService query;
+    @Inject
+    private ApiV3MedalQueryService query;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3MedalProcessor p = beans.getReference(ApiV3MedalProcessor.class);

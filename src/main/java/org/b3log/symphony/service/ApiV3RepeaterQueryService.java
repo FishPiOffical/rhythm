@@ -33,7 +33,7 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Read-only top-pool semantics shared with the existing public repeater feature. */
+/** 只读查询热门复读，沿用现有公开复读功能的候选池规则。 */
 @Service
 public class ApiV3RepeaterQueryService {
     @Inject private RepeaterContentRepository contents;

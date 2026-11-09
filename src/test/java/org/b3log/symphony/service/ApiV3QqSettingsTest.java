@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.*;
 import java.util.*;
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** Actual first-party SQL proof, strict writes/receipts and HTTP gates; SQLite strips FOR UPDATE. */
+/** 覆盖第一方 SQL 凭据校验、严格写入和回执及 HTTP 中间件。SQLite 适配层移除 FOR UPDATE。 */
 public class ApiV3QqSettingsTest {
     static Object field(Object target, Class<?> type, String name) throws Exception {
         final var f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target);

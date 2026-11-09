@@ -26,7 +26,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.*;
 import org.testng.Assert;
 
-/** Real query service and common DTO. SQLite translates MySQL unary BINARY only; no real application connection. */
+/** 执行实际查询服务及通用 DTO，隔离 SQLite 仅适配 MySQL 的一元 BINARY 语法。 */
 public class ApiV3DiscoveryExtrasQueryTest {
     static class Fixture implements AutoCloseable {
         final Connection db=DriverManager.getConnection("jdbc:sqlite::memory:");

@@ -27,7 +27,7 @@ import java.sql.DriverManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Real settings input/DTO/transition; SQLite adapter does not cover UserRepository caches or site services. */
+/** 验证实际设置入参、DTO 和状态转换，仓库缓存与站点服务另行验证。 */
 public class ApiV3SettingsTest {
     public static void main(final String[] args) throws Exception {
         Assert.assertEquals(ApiV3Settings.normalize("privacy", new JSONObject().put("articles", false)).getInt("userArticleStatus"), 1);
@@ -161,7 +161,7 @@ public class ApiV3SettingsTest {
             f.begin();UserSettingsMutation.apply(f,"owner","personality",new JSONObject().put("mbti",""),true,1001);f.commit();Assert.assertEquals(f.row("owner").getString("mbti"),"");
         }
         System.out.println("PASS MBTI 48 choices, clearing, locale-independent normalization, strict invalid-value rejection and current-transaction field isolation");
-        // The API/storage map must track actual model keys even though model initialization needs a running site.
+        // 模型初始化依赖运行中的站点，此处直接验证接口与存储的字段映射对应实际模型键。
         final String model = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/org/b3log/symphony/model/UserExt.java"));
         for (final String group : List.of("profile", "privacy", "display", "functions", "location", "locale", "avatar")) for (final String field : ApiV3Settings.fields(group).values()) {
             if (!field.equals("userURL")) Assert.assertTrue(model.contains("= \"" + field + "\";"), field);

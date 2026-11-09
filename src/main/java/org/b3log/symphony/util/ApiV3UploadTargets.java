@@ -21,7 +21,7 @@ package org.b3log.symphony.util;
 import java.net.URI;
 import java.util.Set;
 
-/** Only the configured public upload base is returned; internal URLs are never used. */
+/** 只返回配置的公开上传基址，不使用内部地址。 */
 public final class ApiV3UploadTargets {
     private ApiV3UploadTargets() { }
     public static String endpoint(final String base) {

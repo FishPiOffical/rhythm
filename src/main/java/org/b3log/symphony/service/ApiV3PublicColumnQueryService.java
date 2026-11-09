@@ -45,7 +45,7 @@ import org.jsoup.safety.Safelist;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Public columns are a projection of currently discoverable, signed long articles, never stored raw counts. */
+/** 公开专栏按当前可发现的署名长文投影，统计使用当前查询结果。 */
 @Service
 public class ApiV3PublicColumnQueryService {
     @Inject private LongArticleColumnRepository columns;
@@ -110,7 +110,7 @@ public class ApiV3PublicColumnQueryService {
             return ApiV3Requests.pagination(chapterList(selection, true, false, p, size), p, size, total);
         } catch (final RepositoryException error) { throw unavailable(); }
     }
-    /** Bounded article navigation; the directory remains a separate paginated resource. */
+    /** 有界查询文章导航，目录由独立分页资源提供。 */
     public JSONObject articleContext(final JSONObject viewer, final String articleId) {
         if (articleId == null || !articleId.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
         try {

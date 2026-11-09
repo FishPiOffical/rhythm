@@ -40,33 +40,59 @@ public class ApiV3MfaService {
     @Inject private ApiV3RequestRepository requests;
     @Inject private UserRepository users;
     private static final long TTL=10*60*1000L;
-    protected long now(){return System.currentTimeMillis();}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     public JSONObject prepare(JSONObject identity,JSONObject body,String ip) {
-        final var input=ApiV3MfaInputs.parse(body,false);proofs.checkAttempts(identity,ip);
+        final var input = ApiV3MfaInputs.parse(body, false);
+        proofs.checkAttempts(identity, ip);
         Transaction root=null;
         try {
             if(preparations.hasTransactionBegun())throw new IllegalStateException("MFA preparation owns root");
             root=ApiV3Transactions.strict(preparations.beginTransaction());
             final JSONObject result=prepareInCurrentTransaction(identity,input);
-            root.commit();return result;
-        }catch(ApiV3Exception error){rollback(root);throw error;}catch(Exception error){rollback(root);throw unavailable();}
+            root.commit();
+            return result;
+        } catch (ApiV3Exception error) {
+            rollback(root);
+            throw error;
+        } catch (Exception error) {
+            rollback(root);
+            throw unavailable();
+        }
     }
-    public JSONObject enable(JSONObject identity,JSONObject body,String key,String ip){return mutate(identity,ApiV3MfaInputs.parse(body,true),key,ip,true);}
-    public JSONObject disable(JSONObject identity,JSONObject body,String key,String ip){return mutate(identity,ApiV3MfaInputs.parse(body,false),key,ip,false);}
+
+    public JSONObject enable(JSONObject identity, JSONObject body, String key, String ip) {
+        return mutate(identity, ApiV3MfaInputs.parse(body, true), key, ip, true);
+    }
+
+    public JSONObject disable(JSONObject identity, JSONObject body, String key, String ip) {
+        return mutate(identity, ApiV3MfaInputs.parse(body, false), key, ip, false);
+    }
     private JSONObject mutate(JSONObject identity,ApiV3MfaInputs.Proof input,String key,String ip,boolean enable) {
         proofs.checkAttempts(identity,ip);
         final String cacheActor=actor(identity);
         try {
             final JSONObject[] current={null};
-            final ApiV3MutationStore store=new ApiV3MutationStore(){
-                public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
+            final ApiV3MutationStore store = new ApiV3MutationStore() {
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
                 public JSONObject getForUpdate(String receipt)throws RepositoryException{
                     current[0]=proofs.requireInCurrentTransaction(identity,input.currentPassword(),input.currentTotp());
                     return requests.getForUpdate(receipt);
                 }
-                public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                public void update(String id,JSONObject row,String...fields)throws RepositoryException{requests.update(id,row,fields);}
+                public String add(JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                    requests.update(id, row, fields);
+                }
             };
             final String actor=actor(identity);
             final JSONObject normalized=enable?new JSONObject().put("preparationHash",ApiV3TokenUtil.hash(input.preparationId())):new JSONObject();
@@ -74,8 +100,17 @@ public class ApiV3MfaService {
                     ()->changeInCurrentTransaction(current[0],input,enable));
             if(!(result.opt("enabled") instanceof Boolean))throw unavailable();
             return new JSONObject().put("enabled",result.getBoolean("enabled"));
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally{if(!requests.hasTransactionBegun())try{users.evictSettingsCaches(cacheActor);}catch(RuntimeException ignored){}}
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            if (!requests.hasTransactionBegun())
+                try {
+                    users.evictSettingsCaches(cacheActor);
+                } catch (RuntimeException ignored) {
+                }
+        }
     }
     public JSONObject prepareInCurrentTransaction(JSONObject identity,ApiV3MfaInputs.Proof input)throws Exception {
         if(!preparations.hasTransactionBegun())throw new IllegalStateException("MFA preparation root required");
@@ -86,7 +121,10 @@ public class ApiV3MfaService {
             final var rows=preparations.select("SELECT oId,userId FROM `"+preparations.getName()+"` WHERE oId=? FOR UPDATE",actor);
             if(rows.size()>1||!rows.isEmpty()&&!actor.equals(rows.getFirst().optString("userId")))throw unavailable();
             final String handle=ApiV3TokenUtil.generate(),secret=ApiV3MfaSecrets.generate();
-            final long time=now();if(time<=0)throw unavailable();final long expiry=Math.addExact(time,TTL);
+            final long time = now();
+            if (time <= 0)
+                throw unavailable();
+            final long expiry = Math.addExact(time, TTL);
             final String hash=ApiV3TokenUtil.hash(handle),binding=binding(current);
             final int changed;
             if(rows.isEmpty())changed=ApiV3TransactionStatements.execute("INSERT INTO `"+preparations.getName()+"` (oId,userId,preparationHash,secret,proofBinding,state,createdAt,expiresAt) VALUES(?,?,?,?,?,0,?,?)",actor,actor,hash,secret,binding,time,expiry);
@@ -98,17 +136,23 @@ public class ApiV3MfaService {
     private JSONObject changeInCurrentTransaction(JSONObject current,ApiV3MfaInputs.Proof input,boolean enable)throws Exception {
         if(!requests.hasTransactionBegun()||current==null)throw new IllegalStateException("MFA authenticated root required");
         return ApiV3TransactionSavepoint.run(()->{
-            final String actor=current.getString("oId");final String next;
+            final String actor = current.getString("oId");
+            final String next;
             if(enable) {
                 if(!secret(current).isEmpty())throw new ApiV3Exception(409,"mfa_already_enabled","已启用MFA，请先停用后重新绑定");
                 final var rows=preparations.select("SELECT oId,userId,preparationHash,secret,proofBinding,state,createdAt,expiresAt FROM `"+preparations.getName()+"` WHERE oId=? FOR UPDATE",actor);
-                if(rows.size()!=1)throw expired();final var row=rows.getFirst();
+                if (rows.size() != 1)
+                    throw expired();
+                final var row = rows.getFirst();
                 if(!actor.equals(row.optString("oId"))||!actor.equals(row.optString("userId"))||number(row,"state")!=0
                         ||number(row,"createdAt")<=0||number(row,"createdAt")>now()||number(row,"expiresAt")<=now()
                         ||number(row,"expiresAt")-number(row,"createdAt")!=TTL
                         ||!equal(row.optString("preparationHash"),ApiV3TokenUtil.hash(input.preparationId()))||!equal(row.optString("proofBinding"),binding(current)))throw expired();
-                if(!(row.opt("secret") instanceof String value)||!value.matches("[A-Z2-7]{32}"))throw unavailable();next=value;
+                if (!(row.opt("secret") instanceof String value) || !value.matches("[A-Z2-7]{32}"))
+                    throw unavailable();
+                next = value;
                 if(!ApiV3MfaSecrets.check(next,input.newTotp(),now()))throw new ApiV3Exception(422,"invalid_mfa_code","新的MFA验证码无效");
+                // 同一事务内消费准备记录并清掉其中的密钥，再更新账号和撤销原凭据。
                 if(ApiV3TransactionStatements.execute("UPDATE `"+preparations.getName()+"` SET state=1,secret='',proofBinding='' WHERE oId=? AND userId=? AND state=0",actor,actor)!=1)throw unavailable();
             }else {
                 next="";

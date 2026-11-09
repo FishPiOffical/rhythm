@@ -22,7 +22,7 @@ import org.b3log.symphony.model.Article;
 import org.json.JSONObject;
 import org.testng.Assert;
 
-/** Exercises the actual policy normalizer and mutation guard, not HTTP or idempotency storage. */
+/** 执行实际策略归一化和写入校验，HTTP 与幂等存储另行验证。 */
 public final class ApiV3ArticlePolicyTest {
     public static void main(final String[] args) {
         for (Object input : new Object[]{true, 1, 1L}) {

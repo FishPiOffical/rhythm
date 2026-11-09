@@ -56,7 +56,7 @@ public class ApiV3AccountProcessor {
     @Inject
     private AccountRegistrationRequestService registrationRequests;
 
-    public static void register(){
+    public static void register() {
         ApiV3OAuthTransportLogFilter.requireInstalled();
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3AccountProcessor.class);

@@ -31,10 +31,10 @@ import java.lang.reflect.*;
 import java.nio.file.*;
 import java.sql.*;
 
-/** Actual bundled JdbcTransaction and coordinator, with SQLite commit fault injection; no application DB. */
+/** 对隔离 SQLite 注入提交故障，执行随包发布的 JdbcTransaction 和事务协调器。 */
 public class ApiV3CommitFailureTest {
     enum Fault { NONE, BEFORE_COMMIT, AFTER_COMMIT }
-    /** Skip only the pool-opening constructor; commit/rollback/dispose are real bundled methods. */
+    /** 仅跳过打开连接池的构造函数，提交、回滚和释放使用随包发布的方法。 */
     static JdbcTransaction transaction(Connection connection)throws Exception {
         var access=Unsafe.class.getDeclaredField("theUnsafe");access.setAccessible(true);
         var tx=(JdbcTransaction)((Unsafe)access.get(null)).allocateInstance(JdbcTransaction.class);

@@ -38,7 +38,7 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Independent column updates preserve primary selection and privacy across the other v3 setters. */
+/** 使用独立列更新，保留其他 API v3 入口设置的主职业和隐私字段。 */
 @Service
 public class ApiV3ProfessionSettingsService {
     @Inject private UserRepository users;
@@ -54,7 +54,7 @@ public class ApiV3ProfessionSettingsService {
     private JSONObject execute(final String actor, final boolean skip, final JSONObject normalized, final String key) {
         id(actor);
         try {
-            // Every attempt and replay locks the current account before its receipt.
+            // 每次写入和重放均先锁定当前账号，再锁定回执。
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
                 public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
                 public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }

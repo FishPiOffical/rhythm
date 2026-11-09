@@ -40,7 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/** Production routes, scope/admin checks, registry, idempotency and strict JDBC roots on isolated SQLite. */
+/** 在隔离 SQLite 上覆盖生产路由、权限范围、管理员校验、注册表、幂等及严格 JDBC 根事务。 */
 public final class ApiV3ClientManagementTest {
     static final String BASE="/api/v3/admin/oauth/clients", URI="https://App.example:8443/Callback?mode=exact%2Bvalue";
     interface Work { void run() throws Exception; }
@@ -101,7 +101,7 @@ public final class ApiV3ClientManagementTest {
             inject(auth,ApiV3AuthMidware.class,"apiV3TokenMgmtService",new ApiV3TokenMgmtService(){
                 @Override public JSONObject authenticate(String token){return Set.of("11","12","13","14").contains(token)?identity(token):null;}
             });
-            // Each fixture isolates the shared rate-budget state; the actual gate still runs on its POST routes.
+            // 夹具之间隔离共享请求预算，POST 路由仍执行实际限流。
             var counter=ApiV3WriteMidware.class.getDeclaredField("COUNTS");counter.setAccessible(true);
             ((com.github.benmanes.caffeine.cache.Cache<?,?>)counter.get(null)).invalidateAll();
             ApiV3ClientManagementProcessor.registerRoutes(processor,auth,new ApiV3WriteMidware());Dispatcher.mapping();

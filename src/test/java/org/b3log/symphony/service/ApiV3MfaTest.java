@@ -34,7 +34,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.nio.charset.StandardCharsets;
 
-/** Real security proof/revocation, prepare storage, receipts and MFA routes; no stubbed business core. */
+/** 执行实际身份验证、凭据撤销、MFA 准备状态持久化、回执和路由。 */
 public class ApiV3MfaTest extends ApiV3SecurityTest {
  static String code(String secret,long time)throws Exception{var m=MultiFactorAuthenticator.class.getDeclaredMethod("verifyCode",byte[].class,long.class);m.setAccessible(true);return String.format(Locale.ROOT,"%06d",((Number)m.invoke(null,new org.apache.commons.codec.binary.Base32().decode(secret),time/30000)).intValue());}
  static JSONObject proofBody(){return new JSONObject().put("currentPassword",OLD);}

@@ -29,7 +29,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.*;
 
-/** Small SVG image vocabulary. No HTML, script, CSS rules, external resources or navigation. */
+/** 仅允许有限的 SVG 图形元素和属性，拒绝 HTML、脚本、CSS 规则、外部资源和导航。 */
 public final class ApiV3MedalSvg {
     public static final int MAX_BYTES=512*1024;
     private static final String NS="http://www.w3.org/2000/svg";
@@ -41,45 +41,99 @@ public final class ApiV3MedalSvg {
     public static byte[] clean(byte[] raw) {
         if(raw==null||raw.length==0||raw.length>MAX_BYTES)throw bad();
         try {
-            var factory=DocumentBuilderFactory.newInstance();factory.setNamespaceAware(true);
+            var factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl",true);
             factory.setFeature("http://xml.org/sax/features/external-general-entities",false);
             factory.setFeature("http://xml.org/sax/features/external-parameter-entities",false);
-            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD,"");factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA,"");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
             factory.setAttribute("http://www.oracle.com/xml/jaxp/properties/maxElementDepth","64");
-            factory.setXIncludeAware(false);factory.setExpandEntityReferences(false);
-            var builder=factory.newDocumentBuilder();builder.setErrorHandler(new org.xml.sax.helpers.DefaultHandler());
-            var doc=builder.parse(new ByteArrayInputStream(raw));var root=doc.getDocumentElement();
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+            var builder = factory.newDocumentBuilder();
+            builder.setErrorHandler(new org.xml.sax.helpers.DefaultHandler());
+            var doc = builder.parse(new ByteArrayInputStream(raw));
+            var root = doc.getDocumentElement();
             if(!NS.equals(root.getNamespaceURI())||!"svg".equals(root.getLocalName()))throw bad();
-            // Drop processing instructions and comments outside the root as well.
-            for(Node n=doc.getFirstChild();n!=null;){Node next=n.getNextSibling();if(n!=root)doc.removeChild(n);n=next;}
-            int[] count={0};cleanElement(root,0,count);
+            // 根元素之外的处理指令和注释也一并丢弃。
+            for (Node n = doc.getFirstChild(); n != null;) {
+                Node next = n.getNextSibling();
+                if (n != root)
+                    doc.removeChild(n);
+                n = next;
+            }
+            int[] count = {0};
+            cleanElement(root, 0, count);
             root.setAttribute("xmlns",NS);
-            var tf=TransformerFactory.newInstance();tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD,"");tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET,"");
-            var transformer=tf.newTransformer();transformer.setOutputProperty("omit-xml-declaration","yes");
-            var output=new ByteArrayOutputStream();transformer.transform(new DOMSource(doc),new StreamResult(output));
-            if(output.size()>MAX_BYTES)throw bad();return output.toByteArray();
-        }catch(ApiV3Exception error){throw error;}catch(Exception error){throw bad();}
+            var tf = TransformerFactory.newInstance();
+            tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            tf.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+            var transformer = tf.newTransformer();
+            transformer.setOutputProperty("omit-xml-declaration", "yes");
+            var output = new ByteArrayOutputStream();
+            transformer.transform(new DOMSource(doc), new StreamResult(output));
+            if (output.size() > MAX_BYTES)
+                throw bad();
+            return output.toByteArray();
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw bad();
+        }
     }
     private static void cleanElement(Element e,int depth,int[] count){
         if(depth>32||++count[0]>2000)throw bad();
         final boolean animated=e.getLocalName().startsWith("animate");
-        if(animated&&!ANIMATED.contains(e.getAttribute("attributeName"))){e.getParentNode().removeChild(e);return;}
+        if (animated && !ANIMATED.contains(e.getAttribute("attributeName"))) {
+            e.getParentNode().removeChild(e);
+            return;
+        }
         var attrs=e.getAttributes();
-        for(int i=attrs.getLength()-1;i>=0;i--){var a=(Attr)attrs.item(i);String key=a.getName(),value=a.getValue();boolean allowed;
-            if("style".equals(key)&&!animated){
-                StringBuilder style=new StringBuilder();for(String declaration:value.split(";")){String[] parts=declaration.split(":",2);if(parts.length==2&&ATTRS.contains(parts[0].trim())&&safeValue(parts[0].trim(),parts[1].trim()))style.append(parts[0].trim()).append(':').append(parts[1].trim()).append(';');}
-                if(style.length()>0)a.setValue(style.toString());else e.removeAttributeNode(a);continue;
+        for (int i = attrs.getLength() - 1; i >= 0; i--) {
+            var a = (Attr) attrs.item(i);
+            String key = a.getName(), value = a.getValue();
+            boolean allowed;
+            if ("style".equals(key) && !animated) {
+                // 行内样式逐项校验，只保留允许的属性和值。
+                StringBuilder style = new StringBuilder();
+                for (String declaration : value.split(";")) {
+                    String[] parts = declaration.split(":", 2);
+                    if (parts.length == 2 && ATTRS.contains(parts[0].trim()) && safeValue(parts[0].trim(), parts[1].trim()))
+                        style.append(parts[0].trim()).append(':').append(parts[1].trim()).append(';');
+                }
+                if (style.length() > 0)
+                    a.setValue(style.toString());
+                else
+                    e.removeAttributeNode(a);
+                continue;
             }
             if("href".equals(key)||"xlink:href".equals(key))allowed="image".equals(e.getLocalName())&&dataImage(value);
             else allowed=a.getNamespaceURI()==null&&(animated?ANIMATION.contains(key):ATTRS.contains(key))&&safeValue(key,value);
             if(!allowed)e.removeAttributeNode(a);
         }
-        for(Node n=e.getFirstChild();n!=null;){Node next=n.getNextSibling();if(n instanceof Element child){if(NS.equals(child.getNamespaceURI())&&ELEMENTS.contains(child.getLocalName()))cleanElement(child,depth+1,count);else e.removeChild(n);}else if(n.getNodeType()!=Node.TEXT_NODE)e.removeChild(n);n=next;}
+        for (Node n = e.getFirstChild(); n != null;) {
+            Node next = n.getNextSibling();
+            if (n instanceof Element child) {
+                if (NS.equals(child.getNamespaceURI()) && ELEMENTS.contains(child.getLocalName()))
+                    cleanElement(child, depth + 1, count);
+                else
+                    e.removeChild(n);
+            } else if (n.getNodeType() != Node.TEXT_NODE)
+                e.removeChild(n);
+            n = next;
+        }
     }
     private static boolean dataImage(String value){
         if(value.length()>350000||!value.matches("data:image/(png|jpeg|gif);base64,[A-Za-z0-9+/]+={0,2}"))return false;
-        try{byte[] b=Base64.getDecoder().decode(value.substring(value.indexOf(',')+1));return b.length>=8&&((b[0]&255)==137&&b[1]==80&&b[2]==78&&b[3]==71||(b[0]&255)==255&&(b[1]&255)==216&&(b[2]&255)==255||b[0]==71&&b[1]==73&&b[2]==70);}catch(IllegalArgumentException e){return false;}
+        try {
+            byte[] b = Base64.getDecoder().decode(value.substring(value.indexOf(',') + 1));
+            return b.length >= 8 && ((b[0] & 255) == 137 && b[1] == 80 && b[2] == 78 && b[3] == 71
+                    || (b[0] & 255) == 255 && (b[1] & 255) == 216 && (b[2] & 255) == 255
+                    || b[0] == 71 && b[1] == 73 && b[2] == 70);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
     private static boolean safeValue(String key,String value){
         if(value.length()>16384||value.codePoints().anyMatch(Character::isISOControl)||value.indexOf('\\')>=0||value.indexOf('<')>=0||value.indexOf('>')>=0)return false;

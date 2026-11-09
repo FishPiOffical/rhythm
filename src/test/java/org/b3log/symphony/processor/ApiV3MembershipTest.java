@@ -33,7 +33,7 @@ import io.netty.handler.codec.http.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real routes, controller, scope middleware, DTO and owner SQL on isolated SQLite. */
+/** 在隔离 SQLite 上执行实际路由、控制器、权限范围中间件、DTO 和本人数据查询。 */
 public final class ApiV3MembershipTest {
     static final String ME = "/api/v3/me/membership", LEVELS = "/api/v3/membership/levels";
     static final class Fixture implements AutoCloseable {

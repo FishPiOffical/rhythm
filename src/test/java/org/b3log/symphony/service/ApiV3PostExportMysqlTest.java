@@ -29,7 +29,7 @@ import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 
-/** Real MySQL production export primitives; ancillary schema/repository/cache adapters inherited explicitly. */
+/** 在真实 MySQL 上执行生产导出操作，继承辅助表、仓库和缓存的测试适配器。 */
 public class ApiV3PostExportMysqlTest extends ApiV3PostExportTest {
  static class Mysql extends F {
   boolean hold,readCommitted,snapshotObserved,regularObserved;String release;

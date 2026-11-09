@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** Full registered metadata replacement; authorization changes invalidate every earlier grant/proof atomically. */
+/** 完整替换登记元数据。授权变化时在同一个事务中撤销原有授权和凭据。 */
 @Service
 public class ApiV3ClientUpdateService {
     @Inject private ApiV3ClientManagementService management;
@@ -71,7 +71,7 @@ public class ApiV3ClientUpdateService {
         try {
             final var shape = ApiV3ClientManagementInputs.registration(input.normalized());
             final var definition = registration.normalizeDefinition(shape.name(), shape.scope(), shape.redirectUris());
-            // Callback ordering and repeated/reordered scope words never create a different effective request.
+            // 回调顺序以及 scope 的重复或重排不改变有效请求内容。
             final List<String> callbacks = List.copyOf(new TreeSet<>(definition.redirectUris()));
             final JSONObject normalized = new JSONObject().put("clientId", clientId).put("name", definition.name())
                     .put("scope", definition.scope()).put("redirectUris", new JSONArray(callbacks));
@@ -92,7 +92,7 @@ public class ApiV3ClientUpdateService {
         catch (final Exception e) { throw unavailable(); }
     }
 
-    /** Only called under the root's sorted client namespace/current admin/user/token/request locks. */
+    /** 仅在根事务按固定顺序锁定客户端命名空间和当前管理身份、用户、令牌、请求后调用。 */
     private JSONObject updateInCurrentTransaction(final String clientId,
                                                  final ApiV3ClientRegistrationService.Definition desired,
                                                  final List<String> callbacks) throws Exception {
@@ -103,9 +103,9 @@ public class ApiV3ClientUpdateService {
             if (rows.isEmpty() || !clientId.equals(rows.getFirst().optString("clientId"))) throw ApiV3Requests.notFound();
             if (rows.size() != 1) throw unavailable();
             final JSONObject current = rows.getFirst();
-            ApiV3ClientManagementDto.client(current); // Fail closed on malformed stored metadata/status.
-            // Existing internal registration predates the HTTP cap. Twenty-one unique active URIs already
-            // prove a <=20 replacement differs; no unbounded read or truncated comparison is needed.
+            ApiV3ClientManagementDto.client(current); // 已存元数据或状态格式异常时拒绝更新。
+            // 历史内部登记早于 HTTP 上限。读到 21 条不同的有效回调地址即能确认
+            // 它和最多 20 条的新设置不同，无须读取全部历史记录。
             final var active = redirects.select("SELECT oId,clientId,redirectUri,status FROM `" + redirects.getName()
                     + "` WHERE clientId=? AND status=? ORDER BY oId ASC LIMIT 21 FOR UPDATE", clientId, ApiV3ClientRedirect.ACTIVE);
             final Set<String> previousUris = new TreeSet<>();
@@ -124,7 +124,7 @@ public class ApiV3ClientUpdateService {
                         + "` SET name=?,scope=? WHERE oId=? AND clientId=?", desired.name(), desired.scope(), current.getString("oId"), clientId);
                 if (count != 1) throw unavailable();
             }
-            // Replace the complete callback definition, including removing any retired callback rows.
+            // 完整替换回调定义，并删除已停用的回调记录。
             ApiV3TransactionStatements.execute("DELETE FROM `" + redirects.getName() + "` WHERE clientId=?", clientId);
             for (final String uri : callbacks) {
                 final int added = ApiV3TransactionStatements.execute("INSERT INTO `" + redirects.getName()
@@ -138,9 +138,9 @@ public class ApiV3ClientUpdateService {
                         + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                         ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);
                 if (revoked < 0) throw unavailable();
-                // Remove all old codes, used or unused. Do not manufacture a consumedAt/family binding.
+                // 清除所有历史授权码，保留消费时间与令牌家族绑定的原有含义。
                 ApiV3TransactionStatements.execute("DELETE FROM `" + codes.getName() + "` WHERE clientId=?", clientId);
-                // A management revocation is not a user's denied consent. Completed decision history remains.
+                // 管理撤销与用户拒绝授权是独立事件，已完成的决策历史保留原样。
                 ApiV3TransactionStatements.execute("DELETE FROM `" + consents.getName() + "` WHERE clientId=? AND decision=?",
                         clientId, ApiV3AuthorizationRequest.PENDING);
             }

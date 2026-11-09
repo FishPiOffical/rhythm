@@ -32,7 +32,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3MedalOrderProcessor {
-    @Inject private ApiV3MedalOrderService management;
+    @Inject
+    private ApiV3MedalOrderService management;
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3MedalOrderProcessor p = beans.getReference(ApiV3MedalOrderProcessor.class);

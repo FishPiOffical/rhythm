@@ -36,7 +36,8 @@ import java.util.Set;
 
 @Singleton
 public class ApiV3DraftProcessor {
-    @Inject private ApiV3DraftMgmtService drafts;
+    @Inject
+    private ApiV3DraftMgmtService drafts;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
@@ -64,5 +65,7 @@ public class ApiV3DraftProcessor {
             return drafts.remove(userId(context), ApiV3Requests.id(context, "draftId"), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
-    private static String userId(final RequestContext context) { return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID); }
+    private static String userId(final RequestContext context) {
+        return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID);
+    }
 }

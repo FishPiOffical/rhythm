@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Set;
 
-/** Only validates the documented legacy OpenID login URL; never proves site ownership or fetches a URL. */
+/** 仅校验约定的 OpenID 登录 URL，不请求该地址或验证站点归属。 */
 public final class ApiV3FishGameSubmissionInputs {
     private ApiV3FishGameSubmissionInputs() { }
     private static final String NS="http://specs.openid.net/auth/2.0";
@@ -53,7 +53,9 @@ public final class ApiV3FishGameSubmissionInputs {
             if(!"https://fishpi.cn/openid/login".equals(endpoint)&&!endpoint.equals(developmentProvider))throw ApiV3WriteInputs.invalid();
             var params=new HashMap<String,String>();
             for(String pair:provider.getRawQuery().split("&",-1)) {
-                int at=pair.indexOf('=');if(at<=0)throw ApiV3WriteInputs.invalid();
+                int at = pair.indexOf('=');
+                if (at <= 0)
+                    throw ApiV3WriteInputs.invalid();
                 String key=decode(pair.substring(0,at)),value=decode(pair.substring(at+1));
                 if(!QUERY.contains(key)||params.putIfAbsent(key,value)!=null||value.codePoints().anyMatch(Character::isISOControl))throw ApiV3WriteInputs.invalid();
             }
@@ -66,15 +68,21 @@ public final class ApiV3FishGameSubmissionInputs {
             String scope=params.getOrDefault("fishpi.scope","profile.read");
             if(scope.isBlank())scope="profile.read";
             var granted=new java.util.HashSet<String>();
-            for(String item:scope.trim().split("[ ,]+")) {if(!SCOPES.contains(item))throw ApiV3WriteInputs.invalid();granted.add(item);}
+            for (String item : scope.trim().split("[ ,]+")) {
+                if (!SCOPES.contains(item))
+                    throw ApiV3WriteInputs.invalid();
+                granted.add(item);
+            }
             if(granted.isEmpty())throw ApiV3WriteInputs.invalid();
-            // Preserve the supplied encoded URL for administrator review; no decoding/rebuilding of state or target URLs.
+            // 保留提交时的编码供管理员审核，不解码重建 state 或目标地址。
             return new Submission(name,description,url,icon,login);
         }catch(ApiV3Exception e){throw e;}catch(Exception e){throw ApiV3WriteInputs.invalid();}
     }
     private static String text(JSONObject body,String key,int max) {
         String value=Jsoup.clean(ApiV3WriteInputs.string(body,key,16384,true),Safelist.none()).trim();
-        if(value.isEmpty()||value.length()>max)throw ApiV3WriteInputs.invalid();return value;
+        if (value.isEmpty() || value.length() > max)
+            throw ApiV3WriteInputs.invalid();
+        return value;
     }
     private static void rejectCredentials(URI uri) {
         if(uri.getRawQuery()==null)return;

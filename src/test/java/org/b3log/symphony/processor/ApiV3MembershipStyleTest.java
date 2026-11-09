@@ -29,7 +29,7 @@ import io.netty.handler.codec.http.*;
 import java.util.*;
 import static org.b3log.symphony.processor.ApiV3MembershipTest.*;
 
-/** Production SQL, route/auth and style projection; only JDBC dialect and token/envelope dependencies adapted. */
+/** 执行生产 SQL、路由、鉴权与样式投影，仅适配 JDBC 方言、令牌及响应封装。 */
 public final class ApiV3MembershipStyleTest {
     static final String PATH="/api/v3/membership/styles";
     static final class F implements AutoCloseable {

@@ -36,7 +36,7 @@ public class ApiV3RevisionProcessor {
         registerRoutes(b.getReference(ApiV3RevisionProcessor.class), b.getReference(ApiV3AuthMidware.class));
     }
 
-    public static void registerRoutes(final ApiV3RevisionProcessor p,final ApiV3AuthMidware auth){
+    public static void registerRoutes(final ApiV3RevisionProcessor p, final ApiV3AuthMidware auth) {
         Dispatcher.get("/api/v3/articles/{articleId}/revisions",p::articles,auth::contentRead);
         Dispatcher.get("/api/v3/articles/{articleId}/revisions/{revisionId}",p::article,auth::contentRead);
         Dispatcher.get("/api/v3/comments/{commentId}/revisions",p::comments,auth::contentRead);

@@ -40,13 +40,19 @@ public class ApiV3FishGameMgmtService {
                 final JSONObject result = management.setVoteInCurrentTransaction(actor, id, value, () -> quota(actor, FishGameWriteQuota.Kind.VOTE));
                 return new JSONObject().put("upCount", result.optLong(FishGame.LIKE_COUNT)).put("downCount", result.optLong(FishGame.DISLIKE_COUNT))
                         .put("userVote", result.optString("fishGameUserVote")).put("changed", result.optBoolean("changed"));
-            } catch (final ServiceException e) { throw translate(e); }
+            } catch (final ServiceException e) {
+                throw translate(e);
+            }
         });
     }
     public JSONObject comment(final String actor, final String id, final String content, final String key) throws Exception {
         return idempotency.execute(actor, "fish-games.comment:" + id, key, new JSONObject().put("content", content), () -> {
-            try { return community.gameCommentDto(management.addCommentInCurrentTransaction(actor, id, content, () -> quota(actor, FishGameWriteQuota.Kind.COMMENT))); }
-            catch (final ServiceException e) { throw translate(e); }
+            try {
+                return community.gameCommentDto(management.addCommentInCurrentTransaction(actor, id, content,
+                        () -> quota(actor, FishGameWriteQuota.Kind.COMMENT)));
+            } catch (final ServiceException e) {
+                throw translate(e);
+            }
         });
     }
     private static ApiV3Exception translate(final ServiceException error) {

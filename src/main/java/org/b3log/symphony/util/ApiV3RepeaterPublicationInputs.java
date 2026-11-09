@@ -25,7 +25,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import java.util.Set;
 
-/** Keeps the existing repeater text normalization and checks typed, bounded input. */
+/** 沿用复读内容规范化规则，并校验输入类型及大小。 */
 public final class ApiV3RepeaterPublicationInputs {
     private ApiV3RepeaterPublicationInputs() { }
     public static JSONObject normalize(final JSONObject body) {

@@ -35,7 +35,7 @@ import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.util.*;
 import io.netty.handler.codec.http.*;
 
-/** Real MySQL SQL/claims/strict roots/savepoints; minimal current-user/article adapters, no live application DB. */
+/** 在隔离 MySQL 上覆盖实际 SQL、阅读登记、严格根事务和保存点，当前用户及文章来源由夹具适配。 */
 public class ApiV3ArticleReadMysqlTest {
  static final long W=21600000L,T=1793318400000L;
  static void ok(boolean v){if(!v)throw new AssertionError();}

@@ -40,11 +40,12 @@ public class ApiV3AppLoginProcessor {
 
     public static void register() {
         ApiV3OAuthTransportLogFilter.requireInstalled();
-        final var beans=BeanManager.getInstance();
-        registerRoutes(beans.getReference(ApiV3AppLoginProcessor.class),beans.getReference(ApiV3AuthMidware.class),
-                beans.getReference(ApiV3WriteMidware.class),beans.getReference(AnonymousViewCheckMidware.class));
+        final var beans = BeanManager.getInstance();
+        registerRoutes(beans.getReference(ApiV3AppLoginProcessor.class), beans.getReference(ApiV3AuthMidware.class),
+                beans.getReference(ApiV3WriteMidware.class), beans.getReference(AnonymousViewCheckMidware.class));
     }
-    public static void registerRoutes(ApiV3AppLoginProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes,AnonymousViewCheckMidware anonymous) {
+    public static void registerRoutes(ApiV3AppLoginProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes,
+                                      AnonymousViewCheckMidware anonymous) {
         Dispatcher.post("/api/v3/auth/app-login/requests",p::create,p::privacy,auth::settingsWrite,writes::handle);
         Dispatcher.post("/api/v3/auth/app-login/status",p::webStatus,p::privacy,auth::profileRead,writes::handle);
         Dispatcher.post("/api/v3/auth/app-login/decision",p::webDecision,p::privacy,auth::settingsWrite,writes::handle);

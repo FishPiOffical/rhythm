@@ -30,7 +30,7 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import java.math.BigDecimal;
 
-/** Full URL identity and owner-bound members; all/default mirrors and receipts share one strict root. */
+/** 按完整 URL 标识本人表情，全部分组镜像和回执在同一个严格事务中提交。 */
 @Service
 public class ApiV3EmojiItemService {
     @Inject private UserRepository users;
@@ -68,7 +68,7 @@ public class ApiV3EmojiItemService {
             return result(stored,operation.equals("remove"));
         }catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
     }
-    /** Namespace must precede owner locks, including callers composing this primitive. */
+    /** 命名空间锁须先于账号锁，组合调用也须遵循这一顺序。 */
     public JSONObject addInCurrentTransaction(final String actor,final String group,final JSONObject body,final boolean allOnly)throws Exception {
         if(!allOnly)id(group);
         return applyInCurrentTransaction(actor,allOnly?"":group,"",allOnly?"upload":"add",ApiV3EmojiItemInputs.addition(body,allOnly));
@@ -121,7 +121,7 @@ public class ApiV3EmojiItemService {
         });
     }
     private JSONObject findOrCreateEmoji(final String url,final String actor)throws Exception {
-        // BINARY is essential: signatures and paths are case-sensitive even under a CI database collation.
+        // 即使数据库排序规则忽略大小写，签名和路径也要用 BINARY 精确比较。
         final var rows=emojis.select("SELECT oId,emojiUrl,emojiStatus FROM `"+emojis.getName()+"` WHERE BINARY emojiUrl=BINARY ? LIMIT 2 FOR UPDATE",url);
         if(rows.size()>1)throw unavailable();
         if(!rows.isEmpty()){if(!url.equals(rows.getFirst().optString("emojiUrl")))throw unavailable();return checkedEmoji(rows.getFirst());}
@@ -144,7 +144,7 @@ public class ApiV3EmojiItemService {
         if(rows.size()>1)throw unavailable();
         if(!rows.isEmpty()) {
             final var row=rows.getFirst();
-            // Keep existing metadata, including legacy names; do not silently rename on a repeated add.
+            // 重复添加时沿用已有元数据，包括历史名称。
             if(!(row.opt("emojiGroupItemName") instanceof String name)||name.length()>4096)throw unavailable();
             return member(row.getString("oId"),group,emoji,name,integer(row,"emojiGroupItemSort"),url);
         }

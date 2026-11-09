@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-/** After IDEA rebuild/restart. Read-only by default.
- * API_V3_TOKEN: test account with profile.read/content.read/follows.write.
- * API_V3_ALLOW_RELATION_WRITES=1 enables writes ONLY for explicit disposable fixture IDs:
+/** 在 IDEA 重新编译或重启后运行，默认只读。
+ * API_V3_TOKEN 使用具有 profile.read/content.read/follows.write 的测试账号。
+ * API_V3_ALLOW_RELATION_WRITES=1 仅对以下显式指定的临时夹具 ID 启用写入：
  * API_V3_FOLLOW_USER_ID, API_V3_FOLLOW_TAG_ID, API_V3_COLLECT_ARTICLE_ID, API_V3_SUBSCRIBE_ARTICLE_ID.
- * Existing relations are skipped; only newly added test relations are cleaned up.
- * Role restrictions, private discussions, cache rollback and recipient notification counts require manual fixtures.
+ * 已存在的关系会跳过，仅清理本次新建的测试关系。
+ * 角色限制、私密讨论、缓存回滚和通知收件人数量需使用人工夹具验证。
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';

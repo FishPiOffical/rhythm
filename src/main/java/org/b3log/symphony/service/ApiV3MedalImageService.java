@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 
-/** Only the configured renderer is contacted. No HTTP caller-supplied render settings. */
+/** 只访问服务端配置的渲染器，渲染设置由服务端提供。 */
 @Service
 public class ApiV3MedalImageService {
     @Inject private ApiV3MedalImageQueryService query;
@@ -39,7 +39,7 @@ public class ApiV3MedalImageService {
         if(!RENDERS.tryAcquire())throw ApiV3MedalSvg.bad();
         try{
             byte[] svg=ApiV3MedalSvg.clean(render(parameters));
-            // No render cache is allowed to bypass a current grant, account or definition check.
+            // 读取渲染缓存之前，先核验当前授予记录、账号和勋章定义。
             if(!before.similar(query.definition(actor,name,medalId)))throw ApiV3MedalSvg.bad();
             return svg;
         }finally{RENDERS.release();}
@@ -70,7 +70,7 @@ public class ApiV3MedalImageService {
         for(String part:attr.split("&")){
             String[] pair=part.split("=",2);if(pair.length!=2||!allowed.contains(pair[0]))continue;
             String key=pair[0],value=pair[1];
-            // Stored attributes can contain an already encoded value; decode once, then encode once below.
+            // 保存的属性可能已经编码，先解码一次，再在下方统一编码一次。
             try{value=URLDecoder.decode(value.replace("+","%2B"),StandardCharsets.UTF_8);}catch(IllegalArgumentException e){throw ApiV3MedalSvg.bad();}
             if(value.length()>4096||value.codePoints().anyMatch(Character::isISOControl))throw ApiV3MedalSvg.bad();
             if(key.equals("url")&&!value.isEmpty()){

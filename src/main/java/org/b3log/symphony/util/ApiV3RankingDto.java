@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** Ranking protocol: only named scores, never arbitrary game-save or user fields. */
+/** 排行榜仅返回明确列出的分数和展示字段，省略任意存档及用户字段。 */
 public final class ApiV3RankingDto {
     public static final Set<String> TYPES = Set.of("links", "balance", "consumption", "checkin", "online", "adr", "mofish",
             "smallmofish", "lifeRestart", "evolve", "emoji", "xiaoice", "invite", "donate", "perfect");
@@ -61,18 +61,40 @@ public final class ApiV3RankingDto {
         final JSONObject metrics = new JSONObject();
         final String scoreField;
         switch (type) {
-            case "balance" -> { scoreField = "points"; metrics.put(scoreField, row.optLong("userPoint")); }
-            case "consumption" -> { scoreField = "points"; metrics.put(scoreField, row.optLong("userUsedPoint")); }
-            case "checkin" -> { scoreField = "streak"; metrics.put(scoreField, row.optLong("userCurrentCheckinStreak")); }
-            case "online" -> { scoreField = "minutes"; metrics.put(scoreField, row.optLong("onlineMinute")); }
-            case "invite" -> { scoreField = "count"; metrics.put(scoreField, row.optLong("c")); }
-            case "perfect" -> { scoreField = "count"; metrics.put(scoreField, row.optLong("count")); }
+            case "balance" -> {
+                scoreField = "points";
+                metrics.put(scoreField, row.optLong("userPoint"));
+            }
+            case "consumption" -> {
+                scoreField = "points";
+                metrics.put(scoreField, row.optLong("userUsedPoint"));
+            }
+            case "checkin" -> {
+                scoreField = "streak";
+                metrics.put(scoreField, row.optLong("userCurrentCheckinStreak"));
+            }
+            case "online" -> {
+                scoreField = "minutes";
+                metrics.put(scoreField, row.optLong("onlineMinute"));
+            }
+            case "invite" -> {
+                scoreField = "count";
+                metrics.put(scoreField, row.optLong("c"));
+            }
+            case "perfect" -> {
+                scoreField = "count";
+                metrics.put(scoreField, row.optLong("count"));
+            }
             case "donate" -> {
                 scoreField = "amount"; metrics.put(scoreField, decimal(row, "total")).put("count", row.optLong("totalCount"));
             }
-            case "links" -> { scoreField = "clickCount"; metrics.put(scoreField, row.optLong(Link.LINK_CLICK_CNT)); }
+            case "links" -> {
+                scoreField = "clickCount";
+                metrics.put(scoreField, row.optLong(Link.LINK_CLICK_CNT));
+            }
             case "lifeRestart" -> {
-                scoreField = "times"; final JSONObject data = row.optJSONObject("data");
+                scoreField = "times";
+                final JSONObject data = row.optJSONObject("data");
                 metrics.put(scoreField, null == data ? 0 : data.optLong("times")).put("achievement", row.optInt("achievement"));
             }
             case "evolve" -> {
@@ -84,11 +106,19 @@ public final class ApiV3RankingDto {
                 metrics.put("currentKnow", null == stats ? 0 : stats.optLong("know")).put("currentDays", null == stats ? 0 : stats.optLong("days"));
             }
             case "xiaoice" -> {
-                scoreField = switch (subType) { case "1" -> "dieTimes"; case "2" -> "allExTimes"; case "3" -> "allBsTimes"; default -> "exp"; };
+                scoreField = switch (subType) {
+                    case "1" -> "dieTimes";
+                    case "2" -> "allExTimes";
+                    case "3" -> "allBsTimes";
+                    default -> "exp";
+                };
                 metrics.put(scoreField, row.optLong(scoreField));
                 if ("0".equals(subType)) metrics.put("ancestry", row.optString("ancestry")).put("gongfa", row.optString("gongfa"));
             }
-            default -> { scoreField = "points"; metrics.put(scoreField, row.optLong("point")); }
+            default -> {
+                scoreField = "points";
+                metrics.put(scoreField, row.optLong("point"));
+            }
         }
         final JSONObject result = new JSONObject().put("rank", rank).put("score", metrics.get(scoreField)).put("metrics", metrics);
         if ("links".equals(type)) return result.put("link", new JSONObject().put("id", row.optString(Keys.OBJECT_ID))
