@@ -185,7 +185,9 @@ public final class Firewall {
 
     public static String unbanIp(final String ip) {
         BANNED.invalidate(ip);
-        return runIpset("del", ip);
+        final String result = runIpset("del", ip);
+        addCcWhitelist(ip);
+        return result;
     }
 
     /** Exempts an IP from automatic CC counting without overriding manual bans. */
