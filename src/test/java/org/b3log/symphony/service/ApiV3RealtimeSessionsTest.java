@@ -96,7 +96,40 @@ public class ApiV3RealtimeSessionsTest {
         }
     }
 
+    private static void verifyChatReactionSelection() {
+        final var registry = new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority() {
+            public ApiV3SocketTicketService.Grant consume(String ticket) {
+                return new ApiV3SocketTicketService.Grant(ticket.startsWith("A") ? "123" : "321", "123", 10_000, "chat", "");
+            }
+
+            public boolean authorized(ApiV3SocketTicketService.Grant grant) {
+                return true;
+            }
+        }, (ip, record) -> true, () -> 0);
+        final var own = new Transport();
+        final var other = new Transport();
+        registry.open("own", own, "192.0.2.1");
+        registry.open("other", other, "192.0.2.2");
+        registry.receive("own", new JSONObject().put("type", "authenticate").put("ticket", "A".repeat(43)).toString());
+        registry.receive("other", new JSONObject().put("type", "authenticate").put("ticket", "B".repeat(43)).toString());
+        final var reaction = new JSONObject().put("value", "heart").put("count", 1).put("selected", false);
+        final var snapshot = new JSONObject().put("id", "789").put("reactions",
+                new JSONObject().put("currentUserReaction", "").put("summary", new org.json.JSONArray().put(reaction)));
+        registry.chatChanged("reactions", "789", 1, snapshot, Map.of("123", "heart"));
+        final var ownState = own.sent.getLast().getJSONObject("data").getJSONObject("reactions");
+        final var otherState = other.sent.getLast().getJSONObject("data").getJSONObject("reactions");
+        Assert.assertEquals(ownState.getString("currentUserReaction"), "heart");
+        Assert.assertTrue(ownState.getJSONArray("summary").getJSONObject(0).getBoolean("selected"));
+        Assert.assertEquals(otherState.getString("currentUserReaction"), "");
+        Assert.assertFalse(otherState.getJSONArray("summary").getJSONObject(0).getBoolean("selected"));
+        Assert.assertFalse(other.sent.getLast().getJSONObject("data").has("message"));
+        Assert.assertFalse(reaction.getBoolean("selected"));
+        registry.closeChat();
+        System.out.println("PASS 两个聊天室连接只收到各自的表态选择");
+    }
+
     public static void main(String[] args) throws Exception {
+        verifyChatReactionSelection();
         var props = new Properties();
         props.setProperty("runtimeDatabase", "NONE");
         for (String key : List.of("latkeProps", "localProps")) {
@@ -297,6 +330,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertFalse(event.toString().contains("PRIVATE"));
             Assert.assertTrue(duplicate.sent.getLast().similar(event));
             Assert.assertEquals(pending.sent.size(), 1);
+
             f.registry.chatChanged("deleted", "789", 2, snapshot);
             Assert.assertEquals(chat.sent.getLast().getJSONObject("data").keySet(), Set.of("messageId", "revision"));
             f.registry.chatChanged("updated", "987", 3, snapshot);

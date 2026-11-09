@@ -320,7 +320,9 @@ public class ApiV3RealtimeService {
                 }
             }, new ApiV3ChatStream.Sink() {
                 public void changed(String kind, String id, long revision) {
-                    sessions.chatChanged(kind, id, revision, chatSnapshot(kind, id));
+                    final var snapshot = chatSnapshot(kind, id);
+                    if (snapshot == null) sessions.chatChanged(kind, id, revision, null);
+                    else sessions.chatChanged(kind, id, revision, snapshot.message(), snapshot.selections());
                 }
 
                 public void syncRequired() {
@@ -333,10 +335,10 @@ public class ApiV3RealtimeService {
     /**
      * 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。
      */
-    private JSONObject chatSnapshot(final String kind, final String id) {
-        if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind)) return null;
+    private ApiV3ChatQueryService.RealtimeSnapshot chatSnapshot(final String kind, final String id) {
+        if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind) && !"reactions".equals(kind)) return null;
         try {
-            return chatQuery.detail(id);
+            return chatQuery.realtimeSnapshot(id);
         } catch (RepositoryException | ApiV3Exception unavailable) {
             // 消息随后被删除或暂时读取失败时，仅保留重新同步提示。
             return null;

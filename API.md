@@ -4856,6 +4856,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | --- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
 | -- client | 客户端标记，可能为空 | Web/PC网页端 |
 | -- card | 卡片数据；普通消息及 unavailable 为空对象，字段见下表 | `{}` |
+| -- reactions | 可读消息的表态快照，含汇总和当前账号的选择 | `{"targetId":"1792304000000","targetType":"chat","groupType":"emoji","currentUserReaction":"","summary":[]}` |
 | - hasMore | 当前查询方向是否还有更多消息；不传游标时指更早消息 | true |
 | - nextBefore | 本批最早消息 ID，用于继续查询更早消息；空列表为空 | 1792304000000 |
 | - nextAfter | 本批最新消息 ID，用于查询之后的新消息；空列表为空 | 1792304100000 |
@@ -4881,7 +4882,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 >
 > before/after 是数字消息 ID。向前或向后翻页时保留原查询方向，并使用对应游标；空列表时保留上次非空游标。hasMore=false 表示本次查询时该方向已无更多消息，之后仍可能产生新消息。
 >
-> unavailable 表示该历史消息暂不可读取；仍返回 id 以便继续翻页。消息 emoji reaction 使用 `GET /api/v3/chat/messages/{targetId}/reactions` 查询。读取红包摘要不会领取红包。
+> unavailable 表示该历史消息暂不可读取；仍返回 id 以便继续翻页。详情接口也返回 reactions，需查看表态用户明细时可使用 `GET /api/v3/chat/messages/{targetId}/reactions`。读取红包摘要不会领取红包。
 >
 > 缺少访问凭据返回 HTTP 401，缺少 content.read 返回 HTTP 403；非法或冲突游标、条数超限返回 HTTP 422。
 
@@ -5037,7 +5038,7 @@ JS
 
 > 变更类型为 chat.message.created、chat.message.updated、chat.message.deleted、chat.message.reactions，分别表示消息创建、内容/卡片更新、撤回及 emoji reaction 变化。
 >
-> 创建或更新提示到达后，用 GET /api/v3/chat/messages/{messageId} 重读消息；撤回提示后移除对应缓存，详情可能返回404；reaction 提示后重读 GET /api/v3/chat/messages/{targetId}/reactions。提示只提供消息 ID 和版本，不包含正文或领取明细。
+> 创建或更新事件可携带 data.message，表态事件可携带 data.reactions。表态快照包含当前连接所属账号的选择。快照缺失时按消息 ID 补读相应接口。撤回后移除对应缓存。
 >
 > chat.topic_changed 的 data 仅包含 revision；收到后重新读取 GET /api/v3/chat/topic，不按消息 ID 查询。客户端应忽略无法识别的提示类型。
 >
@@ -6648,6 +6649,9 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/chat/messages/1770000000
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
+> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。
+
+
 ### 清除聊天室消息表态
 
 `DELETE /api/v3/chat/messages/{targetId}/reactions`
@@ -6687,6 +6691,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1770000
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
 
 ## API v3 清风明月写入与详情
+
+> 成功回执可带 data.interaction，表示当前可见的表态状态。目标已不可查看时该字段为 null。
+
 
 ### 发布清风明月
 

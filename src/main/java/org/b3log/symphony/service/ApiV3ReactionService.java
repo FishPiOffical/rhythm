@@ -56,7 +56,8 @@ public class ApiV3ReactionService {
         // 只有本次提交实际改变表态时才发实时事件。
         if (execution.applied() && execution.result().optBoolean("changed")) events.publish(viewer, type, id);
         final JSONObject receipt = execution.result();
-        if (Reaction.TARGET_TYPE_COMMENT.equals(type) || Reaction.TARGET_TYPE_ARTICLE.equals(type)) {
+        if (Reaction.TARGET_TYPE_COMMENT.equals(type) || Reaction.TARGET_TYPE_ARTICLE.equals(type)
+                || Reaction.TARGET_TYPE_CHAT.equals(type)) {
             // 重放的原表态可能已被其他会话修改，页面使用当前可见状态。
             try {
                 final JSONObject state = execution.applied() ? new JSONObject(receipt.toString()) : read(viewer, type, id);

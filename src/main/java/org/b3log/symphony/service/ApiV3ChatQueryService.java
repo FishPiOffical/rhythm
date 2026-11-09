@@ -22,6 +22,8 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.ChatRoomRepository;
+import org.b3log.symphony.repository.ReactionRepository;
+import org.b3log.symphony.model.Reaction;
 import org.b3log.symphony.processor.ChatroomProcessor;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
 import org.b3log.symphony.util.ApiV3ChatMessageDto;
@@ -42,6 +44,8 @@ public class ApiV3ChatQueryService {
     private ChatRoomRepository messages;
     @Inject
     private ChatTopicMgmtService topics;
+    @Inject
+    private ReactionRepository reactions;
 
     public JSONObject topic() throws RepositoryException {
         final var current = topics.readCommitted();
@@ -75,6 +79,10 @@ public class ApiV3ChatQueryService {
     }
 
     public JSONObject list(final String before, final String after, final int size) throws RepositoryException {
+        return list(before, after, size, null);
+    }
+
+    public JSONObject list(final String before, final String after, final int size, final String viewerId) throws RepositoryException {
         if (size < 1 || size > 50 || before != null && after != null) throw invalid();
         if (before != null) id(before);
         if (after != null) id(after);
@@ -86,6 +94,7 @@ public class ApiV3ChatQueryService {
         if (after == null) Collections.reverse(page);
         final var list = new JSONArray();
         for (final var row : page) list.put(dto(row));
+        if (viewerId != null) fillReactions(list, viewerId);
         return new JSONObject().put("list", list).put("hasMore", more)
                 .put("nextBefore", page.isEmpty() ? "" : page.getFirst().getString("oId"))
                 .put("nextAfter", page.isEmpty() ? "" : page.getLast().getString("oId"));
@@ -100,6 +109,78 @@ public class ApiV3ChatQueryService {
 
     public JSONObject detail(final String messageId) throws RepositoryException {
         return dto(row(messageId));
+    }
+
+    public JSONObject detail(final String messageId, final String viewerId) throws RepositoryException {
+        final var message = detail(messageId);
+        fillReactions(new JSONArray().put(message), viewerId);
+        return message;
+    }
+
+    private static boolean hasVisibleContent(final JSONObject message) {
+        return !"unavailable".equals(message.getString("type"));
+    }
+
+    private static JSONObject reactionSummary(final String id, final JSONArray summary, final String selected) {
+        return new JSONObject().put("targetId", id).put("targetType", Reaction.TARGET_TYPE_CHAT)
+                .put("groupType", Reaction.GROUP_EMOJI).put("currentUserReaction", selected).put("summary", summary);
+    }
+
+    private static JSONObject reactionCount(final String value, final long count, final boolean selected) {
+        return new JSONObject().put("value", value).put("emoji", Reaction.emojiOf(value)).put("count", count)
+                .put("selected", selected).put("users", new JSONArray());
+    }
+
+    private void fillReactions(final JSONArray list, final String viewerId) throws RepositoryException {
+        final Map<String, JSONObject> visible = new LinkedHashMap<>();
+        for (int i = 0; i < list.length(); i++) {
+            final var message = list.getJSONObject(i);
+            if (hasVisibleContent(message)) visible.put(message.getString("id"), message);
+        }
+        if (visible.isEmpty()) return;
+        // 对本页可读消息执行一次聚合查询，只返回计数和当前读者的选择。
+        final var args = new ArrayList<Object>(List.of(viewerId, Reaction.TARGET_TYPE_CHAT, Reaction.GROUP_EMOJI));
+        args.addAll(visible.keySet());
+        final String placeholders = String.join(",", Collections.nCopies(visible.size(), "?"));
+        final var rows = reactions.select("SELECT reactionTargetId,reactionValue,COUNT(*) AS total,"
+                + "MAX(CASE WHEN reactionUserId=? THEN 1 ELSE 0 END) AS ownSelection FROM `" + reactions.getName()
+                + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId IN (" + placeholders
+                + ") GROUP BY reactionTargetId,reactionValue ORDER BY reactionTargetId,MIN(oId)", args.toArray());
+        final Map<String, JSONArray> summaries = new HashMap<>();
+        final Map<String, String> selections = new HashMap<>();
+        for (final var row : rows) {
+            final String id = row.getString("reactionTargetId"), value = row.getString("reactionValue");
+            if (!Reaction.isValidEmojiValue(value)) continue;
+            final boolean selected = row.getInt("ownSelection") != 0;
+            if (selected) selections.put(id, value);
+            summaries.computeIfAbsent(id, ignored -> new JSONArray()).put(reactionCount(value, row.getLong("total"), selected));
+        }
+        visible.forEach((id, message) -> message.put("reactions", reactionSummary(id,
+                summaries.getOrDefault(id, new JSONArray()), selections.getOrDefault(id, ""))));
+    }
+
+    public record RealtimeSnapshot(JSONObject message, Map<String, String> selections) {}
+
+    public RealtimeSnapshot realtimeSnapshot(final String id) throws RepositoryException {
+        final var message = detail(id);
+        if (!hasVisibleContent(message)) return new RealtimeSnapshot(message, Map.of());
+        // 读取一次供本节点广播使用。大规模表态改由客户端按需读取单条详情。
+        final var rows = reactions.select("SELECT reactionUserId,reactionValue FROM `" + reactions.getName()
+                + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId=? ORDER BY oId LIMIT 2001",
+                Reaction.TARGET_TYPE_CHAT, Reaction.GROUP_EMOJI, id);
+        if (rows.size() > 2000) return new RealtimeSnapshot(message, Map.of());
+        final Map<String, Long> counts = new LinkedHashMap<>();
+        final Map<String, String> selections = new HashMap<>();
+        for (final var row : rows) {
+            final String value = row.getString("reactionValue");
+            if (!Reaction.isValidEmojiValue(value)) continue;
+            counts.merge(value, 1L, Long::sum);
+            selections.put(row.getString("reactionUserId"), value);
+        }
+        final var summary = new JSONArray();
+        counts.forEach((value, count) -> summary.put(reactionCount(value, count, false)));
+        message.put("reactions", reactionSummary(id, summary, ""));
+        return new RealtimeSnapshot(message, selections);
     }
 
     public JSONObject context(final String messageId, final int radius) throws RepositoryException {

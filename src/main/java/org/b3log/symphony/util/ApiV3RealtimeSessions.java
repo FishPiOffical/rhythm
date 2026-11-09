@@ -239,6 +239,10 @@ public final class ApiV3RealtimeSessions {
     }
 
     public void chatChanged(String kind, String messageId, long revision, JSONObject snapshot) {
+        chatChanged(kind, messageId, revision, snapshot, Map.of());
+    }
+
+    public void chatChanged(String kind, String messageId, long revision, JSONObject snapshot, Map<String, String> selections) {
         if (!ApiV3ChatEvent.validChange(kind, messageId) || revision < 1)
             throw new IllegalArgumentException("invalid chat change");
         if (ApiV3ChatEvent.TOPIC.equals(kind)) {
@@ -249,8 +253,11 @@ public final class ApiV3RealtimeSessions {
         if (snapshot != null && (ApiV3ChatEvent.CREATED.equals(kind) || ApiV3ChatEvent.UPDATED.equals(kind))
                 && messageId.equals(snapshot.optString("id")) && snapshot.toString().getBytes(StandardCharsets.UTF_8).length <= 256 * 1024) {
             data.put("message", snapshot);
+        } else if (snapshot != null && "reactions".equals(kind) && messageId.equals(snapshot.optString("id"))) {
+            final var summary = snapshot.optJSONObject("reactions");
+            if (summary != null) data.put("reactions", summary);
         }
-        broadcastChat("chat.message." + kind, data);
+        broadcastChat("chat.message." + kind, data, selections);
     }
 
     public void chatBarrage(final ApiV3BarrageEvent event) {
@@ -262,6 +269,10 @@ public final class ApiV3RealtimeSessions {
     }
 
     private void broadcastChat(String type, JSONObject data) {
+        broadcastChat(type, data, Map.of());
+    }
+
+    private void broadcastChat(String type, JSONObject data, Map<String, String> selections) {
         final String frame = new JSONObject().put("type", type).put("data", data).toString();
         for (Connection c : chat) {
             c.lock.lock();
@@ -272,13 +283,29 @@ public final class ApiV3RealtimeSessions {
                     remove(c);
                     continue;
                 }
-                c.transport.send(frame);
+                final String selected = selections.get(c.grant.userId());
+                c.transport.send(selected == null || !data.has("message") && !data.has("reactions") ? frame : personalizedChatFrame(frame, selected));
             } catch (Exception e) {
                 remove(c);
             } finally {
                 c.lock.unlock();
             }
         }
+    }
+
+    private static String personalizedChatFrame(final String frame, final String selected) {
+        // 公共帧可以复用，只有本人有选择时才复制并标记该连接的状态。
+        final var payload = new JSONObject(frame);
+        final var data = payload.getJSONObject("data");
+        final var reactions = data.has("message") ? data.getJSONObject("message").getJSONObject("reactions")
+                : data.getJSONObject("reactions");
+        reactions.put("currentUserReaction", selected);
+        final var summary = reactions.getJSONArray("summary");
+        for (int i = 0; i < summary.length(); i++) {
+            final var reaction = summary.getJSONObject(i);
+            reaction.put("selected", selected.equals(reaction.getString("value")));
+        }
+        return payload.toString();
     }
 
     public boolean hasChat() {

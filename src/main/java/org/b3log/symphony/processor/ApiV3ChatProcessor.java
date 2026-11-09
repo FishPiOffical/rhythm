@@ -23,6 +23,7 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.Keys;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3ChatPublicationService;
@@ -71,7 +72,8 @@ public class ApiV3ChatProcessor {
     }
 
     public void list(final RequestContext c) {
-        ApiV3Requests.read(c, () -> query.list(cursor(c, "before"), cursor(c, "after"), ApiV3Requests.size(c)));
+        ApiV3Requests.read(c, () -> query.list(cursor(c, "before"), cursor(c, "after"), ApiV3Requests.size(c),
+                ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID)));
     }
 
     public void create(final RequestContext c) {
@@ -130,7 +132,7 @@ public class ApiV3ChatProcessor {
     }
 
     public void detail(final RequestContext c) {
-        ApiV3Requests.read(c, () -> query.detail(ApiV3Requests.id(c, "messageId")));
+        ApiV3Requests.read(c, () -> query.detail(ApiV3Requests.id(c, "messageId"), ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID)));
     }
 
     public void context(final RequestContext c) {
