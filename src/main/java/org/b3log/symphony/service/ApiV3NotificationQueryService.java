@@ -222,7 +222,10 @@ public class ApiV3NotificationQueryService {
 
     private void chat(final JSONObject dto, final String id, final int type) throws RepositoryException {
         final JSONObject row = chatRoomService.getChatMsg(id);
-        if (null == row) { unavailable(dto); return; }
+        if (null == row) {
+            unavailable(dto);
+            return;
+        }
         final JSONObject message = new JSONObject(row.optString(Common.CONTENT));
         String text = message.optString(Common.CONTENT);
         boolean sourceText = type == Notification.DATA_TYPE_C_RED_PACKET;

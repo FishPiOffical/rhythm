@@ -190,14 +190,31 @@ public class ApiV3ReportPublicationService {
         idOrNotFound(target);
         final JSONObject row=one(articles.select("SELECT oId,articleAuthorId,articleType,articleStatus,articleAnonymousView,CASE WHEN articleType=1 THEN SUBSTR(articleContent,1,1048577) ELSE '' END AS articleContent FROM `"+articles.getName()+"` WHERE oId=?"+(lock?" FOR UPDATE":""),target));
         if(!Set.of(Article.ARTICLE_STATUS_C_VALID,Article.ARTICLE_STATUS_C_LOCKED).contains(integer(row,"articleStatus")))throw ApiV3Requests.notFound();
-        final int type=integer(row,"articleType");if(type<0||type>6)throw unavailable();
+        final int type = integer(row, "articleType");
+        if (type < 0 || type > 6)
+            throw unavailable();
         if(!(row.opt("articleContent") instanceof String content)||content.length()>1048576)throw unavailable();
         return row;
     }
-    private static JSONObject one(final List<JSONObject> rows){if(rows.size()!=1)throw ApiV3Requests.notFound();return rows.getFirst();}
-    private static int integer(final JSONObject row,final String name){if(!(row.opt(name) instanceof Number n)||n.doubleValue()!=n.intValue())throw unavailable();return n.intValue();}
-    private static JSONObject result(final String id){id(id);return new JSONObject().put("id",id);}
+    private static JSONObject one(final List<JSONObject> rows) {
+        if (rows.size() != 1)
+            throw ApiV3Requests.notFound();
+        return rows.getFirst();
+    }
+
+    private static int integer(final JSONObject row, final String name) {
+        if (!(row.opt(name) instanceof Number n) || n.doubleValue() != n.intValue())
+            throw unavailable();
+        return n.intValue();
+    }
+
+    private static JSONObject result(final String id) {
+        id(id);
+        return new JSONObject().put("id", id);
+    }
     private static void id(final String value){if(value==null||!value.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.invalid();}
     private static void idOrNotFound(final String value){if(value==null||!value.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.notFound();}
-    private static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","举报提交暂不可用");}
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "举报提交暂不可用");
+    }
 }

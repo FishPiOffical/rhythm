@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Java25 real route/controller/auth/SQL/DTO on SQLite; token persistence and response envelope are adapted. */
+/** 在 Java 25 与 SQLite 上执行实际路由、控制器、鉴权、SQL 和 DTO，令牌存储及响应封装由夹具适配。 */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,14 +11,26 @@ const cp = ['src/main/resources/lib/latke-core.jar', process.env.API_V3_JSOUP_JA
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-membership-test-'));
 const shims = [];
 function shim(name, code) {
-  const file = path.join(work, `${name}.java`); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, code); shims.push(file);
+  const file = path.join(work, `${name}.java`);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, code);
+  shims.push(file);
 }
 function method(source, signature) {
-  const start = source.indexOf(signature); if (start < 0) throw new Error('Missing production method');
-  let depth = 0; for (let i = source.indexOf('{', start); i < source.length; i++) { if (source[i] === '{') depth++; if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1); }
+  const start = source.indexOf(signature);
+  if (start < 0) throw new Error('Missing production method');
+  let depth = 0;
+  for (let i = source.indexOf('{', start); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1);
+  }
   throw new Error('Unclosed production method');
 }
-function run(command, args) { const result = spawnSync(command, args, { stdio: 'inherit' }); if (result.error) throw result.error; if (result.status !== 0) throw new Error('Membership style tests failed'); }
+function run(command, args) {
+  const result = spawnSync(command, args, { stdio: 'inherit' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error('Membership style tests failed');
+}
 try {
   shim('org/b3log/symphony/util/Symphonys', 'package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={};}');
   shim('org/b3log/symphony/repository/UserRepository', 'package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}}');

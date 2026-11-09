@@ -71,8 +71,13 @@ public class ApiV3MembershipOpeningService {
     @Inject private PointtransferRepository transfers;
     @Inject private PointtransferRedcRepository transferIndex;
     @Inject private CloudRepository cloud;
-    protected long now() { return System.currentTimeMillis(); }
-    protected ZoneId zone() { return ZoneId.systemDefault(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    protected ZoneId zone() {
+        return ZoneId.systemDefault();
+    }
 
     public JSONObject open(final String actor, final ApiV3MembershipOpeningInputs.Opening input, final String key) throws Exception {
         if (actor==null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
@@ -82,11 +87,26 @@ public class ApiV3MembershipOpeningService {
             final JSONObject durable=points.executeWithTransferLocks(actor,List.of(Pointtransfer.ID_C_SYS),()-> {
                 try (final var boundary=ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
                     final ApiV3MutationStore store=new ApiV3MutationStore() {
-                        public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                        public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                        public JSONObject getForUpdate(String id)throws RepositoryException { requireActor(actor);return requests.getForUpdate(id); }
-                        public String add(JSONObject value)throws RepositoryException { return requests.add(value); }
-                        public void update(String id,JSONObject value,String...fields)throws RepositoryException { requests.update(id,value,fields); }
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
+                        }
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
+
+                        public JSONObject getForUpdate(String id) throws RepositoryException {
+                            requireActor(actor);
+                            return requests.getForUpdate(id);
+                        }
+
+                        public String add(JSONObject value) throws RepositoryException {
+                            return requests.add(value);
+                        }
+
+                        public void update(String id, JSONObject value, String... fields) throws RepositoryException {
+                            requests.update(id, value, fields);
+                        }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomic(store,actor,"membership.open",key,normalized.normalized(),
                             ()->openInCurrentTransaction(actor,normalized,billingId));
@@ -97,11 +117,20 @@ public class ApiV3MembershipOpeningService {
             invalidate(actor);
             index(actor,billingId,durable.getString("indexTransferId"));
             return result;
-        } catch (ApiV3Exception e) { invalidate(actor);throw e; }
-        catch (Exception e) { invalidate(actor);throw unavailable(); }
+        } catch (ApiV3Exception e) {
+            invalidate(actor);
+            throw e;
+        } catch (Exception e) {
+            invalidate(actor);
+            throw unavailable();
+        }
     }
     private void invalidate(final String actor) {
-        try { cache.remove(actor); } catch (RuntimeException e) { LogManager.getLogger(getClass()).warn("Membership cache invalidation delayed"); }
+        try {
+            cache.remove(actor);
+        } catch (RuntimeException e) {
+            LogManager.getLogger(getClass()).warn("Membership cache invalidation delayed");
+        }
     }
     private void index(final String actor, final String billingId, final String transferId) {
         Transaction transaction=null;
@@ -119,7 +148,10 @@ public class ApiV3MembershipOpeningService {
             }
             transaction.commit();
         } catch (Exception e) {
-            if (transaction!=null && transaction.isActive()) try { transaction.rollback(); } catch (RuntimeException ignored) { }
+            if (transaction != null && transaction.isActive())
+                try {
+                    transaction.rollback();
+                } catch (RuntimeException ignored) { }
             LogManager.getLogger(getClass()).warn("Membership transfer indexing delayed");
         }
     }
@@ -192,36 +224,52 @@ public class ApiV3MembershipOpeningService {
         final var coupon=rows.getFirst();
         final long type=number(coupon.opt("coupon_type")), discount=number(coupon.opt("discount")), times=number(coupon.opt("times"));
         if (type!=0 || discount<0 || discount>100 || times==0 || times< -1 || times>Integer.MAX_VALUE) throw invalidCoupon();
-        storedId(coupon,"oId");return coupon;
+        storedId(coupon, "oId");
+        return coupon;
     }
     private void gift(final String actor, final String code)throws RepositoryException {
-        final int quantity=switch(code) {case "VIP1_YEAR"->20;case "VIP2_YEAR"->50;case "VIP3_YEAR"->120;case "VIP4_YEAR"->366;default->0;};
+        final int quantity = switch (code) {
+            case "VIP1_YEAR" -> 20;
+            case "VIP2_YEAR" -> 50;
+            case "VIP3_YEAR" -> 120;
+            case "VIP4_YEAR" -> 366;
+            default -> 0;
+        };
         if (quantity==0) return;
         if (cloud.select("SELECT oId FROM `"+cloud.getName()+"` WHERE userId=? AND gameId=? ORDER BY oId ASC LIMIT 2 FOR UPDATE",actor,"sys-bag").size()>1) throw unavailable();
         final String item="VIP4_YEAR".equals(code)?"sysCheckinRemain":"checkin1day";
         bags.mutateInCurrentTransaction(actor,bag->{
             final long before=bag.has(item)?number(bag.opt(item)):0L;
             if (before<0 || before>Integer.MAX_VALUE) throw unavailable();
-            bag.put(item,Math.min(Integer.MAX_VALUE,before+quantity));return bag;
+            bag.put(item, Math.min(Integer.MAX_VALUE, before + quantity));
+            return bag;
         });
     }
     private static long number(final Object value) {
         if (!(value instanceof Number number)) throw unavailable();
-        try { return new BigDecimal(number.toString()).longValueExact(); }
-        catch (ArithmeticException|NumberFormatException e) { throw unavailable(); }
+        try {
+            return new BigDecimal(number.toString()).longValueExact();
+        } catch (ArithmeticException | NumberFormatException e) {
+            throw unavailable();
+        }
     }
     private static JSONObject publicResult(final JSONObject durable) {
         if (!durable.keySet().equals(Set.of("result","indexTransferId")) || !(durable.opt("result") instanceof JSONObject value)
                 || !durable.optString("indexTransferId").matches("[1-9][0-9]{0,18}")
                 || !value.keySet().equals(Set.of("id","levelCode","paidPoints","expiresAt"))
                 || !value.optString("id").matches("[1-9][0-9]{0,18}")) throw unavailable();
-        final String code=text(value,"levelCode",32);final long paid=number(value.opt("paidPoints")),expires=number(value.opt("expiresAt"));
+        final String code = text(value, "levelCode", 32);
+        final long paid = number(value.opt("paidPoints")), expires = number(value.opt("expiresAt"));
         if (paid<0 || paid>Integer.MAX_VALUE || expires<1) throw unavailable();
         return new JSONObject().put("id",value.getString("id")).put("levelCode",code).put("paidPoints",paid).put("expiresAt",expires);
     }
     private static String text(final JSONObject value, final String key, final int max) {
         if (!(value.opt(key) instanceof String text) || text.isBlank() || text.length()>max || text.codePoints().anyMatch(Character::isISOControl)) throw unavailable();
-        try { ApiV3Json.canonical(text); } catch (IllegalArgumentException e) { throw unavailable(); }
+        try {
+            ApiV3Json.canonical(text);
+        } catch (IllegalArgumentException e) {
+            throw unavailable();
+        }
         return text;
     }
     private static String storedId(final JSONObject row, final String key) {
@@ -239,6 +287,11 @@ public class ApiV3MembershipOpeningService {
         }
         return result.toString();
     }
-    private static ApiV3Exception invalidCoupon() { return new ApiV3Exception(422,"invalid_coupon","优惠券不可用"); }
-    public static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","会员开通暂不可用"); }
+    private static ApiV3Exception invalidCoupon() {
+        return new ApiV3Exception(422, "invalid_coupon", "优惠券不可用");
+    }
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "会员开通暂不可用");
+    }
 }

@@ -167,7 +167,9 @@ public class ApiV3ContentQueryService {
         final ApiV3ProfileQueries.Fragment fragment = ApiV3ProfileQueries.comments(commentRepository.getName(), articleRepository.getName(),
                 userRepository.getName(), owner, null == viewer, UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED, Tag.TAG_TITLE_C_SANDBOX);
         final long total = commentRepository.select("SELECT COUNT(1) AS total" + fragment.sql(), fragment.args().toArray()).get(0).optLong("total");
-        final List<Object> args = new ArrayList<>(fragment.args()); args.add((p - 1) * size); args.add(size);
+        final List<Object> args = new ArrayList<>(fragment.args());
+        args.add((p - 1) * size);
+        args.add(size);
         final List<JSONObject> comments = commentRepository.select("SELECT c.*" + fragment.sql()
                 + " ORDER BY c.commentCreateTime DESC,c.oId DESC LIMIT ?,?", args.toArray());
         final JSONArray list = new JSONArray();

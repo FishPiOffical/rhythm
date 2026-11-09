@@ -50,7 +50,9 @@ public final class ApiV3ContentSnapshots {
                 + " FROM " + table(articles) + " a LEFT JOIN " + table(users)
                 + " u ON u.oId=a.articleAuthorId WHERE a.oId=? AND u.userStatus NOT IN (?,?) LIMIT 2";
     }
-    public static boolean questionAccepted(final JSONObject row) { return row.getInt(QNA_ACCEPTED) != 0; }
+    public static boolean questionAccepted(final JSONObject row) {
+        return row.getInt(QNA_ACCEPTED) != 0;
+    }
     public static String comment(final String comments, final String users) {
         return "SELECT c.*," + authorColumns() + " FROM " + table(comments) + " c LEFT JOIN " + table(users)
                 + " u ON u.oId=c.commentAuthorId WHERE c.oId=? LIMIT 2";
@@ -68,7 +70,9 @@ public final class ApiV3ContentSnapshots {
     public static String viewer(final String users) {
         return "SELECT oId,userStatus,userName,userRole FROM " + table(users) + " WHERE oId=? LIMIT 2";
     }
-    public static boolean hasAuthor(final JSONObject row) { return row.has(STATUS); }
+    public static boolean hasAuthor(final JSONObject row) {
+        return row.has(STATUS);
+    }
     public static JSONObject author(final JSONObject row, final String authorField) {
         if (row == null || row.isNull(STATUS)) return null;
         return new JSONObject().put(Keys.OBJECT_ID, row.optString(authorField))

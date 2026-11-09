@@ -63,7 +63,9 @@ public class ApiV3PointTransferService {
     @Inject private NotificationRepository notifications;
     @Inject private NotificationMgmtService notificationService;
     private static final String OPERATION="points.transfer";
-    protected long now(){return System.currentTimeMillis();}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     private record Targets(String receiverId,String receiverName,String feeId) { }
     public JSONObject transfer(final String actor,final JSONObject body,final String key)throws Exception {
         if(!id(actor)) throw ApiV3Requests.invalid();
@@ -76,18 +78,30 @@ public class ApiV3PointTransferService {
             // 收款人改名或停用后仍能回放已完成的回执，避免重新执行该笔转账。
             final JSONObject hint=receiptHint(actor,requestId);
             final Targets targets=hint==null?resolve(input.userName()):targets(hint);
-            final var destinations=new ArrayList<String>();destinations.add(targets.receiverId());destinations.add(targets.feeId());
+            final var destinations = new ArrayList<String>();
+            destinations.add(targets.receiverId());
+            destinations.add(targets.feeId());
             final var execution=points.executeWithTransferLocks(actor,destinations,()-> {
                 try(final var cache=ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
                     final ApiV3MutationStore store=new ApiV3MutationStore() {
-                        public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                        public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
+                        }
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
                         public JSONObject getForUpdate(String id)throws RepositoryException {
                             lockAccounts(actor,targets);
                             return requests.getForUpdate(id);
                         }
-                        public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                        public void update(String id,JSONObject row,String...fields)throws RepositoryException{requests.update(id,row,fields);}
+                        public String add(JSONObject row) throws RepositoryException {
+                            return requests.add(row);
+                        }
+
+                        public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                            requests.update(id, row, fields);
+                        }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store,actor,OPERATION,key,input.normalized(),
                             ()->apply(actor,input,targets,billingId));
@@ -96,11 +110,18 @@ public class ApiV3PointTransferService {
             final var durable=execution.result();
             final JSONObject result=publicResult(durable);
             index(actor,billingId,durable);
-            if(execution.applied()) try {notificationService.publishRefreshNotification(targets.receiverId());}
-            catch(RuntimeException e){LogManager.getLogger(getClass()).warn("Point transfer notification refresh delayed");}
+            if (execution.applied())
+                try {
+                    notificationService.publishRefreshNotification(targets.receiverId());
+                } catch (RuntimeException e) {
+                    LogManager.getLogger(getClass()).warn("Point transfer notification refresh delayed");
+                }
             return result;
-        }catch(ApiV3Exception e){throw e;}
-        catch(Exception e){throw unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     private JSONObject receiptHint(final String actor,final String requestId)throws RepositoryException {
         final var rows=requests.select("SELECT responseJson FROM `"+requests.getName()+"` WHERE oId=? AND userId=? AND operation=? LIMIT 2",requestId,actor,OPERATION);
@@ -108,7 +129,9 @@ public class ApiV3PointTransferService {
         if(rows.isEmpty())return null;
         final Object value=rows.getFirst().opt("responseJson");
         if(!(value instanceof String raw) || raw.length()>65536)throw unavailable();
-        final JSONObject durable=new JSONObject(raw);publicResult(durable);return durable;
+        final JSONObject durable = new JSONObject(raw);
+        publicResult(durable);
+        return durable;
     }
     private Targets resolve(final String receiverName)throws RepositoryException {
         final JSONObject receiver=byName(receiverName,false);
@@ -117,7 +140,11 @@ public class ApiV3PointTransferService {
     }
     private JSONObject byName(final String name,final boolean administrator)throws RepositoryException {
         final var rows=users.select("SELECT oId,userName FROM `"+users.getName()+"` WHERE userName=? ORDER BY oId LIMIT 2",name);
-        if(rows.isEmpty()){if(administrator)throw unavailable();throw ApiV3Requests.notFound();}
+        if (rows.isEmpty()) {
+            if (administrator)
+                throw unavailable();
+            throw ApiV3Requests.notFound();
+        }
         if(rows.size()!=1)throw unavailable();
         final var row=rows.getFirst();
         if(!id(row.optString("oId")) || !(row.opt("userName") instanceof String canonical) || canonical.isBlank() || canonical.length()>64)throw unavailable();
@@ -131,10 +158,14 @@ public class ApiV3PointTransferService {
             final var rows=users.select("SELECT oId,userName,userStatus,userPoint,userUsedPoint FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",id);
             if(rows.size()>1)throw unavailable();
             if(!rows.isEmpty()) {
-                final var row=rows.getFirst();if(!id.equals(row.optString("oId")))throw unavailable();locked.put(id,row);
+                final var row = rows.getFirst();
+                if (!id.equals(row.optString("oId")))
+                    throw unavailable();
+                locked.put(id, row);
             }
         }
-        validAccount(locked.get(actor));return locked;
+        validAccount(locked.get(actor));
+        return locked;
     }
     private JSONObject apply(final String actor,final ApiV3PointTransferInputs.Transfer input,final Targets targets,final String billingId)throws Exception {
         if(!requests.hasTransactionBegun())throw new IllegalStateException("point transfer transaction required");
@@ -173,12 +204,16 @@ public class ApiV3PointTransferService {
             final JSONObject result=new JSONObject().put("transferId",main).put("recipient",new JSONObject().put("userId",targets.receiverId()).put("userName",targets.receiverName()))
                     .put("amount",input.amount()).put("receivedPoints",received).put("feePoints",fee).put("memo",input.memo());
             final JSONObject durable=new JSONObject().put("result",result).put("feeRecipientId",targets.feeId()).put("feeTransferId",feeTransfer);
-            publicResult(durable);return durable;
+            publicResult(durable);
+            return durable;
         });
     }
     private boolean premium(final String actor)throws RepositoryException {
         final var rows=memberships.select("SELECT oId,userId,lvCode,state,expiresAt FROM `"+memberships.getName()+"` WHERE userId=? ORDER BY oId LIMIT 2 FOR UPDATE",actor);
-        if(rows.size()>1)throw unavailable();if(rows.isEmpty())return false;
+        if (rows.size() > 1)
+            throw unavailable();
+        if (rows.isEmpty())
+            return false;
         final var row=rows.getFirst();
         if(!actor.equals(row.optString("userId")) || !id(row.optString("oId")) || !(row.opt("lvCode") instanceof String code) || code.length()>32)throw unavailable();
         final long state=number(row.opt("state")),expires=number(row.opt("expiresAt"));
@@ -202,13 +237,17 @@ public class ApiV3PointTransferService {
         Transaction tx=null;
         try {
             if(transfers.hasTransactionBegun())throw new IllegalStateException("postcommit index required");
-            final var result=publicResult(durable);final var targets=targets(durable);
+            final var result = publicResult(durable);
+            final var targets = targets(durable);
             tx=ApiV3Transactions.strict(transfers.beginTransaction());
             repair(actor,targets.receiverId(),result.getString("transferId"),result.getInt("receivedPoints"),billingId);
             if(result.getInt("feePoints")>0)repair(actor,targets.feeId(),durable.getString("feeTransferId"),result.getInt("feePoints"),billingId);
             tx.commit();
         }catch(Exception e) {
-            if(tx!=null && tx.isActive())try{tx.rollback();}catch(RuntimeException ignored){ }
+            if (tx != null && tx.isActive())
+                try {
+                    tx.rollback();
+                } catch (RuntimeException ignored) { }
             LogManager.getLogger(getClass()).warn("Point transfer indexing delayed");
         }
     }
@@ -234,10 +273,19 @@ public class ApiV3PointTransferService {
         return new JSONObject().put("transferId",result.getString("transferId")).put("recipient",new JSONObject().put("userId",recipient.getString("userId")).put("userName",name))
                 .put("amount",amount).put("receivedPoints",received).put("feePoints",fee).put("memo",memo);
     }
-    private static boolean id(final String value){return value!=null && value.matches("[1-9][0-9]{0,18}");}
+    private static boolean id(final String value) {
+        return value != null && value.matches("[1-9][0-9]{0,18}");
+    }
     private static long number(final Object value) {
         if(!(value instanceof Number number))throw unavailable();
-        try{return new BigDecimal(number.toString()).longValueExact();}catch(ArithmeticException|NumberFormatException e){throw unavailable();}
+        try {
+            return new BigDecimal(number.toString()).longValueExact();
+        } catch (ArithmeticException | NumberFormatException e) {
+            throw unavailable();
+        }
     }
-    public static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","积分转账暂不可用");}
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "积分转账暂不可用");
+    }
 }

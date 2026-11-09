@@ -131,7 +131,10 @@ public class ApiV3UserNameService {
     private JSONObject requireActor(String actor)throws RepositoryException {
         final var owners=users.select("SELECT oId,userStatus,userPoint FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
         if(owners.size()!=1||!actor.equals(owners.getFirst().optString("oId"))||number(owners.getFirst().opt("userStatus"))!=0)throw ApiV3Requests.notFound();
-        final long balance=number(owners.getFirst().opt("userPoint"));if(balance<Integer.MIN_VALUE||balance>Integer.MAX_VALUE)throw unavailable();return owners.getFirst();
+        final long balance = number(owners.getFirst().opt("userPoint"));
+        if (balance < Integer.MIN_VALUE || balance > Integer.MAX_VALUE)
+            throw unavailable();
+        return owners.getFirst();
     }
     private void repairIndex(String actor,String billingId,String transfer) {
         Transaction root=null;
@@ -153,6 +156,14 @@ public class ApiV3UserNameService {
                 ||!row.optString("indexTransferId").matches("[1-9][0-9]{0,18}")||number(row.opt("paidPoints"))<=0||number(row.opt("paidPoints"))>Integer.MAX_VALUE)throw unavailable();
         return new JSONObject().put("userName",name).put("paidPoints",row.getInt("paidPoints"));
     }
-    private static long number(Object value){if(!(value instanceof Number n))throw unavailable();try{return new BigDecimal(n.toString()).longValueExact();}catch(ArithmeticException|NumberFormatException error){throw unavailable();}}
+    private static long number(Object value) {
+        if (!(value instanceof Number n))
+            throw unavailable();
+        try {
+            return new BigDecimal(n.toString()).longValueExact();
+        } catch (ArithmeticException | NumberFormatException error) {
+            throw unavailable();
+        }
+    }
     public static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","修改用户名暂不可用");}
 }

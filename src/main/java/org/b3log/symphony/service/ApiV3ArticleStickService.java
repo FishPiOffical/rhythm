@@ -38,12 +38,18 @@ import java.util.Set;
 @Service
 public class ApiV3ArticleStickService {
     private static final String OPERATION = "articles.stick";
-    @Inject private UserRepository users;
-    @Inject private ArticleRepository articles;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private PointtransferMgmtService points;
-    @Inject private PointtransferRepository transfers;
-    @Inject private PointtransferRedcRepository indexes;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private PointtransferMgmtService points;
+    @Inject
+    private PointtransferRepository transfers;
+    @Inject
+    private PointtransferRedcRepository indexes;
     protected long now() {
         return System.currentTimeMillis();
     }

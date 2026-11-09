@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Run only after user-confirmed IDEA rebuild/restart. No writes unless API_V3_COMMENT_THANK=1.
- * API_V3_TOKEN needs comments.write and commonThankComment. Optional scope-less/cookie/legacy-key fixtures.
- * API_V3_COMMENT_THANK_ID is another user's disposable comment; enabled success checks spend points permanently.
- * API_V3_SELF_COMMENT_ID and API_V3_PRIVATE_COMMENT_ID are optional denial fixtures.
+/** 确认 IDEA 重新编译或重启后运行。API_V3_COMMENT_THANK=1 才启用写入。
+ * API_V3_TOKEN 需要 comments.write 和 commonThankComment。可选夹具覆盖缺少权限、Cookie 和旧密钥。
+ * API_V3_COMMENT_THANK_ID 指向另一用户的临时评论，成功感谢会永久消耗积分。
+ * 可选的 API_V3_SELF_COMMENT_ID 和 API_V3_PRIVATE_COMMENT_ID 用于拒绝路径。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

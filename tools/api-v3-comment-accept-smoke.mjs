@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Defaults to denial checks.
- * API_V3_TOKEN needs comments.write. API_V3_COMMENT_ACCEPT=1 and API_V3_COMMENT_ACCEPT_ID
- * explicitly accept a disposable answer in the token owner's article and may transfer points permanently.
- * API_V3_OTHER_CANDIDATE_ID must be another answer in that same article for the conflict check.
- * Optional scope-less, cookie, legacy-key, self-comment and foreign-article-comment fixtures cover denials.
+/** 确认 IDEA 重新编译或重启后运行，默认验证拒绝路径。
+ * API_V3_TOKEN 需要 comments.write。API_V3_COMMENT_ACCEPT=1 与 API_V3_COMMENT_ACCEPT_ID
+ * 显式采纳令牌所有者文章中的临时回答，可能永久转移积分。
+ * API_V3_OTHER_CANDIDATE_ID 必须是同一篇文章的另一条回答，用于验证采纳冲突。
+ * 可选夹具覆盖缺少权限、Cookie、旧密钥、本人评论和其他文章的评论。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

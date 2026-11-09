@@ -68,13 +68,23 @@ public class ApiV3MedalImageService {
         Map<String,String> args=new LinkedHashMap<>();args.put("ver","0.1");args.put("scale","0.79");args.put("txt",mini?"":title);
         Set<String> allowed=Set.of("url","backcolor","fontcolor","shadow","anime","way","fontway","size","border","barlen","font","fontsize","barradius");
         for(String part:attr.split("&")){
-            String[] pair=part.split("=",2);if(pair.length!=2||!allowed.contains(pair[0]))continue;
+            String[] pair = part.split("=", 2);
+            if (pair.length != 2 || !allowed.contains(pair[0]))
+                continue;
             String key=pair[0],value=pair[1];
             // 保存的属性可能已经编码，先解码一次，再在下方统一编码一次。
             try{value=URLDecoder.decode(value.replace("+","%2B"),StandardCharsets.UTF_8);}catch(IllegalArgumentException e){throw ApiV3MedalSvg.bad();}
             if(value.length()>4096||value.codePoints().anyMatch(Character::isISOControl))throw ApiV3MedalSvg.bad();
             if(key.equals("url")&&!value.isEmpty()){
-                try{URI u=URI.create(value);if(!"https".equals(u.getScheme())||!"file.fishpi.cn".equalsIgnoreCase(u.getHost())||u.getRawUserInfo()!=null||u.getPort()!=-1||u.getRawFragment()!=null||value.indexOf('\\')>=0)throw ApiV3MedalSvg.bad();}catch(IllegalArgumentException e){throw ApiV3MedalSvg.bad();}
+                try {
+                    URI u = URI.create(value);
+                    if (!"https".equals(u.getScheme()) || !"file.fishpi.cn".equalsIgnoreCase(u.getHost())
+                            || u.getRawUserInfo() != null || u.getPort() != -1 || u.getRawFragment() != null
+                            || value.indexOf('\\') >= 0)
+                        throw ApiV3MedalSvg.bad();
+                } catch (IllegalArgumentException e) {
+                    throw ApiV3MedalSvg.bad();
+                }
             }else if(Set.of("size","border","fontsize","barradius").contains(key)&&!value.isEmpty()){
                 if(!value.matches("[0-9]{1,4}")||Integer.parseInt(value)>2048)throw ApiV3MedalSvg.bad();
             }else if(!key.equals("url")&&!value.matches("[A-Za-z0-9#.,_ /+=-]{0,4096}"))throw ApiV3MedalSvg.bad();

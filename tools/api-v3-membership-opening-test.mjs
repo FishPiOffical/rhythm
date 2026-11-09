@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Actual membership/points/bag/receipt SQL and strict JDBC; temporary SQLite and transport/cache adapters. */
+/** 在临时 SQLite 上执行会员、积分、背包、回执 SQL 及严格 JDBC 事务，传输和缓存使用适配器。 */
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
@@ -15,7 +15,7 @@ try{
  shim('org/b3log/symphony/cache/MembershipCache','package org.b3log.symphony.cache;public class MembershipCache {public void remove(String user){}public void put(org.json.JSONObject row){}}');
  shim('org/b3log/symphony/service/CloudService','package org.b3log.symphony.service;public class CloudService {public int putBag(String user,String item,int number,int cap){throw new UnsupportedOperationException();}}');
  shim('org/b3log/symphony/service/NotificationMgmtService','package org.b3log.symphony.service;import org.b3log.latke.repository.RepositoryException;public class NotificationMgmtService {public void addPointTransferNotification(org.json.JSONObject row)throws RepositoryException{throw new UnsupportedOperationException();}}');
- // The production Escapes delegates to OWASP; this dependency adapter preserves HTML encoding in isolation.
+ // 生产 Escapes 依赖 OWASP，隔离适配器保留 HTML 编码行为。
  shim('org/owasp/encoder/Encode','package org.owasp.encoder;public class Encode {public static String forHtml(String s){return org.apache.commons.lang.StringEscapeUtils.escapeHtml(s);}}');
  const tokens=fs.readFileSync('src/main/java/org/b3log/symphony/service/ApiV3TokenMgmtService.java','utf8');
  shim('org/b3log/symphony/service/ApiV3TokenMgmtService',`package org.b3log.symphony.service;import org.json.JSONObject;import org.apache.commons.lang.StringUtils;import java.util.*;public class ApiV3TokenMgmtService {public JSONObject authenticate(String value){return null;}${method(tokens,'public static boolean hasScope(')}}`);

@@ -1,12 +1,43 @@
 #!/usr/bin/env node
-/** Isolated actual client disable SQL/idempotency/auth/routes and bundled JDBC strict-commit/savepoint faults. */
-import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
-const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
-const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-client-disable-')),shims=[];
-function shim(name,body){const file=path.join(dir,name+'.java');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,body);shims.push(file);}
-function method(source,signature){const begin=source.indexOf(signature);if(begin<0)throw Error(signature);let depth=0;for(let i=source.indexOf('{',begin);i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(begin,i+1);}throw Error('Unclosed method');}
-function run(bin,args){const r=spawnSync(bin,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('Client disable tests failed');}
+/** 隔离验证客户端停用的实际 SQL、幂等、鉴权与路由，并覆盖随包 JDBC 提交及保存点故障。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {spawnSync} from 'node:child_process';
+
+const ide = '/Applications/Android Studio.app/Contents',
+  home = process.env.JAVA_HOME || `${ide}/jbr/Contents/Home`;
+const cp = [
+  'src/main/resources/lib/latke-core.jar',
+  process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+  process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+  process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-client-disable-')), shims = [];
+
+function shim(name, body) {
+  const file = path.join(dir, name + '.java');
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  fs.writeFileSync(file, body);
+  shims.push(file);
+}
+
+function method(source, signature) {
+  const begin = source.indexOf(signature);
+  if (begin < 0) throw Error(signature);
+  let depth = 0;
+  for (let i = source.indexOf('{', begin); i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+  }
+  throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+  const r = spawnSync(bin, args, {stdio: 'inherit'});
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw Error('Client disable tests failed');
+}
 try{
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final String[] RESERVED_USER_NAMES={};}');
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository {public UserRepository(){super("user");}}');

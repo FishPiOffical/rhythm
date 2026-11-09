@@ -127,7 +127,36 @@ public class ApiV3ContactTest {
   void request(boolean phone)throws Exception{contact.request(ApiV3SecurityTest.identity(),input(phone,true,CAPTCHA),phone,"ip");}
   JSONObject change(boolean phone,String code)throws Exception{return contact.change(ApiV3SecurityTest.identity(),input(phone,false,code),phone,"ip");}
   RequestContext http(String path,String body,boolean sending,String token)throws Exception{
-   var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,sending?io.netty.handler.codec.http.HttpMethod.POST:io.netty.handler.codec.http.HttpMethod.PUT,path,io.netty.buffer.Unpooled.copiedBuffer(body,StandardCharsets.UTF_8));try{if(token!=null)raw.headers().set("Authorization","Bearer "+token);raw.headers().set("Cookie","legacy");raw.headers().set("Content-Type","application/json");raw.headers().set("X-Real-IP","127.0.0.2");var req=new Request(null,raw);req.setBytes(body.getBytes(StandardCharsets.UTF_8));req.setParams(new HashMap<>(Map.of("apiKey","legacy")));var ctx=new RequestContext(req,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));ctx.attr("user",new JSONObject().put("oId","2"));ctx.addHandler(new org.b3log.latke.http.handler.RouteHandler());ctx.addHandler(c->{var r=(org.b3log.latke.http.handler.RouteResolution)c.attr("MATCH_RESULT");switch(r.getContextHandlerMeta().getInvokeHolder().getName()){case "phoneCode"->contactController.phoneCode(c);case "emailCode"->contactController.emailCode(c);case "phone"->contactController.phone(c);case "email"->contactController.email(c);default->throw new AssertionError();}});ctx.handle();return ctx;}finally{raw.release();}
+   var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
+           sending ? io.netty.handler.codec.http.HttpMethod.POST : io.netty.handler.codec.http.HttpMethod.PUT,
+           path, io.netty.buffer.Unpooled.copiedBuffer(body, StandardCharsets.UTF_8));
+   try {
+    if (token != null) raw.headers().set("Authorization", "Bearer " + token);
+    raw.headers().set("Cookie", "legacy");
+    raw.headers().set("Content-Type", "application/json");
+    raw.headers().set("X-Real-IP", "127.0.0.2");
+    var req = new Request(null, raw);
+    req.setBytes(body.getBytes(StandardCharsets.UTF_8));
+    req.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
+    var ctx = new RequestContext(req, new Response(null,
+            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
+    ctx.attr("user", new JSONObject().put("oId", "2"));
+    ctx.addHandler(new org.b3log.latke.http.handler.RouteHandler());
+    ctx.addHandler(c -> {
+     var r = (org.b3log.latke.http.handler.RouteResolution) c.attr("MATCH_RESULT");
+     switch (r.getContextHandlerMeta().getInvokeHolder().getName()) {
+      case "phoneCode" -> contactController.phoneCode(c);
+      case "emailCode" -> contactController.emailCode(c);
+      case "phone" -> contactController.phone(c);
+      case "email" -> contactController.email(c);
+      default -> throw new AssertionError();
+     }
+    });
+    ctx.handle();
+    return ctx;
+   } finally {
+    raw.release();
+   }
   }
  }
  static void sql(Connection c,String q,Object...a)throws RepositoryException{ApiV3SecurityTest.sql(c,q,a);}static List<JSONObject> rows(Connection c,String q,Object...a)throws RepositoryException{return ApiV3SecurityTest.rows(c,q,a);}static void error(int status,ApiV3SecurityTest.A a)throws Exception{ApiV3SecurityTest.error(status,a);}

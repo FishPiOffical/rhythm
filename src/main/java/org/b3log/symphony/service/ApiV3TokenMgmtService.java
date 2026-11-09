@@ -238,16 +238,25 @@ public class ApiV3TokenMgmtService {
     }
 
     /** OAuth 撤销可用客户端令牌家族中的访问令牌或刷新令牌，旧撤销入口保持仅接受刷新令牌。 */
-    public void revokeTokenForClient(final String clientId,final String credential)throws ServiceException {
-        if(clientId==null||clientId.isBlank()||clientId.length()>64)throw new ServiceException("unauthorized");
-        if(!ApiV3TokenUtil.isValidFormat(credential))return;
-        final Transaction transaction=beginRoot();try{
+    public void revokeTokenForClient(final String clientId, final String credential) throws ServiceException {
+        if (clientId == null || clientId.isBlank() || clientId.length() > 64)
+            throw new ServiceException("unauthorized");
+        if (!ApiV3TokenUtil.isValidFormat(credential))
+            return;
+        final Transaction transaction = beginRoot();
+        try {
+            // 先锁客户端，再锁令牌记录，只有归属匹配时才撤销家族。
             apiV3ClientRepository.getByClientIdForUpdate(clientId);
-            final JSONObject row=apiV3TokenRepository.getByHashForUpdate(ApiV3TokenUtil.hash(credential));
-            if(row!=null&&clientId.equals(row.optString(ApiV3Token.CLIENT_ID))
-                    &&(ApiV3Token.TYPE_REFRESH.equals(row.optString(ApiV3Token.TOKEN_TYPE))||ApiV3Token.TYPE_ACCESS.equals(row.optString(ApiV3Token.TOKEN_TYPE))))revokeFamily(row,now());
+            final JSONObject row = apiV3TokenRepository.getByHashForUpdate(ApiV3TokenUtil.hash(credential));
+            if (row != null && clientId.equals(row.optString(ApiV3Token.CLIENT_ID))
+                    && (ApiV3Token.TYPE_REFRESH.equals(row.optString(ApiV3Token.TOKEN_TYPE))
+                    || ApiV3Token.TYPE_ACCESS.equals(row.optString(ApiV3Token.TOKEN_TYPE))))
+                revokeFamily(row, now());
             transaction.commit();
-        }catch(Exception e){rollback(transaction);throw new ServiceException(e);}
+        } catch (Exception e) {
+            rollback(transaction);
+            throw new ServiceException(e);
+        }
     }
     public static boolean hasScope(final String scopes, final String required) {
         return new HashSet<>(Arrays.asList(StringUtils.split(StringUtils.trimToEmpty(scopes), ' '))).contains(required);

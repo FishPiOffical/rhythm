@@ -48,15 +48,25 @@ public final class ApiV3MembershipStyleTest {
         JSONObject http(String token,String params)throws Exception{
             final var raw=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.GET,PATH+(params==null?"":"?"+params));
             try{
-                raw.headers().set("Cookie","legacy");if(token!=null)raw.headers().set("Authorization","Bearer "+token);
-                final var request=new Request(null,raw);request.setParams(new HashMap<>(Map.of("userIds","2","apiKey","legacy")));
+                raw.headers().set("Cookie", "legacy");
+                if (token != null) raw.headers().set("Authorization", "Bearer " + token);
+                final var request = new Request(null, raw);
+                request.setParams(new HashMap<>(Map.of("userIds", "2", "apiKey", "legacy")));
                 final var context=new RequestContext(request,new Response(null,new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK)));
-                context.attr("user",new JSONObject().put("oId","2"));context.addHandler(new RouteHandler());context.addHandler(processor::styles);context.handle();
+                context.attr("user", new JSONObject().put("oId", "2"));
+                context.addHandler(new RouteHandler());
+                context.addHandler(processor::styles);
+                context.handle();
                 final var result=new JSONObject().put("status",context.attr("test.status"));
                 if(context.attr("test.data")!=null)result.put("data",context.attr("test.data"));
-                if(result.getInt("status")==200){equal(context.getResponse().getHeader("Cache-Control"),"no-store");check(!result.toString().contains("PRIVATE"),"closed style response");}
+                if (result.getInt("status") == 200) {
+                    equal(context.getResponse().getHeader("Cache-Control"), "no-store");
+                    check(!result.toString().contains("PRIVATE"), "closed style response");
+                }
                 return result;
-            }finally{raw.release();}
+            } finally {
+                raw.release();
+            }
         }
         public void close()throws Exception{db.close();}
     }
@@ -85,8 +95,15 @@ public final class ApiV3MembershipStyleTest {
             equal(config(response,"1").keySet(),Set.of("bold","underline","color")); equal(config(response,"1").getString("color"),"galaxy"); check(!config(response,"1").getBoolean("bold"),"false preserved");
             check(item(response,"1").keySet().equals(Set.of("userId","configJson")),"only normalized display config, no level/expiry/secrets");
             equal(data(response).getLong("maxAgeMs"),1000L); equal(f.db.sql.size(),2);
-            final var unchanged=f.http("profile","version="+revision(response)); check(data(unchanged).getBoolean("unchanged"),"content unchanged"); check(!data(unchanged).has("list"),"no redundant directory"); equal(f.db.sql.size(),3);
-            f.time=2000; final var expired=f.http("profile","version="+revision(response)); check(!data(expired).getBoolean("unchanged"),"natural expiry changes version without a write"); equal(data(expired).getJSONArray("list").length(),1);
+            final var unchanged = f.http("profile", "version=" + revision(response));
+            check(data(unchanged).getBoolean("unchanged"), "content unchanged");
+            check(!data(unchanged).has("list"), "no redundant directory");
+            equal(f.db.sql.size(), 3);
+            // 只推进时钟，验证会员自然过期本身会改变响应版本。
+            f.time = 2000;
+            final var expired = f.http("profile", "version=" + revision(response));
+            check(!data(expired).getBoolean("unchanged"), "natural expiry changes version without a write");
+            equal(data(expired).getJSONArray("list").length(), 1);
             f.db.exec("UPDATE membership SET configJson='{\"color\":\"#ABCDEF\"}' WHERE userId='1'"); invalidate(); final var changed=f.http("profile","version="+revision(expired)); check(!revision(changed).equals(revision(expired)),"same member count but changed config changes content version"); equal(config(changed,"1").getString("color"),"#ABCDEF");
             f.db.exec("UPDATE user SET userStatus=4 WHERE oId='1'"); equal(f.http("profile","version="+revision(changed)).getInt("status"),404);
         }

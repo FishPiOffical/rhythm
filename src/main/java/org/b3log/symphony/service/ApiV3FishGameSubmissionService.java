@@ -44,13 +44,24 @@ import java.util.Set;
 /** 校验旧版 OpenID 登录网址格式后，创建待审核投稿或编辑。 */
 @Service
 public class ApiV3FishGameSubmissionService {
-    public static final String NAMESPACE="apiV3FishGameSubmission";
-    @Inject private UserRepository users;
-    @Inject private FishGameRepository games;
-    @Inject private OptionRepository options;
-    @Inject private ApiV3RequestRepository requests;
-    protected long now(){return System.currentTimeMillis();}
-    protected boolean allowed(String actor){return FishGameWriteQuota.access(FishGameWriteQuota.Kind.SUBMISSION,actor);}
+    public static final String NAMESPACE = "apiV3FishGameSubmission";
+    @Inject
+    private UserRepository users;
+    @Inject
+    private FishGameRepository games;
+    @Inject
+    private OptionRepository options;
+    @Inject
+    private ApiV3RequestRepository requests;
+
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    protected boolean allowed(String actor) {
+        return FishGameWriteQuota.access(FishGameWriteQuota.Kind.SUBMISSION, actor);
+    }
+
     protected String developmentProvider() {
         try {
             if(Latkes.RuntimeMode.DEVELOPMENT!=Latkes.getRuntimeMode())return "";
@@ -58,7 +69,9 @@ public class ApiV3FishGameSubmissionService {
             if(!Set.of("localhost","127.0.0.1","[::1]","::1").contains(base.getHost())||base.getRawUserInfo()!=null||base.getRawQuery()!=null||base.getRawFragment()!=null
                     ||!("http".equals(base.getScheme())||"https".equals(base.getScheme()))||!(base.getPath().isEmpty()||"/".equals(base.getPath())))return "";
             return Latkes.getServePath().replaceAll("/$","")+"/openid/login";
-        }catch(Exception e){return "";}
+        } catch (Exception e) {
+            return "";
+        }
     }
     public JSONObject submit(String actor,String gameId,JSONObject body,String key)throws Exception {
         if(actor==null||!actor.matches("[1-9][0-9]{0,18}")||gameId!=null&&!gameId.matches("[1-9][0-9]{0,18}"))throw invalid();
@@ -66,20 +79,40 @@ public class ApiV3FishGameSubmissionService {
         final String operation=gameId==null?"fish-games.submit":"fish-games.edit:"+gameId;
         try {
             ApiV3MutationStore store=new ApiV3MutationStore() {
-                public Transaction beginTransaction(){return ApiV3Transactions.strict(requests.beginTransaction());}
-                public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-                public JSONObject getForUpdate(String id)throws RepositoryException {
-                    var namespaces=options.select("SELECT oId FROM `"+options.getName()+"` WHERE oId=? FOR UPDATE",NAMESPACE);
-                    if(namespaces.size()!=1)throw unavailable();
-                    var owners=users.select("SELECT oId,userStatus FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
-                    if(owners.size()!=1||!actor.equals(owners.getFirst().optString("oId"))||integer(owners.getFirst().opt("userStatus"))!=UserExt.USER_STATUS_C_VALID)throw ApiV3Requests.notFound();
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(String id) throws RepositoryException {
+                    // 先锁命名空间以串行检查 v3 投稿网址，再锁当前投稿者及其幂等回执。
+                    var namespaces = options.select("SELECT oId FROM `" + options.getName() + "` WHERE oId=? FOR UPDATE", NAMESPACE);
+                    if (namespaces.size() != 1)
+                        throw unavailable();
+                    var owners = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
+                    if (owners.size() != 1 || !actor.equals(owners.getFirst().optString("oId"))
+                            || integer(owners.getFirst().opt("userStatus")) != UserExt.USER_STATUS_C_VALID)
+                        throw ApiV3Requests.notFound();
                     return requests.getForUpdate(id);
                 }
-                public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-                public void update(String id,JSONObject row,String...fields)throws RepositoryException{requests.update(id,row,fields);}
+
+                public String add(JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                    requests.update(id, row, fields);
+                }
             };
             return result(ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store,actor,operation,key,input.normalized(),()->apply(actor,gameId,input)).result());
-        }catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     private JSONObject apply(String actor,String gameId,ApiV3FishGameSubmissionInputs.Submission input)throws Exception {
         if(!requests.hasTransactionBegun())throw new IllegalStateException("fish game root required");
@@ -95,7 +128,9 @@ public class ApiV3FishGameSubmissionService {
         var conflicts=games.select("SELECT oId FROM `"+games.getName()+"` WHERE (fishGameUrl=? OR (fishGameEditPending=1 AND fishGamePendingUrl=?))"+(gameId==null?"":" AND oId<>?")+" ORDER BY oId LIMIT 2 FOR UPDATE",
                 gameId==null?new Object[]{input.url(),input.url()}:new Object[]{input.url(),input.url(),gameId});
         if(!conflicts.isEmpty())throw new ApiV3Exception(409,"game_url_taken","目标网址已有投稿或待审核修改");
-        long time=now();if(time<=0)throw unavailable();
+        long time = now();
+        if (time <= 0)
+            throw unavailable();
         if(game==null) {
             String id=Ids.genTimeMillisId();
             JSONObject row=new JSONObject().put("oId",id).put(FishGame.NAME,input.name()).put(FishGame.DESCRIPTION,input.description()).put(FishGame.URL,input.url()).put(FishGame.ICON_URL,input.iconUrl())
@@ -117,9 +152,20 @@ public class ApiV3FishGameSubmissionService {
         return new JSONObject().put("id",value.getString("id")).put("status",integer(value.opt("status"))).put("editPending",pending);
     }
     private static int integer(Object value) {
-        if(!(value instanceof Number n))throw unavailable();
-        try{return new java.math.BigDecimal(n.toString()).intValueExact();}catch(ArithmeticException|NumberFormatException e){throw unavailable();}
+        if (!(value instanceof Number n))
+            throw unavailable();
+        try {
+            return new java.math.BigDecimal(n.toString()).intValueExact();
+        } catch (ArithmeticException | NumberFormatException e) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception invalid(){return new ApiV3Exception(422,"invalid_request","请求字段不合法");}
-    private static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","鱼游投稿暂不可用");}
+
+    private static ApiV3Exception invalid() {
+        return new ApiV3Exception(422, "invalid_request", "请求字段不合法");
+    }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "鱼游投稿暂不可用");
+    }
 }

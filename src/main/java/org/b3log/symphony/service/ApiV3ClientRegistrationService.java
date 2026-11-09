@@ -44,16 +44,22 @@ public class ApiV3ClientRegistrationService {
     @Inject private ApiV3ClientRedirectRepository redirects;
     protected boolean development(){return Latkes.RuntimeMode.DEVELOPMENT==Latkes.getRuntimeMode();}
     protected String rowId(){return Ids.genTimeMillisId();}
-    protected String clientId(){return "app_"+ApiV3TokenUtil.generate();}
+    protected String clientId() {
+        return "app_" + ApiV3TokenUtil.generate();
+    }
 
     /** 只接收公开注册字段，由服务端在此生成 ID。 */
-    public record Registered(String clientId,String name,String scope,List<String> redirectUris){
-        public Registered{redirectUris=List.copyOf(redirectUris);}
+    public record Registered(String clientId, String name, String scope, List<String> redirectUris) {
+        public Registered {
+            redirectUris = List.copyOf(redirectUris);
+        }
     }
 
     /** 已批准的创建与管理员完整替换共用此无副作用的规范化逻辑。 */
-    public record Definition(String name,String scope,List<String> redirectUris){
-        public Definition{redirectUris=List.copyOf(redirectUris);}
+    public record Definition(String name, String scope, List<String> redirectUris) {
+        public Definition {
+            redirectUris = List.copyOf(redirectUris);
+        }
     }
     public Definition normalizeDefinition(String name,String scope,List<String> redirectUris){
         final String display=displayName(name),permissions=permissions(scope);
@@ -89,14 +95,17 @@ public class ApiV3ClientRegistrationService {
         if(value==null)throw new IllegalArgumentException("client name required");
         final String name=value.strip();
         if(name.isEmpty()||name.length()>128||name.codePoints().anyMatch(Character::isISOControl))throw new IllegalArgumentException("invalid client name");
-        ApiV3Json.canonical(name);return name;
+        ApiV3Json.canonical(name);
+        return name;
     }
     private static String permissions(String value){
         if(value==null||value.isEmpty()||value.length()>255)throw new IllegalArgumentException("client scope required");
         final Set<String> available=Set.copyOf(Arrays.asList(ApiV3TokenMgmtService.DEFAULT_SCOPES.split(" ")));
         final TreeSet<String> scopes=new TreeSet<>();
         for(String item:value.split(" ",-1)){
-            if(!available.contains(item))throw new IllegalArgumentException("unknown client scope");scopes.add(item);
+            if (!available.contains(item))
+                throw new IllegalArgumentException("unknown client scope");
+            scopes.add(item);
         }
         return String.join(" ",scopes);
     }

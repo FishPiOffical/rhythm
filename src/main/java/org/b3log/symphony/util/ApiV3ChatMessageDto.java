@@ -40,7 +40,9 @@ public final class ApiV3ChatMessageDto {
             final String stored=row.optString("content");
             if(stored.isEmpty()||stored.length()>MAX_STORED_LENGTH)return dto;
             source=ApiV3Json.parse(stored.getBytes(StandardCharsets.UTF_8));
-        } catch(IllegalArgumentException e){return dto;}
+        } catch (IllegalArgumentException e) {
+            return dto;
+        }
         final Object body=source.opt("content");
         if(!(body instanceof String)&&!(body instanceof JSONObject))return dto;
         final String content=body.toString();
@@ -53,8 +55,11 @@ public final class ApiV3ChatMessageDto {
                 .put("client",plain(source.opt("client"),64))
                 .put("appearance",ApiV3ChatAppearance.publicSnapshot(source.opt("appearance")));
         final JSONObject card;
-        try {card=content.stripLeading().startsWith("{")?ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)):null;}
-        catch(IllegalArgumentException e){return dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));}
+        try {
+            card = content.stripLeading().startsWith("{") ? ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)) : null;
+        } catch (IllegalArgumentException e) {
+            return dto.put("type", "text").put("content", content).put("contentHtml", render.apply(content));
+        }
         final String kind=card==null?"":card.optString("msgType");
         // 新卡片精确保留已校验的纯文本和签名 URL，历史消息沿用原投影。
         if (card != null && card.optInt("cardVersion") == 3 && Set.of("music", "weather").contains(kind)) {
@@ -62,9 +67,13 @@ public final class ApiV3ChatMessageDto {
                 final JSONObject payload=card.getJSONObject("payload");
                 final JSONObject normalized="music".equals(kind)?ApiV3ChatCardInputs.music(payload):ApiV3ChatCardInputs.weather(payload);
                 final JSONObject projected=new JSONObject(ApiV3ChatCardInputs.content(kind,normalized));
-                projected.remove("msgType");projected.remove("cardVersion");projected.remove("payload");
+                projected.remove("msgType");
+                projected.remove("cardVersion");
+                projected.remove("payload");
                 return dto.put("type",kind).put("card",projected);
-            } catch (RuntimeException invalidCard) { return dto; }
+            } catch (RuntimeException invalidCard) {
+                return dto;
+            }
         }
         switch(kind){
             case "redPacket" -> {
@@ -91,7 +100,11 @@ public final class ApiV3ChatMessageDto {
     }
     private static long number(final Object value,final long fallback){
         if(value==null||!value.toString().matches("[0-9]{1,19}"))return fallback;
-        try{return Long.parseLong(value.toString());}catch(NumberFormatException e){return fallback;}
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
     private static String plain(final Object value,final int limit){
         if(!(value instanceof String)&&!(value instanceof Number))return "";

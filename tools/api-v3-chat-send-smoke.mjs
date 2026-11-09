@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Defaults never send a valid message.
- * API_V3_TOKEN: content.write; API_V3_CHAT_READ_TOKEN: optional content.read credential.
- * A disposable account is required for an actual send. Explicitly provide all of:
+/** 确认 IDEA 重新编译或重启后运行。默认只检查拒绝路径。
+ * API_V3_TOKEN 需要 content.write。可选的 API_V3_CHAT_READ_TOKEN 需要 content.read。
+ * 实际发送须使用临时账号，并显式提供以下全部参数：
  * API_V3_ALLOW_CHAT_SEND=1, API_V3_CHAT_MESSAGE, API_V3_CHAT_IDEMPOTENCY_KEY.
- * Keep that key/body for resolving errors. No automatic revoke or other cleanup (legacy revoke may cost points).
+ * 保留原键与请求体以处理不确定响应。脚本跳过自动撤回和清理，旧撤回可能消耗积分。
  */
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** After confirmed IDEA rebuild/restart. Default probes only reject invalid requests.
- * An actual withdrawal requires API_V3_ALLOW_CHAT_WITHDRAW=1, API_V3_CHAT_MESSAGE_ID,
- * API_V3_CHAT_WITHDRAW_KEY and a disposable account's API_V3_TOKEN (content.write).
- * Keep the original ID/key to resolve uncertain responses. No automatic send or legacy withdrawal.
+/** 确认 IDEA 重新编译或重启后运行。默认仅验证无效请求会被拒绝。
+ * 实际撤回需要 API_V3_ALLOW_CHAT_WITHDRAW=1、API_V3_CHAT_MESSAGE_ID、API_V3_CHAT_WITHDRAW_KEY
+ * 及具有 content.write 的临时账号 API_V3_TOKEN。
+ * 保留原 ID 和键以处理不确定响应。脚本只操作既有消息的 v3 撤回。
  */
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';

@@ -38,8 +38,10 @@ import java.util.*;
 /** 合并当前本地连接与配置节点的最近采样，按当前账号资料投影名单。 */
 @Service
 public class ApiV3ChatOnlineQueryService {
-    @Inject private UserRepository users;
-    @Inject private ApiV3RealtimeService realtime;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3RealtimeService realtime;
     protected ChatOnlineSnapshot.Sample remote() {
         return ChatOnlineSnapshot.current();
     }
@@ -70,6 +72,7 @@ public class ApiV3ChatOnlineQueryService {
         }
         final var sample = remote();
         final Map<String, JSONObject> current = new HashMap<>();
+        // 将节点用户名和本机连接 ID 解析成当前账号记录，按账号 ID 合并去重。
         load("userName", sample.names(), current);
         load("oId", localIds(), current);
         final var visible = current.values().stream()

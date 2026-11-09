@@ -93,7 +93,8 @@ public class ApiV3ProfessionGuideQueryService {
                     +" FROM `"+automations.getName()+"` a LEFT JOIN `"+automationRevisions.getName()+"` r ON r.oId=a.currentRevisionId"
                     +" WHERE a.professionId=? AND a.status='PUBLISHED' ORDER BY a.sortOrder ASC,a.oId ASC LIMIT ?",professionId,MAX_ROWS+1);
             if (sources.size()>MAX_ROWS) throw ApiV3ProfessionGuideDto.unavailable();
-            final JSONArray triggers=new JSONArray(); final Set<String> seen=new HashSet<>();
+            final JSONArray triggers = new JSONArray();
+            final Set<String> seen = new HashSet<>();
             for (final JSONObject row:sources) {
                 final String automation=ApiV3ProfessionGuideDto.text(row,"automationId",19,false);
                 final String revision=ApiV3ProfessionGuideDto.text(row,"currentRevisionId",19,false);

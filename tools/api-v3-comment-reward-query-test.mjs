@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Production read SQL and actual auth/controller over SQLite or --mysql; separate from full app IoC. */
+/** 在 SQLite 或 --mysql 模式执行生产读取 SQL、实际鉴权与控制器，应用 IoC 另行验证。 */
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import{spawnSync}from'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-comment-rewards-'));
 const mysql=process.argv.includes('--mysql');let container;

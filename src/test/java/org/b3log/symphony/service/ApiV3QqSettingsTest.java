@@ -33,17 +33,26 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 /** 覆盖第一方 SQL 凭据校验、严格写入和回执及 HTTP 中间件。SQLite 适配层移除 FOR UPDATE。 */
 public class ApiV3QqSettingsTest {
     static Object field(Object target, Class<?> type, String name) throws Exception {
-        final var f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target);
+        final var f = type.getDeclaredField(name);
+        f.setAccessible(true);
+        return f.get(target);
     }
     static class Fixture extends ApiV3IdentityApplicationTest.Fixture {
-        final ApiV3QqSettingsService qq = new ApiV3QqSettingsService() { protected long now() { return NOW; } };
+        final ApiV3QqSettingsService qq = new ApiV3QqSettingsService() {
+            protected long now() {
+                return NOW;
+            }
+        };
         final ApiV3ProfileSettingsProcessor endpointQq = new ApiV3ProfileSettingsProcessor();
         Fixture() throws Exception {
-            sql(db, "ALTER TABLE u ADD userQQ TEXT DEFAULT ''"); sql(db, "ALTER TABLE u ADD userUpdateTime BIGINT DEFAULT 0");
-            sql(db, "UPDATE u SET userQQ='00123' WHERE oId='1'"); sql(db, "UPDATE u SET userQQ='00999' WHERE oId='2'");
+            sql(db, "ALTER TABLE u ADD userQQ TEXT DEFAULT ''");
+            sql(db, "ALTER TABLE u ADD userUpdateTime BIGINT DEFAULT 0");
+            sql(db, "UPDATE u SET userQQ='00123' WHERE oId='1'");
+            sql(db, "UPDATE u SET userQQ='00999' WHERE oId='2'");
             inject(qq, "users", field(proof, ApiV3SecurityProofService.class, "users"));
             inject(qq, "requests", field(service, ApiV3IdentityApplicationService.class, "requests"));
-            inject(qq, "proofs", proof); inject(endpointQq, "qq", qq);
+            inject(qq, "proofs", proof);
+            inject(endpointQq, "qq", qq);
         }
         String stored() throws Exception { return rows(db,"SELECT userQQ FROM u WHERE oId='1'").getFirst().getString("userQQ"); }
         RequestContext requestQq(String method, String token, String key, String body) throws Exception {
@@ -51,13 +60,24 @@ public class ApiV3QqSettingsTest {
             try {
                 if (token != null) raw.headers().set("Authorization", "Bearer " + token);
                 if (key != null) raw.headers().set("Idempotency-Key", key);
-                raw.headers().set("Content-Type", "application/json"); raw.headers().set("Cookie", "legacy"); raw.headers().set("X-Real-IP", "127.0.0.1");
-                final var request = new Request(null, raw); raw.content().clear().writeBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                raw.headers().set("Content-Type", "application/json");
+                raw.headers().set("Cookie", "legacy");
+                raw.headers().set("X-Real-IP", "127.0.0.1");
+                final var request = new Request(null, raw);
+                raw.content().clear().writeBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                request.setBytes(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
                 final var context = new RequestContext(request, new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
                 context.addHandler(new org.b3log.latke.http.handler.RouteHandler());
-                context.addHandler(c -> { if (method.equals("GET")) endpointQq.qq(c); else endpointQq.updateQq(c); }); context.handle(); return context;
-            } finally { raw.release(); }
+                context.addHandler(c -> {
+                    if (method.equals("GET")) endpointQq.qq(c);
+                    else endpointQq.updateQq(c);
+                });
+                context.handle();
+                return context;
+            } finally {
+                raw.release();
+            }
         }
     }
     public static void main(String[] args) throws Exception {
@@ -68,8 +88,14 @@ public class ApiV3QqSettingsTest {
         System.out.println("PASS qq 1 exact ASCII 1..12 digits, strip/clear/leading-zero semantics; floats and hidden owner inputs rejected");
         try (var f = new Fixture()) {
             Assert.assertEquals(f.qq.read(identity()).toString(), new JSONObject().put("qq", "00123").toString());
-            final var first = f.qq.update(identity(), new JSONObject().put("qq", " 000456 "), "same"); Assert.assertEquals(first.keySet(), Set.of("qq")); Assert.assertEquals(f.stored(), "000456"); Assert.assertEquals(f.count("receipt"), 1);
-            f.qq.update(identity(), new JSONObject().put("qq", "789"), "later"); Assert.assertEquals(f.qq.update(identity(), new JSONObject().put("qq", "000456"), "same").getString("qq"), "000456"); Assert.assertEquals(f.stored(), "789");
+            final var first = f.qq.update(identity(), new JSONObject().put("qq", " 000456 "), "same");
+            Assert.assertEquals(first.keySet(), Set.of("qq"));
+            Assert.assertEquals(f.stored(), "000456");
+            Assert.assertEquals(f.count("receipt"), 1);
+            // 原键回放返回原值，之后写入的新值应继续留在数据库中。
+            f.qq.update(identity(), new JSONObject().put("qq", "789"), "later");
+            Assert.assertEquals(f.qq.update(identity(), new JSONObject().put("qq", "000456"), "same").getString("qq"), "000456");
+            Assert.assertEquals(f.stored(), "789");
             error(409, () -> f.qq.update(identity(), new JSONObject().put("qq", "1"), "same"));
             Assert.assertEquals(rows(f.db, "SELECT userQQ FROM u WHERE oId='2'").getFirst().getString("userQQ"), "00999");
             f.qq.update(identity(), new JSONObject().put("qq", ""), "clear"); Assert.assertEquals(f.stored(), "");
@@ -88,7 +114,14 @@ public class ApiV3QqSettingsTest {
             if (failure.startsWith("UPDATE")) f.writeFault = failure; else f.fault = failure;
             error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "fault")); Assert.assertEquals(f.stored(), "00123"); Assert.assertEquals(f.count("receipt"), 0);
         }
-        try (var f = new Fixture()) { f.fault = "ack"; error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "ack")); Assert.assertEquals(f.stored(), "456"); f.fault = ""; Assert.assertEquals(f.qq.update(identity(), new JSONObject().put("qq", "456"), "ack").getString("qq"), "456"); Assert.assertEquals(f.count("receipt"), 1); }
+        try (var f = new Fixture()) {
+            f.fault = "ack";
+            error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "ack"));
+            Assert.assertEquals(f.stored(), "456");
+            f.fault = "";
+            Assert.assertEquals(f.qq.update(identity(), new JSONObject().put("qq", "456"), "ack").getString("qq"), "456");
+            Assert.assertEquals(f.count("receipt"), 1);
+        }
         System.out.println("PASS qq 4 setting/receipt/commit failures roll back; lost commit ACK replays a single committed result");
         try (var f = new Fixture()) {
             ApiV3ProfileSettingsProcessor.registerRoutes(f.endpointQq, f.auth, f.writes); Dispatcher.mapping();

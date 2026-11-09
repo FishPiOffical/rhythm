@@ -41,8 +41,13 @@ public class ApiV3IdentityApplicationService {
     @Inject private ApiV3IdentityReviewerRepository reviewers;
     @Inject private ApiV3RequestRepository requests;
     @Inject private ApiV3SecurityProofService proofs;
-    protected long now(){return System.currentTimeMillis();}
-    private String columns(){return "oId,userId,type,status,createdAt,materialReadAt,reviewedAt,note";}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    private String columns() {
+        return "oId,userId,type,status,createdAt,materialReadAt,reviewedAt,note";
+    }
     public JSONObject create(JSONObject identity,byte[] bytes,String mediaType,String key) {
         final ApiV3IdentityImage.Image image=ApiV3IdentityImage.validate(bytes,mediaType);
         final String actor=actor(identity);
@@ -161,16 +166,33 @@ public class ApiV3IdentityApplicationService {
             throw error;
         } catch (Exception error) {
             throw unavailable();
+        } finally {
+            if (transaction != null && transaction.isActive())
+                transaction.rollback();
         }
-        finally{if(transaction!=null&&transaction.isActive())transaction.rollback();}
     }
     private ApiV3MutationStore guarded(JSONObject identity,String scope,boolean review) {
         return new ApiV3MutationStore(){
-            public Transaction beginTransaction(){return begin();}
-            public boolean hasTransactionBegun(){return requests.hasTransactionBegun();}
-            public JSONObject getForUpdate(String id)throws RepositoryException{authorize(identity,scope,review);return requests.getForUpdate(id);}
-            public String add(JSONObject row)throws RepositoryException{return requests.add(row);}
-            public void update(String id,JSONObject row,String...fields)throws RepositoryException{requests.update(id,row,fields);}
+            public Transaction beginTransaction() {
+                return begin();
+            }
+
+            public boolean hasTransactionBegun() {
+                return requests.hasTransactionBegun();
+            }
+
+            public JSONObject getForUpdate(String id) throws RepositoryException {
+                authorize(identity, scope, review);
+                return requests.getForUpdate(id);
+            }
+
+            public String add(JSONObject row) throws RepositoryException {
+                return requests.add(row);
+            }
+
+            public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                requests.update(id, row, fields);
+            }
         };
     }
     private void authorize(JSONObject identity,String scope,boolean review)throws RepositoryException {
@@ -183,27 +205,75 @@ public class ApiV3IdentityApplicationService {
     }
     private JSONObject application(String id)throws RepositoryException {
         final var rows=applications.select("SELECT "+columns()+" FROM `"+applications.getName()+"` WHERE oId=? FOR UPDATE",id);
-        if(rows.size()!=1)throw ApiV3Requests.notFound();return rows.getFirst();
+        if (rows.size() != 1)
+            throw ApiV3Requests.notFound();
+        return rows.getFirst();
     }
     private JSONObject project(JSONObject row,boolean review) {
-        final String state=row.optString("status");if(!Set.of("pending","approved","rejected").contains(state)||!"enterprise".equals(row.optString("type")))throw unavailable();
+        final String state = row.optString("status");
+        if (!Set.of("pending", "approved", "rejected").contains(state) || !"enterprise".equals(row.optString("type")))
+            throw unavailable();
         final JSONObject result=new JSONObject().put("id",row.getString("oId")).put("type","enterprise").put("status",state)
                 .put("createdAt",row.getLong("createdAt")).put("materialReadAt",row.getLong("materialReadAt"))
                 .put("reviewedAt",row.getLong("reviewedAt")).put("note",row.getString("note"));
-        if(review)result.put("applicantId",row.getString("userId"));return result;
+        if (review)
+            result.put("applicantId", row.getString("userId"));
+        return result;
     }
-    @FunctionalInterface private interface Read {JSONObject run()throws Exception;}
+
+    @FunctionalInterface
+    private interface Read {
+        JSONObject run() throws Exception;
+    }
     private JSONObject read(JSONObject identity,String scope,boolean review,Read work) {
         Transaction transaction=null;
-        try{transaction=begin();authorize(identity,scope,review);final JSONObject result=work.run();transaction.commit();return result;}
-        catch(ApiV3Exception error){throw error;}catch(Exception error){throw unavailable();}
-        finally{if(transaction!=null&&transaction.isActive())transaction.rollback();}
+        try {
+            transaction = begin();
+            authorize(identity, scope, review);
+            final JSONObject result = work.run();
+            transaction.commit();
+            return result;
+        } catch (ApiV3Exception error) {
+            throw error;
+        } catch (Exception error) {
+            throw unavailable();
+        } finally {
+            if (transaction != null && transaction.isActive())
+                transaction.rollback();
+        }
     }
-    private long timestamp(){final long value=now();if(value<=0||value>9_007_199_254_740_991L)throw unavailable();return value;}
-    private Transaction begin(){if(requests.hasTransactionBegun())throw new IllegalStateException("identity workflow root required");return ApiV3Transactions.strict(requests.beginTransaction());}
-    private static void change(String sql,Object...args)throws RepositoryException{if(ApiV3TransactionStatements.execute(sql,args)!=1)throw unavailable();}
-    private static String actor(JSONObject identity){final var user=identity==null?null:identity.optJSONObject("user");final String value=user==null?"":user.optString("oId");if(!value.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.forbidden();return value;}
+
+    private long timestamp() {
+        final long value = now();
+        if (value <= 0 || value > 9_007_199_254_740_991L)
+            throw unavailable();
+        return value;
+    }
+
+    private Transaction begin() {
+        if (requests.hasTransactionBegun())
+            throw new IllegalStateException("identity workflow root required");
+        return ApiV3Transactions.strict(requests.beginTransaction());
+    }
+
+    private static void change(String sql, Object... args) throws RepositoryException {
+        if (ApiV3TransactionStatements.execute(sql, args) != 1)
+            throw unavailable();
+    }
+
+    private static String actor(JSONObject identity) {
+        final var user = identity == null ? null : identity.optJSONObject("user");
+        final String value = user == null ? "" : user.optString("oId");
+        if (!value.matches("[1-9][0-9]{0,18}"))
+            throw ApiV3Requests.forbidden();
+        return value;
+    }
     private static void id(String id){if(id==null||!id.matches("[1-9][0-9]{0,18}"))throw ApiV3WriteInputs.invalid();}
-    private static ApiV3Exception gone(){return new ApiV3Exception(410,"material_consumed","证明图片已被读取或已不可用");}
-    private static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","认证申请暂不可用");}
+    private static ApiV3Exception gone() {
+        return new ApiV3Exception(410, "material_consumed", "证明图片已被读取或已不可用");
+    }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "认证申请暂不可用");
+    }
 }

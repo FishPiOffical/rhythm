@@ -52,19 +52,40 @@ public class ApiV3MembershipSettingsService {
         final JSONObject changes = ApiV3MembershipConfiguration.validateChanges(body);
         try {
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-                public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                public JSONObject getForUpdate(final String receipt) throws RepositoryException { owner(actor); return requests.getForUpdate(receipt); }
-                public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
-                public void update(final String receipt, final JSONObject row, final String... fields) throws RepositoryException { requests.update(receipt,row,fields); }
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(final String receipt) throws RepositoryException {
+                    owner(actor);
+                    return requests.getForUpdate(receipt);
+                }
+
+                public String add(final JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(final String receipt, final JSONObject row, final String... fields) throws RepositoryException {
+                    requests.update(receipt, row, fields);
+                }
             };
             return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "membership.config", key, changes,
                     () -> updateInCurrentTransaction(actor, changes));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final Exception e) { throw ApiV3MembershipConfiguration.unavailable(); }
-        finally {
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            throw ApiV3MembershipConfiguration.unavailable();
+        } finally {
             // 回滚、提交结果不确定和重放时也失效缓存，避免对外发布事务内的快照。
-            if (!requests.hasTransactionBegun()) { try { cache.remove(actor); } catch (final RuntimeException ignored) { } }
+            if (!requests.hasTransactionBegun()) {
+                try {
+                    cache.remove(actor);
+                } catch (final RuntimeException ignored) { }
+            }
         }
     }
     public JSONObject updateInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
@@ -84,7 +105,10 @@ public class ApiV3MembershipSettingsService {
                 if (!code.equals(row.optString("lvCode"))) throw ApiV3MembershipConfiguration.unavailable();
                 final JSONObject candidate = ApiV3MembershipConfiguration.displayDefinition(row);
                 if (display != null && !display.similar(candidate)) throw ApiV3MembershipConfiguration.unavailable();
-                if (definition == null) { definition = row; display = candidate; }
+                if (definition == null) {
+                    definition = row;
+                    display = candidate;
+                }
             }
             final var rows = memberships.select("SELECT oId,userId,lvCode,state,expiresAt,configJson FROM `"+memberships.getName()+"` WHERE userId=? LIMIT 2 FOR UPDATE",actor);
             if (rows.isEmpty()) throw ApiV3Requests.notFound();
@@ -100,7 +124,9 @@ public class ApiV3MembershipSettingsService {
             return new JSONObject().put("config",ApiV3MembershipConfiguration.publicConfig(merged));
         });
     }
-    protected long now() { return System.currentTimeMillis(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     private void owner(final String actor) throws RepositoryException {
         final var rows=users.select("SELECT oId,userStatus FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
         if(rows.size()!=1 || !actor.equals(rows.getFirst().optString("oId")) || integer(rows.getFirst().opt("userStatus"))!=UserExt.USER_STATUS_C_VALID)
@@ -108,8 +134,14 @@ public class ApiV3MembershipSettingsService {
     }
     private static long integer(final Object value) {
         if(!(value instanceof Number number)) throw ApiV3MembershipConfiguration.unavailable();
-        try { final long n=new BigDecimal(number.toString()).longValueExact();if(n<0)throw ApiV3MembershipConfiguration.unavailable();return n; }
-        catch(final ArithmeticException|NumberFormatException e){throw ApiV3MembershipConfiguration.unavailable();}
+        try {
+            final long n = new BigDecimal(number.toString()).longValueExact();
+            if (n < 0)
+                throw ApiV3MembershipConfiguration.unavailable();
+            return n;
+        } catch (final ArithmeticException | NumberFormatException e) {
+            throw ApiV3MembershipConfiguration.unavailable();
+        }
     }
     private static void id(final String actor) { if(actor==null || !actor.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.invalid(); }
 }

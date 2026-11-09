@@ -43,6 +43,9 @@ public class ApiV3PrivateMessagePublicationService {
             try{afterPublished(actor,peer);}catch(Exception e){LOGGER.warn("Private publication refresh unavailable");}
             return result;
         }catch(ApiV3Exception e){throw e;}
-        catch(Exception e){LOGGER.warn("Private publication unavailable");throw new ApiV3Exception(503,"temporarily_unavailable","私信暂不可用");}
+        catch (Exception e) {
+            LOGGER.warn("Private publication unavailable");
+            throw new ApiV3Exception(503, "temporarily_unavailable", "私信暂不可用");
+        }
     }
 }

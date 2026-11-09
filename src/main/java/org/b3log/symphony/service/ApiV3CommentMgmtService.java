@@ -50,20 +50,34 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class ApiV3CommentMgmtService {
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ArticleMgmtService articleWrites;
-    @Inject private CommentMgmtService comments;
-    @Inject private CommentValidationService validation;
-    @Inject private ApiV3ContentQueryService content;
-    @Inject private CommentRepository repository;
-    @Inject private OptionRepository options;
-    @Inject private UserRepository users;
-    @Inject private RoleQueryService roles;
-    @Inject private ArticleRepository articles;
-    @Inject private LongArticleParagraphService paragraphs;
-    @Inject private CommentRemovalMgmtService removal;
-    @Inject private CommentThankMgmtService thanks;
-    @Inject private CommentAcceptMgmtService acceptance;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ArticleMgmtService articleWrites;
+    @Inject
+    private CommentMgmtService comments;
+    @Inject
+    private CommentValidationService validation;
+    @Inject
+    private ApiV3ContentQueryService content;
+    @Inject
+    private CommentRepository repository;
+    @Inject
+    private OptionRepository options;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private RoleQueryService roles;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private LongArticleParagraphService paragraphs;
+    @Inject
+    private CommentRemovalMgmtService removal;
+    @Inject
+    private CommentThankMgmtService thanks;
+    @Inject
+    private CommentAcceptMgmtService acceptance;
 
     public JSONObject accept(final JSONObject viewer, final String id, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
@@ -92,7 +106,9 @@ public class ApiV3CommentMgmtService {
                 if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
                 throw new ApiV3Exception(422, e.code, "采纳条件未满足，请检查评论作者与积分余额");
             }
-        }), execution -> { if (execution.applied()) acceptance.afterAccepted(accepted.get()); });
+        }), execution -> {
+            if (execution.applied()) acceptance.afterAccepted(accepted.get());
+        });
         return outcome.result();
     }
 
@@ -119,7 +135,9 @@ public class ApiV3CommentMgmtService {
                 if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
                 throw new ApiV3Exception(422, e.code, "感谢条件未满足，请检查评论作者与积分余额");
             }
-        }), execution -> { if (execution.applied()) thanks.afterThanked(thanked.get()); });
+        }), execution -> {
+            if (execution.applied()) thanks.afterThanked(thanked.get());
+        });
         return outcome.result();
     }
 
@@ -129,7 +147,7 @@ public class ApiV3CommentMgmtService {
         }
     }
 
-    /** Shared owner deletion joins its result and all business writes to one idempotency transaction. */
+    /** 调用共用的本人删除逻辑，将业务写入及删除结果纳入同一个幂等事务。 */
     public JSONObject remove(final JSONObject viewer, final String id, final String key) throws Exception {
         removalPermission(viewer);
         final String actor = viewer.optString(Keys.OBJECT_ID);
@@ -148,7 +166,9 @@ public class ApiV3CommentMgmtService {
                 if ("forbidden".equals(e.code)) throw ApiV3Requests.forbidden();
                 throw new ApiV3Exception(422, e.code, "删除条件未满足，请检查评论互动和积分余额");
             }
-        }), execution -> { if (execution.applied()) removal.afterRemoved(removed.get()); });
+        }), execution -> {
+            if (execution.applied()) removal.afterRemoved(removed.get());
+        });
         return outcome.result();
     }
 
@@ -226,7 +246,10 @@ public class ApiV3CommentMgmtService {
                 for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "publication_rejected", "发布条件未满足，请检查余额、发言间隔和账号状态");
             }
-        }), execution -> { if (execution.applied()) comments.afterCommentPublished(published.get()); });
+        }), execution -> {
+            // 只有首次成功提交才执行发布后的操作。
+            if (execution.applied()) comments.afterCommentPublished(published.get());
+        });
         return outcome.result();
     }
 
@@ -276,7 +299,9 @@ public class ApiV3CommentMgmtService {
                 for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "edit_rejected", "编辑条件未满足，请检查余额和账号状态");
             }
-        }), execution -> { if (execution.applied()) comments.afterCommentEdited(edited.get()); });
+        }), execution -> {
+            if (execution.applied()) comments.afterCommentEdited(edited.get());
+        });
         return outcome.result();
     }
     private void permission(final JSONObject actor) throws Exception {

@@ -33,14 +33,22 @@ import java.util.concurrent.atomic.AtomicReference;
 /** 已认证用户的文章感谢和购买。回执不含付费正文，读取详情时重新校验权限。 */
 @Service
 public class ApiV3ArticleRewardService {
-    @Inject private ArticleRepository articles;
-    @Inject private UserRepository users;
-    @Inject private RewardRepository rewards;
-    @Inject private ArticleRewardMgmtService mutations;
-    @Inject private ArticleMgmtService articleWrites;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ApiV3ContentQueryService visibility;
-    @Inject private RoleQueryService roles;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private RewardRepository rewards;
+    @Inject
+    private ArticleRewardMgmtService mutations;
+    @Inject
+    private ArticleMgmtService articleWrites;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ApiV3ContentQueryService visibility;
+    @Inject
+    private RoleQueryService roles;
 
     public JSONObject read(final JSONObject viewer, final String id, final ArticleRewardMgmtService.Kind kind) throws Exception {
         final String actor = actor(viewer);

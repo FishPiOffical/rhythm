@@ -132,7 +132,8 @@ public class ApiV3InvitationPurchaseService {
                     id,code,actor,"",0,Invitecode.STATUS_C_UNUSED,"User ["+actor+"] generated")!=1) throw unavailable();
             final JSONObject durable=new JSONObject().put("result",new JSONObject().put("code",code).put("expiresAt",expires).put("paidPoints",paid))
                     .put("indexTransferId",transferId);
-            publicResult(durable);return durable;
+            publicResult(durable);
+            return durable;
         });
     }
     private void index(final String actor,final String billingId,final String transferId) {

@@ -50,5 +50,7 @@ public final class ApiV3EmojiTransferInputs {
         if(!(raw instanceof JSONObject row)||!row.keySet().equals(Set.of("url","name","sort")))throw ApiV3WriteInputs.invalid();
         return ApiV3EmojiItemInputs.addition(row,true);
     }
-    public static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","表情批量操作暂不可用");}
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "表情批量操作暂不可用");
+    }
 }

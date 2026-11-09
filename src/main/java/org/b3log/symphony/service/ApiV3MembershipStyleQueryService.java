@@ -39,7 +39,9 @@ public class ApiV3MembershipStyleQueryService {
     @Inject private MembershipLevelRepository levels;
     private record Snapshot(String version, String list, long until, long generation) { }
     private volatile Snapshot cached;
-    protected long now() { return System.currentTimeMillis(); }
+    protected long now() {
+        return System.currentTimeMillis();
+    }
 
     public static String version(String value) {
         if (value != null && !value.matches("[0-9a-f]{64}")) throw ApiV3Requests.invalid();
@@ -58,7 +60,9 @@ public class ApiV3MembershipStyleQueryService {
                     .put("maxAgeMs", Math.max(0, Math.min(CACHE_MS, snapshot.until - now())));
             if (!unchanged) result.put("list", new JSONArray(snapshot.list));
             return result;
-        } catch (RepositoryException error) { throw unavailable(); }
+        } catch (RepositoryException error) {
+            throw unavailable();
+        }
     }
 
     private synchronized Snapshot snapshot() throws RepositoryException {
@@ -87,7 +91,10 @@ public class ApiV3MembershipStyleQueryService {
             try {
                 final long expiry = expiry(row.opt("expiresAt"));
                 if (expiry != 0 && expiry <= time) continue;
-                if (!seen.add(id)) { configs.put(id, JSONObject.NULL); continue; }
+                if (!seen.add(id)) {
+                    configs.put(id, JSONObject.NULL);
+                    continue;
+                }
                 if (expiry != 0) until = Math.min(until, expiry);
                 configs.put(id, ApiV3Json.canonical(style(row)));
             } catch (ApiV3Exception | IllegalArgumentException invalidRow) {
@@ -100,8 +107,11 @@ public class ApiV3MembershipStyleQueryService {
         final String encoded = ApiV3Json.canonical(list);
         if (encoded.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw unavailable();
         final String revision;
-        try { revision = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(encoded.getBytes(StandardCharsets.UTF_8))); }
-        catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+        try {
+            revision = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(encoded.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
         // 读取期间若有写入使快照失效，下次请求须重建快照。
         cached = new Snapshot(revision, encoded, until, generation);
         return cached;
@@ -122,12 +132,24 @@ public class ApiV3MembershipStyleQueryService {
         if (!(raw instanceof String text) || text.length() > 102400) throw unavailable();
         if (text.isBlank()) return new JSONObject();
         if (text.getBytes(StandardCharsets.UTF_8).length > 102400) throw unavailable();
-        try { return ApiV3Json.parse(text.getBytes(StandardCharsets.UTF_8)); } catch (IllegalArgumentException error) { throw unavailable(); }
+        try {
+            return ApiV3Json.parse(text.getBytes(StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException error) {
+            throw unavailable();
+        }
     }
     private static long expiry(Object raw) {
         if (!(raw instanceof Number number)) throw unavailable();
-        try { long value = new BigDecimal(number.toString()).longValueExact(); if (value < 0) throw unavailable(); return value; }
-        catch (ArithmeticException | NumberFormatException error) { throw unavailable(); }
+        try {
+            long value = new BigDecimal(number.toString()).longValueExact();
+            if (value < 0)
+                throw unavailable();
+            return value;
+        } catch (ArithmeticException | NumberFormatException error) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable() { return ApiV3MembershipConfiguration.unavailable(); }
+    private static ApiV3Exception unavailable() {
+        return ApiV3MembershipConfiguration.unavailable();
+    }
 }

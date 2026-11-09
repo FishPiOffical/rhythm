@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Isolated actual settings SQL/idempotency/auth/routes and bundled JDBC strict-commit/savepoint faults. */
+/** 隔离验证实际会员设置 SQL、幂等、鉴权及路由，并注入随包 JDBC 严格提交和保存点故障。 */
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=['src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);

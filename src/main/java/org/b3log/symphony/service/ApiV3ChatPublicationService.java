@@ -38,19 +38,35 @@ import java.util.concurrent.atomic.AtomicReference;
 /** 通过 Bearer 身份发送普通文本，所有持久化写入与重放回执一起提交。 */
 @Service
 public class ApiV3ChatPublicationService {
-    @Inject private UserRepository users;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private PointtransferMgmtService points;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ChatMessageValidationService validation;
-    @Inject private ChatMessageRestrictionQueryService restrictions;
-    @Inject private ChatMessagePenaltyMgmtService penalties;
-    @Inject private ChatMessageMgmtService messages;
-    @Inject private CloudService cloud;
-    @Inject private NotificationMgmtService notifications;
-    @Inject private ChatroomProcessor delivery;
-    @Inject private ChatMessageNoticeService notices;
-    protected long now() { return System.currentTimeMillis(); }
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private PointtransferMgmtService points;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ChatMessageValidationService validation;
+    @Inject
+    private ChatMessageRestrictionQueryService restrictions;
+    @Inject
+    private ChatMessagePenaltyMgmtService penalties;
+    @Inject
+    private ChatMessageMgmtService messages;
+    @Inject
+    private CloudService cloud;
+    @Inject
+    private NotificationMgmtService notifications;
+    @Inject
+    private ChatroomProcessor delivery;
+    @Inject
+    private ChatMessageNoticeService notices;
+
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
     private record Published(ApiV3IdempotencyMgmtService.Execution execution, JSONObject message,
                              ChatMessageAbuseState.Repeat repeat, ChatMessagePenaltyMgmtService.Result penalty, boolean card) { }
     private record RepeatDecision(String name, String content, ChatMessageAbuseState.Repeat decision) { }
@@ -78,8 +94,11 @@ public class ApiV3ChatPublicationService {
         final Published result = points.executeWithTransferLocks(actor, List.of(Pointtransfer.ID_C_SYS), () -> {
             try (final var caches = ArticlePublicationCaches.open(users::hasTransactionBegun)) {
                 ArticlePublicationCaches.afterTransaction("chat-user:" + actor, () -> {
-                    try { users.refreshSettingsCache(actor); }
-                    catch (final Exception e) { users.evictSettingsCaches(actor); }
+                    try {
+                        users.refreshSettingsCache(actor);
+                    } catch (final Exception e) {
+                        users.evictSettingsCaches(actor);
+                    }
                 });
                 final ApiV3IdempotencyMgmtService.Mutation mutation = () -> {
                     final JSONObject current = users.getForUpdate(actor);
@@ -88,9 +107,12 @@ public class ApiV3ChatPublicationService {
                     }
                     if (current.optString("userPhone").isBlank()) throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
                     final String prepared;
-                    try { prepared = card == null ? validation.prepare(current, content)
-                            : ApiV3ChatCardInputs.content(kind, ApiV3ChatCardInputs.prepare(kind, card, text -> validation.prepare(current, text))); }
-                    catch (final ChatMessageValidation.Rejected e) { throw new ApiV3Exception(e.status, e.code, e.getMessage()); }
+                    try {
+                        prepared = card == null ? validation.prepare(current, content)
+                                : ApiV3ChatCardInputs.content(kind, ApiV3ChatCardInputs.prepare(kind, card, text -> validation.prepare(current, text)));
+                    } catch (final ChatMessageValidation.Rejected e) {
+                        throw new ApiV3Exception(e.status, e.code, e.getMessage());
+                    }
                     if (card == null) ChatMessageText.requireOrdinary(prepared);
                     final long time = now();
                     ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
@@ -123,15 +145,27 @@ public class ApiV3ChatPublicationService {
                 else {
                     // 先锁定当前用户，再读取回执；回放成功请求也遵循此顺序。
                     final ApiV3MutationStore store = new ApiV3MutationStore() {
-                        public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                        public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
+                        public Transaction beginTransaction() {
+                            return ApiV3Transactions.strict(requests.beginTransaction());
+                        }
+
+                        public boolean hasTransactionBegun() {
+                            return requests.hasTransactionBegun();
+                        }
+
                         public JSONObject getForUpdate(String id) throws RepositoryException {
                             final JSONObject current = users.getForUpdate(actor);
                             if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
                             return requests.getForUpdate(id);
                         }
-                        public String add(JSONObject row) throws RepositoryException { return requests.add(row); }
-                        public void update(String id, JSONObject row, String... columns) throws RepositoryException { requests.update(id, row, columns); }
+
+                        public String add(JSONObject row) throws RepositoryException {
+                            return requests.add(row);
+                        }
+
+                        public void update(String id, JSONObject row, String... columns) throws RepositoryException {
+                            requests.update(id, row, columns);
+                        }
                     };
                     outcome = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, actor, "chat." + kind + ".create", key, card, mutation);
                 }
@@ -144,7 +178,7 @@ public class ApiV3ChatPublicationService {
     private void afterPublished(final String actor, final Published result) {
         if (users.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("chat delivery before transaction end");
         ChatMessageAbuseState.accepted(result.message().getString("content"));
-        afterSharedAdmission(actor,result.message().getString("userName"),result.repeat(),result.penalty());
+        afterSharedAdmission(actor, result.message().getString("userName"), result.repeat(), result.penalty());
         safely(() -> {
             if (result.card()) delivery.afterApiCardPublished(result.message());
             else delivery.afterApiMessagePublished(result.message());

@@ -33,8 +33,10 @@ import java.util.*;
 /** 按账号读取当前禁言记录，并联查有效账号的公开资料。 */
 @Service
 public class ApiV3ChatMuteQueryService {
-    @Inject private CloudRepository cloud;
-    @Inject private UserRepository users;
+    @Inject
+    private CloudRepository cloud;
+    @Inject
+    private UserRepository users;
     private static final int READ_BUDGET = 10000;
     protected long now() {
         return System.currentTimeMillis();
@@ -71,9 +73,9 @@ public class ApiV3ChatMuteQueryService {
                 if (!name.matches("[A-Za-z0-9_-]{1,64}"))
                     throw unavailable();
                 final String nickname = row.optString("userNickname");
-                active.add(new JSONObject().put("id",id).put("userName",name)
-                        .put("userNickname",nickname.length() <= 255 && nickname.codePoints().noneMatch(Character::isISOControl) ? nickname : "")
-                        .put("userAvatarURL",ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL"))).put("expiresAt",until));
+                active.add(new JSONObject().put("id", id).put("userName", name)
+                        .put("userNickname", nickname.length() <= 255 && nickname.codePoints().noneMatch(Character::isISOControl) ? nickname : "")
+                        .put("userAvatarURL", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL"))).put("expiresAt", until));
             }
             // 只对未过期记录排序和分页，分页总数也取有效记录数。
             active.sort(Comparator.comparingLong((JSONObject row) -> row.getLong("expiresAt")).thenComparing(row -> row.getString("id")));

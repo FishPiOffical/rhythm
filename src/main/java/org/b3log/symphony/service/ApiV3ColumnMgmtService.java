@@ -37,14 +37,18 @@ public class ApiV3ColumnMgmtService {
 
     public JSONObject title(final String actor, final String id, final String title, final String key) throws Exception {
         return idempotency.execute(actor, "columns.title:" + id, key, new JSONObject().put("title", title), () -> {
-            try { return dto(columns.renameColumnInCurrentTransaction(actor, id, title)); }
-            catch (final ServiceException e) { throw translate(e); }
+            try {
+                return dto(columns.renameColumnInCurrentTransaction(actor, id, title));
+            } catch (final ServiceException e) {
+                throw translate(e);
+            }
         });
     }
     public JSONObject cover(final String actor, final String id, final String url, final String key) throws Exception {
         return idempotency.execute(actor, "columns.cover:" + id, key, new JSONObject().put("coverURL", url), () -> {
-            try { return dto(covers.updateOwnedCoverURLInCurrentTransaction(actor, id, url)); }
-            catch (final ServiceException e) {
+            try {
+                return dto(covers.updateOwnedCoverURLInCurrentTransaction(actor, id, url));
+            } catch (final ServiceException e) {
                 if (e.getCause() instanceof RepositoryException repository) throw repository;
                 throw translate(e);
             }
@@ -52,14 +56,22 @@ public class ApiV3ColumnMgmtService {
     }
     public JSONObject order(final String actor, final List<String> ids, final String key) throws Exception {
         return idempotency.execute(actor, "columns.order", key, new JSONObject().put("columnIds", ids), () -> {
-            try { columns.updateColumnOrderInCurrentTransaction(actor, ids); return new JSONObject().put("columnIds", ids); }
-            catch (final ServiceException e) { throw translate(e); }
+            try {
+                columns.updateColumnOrderInCurrentTransaction(actor, ids);
+                return new JSONObject().put("columnIds", ids);
+            } catch (final ServiceException e) {
+                throw translate(e);
+            }
         });
     }
     public JSONObject remove(final String actor, final String id, final String key) throws Exception {
         return idempotency.execute(actor, "columns.remove:" + id, key, new JSONObject(), () -> {
-            try { columns.removeColumnInCurrentTransaction(actor, id); return new JSONObject().put("id", id).put("deleted", true); }
-            catch (final ServiceException e) { throw translate(e); }
+            try {
+                columns.removeColumnInCurrentTransaction(actor, id);
+                return new JSONObject().put("id", id).put("deleted", true);
+            } catch (final ServiceException e) {
+                throw translate(e);
+            }
         });
     }
     private static ApiV3Exception translate(final ServiceException error) {

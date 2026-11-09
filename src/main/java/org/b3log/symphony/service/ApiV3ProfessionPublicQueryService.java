@@ -86,8 +86,15 @@ public class ApiV3ProfessionPublicQueryService {
     @Inject private RepeaterContentRepository repeaters;
     @Inject private ChatRoomRepository chats;
     @Inject private ApiV3ProfessionRankingQueryService ranking;
-    private static RuntimeException unavailable(){return ApiV3ProfessionDetailDto.unavailable();}
-    private static List<JSONObject> bounded(final List<JSONObject> rows){if(rows.size()>LIMIT)throw unavailable();return rows;}
+    private static RuntimeException unavailable() {
+        return ApiV3ProfessionDetailDto.unavailable();
+    }
+
+    private static List<JSONObject> bounded(final List<JSONObject> rows) {
+        if (rows.size() > LIMIT)
+            throw unavailable();
+        return rows;
+    }
     private JSONObject user(final String key,final String value,final boolean actor)throws RepositoryException {
         final var rows=users.select("SELECT oId,userName,userRole,userStatus FROM `"+users.getName()+"` WHERE "+key+"=? AND userStatus"
                 +(actor?"=?":" IN (?,?)")+" LIMIT 2",actor?new Object[]{value,UserExt.USER_STATUS_C_VALID}:
@@ -99,7 +106,9 @@ public class ApiV3ProfessionPublicQueryService {
         final var rows=privacy.select("SELECT primaryProfessionId,moduleVisibilityJson FROM `"+privacy.getName()+"` WHERE userId=? LIMIT 2",owner);
         if(rows.size()>1)throw unavailable();
         if(rows.isEmpty()){
-            final JSONObject visibility=new JSONObject();for(String key:MODULES)visibility.put(key,"PUBLIC");
+            final JSONObject visibility = new JSONObject();
+            for (String key : MODULES)
+                visibility.put(key, "PUBLIC");
             return new JSONObject().put("primaryProfessionId","").put("moduleVisibilityJson",visibility.toString());
         }
         final JSONObject state=rows.getFirst();
@@ -112,7 +121,10 @@ public class ApiV3ProfessionPublicQueryService {
     }
     private boolean visible(final JSONObject visibility,final String key,final String owner,final JSONObject actor){
         return switch(visibility.getString(key)){
-            case "PUBLIC"->true;case "LOGGED_IN"->actor!=null;case "SELF"->actor!=null&&owner.equals(actor.getString("oId"));case "HIDDEN"->false;
+            case "PUBLIC" -> true;
+            case "LOGGED_IN" -> actor != null;
+            case "SELF" -> actor != null && owner.equals(actor.getString("oId"));
+            case "HIDDEN" -> false;
             default->throw unavailable();
         };
     }
@@ -156,7 +168,11 @@ public class ApiV3ProfessionPublicQueryService {
         }catch(RepositoryException|org.json.JSONException e){
             logFailure("summary",e);
             throw unavailable();
-        }catch(ApiV3Exception e){if(e.status==503)logFailure("summary",e);throw e;}
+        } catch (ApiV3Exception e) {
+            if (e.status == 503)
+                logFailure("summary", e);
+            throw e;
+        }
     }
     private static void validateReader(final String name,final String actorId) {
         if(name==null||!name.matches("[A-Za-z0-9_-]{1,64}")||actorId==null||(!actorId.isEmpty()&&!actorId.matches("[0-9]{1,19}")))throw ApiV3Requests.invalid();
@@ -181,14 +197,20 @@ public class ApiV3ProfessionPublicQueryService {
         try{
             final JSONObject owner=user("userName",name,false),actor=actorId.isEmpty()?null:user("oId",actorId,true);
             stage="privacy";
-            final String ownerId=owner.getString("oId");final JSONObject state=state(ownerId),visibility=new JSONObject(state.getString("moduleVisibilityJson"));
+            final String ownerId = owner.getString("oId");
+            final JSONObject state = state(ownerId), visibility = new JSONObject(state.getString("moduleVisibilityJson"));
             if(MODULES.stream().noneMatch(key->visible(visibility,key,ownerId,actor)))throw ApiV3Requests.notFound();
             final boolean experience=visible(visibility,"experience",ownerId,actor);
             stage="progress";
-            final var rows=progress(ownerId);final JSONObject result=new JSONObject();final List<CheckedRead> checks=new ArrayList<>();
+            final var rows = progress(ownerId);
+            final JSONObject result = new JSONObject();
+            final List<CheckedRead> checks = new ArrayList<>();
             if(visible(visibility,"primaryProfession",ownerId,actor))appendPrimary(result,state.getString("primaryProfessionId"),rows,experience,checks,false);
             if(visible(visibility,"allProfessions",ownerId,actor)){
-                final JSONArray list=new JSONArray();for(JSONObject row:rows)list.put(ApiV3ProfessionPublicDto.progress(row,experience));result.put("professions",list);
+                final JSONArray list = new JSONArray();
+                for (JSONObject row : rows)
+                    list.put(ApiV3ProfessionPublicDto.progress(row, experience));
+                result.put("professions", list);
             }
             stage="contributions";
             if(visible(visibility,"majorContributions",ownerId,actor)||visible(visibility,"contributionStats",ownerId,actor))appendContributions(result,ownerId,rows,visibility,actor,experience);
@@ -205,8 +227,14 @@ public class ApiV3ProfessionPublicQueryService {
             recheck(checks);
             if(result.isEmpty())throw ApiV3Requests.notFound();
             return result;
-        }catch(RepositoryException|org.json.JSONException e){logFailure(stage,e);throw unavailable();}
-        catch(ApiV3Exception e){if(e.status==503)logFailure(stage,e);throw e;}
+        } catch (RepositoryException | org.json.JSONException e) {
+            logFailure(stage, e);
+            throw unavailable();
+        } catch (ApiV3Exception e) {
+            if (e.status == 503)
+                logFailure(stage, e);
+            throw e;
+        }
     }
     private void appendRanking(final JSONObject result,final List<JSONObject> rows,final JSONObject visibility,final String owner,final JSONObject actor) {
         final boolean showRarity=visible(visibility,"rarity",owner,actor), showRanking=visible(visibility,"ranking",owner,actor);
@@ -223,14 +251,23 @@ public class ApiV3ProfessionPublicQueryService {
                 final JSONObject primary=result.optJSONObject("primaryProfession");
                 if(primary!=null&&id.equals(primary.optString("professionId")))primary.put("rarity",new JSONObject(summary.get().toString()));
                 final JSONArray list=result.optJSONArray("professions");
-                if(list!=null)for(Object item:list){final JSONObject profession=(JSONObject)item;if(id.equals(profession.optString("professionId")))profession.put("rarity",new JSONObject(summary.get().toString()));}
+                if (list != null)
+                    for (Object item : list) {
+                        final JSONObject profession = (JSONObject) item;
+                        if (id.equals(profession.optString("professionId")))
+                            profession.put("rarity", new JSONObject(summary.get().toString()));
+                    }
             }
         }
         if(showRanking)result.put("ranking",ranks);
     }
     private void appendPrimary(final JSONObject result,final String primary,final List<JSONObject> rows,final boolean experience,final List<CheckedRead> checks,final boolean summary)throws RepositoryException {
         if(primary.isEmpty())return;
-        for(JSONObject row:rows)if(primary.equals(row.getString("professionId"))){result.put("primaryProfession",withIcon(ApiV3ProfessionPublicDto.progress(row,experience),row,summary));return;}
+        for (JSONObject row : rows)
+            if (primary.equals(row.getString("professionId"))) {
+                result.put("primaryProfession", withIcon(ApiV3ProfessionPublicDto.progress(row, experience), row, summary));
+                return;
+            }
         final var definitions=checked(checks,professions,"SELECT p.oId AS professionId,p.professionCode,r.displayName,r.shortName,r.description"
                 +(summary ? ",r.defaultPresentationJson" : "")+" FROM `"+professions.getName()
                 +"` p JOIN `"+revisions.getName()+"` r ON r.oId=p.currentRevisionId AND r.professionId=p.oId WHERE p.oId=? AND p.status='PUBLISHED' AND r.status='PUBLISHED' LIMIT 2",primary);
@@ -249,18 +286,33 @@ public class ApiV3ProfessionPublicQueryService {
     private void appendContributions(final JSONObject result,final String owner,final List<JSONObject> progressRows,final JSONObject visibility,final JSONObject actor,final boolean experience)throws RepositoryException {
         final var rows=bounded(contributions.select("SELECT professionId,actionCode,experienceSum,eventCount,lastOccurredAt FROM `"+contributions.getName()
                 +"` WHERE userId=? AND eventCount>0 ORDER BY professionId ASC,experienceSum DESC,actionCode ASC,oId ASC LIMIT ?",owner,LIMIT+1));
-        final Set<String> known=new HashSet<>(),keys=new HashSet<>();for(JSONObject row:progressRows)known.add(row.getString("professionId"));
-        final JSONArray details=new JSONArray(),stats=new JSONArray();final Map<String,JSONObject> aggregates=new LinkedHashMap<>();
+        final Set<String> known = new HashSet<>(), keys = new HashSet<>();
+        for (JSONObject row : progressRows)
+            known.add(row.getString("professionId"));
+        final JSONArray details = new JSONArray(), stats = new JSONArray();
+        final Map<String, JSONObject> aggregates = new LinkedHashMap<>();
         for(JSONObject row:rows){
-            final JSONObject dto=ApiV3ProfessionPublicDto.contribution(row,experience);final String profession=dto.getString("professionId");
+            final JSONObject dto = ApiV3ProfessionPublicDto.contribution(row, experience);
+            final String profession = dto.getString("professionId");
             if(!known.contains(profession)||!keys.add(profession+":"+dto.getString("actionCode")))throw unavailable();
-            details.put(dto);final JSONObject aggregate=aggregates.computeIfAbsent(profession,id->new JSONObject().put("professionId",id).put("eventCount",0L).put("lastOccurredAt",0L).put("experienceSum",0L));
-            try{aggregate.put("eventCount",Math.addExact(aggregate.getLong("eventCount"),dto.getLong("eventCount")));
-                aggregate.put("experienceSum",Math.addExact(aggregate.getLong("experienceSum"),ApiV3ProfessionPublicDto.number(row,"experienceSum",true)));}
-            catch(ArithmeticException e){throw unavailable();}
+            details.put(dto);
+            final JSONObject aggregate = aggregates.computeIfAbsent(profession,
+                    id -> new JSONObject().put("professionId", id).put("eventCount", 0L)
+                            .put("lastOccurredAt", 0L).put("experienceSum", 0L));
+            try {
+                aggregate.put("eventCount", Math.addExact(aggregate.getLong("eventCount"), dto.getLong("eventCount")));
+                aggregate.put("experienceSum", Math.addExact(aggregate.getLong("experienceSum"),
+                        ApiV3ProfessionPublicDto.number(row, "experienceSum", true)));
+            } catch (ArithmeticException e) {
+                throw unavailable();
+            }
             aggregate.put("lastOccurredAt",Math.max(aggregate.getLong("lastOccurredAt"),dto.getLong("lastOccurredAt")));
         }
-        for(JSONObject row:aggregates.values()){if(!experience)row.remove("experienceSum");stats.put(row);}
+        for (JSONObject row : aggregates.values()) {
+            if (!experience)
+                row.remove("experienceSum");
+            stats.put(row);
+        }
         if(visible(visibility,"majorContributions",owner,actor))result.put("majorContributions",details);
         if(visible(visibility,"contributionStats",owner,actor))result.put("contributionStats",stats);
     }
@@ -283,7 +335,9 @@ public class ApiV3ProfessionPublicQueryService {
             if(!"APPLIED".equals(row.opt("effectStatus")))throw unavailable();
             if(!sourceVisible(ApiV3ProfessionPublicDto.id(row,"sourceEventId"),owner,actor,bodyBudget,checks))continue;
             final JSONObject dto=new JSONObject().put("professionId",ApiV3ProfessionPublicDto.id(row,"professionId")).put("actionCode",ApiV3ProfessionPublicDto.action(row)).put("occurredAt",ApiV3ProfessionPublicDto.number(row,"occurredAt",false));
-            final long delta=ApiV3ProfessionPublicDto.number(row,"actualExperienceDelta",true);if(experience)dto.put("experienceDelta",delta);
+            final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
+            if (experience)
+                dto.put("experienceDelta", delta);
             if(feed.length()<30)feed.put(dto);
             final String before=ApiV3ProfessionPublicDto.text(row,"beforeLevelCode",64,true),after=ApiV3ProfessionPublicDto.text(row,"afterLevelCode",64,true);
             if(!before.equals(after)&&history.length()<30)history.put(new JSONObject().put("professionId",dto.getString("professionId")).put("beforeLevelCode",before).put("afterLevelCode",after).put("occurredAt",dto.getLong("occurredAt")));
@@ -293,7 +347,10 @@ public class ApiV3ProfessionPublicQueryService {
     }
     private boolean sourceVisible(final String source,final String owner,final JSONObject actor,final long[] bodyBudget,final List<CheckedRead> checks)throws RepositoryException {
         final var rows=checked(checks,sources,"SELECT subjectUserId,visibilityClass,targetType,targetId FROM `"+sources.getName()+"` WHERE oId=? LIMIT 2",source);
-        if(rows.size()>1)throw unavailable();if(rows.isEmpty()||!"PUBLIC".equals(rows.getFirst().optString("visibilityClass")))return false;
+        if (rows.size() > 1)
+            throw unavailable();
+        if (rows.isEmpty() || !"PUBLIC".equals(rows.getFirst().optString("visibilityClass")))
+            return false;
         final JSONObject row=rows.getFirst();
         if(!owner.equals(row.optString("subjectUserId")))throw unavailable();
         if(!Set.of("article","comment","breezemoon","repeater","chatroom_message").contains(row.optString("targetType")))return false;
@@ -313,7 +370,10 @@ public class ApiV3ProfessionPublicQueryService {
                 +"CASE WHEN a.articleType=1 THEN OCTET_LENGTH(a.articleContent) ELSE 0 END AS bodyBytes,CASE WHEN a.articleType=1 THEN SHA2(a.articleContent,256) ELSE '' END AS bodyHash,u.userStatus AS authorStatus FROM `"+articles.getName()+"` a JOIN `"+users.getName()
                 +"` u ON u.oId=a.articleAuthorId WHERE a.oId=? AND a.articleStatus IN (0,2) AND a.articleAnonymous=0 AND u.userStatus IN (?,?)"
                 +" LIMIT 2",id,UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_INVALID_LOGIN);
-        if(rows.size()>1)throw unavailable();if(rows.isEmpty())return false;
+        if (rows.size() > 1)
+            throw unavailable();
+        if (rows.isEmpty())
+            return false;
         final JSONObject article=rows.getFirst();
         final long type=ApiV3ProfessionPublicDto.number(article,"articleType",false),anonymousView=ApiV3ProfessionPublicDto.number(article,"articleAnonymousView",false);
         if(type>6||anonymousView>1)throw unavailable();
@@ -331,15 +391,22 @@ public class ApiV3ProfessionPublicQueryService {
     private boolean moonVisible(final String id,final JSONObject actor,final List<CheckedRead> checks)throws RepositoryException {
         final var rows=checked(checks,moons,"SELECT b.oId,b.breezemoonAuthorId,u.oId AS authorId,u.userStatus,u.userBreezemoonStatus FROM `"+moons.getName()+"` b JOIN `"+users.getName()
                 +"` u ON u.oId=b.breezemoonAuthorId WHERE b.oId=? AND b.breezemoonStatus=0 AND u.userStatus IN (?,?) LIMIT 2",id,UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_INVALID_LOGIN);
-        if(rows.size()>1)throw unavailable();if(rows.isEmpty())return false;
-        final JSONObject row=rows.getFirst();final long setting=ApiV3ProfessionPublicDto.number(row,"userBreezemoonStatus",false);
+        if (rows.size() > 1)
+            throw unavailable();
+        if (rows.isEmpty())
+            return false;
+        final JSONObject row = rows.getFirst();
+        final long setting = ApiV3ProfessionPublicDto.number(row, "userBreezemoonStatus", false);
         if(setting>1)throw unavailable();
         return ApiV3ContentUtil.canViewUserList(new JSONObject().put("oId",row.getString("authorId")).put("userBreezemoonStatus",setting),actor,"userBreezemoonStatus");
     }
     private boolean commentVisible(final String id,final JSONObject actor,final long[] bodyBudget,final List<CheckedRead> checks)throws RepositoryException {
         final var rows=checked(checks,comments,"SELECT c.commentAuthorId,c.commentOnArticleId,c.commentVisible,u.userStatus AS authorStatus FROM `"+comments.getName()+"` c JOIN `"+users.getName()
                 +"` u ON u.oId=c.commentAuthorId WHERE c.oId=? AND c.commentStatus=0 AND c.commentAnonymous=0 AND u.userStatus IN (?,?) LIMIT 2",id,UserExt.USER_STATUS_C_VALID,UserExt.USER_STATUS_C_INVALID_LOGIN);
-        if(rows.size()>1)throw unavailable();if(rows.isEmpty())return false;
+        if (rows.size() > 1)
+            throw unavailable();
+        if (rows.isEmpty())
+            return false;
         final JSONObject row=rows.getFirst();
         final long commentVisible=ApiV3ProfessionPublicDto.number(row,"commentVisible",false);
         if(commentVisible>1)throw unavailable();

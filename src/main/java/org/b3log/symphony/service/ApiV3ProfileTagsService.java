@@ -145,27 +145,33 @@ public class ApiV3ProfileTagsService {
         if (added > 0) {
             final String raw = statistic.optString(Option.OPTION_VALUE);
             if (!raw.matches("[0-9]{1,10}")) throw unavailable();
-            final long count = Long.parseLong(raw) + added; if (count > Integer.MAX_VALUE) throw unavailable();
+            final long count = Long.parseLong(raw) + added;
+            if (count > Integer.MAX_VALUE)
+                throw unavailable();
             statistic.put(Option.OPTION_VALUE, String.valueOf(count)); options.update(Option.ID_C_STATISTIC_TAG_COUNT, statistic, Option.OPTION_VALUE);
         }
         ApiV3TransactionStatements.execute("DELETE FROM `" + relations.getName() + "` WHERE user_oId=? AND type=?", actor, Tag.TAG_TYPE_C_USER_SELF);
         for (String tagId : ids) relation(actor, tagId, Tag.TAG_TYPE_C_USER_SELF);
         if (!user.getString("userTags").equals(result.getString("tags"))) {
-            final long time = now(); if (time <= 0) throw unavailable();
+            final long time = now();
+            if (time <= 0)
+                throw unavailable();
             if (ApiV3TransactionStatements.execute("UPDATE `" + users.getName() + "` SET userTags=?,userUpdateTime=? WHERE oId=? AND userStatus=0", result.getString("tags"), time, actor) != 1) throw unavailable();
         }
         return result;
     }
     private String canonical(String title) throws RepositoryException {
         if (Tag.containsWhiteListTags(title)) {
-            final JSONObject existing = exact(title, false); return existing == null ? title : existing.getString("tagTitle");
+            final JSONObject existing = exact(title, false);
+            return existing == null ? title : existing.getString("tagTitle");
         }
         final var icons = tags.select("SELECT oId,tagTitle FROM `" + tags.getName() + "` WHERE tagStatus=0 AND tagIconPath<>'' AND CHAR_LENGTH(tagTitle)>=2 AND LOCATE(LOWER(tagTitle),LOWER(?))>0 ORDER BY CHAR_LENGTH(tagTitle) DESC,oId LIMIT 129 FOR UPDATE", title);
         if (icons.size() > 128) throw unavailable();
         for (JSONObject icon : icons) if (StringUtils.containsIgnoreCase(title, icon.optString("tagTitle"))) return icon.getString("tagTitle");
         final String alias = Tag.normalizeAlias(title);
         if (alias != null) {
-            final JSONObject existing = exact(alias, false); return existing == null ? alias : existing.getString("tagTitle");
+            final JSONObject existing = exact(alias, false);
+            return existing == null ? alias : existing.getString("tagTitle");
         }
         final JSONObject existing = exact(title, true);
         return existing == null ? title : existing.getString("tagTitle");
@@ -189,7 +195,9 @@ public class ApiV3ProfileTagsService {
     private JSONObject owner(String actor) throws RepositoryException {
         final var rows = users.select("SELECT oId,userStatus,userRole,userTags,userNickname,userIntro,userURL FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
         if (rows.size() != 1 || !actor.equals(rows.getFirst().optString("oId")) || !(rows.getFirst().opt("userStatus") instanceof Number status) || status.doubleValue() != 0) throw ApiV3Requests.notFound();
-        if (!(rows.getFirst().opt("userTags") instanceof String)) throw unavailable(); return rows.getFirst();
+        if (!(rows.getFirst().opt("userTags") instanceof String))
+            throw unavailable();
+        return rows.getFirst();
     }
     private static void reserved(JSONObject user, String title) {
         if (!Role.ROLE_ID_C_ADMIN.equals(user.optString("userRole")) && java.util.Arrays.asList(Symphonys.RESERVED_TAGS).contains(title)) throw ApiV3WriteInputs.invalid();

@@ -144,5 +144,7 @@ public final class ApiV3MedalSvg {
         String rest=value.replaceAll("url\\(#[A-Za-z_][A-Za-z0-9_-]{0,127}\\)","");
         return !rest.contains("(")&&!rest.contains(")")&&!rest.contains(":")&&!rest.contains("/")&&!rest.contains("@")&&!rest.contains("&")&&!rest.contains("=")&&!rest.contains("\"")&&!rest.contains("'");
     }
-    public static ApiV3Exception bad(){return new ApiV3Exception(503,"temporarily_unavailable","勋章图片暂不可用");}
+    public static ApiV3Exception bad() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "勋章图片暂不可用");
+    }
 }

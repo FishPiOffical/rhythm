@@ -56,8 +56,54 @@ public class ApiV3PostExportTest extends ApiV3SecurityTest {
    sql(db,"INSERT INTO comments VALUES('998','2','OTHER_PRIVATE','1','',1,0,1,0,1,'OTHER_IP')");
    var jobs=new ApiV3PostExportRepository(){public String getName(){return "artifacts";}public boolean hasTransactionBegun(){return active();}public Transaction beginTransaction(){return begin();}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}};
    var chunks=new ApiV3PostExportChunkRepository(){public String getName(){return "chunks";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}};
-   var receipts=new ApiV3RequestRepository(){public boolean hasTransactionBegun(){return active();}public Transaction beginTransaction(){return begin();}public JSONObject getForUpdate(String id)throws RepositoryException{var out=query("SELECT value FROM export_receipts WHERE oId=?",id);return out.isEmpty()?null:new JSONObject(out.getFirst().getString("value"));}public String add(JSONObject r)throws RepositoryException{sql(writer,"INSERT INTO export_receipts VALUES(?,?)",r.getString("oId"),r.toString());return r.getString("oId");}public void update(String id,JSONObject r,String...fields)throws RepositoryException{sql(writer,"UPDATE export_receipts SET value=? WHERE oId=?",r.toString(),id);if(exportFault.equals("receipt"))throw new RepositoryException("PRIVATE");}};
-   var users=new UserRepository(){public String getName(){return "u";}public boolean hasTransactionBegun(){return active();}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}public JSONObject getForUpdate(String id)throws RepositoryException{var out=query("SELECT * FROM u WHERE oId=? FOR UPDATE",id);return out.isEmpty()?null:out.getFirst();}public void update(String id,JSONObject r,String...fields)throws RepositoryException{Assert.assertTrue(ArticlePublicationCaches.active());sql(writer,"UPDATE u SET userPoint=?,userUsedPoint=? WHERE oId=?",r.getInt("userPoint"),r.optInt("userUsedPoint"),id);}};
+   var receipts = new ApiV3RequestRepository() {
+    public boolean hasTransactionBegun() {
+     return active();
+    }
+
+    public Transaction beginTransaction() {
+     return begin();
+    }
+
+    public JSONObject getForUpdate(String id) throws RepositoryException {
+     var out = query("SELECT value FROM export_receipts WHERE oId=?", id);
+     return out.isEmpty() ? null : new JSONObject(out.getFirst().getString("value"));
+    }
+
+    public String add(JSONObject r) throws RepositoryException {
+     sql(writer, "INSERT INTO export_receipts VALUES(?,?)", r.getString("oId"), r.toString());
+     return r.getString("oId");
+    }
+
+    public void update(String id, JSONObject r, String... fields) throws RepositoryException {
+     sql(writer, "UPDATE export_receipts SET value=? WHERE oId=?", r.toString(), id);
+     if (exportFault.equals("receipt")) throw new RepositoryException("PRIVATE");
+    }
+   };
+   var users = new UserRepository() {
+    public String getName() {
+     return "u";
+    }
+
+    public boolean hasTransactionBegun() {
+     return active();
+    }
+
+    public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+     return query(q, a);
+    }
+
+    public JSONObject getForUpdate(String id) throws RepositoryException {
+     var out = query("SELECT * FROM u WHERE oId=? FOR UPDATE", id);
+     return out.isEmpty() ? null : out.getFirst();
+    }
+
+    public void update(String id, JSONObject r, String... fields) throws RepositoryException {
+     Assert.assertTrue(ArticlePublicationCaches.active());
+     sql(writer, "UPDATE u SET userPoint=?,userUsedPoint=? WHERE oId=?",
+             r.getInt("userPoint"), r.optInt("userUsedPoint"), id);
+    }
+   };
    var transfers=new PointtransferRepository(){public String getName(){return "transfers";}public boolean hasTransactionBegun(){return active();}public Transaction beginTransaction(){return begin();}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}public String add(JSONObject r)throws RepositoryException{String id=org.b3log.latke.util.Ids.genTimeMillisId();r.put("oId",id);insert("transfers",r);return id;}};
    var index=new PointtransferRedcRepository(){public String getName(){return "transfer_index";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}};
    var points=new PointtransferMgmtService(){public void indexTransferAsync(String a,String b,String c){throw new AssertionError("precommit index");}};inject(points,"pointtransferRepository",transfers);inject(points,"userRepository",users);

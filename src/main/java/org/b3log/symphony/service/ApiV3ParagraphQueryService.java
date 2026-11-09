@@ -34,9 +34,12 @@ import java.util.HashMap;
 
 @Service
 public class ApiV3ParagraphQueryService {
-    @Inject private ApiV3ContentQueryService content;
-    @Inject private LongArticleParagraphService paragraphs;
-    @Inject private CommentRepository comments;
+    @Inject
+    private ApiV3ContentQueryService content;
+    @Inject
+    private LongArticleParagraphService paragraphs;
+    @Inject
+    private CommentRepository comments;
 
     public JSONObject paragraphs(final String articleId, final JSONObject viewer, final int p, final int size,
                                  final boolean includeContent) throws Exception {
@@ -115,6 +118,7 @@ public class ApiV3ParagraphQueryService {
                     aliases.isEmpty() ? java.util.List.of(raw) : aliases, state);
             paragraph = new JSONObject().put("id", canonical).put("state", state);
         } else throw ApiV3Requests.notFound();
+        // 按列表使用的同一组选取条件计算位置，包含当前段落的兼容别名。
         final var query = ApiV3CommentLocationQueries.rank(selection, id);
         final var ranks = comments.select(query.sql(), query.args().toArray());
         if (ranks.size() != 1) throw new IllegalStateException("comment position aggregate missing");

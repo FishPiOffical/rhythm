@@ -165,16 +165,51 @@ public class ApiV3MfaService {
             return new JSONObject().put("enabled",enable);
         });
     }
-    private static String actor(JSONObject identity){final JSONObject user=identity==null?null:identity.optJSONObject("user");final String id=user==null?"":user.optString("oId");if(!id.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.forbidden();return id;}
-    private static String secret(JSONObject current){if(!(current.opt("secret2fa") instanceof String value))throw unavailable();return value;}
+    private static String actor(JSONObject identity) {
+        final JSONObject user = identity == null ? null : identity.optJSONObject("user");
+        final String id = user == null ? "" : user.optString("oId");
+        if (!id.matches("[1-9][0-9]{0,18}"))
+            throw ApiV3Requests.forbidden();
+        return id;
+    }
+
+    private static String secret(JSONObject current) {
+        if (!(current.opt("secret2fa") instanceof String value))
+            throw unavailable();
+        return value;
+    }
+
     private static String binding(JSONObject current)throws Exception {
-        final long epoch=number(current,"credentialEpoch");if(epoch<0)throw unavailable();
+        final long epoch = number(current, "credentialEpoch");
+        if (epoch < 0)
+            throw unavailable();
         if(!(current.opt("userPassword") instanceof String password))throw unavailable();
         return ApiV3TokenUtil.hash("mfa-preparation:"+current.getString("oId")+":"+epoch+":"+password+":"+secret(current));
     }
-    private static boolean equal(String left,String right){return MessageDigest.isEqual(left.getBytes(StandardCharsets.UTF_8),right.getBytes(StandardCharsets.UTF_8));}
-    private static long number(JSONObject row,String key){if(!(row.opt(key) instanceof Number n))throw unavailable();try{return new BigDecimal(n.toString()).longValueExact();}catch(ArithmeticException|NumberFormatException error){throw unavailable();}}
-    private static void rollback(Transaction root){if(root!=null&&root.isActive())root.rollback();}
-    private static ApiV3Exception expired(){return new ApiV3Exception(409,"mfa_preparation_unavailable","MFA准备不存在、已失效或已使用，请重新准备");}
-    private static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","MFA设置暂不可用");}
+    private static boolean equal(String left, String right) {
+        return MessageDigest.isEqual(left.getBytes(StandardCharsets.UTF_8), right.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static long number(JSONObject row, String key) {
+        if (!(row.opt(key) instanceof Number n))
+            throw unavailable();
+        try {
+            return new BigDecimal(n.toString()).longValueExact();
+        } catch (ArithmeticException | NumberFormatException error) {
+            throw unavailable();
+        }
+    }
+
+    private static void rollback(Transaction root) {
+        if (root != null && root.isActive())
+            root.rollback();
+    }
+
+    private static ApiV3Exception expired() {
+        return new ApiV3Exception(409, "mfa_preparation_unavailable", "MFA准备不存在、已失效或已使用，请重新准备");
+    }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "MFA设置暂不可用");
+    }
 }

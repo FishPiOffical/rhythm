@@ -115,7 +115,8 @@ public class ApiV3ProfessionDetailQueryService {
                     + "` WHERE userId=? AND professionId=? AND eventCount>0 ORDER BY experienceSum DESC,actionCode ASC,oId ASC LIMIT ?",
                     actor, professionId, MAX_DETAILS + 1);
             if (aggregate.size() > MAX_DETAILS) throw ApiV3ProfessionDetailDto.unavailable();
-            final Set<String> actions = new HashSet<>(); final JSONArray aggregateDto = new JSONArray();
+            final Set<String> actions = new HashSet<>();
+            final JSONArray aggregateDto = new JSONArray();
             for (final JSONObject row : aggregate) {
                 final JSONObject dto = ApiV3ProfessionDetailDto.contribution(row);
                 if (!actions.add(dto.getString("actionCode"))) throw ApiV3ProfessionDetailDto.unavailable();
@@ -130,7 +131,8 @@ public class ApiV3ProfessionDetailQueryService {
         id(actor); id(professionId);
         if (p < 1 || p > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
         return read(() -> {
-            actor(actor); final JSONObject state = current(actor, professionId);
+            actor(actor);
+            final JSONObject state = current(actor, professionId);
             final long cutoff = System.currentTimeMillis() - RETENTION;
             final String from = " FROM `" + effects.getName() + "` WHERE userId=? AND professionId=? AND status='APPLIED' AND actualExperienceDelta<>0 AND occurredAt>=?";
             final var count = effects.select("SELECT COUNT(*) AS total" + from, actor, professionId, cutoff);

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Default mode only reads missing targets/checks denials.
- * API_V3_TOKEN: content.read + content.write. Optional scope-less/cookie/legacy-key denial fixtures.
- * API_V3_ARTICLE_VOTE_WRITE=1 + API_V3_ARTICLE_VOTE_ID explicitly changes one disposable other-user article's
- * vote through up/down/clear and leaves it cleared; may create one notification/activity entry.
+/** 确认 IDEA 重新编译或重启后运行。默认仅查询不存在的目标并验证拒绝路径。
+ * API_V3_TOKEN 需要 content.read 和 content.write。可选夹具覆盖缺少权限、Cookie 和旧密钥。
+ * API_V3_ARTICLE_VOTE_WRITE=1 与 API_V3_ARTICLE_VOTE_ID 显式启用对另一用户临时文章的投票。
+ * 依次执行赞、踩和清除，最终保持清除状态，可能产生一条通知或活动记录。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

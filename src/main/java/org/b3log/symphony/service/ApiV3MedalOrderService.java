@@ -48,7 +48,10 @@ public class ApiV3MedalOrderService {
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
                 public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
                 public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                public JSONObject getForUpdate(final String id) throws RepositoryException { owner(actor); return requests.getForUpdate(id); }
+                public JSONObject getForUpdate(final String id) throws RepositoryException {
+                    owner(actor);
+                    return requests.getForUpdate(id);
+                }
                 public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
                 public void update(final String id, final JSONObject row, final String... names) throws RepositoryException { requests.update(id,row,names); }
             };
@@ -66,7 +69,8 @@ public class ApiV3MedalOrderService {
     public JSONObject moveInCurrentTransaction(final String actor, final String medalId, final String direction) throws Exception {
         if (!grants.hasTransactionBegun()) throw new IllegalStateException("medal order transaction required");
         if (actor==null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
-        ApiV3MedalDisplay.medalId(medalId);final String normalized=ApiV3MedalOrderInputs.direction(direction);
+        ApiV3MedalDisplay.medalId(medalId);
+        final String normalized = ApiV3MedalOrderInputs.direction(direction);
         return ApiV3TransactionSavepoint.run(() -> {
             owner(actor); // 沿用展示设置的锁顺序：用户、定义、持有记录。
             final var hints=grants.select("SELECT medal_id FROM `"+grants.getName()+"` WHERE user_id=? LIMIT " + (MAX_HOLDINGS + 1),actor);

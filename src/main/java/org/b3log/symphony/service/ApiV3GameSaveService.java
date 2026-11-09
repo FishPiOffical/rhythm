@@ -167,19 +167,30 @@ public class ApiV3GameSaveService {
         final JSONObject row=rows.getFirst();if(!actor.equals(row.optString("userId"))||!game.equals(row.optString("gameId")))throw unavailable();
         return ApiV3GameSaveInputs.content(row.opt("data"));
     }
-    private void authorize(JSONObject identity,String scope,boolean lock)throws RepositoryException {
-        final String actor=actor(identity),tokenId=identity.optString("tokenId");id(tokenId);
-        if(lock)clients.lockForAccountResetInCurrentTransaction();
-        owner(actor,lock);
-        final String suffix=lock?" FOR UPDATE":"";
-        final var access=tokens.select("SELECT oId,userId,clientId,tokenType,state,expiresAt,scope FROM `"+tokens.getName()+"` WHERE oId=?"+suffix,tokenId);
-        if(access.size()!=1)throw forbidden();final JSONObject token=access.getFirst();
-        if(!tokenId.equals(token.optString("oId"))||!actor.equals(token.optString("userId"))||!"access".equals(token.optString("tokenType"))
-                ||number(token.opt("state"))!=0||number(token.opt("expiresAt"))<=now()||!ApiV3TokenMgmtService.hasScope(token.optString("scope"),scope))throw forbidden();
-        final String clientId=token.optString("clientId");
-        final var registrations=clients.select("SELECT clientId,status,scope FROM `"+clients.getName()+"` WHERE clientId=?"+suffix,clientId);
-        if(registrations.size()!=1||!clientId.equals(registrations.getFirst().optString("clientId"))||number(registrations.getFirst().opt("status"))!=0
-                ||!ApiV3TokenMgmtService.hasScope(registrations.getFirst().optString("scope"),scope))throw forbidden();
+    private void authorize(JSONObject identity, String scope, boolean lock) throws RepositoryException {
+        final String actor = actor(identity), tokenId = identity.optString("tokenId");
+        id(tokenId);
+        // 写入时先锁客户端登记范围，再按顺序复核账号和访问令牌。
+        if (lock)
+            clients.lockForAccountResetInCurrentTransaction();
+        owner(actor, lock);
+        final String suffix = lock ? " FOR UPDATE" : "";
+        final var access = tokens.select("SELECT oId,userId,clientId,tokenType,state,expiresAt,scope FROM `"
+                + tokens.getName() + "` WHERE oId=?" + suffix, tokenId);
+        if (access.size() != 1)
+            throw forbidden();
+        final JSONObject token = access.getFirst();
+        if (!tokenId.equals(token.optString("oId")) || !actor.equals(token.optString("userId"))
+                || !"access".equals(token.optString("tokenType")) || number(token.opt("state")) != 0
+                || number(token.opt("expiresAt")) <= now() || !ApiV3TokenMgmtService.hasScope(token.optString("scope"), scope))
+            throw forbidden();
+        final String clientId = token.optString("clientId");
+        final var registrations = clients.select("SELECT clientId,status,scope FROM `"
+                + clients.getName() + "` WHERE clientId=?" + suffix, clientId);
+        if (registrations.size() != 1 || !clientId.equals(registrations.getFirst().optString("clientId"))
+                || number(registrations.getFirst().opt("status")) != 0
+                || !ApiV3TokenMgmtService.hasScope(registrations.getFirst().optString("scope"), scope))
+            throw forbidden();
     }
     private void owner(String actor,boolean lock)throws RepositoryException {
         final var rows=users.select("SELECT oId,userStatus FROM `"+users.getName()+"` WHERE oId=?"+(lock?" FOR UPDATE":""),actor);
@@ -199,9 +210,17 @@ public class ApiV3GameSaveService {
         if(!data.sha256().equals(value.getString("sha256"))||data.byteLength()!=value.getInt("byteLength"))throw unavailable();
         if(includeData)value.put("data",data.data());return value;
     }
-    private JSONObject receipt(JSONObject value,String game,boolean migrated) {
-        if(!value.keySet().equals(migrated?Set.of("gameId","revision","updatedAt","byteLength","sha256","migrated"):Set.of("gameId","revision","updatedAt","byteLength","sha256")))throw unavailable();
-        final JSONObject result=metadata(value,game);if(migrated){if(!Boolean.TRUE.equals(value.opt("migrated")))throw unavailable();result.put("migrated",true);}return result;
+    private JSONObject receipt(JSONObject value, String game, boolean migrated) {
+        if (!value.keySet().equals(migrated ? Set.of("gameId", "revision", "updatedAt", "byteLength", "sha256", "migrated")
+                : Set.of("gameId", "revision", "updatedAt", "byteLength", "sha256")))
+            throw unavailable();
+        final JSONObject result = metadata(value, game);
+        if (migrated) {
+            if (!Boolean.TRUE.equals(value.opt("migrated")))
+                throw unavailable();
+            result.put("migrated", true);
+        }
+        return result;
     }
     private JSONObject metadata(JSONObject row,String game) {
         final long revision,time,bytes;
@@ -211,7 +230,12 @@ public class ApiV3GameSaveService {
     }
     private static long number(Object value) {if(!(value instanceof Number n))throw unavailable();try{return new BigDecimal(n.toString()).longValueExact();}catch(ArithmeticException|NumberFormatException invalid){throw unavailable();}}
     private static String slot(String actor,String game)throws Exception{return ApiV3TokenUtil.hash("private-game-save\0"+actor+"\0"+game);}
-    private static String actor(JSONObject identity){final JSONObject user=identity==null?null:identity.optJSONObject("user");final String actor=user==null?"":user.optString("oId");id(actor);return actor;}
+    private static String actor(JSONObject identity) {
+        final JSONObject user = identity == null ? null : identity.optJSONObject("user");
+        final String actor = user == null ? "" : user.optString("oId");
+        id(actor);
+        return actor;
+    }
     private static void id(String value){if(value==null||!value.matches("[1-9][0-9]{0,18}"))throw ApiV3WriteInputs.invalid();}
     private static void rollback(Transaction tx){if(tx!=null&&tx.isActive())tx.rollback();}
     private static ApiV3Exception forbidden(){return new ApiV3Exception(403,"forbidden","当前授权不可访问该游戏存档");}

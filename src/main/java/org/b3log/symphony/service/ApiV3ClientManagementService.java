@@ -89,7 +89,9 @@ public class ApiV3ClientManagementService {
                 ApiV3TokenMgmtService.WEBSITE_CLIENT);
         final var rows = clients.select("SELECT clientId,name,scope,status FROM `" + clients.getName()
                 + "` WHERE clientId<>? ORDER BY clientId ASC LIMIT ? OFFSET ?", ApiV3TokenMgmtService.WEBSITE_CLIENT, size, (page-1)*size);
-        final var list = new JSONArray(); for (final var row : rows) list.put(ApiV3ClientManagementDto.client(row));
+        final var list = new JSONArray();
+        for (final var row : rows)
+            list.put(ApiV3ClientManagementDto.client(row));
         return ApiV3Requests.pagination(list, page, size, total(count));
     }
 
@@ -114,13 +116,25 @@ public class ApiV3ClientManagementService {
         final ApiV3ClientManagementInputs.Registration validated = ApiV3ClientManagementInputs.registration(input.normalized());
         // 每次尝试均在根事务中鉴权，再锁定并读取回执，重放同样遵循此顺序。
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-            public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-            public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-            public JSONObject getForUpdate(String id) throws RepositoryException {
-                requireAdministrator(identity, true); return requests.getForUpdate(id);
+            public Transaction beginTransaction() {
+                return ApiV3Transactions.strict(requests.beginTransaction());
             }
-            public String add(JSONObject row) throws RepositoryException { return requests.add(row); }
-            public void update(String id, JSONObject row, String... names) throws RepositoryException { requests.update(id,row,names); }
+
+            public boolean hasTransactionBegun() {
+                return requests.hasTransactionBegun();
+            }
+            public JSONObject getForUpdate(String id) throws RepositoryException {
+                requireAdministrator(identity, true);
+                return requests.getForUpdate(id);
+            }
+
+            public String add(JSONObject row) throws RepositoryException {
+                return requests.add(row);
+            }
+
+            public void update(String id, JSONObject row, String... names) throws RepositoryException {
+                requests.update(id, row, names);
+            }
         };
         try {
             return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "admin.oauth.clients.create", key, validated.normalized(), () -> {
@@ -128,12 +142,27 @@ public class ApiV3ClientManagementService {
                 return new JSONObject().put("clientId", value.clientId()).put("name", value.name()).put("scope", value.scope())
                         .put("status", ApiV3Client.STATUS_ACTIVE).put("redirectUris", new JSONArray(value.redirectUris()));
             });
-        } catch (ApiV3Exception e) { throw e; }
-        catch (IllegalArgumentException e) { throw ApiV3Requests.invalid(); }
-        catch (Exception e) { throw unavailable(); }
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            throw ApiV3Requests.invalid();
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
 
-    private static long total(final List<JSONObject> rows) { if(rows.size()!=1)throw unavailable();return rows.getFirst().getLong("total"); }
-    private static void page(final int p, final int size) { if(p<1||p>Integer.MAX_VALUE/50||size<1||size>50)throw ApiV3Requests.invalid(); }
-    public static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","客户端管理暂不可用"); }
+    private static long total(final List<JSONObject> rows) {
+        if (rows.size() != 1)
+            throw unavailable();
+        return rows.getFirst().getLong("total");
+    }
+
+    private static void page(final int p, final int size) {
+        if (p < 1 || p > Integer.MAX_VALUE / 50 || size < 1 || size > 50)
+            throw ApiV3Requests.invalid();
+    }
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "客户端管理暂不可用");
+    }
 }

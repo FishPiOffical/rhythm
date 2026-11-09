@@ -26,23 +26,31 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3ReactionService {
-    @Inject private ApiV3ReactionTargetService targets;
-    @Inject private ReactionQueryService query;
-    @Inject private ReactionMgmtService management;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ApiV3ReactionEventService events;
+    @Inject
+    private ApiV3ReactionTargetService targets;
+    @Inject
+    private ReactionQueryService query;
+    @Inject
+    private ReactionMgmtService management;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ApiV3ReactionEventService events;
+
     public JSONObject read(final JSONObject viewer, final String type, final String id) throws Exception {
         targets.read(viewer, type, id);
         return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, null == viewer ? "" : viewer.optString(Keys.OBJECT_ID)));
     }
     public JSONObject set(final JSONObject viewer, final String type, final String id, final String value, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
+        // 写入时校验锁定的目标，并在同一事务中构造回执。
         final ApiV3IdempotencyMgmtService.Execution execution = idempotency.executeWithOutcome(actor, "reactions.set:" + type + ":" + id,
                 key, new JSONObject().put("value", value), () -> {
                     final boolean changed = management.setInCurrentTransaction(actor, type, id, value,
                             target -> targets.validate(viewer, type, target, true));
                     return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, actor)).put("changed", changed);
                 });
+        // 只有本次提交实际改变表态时才发实时事件。
         if (execution.applied() && execution.result().optBoolean("changed")) events.publish(viewer, type, id);
         return execution.result();
     }

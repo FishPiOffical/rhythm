@@ -49,12 +49,23 @@ public class ApiV3PostExportService {
     private static final String OPERATION="posts.export";
     private static final long RETENTION=86_400_000L;
     private final AtomicBoolean started=new AtomicBoolean();
-    protected long now(){return System.currentTimeMillis();}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     public void startCleanup(){
         if(started.compareAndSet(false,true))Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("v3-post-export-cleanup").factory()).scheduleWithFixedDelay(()->{
-            try{for(int batch=0;batch<20;batch++)if(purgeExpired()<100)break;}
-            catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Private export cleanup delayed");}
-            finally{try{ApiV3Transactions.releaseThreadResources();}catch(RuntimeException ignored){}}
+            try {
+                for (int batch = 0; batch < 20; batch++)
+                    if (purgeExpired() < 100)
+                        break;
+            } catch (Exception ignored) {
+                org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Private export cleanup delayed");
+            } finally {
+                try {
+                    ApiV3Transactions.releaseThreadResources();
+                } catch (RuntimeException ignored) {
+                }
+            }
         },1,1,TimeUnit.MINUTES);
     }
     public JSONObject create(JSONObject identity,JSONObject body,String key,String ip)throws Exception {
@@ -151,57 +162,105 @@ public class ApiV3PostExportService {
     private JSONObject replay(JSONObject identity,String actor,JSONObject receipt,String key)throws Exception {
         if(!receipt.keySet().equals(Set.of("jobId","paidPoints","indexTransferId")))throw unavailable();
         final String job=ApiV3PostExportSnapshotService.id(receipt.opt("jobId")),transfer=ApiV3PostExportSnapshotService.id(receipt.opt("indexTransferId"));
-        final long price=ApiV3PostExportSnapshotService.number(receipt,"paidPoints");if(price<=0||price>Integer.MAX_VALUE)throw unavailable();
+        final long price = ApiV3PostExportSnapshotService.number(receipt, "paidPoints");
+        if (price <= 0 || price > Integer.MAX_VALUE)
+            throw unavailable();
         repairIndex(actor,billing(actor,key),transfer);
-        try{return status(identity,job);}catch(ApiV3Exception e){if(e.status==404||e.status==410)return new JSONObject().put("jobId",job).put("status","expired").put("paidPoints",price);throw e;}
+        try {
+            return status(identity, job);
+        } catch (ApiV3Exception e) {
+            if (e.status == 404 || e.status == 410)
+                return new JSONObject().put("jobId", job).put("status", "expired").put("paidPoints", price);
+            throw e;
+        }
     }
     private int writeChunks(String actor,String job,ApiV3PostExportFiles files,ApiV3PostExportSnapshotService.Snapshot snapshot)throws Exception {
         if(Files.size(files.zip)!=snapshot.bytes()||!ApiV3PostExportFiles.sha256(files.zip).equals(snapshot.sha256()))throw unavailable();
-        int seq=0;long total=0;
-        try(var in=Files.newInputStream(files.zip)){
-            byte[] data;while((data=in.readNBytes(ApiV3PostExportFiles.CHUNK_BYTES)).length>0){
+        int seq = 0;
+        long total = 0;
+        try (var in = Files.newInputStream(files.zip)) {
+            byte[] data;
+            while ((data = in.readNBytes(ApiV3PostExportFiles.CHUNK_BYTES)).length > 0) {
                 final String id=ApiV3TokenUtil.hash("post-export-chunk\0"+job+"\0"+seq);
                 if(ApiV3TransactionStatements.execute("INSERT INTO `"+chunks.getName()+"` (oId,jobId,userId,sequenceNo,byteLength,data) VALUES(?,?,?,?,?,?)",id,job,actor,seq,data.length,Base64.getEncoder().encodeToString(data))!=1)throw unavailable();
-                seq++;total+=data.length;
+                seq++;
+                total += data.length;
             }
         }
-        if(total!=snapshot.bytes()||seq<1)throw unavailable();return seq;
+        if (total != snapshot.bytes() || seq < 1)
+            throw unavailable();
+        return seq;
     }
     public JSONObject status(JSONObject identity,String job)throws Exception {
-        noRoot();try {proofs.read(identity);JSONObject row=find(actor(identity),job,false);JSONObject result=project(row);proofs.read(identity);return result;}
-        catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}
+        noRoot();
+        try {
+            proofs.read(identity);
+            JSONObject row = find(actor(identity), job, false);
+            JSONObject result = project(row);
+            proofs.read(identity);
+            return result;
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     public byte[] download(JSONObject identity,String job)throws Exception {
-        noRoot();try {
-            proofs.read(identity);final String actor=actor(identity);JSONObject row=find(actor,job,false);
+        noRoot();
+        try {
+            proofs.read(identity);
+            final String actor = actor(identity);
+            JSONObject row = find(actor, job, false);
             final long expected=ApiV3PostExportSnapshotService.number(row,"byteLength"),count=ApiV3PostExportSnapshotService.number(row,"chunkCount");
             if(expected<=0||expected>ApiV3PostExportFiles.ZIP_LIMIT||count!=(expected+ApiV3PostExportFiles.CHUNK_BYTES-1)/ApiV3PostExportFiles.CHUNK_BYTES)throw unavailable();
             final var output=new ByteArrayOutputStream((int)expected);
             for(int seq=0;seq<count;seq++){
                 final var found=chunks.select("SELECT oId,jobId,userId,sequenceNo,byteLength,data FROM `"+chunks.getName()+"` WHERE jobId=? AND userId=? AND sequenceNo=? LIMIT 2",job,actor,seq);
-                if(found.size()!=1)throw unavailable();var chunk=found.getFirst();
+                if (found.size() != 1)
+                    throw unavailable();
+                var chunk = found.getFirst();
                 if(!ApiV3TokenUtil.hash("post-export-chunk\0"+job+"\0"+seq).equals(chunk.optString("oId"))||!job.equals(chunk.optString("jobId"))||!actor.equals(chunk.optString("userId"))||ApiV3PostExportSnapshotService.number(chunk,"sequenceNo")!=seq)throw unavailable();
-                String encoded=ApiV3PostExportSnapshotService.text(chunk,"data");if(encoded.length()>65536)throw unavailable();byte[] data=Base64.getDecoder().decode(encoded);
+                String encoded = ApiV3PostExportSnapshotService.text(chunk, "data");
+                if (encoded.length() > 65536)
+                    throw unavailable();
+                byte[] data = Base64.getDecoder().decode(encoded);
                 int size=seq==count-1?(int)(expected-(count-1)*ApiV3PostExportFiles.CHUNK_BYTES):ApiV3PostExportFiles.CHUNK_BYTES;
-                if(data.length!=size||ApiV3PostExportSnapshotService.number(chunk,"byteLength")!=size||!Base64.getEncoder().encodeToString(data).equals(encoded))throw unavailable();output.write(data);
+                if (data.length != size || ApiV3PostExportSnapshotService.number(chunk, "byteLength") != size
+                        || !Base64.getEncoder().encodeToString(data).equals(encoded))
+                    throw unavailable();
+                output.write(data);
             }
             final var counts=chunks.select("SELECT COUNT(*) AS total FROM `"+chunks.getName()+"` WHERE jobId=? AND userId=?",job,actor);
             if(counts.size()!=1||ApiV3PostExportSnapshotService.number(counts.getFirst(),"total")!=count)throw unavailable();
-            byte[] result=output.toByteArray();if(result.length!=expected||!ApiV3PostExportFiles.sha256(result).equals(ApiV3PostExportSnapshotService.text(row,"sha256")))throw unavailable();
+            byte[] result = output.toByteArray();
+            if (result.length != expected || !ApiV3PostExportFiles.sha256(result).equals(ApiV3PostExportSnapshotService.text(row, "sha256")))
+                throw unavailable();
             // 文件组装完成后再次确认第一方授权、有效期和元数据，然后交由处理器发送。
             proofs.read(identity);
             JSONObject after = find(actor, job, false);
             if (!ApiV3Json.canonical(row).equals(ApiV3Json.canonical(after)))
                 throw unavailable();
             return result;
-        }catch(ApiV3Exception e){throw e;}catch(Exception e){throw unavailable();}
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
+            throw unavailable();
+        }
     }
     private JSONObject find(String actor,String job,boolean locked)throws Exception {
         if(job==null||!job.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.invalid();
         var found=exports.select("SELECT oId,userId,createdAt,capturedAt,expiresAt,articleCount,commentCount,sourceBytes,byteLength,sha256,chunkCount,paidPoints FROM `"+exports.getName()+"` WHERE oId=? AND userId=?"+(locked?" FOR UPDATE":""),job,actor);
-        if(found.isEmpty())throw ApiV3Requests.notFound();if(found.size()!=1)throw unavailable();JSONObject row=found.getFirst();
-        if(!job.equals(row.optString("oId"))||!actor.equals(row.optString("userId")))throw unavailable();project(row);
-        if(ApiV3PostExportSnapshotService.number(row,"expiresAt")<=clock())throw new ApiV3Exception(410,"export_expired","导出文件已过期");return row;
+        if (found.isEmpty())
+            throw ApiV3Requests.notFound();
+        if (found.size() != 1)
+            throw unavailable();
+        JSONObject row = found.getFirst();
+        if (!job.equals(row.optString("oId")) || !actor.equals(row.optString("userId")))
+            throw unavailable();
+        project(row);
+        if (ApiV3PostExportSnapshotService.number(row, "expiresAt") <= clock())
+            throw new ApiV3Exception(410, "export_expired", "导出文件已过期");
+        return row;
     }
     private JSONObject project(JSONObject row){
         long created=ApiV3PostExportSnapshotService.number(row,"createdAt"),captured=ApiV3PostExportSnapshotService.number(row,"capturedAt"),expiry=ApiV3PostExportSnapshotService.number(row,"expiresAt"),articles=ApiV3PostExportSnapshotService.number(row,"articleCount"),comments=ApiV3PostExportSnapshotService.number(row,"commentCount"),source=ApiV3PostExportSnapshotService.number(row,"sourceBytes"),bytes=ApiV3PostExportSnapshotService.number(row,"byteLength"),count=ApiV3PostExportSnapshotService.number(row,"chunkCount"),price=ApiV3PostExportSnapshotService.number(row,"paidPoints");
@@ -209,29 +268,89 @@ public class ApiV3PostExportService {
         return new JSONObject().put("jobId",ApiV3PostExportSnapshotService.id(row.opt("oId"))).put("status","ready").put("createdAt",created).put("capturedAt",captured).put("expiresAt",expiry).put("articleCount",articles).put("commentCount",comments).put("byteLength",bytes).put("sha256",row.getString("sha256")).put("paidPoints",price);
     }
     public int purgeExpired()throws Exception {
-        noRoot();Transaction tx=ApiV3Transactions.strict(exports.beginTransaction());
+        noRoot();
+        Transaction tx = ApiV3Transactions.strict(exports.beginTransaction());
         try {
             var expired=exports.select("SELECT oId,userId FROM `"+exports.getName()+"` WHERE expiresAt<=? ORDER BY oId ASC LIMIT 100 FOR UPDATE",clock());
-            for(JSONObject row:expired){String job=ApiV3PostExportSnapshotService.id(row.opt("oId")),actor=ApiV3PostExportSnapshotService.id(row.opt("userId"));ApiV3TransactionStatements.execute("DELETE FROM `"+chunks.getName()+"` WHERE jobId=? AND userId=?",job,actor);if(ApiV3TransactionStatements.execute("DELETE FROM `"+exports.getName()+"` WHERE oId=? AND userId=?",job,actor)!=1)throw unavailable();}
-            tx.commit();return expired.size();
-        }finally{if(tx.isActive())tx.rollback();}
+            for (JSONObject row : expired) {
+                String job = ApiV3PostExportSnapshotService.id(row.opt("oId")), actor = ApiV3PostExportSnapshotService.id(row.opt("userId"));
+                ApiV3TransactionStatements.execute("DELETE FROM `" + chunks.getName() + "` WHERE jobId=? AND userId=?", job, actor);
+                if (ApiV3TransactionStatements.execute("DELETE FROM `" + exports.getName() + "` WHERE oId=? AND userId=?", job, actor) != 1)
+                    throw unavailable();
+            }
+            tx.commit();
+            return expired.size();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
     private void repairIndex(String actor,String billing,String transfer) {
-        Transaction tx=null;try{noRoot();tx=ApiV3Transactions.strict(transfers.beginTransaction());
+        Transaction tx = null;
+        try {
+            noRoot();
+            tx = ApiV3Transactions.strict(transfers.beginTransaction());
             var found=transfers.select("SELECT oId FROM `"+transfers.getName()+"` WHERE oId=? AND fromId=? AND toId=? AND type=? AND sourceScene=? AND sourceRequestId=? LIMIT 2 FOR UPDATE",transfer,actor,Pointtransfer.ID_C_SYS,Pointtransfer.TRANSFER_TYPE_C_DATA_EXPORT,OPERATION,billing);
             if(found.size()!=1||!transfer.equals(found.getFirst().optString("oId")))throw unavailable();
-            for(String user:List.of(actor,Pointtransfer.ID_C_SYS)){var existing=index.select("SELECT oId FROM `"+index.getName()+"` WHERE userId=? AND rawId=? LIMIT 2 FOR UPDATE",user,transfer);if(existing.isEmpty()&&ApiV3TransactionStatements.execute("INSERT INTO `"+index.getName()+"` (oId,userId,rawId) VALUES(?,?,?)",Ids.genTimeMillisId(),user,transfer)!=1)throw unavailable();}tx.commit();
-        }catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Private export transfer indexing delayed");}
-        finally{if(tx!=null&&tx.isActive())try{tx.rollback();}catch(RuntimeException ignored){}}
+            for (String user : List.of(actor, Pointtransfer.ID_C_SYS)) {
+                var existing = index.select("SELECT oId FROM `" + index.getName() + "` WHERE userId=? AND rawId=? LIMIT 2 FOR UPDATE", user, transfer);
+                if (existing.isEmpty() && ApiV3TransactionStatements.execute("INSERT INTO `" + index.getName()
+                        + "` (oId,userId,rawId) VALUES(?,?,?)", Ids.genTimeMillisId(), user, transfer) != 1)
+                    throw unavailable();
+            }
+            tx.commit();
+        } catch (Exception ignored) {
+            org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Private export transfer indexing delayed");
+        } finally {
+            if (tx != null && tx.isActive())
+                try {
+                    tx.rollback();
+                } catch (RuntimeException ignored) {
+                }
+        }
     }
     private JSONObject requireCreation(JSONObject identity,String password,String totp)throws RepositoryException {
-        JSONObject current=proofs.requireInCurrentTransaction(identity,password,totp);proofs.read(identity);return current;
+        JSONObject current = proofs.requireInCurrentTransaction(identity, password, totp);
+        proofs.read(identity);
+        return current;
     }
-    private static String actor(JSONObject identity){var user=identity==null?null:identity.optJSONObject("user");if(user==null||!user.optString("oId").matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.forbidden();return user.getString("oId");}
-    private static String binding(JSONObject proof)throws Exception{return ApiV3TokenUtil.hash(ApiV3Json.canonical(proof));}
-    private static String billing(String actor,String key)throws Exception{return ApiV3TokenUtil.hash(OPERATION+"\0"+actor+"\0"+key);}
-    private long clock(){long time=now();if(time<=0)throw unavailable();return time;}
-    private Transaction begin(){try{return ApiV3Transactions.strict(requests.beginTransaction());}catch(Exception e){throw unavailable();}}
-    private void noRoot(){if(exports.hasTransactionBegun()||requests.hasTransactionBegun())throw new IllegalStateException("export root required");}
-    public static ApiV3Exception unavailable(){return ApiV3PostExportSnapshotService.unavailable();}
+
+    private static String actor(JSONObject identity) {
+        var user = identity == null ? null : identity.optJSONObject("user");
+        if (user == null || !user.optString("oId").matches("[1-9][0-9]{0,18}"))
+            throw ApiV3Requests.forbidden();
+        return user.getString("oId");
+    }
+
+    private static String binding(JSONObject proof) throws Exception {
+        return ApiV3TokenUtil.hash(ApiV3Json.canonical(proof));
+    }
+
+    private static String billing(String actor, String key) throws Exception {
+        return ApiV3TokenUtil.hash(OPERATION + "\0" + actor + "\0" + key);
+    }
+
+    private long clock() {
+        long time = now();
+        if (time <= 0)
+            throw unavailable();
+        return time;
+    }
+
+    private Transaction begin() {
+        try {
+            return ApiV3Transactions.strict(requests.beginTransaction());
+        } catch (Exception e) {
+            throw unavailable();
+        }
+    }
+
+    private void noRoot() {
+        if (exports.hasTransactionBegun() || requests.hasTransactionBegun())
+            throw new IllegalStateException("export root required");
+    }
+
+    public static ApiV3Exception unavailable() {
+        return ApiV3PostExportSnapshotService.unavailable();
+    }
 }

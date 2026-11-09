@@ -45,15 +45,19 @@ public class ApiV3DraftMgmtService {
 
     public JSONObject remove(final String userId, final String id, final String key) throws Exception {
         return idempotencyMgmtService.execute(userId, "drafts.delete:" + id, key, new JSONObject(), () -> {
-            try { draftMgmtService.removeDraftInCurrentTransaction(userId, id); }
-            catch (final ServiceException e) { throw new ApiV3Exception(404, "not_found", "草稿不存在或不可访问"); }
+            try {
+                draftMgmtService.removeDraftInCurrentTransaction(userId, id);
+            } catch (final ServiceException e) {
+                throw new ApiV3Exception(404, "not_found", "草稿不存在或不可访问");
+            }
             return new JSONObject();
         });
     }
 
     private JSONObject saveInTransaction(final String userId, final JSONObject request) throws RepositoryException {
-        try { return draftMgmtService.saveDraftInCurrentTransaction(userId, request); }
-        catch (final ServiceException e) {
+        try {
+            return draftMgmtService.saveDraftInCurrentTransaction(userId, request);
+        } catch (final ServiceException e) {
             if ("草稿不存在".equals(e.getMessage())) throw new ApiV3Exception(404, "not_found", "草稿不存在或不可访问");
             throw ApiV3WriteInputs.invalid();
         }

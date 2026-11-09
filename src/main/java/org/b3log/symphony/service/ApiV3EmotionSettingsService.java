@@ -39,27 +39,49 @@ import org.json.JSONObject;
 /** 只替换认证用户本人的 type=0 表情选择，并与回执同事务提交。 */
 @Service
 public class ApiV3EmotionSettingsService {
-    @Inject private UserRepository users;
-    @Inject private EmotionRepository emotions;
-    @Inject private ApiV3RequestRepository requests;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private EmotionRepository emotions;
+    @Inject
+    private ApiV3RequestRepository requests;
+
     public JSONObject update(final String actor, final JSONObject body, final String key) throws Exception {
         id(actor);
         final JSONObject normalized = ApiV3EmotionSettingsInputs.normalize(body);
         try {
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-                public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                public JSONObject getForUpdate(final String receipt) throws RepositoryException { owner(actor); return requests.getForUpdate(receipt); }
-                public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
-                public void update(final String receipt, final JSONObject row, final String... fields) throws RepositoryException { requests.update(receipt, row, fields); }
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(final String receipt) throws RepositoryException {
+                    owner(actor);
+                    return requests.getForUpdate(receipt);
+                }
+
+                public String add(final JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(final String receipt, final JSONObject row, final String... fields) throws RepositoryException {
+                    requests.update(receipt, row, fields);
+                }
             };
             // 从内部回执读取的结果也要经过投影，只返回对外字段。
             final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "settings.emotions", key, normalized,
                     () -> updateInCurrentTransaction(actor, normalized));
             return ApiV3EmotionSettingsInputs.effective(ApiV3EmotionSettingsInputs.normalize(
                     new JSONObject().put("emotions", result.getJSONArray("emotions"))));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final Exception e) { throw unavailable(); }
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            throw unavailable();
+        }
     }
     public JSONObject updateInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
         id(actor);
@@ -84,6 +106,12 @@ public class ApiV3EmotionSettingsService {
                 || !(rows.getFirst().opt("userStatus") instanceof Number status) || status.intValue() != UserExt.USER_STATUS_C_VALID
                 || status.doubleValue() != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
     }
-    private static void id(final String actor) { if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid(); }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","表情设置暂不可用"); }
+    private static void id(final String actor) {
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}"))
+            throw ApiV3Requests.invalid();
+    }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "表情设置暂不可用");
+    }
 }

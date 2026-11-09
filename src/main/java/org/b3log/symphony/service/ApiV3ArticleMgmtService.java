@@ -48,16 +48,26 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class ApiV3ArticleMgmtService {
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ArticleMgmtService articles;
-    @Inject private ArticleSubmissionMgmtService submissions;
-    @Inject private ArticleValidationService validation;
-    @Inject private ArticleDraftMgmtService drafts;
-    @Inject private OptionRepository options;
-    @Inject private UserRepository users;
-    @Inject private RoleQueryService roles;
-    @Inject private ArticleRepository repository;
-    @Inject private LongArticleChapterRepository chapters;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ArticleMgmtService articles;
+    @Inject
+    private ArticleSubmissionMgmtService submissions;
+    @Inject
+    private ArticleValidationService validation;
+    @Inject
+    private ArticleDraftMgmtService drafts;
+    @Inject
+    private OptionRepository options;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private RoleQueryService roles;
+    @Inject
+    private ArticleRepository repository;
+    @Inject
+    private LongArticleChapterRepository chapters;
 
     public JSONObject create(final JSONObject viewer, final JSONObject body, final String key, final String ip, final String ua) throws Exception {
         permission(viewer);
@@ -68,7 +78,9 @@ public class ApiV3ArticleMgmtService {
             try {
                 return ApiV3ArticleCreation.apply(new ApiV3ArticleCreation.Store() {
                     private JSONObject author;
-                    public boolean inTransaction() { return users.hasTransactionBegun(); }
+                    public boolean inTransaction() {
+                        return users.hasTransactionBegun();
+                    }
                     public void lockAndAuthorize() throws Exception {
                         if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
                         author = users.getForUpdate(actor);
@@ -91,8 +103,11 @@ public class ApiV3ArticleMgmtService {
                         return new ApiV3ArticleCreation.Created(result.article().optString(Keys.OBJECT_ID), result.article().optString(Article.ARTICLE_PERMALINK));
                     }
                     public void removeDraft(final String id) throws Exception {
-                        try { drafts.removeDraftInCurrentTransaction(actor, id); }
-                        catch (final ServiceException e) { throw new ApiV3Exception(404, "not_found", "草稿不存在或不可访问"); }
+                        try {
+                            drafts.removeDraftInCurrentTransaction(actor, id);
+                        } catch (final ServiceException e) {
+                            throw new ApiV3Exception(404, "not_found", "草稿不存在或不可访问");
+                        }
                     }
                 }, normalized);
             } catch (final ArticleValidation.Rejected e) {
@@ -105,7 +120,10 @@ public class ApiV3ArticleMgmtService {
                 // 旧链路的重复标题错误可能暴露另一位作者，包括匿名作者。
                 throw new ApiV3Exception(422, "publication_rejected", "发布条件未满足，请检查标题、余额和账号状态");
             }
-        }), outcome -> { if (outcome.applied()) articles.afterArticlePublished(publication.get()); });
+        }), outcome -> {
+            // 幂等回放只返回已提交的回执，不再次执行发布后的操作。
+            if (outcome.applied()) articles.afterArticlePublished(publication.get());
+        });
         return execution.result();
     }
     private void permission(final JSONObject actor) throws Exception {
@@ -123,7 +141,9 @@ public class ApiV3ArticleMgmtService {
             try {
                 return ApiV3ArticleEditing.apply(new ApiV3ArticleEditing.Store() {
                     private JSONObject author;
-                    public boolean inTransaction() { return users.hasTransactionBegun(); }
+                    public boolean inTransaction() {
+                        return users.hasTransactionBegun();
+                    }
                     public ApiV3ArticleEditing.State lockAndLoad() throws Exception {
                         if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
                         author = users.getForUpdate(actor);
@@ -156,7 +176,9 @@ public class ApiV3ArticleMgmtService {
                 for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "edit_rejected", "编辑条件未满足，请检查标题、悬赏和余额");
             }
-        }), outcome -> { if (outcome.applied()) articles.afterArticleEdited(edited.get()); });
+        }), outcome -> {
+            if (outcome.applied()) articles.afterArticleEdited(edited.get());
+        });
         return execution.result();
     }
     public JSONObject remove(final JSONObject viewer, final String id, final String key) throws Exception {
@@ -180,7 +202,9 @@ public class ApiV3ArticleMgmtService {
                 for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "removal_rejected", e.getMessage());
             }
-        }), outcome -> { if (outcome.applied()) articles.afterArticleRemoved(removed.get()); });
+        }), outcome -> {
+            if (outcome.applied()) articles.afterArticleRemoved(removed.get());
+        });
         return execution.result();
     }
     private void removePermission(final JSONObject actor) throws Exception {

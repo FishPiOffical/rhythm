@@ -54,14 +54,21 @@ public class ApiV3ClientDisableService {
         final String actor = user == null ? "" : user.optString("oId");
         if (!actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.forbidden();
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-            public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-            public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
+            public Transaction beginTransaction() {
+                return ApiV3Transactions.strict(requests.beginTransaction());
+            }
+
+            public boolean hasTransactionBegun() {
+                return requests.hasTransactionBegun();
+            }
             public JSONObject getForUpdate(final String id) throws RepositoryException {
                 // 先按固定顺序锁定客户端命名空间，再锁定用户、令牌和请求，重放也遵循此顺序。
                 management.requireAdministrator(identity, true);
                 return requests.getForUpdate(id);
             }
-            public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
+            public String add(final JSONObject row) throws RepositoryException {
+                return requests.add(row);
+            }
             public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
                 requests.update(id, row, names);
             }
@@ -69,8 +76,11 @@ public class ApiV3ClientDisableService {
         try {
             return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "admin.oauth.clients.disable", key,
                     new JSONObject().put("clientId", clientId), () -> disableInCurrentTransaction(clientId));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final Exception e) { throw unavailable(); }
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            throw unavailable();
+        }
     }
 
     /** 仅在调用方根事务复核当前管理员后调用，由调用方统一提交。 */

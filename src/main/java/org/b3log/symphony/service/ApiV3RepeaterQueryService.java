@@ -55,15 +55,33 @@ public class ApiV3RepeaterQueryService {
     public JSONObject items(final String actor,final String type,final int size) {
         if(actor==null||type==null||!type.isEmpty()&&!RepeaterContent.isSupportedType(type)||size<1||size>50)throw ApiV3Requests.invalid();
         try{
-            actor(actor);final List<JSONObject> rows=pool(actor,type,size);final JSONArray items=new JSONArray();final java.util.Set<String> seen=new java.util.HashSet<>();for(final JSONObject row:rows){final JSONObject item=ApiV3RepeaterDto.item(row);if(!seen.add(item.getString("id")))throw ApiV3RepeaterDto.unavailable();items.put(item);}
-            actor(actor);if(!new JSONArray(rows).similar(new JSONArray(pool(actor,type,size))))throw ApiV3RepeaterDto.unavailable();actor(actor);
-            return new JSONObject().put("items",items);
-        }catch(final RepositoryException e){throw ApiV3RepeaterDto.unavailable();}
+            actor(actor);
+            final List<JSONObject> rows = pool(actor, type, size);
+            final JSONArray items = new JSONArray();
+            final java.util.Set<String> seen = new java.util.HashSet<>();
+            for (final JSONObject row : rows) {
+                final JSONObject item = ApiV3RepeaterDto.item(row);
+                if (!seen.add(item.getString("id")))
+                    throw ApiV3RepeaterDto.unavailable();
+                items.put(item);
+            }
+            // 返回之前复查候选池及读者，发现查询间状态变化时拒绝旧快照。
+            actor(actor);
+            if (!new JSONArray(rows).similar(new JSONArray(pool(actor, type, size))))
+                throw ApiV3RepeaterDto.unavailable();
+            actor(actor);
+            return new JSONObject().put("items", items);
+        } catch (final RepositoryException e) {
+            throw ApiV3RepeaterDto.unavailable();
+        }
     }
     public JSONObject next(final String actor,final String type,final String excludeId) {
         if(excludeId==null||!excludeId.isEmpty()&&!excludeId.matches("[0-9]{1,32}"))throw ApiV3Requests.invalid();
-        final JSONArray rows=items(actor,type,50).getJSONArray("items");final JSONArray candidates=new JSONArray();
-        for(int i=0;i<rows.length();i++)if(!excludeId.equals(rows.getJSONObject(i).getString("id")))candidates.put(rows.getJSONObject(i));
+        final JSONArray rows = items(actor, type, 50).getJSONArray("items");
+        final JSONArray candidates = new JSONArray();
+        for (int i = 0; i < rows.length(); i++)
+            if (!excludeId.equals(rows.getJSONObject(i).getString("id")))
+                candidates.put(rows.getJSONObject(i));
         return new JSONObject().put("item",candidates.isEmpty()?JSONObject.NULL:candidates.getJSONObject(ThreadLocalRandom.current().nextInt(candidates.length())));
     }
 }

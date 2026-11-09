@@ -57,14 +57,20 @@ public class ApiV3TagSuggestionQueryService {
                     +" ORDER BY t.tagReferenceCount DESC,LOWER(t.tagTitle),t.oId LIMIT 7",
                     prefix.isEmpty()?new Object[]{}:new Object[]{prefix.replace("_","=_")+"%"});
             if(rows.size()>7)throw unavailable();
-            final JSONArray list=new JSONArray();final var seen=new HashSet<String>();
+            final JSONArray list = new JSONArray();
+            final var seen = new HashSet<String>();
             for(final var row:rows){
                 final String title=row.optString("tagTitle"),lower=title.toLowerCase(Locale.ROOT);
                 if(title.isEmpty()||title.length()>255||!Tag.TAG_TITLE_PATTERN.matcher(title).matches()||!lower.startsWith(prefix)||!seen.add(lower))throw unavailable();
                 list.put(title);
             }
             return new JSONObject().put("list",list);
-        }catch(RepositoryException error){throw unavailable();}
+        } catch (RepositoryException error) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","标签联想暂不可用");}
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "标签联想暂不可用");
+    }
 }

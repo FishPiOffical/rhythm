@@ -256,7 +256,9 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
-    public boolean hasChat(){return !chat.isEmpty();}
+    public boolean hasChat() {
+        return !chat.isEmpty();
+    }
     /** 只有已认证的聊天室订阅计入在线名单。 */
     public Set<String> chatUserIds(){
         final Set<String> ids=new java.util.HashSet<>();
@@ -394,16 +396,35 @@ public final class ApiV3RealtimeSessions {
         } catch (RuntimeException ignored) {
         }
     }
-    private static void decrement(Map<String,Integer> counts,String key){counts.computeIfPresent(key,(k,n)->n<=1?null:n-1);}
-    public int size(){return connections.size();}
-    public Set<String> owners(){return owners(ApiV3SocketTicket.CHANNEL_NOTIFICATIONS);}
-    public Set<String> messageOwners(){return owners(ApiV3SocketTicket.CHANNEL_MESSAGES);}
-    private Set<String> owners(String channel){
-        synchronized(admission){
-            final var result=new java.util.HashSet<String>();
-            byUser.forEach((owner,connections)->{if(connections.stream().anyMatch(c->c.grant!=null&&channel.equals(c.grant.channel())))result.add(owner);});
+    private static void decrement(Map<String, Integer> counts, String key) {
+        counts.computeIfPresent(key, (k, n) -> n <= 1 ? null : n - 1);
+    }
+
+    public int size() {
+        return connections.size();
+    }
+
+    public Set<String> owners() {
+        return owners(ApiV3SocketTicket.CHANNEL_NOTIFICATIONS);
+    }
+
+    public Set<String> messageOwners() {
+        return owners(ApiV3SocketTicket.CHANNEL_MESSAGES);
+    }
+
+    private Set<String> owners(String channel) {
+        synchronized (admission) {
+            final var result = new java.util.HashSet<String>();
+            byUser.forEach((owner, connections) -> {
+                if (connections.stream().anyMatch(c -> c.grant != null && channel.equals(c.grant.channel())))
+                    result.add(owner);
+            });
             return Set.copyOf(result);
         }
     }
-    public Set<String> articleIds(){synchronized(admission){return Set.copyOf(byArticle.keySet());}}
+    public Set<String> articleIds() {
+        synchronized (admission) {
+            return Set.copyOf(byArticle.keySet());
+        }
+    }
 }

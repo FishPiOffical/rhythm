@@ -32,14 +32,22 @@ import java.util.concurrent.atomic.AtomicReference;
 /** 通过显式 Bearer 身份读取评论投票投影，并幂等设置或清除投票。 */
 @Service
 public class ApiV3CommentVoteService {
-    @Inject private CommentRepository comments;
-    @Inject private VoteRepository votes;
-    @Inject private UserRepository users;
-    @Inject private CommentThankMgmtService targets;
-    @Inject private CommentVoteMgmtService mutations;
-    @Inject private ArticleMgmtService articleWrites;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ApiV3ContentQueryService visibility;
+    @Inject
+    private CommentRepository comments;
+    @Inject
+    private VoteRepository votes;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private CommentThankMgmtService targets;
+    @Inject
+    private CommentVoteMgmtService mutations;
+    @Inject
+    private ArticleMgmtService articleWrites;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ApiV3ContentQueryService visibility;
 
     public JSONObject read(final JSONObject viewer, final String id) throws Exception {
         final String actor = actor(viewer);
@@ -75,7 +83,9 @@ public class ApiV3CommentVoteService {
                 if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
                 throw new ApiV3Exception(422, e.code, "不能对本人评论投票");
             }
-        }), execution -> { if (execution.applied()) mutations.afterVote(actor, result.get()); });
+        }), execution -> {
+            if (execution.applied()) mutations.afterVote(actor, result.get());
+        });
         return outcome.result();
     }
 
@@ -89,5 +99,7 @@ public class ApiV3CommentVoteService {
         if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
         return viewer.getString(Keys.OBJECT_ID);
     }
-    private static ApiV3Exception missing() { return new ApiV3Exception(404, "not_found", "资源不存在或不可查看"); }
+    private static ApiV3Exception missing() {
+        return new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
+    }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Actual stick/points/receipt and expiry SQL and strict JDBC; temporary SQLite and transport/cache adapters. */
+/** 在临时 SQLite 上执行置顶、积分、回执与过期 SQL 及严格 JDBC 事务，传输和缓存使用适配器。 */
 import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
 const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
 const cp=[process.env.API_V3_JSOUP_JAR||ide+'/lib/intellij.libraries.jsoup.jar','src/main/resources/lib/latke-core.jar',process.env.API_V3_CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`,process.env.API_V3_TESTNG_JAR||`${ide}/plugins/testng/lib/testng.jar`,process.env.API_V3_SQLITE_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);

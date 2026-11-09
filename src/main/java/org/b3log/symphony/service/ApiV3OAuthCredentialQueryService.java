@@ -35,10 +35,14 @@ public class ApiV3OAuthCredentialQueryService {
     @Inject private ApiV3AuthorizationCodeRepository codes;
     @Inject private ApiV3TokenRepository tokens;
     @Inject private UserRepository users;
-    protected long now(){return System.currentTimeMillis();}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
     private boolean client(String id)throws Exception{
         if(id==null||!id.matches("[\\x21-\\x7E]{1,64}")||ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(id))return false;
-        final var row=clients.getByClientId(id);return row!=null&&id.equals(row.optString(ApiV3Client.CLIENT_ID))&&row.optInt(ApiV3Client.STATUS,-1)==ApiV3Client.STATUS_ACTIVE;
+        final var row = clients.getByClientId(id);
+        return row != null && id.equals(row.optString(ApiV3Client.CLIENT_ID))
+                && row.optInt(ApiV3Client.STATUS, -1) == ApiV3Client.STATUS_ACTIVE;
     }
     private JSONObject user(String id)throws Exception{
         if(id==null||!id.matches("[1-9][0-9]{0,18}"))return null;
@@ -54,22 +58,43 @@ public class ApiV3OAuthCredentialQueryService {
         if(!ApiV3TokenUtil.isValidFormat(raw)||!ApiV3Pkce.validVerifier(verifier)||uri==null
                 ||!ApiV3OAuthRedirects.valid(uri,Latkes.RuntimeMode.DEVELOPMENT==Latkes.getRuntimeMode())||!client(client))return null;
         if(redirects.getRegistered(client,uri)==null)return null;
-        final String hash=ApiV3TokenUtil.hash("oauth-code\0"+raw);final var rows=codes.select("SELECT * FROM `"+codes.getName()+"` WHERE oId=?",hash);if(rows.size()!=1)return null;
-        final var row=rows.getFirst();final long time=now(),created=row.optLong("createdAt",-1),expires=row.optLong("expiresAt",-1),consumed=row.optLong("consumedAt",-1);
+        final String hash = ApiV3TokenUtil.hash("oauth-code\0" + raw);
+        final var rows = codes.select("SELECT * FROM `" + codes.getName() + "` WHERE oId=?", hash);
+        if (rows.size() != 1)
+            return null;
+        final var row = rows.getFirst();
+        final long time = now(), created = row.optLong("createdAt", -1),
+                expires = row.optLong("expiresAt", -1), consumed = row.optLong("consumedAt", -1);
         if(!hash.equals(row.optString("oId"))||!client.equals(row.optString("clientId"))||!uri.equals(row.optString("redirectUri"))||!ApiV3Pkce.matches(row.optString("codeChallenge"),verifier)
                 ||created<=0||created>time||created>Long.MAX_VALUE-ApiV3AuthorizationCodeService.CODE_TTL_MILLIS||expires!=created+ApiV3AuthorizationCodeService.CODE_TTL_MILLIS||consumed<0||consumed>time)return null;
         final String actor=row.optString("userId");
-        if(consumed==0){if(expires<=time||!row.optString("familyId").isEmpty())return null;}
-        else if(!liveFamily(client,actor,row.optString("familyId"),time))return null;
+        // 已消费授权码仅在原家族仍有效时通过此处预检，后续事务负责处理重放。
+        if (consumed == 0) {
+            if (expires <= time || !row.optString("familyId").isEmpty())
+                return null;
+        } else if (!liveFamily(client, actor, row.optString("familyId"), time))
+            return null;
         return user(actor);
     }
     public JSONObject token(String client,String raw,boolean revocation)throws Exception{
         if(!ApiV3TokenUtil.isValidFormat(raw)||!client(client))return null;
-        final String hash=ApiV3TokenUtil.hash(raw);final var row=tokens.getByHash(hash);if(row==null||!hash.equals(row.optString(ApiV3Token.TOKEN_HASH))||!client.equals(row.optString(ApiV3Token.CLIENT_ID)))return null;
-        final String type=row.optString(ApiV3Token.TOKEN_TYPE);if(!ApiV3Token.TYPE_REFRESH.equals(type)&&!(revocation&&ApiV3Token.TYPE_ACCESS.equals(type)))return null;
-        final long time=now();final int state=row.optInt(ApiV3Token.STATE,-1);final String actor=row.optString(ApiV3Token.USER_ID);
-        if(state==ApiV3Token.STATE_ACTIVE){if(row.optLong(ApiV3Token.EXPIRES_AT)<=time)return null;}
-        else if(!ApiV3Token.TYPE_REFRESH.equals(type)||state!=ApiV3Token.STATE_ROTATED||!liveFamily(client,actor,row.optString(ApiV3Token.FAMILY_ID),time))return null;
+        final String hash = ApiV3TokenUtil.hash(raw);
+        final var row = tokens.getByHash(hash);
+        if (row == null || !hash.equals(row.optString(ApiV3Token.TOKEN_HASH))
+                || !client.equals(row.optString(ApiV3Token.CLIENT_ID)))
+            return null;
+        final String type = row.optString(ApiV3Token.TOKEN_TYPE);
+        if (!ApiV3Token.TYPE_REFRESH.equals(type) && !(revocation && ApiV3Token.TYPE_ACCESS.equals(type)))
+            return null;
+        final long time = now();
+        final int state = row.optInt(ApiV3Token.STATE, -1);
+        final String actor = row.optString(ApiV3Token.USER_ID);
+        if (state == ApiV3Token.STATE_ACTIVE) {
+            if (row.optLong(ApiV3Token.EXPIRES_AT) <= time)
+                return null;
+        } else if (!ApiV3Token.TYPE_REFRESH.equals(type) || state != ApiV3Token.STATE_ROTATED
+                || !liveFamily(client, actor, row.optString(ApiV3Token.FAMILY_ID), time))
+            return null;
         return user(actor);
     }
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Defaults to missing-target and denial checks.
- * API_V3_TOKEN: content.read + content.write, and commonThankArticle for thanks.
- * API_V3_ARTICLE_THANK_WRITE=1 + API_V3_ARTICLE_THANK_ID explicitly thanks one disposable other-user article.
- * API_V3_ARTICLE_PURCHASE_WRITE=1 + API_V3_ARTICLE_REWARD_ID purchases one disposable other-user article;
- * current article fees are permanent. Optional API_V3_MAX_REWARD_POINT refuses a higher advertised price.
+/** 确认 IDEA 重新编译或重启后运行，默认验证目标不存在和拒绝路径。
+ * API_V3_TOKEN 需要 content.read 和 content.write，感谢还需 commonThankArticle。
+ * API_V3_ARTICLE_THANK_WRITE=1 与 API_V3_ARTICLE_THANK_ID 显式感谢另一用户的一篇临时文章。
+ * API_V3_ARTICLE_PURCHASE_WRITE=1 与 API_V3_ARTICLE_REWARD_ID 会购买另一用户的一篇临时文章。
+ * 当前文章费用不可撤销。可选的 API_V3_MAX_REWARD_POINT 用于拒绝高于上限的标价。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

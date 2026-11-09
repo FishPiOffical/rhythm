@@ -47,13 +47,25 @@ public class ApiV3FollowStateTest {
             final var service=new ApiV3FollowQueryService();final boolean[] fail={false};
             inject(service,"users",new UserRepository(){public String getName(){return "users";}});
             inject(service,"follows",new FollowRepository(){
-                public String getName(){return "follows";}
-                public List<JSONObject> select(String sql,Object...args)throws RepositoryException{
-                    if(fail[0])throw new RepositoryException("private database failure");
-                    Assert.assertTrue(sql.startsWith("SELECT "));try(var statement=db.prepareStatement(sql)){
-                        for(int i=0;i<args.length;i++)statement.setObject(i+1,args[i]);
-                        try(var rows=statement.executeQuery()){var values=new ArrayList<JSONObject>();while(rows.next())values.add(new JSONObject().put("targetId",rows.getString("targetId")).put("following",rows.getInt("following")));return values;}
-                    }catch(SQLException e){throw new RepositoryException(e);}
+                public String getName() {
+                    return "follows";
+                }
+
+                public List<JSONObject> select(String sql, Object... args) throws RepositoryException {
+                    if (fail[0]) throw new RepositoryException("private database failure");
+                    Assert.assertTrue(sql.startsWith("SELECT "));
+                    try (var statement = db.prepareStatement(sql)) {
+                        for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
+                        try (var rows = statement.executeQuery()) {
+                            var values = new ArrayList<JSONObject>();
+                            while (rows.next())
+                                values.add(new JSONObject().put("targetId", rows.getString("targetId"))
+                                        .put("following", rows.getInt("following")));
+                            return values;
+                        }
+                    } catch (SQLException e) {
+                        throw new RepositoryException(e);
+                    }
                 }
             });
             inject(service,"tags",new org.b3log.symphony.repository.TagRepository(){public String getName(){return "tags";}});
@@ -66,8 +78,18 @@ public class ApiV3FollowStateTest {
             for(String invalid:List.of("0","2 OR 1=1","2/3","99999999999999999999"))error(422,()->service.userState(owner,invalid));
             error(404,()->service.userState(owner,"4"));error(404,()->service.userState(owner,"9"));error(404,()->service.userState(new JSONObject().put("oId","4"),"2"));
             System.out.println("PASS follow state 2 current actor/target status and strict numeric ids reject unavailable targets and injection");
-            fail[0]=true;try{service.userState(owner,"2");Assert.fail();}catch(RepositoryException expected){}fail[0]=false;
-            try(var rows=db.createStatement().executeQuery("SELECT COUNT(*) FROM follows")){Assert.assertTrue(rows.next());Assert.assertEquals(rows.getInt(1),5);}
+            // 查询故障应向上传递，关系数据仍保留原样。
+            fail[0] = true;
+            try {
+                service.userState(owner, "2");
+                Assert.fail();
+            } catch (RepositoryException expected) {
+            }
+            fail[0] = false;
+            try (var rows = db.createStatement().executeQuery("SELECT COUNT(*) FROM follows")) {
+                Assert.assertTrue(rows.next());
+                Assert.assertEquals(rows.getInt(1), 5);
+            }
             System.out.println("PASS follow state 3 database failure is not false/unfollowed; reads never mutate stored relations");
             Assert.assertTrue(service.tagState(owner,"3").getBoolean("following"));
             Assert.assertFalse(service.tagState(other,"3").getBoolean("following"));

@@ -76,20 +76,34 @@ public class ApiV3ClientUpdateService {
             final JSONObject normalized = new JSONObject().put("clientId", clientId).put("name", definition.name())
                     .put("scope", definition.scope()).put("redirectUris", new JSONArray(callbacks));
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-                public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
                 public JSONObject getForUpdate(final String id) throws RepositoryException {
                     management.requireAdministrator(identity, true);
                     return requests.getForUpdate(id);
                 }
-                public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
-                public void update(final String id, final JSONObject row, final String... names) throws RepositoryException { requests.update(id, row, names); }
+                public String add(final JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
+                    requests.update(id, row, names);
+                }
             };
             return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "admin.oauth.clients.update", key, normalized,
                     () -> updateInCurrentTransaction(clientId, definition, callbacks));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final IllegalArgumentException e) { throw ApiV3Requests.invalid(); }
-        catch (final Exception e) { throw unavailable(); }
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final IllegalArgumentException e) {
+            throw ApiV3Requests.invalid();
+        } catch (final Exception e) {
+            throw unavailable();
+        }
     }
 
     /** 仅在根事务按固定顺序锁定客户端命名空间和当前管理身份、用户、令牌、请求后调用。 */
@@ -149,5 +163,7 @@ public class ApiV3ClientUpdateService {
         });
     }
 
-    public static ApiV3Exception unavailable() { return new ApiV3Exception(503, "temporarily_unavailable", "客户端修改暂不可用"); }
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "客户端修改暂不可用");
+    }
 }

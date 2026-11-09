@@ -73,17 +73,53 @@ public class ApiV3AppLoginServiceTest {
             inject(nativeGrants,"apiV3TokenRepository",nativeTokens);inject(nativeGrants,"apiV3ClientRepository",field(proof,"clients"));inject(nativeGrants,"userRepository",field(proof,"users"));inject(service,"grants",nativeGrants);
             for(String name:List.of("clients","tokens","states","users"))inject(service,name,field(proof,name));
         }
-        String create(){final var value=service.create(identity());Assert.assertEquals(value.getString("request"),RAW);Assert.assertEquals(value.getLong("expiresAt"),NOW+120000);Assert.assertEquals(value.keySet(),Set.of("request","qrPayload","expiresAt","state"));return RAW;}
-        void approved(){create();service.claim(RAW,ApiV3AppLoginProtocol.challenge(PROOF));service.appDecision(RAW,PROOF,"confirm");service.webDecision(identity(),RAW,"approve");}
+        String create() {
+            final var value = service.create(identity());
+            Assert.assertEquals(value.getString("request"), RAW);
+            Assert.assertEquals(value.getLong("expiresAt"), NOW + 120000);
+            Assert.assertEquals(value.keySet(), Set.of("request", "qrPayload", "expiresAt", "state"));
+            return RAW;
+        }
+
+        void approved() {
+            // 移动端先用挑战领取并确认，网页端随后批准。
+            create();
+            service.claim(RAW, ApiV3AppLoginProtocol.challenge(PROOF));
+            service.appDecision(RAW, PROOF, "confirm");
+            service.webDecision(identity(), RAW, "approve");
+        }
         JSONObject row()throws Exception{return rows(db,"SELECT * FROM qr").getFirst();}
         int pairs()throws Exception{return rows(db,"SELECT COUNT(*) AS n FROM tokens WHERE clientId='fishpi_app_v3'").getFirst().getInt("n");}
         org.b3log.latke.http.RequestContext post(String token,String suffix,String body)throws Exception {
             final var raw=new io.netty.handler.codec.http.DefaultFullHttpRequest(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpMethod.POST,"/api/v3/auth/app-login/"+suffix,io.netty.buffer.Unpooled.copiedBuffer(body,java.nio.charset.StandardCharsets.UTF_8));
-            try {raw.headers().set("Content-Type","application/json");raw.headers().set("X-Real-IP","127.0.0.51");raw.headers().set("Cookie","legacy-cookie");if(token!=null)raw.headers().set("Authorization","Bearer "+token);
-                var request=new org.b3log.latke.http.Request(null,raw);request.setBytes(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));request.setParams(new HashMap<>(Map.of("apiKey","legacy")));
+            try {
+                raw.headers().set("Content-Type", "application/json");
+                raw.headers().set("X-Real-IP", "127.0.0.51");
+                raw.headers().set("Cookie", "legacy-cookie");
+                if (token != null) raw.headers().set("Authorization", "Bearer " + token);
+                var request = new org.b3log.latke.http.Request(null, raw);
+                request.setBytes(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
                 final var c=new org.b3log.latke.http.RequestContext(request,new org.b3log.latke.http.Response(null,new io.netty.handler.codec.http.DefaultHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,io.netty.handler.codec.http.HttpResponseStatus.OK)));
-                c.attr("user",new JSONObject().put("oId","2"));c.addHandler(new org.b3log.latke.http.handler.RouteHandler());c.addHandler(context->{switch(suffix){case "requests"->endpoint.create(context);case "status"->endpoint.webStatus(context);case "decision"->endpoint.webDecision(context);case "claim"->endpoint.claim(context);case "app-status"->endpoint.appStatus(context);case "app-decision"->endpoint.appDecision(context);case "exchange"->endpoint.exchange(context);default->throw new AssertionError("unhandled QR route");}});c.handle();return c;
-            }finally{raw.release();}
+                c.attr("user", new JSONObject().put("oId", "2"));
+                c.addHandler(new org.b3log.latke.http.handler.RouteHandler());
+                c.addHandler(context -> {
+                    switch (suffix) {
+                        case "requests" -> endpoint.create(context);
+                        case "status" -> endpoint.webStatus(context);
+                        case "decision" -> endpoint.webDecision(context);
+                        case "claim" -> endpoint.claim(context);
+                        case "app-status" -> endpoint.appStatus(context);
+                        case "app-decision" -> endpoint.appDecision(context);
+                        case "exchange" -> endpoint.exchange(context);
+                        default -> throw new AssertionError("unhandled QR route");
+                    }
+                });
+                c.handle();
+                return c;
+            } finally {
+                raw.release();
+            }
         }
     }
     public static void main(String[] args)throws Exception {

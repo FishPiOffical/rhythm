@@ -31,13 +31,20 @@ import java.util.concurrent.atomic.AtomicReference;
 /** 按 Bearer 身份检查文章可见性，设置或清除投票各使用一个幂等事务。 */
 @Service
 public class ApiV3ArticleVoteService {
-    @Inject private ArticleRepository articles;
-    @Inject private VoteRepository votes;
-    @Inject private UserRepository users;
-    @Inject private VoteMgmtService mutations;
-    @Inject private ArticleMgmtService articleWrites;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ApiV3ContentQueryService visibility;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private VoteRepository votes;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private VoteMgmtService mutations;
+    @Inject
+    private ArticleMgmtService articleWrites;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ApiV3ContentQueryService visibility;
 
     public JSONObject read(final JSONObject viewer, final String id) throws Exception {
         final String actor = actor(viewer);

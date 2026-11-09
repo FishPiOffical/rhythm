@@ -43,14 +43,25 @@ public class ApiV3ContactSettingsService {
     @Inject private AccountCredentialMgmtService credentials;
     @Inject private VerifycodeMgmtService sms;
     private static final SecureRandom RANDOM=new SecureRandom();
-    protected long now(){return System.currentTimeMillis();}
-    protected String newCode(){return String.format(Locale.ROOT,"%06d",RANDOM.nextInt(1_000_000));}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    protected String newCode() {
+        return String.format(Locale.ROOT, "%06d", RANDOM.nextInt(1_000_000));
+    }
+
     protected boolean captcha(String proof) {
         // 极验校验保护入口；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
         return AnonymousCaptchaShield.verifyProof(proof);
     }
-    protected boolean allowed(String ip,String actor,String target,boolean phone){return !phone||AccountSmsQuota.access(ip,actor,target);}
-    protected boolean send(String target,String code,boolean phone){return phone?sms.sendAccountVerifyCodeSMS(target,code):Mails.sendAccountBindingCode(target,code);}
+    protected boolean allowed(String ip, String actor, String target, boolean phone) {
+        return !phone || AccountSmsQuota.access(ip, actor, target);
+    }
+
+    protected boolean send(String target, String code, boolean phone) {
+        return phone ? sms.sendAccountVerifyCodeSMS(target, code) : Mails.sendAccountBindingCode(target, code);
+    }
 
     public JSONObject request(JSONObject identity,ApiV3ContactInputs.Input input,boolean phone,String ip)throws Exception {
         input=validated(input,phone,true);
@@ -165,7 +176,8 @@ public class ApiV3ContactSettingsService {
     }
     private record TargetSnapshot(String previous,String userName){ }
     private TargetSnapshot requireNewTarget(String actor,String target,boolean phone)throws Exception {
-        ApiV3ContactInputs.target(target,phone);final String field=phone?"userPhone":"userEmail";
+        ApiV3ContactInputs.target(target, phone);
+        final String field = phone ? "userPhone" : "userEmail";
         final var current=users.select("SELECT oId,userName,"+field+" FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
         if(current.size()!=1||!actor.equals(current.getFirst().optString("oId")))throw ApiV3Requests.forbidden();
         if(!(current.getFirst().opt(field) instanceof String previous))throw unavailable();
@@ -174,25 +186,63 @@ public class ApiV3ContactSettingsService {
         if(!(current.getFirst().opt("userName") instanceof String userName)||userName.isEmpty()||userName.length()>64)throw unavailable();
         return new TargetSnapshot(previous,userName);
     }
-    private Transaction begin(){try{return ApiV3Transactions.strict(codes.beginTransaction());}catch(Exception error){throw unavailable();}}
-    private String previousHash(String actor,String purpose,String previous,long epoch)throws Exception{return codeHash(actor,"previous:"+purpose,previous,epoch,"");}
-    private static ApiV3Exception deliveryUnavailable(){return new ApiV3Exception(503,"delivery_unavailable","验证码发送暂不可用");}
-    private void rootRequired(){if(users.hasTransactionBegun()||codes.hasTransactionBegun())throw new IllegalStateException("contact root required");}
-    private long clock(){final long time=now();if(time<=0)throw unavailable();return time;}
-    private static long version(JSONObject owner){return number(owner,"credentialEpoch");}
-    private static long number(JSONObject row,String key){return AccountCredentialStateRepository.epoch(row.opt(key));}
+    private Transaction begin() {
+        try {
+            return ApiV3Transactions.strict(codes.beginTransaction());
+        } catch (Exception error) {
+            throw unavailable();
+        }
+    }
+
+    private String previousHash(String actor, String purpose, String previous, long epoch) throws Exception {
+        return codeHash(actor, "previous:" + purpose, previous, epoch, "");
+    }
+
+    private static ApiV3Exception deliveryUnavailable() {
+        return new ApiV3Exception(503, "delivery_unavailable", "验证码发送暂不可用");
+    }
+
+    private void rootRequired() {
+        if (users.hasTransactionBegun() || codes.hasTransactionBegun())
+            throw new IllegalStateException("contact root required");
+    }
+
+    private long clock() {
+        final long time = now();
+        if (time <= 0)
+            throw unavailable();
+        return time;
+    }
+
+    private static long version(JSONObject owner) {
+        return number(owner, "credentialEpoch");
+    }
+
+    private static long number(JSONObject row, String key) {
+        return AccountCredentialStateRepository.epoch(row.opt(key));
+    }
     private static ApiV3ContactInputs.Input validated(ApiV3ContactInputs.Input input,boolean phone,boolean sending) {
         if(input==null)throw ApiV3WriteInputs.invalid();
         final JSONObject body=new JSONObject().put("target",input.target()).put("currentPassword",input.password()).put(sending?"captcha":"code",input.proof());
         if(input.totp()!=null&&!input.totp().isEmpty())body.put("currentTotp",input.totp());
         return ApiV3ContactInputs.parse(body,phone,sending);
     }
-    private static String rowId(String actor,String purpose)throws Exception{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((actor+"\0"+purpose).getBytes(StandardCharsets.UTF_8)));}
+    private static String rowId(String actor, String purpose) throws Exception {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((actor + "\0" + purpose).getBytes(StandardCharsets.UTF_8)));
+    }
     protected String codeHash(String actor,String purpose,String target,long epoch,String code)throws Exception {
-        final String secret=Symphonys.COOKIE_SECRET;if(secret==null||secret.isEmpty())throw unavailable();
-        final Mac mac=Mac.getInstance("HmacSHA256");mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),"HmacSHA256"));
+        final String secret = Symphonys.COOKIE_SECRET;
+        if (secret == null || secret.isEmpty())
+            throw unavailable();
+        final Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         return HexFormat.of().formatHex(mac.doFinal(("contact\0"+actor+"\0"+purpose+"\0"+target+"\0"+epoch+"\0"+code).getBytes(StandardCharsets.UTF_8)));
     }
-    private static ApiV3Exception invalidProof(){return new ApiV3Exception(422,"invalid_verification","验证码无效或已失效");}
-    public static ApiV3Exception unavailable(){return new ApiV3Exception(503,"temporarily_unavailable","联系方式设置暂不可用");}
+    private static ApiV3Exception invalidProof() {
+        return new ApiV3Exception(422, "invalid_verification", "验证码无效或已失效");
+    }
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "联系方式设置暂不可用");
+    }
 }

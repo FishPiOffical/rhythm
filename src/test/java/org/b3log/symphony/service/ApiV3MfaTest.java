@@ -46,7 +46,31 @@ public class ApiV3MfaTest extends ApiV3SecurityTest {
    super();sql(db,"ALTER TABLE u ADD COLUMN userUpdateTime INT DEFAULT 0");
    sql(db,"CREATE TABLE prep(oId TEXT PRIMARY KEY,userId TEXT,preparationHash TEXT,secret TEXT,proofBinding TEXT,state INT,createdAt INT,expiresAt INT)");sql(db,"CREATE TABLE receipts(oId TEXT PRIMARY KEY,value TEXT)");
    var preparations=new ApiV3MfaPreparationRepository(){public String getName(){return "prep";}public boolean hasTransactionBegun(){return active();}public Transaction beginTransaction(){return begin();}public List<JSONObject> select(String q,Object...a)throws RepositoryException{Assert.assertTrue(q.endsWith(" FOR UPDATE"));if(fault.equals("prep-read"))throw new RepositoryException("PRIVATE");return selectSQL(q,a);}};
-   var receipts=new ApiV3RequestRepository(){public boolean hasTransactionBegun(){return active();}public Transaction beginTransaction(){return begin();}public JSONObject getForUpdate(String id)throws RepositoryException{var rs=rows(writer,"SELECT value FROM receipts WHERE oId=?",id);return rs.isEmpty()?null:new JSONObject(rs.getFirst().getString("value"));}public String add(JSONObject row)throws RepositoryException{sql(writer,"INSERT INTO receipts VALUES(?,?)",row.getString("oId"),row.toString());if(fault.equals("placeholder"))throw new RepositoryException("PRIVATE");return row.getString("oId");}public void update(String id,JSONObject row,String...fields)throws RepositoryException{sql(writer,"UPDATE receipts SET value=? WHERE oId=?",row.toString(),id);if(fault.equals("receipt"))throw new RepositoryException("PRIVATE");}};
+   var receipts = new ApiV3RequestRepository() {
+    public boolean hasTransactionBegun() {
+     return active();
+    }
+
+    public Transaction beginTransaction() {
+     return begin();
+    }
+
+    public JSONObject getForUpdate(String id) throws RepositoryException {
+     var rs = rows(writer, "SELECT value FROM receipts WHERE oId=?", id);
+     return rs.isEmpty() ? null : new JSONObject(rs.getFirst().getString("value"));
+    }
+
+    public String add(JSONObject row) throws RepositoryException {
+     sql(writer, "INSERT INTO receipts VALUES(?,?)", row.getString("oId"), row.toString());
+     if (fault.equals("placeholder")) throw new RepositoryException("PRIVATE");
+     return row.getString("oId");
+    }
+
+    public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+     sql(writer, "UPDATE receipts SET value=? WHERE oId=?", row.toString(), id);
+     if (fault.equals("receipt")) throw new RepositoryException("PRIVATE");
+    }
+   };
    inject(mfa,"proofs",proof);inject(mfa,"credentials",credentials);inject(mfa,"preparations",preparations);inject(mfa,"requests",receipts);var f=ApiV3SecurityProofService.class.getDeclaredField("users");f.setAccessible(true);inject(mfa,"users",f.get(proof));inject(endpoint,"service",mfa);
   }
   @Override Transaction begin(){
@@ -54,7 +78,13 @@ public class ApiV3MfaTest extends ApiV3SecurityTest {
     var root=super.begin();var inner=writer;
     writer=(Connection)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{Connection.class},(p,m,a)->{
      try{
-      if(m.getName().equals("setSavepoint")&&fault.equals("savepoint"))throw new SQLException("PRIVATE");if(m.getName().equals("releaseSavepoint")&&fault.equals("release"))throw new SQLException("PRIVATE");if(m.getName().equals("rollback")&&a!=null&&a.length==1&&fault.equals("rollback-point"))throw new SQLException("PRIVATE");
+      // 分别在创建、释放及回滚到保存点的阶段模拟 JDBC 故障。
+      if (m.getName().equals("setSavepoint") && fault.equals("savepoint"))
+       throw new SQLException("PRIVATE");
+      if (m.getName().equals("releaseSavepoint") && fault.equals("release"))
+       throw new SQLException("PRIVATE");
+      if (m.getName().equals("rollback") && a != null && a.length == 1 && fault.equals("rollback-point"))
+       throw new SQLException("PRIVATE");
       if(m.getName().equals("prepareStatement")){String q=(String)a[0];var ps=(PreparedStatement)m.invoke(inner,a);return Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{PreparedStatement.class},(p2,m2,a2)->{try{var out=m2.invoke(ps,a2);if(m2.getName().equals("executeUpdate")&&((fault.equals("prep-write")&&q.contains("`prep`"))||(fault.equals("mfa-write")&&q.startsWith("UPDATE `u`"))||(fault.equals("rollback-point")&&q.contains("`prep`"))))throw new SQLException("PRIVATE");if(m2.getName().equals("executeUpdate")&&fault.equals("unchanged")&&q.startsWith("UPDATE `u`"))return 0;return out;}catch(InvocationTargetException e){throw e.getCause();}});}
       return m.invoke(inner,a);
      }catch(InvocationTargetException e){throw e.getCause();}

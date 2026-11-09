@@ -117,21 +117,40 @@ public class ApiV3PrivateMessageQueryService {
         return result;
     }
     private long unread(String actor,String peer)throws Exception {
-        final var values=new ArrayList<Object>();values.add(actor);if(peer!=null)values.add(peer);
+        final var values = new ArrayList<Object>();
+        values.add(actor);
+        if (peer != null)
+            values.add(peer);
         final var rows=unread.select("SELECT COUNT(*) AS total FROM `"+unread.getName()+"` u WHERE u.toId=?"+(peer==null?"":" AND u.fromId=?")
                 +" AND u.fromId REGEXP '^[1-9][0-9]{0,18}$' AND u.toId REGEXP '^[1-9][0-9]{0,18}$' AND u.fromId<>u.toId",values.toArray());
-        if(rows.size()!=1||rows.getFirst().getLong("total")<0)throw new IllegalStateException("private unread count invalid");return rows.getFirst().getLong("total");
+        if (rows.size() != 1 || rows.getFirst().getLong("total") < 0)
+            throw new IllegalStateException("private unread count invalid");
+        return rows.getFirst().getLong("total");
     }
     private Map<String,Long> unreadForPeers(String actor,List<String> peers)throws Exception {
-        final var result=new HashMap<String,Long>();if(peers.isEmpty())return result;
-        final var args=new ArrayList<Object>();args.add(actor);args.addAll(peers);
+        final var result = new HashMap<String, Long>();
+        if (peers.isEmpty())
+            return result;
+        final var args = new ArrayList<Object>();
+        args.add(actor);
+        args.addAll(peers);
         for(var row:unread.select("SELECT u.fromId,COUNT(*) AS total FROM `"+unread.getName()+"` u WHERE u.toId=? AND u.fromId IN ("+String.join(",",Collections.nCopies(peers.size(),"?"))+") GROUP BY u.fromId",args.toArray())){
-            final long total=row.getLong("total");if(total<0)throw new IllegalStateException("private unread count invalid");result.put(row.getString("fromId"),total);
+            final long total = row.getLong("total");
+            if (total < 0)
+                throw new IllegalStateException("private unread count invalid");
+            result.put(row.getString("fromId"), total);
         }
         return result;
     }
-    private void target(String actor,String peer){ApiV3PrivateMessages.requireId(peer);if(actor.equals(peer))throw ApiV3WriteInputs.invalid();}
-    public JSONObject unread(JSONObject viewer)throws Exception {return safe(()->new JSONObject().put("count",unread(actor(viewer),null)));}
+    private void target(String actor, String peer) {
+        ApiV3PrivateMessages.requireId(peer);
+        if (actor.equals(peer))
+            throw ApiV3WriteInputs.invalid();
+    }
+
+    public JSONObject unread(JSONObject viewer) throws Exception {
+        return safe(() -> new JSONObject().put("count", unread(actor(viewer), null)));
+    }
     public JSONObject conversations(JSONObject viewer,int page,int size)throws Exception {
         if(page<1||page>Integer.MAX_VALUE/50||size<1||size>50)throw ApiV3WriteInputs.invalid();
         return safe(()->{
@@ -200,9 +219,17 @@ public class ApiV3PrivateMessageQueryService {
     }
     public JSONObject get(JSONObject viewer,String messageId)throws Exception {
         ApiV3PrivateMessages.requireId(messageId);
-        return safe(()->{final String actor=actor(viewer);final var rows=messages.select("SELECT "+COLUMNS+" FROM "+table()+" WHERE m.oId=? AND "+OWNER+VALID+" LIMIT 1",messageId,actor,actor);
-            if(rows.isEmpty())throw ApiV3Requests.notFound();final var row=rows.getFirst();final String other=actor.equals(row.optString("fromId"))?row.optString("toId"):row.optString("fromId");
+        return safe(() -> {
+            final String actor = actor(viewer);
+            final var rows = messages.select("SELECT " + COLUMNS + " FROM " + table() + " WHERE m.oId=? AND " + OWNER + VALID + " LIMIT 1",
+                    messageId, actor, actor);
+            if (rows.isEmpty())
+                throw ApiV3Requests.notFound();
+            final var row = rows.getFirst();
+            final String other = actor.equals(row.optString("fromId")) ? row.optString("toId") : row.optString("fromId");
             // DTO 先鉴权，再转换正文或查询公开资料。
-            final var dto=message(row,actor);return new JSONObject().put("peerId",other).put("peer",peer(other)).put("message",dto);});
+            final var dto = message(row, actor);
+            return new JSONObject().put("peerId", other).put("peer", peer(other)).put("message", dto);
+        });
     }
 }

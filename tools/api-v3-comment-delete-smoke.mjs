@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Run only after confirmed IDEA rebuild/restart. Default checks never delete existing content.
- * API_V3_TOKEN needs comments.write and commonRemoveComment.
- * API_V3_COMMENT_DELETE=1 + API_V3_COMMENT_DELETE_ID explicitly deletes one disposable owned comment;
- * the original deletion fee is permanent. Optional OTHER_COMMENT_ID and BLOCKED_COMMENT_ID are denial fixtures.
+/** 确认 IDEA 重新编译或重启后运行。默认只验证删除的拒绝路径。
+ * API_V3_TOKEN 需要 comments.write 和 commonRemoveComment。
+ * API_V3_COMMENT_DELETE=1 与 API_V3_COMMENT_DELETE_ID 显式删除本人临时评论，原有扣费不可撤销。
+ * 可选的 OTHER_COMMENT_ID 与 BLOCKED_COMMENT_ID 用于验证拒绝。
  */
 import assert from 'node:assert/strict';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

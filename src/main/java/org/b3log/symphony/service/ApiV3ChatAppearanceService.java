@@ -33,11 +33,17 @@ import org.json.JSONObject;
 /** 通过锁定当前账号行串行处理个人外观设置与发送消息时的外观快照。 */
 @Service
 public class ApiV3ChatAppearanceService {
-    @Inject private UserRepository users;
-    @Inject private UserChatAppearanceRepository appearances;
-    @Inject private MembershipRepository memberships;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private ApiV3SecurityProofService proofs;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private UserChatAppearanceRepository appearances;
+    @Inject
+    private MembershipRepository memberships;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private ApiV3SecurityProofService proofs;
+
     protected long now() {
         return System.currentTimeMillis();
     }

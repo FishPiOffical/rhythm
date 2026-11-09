@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** After confirmed IDEA rebuild/restart. Default probes cannot send a valid barrage.
- * Sending costs the current price. Explicitly set API_V3_ALLOW_CHAT_BARRAGE=1,
- * API_V3_CHAT_BARRAGE_CONTENT, API_V3_CHAT_BARRAGE_KEY and a disposable API_V3_TOKEN.
- * Preserve the same key/body after uncertain responses. Does not alter prices or call old sends.
+/** 确认 IDEA 重新编译或重启后运行。默认只检查弹幕发送的拒绝路径。
+ * 发送按当前价格扣费。显式设置 API_V3_ALLOW_CHAT_BARRAGE=1、API_V3_CHAT_BARRAGE_CONTENT、
+ * API_V3_CHAT_BARRAGE_KEY，并使用临时 API_V3_TOKEN。
+ * 响应不确定时保留原键与请求体。脚本仅使用 v3 发送入口并保留现有价格。
  */
 import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
 const base=process.env.API_V3_BASE_URL||'http://localhost:8080',token=process.env.API_V3_TOKEN;

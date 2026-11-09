@@ -43,17 +43,28 @@ public class ApiV3SocketTicketService {
             this(userId, parentTokenId, expiresAt, ApiV3SocketTicket.CHANNEL_NOTIFICATIONS, "");
         }
     }
-    protected long now() { return System.currentTimeMillis(); }
-    public void requireNoTransaction(){if(tickets.hasTransactionBegun())throw new IllegalStateException("socket publication before transaction end");}
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    public void requireNoTransaction() {
+        if (tickets.hasTransactionBegun())
+            throw new IllegalStateException("socket publication before transaction end");
+    }
     /** 分小批提交清理，过期授权仅保留一天的凭据哈希。 */
     public int removeExpired() throws Exception {
         requireNoTransaction();
         final var tx=tickets.beginTransaction();
         try {
-            final var rows=tickets.expiredBatchForUpdate(now()-86_400_000L);
-            for(final var row:rows)tickets.remove(row.getString(Keys.OBJECT_ID));
-            tx.commit();return rows.size();
-        }finally{if(tx.isActive())tx.rollback();}
+            final var rows = tickets.expiredBatchForUpdate(now() - 86_400_000L);
+            for (final var row : rows)
+                tickets.remove(row.getString(Keys.OBJECT_ID));
+            tx.commit();
+            return rows.size();
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
 
     public Issued issue(final String actor, final String parentTokenId) throws Exception {
@@ -86,7 +97,10 @@ public class ApiV3SocketTicketService {
                     .put(ApiV3SocketTicket.CONSUMED_AT, 0L));
             tx.commit();
             return new Issued(ticket, (expires - now) / 1000);
-        } finally { if (tx.isActive()) tx.rollback(); }
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
 
     public Grant consume(final String ticket) throws Exception {
@@ -104,10 +118,15 @@ public class ApiV3SocketTicketService {
             final String targetId = row.optString(ApiV3SocketTicket.TARGET_ID, "");
             final JSONObject parent = parent(actor, parentId, now, true, scope(channel, targetId));
             if (null == parent || !targetVisible(actor, channel, targetId)) throw unauthorized();
+            // 在票据行锁内标记已消费，提交后才把授权交给连接。
             tickets.update(row.getString(Keys.OBJECT_ID), new JSONObject().put(ApiV3SocketTicket.CONSUMED_AT, now), ApiV3SocketTicket.CONSUMED_AT);
             final Grant grant = new Grant(actor, parentId, parent.getLong(ApiV3Token.EXPIRES_AT), channel, targetId);
-            tx.commit();return grant;
-        } finally { if (tx.isActive()) tx.rollback(); }
+            tx.commit();
+            return grant;
+        } finally {
+            if (tx.isActive())
+                tx.rollback();
+        }
     }
 
     /** 发送数据前和处理心跳时都要从数据库复核用户与客户端状态。 */
@@ -138,5 +157,7 @@ public class ApiV3SocketTicketService {
         if (rows.isEmpty() || !ApiV3TokenMgmtService.hasScope(rows.getFirst().optString(ApiV3Token.SCOPE), scope)) return null;
         return rows.getFirst();
     }
-    private static ApiV3Exception unauthorized() { return new ApiV3Exception(401, "unauthorized", "实时连接凭据无效"); }
+    private static ApiV3Exception unauthorized() {
+        return new ApiV3Exception(401, "unauthorized", "实时连接凭据无效");
+    }
 }

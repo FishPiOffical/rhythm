@@ -42,16 +42,34 @@ public class ApiV3RepeaterPublicationService {
         final JSONObject normalized = ApiV3RepeaterPublicationInputs.normalize(body);
         try {
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
-                public Transaction beginTransaction() { return ApiV3Transactions.strict(requests.beginTransaction()); }
-                public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
-                public JSONObject getForUpdate(final String id) throws RepositoryException { RepeaterLikeMutationService.owner(users, actor); return requests.getForUpdate(id); }
-                public String add(final JSONObject row) throws RepositoryException { return requests.add(row); }
-                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { requests.update(id, row, fields); }
+                public Transaction beginTransaction() {
+                    return ApiV3Transactions.strict(requests.beginTransaction());
+                }
+
+                public boolean hasTransactionBegun() {
+                    return requests.hasTransactionBegun();
+                }
+
+                public JSONObject getForUpdate(final String id) throws RepositoryException {
+                    RepeaterLikeMutationService.owner(users, actor);
+                    return requests.getForUpdate(id);
+                }
+
+                public String add(final JSONObject row) throws RepositoryException {
+                    return requests.add(row);
+                }
+
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException {
+                    requests.update(id, row, fields);
+                }
             };
             return result(ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "repeater.publish", key, normalized,
                     () -> publishInCurrentTransaction(actor, normalized)));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final Exception e) { throw RepeaterLikeMutationService.unavailable(); }
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            throw RepeaterLikeMutationService.unavailable();
+        }
     }
     public JSONObject publishInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
         RepeaterLikeMutationService.id(actor);
@@ -59,13 +77,15 @@ public class ApiV3RepeaterPublicationService {
         if (!requests.hasTransactionBegun()) throw new IllegalStateException("repeater publication transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
             RepeaterLikeMutationService.owner(users, actor);
-            final String id = Ids.genTimeMillisId(); final long now = System.currentTimeMillis();
+            final String id = Ids.genTimeMillisId();
+            final long now = System.currentTimeMillis();
             final JSONObject row = new JSONObject().put("oId", id)
                     .put(RepeaterContent.TYPE, normalized.getString("type")).put(RepeaterContent.CONTENT, normalized.getString("content"))
                     .put(RepeaterContent.AUTHOR_ID, actor).put(RepeaterContent.SOURCE, RepeaterContent.SOURCE_USER)
                     .put(RepeaterContent.STATUS, RepeaterContent.STATUS_C_VALID).put(RepeaterContent.LIKE_COUNT, 0)
                     .put(RepeaterContent.CREATED_TIME, now).put(RepeaterContent.UPDATED_TIME, now);
-            contents.add(row); capture.repeaterPublished(row);
+            contents.add(row);
+            capture.repeaterPublished(row);
             return new JSONObject().put("id", id).put("type", normalized.getString("type")).put("createdTime", now);
         });
     }
