@@ -31,6 +31,10 @@ import java.util.List;
 @Repository
 public class ProfessionEventEffectRepository extends AbstractRepository {
 
+    private static final String NON_REVERSAL_COLUMNS = "`oId`,`eventKey`,`sourceEventId`,`bucketId`,`bucketKey`,"
+            + "`automationRevisionId`,`actionCode`,`userId`,`professionId`,`professionRevisionId`,`levelSchemeId`,"
+            + "`actualExperienceDelta`,`beforeExperience`,`afterExperience`,`status`,`createdAt`";
+
     public ProfessionEventEffectRepository() {
         super(ProfessionEventEffect.PROFESSION_EVENT_EFFECT);
     }
@@ -58,9 +62,30 @@ public class ProfessionEventEffectRepository extends AbstractRepository {
         return !stored.isEmpty() && effect.getString("oId").equals(stored.getFirst().getString("oId"));
     }
 
-    public List<JSONObject> getByEventKey(final String eventKey) throws RepositoryException {
-        final String sql = "SELECT * FROM `" + getName() + "` WHERE `eventKey`=? AND `reversesEffectId`=''";
+    /**
+     * 查询事件的非撤销效果；依赖 idx_profession_effect_event_reversal，避免全表扫描。
+     *
+     * @param eventKey 事件键
+     * @return 非撤销效果
+     * @throws RepositoryException 查询失败
+     */
+    public List<JSONObject> getNonReversalByEventKey(final String eventKey) throws RepositoryException {
+        final String sql = "SELECT " + NON_REVERSAL_COLUMNS + " FROM `" + getName()
+                + "` WHERE `eventKey`=? AND `reversesEffectId`=''";
         return select(sql, eventKey);
+    }
+
+    /**
+     * 查询来源事件的非撤销效果；依赖 idx_profession_effect_source，避免全表扫描。
+     *
+     * @param sourceEventId 来源事件 ID
+     * @return 非撤销效果
+     * @throws RepositoryException 查询失败
+     */
+    public List<JSONObject> getNonReversalBySourceEventId(final String sourceEventId) throws RepositoryException {
+        final String sql = "SELECT " + NON_REVERSAL_COLUMNS + " FROM `" + getName()
+                + "` WHERE `sourceEventId`=? AND `reversesEffectId`=''";
+        return select(sql, sourceEventId);
     }
 
     public boolean markReversed(final String effectId, final String reversalEffectId, final long now)

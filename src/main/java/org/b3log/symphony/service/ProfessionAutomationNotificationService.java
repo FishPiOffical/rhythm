@@ -241,8 +241,15 @@ public class ProfessionAutomationNotificationService {
 
     private List<JSONObject> relatedExperienceEffects(final JSONObject effect) throws RepositoryException {
         final List<JSONObject> result = new ArrayList<>();
-        for (final JSONObject item : effectRepository.getByEventKey(effect.getString(ProfessionEventEffect.EVENT_KEY))) {
-            if (sameAutomationEffect(effect, item) && item.optLong(ProfessionEventEffect.ACTUAL_EXPERIENCE_DELTA) != 0L) {
+        final String eventKey = effect.getString(ProfessionEventEffect.EVENT_KEY);
+        final String sourceEventId = effect.optString(ProfessionEventEffect.SOURCE_EVENT_ID);
+        final List<JSONObject> candidates = sourceEventId.isBlank()
+                ? effectRepository.getNonReversalByEventKey(eventKey)
+                : effectRepository.getNonReversalBySourceEventId(sourceEventId);
+        for (final JSONObject item : candidates) {
+            if (eventKey.equals(item.optString(ProfessionEventEffect.EVENT_KEY))
+                    && sameAutomationEffect(effect, item)
+                    && item.optLong(ProfessionEventEffect.ACTUAL_EXPERIENCE_DELTA) != 0L) {
                 result.add(item);
             }
         }
@@ -252,7 +259,7 @@ public class ProfessionAutomationNotificationService {
     }
 
     private boolean sameAutomationEffect(final JSONObject effect, final JSONObject candidate) {
-        return effect.getString(ProfessionEventEffect.SOURCE_EVENT_ID).equals(candidate.optString(ProfessionEventEffect.SOURCE_EVENT_ID))
+        return effect.optString(ProfessionEventEffect.SOURCE_EVENT_ID).equals(candidate.optString(ProfessionEventEffect.SOURCE_EVENT_ID))
                 && effect.getString(ProfessionEventEffect.AUTOMATION_REVISION_ID)
                 .equals(candidate.optString(ProfessionEventEffect.AUTOMATION_REVISION_ID))
                 && effect.getString(ProfessionEventEffect.USER_ID).equals(candidate.optString(ProfessionEventEffect.USER_ID));

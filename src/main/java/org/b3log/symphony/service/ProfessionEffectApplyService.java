@@ -30,6 +30,9 @@ import org.b3log.symphony.repository.ProfessionEventEffectRepository;
 import org.b3log.symphony.repository.ProfessionContributionIncrement;
 import org.b3log.symphony.repository.UserProfessionRepository;
 import org.b3log.symphony.repository.UserProfessionContributionRepository;
+import org.b3log.symphony.util.ApiV3Transactions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -38,6 +41,7 @@ import java.util.List;
 @Service
 public class ProfessionEffectApplyService {
 
+    private static final Logger LOGGER = LogManager.getLogger(ProfessionEffectApplyService.class);
     private static final int BATCH_SIZE = 100;
     @Inject private ProfessionEventEffectRepository effectRepository;
     @Inject private ProfessionEffectExecutionService effectExecutionService;
@@ -81,7 +85,9 @@ public class ProfessionEffectApplyService {
         if (null == claim) {
             return;
         }
-        final Transaction transaction = effectRepository.beginTransaction();
+        final NotificationKind notificationKind = notificationKind(effectId);
+        final Transaction transaction = ApiV3Transactions.strict(effectRepository.beginTransaction());
+        JSONObject appliedEffect = null;
         try {
             final long now = System.currentTimeMillis();
             final JSONObject effect = effectExecutionService.lockClaimed(claim);
@@ -89,25 +95,54 @@ public class ProfessionEffectApplyService {
                 transaction.commit();
                 return;
             }
-            final boolean notificationEffect = notificationService.isNotificationEffect(effect);
             final JSONObject summary = summaryForUpdate(effect, now);
             final ApplyContext context = applyContext(effect, summary, now);
             rewardGrantService.grantCrossed(effect, context.crossedLevels(), now);
             updateSummary(context);
-            if (notificationEffect) {
-                updateEffect(context);
-                notificationService.send(effect);
-            } else {
+            if (notificationKind == NotificationKind.OTHER) {
                 updateContribution(context);
-                updateEffect(context);
             }
+            updateEffect(context);
             privacyMgmtService.touchProgressInCurrentTransaction(
                     effect.getString(ProfessionEventEffect.USER_ID), now);
             transaction.commit();
+            appliedEffect = effect;
         } catch (final Exception e) {
             retry(claim, transaction, e);
         }
+        if (null != appliedEffect && notificationKind == NotificationKind.NOTIFICATION) {
+            sendNotification(effectId, appliedEffect);
+        }
     }
+
+    private NotificationKind notificationKind(final String effectId) {
+        JSONObject effect = null;
+        try {
+            effect = effectRepository.get(effectId);
+            if (null == effect) {
+                throw new IllegalStateException("职业效果不存在");
+            }
+            return notificationService.isNotificationEffect(effect) ? NotificationKind.NOTIFICATION : NotificationKind.OTHER;
+        } catch (final Throwable failure) {
+            logNotificationFailure(effectId, effect, failure);
+            return NotificationKind.UNKNOWN;
+        }
+    }
+
+    private void sendNotification(final String effectId, final JSONObject effect) {
+        try {
+            notificationService.send(effect);
+        } catch (final Throwable failure) {
+            logNotificationFailure(effectId, effect, failure);
+        }
+    }
+
+    private void logNotificationFailure(final String effectId, final JSONObject effect, final Throwable failure) {
+        LOGGER.warn("职业通知处理失败 [effectId={}, eventKey={}, error={}]", effectId,
+                null == effect ? "" : effect.optString(ProfessionEventEffect.EVENT_KEY), failure.toString());
+    }
+
+    private enum NotificationKind { NOTIFICATION, OTHER, UNKNOWN }
 
     private ApplyContext applyContext(final JSONObject effect, final JSONObject summary, final long now)
             throws RepositoryException {
