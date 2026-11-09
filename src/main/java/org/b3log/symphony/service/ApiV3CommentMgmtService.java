@@ -115,6 +115,9 @@ public class ApiV3CommentMgmtService {
         return outcome.result();
     }
 
+    @Inject
+    private ApiV3CommentRewardQueryService rewardQueries;
+
     public JSONObject thank(final JSONObject viewer, final String id, final String key) throws Exception {
         thankPermission(viewer);
         final String actor = viewer.optString(Keys.OBJECT_ID);
@@ -134,7 +137,9 @@ public class ApiV3CommentMgmtService {
                         });
                         if (null == result) throw ApiV3Requests.notFound();
                         thanked.set(result);
-                        return new JSONObject().put("id", id).put("thanked", true);
+                        // 感谢结果与计数一起保存在同一幂等事务中。
+                        return new JSONObject().put("id", id).put("thanked", true).put("canThank", false)
+                                .put("thankCount", result.thankCount()).put("thankPoint", result.thankPoint());
                     } catch (final CommentThankMgmtService.Rejected e) {
                         if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
                         throw new ApiV3Exception(422, e.code, "感谢条件未满足，请检查评论作者与积分余额");
@@ -142,7 +147,18 @@ public class ApiV3CommentMgmtService {
                 }), execution -> {
                     if (execution.applied()) thanks.afterThanked(thanked.get());
                 });
-        return outcome.result();
+        // 重放保留原操作回执，同时按当前权限返回最新状态。
+        final JSONObject receipt = outcome.result();
+        try {
+            final JSONObject state = outcome.applied() ? new JSONObject(receipt.toString()) : rewardQueries.read(viewer, id, false);
+            return receipt.put("interaction", state);
+        } catch (final ApiV3Exception e) {
+            if (e.status != 403 && e.status != 404) {
+                throw e;
+            }
+            // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
+            return receipt.put("interaction", JSONObject.NULL);
+        }
     }
 
     private void thankPermission(final JSONObject actor) throws Exception {

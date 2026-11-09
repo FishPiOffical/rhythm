@@ -33,6 +33,13 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.model.Reward;
+import org.b3log.symphony.model.Reaction;
+import org.b3log.symphony.model.Vote;
+import org.b3log.symphony.repository.ReactionRepository;
+import org.b3log.symphony.repository.RewardRepository;
+import org.b3log.symphony.repository.VoteRepository;
+import org.b3log.symphony.util.ApiV3Votes;
+import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.model.Tag;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.ArticleRepository;
@@ -51,6 +58,8 @@ import org.json.JSONObject;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,6 +69,12 @@ import java.util.Set;
 public class ApiV3ContentQueryService {
     @Inject
     private UserRepository userRepository;
+    @Inject
+    private VoteRepository interactionVotes;
+    @Inject
+    private RewardRepository interactionRewards;
+    @Inject
+    private ReactionRepository interactionReactions;
     @Inject
     private ArticleRepository articleRepository;
     @Inject
@@ -162,8 +177,103 @@ public class ApiV3ContentQueryService {
         final List<JSONObject> rows = commentRepository.select(ApiV3ContentSnapshots.commentPage(commentRepository.getName(), userRepository.getName(), sort),
                 article.optString(Keys.OBJECT_ID), Comment.COMMENT_TYPE_C_ARTICLE, Comment.COMMENT_STATUS_C_VALID, (long) (p - 1) * size, size);
         final JSONArray list = new JSONArray();
-        for (final JSONObject comment : rows) list.put(commentDto(comment, article, viewer));
+        final List<JSONObject> items = new ArrayList<>();
+        for (final JSONObject comment : rows) {
+            items.add(commentDto(comment, article, viewer));
+        }
+        fillCommentInteractions(rows, items, viewer);
+        for (final JSONObject item : items) {
+            list.put(item);
+        }
         return paginated(list, p, size, commentRepository.count(new Query().setFilter(filter)));
+    }
+
+    /**
+     * 仅对本页正文可见的评论读取互动状态。票数和感谢数来自分页行，
+     * 本人记录与表态汇总按评论 ID 集合批量查询，避免逐条读取用户资料。
+     */
+    public void fillCommentInteractions(final List<JSONObject> rows, final List<JSONObject> items,
+                                        final JSONObject viewer) throws RepositoryException {
+        final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
+        final Map<String, JSONObject> snapshots = new HashMap<>();
+        for (final JSONObject item : items) {
+            item.put("interactions", JSONObject.NULL);
+            if (item.getBoolean("contentVisible")) {
+                snapshots.put(item.getString("id"), new JSONObject());
+            }
+        }
+        if (snapshots.isEmpty()) {
+            return;
+        }
+
+        final var ids = new ArrayList<>(snapshots.keySet());
+        final String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        final Map<String, Integer> ownVotes = new HashMap<>();
+        final Set<String> ownThanks = new java.util.HashSet<>();
+        if (!actor.isEmpty()) {
+            final List<Object> voteArgs = new ArrayList<>(List.of(actor, Vote.DATA_TYPE_C_COMMENT));
+            voteArgs.addAll(ids);
+            for (final JSONObject row : interactionVotes.select("SELECT dataId,type FROM `" + interactionVotes.getName()
+                    + "` WHERE userId=? AND dataType=? AND dataId IN (" + placeholders + ")", voteArgs.toArray())) {
+                if (ownVotes.putIfAbsent(row.getString("dataId"), row.getInt("type")) != null) {
+                    throw new IllegalStateException("duplicate stored comment votes");
+                }
+            }
+            final List<Object> thankArgs = new ArrayList<>(List.of(actor, Reward.TYPE_C_COMMENT));
+            thankArgs.addAll(ids);
+            for (final JSONObject row : interactionRewards.select("SELECT dataId FROM `" + interactionRewards.getName()
+                    + "` WHERE senderId=? AND type=? AND dataId IN (" + placeholders + ")", thankArgs.toArray())) {
+                ownThanks.add(row.getString("dataId"));
+            }
+        }
+
+        // 列表只返回表态计数和本人选择。单条接口仍提供表态用户明细。
+        final Map<String, JSONArray> summaries = new HashMap<>();
+        final Map<String, String> selections = new HashMap<>();
+        final List<Object> reactionArgs = new ArrayList<>(List.of(actor, Reaction.TARGET_TYPE_COMMENT, Reaction.GROUP_EMOJI));
+        reactionArgs.addAll(ids);
+        final var reactions = interactionReactions.select("SELECT reactionTargetId,reactionValue,COUNT(*) AS total,"
+                + "MAX(CASE WHEN reactionUserId=? THEN 1 ELSE 0 END) AS ownSelection FROM `" + interactionReactions.getName()
+                + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId IN (" + placeholders
+                + ") GROUP BY reactionTargetId,reactionValue ORDER BY reactionTargetId,MIN(oId)", reactionArgs.toArray());
+        for (final JSONObject row : reactions) {
+            final String id = row.getString("reactionTargetId");
+            final String value = row.getString("reactionValue");
+            if (!Reaction.isValidEmojiValue(value)) {
+                continue;
+            }
+            final boolean selected = !actor.isEmpty() && row.getInt("ownSelection") != 0;
+            if (selected) {
+                selections.put(id, value);
+            }
+            summaries.computeIfAbsent(id, ignored -> new JSONArray()).put(new JSONObject()
+                    .put("value", value).put("emoji", Reaction.emojiOf(value)).put("count", row.getLong("total"))
+                    .put("selected", selected).put("users", new JSONArray()));
+        }
+        for (int i = 0; i < rows.size(); i++) {
+            final JSONObject row = rows.get(i);
+            final JSONObject item = items.get(i);
+            final String id = item.getString("id");
+            final JSONObject snapshot = snapshots.get(id);
+            if (snapshot == null) {
+                continue;
+            }
+            final JSONObject vote = ApiV3Votes.dto(id, ownVotes.getOrDefault(id, -1),
+                    row.getInt(Comment.COMMENT_GOOD_CNT), row.getInt(Comment.COMMENT_BAD_CNT));
+            final JSONObject thank = new JSONObject().put("id", id).put("thankCount", row.getInt(Comment.COMMENT_THANK_CNT));
+            if (actor.isEmpty()) {
+                vote.remove("vote");
+            } else {
+                final boolean thanked = ownThanks.contains(id);
+                thank.put("thanked", thanked).put("canThank", !thanked && !actor.equals(row.optString(Comment.COMMENT_AUTHOR_ID)))
+                        .put("thankPoint", item.getBoolean("anonymous") ? 0 : Symphonys.POINT_THANK_COMMENT);
+            }
+            snapshot.put("vote", vote).put("thanks", thank).put("reactions", new JSONObject()
+                    .put("targetId", id).put("targetType", Reaction.TARGET_TYPE_COMMENT).put("groupType", Reaction.GROUP_EMOJI)
+                    .put("currentUserReaction", selections.getOrDefault(id, ""))
+                    .put("summary", summaries.getOrDefault(id, new JSONArray())));
+            item.put("interactions", snapshot);
+        }
     }
 
     /**

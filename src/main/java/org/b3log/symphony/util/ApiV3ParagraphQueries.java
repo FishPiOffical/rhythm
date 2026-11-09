@@ -76,7 +76,7 @@ public final class ApiV3ParagraphQueries {
         args.add(size);
         final String fields = "oId,commentOnArticleId,commentAuthorId,commentOriginalCommentId,commentContent,commentCreateTime,"
                 + "commentAnonymous,commentVisible,commentStatus,commentType,commentParagraphId,commentParagraphKind,"
-                + "commentParagraphIndex,commentParagraphStatus";
+                + "commentParagraphIndex,commentParagraphStatus,commentGoodCnt,commentBadCnt,commentThankCnt";
         return new Selection("SELECT " + fields + selection.sql() + " ORDER BY " + order + " LIMIT ?,?", args);
     }
 

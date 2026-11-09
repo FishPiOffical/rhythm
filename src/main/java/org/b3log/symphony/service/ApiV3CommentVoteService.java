@@ -90,7 +90,18 @@ public class ApiV3CommentVoteService {
                 }), execution -> {
             if (execution.applied()) mutations.afterVote(actor, result.get());
         });
-        return outcome.result();
+        // 原投票字段仍是操作回执。重放时另外读取当前状态，供页面更新。
+        final JSONObject receipt = outcome.result();
+        try {
+            final JSONObject state = outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id);
+            return receipt.put("interaction", state);
+        } catch (final ApiV3Exception e) {
+            if (e.status != 403 && e.status != 404) {
+                throw e;
+            }
+            // 原操作仍已确认，但目标已不可读，不能用历史结果渲染当前状态。
+            return receipt.put("interaction", JSONObject.NULL);
+        }
     }
 
     private void readable(final JSONObject viewer, final JSONObject article, final JSONObject comment) throws Exception {

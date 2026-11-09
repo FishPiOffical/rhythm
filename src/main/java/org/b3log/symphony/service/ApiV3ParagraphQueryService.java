@@ -76,8 +76,14 @@ public class ApiV3ParagraphQueryService {
         final long total = comments.select("SELECT COUNT(1) AS total" + selection.sql(), selection.args().toArray()).getFirst().optLong("total");
         final var query = ApiV3ParagraphQueries.page(selection, p, size, sort);
         final var list = new JSONArray();
-        for (final var row : comments.select(query.sql(), query.args().toArray())) {
-            list.put(ApiV3ParagraphDto.comment(content.commentDto(row, article, viewer), normalize(row, rendered)));
+        final var rows = comments.select(query.sql(), query.args().toArray());
+        final var items = new java.util.ArrayList<JSONObject>();
+        for (final var row : rows) {
+            items.add(ApiV3ParagraphDto.comment(content.commentDto(row, article, viewer), normalize(row, rendered)));
+        }
+        content.fillCommentInteractions(rows, items, viewer);
+        for (final var item : items) {
+            list.put(item);
         }
         return ApiV3Requests.pagination(list, p, size, total);
     }

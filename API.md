@@ -898,6 +898,8 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 > 文章和评论引用均按当前状态及可读范围返回。文章不存在或不可查看时返回 HTTP 404。仅作者可见评论的正文只对评论作者和文章作者可见，其他阅读者会得到 contentVisible=false 的占位记录。非法 ID、分页或排序返回 HTTP 422。
 
 
+> 每条评论附带 `interactions`，其中 `vote` 含赞同数、反对数，`thanks` 含感谢数，`reactions` 含各表情的计数。登录读者同时获得自己的投票、感谢状态与费用、表态选择。正文不可见时 `interactions` 为 null。表态用户明细可通过单条表态接口读取。
+
 ## API v3 官方认证（企业）
 
 首批仅企业入驻，提交一张营业执照图片。以下接口仅向第一方客户端开放；审核入口仅指定审核员可使用。提供申请、状态、审核列表、一次性材料读取和结论提交。审核结论只记录通过或驳回，不会自动发放勋章或改变账号权限，原人工发放流程保留。
@@ -1402,6 +1404,8 @@ curl 'https://fishpi.cn/api/v3/articles/1770000000001/paragraph-comments?state=a
 
 > 仅楼主可见评论的正文仅评论者本人及楼主可读。当前段落摘要从长篇段落列表获取，评论对象不返回历史段落快照。段评与回复均参与分页；给定锚点下无匹配记录时返回空列表。不存在、不可查看或非长篇文章返回 HTTP 404，非法筛选、排序或分页返回 HTTP 422，段落标识无法唯一对应时返回 HTTP 409。
 
+> 每条评论附带 `interactions`，其中 `vote` 含赞同数、反对数，`thanks` 含感谢数，`reactions` 含各表情的计数。登录读者同时获得自己的投票、感谢状态与费用、表态选择。正文不可见时 `interactions` 为 null。表态用户明细可通过单条表态接口读取。
+
 ### 评论详情
 
 `GET /api/v3/comments/{commentId}`
@@ -1777,6 +1781,8 @@ curl --request POST 'https://fishpi.cn/api/v3/comments/1770000000003/thanks' \
 > 请求体可省略或为 `{}`，不接受其他字段。相同请求键重试返回原结果；换用新键重复感谢也不重复扣费。匿名评论保留原有免转账规则。
 >
 > 评论不存在、不可阅读或作者不可用时返回 HTTP 404；缺少权限返回 HTTP 403；感谢自己、积分不足或参数不合法返回 HTTP 422，评论归属变化时返回 HTTP 409，操作过于频繁返回 HTTP 429。保存失败不扣款。
+
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
 
 ### 读取评论采纳状态
 
@@ -2179,6 +2185,8 @@ curl --request PUT 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 >
 > 相同请求键及相同 vote 重试返回原结果，不重复修改计数或发送提醒。换用新键设置相同值也不重复计数；同键改变 vote 或改为清除操作返回 HTTP 409。重放结果包含原操作时的计数，不覆盖后续投票；获取最新状态请调用读取接口。
 
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+
 ### 清除评论投票
 
 `DELETE /api/v3/comments/{commentId}/vote`
@@ -2215,6 +2223,8 @@ curl --request DELETE 'https://fishpi.cn/api/v3/comments/1770000000003/vote' \
 | - downCount | 本次操作后的踩数 |
 
 > 请求体可省略或为 `{}`，不接受其他字段。同键重试返回原结果，换新键重复清除也不重复改变计数；重放不会覆盖后续投票。目标和权限限制与设置接口一致，保存失败不改变投票及计数。
+
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
 
 ## API v3 内容发现与公开主页
 
@@ -6500,6 +6510,8 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/comments/1770000000000/r
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
+
 ### 清除评论表态
 
 `DELETE /api/v3/comments/{targetId}/reactions`
@@ -6537,6 +6549,8 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/comments/177000000000
 | - changed | 本次首次执行是否改变表态状态 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。评论表态同样遵循目标文章的阅读权限，私密评论仅有权阅读正文的账号可访问。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
+
+> 写入成功时，`data.interaction` 返回当前评论互动状态，字段同对应单条读取接口。相同幂等键保留原操作结果，当前状态可能已变化。目标已不可读时，`data.interaction` 为 null。
 
 ### 读取聊天室消息表态
 

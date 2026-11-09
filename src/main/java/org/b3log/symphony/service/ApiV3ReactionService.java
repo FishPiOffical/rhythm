@@ -22,6 +22,8 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.util.ApiV3ReactionDto;
+import org.b3log.symphony.model.Reaction;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
 @Service
@@ -53,6 +55,19 @@ public class ApiV3ReactionService {
                 });
         // 只有本次提交实际改变表态时才发实时事件。
         if (execution.applied() && execution.result().optBoolean("changed")) events.publish(viewer, type, id);
-        return execution.result();
+        final JSONObject receipt = execution.result();
+        if (Reaction.TARGET_TYPE_COMMENT.equals(type)) {
+            // 重放的原表态可能已被其他会话修改，页面使用当前可见状态。
+            try {
+                final JSONObject state = execution.applied() ? new JSONObject(receipt.toString()) : read(viewer, type, id);
+                receipt.put("interaction", state);
+            } catch (final ApiV3Exception e) {
+                if (e.status != 403 && e.status != 404) {
+                    throw e;
+                }
+                receipt.put("interaction", JSONObject.NULL);
+            }
+        }
+        return receipt;
     }
 }
