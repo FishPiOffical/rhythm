@@ -48,7 +48,7 @@ public class CommentThankMgmtService {
     @Inject private ArticleMgmtService articleWrites;
 
     public record Target(String id, String author, String article) { }
-    public record Result(String actor, String recipient, String transferId, boolean applied) { }
+    public record Result(String actor, String recipient, String transferId, boolean applied, int thankCount, int thankPoint) { }
     public static final class Rejected extends RuntimeException {
         public final String code;
         public Rejected(final String code) { super(code); this.code = code; }
@@ -99,9 +99,11 @@ public class CommentThankMgmtService {
                 || !expected.article().equals(comment.optString(Comment.COMMENT_ON_ARTICLE_ID))) throw new Rejected("target_changed");
         check.check(sender, article, comment);
         if (actor.equals(expected.author())) throw new Rejected("self");
+        final int thankPoint = comment.optInt(Comment.COMMENT_ANONYMOUS) == Comment.COMMENT_ANONYMOUS_C_PUBLIC
+                ? Symphonys.POINT_THANK_COMMENT : 0;
         // Current read under the target lock: old query helpers suppress errors and are unsuitable here.
         if (!rewards.select("SELECT oId FROM `" + rewards.getName() + "` WHERE senderId=? AND dataId=? AND `type`=? LIMIT 1 FOR UPDATE",
-                actor, expected.id(), Reward.TYPE_C_COMMENT).isEmpty()) return new Result(actor, expected.author(), null, false);
+                actor, expected.id(), Reward.TYPE_C_COMMENT).isEmpty()) return new Result(actor, expected.author(), null, false, comment.getInt(Comment.COMMENT_THANK_CNT), thankPoint);
         final String rewardId = Ids.genTimeMillisId();
         String transferId = null;
         if (comment.optInt(Comment.COMMENT_ANONYMOUS) == Comment.COMMENT_ANONYMOUS_C_PUBLIC) {
@@ -114,7 +116,7 @@ public class CommentThankMgmtService {
         rewards.add(new JSONObject().put(Keys.OBJECT_ID, rewardId).put(Reward.SENDER_ID, actor)
                 .put(Reward.DATA_ID, expected.id()).put(Reward.TYPE, Reward.TYPE_C_COMMENT));
         notifications.addCommentRewardNotificationInCurrentTransaction(expected.author(), rewardId, Notification.DATA_TYPE_C_POINT_COMMENT_THANK);
-        return new Result(actor, expected.author(), transferId, true);
+        return new Result(actor, expected.author(), transferId, true, comment.getInt(Comment.COMMENT_THANK_CNT), thankPoint);
     }
 
     public void afterThanked(final Result result) {

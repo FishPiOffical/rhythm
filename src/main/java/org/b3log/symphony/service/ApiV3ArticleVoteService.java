@@ -83,7 +83,16 @@ public class ApiV3ArticleVoteService {
             if (execution.applied())
                 mutations.afterVote(actor, changed.get());
         });
-        return outcome.result();
+        final JSONObject receipt = outcome.result();
+        // 重放保留原投票回执，嵌套状态返回当前投票。
+        try {
+            final JSONObject current = outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id);
+            receipt.put("interaction", current);
+        } catch (final ApiV3Exception e) {
+            if (e.status != 403 && e.status != 404) throw e;
+            receipt.put("interaction", JSONObject.NULL);
+        }
+        return receipt;
     }
 
     private void readable(final JSONObject viewer, final JSONObject article) throws Exception {

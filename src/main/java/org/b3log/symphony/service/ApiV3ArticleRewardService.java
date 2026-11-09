@@ -105,7 +105,17 @@ public class ApiV3ArticleRewardService {
                     if (execution.applied())
                         mutations.afterApplied(applied.get());
                 });
-        return outcome.result();
+        final JSONObject receipt = outcome.result();
+        if (kind == ArticleRewardMgmtService.Kind.THANK) {
+            // 提交后读取当前感谢计数，重放时也使用当前值。
+            try {
+                receipt.put("interaction", read(viewer, id, kind));
+            } catch (final ApiV3Exception e) {
+                if (e.status != 403 && e.status != 404) throw e;
+                receipt.put("interaction", JSONObject.NULL);
+            }
+        }
+        return receipt;
     }
 
     private void permission(final JSONObject viewer, final ArticleRewardMgmtService.Kind kind) {

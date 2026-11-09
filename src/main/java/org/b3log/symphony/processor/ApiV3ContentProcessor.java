@@ -26,9 +26,15 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.symphony.model.Reaction;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
+import org.b3log.symphony.service.ApiV3ArticleRewardService;
+import org.b3log.symphony.service.ApiV3ArticleVoteService;
 import org.b3log.symphony.service.ApiV3ContentQueryService;
+import org.b3log.symphony.service.ApiV3FollowQueryService;
+import org.b3log.symphony.service.ApiV3ReactionService;
+import org.b3log.symphony.service.ArticleRewardMgmtService;
 import org.json.JSONObject;
 
 import java.util.Set;
@@ -41,6 +47,15 @@ public class ApiV3ContentProcessor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ContentProcessor.class);
     @Inject
     private ApiV3ContentQueryService contentQueryService;
+
+    @Inject
+    private ApiV3ArticleVoteService votes;
+    @Inject
+    private ApiV3ArticleRewardService rewards;
+    @Inject
+    private ApiV3ReactionService reactions;
+    @Inject
+    private ApiV3FollowQueryService follows;
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
@@ -76,11 +91,41 @@ public class ApiV3ContentProcessor {
                 ApiV3Processor.error(context, 404, "not_found", "文章不存在或不可访问");
                 return;
             }
-            ApiV3Processor.success(context, contentQueryService.detail(article, viewer(context)));
+            final JSONObject viewer = viewer(context);
+            final JSONObject detail = contentQueryService.detail(article, viewer);
+            if (viewer != null && "true".equals(context.param("includeInteractions"))) {
+                detail.put("interactions", articleInteractions(viewer, id));
+            }
+            ApiV3Processor.success(context, detail);
         } catch (final IllegalArgumentException e) {
             ApiV3Processor.error(context, 422, "invalid_request", "文章 ID 格式不合法");
         } catch (final Exception e) {
             unavailable(context, e);
+        }
+    }
+
+    private JSONObject articleInteractions(final JSONObject viewer, final String id) {
+        // 复用独立读接口的可见性校验。单项状态读取失败时省略该字段，
+        // 保留读者有权查看的文章内容。
+        final JSONObject snapshot = new JSONObject();
+        addInteraction(snapshot, "vote", () -> votes.read(viewer, id));
+        addInteraction(snapshot, "thanks", () -> rewards.read(viewer, id, ArticleRewardMgmtService.Kind.THANK));
+        addInteraction(snapshot, "reactions", () -> reactions.read(viewer, Reaction.TARGET_TYPE_ARTICLE, id));
+        addInteraction(snapshot, "collection", () -> follows.articleState(viewer, id, false));
+        addInteraction(snapshot, "subscription", () -> follows.articleState(viewer, id, true));
+        return snapshot;
+    }
+
+    @FunctionalInterface
+    private interface InteractionReader {
+        JSONObject read() throws Exception;
+    }
+
+    private static void addInteraction(final JSONObject snapshot, final String name, final InteractionReader reader) {
+        try {
+            snapshot.put(name, reader.read());
+        } catch (final Exception e) {
+            LOGGER.debug("Article interaction snapshot unavailable: {}", name, e);
         }
     }
 
