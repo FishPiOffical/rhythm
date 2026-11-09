@@ -105,7 +105,17 @@ public class ApiV3ArticleRewardService {
                     if (execution.applied())
                         mutations.afterApplied(applied.get());
                 });
-        return outcome.result();
+        final JSONObject receipt = outcome.result();
+        if (kind == ArticleRewardMgmtService.Kind.THANK) {
+            // Read after commit so the response uses the current count even on a replay.
+            try {
+                receipt.put("interaction", read(viewer, id, kind));
+            } catch (final ApiV3Exception e) {
+                if (e.status != 403 && e.status != 404) throw e;
+                receipt.put("interaction", JSONObject.NULL);
+            }
+        }
+        return receipt;
     }
 
     private void permission(final JSONObject viewer, final ArticleRewardMgmtService.Kind kind) {

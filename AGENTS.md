@@ -60,6 +60,7 @@
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`；Evolve CDN 依赖是长缓存，主脚本和与主脚本版本强绑定的库（如 Popper）都需要带 `${staticResourceVersion}`。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
 - CSRF 安全判断必须先确认接口是否同时支持页面 Cookie 与 `apiKey` 客户端调用；已兼容 `apiKey` 的写接口不能直接补 `csrfMidware::check`，否则会破坏 RESTful/API 客户端。加固这类接口需先拆分页面入口与 API 入口，或设计明确兼容 `apiKey` 的 CSRF 例外。
+- v3 文章详情的 includeInteractions 仅为已认证读者生成互动状态，复用独立读接口的可见性判断；互动写回执的 interaction 用于更新当前状态，打赏正文仍由授权详情读取。
 - 评论/文章公开接口与 WebSocket 事件必须使用响应白名单；允许返回 `commentAuthorId`、`articleAuthorId` 这类公开用户 ID，但禁止返回 `commentIP`、`commentUA`、`articleIP`、`articleUA`、`userPassword`、`userLatestLoginIP`、`userPhone`、`userEmail`、`userQQ`、`secret2fa`、token/key 等高敏字段。完整 `Article` 或完整用户对象不得裸传，需先脱敏。
 - 评论读取类公开接口即使不走 `/article/{id}` 路径，也必须按目标文章执行 `articleAnonymousView` 与讨论帖可见性校验；校验当前用户时必须兼容 `Sessions` 和 `apiKey`，否则会绕过文章页匿名访问限制或误拒绝合法 API 客户端。
 - 公开页面模板也不得把 IP/UA/密码/联系方式/2FA/token/key 等高敏字段写入 HTML 或 `data-*`；后台管理审计页可显示 IP/UA，但必须保留登录与权限保护。

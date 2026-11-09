@@ -32,6 +32,7 @@ import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.model.Tag;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
@@ -51,6 +52,8 @@ public class ApiV3FollowMgmtService {
     private UserQueryService users;
     @Inject
     private RoleQueryService roles;
+    @Inject
+    private ApiV3FollowQueryService followQueries;
 
     public JSONObject set(final JSONObject viewer, final String targetId, final int type, final boolean enabled, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
@@ -60,7 +63,7 @@ public class ApiV3FollowMgmtService {
                 throw ApiV3Requests.forbidden();
         }
         try {
-            final JSONObject stored = idempotency.execute(actor, "follows.set:" + type + ":" + targetId, key, new JSONObject().put("following", enabled), () -> {
+            final var execution = idempotency.executeWithOutcome(actor, "follows.set:" + type + ":" + targetId, key, new JSONObject().put("following", enabled), () -> {
                 final JSONObject locked = new JSONObject();
                 final boolean changed = follows.setInCurrentTransaction(actor, targetId, type, enabled, target -> {
                     validate(target, type, viewer);
@@ -78,13 +81,28 @@ public class ApiV3FollowMgmtService {
                 }
                 return new JSONObject().put("following", enabled).put("changed", changed).put("notifyUser", recipient);
             });
+            final JSONObject stored = execution.result();
             final String recipient = stored.optString("notifyUser");
             if (!recipient.isEmpty()) try {
                 notifications.publishRefreshNotification(recipient);
             } catch (final Exception e) {
                 LOGGER.warn("Failed to refresh committed v3 follow notification");
             }
-            return new JSONObject().put("following", stored.getBoolean("following")).put("changed", stored.getBoolean("changed"));
+            final JSONObject receipt = new JSONObject().put("following", stored.getBoolean("following"))
+                    .put("changed", stored.getBoolean("changed"));
+            if (type == Follow.FOLLOWING_TYPE_C_ARTICLE || type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH) {
+                // The original intent is unchanged on replay, but the visible state may have moved on.
+                try {
+                    final JSONObject current = execution.applied()
+                            ? new JSONObject().put("targetId", targetId).put("following", stored.getBoolean("following"))
+                            : followQueries.articleState(viewer, targetId, type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH);
+                    receipt.put("interaction", current);
+                } catch (final ApiV3Exception e) {
+                    if (e.status != 403 && e.status != 404) throw e;
+                    receipt.put("interaction", JSONObject.NULL);
+                }
+            }
+            return receipt;
         } finally {
             // Repository 会在提交前填充缓存，提交或回滚后都要清除该缓存。
             follows.invalidateCaches(targetId, type);

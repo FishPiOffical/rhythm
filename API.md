@@ -822,12 +822,13 @@ curl 'https://fishpi.cn/api/v3/articles?p=1&size=20&sort=latest&type=recent'
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | articleId | 文章 ID | 1636516552191 |
+| includeInteractions | 可选，登录后传 true 同时读取文章互动状态 | true |
 | Authorization | Bearer 访问令牌（可选），使用令牌时需要 content.read | Bearer TOKEN |
 
 请求示例：
 
 ```bash
-curl 'https://fishpi.cn/api/v3/articles/1636516552191' \
+curl 'https://fishpi.cn/api/v3/articles/1636516552191?includeInteractions=true' \
   --header 'Authorization: Bearer TOKEN'
 ```
 
@@ -846,6 +847,11 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191' \
 | - rewarded | 当前阅读者是否已打赏或为文章作者 |
 | - rewardContent | 可查看的打赏内容源文本，否则为空 |
 | - rewardContentHtml | 可查看的打赏内容 HTML，否则为空 |
+| - interactions | 可选，仅登录且请求该字段时返回。单项缺失表示该项状态未取得 |
+| -- vote | 当前投票及赞同、反对计数，格式同文章投票状态 |
+| -- thanks | 当前感谢状态、计数与所需积分，格式同文章感谢状态 |
+| -- reactions | 当前表态及汇总，格式同文章表态状态 |
+| -- collection / subscription | 当前收藏和订阅状态，各包含 targetId 和 following |
 | - qna | 问答当前公开状态；非问答为 null |
 | -- offerPoint | 文章当前悬赏积分 |
 | -- accepted | 是否存在已采纳回答；包括隐藏或匿名回答，不包含回答编号、作者或正文 |
@@ -1929,6 +1935,9 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1770000000003/thanks' \
 >
 > 感谢本人文章、余额或参数条件不满足时返回 HTTP 422；目标不可用或不可阅读返回 HTTP 404，缺少权限返回 HTTP 403，文章归属变化返回 HTTP 409，操作过于频繁返回 HTTP 429。
 
+> 成功响应可包含 `data.interaction`，表示当前感谢状态。已不可查看时为 null，旧服务可能省略该字段。
+
+
 ### 读取文章打赏状态
 
 `GET /api/v3/articles/{articleId}/reward`
@@ -2073,6 +2082,9 @@ curl --request PUT 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 >
 > 相同请求键及相同 vote 重试返回原结果，不重复修改计数或发送提醒。换用新键设置相同值也不重复计数；同键改变 vote 或改为清除操作返回 HTTP 409。重放结果包含原操作时的计数，不覆盖后续投票；获取最新状态请调用读取接口。
 
+> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务可能省略该字段。
+
+
 ### 清除文章投票
 
 `DELETE /api/v3/articles/{articleId}/vote`
@@ -2111,6 +2123,9 @@ curl --request DELETE 'https://fishpi.cn/api/v3/articles/1770000000003/vote' \
 > 请求体可省略或为 `{}`，不接受其他字段。同键重试返回原结果，换新键重复清除也不重复改变计数；重放不会覆盖后续投票。目标和权限限制与设置接口一致，保存失败不改变投票及计数。
 
 ## API v3 评论投票
+
+> 成功响应可包含 `data.interaction`，表示当前投票状态。已不可查看时为 null，旧服务可能省略该字段。
+
 
 ### 读取评论投票
 
@@ -6398,6 +6413,9 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/articles/1770000000000/r
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。重复设置相同 value 不会取消表态，changed=false；设置其他 value 会替换原表情。
 
+> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务可能省略该字段。
+
+
 ### 清除文章表态
 
 `DELETE /api/v3/articles/{targetId}/reactions`
@@ -6435,6 +6453,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/articles/177000000000
 | - changed | 本次首次执行是否改变表态状态 |
 
 > 目标不存在或当前不可访问时返回 HTTP 404。相同幂等键重试返回原结果，不会覆盖后来更改的状态；同一目标设置与清除请使用不同键，否则返回 HTTP 409。请求体可省略或为 {}；没有表态时成功返回 changed=false。
+
+> 成功响应可包含 `data.interaction`，表示当前文章表态状态。已不可查看时为 null，旧服务可能省略该字段。
+
 
 ### 读取评论表态
 
@@ -7109,6 +7130,9 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/collections/177000000
 
 > 目标不存在或不可访问时返回 HTTP 404；添加收藏、订阅还需账号具备相应功能权限。
 
+> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+
+
 ### 取消收藏文章
 
 `DELETE /api/v3/me/collections/{targetId}`
@@ -7144,6 +7168,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/collections/177000
 > 请求体可省略或为 `{}`。重复设置相同状态成功返回，`changed=false`。使用相同幂等键重试返回原操作结果，不代表当前状态；同一关系的添加与取消请使用不同键，否则返回 HTTP 409。
 
 > 可以清理已删除或当前不可访问目标的关系。关系不存在时成功返回 `changed=false`。
+
+> 成功响应可包含 `data.interaction`，表示当前收藏状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+
 
 ### 本人的订阅文章列表
 
@@ -7213,6 +7240,9 @@ curl --location --request PUT 'https://fishpi.cn/api/v3/me/subscriptions/1770000
 
 > 目标不存在或不可访问时返回 HTTP 404；添加收藏、订阅还需账号具备相应功能权限。
 
+> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+
+
 ### 取消订阅文章
 
 `DELETE /api/v3/me/subscriptions/{targetId}`
@@ -7250,6 +7280,9 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 > 可以清理已删除或当前不可访问目标的关系。关系不存在时成功返回 `changed=false`。
 
 ## API v3 排行榜
+
+> 成功响应可包含 `data.interaction`，表示当前订阅状态，包含 targetId 和 following。已不可查看时为 null，旧服务可能省略该字段。
+
 
 ### 获取排行榜
 
