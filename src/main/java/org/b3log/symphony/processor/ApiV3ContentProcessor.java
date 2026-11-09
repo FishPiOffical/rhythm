@@ -105,8 +105,8 @@ public class ApiV3ContentProcessor {
     }
 
     private JSONObject articleInteractions(final JSONObject viewer, final String id) {
-        // Reuse the standalone readers and their visibility checks. A failed optional read
-        // leaves that field absent so it cannot turn a readable article into an error page.
+        // 复用独立读接口的可见性校验。单项状态读取失败时省略该字段，
+        // 保留读者有权查看的文章内容。
         final JSONObject snapshot = new JSONObject();
         addInteraction(snapshot, "vote", () -> votes.read(viewer, id));
         addInteraction(snapshot, "thanks", () -> rewards.read(viewer, id, ArticleRewardMgmtService.Kind.THANK));

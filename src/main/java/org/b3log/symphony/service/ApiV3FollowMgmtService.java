@@ -91,7 +91,7 @@ public class ApiV3FollowMgmtService {
             final JSONObject receipt = new JSONObject().put("following", stored.getBoolean("following"))
                     .put("changed", stored.getBoolean("changed"));
             if (type == Follow.FOLLOWING_TYPE_C_ARTICLE || type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH) {
-                // The original intent is unchanged on replay, but the visible state may have moved on.
+                // 重放保留原操作回执，另行读取当前可见的关系状态。
                 try {
                     final JSONObject current = execution.applied()
                             ? new JSONObject().put("targetId", targetId).put("following", stored.getBoolean("following"))

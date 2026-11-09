@@ -84,7 +84,7 @@ public class ApiV3ArticleVoteService {
                 mutations.afterVote(actor, changed.get());
         });
         final JSONObject receipt = outcome.result();
-        // A replay confirms the original vote, while the nested state reflects the current vote.
+        // 重放保留原投票回执，嵌套状态返回当前投票。
         try {
             final JSONObject current = outcome.applied() ? new JSONObject(receipt.toString()) : read(viewer, id);
             receipt.put("interaction", current);

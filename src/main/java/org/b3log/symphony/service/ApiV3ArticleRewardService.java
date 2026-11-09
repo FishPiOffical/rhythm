@@ -107,7 +107,7 @@ public class ApiV3ArticleRewardService {
                 });
         final JSONObject receipt = outcome.result();
         if (kind == ArticleRewardMgmtService.Kind.THANK) {
-            // Read after commit so the response uses the current count even on a replay.
+            // 提交后读取当前感谢计数，重放时也使用当前值。
             try {
                 receipt.put("interaction", read(viewer, id, kind));
             } catch (final ApiV3Exception e) {
