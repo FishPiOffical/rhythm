@@ -34,24 +34,32 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.UserMentionCandidates;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
-/** 计数和分页查询都限定所有者，GET 仅返回元数据。 */
+/**
+ * 计数和分页查询都限定所有者，GET 仅返回元数据。
+ */
 @Service
 public class ApiV3AnonymousContentQueryService {
-    @Inject private UserRepository users;
-    @Inject private ArticleRepository articles;
-    @Inject private CommentRepository comments;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private CommentRepository comments;
     // 超出处理预算时返回错误，保持分页结果与总数一致。
     private static final int DISCUSSION_BUDGET = 512;
     private static final long DISCUSSION_BYTES = 2L * 1024 * 1024;
+
     private void requireActor(final String actor) throws RepositoryException {
         if (actor == null || !actor.matches("[1-9][0-9]{0,31}")) throw ApiV3Requests.invalid();
         if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor,
                 UserExt.USER_STATUS_C_VALID).size() != 1) throw ApiV3Requests.notFound();
     }
+
     public JSONObject articles(final String actor, final int page, final int size) {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
         try {
@@ -96,19 +104,23 @@ public class ApiV3AnonymousContentQueryService {
                     Role.ROLE_ID_C_ADMIN.equals(viewer.getString("userRole")) ? 1 : 0));
             for (final JSONObject permission : allowed) {
                 from.append(" OR (a.oId=? AND SHA2(a.articleContent,256)=?)");
-                args.add(permission.getString("oId")); args.add(permission.getString("contentHash"));
+                args.add(permission.getString("oId"));
+                args.add(permission.getString("contentHash"));
             }
             from.append(')');
             final var totals = comments.select("SELECT COUNT(*) AS total" + from, args.toArray());
             if (totals.size() != 1) throw ApiV3AnonymousContentDto.unavailable();
-            final var pageArgs = new ArrayList<>(args); pageArgs.add(size); pageArgs.add((page - 1) * size);
+            final var pageArgs = new ArrayList<>(args);
+            pageArgs.add(size);
+            pageArgs.add((page - 1) * size);
             final var rows = comments.select("SELECT c.oId,a.oId AS articleId,a.articleTitle,c.commentCreateTime,c.commentVisible"
                     + from + " ORDER BY c.commentCreateTime DESC,c.oId DESC LIMIT ? OFFSET ?", pageArgs.toArray());
             final var list = new JSONArray();
             for (final var row : rows) list.put(ApiV3AnonymousContentDto.comment(row));
             final JSONObject current = viewer(actor);
             if (!viewer.getString("userName").equals(current.getString("userName"))
-                    || !viewer.getString("userRole").equals(current.getString("userRole"))) throw ApiV3AnonymousContentDto.unavailable();
+                    || !viewer.getString("userRole").equals(current.getString("userRole")))
+                throw ApiV3AnonymousContentDto.unavailable();
             return ApiV3Requests.pagination(list, page, size, totals.getFirst().getLong("total"));
         } catch (final RepositoryException | org.json.JSONException error) {
             LogManager.getLogger(getClass()).warn("Anonymous comments read unavailable");
@@ -135,10 +147,10 @@ public class ApiV3AnonymousContentQueryService {
         // 候选仅包括本人有效匿名评论涉及的他人讨论帖，按文章去重。
         // 先用不含正文的记录核验字节预算，再执行有界正文查询。
         final var headers = articles.select("SELECT a.oId,SHA2(a.articleContent,256) AS contentHash,OCTET_LENGTH(a.articleContent) AS contentBytes"
-                + " FROM `" + articles.getName() + "` a JOIN `" + users.getName() + "` au ON au.oId=a.articleAuthorId"
-                + " WHERE a.articleType=? AND a.articleAuthorId<>? AND a.articleStatus<>? AND au.userStatus NOT IN (?,?)"
-                + " AND EXISTS (SELECT 1 FROM `" + comments.getName() + "` c WHERE c.commentOnArticleId=a.oId"
-                + " AND c.commentAuthorId=? AND c.commentAnonymous=? AND c.commentStatus=?) ORDER BY a.oId ASC LIMIT ?",
+                        + " FROM `" + articles.getName() + "` a JOIN `" + users.getName() + "` au ON au.oId=a.articleAuthorId"
+                        + " WHERE a.articleType=? AND a.articleAuthorId<>? AND a.articleStatus<>? AND au.userStatus NOT IN (?,?)"
+                        + " AND EXISTS (SELECT 1 FROM `" + comments.getName() + "` c WHERE c.commentOnArticleId=a.oId"
+                        + " AND c.commentAuthorId=? AND c.commentAnonymous=? AND c.commentStatus=?) ORDER BY a.oId ASC LIMIT ?",
                 Article.ARTICLE_TYPE_C_DISCUSSION, actor, Article.ARTICLE_STATUS_C_INVALID, UserExt.USER_STATUS_C_INVALID,
                 UserExt.USER_STATUS_C_DEACTIVATED, actor, Comment.COMMENT_ANONYMOUS_C_ANONYMOUS, Comment.COMMENT_STATUS_C_VALID,
                 DISCUSSION_BUDGET + 1);
@@ -151,9 +163,12 @@ public class ApiV3AnonymousContentQueryService {
             final long length = header.getLong("contentBytes");
             final String hash = header.getString("contentHash"), id = header.getString("oId");
             if (length < 0 || length > DISCUSSION_BYTES || (bytes += length) > DISCUSSION_BYTES
-                    || !hash.matches("[a-f0-9]{64}") || !id.matches("[0-9]{1,32}")) throw ApiV3AnonymousContentDto.unavailable();
+                    || !hash.matches("[a-f0-9]{64}") || !id.matches("[0-9]{1,32}"))
+                throw ApiV3AnonymousContentDto.unavailable();
             if (!where.isEmpty()) where.append(" OR ");
-            where.append("(a.oId=? AND SHA2(a.articleContent,256)=?)"); args.add(id); args.add(hash);
+            where.append("(a.oId=? AND SHA2(a.articleContent,256)=?)");
+            args.add(id);
+            args.add(hash);
         }
         final var rows = articles.select("SELECT a.oId,a.articleContent,SHA2(a.articleContent,256) AS contentHash FROM `"
                 + articles.getName() + "` a WHERE " + where, args.toArray());
@@ -161,7 +176,8 @@ public class ApiV3AnonymousContentQueryService {
         long actualBytes = 0;
         for (final var row : rows) {
             final String body = row.getString("articleContent");
-            if ((actualBytes += body.getBytes(StandardCharsets.UTF_8).length) > DISCUSSION_BYTES) throw ApiV3AnonymousContentDto.unavailable();
+            if ((actualBytes += body.getBytes(StandardCharsets.UTF_8).length) > DISCUSSION_BYTES)
+                throw ApiV3AnonymousContentDto.unavailable();
             if (UserMentionCandidates.parse(body).contains(viewer.getString("userName")))
                 allowed.add(new JSONObject().put("oId", row.getString("oId")).put("contentHash", row.getString("contentHash")));
         }

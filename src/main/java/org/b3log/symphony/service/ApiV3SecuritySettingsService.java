@@ -25,13 +25,20 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 修改密码和撤销已有凭据在调用方的同一个严格事务中提交。 */
+/**
+ * 修改密码和撤销已有凭据在调用方的同一个严格事务中提交。
+ */
 @Service
 public class ApiV3SecuritySettingsService {
-    @Inject private ApiV3SecurityProofService proof;
-    @Inject private AccountCredentialMgmtService credentials;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private UserRepository users;
+    @Inject
+    private ApiV3SecurityProofService proof;
+    @Inject
+    private AccountCredentialMgmtService credentials;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private UserRepository users;
+
     public JSONObject mfa(final JSONObject identity) {
         try {
             final JSONObject before = proof.read(identity);
@@ -62,7 +69,8 @@ public class ApiV3SecuritySettingsService {
         try {
             final JSONObject current = proof.requireInCurrentTransaction(identity, input.currentPassword(), input.currentTotp());
             actor = current.getString("oId");
-            if(!input.newPassword().equals(current.getString("userPassword"))&&ApiV3TransactionStatements.execute("UPDATE `"+users.getName()+"` SET userPassword=? WHERE oId=?",input.newPassword(),actor)!=1)throw ApiV3SecurityProofService.unavailable();
+            if (!input.newPassword().equals(current.getString("userPassword")) && ApiV3TransactionStatements.execute("UPDATE `" + users.getName() + "` SET userPassword=? WHERE oId=?", input.newPassword(), actor) != 1)
+                throw ApiV3SecurityProofService.unavailable();
             credentials.revokeInCurrentTransaction(actor);
             tx.commit();
             return new JSONObject().put("changed", true).put("reauthenticationRequired", true);

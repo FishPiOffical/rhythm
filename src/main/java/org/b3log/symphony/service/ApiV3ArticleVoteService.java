@@ -26,9 +26,12 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Votes;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
+
 import java.util.concurrent.atomic.AtomicReference;
 
-/** 按 Bearer 身份检查文章可见性，设置或清除投票各使用一个幂等事务。 */
+/**
+ * 按 Bearer 身份检查文章可见性，设置或清除投票各使用一个幂等事务。
+ */
 @Service
 public class ApiV3ArticleVoteService {
     @Inject
@@ -56,6 +59,7 @@ public class ApiV3ArticleVoteService {
         final int current = !article.has("currentVote") || article.isNull("currentVote") ? -1 : article.getInt("currentVote");
         return ApiV3Votes.dto(id, current, article.optInt(Article.ARTICLE_GOOD_CNT), article.optInt(Article.ARTICLE_BAD_CNT));
     }
+
     public JSONObject set(final JSONObject viewer, final String id, final int choice, final String key) throws Exception {
         final String actor = actor(viewer);
         final var normalized = new JSONObject().put("vote", ApiV3Votes.value(choice));
@@ -63,34 +67,38 @@ public class ApiV3ArticleVoteService {
         final var changed = new AtomicReference<VoteMgmtService.Result>();
         final var outcome = articleWrites.withPublicationLock(actor, () -> idempotency.executeWithOutcome(actor,
                 "articles.vote:" + id, key, normalized, () -> {
-            if (expectedAuthor.isBlank()) throw missing();
-            try {
-                final var result = mutations.setInCurrentTransaction(actor, id, expectedAuthor, choice, false, true,
-                        (voter, article) -> readable(voter, article));
-                changed.set(result);
-                return ApiV3Votes.dto(id, result.current(), result.upCount(), result.downCount());
-            } catch (final VoteMgmtService.Rejected e) {
-                if ("not_found".equals(e.code)) throw missing();
-                if ("forbidden".equals(e.code)) throw new ApiV3Exception(403, e.code, "没有操作权限");
-                if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "文章已变化，请重试");
-                throw new ApiV3Exception(422, e.code, "不能对本人文章投票");
-            }
-        }), execution -> {
+                    if (expectedAuthor.isBlank()) throw missing();
+                    try {
+                        final var result = mutations.setInCurrentTransaction(actor, id, expectedAuthor, choice, false, true,
+                                (voter, article) -> readable(voter, article));
+                        changed.set(result);
+                        return ApiV3Votes.dto(id, result.current(), result.upCount(), result.downCount());
+                    } catch (final VoteMgmtService.Rejected e) {
+                        if ("not_found".equals(e.code)) throw missing();
+                        if ("forbidden".equals(e.code)) throw new ApiV3Exception(403, e.code, "没有操作权限");
+                        if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "文章已变化，请重试");
+                        throw new ApiV3Exception(422, e.code, "不能对本人文章投票");
+                    }
+                }), execution -> {
             if (execution.applied())
                 mutations.afterVote(actor, changed.get());
         });
         return outcome.result();
     }
+
     private void readable(final JSONObject viewer, final JSONObject article) throws Exception {
         final var author = users.get(article.optString(Article.ARTICLE_AUTHOR_ID));
         if ((article.optInt(Article.ARTICLE_STATUS) != Article.ARTICLE_STATUS_C_VALID && article.optInt(Article.ARTICLE_STATUS) != Article.ARTICLE_STATUS_C_LOCKED)
                 || null == author || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID
                 || null == visibility.viewableArticle(article.optString(Keys.OBJECT_ID), viewer)) throw missing();
     }
+
     private static String actor(final JSONObject viewer) {
-        if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
+        if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank())
+            throw new ApiV3Exception(401, "unauthorized", "需要登录");
         return viewer.getString(Keys.OBJECT_ID);
     }
+
     private static ApiV3Exception missing() {
         return new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
     }

@@ -30,12 +30,14 @@ import org.b3log.symphony.service.ApiV3PointTransferService;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3PointTransferProcessor {
     @Inject
     private ApiV3PointTransferService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3PointTransferProcessor.class);
@@ -43,6 +45,7 @@ public class ApiV3PointTransferProcessor {
         final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/me/point-transfers", p::transfer, auth::activityWrite, writes::handle);
     }
+
     public void transfer(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();

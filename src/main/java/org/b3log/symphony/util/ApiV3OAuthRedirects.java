@@ -22,9 +22,12 @@ import java.net.URI;
 import java.util.Locale;
 import java.util.Set;
 
-/** 仅校验回调地址格式，不查询 DNS 或访问地址。调用方还须确认地址与有效注册项完全一致。 */
+/**
+ * 仅校验回调地址格式，不查询 DNS 或访问地址。调用方还须确认地址与有效注册项完全一致。
+ */
 public final class ApiV3OAuthRedirects {
-    private ApiV3OAuthRedirects() { }
+    private ApiV3OAuthRedirects() {
+    }
 
     public static boolean valid(final String value, final boolean development) {
         if (value == null || value.isEmpty() || value.length() > 2048

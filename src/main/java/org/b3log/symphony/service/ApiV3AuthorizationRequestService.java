@@ -26,17 +26,24 @@ import org.b3log.symphony.model.ApiV3AuthorizationRequest;
 import org.b3log.symphony.repository.ApiV3AuthorizationRequestRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
 
-/** 服务端记录用户明确同意的授权。HTTP 入口须传入 Cookie 会话身份，并校验请求来源和 CSRF。 */
+/**
+ * 服务端记录用户明确同意的授权。HTTP 入口须传入 Cookie 会话身份，并校验请求来源和 CSRF。
+ */
 @Service
 public class ApiV3AuthorizationRequestService {
-    private static final long TTL=TimeUnit.MINUTES.toMillis(10);
-    @Inject private ApiV3AuthorizationRequestRepository requests;
-    @Inject private ApiV3AuthorizationCodeService codes;
-    public record Prepared(String requestId, String consentToken, String clientId, String clientName, String redirectUri,
+    private static final long TTL = TimeUnit.MINUTES.toMillis(10);
+    @Inject
+    private ApiV3AuthorizationRequestRepository requests;
+    @Inject
+    private ApiV3AuthorizationCodeService codes;
+
+    public record Prepared(String requestId, String consentToken, String clientId, String clientName,
+                           String redirectUri,
                            String scope, long expiresAt) {
         @Override
         public String toString() {
@@ -81,9 +88,11 @@ public class ApiV3AuthorizationRequestService {
             throw new IllegalStateException("authorization request root already active");
         return ApiV3Transactions.strict(requests.beginTransaction());
     }
+
     protected void verifyCookieCredential(String actor) {
-        if(org.b3log.symphony.util.AccountCredentialVersions.issuance(actor,null)==null)throw invalid();
+        if (org.b3log.symphony.util.AccountCredentialVersions.issuance(actor, null) == null) throw invalid();
     }
+
     public Prepared start(String cookieActor, String client, String uri, String scope, String state, String challenge, String method) throws Exception {
         actor(cookieActor);
         ApiV3Pkce.requireS256(challenge, method);
@@ -97,14 +106,15 @@ public class ApiV3AuthorizationRequestService {
             if (time <= 0)
                 throw new IllegalStateException("invalid consent clock");
             final long expires = Math.addExact(time, TTL);
-            final String handle=ApiV3TokenUtil.generate(),proof=ApiV3TokenUtil.generate(),hash=requestHash(handle);
-            final var row=new JSONObject().put(Keys.OBJECT_ID,hash).put(ApiV3AuthorizationRequest.USER_ID,cookieActor)
-                    .put(ApiV3AuthorizationRequest.CLIENT_ID,registered.clientId()).put(ApiV3AuthorizationRequest.REDIRECT_URI,registered.redirectUri())
-                    .put(ApiV3AuthorizationRequest.SCOPE,registered.scope()).put(ApiV3AuthorizationRequest.STATE,state)
-                    .put(ApiV3AuthorizationRequest.CHALLENGE,challenge).put(ApiV3AuthorizationRequest.CONSENT_HASH,consentHash(proof))
-                    .put(ApiV3AuthorizationRequest.CREATED_AT,time).put(ApiV3AuthorizationRequest.EXPIRES_AT,expires)
-                    .put(ApiV3AuthorizationRequest.DECIDED_AT,0).put(ApiV3AuthorizationRequest.DECISION,ApiV3AuthorizationRequest.PENDING);
-            if(!hash.equals(requests.add(row)))throw new IllegalStateException("authorization request identity changed");
+            final String handle = ApiV3TokenUtil.generate(), proof = ApiV3TokenUtil.generate(), hash = requestHash(handle);
+            final var row = new JSONObject().put(Keys.OBJECT_ID, hash).put(ApiV3AuthorizationRequest.USER_ID, cookieActor)
+                    .put(ApiV3AuthorizationRequest.CLIENT_ID, registered.clientId()).put(ApiV3AuthorizationRequest.REDIRECT_URI, registered.redirectUri())
+                    .put(ApiV3AuthorizationRequest.SCOPE, registered.scope()).put(ApiV3AuthorizationRequest.STATE, state)
+                    .put(ApiV3AuthorizationRequest.CHALLENGE, challenge).put(ApiV3AuthorizationRequest.CONSENT_HASH, consentHash(proof))
+                    .put(ApiV3AuthorizationRequest.CREATED_AT, time).put(ApiV3AuthorizationRequest.EXPIRES_AT, expires)
+                    .put(ApiV3AuthorizationRequest.DECIDED_AT, 0).put(ApiV3AuthorizationRequest.DECISION, ApiV3AuthorizationRequest.PENDING);
+            if (!hash.equals(requests.add(row)))
+                throw new IllegalStateException("authorization request identity changed");
             tx.commit();
             return new Prepared(handle, proof, registered.clientId(), registered.name(), registered.redirectUri(), registered.scope(), expires);
         } finally {
@@ -117,31 +127,34 @@ public class ApiV3AuthorizationRequestService {
         actor(cookieActor);
         final String hash = requestHash(rawRequest), proof = consentHash(rawProof);
         // 无锁预读仅为取得绑定本人且不可变的客户端字段，持锁后再复核所有字段。
-        if(requests.hasTransactionBegun())throw new IllegalStateException("authorization decision root already active");
+        if (requests.hasTransactionBegun())
+            throw new IllegalStateException("authorization decision root already active");
         final var hint = requests.hintForOwner(hash, cookieActor);
         if (hint == null || !hash.equals(hint.optString(Keys.OBJECT_ID)))
             throw invalid();
         final Transaction tx = begin();
         try {
-            final var client=codes.prepareConsentClientInCurrentTransaction(hint.getString(ApiV3AuthorizationRequest.CLIENT_ID),hint.getString(ApiV3AuthorizationRequest.REDIRECT_URI),hint.getString(ApiV3AuthorizationRequest.SCOPE));
+            final var client = codes.prepareConsentClientInCurrentTransaction(hint.getString(ApiV3AuthorizationRequest.CLIENT_ID), hint.getString(ApiV3AuthorizationRequest.REDIRECT_URI), hint.getString(ApiV3AuthorizationRequest.SCOPE));
             final var row = requests.getForOwnerForUpdate(hash, cookieActor);
             final long time = now();
-            if(row==null||!hash.equals(row.optString(Keys.OBJECT_ID))||!cookieActor.equals(row.optString(ApiV3AuthorizationRequest.USER_ID))
-                    ||!client.clientId().equals(row.optString(ApiV3AuthorizationRequest.CLIENT_ID))||!client.redirectUri().equals(row.optString(ApiV3AuthorizationRequest.REDIRECT_URI))
-                    ||!client.scope().equals(row.optString(ApiV3AuthorizationRequest.SCOPE))||!ApiV3AuthorizationRequest.PENDING.equals(row.optString(ApiV3AuthorizationRequest.DECISION))
-                    ||!MessageDigest.isEqual(proof.getBytes(StandardCharsets.US_ASCII),row.optString(ApiV3AuthorizationRequest.CONSENT_HASH).getBytes(StandardCharsets.US_ASCII)))throw invalid();
-            final long created=row.optLong(ApiV3AuthorizationRequest.CREATED_AT,-1),expires=row.optLong(ApiV3AuthorizationRequest.EXPIRES_AT,-1);
-            if(time<=0||created<=0||created>time||created>Long.MAX_VALUE-TTL||expires!=created+TTL||expires<=time||row.optLong(ApiV3AuthorizationRequest.DECIDED_AT,-1)!=0)throw invalid();
+            if (row == null || !hash.equals(row.optString(Keys.OBJECT_ID)) || !cookieActor.equals(row.optString(ApiV3AuthorizationRequest.USER_ID))
+                    || !client.clientId().equals(row.optString(ApiV3AuthorizationRequest.CLIENT_ID)) || !client.redirectUri().equals(row.optString(ApiV3AuthorizationRequest.REDIRECT_URI))
+                    || !client.scope().equals(row.optString(ApiV3AuthorizationRequest.SCOPE)) || !ApiV3AuthorizationRequest.PENDING.equals(row.optString(ApiV3AuthorizationRequest.DECISION))
+                    || !MessageDigest.isEqual(proof.getBytes(StandardCharsets.US_ASCII), row.optString(ApiV3AuthorizationRequest.CONSENT_HASH).getBytes(StandardCharsets.US_ASCII)))
+                throw invalid();
+            final long created = row.optLong(ApiV3AuthorizationRequest.CREATED_AT, -1), expires = row.optLong(ApiV3AuthorizationRequest.EXPIRES_AT, -1);
+            if (time <= 0 || created <= 0 || created > time || created > Long.MAX_VALUE - TTL || expires != created + TTL || expires <= time || row.optLong(ApiV3AuthorizationRequest.DECIDED_AT, -1) != 0)
+                throw invalid();
             final String state = row.getString(ApiV3AuthorizationRequest.STATE), challenge = row.getString(ApiV3AuthorizationRequest.CHALLENGE);
             ApiV3OAuthCallbacks.validateState(state);
             ApiV3Pkce.requireS256(challenge, "S256");
             codes.verifyConsentUserInCurrentTransaction(cookieActor);
             verifyCookieCredential(cookieActor);
             // 审批结果与已签发的授权码一起提交，避免只记录其中一项。
-            final String code=approved?codes.issueInCurrentTransaction(cookieActor,client.clientId(),client.redirectUri(),client.scope(),challenge,"S256").code():null;
-            final String callback=ApiV3OAuthCallbacks.result(client.redirectUri(),state,code,approved);
-            row.put(ApiV3AuthorizationRequest.DECISION,approved?ApiV3AuthorizationRequest.APPROVED:ApiV3AuthorizationRequest.DENIED).put(ApiV3AuthorizationRequest.DECIDED_AT,time);
-            requests.update(hash,row,ApiV3AuthorizationRequest.DECISION,ApiV3AuthorizationRequest.DECIDED_AT);
+            final String code = approved ? codes.issueInCurrentTransaction(cookieActor, client.clientId(), client.redirectUri(), client.scope(), challenge, "S256").code() : null;
+            final String callback = ApiV3OAuthCallbacks.result(client.redirectUri(), state, code, approved);
+            row.put(ApiV3AuthorizationRequest.DECISION, approved ? ApiV3AuthorizationRequest.APPROVED : ApiV3AuthorizationRequest.DENIED).put(ApiV3AuthorizationRequest.DECIDED_AT, time);
+            requests.update(hash, row, ApiV3AuthorizationRequest.DECISION, ApiV3AuthorizationRequest.DECIDED_AT);
             tx.commit();
             return new Decision(callback, approved);
         } finally {

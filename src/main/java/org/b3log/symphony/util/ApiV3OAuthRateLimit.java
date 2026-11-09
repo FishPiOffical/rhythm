@@ -20,17 +20,21 @@ package org.b3log.symphony.util;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** OAuth 使用独立的有界限流计数，不占用普通 Bearer 写入额度。 */
+/**
+ * OAuth 使用独立的有界限流计数，不占用普通 Bearer 写入额度。
+ */
 public final class ApiV3OAuthRateLimit {
     private static final Cache<String, AtomicInteger> COUNTS = Caffeine.newBuilder()
             .maximumSize(100000)
             .expireAfterWrite(1, TimeUnit.MINUTES)
             .build();
 
-    private ApiV3OAuthRateLimit() { }
+    private ApiV3OAuthRateLimit() {
+    }
 
     public static boolean ip(String value) {
         return take("ip:" + value, 120);

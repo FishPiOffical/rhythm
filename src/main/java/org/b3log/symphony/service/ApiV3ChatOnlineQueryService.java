@@ -33,18 +33,23 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ChatOnlineSnapshot;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.*;
 
-/** 合并当前本地连接与配置节点的最近采样，按当前账号资料投影名单。 */
+/**
+ * 合并当前本地连接与配置节点的最近采样，按当前账号资料投影名单。
+ */
 @Service
 public class ApiV3ChatOnlineQueryService {
     @Inject
     private UserRepository users;
     @Inject
     private ApiV3RealtimeService realtime;
+
     protected ChatOnlineSnapshot.Sample remote() {
         return ChatOnlineSnapshot.current();
     }
+
     protected Set<String> localIds() {
         final var ids = new HashSet<>(realtime.chatUserIds());
         for (final var user : ChatroomChannel.onlineUsers.values()) {
@@ -53,11 +58,14 @@ public class ApiV3ChatOnlineQueryService {
         }
         return ids;
     }
+
     protected List<JSONObject> lookup(final String column, final List<String> values) throws RepositoryException {
-        if (!Set.of("oId", "userName").contains(column)) throw new IllegalArgumentException("invalid membership column");
+        if (!Set.of("oId", "userName").contains(column))
+            throw new IllegalArgumentException("invalid membership column");
         return users.select("SELECT oId,userName,userAvatarURL,userOnlineStatus,userStatus FROM `" + users.getName()
                 + "` WHERE " + column + " IN (" + String.join(",", Collections.nCopies(values.size(), "?")) + ")", values.toArray());
     }
+
     private void load(final String column, final Collection<String> membership, final Map<String, JSONObject> result) throws RepositoryException {
         final var values = new ArrayList<>(new HashSet<>(membership));
         for (int start = 0; start < values.size(); start += 200) {
@@ -66,6 +74,7 @@ public class ApiV3ChatOnlineQueryService {
             }
         }
     }
+
     public JSONObject list(final JSONObject viewer, final int page, final int size) throws RepositoryException {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) {
             throw new ApiV3Exception(422, "invalid_parameter", "请求参数不合法");

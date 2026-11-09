@@ -26,7 +26,9 @@ import java.security.*;
 import java.util.HexFormat;
 import java.util.zip.*;
 
-/** 临时文件路径不会写入 HTTP 响应，临时文件在请求结束后清理。 */
+/**
+ * 临时文件路径不会写入 HTTP 响应，临时文件在请求结束后清理。
+ */
 public final class ApiV3PostExportFiles implements AutoCloseable {
     public static final long ZIP_LIMIT = 32L * 1024 * 1024, SOURCE_LIMIT = 256L * 1024 * 1024, ROW_LIMIT = 16L * 1024 * 1024;
     public static final int CHUNK_BYTES = 48 * 1024;
@@ -72,15 +74,19 @@ public final class ApiV3PostExportFiles implements AutoCloseable {
         zip.write(utf8(text));
         zip.closeEntry();
     }
-    public static byte[] utf8(String text)throws IOException {
-        if(text==null)throw new IOException("missing export source");
-        for(int i=0;i<text.length();i++){
-            final char c=text.charAt(i);
-            if(Character.isHighSurrogate(c)){if(++i>=text.length()||!Character.isLowSurrogate(text.charAt(i)))throw new IOException("invalid source unicode");}
-            else if(Character.isLowSurrogate(c))throw new IOException("invalid source unicode");
+
+    public static byte[] utf8(String text) throws IOException {
+        if (text == null) throw new IOException("missing export source");
+        for (int i = 0; i < text.length(); i++) {
+            final char c = text.charAt(i);
+            if (Character.isHighSurrogate(c)) {
+                if (++i >= text.length() || !Character.isLowSurrogate(text.charAt(i)))
+                    throw new IOException("invalid source unicode");
+            } else if (Character.isLowSurrogate(c)) throw new IOException("invalid source unicode");
         }
         return text.getBytes(StandardCharsets.UTF_8);
     }
+
     public static String sha256(byte[] value) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value));

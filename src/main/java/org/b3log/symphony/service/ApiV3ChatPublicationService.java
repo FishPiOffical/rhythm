@@ -32,10 +32,13 @@ import org.b3log.symphony.processor.ChatroomProcessor;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** 通过 Bearer 身份发送普通文本，所有持久化写入与重放回执一起提交。 */
+/**
+ * 通过 Bearer 身份发送普通文本，所有持久化写入与重放回执一起提交。
+ */
 @Service
 public class ApiV3ChatPublicationService {
     @Inject
@@ -68,8 +71,13 @@ public class ApiV3ChatPublicationService {
     }
 
     private record Published(ApiV3IdempotencyMgmtService.Execution execution, JSONObject message,
-                             ChatMessageAbuseState.Repeat repeat, ChatMessagePenaltyMgmtService.Result penalty, boolean card) { }
-    private record RepeatDecision(String name, String content, ChatMessageAbuseState.Repeat decision) { }
+                             ChatMessageAbuseState.Repeat repeat, ChatMessagePenaltyMgmtService.Result penalty,
+                             boolean card) {
+    }
+
+    private record RepeatDecision(String name, String content, ChatMessageAbuseState.Repeat decision) {
+    }
+
     public JSONObject publishCard(final JSONObject viewer, final String kind, final JSONObject body, final String key) throws Exception {
         final JSONObject card = switch (kind) {
             case "music" -> ApiV3ChatCardInputs.music(body);
@@ -78,12 +86,14 @@ public class ApiV3ChatPublicationService {
         };
         return publishInternal(viewer, "", "", key, kind, card);
     }
+
     public JSONObject publish(final JSONObject viewer, final String content, final String client, final String key) throws Exception {
         ChatMessageText.requireOrdinary(content);
         return publishInternal(viewer, content, client, key, null, null);
     }
+
     private JSONObject publishInternal(final JSONObject viewer, final String content, final String client, final String key,
-                                      final String kind, final JSONObject card) throws Exception {
+                                       final String kind, final JSONObject card) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!actor.matches("[0-9]{1,19}")) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
         if (client == null || client.length() > 128 || client.indexOf(0) >= 0) throw ApiV3WriteInputs.invalid();
@@ -105,7 +115,8 @@ public class ApiV3ChatPublicationService {
                     if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID) {
                         throw new ApiV3Exception(404, "not_found", "用户不存在或不可用");
                     }
-                    if (current.optString("userPhone").isBlank()) throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
+                    if (current.optString("userPhone").isBlank())
+                        throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
                     final String prepared;
                     try {
                         prepared = card == null ? validation.prepare(current, content)
@@ -155,7 +166,8 @@ public class ApiV3ChatPublicationService {
 
                         public JSONObject getForUpdate(String id) throws RepositoryException {
                             final JSONObject current = users.getForUpdate(actor);
-                            if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
+                            if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+                                throw ApiV3Requests.notFound();
                             return requests.getForUpdate(id);
                         }
 
@@ -175,8 +187,10 @@ public class ApiV3ChatPublicationService {
         if (result.execution().applied()) afterPublished(actor, result);
         return result.execution().result();
     }
+
     private void afterPublished(final String actor, final Published result) {
-        if (users.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("chat delivery before transaction end");
+        if (users.hasTransactionBegun() || ArticlePublicationCaches.active())
+            throw new IllegalStateException("chat delivery before transaction end");
         ChatMessageAbuseState.accepted(result.message().getString("content"));
         afterSharedAdmission(actor, result.message().getString("userName"), result.repeat(), result.penalty());
         safely(() -> {
@@ -184,9 +198,13 @@ public class ApiV3ChatPublicationService {
             else delivery.afterApiMessagePublished(result.message());
         });
     }
-    /** Shared topic/ordinary-message admission effects, strictly after their owner transaction. */
-    public void afterSharedAdmission(final String actor,final String name,final ChatMessageAbuseState.Repeat repeat,final ChatMessagePenaltyMgmtService.Result penalty){
-        if(users.hasTransactionBegun()||ArticlePublicationCaches.active())throw new IllegalStateException("chat admission delivery before transaction end");
+
+    /**
+     * Shared topic/ordinary-message admission effects, strictly after their owner transaction.
+     */
+    public void afterSharedAdmission(final String actor, final String name, final ChatMessageAbuseState.Repeat repeat, final ChatMessagePenaltyMgmtService.Result penalty) {
+        if (users.hasTransactionBegun() || ArticlePublicationCaches.active())
+            throw new IllegalStateException("chat admission delivery before transaction end");
         if (penalty != null && !penalty.transferId().isEmpty()) {
             safely(() -> points.indexTransferAsync(actor, Pointtransfer.ID_C_SYS, penalty.transferId()));
             safely(() -> notifications.publishReadStateRefresh(actor));
@@ -198,9 +216,17 @@ public class ApiV3ChatPublicationService {
                     + (penalty.transferId().isEmpty() ? "。积分不足，本次未扣分。" : "、扣除积分30的处罚。")));
         }
     }
-    @FunctionalInterface private interface Effect { void run() throws Exception; }
+
+    @FunctionalInterface
+    private interface Effect {
+        void run() throws Exception;
+    }
+
     private static void safely(final Effect work) {
-        try { work.run(); }
-        catch (final Exception e) { LogManager.getLogger(ApiV3ChatPublicationService.class).error("Deliver committed chat message failed", e); }
+        try {
+            work.run();
+        } catch (final Exception e) {
+            LogManager.getLogger(ApiV3ChatPublicationService.class).error("Deliver committed chat message failed", e);
+        }
     }
 }

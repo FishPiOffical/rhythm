@@ -27,15 +27,19 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 
-/** 按数据库当前状态确认文章可见后，返回本节点的近似连接数。 */
+/**
+ * 按数据库当前状态确认文章可见后，返回本节点的近似连接数。
+ */
 @Service
 public class ApiV3ArticleHeatQueryService {
     @Inject
     private ApiV3RealtimeTargetService targets;
     @Inject
     private ApiV3RealtimeService realtime;
+
     public JSONObject read(final String actor, final String articleId) throws RepositoryException {
-        if (actor == null || !actor.matches("[0-9]{1,32}") || articleId == null || !articleId.matches("[0-9]{1,32}")) throw ApiV3WriteInputs.invalid();
+        if (actor == null || !actor.matches("[0-9]{1,32}") || articleId == null || !articleId.matches("[0-9]{1,32}"))
+            throw ApiV3WriteInputs.invalid();
         try {
             if (!targets.articleVisible(actor, articleId)) throw ApiV3Requests.notFound();
         } catch (final RepositoryException e) {

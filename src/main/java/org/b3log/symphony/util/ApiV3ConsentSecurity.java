@@ -23,9 +23,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Set;
 
-/** 使用 Cookie 的授权写入以配置中的站点 Origin 为准，不信任请求 Host。 */
+/**
+ * 使用 Cookie 的授权写入以配置中的站点 Origin 为准，不信任请求 Host。
+ */
 public final class ApiV3ConsentSecurity {
-    private ApiV3ConsentSecurity() { }
+    private ApiV3ConsentSecurity() {
+    }
 
     public static boolean sameOrigin(String configuredSite, String origin, String referer, String fetchSite) {
         if (fetchSite != null && !Set.of("same-origin", "none").contains(fetchSite))
@@ -46,13 +49,17 @@ public final class ApiV3ConsentSecurity {
             return false;
         }
     }
-    private static URI parse(String value){
-        if(value==null||value.isEmpty()||value.length()>4096||value.codePoints().anyMatch(c->Character.isWhitespace(c)||Character.isISOControl(c)))return null;
-        final URI uri=URI.create(value);
-        if(!("https".equalsIgnoreCase(uri.getScheme())||"http".equalsIgnoreCase(uri.getScheme()))||uri.getHost()==null
-                ||uri.getRawUserInfo()!=null||uri.getRawFragment()!=null||uri.getPort()==0||uri.getPort()>65535||uri.getRawAuthority().endsWith(":"))return null;
+
+    private static URI parse(String value) {
+        if (value == null || value.isEmpty() || value.length() > 4096 || value.codePoints().anyMatch(c -> Character.isWhitespace(c) || Character.isISOControl(c)))
+            return null;
+        final URI uri = URI.create(value);
+        if (!("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme())) || uri.getHost() == null
+                || uri.getRawUserInfo() != null || uri.getRawFragment() != null || uri.getPort() == 0 || uri.getPort() > 65535 || uri.getRawAuthority().endsWith(":"))
+            return null;
         return uri;
     }
+
     private static int port(URI uri) {
         return uri.getPort() < 0 ? ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80) : uri.getPort();
     }

@@ -21,11 +21,14 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Article;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Set;
 
-/** 验证实际的本人文章编辑协调流程。真实应用服务和 MySQL 锁行为需另行验证。 */
+/**
+ * 验证实际的本人文章编辑协调流程。真实应用服务和 MySQL 锁行为需另行验证。
+ */
 public class ApiV3ArticleEditingTest {
     public static void main(final String[] args) throws Exception {
         try (final Store store = new Store()) {
@@ -34,7 +37,8 @@ public class ApiV3ArticleEditingTest {
             try {
                 ApiV3ArticleEditing.apply(store, "owner", patch);
                 Assert.fail();
-            } catch (final IllegalStateException expected) { }
+            } catch (final IllegalStateException expected) {
+            }
             store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
                 final var result = ApiV3ArticleEditing.apply(store, "owner", patch);
@@ -58,8 +62,10 @@ public class ApiV3ArticleEditingTest {
                     try {
                         ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
                         Assert.fail();
+                    } catch (final ApiV3Exception e) {
+                        Assert.assertEquals(e.status, scenario == 2 ? 403 : 404);
+                        store.rollback();
                     }
-                    catch (final ApiV3Exception e) { Assert.assertEquals(e.status, scenario == 2 ? 403 : 404); store.rollback(); }
                 }
                 Assert.assertFalse(store.validated);
                 Assert.assertFalse(store.saved);
@@ -68,50 +74,108 @@ public class ApiV3ArticleEditingTest {
         }
         System.out.println("PASS missing/foreign/locked article rejected before moderation or saving");
         try (final Store store = new Store()) {
-            store.fail = true; store.db.setAutoCommit(false);
+            store.fail = true;
+            store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
                 try {
                     ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
                     Assert.fail();
+                } catch (final IllegalStateException expected) {
+                    store.rollback();
                 }
-                catch (final IllegalStateException expected) { store.rollback(); }
             }
             Assert.assertEquals(store.title(), "old title");
             Assert.assertEquals(store.scalar("SELECT balance FROM account"), 100);
             System.out.println("PASS save failure rolls content and debit back together");
         }
         try (final Store store = new Store()) {
-            store.reject = true; store.db.setAutoCommit(false);
+            store.reject = true;
+            store.db.setAutoCommit(false);
             try (final var ignored = ArticlePublicationCaches.open(store::inTransaction)) {
                 try {
                     ApiV3ArticleEditing.apply(store, "owner", ApiV3ArticleEditInputs.normalize(new JSONObject().put("title", "new title")));
                     Assert.fail();
+                } catch (final ApiV3Exception expected) {
+                    store.rollback();
                 }
-                catch (final ApiV3Exception expected) { store.rollback(); }
             }
             Assert.assertFalse(store.saved);
             Assert.assertEquals(store.title(), "old title");
             System.out.println("PASS validation failure cannot change persisted content");
         }
     }
+
     private static final class Store implements ApiV3ArticleEditing.Store, AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
-        JSONObject current = ApiV3ArticleEditInputsTest.current(); boolean validated, saved, fail, reject;
-        Store() throws Exception { exec("CREATE TABLE account(balance INT)"); exec("INSERT INTO account VALUES(100)"); exec("CREATE TABLE content(title TEXT)"); exec("INSERT INTO content VALUES('old title')"); }
-        public boolean inTransaction() { try { return !db.getAutoCommit(); } catch (final Exception e) { throw new RuntimeException(e); } }
-        public ApiV3ArticleEditing.State lockAndLoad() { return null == current ? null : new ApiV3ArticleEditing.State(current, null); }
-        public void validate(final JSONObject request) { validated = true; if (reject) throw new ApiV3Exception(422, "content_rejected", "rejected"); }
+        JSONObject current = ApiV3ArticleEditInputsTest.current();
+        boolean validated, saved, fail, reject;
+
+        Store() throws Exception {
+            exec("CREATE TABLE account(balance INT)");
+            exec("INSERT INTO account VALUES(100)");
+            exec("CREATE TABLE content(title TEXT)");
+            exec("INSERT INTO content VALUES('old title')");
+        }
+
+        public boolean inTransaction() {
+            try {
+                return !db.getAutoCommit();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public ApiV3ArticleEditing.State lockAndLoad() {
+            return null == current ? null : new ApiV3ArticleEditing.State(current, null);
+        }
+
+        public void validate(final JSONObject request) {
+            validated = true;
+            if (reject) throw new ApiV3Exception(422, "content_rejected", "rejected");
+        }
+
         public ApiV3ArticleEditing.Saved save(final JSONObject request) throws Exception {
-            Assert.assertTrue(validated); saved = true;
-            exec("UPDATE content SET title=?", request.getString(Article.ARTICLE_TITLE)); exec("UPDATE account SET balance=balance-5");
+            Assert.assertTrue(validated);
+            saved = true;
+            exec("UPDATE content SET title=?", request.getString(Article.ARTICLE_TITLE));
+            exec("UPDATE account SET balance=balance-5");
             if (fail) throw new IllegalStateException("simulated edit failure");
             return new ApiV3ArticleEditing.Saved("1", "/article/1");
         }
-        void commit() throws Exception { db.commit(); db.setAutoCommit(true); }
-        void rollback() throws Exception { db.rollback(); db.setAutoCommit(true); }
-        int scalar(final String sql) throws Exception { try (final var s = db.createStatement(); final var r = s.executeQuery(sql)) { r.next(); return r.getInt(1); } }
-        String title() throws Exception { try (final var s = db.createStatement(); final var r = s.executeQuery("SELECT title FROM content")) { r.next(); return r.getString(1); } }
-        void exec(final String sql, final Object... values) throws Exception { try (final var s = db.prepareStatement(sql)) { for (int i = 0; i < values.length; i++) s.setObject(i + 1, values[i]); s.executeUpdate(); } }
-        public void close() throws Exception { db.close(); }
+
+        void commit() throws Exception {
+            db.commit();
+            db.setAutoCommit(true);
+        }
+
+        void rollback() throws Exception {
+            db.rollback();
+            db.setAutoCommit(true);
+        }
+
+        int scalar(final String sql) throws Exception {
+            try (final var s = db.createStatement(); final var r = s.executeQuery(sql)) {
+                r.next();
+                return r.getInt(1);
+            }
+        }
+
+        String title() throws Exception {
+            try (final var s = db.createStatement(); final var r = s.executeQuery("SELECT title FROM content")) {
+                r.next();
+                return r.getString(1);
+            }
+        }
+
+        void exec(final String sql, final Object... values) throws Exception {
+            try (final var s = db.prepareStatement(sql)) {
+                for (int i = 0; i < values.length; i++) s.setObject(i + 1, values[i]);
+                s.executeUpdate();
+            }
+        }
+
+        public void close() throws Exception {
+            db.close();
+        }
     }
 }

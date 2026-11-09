@@ -30,41 +30,84 @@ import org.json.JSONObject;
 import org.testng.Assert;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
+
 import java.lang.reflect.Field;
 import java.util.*;
 
-/** 验证实际的注册策略、控制器、URI 解码和响应封装。存储和角色查询由显式测试夹具提供。 */
+/**
+ * 验证实际的注册策略、控制器、URI 解码和响应封装。存储和角色查询由显式测试夹具提供。
+ */
 public class ApiV3RegistrationPolicyTest {
     static class Fixture {
-        String mode="0";boolean missing,storageFailure,exists=true,allow=true;int userReads,permissionReads;
-        JSONObject privateUser=new JSONObject().put("oId","100").put("userName","Referrer").put("userPhone","PRIVATE_PHONE")
-                .put("userPassword","PRIVATE_PASSWORD").put("apiKey","PRIVATE_KEY");
-        final ApiV3RegistrationPolicyService policy=new ApiV3RegistrationPolicyService();
-        final ApiV3AccountProcessor controller=new ApiV3AccountProcessor();
-        Fixture()throws Exception{
-            inject(policy,"options",new OptionRepository(){@Override public List<JSONObject> select(String sql,Object...args)throws RepositoryException{
-                Assert.assertTrue(sql.startsWith("SELECT optionValue FROM "));Assert.assertEquals(args,new Object[]{Option.ID_C_MISC_ALLOW_REGISTER});if(storageFailure)throw new RepositoryException("fixture unavailable");return missing?List.of():List.of(new JSONObject().put(Option.OPTION_VALUE,mode));
-            }});
-            inject(policy,"users",new UserQueryService(){@Override public JSONObject getUserByName(String name){Assert.assertEquals(name,"Referrer");userReads++;return exists?privateUser:null;}});
-            inject(policy,"roles",new RoleQueryService(){@Override public Map<String,JSONObject> getUserPermissionsGrantMap(String id){Assert.assertEquals(id,"100");permissionReads++;return allow?Map.of(Permission.PERMISSION_ID_C_COMMON_USE_INVITATION_LINK,new JSONObject().put(Permission.PERMISSION_T_GRANT,true).put("internal","PRIVATE_PERMISSION")):Map.of();}});
-            inject(controller,"registration",policy);
+        String mode = "0";
+        boolean missing, storageFailure, exists = true, allow = true;
+        int userReads, permissionReads;
+        JSONObject privateUser = new JSONObject().put("oId", "100").put("userName", "Referrer").put("userPhone", "PRIVATE_PHONE")
+                .put("userPassword", "PRIVATE_PASSWORD").put("apiKey", "PRIVATE_KEY");
+        final ApiV3RegistrationPolicyService policy = new ApiV3RegistrationPolicyService();
+        final ApiV3AccountProcessor controller = new ApiV3AccountProcessor();
+
+        Fixture() throws Exception {
+            inject(policy, "options", new OptionRepository() {
+                @Override
+                public List<JSONObject> select(String sql, Object... args) throws RepositoryException {
+                    Assert.assertTrue(sql.startsWith("SELECT optionValue FROM "));
+                    Assert.assertEquals(args, new Object[]{Option.ID_C_MISC_ALLOW_REGISTER});
+                    if (storageFailure) throw new RepositoryException("fixture unavailable");
+                    return missing ? List.of() : List.of(new JSONObject().put(Option.OPTION_VALUE, mode));
+                }
+            });
+            inject(policy, "users", new UserQueryService() {
+                @Override
+                public JSONObject getUserByName(String name) {
+                    Assert.assertEquals(name, "Referrer");
+                    userReads++;
+                    return exists ? privateUser : null;
+                }
+            });
+            inject(policy, "roles", new RoleQueryService() {
+                @Override
+                public Map<String, JSONObject> getUserPermissionsGrantMap(String id) {
+                    Assert.assertEquals(id, "100");
+                    permissionReads++;
+                    return allow ? Map.of(Permission.PERMISSION_ID_C_COMMON_USE_INVITATION_LINK, new JSONObject().put(Permission.PERMISSION_T_GRANT, true).put("internal", "PRIVATE_PERMISSION")) : Map.of();
+                }
+            });
+            inject(controller, "registration", policy);
         }
-        JSONObject call(String query)throws Exception{
-            final var request=new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,HttpMethod.GET,"/api/v3/auth/registration-options"+(query==null?"":"?"+query));
-            final var response=new DefaultHttpResponse(HttpVersion.HTTP_1_1,HttpResponseStatus.OK);
-            try{
-                request.headers().set("Cookie","ignored-fixture");var parsed=new Request(null,request);
-                var parse=Request.class.getDeclaredMethod("parseQueryStr");parse.setAccessible(true);parse.invoke(parsed);
-                var c=new RequestContext(parsed,new Response(null,response));c.attr("user",privateUser);
-                controller.registrationOptions(c);Assert.assertEquals(response.headers().get("Cache-Control"),"no-store");Assert.assertNotNull(response.headers().get("X-Request-Id"));
-                return new JSONObject().put("status",response.status().code()).put("json",((JsonRenderer)c.getRenderer()).getJSONObject());
-            }finally{request.release();}
+
+        JSONObject call(String query) throws Exception {
+            final var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/api/v3/auth/registration-options" + (query == null ? "" : "?" + query));
+            final var response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+            try {
+                request.headers().set("Cookie", "ignored-fixture");
+                var parsed = new Request(null, request);
+                var parse = Request.class.getDeclaredMethod("parseQueryStr");
+                parse.setAccessible(true);
+                parse.invoke(parsed);
+                var c = new RequestContext(parsed, new Response(null, response));
+                c.attr("user", privateUser);
+                controller.registrationOptions(c);
+                Assert.assertEquals(response.headers().get("Cache-Control"), "no-store");
+                Assert.assertNotNull(response.headers().get("X-Request-Id"));
+                return new JSONObject().put("status", response.status().code()).put("json", ((JsonRenderer) c.getRenderer()).getJSONObject());
+            } finally {
+                request.release();
+            }
         }
     }
-    static void inject(Object target,String field,Object value)throws Exception{Field f=target.getClass().getDeclaredField(field);f.setAccessible(true);f.set(target,value);}
-    public static void main(String[] args)throws Exception{
-        var properties=new Properties();properties.setProperty("runtimeDatabase","NONE");
-        org.b3log.latke.Latkes.setLatkeProps(properties);org.b3log.latke.Latkes.setLocalProps(properties);
+
+    static void inject(Object target, String field, Object value) throws Exception {
+        Field f = target.getClass().getDeclaredField(field);
+        f.setAccessible(true);
+        f.set(target, value);
+    }
+
+    public static void main(String[] args) throws Exception {
+        var properties = new Properties();
+        properties.setProperty("runtimeDatabase", "NONE");
+        org.b3log.latke.Latkes.setLatkeProps(properties);
+        org.b3log.latke.Latkes.setLocalProps(properties);
         var f = new Fixture();
         var open = f.policy.options(null);
         Assert.assertEquals(open.getString("mode"), "open");
@@ -99,7 +142,8 @@ public class ApiV3RegistrationPolicyTest {
         Assert.assertEquals(f.permissionReads, previous);
         System.out.println("PASS referral input does not itself waive an invitation code: the current resolved user's invitation permission is required, withdrawing it takes effect on the next read and nonexistent users do not trigger permission lookup");
 
-        f=new Fixture();for(String name:List.of("x".repeat(65),"bad_name","bad/name","管理员","Referrer\nname","FileTransfer","adminUser")){
+        f = new Fixture();
+        for (String name : List.of("x".repeat(65), "bad_name", "bad/name", "管理员", "Referrer\nname", "FileTransfer", "adminUser")) {
             try {
                 f.policy.options(name);
                 Assert.fail(name);

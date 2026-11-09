@@ -21,12 +21,16 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** 只投影固定、带类型的会员字段，省略管理员和用户的原始配置。 */
+/**
+ * 只投影固定、带类型的会员字段，省略管理员和用户的原始配置。
+ */
 public final class ApiV3MembershipDto {
-    private ApiV3MembershipDto() { }
+    private ApiV3MembershipDto() {
+    }
 
     public static JSONObject inactive() {
         return new JSONObject().put("active", false).put("levelCode", "").put("expiresAt", 0)
@@ -53,8 +57,11 @@ public final class ApiV3MembershipDto {
         final JSONObject result = new JSONObject();
         if (!(raw instanceof String input) || input.isBlank() || input.length() > 102400) return result;
         final JSONObject source;
-        try { source = ApiV3Json.parse(input.getBytes(StandardCharsets.UTF_8)); }
-        catch (IllegalArgumentException e) { return result; }
+        try {
+            source = ApiV3Json.parse(input.getBytes(StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException e) {
+            return result;
+        }
         for (final String key : Set.of("bold", "underline", "autoCheckin", "metal", "jointVip")) {
             if (source.opt(key) instanceof Boolean value) result.put(key, value);
         }
@@ -63,8 +70,7 @@ public final class ApiV3MembershipDto {
                 final long n = nonnegative(value);
                 if (n <= Integer.MAX_VALUE)
                     result.put("checkinCard", n);
-            }
-            catch (ApiV3Exception ignored) { /* Invalid optional display value is omitted. */ }
+            } catch (ApiV3Exception ignored) { /* Invalid optional display value is omitted. */ }
         }
         if (source.opt("color") instanceof String color && (color.matches("#[0-9a-fA-F]{6}")
                 || Set.of("rainbow", "neon", "fire", "ocean", "forest", "sunset", "metal", "galaxy").contains(color))) {
@@ -83,8 +89,11 @@ public final class ApiV3MembershipDto {
 
     private static long nonnegative(final Object raw) {
         if (raw == null || !raw.toString().matches("[0-9]{1,19}")) throw unavailable();
-        try { return Long.parseLong(raw.toString()); }
-        catch (NumberFormatException e) { throw unavailable(); }
+        try {
+            return Long.parseLong(raw.toString());
+        } catch (NumberFormatException e) {
+            throw unavailable();
+        }
     }
 
     private static long integer(final Object raw, final boolean positive) {

@@ -22,6 +22,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.util.List;
 
 public class ApiV3ArticleEditInputsTest {
@@ -51,7 +52,8 @@ public class ApiV3ArticleEditInputsTest {
             try {
                 ApiV3ArticleEditInputs.normalize(bad);
                 Assert.fail(bad.keySet().toString());
-            } catch (final ApiV3Exception expected) { }
+            } catch (final ApiV3Exception expected) {
+            }
         }
         System.out.println("PASS immutable/unknown fields, invalid types, IDs, chapter capacity and required text boundaries");
         final var zero = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("rewardPoint", 0).put("rewardContent", "ignored new reward")));
@@ -60,7 +62,8 @@ public class ApiV3ArticleEditInputsTest {
         try {
             ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("qnaOfferPoint", 19)));
             Assert.fail();
-        } catch (final ApiV3Exception expected) { }
+        } catch (final ApiV3Exception expected) {
+        }
         final var moved = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("columnId", "11")));
         Assert.assertEquals(moved.getString(LongArticleColumn.CHAPTER_NO), "");
         final var detached = ApiV3ArticleEditInputs.merge(current, chapter, ApiV3ArticleEditInputs.normalize(new JSONObject().put("columnId", "")));
@@ -74,27 +77,32 @@ public class ApiV3ArticleEditInputsTest {
         try {
             ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 3)));
             Assert.fail();
+        } catch (final ApiV3Exception e) {
+            Assert.assertEquals(e.code, "thought_disabled");
         }
-        catch (final ApiV3Exception e) { Assert.assertEquals(e.code, "thought_disabled"); }
         try {
             ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("type", 0)));
             Assert.fail();
+        } catch (final ApiV3Exception e) {
+            Assert.assertEquals(e.code, "content_required");
         }
-        catch (final ApiV3Exception e) { Assert.assertEquals(e.code, "content_required"); }
         System.out.println("PASS historical thought insert/delete/legacy records without restoring creation through conversion");
         for (final String bad : List.of("text only", "x\u001fno-time\u001f0-0\u001f0-0\u001e", "x\u001f9007199254740992\u001f0-0\u001f0-0\u001e",
                 "x\u001f1\u001f-1-0\u001f0-0\u001e", "x\u001f1\u001f0-0\u001f0-0")) {
             try {
                 ApiV3ArticleEditInputs.merge(thought, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", bad)));
                 Assert.fail();
-            } catch (final ApiV3Exception expected) { }
+            } catch (final ApiV3Exception expected) {
+            }
         }
         try {
             ApiV3ArticleEditInputs.merge(current, null, ApiV3ArticleEditInputs.normalize(new JSONObject().put("content", record)));
             Assert.fail();
-        } catch (final ApiV3Exception expected) { }
+        } catch (final ApiV3Exception expected) {
+        }
         System.out.println("PASS malformed thought protocol, unsafe numeric capacity and separators in ordinary Markdown rejected");
     }
+
     static JSONObject current() {
         return new JSONObject().put(Article.ARTICLE_AUTHOR_ID, "owner").put(Article.ARTICLE_STATUS, Article.ARTICLE_STATUS_C_VALID)
                 .put(Article.ARTICLE_TITLE, "old title").put(Article.ARTICLE_CONTENT, "    old markdown\nbody").put(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_LONG)

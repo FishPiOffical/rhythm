@@ -19,11 +19,14 @@
 package org.b3log.symphony.util;
 
 import org.testng.Assert;
+
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
-/** 使用 RFC 7636 附录 B 的公开向量验证 PKCE 格式、规范编码及算法降级边界。 */
+/**
+ * 使用 RFC 7636 附录 B 的公开向量验证 PKCE 格式、规范编码及算法降级边界。
+ */
 public class ApiV3PkceTest {
     public static void main(String[] args) throws Exception {
         final String verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",

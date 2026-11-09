@@ -29,12 +29,17 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
+
 import java.util.List;
 
-/** 只查询当前账号本人的 MBTI，由调用方传入认证身份。 */
+/**
+ * 只查询当前账号本人的 MBTI，由调用方传入认证身份。
+ */
 @Service
 public class ApiV3PersonalityQueryService {
-    @Inject private UserRepository users;
+    @Inject
+    private UserRepository users;
+
     public JSONObject read(final String actor) throws RepositoryException {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         final List<JSONObject> rows;

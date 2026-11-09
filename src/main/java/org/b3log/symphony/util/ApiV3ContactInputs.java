@@ -20,14 +20,19 @@ package org.b3log.symphony.util;
 
 import org.b3log.latke.util.Strings;
 import org.json.JSONObject;
+
 import java.util.Locale;
 import java.util.Set;
 
-/** 校验目标只接受新联系方式，拒绝旧会话字段。 */
+/**
+ * 校验目标只接受新联系方式，拒绝旧会话字段。
+ */
 public final class ApiV3ContactInputs {
-    private ApiV3ContactInputs() { }
+    private ApiV3ContactInputs() {
+    }
 
-    public record Input(String target, String password, String totp, String proof) { }
+    public record Input(String target, String password, String totp, String proof) {
+    }
 
     public static Input parse(JSONObject body, boolean phone, boolean sending) {
         final Set<String> allowed = sending ? Set.of("target", "currentPassword", "currentTotp", "captcha")
@@ -65,6 +70,7 @@ public final class ApiV3ContactInputs {
             throw ApiV3WriteInputs.invalid();
         return value;
     }
+
     private static String required(JSONObject body, String key, int max) {
         if (!(body.opt(key) instanceof String value) || value.isEmpty() || value.length() > max)
             throw ApiV3WriteInputs.invalid();

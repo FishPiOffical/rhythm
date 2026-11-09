@@ -28,13 +28,20 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 本人勋章展示设置与重放回执在同一个 API v3 严格事务中提交。 */
+/**
+ * 本人勋章展示设置与重放回执在同一个 API v3 严格事务中提交。
+ */
 @Service
 public class ApiV3MedalDisplayService {
-    @Inject private UserRepository users;
-    @Inject private MedalRepository medals;
-    @Inject private UserMedalRepository grants;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MedalRepository medals;
+    @Inject
+    private UserMedalRepository grants;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+
     public JSONObject set(final String actor, final String medalId, final boolean displayed, final String key) throws Exception {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         ApiV3MedalDisplay.medalId(medalId);
@@ -44,19 +51,22 @@ public class ApiV3MedalDisplayService {
             if (currentOwners.size() != 1) throw ApiV3Requests.notFound();
             return idempotency.execute(actor, "medal.display", key, new JSONObject().put("medalId", medalId).put("displayed", displayed),
                     () -> setInCurrentTransaction(actor, medalId, displayed));
-        } catch (final ApiV3Exception e) { throw e; }
-        catch (final Exception e) {
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
             LogManager.getLogger(getClass()).warn("Medal display unavailable");
             throw new ApiV3Exception(503, "temporarily_unavailable", "勋章显示设置暂不可用");
         }
     }
+
     public JSONObject setInCurrentTransaction(final String actor, final String medalId, final boolean displayed) throws Exception {
         if (!grants.hasTransactionBegun()) throw new IllegalStateException("medal display transaction required");
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         ApiV3MedalDisplay.medalId(medalId);
         return ApiV3TransactionSavepoint.run(() -> {
             final var owners = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
-            if (owners.size() != 1 || owners.getFirst().optInt("userStatus", -1) != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
+            if (owners.size() != 1 || owners.getFirst().optInt("userStatus", -1) != UserExt.USER_STATUS_C_VALID)
+                throw ApiV3Requests.notFound();
             // 先读取当前勋章定义，再锁定本人持有的勋章记录。
             final var definitions = medals.select("SELECT oId,medal_id FROM `" + medals.getName() + "` WHERE medal_id=? ORDER BY oId ASC LIMIT 2 FOR UPDATE", medalId);
             if (definitions.isEmpty()) throw ApiV3Requests.notFound();
@@ -66,7 +76,8 @@ public class ApiV3MedalDisplayService {
             if (holdings.isEmpty()) throw ApiV3Requests.notFound();
             if (holdings.size() != 1) throw ApiV3MedalDisplay.inconsistent();
             final var current = holdings.getFirst();
-            if (!actor.equals(current.optString("user_id")) || !medalId.equals(current.optString("medal_id"))) throw ApiV3MedalDisplay.inconsistent();
+            if (!actor.equals(current.optString("user_id")) || !medalId.equals(current.optString("medal_id")))
+                throw ApiV3MedalDisplay.inconsistent();
             final long expiry = ApiV3MedalDisplay.expiry(current.opt("expire_time"));
             if (expiry > 0 && expiry <= System.currentTimeMillis()) throw ApiV3Requests.notFound();
             if (ApiV3MedalDisplay.stored(current.opt("display")) != displayed) {

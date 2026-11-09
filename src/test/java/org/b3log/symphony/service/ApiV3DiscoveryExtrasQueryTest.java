@@ -17,8 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.b3log.symphony.service;
+
 import java.sql.*;
 import java.util.*;
+
 import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.*;
@@ -26,22 +28,70 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.*;
 import org.testng.Assert;
 
-/** 执行实际查询服务及通用 DTO，隔离 SQLite 仅适配 MySQL 的一元 BINARY 语法。 */
+/**
+ * 执行实际查询服务及通用 DTO，隔离 SQLite 仅适配 MySQL 的一元 BINARY 语法。
+ */
 public class ApiV3DiscoveryExtrasQueryTest {
     static class Fixture implements AutoCloseable {
-        final Connection db=DriverManager.getConnection("jdbc:sqlite::memory:");
-        final ApiV3DiscoveryExtrasQueryService service=new ApiV3DiscoveryExtrasQueryService(){protected double pivot(){return .5;}protected void shuffle(List<JSONObject> rows){}};
-        boolean fail; final List<String> queries=new ArrayList<>();
-        Fixture()throws Exception {
+        final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
+        final ApiV3DiscoveryExtrasQueryService service = new ApiV3DiscoveryExtrasQueryService() {
+            protected double pivot() {
+                return .5;
+            }
+
+            protected void shuffle(List<JSONObject> rows) {
+            }
+        };
+        boolean fail;
+        final List<String> queries = new ArrayList<>();
+
+        Fixture() throws Exception {
             sql("CREATE TABLE x_user(oId TEXT PRIMARY KEY,userStatus INT,userName TEXT,userNickname TEXT,userAvatarURL TEXT,userPassword TEXT,userPhone TEXT)");
             sql("CREATE TABLE x_article(oId TEXT PRIMARY KEY,articleAuthorId TEXT,articleStatus INT,articleType INT,articleAnonymous INT,articleShowInList INT,articleTags TEXT,articleAnonymousView INT,articleTitle TEXT,articlePermalink TEXT,articleCreateTime INT,articleUpdateTime INT,articleContent TEXT,articleRandomDouble REAL,articleRewardContent TEXT,articleIP TEXT,articleCommentCount INT DEFAULT 0,articleViewCount INT DEFAULT 0,articleStick INT DEFAULT 0)");
             sql("CREATE TABLE x_logs(oId TEXT PRIMARY KEY,`public` INT,`type` TEXT,key1 TEXT,key2 TEXT,key3 TEXT,data TEXT)");
-            inject(service,"users",new UserRepository(){public String getName(){return "x_user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
-            inject(service,"articles",new ArticleRepository(){public String getName(){return "x_article";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
-            inject(service,"logs",new LogsRepository(){public String getName(){return "x_logs";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
-            var dto=new ApiV3ContentDtoService();inject(dto,"userRepository",new UserRepository(){public String getName(){return "x_user";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});inject(dto,"avatarQueryService",new AvatarQueryService());inject(service,"dto",dto);
-            for(int i=1;i<=25;i++)sql("INSERT INTO x_user VALUES (?,0,?,?,?,'PRIVATE_PASSWORD','PRIVATE_PHONE')",String.format("%03d",i),"User"+i,"Nickname "+i,"https://example.test/"+i+".png");
+            inject(service, "users", new UserRepository() {
+                public String getName() {
+                    return "x_user";
+                }
+
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+                    return query(q, a);
+                }
+            });
+            inject(service, "articles", new ArticleRepository() {
+                public String getName() {
+                    return "x_article";
+                }
+
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+                    return query(q, a);
+                }
+            });
+            inject(service, "logs", new LogsRepository() {
+                public String getName() {
+                    return "x_logs";
+                }
+
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+                    return query(q, a);
+                }
+            });
+            var dto = new ApiV3ContentDtoService();
+            inject(dto, "userRepository", new UserRepository() {
+                public String getName() {
+                    return "x_user";
+                }
+
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+                    return query(q, a);
+                }
+            });
+            inject(dto, "avatarQueryService", new AvatarQueryService());
+            inject(service, "dto", dto);
+            for (int i = 1; i <= 25; i++)
+                sql("INSERT INTO x_user VALUES (?,0,?,?,?,'PRIVATE_PASSWORD','PRIVATE_PHONE')", String.format("%03d", i), "User" + i, "Nickname " + i, "https://example.test/" + i + ".png");
         }
+
         static void inject(Object target, String field, Object value) throws Exception {
             Class<?> type = target.getClass();
             while (type != null) {
@@ -85,15 +135,45 @@ public class ApiV3DiscoveryExtrasQueryTest {
                 throw new RepositoryException(e);
             }
         }
-        void article(String id,double random)throws SQLException{sql("INSERT INTO x_article VALUES (?,'001',0,0,0,1,'tag',0,?,?,100,200,?,?,'PRIVATE_REWARD','PRIVATE_IP',0,0,0)",id,"Article "+id,"/article/"+id,"<b>public preview</b>",random);}
-        void log(String id,int pub,String type,String category,String time)throws SQLException{sql("INSERT INTO x_logs VALUES (?,?,?,?, 'PRIVATE_IP',?,'PRIVATE_LOG_BODY')",id,pub,type,time,category);}
-        public void close()throws SQLException{db.close();}
+
+        void article(String id, double random) throws SQLException {
+            sql("INSERT INTO x_article VALUES (?,'001',0,0,0,1,'tag',0,?,?,100,200,?,?,'PRIVATE_REWARD','PRIVATE_IP',0,0,0)", id, "Article " + id, "/article/" + id, "<b>public preview</b>", random);
+        }
+
+        void log(String id, int pub, String type, String category, String time) throws SQLException {
+            sql("INSERT INTO x_logs VALUES (?,?,?,?, 'PRIVATE_IP',?,'PRIVATE_LOG_BODY')", id, pub, type, time, category);
+        }
+
+        public void close() throws SQLException {
+            db.close();
+        }
     }
-    static JSONArray list(JSONObject p){return p.getJSONArray("list");}
-    static Set<String> ids(JSONObject p){var result=new HashSet<String>();for(Object value:list(p))result.add(((JSONObject)value).getString("id"));return result;}
-    static void status(int n,Runnable r){try{r.run();throw new AssertionError("expected "+n);}catch(ApiV3Exception e){Assert.assertEquals(e.status,n);}}
-    public static void main(String[] args)throws Exception{
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
+
+    static JSONArray list(JSONObject p) {
+        return p.getJSONArray("list");
+    }
+
+    static Set<String> ids(JSONObject p) {
+        var result = new HashSet<String>();
+        for (Object value : list(p)) result.add(((JSONObject) value).getString("id"));
+        return result;
+    }
+
+    static void status(int n, Runnable r) {
+        try {
+            r.run();
+            throw new AssertionError("expected " + n);
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.status, n);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
         try (var f = new Fixture()) {
             f.sql("UPDATE x_user SET userStatus=2 WHERE oId='025'");
             var out = f.service.recent();
@@ -126,7 +206,7 @@ public class ApiV3DiscoveryExtrasQueryTest {
             Assert.assertFalse(out.toString().contains("PRIVATE"));
         }
         System.out.println("PASS extras 3 random pivot boundary included once, wrap fills remainder, no duplicates and actual common article projection omits raw private fields");
-        for(String assignment:List.of("articleStatus=1","articleType="+org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION,"articleShowInList=0","articleTags='Sandbox'","articleTags='B3log-private'","articleRandomDouble=-1","articleRandomDouble=2")){
+        for (String assignment : List.of("articleStatus=1", "articleType=" + org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION, "articleShowInList=0", "articleTags='Sandbox'", "articleTags='B3log-private'", "articleRandomDouble=-1", "articleRandomDouble=2")) {
             try (var f = new Fixture()) {
                 f.article("101", .7);
                 f.article("102", .9);

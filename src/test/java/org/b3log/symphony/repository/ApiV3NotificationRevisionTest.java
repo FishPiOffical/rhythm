@@ -23,68 +23,214 @@ import org.b3log.latke.repository.*;
 import org.b3log.symphony.model.ApiV3NotificationRevision;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 
-/** 用独立的 SQLite 读写连接验证实际的通知写入钩子和版本 SQL。MySQL 锁及 HTTP 需另行验证。 */
+/**
+ * 用独立的 SQLite 读写连接验证实际的通知写入钩子和版本 SQL。MySQL 锁及 HTTP 需另行验证。
+ */
 public class ApiV3NotificationRevisionTest {
     static class Fixture implements AutoCloseable {
-        final Path file=Files.createTempFile("rhythm-notification-revision-",".sqlite");final String url="jdbc:sqlite:"+file;
-        final Connection writer=DriverManager.getConnection(url),reader=DriverManager.getConnection(url),secondReader=DriverManager.getConnection(url);
-        boolean failMarker,failData;int snapshotQueries;
-        final Writer revisions=new Writer();final Reader first=new Reader(reader),second=new Reader(secondReader);final Notifications notifications=new Notifications();
-        Fixture()throws Exception {
-            execute(writer,"CREATE TABLE notification(oId TEXT PRIMARY KEY,userId TEXT,hasRead INT,dataType INT,dataId TEXT)");execute(writer,"CREATE TABLE symphony_api_v3_notification_revision(oId TEXT PRIMARY KEY,revision TEXT,updatedAt BIGINT)");
-            var injection=NotificationRepository.class.getDeclaredField("revisions");injection.setAccessible(true);injection.set(notifications,revisions);
+        final Path file = Files.createTempFile("rhythm-notification-revision-", ".sqlite");
+        final String url = "jdbc:sqlite:" + file;
+        final Connection writer = DriverManager.getConnection(url), reader = DriverManager.getConnection(url), secondReader = DriverManager.getConnection(url);
+        boolean failMarker, failData;
+        int snapshotQueries;
+        final Writer revisions = new Writer();
+        final Reader first = new Reader(reader), second = new Reader(secondReader);
+        final Notifications notifications = new Notifications();
+
+        Fixture() throws Exception {
+            execute(writer, "CREATE TABLE notification(oId TEXT PRIMARY KEY,userId TEXT,hasRead INT,dataType INT,dataId TEXT)");
+            execute(writer, "CREATE TABLE symphony_api_v3_notification_revision(oId TEXT PRIMARY KEY,revision TEXT,updatedAt BIGINT)");
+            var injection = NotificationRepository.class.getDeclaredField("revisions");
+            injection.setAccessible(true);
+            injection.set(notifications, revisions);
         }
-        boolean active(){try{return !writer.getAutoCommit();}catch(SQLException e){throw new RuntimeException(e);}}
-        void begin()throws Exception{writer.setAutoCommit(false);}
-        void commit()throws Exception{writer.commit();writer.setAutoCommit(true);}
-        void rollback()throws Exception{writer.rollback();writer.setAutoCommit(true);}
-        String revision(String actor)throws Exception{return first.snapshot(List.of(actor)).get(actor);}
-        void add(String id,String actor,int type)throws Exception{notifications.add(new JSONObject().put("oId",id).put("userId",actor).put("hasRead",false).put("dataType",type).put("dataId","PRIVATE-ref"));}
-        long count(String actor)throws Exception{return query(reader,"SELECT COUNT(*) AS n FROM notification WHERE userId=?",actor).getFirst().getLong("n");}
+
+        boolean active() {
+            try {
+                return !writer.getAutoCommit();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        void begin() throws Exception {
+            writer.setAutoCommit(false);
+        }
+
+        void commit() throws Exception {
+            writer.commit();
+            writer.setAutoCommit(true);
+        }
+
+        void rollback() throws Exception {
+            writer.rollback();
+            writer.setAutoCommit(true);
+        }
+
+        String revision(String actor) throws Exception {
+            return first.snapshot(List.of(actor)).get(actor);
+        }
+
+        void add(String id, String actor, int type) throws Exception {
+            notifications.add(new JSONObject().put("oId", id).put("userId", actor).put("hasRead", false).put("dataType", type).put("dataId", "PRIVATE-ref"));
+        }
+
+        long count(String actor) throws Exception {
+            return query(reader, "SELECT COUNT(*) AS n FROM notification WHERE userId=?", actor).getFirst().getLong("n");
+        }
+
         class Writer extends ApiV3NotificationRevisionRepository {
-            @Override public String getName(){return "symphony_api_v3_notification_revision";}
-            @Override public boolean hasTransactionBegun(){return active();}
-            @Override protected Connection currentConnection(){return writer;}
-            @Override protected String upsertSql(){return failMarker?"INSERT INTO missing_table VALUES(?)":super.upsertSql().replace("ON DUPLICATE KEY UPDATE revision=VALUES(revision),updatedAt=VALUES(updatedAt)","ON CONFLICT(oId) DO UPDATE SET revision=excluded.revision,updatedAt=excluded.updatedAt");}
+            @Override
+            public String getName() {
+                return "symphony_api_v3_notification_revision";
+            }
+
+            @Override
+            public boolean hasTransactionBegun() {
+                return active();
+            }
+
+            @Override
+            protected Connection currentConnection() {
+                return writer;
+            }
+
+            @Override
+            protected String upsertSql() {
+                return failMarker ? "INSERT INTO missing_table VALUES(?)" : super.upsertSql().replace("ON DUPLICATE KEY UPDATE revision=VALUES(revision),updatedAt=VALUES(updatedAt)", "ON CONFLICT(oId) DO UPDATE SET revision=excluded.revision,updatedAt=excluded.updatedAt");
+            }
         }
+
         class Reader extends ApiV3NotificationRevisionRepository {
-            final Connection connection;Reader(Connection c){connection=c;}
-            @Override public String getName(){return "symphony_api_v3_notification_revision";}
-            @Override public boolean hasTransactionBegun(){return false;}
-            @Override public List<JSONObject> select(String sql,Object...args)throws RepositoryException{snapshotQueries++;return query(connection,sql,args);}
+            final Connection connection;
+
+            Reader(Connection c) {
+                connection = c;
+            }
+
+            @Override
+            public String getName() {
+                return "symphony_api_v3_notification_revision";
+            }
+
+            @Override
+            public boolean hasTransactionBegun() {
+                return false;
+            }
+
+            @Override
+            public List<JSONObject> select(String sql, Object... args) throws RepositoryException {
+                snapshotQueries++;
+                return query(connection, sql, args);
+            }
         }
+
         class Notifications extends NotificationRepository {
-            @Override public String getName(){return "notification";}
-            @Override public boolean hasTransactionBegun(){return active();}
-            @Override public List<JSONObject> select(String sql,Object...args)throws RepositoryException{return query(writer,sql.replace(" FOR UPDATE",""),args);}
-            @Override protected String insertNotification(JSONObject row)throws RepositoryException {
-                Assert.assertTrue(active());if(failData)throw new RepositoryException("injected data failure");execute(writer,"INSERT INTO notification VALUES(?,?,?,?,?)",row.getString("oId"),row.getString("userId"),row.getBoolean("hasRead"),row.getInt("dataType"),row.getString("dataId"));return row.getString("oId");
+            @Override
+            public String getName() {
+                return "notification";
             }
-            @Override protected void updateNotification(String id,JSONObject row,String...fields)throws RepositoryException {
-                Assert.assertTrue(active());if(failData)throw new RepositoryException("injected data failure");
-                if(Arrays.equals(fields,new String[]{"hasRead"}))execute(writer,"UPDATE notification SET hasRead=? WHERE oId=?",row.getBoolean("hasRead"),id);
-                else{Assert.assertEquals(fields,new String[]{"userId"});execute(writer,"UPDATE notification SET userId=? WHERE oId=?",row.getString("userId"),id);}
+
+            @Override
+            public boolean hasTransactionBegun() {
+                return active();
             }
-            @Override protected void removeNotification(String id)throws RepositoryException{Assert.assertTrue(active());if(failData)throw new RepositoryException("injected data failure");execute(writer,"DELETE FROM notification WHERE oId=?",id);}
-            @Override protected void removeNotifications(Query q)throws RepositoryException {
-                Assert.assertTrue(active());if(failData)throw new RepositoryException("injected data failure");
-                final List<Filter> filters=q.getFilter() instanceof PropertyFilter?List.of(q.getFilter()):((CompositeFilter)q.getFilter()).getSubFilters();
-                var values=new HashMap<String,Object>();for(Filter filter:filters){var property=(PropertyFilter)filter;Assert.assertEquals(property.getOperator(),FilterOperator.EQUAL);values.put(property.getKey(),property.getValue());}
+
+            @Override
+            public List<JSONObject> select(String sql, Object... args) throws RepositoryException {
+                return query(writer, sql.replace(" FOR UPDATE", ""), args);
+            }
+
+            @Override
+            protected String insertNotification(JSONObject row) throws RepositoryException {
+                Assert.assertTrue(active());
+                if (failData) throw new RepositoryException("injected data failure");
+                execute(writer, "INSERT INTO notification VALUES(?,?,?,?,?)", row.getString("oId"), row.getString("userId"), row.getBoolean("hasRead"), row.getInt("dataType"), row.getString("dataId"));
+                return row.getString("oId");
+            }
+
+            @Override
+            protected void updateNotification(String id, JSONObject row, String... fields) throws RepositoryException {
+                Assert.assertTrue(active());
+                if (failData) throw new RepositoryException("injected data failure");
+                if (Arrays.equals(fields, new String[]{"hasRead"}))
+                    execute(writer, "UPDATE notification SET hasRead=? WHERE oId=?", row.getBoolean("hasRead"), id);
+                else {
+                    Assert.assertEquals(fields, new String[]{"userId"});
+                    execute(writer, "UPDATE notification SET userId=? WHERE oId=?", row.getString("userId"), id);
+                }
+            }
+
+            @Override
+            protected void removeNotification(String id) throws RepositoryException {
+                Assert.assertTrue(active());
+                if (failData) throw new RepositoryException("injected data failure");
+                execute(writer, "DELETE FROM notification WHERE oId=?", id);
+            }
+
+            @Override
+            protected void removeNotifications(Query q) throws RepositoryException {
+                Assert.assertTrue(active());
+                if (failData) throw new RepositoryException("injected data failure");
+                final List<Filter> filters = q.getFilter() instanceof PropertyFilter ? List.of(q.getFilter()) : ((CompositeFilter) q.getFilter()).getSubFilters();
+                var values = new HashMap<String, Object>();
+                for (Filter filter : filters) {
+                    var property = (PropertyFilter) filter;
+                    Assert.assertEquals(property.getOperator(), FilterOperator.EQUAL);
+                    values.put(property.getKey(), property.getValue());
+                }
                 Assert.assertTrue(values.containsKey("userId"));
-                if(values.containsKey("dataType")){Assert.assertEquals(values.size(),2);execute(writer,"DELETE FROM notification WHERE userId=? AND dataType=?",values.get("userId"),values.get("dataType"));}
-                else{Assert.assertEquals(values.size(),1);execute(writer,"DELETE FROM notification WHERE userId=?",values.get("userId"));}
+                if (values.containsKey("dataType")) {
+                    Assert.assertEquals(values.size(), 2);
+                    execute(writer, "DELETE FROM notification WHERE userId=? AND dataType=?", values.get("userId"), values.get("dataType"));
+                } else {
+                    Assert.assertEquals(values.size(), 1);
+                    execute(writer, "DELETE FROM notification WHERE userId=?", values.get("userId"));
+                }
             }
         }
-        public void close()throws Exception{if(active())rollback();writer.close();reader.close();secondReader.close();Files.deleteIfExists(file);}
+
+        public void close() throws Exception {
+            if (active()) rollback();
+            writer.close();
+            reader.close();
+            secondReader.close();
+            Files.deleteIfExists(file);
+        }
     }
-    static List<JSONObject> query(Connection connection,String sql,Object...args)throws RepositoryException {
-        try(var s=connection.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);try(var r=s.executeQuery()){var out=new ArrayList<JSONObject>();while(r.next()){var row=new JSONObject();for(int i=1;i<=r.getMetaData().getColumnCount();i++)row.put(r.getMetaData().getColumnLabel(i),r.getObject(i));out.add(row);}return out;}}catch(SQLException e){throw new RepositoryException(e);}
+
+    static List<JSONObject> query(Connection connection, String sql, Object... args) throws RepositoryException {
+        try (var s = connection.prepareStatement(sql)) {
+            for (int i = 0; i < args.length; i++) s.setObject(i + 1, args[i]);
+            try (var r = s.executeQuery()) {
+                var out = new ArrayList<JSONObject>();
+                while (r.next()) {
+                    var row = new JSONObject();
+                    for (int i = 1; i <= r.getMetaData().getColumnCount(); i++)
+                        row.put(r.getMetaData().getColumnLabel(i), r.getObject(i));
+                    out.add(row);
+                }
+                return out;
+            }
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
     }
-    static void execute(Connection connection,String sql,Object...args)throws RepositoryException {try(var s=connection.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);s.executeUpdate();}catch(SQLException e){throw new RepositoryException(e);}}
+
+    static void execute(Connection connection, String sql, Object... args) throws RepositoryException {
+        try (var s = connection.prepareStatement(sql)) {
+            for (int i = 0; i < args.length; i++) s.setObject(i + 1, args[i]);
+            s.executeUpdate();
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         var props = new Properties();
         props.setProperty("runtimeDatabase", "NONE");

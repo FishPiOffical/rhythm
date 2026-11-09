@@ -25,6 +25,7 @@ import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.service.ApiV3MfaService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -39,9 +40,9 @@ public class ApiV3MfaProcessor {
     }
 
     public static void registerRoutes(ApiV3MfaProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.post("/api/v3/me/security/mfa/preparations",p::prepare,auth::settingsWrite,writes::handle);
-        Dispatcher.put("/api/v3/me/security/mfa",p::enable,auth::settingsWrite,writes::handle);
-        Dispatcher.delete("/api/v3/me/security/mfa",p::disable,auth::settingsWrite,writes::handle);
+        Dispatcher.post("/api/v3/me/security/mfa/preparations", p::prepare, auth::settingsWrite, writes::handle);
+        Dispatcher.put("/api/v3/me/security/mfa", p::enable, auth::settingsWrite, writes::handle);
+        Dispatcher.delete("/api/v3/me/security/mfa", p::disable, auth::settingsWrite, writes::handle);
     }
 
     public void prepare(RequestContext c) {

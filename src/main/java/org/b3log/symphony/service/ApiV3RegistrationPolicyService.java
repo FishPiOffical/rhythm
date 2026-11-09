@@ -30,34 +30,45 @@ import org.b3log.symphony.util.UserNameRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 返回公开注册表单规则，实际注册仍需独立检查资格。 */
+/**
+ * 返回公开注册表单规则，实际注册仍需独立检查资格。
+ */
 @Service
 public class ApiV3RegistrationPolicyService {
-    @Inject private OptionRepository options;
-    @Inject private UserQueryService users;
-    @Inject private RoleQueryService roles;
+    @Inject
+    private OptionRepository options;
+    @Inject
+    private UserQueryService users;
+    @Inject
+    private RoleQueryService roles;
 
-    public JSONObject options(String referral)throws Exception {
-        final String name=referral==null?"":referral.strip();
-        if(!name.isEmpty()&&UserNameRules.invalid(name))throw new ApiV3Exception(422,"invalid_request","邀请人用户名不合法");
-        final var settings=options.select("SELECT optionValue FROM `"+options.getName()+"` WHERE oId=?",Option.ID_C_MISC_ALLOW_REGISTER);
-        final JSONObject setting=settings.size()==1?settings.getFirst():null;
-        final String value=setting==null?"":setting.optString(Option.OPTION_VALUE);
-        final String mode=switch(value){case "0"->"open";case "1"->"closed";case "2"->"invitation";default->throw new ApiV3Exception(503,"temporarily_unavailable","注册状态暂不可用");};
-        boolean accepted=false;
+    public JSONObject options(String referral) throws Exception {
+        final String name = referral == null ? "" : referral.strip();
+        if (!name.isEmpty() && UserNameRules.invalid(name))
+            throw new ApiV3Exception(422, "invalid_request", "邀请人用户名不合法");
+        final var settings = options.select("SELECT optionValue FROM `" + options.getName() + "` WHERE oId=?", Option.ID_C_MISC_ALLOW_REGISTER);
+        final JSONObject setting = settings.size() == 1 ? settings.getFirst() : null;
+        final String value = setting == null ? "" : setting.optString(Option.OPTION_VALUE);
+        final String mode = switch (value) {
+            case "0" -> "open";
+            case "1" -> "closed";
+            case "2" -> "invitation";
+            default -> throw new ApiV3Exception(503, "temporarily_unavailable", "注册状态暂不可用");
+        };
+        boolean accepted = false;
         // 沿用旧写入口的优先级，关闭注册时邀请码也无法开放注册。
-        if(!"closed".equals(mode)&&!name.isEmpty()){
-            final JSONObject inviter=users.getUserByName(name);
-            if(inviter!=null){
-                final var permissions=roles.getUserPermissionsGrantMap(inviter.optString(Keys.OBJECT_ID));
-                final var grant=permissions==null?null:permissions.get(Permission.PERMISSION_ID_C_COMMON_USE_INVITATION_LINK);
-                accepted=grant!=null&&grant.optBoolean(Permission.PERMISSION_T_GRANT);
+        if (!"closed".equals(mode) && !name.isEmpty()) {
+            final JSONObject inviter = users.getUserByName(name);
+            if (inviter != null) {
+                final var permissions = roles.getUserPermissionsGrantMap(inviter.optString(Keys.OBJECT_ID));
+                final var grant = permissions == null ? null : permissions.get(Permission.PERMISSION_ID_C_COMMON_USE_INVITATION_LINK);
+                accepted = grant != null && grant.optBoolean(Permission.PERMISSION_T_GRANT);
             }
         }
-        return new JSONObject().put("mode",mode).put("enabled",!"closed".equals(mode))
-                .put("inviteCodeRequired","invitation".equals(mode)&&!accepted).put("referralAccepted",accepted)
-                .put("username",new JSONObject().put("minLength",UserNameRules.MIN_LENGTH).put("maxLength",UserNameRules.MAX_LENGTH))
-                .put("appRoles",new JSONArray().put(new JSONObject().put("value",UserExt.USER_APP_ROLE_C_HACKER).put("label","程序员"))
-                        .put(new JSONObject().put("value",UserExt.USER_APP_ROLE_C_PAINTER).put("label","设计师")));
+        return new JSONObject().put("mode", mode).put("enabled", !"closed".equals(mode))
+                .put("inviteCodeRequired", "invitation".equals(mode) && !accepted).put("referralAccepted", accepted)
+                .put("username", new JSONObject().put("minLength", UserNameRules.MIN_LENGTH).put("maxLength", UserNameRules.MAX_LENGTH))
+                .put("appRoles", new JSONArray().put(new JSONObject().put("value", UserExt.USER_APP_ROLE_C_HACKER).put("label", "程序员"))
+                        .put(new JSONObject().put("value", UserExt.USER_APP_ROLE_C_PAINTER).put("label", "设计师")));
     }
 }

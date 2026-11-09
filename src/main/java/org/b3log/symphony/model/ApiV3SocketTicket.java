@@ -18,9 +18,13 @@
  */
 package org.b3log.symphony.model;
 
-/** 一次性 WebSocket 票据，凭据明文不入库。 */
+/**
+ * 一次性 WebSocket 票据，凭据明文不入库。
+ */
 public final class ApiV3SocketTicket {
-    private ApiV3SocketTicket() { }
+    private ApiV3SocketTicket() {
+    }
+
     public static final String REPOSITORY = "api_v3_socket_ticket";
     public static final String USER_ID = "userId";
     public static final String PARENT_TOKEN_ID = "parentTokenId";

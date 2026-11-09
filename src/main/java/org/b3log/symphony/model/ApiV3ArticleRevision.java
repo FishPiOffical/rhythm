@@ -18,8 +18,12 @@
  */
 package org.b3log.symphony.model;
 
-/** 每篇文章一条已提交的失效标记，只记录修订状态，不存正文或读者身份。 */
+/**
+ * 每篇文章一条已提交的失效标记，只记录修订状态，不存正文或读者身份。
+ */
 public final class ApiV3ArticleRevision {
-    private ApiV3ArticleRevision() { }
+    private ApiV3ArticleRevision() {
+    }
+
     public static final String REPOSITORY = "api_v3_article_revision";
 }

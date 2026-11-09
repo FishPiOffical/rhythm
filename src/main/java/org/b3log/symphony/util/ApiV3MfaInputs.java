@@ -19,12 +19,15 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Set;
 
 public final class ApiV3MfaInputs {
-    private ApiV3MfaInputs() { }
+    private ApiV3MfaInputs() {
+    }
 
-    public record Proof(String currentPassword, String currentTotp, String preparationId, String newTotp) { }
+    public record Proof(String currentPassword, String currentTotp, String preparationId, String newTotp) {
+    }
 
     public static Proof parse(JSONObject body, boolean enable) {
         final Set<String> allowed = enable ? Set.of("currentPassword", "currentTotp", "preparationId", "newTotp")

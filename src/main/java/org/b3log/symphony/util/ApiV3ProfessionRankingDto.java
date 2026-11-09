@@ -19,18 +19,25 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.math.BigDecimal;
 import java.util.Set;
 
-/** 排行条目仅公开身份字段与历史职业展示信息，经验值按可见性投影。 */
+/**
+ * 排行条目仅公开身份字段与历史职业展示信息，经验值按可见性投影。
+ */
 public final class ApiV3ProfessionRankingDto {
-    private ApiV3ProfessionRankingDto() { }
+    private ApiV3ProfessionRankingDto() {
+    }
+
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
             "majorContributions", "contributionStats", "activityFeed", "levelHistory", "rewards", "ranking");
     private static final Set<String> SCOPES = Set.of("PUBLIC", "LOGGED_IN", "SELF", "HIDDEN");
+
     public static ApiV3Exception unavailable() {
         return new ApiV3Exception(503, "temporarily_unavailable", "职业排行暂不可用");
     }
+
     public static String text(final JSONObject row, final String key, final int max, final boolean empty) {
         if (!(row.opt(key) instanceof String value) || value.length() > max || (!empty && value.isBlank())
                 || value.codePoints().anyMatch(Character::isISOControl)) throw unavailable();
@@ -41,6 +48,7 @@ public final class ApiV3ProfessionRankingDto {
         }
         return value;
     }
+
     public static long number(final JSONObject row, final String key) {
         if (!(row.opt(key) instanceof Number value)) throw unavailable();
         try {
@@ -51,6 +59,7 @@ public final class ApiV3ProfessionRankingDto {
             throw unavailable();
         }
     }
+
     public static JSONObject visibility(final JSONObject row) {
         final Object stored = row.opt("privacyId");
         if (stored == null || stored == JSONObject.NULL) {
@@ -59,7 +68,8 @@ public final class ApiV3ProfessionRankingDto {
             return result;
         }
         text(row, "privacyId", 19, false);
-        if (!(row.opt("moduleVisibilityJson") instanceof String json) || json.isBlank() || json.length() > 4096) throw unavailable();
+        if (!(row.opt("moduleVisibilityJson") instanceof String json) || json.isBlank() || json.length() > 4096)
+            throw unavailable();
         try {
             ApiV3Json.canonical(json);
         } catch (final IllegalArgumentException e) {
@@ -72,6 +82,7 @@ public final class ApiV3ProfessionRankingDto {
         }
         return result;
     }
+
     public static boolean visible(final JSONObject visibility, final String module, final String owner, final String viewer) {
         return switch (visibility.getString(module)) {
             case "PUBLIC" -> true;
@@ -80,6 +91,7 @@ public final class ApiV3ProfessionRankingDto {
             default -> false;
         };
     }
+
     public static JSONObject entry(final JSONObject row, final long rank, final boolean experienceVisible) {
         for (final String status : Set.of("revisionStatus", "schemeStatus")) {
             if (!Set.of("PUBLISHED", "RETIRED").contains(row.optString(status))) throw unavailable();

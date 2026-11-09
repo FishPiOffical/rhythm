@@ -34,6 +34,7 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 public class ApiV3ArticleRewardProcessor {
     @Inject
     private ApiV3ArticleRewardService rewards;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3ArticleRewardProcessor.class);
@@ -44,6 +45,7 @@ public class ApiV3ArticleRewardProcessor {
         Dispatcher.post("/api/v3/articles/{articleId}/thanks", processor::thank, auth::contentWrite, writes::handle);
         Dispatcher.post("/api/v3/articles/{articleId}/reward", processor::purchase, auth::contentWrite, writes::handle);
     }
+
     public void thanks(final RequestContext context) {
         read(context, ArticleRewardMgmtService.Kind.THANK);
     }
@@ -59,9 +61,11 @@ public class ApiV3ArticleRewardProcessor {
     public void purchase(final RequestContext context) {
         write(context, ArticleRewardMgmtService.Kind.REWARD);
     }
+
     private void read(final RequestContext context, final ArticleRewardMgmtService.Kind kind) {
         ApiV3Requests.respond(context, () -> rewards.read(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "articleId"), kind));
     }
+
     private void write(final RequestContext context, final ArticleRewardMgmtService.Kind kind) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);

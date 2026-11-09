@@ -19,14 +19,18 @@
 package org.b3log.symphony.util;
 
 import org.apache.commons.codec.binary.Base32;
+
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-/** 独立生成 MFA 密钥，不依赖旧版带种子的生成器或外部二维码服务。 */
+/**
+ * 独立生成 MFA 密钥，不依赖旧版带种子的生成器或外部二维码服务。
+ */
 public final class ApiV3MfaSecrets {
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private ApiV3MfaSecrets() { }
+    private ApiV3MfaSecrets() {
+    }
 
     public static String generate() {
         final byte[] raw = new byte[20];
@@ -44,6 +48,7 @@ public final class ApiV3MfaSecrets {
             return false;
         return MultiFactorAuthenticator.checkCode(secret, Long.parseLong(code), time);
     }
+
     public static String uri(String actor, String secret) {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}") || secret == null || !secret.matches("[A-Z2-7]{32}"))
             throw ApiV3WriteInputs.invalid();

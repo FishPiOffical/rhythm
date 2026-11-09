@@ -33,6 +33,7 @@ import org.b3log.symphony.service.ApiV3ChatTopicService;
 import org.b3log.symphony.service.ApiV3ChatBarrageService;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
@@ -55,18 +56,18 @@ public class ApiV3ChatProcessor {
         final var p = beans.getReference(ApiV3ChatProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.post("/api/v3/chat/messages",p::create,auth::contentWrite,writes::handle);
-        Dispatcher.post("/api/v3/chat/music",p::sendMusic,auth::contentWrite,writes::handle);
-        Dispatcher.post("/api/v3/chat/weather",p::sendWeather,auth::contentWrite,writes::handle);
-        Dispatcher.delete("/api/v3/chat/messages/{messageId}",p::withdraw,auth::contentWrite,writes::handle);
-        Dispatcher.get("/api/v3/chat/messages",p::list,auth::contentRead);
-        Dispatcher.get("/api/v3/chat/online-users",p::online,auth::contentRead);
-        Dispatcher.get("/api/v3/chat/topic",p::topic,auth::contentRead);
-        Dispatcher.put("/api/v3/chat/topic",p::setTopic,auth::contentWrite,writes::handle);
-        Dispatcher.post("/api/v3/chat/barrager",p::sendBarrage,auth::contentWrite,writes::handle);
-        Dispatcher.get("/api/v3/chat/barrager/price",p::barragerPrice,auth::contentRead);
-        Dispatcher.get("/api/v3/chat/messages/{messageId}",p::detail,auth::contentRead);
-        Dispatcher.get("/api/v3/chat/messages/{messageId}/context",p::context,auth::contentRead);
+        Dispatcher.post("/api/v3/chat/messages", p::create, auth::contentWrite, writes::handle);
+        Dispatcher.post("/api/v3/chat/music", p::sendMusic, auth::contentWrite, writes::handle);
+        Dispatcher.post("/api/v3/chat/weather", p::sendWeather, auth::contentWrite, writes::handle);
+        Dispatcher.delete("/api/v3/chat/messages/{messageId}", p::withdraw, auth::contentWrite, writes::handle);
+        Dispatcher.get("/api/v3/chat/messages", p::list, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/online-users", p::online, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/topic", p::topic, auth::contentRead);
+        Dispatcher.put("/api/v3/chat/topic", p::setTopic, auth::contentWrite, writes::handle);
+        Dispatcher.post("/api/v3/chat/barrager", p::sendBarrage, auth::contentWrite, writes::handle);
+        Dispatcher.get("/api/v3/chat/barrager/price", p::barragerPrice, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/messages/{messageId}", p::detail, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/messages/{messageId}/context", p::context, auth::contentRead);
     }
 
     public void list(final RequestContext c) {

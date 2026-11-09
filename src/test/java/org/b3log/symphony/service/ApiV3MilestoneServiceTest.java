@@ -29,18 +29,23 @@ import org.b3log.symphony.repository.MilestoneRepository;
 import org.b3log.symphony.util.ApiV3MilestoneDto;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** 在临时 SQLite 上执行实际创建服务、仓库 SQL 及 DTO，MySQL 与 HTTP 行为另行验收。 */
+/**
+ * 在临时 SQLite 上执行实际创建服务、仓库 SQL 及 DTO，MySQL 与 HTTP 行为另行验收。
+ */
 public class ApiV3MilestoneServiceTest {
     public static void main(final String[] args) throws Exception {
         final var prop = Latkes.class.getDeclaredField("localProps");
         prop.setAccessible(true);
         final Object original = prop.get(null);
-        final Properties p = new Properties(); p.setProperty("runtimeDatabase", "NONE"); prop.set(null, p);
+        final Properties p = new Properties();
+        p.setProperty("runtimeDatabase", "NONE");
+        prop.set(null, p);
         try (final Fixture f = new Fixture()) {
             final JSONObject input = new JSONObject().put(Milestone.MILESTONE_TITLE, "Title").put(Milestone.MILESTONE_DATE, 1792108800000L)
                     .put(Milestone.MILESTONE_CONTENT, "raw body").put(Milestone.MILESTONE_AUTHOR_ID, "forged")
@@ -62,10 +67,19 @@ public class ApiV3MilestoneServiceTest {
             Assert.assertEquals(input.getInt(Milestone.MILESTONE_STATUS), 2);
             System.out.println("PASS current-transaction guard, pending whitelist, immutable input and rollback");
             final JSONObject legacy = new JSONObject(input.toString()).put(Milestone.MILESTONE_AUTHOR_ID, "owner");
-            f.service.addMilestone(legacy); Assert.assertEquals(f.clears, 1); Assert.assertFalse(f.active());
+            f.service.addMilestone(legacy);
+            Assert.assertEquals(f.clears, 1);
+            Assert.assertFalse(f.active());
             f.failAdd = true;
-            try { f.service.addMilestone(legacy); Assert.fail(); } catch (final ServiceException expected) { }
-            Assert.assertEquals(f.clears, 1); Assert.assertEquals(f.repo.countOwned("owner", 0), 1L); Assert.assertFalse(f.active()); f.failAdd = false;
+            try {
+                f.service.addMilestone(legacy);
+                Assert.fail();
+            } catch (final ServiceException expected) {
+            }
+            Assert.assertEquals(f.clears, 1);
+            Assert.assertEquals(f.repo.countOwned("owner", 0), 1L);
+            Assert.assertFalse(f.active());
+            f.failAdd = false;
             System.out.println("PASS actual legacy service commits before cache clear and rolls back failed insert");
             f.exec("INSERT INTO milestone(oId,milestoneAuthorId,milestoneStatus,milestoneCreateTime,milestoneDate,milestoneTitle,milestoneContent) VALUES ('a','owner',2,3,1792108800000,'Approved','body'),('b','owner',3,4,1792108800000,'Rejected','body'),('c','other',1,5,1792108800000,'Other','body'),('d','owner',99,6,1792108800000,'Invalid','body')");
             Assert.assertEquals(f.repo.countOwned("owner", 0), 3L);
@@ -93,53 +107,131 @@ public class ApiV3MilestoneServiceTest {
             Assert.assertFalse(dto.has("milestoneAuthorId"));
             Assert.assertFalse(dto.has("contentHtml"));
             System.out.println("PASS owner DTO whitelist, source body, status and unsafe URL filtering");
-        } finally { prop.set(null, original); }
+        } finally {
+            prop.set(null, original);
+        }
     }
+
     private static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
-        int clears, nextId; boolean failAdd;
+        int clears, nextId;
+        boolean failAdd;
         final Repo repo = new Repo();
         final MilestoneMgmtService service = new MilestoneMgmtService();
+
         Fixture() throws Exception {
             exec("CREATE TABLE milestone(oId TEXT PRIMARY KEY,milestoneTitle TEXT,milestoneDate BIGINT,milestoneEndDate BIGINT DEFAULT 0,milestoneContent TEXT,milestoneMediaUrl TEXT DEFAULT '',milestoneMediaType TEXT DEFAULT '',milestoneMediaCaption TEXT DEFAULT '',milestoneLink TEXT DEFAULT '',milestoneAuthorId TEXT,milestoneStatus INT,milestoneCreateTime BIGINT,milestoneUpdateTime BIGINT DEFAULT 0)");
-            inject("milestoneRepository", repo); inject("milestoneCache", new MilestoneCache() { public void clearTimelineEventsCache() { Assert.assertFalse(active()); clears++; } });
+            inject("milestoneRepository", repo);
+            inject("milestoneCache", new MilestoneCache() {
+                public void clearTimelineEventsCache() {
+                    Assert.assertFalse(active());
+                    clears++;
+                }
+            });
         }
-        void inject(final String key, final Object value) throws Exception { final var field = MilestoneMgmtService.class.getDeclaredField(key); field.setAccessible(true); field.set(service, value); }
-        boolean active() { try { return !db.getAutoCommit(); } catch (final Exception e) { throw new IllegalStateException(e); } }
+
+        void inject(final String key, final Object value) throws Exception {
+            final var field = MilestoneMgmtService.class.getDeclaredField(key);
+            field.setAccessible(true);
+            field.set(service, value);
+        }
+
+        boolean active() {
+            try {
+                return !db.getAutoCommit();
+            } catch (final Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
         Transaction begin() {
-            try { if (active()) throw new IllegalStateException("nested transaction"); db.setAutoCommit(false); } catch (final Exception e) { throw new IllegalStateException(e); }
+            try {
+                if (active()) throw new IllegalStateException("nested transaction");
+                db.setAutoCommit(false);
+            } catch (final Exception e) {
+                throw new IllegalStateException(e);
+            }
             return new Transaction() {
                 boolean active = true;
-                public void commit() { try { db.commit(); db.setAutoCommit(true); active = false; } catch (final Exception e) { throw new IllegalStateException(e); } }
-                public void rollback() { try { db.rollback(); db.setAutoCommit(true); active = false; } catch (final Exception e) { throw new IllegalStateException(e); } }
-                public boolean isActive() { return active; }
+
+                public void commit() {
+                    try {
+                        db.commit();
+                        db.setAutoCommit(true);
+                        active = false;
+                    } catch (final Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+
+                public void rollback() {
+                    try {
+                        db.rollback();
+                        db.setAutoCommit(true);
+                        active = false;
+                    } catch (final Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+
+                public boolean isActive() {
+                    return active;
+                }
             };
         }
+
         void exec(final String sql, final Object... args) throws RepositoryException {
-            try (final var statement = db.prepareStatement(sql)) { for (int i=0;i<args.length;i++) statement.setObject(i+1,args[i]); statement.executeUpdate(); }
-            catch (final Exception e) { throw new RepositoryException(e); }
+            try (final var statement = db.prepareStatement(sql)) {
+                for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
+                statement.executeUpdate();
+            } catch (final Exception e) {
+                throw new RepositoryException(e);
+            }
         }
+
         class Repo extends MilestoneRepository {
-            public String getName() { return "milestone"; }
-            public boolean hasTransactionBegun() { return active(); }
-            public Transaction beginTransaction() { return begin(); }
+            public String getName() {
+                return "milestone";
+            }
+
+            public boolean hasTransactionBegun() {
+                return active();
+            }
+
+            public Transaction beginTransaction() {
+                return begin();
+            }
+
             public String add(final JSONObject row) throws RepositoryException {
                 final String id = "test-" + (++nextId);
                 row.put("oId", id);
                 final var keys = new ArrayList<>(row.keySet());
-                exec("INSERT INTO milestone (" + String.join(",",keys) + ") VALUES (" + keys.stream().map(k -> "?").collect(Collectors.joining(",")) + ")", keys.stream().map(row::get).toArray());
+                exec("INSERT INTO milestone (" + String.join(",", keys) + ") VALUES (" + keys.stream().map(k -> "?").collect(Collectors.joining(",")) + ")", keys.stream().map(row::get).toArray());
                 if (failAdd) throw new RepositoryException("simulated failure");
                 return id;
             }
+
             public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
                 try (final var statement = db.prepareStatement(sql)) {
                     for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
                     final List<JSONObject> rows = new ArrayList<>();
-                    try (final var rs = statement.executeQuery()) { while (rs.next()) { final JSONObject row = new JSONObject(); for (int i=1;i<=rs.getMetaData().getColumnCount();i++) row.put(rs.getMetaData().getColumnLabel(i),rs.getObject(i)); rows.add(row); } }
+                    try (final var rs = statement.executeQuery()) {
+                        while (rs.next()) {
+                            final JSONObject row = new JSONObject();
+                            for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++)
+                                row.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i));
+                            rows.add(row);
+                        }
+                    }
                     return rows;
-                } catch (final Exception e) { throw new RepositoryException(e); }
+                } catch (final Exception e) {
+                    throw new RepositoryException(e);
+                }
             }
         }
-        public void close() throws Exception { db.close(); }
+
+        public void close() throws Exception {
+            db.close();
+        }
     }
 }

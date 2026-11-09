@@ -41,7 +41,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 只读渲染调用方提交的文本，不查找目标、不发布内容，也不使用共享 Markdown 缓存。 */
+/**
+ * 只读渲染调用方提交的文本，不查找目标、不发布内容，也不使用共享 Markdown 缓存。
+ */
 @Singleton
 public class ApiV3MarkdownProcessor {
     public static final int MAX_CONTENT_LENGTH = 1024000;
@@ -53,9 +55,11 @@ public class ApiV3MarkdownProcessor {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3MarkdownProcessor.class), beans.getReference(ApiV3AuthMidware.class));
     }
+
     public static void registerRoutes(final ApiV3MarkdownProcessor processor, final ApiV3AuthMidware auth) {
         Dispatcher.post("/api/v3/markdown/preview", processor::preview, auth::contentRead);
     }
+
     public void preview(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var viewer = ApiV3Requests.viewer(context);
@@ -76,6 +80,7 @@ public class ApiV3MarkdownProcessor {
             }
         });
     }
+
     public static String input(final RequestContext context) {
         final String type = context.header("Content-Type");
         if (type == null || !"application/json".equals(type.split(";", 2)[0].trim().toLowerCase(Locale.ROOT)))

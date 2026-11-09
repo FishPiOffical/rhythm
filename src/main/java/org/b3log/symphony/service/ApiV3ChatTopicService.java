@@ -26,9 +26,12 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Bearer 身份修改话题时沿用普通消息和旧聊天室的准入状态，并在一个幂等事务中写入。 */
+/**
+ * Bearer 身份修改话题时沿用普通消息和旧聊天室的准入状态，并在一个幂等事务中写入。
+ */
 @Service
 public class ApiV3ChatTopicService {
     @Inject
@@ -48,7 +51,8 @@ public class ApiV3ChatTopicService {
     @Inject
     private ApiV3ChatPublicationService publication;
 
-    private record Decision(String name, String content, ChatMessageAbuseState.Repeat repeat) { }
+    private record Decision(String name, String content, ChatMessageAbuseState.Repeat repeat) {
+    }
 
     protected long now() {
         return System.currentTimeMillis();
@@ -66,7 +70,8 @@ public class ApiV3ChatTopicService {
             final JSONObject current = users.getForUpdate(actor);
             if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
                 throw new ApiV3Exception(404, "not_found", "用户不存在或不可用");
-            if (current.optString("userPhone").isBlank()) throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
+            if (current.optString("userPhone").isBlank())
+                throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
             final String prepared;
             try {
                 prepared = validation.prepare(current, ChatTopicInputs.OPEN + raw + ChatTopicInputs.CLOSE);
@@ -77,18 +82,19 @@ public class ApiV3ChatTopicService {
             final long time = now();
             ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
                     DataModelService.hasPermission(current.optString(User.USER_ROLE), 3), prepared, time, () -> {
-                if (prepared.equals(confirmed.get())) return true;
-                final boolean yes = ChatMessageAbuseState.confirmRisk(actor, prepared);
-                if (yes)
-                    confirmed.set(prepared);
-                return yes;
-            });
+                        if (prepared.equals(confirmed.get())) return true;
+                        final boolean yes = ChatMessageAbuseState.confirmRisk(actor, prepared);
+                        if (yes)
+                            confirmed.set(prepared);
+                        return yes;
+                    });
             final String name = current.getString(User.USER_NAME);
             if (decision.get() == null || !name.equals(decision.get().name()) || !prepared.equals(decision.get().content()))
                 decision.set(new Decision(name, prepared, ChatMessageAbuseState.repeated(name, prepared)));
             penalty.set(decision.get().repeat() == ChatMessageAbuseState.Repeat.PENALIZE ? penalties.applyInCurrentTransaction(actor, time) : null);
             // 仍持有用户和限制记录的锁，写入核心会再次读取同一当前用户。
-            final var result = topics.changeInCurrentTransaction(actor, text, verified -> {});
+            final var result = topics.changeInCurrentTransaction(actor, text, verified -> {
+            });
             changed.set(result);
             return new JSONObject().put("text", result.topic().text()).put("cost", ChatTopicValue.COST)
                     .put("revision", Long.toString(result.topic().revision()));

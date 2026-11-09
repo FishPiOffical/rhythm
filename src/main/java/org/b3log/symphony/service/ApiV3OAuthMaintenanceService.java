@@ -25,16 +25,23 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.ApiV3Token;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Transactions;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** 限量清理。已用授权码所属令牌家族仍有未过期的有效成员时，保留该授权码记录。 */
+/**
+ * 限量清理。已用授权码所属令牌家族仍有未过期的有效成员时，保留该授权码记录。
+ */
 @Service
 public class ApiV3OAuthMaintenanceService {
-    @Inject private ApiV3AuthorizationRequestRepository requests;
-    @Inject private ApiV3AuthorizationCodeRepository codes;
-    @Inject private ApiV3TokenRepository tokens;
+    @Inject
+    private ApiV3AuthorizationRequestRepository requests;
+    @Inject
+    private ApiV3AuthorizationCodeRepository codes;
+    @Inject
+    private ApiV3TokenRepository tokens;
     private boolean started;
+
     protected long now() {
         return System.currentTimeMillis();
     }
@@ -43,7 +50,7 @@ public class ApiV3OAuthMaintenanceService {
         if (started)
             return;
         started = true;
-        Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("v3-oauth-cleanup").factory()).scheduleWithFixedDelay(()->{
+        Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("v3-oauth-cleanup").factory()).scheduleWithFixedDelay(() -> {
             try {
                 cleanup();
             } catch (Exception e) {
@@ -55,10 +62,11 @@ public class ApiV3OAuthMaintenanceService {
                     LogManager.getLogger(getClass()).warn("OAuth cleanup JDBC release failed");
                 }
             }
-        },1,1,TimeUnit.MINUTES);
+        }, 1, 1, TimeUnit.MINUTES);
     }
-    public int cleanup()throws Exception {
-        if(codes.hasTransactionBegun())throw new IllegalStateException("OAuth cleanup root already active");
+
+    public int cleanup() throws Exception {
+        if (codes.hasTransactionBegun()) throw new IllegalStateException("OAuth cleanup root already active");
         final long time = now(), cutoff = time - TimeUnit.DAYS.toMillis(1);
         int removed = 0;
         final Transaction tx = ApiV3Transactions.strict(codes.beginTransaction());
@@ -67,7 +75,7 @@ public class ApiV3OAuthMaintenanceService {
                 requests.remove(row.getString("oId"));
                 removed++;
             }
-            final String sql="SELECT c.oId FROM `"+codes.getName()+"` c WHERE c.expiresAt<=? AND (c.consumedAt=0 OR NOT EXISTS (SELECT 1 FROM `"+tokens.getName()+"` t WHERE t.clientId=c.clientId AND t.userId=c.userId AND t.familyId=c.familyId AND t.state=? AND t.expiresAt>?)) ORDER BY c.expiresAt LIMIT ? FOR UPDATE";
+            final String sql = "SELECT c.oId FROM `" + codes.getName() + "` c WHERE c.expiresAt<=? AND (c.consumedAt=0 OR NOT EXISTS (SELECT 1 FROM `" + tokens.getName() + "` t WHERE t.clientId=c.clientId AND t.userId=c.userId AND t.familyId=c.familyId AND t.state=? AND t.expiresAt>?)) ORDER BY c.expiresAt LIMIT ? FOR UPDATE";
             for (var row : codes.select(sql, cutoff, ApiV3Token.STATE_ACTIVE, time, 200)) {
                 codes.remove(row.getString("oId"));
                 removed++;

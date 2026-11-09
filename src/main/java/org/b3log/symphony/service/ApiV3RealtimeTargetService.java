@@ -30,21 +30,27 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.UserMentionCandidates;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 按数据库当前状态校验长连接订阅权限。 */
+/**
+ * 按数据库当前状态校验长连接订阅权限。
+ */
 @Service
 public class ApiV3RealtimeTargetService {
-    @Inject private ArticleRepository articles;
-    @Inject private UserRepository users;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private UserRepository users;
 
     public boolean articleVisible(final String actor, final String articleId) throws RepositoryException {
-        if (actor == null || !actor.matches("[0-9]{1,32}") || articleId == null || !articleId.matches("[0-9]{1,32}")) return false;
+        if (actor == null || !actor.matches("[0-9]{1,32}") || articleId == null || !articleId.matches("[0-9]{1,32}"))
+            return false;
         final var rows = articles.select("SELECT a.oId,a.articleAuthorId,a.articleType,a.articleStatus,a.articleAnonymousView,"
-                + "CASE WHEN a.articleType=? THEN a.articleContent ELSE '' END AS articleContent,"
-                + "v.oId AS viewerId,v.userName AS viewerName,v.userRole AS viewerRole FROM `" + articles.getName()
-                + "` a JOIN `" + users.getName() + "` u ON u.oId=a.articleAuthorId JOIN `" + users.getName()
-                + "` v ON v.oId=? WHERE a.oId=? AND u.userStatus NOT IN (?,?) AND v.userStatus=? LIMIT 1",
+                        + "CASE WHEN a.articleType=? THEN a.articleContent ELSE '' END AS articleContent,"
+                        + "v.oId AS viewerId,v.userName AS viewerName,v.userRole AS viewerRole FROM `" + articles.getName()
+                        + "` a JOIN `" + users.getName() + "` u ON u.oId=a.articleAuthorId JOIN `" + users.getName()
+                        + "` v ON v.oId=? WHERE a.oId=? AND u.userStatus NOT IN (?,?) AND v.userStatus=? LIMIT 1",
                 Article.ARTICLE_TYPE_C_DISCUSSION, actor, articleId, UserExt.USER_STATUS_C_INVALID,
                 UserExt.USER_STATUS_C_DEACTIVATED, UserExt.USER_STATUS_C_VALID);
         if (rows.isEmpty()) return false;

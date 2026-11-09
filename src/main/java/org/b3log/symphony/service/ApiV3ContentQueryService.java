@@ -53,7 +53,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** API v3 内容读取模型，按显式传入的身份校验可见性。 */
+/**
+ * API v3 内容读取模型，按显式传入的身份校验可见性。
+ */
 @Service
 public class ApiV3ContentQueryService {
     @Inject
@@ -74,7 +76,9 @@ public class ApiV3ContentQueryService {
         return discoveryQueryService.articles(viewer, p, size, sort, type, ApiV3DiscoveryQueryService.Selection.all());
     }
 
-    /** 资源不存在或不可见时统一返回 null，避免输出元数据。 */
+    /**
+     * 资源不存在或不可见时统一返回 null，避免输出元数据。
+     */
     public JSONObject viewableArticle(final String id, final JSONObject viewer) throws RepositoryException {
         final JSONObject currentViewer = viewer == null ? null : currentViewer(viewer.optString(Keys.OBJECT_ID));
         if (viewer != null && isBlocked(currentViewer)) return null;
@@ -162,7 +166,9 @@ public class ApiV3ContentQueryService {
         return paginated(list, p, size, commentRepository.count(new Query().setFilter(filter)));
     }
 
-    /** 查询可发现文章上的公开署名评论，先应用全部可见性条件，再分页。 */
+    /**
+     * 查询可发现文章上的公开署名评论，先应用全部可见性条件，再分页。
+     */
     public JSONObject userComments(final String owner, final JSONObject viewer, final int p, final int size) throws RepositoryException {
         final ApiV3ProfileQueries.Fragment fragment = ApiV3ProfileQueries.comments(commentRepository.getName(), articleRepository.getName(),
                 userRepository.getName(), owner, null == viewer, UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED, Tag.TAG_TITLE_C_SANDBOX);

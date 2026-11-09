@@ -22,6 +22,7 @@ import org.b3log.symphony.service.ApiV3SocketTicketService.Grant;
 import org.b3log.symphony.model.ApiV3SocketTicket;
 import org.b3log.symphony.model.ApiV3ChatEvent;
 import org.json.JSONObject;
+
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,32 +31,38 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 
-/** 管理按资源绑定的有界 v3 连接，不读取页面会话或发送旧版事件载荷。 */
+/**
+ * 管理按资源绑定的有界 v3 连接，不读取页面会话或发送旧版事件载荷。
+ */
 public final class ApiV3RealtimeSessions {
     public interface Transport {
         void send(String text);
+
         void close();
     }
 
     public interface Authority {
         Grant consume(String ticket) throws Exception;
+
         boolean authorized(Grant grant) throws Exception;
     }
 
     public interface Guard {
         boolean allowed(String ip, boolean recordRequest);
     }
-    private static final int MAX_CONNECTIONS=4000, MAX_PER_IP=32, MAX_PER_USER=8, MAX_MESSAGES=60;
-    private static final long AUTH_TIMEOUT=5000, RECHECK_INTERVAL=15000;
+
+    private static final int MAX_CONNECTIONS = 4000, MAX_PER_IP = 32, MAX_PER_USER = 8, MAX_MESSAGES = 60;
+    private static final long AUTH_TIMEOUT = 5000, RECHECK_INTERVAL = 15000;
     private final Authority authority;
     private final Guard guard;
     private final LongSupplier clock;
-    private final Object admission=new Object();
-    private final ConcurrentHashMap<Object,Connection> connections=new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String,Set<Connection>> byUser=new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String,Set<Connection>> byArticle=new ConcurrentHashMap<>();
-    private final Set<Connection> chat=ConcurrentHashMap.newKeySet();
-    private final Map<String,Integer> ips=new HashMap<>(), users=new HashMap<>();
+    private final Object admission = new Object();
+    private final ConcurrentHashMap<Object, Connection> connections = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Set<Connection>> byUser = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Set<Connection>> byArticle = new ConcurrentHashMap<>();
+    private final Set<Connection> chat = ConcurrentHashMap.newKeySet();
+    private final Map<String, Integer> ips = new HashMap<>(), users = new HashMap<>();
+
     private static final class Connection {
         final Object key;
         final Transport transport;
@@ -75,6 +82,7 @@ public final class ApiV3RealtimeSessions {
             window = now;
         }
     }
+
     public ApiV3RealtimeSessions(Authority authority, Guard guard, LongSupplier clock) {
         this.authority = authority;
         this.guard = guard;
@@ -110,6 +118,7 @@ public final class ApiV3RealtimeSessions {
             } catch (RuntimeException ignored) {
             }
     }
+
     public void receive(Object key, String text) {
         final Connection c = connections.get(key);
         if (c == null)
@@ -166,7 +175,10 @@ public final class ApiV3RealtimeSessions {
             c.lock.unlock();
         }
     }
-    /** 只向对应用户发送失效信号，载荷省略旧版消息和被引用内容的 ID。 */
+
+    /**
+     * 只向对应用户发送失效信号，载荷省略旧版消息和被引用内容的 ID。
+     */
     public void notificationsChanged(String actor) {
         ownerChanged(actor, ApiV3SocketTicket.CHANNEL_NOTIFICATIONS, "notifications.changed");
     }
@@ -198,7 +210,10 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
-    /** 按文章发送失效信号，载荷省略评论、作者及正文。 */
+
+    /**
+     * 按文章发送失效信号，载荷省略评论、作者及正文。
+     */
     public void articleChanged(String articleId) {
         final Set<Connection> recipients = byArticle.get(articleId);
         if (recipients == null)
@@ -222,23 +237,32 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
-    public void chatChanged(String kind,String messageId,long revision,JSONObject snapshot){
-        if(!ApiV3ChatEvent.validChange(kind,messageId)||revision<1)throw new IllegalArgumentException("invalid chat change");
-        if(ApiV3ChatEvent.TOPIC.equals(kind)){
-            broadcastChat("chat.topic_changed",new JSONObject().put("revision",Long.toString(revision)));
+
+    public void chatChanged(String kind, String messageId, long revision, JSONObject snapshot) {
+        if (!ApiV3ChatEvent.validChange(kind, messageId) || revision < 1)
+            throw new IllegalArgumentException("invalid chat change");
+        if (ApiV3ChatEvent.TOPIC.equals(kind)) {
+            broadcastChat("chat.topic_changed", new JSONObject().put("revision", Long.toString(revision)));
             return;
         }
-        final JSONObject data=new JSONObject().put("messageId",messageId).put("revision",Long.toString(revision));
-        if(snapshot!=null&&(ApiV3ChatEvent.CREATED.equals(kind)||ApiV3ChatEvent.UPDATED.equals(kind))
-                &&messageId.equals(snapshot.optString("id"))&&snapshot.toString().getBytes(StandardCharsets.UTF_8).length<=256*1024){
-            data.put("message",snapshot);
+        final JSONObject data = new JSONObject().put("messageId", messageId).put("revision", Long.toString(revision));
+        if (snapshot != null && (ApiV3ChatEvent.CREATED.equals(kind) || ApiV3ChatEvent.UPDATED.equals(kind))
+                && messageId.equals(snapshot.optString("id")) && snapshot.toString().getBytes(StandardCharsets.UTF_8).length <= 256 * 1024) {
+            data.put("message", snapshot);
         }
-        broadcastChat("chat.message."+kind,data);
+        broadcastChat("chat.message." + kind, data);
     }
-    public void chatBarrage(final ApiV3BarrageEvent event){broadcastChat("chat.barrager",event.dto());}
-    public void chatSyncRequired(){broadcastChat("chat.sync_required",new JSONObject());}
-    private void broadcastChat(String type,JSONObject data){
-        final String frame=new JSONObject().put("type",type).put("data",data).toString();
+
+    public void chatBarrage(final ApiV3BarrageEvent event) {
+        broadcastChat("chat.barrager", event.dto());
+    }
+
+    public void chatSyncRequired() {
+        broadcastChat("chat.sync_required", new JSONObject());
+    }
+
+    private void broadcastChat(String type, JSONObject data) {
+        final String frame = new JSONObject().put("type", type).put("data", data).toString();
         for (Connection c : chat) {
             c.lock.lock();
             try {
@@ -256,12 +280,16 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
+
     public boolean hasChat() {
         return !chat.isEmpty();
     }
-    /** 只有已认证的聊天室订阅计入在线名单。 */
-    public Set<String> chatUserIds(){
-        final Set<String> ids=new java.util.HashSet<>();
+
+    /**
+     * 只有已认证的聊天室订阅计入在线名单。
+     */
+    public Set<String> chatUserIds() {
+        final Set<String> ids = new java.util.HashSet<>();
         for (Connection c : chat) {
             c.lock.lock();
             try {
@@ -280,7 +308,10 @@ public final class ApiV3RealtimeSessions {
         }
         return Set.copyOf(ids);
     }
-    /** 统计当前实例已认证的文章订阅连接，按连接计数。 */
+
+    /**
+     * 统计当前实例已认证的文章订阅连接，按连接计数。
+     */
     public int articleConnectionCount(final String articleId) {
         final Set<Connection> targets = byArticle.get(articleId);
         if (targets == null) return 0;
@@ -295,16 +326,23 @@ public final class ApiV3RealtimeSessions {
                     continue;
                 }
                 count++;
-            } catch (final Exception e) { remove(c); }
-            finally { c.lock.unlock(); }
+            } catch (final Exception e) {
+                remove(c);
+            } finally {
+                c.lock.unlock();
+            }
         }
         return count;
     }
+
     public void closeChat() {
         for (Connection c : chat)
             close(c.key);
     }
-    /** 在 Netty 事件循环之外执行，忙碌的连接会在激活前自行检查截止时间。 */
+
+    /**
+     * 在 Netty 事件循环之外执行，忙碌的连接会在激活前自行检查截止时间。
+     */
     public void tick() {
         for (Connection c : connections.values()) {
             if (!c.lock.tryLock())
@@ -323,7 +361,10 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
-    /** 快速清理不访问数据库，避免授权检查延迟导致空闲的未认证连接滞留。 */
+
+    /**
+     * 快速清理不访问数据库，避免授权检查延迟导致空闲的未认证连接滞留。
+     */
     public void sweep() {
         for (Connection c : connections.values()) {
             if (!c.lock.tryLock())
@@ -340,6 +381,7 @@ public final class ApiV3RealtimeSessions {
             }
         }
     }
+
     private boolean valid(Connection c) throws Exception {
         if (c.closed || c.grant == null || c.grant.expiresAt() <= clock.getAsLong()
                 || !guard.allowed(c.ip, false) || !authority.authorized(c.grant))
@@ -347,6 +389,7 @@ public final class ApiV3RealtimeSessions {
         c.nextCheck = clock.getAsLong() + RECHECK_INTERVAL;
         return true;
     }
+
     public void close(Object key) {
         Connection c = connections.get(key);
         if (c == null)
@@ -396,6 +439,7 @@ public final class ApiV3RealtimeSessions {
         } catch (RuntimeException ignored) {
         }
     }
+
     private static void decrement(Map<String, Integer> counts, String key) {
         counts.computeIfPresent(key, (k, n) -> n <= 1 ? null : n - 1);
     }
@@ -422,6 +466,7 @@ public final class ApiV3RealtimeSessions {
             return Set.copyOf(result);
         }
     }
+
     public Set<String> articleIds() {
         synchronized (admission) {
             return Set.copyOf(byArticle.keySet());

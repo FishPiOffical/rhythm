@@ -34,6 +34,7 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 public class ApiV3VoteProcessor {
     @Inject
     private ApiV3ArticleVoteService articles;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3VoteProcessor.class);
@@ -43,15 +44,18 @@ public class ApiV3VoteProcessor {
         Dispatcher.put("/api/v3/articles/{articleId}/vote", processor::set, auth::contentWrite, writes::handle);
         Dispatcher.delete("/api/v3/articles/{articleId}/vote", processor::clear, auth::contentWrite, writes::handle);
     }
+
     public void read(final RequestContext context) {
         ApiV3Requests.respond(context, () -> articles.read(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "articleId")));
     }
+
     public void set(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3Votes.FIELDS, false);
             return articles.set(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "articleId"), ApiV3Votes.choice(body), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void clear(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);

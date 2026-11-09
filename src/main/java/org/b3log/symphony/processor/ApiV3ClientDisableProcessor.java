@@ -33,9 +33,12 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 管理员逻辑停用客户端，保留登记信息与回调地址供审计。 */
+/**
+ * 管理员逻辑停用客户端，保留登记信息与回调地址供审计。
+ */
 @Singleton
 public class ApiV3ClientDisableProcessor {
     private static final int MAX_BODY_BYTES = 1024;
@@ -49,9 +52,11 @@ public class ApiV3ClientDisableProcessor {
         registerRoutes(beans.getReference(ApiV3ClientDisableProcessor.class), beans.getReference(ApiV3AuthMidware.class),
                 beans.getReference(ApiV3WriteMidware.class));
     }
+
     static void registerRoutes(final ApiV3ClientDisableProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
         Dispatcher.delete("/api/v3/admin/oauth/clients/{clientId}", p::disable, auth::settingsWrite, p::administrator, writes::handle);
     }
+
     public void administrator(final RequestContext context) {
         context.getResponse().setHeader("Cache-Control", "no-store");
         context.getResponse().setHeader("Vary", "Authorization");
@@ -67,6 +72,7 @@ public class ApiV3ClientDisableProcessor {
             context.abort();
         }
     }
+
     public void disable(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();
@@ -77,6 +83,7 @@ public class ApiV3ClientDisableProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     private static JSONObject identity(final RequestContext context) {
         return (JSONObject) context.attr(ApiV3Processor.IDENTITY);
     }

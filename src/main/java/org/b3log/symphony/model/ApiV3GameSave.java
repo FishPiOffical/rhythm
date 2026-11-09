@@ -18,8 +18,12 @@
  */
 package org.b3log.symphony.model;
 
-/** 每个已认证用户在每个明确登记的游戏中拥有一份当前私有存档。 */
+/**
+ * 每个已认证用户在每个明确登记的游戏中拥有一份当前私有存档。
+ */
 public final class ApiV3GameSave {
-    private ApiV3GameSave() { }
-    public static final String TABLE="api_v3_game_save";
+    private ApiV3GameSave() {
+    }
+
+    public static final String TABLE = "api_v3_game_save";
 }

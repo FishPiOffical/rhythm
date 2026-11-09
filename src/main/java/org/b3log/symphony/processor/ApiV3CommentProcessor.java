@@ -39,6 +39,7 @@ public class ApiV3CommentProcessor {
     private ApiV3CommentMgmtService comments;
     @Inject
     private ApiV3CommentVoteService votes;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3CommentProcessor.class);
@@ -53,9 +54,11 @@ public class ApiV3CommentProcessor {
         Dispatcher.put("/api/v3/comments/{commentId}/vote", processor::setVote, auth::commentsWrite, writes::handle);
         Dispatcher.delete("/api/v3/comments/{commentId}/vote", processor::clearVote, auth::commentsWrite, writes::handle);
     }
+
     public void vote(final RequestContext context) {
         ApiV3Requests.respond(context, () -> votes.read(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "commentId")));
     }
+
     public void setVote(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3Votes.FIELDS, false);
@@ -63,6 +66,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void clearVote(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);
@@ -70,6 +74,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void remove(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);
@@ -77,6 +82,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void accept(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);
@@ -84,6 +90,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void thank(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, java.util.Set.of(), true);
@@ -91,6 +98,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void create(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3CommentInputs.CREATE_FIELDS, false);
@@ -99,6 +107,7 @@ public class ApiV3CommentProcessor {
                     ApiV3WriteInputs.idempotencyKey(context), Requests.getRemoteAddr(context.getRequest()), null == ua ? "" : ua);
         });
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3CommentInputs.EDIT_FIELDS, false);

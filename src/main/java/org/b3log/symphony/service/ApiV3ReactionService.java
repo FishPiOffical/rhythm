@@ -41,6 +41,7 @@ public class ApiV3ReactionService {
         targets.read(viewer, type, id);
         return ApiV3ReactionDto.from(query.buildOperationResultOrThrow(type, id, null == viewer ? "" : viewer.optString(Keys.OBJECT_ID)));
     }
+
     public JSONObject set(final JSONObject viewer, final String type, final String id, final String value, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
         // 写入时校验锁定的目标，并在同一事务中构造回执。

@@ -27,22 +27,33 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.json.JSONObject;
 
-/** 签发绑定资源的连接凭据，调用方须传入 API v3 Bearer 认证所得身份。 */
+/**
+ * 签发绑定资源的连接凭据，调用方须传入 API v3 Bearer 认证所得身份。
+ */
 @Service
 public class ApiV3SocketTicketService {
     public static final long TTL_MILLIS = 60_000;
     public static final String SCOPE = "notifications.read";
-    @Inject private ApiV3SocketTicketRepository tickets;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private ApiV3ClientRepository clients;
-    @Inject private UserRepository users;
-    @Inject private ApiV3RealtimeTargetService targets;
-    public record Issued(String ticket, long expiresIn) { }
+    @Inject
+    private ApiV3SocketTicketRepository tickets;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private ApiV3ClientRepository clients;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3RealtimeTargetService targets;
+
+    public record Issued(String ticket, long expiresIn) {
+    }
+
     public record Grant(String userId, String parentTokenId, long expiresAt, String channel, String targetId) {
         public Grant(String userId, String parentTokenId, long expiresAt) {
             this(userId, parentTokenId, expiresAt, ApiV3SocketTicket.CHANNEL_NOTIFICATIONS, "");
         }
     }
+
     protected long now() {
         return System.currentTimeMillis();
     }
@@ -51,10 +62,13 @@ public class ApiV3SocketTicketService {
         if (tickets.hasTransactionBegun())
             throw new IllegalStateException("socket publication before transaction end");
     }
-    /** 分小批提交清理，过期授权仅保留一天的凭据哈希。 */
+
+    /**
+     * 分小批提交清理，过期授权仅保留一天的凭据哈希。
+     */
     public int removeExpired() throws Exception {
         requireNoTransaction();
-        final var tx=tickets.beginTransaction();
+        final var tx = tickets.beginTransaction();
         try {
             final var rows = tickets.expiredBatchForUpdate(now() - 86_400_000L);
             for (final var row : rows)
@@ -70,15 +84,19 @@ public class ApiV3SocketTicketService {
     public Issued issue(final String actor, final String parentTokenId) throws Exception {
         return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_NOTIFICATIONS, "");
     }
+
     public Issued issueArticle(final String actor, final String parentTokenId, final String articleId) throws Exception {
         return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_ARTICLE, articleId);
     }
+
     public Issued issueChat(final String actor, final String parentTokenId) throws Exception {
         return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_CHAT, "");
     }
-    public Issued issueMessages(final String actor,final String parentTokenId)throws Exception {
-        return issue(actor,parentTokenId,ApiV3SocketTicket.CHANNEL_MESSAGES,"");
+
+    public Issued issueMessages(final String actor, final String parentTokenId) throws Exception {
+        return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_MESSAGES, "");
     }
+
     private Issued issue(final String actor, final String parentTokenId, final String channel, final String targetId) throws Exception {
         if (tickets.hasTransactionBegun()) throw new IllegalStateException("socket grant transaction already active");
         final var tx = tickets.beginTransaction();
@@ -86,7 +104,8 @@ public class ApiV3SocketTicketService {
             final long now = now();
             final JSONObject parent = parent(actor, parentTokenId, now, true, scope(channel, targetId));
             if (null == parent) throw unauthorized();
-            if (!targetVisible(actor, channel, targetId)) throw new ApiV3Exception(404, "not_found", "文章不存在或不可访问");
+            if (!targetVisible(actor, channel, targetId))
+                throw new ApiV3Exception(404, "not_found", "文章不存在或不可访问");
             final long expires = Math.min(Math.addExact(now, TTL_MILLIS), parent.getLong(ApiV3Token.EXPIRES_AT));
             if (expires - now < 1000) throw unauthorized();
             final String ticket = ApiV3TokenUtil.generate();
@@ -129,7 +148,9 @@ public class ApiV3SocketTicketService {
         }
     }
 
-    /** 发送数据前和处理心跳时都要从数据库复核用户与客户端状态。 */
+    /**
+     * 发送数据前和处理心跳时都要从数据库复核用户与客户端状态。
+     */
     public boolean authorized(final Grant grant) throws Exception {
         if (null == grant || grant.expiresAt() <= now()) return false;
         final String scope = scope(grant.channel(), grant.targetId());
@@ -139,24 +160,30 @@ public class ApiV3SocketTicketService {
 
     private static String scope(final String channel, final String targetId) {
         if (ApiV3SocketTicket.CHANNEL_NOTIFICATIONS.equals(channel) && "".equals(targetId)) return SCOPE;
-        if (ApiV3SocketTicket.CHANNEL_ARTICLE.equals(channel) && targetId != null && targetId.matches("[0-9]{1,32}")) return "content.read";
+        if (ApiV3SocketTicket.CHANNEL_ARTICLE.equals(channel) && targetId != null && targetId.matches("[0-9]{1,32}"))
+            return "content.read";
         if (ApiV3SocketTicket.CHANNEL_CHAT.equals(channel) && "".equals(targetId)) return "content.read";
         if (ApiV3SocketTicket.CHANNEL_MESSAGES.equals(channel) && "".equals(targetId)) return "messages.read";
         return null;
     }
+
     private boolean targetVisible(final String actor, final String channel, final String targetId) throws Exception {
         return scope(channel, targetId) != null && (!ApiV3SocketTicket.CHANNEL_ARTICLE.equals(channel) || targets.articleVisible(actor, targetId));
     }
+
     private JSONObject parent(final String actor, final String parentId, final long now, final boolean lock, final String scope) throws Exception {
-        if (scope == null || null == actor || !actor.matches("[0-9]{1,32}") || null == parentId || !parentId.matches("[0-9]{1,32}")) return null;
+        if (scope == null || null == actor || !actor.matches("[0-9]{1,32}") || null == parentId || !parentId.matches("[0-9]{1,32}"))
+            return null;
         final var rows = tokens.select("SELECT t.oId,t.userId,t.scope,t.expiresAt FROM `" + tokens.getName()
-                + "` t JOIN `" + clients.getName() + "` c ON c.clientId=t.clientId JOIN `" + users.getName()
-                + "` u ON u.oId=t.userId WHERE t.oId=? AND t.userId=? AND t.tokenType=? AND t.state=? AND t.expiresAt>?"
-                + " AND u.userStatus=? AND c.status=? LIMIT 1" + (lock ? " FOR UPDATE" : ""),
+                        + "` t JOIN `" + clients.getName() + "` c ON c.clientId=t.clientId JOIN `" + users.getName()
+                        + "` u ON u.oId=t.userId WHERE t.oId=? AND t.userId=? AND t.tokenType=? AND t.state=? AND t.expiresAt>?"
+                        + " AND u.userStatus=? AND c.status=? LIMIT 1" + (lock ? " FOR UPDATE" : ""),
                 parentId, actor, ApiV3Token.TYPE_ACCESS, ApiV3Token.STATE_ACTIVE, now, UserExt.USER_STATUS_C_VALID, ApiV3Client.STATUS_ACTIVE);
-        if (rows.isEmpty() || !ApiV3TokenMgmtService.hasScope(rows.getFirst().optString(ApiV3Token.SCOPE), scope)) return null;
+        if (rows.isEmpty() || !ApiV3TokenMgmtService.hasScope(rows.getFirst().optString(ApiV3Token.SCOPE), scope))
+            return null;
         return rows.getFirst();
     }
+
     private static ApiV3Exception unauthorized() {
         return new ApiV3Exception(401, "unauthorized", "实时连接凭据无效");
     }

@@ -39,7 +39,9 @@ import org.json.JSONObject;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-/** 内容发现和公开资料。 */
+/**
+ * 内容发现和公开资料。
+ */
 @Singleton
 public class ApiV3DiscoveryProcessor {
     private static final Set<String> ARTICLE_SORTS = Set.of("latest", "active", "hot", "comments");
@@ -158,6 +160,7 @@ public class ApiV3DiscoveryProcessor {
     public void watchedArticles(final RequestContext context) {
         watching(context, true);
     }
+
     private void watching(final RequestContext context, final boolean watched) {
         ApiV3Requests.read(context, () -> {
             final JSONObject user = targetUser(context);

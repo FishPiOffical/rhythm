@@ -21,13 +21,19 @@ package org.b3log.symphony.util;
 import org.jsoup.Jsoup;
 import org.json.JSONObject;
 
-/** 仅返回固定的勋章字段，省略原始样式 JSON、授予记录及其标识。 */
+/**
+ * 仅返回固定的勋章字段，省略原始样式 JSON、授予记录及其标识。
+ */
 public final class ApiV3MedalDto {
-    private ApiV3MedalDto() { }
+    private ApiV3MedalDto() {
+    }
+
     private static String text(final String value, final int limit) {
-        if (value.length() > limit || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) return "";
+        if (value.length() > limit || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t'))
+            return "";
         return Jsoup.parse(value).text();
     }
+
     public static JSONObject project(final JSONObject row, final boolean owner) {
         String description = row.optString("medal_description");
         final String data = row.optString("data");

@@ -54,7 +54,9 @@ public class ApiV3IdempotencyMgmtServiceTest {
         try {
             run(store, "user", "create", "key", new JSONObject().put("value", 2));
             Assert.fail("Expected conflict");
-        } catch (final ApiV3Exception e) { Assert.assertEquals(e.status, 409); }
+        } catch (final ApiV3Exception e) {
+            Assert.assertEquals(e.status, 409);
+        }
         Assert.assertEquals(store.value, 1);
         run(store, "other", "create", "key", new JSONObject());
         run(store, "user", "update:1", "key", new JSONObject());
@@ -70,7 +72,8 @@ public class ApiV3IdempotencyMgmtServiceTest {
                 throw new ApiV3Exception(422, "invalid_request", "invalid");
             });
             Assert.fail("Expected failure");
-        } catch (final ApiV3Exception expected) { }
+        } catch (final ApiV3Exception expected) {
+        }
         Assert.assertEquals(store.value, 0);
         Assert.assertTrue(store.rows.isEmpty());
         run(store, "user", "create", "key", new JSONObject());
@@ -111,7 +114,9 @@ public class ApiV3IdempotencyMgmtServiceTest {
         return ApiV3IdempotencyMgmtService.runAtomic(store, user, operation, key, body, () -> new JSONObject().put("value", store.increment()));
     }
 
-    /** 使用带事务语义的内存适配器验证实际幂等逻辑，SQL 锁行为需另行验证。 */
+    /**
+     * 使用带事务语义的内存适配器验证实际幂等逻辑，SQL 锁行为需另行验证。
+     */
     private static final class Store implements ApiV3MutationStore {
         private final ReentrantLock lock = new ReentrantLock();
         private final ThreadLocal<Tx> current = new ThreadLocal<>();
@@ -120,31 +125,58 @@ public class ApiV3IdempotencyMgmtServiceTest {
         private int begins;
         private boolean failUpdateOnce;
         private boolean failAfterCommitOnce;
-        @Override public Transaction beginTransaction() {
+
+        @Override
+        public Transaction beginTransaction() {
             lock.lock();
             begins++;
             final Tx tx = new Tx();
             current.set(tx);
             return tx;
         }
-        @Override public boolean hasTransactionBegun() { return null != current.get(); }
-        @Override public JSONObject getForUpdate(final String id) { return current.get().staged.get(id); }
-        @Override public String add(final JSONObject row) {
+
+        @Override
+        public boolean hasTransactionBegun() {
+            return null != current.get();
+        }
+
+        @Override
+        public JSONObject getForUpdate(final String id) {
+            return current.get().staged.get(id);
+        }
+
+        @Override
+        public String add(final JSONObject row) {
             final String id = row.getString(Keys.OBJECT_ID);
             current.get().staged.put(id, new JSONObject(row.toString()));
             return id;
         }
-        @Override public void update(final String id, final JSONObject row, final String... properties) throws RepositoryException {
-            if (failUpdateOnce) { failUpdateOnce = false; throw new RepositoryException("simulated storage failure"); }
+
+        @Override
+        public void update(final String id, final JSONObject row, final String... properties) throws RepositoryException {
+            if (failUpdateOnce) {
+                failUpdateOnce = false;
+                throw new RepositoryException("simulated storage failure");
+            }
             current.get().staged.put(id, new JSONObject(row.toString()));
         }
-        private int increment() { return ++current.get().stagedValue; }
+
+        private int increment() {
+            return ++current.get().stagedValue;
+        }
+
         private final class Tx implements Transaction {
             private final Map<String, JSONObject> staged = new HashMap<>();
             private int stagedValue = value;
             private boolean active = true;
-            private Tx() { for (final var entry : rows.entrySet()) staged.put(entry.getKey(), new JSONObject(entry.getValue().toString())); }
-            @Override public void commit() {
+
+            private Tx() {
+                for (final var entry : rows.entrySet())
+                    staged.put(entry.getKey(), new JSONObject(entry.getValue().toString()));
+            }
+
+            @Override
+            public void commit() {
                 rows = staged;
                 value = stagedValue;
                 finish();
@@ -153,9 +185,22 @@ public class ApiV3IdempotencyMgmtServiceTest {
                     throw new IllegalStateException(new RepositoryException("simulated lost commit acknowledgment"));
                 }
             }
-            @Override public void rollback() { finish(); }
-            @Override public boolean isActive() { return active; }
-            private void finish() { active = false; current.remove(); lock.unlock(); }
+
+            @Override
+            public void rollback() {
+                finish();
+            }
+
+            @Override
+            public boolean isActive() {
+                return active;
+            }
+
+            private void finish() {
+                active = false;
+                current.remove();
+                lock.unlock();
+            }
         }
     }
 
@@ -163,11 +208,17 @@ public class ApiV3IdempotencyMgmtServiceTest {
     public void outcomeDistinguishesFreshCommitFromReplayAndUncertainCommit() throws Exception {
         final Store store = new Store();
         final var first = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "user", "broadcast", "key", new JSONObject(), () -> new JSONObject().put("id", "one"));
-        final var replay = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "user", "broadcast", "key", new JSONObject(), () -> { throw new AssertionError("replayed mutation"); });
-        Assert.assertTrue(first.applied()); Assert.assertFalse(replay.applied()); Assert.assertEquals(replay.result().getString("id"), "one");
-        final Store uncertain = new Store(); uncertain.failAfterCommitOnce = true;
+        final var replay = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "user", "broadcast", "key", new JSONObject(), () -> {
+            throw new AssertionError("replayed mutation");
+        });
+        Assert.assertTrue(first.applied());
+        Assert.assertFalse(replay.applied());
+        Assert.assertEquals(replay.result().getString("id"), "one");
+        final Store uncertain = new Store();
+        uncertain.failAfterCommitOnce = true;
         final var recovered = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(uncertain, "user", "broadcast", "key", new JSONObject(), () -> new JSONObject().put("id", "two"));
-        Assert.assertFalse(recovered.applied()); Assert.assertEquals(recovered.result().getString("id"), "two");
+        Assert.assertFalse(recovered.applied());
+        Assert.assertEquals(recovered.result().getString("id"), "two");
     }
 
     @Test
@@ -177,19 +228,42 @@ public class ApiV3IdempotencyMgmtServiceTest {
         final var zone = java.time.ZoneId.of("Asia/Shanghai");
         final JSONObject body = new JSONObject().put("expectedDate", "20261016");
         final ApiV3IdempotencyMgmtService.Mutation mutation = () -> LivenessRewardClaim.claim(new LivenessRewardClaim.Store() {
-            public void lockOwner() { Assert.assertTrue(store.hasTransactionBegun()); }
-            public boolean alreadyClaimed(LivenessRewardClaim.Period period) { return false; }
-            public int amount(LivenessRewardClaim.Period period) { return 50; }
-            public String transfer(int amount, long at) { return "transfer-" + store.increment(); }
+            public void lockOwner() {
+                Assert.assertTrue(store.hasTransactionBegun());
+            }
+
+            public boolean alreadyClaimed(LivenessRewardClaim.Period period) {
+                return false;
+            }
+
+            public int amount(LivenessRewardClaim.Period period) {
+                return 50;
+            }
+
+            public String transfer(int amount, long at) {
+                return "transfer-" + store.increment();
+            }
         }, () -> now[0], zone, body.getString("expectedDate")).dto();
         final var first = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", body, mutation);
         now[0] += 86_400_000L;
         final var replay = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", body, mutation);
-        Assert.assertTrue(first.applied()); Assert.assertFalse(replay.applied()); Assert.assertEquals(replay.result().getString("date"), "20261016"); Assert.assertEquals(store.value, 1);
-        try { ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "fresh-expired", body, mutation); Assert.fail(); }
-        catch (LivenessRewardClaim.DateChanged expected) { Assert.assertEquals(store.value, 1); Assert.assertEquals(store.rows.size(), 1); }
-        try { ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", new JSONObject().put("expectedDate", "20261017"), mutation); Assert.fail(); }
-        catch (ApiV3Exception expected) { Assert.assertEquals(store.value, 1); }
+        Assert.assertTrue(first.applied());
+        Assert.assertFalse(replay.applied());
+        Assert.assertEquals(replay.result().getString("date"), "20261016");
+        Assert.assertEquals(store.value, 1);
+        try {
+            ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "fresh-expired", body, mutation);
+            Assert.fail();
+        } catch (LivenessRewardClaim.DateChanged expected) {
+            Assert.assertEquals(store.value, 1);
+            Assert.assertEquals(store.rows.size(), 1);
+        }
+        try {
+            ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, "owner", "activity.yesterday-reward", "dated", new JSONObject().put("expectedDate", "20261017"), mutation);
+            Assert.fail();
+        } catch (ApiV3Exception expected) {
+            Assert.assertEquals(store.value, 1);
+        }
     }
 
     public static void main(final String[] args) throws Exception {

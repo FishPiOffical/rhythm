@@ -37,15 +37,22 @@ import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.json.JSONObject;
 
-/** 客户端逻辑停用、撤销其全部令牌以及回执在同一个严格事务中提交。 */
+/**
+ * 客户端逻辑停用、撤销其全部令牌以及回执在同一个严格事务中提交。
+ */
 @Service
 public class ApiV3ClientDisableService {
     private static final int DISABLED = 1;
-    @Inject private ApiV3ClientManagementService management;
-    @Inject private ApiV3ClientRepository clients;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private ApiV3AppLoginRequestRepository appLogins;
+    @Inject
+    private ApiV3ClientManagementService management;
+    @Inject
+    private ApiV3ClientRepository clients;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private ApiV3AppLoginRequestRepository appLogins;
 
     public JSONObject disable(final JSONObject identity, final String clientId, final String key) throws Exception {
         ApiV3ClientManagementInputs.clientId(clientId);
@@ -61,14 +68,17 @@ public class ApiV3ClientDisableService {
             public boolean hasTransactionBegun() {
                 return requests.hasTransactionBegun();
             }
+
             public JSONObject getForUpdate(final String id) throws RepositoryException {
                 // 先按固定顺序锁定客户端命名空间，再锁定用户、令牌和请求，重放也遵循此顺序。
                 management.requireAdministrator(identity, true);
                 return requests.getForUpdate(id);
             }
+
             public String add(final JSONObject row) throws RepositoryException {
                 return requests.add(row);
             }
+
             public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
                 requests.update(id, row, names);
             }
@@ -83,7 +93,9 @@ public class ApiV3ClientDisableService {
         }
     }
 
-    /** 仅在调用方根事务复核当前管理员后调用，由调用方统一提交。 */
+    /**
+     * 仅在调用方根事务复核当前管理员后调用，由调用方统一提交。
+     */
     private JSONObject disableInCurrentTransaction(final String clientId) throws Exception {
         if (!requests.hasTransactionBegun()) throw new IllegalStateException("client disable transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
@@ -93,7 +105,8 @@ public class ApiV3ClientDisableService {
             if (rows.size() != 1 || !clientId.equals(rows.getFirst().optString("clientId"))) throw unavailable();
             final JSONObject current = rows.getFirst();
             final Object state = current.opt("status");
-            if (!(state instanceof Number) || !("0".equals(state.toString()) || "1".equals(state.toString()))) throw unavailable();
+            if (!(state instanceof Number) || !("0".equals(state.toString()) || "1".equals(state.toString())))
+                throw unavailable();
             if ("0".equals(state.toString())) {
                 final int updated = ApiV3TransactionStatements.execute("UPDATE `" + clients.getName()
                         + "` SET status=? WHERE oId=? AND clientId=?", DISABLED, current.getString("oId"), clientId);
@@ -101,7 +114,7 @@ public class ApiV3ClientDisableService {
             }
             // 按客户端一次撤销所有用户、家族、类型和状态的令牌，避免分页遗漏。
             final int changed = ApiV3TransactionStatements.execute("UPDATE `" + tokens.getName()
-                    + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
+                            + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                     ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);
             if (changed < 0) throw unavailable();
             if (ApiV3Client.APP_CLIENT.equals(clientId)) appLogins.invalidatePendingInCurrentTransaction();

@@ -18,9 +18,13 @@
  */
 package org.b3log.symphony.model;
 
-/** 网页向原生应用发起的短期登录请求，此处只记录流程状态和绑定信息，不存原始句柄、校验器或令牌。 */
+/**
+ * 网页向原生应用发起的短期登录请求，此处只记录流程状态和绑定信息，不存原始句柄、校验器或令牌。
+ */
 public final class ApiV3AppLoginRequest {
-    private ApiV3AppLoginRequest() { }
+    private ApiV3AppLoginRequest() {
+    }
+
     public static final String TABLE = "api_v3_app_login_request";
     public static final String APP_CLIENT = ApiV3Client.APP_CLIENT;
 }

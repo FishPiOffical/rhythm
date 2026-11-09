@@ -19,17 +19,23 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Locale;
 import java.util.Set;
 
-/** 排序方向枚举忽略大小写，保留传入值两端的空白进行校验。 */
+/**
+ * 排序方向枚举忽略大小写，保留传入值两端的空白进行校验。
+ */
 public final class ApiV3MedalOrderInputs {
-    private ApiV3MedalOrderInputs() { }
+    private ApiV3MedalOrderInputs() {
+    }
+
     public static String direction(final JSONObject body) {
         if (body == null || !body.keySet().equals(Set.of("direction")) || !(body.opt("direction") instanceof String value))
             throw ApiV3WriteInputs.invalid();
         return direction(value);
     }
+
     public static String direction(final String value) {
         if (value == null || value.length() > 4)
             throw ApiV3WriteInputs.invalid();
@@ -38,6 +44,7 @@ public final class ApiV3MedalOrderInputs {
             throw ApiV3WriteInputs.invalid();
         return normalized;
     }
+
     public static int order(final Object value) {
         final long number = ApiV3MedalDisplay.expiry(value);
         if (number < Integer.MIN_VALUE || number > Integer.MAX_VALUE)

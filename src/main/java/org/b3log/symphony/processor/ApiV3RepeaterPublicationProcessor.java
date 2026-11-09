@@ -28,6 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3RepeaterPublicationService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -40,7 +41,7 @@ public class ApiV3RepeaterPublicationProcessor {
         final var p = beans.getReference(ApiV3RepeaterPublicationProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.post("/api/v3/repeater/items",p::publish,auth::contentWrite,writes::handle);
+        Dispatcher.post("/api/v3/repeater/items", p::publish, auth::contentWrite, writes::handle);
     }
 
     public void publish(final RequestContext context) {

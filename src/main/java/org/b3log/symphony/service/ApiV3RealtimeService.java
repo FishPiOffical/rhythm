@@ -35,31 +35,42 @@ import org.b3log.symphony.repository.ApiV3PrivateRevisionRepository;
 import org.b3log.symphony.repository.ApiV3ArticleRevisionRepository;
 import org.b3log.symphony.repository.ApiV3ChatEventRepository;
 import org.b3log.symphony.util.ApiV3ChatStream;
+
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** 实时传输适配和有界广播，业务写入与旧消息转发由其他链路处理。 */
+/**
+ * 实时传输适配和有界广播，业务写入与旧消息转发由其他链路处理。
+ */
 @Service
 public class ApiV3RealtimeService {
-    @Inject private ApiV3SocketTicketService tickets;
-    @Inject private ApiV3NotificationRevisionRepository revisions;
-    @Inject private ApiV3ArticleRevisionRepository articleRevisions;
-    @Inject private ApiV3PrivateRevisionRepository privateRevisions;
-    @Inject private ApiV3ChatEventRepository chatEvents;
-    @Inject private ApiV3ChatQueryService chatQuery;
-    @Inject private ChatTopicDeliveryService topicDelivery;
+    @Inject
+    private ApiV3SocketTicketService tickets;
+    @Inject
+    private ApiV3NotificationRevisionRepository revisions;
+    @Inject
+    private ApiV3ArticleRevisionRepository articleRevisions;
+    @Inject
+    private ApiV3PrivateRevisionRepository privateRevisions;
+    @Inject
+    private ApiV3ChatEventRepository chatEvents;
+    @Inject
+    private ApiV3ChatQueryService chatQuery;
+    @Inject
+    private ChatTopicDeliveryService topicDelivery;
     private ApiV3ChatStream chatStream;
-    private final ThreadPoolExecutor workers=new ThreadPoolExecutor(4,4,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(256),
-            Thread.ofPlatform().daemon().name("v3-realtime-",0).factory(),new ThreadPoolExecutor.AbortPolicy());
-    private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("v3-realtime-timer").factory());
-    private final AtomicBoolean ticking=new AtomicBoolean();
-    private final AtomicBoolean cleaning=new AtomicBoolean();
-    private final AtomicBoolean polling=new AtomicBoolean();
-    private final ConcurrentHashMap<String,String> seen=new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String,String> seenMessages=new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String,String> seenArticles=new ConcurrentHashMap<>();
+    private final ThreadPoolExecutor workers = new ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(256),
+            Thread.ofPlatform().daemon().name("v3-realtime-", 0).factory(), new ThreadPoolExecutor.AbortPolicy());
+    private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("v3-realtime-timer").factory());
+    private final AtomicBoolean ticking = new AtomicBoolean();
+    private final AtomicBoolean cleaning = new AtomicBoolean();
+    private final AtomicBoolean polling = new AtomicBoolean();
+    private final ConcurrentHashMap<String, String> seen = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> seenMessages = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> seenArticles = new ConcurrentHashMap<>();
     private volatile ApiV3RealtimeSessions sessions;
+
     public void start() {
         registry();
     }
@@ -74,45 +85,89 @@ public class ApiV3RealtimeService {
         return active == null ? 0 : active.articleConnectionCount(articleId);
     }
 
-    private synchronized ApiV3RealtimeSessions registry(){
-        if(sessions==null){
-            sessions=new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority(){
-                public ApiV3SocketTicketService.Grant consume(String ticket)throws Exception{return tickets.consume(ticket);}
-                public boolean authorized(ApiV3SocketTicketService.Grant grant)throws Exception{return tickets.authorized(grant);}
-            // 实时连接也须经过验证码盾；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
-            },(ip,record)->!AnonymousCaptchaShield.isRestricted(ip)
-                    &&(!record||Firewall.recordAndMaybeBan(ip)),System::currentTimeMillis);
-            timer.scheduleAtFixedRate(()->{
+    private synchronized ApiV3RealtimeSessions registry() {
+        if (sessions == null) {
+            sessions = new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority() {
+                public ApiV3SocketTicketService.Grant consume(String ticket) throws Exception {
+                    return tickets.consume(ticket);
+                }
+
+                public boolean authorized(ApiV3SocketTicketService.Grant grant) throws Exception {
+                    return tickets.authorized(grant);
+                }
+                // 实时连接也须经过验证码盾；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+            }, (ip, record) -> !AnonymousCaptchaShield.isRestricted(ip)
+                    && (!record || Firewall.recordAndMaybeBan(ip)), System::currentTimeMillis);
+            timer.scheduleAtFixedRate(() -> {
                 sessions.sweep();
-                if(polling.compareAndSet(false,true))try{executeWorker(()->{
-                    try{
-                        try{pollNotifications();pollArticles();pollMessages();}
-                        catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 realtime synchronization unavailable");sessions.closeAll();}
-                        try{pollTopic();}
-                        catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("Committed chat topic projection unavailable");}
-                        try{pollChat();}
-                        catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 chat synchronization unavailable");sessions.closeChat();resetChat();}
-                    }
-                    finally{polling.set(false);}
-                });}
-                catch(RejectedExecutionException ignored){polling.set(false);}
-                if(ticking.compareAndSet(false,true))try{executeWorker(()->{try{sessions.tick();}finally{ticking.set(false);}});}
-                catch(RejectedExecutionException ignored){ticking.set(false);}
-            },1,1,TimeUnit.SECONDS);
-            timer.scheduleWithFixedDelay(()->{
-                if(cleaning.compareAndSet(false,true))try{executeWorker(()->{
-                    try{
-                        try{for(int batch=0;batch<5;batch++)if(tickets.removeExpired()<200)break;}
-                        catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 expired socket-ticket cleanup failed");}
-                        try{cleanupChatEvents();}
-                        catch(Exception ignored){org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 expired chat-event cleanup failed");}
-                    }
-                    finally{cleaning.set(false);}
-                });}catch(RejectedExecutionException ignored){cleaning.set(false);}
-            },1,1,TimeUnit.MINUTES);
+                if (polling.compareAndSet(false, true)) try {
+                    executeWorker(() -> {
+                        try {
+                            try {
+                                pollNotifications();
+                                pollArticles();
+                                pollMessages();
+                            } catch (Exception ignored) {
+                                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 realtime synchronization unavailable");
+                                sessions.closeAll();
+                            }
+                            try {
+                                pollTopic();
+                            } catch (Exception ignored) {
+                                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("Committed chat topic projection unavailable");
+                            }
+                            try {
+                                pollChat();
+                            } catch (Exception ignored) {
+                                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 chat synchronization unavailable");
+                                sessions.closeChat();
+                                resetChat();
+                            }
+                        } finally {
+                            polling.set(false);
+                        }
+                    });
+                } catch (RejectedExecutionException ignored) {
+                    polling.set(false);
+                }
+                if (ticking.compareAndSet(false, true)) try {
+                    executeWorker(() -> {
+                        try {
+                            sessions.tick();
+                        } finally {
+                            ticking.set(false);
+                        }
+                    });
+                } catch (RejectedExecutionException ignored) {
+                    ticking.set(false);
+                }
+            }, 1, 1, TimeUnit.SECONDS);
+            timer.scheduleWithFixedDelay(() -> {
+                if (cleaning.compareAndSet(false, true)) try {
+                    executeWorker(() -> {
+                        try {
+                            try {
+                                for (int batch = 0; batch < 5; batch++) if (tickets.removeExpired() < 200) break;
+                            } catch (Exception ignored) {
+                                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 expired socket-ticket cleanup failed");
+                            }
+                            try {
+                                cleanupChatEvents();
+                            } catch (Exception ignored) {
+                                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 expired chat-event cleanup failed");
+                            }
+                        } finally {
+                            cleaning.set(false);
+                        }
+                    });
+                } catch (RejectedExecutionException ignored) {
+                    cleaning.set(false);
+                }
+            }, 1, 1, TimeUnit.MINUTES);
         }
         return sessions;
     }
+
     public void open(WebSocketSession session, String ip) {
         final ApiV3RealtimeSessions active = sessions == null ? registry() : sessions;
         active.open(session, new ApiV3RealtimeSessions.Transport() {
@@ -156,7 +211,9 @@ public class ApiV3RealtimeService {
         });
     }
 
-    /** 读取已提交的版本标记，包括旧入口或其他后端实例写入的标记。 */
+    /**
+     * 读取已提交的版本标记，包括旧入口或其他后端实例写入的标记。
+     */
     public synchronized void pollNotifications() throws Exception {
         if (sessions == null)
             return;
@@ -196,7 +253,10 @@ public class ApiV3RealtimeService {
             seenArticles.put(id, revision);
         }
     }
-    /** 按所有者合并刷新提示，仅发送变化提示，隐藏私信详情和未读状态。 */
+
+    /**
+     * 按所有者合并刷新提示，仅发送变化提示，隐藏私信详情和未读状态。
+     */
     public synchronized void pollMessages() throws Exception {
         if (sessions == null)
             return;
@@ -222,7 +282,9 @@ public class ApiV3RealtimeService {
             chatStream.reset();
     }
 
-    /** 在本实例有界发送即时弹幕，弹幕独立于持久消息游标。 */
+    /**
+     * 在本实例有界发送即时弹幕，弹幕独立于持久消息游标。
+     */
     public void publishBarrage(final org.b3log.symphony.util.ApiV3BarrageEvent event) {
         tickets.requireNoTransaction();
         final var active = sessions;
@@ -267,7 +329,10 @@ public class ApiV3RealtimeService {
             });
         chatStream.poll();
     }
-    /** 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。 */
+
+    /**
+     * 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。
+     */
     private JSONObject chatSnapshot(final String kind, final String id) {
         if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind)) return null;
         try {
@@ -277,6 +342,7 @@ public class ApiV3RealtimeService {
             return null;
         }
     }
+
     public int cleanupChatEvents() throws Exception {
         tickets.requireNoTransaction();
         int removed = 0;

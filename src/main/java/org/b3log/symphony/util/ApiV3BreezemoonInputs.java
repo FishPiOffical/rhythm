@@ -22,20 +22,30 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
-/** v3 发布沿用现有的正文长度与 HTML 清理规则。 */
+/**
+ * v3 发布沿用现有的正文长度与 HTML 清理规则。
+ */
 public final class ApiV3BreezemoonInputs {
-    private ApiV3BreezemoonInputs() { }
+    private ApiV3BreezemoonInputs() {
+    }
+
     public static String content(final JSONObject body) {
         final String value = ApiV3WriteInputs.string(body, "content", 512, true);
-        if (value.isEmpty() || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) throw ApiV3WriteInputs.invalid();
+        if (value.isEmpty() || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t'))
+            throw ApiV3WriteInputs.invalid();
         return value;
     }
-    /** 编辑时保留源标记，页面只能插入经过渲染的 HTML。 */
+
+    /**
+     * 编辑时保留源标记，页面只能插入经过渲染的 HTML。
+     */
     public static String editable(final String filtered) {
         return content(new JSONObject().put("content", filtered));
     }
+
     public static String publishable(final String filtered) {
-        if (null == filtered || filtered.trim().isEmpty() || filtered.trim().length() > 512) throw ApiV3WriteInputs.invalid();
+        if (null == filtered || filtered.trim().isEmpty() || filtered.trim().length() > 512)
+            throw ApiV3WriteInputs.invalid();
         final String value = Jsoup.clean(filtered, Safelist.none()).trim();
         if (value.isEmpty()) throw ApiV3WriteInputs.invalid();
         return value;

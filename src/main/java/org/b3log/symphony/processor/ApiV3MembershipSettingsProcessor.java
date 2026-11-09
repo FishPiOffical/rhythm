@@ -30,19 +30,22 @@ import org.b3log.symphony.service.ApiV3MembershipSettingsService;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3MembershipSettingsProcessor {
     @Inject
     private ApiV3MembershipSettingsService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3MembershipSettingsProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.put("/api/v3/me/membership/config",p::update,auth::settingsWrite,writes::handle);
+        Dispatcher.put("/api/v3/me/membership/config", p::update, auth::settingsWrite, writes::handle);
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();

@@ -20,9 +20,13 @@ package org.b3log.symphony.util;
 
 import java.net.URI;
 
-/** 校验并返回存储的头像 URL，保留签名查询参数，省略网络请求和页面展示转换。 */
+/**
+ * 校验并返回存储的头像 URL，保留签名查询参数，省略网络请求和页面展示转换。
+ */
 public final class ApiV3AvatarUrl {
-    private ApiV3AvatarUrl() { }
+    private ApiV3AvatarUrl() {
+    }
+
     public static String stored(final String raw) {
         final String value = raw == null ? "" : raw.trim();
         if (value.length() > 2048 || value.indexOf('\\') >= 0 || value.codePoints().anyMatch(Character::isISOControl))

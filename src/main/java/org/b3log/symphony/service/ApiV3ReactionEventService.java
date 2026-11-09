@@ -37,13 +37,19 @@ import org.b3log.symphony.util.ApiV3ReactionDto;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 首次写入确认提交后，尽力发布当前状态事件。 */
+/**
+ * 首次写入确认提交后，尽力发布当前状态事件。
+ */
 @Service
 public class ApiV3ReactionEventService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ReactionEventService.class);
-    @Inject private ApiV3ReactionTargetService targets;
-    @Inject private ReactionQueryService reactions;
-    @Inject private UserQueryService users;
+    @Inject
+    private ApiV3ReactionTargetService targets;
+    @Inject
+    private ReactionQueryService reactions;
+    @Inject
+    private UserQueryService users;
+
     public void publish(final JSONObject actor, final String type, final String id) {
         try {
             final JSONObject article = targets.read(actor, type, id);
@@ -70,8 +76,11 @@ public class ApiV3ReactionEventService {
                     // 此会话无权读取或已断开，跳过发送。
                 }
             }
-        } catch (final Exception e) { LOGGER.warn("Failed to publish committed v3 reaction update"); }
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to publish committed v3 reaction update");
+        }
     }
+
     private JSONObject viewer(final WebSocketSession session) {
         JSONObject user = null;
         if (null != session.getHttpSession()) {
@@ -81,7 +90,8 @@ public class ApiV3ReactionEventService {
         final String key = session.getParameter("apiKey");
         if (null != key && !key.isEmpty()) user = ApiProcessor.getUserByKey(key);
         if (null != user) user = users.getUser(user.optString(Keys.OBJECT_ID));
-        if (null != user && (UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS) || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS))) return null;
+        if (null != user && (UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS) || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)))
+            return null;
         return user;
     }
 }

@@ -20,9 +20,13 @@ package org.b3log.symphony.util;
 
 import org.json.JSONObject;
 
-/** 每次购买向当前认证用户发放一个邀请码，价格由服务端决定。 */
+/**
+ * 每次购买向当前认证用户发放一个邀请码，价格由服务端决定。
+ */
 public final class ApiV3InvitationPurchaseInputs {
-    private ApiV3InvitationPurchaseInputs() { }
+    private ApiV3InvitationPurchaseInputs() {
+    }
+
     public static JSONObject parse(final JSONObject body) {
         if (body == null || !body.isEmpty()) throw ApiV3WriteInputs.invalid();
         return new JSONObject();

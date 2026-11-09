@@ -52,19 +52,23 @@ public class ApiV3DraftProcessor {
     public void create(final RequestContext context) {
         ApiV3Requests.respond(context, () -> saveResult(context, null));
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> saveResult(context, ApiV3Requests.id(context, "draftId")));
     }
+
     private JSONObject saveResult(final RequestContext context, final String id) throws Exception {
         final JSONObject body = ApiV3WriteInputs.body(context, ApiV3DraftInputs.FIELDS, false);
         return drafts.save(userId(context), id, ApiV3WriteInputs.idempotencyKey(context), body);
     }
+
     public void remove(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, Set.of(), true);
             return drafts.remove(userId(context), ApiV3Requests.id(context, "draftId"), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     private static String userId(final RequestContext context) {
         return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID);
     }

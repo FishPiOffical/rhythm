@@ -19,16 +19,22 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 已认证的购买者只能选择已登记的方案，以及可选的精确优惠券值。 */
+/**
+ * 已认证的购买者只能选择已登记的方案，以及可选的精确优惠券值。
+ */
 public final class ApiV3MembershipOpeningInputs {
-    private ApiV3MembershipOpeningInputs() { }
+    private ApiV3MembershipOpeningInputs() {
+    }
+
     public record Opening(String levelId, String couponCode) {
         public JSONObject normalized() {
             return new JSONObject().put("levelId", levelId).put("couponCode", couponCode);
         }
     }
+
     public static Opening parse(final JSONObject body) {
         if (body == null || !Set.of("levelId", "couponCode").containsAll(body.keySet())
                 || !(body.opt("levelId") instanceof String id) || !id.matches("[1-9][0-9]{0,18}"))

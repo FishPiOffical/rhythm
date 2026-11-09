@@ -20,17 +20,22 @@ package org.b3log.symphony.util;
 
 import org.b3log.symphony.model.ApiV3ChatEvent;
 import org.json.JSONObject;
+
 import java.util.List;
 
-/** 按后端实例跟踪已提交事件的游标，遇到断档时要求客户端通过 HTTP 同步。 */
+/**
+ * 按后端实例跟踪已提交事件的游标，遇到断档时要求客户端通过 HTTP 同步。
+ */
 public final class ApiV3ChatStream {
     public interface Source {
         long head() throws Exception;
+
         List<JSONObject> after(long revision, long through, int limit) throws Exception;
     }
 
     public interface Sink {
         void changed(String kind, String messageId, long revision);
+
         void syncRequired();
     }
 
@@ -88,6 +93,7 @@ public final class ApiV3ChatStream {
             }
         }
     }
+
     private void probe(long head) throws Exception {
         if (!source.after(head, head, 200).isEmpty())
             throw new IllegalStateException("invalid chat event probe");

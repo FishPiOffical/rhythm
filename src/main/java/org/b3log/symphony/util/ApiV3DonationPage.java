@@ -21,11 +21,15 @@ package org.b3log.symphony.util;
 import java.net.URI;
 import java.util.Locale;
 import java.util.Set;
+
 import org.json.JSONObject;
 
-/** 返回配置站点的捐助页面链接，不创建支付单或浏览器会话。 */
+/**
+ * 返回配置站点的捐助页面链接，不创建支付单或浏览器会话。
+ */
 public final class ApiV3DonationPage {
-    private ApiV3DonationPage() { }
+    private ApiV3DonationPage() {
+    }
 
     public static JSONObject link(final String configuredSite, final boolean development) {
         try {

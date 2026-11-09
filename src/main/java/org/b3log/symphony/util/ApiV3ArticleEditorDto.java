@@ -23,12 +23,17 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.json.JSONObject;
 
-/** 仅向文章所有者提供编辑源文。原始 Markdown 和思绪记录不可当作已渲染 HTML。 */
+/**
+ * 仅向文章所有者提供编辑源文。原始 Markdown 和思绪记录不可当作已渲染 HTML。
+ */
 public final class ApiV3ArticleEditorDto {
-    private ApiV3ArticleEditorDto() { }
+    private ApiV3ArticleEditorDto() {
+    }
+
     public static String sql(final String articleTable, final String chapterTable, final String columnTable) {
         for (final String table : new String[]{articleTable, chapterTable, columnTable}) {
-            if (null == table || !table.matches("[A-Za-z0-9_]+")) throw new IllegalArgumentException("invalid internal table identifier");
+            if (null == table || !table.matches("[A-Za-z0-9_]+"))
+                throw new IllegalArgumentException("invalid internal table identifier");
         }
         return "SELECT a.oId,a.articleTitle,a.articleContent,a.articleTags,a.articleType,a.articleRewardContent,"
                 + "a.articleRewardPoint,a.articleQnAOfferPoint,a.articleCommentable,a.articleShowInList,a.articleStatement,"
@@ -39,6 +44,7 @@ public final class ApiV3ArticleEditorDto {
                 + "LEFT JOIN `" + columnTable + "` c ON c.oId=h.columnId AND c.columnAuthorId=a.articleAuthorId AND c.columnStatus=" + LongArticleColumn.COLUMN_STATUS_C_VALID + " "
                 + "WHERE a.oId=? AND a.articleAuthorId=? LIMIT 1";
     }
+
     public static JSONObject from(final JSONObject row) {
         final Object commentable = row.opt(Article.ARTICLE_COMMENTABLE);
         return new JSONObject().put("id", row.optString(Keys.OBJECT_ID))

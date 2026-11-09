@@ -19,46 +19,134 @@
 package org.b3log.symphony.service;
 
 import java.sql.*;
+
 import org.b3log.latke.Latkes;
+
 import java.util.*;
+
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.*;
 import org.testng.Assert;
 
-/** 通过隔离 JDBC 执行实际专栏服务和查询 SQL。 */
+/**
+ * 通过隔离 JDBC 执行实际专栏服务和查询 SQL。
+ */
 public class ApiV3PublicColumnQueryTest {
     static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
         final ApiV3PublicColumnQueryService service = new ApiV3PublicColumnQueryService();
         boolean fail;
+
         Fixture() throws Exception {
             sql("CREATE TABLE x_user(oId TEXT PRIMARY KEY,userStatus INT)");
             sql("CREATE TABLE x_column(oId TEXT PRIMARY KEY,columnTitle TEXT,columnCoverURL TEXT,columnAuthorId TEXT,columnStatus INT,columnArticleCount INT,columnUpdateTime INT)");
             sql("CREATE TABLE x_article(oId TEXT PRIMARY KEY,articleAuthorId TEXT,articleStatus INT,articleType INT,articleAnonymous INT,articleShowInList INT,articleTags TEXT,articleAnonymousView INT,articleTitle TEXT,articlePermalink TEXT,articleCreateTime INT,articleUpdateTime INT,articleContent TEXT)");
             sql("CREATE TABLE x_chapter(oId TEXT PRIMARY KEY,columnId TEXT,articleId TEXT UNIQUE,chapterNo INT,chapterCreateTime INT)");
-            inject("columns", new LongArticleColumnRepository(){public String getName(){return "x_column";}public List<JSONObject> select(String q,Object...a)throws RepositoryException{return query(q,a);}});
-            inject("chapters", new LongArticleChapterRepository(){public String getName(){return "x_chapter";}});
-            inject("articles", new ArticleRepository(){public String getName(){return "x_article";}});
-            inject("users", new UserRepository(){public String getName(){return "x_user";}});
+            inject("columns", new LongArticleColumnRepository() {
+                public String getName() {
+                    return "x_column";
+                }
+
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException {
+                    return query(q, a);
+                }
+            });
+            inject("chapters", new LongArticleChapterRepository() {
+                public String getName() {
+                    return "x_chapter";
+                }
+            });
+            inject("articles", new ArticleRepository() {
+                public String getName() {
+                    return "x_article";
+                }
+            });
+            inject("users", new UserRepository() {
+                public String getName() {
+                    return "x_user";
+                }
+            });
             sql("INSERT INTO x_user VALUES ('u',0),('blocked',1),('stopped',4),('login-only',3)");
-            column("1","u"); column("2","u"); column("3","blocked"); column("4","u");
-            article("101","1","u",1); article("102","1","u",2); article("201","2","u",1); article("301","3","blocked",1); article("401","4","u",1);
+            column("1", "u");
+            column("2", "u");
+            column("3", "blocked");
+            column("4", "u");
+            article("101", "1", "u", 1);
+            article("102", "1", "u", 2);
+            article("201", "2", "u", 1);
+            article("301", "3", "blocked", 1);
+            article("401", "4", "u", 1);
             sql("UPDATE x_article SET articleShowInList=0 WHERE oId='401'");
         }
-        void inject(String field,Object value)throws Exception{var f=ApiV3PublicColumnQueryService.class.getDeclaredField(field);f.setAccessible(true);f.set(service,value);}
-        void sql(String q,Object...a)throws SQLException{try(var s=db.prepareStatement(q)){for(int i=0;i<a.length;i++)s.setObject(i+1,a[i]);s.execute();}}
-        List<JSONObject> query(String q,Object...a)throws RepositoryException {if(fail)throw new RepositoryException("fixture");try(var s=db.prepareStatement(q)){for(int i=0;i<a.length;i++)s.setObject(i+1,a[i]);try(var rs=s.executeQuery()){List<JSONObject> result=new ArrayList<>();var m=rs.getMetaData();while(rs.next()){var row=new JSONObject();for(int i=1;i<=m.getColumnCount();i++)row.put(m.getColumnLabel(i),rs.getObject(i));result.add(row);}return result;}}catch(SQLException e){throw new RepositoryException(e);}}
-        void column(String id,String owner)throws SQLException{sql("INSERT INTO x_column VALUES (?,?,'',?,0,999,999999)",id,"Column "+id,owner);}
-        void article(String id,String col,String owner,int no)throws SQLException{sql("INSERT INTO x_article VALUES (?,?,0,6,0,1,'tag',0,?,?,100,?,?)",id,owner,"Chapter "+id,"/article/"+id,Integer.parseInt(id),"<b>visible</b><script>not HTML</script>");sql("INSERT INTO x_chapter VALUES (?,?,?,?,100)",id,col,id,no);}
-        public void close()throws SQLException{db.close();}
+
+        void inject(String field, Object value) throws Exception {
+            var f = ApiV3PublicColumnQueryService.class.getDeclaredField(field);
+            f.setAccessible(true);
+            f.set(service, value);
+        }
+
+        void sql(String q, Object... a) throws SQLException {
+            try (var s = db.prepareStatement(q)) {
+                for (int i = 0; i < a.length; i++) s.setObject(i + 1, a[i]);
+                s.execute();
+            }
+        }
+
+        List<JSONObject> query(String q, Object... a) throws RepositoryException {
+            if (fail) throw new RepositoryException("fixture");
+            try (var s = db.prepareStatement(q)) {
+                for (int i = 0; i < a.length; i++) s.setObject(i + 1, a[i]);
+                try (var rs = s.executeQuery()) {
+                    List<JSONObject> result = new ArrayList<>();
+                    var m = rs.getMetaData();
+                    while (rs.next()) {
+                        var row = new JSONObject();
+                        for (int i = 1; i <= m.getColumnCount(); i++) row.put(m.getColumnLabel(i), rs.getObject(i));
+                        result.add(row);
+                    }
+                    return result;
+                }
+            } catch (SQLException e) {
+                throw new RepositoryException(e);
+            }
+        }
+
+        void column(String id, String owner) throws SQLException {
+            sql("INSERT INTO x_column VALUES (?,?,'',?,0,999,999999)", id, "Column " + id, owner);
+        }
+
+        void article(String id, String col, String owner, int no) throws SQLException {
+            sql("INSERT INTO x_article VALUES (?,?,0,6,0,1,'tag',0,?,?,100,?,?)", id, owner, "Chapter " + id, "/article/" + id, Integer.parseInt(id), "<b>visible</b><script>not HTML</script>");
+            sql("INSERT INTO x_chapter VALUES (?,?,?,?,100)", id, col, id, no);
+        }
+
+        public void close() throws SQLException {
+            db.close();
+        }
     }
-    static JSONArray list(JSONObject p){return p.getJSONArray("list");}
-    static void status(int expected,Runnable r){try{r.run();throw new AssertionError("expected "+expected);}catch(ApiV3Exception e){Assert.assertEquals(e.status,expected);}}
-    public static void main(String[] args)throws Exception {
-        var props=new Properties();props.setProperty("runtimeDatabase","NONE");props.setProperty("contextPath","");Latkes.setLatkeProps(props);Latkes.setLocalProps(props);
-        try(var f=new Fixture()){
+
+    static JSONArray list(JSONObject p) {
+        return p.getJSONArray("list");
+    }
+
+    static void status(int expected, Runnable r) {
+        try {
+            r.run();
+            throw new AssertionError("expected " + expected);
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.status, expected);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
+        try (var f = new Fixture()) {
             var page = f.service.list(null, 1, 1, true);
             Assert.assertEquals(page.getJSONObject("pagination").getLong("total"), 2L);
             Assert.assertEquals(list(page).getJSONObject(0).getString("id"), "1");
@@ -67,7 +155,7 @@ public class ApiV3PublicColumnQueryTest {
             Assert.assertEquals(f.service.detail(null, "1").getJSONArray("chapters").getJSONObject(0).getString("id"), "101");
             System.out.println("PASS public column 1 current visible counts, hot order and ascending detail replace stale stored totals/time");
         }
-        for(String predicate:List.of("articleAnonymous=1","articleShowInList=0","articleStatus=1","articleType=0","articleTags='Sandbox'","articleTags='B3log-private'")){
+        for (String predicate : List.of("articleAnonymous=1", "articleShowInList=0", "articleStatus=1", "articleType=0", "articleTags='Sandbox'", "articleTags='B3log-private'")) {
             try (var f = new Fixture()) {
                 f.sql("UPDATE x_article SET " + predicate + " WHERE oId='102'");
                 var detail = f.service.detail(null, "1");
@@ -150,7 +238,7 @@ public class ApiV3PublicColumnQueryTest {
             Assert.assertEquals(list(f.service.list(null, 2, 1, false)).length(), 0);
         }
         System.out.println("PASS public column 8 eligibility precedes board page/count so hidden-only columns leave no holes or raw-count signals");
-        try(var f=new Fixture()){
+        try (var f = new Fixture()) {
             var context = f.service.articleContext(null, "101");
             Assert.assertEquals(context.getString("articleId"), "101");
             Assert.assertEquals(context.getInt("chapterNo"), 1);
@@ -159,7 +247,7 @@ public class ApiV3PublicColumnQueryTest {
             Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"), 2);
             Assert.assertFalse(context.toString().contains("articleContent"));
             Assert.assertFalse(context.getJSONObject("column").has("chapters"));
-            Assert.assertEquals(f.service.articleContext(null,"102").getJSONObject("previous").getString("id"),"101");
+            Assert.assertEquals(f.service.articleContext(null, "102").getJSONObject("previous").getString("id"), "101");
             f.sql("UPDATE x_article SET articleShowInList=0 WHERE oId='101'");
             Assert.assertTrue(f.service.articleContext(null, "101").isNull("column"));
             context = f.service.articleContext(null, "102");
@@ -167,7 +255,7 @@ public class ApiV3PublicColumnQueryTest {
             Assert.assertEquals(context.getJSONObject("column").getInt("articleCount"), 1);
         }
         System.out.println("PASS public column 10 bounded current article context and neighbors use the visible chapter order/count");
-        try(var f=new Fixture()){
+        try (var f = new Fixture()) {
             f.sql("DELETE FROM x_chapter WHERE articleId='101'");
             Assert.assertTrue(f.service.articleContext(null, "101").isNull("column"));
             f.sql("UPDATE x_article SET articleType=0 WHERE oId='102'");
@@ -178,7 +266,7 @@ public class ApiV3PublicColumnQueryTest {
             status(404, () -> f.service.articleContext(null, "101"));
         }
         System.out.println("PASS public column 11 unassigned/non-long return null, missing/inactive authors 404, malformed article ID 422");
-        try(var f=new Fixture()){
+        try (var f = new Fixture()) {
             f.sql("UPDATE x_article SET articleAnonymousView=1 WHERE oId='101'");
             status(404, () -> f.service.articleContext(null, "101"));
             Assert.assertFalse(f.service.articleContext(new JSONObject(), "101").isNull("column"));
@@ -188,7 +276,7 @@ public class ApiV3PublicColumnQueryTest {
             Assert.assertTrue(f.service.articleContext(new JSONObject().put("oId", "u"), "101").isNull("column"));
         }
         System.out.println("PASS public column 12 anonymous-view and discussion permissions checked before disclosing even absent associations");
-        try(var f=new Fixture()){
+        try (var f = new Fixture()) {
             for (int i = 3; i < 100; i++) f.article("" + (100 + i), "1", "u", i);
             var context = f.service.articleContext(null, "150");
             Assert.assertEquals(context.getJSONObject("previous").getString("id"), "149");

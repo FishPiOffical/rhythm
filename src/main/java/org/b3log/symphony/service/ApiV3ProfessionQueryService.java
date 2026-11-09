@@ -33,51 +33,71 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 只投影展示元数据和本人状态，隐藏权限授予、效果及配置 JSON。 */
+/**
+ * 只投影展示元数据和本人状态，隐藏权限授予、效果及配置 JSON。
+ */
 @Service
 public class ApiV3ProfessionQueryService {
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
             "majorContributions", "contributionStats", "activityFeed", "levelHistory", "rewards", "ranking");
     private static final Set<String> SCOPES = Set.of("PUBLIC", "LOGGED_IN", "SELF", "HIDDEN");
-    @Inject private UserRepository users;
-    @Inject private ProfessionRepository professions;
-    @Inject private ProfessionRevisionRepository revisions;
-    @Inject private ProfessionLevelRepository levels;
-    @Inject private UserProfessionRepository progress;
-    @Inject private UserProfessionPrivacyRepository privacy;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ProfessionRepository professions;
+    @Inject
+    private ProfessionRevisionRepository revisions;
+    @Inject
+    private ProfessionLevelRepository levels;
+    @Inject
+    private UserProfessionRepository progress;
+    @Inject
+    private UserProfessionPrivacyRepository privacy;
 
-    @FunctionalInterface private interface Read { JSONObject run() throws RepositoryException; }
+    @FunctionalInterface
+    private interface Read {
+        JSONObject run() throws RepositoryException;
+    }
+
     private JSONObject read(final Read action) {
-        try { return action.run(); }
-        catch (final RepositoryException | org.json.JSONException e) {
+        try {
+            return action.run();
+        } catch (final RepositoryException | org.json.JSONException e) {
             LogManager.getLogger(getClass()).warn("Profession read unavailable");
             throw unavailable();
         }
     }
+
     private static ApiV3Exception unavailable() {
         return new ApiV3Exception(503, "temporarily_unavailable", "职业资料暂不可用");
     }
+
     private static void page(final int p, final int size) {
         if (p < 1 || p > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
     }
+
     private void requireActor(final String actor) throws RepositoryException {
         if (actor == null || !actor.matches("[1-9][0-9]{0,31}")) throw ApiV3Requests.invalid();
         if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor,
                 UserExt.USER_STATUS_C_VALID).size() != 1) throw ApiV3Requests.notFound();
     }
+
     private static String text(final JSONObject row, final String key) {
         final String value = row.optString(key);
         if (value.length() > 8192) throw unavailable();
         return value;
     }
+
     private static JSONObject definition(final JSONObject row) {
         if (row.optString("displayName").isBlank() || row.optString("professionId").isBlank()) throw unavailable();
         return new JSONObject().put("professionId", row.getString("professionId"))
                 .put("professionCode", text(row, "professionCode")).put("displayName", text(row, "displayName"))
                 .put("shortName", text(row, "shortName")).put("description", text(row, "description"));
     }
+
     public JSONObject catalog(final int p, final int size) {
         page(p, size);
         return read(() -> {
@@ -91,6 +111,7 @@ public class ApiV3ProfessionQueryService {
             return ApiV3Requests.pagination(list, p, size, total);
         });
     }
+
     public JSONObject mine(final String actor, final int p, final int size) {
         page(p, size);
         return read(() -> {
@@ -110,7 +131,8 @@ public class ApiV3ProfessionQueryService {
             for (final JSONObject row : rows) {
                 final long experience = row.getLong("totalExperience");
                 if (experience < 0 || row.optString("levelName").isBlank()
-                        || !Set.of("PUBLISHED", "RETIRED").contains(row.optString("revisionStatus"))) throw unavailable();
+                        || !Set.of("PUBLISHED", "RETIRED").contains(row.optString("revisionStatus")))
+                    throw unavailable();
                 list.put(definition(row).put("state", "PUBLISHED".equals(row.optString("professionStatus")) ? "ACTIVE" : "RETIRED")
                         .put("totalExperience", experience).put("levelCode", text(row, "levelCode"))
                         .put("levelName", text(row, "levelName")).put("levelDescription", text(row, "levelDescription"))
@@ -121,6 +143,7 @@ public class ApiV3ProfessionQueryService {
             return ApiV3Requests.pagination(list, p, size, total).put("state", state);
         });
     }
+
     private JSONObject state(final String actor) throws RepositoryException {
         final var rows = privacy.select("SELECT onboardingState,primaryProfessionId,privacyPreset,moduleVisibilityJson FROM `"
                 + privacy.getName() + "` WHERE userId=? LIMIT 2", actor);
@@ -141,7 +164,8 @@ public class ApiV3ProfessionQueryService {
             final JSONObject raw = new JSONObject(json);
             if (!raw.keySet().equals(MODULES)) throw unavailable();
             for (final String module : MODULES) {
-                if (!(raw.get(module) instanceof String) || !SCOPES.contains(raw.getString(module))) throw unavailable();
+                if (!(raw.get(module) instanceof String) || !SCOPES.contains(raw.getString(module)))
+                    throw unavailable();
                 visibility.put(module, raw.getString(module));
             }
         }

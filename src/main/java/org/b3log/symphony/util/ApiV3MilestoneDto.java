@@ -21,9 +21,13 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Milestone;
 import org.json.JSONObject;
 
-/** 仅向本人投影投稿所需字段，省略完整记录、作者对象及私有账号元数据。 */
+/**
+ * 仅向本人投影投稿所需字段，省略完整记录、作者对象及私有账号元数据。
+ */
 public final class ApiV3MilestoneDto {
-    private ApiV3MilestoneDto() { }
+    private ApiV3MilestoneDto() {
+    }
+
     public static JSONObject owned(final JSONObject row) {
         final JSONObject dto = ApiV3CommunityDto.milestone(row, "", row.optString(Milestone.MILESTONE_CONTENT));
         dto.remove("contentHtml");

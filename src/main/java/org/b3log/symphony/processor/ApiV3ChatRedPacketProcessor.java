@@ -24,6 +24,7 @@ import org.b3log.latke.ioc.*;
 import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.service.ApiV3ChatRedPacketService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -38,9 +39,9 @@ public class ApiV3ChatRedPacketProcessor {
     }
 
     public static void registerRoutes(ApiV3ChatRedPacketProcessor processor, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.post("/api/v3/chat/red-packets",processor::create,auth::contentWrite,auth::activityWrite,writes::handle);
-        Dispatcher.get("/api/v3/chat/red-packets/{id}",processor::detail,auth::contentRead);
-        Dispatcher.post("/api/v3/chat/red-packets/{id}/claims",processor::claim,auth::activityWrite,writes::handle);
+        Dispatcher.post("/api/v3/chat/red-packets", processor::create, auth::contentWrite, auth::activityWrite, writes::handle);
+        Dispatcher.get("/api/v3/chat/red-packets/{id}", processor::detail, auth::contentRead);
+        Dispatcher.post("/api/v3/chat/red-packets/{id}/claims", processor::claim, auth::activityWrite, writes::handle);
     }
 
     public void create(RequestContext c) {

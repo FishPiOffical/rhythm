@@ -25,6 +25,7 @@ import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.service.ApiV3PostExportService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -41,9 +42,9 @@ public class ApiV3PostExportProcessor {
     }
 
     public static void registerRoutes(ApiV3PostExportProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.post("/api/v3/me/exports/posts",p::create,auth::settingsWrite,auth::profileRead,writes::handle);
-        Dispatcher.get("/api/v3/me/exports/posts/{jobId}",p::status,auth::profileRead);
-        Dispatcher.get("/api/v3/me/exports/posts/{jobId}/download",p::download,auth::profileRead);
+        Dispatcher.post("/api/v3/me/exports/posts", p::create, auth::settingsWrite, auth::profileRead, writes::handle);
+        Dispatcher.get("/api/v3/me/exports/posts/{jobId}", p::status, auth::profileRead);
+        Dispatcher.get("/api/v3/me/exports/posts/{jobId}/download", p::download, auth::profileRead);
     }
 
     private static JSONObject identity(RequestContext c) {

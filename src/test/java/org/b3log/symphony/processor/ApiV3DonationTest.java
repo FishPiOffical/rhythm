@@ -19,6 +19,7 @@
 package org.b3log.symphony.processor;
 
 import java.util.*;
+
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.*;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
@@ -27,7 +28,9 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import io.netty.handler.codec.http.*;
 
-/** 通过实际路由验证鉴权和响应边界，令牌持久层由夹具适配。 */
+/**
+ * 通过实际路由验证鉴权和响应边界，令牌持久层由夹具适配。
+ */
 public class ApiV3DonationTest {
     static void check(boolean value) {
         if (!value) throw new AssertionError();
@@ -53,6 +56,7 @@ public class ApiV3DonationTest {
             raw.release();
         }
     }
+
     public static void main(String[] args) throws Exception {
         for (String site : List.of("https://fishpi.cn", "https://fishpi.cn/", "https://fishpi.cn/rhythm")) {
             var data = ApiV3DonationPage.link(site, false);
@@ -61,11 +65,11 @@ public class ApiV3DonationTest {
             data.put("url", "evil");
             check(!ApiV3DonationPage.link(site, false).getString("url").equals("evil"));
         }
-        check(ApiV3DonationPage.link("http://localhost:8080",true).getString("url").equals("http://localhost:8080/charge/point"));
-        check(ApiV3DonationPage.link("http://127.0.0.1:8080",true).getString("url").contains("127.0.0.1"));
-        check(ApiV3DonationPage.link("http://[::1]:8080",true).getString("url").contains("[::1]"));
+        check(ApiV3DonationPage.link("http://localhost:8080", true).getString("url").equals("http://localhost:8080/charge/point"));
+        check(ApiV3DonationPage.link("http://127.0.0.1:8080", true).getString("url").contains("127.0.0.1"));
+        check(ApiV3DonationPage.link("http://[::1]:8080", true).getString("url").contains("[::1]"));
         System.out.println("PASS donation 1 fixed page path, configured context prefix, production HTTPS/development loopback and isolated response");
-        for(String site:Arrays.asList(null,"","https://user:pass@fishpi.cn","https://fishpi.cn?next=evil","https://fishpi.cn/#x","javascript:alert(1)","//evil.invalid","http://fishpi.cn","https://fishpi.cn:0","https://fishpi.cn:65536","https://fishpi.cn:","https://fishpi.cn/a/../b","https://fishpi.cn//a","https://fishpi.cn\n")) {
+        for (String site : Arrays.asList(null, "", "https://user:pass@fishpi.cn", "https://fishpi.cn?next=evil", "https://fishpi.cn/#x", "javascript:alert(1)", "//evil.invalid", "http://fishpi.cn", "https://fishpi.cn:0", "https://fishpi.cn:65536", "https://fishpi.cn:", "https://fishpi.cn/a/../b", "https://fishpi.cn//a", "https://fishpi.cn\n")) {
             try {
                 ApiV3DonationPage.link(site, true);
                 throw new AssertionError(site);

@@ -25,10 +25,13 @@ import org.b3log.latke.repository.jdbc.util.RepositoryDefinition;
 import org.b3log.symphony.util.ApiV3ArticlePolicy;
 import org.b3log.symphony.util.ApiV3ContentSnapshots;
 import org.b3log.symphony.util.ApiV3Exception;
+
 import java.sql.DriverManager;
 import java.util.List;
 
-/** 依赖临时 MySQL 中的当前内容夹具，并使用随包发布的 Latke 映射器。 */
+/**
+ * 依赖临时 MySQL 中的当前内容夹具，并使用随包发布的 Latke 映射器。
+ */
 public final class ApiV3ArticlePolicyJdbcTest {
     private static void check(boolean value) {
         if (!value) throw new AssertionError();

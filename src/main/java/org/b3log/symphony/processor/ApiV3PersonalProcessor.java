@@ -28,7 +28,9 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3PersonalQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** 个人资源的用户身份来自当前认证，查询参数、路径及正文均不接收目标用户。 */
+/**
+ * 个人资源的用户身份来自当前认证，查询参数、路径及正文均不接收目标用户。
+ */
 @Singleton
 public class ApiV3PersonalProcessor {
     @Inject
@@ -51,27 +53,35 @@ public class ApiV3PersonalProcessor {
     public void settings(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.settings(ApiV3Requests.viewer(context)));
     }
+
     public void checkin(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.checkin(ApiV3Requests.viewer(context)));
     }
+
     public void bag(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.bag(userId(context)));
     }
+
     public void points(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.points(userId(context), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void drafts(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.drafts(userId(context), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void draft(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.draft(userId(context), ApiV3Requests.id(context, "draftId")));
     }
+
     public void columns(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.columns(userId(context), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void articleSource(final RequestContext context) {
         ApiV3Requests.read(context, () -> personal.articleSource(userId(context), ApiV3Requests.id(context, "articleId")));
     }
+
     private static String userId(final RequestContext context) {
         return ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID);
     }

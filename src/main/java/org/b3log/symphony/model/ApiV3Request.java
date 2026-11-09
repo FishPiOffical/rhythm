@@ -18,9 +18,13 @@
  */
 package org.b3log.symphony.model;
 
-/** 已提交的 v3 幂等写入结果，幂等键明文和 Bearer 凭据不入库。 */
+/**
+ * 已提交的 v3 幂等写入结果，幂等键明文和 Bearer 凭据不入库。
+ */
 public final class ApiV3Request {
-    private ApiV3Request() { }
+    private ApiV3Request() {
+    }
+
     public static final String API_V3_REQUEST = "api_v3_request";
     public static final String USER_ID = "userId";
     public static final String OPERATION = "operation";

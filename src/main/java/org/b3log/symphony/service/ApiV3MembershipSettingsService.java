@@ -36,16 +36,24 @@ import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
+
 import java.math.BigDecimal;
 
-/** 只更新会员展示设置，保留权益、有效期、状态和档位字段。 */
+/**
+ * 只更新会员展示设置，保留权益、有效期、状态和档位字段。
+ */
 @Service
 public class ApiV3MembershipSettingsService {
-    @Inject private UserRepository users;
-    @Inject private MembershipRepository memberships;
-    @Inject private MembershipLevelRepository levels;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private MembershipCache cache;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MembershipRepository memberships;
+    @Inject
+    private MembershipLevelRepository levels;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private MembershipCache cache;
 
     public JSONObject update(final String actor, final JSONObject body, final String key) throws Exception {
         id(actor);
@@ -84,22 +92,24 @@ public class ApiV3MembershipSettingsService {
             if (!requests.hasTransactionBegun()) {
                 try {
                     cache.remove(actor);
-                } catch (final RuntimeException ignored) { }
+                } catch (final RuntimeException ignored) {
+                }
             }
         }
     }
+
     public JSONObject updateInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
         id(actor);
         final JSONObject changes = ApiV3MembershipConfiguration.validateChanges(body);
         if (!requests.hasTransactionBegun()) throw new IllegalStateException("membership config transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
             owner(actor);
-            final var hint = memberships.select("SELECT lvCode FROM `"+memberships.getName()+"` WHERE userId=? LIMIT 2",actor);
+            final var hint = memberships.select("SELECT lvCode FROM `" + memberships.getName() + "` WHERE userId=? LIMIT 2", actor);
             if (hint.isEmpty()) throw ApiV3Requests.notFound();
-            if (hint.size()!=1 || !(hint.getFirst().opt("lvCode") instanceof String code) || code.isBlank() || code.length()>32)
+            if (hint.size() != 1 || !(hint.getFirst().opt("lvCode") instanceof String code) || code.isBlank() || code.length() > 32)
                 throw ApiV3MembershipConfiguration.unavailable();
-            final var definitions = levels.select("SELECT oId,lvCode,benefits FROM `"+levels.getName()+"` WHERE lvCode=? ORDER BY oId ASC LIMIT 65 FOR UPDATE",code);
-            if (definitions.isEmpty() || definitions.size()>64) throw ApiV3MembershipConfiguration.unavailable();
+            final var definitions = levels.select("SELECT oId,lvCode,benefits FROM `" + levels.getName() + "` WHERE lvCode=? ORDER BY oId ASC LIMIT 65 FOR UPDATE", code);
+            if (definitions.isEmpty() || definitions.size() > 64) throw ApiV3MembershipConfiguration.unavailable();
             JSONObject definition = null, display = null;
             for (final JSONObject row : definitions) {
                 if (!code.equals(row.optString("lvCode"))) throw ApiV3MembershipConfiguration.unavailable();
@@ -110,30 +120,34 @@ public class ApiV3MembershipSettingsService {
                     display = candidate;
                 }
             }
-            final var rows = memberships.select("SELECT oId,userId,lvCode,state,expiresAt,configJson FROM `"+memberships.getName()+"` WHERE userId=? LIMIT 2 FOR UPDATE",actor);
+            final var rows = memberships.select("SELECT oId,userId,lvCode,state,expiresAt,configJson FROM `" + memberships.getName() + "` WHERE userId=? LIMIT 2 FOR UPDATE", actor);
             if (rows.isEmpty()) throw ApiV3Requests.notFound();
-            if (rows.size()!=1) throw ApiV3MembershipConfiguration.unavailable();
+            if (rows.size() != 1) throw ApiV3MembershipConfiguration.unavailable();
             final JSONObject current = rows.getFirst();
-            if (!actor.equals(current.optString("userId")) || !code.equals(current.optString("lvCode"))) throw ApiV3MembershipConfiguration.unavailable();
+            if (!actor.equals(current.optString("userId")) || !code.equals(current.optString("lvCode")))
+                throw ApiV3MembershipConfiguration.unavailable();
             final long state = integer(current.opt("state")), expiry = integer(current.opt("expiresAt"));
             if (state != 1 || expiry != 0 && expiry <= now()) throw ApiV3Requests.notFound();
             if (!(current.opt("configJson") instanceof String config)) throw ApiV3MembershipConfiguration.unavailable();
-            final JSONObject merged = ApiV3MembershipConfiguration.merge(definition,config,changes);
-            final int count=ApiV3TransactionStatements.execute("UPDATE `"+memberships.getName()+"` SET configJson=?,updatedAt=? WHERE oId=? AND userId=?",merged.toString(),now(),current.getString("oId"),actor);
-            if(count!=1) throw ApiV3MembershipConfiguration.unavailable();
-            return new JSONObject().put("config",ApiV3MembershipConfiguration.publicConfig(merged));
+            final JSONObject merged = ApiV3MembershipConfiguration.merge(definition, config, changes);
+            final int count = ApiV3TransactionStatements.execute("UPDATE `" + memberships.getName() + "` SET configJson=?,updatedAt=? WHERE oId=? AND userId=?", merged.toString(), now(), current.getString("oId"), actor);
+            if (count != 1) throw ApiV3MembershipConfiguration.unavailable();
+            return new JSONObject().put("config", ApiV3MembershipConfiguration.publicConfig(merged));
         });
     }
+
     protected long now() {
         return System.currentTimeMillis();
     }
+
     private void owner(final String actor) throws RepositoryException {
-        final var rows=users.select("SELECT oId,userStatus FROM `"+users.getName()+"` WHERE oId=? FOR UPDATE",actor);
-        if(rows.size()!=1 || !actor.equals(rows.getFirst().optString("oId")) || integer(rows.getFirst().opt("userStatus"))!=UserExt.USER_STATUS_C_VALID)
+        final var rows = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
+        if (rows.size() != 1 || !actor.equals(rows.getFirst().optString("oId")) || integer(rows.getFirst().opt("userStatus")) != UserExt.USER_STATUS_C_VALID)
             throw ApiV3Requests.notFound();
     }
+
     private static long integer(final Object value) {
-        if(!(value instanceof Number number)) throw ApiV3MembershipConfiguration.unavailable();
+        if (!(value instanceof Number number)) throw ApiV3MembershipConfiguration.unavailable();
         try {
             final long n = new BigDecimal(number.toString()).longValueExact();
             if (n < 0)
@@ -143,5 +157,8 @@ public class ApiV3MembershipSettingsService {
             throw ApiV3MembershipConfiguration.unavailable();
         }
     }
-    private static void id(final String actor) { if(actor==null || !actor.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.invalid(); }
+
+    private static void id(final String actor) {
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
+    }
 }

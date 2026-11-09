@@ -30,13 +30,20 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 复读内容、职业来源事件和重放回执在同一个严格根事务中提交。 */
+/**
+ * 复读内容、职业来源事件和重放回执在同一个严格根事务中提交。
+ */
 @Service
 public class ApiV3RepeaterPublicationService {
-    @Inject private UserRepository users;
-    @Inject private RepeaterContentRepository contents;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private ProfessionSourceEventCaptureService capture;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private RepeaterContentRepository contents;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private ProfessionSourceEventCaptureService capture;
+
     public JSONObject publish(final String actor, final JSONObject body, final String key) throws Exception {
         RepeaterLikeMutationService.id(actor);
         final JSONObject normalized = ApiV3RepeaterPublicationInputs.normalize(body);
@@ -71,10 +78,12 @@ public class ApiV3RepeaterPublicationService {
             throw RepeaterLikeMutationService.unavailable();
         }
     }
+
     public JSONObject publishInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
         RepeaterLikeMutationService.id(actor);
         final JSONObject normalized = ApiV3RepeaterPublicationInputs.normalize(body);
-        if (!requests.hasTransactionBegun()) throw new IllegalStateException("repeater publication transaction required");
+        if (!requests.hasTransactionBegun())
+            throw new IllegalStateException("repeater publication transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
             RepeaterLikeMutationService.owner(users, actor);
             final String id = Ids.genTimeMillisId();
@@ -89,9 +98,11 @@ public class ApiV3RepeaterPublicationService {
             return new JSONObject().put("id", id).put("type", normalized.getString("type")).put("createdTime", now);
         });
     }
+
     private static JSONObject result(final JSONObject stored) {
-        final String id=stored.getString("id"), type=stored.getString("type");
-        if (!id.matches("[1-9][0-9]{0,18}") || !RepeaterContent.isSupportedType(type) || stored.getLong("createdTime") < 0) throw RepeaterLikeMutationService.unavailable();
+        final String id = stored.getString("id"), type = stored.getString("type");
+        if (!id.matches("[1-9][0-9]{0,18}") || !RepeaterContent.isSupportedType(type) || stored.getLong("createdTime") < 0)
+            throw RepeaterLikeMutationService.unavailable();
         return new JSONObject().put("id", id).put("type", type).put("createdTime", stored.getLong("createdTime"));
     }
 }

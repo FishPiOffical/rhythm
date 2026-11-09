@@ -29,25 +29,31 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3ProfessionPublicQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** 公开职业信息显式使用当前读者，不从页面凭据推导其身份。 */
+/**
+ * 公开职业信息显式使用当前读者，不从页面凭据推导其身份。
+ */
 @Singleton
 public class ApiV3ProfessionPublicProcessor {
     @Inject
     private ApiV3ProfessionPublicQueryService query;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ProfessionPublicProcessor.class), beans.getReference(ApiV3AuthMidware.class),
                 beans.getReference(AnonymousViewCheckMidware.class));
     }
+
     public static void registerRoutes(final ApiV3ProfessionPublicProcessor p, final ApiV3AuthMidware auth,
                                       final AnonymousViewCheckMidware anonymous) {
-        Dispatcher.get("/api/v3/users/{userName}/professions",p::profile,auth::optionalProfile,anonymous::handle);
-        Dispatcher.get("/api/v3/users/{userName}/professions/summary",p::summary,auth::optionalProfile,anonymous::handle);
+        Dispatcher.get("/api/v3/users/{userName}/professions", p::profile, auth::optionalProfile, anonymous::handle);
+        Dispatcher.get("/api/v3/users/{userName}/professions/summary", p::summary, auth::optionalProfile, anonymous::handle);
     }
+
     public void summary(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.summary(ApiV3Requests.text(c.pathVar("userName"), 64, true),
                 ApiV3Requests.viewer(c) == null ? "" : ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID)));
     }
+
     public void profile(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.profile(ApiV3Requests.text(c.pathVar("userName"), 64, true),
                 ApiV3Requests.viewer(c) == null ? "" : ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID)));

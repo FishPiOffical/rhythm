@@ -39,6 +39,7 @@ import org.b3log.symphony.service.ApiV3RealtimeTargetService;
 import org.b3log.symphony.service.ApiV3RealtimeService;
 import org.b3log.symphony.repository.ApiV3ChatEventRepository;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -61,11 +62,11 @@ public class ApiV3RealtimeProcessor {
         final var p = beans.getReference(ApiV3RealtimeProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.post("/api/v3/realtime/tickets",p::ticket,auth::notificationsRead,writes::handle);
-        Dispatcher.post("/api/v3/articles/{articleId}/realtime-ticket",p::articleTicket,auth::contentRead,writes::handle);
-        Dispatcher.post("/api/v3/chat/realtime-ticket",p::chatTicket,auth::contentRead,writes::handle);
-        Dispatcher.post("/api/v3/me/messages/realtime-ticket",p::messagesTicket,auth::messagesRead,writes::handle);
-        Dispatcher.webSocket("/api/v3/realtime",beans.getReference(ApiV3RealtimeChannel.class));
+        Dispatcher.post("/api/v3/realtime/tickets", p::ticket, auth::notificationsRead, writes::handle);
+        Dispatcher.post("/api/v3/articles/{articleId}/realtime-ticket", p::articleTicket, auth::contentRead, writes::handle);
+        Dispatcher.post("/api/v3/chat/realtime-ticket", p::chatTicket, auth::contentRead, writes::handle);
+        Dispatcher.post("/api/v3/me/messages/realtime-ticket", p::messagesTicket, auth::messagesRead, writes::handle);
+        Dispatcher.webSocket("/api/v3/realtime", beans.getReference(ApiV3RealtimeChannel.class));
         beans.getReference(ApiV3RealtimeService.class).start();
     }
 

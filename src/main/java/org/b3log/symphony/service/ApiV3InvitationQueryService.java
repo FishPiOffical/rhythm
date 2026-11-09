@@ -29,16 +29,22 @@ import org.b3log.symphony.util.ApiV3Invitation;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** 查询单个指定邀请码的状态，隐藏预留和所有者字段。 */
+/**
+ * 查询单个指定邀请码的状态，隐藏预留和所有者字段。
+ */
 @Service
 public class ApiV3InvitationQueryService {
-    @Inject private UserRepository users;
-    @Inject private InvitecodeRepository invitations;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private InvitecodeRepository invitations;
+
     private void requireActor(final String actor) throws RepositoryException {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
         if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor,
                 UserExt.USER_STATUS_C_VALID).size() != 1) throw ApiV3Requests.notFound();
     }
+
     public JSONObject status(final String actor, final String supplied) {
         final String code = ApiV3Invitation.code(supplied);
         try {

@@ -26,11 +26,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** 独立解析有界的 UTF-8 OAuth 表单参数，不读取框架合并后的查询和请求体参数。 */
+/**
+ * 独立解析有界的 UTF-8 OAuth 表单参数，不读取框架合并后的查询和请求体参数。
+ */
 public final class ApiV3OAuthForms {
     public static final int MAX_BYTES = 32768;
 
-    private ApiV3OAuthForms() { }
+    private ApiV3OAuthForms() {
+    }
 
     private static ApiV3Exception invalid() {
         return new ApiV3Exception(400, "invalid_request", "请求参数不合法");
@@ -73,10 +76,11 @@ public final class ApiV3OAuthForms {
         }
         return Map.copyOf(result);
     }
+
     private static String decode(String value) {
         try {
             final var bytes = new ByteArrayOutputStream();
-            for (int i = 0; i < value.length();) {
+            for (int i = 0; i < value.length(); ) {
                 final char c = value.charAt(i);
                 if (c == '%') {
                     if (i + 2 >= value.length())
@@ -105,6 +109,7 @@ public final class ApiV3OAuthForms {
             throw invalid();
         }
     }
+
     public static String required(Map<String, String> values, String key, int max) {
         final String value = values.get(key);
         if (value == null || value.isEmpty() || value.length() > max)

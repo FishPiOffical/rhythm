@@ -31,12 +31,14 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3InvitationPurchaseInputs;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3InvitationPurchaseProcessor {
     @Inject
     private ApiV3InvitationPurchaseService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3InvitationPurchaseProcessor.class);
@@ -44,6 +46,7 @@ public class ApiV3InvitationPurchaseProcessor {
         final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/me/invitation-codes", p::purchase, auth::activityWrite, writes::handle);
     }
+
     public void purchase(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();

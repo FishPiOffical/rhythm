@@ -28,6 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3RepeaterQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -43,8 +44,8 @@ public class ApiV3RepeaterProcessor {
 
     public static void registerRoutes(final ApiV3RepeaterProcessor p, final ApiV3AuthMidware auth,
                                       final AnonymousViewCheckMidware anonymous) {
-        Dispatcher.get("/api/v3/repeater/items",p::items,auth::optionalContent,anonymous::handle);
-        Dispatcher.get("/api/v3/repeater/next",p::next,auth::optionalContent,anonymous::handle);
+        Dispatcher.get("/api/v3/repeater/items", p::items, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/repeater/next", p::next, auth::optionalContent, anonymous::handle);
     }
 
     public void items(final RequestContext c) {

@@ -49,17 +49,27 @@ import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 读取个人资源，处理器传入已认证的本人身份。 */
+/**
+ * 读取个人资源，处理器传入已认证的本人身份。
+ */
 @Service
 public class ApiV3PersonalQueryService {
-    @Inject private ArticleDraftRepository articleDraftRepository;
-    @Inject private ArticleRepository articleRepository;
-    @Inject private LongArticleChapterRepository chapterRepository;
-    @Inject private LongArticleColumnRepository columnRepository;
-    @Inject private ActivityQueryService activityQueryService;
-    @Inject private LivenessQueryService livenessQueryService;
-    @Inject private CloudService cloudService;
-    @Inject private PointtransferQueryService pointtransferQueryService;
+    @Inject
+    private ArticleDraftRepository articleDraftRepository;
+    @Inject
+    private ArticleRepository articleRepository;
+    @Inject
+    private LongArticleChapterRepository chapterRepository;
+    @Inject
+    private LongArticleColumnRepository columnRepository;
+    @Inject
+    private ActivityQueryService activityQueryService;
+    @Inject
+    private LivenessQueryService livenessQueryService;
+    @Inject
+    private CloudService cloudService;
+    @Inject
+    private PointtransferQueryService pointtransferQueryService;
 
     public JSONObject settings(final JSONObject user) {
         final JSONObject privacy = new JSONObject();
@@ -72,7 +82,7 @@ public class ApiV3PersonalQueryService {
                 .put("followingTags", visible(user, UserExt.USER_FOLLOWING_TAG_STATUS))
                 .put("followingArticles", visible(user, UserExt.USER_FOLLOWING_ARTICLE_STATUS));
         return new JSONObject().put("profile", new JSONObject().put("userNickname", user.optString(UserExt.USER_NICKNAME))
-                .put("userIntro", user.optString(UserExt.USER_INTRO)).put("userURL", user.optString(User.USER_URL)))
+                        .put("userIntro", user.optString(UserExt.USER_INTRO)).put("userURL", user.optString(User.USER_URL)))
                 .put("privacy", privacy).put("display", new JSONObject().put("commentViewMode", user.optInt(UserExt.USER_COMMENT_VIEW_MODE))
                         .put("avatarViewMode", user.optInt(UserExt.USER_AVATAR_VIEW_MODE))
                         .put("skin", user.optString(UserExt.USER_SKIN)).put("mobileSkin", user.optString(UserExt.USER_MOBILE_SKIN)));

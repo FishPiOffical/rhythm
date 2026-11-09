@@ -22,15 +22,22 @@ import org.b3log.latke.Keys;
 import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
 
-/** 段落元数据使用纯文本，响应省略持久化对象。 */
+/**
+ * 段落元数据使用纯文本，响应省略持久化对象。
+ */
 public final class ApiV3ParagraphDto {
-    private ApiV3ParagraphDto() { }
+    private ApiV3ParagraphDto() {
+    }
+
     public static JSONObject paragraph(final String id, final String kind, final int index, final String snapshot,
                                        final boolean orphaned) {
         return new JSONObject().put("id", id).put("kind", kind).put("index", index).put("snapshot", snapshot)
                 .put("state", orphaned ? "orphaned" : "active");
     }
-    /** safeBase 来自已按当前读者授权的 commentDto 投影。 */
+
+    /**
+     * safeBase 来自已按当前读者授权的 commentDto 投影。
+     */
     public static JSONObject comment(final JSONObject safeBase, final JSONObject row) {
         final boolean paragraph = row.optInt(Comment.COMMENT_TYPE) == Comment.COMMENT_TYPE_C_PARAGRAPH;
         final String id = row.optString(Comment.COMMENT_PARAGRAPH_ID);

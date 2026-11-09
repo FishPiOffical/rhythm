@@ -27,9 +27,12 @@ import org.b3log.symphony.util.ApiV3Votes;
 import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
+
 import java.util.concurrent.atomic.AtomicReference;
 
-/** 通过显式 Bearer 身份读取评论投票投影，并幂等设置或清除投票。 */
+/**
+ * 通过显式 Bearer 身份读取评论投票投影，并幂等设置或清除投票。
+ */
 @Service
 public class ApiV3CommentVoteService {
     @Inject
@@ -69,21 +72,22 @@ public class ApiV3CommentVoteService {
         final var result = new AtomicReference<CommentVoteMgmtService.Result>();
         final var outcome = articleWrites.withPublicationLock(actor, () -> idempotency.executeWithOutcome(actor,
                 "comments.vote:" + id, key, normalized, () -> {
-            if (null == expected) throw missing();
-            try {
-                final var mutation = mutations.setInCurrentTransaction(actor, expected, choice, false, true, (voter, article, comment) -> {
-                    if (null == visibility.viewableArticle(article.optString(Keys.OBJECT_ID), voter)) throw missing();
-                    readable(voter, article, comment);
-                });
-                result.set(mutation);
-                return ApiV3Votes.dto(id, mutation.current(), mutation.upCount(), mutation.downCount());
-            } catch (final CommentVoteMgmtService.Rejected e) {
-                if ("not_found".equals(e.code)) throw missing();
-                if ("forbidden".equals(e.code)) throw new ApiV3Exception(403, e.code, "没有操作权限");
-                if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
-                throw new ApiV3Exception(422, e.code, "不能对本人评论投票");
-            }
-        }), execution -> {
+                    if (null == expected) throw missing();
+                    try {
+                        final var mutation = mutations.setInCurrentTransaction(actor, expected, choice, false, true, (voter, article, comment) -> {
+                            if (null == visibility.viewableArticle(article.optString(Keys.OBJECT_ID), voter))
+                                throw missing();
+                            readable(voter, article, comment);
+                        });
+                        result.set(mutation);
+                        return ApiV3Votes.dto(id, mutation.current(), mutation.upCount(), mutation.downCount());
+                    } catch (final CommentVoteMgmtService.Rejected e) {
+                        if ("not_found".equals(e.code)) throw missing();
+                        if ("forbidden".equals(e.code)) throw new ApiV3Exception(403, e.code, "没有操作权限");
+                        if ("target_changed".equals(e.code)) throw new ApiV3Exception(409, e.code, "评论已变化，请重试");
+                        throw new ApiV3Exception(422, e.code, "不能对本人评论投票");
+                    }
+                }), execution -> {
             if (execution.applied()) mutations.afterVote(actor, result.get());
         });
         return outcome.result();
@@ -95,10 +99,13 @@ public class ApiV3CommentVoteService {
                 || null == author || author.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID
                 || !ApiV3ContentUtil.canViewCommentContent(comment, article, viewer)) throw missing();
     }
+
     private static String actor(final JSONObject viewer) {
-        if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
+        if (null == viewer || viewer.optString(Keys.OBJECT_ID).isBlank())
+            throw new ApiV3Exception(401, "unauthorized", "需要登录");
         return viewer.getString(Keys.OBJECT_ID);
     }
+
     private static ApiV3Exception missing() {
         return new ApiV3Exception(404, "not_found", "资源不存在或不可查看");
     }

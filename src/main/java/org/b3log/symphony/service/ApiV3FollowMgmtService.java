@@ -41,17 +41,23 @@ import java.util.Set;
 @Service
 public class ApiV3FollowMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3FollowMgmtService.class);
-    @Inject private FollowMgmtService follows;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private NotificationMgmtService notifications;
-    @Inject private UserQueryService users;
-    @Inject private RoleQueryService roles;
+    @Inject
+    private FollowMgmtService follows;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private NotificationMgmtService notifications;
+    @Inject
+    private UserQueryService users;
+    @Inject
+    private RoleQueryService roles;
 
     public JSONObject set(final JSONObject viewer, final String targetId, final int type, final boolean enabled, final String key) throws Exception {
         final String actor = viewer.optString(Keys.OBJECT_ID);
         if (enabled && (type == Follow.FOLLOWING_TYPE_C_ARTICLE || type == Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH)) {
             final String permission = type == Follow.FOLLOWING_TYPE_C_ARTICLE ? Permission.PERMISSION_ID_C_COMMON_FOLLOW_ARTICLE : Permission.PERMISSION_ID_C_COMMON_WATCH_ARTICLE;
-            if (!Permission.hasPermission(Set.of(permission), roles.getPermissions(viewer.optString(User.USER_ROLE)))) throw ApiV3Requests.forbidden();
+            if (!Permission.hasPermission(Set.of(permission), roles.getPermissions(viewer.optString(User.USER_ROLE))))
+                throw ApiV3Requests.forbidden();
         }
         try {
             final JSONObject stored = idempotency.execute(actor, "follows.set:" + type + ":" + targetId, key, new JSONObject().put("following", enabled), () -> {
@@ -73,14 +79,18 @@ public class ApiV3FollowMgmtService {
                 return new JSONObject().put("following", enabled).put("changed", changed).put("notifyUser", recipient);
             });
             final String recipient = stored.optString("notifyUser");
-            if (!recipient.isEmpty()) try { notifications.publishRefreshNotification(recipient); }
-            catch (final Exception e) { LOGGER.warn("Failed to refresh committed v3 follow notification"); }
+            if (!recipient.isEmpty()) try {
+                notifications.publishRefreshNotification(recipient);
+            } catch (final Exception e) {
+                LOGGER.warn("Failed to refresh committed v3 follow notification");
+            }
             return new JSONObject().put("following", stored.getBoolean("following")).put("changed", stored.getBoolean("changed"));
         } finally {
             // Repository 会在提交前填充缓存，提交或回滚后都要清除该缓存。
             follows.invalidateCaches(targetId, type);
         }
     }
+
     private void validate(final JSONObject target, final int type, final JSONObject viewer) throws RepositoryException {
         if (null == target) throw ApiV3Requests.notFound();
         if (type == Follow.FOLLOWING_TYPE_C_USER) {
@@ -93,7 +103,8 @@ public class ApiV3FollowMgmtService {
             if (!ApiV3ContentUtil.canViewArticle(target, viewer, invited)) throw ApiV3Requests.notFound();
             final JSONObject author = users.getUser(target.optString(Article.ARTICLE_AUTHOR_ID));
             if (null == author || UserExt.USER_STATUS_C_INVALID == author.optInt(UserExt.USER_STATUS)
-                    || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS)) throw ApiV3Requests.notFound();
+                    || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS))
+                throw ApiV3Requests.notFound();
         }
     }
 }

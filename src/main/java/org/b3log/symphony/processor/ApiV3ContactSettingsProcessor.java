@@ -27,6 +27,7 @@ import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3ContactSettingsService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -40,11 +41,11 @@ public class ApiV3ContactSettingsProcessor {
                 b.getReference(ApiV3AuthMidware.class), b.getReference(ApiV3WriteMidware.class));
     }
 
-    public static void registerRoutes(ApiV3ContactSettingsProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes) {
-        Dispatcher.post("/api/v3/me/settings/phone/verification",p::phoneCode,auth::settingsWrite,writes::handle);
-        Dispatcher.post("/api/v3/me/settings/email/verification",p::emailCode,auth::settingsWrite,writes::handle);
-        Dispatcher.put("/api/v3/me/settings/phone",p::phone,auth::settingsWrite,writes::handle);
-        Dispatcher.put("/api/v3/me/settings/email",p::email,auth::settingsWrite,writes::handle);
+    public static void registerRoutes(ApiV3ContactSettingsProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
+        Dispatcher.post("/api/v3/me/settings/phone/verification", p::phoneCode, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/settings/email/verification", p::emailCode, auth::settingsWrite, writes::handle);
+        Dispatcher.put("/api/v3/me/settings/phone", p::phone, auth::settingsWrite, writes::handle);
+        Dispatcher.put("/api/v3/me/settings/email", p::email, auth::settingsWrite, writes::handle);
     }
 
     public void phoneCode(RequestContext c) {

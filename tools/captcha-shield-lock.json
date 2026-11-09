@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "policyVersion": 1,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
@@ -59,7 +59,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3RealtimeService.java",
       "method": "private synchronized ApiV3RealtimeSessions registry()",
-      "sha256": "d01ef0cf23595ead89b9aa6b4da7f8a4e1d04adff62e38decf683f527bfe3a6c"
+      "sha256": "fdaa58c274186af3b466fd82f5928c417516d5f7b21efdc34e9fbeba1e9f4c49"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/SettingsProcessor.java",

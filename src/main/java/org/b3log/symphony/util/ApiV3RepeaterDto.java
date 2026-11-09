@@ -21,19 +21,28 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import org.b3log.symphony.model.RepeaterContent;
 
-/** 复读内容仅返回公开纯文本投影，省略持久化字段。 */
+/**
+ * 复读内容仅返回公开纯文本投影，省略持久化字段。
+ */
 public final class ApiV3RepeaterDto {
-    private ApiV3RepeaterDto() { }
-    public static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","复读机内容暂不可用"); }
+    private ApiV3RepeaterDto() {
+    }
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "复读机内容暂不可用");
+    }
+
     public static JSONObject item(final JSONObject row) {
-        final String type=text(row,"type",4), content=text(row,"content",500);
+        final String type = text(row, "type", 4), content = text(row, "content", 500);
         if (!RepeaterContent.isSupportedType(type)) throw unavailable();
-        final JSONObject result=new JSONObject().put("id",id(row,"id")).put("type",type).put("content",content)
-                .put("likeCount",number(row,"likeCount")).put("createdTime",number(row,"createdTime")).put("liked",number(row,"liked")>0);
-        result.put("author",JSONObject.NULL);
-        if (!row.optString("authorId").isEmpty()) result.put("author",new JSONObject().put("id",id(row,"authorId")).put("name",text(row,"authorName",64)));
+        final JSONObject result = new JSONObject().put("id", id(row, "id")).put("type", type).put("content", content)
+                .put("likeCount", number(row, "likeCount")).put("createdTime", number(row, "createdTime")).put("liked", number(row, "liked") > 0);
+        result.put("author", JSONObject.NULL);
+        if (!row.optString("authorId").isEmpty())
+            result.put("author", new JSONObject().put("id", id(row, "authorId")).put("name", text(row, "authorName", 64)));
         return result;
     }
+
     private static String id(final JSONObject row, final String key) {
         final String v = text(row, key, 32);
         if (!v.matches("[0-9]{1,32}"))
@@ -55,6 +64,7 @@ public final class ApiV3RepeaterDto {
         }
         return value;
     }
+
     private static long number(final JSONObject row, final String key) {
         final Object raw = row.opt(key);
         if (!(raw instanceof Number))

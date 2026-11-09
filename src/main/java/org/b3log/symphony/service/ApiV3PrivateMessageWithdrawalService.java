@@ -29,9 +29,12 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3PrivateMessageWithdrawalService {
-    private static final Logger LOGGER=LogManager.getLogger(ApiV3PrivateMessageWithdrawalService.class);
-    @Inject private PrivateMessageWithdrawalService withdrawal;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    private static final Logger LOGGER = LogManager.getLogger(ApiV3PrivateMessageWithdrawalService.class);
+    @Inject
+    private PrivateMessageWithdrawalService withdrawal;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+
     protected void afterRemoved(String actor, String peer) {
         ChatProcessor.invalidateChatListCache(actor, peer);
     }

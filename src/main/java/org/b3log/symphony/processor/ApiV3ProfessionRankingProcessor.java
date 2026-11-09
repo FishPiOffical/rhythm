@@ -32,13 +32,16 @@ import org.b3log.symphony.util.ApiV3Requests;
 public class ApiV3ProfessionRankingProcessor {
     @Inject
     private ApiV3ProfessionRankingQueryService query;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ProfessionRankingProcessor.class), beans.getReference(ApiV3AuthMidware.class));
     }
+
     public static void registerRoutes(final ApiV3ProfessionRankingProcessor p, final ApiV3AuthMidware auth) {
         Dispatcher.get("/api/v3/professions/{professionId}/ranking", p::ranking, auth::profileRead);
     }
+
     public void ranking(final RequestContext context) {
         ApiV3Requests.read(context, () -> query.ranking(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID),
                 context.pathVar("professionId"), ApiV3Requests.page(context), ApiV3Requests.size(context)));

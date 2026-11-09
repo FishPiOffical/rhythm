@@ -43,6 +43,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ArticleSubmissionPolicy;
 import org.b3log.symphony.util.ArticleValidation;
 import org.json.JSONObject;
+
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -78,15 +79,19 @@ public class ApiV3ArticleMgmtService {
             try {
                 return ApiV3ArticleCreation.apply(new ApiV3ArticleCreation.Store() {
                     private JSONObject author;
+
                     public boolean inTransaction() {
                         return users.hasTransactionBegun();
                     }
+
                     public void lockAndAuthorize() throws Exception {
-                        if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
+                        if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT))
+                            throw new IllegalStateException("article statistic option missing");
                         author = users.getForUpdate(actor);
                         if (null == author) throw ApiV3Requests.forbidden();
                         permission(author);
                     }
+
                     public void validate(final JSONObject request) {
                         validation.validate(request, author, true, ignored -> LogManager.getLogger(ApiV3ArticleMgmtService.class)
                                 .info("v3 article rejected by moderation userId={}", actor));
@@ -96,12 +101,14 @@ public class ApiV3ArticleMgmtService {
                             throw new ApiV3Exception(422, "content_rejected", "内容审核未通过，请修改后重试");
                         }
                     }
+
                     public ApiV3ArticleCreation.Created publish(final JSONObject request) throws Exception {
                         request.put(Article.ARTICLE_AUTHOR_ID, actor).put(Article.ARTICLE_IP, ip).put(Article.ARTICLE_UA, ua);
                         final var result = submissions.submitInCurrentTransaction(request);
                         publication.set(result);
                         return new ApiV3ArticleCreation.Created(result.article().optString(Keys.OBJECT_ID), result.article().optString(Article.ARTICLE_PERMALINK));
                     }
+
                     public void removeDraft(final String id) throws Exception {
                         try {
                             drafts.removeDraftInCurrentTransaction(actor, id);
@@ -116,7 +123,8 @@ public class ApiV3ArticleMgmtService {
                 final int status = "phone_required".equals(e.code) ? 403 : "curfew_interval".equals(e.code) ? 429 : 422;
                 throw new ApiV3Exception(status, e.code, e.getMessage().replace("<br>", "\n"));
             } catch (final ServiceException e) {
-                for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
+                for (Throwable cause = e; null != cause; cause = cause.getCause())
+                    if (cause instanceof RepositoryException) throw e;
                 // 旧链路的重复标题错误可能暴露另一位作者，包括匿名作者。
                 throw new ApiV3Exception(422, "publication_rejected", "发布条件未满足，请检查标题、余额和账号状态");
             }
@@ -126,6 +134,7 @@ public class ApiV3ArticleMgmtService {
         });
         return execution.result();
     }
+
     private void permission(final JSONObject actor) throws Exception {
         if (!Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_COMMON_ADD_ARTICLE), roles.getPermissions(actor.optString(User.USER_ROLE)))) {
             throw ApiV3Requests.forbidden();
@@ -141,28 +150,37 @@ public class ApiV3ArticleMgmtService {
             try {
                 return ApiV3ArticleEditing.apply(new ApiV3ArticleEditing.Store() {
                     private JSONObject author;
+
                     public boolean inTransaction() {
                         return users.hasTransactionBegun();
                     }
+
                     public ApiV3ArticleEditing.State lockAndLoad() throws Exception {
-                        if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
+                        if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT))
+                            throw new IllegalStateException("article statistic option missing");
                         author = users.getForUpdate(actor);
                         if (null == author) throw ApiV3Requests.forbidden();
                         editPermission(author);
                         final var row = repository.getOwnedForUpdate(id, actor);
                         return null == row ? null : new ApiV3ArticleEditing.State(row, chapters.getByArticleForUpdate(id));
                     }
+
                     public void validate(final JSONObject request) {
                         validation.validate(request, author, false, ignored -> LogManager.getLogger(ApiV3ArticleMgmtService.class)
                                 .info("v3 article edit rejected by moderation userId={}", actor));
                         final String reward = request.optString(Article.ARTICLE_REWARD_CONTENT);
-                        if (!reward.isBlank() && CensorFactory.getTextCensor().censor(reward).isBlocked()) throw new ApiV3Exception(422, "content_rejected", "内容审核未通过，请修改后重试");
+                        if (!reward.isBlank() && CensorFactory.getTextCensor().censor(reward).isBlocked())
+                            throw new ApiV3Exception(422, "content_rejected", "内容审核未通过，请修改后重试");
                         String tags = request.optString(Article.ARTICLE_TAGS);
-                        if (!Role.ROLE_ID_C_ADMIN.equals(author.optString(User.USER_ROLE))) tags = articles.filterReservedTags(tags);
-                        if (tags.isBlank() && request.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_DISCUSSION) tags = "机要";
-                        if (tags.isBlank() && request.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_THOUGHT) tags = "思绪";
+                        if (!Role.ROLE_ID_C_ADMIN.equals(author.optString(User.USER_ROLE)))
+                            tags = articles.filterReservedTags(tags);
+                        if (tags.isBlank() && request.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_DISCUSSION)
+                            tags = "机要";
+                        if (tags.isBlank() && request.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_THOUGHT)
+                            tags = "思绪";
                         request.put(Article.ARTICLE_TAGS, tags);
                     }
+
                     public ApiV3ArticleEditing.Saved save(final JSONObject request) throws Exception {
                         request.put(Keys.OBJECT_ID, id).put(Article.ARTICLE_AUTHOR_ID, actor).put(Article.ARTICLE_IP, ip).put(Article.ARTICLE_UA, ua);
                         final var result = articles.updateArticleInCurrentTransaction(request, true);
@@ -173,7 +191,8 @@ public class ApiV3ArticleMgmtService {
             } catch (final ArticleValidation.Rejected e) {
                 throw new ApiV3Exception(e.status, e.code, "content_rejected".equals(e.code) ? "内容审核未通过，请修改后重试" : e.getMessage());
             } catch (final ServiceException e) {
-                for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
+                for (Throwable cause = e; null != cause; cause = cause.getCause())
+                    if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "edit_rejected", "编辑条件未满足，请检查标题、悬赏和余额");
             }
         }), outcome -> {
@@ -181,25 +200,29 @@ public class ApiV3ArticleMgmtService {
         });
         return execution.result();
     }
+
     public JSONObject remove(final JSONObject viewer, final String id, final String key) throws Exception {
         removePermission(viewer);
         final String actor = viewer.optString(Keys.OBJECT_ID);
         final var removed = new AtomicReference<ArticleMgmtService.Removal>();
         final var execution = articles.withPublicationLock(actor, () -> idempotency.executeWithOutcome(actor, "articles.remove:" + id, key, new JSONObject(), () -> {
-            if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) throw new IllegalStateException("article statistic option missing");
+            if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT))
+                throw new IllegalStateException("article statistic option missing");
             final var author = users.getForUpdate(actor);
             if (null == author) throw ApiV3Requests.forbidden();
             removePermission(author);
             final var row = repository.getOwnedForUpdate(id, actor);
             if (null == row) throw new ApiV3Exception(404, "not_found", "文章不存在或不可访问");
-            if (Article.ARTICLE_STATUS_C_VALID != row.optInt(Article.ARTICLE_STATUS)) throw new ApiV3Exception(403, "article_locked", "文章已锁定");
+            if (Article.ARTICLE_STATUS_C_VALID != row.optInt(Article.ARTICLE_STATUS))
+                throw new ApiV3Exception(403, "article_locked", "文章已锁定");
             try {
                 final var result = articles.removeArticleInCurrentTransaction(id, false);
                 if (null == result) throw new IllegalStateException("locked article disappeared");
                 removed.set(result);
                 return new JSONObject().put("id", id);
             } catch (final ServiceException e) {
-                for (Throwable cause = e; null != cause; cause = cause.getCause()) if (cause instanceof RepositoryException) throw e;
+                for (Throwable cause = e; null != cause; cause = cause.getCause())
+                    if (cause instanceof RepositoryException) throw e;
                 throw new ApiV3Exception(422, "removal_rejected", e.getMessage());
             }
         }), outcome -> {
@@ -207,11 +230,14 @@ public class ApiV3ArticleMgmtService {
         });
         return execution.result();
     }
+
     private void removePermission(final JSONObject actor) throws Exception {
-        if (!Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_COMMON_REMOVE_ARTICLE), roles.getPermissions(actor.optString(User.USER_ROLE)))) throw ApiV3Requests.forbidden();
+        if (!Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_COMMON_REMOVE_ARTICLE), roles.getPermissions(actor.optString(User.USER_ROLE))))
+            throw ApiV3Requests.forbidden();
     }
 
     private void editPermission(final JSONObject actor) throws Exception {
-        if (!Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_COMMON_UPDATE_ARTICLE), roles.getPermissions(actor.optString(User.USER_ROLE)))) throw ApiV3Requests.forbidden();
+        if (!Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_COMMON_UPDATE_ARTICLE), roles.getPermissions(actor.optString(User.USER_ROLE))))
+            throw ApiV3Requests.forbidden();
     }
 }

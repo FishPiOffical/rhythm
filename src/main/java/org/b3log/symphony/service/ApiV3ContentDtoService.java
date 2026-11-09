@@ -36,11 +36,15 @@ import org.b3log.symphony.util.Markdowns;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
-/** 公共内容的通用 DTO，由调用方提供内容与查看者。 */
+/**
+ * 公共内容的通用 DTO，由调用方提供内容与查看者。
+ */
 @Service
 public class ApiV3ContentDtoService {
-    @Inject private UserRepository userRepository;
-    @Inject private AvatarQueryService avatarQueryService;
+    @Inject
+    private UserRepository userRepository;
+    @Inject
+    private AvatarQueryService avatarQueryService;
 
     public JSONObject summary(final JSONObject article) {
         final JSONObject author = ApiV3ContentSnapshots.hasAuthor(article)
@@ -59,7 +63,9 @@ public class ApiV3ContentDtoService {
         }
     }
 
-    /** 调用方可提供 SQL 查询得到的当前作者快照，避免重新从用户缓存取资料。 */
+    /**
+     * 调用方可提供 SQL 查询得到的当前作者快照，避免重新从用户缓存取资料。
+     */
     public JSONObject summary(final JSONObject article, final JSONObject author) {
         final boolean blocked = isBlocked(author);
         final boolean anonymous = Article.ARTICLE_ANONYMOUS_C_ANONYMOUS == article.optInt(Article.ARTICLE_ANONYMOUS);

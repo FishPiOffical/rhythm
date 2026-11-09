@@ -34,12 +34,15 @@ import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.json.JSONObject;
 
-/** 业务写入和重放回执同事务提交。回调必须加入当前事务，且不得产生外部副作用。 */
+/**
+ * 业务写入和重放回执同事务提交。回调必须加入当前事务，且不得产生外部副作用。
+ */
 @Service
 public class ApiV3IdempotencyMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3IdempotencyMgmtService.class);
     private static final int MAX_ATTEMPTS = 3;
-    @Inject private ApiV3RequestRepository requestRepository;
+    @Inject
+    private ApiV3RequestRepository requestRepository;
 
     @FunctionalInterface
     public interface Mutation {
@@ -51,7 +54,8 @@ public class ApiV3IdempotencyMgmtService {
         return runAtomic(requestRepository, userId, operation, key, normalizedRequest, mutation);
     }
 
-    public record Execution(JSONObject result, boolean applied) { }
+    public record Execution(JSONObject result, boolean applied) {
+    }
 
     public Execution executeWithOutcome(final String userId, final String operation, final String key,
                                         final JSONObject normalizedRequest, final Mutation mutation) throws Exception {
@@ -64,8 +68,9 @@ public class ApiV3IdempotencyMgmtService {
     }
 
     static Execution runAtomicWithOutcome(final ApiV3MutationStore store, final String userId, final String operation,
-                                         final String key, final JSONObject normalizedRequest, final Mutation mutation) throws Exception {
-        if (null == key || !key.matches("[A-Za-z0-9._:-]{1,128}")) throw new ApiV3Exception(422, "invalid_request", "幂等键格式不合法");
+                                          final String key, final JSONObject normalizedRequest, final Mutation mutation) throws Exception {
+        if (null == key || !key.matches("[A-Za-z0-9._:-]{1,128}"))
+            throw new ApiV3Exception(422, "invalid_request", "幂等键格式不合法");
         if (store.hasTransactionBegun()) throw new IllegalStateException("v3 transaction already active");
         final String id = ApiV3TokenUtil.hash("request-key\0" + userId + "\0" + operation + "\0" + key);
         final String hash = ApiV3TokenUtil.hash("request-body\0" + ApiV3Json.canonical(normalizedRequest));

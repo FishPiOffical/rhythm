@@ -29,6 +29,7 @@ import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3IdentityApplicationService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -43,13 +44,14 @@ public class ApiV3IdentityApplicationProcessor {
         registerRoutes(beans.getReference(ApiV3IdentityApplicationProcessor.class),
                 beans.getReference(ApiV3AuthMidware.class), beans.getReference(ApiV3WriteMidware.class));
     }
+
     public static void registerRoutes(ApiV3IdentityApplicationProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.post("/api/v3/me/identity-applications/enterprise",p::create,auth::settingsWrite,writes::handle);
-        Dispatcher.get("/api/v3/me/identity-applications",p::list,auth::profileRead);
-        Dispatcher.get("/api/v3/me/identity-applications/{applicationId}",p::detail,auth::profileRead);
-        Dispatcher.get("/api/v3/review/identity-applications",p::reviewList,auth::profileRead);
-        Dispatcher.post("/api/v3/review/identity-applications/{applicationId}/material/open",p::open,auth::settingsWrite,writes::handle);
-        Dispatcher.put("/api/v3/review/identity-applications/{applicationId}/decision",p::decide,auth::settingsWrite,writes::handle);
+        Dispatcher.post("/api/v3/me/identity-applications/enterprise", p::create, auth::settingsWrite, writes::handle);
+        Dispatcher.get("/api/v3/me/identity-applications", p::list, auth::profileRead);
+        Dispatcher.get("/api/v3/me/identity-applications/{applicationId}", p::detail, auth::profileRead);
+        Dispatcher.get("/api/v3/review/identity-applications", p::reviewList, auth::profileRead);
+        Dispatcher.post("/api/v3/review/identity-applications/{applicationId}/material/open", p::open, auth::settingsWrite, writes::handle);
+        Dispatcher.put("/api/v3/review/identity-applications/{applicationId}/decision", p::decide, auth::settingsWrite, writes::handle);
     }
 
     private static JSONObject identity(RequestContext c) {

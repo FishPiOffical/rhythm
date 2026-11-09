@@ -38,9 +38,12 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.b3log.symphony.util.PasswordResetQuota;
 import org.b3log.symphony.util.ApiV3OAuthTransportLogFilter;
 import org.b3log.latke.util.Requests;
+
 import java.util.Set;
 
-/** 匿名账号入口的读取请求不会用 Cookie 或 apiKey 中的用户身份授予访问权限。 */
+/**
+ * 匿名账号入口的读取请求不会用 Cookie 或 apiKey 中的用户身份授予访问权限。
+ */
 @Singleton
 public class ApiV3AccountProcessor {
     @Inject
@@ -61,12 +64,12 @@ public class ApiV3AccountProcessor {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3AccountProcessor.class);
         final var anonymous = beans.getReference(AnonymousViewCheckMidware.class);
-        Dispatcher.get("/api/v3/auth/registration-options",p::registrationOptions,anonymous::handle);
-        Dispatcher.get("/api/v3/auth/captcha-options",p::captchaOptions,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/password-reset/complete",p::completePasswordReset,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/password-reset/request",p::requestPasswordReset,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/registration/request",p::requestRegistration,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/registration/complete",p::completeRegistration,anonymous::handle);
+        Dispatcher.get("/api/v3/auth/registration-options", p::registrationOptions, anonymous::handle);
+        Dispatcher.get("/api/v3/auth/captcha-options", p::captchaOptions, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/password-reset/complete", p::completePasswordReset, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/password-reset/request", p::requestPasswordReset, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/registration/request", p::requestRegistration, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/registration/complete", p::completeRegistration, anonymous::handle);
     }
 
     public void captchaOptions(RequestContext c) {
@@ -126,7 +129,9 @@ public class ApiV3AccountProcessor {
         });
     }
 
-    /** 发起注册，校验人机凭据和当前邀请规则，并绑定短信验证凭据。 */
+    /**
+     * 发起注册，校验人机凭据和当前邀请规则，并绑定短信验证凭据。
+     */
     public void requestRegistration(RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             final String query = c.getRequest().getQueryString();

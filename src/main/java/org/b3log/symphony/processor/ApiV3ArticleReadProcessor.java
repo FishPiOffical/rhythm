@@ -32,7 +32,9 @@ import org.b3log.symphony.util.ApiV3Json;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
-/** 正文展示后显式登记阅读，读者身份、统计窗口和计数均由服务端决定。 */
+/**
+ * 正文展示后显式登记阅读，读者身份、统计窗口和计数均由服务端决定。
+ */
 @Singleton
 public class ApiV3ArticleReadProcessor {
     @Inject
@@ -45,9 +47,11 @@ public class ApiV3ArticleReadProcessor {
         final var writes = beans.getReference(ApiV3WriteMidware.class);
         registerRoutes(processor, auth, writes);
     }
+
     public static void registerRoutes(final ApiV3ArticleReadProcessor processor, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
         Dispatcher.post("/api/v3/articles/{articleId}/reads", processor::record, auth::contentRead, auth::activityWrite, writes::handle);
     }
+
     private static void validateBody(final RequestContext context) {
         // Latke 预处理可能清空非法 JSON，须读取原始字节来识别真正的空请求体。
         final byte[] bytes;

@@ -19,12 +19,17 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** 用户只可编辑明确列出的展示字段，权益字段由服务端管理。 */
+/**
+ * 用户只可编辑明确列出的展示字段，权益字段由服务端管理。
+ */
 public final class ApiV3MembershipConfiguration {
-    private ApiV3MembershipConfiguration() { }
+    private ApiV3MembershipConfiguration() {
+    }
+
     private static final Set<String> FIELDS = Set.of("bold", "underline", "color");
     private static final Set<String> EFFECTS = Set.of("rainbow", "neon", "fire", "ocean", "forest", "sunset", "metal", "galaxy");
     private static final Set<String> VIP4 = Set.of("VIP4_YEAR", "VIP4_MONTH");
@@ -47,7 +52,11 @@ public final class ApiV3MembershipConfiguration {
     public static JSONObject defaults(final JSONObject level) {
         if (level == null || !(level.opt("lvCode") instanceof String code) || code.isBlank()
                 || code.length() > 32 || code.codePoints().anyMatch(Character::isISOControl)) throw unavailable();
-        try { ApiV3Json.canonical(code); } catch (final IllegalArgumentException e) { throw unavailable(); }
+        try {
+            ApiV3Json.canonical(code);
+        } catch (final IllegalArgumentException e) {
+            throw unavailable();
+        }
         final Object raw = level.opt("benefits");
         if (!(raw instanceof String input)) throw unavailable();
         bounded(input);
@@ -71,7 +80,8 @@ public final class ApiV3MembershipConfiguration {
         for (final String key : normalized.keySet()) {
             if (!template.has(key)) throw ApiV3WriteInputs.invalid();
             final Object value = normalized.get(key);
-            if ("color".equals(key) && !colorAllowed(level.getString("lvCode"), (String) value)) throw ApiV3WriteInputs.invalid();
+            if ("color".equals(key) && !colorAllowed(level.getString("lvCode"), (String) value))
+                throw ApiV3WriteInputs.invalid();
             result.put(key, value);
         }
         // 保留所有服务端管理的键，同时限制合并后入库数据的大小。
@@ -79,31 +89,50 @@ public final class ApiV3MembershipConfiguration {
         return result;
     }
 
-    /** 只比较支持的展示字段类型，允许默认值和权益差异。 */
+    /**
+     * 只比较支持的展示字段类型，允许默认值和权益差异。
+     */
     public static JSONObject displayDefinition(final JSONObject level) {
         final JSONObject defaults = defaults(level), result = new JSONObject();
-        for (final String field : FIELDS) if (defaults.has(field)) result.put(field, "color".equals(field) ? "string" : "boolean");
+        for (final String field : FIELDS)
+            if (defaults.has(field)) result.put(field, "color".equals(field) ? "string" : "boolean");
         return result;
     }
 
     public static JSONObject publicConfig(final JSONObject config) {
         final JSONObject result = new JSONObject();
-        for (final String field : Set.of("bold", "underline")) if (config.opt(field) instanceof Boolean value) result.put(field, value);
-        if (config.opt("color") instanceof String color && (color.matches("#[0-9a-fA-F]{6}") || EFFECTS.contains(color))) result.put("color", color);
+        for (final String field : Set.of("bold", "underline"))
+            if (config.opt(field) instanceof Boolean value) result.put(field, value);
+        if (config.opt("color") instanceof String color && (color.matches("#[0-9a-fA-F]{6}") || EFFECTS.contains(color)))
+            result.put("color", color);
         return result;
     }
+
     private static JSONObject stored(final String input) {
         bounded(input);
         final byte[] bytes = input.getBytes(StandardCharsets.UTF_8);
-        try { return ApiV3Json.parse(bytes); }
-        catch (final IllegalArgumentException e) { throw unavailable(); }
+        try {
+            return ApiV3Json.parse(bytes);
+        } catch (final IllegalArgumentException e) {
+            throw unavailable();
+        }
     }
+
     private static void bounded(final String input) {
-        if (input.length() > MAX_CONFIG_BYTES || input.getBytes(StandardCharsets.UTF_8).length > MAX_CONFIG_BYTES) throw unavailable();
-        try { ApiV3Json.canonical(input); } catch (final IllegalArgumentException e) { throw unavailable(); }
+        if (input.length() > MAX_CONFIG_BYTES || input.getBytes(StandardCharsets.UTF_8).length > MAX_CONFIG_BYTES)
+            throw unavailable();
+        try {
+            ApiV3Json.canonical(input);
+        } catch (final IllegalArgumentException e) {
+            throw unavailable();
+        }
     }
+
     public static boolean colorAllowed(final String code, final String color) {
         return color.matches("#[0-9a-fA-F]{6}") || VIP4.contains(code) && EFFECTS.contains(color);
     }
-    public static ApiV3Exception unavailable() { return new ApiV3Exception(503, "temporarily_unavailable", "会员配置暂不可用"); }
+
+    public static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "会员配置暂不可用");
+    }
 }

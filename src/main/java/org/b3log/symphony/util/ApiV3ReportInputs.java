@@ -20,15 +20,19 @@ package org.b3log.symphony.util;
 
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
+
 import java.util.List;
 import java.util.Set;
 
-/** 在计算幂等哈希前，按举报对象类型校验并规范化输入。 */
+/**
+ * 在计算幂等哈希前，按举报对象类型校验并规范化输入。
+ */
 public final class ApiV3ReportInputs {
     private static final List<Integer> CONTENT_REASONS = List.of(0, 1, 2, 3, 4, 49);
     private static final List<Integer> USER_REASONS = List.of(5, 6, 7, 49);
 
-    private ApiV3ReportInputs() { }
+    private ApiV3ReportInputs() {
+    }
 
     public static List<Integer> reasonsFor(final int targetType) {
         return switch (targetType) {

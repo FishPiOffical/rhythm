@@ -39,19 +39,30 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.List;
 
-/** 管理员批准公开客户端登记，只处理登记元数据。 */
+/**
+ * 管理员批准公开客户端登记，只处理登记元数据。
+ */
 @Service
 public class ApiV3ClientManagementService {
-    @Inject private ApiV3ClientRepository clients;
-    @Inject private ApiV3ClientRedirectRepository redirects;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private UserRepository users;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private ApiV3ClientRegistrationService registration;
+    @Inject
+    private ApiV3ClientRepository clients;
+    @Inject
+    private ApiV3ClientRedirectRepository redirects;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private ApiV3ClientRegistrationService registration;
 
-    /** 从 authenticate() 取得可信令牌行 ID，再复核当前身份与客户端。 */
+    /**
+     * 从 authenticate() 取得可信令牌行 ID，再复核当前身份与客户端。
+     */
     public String requireAdministrator(final JSONObject identity, final boolean lock) throws RepositoryException {
         final JSONObject viewer = identity == null ? null : identity.optJSONObject("user");
         final String actor = viewer == null ? "" : viewer.optString("oId");
@@ -79,16 +90,18 @@ public class ApiV3ClientManagementService {
                 || !ApiV3Token.TYPE_ACCESS.equals(token.optString("tokenType"))
                 || token.optInt("state", -1) != ApiV3Token.STATE_ACTIVE
                 || token.optLong("expiresAt", 0) <= System.currentTimeMillis()
-                || !ApiV3TokenMgmtService.hasScope(token.optString("scope"), "settings.write")) throw ApiV3Requests.forbidden();
+                || !ApiV3TokenMgmtService.hasScope(token.optString("scope"), "settings.write"))
+            throw ApiV3Requests.forbidden();
         return actor;
     }
 
     public JSONObject list(final JSONObject identity, final int page, final int size) throws RepositoryException {
-        requireAdministrator(identity, false); page(page, size);
+        requireAdministrator(identity, false);
+        page(page, size);
         final var count = clients.select("SELECT COUNT(*) AS total FROM `" + clients.getName() + "` WHERE clientId<>?",
                 ApiV3TokenMgmtService.WEBSITE_CLIENT);
         final var rows = clients.select("SELECT clientId,name,scope,status FROM `" + clients.getName()
-                + "` WHERE clientId<>? ORDER BY clientId ASC LIMIT ? OFFSET ?", ApiV3TokenMgmtService.WEBSITE_CLIENT, size, (page-1)*size);
+                + "` WHERE clientId<>? ORDER BY clientId ASC LIMIT ? OFFSET ?", ApiV3TokenMgmtService.WEBSITE_CLIENT, size, (page - 1) * size);
         final var list = new JSONArray();
         for (final var row : rows)
             list.put(ApiV3ClientManagementDto.client(row));
@@ -96,14 +109,16 @@ public class ApiV3ClientManagementService {
     }
 
     public JSONObject detail(final JSONObject identity, final String id, final int page, final int size) throws RepositoryException {
-        requireAdministrator(identity, false); ApiV3ClientManagementInputs.clientId(id); page(page, size);
+        requireAdministrator(identity, false);
+        ApiV3ClientManagementInputs.clientId(id);
+        page(page, size);
         if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(id)) throw ApiV3Requests.notFound();
         final var rows = clients.select("SELECT clientId,name,scope,status FROM `" + clients.getName() + "` WHERE clientId=?", id);
         if (rows.isEmpty()) throw ApiV3Requests.notFound();
         if (rows.size() != 1 || !id.equals(rows.getFirst().optString("clientId"))) throw unavailable();
         final var count = redirects.select("SELECT COUNT(*) AS total FROM `" + redirects.getName() + "` WHERE clientId=?", id);
         final var callbacks = redirects.select("SELECT redirectUri,status FROM `" + redirects.getName()
-                + "` WHERE clientId=? ORDER BY oId ASC LIMIT ? OFFSET ?", id, size, (page-1)*size);
+                + "` WHERE clientId=? ORDER BY oId ASC LIMIT ? OFFSET ?", id, size, (page - 1) * size);
         final var list = new JSONArray();
         for (final var row : callbacks) list.put(ApiV3ClientManagementDto.redirect(row));
         return ApiV3ClientManagementDto.client(rows.getFirst()).put("redirects", ApiV3Requests.pagination(list, page, size, total(count)));
@@ -123,6 +138,7 @@ public class ApiV3ClientManagementService {
             public boolean hasTransactionBegun() {
                 return requests.hasTransactionBegun();
             }
+
             public JSONObject getForUpdate(String id) throws RepositoryException {
                 requireAdministrator(identity, true);
                 return requests.getForUpdate(id);

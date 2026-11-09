@@ -22,14 +22,18 @@ import org.b3log.latke.Latkes;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.util.*;
+
 import static org.b3log.symphony.service.ApiV3SocketTicketServiceTest.*;
 
-/** 使用实际实时连接注册表、授权核心及 SQLite 状态，传输和 IP 检查由夹具控制。 */
+/**
+ * 使用实际实时连接注册表、授权核心及 SQLite 状态，传输和 IP 检查由夹具控制。
+ */
 public class ApiV3RealtimeSessionsTest {
     static class Transport implements ApiV3RealtimeSessions.Transport {
         final List<JSONObject> sent = new ArrayList<>();
-        boolean closed,failSend;
+        boolean closed, failSend;
 
         public void send(String text) {
             if (failSend) throw new IllegalStateException("slow transport");
@@ -40,8 +44,9 @@ public class ApiV3RealtimeSessionsTest {
             closed = true;
         }
     }
+
     static class Live extends Fixture {
-        boolean allowed = true,slowConsume;
+        boolean allowed = true, slowConsume;
         int consumes;
         final ApiV3RealtimeSessions registry;
 
@@ -90,7 +95,8 @@ public class ApiV3RealtimeSessionsTest {
             return out;
         }
     }
-    public static void main(String[] args)throws Exception{
+
+    public static void main(String[] args) throws Exception {
         var props = new Properties();
         props.setProperty("runtimeDatabase", "NONE");
         for (String key : List.of("latkeProps", "localProps")) {
@@ -122,50 +128,52 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(f.registry.size(), 2);
         }
         System.out.println("PASS challenge-first authentication, owner-only whitelist invalidation, ping and parent revocation before delivery with real grant state");
-        for(String bad:List.of("{}","{\"type\":\"authenticate\",\"ticket\":\"bad\"}","{\"type\":\"authenticate\",\"apiKey\":\"PRIVATE\"}","{\"type\":\"ping\"}","{\"type\":\"authenticate\",\"type\":\"authenticate\",\"ticket\":\"x\"}","x".repeat(1025),"中".repeat(400)))try(var f=new Live()){
-            var out = f.open("a", "192.0.2.1");
-            f.registry.receive("a", bad);
-            Assert.assertTrue(out.closed);
-            Assert.assertEquals(f.consumes, 0);
-            Assert.assertEquals(f.registry.size(), 0);
-            Assert.assertEquals(out.sent.size(), 1);
-        }
-        for(String bad:List.of("{\"type\":\"authenticate\",\"ticket\":\"x\"}","{\"type\":\"ping\",\"userId\":\"321\"}","{\"type\":\"send\",\"content\":\"x\"}"))try(var f=new Live()){
-            var out = f.authenticate("a", "123", "456");
-            f.registry.receive("a", bad);
-            Assert.assertTrue(out.closed);
-            Assert.assertEquals(out.sent.size(), 2);
-        }
+        for (String bad : List.of("{}", "{\"type\":\"authenticate\",\"ticket\":\"bad\"}", "{\"type\":\"authenticate\",\"apiKey\":\"PRIVATE\"}", "{\"type\":\"ping\"}", "{\"type\":\"authenticate\",\"type\":\"authenticate\",\"ticket\":\"x\"}", "x".repeat(1025), "中".repeat(400)))
+            try (var f = new Live()) {
+                var out = f.open("a", "192.0.2.1");
+                f.registry.receive("a", bad);
+                Assert.assertTrue(out.closed);
+                Assert.assertEquals(f.consumes, 0);
+                Assert.assertEquals(f.registry.size(), 0);
+                Assert.assertEquals(out.sent.size(), 1);
+            }
+        for (String bad : List.of("{\"type\":\"authenticate\",\"ticket\":\"x\"}", "{\"type\":\"ping\",\"userId\":\"321\"}", "{\"type\":\"send\",\"content\":\"x\"}"))
+            try (var f = new Live()) {
+                var out = f.authenticate("a", "123", "456");
+                f.registry.receive("a", bad);
+                Assert.assertTrue(out.closed);
+                Assert.assertEquals(out.sent.size(), 2);
+            }
         System.out.println("PASS strict first/control-frame whitelist, duplicate JSON and byte/length limits reject without consuming credentials or exposing user data");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var out = f.open("a", "192.0.2.1");
             f.clock += 5000;
             f.registry.sweep();
             Assert.assertTrue(out.closed);
             Assert.assertEquals(f.consumes, 0);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             f.slowConsume = true;
             var out = f.authenticate("a", "123", "456");
             Assert.assertTrue(out.closed);
             Assert.assertEquals(out.sent.size(), 1);
             Assert.assertEquals(f.registry.size(), 0);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var out = f.authenticate("a", "123", "456");
             write("UPDATE symphony_user SET userStatus=4 WHERE oId='123'");
             f.clock += 15000;
             f.registry.tick();
             Assert.assertTrue(out.closed);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var out = f.authenticate("a", "123", "456");
             f.clock = 125000;
             f.registry.sweep();
             Assert.assertTrue(out.closed);
         }
         System.out.println("PASS unauthenticated timeout, slow authentication deadline, periodic current authorization and original token expiry close stale connections");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var a = f.authenticate("a", "123", "456");
             f.allowed = false;
             f.registry.notificationsChanged("123");
@@ -174,7 +182,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertTrue(denied.closed);
             Assert.assertEquals(denied.sent.size(), 0);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var a = f.authenticate("a", "123", "456");
             a.failSend = true;
             f.registry.notificationsChanged("123");
@@ -182,7 +190,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(f.registry.size(), 0);
         }
         System.out.println("PASS connection/message/event IP guard and transport backpressure failures close without an authorization fallback");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             for (int i = 0; i < 32; i++)
                 Assert.assertFalse(f.open(i, "192.0.2.1").closed);
             Assert.assertTrue(f.open(33, "192.0.2.1").closed);
@@ -190,7 +198,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertFalse(f.open(34, "192.0.2.1").closed);
             Assert.assertEquals(f.registry.size(), 32);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             for (int i = 0; i < 8; i++)
                 Assert.assertFalse(f.authenticate(i, "123", "456").closed);
             Assert.assertTrue(f.authenticate(9, "123", "456").closed);
@@ -198,7 +206,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertFalse(f.authenticate(10, "123", "456").closed);
             Assert.assertEquals(f.registry.size(), 8);
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             var out = f.authenticate("a", "123", "456");
             for (int i = 0; i < 60; i++)
                 f.registry.receive("a", "{\"type\":\"ping\"}");
@@ -206,14 +214,14 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(f.registry.size(), 0);
         }
         System.out.println("PASS per-IP/per-user connection and message budgets release capacity on close and bound abuse");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
             var article = f.article("article", "789");
             var other = f.article("other", "987");
             var notifications = f.authenticate("notifications", "321", "654");
-            Assert.assertEquals(article.sent.get(1).getJSONObject("data").keySet(),Set.of("channel","expiresAt","articleId"));
-            Assert.assertEquals(article.sent.get(1).getJSONObject("data").getString("channel"),"article");
-            Assert.assertEquals(article.sent.get(1).getJSONObject("data").getString("articleId"),"789");
+            Assert.assertEquals(article.sent.get(1).getJSONObject("data").keySet(), Set.of("channel", "expiresAt", "articleId"));
+            Assert.assertEquals(article.sent.get(1).getJSONObject("data").getString("channel"), "article");
+            Assert.assertEquals(article.sent.get(1).getJSONObject("data").getString("articleId"), "789");
             Assert.assertEquals(f.registry.owners(), Set.of("321"));
             Assert.assertEquals(f.registry.articleIds(), Set.of("789", "987"));
             f.registry.notificationsChanged("123");
@@ -226,9 +234,9 @@ public class ApiV3RealtimeSessionsTest {
             var event = article.sent.getLast();
             Assert.assertEquals(event.keySet(), Set.of("type", "data"));
             Assert.assertEquals(event.getString("type"), "article.changed");
-            Assert.assertEquals(event.getJSONObject("data").toString(),new JSONObject().put("articleId","789").toString());
+            Assert.assertEquals(event.getJSONObject("data").toString(), new JSONObject().put("articleId", "789").toString());
             Assert.assertFalse(event.toString().contains("PRIVATE"));
-            write("UPDATE symphony_article SET articleType=?,articleContent='@SomeoneElse only' WHERE oId='789'",org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION);
+            write("UPDATE symphony_article SET articleType=?,articleContent='@SomeoneElse only' WHERE oId='789'", org.b3log.symphony.model.Article.ARTICLE_TYPE_C_DISCUSSION);
             f.registry.articleChanged("789");
             Assert.assertTrue(article.closed);
             Assert.assertEquals(article.sent.size(), 3);
@@ -242,7 +250,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertTrue(f.registry.owners().isEmpty());
         }
         System.out.println("PASS article-bound registry isolates targets/scopes, emits only an article ID and closes on current invitation loss while releasing indexes");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
             var article = f.article("article", "789");
             f.fail = "target.select";
@@ -253,7 +261,7 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(f.registry.size(), 0);
         }
         System.out.println("PASS article authorization source failure closes before emitting a change and releases the resource subscription");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
             var chat = f.chat("chat");
             var article = f.article("article", "789");
@@ -263,37 +271,37 @@ public class ApiV3RealtimeSessionsTest {
             var duplicate = f.chat("duplicate");
             var pending = f.open("pending-online", "192.0.2.99");
             Assert.assertEquals(f.registry.chatUserIds(), Set.of("123"));
-            Assert.assertEquals(chat.sent.get(1).getJSONObject("data").keySet(),Set.of("channel","expiresAt"));
+            Assert.assertEquals(chat.sent.get(1).getJSONObject("data").keySet(), Set.of("channel", "expiresAt"));
             Assert.assertEquals(chat.sent.get(1).getJSONObject("data").getString("channel"), "chat");
             Assert.assertEquals(f.registry.owners(), Set.of("321"));
             Assert.assertEquals(f.registry.articleIds(), Set.of("789"));
             f.registry.chatSyncRequired();
             Assert.assertEquals(chat.sent.getLast().getString("type"), "chat.sync_required");
             Assert.assertEquals(chat.sent.getLast().getJSONObject("data").length(), 0);
-            var stored = new JSONObject().put("userOId","123").put("userName","sender").put("userNickname","昵称")
-                    .put("userAvatarURL","https://fishpi.cn/avatar.png").put("content","hello").put("userPhone","PRIVATE")
-                    .put("appearance",new JSONObject().put("version",1).put("bubbleId","candy").put("frameId","gold"));
+            var stored = new JSONObject().put("userOId", "123").put("userName", "sender").put("userNickname", "昵称")
+                    .put("userAvatarURL", "https://fishpi.cn/avatar.png").put("content", "hello").put("userPhone", "PRIVATE")
+                    .put("appearance", new JSONObject().put("version", 1).put("bubbleId", "candy").put("frameId", "gold"));
             var snapshot = org.b3log.symphony.util.ApiV3ChatMessageDto.from(
-                    new JSONObject().put("oId","789").put("content",stored.toString()), text -> "<p>"+text+"</p>");
-            f.registry.chatChanged("created","789",1,snapshot);
-            var event=chat.sent.getLast();
-            Assert.assertEquals(event.getString("type"),"chat.message.created");
-            var data=event.getJSONObject("data");
-            Assert.assertEquals(data.keySet(),Set.of("messageId","revision","message"));
-            Assert.assertEquals(data.getString("messageId"),"789");
-            Assert.assertEquals(data.getString("revision"),"1");
+                    new JSONObject().put("oId", "789").put("content", stored.toString()), text -> "<p>" + text + "</p>");
+            f.registry.chatChanged("created", "789", 1, snapshot);
+            var event = chat.sent.getLast();
+            Assert.assertEquals(event.getString("type"), "chat.message.created");
+            var data = event.getJSONObject("data");
+            Assert.assertEquals(data.keySet(), Set.of("messageId", "revision", "message"));
+            Assert.assertEquals(data.getString("messageId"), "789");
+            Assert.assertEquals(data.getString("revision"), "1");
             Assert.assertTrue(data.getJSONObject("message").similar(snapshot));
-            Assert.assertEquals(data.getJSONObject("message").getJSONObject("author").getString("userName"),"sender");
-            Assert.assertEquals(data.getJSONObject("message").getString("contentHtml"),"<p>hello</p>");
-            Assert.assertEquals(data.getJSONObject("message").getJSONObject("appearance").getString("frameId"),"gold");
+            Assert.assertEquals(data.getJSONObject("message").getJSONObject("author").getString("userName"), "sender");
+            Assert.assertEquals(data.getJSONObject("message").getString("contentHtml"), "<p>hello</p>");
+            Assert.assertEquals(data.getJSONObject("message").getJSONObject("appearance").getString("frameId"), "gold");
             Assert.assertFalse(event.toString().contains("PRIVATE"));
             Assert.assertTrue(duplicate.sent.getLast().similar(event));
-            Assert.assertEquals(pending.sent.size(),1);
-            f.registry.chatChanged("deleted","789",2,snapshot);
-            Assert.assertEquals(chat.sent.getLast().getJSONObject("data").keySet(),Set.of("messageId","revision"));
-            f.registry.chatChanged("updated","987",3,snapshot);
+            Assert.assertEquals(pending.sent.size(), 1);
+            f.registry.chatChanged("deleted", "789", 2, snapshot);
+            Assert.assertEquals(chat.sent.getLast().getJSONObject("data").keySet(), Set.of("messageId", "revision"));
+            f.registry.chatChanged("updated", "987", 3, snapshot);
             Assert.assertFalse(chat.sent.getLast().getJSONObject("data").has("message"));
-            f.registry.chatChanged("updated","789",4,new JSONObject(snapshot.toString()).put("content","鱼".repeat(100_000)));
+            f.registry.chatChanged("updated", "789", 4, new JSONObject(snapshot.toString()).put("content", "鱼".repeat(100_000)));
             Assert.assertFalse(chat.sent.getLast().getJSONObject("data").has("message"));
             Assert.assertEquals(article.sent.size(), 2);
             Assert.assertEquals(notifications.sent.size(), 2);
@@ -314,13 +322,13 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertTrue(replacement.closed);
             Assert.assertFalse(f.registry.hasChat());
         }
-        try(var f=new Live()){
+        try (var f = new Live()) {
             write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
             var chat = f.chat("barrage-chat");
             var article = f.article("barrage-article", "789");
             var notifications = f.authenticate("barrage-notifications", "321", "654");
             var pending = f.open("barrage-pending", "192.0.2.99");
-            var barrage=new ApiV3BarrageEvent("00000000-0000-4000-8000-000000000001","<img> literal 😀","#FFFFFF",1000,"123","PublicName","<b>Nickname</b>","javascript:private");
+            var barrage = new ApiV3BarrageEvent("00000000-0000-4000-8000-000000000001", "<img> literal 😀", "#FFFFFF", 1000, "123", "PublicName", "<b>Nickname</b>", "javascript:private");
             f.registry.chatBarrage(barrage);
             var frame = chat.sent.getLast();
             Assert.assertEquals(frame.keySet(), Set.of("type", "data"));
@@ -341,7 +349,7 @@ public class ApiV3RealtimeSessionsTest {
         }
         System.out.println("PASS transient barrage whitelist reaches only currently authorized chat subscribers, isolates other channels, sanitizes avatars and closes revoked peers before sending");
         System.out.println("PASS chat registry isolates notification/article scopes, sends ID-only changes and empty sync hints, rechecks authority and releases only chat connections");
-        try(var f=new Live()){
+        try (var f = new Live()) {
             write("UPDATE symphony_api_v3_token SET scope='messages.read notifications.read content.read' WHERE oId='456'");
             write("UPDATE symphony_api_v3_token SET scope='messages.read notifications.read' WHERE oId='654'");
             var a = f.messages("private-a", "123", "456");
@@ -353,7 +361,7 @@ public class ApiV3RealtimeSessionsTest {
             var pending = f.open("pending-private", "192.0.2.99");
             Assert.assertEquals(f.registry.messageOwners(), Set.of("123", "321"));
             Assert.assertEquals(f.registry.owners(), Set.of("123"));
-            Assert.assertEquals(a.sent.getLast().getJSONObject("data").keySet(),Set.of("channel","expiresAt"));
+            Assert.assertEquals(a.sent.getLast().getJSONObject("data").keySet(), Set.of("channel", "expiresAt"));
             // 同一所有者的两个私信连接都应收到空载荷提示，其他用户和频道不收。
             f.registry.messagesChanged("123");
             Assert.assertEquals(a.sent.size(), 3);

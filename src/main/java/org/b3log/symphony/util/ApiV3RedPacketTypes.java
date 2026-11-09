@@ -21,9 +21,12 @@ package org.b3log.symphony.util;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 供客户端只读查询已识别的红包类型，积分操作仍需独立授权。 */
+/**
+ * 供客户端只读查询已识别的红包类型，积分操作仍需独立授权。
+ */
 public final class ApiV3RedPacketTypes {
-    private ApiV3RedPacketTypes() { }
+    private ApiV3RedPacketTypes() {
+    }
 
     public static JSONObject catalog() {
         final JSONArray types = new JSONArray();

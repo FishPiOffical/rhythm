@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {callArguments, access} from './api-v3-route-access-audit.mjs'
+import {callArguments, access, scopedMethods} from './api-v3-route-access-audit.mjs'
 
 const route = {method: 'PUT', path: '/api/v3/me/settings/profile'},
   scopes = {settingsWrite: 'settings.write', contentRead: 'content.read', activityWrite: 'activity.write'}
@@ -34,3 +34,53 @@ assert.equal(access({method: 'WEBSOCKET', path: '/api/v3/realtime'}, ['"x"', 'ch
 assert.throws(() => access({method: 'WEBSOCKET', path: '/api/v3/other'}, ['"x"', 'channel'], scopes));
 assert.throws(() => callArguments('("unfinished"', 0));
 console.log('PASS route access 7 WebSocket remains explicit separate review and malformed source fails')
+
+const compact = 'public void contentRead(final RequestContext context) { required(context, "content.read"); }'
+const expanded = `public void contentRead(final RequestContext context) {
+    required(context, "content.read");
+}`
+assert.deepEqual(scopedMethods(compact), {contentRead: 'content.read'});
+assert.deepEqual(scopedMethods(expanded), scopedMethods(compact));
+assert.deepEqual(scopedMethods(expanded.replaceAll('\n', '\r\n')), scopedMethods(compact));
+assert.deepEqual(scopedMethods(`public\tvoid\tcontentRead (
+    final RequestContext context
+) {
+    required (
+        context , "content.read"
+    ) ;
+}`), scopedMethods(compact));
+console.log('PASS route access 8 compact, IDEA multiline, CRLF and wrapped parameters retain scopes')
+
+const withComments = `// ${compact}
+/* ${compact} */
+public void settingsWrite(final RequestContext context) {
+    // The wrapper still requires this scope.
+    required(/* actor */ context, "settings.write");
+}`
+assert.deepEqual(scopedMethods(withComments), {settingsWrite: 'settings.write'});
+assert.deepEqual(scopedMethods(`String example = "${compact.replaceAll('"', '\\"')}";`), {});
+console.log('PASS route access 9 comments do not create wrappers or hide direct scope checks')
+
+const unsafeWrappers = [
+  'public void contentRead(final RequestContext context) { if (enabled) required(context, "content.read"); }',
+  'public void contentRead(final RequestContext context) { required(context, "content.read"); extra(context); }',
+  'public void contentRead(final RequestContext context) { other(context, "content.read"); }',
+  'public void contentRead(final RequestContext context) { required(other, "content.read"); }',
+  'public void contentRead(final RequestContext context) { required(context, dynamicScope); }',
+  'public void contentRead(final RequestContext context) { required(context, "content.read");'
+]
+for (const source of unsafeWrappers) {
+  assert.deepEqual(scopedMethods(source), {});
+  assert.throws(() => access(route, ['"x"', 'p::save', 'auth::contentRead'], scopedMethods(source)), /Unknown auth method contentRead/);
+}
+console.log('PASS route access 10 conditional, changed and incomplete wrappers stay unclassified')
+
+const formattedScopes = scopedMethods(`${expanded}
+public void activityWrite(final RequestContext context) {
+    required(context, "activity.write");
+}`)
+assert.deepEqual(access(route, ['"x"', 'p::save', 'auth::contentRead', 'auth::activityWrite'], formattedScopes).requiredScopes,
+  ['content.read', 'activity.write']);
+assert.throws(() => access(route, ['"x"', 'p::list', 'auth::optionalProfile'], formattedScopes), /lacks explicit anonymous gate/);
+assert.throws(() => access(route, ['"x"', 'p::save', 'auth::unknown'], formattedScopes), /Unknown auth method unknown/);
+console.log('PASS route access 11 formatted scopes preserve compound requirements and anonymous gate failures')

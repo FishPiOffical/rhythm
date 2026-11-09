@@ -28,11 +28,14 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3AnonymousContentQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** 仅登录用户本人可查看自己的匿名创作，其他用户的资料入口不提供这些内容。 */
+/**
+ * 仅登录用户本人可查看自己的匿名创作，其他用户的资料入口不提供这些内容。
+ */
 @Singleton
 public class ApiV3AnonymousContentProcessor {
     @Inject
     private ApiV3AnonymousContentQueryService query;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3AnonymousContentProcessor.class);
@@ -40,10 +43,12 @@ public class ApiV3AnonymousContentProcessor {
         Dispatcher.get("/api/v3/me/anonymous-articles", p::articles, auth::contentRead);
         Dispatcher.get("/api/v3/me/anonymous-comments", p::comments, auth::contentRead);
     }
+
     public void articles(final RequestContext context) {
         ApiV3Requests.read(context, () -> query.articles(ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID),
                 ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void comments(final RequestContext context) {
         ApiV3Requests.read(context, () -> query.comments(ApiV3Requests.viewer(context).optString(Keys.OBJECT_ID),
                 ApiV3Requests.page(context), ApiV3Requests.size(context)));

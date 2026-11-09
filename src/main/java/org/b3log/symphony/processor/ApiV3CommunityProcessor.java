@@ -34,6 +34,7 @@ import java.util.Set;
 public class ApiV3CommunityProcessor {
     @Inject
     private ApiV3CommunityQueryService community;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3CommunityProcessor processor = beans.getReference(ApiV3CommunityProcessor.class);
@@ -48,32 +49,41 @@ public class ApiV3CommunityProcessor {
         Dispatcher.get("/api/v3/cities/{cityName}/users", processor::cityUsers, auth::optionalProfile, anonymous::handle);
         Dispatcher.get("/api/v3/cities/{cityName}/articles", processor::cityArticles, auth::optionalContent, anonymous::handle);
     }
+
     public void games(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.games(ApiV3Requests.viewer(context), ApiV3Requests.page(context), ApiV3Requests.size(context),
                 ApiV3Requests.choice(context, "sort", "votes", Set.of("likes", "votes"))));
     }
+
     public void game(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.game(ApiV3Requests.id(context, "gameId"), ApiV3Requests.viewer(context)));
     }
+
     public void gameComments(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.gameComments(ApiV3Requests.id(context, "gameId"), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void milestones(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.milestones(ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void milestone(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.milestone(ApiV3Requests.id(context, "milestoneId")));
     }
+
     public void statistics(final RequestContext context) {
         ApiV3Requests.read(context, community::statistics);
     }
+
     public void cityUsers(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.cityUsers(city(context), ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
+
     public void cityArticles(final RequestContext context) {
         ApiV3Requests.read(context, () -> community.cityArticles(city(context), ApiV3Requests.viewer(context), ApiV3Requests.page(context), ApiV3Requests.size(context),
                 ApiV3Requests.choice(context, "sort", "latest", Set.of("latest", "active", "hot", "comments"))));
     }
+
     private static String city(final RequestContext context) {
         return ApiV3Requests.text(context.pathVar("cityName"), 64, true);
     }

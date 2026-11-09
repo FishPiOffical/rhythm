@@ -21,11 +21,14 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Article;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Set;
 
-/** 验证实际的原文投影和 DTO。SQLite 用例不覆盖 HTTP 中间件及 MySQL。 */
+/**
+ * 验证实际的原文投影和 DTO。SQLite 用例不覆盖 HTTP 中间件及 MySQL。
+ */
 public class ApiV3ArticleEditorDtoTest {
     public static void main(final String[] args) throws Exception {
         final String raw = "<script>alert('raw')</script>\n正文\\\u001f20\u001f0-0\u001f0-0\u001e";
@@ -72,13 +75,21 @@ public class ApiV3ArticleEditorDtoTest {
             Assert.assertNull(read(db, "1' OR 1=1 --", "owner"));
             Assert.assertNull(read(db, "1", "owner' OR 1=1 --"));
             System.out.println("PASS actual SQL owner+ID binding, locked anonymous source, paid fields and own chapter projection");
-            try (final var s = db.createStatement()) { s.execute("UPDATE columns SET columnAuthorId='other'"); }
+            try (final var s = db.createStatement()) {
+                s.execute("UPDATE columns SET columnAuthorId='other'");
+            }
             hidden(read(db, "1", "owner"));
-            try (final var s = db.createStatement()) { s.execute("UPDATE columns SET columnAuthorId='owner',columnStatus=1"); }
+            try (final var s = db.createStatement()) {
+                s.execute("UPDATE columns SET columnAuthorId='owner',columnStatus=1");
+            }
             hidden(read(db, "1", "owner"));
-            try (final var s = db.createStatement()) { s.execute("DELETE FROM columns"); }
+            try (final var s = db.createStatement()) {
+                s.execute("DELETE FROM columns");
+            }
             hidden(read(db, "1", "owner"));
-            try (final var s = db.createStatement()) { s.execute("DELETE FROM chapter"); }
+            try (final var s = db.createStatement()) {
+                s.execute("DELETE FROM chapter");
+            }
             hidden(read(db, "1", "owner"));
             System.out.println("PASS foreign, disabled and absent column metadata cannot leak through owned article source");
         }
@@ -86,22 +97,28 @@ public class ApiV3ArticleEditorDtoTest {
             try {
                 ApiV3ArticleEditorDto.sql(bad, "chapter", "columns");
                 Assert.fail();
-            } catch (final IllegalArgumentException expected) { }
+            } catch (final IllegalArgumentException expected) {
+            }
         }
         Assert.assertTrue(ApiV3ArticleEditorDto.sql("symphony_article", "symphony_long_article_chapter", "symphony_long_article_column").contains("`symphony_article`"));
         System.out.println("PASS internal table identifier validation and configured prefix support");
     }
+
     private static void hidden(final JSONObject dto) {
         Assert.assertNotNull(dto);
-        for (final String field : new String[]{"columnId", "columnTitle", "columnCoverURL", "chapterNo"}) Assert.assertEquals(dto.getString(field), "");
+        for (final String field : new String[]{"columnId", "columnTitle", "columnCoverURL", "chapterNo"})
+            Assert.assertEquals(dto.getString(field), "");
     }
+
     private static JSONObject read(final Connection db, final String id, final String owner) throws Exception {
         try (final var s = db.prepareStatement(ApiV3ArticleEditorDto.sql("article", "chapter", "columns"))) {
-            s.setString(1, id); s.setString(2, owner);
+            s.setString(1, id);
+            s.setString(2, owner);
             try (final var result = s.executeQuery()) {
                 if (!result.next()) return null;
                 final var row = new JSONObject();
-                for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) row.put(result.getMetaData().getColumnLabel(i), result.getObject(i));
+                for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
+                    row.put(result.getMetaData().getColumnLabel(i), result.getObject(i));
                 return ApiV3ArticleEditorDto.from(row);
             }
         }

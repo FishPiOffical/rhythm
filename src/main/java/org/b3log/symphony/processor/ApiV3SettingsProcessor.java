@@ -43,6 +43,7 @@ public class ApiV3SettingsProcessor {
     private ApiV3AvatarQueryService avatars;
     @Inject
     private ApiV3PersonalityQueryService personalities;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3SettingsProcessor p = beans.getReference(ApiV3SettingsProcessor.class);
@@ -68,6 +69,7 @@ public class ApiV3SettingsProcessor {
         Dispatcher.put("/api/v3/me/settings/privacy", p::updatePrivacy, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/display", p::updateDisplay, auth::settingsWrite, writes::handle);
     }
+
     public void personality(final RequestContext c) {
         ApiV3Requests.read(c, () -> personalities.read(actor(c)));
     }
@@ -147,10 +149,12 @@ public class ApiV3SettingsProcessor {
     private void read(final RequestContext c, final String group) {
         ApiV3Requests.read(c, () -> management.read(actor(c), group));
     }
+
     private void update(final RequestContext c, final String group) {
         ApiV3Requests.respond(c, () -> management.update(actor(c), group, ApiV3Settings.normalize(group,
                 ApiV3WriteInputs.body(c, ApiV3Settings.fields(group).keySet(), false), Latkes.getServePath()), ApiV3WriteInputs.idempotencyKey(c)));
     }
+
     private static String actor(final RequestContext c) {
         return ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID);
     }

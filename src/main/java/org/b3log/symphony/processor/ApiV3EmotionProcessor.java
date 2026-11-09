@@ -29,11 +29,14 @@ import org.b3log.symphony.service.ApiV3EmotionQueryService;
 import org.b3log.symphony.util.ApiV3EmotionOptions;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** 仅本人可读取的表情设置。 */
+/**
+ * 仅本人可读取的表情设置。
+ */
 @Singleton
 public class ApiV3EmotionProcessor {
     @Inject
     private ApiV3EmotionQueryService query;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3EmotionProcessor p = beans.getReference(ApiV3EmotionProcessor.class);
@@ -43,6 +46,7 @@ public class ApiV3EmotionProcessor {
         Dispatcher.get("/api/v3/me/settings/emoji-groups", p::groups, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/emoji-groups/{groupId}/emojis", p::items, auth::profileRead);
     }
+
     public void emotions(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.emotions(actor(c)));
     }

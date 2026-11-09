@@ -30,12 +30,14 @@ import org.b3log.symphony.service.ApiV3EmotionSettingsService;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3EmotionSettingsProcessor {
     @Inject
     private ApiV3EmotionSettingsService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3EmotionSettingsProcessor.class);
@@ -43,6 +45,7 @@ public class ApiV3EmotionSettingsProcessor {
         final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.put("/api/v3/me/settings/emotions", p::update, auth::settingsWrite, writes::handle);
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();

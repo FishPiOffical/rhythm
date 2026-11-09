@@ -28,12 +28,14 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3ParagraphQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3ParagraphProcessor {
     @Inject
     private ApiV3ParagraphQueryService queries;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3ParagraphProcessor.class);
@@ -44,11 +46,13 @@ public class ApiV3ParagraphProcessor {
         Dispatcher.get("/api/v3/comments/{commentId}/location", processor::location, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/comments/{commentId}", processor::comment, auth::optionalContent, anonymous::handle);
     }
+
     public void paragraphs(final RequestContext context) {
         ApiV3Requests.respond(context, () -> queries.paragraphs(ApiV3Requests.id(context, "articleId"), ApiV3Requests.viewer(context),
                 ApiV3Requests.number(context, "p", 1, Integer.MAX_VALUE / 50), ApiV3Requests.number(context, "size", 20, 50),
                 "true".equals(ApiV3Requests.choice(context, "includeContent", "false", Set.of("true", "false")))));
     }
+
     public void comments(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String raw = context.param("paragraphId");
@@ -60,9 +64,11 @@ public class ApiV3ParagraphProcessor {
                     ApiV3Requests.choice(context, "sort", "oldest", Set.of("oldest", "latest", "hot")));
         });
     }
+
     public void location(final RequestContext context) {
         ApiV3Requests.respond(context, () -> queries.location(ApiV3Requests.id(context, "commentId"), ApiV3Requests.viewer(context)));
     }
+
     public void comment(final RequestContext context) {
         ApiV3Requests.respond(context, () -> queries.comment(ApiV3Requests.id(context, "commentId"), ApiV3Requests.viewer(context)));
     }

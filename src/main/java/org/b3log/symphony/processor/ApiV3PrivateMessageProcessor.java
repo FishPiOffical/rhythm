@@ -45,15 +45,15 @@ public class ApiV3PrivateMessageProcessor {
         final var p = beans.getReference(ApiV3PrivateMessageProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.get("/api/v3/me/conversations",p::list,auth::messagesRead);
-        Dispatcher.get("/api/v3/me/conversations/{peerId}",p::conversation,auth::messagesRead);
-        Dispatcher.get("/api/v3/me/conversations/{peerId}/messages",p::history,auth::messagesRead);
-        Dispatcher.get("/api/v3/me/messages/unread-count",p::unread,auth::messagesRead);
-        Dispatcher.get("/api/v3/me/messages/{messageId}",p::message,auth::messagesRead);
-        Dispatcher.post("/api/v3/me/conversations/{peerId}/messages",p::send,auth::messagesWrite,writes::handle);
-        Dispatcher.post("/api/v3/me/conversations/{peerId}/read",p::markRead,auth::messagesWrite,writes::handle);
-        Dispatcher.post("/api/v3/me/conversations/read",p::markAllRead,auth::messagesWrite,writes::handle);
-        Dispatcher.delete("/api/v3/me/messages/{messageId}",p::withdraw,auth::messagesWrite,writes::handle);
+        Dispatcher.get("/api/v3/me/conversations", p::list, auth::messagesRead);
+        Dispatcher.get("/api/v3/me/conversations/{peerId}", p::conversation, auth::messagesRead);
+        Dispatcher.get("/api/v3/me/conversations/{peerId}/messages", p::history, auth::messagesRead);
+        Dispatcher.get("/api/v3/me/messages/unread-count", p::unread, auth::messagesRead);
+        Dispatcher.get("/api/v3/me/messages/{messageId}", p::message, auth::messagesRead);
+        Dispatcher.post("/api/v3/me/conversations/{peerId}/messages", p::send, auth::messagesWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/conversations/{peerId}/read", p::markRead, auth::messagesWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/conversations/read", p::markAllRead, auth::messagesWrite, writes::handle);
+        Dispatcher.delete("/api/v3/me/messages/{messageId}", p::withdraw, auth::messagesWrite, writes::handle);
     }
 
     public void list(RequestContext c) {

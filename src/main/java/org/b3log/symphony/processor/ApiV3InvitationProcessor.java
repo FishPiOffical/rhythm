@@ -31,14 +31,18 @@ import org.b3log.symphony.util.ApiV3Invitation;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
-/** 使用 POST 正文提交邀请码以避免出现在 URL 中，操作本身只读。 */
+/**
+ * 使用 POST 正文提交邀请码以避免出现在 URL 中，操作本身只读。
+ */
 @Singleton
 public class ApiV3InvitationProcessor {
     private static final int MAX_BODY_BYTES = 1024;
     @Inject
     private ApiV3InvitationQueryService query;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3InvitationProcessor.class);
@@ -46,10 +50,12 @@ public class ApiV3InvitationProcessor {
         final var budget = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/invitation-codes/status", p::status, auth::activityRead, budget::handle);
     }
+
     public void status(final RequestContext c) {
         ApiV3Requests.read(c, () -> {
             final byte[] bytes = c.getRequest().getBytes();
-            if (bytes != null && bytes.length > MAX_BODY_BYTES) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+            if (bytes != null && bytes.length > MAX_BODY_BYTES)
+                throw new ApiV3Exception(413, "body_too_large", "请求体过大");
             return query.status(ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID),
                     ApiV3Invitation.code(ApiV3WriteInputs.body(c, Set.of("code"), false)));
         });

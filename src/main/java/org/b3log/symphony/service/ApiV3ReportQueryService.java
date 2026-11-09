@@ -29,34 +29,47 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 只公开已有的举报分类，隐藏目标数据和举报人历史。 */
+/**
+ * 只公开已有的举报分类，隐藏目标数据和举报人历史。
+ */
 @Service
 public class ApiV3ReportQueryService {
-    @Inject private UserRepository users;
+    @Inject
+    private UserRepository users;
+
     public JSONObject options(final String actor) {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
         try {
             final var rows = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=?", actor);
-            if (rows.size()!=1 || !actor.equals(rows.getFirst().optString("oId"))
+            if (rows.size() != 1 || !actor.equals(rows.getFirst().optString("oId"))
                     || !(rows.getFirst().opt("userStatus") instanceof Number status)
-                    || status.doubleValue()!=UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
+                    || status.doubleValue() != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
             final JSONArray targets = new JSONArray();
-            targets.put(target(0,"文章"));
-            targets.put(target(1,"评论"));
-            targets.put(target(2,"用户"));
-            targets.put(target(3,"聊天室消息"));
-            return new JSONObject().put("targets",targets);
+            targets.put(target(0, "文章"));
+            targets.put(target(1, "评论"));
+            targets.put(target(2, "用户"));
+            targets.put(target(3, "聊天室消息"));
+            return new JSONObject().put("targets", targets);
         } catch (final RepositoryException e) {
-            throw new ApiV3Exception(503,"temporarily_unavailable","举报选项暂不可用");
+            throw new ApiV3Exception(503, "temporarily_unavailable", "举报选项暂不可用");
         }
     }
-    private static JSONObject target(final int type,final String label) {
-        final JSONArray values=new JSONArray();
-        for(final int reason:ApiV3ReportInputs.reasonsFor(type)) values.put(new JSONObject().put("reason",reason).put("label",switch(reason) {
-            case 0 -> "垃圾广告"; case 1 -> "低俗色情"; case 2 -> "违法违规"; case 3 -> "涉嫌侵权";
-            case 4 -> "人身攻击"; case 5 -> "冒充账号"; case 6 -> "垃圾广告账号"; case 7 -> "个人信息违规";
-            case 49 -> "其他"; default -> throw new IllegalArgumentException();
-        }));
-        return new JSONObject().put("targetType",type).put("label",label).put("reasons",values);
+
+    private static JSONObject target(final int type, final String label) {
+        final JSONArray values = new JSONArray();
+        for (final int reason : ApiV3ReportInputs.reasonsFor(type))
+            values.put(new JSONObject().put("reason", reason).put("label", switch (reason) {
+                case 0 -> "垃圾广告";
+                case 1 -> "低俗色情";
+                case 2 -> "违法违规";
+                case 3 -> "涉嫌侵权";
+                case 4 -> "人身攻击";
+                case 5 -> "冒充账号";
+                case 6 -> "垃圾广告账号";
+                case 7 -> "个人信息违规";
+                case 49 -> "其他";
+                default -> throw new IllegalArgumentException();
+            }));
+        return new JSONObject().put("targetType", type).put("label", label).put("reasons", values);
     }
 }

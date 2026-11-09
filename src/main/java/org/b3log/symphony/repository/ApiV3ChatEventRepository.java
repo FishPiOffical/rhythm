@@ -27,38 +27,62 @@ import org.b3log.latke.repository.jdbc.JdbcRepository;
 import org.b3log.symphony.model.ApiV3ChatEvent;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
 @Repository
 public class ApiV3ChatEventRepository extends AbstractRepository {
-    @Inject private ApiV3ChatStateRepository state;
-    public ApiV3ChatEventRepository(){super(ApiV3ChatEvent.REPOSITORY);}
-    @Override public Transaction beginTransaction(){return ApiV3Transactions.strict(super.beginTransaction());}
-    protected Connection currentConnection(){
-        final var transaction=JdbcRepository.TX.get();
-        if(transaction==null||!transaction.isActive())throw new IllegalStateException("chat event transaction required");
+    @Inject
+    private ApiV3ChatStateRepository state;
+
+    public ApiV3ChatEventRepository() {
+        super(ApiV3ChatEvent.REPOSITORY);
+    }
+
+    @Override
+    public Transaction beginTransaction() {
+        return ApiV3Transactions.strict(super.beginTransaction());
+    }
+
+    protected Connection currentConnection() {
+        final var transaction = JdbcRepository.TX.get();
+        if (transaction == null || !transaction.isActive())
+            throw new IllegalStateException("chat event transaction required");
         return transaction.getConnection();
     }
-    /** The locked room head serializes revision assignment through durable commit, not message-ID creation time. */
-    public long appendInCurrentTransaction(String messageId,String kind)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("chat event transaction required");
-        if(!ApiV3ChatEvent.validChange(kind,messageId))throw new IllegalArgumentException("invalid chat change");
-        final long previous=state.lockHeadInCurrentTransaction();
-        if(previous==Long.MAX_VALUE)throw new RepositoryException("chat event revision exhausted");
-        final long revision=previous+1,now=System.currentTimeMillis();
-        try(var statement=currentConnection().prepareStatement("INSERT INTO `"+getName()+"` (oId,revision,messageId,kind,createdAt) VALUES(?,?,?,?,?)")){
-            statement.setString(1,Long.toString(revision));statement.setLong(2,revision);statement.setString(3,messageId);statement.setString(4,kind);statement.setLong(5,now);statement.executeUpdate();
-        }catch(SQLException e){throw new RepositoryException(e);}
-        state.update(ApiV3ChatEvent.ROOM,new JSONObject().put("revision",revision).put("updatedAt",now),"revision","updatedAt");
+
+    /**
+     * The locked room head serializes revision assignment through durable commit, not message-ID creation time.
+     */
+    public long appendInCurrentTransaction(String messageId, String kind) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("chat event transaction required");
+        if (!ApiV3ChatEvent.validChange(kind, messageId)) throw new IllegalArgumentException("invalid chat change");
+        final long previous = state.lockHeadInCurrentTransaction();
+        if (previous == Long.MAX_VALUE) throw new RepositoryException("chat event revision exhausted");
+        final long revision = previous + 1, now = System.currentTimeMillis();
+        try (var statement = currentConnection().prepareStatement("INSERT INTO `" + getName() + "` (oId,revision,messageId,kind,createdAt) VALUES(?,?,?,?,?)")) {
+            statement.setString(1, Long.toString(revision));
+            statement.setLong(2, revision);
+            statement.setString(3, messageId);
+            statement.setString(4, kind);
+            statement.setLong(5, now);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
+        state.update(ApiV3ChatEvent.ROOM, new JSONObject().put("revision", revision).put("updatedAt", now), "revision", "updatedAt");
         return revision;
     }
+
     public long head() throws RepositoryException {
         return state.head();
     }
 
-    /** 按调用方固定的上界读取已提交事件，供轮询按顺序补齐游标。 */
+    /**
+     * 按调用方固定的上界读取已提交事件，供轮询按顺序补齐游标。
+     */
     public List<JSONObject> after(long revision, long through, int limit) throws RepositoryException {
         if (hasTransactionBegun())
             throw new IllegalStateException("chat snapshot inside writer transaction");
@@ -68,7 +92,9 @@ public class ApiV3ChatEventRepository extends AbstractRepository {
                 + "` WHERE revision>? AND revision<=? ORDER BY revision ASC LIMIT ?", revision, through, limit);
     }
 
-    /** 每批锁定并清理过期事件，提交后才返回删除数。 */
+    /**
+     * 每批锁定并清理过期事件，提交后才返回删除数。
+     */
     public int removeExpired(long cutoff) throws RepositoryException {
         if (hasTransactionBegun())
             throw new IllegalStateException("chat cleanup inside writer transaction");

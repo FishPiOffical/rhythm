@@ -38,22 +38,29 @@ public class ApiV3AppLoginRequestRepository extends AbstractRepository {
         return ApiV3Transactions.strict(super.beginTransaction());
     }
 
-    /** 仅预读不可变的绑定字段，调用方取得根事务的锁后必须重新读取。 */
+    /**
+     * 仅预读不可变的绑定字段，调用方取得根事务的锁后必须重新读取。
+     */
     public JSONObject hint(final String hash) throws RepositoryException {
         return one("SELECT oId,userId,issuerTokenId,credentialEpoch,scope FROM `" + getName() + "` WHERE oId=?", hash);
     }
+
     public JSONObject currentForUpdate(final String hash) throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("app login transaction required");
         return one("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", hash);
     }
-    /** 在管理员已有的严格根事务中调用，调用前须持有原生客户端命名空间锁。 */
+
+    /**
+     * 在管理员已有的严格根事务中调用，调用前须持有原生客户端命名空间锁。
+     */
     public int invalidatePendingInCurrentTransaction() throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("app login transaction required");
         return ApiV3TransactionStatements.execute("DELETE FROM `" + getName() + "` WHERE state IN (?,?,?,?)",
                 "WAITING", "CLAIMED", "APP_CONFIRMED", "WEB_APPROVED");
     }
+
     private JSONObject one(final String sql, final String hash) throws RepositoryException {
         if (hash == null || !hash.matches("[A-Za-z0-9_-]{43}"))
             throw new IllegalArgumentException("request hash");

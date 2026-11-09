@@ -27,6 +27,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.sql.*;
 import java.util.*;
 
@@ -55,14 +56,14 @@ public class ApiV3CommentRewardQueryTest {
         props.setProperty("runtimeDatabase", "NONE");
         Latkes.setLatkeProps(props);
         Latkes.setLocalProps(props);
-        try(var db=DriverManager.getConnection("jdbc:sqlite::memory:")){
-            try(var s=db.createStatement()){
+        try (var db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+            try (var s = db.createStatement()) {
                 s.execute("CREATE TABLE users(oId TEXT PRIMARY KEY,userStatus INT)");
                 s.execute("INSERT INTO users VALUES('1',0),('2',0),('3',0),('4',4)");
                 s.execute("CREATE TABLE comments(oId TEXT PRIMARY KEY,commentOnArticleId TEXT,commentAuthorId TEXT,commentStatus INT,commentVisible INT,commentAnonymous INT,commentThankCnt INT,commentQnAOffered INT)");
                 s.execute("INSERT INTO comments VALUES('11','21','2',0,0,0,7,0),('12','21','2',0,1,1,0,0),('13','21','4',0,0,0,0,0),('14','21','2',1,0,0,0,0)");
                 s.execute("CREATE TABLE rewards(oId TEXT PRIMARY KEY,senderId TEXT,dataId TEXT,type INT)");
-                s.execute("INSERT INTO rewards VALUES('31','1','11',"+Reward.TYPE_C_COMMENT+"),('32','1','11',"+Reward.TYPE_C_COMMENT+"),('33','3','12',"+Reward.TYPE_C_ARTICLE+" )");
+                s.execute("INSERT INTO rewards VALUES('31','1','11'," + Reward.TYPE_C_COMMENT + "),('32','1','11'," + Reward.TYPE_C_COMMENT + "),('33','3','12'," + Reward.TYPE_C_ARTICLE + " )");
             }
             final var service = new ApiV3CommentRewardQueryService();
             final boolean[] failed = {false}, hidden = {false};
@@ -92,7 +93,8 @@ public class ApiV3CommentRewardQueryTest {
                             var m = r.getMetaData();
                             while (r.next()) {
                                 var row = new JSONObject();
-                                for (int i = 1; i <= m.getColumnCount(); i++) row.put(m.getColumnLabel(i), r.getObject(i));
+                                for (int i = 1; i <= m.getColumnCount(); i++)
+                                    row.put(m.getColumnLabel(i), r.getObject(i));
                                 list.add(row);
                             }
                             return list;
@@ -108,7 +110,7 @@ public class ApiV3CommentRewardQueryTest {
                             .put("articleQnAOfferPoint", offer[0]).put("articleType", articleType[0]);
                 }
             });
-            final JSONObject owner=new JSONObject().put("oId","1"),author=new JSONObject().put("oId","2"),other=new JSONObject().put("oId","3");
+            final JSONObject owner = new JSONObject().put("oId", "1"), author = new JSONObject().put("oId", "2"), other = new JSONObject().put("oId", "3");
             final var thanks = service.read(owner, "11", false);
             Assert.assertEquals(thanks.keySet(), Set.of("id", "thanked", "canThank", "thankCount", "thankPoint"));
             Assert.assertTrue(thanks.getBoolean("thanked"));
@@ -133,10 +135,10 @@ public class ApiV3CommentRewardQueryTest {
             Assert.assertEquals(accept.getInt("offerPoint"), 100);
             Assert.assertFalse(service.read(other, "11", true).getBoolean("canAccept"));
             Assert.assertFalse(service.read(author, "11", true).getBoolean("canAccept"));
-            for(int value:List.of(0,19)){
+            for (int value : List.of(0, 19)) {
                 offer[0] = value;
                 Assert.assertFalse(service.read(owner, "11", true).getBoolean("canAccept"));
-                Assert.assertFalse(service.read(owner,"12",true).getBoolean("canAccept"));
+                Assert.assertFalse(service.read(owner, "12", true).getBoolean("canAccept"));
             }
             offer[0] = 20;
             Assert.assertTrue(service.read(owner, "11", true).getBoolean("canAccept"));
@@ -177,30 +179,31 @@ public class ApiV3CommentRewardQueryTest {
             });
             org.b3log.symphony.processor.ApiV3CommentRewardProcessor.registerRoutes(endpoint, auth);
             org.b3log.latke.http.Dispatcher.mapping();
-            for (String kind : List.of("thanks", "accept")) for (String token : List.of("", "wrong", "owner")) {
-                var raw = new io.netty.handler.codec.http.DefaultFullHttpRequest(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,
-                        io.netty.handler.codec.http.HttpMethod.GET, "/api/v3/comments/11/" + kind);
-                try {
-                    raw.headers().set("Cookie", "legacy");
-                    if (!token.isEmpty()) raw.headers().set("Authorization", "Bearer " + token);
-                    var request = new org.b3log.latke.http.Request(null, raw);
-                    request.setBytes(new byte[0]);
-                    request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
-                    var c = new org.b3log.latke.http.RequestContext(request, new org.b3log.latke.http.Response(null,
-                            new io.netty.handler.codec.http.DefaultHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,
-                                    io.netty.handler.codec.http.HttpResponseStatus.OK)));
-                    c.addHandler(new org.b3log.latke.http.handler.RouteHandler());
-                    c.addHandler(kind.equals("thanks") ? endpoint::thanks : endpoint::accept);
-                    c.handle();
-                    Assert.assertEquals(c.attr("status"), token.isEmpty() ? 401 : token.equals("wrong") ? 403 : 200);
-                    if (token.equals("owner")) {
-                        Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
-                        Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+            for (String kind : List.of("thanks", "accept"))
+                for (String token : List.of("", "wrong", "owner")) {
+                    var raw = new io.netty.handler.codec.http.DefaultFullHttpRequest(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,
+                            io.netty.handler.codec.http.HttpMethod.GET, "/api/v3/comments/11/" + kind);
+                    try {
+                        raw.headers().set("Cookie", "legacy");
+                        if (!token.isEmpty()) raw.headers().set("Authorization", "Bearer " + token);
+                        var request = new org.b3log.latke.http.Request(null, raw);
+                        request.setBytes(new byte[0]);
+                        request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
+                        var c = new org.b3log.latke.http.RequestContext(request, new org.b3log.latke.http.Response(null,
+                                new io.netty.handler.codec.http.DefaultHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1,
+                                        io.netty.handler.codec.http.HttpResponseStatus.OK)));
+                        c.addHandler(new org.b3log.latke.http.handler.RouteHandler());
+                        c.addHandler(kind.equals("thanks") ? endpoint::thanks : endpoint::accept);
+                        c.handle();
+                        Assert.assertEquals(c.attr("status"), token.isEmpty() ? 401 : token.equals("wrong") ? 403 : 200);
+                        if (token.equals("owner")) {
+                            Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
+                            Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
+                        }
+                    } finally {
+                        raw.release();
                     }
-                } finally {
-                    raw.release();
                 }
-            }
             try (var s = db.createStatement().executeQuery("SELECT COUNT(*) FROM rewards")) {
                 Assert.assertTrue(s.next());
                 Assert.assertEquals(s.getInt(1), 3);

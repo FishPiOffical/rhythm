@@ -25,12 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** 通知列表、未读计数和批量状态更新共用分类映射。 */
+/**
+ * 通知列表、未读计数和批量状态更新共用分类映射。
+ */
 public final class ApiV3NotificationTypes {
-    private ApiV3NotificationTypes() { }
+    private ApiV3NotificationTypes() {
+    }
+
     public static final Map<String, List<Integer>> CATEGORIES;
     public static final List<Integer> KNOWN_TYPES;
     public static final Set<String> FILTERS;
+
     static {
         final Map<String, List<Integer>> categories = new LinkedHashMap<>();
         categories.put("commented", List.of(Notification.DATA_TYPE_C_COMMENTED, Notification.DATA_TYPE_C_COMMENT));
@@ -56,7 +61,8 @@ public final class ApiV3NotificationTypes {
         CATEGORIES = java.util.Collections.unmodifiableMap(categories);
         KNOWN_TYPES = categories.values().stream().flatMap(List::stream).distinct().sorted().toList();
         final Set<String> filters = new java.util.HashSet<>(categories.keySet());
-        filters.add("all"); filters.add("other");
+        filters.add("all");
+        filters.add("other");
         FILTERS = Set.copyOf(filters);
     }
 

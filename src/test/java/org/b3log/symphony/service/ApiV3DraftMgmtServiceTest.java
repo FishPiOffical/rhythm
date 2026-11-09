@@ -36,7 +36,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 在同一个事务内存存储上运行实际草稿与幂等服务，覆盖范围限于服务层。 */
+/**
+ * 在同一个事务内存存储上运行实际草稿与幂等服务，覆盖范围限于服务层。
+ */
 public class ApiV3DraftMgmtServiceTest {
     @Test
     public void createReadUpdateAndDeleteReplayTheOriginalResult() throws Exception {
@@ -76,8 +78,11 @@ public class ApiV3DraftMgmtServiceTest {
     public void failedReplayResultWriteCannotLeaveOrphanDraft() throws Exception {
         final Fixture f = fixture();
         f.failResults = true;
-        try { f.api.save("user-a", null, "retry", new JSONObject().put("title", "draft")); Assert.fail("Expected storage failure"); }
-        catch (final RepositoryException expected) { }
+        try {
+            f.api.save("user-a", null, "retry", new JSONObject().put("title", "draft"));
+            Assert.fail("Expected storage failure");
+        } catch (final RepositoryException expected) {
+        }
         Assert.assertTrue(f.drafts.isEmpty());
         Assert.assertTrue(f.requests.isEmpty());
         f.failResults = false;
@@ -93,8 +98,11 @@ public class ApiV3DraftMgmtServiceTest {
         Assert.assertEquals(f.drafts.get(id).getString(ArticleDraft.TITLE), "legacy");
         f.legacy.removeDraft("user-a", id);
         Assert.assertTrue(f.drafts.isEmpty());
-        try { f.legacy.saveDraftInCurrentTransaction("user-a", new JSONObject()); Assert.fail("Expected transaction guard"); }
-        catch (final IllegalStateException expected) { }
+        try {
+            f.legacy.saveDraftInCurrentTransaction("user-a", new JSONObject());
+            Assert.fail("Expected transaction guard");
+        } catch (final IllegalStateException expected) {
+        }
     }
 
     private Fixture fixture() throws Exception {
@@ -106,18 +114,33 @@ public class ApiV3DraftMgmtServiceTest {
         if (null != previous) properties.putAll(previous);
         properties.setProperty("runtimeDatabase", "NONE");
         Latkes.setLocalProps(properties);
-        try { return new Fixture(); }
-        finally { Latkes.setLocalProps(previous); }
+        try {
+            return new Fixture();
+        } finally {
+            Latkes.setLocalProps(previous);
+        }
     }
 
-    @FunctionalInterface private interface Action { void run() throws Exception; }
+    @FunctionalInterface
+    private interface Action {
+        void run() throws Exception;
+    }
+
     private void failure(final int status, final Action action) throws Exception {
-        try { action.run(); Assert.fail("Expected access/protocol failure"); }
-        catch (final ApiV3Exception e) { Assert.assertEquals(e.status, status); }
+        try {
+            action.run();
+            Assert.fail("Expected access/protocol failure");
+        } catch (final ApiV3Exception e) {
+            Assert.assertEquals(e.status, status);
+        }
     }
+
     private static void inject(final Object target, final String name, final Object value) throws Exception {
-        final var field = target.getClass().getDeclaredField(name); field.setAccessible(true); field.set(target, value);
+        final var field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
+
     private static Map<String, JSONObject> copy(final Map<String, JSONObject> source) {
         final Map<String, JSONObject> result = new HashMap<>();
         source.forEach((id, row) -> result.put(id, new JSONObject(row.toString())));
@@ -133,55 +156,109 @@ public class ApiV3DraftMgmtServiceTest {
         private final ArticleDraftMgmtService legacy = new ArticleDraftMgmtService();
         private final ApiV3IdempotencyMgmtService replay = new ApiV3IdempotencyMgmtService();
         private final ApiV3DraftMgmtService api = new ApiV3DraftMgmtService();
+
         private Fixture() throws Exception {
             inject(legacy, "articleDraftRepository", new Drafts());
             inject(replay, "requestRepository", new Requests());
             inject(api, "draftMgmtService", legacy);
             inject(api, "idempotencyMgmtService", replay);
         }
+
         private Transaction begin() {
             Assert.assertNull(current);
             current = new Tx();
             return current;
         }
+
         private final class Tx implements Transaction {
             private final Map<String, JSONObject> requestRows = copy(requests);
             private final Map<String, JSONObject> draftRows = copy(drafts);
             private boolean active = true;
-            @Override public void commit() { requests = requestRows; drafts = draftRows; active = false; current = null; }
-            @Override public void rollback() { active = false; current = null; }
-            @Override public boolean isActive() { return active; }
+
+            @Override
+            public void commit() {
+                requests = requestRows;
+                drafts = draftRows;
+                active = false;
+                current = null;
+            }
+
+            @Override
+            public void rollback() {
+                active = false;
+                current = null;
+            }
+
+            @Override
+            public boolean isActive() {
+                return active;
+            }
         }
+
         private final class Requests extends ApiV3RequestRepository {
-            @Override public Transaction beginTransaction() { return begin(); }
-            @Override public boolean hasTransactionBegun() { return null != current; }
-            @Override public JSONObject getForUpdate(final String id) { return current.requestRows.get(id); }
+            @Override
+            public Transaction beginTransaction() {
+                return begin();
+            }
+
+            @Override
+            public boolean hasTransactionBegun() {
+                return null != current;
+            }
+
+            @Override
+            public JSONObject getForUpdate(final String id) {
+                return current.requestRows.get(id);
+            }
+
             @Override
             public String add(final JSONObject row) {
                 final String id = row.getString(Keys.OBJECT_ID);
                 current.requestRows.put(id, row);
                 return id;
             }
-            @Override public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
+
+            @Override
+            public void update(final String id, final JSONObject row, final String... names) throws RepositoryException {
                 if (failResults) throw new RepositoryException("result storage unavailable");
                 current.requestRows.put(id, row);
             }
         }
+
         private final class Drafts extends ArticleDraftRepository {
-            @Override public Transaction beginTransaction() { return begin(); }
-            @Override public boolean hasTransactionBegun() { return null != current; }
-            @Override public JSONObject getOwnedDraftForUpdate(final String user, final String id) {
+            @Override
+            public Transaction beginTransaction() {
+                return begin();
+            }
+
+            @Override
+            public boolean hasTransactionBegun() {
+                return null != current;
+            }
+
+            @Override
+            public JSONObject getOwnedDraftForUpdate(final String user, final String id) {
                 final JSONObject row = current.draftRows.get(id);
                 return null != row && user.equals(row.optString(ArticleDraft.USER_ID)) ? row : null;
             }
-            @Override public String add(final JSONObject row) {
+
+            @Override
+            public String add(final JSONObject row) {
                 final String id = String.valueOf(ids.incrementAndGet());
                 row.put(Keys.OBJECT_ID, id);
                 current.draftRows.put(id, row);
                 return id;
             }
-            @Override public void update(final String id, final JSONObject row, final String... names) { current.draftRows.put(id, row); }
-            @Override public void remove(final String id) { current.draftRows.remove(id); }
+
+            @Override
+            public void update(final String id, final JSONObject row, final String... names) {
+                current.draftRows.put(id, row);
+            }
+
+            @Override
+            public void remove(final String id) {
+                current.draftRows.remove(id);
+            }
         }
     }
 

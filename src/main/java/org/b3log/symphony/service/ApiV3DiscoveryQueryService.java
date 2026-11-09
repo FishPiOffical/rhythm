@@ -63,35 +63,56 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/** 提供目录、搜索和公开资料的只读投影。 */
+/**
+ * 提供目录、搜索和公开资料的只读投影。
+ */
 @Service
 public class ApiV3DiscoveryQueryService {
-    @Inject private TagRepository tagRepository;
-    @Inject private DomainRepository domainRepository;
-    @Inject private TagArticleRepository tagArticleRepository;
-    @Inject private DomainTagRepository domainTagRepository;
-    @Inject private FollowRepository followRepository;
-    @Inject private ArticleRepository articleRepository;
-    @Inject private UserRepository userRepository;
-    @Inject private SystemSettingsRepository systemSettingsRepository;
-    @Inject private BreezemoonRepository breezemoonRepository;
-    @Inject private ApiV3ContentDtoService contentDtoService;
+    @Inject
+    private TagRepository tagRepository;
+    @Inject
+    private DomainRepository domainRepository;
+    @Inject
+    private TagArticleRepository tagArticleRepository;
+    @Inject
+    private DomainTagRepository domainTagRepository;
+    @Inject
+    private FollowRepository followRepository;
+    @Inject
+    private ArticleRepository articleRepository;
+    @Inject
+    private UserRepository userRepository;
+    @Inject
+    private SystemSettingsRepository systemSettingsRepository;
+    @Inject
+    private BreezemoonRepository breezemoonRepository;
+    @Inject
+    private ApiV3ContentDtoService contentDtoService;
 
-    public record Following(String ownerId, String source) { }
-    public record Selection(String userId, String tagId, String domainId, String keyword, String collectionUserId, String city, Following following) {
+    public record Following(String ownerId, String source) {
+    }
+
+    public record Selection(String userId, String tagId, String domainId, String keyword, String collectionUserId,
+                            String city, Following following) {
         public Selection(final String userId, final String tagId, final String domainId, final String keyword, final String collectionUserId, final String city) {
             this(userId, tagId, domainId, keyword, collectionUserId, city, null);
         }
+
         public static Selection watching(final String ownerId, final String source) {
             return new Selection(null, null, null, null, null, null, new Following(ownerId, source));
         }
+
         public Selection(final String userId, final String tagId, final String domainId, final String keyword) {
             this(userId, tagId, domainId, keyword, null, null);
         }
+
         public Selection(final String userId, final String tagId, final String domainId, final String keyword, final String collectionUserId) {
             this(userId, tagId, domainId, keyword, collectionUserId, null);
         }
-        public static Selection all() { return new Selection(null, null, null, null); }
+
+        public static Selection all() {
+            return new Selection(null, null, null, null);
+        }
     }
 
     public JSONObject tags(final int p, final int size) throws RepositoryException {
@@ -122,7 +143,8 @@ public class ApiV3DiscoveryQueryService {
 
     public JSONObject domain(final String id) throws RepositoryException {
         final JSONObject domain = domainRepository.get(id);
-        if (null == domain || Domain.DOMAIN_STATUS_C_VALID != domain.optInt(Domain.DOMAIN_STATUS)) throw ApiV3Requests.notFound();
+        if (null == domain || Domain.DOMAIN_STATUS_C_VALID != domain.optInt(Domain.DOMAIN_STATUS))
+            throw ApiV3Requests.notFound();
         return domainDto(domain);
     }
 
@@ -138,7 +160,9 @@ public class ApiV3DiscoveryQueryService {
         return ApiV3Requests.pagination(list, p, size, total);
     }
 
-    /** 先筛选再计数和分页。SQL 标识符来自内部定义，查询值通过参数绑定。 */
+    /**
+     * 先筛选再计数和分页。SQL 标识符来自内部定义，查询值通过参数绑定。
+     */
     public JSONObject articles(final JSONObject viewer, final int p, final int size, final String sort,
                                final String type, final Selection selection) throws RepositoryException {
         final StringBuilder from = new StringBuilder(" FROM ").append(articleRepository.getName())
@@ -148,7 +172,8 @@ public class ApiV3DiscoveryQueryService {
         final List<Object> args = new ArrayList<>(List.of(Article.ARTICLE_STATUS_C_INVALID, Article.ARTICLE_TYPE_C_DISCUSSION,
                 Article.ARTICLE_SHOW_IN_LIST_C_NOT, Tag.TAG_TITLE_C_SANDBOX, "B3log%", UserExt.USER_STATUS_C_INVALID, UserExt.USER_STATUS_C_DEACTIVATED));
         switch (type) {
-            case "all" -> { }
+            case "all" -> {
+            }
             case "perfect" -> {
                 from.append(" AND a.articlePerfect=?");
                 args.add(Article.ARTICLE_PERFECT_C_PERFECT);
@@ -196,13 +221,16 @@ public class ApiV3DiscoveryQueryService {
         if (null != selection.city()) {
             from.append(" AND a.articleCity=? AND a.articleAnonymous=? AND EXISTS (SELECT 1 FROM ")
                     .append(userRepository.getName()).append(" geo WHERE geo.oId=a.articleAuthorId AND geo.userGeoStatus=? AND geo.userStatus=?)");
-            args.add(selection.city()); args.add(Article.ARTICLE_ANONYMOUS_C_PUBLIC);
-            args.add(UserExt.USER_GEO_STATUS_C_PUBLIC); args.add(UserExt.USER_STATUS_C_VALID);
+            args.add(selection.city());
+            args.add(Article.ARTICLE_ANONYMOUS_C_PUBLIC);
+            args.add(UserExt.USER_GEO_STATUS_C_PUBLIC);
+            args.add(UserExt.USER_STATUS_C_VALID);
         }
         if (null != selection.following()) {
             final ApiV3ProfileQueries.Fragment fragment = ApiV3ProfileQueries.following(followRepository.getName(), tagArticleRepository.getName(),
                     tagRepository.getName(), selection.following().ownerId(), selection.following().source(), Tag.TAG_STATUS_C_VALID);
-            from.append(fragment.sql()); args.addAll(fragment.args());
+            from.append(fragment.sql());
+            args.addAll(fragment.args());
         }
         if (null != selection.keyword()) {
             from.append(" AND (a.articleTitle LIKE ? ESCAPE '!' OR a.articleContent LIKE ? ESCAPE '!')");
@@ -215,7 +243,8 @@ public class ApiV3DiscoveryQueryService {
             case "active" -> "a.articleLatestCmtTime DESC,";
             case "hot" -> "a.redditScore DESC,";
             case "comments" -> "a.articleCommentCount DESC,";
-            case "month-comments" -> "recent".equals(type) ? "a.articleCommentCount DESC," : "a.articleStick DESC,a.articleCommentCount DESC,";
+            case "month-comments" ->
+                    "recent".equals(type) ? "a.articleCommentCount DESC," : "a.articleStick DESC,a.articleCommentCount DESC,";
             default -> "";
         };
         final String stickOrder;
@@ -223,7 +252,9 @@ public class ApiV3DiscoveryQueryService {
             final long threshold = ApiV3ArticleStickState.threshold(System.currentTimeMillis(), Symphonys.STICK_ARTICLE_TIME);
             stickOrder = "CASE WHEN a.articleStick=? THEN 2 WHEN a.articleStick>=? THEN 1 ELSE 0 END DESC,"
                     + "CASE WHEN a.articleStick>=? THEN a.articleStick ELSE 0 END DESC,";
-            args.add(Long.MAX_VALUE); args.add(threshold); args.add(threshold);
+            args.add(Long.MAX_VALUE);
+            args.add(threshold);
+            args.add(threshold);
         } else stickOrder = "";
         args.add((p - 1) * size);
         args.add(size);
@@ -236,11 +267,14 @@ public class ApiV3DiscoveryQueryService {
     public JSONObject targetUser(final String name) throws RepositoryException {
         final JSONObject user = currentProfileUser("userName", name);
         if (null == user || UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)
-                || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) throw ApiV3Requests.notFound();
+                || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS))
+            throw ApiV3Requests.notFound();
         return user;
     }
 
-    /** 查询当前隐私、状态和用户名，公开资料权限以数据库当前状态为准。 */
+    /**
+     * 查询当前隐私、状态和用户名，公开资料权限以数据库当前状态为准。
+     */
     private JSONObject currentProfileUser(final String field, final String value) throws RepositoryException {
         if (!java.util.Set.of("oId", "userName").contains(field)) throw new IllegalArgumentException("profile lookup");
         final var rows = userRepository.select("SELECT * FROM `" + userRepository.getName() + "` WHERE " + field + "=? LIMIT 2", value);
@@ -278,7 +312,9 @@ public class ApiV3DiscoveryQueryService {
         if (!ApiV3ContentUtil.canViewUserList(user, viewer, field)) throw ApiV3Requests.forbidden();
     }
 
-    /** kind 是由处理器选择的内部枚举，SQL 标识符由内部映射确定。 */
+    /**
+     * kind 是由处理器选择的内部枚举，SQL 标识符由内部映射确定。
+     */
     public JSONObject userRelations(final String userId, final int p, final int size, final String kind) throws RepositoryException {
         final boolean tags = "tags".equals(kind);
         final boolean followers = "followers".equals(kind);
@@ -327,9 +363,11 @@ public class ApiV3DiscoveryQueryService {
     public JSONObject breezemoonDto(final JSONObject row) throws RepositoryException {
         final JSONObject author = currentProfileUser("oId", row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID));
         if (null == author || UserExt.USER_STATUS_C_INVALID == author.optInt(UserExt.USER_STATUS)
-                || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS)) throw ApiV3Requests.notFound();
+                || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS))
+            throw ApiV3Requests.notFound();
         return breezemoonDto(row, author);
     }
+
     private JSONObject breezemoonDto(final JSONObject row, final JSONObject currentAuthor) {
         final String content = row.optString(Breezemoon.BREEZEMOON_CONTENT);
         return new JSONObject().put("id", row.optString(Keys.OBJECT_ID)).put("content", content)
@@ -337,12 +375,15 @@ public class ApiV3DiscoveryQueryService {
                 .put("createdAt", row.optLong(Breezemoon.BREEZEMOON_CREATED)).put("updatedAt", row.optLong(Breezemoon.BREEZEMOON_UPDATED))
                 .put("author", author(currentAuthor));
     }
+
     public JSONObject breezemoon(final String id, final JSONObject viewer) throws RepositoryException {
         final JSONObject row = breezemoonRepository.get(id);
-        if (null == row || Breezemoon.BREEZEMOON_STATUS_C_VALID != row.optInt(Breezemoon.BREEZEMOON_STATUS)) throw ApiV3Requests.notFound();
+        if (null == row || Breezemoon.BREEZEMOON_STATUS_C_VALID != row.optInt(Breezemoon.BREEZEMOON_STATUS))
+            throw ApiV3Requests.notFound();
         final JSONObject author = currentProfileUser("oId", row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID));
         if (null == author || UserExt.USER_STATUS_C_INVALID == author.optInt(UserExt.USER_STATUS) || UserExt.USER_STATUS_C_DEACTIVATED == author.optInt(UserExt.USER_STATUS)
-                || !ApiV3ContentUtil.canViewUserList(author, viewer, UserExt.USER_BREEZEMOON_STATUS)) throw ApiV3Requests.notFound();
+                || !ApiV3ContentUtil.canViewUserList(author, viewer, UserExt.USER_BREEZEMOON_STATUS))
+            throw ApiV3Requests.notFound();
         return breezemoonDto(row, author);
     }
 

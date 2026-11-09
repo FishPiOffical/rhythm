@@ -24,6 +24,7 @@ import org.b3log.latke.Keys;
 import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.service.ApiV3UserNameService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -38,7 +39,7 @@ public class ApiV3UserNameProcessor {
     }
 
     public static void registerRoutes(ApiV3UserNameProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.put("/api/v3/me/settings/user-name",p::rename,auth::activityWrite,auth::settingsWrite,writes::handle);
+        Dispatcher.put("/api/v3/me/settings/user-name", p::rename, auth::activityWrite, auth::settingsWrite, writes::handle);
     }
 
     public void rename(RequestContext c) {

@@ -28,22 +28,39 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3PrivateMessagePublicationService {
-    private static final org.apache.logging.log4j.Logger LOGGER=LogManager.getLogger(ApiV3PrivateMessagePublicationService.class);
-    @Inject private PrivateMessagePublicationService publication;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    protected String prepare(String content){return ReservedWords.processReservedWord(content).trim();}
-    /** 成功提交但响应丢失时，重放可以补做会话列表缓存清理。 */
-    protected void afterPublished(String actor,String peer){ChatProcessor.invalidateChatListCache(actor,peer);}
-    public JSONObject send(JSONObject viewer,String peer,String content,String key)throws Exception {
-        final String actor=viewer==null?"":viewer.optString(Keys.OBJECT_ID);
-        PrivateMessageListStateService.session(actor,peer);PrivateMessagePublicationService.validate(content);
-        try{
-            final var result=idempotency.execute(actor,"private.send:"+peer,key,new JSONObject().put("content",content),
-                    ()->publication.publishInCurrentTransaction(actor,peer,prepare(content)));
-            try{afterPublished(actor,peer);}catch(Exception e){LOGGER.warn("Private publication refresh unavailable");}
+    private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger(ApiV3PrivateMessagePublicationService.class);
+    @Inject
+    private PrivateMessagePublicationService publication;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+
+    protected String prepare(String content) {
+        return ReservedWords.processReservedWord(content).trim();
+    }
+
+    /**
+     * 成功提交但响应丢失时，重放可以补做会话列表缓存清理。
+     */
+    protected void afterPublished(String actor, String peer) {
+        ChatProcessor.invalidateChatListCache(actor, peer);
+    }
+
+    public JSONObject send(JSONObject viewer, String peer, String content, String key) throws Exception {
+        final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
+        PrivateMessageListStateService.session(actor, peer);
+        PrivateMessagePublicationService.validate(content);
+        try {
+            final var result = idempotency.execute(actor, "private.send:" + peer, key, new JSONObject().put("content", content),
+                    () -> publication.publishInCurrentTransaction(actor, peer, prepare(content)));
+            try {
+                afterPublished(actor, peer);
+            } catch (Exception e) {
+                LOGGER.warn("Private publication refresh unavailable");
+            }
             return result;
-        }catch(ApiV3Exception e){throw e;}
-        catch (Exception e) {
+        } catch (ApiV3Exception e) {
+            throw e;
+        } catch (Exception e) {
             LOGGER.warn("Private publication unavailable");
             throw new ApiV3Exception(503, "temporarily_unavailable", "私信暂不可用");
         }

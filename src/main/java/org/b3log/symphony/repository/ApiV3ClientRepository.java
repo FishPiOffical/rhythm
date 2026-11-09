@@ -26,6 +26,7 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.ApiV3Client;
 import org.json.JSONObject;
+
 import java.util.List;
 
 @Repository
@@ -38,7 +39,10 @@ public class ApiV3ClientRepository extends AbstractRepository {
         return getFirst(new Query().setFilter(new PropertyFilter(ApiV3Client.CLIENT_ID,
                 FilterOperator.EQUAL, clientId)).setPageCount(1));
     }
-    /** 各实例写入令牌家族时统一先锁客户端行，再锁令牌行。 */
+
+    /**
+     * 各实例写入令牌家族时统一先锁客户端行，再锁令牌行。
+     */
     public JSONObject getByClientIdForUpdate(final String clientId) throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("client transaction required");
@@ -47,9 +51,12 @@ public class ApiV3ClientRepository extends AbstractRepository {
             throw new RepositoryException("duplicate v3 client");
         return rows.isEmpty() ? null : rows.getFirst();
     }
-    /** Password reset precedes user/code/token locks with the same client locks as OAuth writers. */
-    public void lockForAccountResetInCurrentTransaction()throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("client transaction required");
-        select("SELECT clientId FROM `"+getName()+"` ORDER BY clientId FOR UPDATE");
+
+    /**
+     * Password reset precedes user/code/token locks with the same client locks as OAuth writers.
+     */
+    public void lockForAccountResetInCurrentTransaction() throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("client transaction required");
+        select("SELECT clientId FROM `" + getName() + "` ORDER BY clientId FOR UPDATE");
     }
 }

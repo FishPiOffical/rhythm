@@ -30,12 +30,17 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 从数据库读取本人会员状态，按页返回公开档位元数据。 */
+/**
+ * 从数据库读取本人会员状态，按页返回公开档位元数据。
+ */
 @Service
 public class ApiV3MembershipQueryService {
-    @Inject private UserRepository users;
-    @Inject private MembershipRepository memberships;
-    @Inject private MembershipLevelRepository levels;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MembershipRepository memberships;
+    @Inject
+    private MembershipLevelRepository levels;
 
     public JSONObject me(final JSONObject viewer) {
         final String actor = viewer == null ? "" : viewer.optString("oId");
@@ -48,7 +53,9 @@ public class ApiV3MembershipQueryService {
                     + "` WHERE userId=? AND state=? LIMIT 2", actor, 1);
             if (rows.size() > 1) throw ApiV3MembershipDto.unavailable();
             return ApiV3MembershipDto.membership(rows.isEmpty() ? null : rows.getFirst(), System.currentTimeMillis());
-        } catch (RepositoryException e) { throw ApiV3MembershipDto.unavailable(); }
+        } catch (RepositoryException e) {
+            throw ApiV3MembershipDto.unavailable();
+        }
     }
 
     public JSONObject levels(final int page, final int size) {
@@ -62,6 +69,8 @@ public class ApiV3MembershipQueryService {
             final var list = new JSONArray();
             for (final var row : rows) list.put(ApiV3MembershipDto.level(row));
             return ApiV3Requests.pagination(list, page, size, total);
-        } catch (RepositoryException e) { throw ApiV3MembershipDto.unavailable(); }
+        } catch (RepositoryException e) {
+            throw ApiV3MembershipDto.unavailable();
+        }
     }
 }

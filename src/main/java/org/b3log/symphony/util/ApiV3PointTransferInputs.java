@@ -21,16 +21,22 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
+
 import java.util.Set;
 
-/** 请求金额包含手续费，扣款账户由当前身份决定。 */
+/**
+ * 请求金额包含手续费，扣款账户由当前身份决定。
+ */
 public final class ApiV3PointTransferInputs {
-    private ApiV3PointTransferInputs() { }
+    private ApiV3PointTransferInputs() {
+    }
+
     public record Transfer(String userName, int amount, String memo) {
         public JSONObject normalized() {
             return new JSONObject().put("userName", userName).put("amount", amount).put("memo", memo);
         }
     }
+
     public static Transfer parse(final JSONObject body) {
         if (body == null || !Set.of("userName", "amount", "memo").containsAll(body.keySet())
                 || !body.has("userName") || !body.has("amount"))
@@ -53,6 +59,7 @@ public final class ApiV3PointTransferInputs {
             throw ApiV3WriteInputs.invalid();
         return new Transfer(name, amount, memo);
     }
+
     public static int fee(final int amount, final boolean exempt) {
         if (amount < 2)
             throw ApiV3WriteInputs.invalid();

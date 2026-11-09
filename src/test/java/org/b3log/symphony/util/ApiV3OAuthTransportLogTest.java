@@ -29,11 +29,14 @@ import org.b3log.latke.http.Request;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.*;
 import org.testng.Assert;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 
-/** 使用随包发布的 Latke 解析器与应用 XML 日志插件，覆盖 OAuth 控制器执行前的日志。 */
+/**
+ * 使用随包发布的 Latke 解析器与应用 XML 日志插件，覆盖 OAuth 控制器执行前的日志。
+ */
 public class ApiV3OAuthTransportLogTest {
     public static void main(String[] args) throws Exception {
         System.setProperty("log4j.configurationFile", Path.of("src/main/resources/log4j2.xml").toAbsolutePath().toUri().toString());
@@ -71,10 +74,11 @@ public class ApiV3OAuthTransportLogTest {
         Assert.assertTrue(seen.stream().anyMatch(x -> x.contains("FIXTURE_PRIVATE_PROOF")));
         logger.addFilter(filter);
         seen.clear();
-        for(String path:List.of("/api/v3/oauth/token","/api/v3/oauth/revoke","/api/v3/oauth/consent","/prefix/api/v3/oauth/authorize","/api/v3/%6fauth/token","%2Fapi%2Fv3%2Foauth%2Ftoken","/api/v3/auth/password-reset/complete","/api/v3/%61uth/login","/register2","/reset-pwd",
-                "/api/v3/me/settings/password","/api/v3/me/settings/phone/verification","/api/v3/me/settings/email","/api/v3/me/settings/qq","%2Fapi%2Fv3%2Fme%2Fsettings%2Fqq","/api/v3/me/security/mfa/preparations","%2Fapi%2Fv3%2Fme%2Fsecurity%2Fmfa",
-                "/api/v3/me/game-saves/evolve-save","%2Fapi%2Fv3%2Fme%2Fgame-saves%2Fevolve-save","/api/cloud/sync","/api/cloud/get","%2Fapi%2Fcloud%2Fsync","/api/v3/me/exports/posts","%2Fapi%2Fv3%2Fme%2Fexports%2Fposts","/api/v3/me/%65xports/posts"))malformed(path,"refresh_token=FIXTURE_PRIVATE_TOKEN%");
-        context.getLogger("org.b3log.latke.http.ServerHandler").error("Handle HTTP request failed",new IllegalArgumentException("unterminated escape in /api/v3/oauth/token?code=FIXTURE_PRIVATE_CODE%"));
+        for (String path : List.of("/api/v3/oauth/token", "/api/v3/oauth/revoke", "/api/v3/oauth/consent", "/prefix/api/v3/oauth/authorize", "/api/v3/%6fauth/token", "%2Fapi%2Fv3%2Foauth%2Ftoken", "/api/v3/auth/password-reset/complete", "/api/v3/%61uth/login", "/register2", "/reset-pwd",
+                "/api/v3/me/settings/password", "/api/v3/me/settings/phone/verification", "/api/v3/me/settings/email", "/api/v3/me/settings/qq", "%2Fapi%2Fv3%2Fme%2Fsettings%2Fqq", "/api/v3/me/security/mfa/preparations", "%2Fapi%2Fv3%2Fme%2Fsecurity%2Fmfa",
+                "/api/v3/me/game-saves/evolve-save", "%2Fapi%2Fv3%2Fme%2Fgame-saves%2Fevolve-save", "/api/cloud/sync", "/api/cloud/get", "%2Fapi%2Fcloud%2Fsync", "/api/v3/me/exports/posts", "%2Fapi%2Fv3%2Fme%2Fexports%2Fposts", "/api/v3/me/%65xports/posts"))
+            malformed(path, "refresh_token=FIXTURE_PRIVATE_TOKEN%");
+        context.getLogger("org.b3log.latke.http.ServerHandler").error("Handle HTTP request failed", new IllegalArgumentException("unterminated escape in /api/v3/oauth/token?code=FIXTURE_PRIVATE_CODE%"));
         Assert.assertTrue(seen.isEmpty());
         malformed("/existing-path", "public_field=bad%");
         Assert.assertEquals(seen.size(), 1);
@@ -103,6 +107,7 @@ public class ApiV3OAuthTransportLogTest {
         }
         System.out.println("PASS actual Latke malformed-parser logs would expose the fake proof before handlers, application XML discovers the plugin and suppresses OAuth form/query credential errors while preserving unrelated failures; framework-normalized malformed UTF-8 remains rejected");
     }
+
     static void malformed(String path, String body) throws Exception {
         var req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, path,
                 Unpooled.copiedBuffer(body, StandardCharsets.UTF_8));

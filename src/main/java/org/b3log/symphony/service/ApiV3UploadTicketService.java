@@ -29,10 +29,13 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 签发短期上传凭据，业务重放回执不存储已签名凭据。 */
+/**
+ * 签发短期上传凭据，业务重放回执不存储已签名凭据。
+ */
 @Service
 public class ApiV3UploadTicketService {
-    @Inject private UserRepository users;
+    @Inject
+    private UserRepository users;
 
     public JSONObject issue(final String actor) throws Exception {
         if (null == actor || !actor.matches("[0-9]{1,32}")) throw ApiV3Requests.notFound();
@@ -56,5 +59,8 @@ public class ApiV3UploadTicketService {
         return new JSONObject().put("ticket", ticket).put("tokenType", "Bearer").put("uploadURL", endpoint)
                 .put("fieldName", "file").put("expiresIn", RhypicUploadTickets.TTL_SECONDS);
     }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503, "upload_unavailable", "上传服务暂不可用"); }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "upload_unavailable", "上传服务暂不可用");
+    }
 }

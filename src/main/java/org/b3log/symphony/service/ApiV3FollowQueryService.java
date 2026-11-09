@@ -39,53 +39,70 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 本人关注列表以占位保留不可访问的关系，隐藏目标资料。 */
+/**
+ * 本人关注列表以占位保留不可访问的关系，隐藏目标资料。
+ */
 @Service
 public class ApiV3FollowQueryService {
-    @Inject private FollowRepository follows;
-    @Inject private UserRepository users;
-    @Inject private TagRepository tags;
-    @Inject private ApiV3ContentQueryService content;
-    @Inject private ApiV3ContentDtoService dto;
-    /** 在同一个 SQL 快照中判断当前有效账号之间的关注关系。 */
+    @Inject
+    private FollowRepository follows;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private TagRepository tags;
+    @Inject
+    private ApiV3ContentQueryService content;
+    @Inject
+    private ApiV3ContentDtoService dto;
+
+    /**
+     * 在同一个 SQL 快照中判断当前有效账号之间的关注关系。
+     */
     public JSONObject userState(final JSONObject viewer, final String targetId) throws RepositoryException {
         final String actor = viewer.optString(Keys.OBJECT_ID);
         if (!actor.matches("[1-9][0-9]{0,18}") || targetId == null || !targetId.matches("[1-9][0-9]{0,18}")) {
             throw new ApiV3Exception(422, "invalid_input", "用户ID不合法");
         }
         final var rows = follows.select("SELECT t.oId AS targetId, EXISTS (SELECT 1 FROM `" + follows.getName()
-                + "` f WHERE f.followerId=? AND f.followingId=t.oId AND f.followingType=?) AS following FROM `"
-                + users.getName() + "` a JOIN `" + users.getName() + "` t ON t.oId=? WHERE a.oId=? AND a.userStatus=? AND t.userStatus=?",
+                        + "` f WHERE f.followerId=? AND f.followingId=t.oId AND f.followingType=?) AS following FROM `"
+                        + users.getName() + "` a JOIN `" + users.getName() + "` t ON t.oId=? WHERE a.oId=? AND a.userStatus=? AND t.userStatus=?",
                 actor, Follow.FOLLOWING_TYPE_C_USER, targetId, actor, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_VALID);
         if (rows.size() != 1 || !targetId.equals(rows.getFirst().optString("targetId"))) throw ApiV3Requests.notFound();
         return new JSONObject().put("targetId", targetId).put("following", rows.getFirst().getInt("following") != 0);
     }
-    /** 按所有者及类型精确匹配关系，仅返回关系状态。 */
+
+    /**
+     * 按所有者及类型精确匹配关系，仅返回关系状态。
+     */
     public JSONObject tagState(final JSONObject viewer, final String targetId) throws RepositoryException {
         final String actor = checkedActor(viewer, targetId);
         return state(follows.select("SELECT t.oId AS targetId, EXISTS (SELECT 1 FROM `" + follows.getName()
-                + "` f WHERE f.followerId=? AND f.followingId=t.oId AND f.followingType=?) AS following FROM `"
-                + users.getName() + "` a JOIN `" + tags.getName() + "` t ON t.oId=? WHERE a.oId=? AND a.userStatus=? AND t.tagStatus=?",
+                        + "` f WHERE f.followerId=? AND f.followingId=t.oId AND f.followingType=?) AS following FROM `"
+                        + users.getName() + "` a JOIN `" + tags.getName() + "` t ON t.oId=? WHERE a.oId=? AND a.userStatus=? AND t.tagStatus=?",
                 actor, Follow.FOLLOWING_TYPE_C_TAG, targetId, actor, UserExt.USER_STATUS_C_VALID, Tag.TAG_STATUS_C_VALID), targetId);
     }
+
     public JSONObject articleState(final JSONObject viewer, final String targetId, final boolean watch) throws RepositoryException {
         final String actor = checkedActor(viewer, targetId);
         if (content.viewableArticle(targetId, viewer) == null) throw ApiV3Requests.notFound();
         return state(follows.select("SELECT ? AS targetId, EXISTS (SELECT 1 FROM `" + follows.getName()
-                + "` f WHERE f.followerId=? AND f.followingId=? AND f.followingType=?) AS following FROM `"
-                + users.getName() + "` a WHERE a.oId=? AND a.userStatus=?", targetId, actor, targetId,
+                        + "` f WHERE f.followerId=? AND f.followingId=? AND f.followingType=?) AS following FROM `"
+                        + users.getName() + "` a WHERE a.oId=? AND a.userStatus=?", targetId, actor, targetId,
                 watch ? Follow.FOLLOWING_TYPE_C_ARTICLE_WATCH : Follow.FOLLOWING_TYPE_C_ARTICLE, actor, UserExt.USER_STATUS_C_VALID), targetId);
     }
+
     private static String checkedActor(final JSONObject viewer, final String targetId) {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!actor.matches("[1-9][0-9]{0,18}") || targetId == null || !targetId.matches("[1-9][0-9]{0,18}"))
             throw new ApiV3Exception(422, "invalid_input", "目标ID不合法");
         return actor;
     }
+
     private static JSONObject state(final java.util.List<JSONObject> rows, final String targetId) {
         if (rows.size() != 1 || !targetId.equals(rows.getFirst().optString("targetId"))) throw ApiV3Requests.notFound();
         return new JSONObject().put("targetId", targetId).put("following", rows.getFirst().getInt("following") != 0);
     }
+
     public JSONObject articles(final JSONObject viewer, final boolean watch, final int p, final int size) throws RepositoryException {
         final Filter filter = CompositeFilterOperator.and(
                 new PropertyFilter(Follow.FOLLOWER_ID, FilterOperator.EQUAL, viewer.optString(Keys.OBJECT_ID)),

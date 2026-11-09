@@ -32,6 +32,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 public class ApiV3DiscoveryExtrasProcessor {
     @Inject
     private ApiV3DiscoveryExtrasQueryService extras;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3DiscoveryExtrasProcessor.class);
@@ -41,13 +42,16 @@ public class ApiV3DiscoveryExtrasProcessor {
         Dispatcher.get("/api/v3/articles/random", processor::random, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/logs", processor::logs, auth::activityRead);
     }
+
     public void recent(final RequestContext context) {
         ApiV3Requests.read(context, extras::recent);
     }
+
     public void random(final RequestContext context) {
         ApiV3Requests.read(context, () -> extras.random(ApiV3Requests.viewer(context),
                 ApiV3Requests.number(context, "size", 8, 20), ApiV3Requests.text(context.param("excludeId"), 32, false)));
     }
+
     public void logs(final RequestContext context) {
         ApiV3Requests.read(context, () -> extras.logs(ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }

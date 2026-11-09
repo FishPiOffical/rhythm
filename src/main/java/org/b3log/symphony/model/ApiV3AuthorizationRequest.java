@@ -18,11 +18,15 @@
  */
 package org.b3log.symphony.model;
 
-/** 服务端管理的短期授权确认请求，原始句柄和验证凭据不入库。 */
+/**
+ * 服务端管理的短期授权确认请求，原始句柄和验证凭据不入库。
+ */
 public final class ApiV3AuthorizationRequest {
-    private ApiV3AuthorizationRequest(){ }
-    public static final String TABLE="api_v3_authorization_request";
-    public static final String USER_ID="userId",CLIENT_ID="clientId",REDIRECT_URI="redirectUri",SCOPE="scope",STATE="state",
-            CHALLENGE="codeChallenge",CONSENT_HASH="consentHash",CREATED_AT="createdAt",EXPIRES_AT="expiresAt",DECIDED_AT="decidedAt",DECISION="decision";
-    public static final String PENDING="pending",APPROVED="approved",DENIED="denied";
+    private ApiV3AuthorizationRequest() {
+    }
+
+    public static final String TABLE = "api_v3_authorization_request";
+    public static final String USER_ID = "userId", CLIENT_ID = "clientId", REDIRECT_URI = "redirectUri", SCOPE = "scope", STATE = "state",
+            CHALLENGE = "codeChallenge", CONSENT_HASH = "consentHash", CREATED_AT = "createdAt", EXPIRES_AT = "expiresAt", DECIDED_AT = "decidedAt", DECISION = "decision";
+    public static final String PENDING = "pending", APPROVED = "approved", DENIED = "denied";
 }

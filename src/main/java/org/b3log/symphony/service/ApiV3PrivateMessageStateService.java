@@ -31,10 +31,13 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3PrivateMessageStateService {
-    private static final org.apache.logging.log4j.Logger LOGGER=LogManager.getLogger(ApiV3PrivateMessageStateService.class);
-    @Inject private PrivateMessageReadStateService state;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
-    @Inject private ApiV3PrivateMessageQueryService query;
+    private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger(ApiV3PrivateMessageStateService.class);
+    @Inject
+    private PrivateMessageReadStateService state;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private ApiV3PrivateMessageQueryService query;
 
     public JSONObject mark(JSONObject viewer, String peer, String key) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
@@ -61,9 +64,10 @@ public class ApiV3PrivateMessageStateService {
             throw new ApiV3Exception(503, "temporarily_unavailable", "私信暂不可用");
         }
     }
-    protected void afterMarked(String actor)throws Exception {
-        ChatProcessor.invalidateChatListCache(actor,actor);
-        final long count=query.unread(new JSONObject().put(Keys.OBJECT_ID,actor)).getLong("count");
-        UserChannel.sendCmd(new JSONObject().put(UserExt.USER_T_ID,actor).put(Common.COMMAND,"chatUnreadCountRefresh").put("count",count));
+
+    protected void afterMarked(String actor) throws Exception {
+        ChatProcessor.invalidateChatListCache(actor, actor);
+        final long count = query.unread(new JSONObject().put(Keys.OBJECT_ID, actor)).getLong("count");
+        UserChannel.sendCmd(new JSONObject().put(UserExt.USER_T_ID, actor).put(Common.COMMAND, "chatUnreadCountRefresh").put("count", count));
     }
 }

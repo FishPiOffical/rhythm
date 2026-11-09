@@ -33,7 +33,9 @@ import org.json.JSONObject;
 
 import java.util.Set;
 
-/** 文章和评论的只读资源。 */
+/**
+ * 文章和评论的只读资源。
+ */
 @Singleton
 public class ApiV3ContentProcessor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ContentProcessor.class);

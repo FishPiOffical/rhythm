@@ -24,12 +24,17 @@ import org.b3log.symphony.model.LongArticleColumn;
 import org.b3log.symphony.service.ColumnCoverMgmtService;
 import org.b3log.latke.service.ServiceException;
 import org.json.JSONObject;
+
 import java.util.Map;
 import java.util.Set;
 
-/** 部分编辑仅将请求明确提供的值计入幂等哈希，合并时在行锁内读取当前状态。 */
+/**
+ * 部分编辑仅将请求明确提供的值计入幂等哈希，合并时在行锁内读取当前状态。
+ */
 public final class ApiV3ArticleEditInputs {
-    private ApiV3ArticleEditInputs() { }
+    private ApiV3ArticleEditInputs() {
+    }
+
     private static final Map<String, String> KEYS = Map.ofEntries(
             Map.entry("title", Article.ARTICLE_TITLE), Map.entry("content", Article.ARTICLE_CONTENT), Map.entry("tags", Article.ARTICLE_TAGS),
             Map.entry("type", Article.ARTICLE_TYPE), Map.entry("rewardContent", Article.ARTICLE_REWARD_CONTENT), Map.entry("rewardPoint", Article.ARTICLE_REWARD_POINT),
@@ -38,6 +43,7 @@ public final class ApiV3ArticleEditInputs {
             Map.entry("columnId", LongArticleColumn.COLUMN_ID), Map.entry("columnTitle", LongArticleColumn.COLUMN_TITLE),
             Map.entry("chapterNo", LongArticleColumn.CHAPTER_NO), Map.entry("columnCoverURL", LongArticleColumn.COLUMN_COVER_URL));
     public static final Set<String> FIELDS = KEYS.keySet();
+
     public static JSONObject normalize(final JSONObject body) {
         if (body.isEmpty() || !FIELDS.containsAll(body.keySet())) throw ApiV3WriteInputs.invalid();
         final var patch = new JSONObject();
@@ -56,23 +62,33 @@ public final class ApiV3ArticleEditInputs {
                 case "chapterNo" -> {
                     final String chapter = ApiV3ArticleInputs.text(body, key, ArticleDraft.MAX_CHAPTER_NO_LENGTH, true, false);
                     if (!chapter.isEmpty()) {
-                        try { if (!chapter.matches("[1-9][0-9]*") || Integer.parseInt(chapter) < 1) throw ApiV3WriteInputs.invalid(); }
-                        catch (final NumberFormatException e) { throw ApiV3WriteInputs.invalid(); }
+                        try {
+                            if (!chapter.matches("[1-9][0-9]*") || Integer.parseInt(chapter) < 1)
+                                throw ApiV3WriteInputs.invalid();
+                        } catch (final NumberFormatException e) {
+                            throw ApiV3WriteInputs.invalid();
+                        }
                     }
                     yield chapter;
                 }
                 case "columnCoverURL" -> {
-                    try { yield ColumnCoverMgmtService.normalizeCoverURL(ApiV3ArticleInputs.text(body, key, 1024, true, false)); }
-                    catch (final ServiceException e) { throw ApiV3WriteInputs.invalid(); }
+                    try {
+                        yield ColumnCoverMgmtService.normalizeCoverURL(ApiV3ArticleInputs.text(body, key, 1024, true, false));
+                    } catch (final ServiceException e) {
+                        throw ApiV3WriteInputs.invalid();
+                    }
                 }
                 case "content" -> {
                     final String content = ApiV3WriteInputs.string(body, key, 1024000, false);
                     if (content.isBlank() || content.trim().length() < 4 || content.codePoints().anyMatch(cp -> Character.isISOControl(cp)
-                            && cp != '\n' && cp != '\r' && cp != '\t' && cp != 24 && cp != 30 && cp != 31)) throw ApiV3WriteInputs.invalid();
+                            && cp != '\n' && cp != '\r' && cp != '\t' && cp != 24 && cp != 30 && cp != 31))
+                        throw ApiV3WriteInputs.invalid();
                     yield content;
                 }
-                case "rewardContent" -> ApiV3ArticleInputs.text(body, key, ArticleDraft.MAX_REWARD_CONTENT_LENGTH, false, true);
-                case "columnTitle" -> ApiV3ArticleInputs.text(body, key, LongArticleColumn.MAX_COLUMN_TITLE_LENGTH, true, false);
+                case "rewardContent" ->
+                        ApiV3ArticleInputs.text(body, key, ArticleDraft.MAX_REWARD_CONTENT_LENGTH, false, true);
+                case "columnTitle" ->
+                        ApiV3ArticleInputs.text(body, key, LongArticleColumn.MAX_COLUMN_TITLE_LENGTH, true, false);
                 default -> {
                     final String text = ApiV3ArticleInputs.text(body, key, 255, true, false);
                     if ("title".equals(key) && text.isEmpty()) throw ApiV3WriteInputs.invalid();
@@ -83,6 +99,7 @@ public final class ApiV3ArticleEditInputs {
         }
         return patch;
     }
+
     public static JSONObject merge(final JSONObject current, final JSONObject chapter, final JSONObject patch) {
         final var request = new JSONObject();
         for (final String field : KEYS.values()) if (current.has(field)) request.put(field, current.opt(field));
@@ -92,7 +109,8 @@ public final class ApiV3ArticleEditInputs {
         request.put(LongArticleColumn.COLUMN_ID, null == chapter ? "" : chapter.optString(LongArticleColumn.COLUMN_ID));
         request.put(LongArticleColumn.CHAPTER_NO, null == chapter ? "" : chapter.optString(LongArticleColumn.CHAPTER_NO));
         request.put(LongArticleColumn.COLUMN_TITLE, "").put(LongArticleColumn.COLUMN_COVER_URL, "");
-        if (patch.has(LongArticleColumn.COLUMN_ID) || patch.has(LongArticleColumn.COLUMN_TITLE)) request.put(LongArticleColumn.CHAPTER_NO, "");
+        if (patch.has(LongArticleColumn.COLUMN_ID) || patch.has(LongArticleColumn.COLUMN_TITLE))
+            request.put(LongArticleColumn.CHAPTER_NO, "");
         for (final String key : patch.keySet()) request.put(key, patch.opt(key));
         final int oldType = current.optInt(Article.ARTICLE_TYPE), type = request.optInt(Article.ARTICLE_TYPE);
         if (type == Article.ARTICLE_TYPE_C_THOUGHT && oldType != Article.ARTICLE_TYPE_C_THOUGHT) {
@@ -101,12 +119,14 @@ public final class ApiV3ArticleEditInputs {
         if (patch.has(Article.ARTICLE_CONTENT)) {
             final String content = request.getString(Article.ARTICLE_CONTENT);
             if (type == Article.ARTICLE_TYPE_C_THOUGHT) thought(content);
-            else if (content.codePoints().anyMatch(cp -> Character.isISOControl(cp) && cp != '\n' && cp != '\r' && cp != '\t')) throw ApiV3WriteInputs.invalid();
+            else if (content.codePoints().anyMatch(cp -> Character.isISOControl(cp) && cp != '\n' && cp != '\r' && cp != '\t'))
+                throw ApiV3WriteInputs.invalid();
         } else if (oldType == Article.ARTICLE_TYPE_C_THOUGHT && type != oldType) {
             throw new ApiV3Exception(422, "content_required", "转换思绪类型时需要提供正文");
         }
         if (request.optInt(Article.ARTICLE_QNA_OFFER_POINT) < current.optInt(Article.ARTICLE_QNA_OFFER_POINT)
-                || (type == Article.ARTICLE_TYPE_C_QNA && request.optInt(Article.ARTICLE_QNA_OFFER_POINT) < 20)) throw ApiV3WriteInputs.invalid();
+                || (type == Article.ARTICLE_TYPE_C_QNA && request.optInt(Article.ARTICLE_QNA_OFFER_POINT) < 20))
+            throw ApiV3WriteInputs.invalid();
         // 沿用编辑规则，零值表示保留已开启的悬赏及其原内容。
         if (patch.has(Article.ARTICLE_REWARD_POINT) && patch.optInt(Article.ARTICLE_REWARD_POINT) == 0 && current.optInt(Article.ARTICLE_REWARD_POINT) > 0) {
             request.put(Article.ARTICLE_REWARD_POINT, current.optInt(Article.ARTICLE_REWARD_POINT))
@@ -114,10 +134,14 @@ public final class ApiV3ArticleEditInputs {
         }
         final int reward = request.optInt(Article.ARTICLE_REWARD_POINT);
         final String rewardContent = request.optString(Article.ARTICLE_REWARD_CONTENT);
-        if ((reward > 0 && (rewardContent.isBlank() || rewardContent.length() < 4)) || (reward == 0 && !rewardContent.isBlank())) throw ApiV3WriteInputs.invalid();
+        if ((reward > 0 && (rewardContent.isBlank() || rewardContent.length() < 4)) || (reward == 0 && !rewardContent.isBlank()))
+            throw ApiV3WriteInputs.invalid();
         return request;
     }
-    /** 编辑器格式为 payload US elapsedMillis US ch-line US ch-line RS，其中 CAN 表示删除。 */
+
+    /**
+     * 编辑器格式为 payload US elapsedMillis US ch-line US ch-line RS，其中 CAN 表示删除。
+     */
     private static void thought(final String content) {
         if (!content.endsWith("\u001e")) throw ApiV3WriteInputs.invalid();
         final String[] records = content.split("\u001e", -1);
@@ -127,19 +151,26 @@ public final class ApiV3ArticleEditInputs {
             final String[] raw = records[i].split("\u001f", -1);
             final String[] units = raw.length == 3 ? new String[]{"", raw[0], raw[1], raw[2]} : raw;
             if (units.length != 4) throw ApiV3WriteInputs.invalid();
-            if (!"\u0018".equals(units[0]) && units[0].codePoints().anyMatch(cp -> Character.isISOControl(cp) && cp != '\n' && cp != '\r' && cp != '\t')) throw ApiV3WriteInputs.invalid();
+            if (!"\u0018".equals(units[0]) && units[0].codePoints().anyMatch(cp -> Character.isISOControl(cp) && cp != '\n' && cp != '\r' && cp != '\t'))
+                throw ApiV3WriteInputs.invalid();
             number(units[1]);
             for (int j = 2; j <= 3; j++) {
                 final String[] position = units[j].split("-", -1);
                 if (position.length != 2) throw ApiV3WriteInputs.invalid();
-                number(position[0]); number(position[1]);
+                number(position[0]);
+                number(position[1]);
             }
             count++;
         }
         if (count == 0) throw ApiV3WriteInputs.invalid();
     }
+
     private static void number(final String value) {
-        try { if (!value.matches("[0-9]{1,16}") || Long.parseLong(value) > 9_007_199_254_740_991L) throw ApiV3WriteInputs.invalid(); }
-        catch (final NumberFormatException e) { throw ApiV3WriteInputs.invalid(); }
+        try {
+            if (!value.matches("[0-9]{1,16}") || Long.parseLong(value) > 9_007_199_254_740_991L)
+                throw ApiV3WriteInputs.invalid();
+        } catch (final NumberFormatException e) {
+            throw ApiV3WriteInputs.invalid();
+        }
     }
 }

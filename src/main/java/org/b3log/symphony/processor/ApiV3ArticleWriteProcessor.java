@@ -31,12 +31,14 @@ import org.b3log.symphony.util.ApiV3ArticleInputs;
 import org.b3log.symphony.util.ApiV3ArticleEditInputs;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3ArticleWriteProcessor {
     @Inject
     private ApiV3ArticleMgmtService management;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3ArticleWriteProcessor.class);
@@ -46,6 +48,7 @@ public class ApiV3ArticleWriteProcessor {
         Dispatcher.put("/api/v3/articles/{articleId}", processor::update, auth::contentWrite, writes::handle);
         Dispatcher.delete("/api/v3/articles/{articleId}", processor::remove, auth::contentWrite, writes::handle);
     }
+
     public void create(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3ArticleInputs.FIELDS, false);
@@ -54,6 +57,7 @@ public class ApiV3ArticleWriteProcessor {
                     Requests.getRemoteAddr(context.getRequest()), null == ua ? "" : ua);
         });
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final var body = ApiV3WriteInputs.body(context, ApiV3ArticleEditInputs.FIELDS, false);
@@ -62,6 +66,7 @@ public class ApiV3ArticleWriteProcessor {
                     ApiV3WriteInputs.idempotencyKey(context), Requests.getRemoteAddr(context.getRequest()), null == ua ? "" : ua);
         });
     }
+
     public void remove(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3WriteInputs.body(context, Set.of(), true);

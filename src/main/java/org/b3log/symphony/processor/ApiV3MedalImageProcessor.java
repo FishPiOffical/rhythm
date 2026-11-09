@@ -25,6 +25,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3MedalImageService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -36,8 +37,8 @@ public class ApiV3MedalImageProcessor {
         var beans = BeanManager.getInstance();
         var p = beans.getReference(ApiV3MedalImageProcessor.class);
         var auth = beans.getReference(ApiV3AuthMidware.class);
-        Dispatcher.get("/api/v3/me/medals/image",p::mine,auth::profileRead);
-        Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::optionalProfile,beans.getReference(AnonymousViewCheckMidware.class)::handle);
+        Dispatcher.get("/api/v3/me/medals/image", p::mine, auth::profileRead);
+        Dispatcher.get("/api/v3/users/{userName}/medals/image", p::displayed, auth::optionalProfile, beans.getReference(AnonymousViewCheckMidware.class)::handle);
     }
 
     public void mine(RequestContext c) {

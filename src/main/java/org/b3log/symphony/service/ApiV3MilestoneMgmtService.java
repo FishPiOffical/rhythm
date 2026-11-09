@@ -28,13 +28,17 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3MilestoneMgmtService {
-    @Inject private MilestoneMgmtService management;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private MilestoneMgmtService management;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+
     public JSONObject create(final String actor, final JSONObject normalized, final String key) throws Exception {
         final var execution = idempotency.executeWithOutcome(actor, "milestones.create", key, normalized, () -> {
             // 现有里程碑读取方使用 HTML，在提交入口将 Markdown 转为 HTML。
             final String html = Markdowns.clean(Markdowns.toHTML(normalized.getString(Milestone.MILESTONE_CONTENT)), "");
-            if (html.isBlank() || html.length() > 102400) throw new ApiV3Exception(422, "invalid_request", "正文为空或过长");
+            if (html.isBlank() || html.length() > 102400)
+                throw new ApiV3Exception(422, "invalid_request", "正文为空或过长");
             final JSONObject input = new JSONObject(normalized.toString()).put(Milestone.MILESTONE_CONTENT, html);
             final JSONObject row = management.addMilestoneInCurrentTransaction(actor, input);
             return new JSONObject().put("id", row.getString(Keys.OBJECT_ID)).put("status", "pending")

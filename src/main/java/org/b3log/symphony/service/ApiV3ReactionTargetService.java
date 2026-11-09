@@ -32,13 +32,20 @@ import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** HTTP 请求和论坛实时事件均按具体查看者使用同一可见性校验。 */
+/**
+ * HTTP 请求和论坛实时事件均按具体查看者使用同一可见性校验。
+ */
 @Service
 public class ApiV3ReactionTargetService {
-    @Inject private ArticleRepository articles;
-    @Inject private ChatRoomRepository chat;
-    @Inject private ReactionRepository reactions;
-    @Inject private ApiV3ContentQueryService content;
+    @Inject
+    private ArticleRepository articles;
+    @Inject
+    private ChatRoomRepository chat;
+    @Inject
+    private ReactionRepository reactions;
+    @Inject
+    private ApiV3ContentQueryService content;
+
     public JSONObject read(final JSONObject viewer, final String type, final String id) throws RepositoryException {
         final JSONObject row = switch (type) {
             case Reaction.TARGET_TYPE_ARTICLE -> content.viewableArticle(id, viewer);
@@ -48,7 +55,10 @@ public class ApiV3ReactionTargetService {
         };
         return validate(viewer, type, row, false);
     }
-    /** 写入时，表态目标行已由共享写入服务锁定。 */
+
+    /**
+     * 写入时，表态目标行已由共享写入服务锁定。
+     */
     public JSONObject validate(final JSONObject viewer, final String type, final JSONObject row, final boolean locked) throws RepositoryException {
         if (null == row) throw ApiV3Requests.notFound();
         if (Reaction.TARGET_TYPE_CHAT.equals(type)) {
@@ -57,15 +67,18 @@ public class ApiV3ReactionTargetService {
         }
         final JSONObject article;
         if (Reaction.TARGET_TYPE_COMMENT.equals(type)) {
-            if (Comment.COMMENT_STATUS_C_VALID != row.optInt(Comment.COMMENT_STATUS) || blocked(content.currentAuthor(row.optString(Comment.COMMENT_AUTHOR_ID)))) throw ApiV3Requests.notFound();
+            if (Comment.COMMENT_STATUS_C_VALID != row.optInt(Comment.COMMENT_STATUS) || blocked(content.currentAuthor(row.optString(Comment.COMMENT_AUTHOR_ID))))
+                throw ApiV3Requests.notFound();
             final String articleId = row.optString(Comment.COMMENT_ON_ARTICLE_ID);
             if (locked) reactions.lockEntity(articles.getName(), articleId);
             article = content.viewableArticle(articleId, viewer);
         } else article = content.viewableArticle(row.optString(Keys.OBJECT_ID), viewer);
         if (null == article) throw ApiV3Requests.notFound();
-        if (Reaction.TARGET_TYPE_COMMENT.equals(type) && !ApiV3ContentUtil.canViewCommentContent(row, article, viewer)) throw ApiV3Requests.notFound();
+        if (Reaction.TARGET_TYPE_COMMENT.equals(type) && !ApiV3ContentUtil.canViewCommentContent(row, article, viewer))
+            throw ApiV3Requests.notFound();
         return article;
     }
+
     private static boolean blocked(final JSONObject user) {
         return null == user || UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS) || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS);
     }

@@ -23,11 +23,20 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
 
-/** 在持锁期间检查评论目标，段落元数据始终取自服务端保存的内容。 */
+/**
+ * 在持锁期间检查评论目标，段落元数据始终取自服务端保存的内容。
+ */
 public final class ApiV3CommentTarget {
-    private ApiV3CommentTarget() { }
-    public record Paragraph(String id, String kind, int index, String snapshot) { }
-    @FunctionalInterface public interface ParagraphLookup { Paragraph find(String id); }
+    private ApiV3CommentTarget() {
+    }
+
+    public record Paragraph(String id, String kind, int index, String snapshot) {
+    }
+
+    @FunctionalInterface
+    public interface ParagraphLookup {
+        Paragraph find(String id);
+    }
 
     public static void prepare(final JSONObject request, final JSONObject article, final JSONObject parent,
                                final JSONObject viewer, final ParagraphLookup paragraphs) {
@@ -40,7 +49,8 @@ public final class ApiV3CommentTarget {
                     || !ApiV3ContentUtil.canViewCommentContent(parent, article, viewer)) throw missing();
             if (parent.optInt(Comment.COMMENT_TYPE) == Comment.COMMENT_TYPE_C_PARAGRAPH) {
                 if (article.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_LONG
-                        || (!paragraphId.isEmpty() && !paragraphId.equals(parent.optString(Comment.COMMENT_PARAGRAPH_ID)))) throw missing();
+                        || (!paragraphId.isEmpty() && !paragraphId.equals(parent.optString(Comment.COMMENT_PARAGRAPH_ID))))
+                    throw missing();
                 // 发布流程继承完整的段落字段，其中包括孤立状态。
                 return;
             }
@@ -56,5 +66,8 @@ public final class ApiV3CommentTarget {
                 .put(Comment.COMMENT_PARAGRAPH_INDEX, paragraph.index()).put(Comment.COMMENT_PARAGRAPH_SNAPSHOT, paragraph.snapshot())
                 .put(Comment.COMMENT_PARAGRAPH_STATUS, Comment.COMMENT_PARAGRAPH_STATUS_C_ACTIVE);
     }
-    private static ApiV3Exception missing() { return new ApiV3Exception(404, "not_found", "资源不存在或不可访问"); }
+
+    private static ApiV3Exception missing() {
+        return new ApiV3Exception(404, "not_found", "资源不存在或不可访问");
+    }
 }

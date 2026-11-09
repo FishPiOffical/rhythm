@@ -30,11 +30,15 @@ import org.b3log.symphony.util.ApiV3DraftDto;
 import org.json.JSONObject;
 
 
-/** 沿用原草稿规则写入本人草稿，业务写入和 API v3 重放回执同事务提交。 */
+/**
+ * 沿用原草稿规则写入本人草稿，业务写入和 API v3 重放回执同事务提交。
+ */
 @Service
 public class ApiV3DraftMgmtService {
-    @Inject private ArticleDraftMgmtService draftMgmtService;
-    @Inject private ApiV3IdempotencyMgmtService idempotencyMgmtService;
+    @Inject
+    private ArticleDraftMgmtService draftMgmtService;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotencyMgmtService;
 
     public JSONObject save(final String userId, final String id, final String key, final JSONObject body) throws Exception {
         final JSONObject request = ApiV3DraftInputs.normalize(body);

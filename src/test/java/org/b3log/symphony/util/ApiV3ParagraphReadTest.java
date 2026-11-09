@@ -23,6 +23,7 @@ import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -30,9 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** 在隔离环境中执行服务实际使用的查询片段。 */
+/**
+ * 在隔离环境中执行服务实际使用的查询片段。
+ */
 public class ApiV3ParagraphReadTest {
     private static final String A = "a".repeat(64), B = "b".repeat(64);
+
     public static void main(final String[] args) throws Exception {
         try (final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
             try (final var statement = db.createStatement()) {
@@ -83,7 +87,8 @@ public class ApiV3ParagraphReadTest {
 
             final var counts = rows(db, ApiV3ParagraphQueries.counts("comment", "10", List.of(A, B)));
             Assert.assertEquals(counts.size(), 2);
-            for (final var row : counts) Assert.assertEquals(row.getLong("commentCount"), A.equals(row.getString(Comment.COMMENT_PARAGRAPH_ID)) ? 130L : 3L);
+            for (final var row : counts)
+                Assert.assertEquals(row.getLong("commentCount"), A.equals(row.getString(Comment.COMMENT_PARAGRAPH_ID)) ? 130L : 3L);
             reject(() -> ApiV3ParagraphQueries.counts("comment", "10", List.of()));
             reject(() -> ApiV3ParagraphQueries.counts("comment", "10", java.util.Collections.nCopies(51, A)));
             System.out.println("PASS grouped counts bind only page anchors and exclude removed/orphaned/other-article rows");
@@ -130,13 +135,17 @@ public class ApiV3ParagraphReadTest {
         System.out.println("PASS metadata enrichment preserves hidden/anonymous DTO, ignores internal body/identity/URL and never mutates base");
 
         final var visibility = new ApiV3ContentUtilTest();
-        for (final var method : ApiV3ContentUtilTest.class.getDeclaredMethods()) if (method.isAnnotationPresent(Test.class)) {
-            method.invoke(visibility); System.out.println("PASS shared read visibility: " + method.getName());
-        }
+        for (final var method : ApiV3ContentUtilTest.class.getDeclaredMethods())
+            if (method.isAnnotationPresent(Test.class)) {
+                method.invoke(visibility);
+                System.out.println("PASS shared read visibility: " + method.getName());
+            }
     }
+
     private static long count(final Connection db, final ApiV3ParagraphQueries.Selection selection) throws Exception {
         return rows(db, new ApiV3ParagraphQueries.Selection("SELECT COUNT(1) AS total" + selection.sql(), selection.args())).getFirst().getLong("total");
     }
+
     private static List<JSONObject> rows(final Connection db, final ApiV3ParagraphQueries.Selection query) throws Exception {
         try (final var statement = db.prepareStatement(query.sql())) {
             for (int i = 0; i < query.args().size(); i++) statement.setObject(i + 1, query.args().get(i));
@@ -144,22 +153,36 @@ public class ApiV3ParagraphReadTest {
             try (final var result = statement.executeQuery()) {
                 while (result.next()) {
                     final var row = new JSONObject();
-                    for (int i = 1; i <= result.getMetaData().getColumnCount(); i++) row.put(result.getMetaData().getColumnLabel(i), result.getObject(i));
+                    for (int i = 1; i <= result.getMetaData().getColumnCount(); i++)
+                        row.put(result.getMetaData().getColumnLabel(i), result.getObject(i));
                     rows.add(row);
                 }
             }
             return rows;
         }
     }
+
     private static void insert(final Connection db, final String id, final String article, final String anchor,
                                final int type, final int status, final int paragraphStatus, final int score) throws Exception {
         try (final var statement = db.prepareStatement("INSERT INTO comment VALUES(?,?,?,'001','body',0,0,1,?,?,?,'paragraph',0,'snapshot',?,?,'SECRET-ip','SECRET-ua')")) {
-            statement.setString(1, id); statement.setString(2, article); statement.setString(3, "actor"); statement.setInt(4, status);
-            statement.setInt(5, type); statement.setString(6, anchor); statement.setInt(7, paragraphStatus); statement.setInt(8, score); statement.executeUpdate();
+            statement.setString(1, id);
+            statement.setString(2, article);
+            statement.setString(3, "actor");
+            statement.setInt(4, status);
+            statement.setInt(5, type);
+            statement.setString(6, anchor);
+            statement.setInt(7, paragraphStatus);
+            statement.setInt(8, score);
+            statement.executeUpdate();
         }
     }
+
     private static void reject(final Runnable action) {
-        try { action.run(); Assert.fail("Expected invalid input"); }
-        catch (final ApiV3Exception expected) { Assert.assertEquals(expected.status, 422); }
+        try {
+            action.run();
+            Assert.fail("Expected invalid input");
+        } catch (final ApiV3Exception expected) {
+            Assert.assertEquals(expected.status, 422);
+        }
     }
 }

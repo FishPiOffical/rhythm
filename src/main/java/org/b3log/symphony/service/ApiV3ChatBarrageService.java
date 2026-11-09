@@ -28,11 +28,14 @@ import org.b3log.symphony.processor.ChatroomProcessor;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** 持久化弹幕费用和受理回执，事务提交后尽力发送即时弹幕。 */
+/**
+ * 持久化弹幕费用和受理回执，事务提交后尽力发送即时弹幕。
+ */
 @Service
 public class ApiV3ChatBarrageService {
     @Inject
@@ -74,52 +77,56 @@ public class ApiV3ChatBarrageService {
                 });
                 return idempotency.executeWithOutcome(actor, "chat.barrager.send", key,
                         new JSONObject().put("content", raw).put("color", color == null ? "" : color), () -> {
-                    final JSONObject current = users.getForUpdate(actor);
-                    if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
-                        throw new ApiV3Exception(404, "not_found", "用户不存在或不可用");
-                    if (current.optString("userPhone").isBlank()) throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
-                    final String prepared;
-                    try {
-                        prepared = validation.prepare(current, raw);
-                    } catch (ChatMessageValidation.Rejected e) {
-                        throw new ApiV3Exception(e.status, e.code, e.getMessage());
-                    }
-                    final var input = ChatBarrageInputs.prepare(prepared, color);
-                    final long time = now();
-                    // 重试时复用同一次请求的风险确认，避免重复消耗确认状态。
-                    ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
-                            DataModelService.hasPermission(current.optString(User.USER_ROLE), 3), input.content(), time, () -> {
-                        if (input.content().equals(confirmed.get())) return true;
-                        final boolean yes = ChatMessageAbuseState.confirmRisk(actor, input.content());
-                        if (yes) confirmed.set(input.content());
-                        return yes;
-                    });
-                    final String name = current.getString(User.USER_NAME);
-                    if (!name.equals(quotaName.get())) {
-                        if (!ChatBarrageQuota.take(name)) throw new ApiV3Exception(429, "rate_limited", "弹幕发送过于频繁");
-                        quotaName.set(name);
-                    }
-                    final var price = ChatroomProcessor.getBarragerPrice();
-                    if (price.amount() < 0 || price.unit() == null || price.unit().length() > 128)
-                        throw new ApiV3Exception(503, "unavailable", "弹幕价格暂不可用");
-                    if (current.optInt(UserExt.USER_POINT) < price.amount()) throw insufficient();
-                    final var published = new ApiV3BarrageEvent(UUID.randomUUID().toString(), input.content(), input.color(),
-                            time, actor, name, current.optString(UserExt.USER_NICKNAME), current.optString(UserExt.USER_AVATAR_URL));
-                    String transferId = "";
-                    if (price.amount() > 0) {
-                        transferId = points.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
-                                Pointtransfer.TRANSFER_TYPE_C_CHAT_ROOM_SEND_BARRAGER, price.amount(), "", time, "", PointtransferSource.EMPTY, false);
-                        if (transferId == null) throw insufficient();
-                    }
-                    event.set(published);
-                    transfer.set(transferId);
-                    return new JSONObject().put("id", published.id()).put("createdAt", time).put("cost", price.amount()).put("unit", price.unit());
-                });
+                            final JSONObject current = users.getForUpdate(actor);
+                            if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+                                throw new ApiV3Exception(404, "not_found", "用户不存在或不可用");
+                            if (current.optString("userPhone").isBlank())
+                                throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
+                            final String prepared;
+                            try {
+                                prepared = validation.prepare(current, raw);
+                            } catch (ChatMessageValidation.Rejected e) {
+                                throw new ApiV3Exception(e.status, e.code, e.getMessage());
+                            }
+                            final var input = ChatBarrageInputs.prepare(prepared, color);
+                            final long time = now();
+                            // 重试时复用同一次请求的风险确认，避免重复消耗确认状态。
+                            ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
+                                    DataModelService.hasPermission(current.optString(User.USER_ROLE), 3), input.content(), time, () -> {
+                                        if (input.content().equals(confirmed.get())) return true;
+                                        final boolean yes = ChatMessageAbuseState.confirmRisk(actor, input.content());
+                                        if (yes) confirmed.set(input.content());
+                                        return yes;
+                                    });
+                            final String name = current.getString(User.USER_NAME);
+                            if (!name.equals(quotaName.get())) {
+                                if (!ChatBarrageQuota.take(name))
+                                    throw new ApiV3Exception(429, "rate_limited", "弹幕发送过于频繁");
+                                quotaName.set(name);
+                            }
+                            final var price = ChatroomProcessor.getBarragerPrice();
+                            if (price.amount() < 0 || price.unit() == null || price.unit().length() > 128)
+                                throw new ApiV3Exception(503, "unavailable", "弹幕价格暂不可用");
+                            if (current.optInt(UserExt.USER_POINT) < price.amount()) throw insufficient();
+                            final var published = new ApiV3BarrageEvent(UUID.randomUUID().toString(), input.content(), input.color(),
+                                    time, actor, name, current.optString(UserExt.USER_NICKNAME), current.optString(UserExt.USER_AVATAR_URL));
+                            String transferId = "";
+                            if (price.amount() > 0) {
+                                transferId = points.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
+                                        Pointtransfer.TRANSFER_TYPE_C_CHAT_ROOM_SEND_BARRAGER, price.amount(), "", time, "", PointtransferSource.EMPTY, false);
+                                if (transferId == null) throw insufficient();
+                            }
+                            event.set(published);
+                            transfer.set(transferId);
+                            return new JSONObject().put("id", published.id()).put("createdAt", time).put("cost", price.amount()).put("unit", price.unit());
+                        });
             }
         });
         if (outcome.applied()) {
-            if (users.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("barrage effects before commit");
-            if (!transfer.get().isEmpty()) safely(() -> points.indexTransferAsync(actor, Pointtransfer.ID_C_SYS, transfer.get()));
+            if (users.hasTransactionBegun() || ArticlePublicationCaches.active())
+                throw new IllegalStateException("barrage effects before commit");
+            if (!transfer.get().isEmpty())
+                safely(() -> points.indexTransferAsync(actor, Pointtransfer.ID_C_SYS, transfer.get()));
             safely(() -> delivery.afterApiBarragePublished(event.get().dto()));
             safely(() -> realtime.publishBarrage(event.get()));
         }

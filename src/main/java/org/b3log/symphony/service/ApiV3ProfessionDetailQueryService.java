@@ -35,39 +35,59 @@ import org.b3log.symphony.util.ApiV3ProfessionDetailDto;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-/** 只读查询本人已有的职业进度、路线和近期经验。 */
+/**
+ * 只读查询本人已有的职业进度、路线和近期经验。
+ */
 @Service
 public class ApiV3ProfessionDetailQueryService {
     private static final int MAX_DETAILS = 512;
     private static final long RETENTION = TimeUnit.DAYS.toMillis(90);
-    @Inject private UserRepository users;
-    @Inject private ProfessionRepository professions;
-    @Inject private ProfessionRevisionRepository revisions;
-    @Inject private ProfessionLevelRepository levels;
-    @Inject private ProfessionLevelSchemeRepository schemes;
-    @Inject private UserProfessionRepository progress;
-    @Inject private UserProfessionContributionRepository contributions;
-    @Inject private ProfessionEventEffectRepository effects;
-    @FunctionalInterface private interface Read { JSONObject run() throws RepositoryException; }
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ProfessionRepository professions;
+    @Inject
+    private ProfessionRevisionRepository revisions;
+    @Inject
+    private ProfessionLevelRepository levels;
+    @Inject
+    private ProfessionLevelSchemeRepository schemes;
+    @Inject
+    private UserProfessionRepository progress;
+    @Inject
+    private UserProfessionContributionRepository contributions;
+    @Inject
+    private ProfessionEventEffectRepository effects;
+
+    @FunctionalInterface
+    private interface Read {
+        JSONObject run() throws RepositoryException;
+    }
+
     private JSONObject read(final Read action) {
-        try { return action.run(); }
-        catch (final RepositoryException | org.json.JSONException e) {
+        try {
+            return action.run();
+        } catch (final RepositoryException | org.json.JSONException e) {
             LogManager.getLogger(getClass()).warn("Profession detail read unavailable");
             throw ApiV3ProfessionDetailDto.unavailable();
         }
     }
+
     public static void id(final String value) {
         if (value == null || !value.matches("[0-9]{1,19}")) throw ApiV3Requests.invalid();
     }
+
     private void actor(final String actor) throws RepositoryException {
         id(actor);
         if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=? LIMIT 2", actor,
                 UserExt.USER_STATUS_C_VALID).size() != 1) throw ApiV3Requests.notFound();
     }
+
     private JSONObject current(final String actor, final String professionId) throws RepositoryException {
         final var rows = progress.select("SELECT up.oId AS progressId,up.professionId,up.professionRevisionId,up.levelSchemeId,"
                 + "p.professionCode,p.status AS professionStatus,r.status AS revisionStatus,s.status AS schemeStatus,"
@@ -80,23 +100,28 @@ public class ApiV3ProfessionDetailQueryService {
         if (rows.isEmpty()) throw ApiV3Requests.notFound();
         if (rows.size() != 1) throw ApiV3ProfessionDetailDto.unavailable();
         final JSONObject value = rows.getFirst();
-        for (final String key : Set.of("professionStatus","revisionStatus","schemeStatus")) {
-            if (!Set.of("PUBLISHED","RETIRED").contains(value.optString(key))) throw ApiV3ProfessionDetailDto.unavailable();
+        for (final String key : Set.of("professionStatus", "revisionStatus", "schemeStatus")) {
+            if (!Set.of("PUBLISHED", "RETIRED").contains(value.optString(key)))
+                throw ApiV3ProfessionDetailDto.unavailable();
         }
-        for (final String key : Set.of("progressId","professionId","professionRevisionId","levelSchemeId")) {
-            if (!(value.opt(key) instanceof String s) || !s.matches("[0-9]{1,19}")) throw ApiV3ProfessionDetailDto.unavailable();
+        for (final String key : Set.of("progressId", "professionId", "professionRevisionId", "levelSchemeId")) {
+            if (!(value.opt(key) instanceof String s) || !s.matches("[0-9]{1,19}"))
+                throw ApiV3ProfessionDetailDto.unavailable();
         }
         ApiV3ProfessionDetailDto.profession(value);
         return value;
     }
+
     private void unchanged(final String actor, final String professionId, final JSONObject before) throws RepositoryException {
         // 详情由多次查询组成，须确认各结果来自同一进度版本。
         final JSONObject after = current(actor, professionId);
         if (!before.similar(after)) throw ApiV3ProfessionDetailDto.unavailable();
         actor(actor);
     }
+
     public JSONObject detail(final String actor, final String professionId) {
-        id(actor); id(professionId);
+        id(actor);
+        id(professionId);
         return read(() -> {
             actor(actor);
             final JSONObject state = current(actor, professionId);
@@ -112,7 +137,7 @@ public class ApiV3ProfessionDetailQueryService {
             }
             if (!codes.contains(state.getString("levelCode"))) throw ApiV3ProfessionDetailDto.unavailable();
             final var aggregate = contributions.select("SELECT actionCode,experienceSum,eventCount,lastOccurredAt FROM `" + contributions.getName()
-                    + "` WHERE userId=? AND professionId=? AND eventCount>0 ORDER BY experienceSum DESC,actionCode ASC,oId ASC LIMIT ?",
+                            + "` WHERE userId=? AND professionId=? AND eventCount>0 ORDER BY experienceSum DESC,actionCode ASC,oId ASC LIMIT ?",
                     actor, professionId, MAX_DETAILS + 1);
             if (aggregate.size() > MAX_DETAILS) throw ApiV3ProfessionDetailDto.unavailable();
             final Set<String> actions = new HashSet<>();
@@ -127,8 +152,10 @@ public class ApiV3ProfessionDetailQueryService {
                     .put("levels", routeDto).put("contributions", aggregateDto);
         });
     }
+
     public JSONObject records(final String actor, final String professionId, final int p, final int size) {
-        id(actor); id(professionId);
+        id(actor);
+        id(professionId);
         if (p < 1 || p > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
         return read(() -> {
             actor(actor);

@@ -29,11 +29,14 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3ProfessionQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
 
-/** 只读职业目录及登录用户本人的私有职业状态。 */
+/**
+ * 只读职业目录及登录用户本人的私有职业状态。
+ */
 @Singleton
 public class ApiV3ProfessionProcessor {
     @Inject
     private ApiV3ProfessionQueryService query;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ProfessionProcessor.class);
@@ -42,9 +45,11 @@ public class ApiV3ProfessionProcessor {
         Dispatcher.get("/api/v3/professions", p::catalog, auth::optionalProfile, anonymous::handle);
         Dispatcher.get("/api/v3/me/professions", p::mine, auth::profileRead);
     }
+
     public void catalog(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.catalog(ApiV3Requests.page(c), ApiV3Requests.size(c)));
     }
+
     public void mine(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.mine(ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID),
                 ApiV3Requests.page(c), ApiV3Requests.size(c)));

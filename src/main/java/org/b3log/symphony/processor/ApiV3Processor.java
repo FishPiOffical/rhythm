@@ -49,7 +49,9 @@ import java.net.URI;
 import java.util.UUID;
 import java.util.Set;
 
-/** 对外开放的版本化 Web API，认证由 v3 入口处理。 */
+/**
+ * 对外开放的版本化 Web API，认证由 v3 入口处理。
+ */
 @Singleton
 public class ApiV3Processor {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3Processor.class);
@@ -281,15 +283,19 @@ public class ApiV3Processor {
     public void columns(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.list(ApiV3Requests.viewer(context), page(context, 1), pageSize(context, 12), false));
     }
+
     public void hotColumns(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.list(ApiV3Requests.viewer(context), page(context, 1), pageSize(context, 12), true));
     }
+
     public void column(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.detail(ApiV3Requests.viewer(context), columnId(context)));
     }
+
     public void columnArticles(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.chapters(ApiV3Requests.viewer(context), columnId(context), page(context, 1), pageSize(context, 20)));
     }
+
     public void articleColumn(final RequestContext context) {
         ApiV3Requests.read(context, () -> publicColumns.articleContext(ApiV3Requests.viewer(context), ApiV3Requests.id(context, "articleId")));
     }
@@ -352,7 +358,8 @@ public class ApiV3Processor {
     }
 
     private static String cookie(final RequestContext context, final String name) {
-        for (final Cookie cookie : context.getRequest().getCookies()) if (name.equals(cookie.getName())) return cookie.getValue();
+        for (final Cookie cookie : context.getRequest().getCookies())
+            if (name.equals(cookie.getName())) return cookie.getValue();
         return "";
     }
 

@@ -20,13 +20,19 @@ package org.b3log.symphony.util;
 
 import org.b3log.symphony.model.Comment;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 仅接收公开的评论输入字段，身份、审核状态和段落快照由服务端决定。 */
+/**
+ * 仅接收公开的评论输入字段，身份、审核状态和段落快照由服务端决定。
+ */
 public final class ApiV3CommentInputs {
-    private ApiV3CommentInputs() { }
+    private ApiV3CommentInputs() {
+    }
+
     public static final Set<String> EDIT_FIELDS = Set.of("content", "visible");
     public static final Set<String> CREATE_FIELDS = Set.of("content", "visible", "anonymous", "parentId", "paragraphId");
+
     public static JSONObject create(final JSONObject body) {
         if (!CREATE_FIELDS.containsAll(body.keySet())) throw ApiV3WriteInputs.invalid();
         final var text = new JSONObject();
@@ -42,6 +48,7 @@ public final class ApiV3CommentInputs {
                 || (!paragraph.isEmpty() && !paragraph.matches("[0-9a-f]{64}"))) throw ApiV3WriteInputs.invalid();
         return request.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, parent).put(Comment.COMMENT_PARAGRAPH_ID, paragraph);
     }
+
     public static JSONObject edit(final JSONObject body) {
         if (!EDIT_FIELDS.containsAll(body.keySet()) || !body.has("content")) throw ApiV3WriteInputs.invalid();
         final String content = ApiV3WriteInputs.string(body, "content", Comment.MAX_COMMENT_CONTENT_LENGTH, false);

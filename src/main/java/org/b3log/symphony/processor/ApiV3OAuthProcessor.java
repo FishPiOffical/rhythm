@@ -31,12 +31,15 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** OAuth 直接返回协议响应，浏览器授权确认不继承 Bearer 或 apiKey 身份。 */
+/**
+ * OAuth 直接返回协议响应，浏览器授权确认不继承 Bearer 或 apiKey 身份。
+ */
 @Singleton
 public class ApiV3OAuthProcessor {
     @Inject
@@ -64,12 +67,13 @@ public class ApiV3OAuthProcessor {
         registerRoutes(p, anonymous);
         beans.getReference(ApiV3OAuthMaintenanceService.class).start();
     }
+
     public static void registerRoutes(ApiV3OAuthProcessor p, AnonymousViewCheckMidware anonymous) {
         p.anonymous = anonymous;
-        Dispatcher.get("/api/v3/oauth/authorize",p::authorize,p::privacy,p::rate,anonymous::handle);
-        Dispatcher.post("/api/v3/oauth/consent",p::consent,p::privacy,p::rate,p::cookieOnly);
-        Dispatcher.post("/api/v3/oauth/token",p::token,p::privacy,p::rate,p::protocolToken);
-        Dispatcher.post("/api/v3/oauth/revoke",p::revoke,p::privacy,p::rate,p::protocolRevoke);
+        Dispatcher.get("/api/v3/oauth/authorize", p::authorize, p::privacy, p::rate, anonymous::handle);
+        Dispatcher.post("/api/v3/oauth/consent", p::consent, p::privacy, p::rate, p::cookieOnly);
+        Dispatcher.post("/api/v3/oauth/token", p::token, p::privacy, p::rate, p::protocolToken);
+        Dispatcher.post("/api/v3/oauth/revoke", p::revoke, p::privacy, p::rate, p::protocolRevoke);
     }
 
     protected void anonymousAccess(RequestContext context) {
@@ -84,7 +88,9 @@ public class ApiV3OAuthProcessor {
         protocolAccess(context, true);
     }
 
-    /** 凭据仅用于当前端点的预检，不创建会话、Bearer 身份、IP 白名单或授权。 */
+    /**
+     * 凭据仅用于当前端点的预检，不创建会话、Bearer 身份、IP 白名单或授权。
+     */
     private void protocolAccess(RequestContext context, boolean revocation) {
         JSONObject owner = null;
         try {
@@ -99,7 +105,8 @@ public class ApiV3OAuthProcessor {
                     owner = credentials.code(client, required(values, "redirect_uri", 2048),
                             required(values, "code", 256), required(values, "code_verifier", 128));
                 } else if ("refresh_token".equals(values.get("grant_type"))) {
-                    if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier")) throw bad();
+                    if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier"))
+                        throw bad();
                     owner = credentials.token(client, required(values, "refresh_token", 256), false);
                 }
             }
@@ -129,6 +136,7 @@ public class ApiV3OAuthProcessor {
         // 换取令牌或撤销授权时，核心服务会在自己的严格事务中重新读取并校验授权。
         context.handle();
     }
+
     protected JSONObject cookieUser(RequestContext c) {
         return Sessions.currentCookieUser(c.getRequest());
     }
@@ -151,8 +159,10 @@ public class ApiV3OAuthProcessor {
         c.setHeader("Content-Security-Policy",
                 "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; style-src 'self' " + staticOrigin());
     }
+
     private String consentPolicy(String redirect) {
-        if (!ApiV3OAuthRedirects.valid(redirect, Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode())) throw bad();
+        if (!ApiV3OAuthRedirects.valid(redirect, Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode()))
+            throw bad();
         final URI callback = URI.create(redirect);
         // Chromium 也用 form-action 检查 POST 的重定向目标，因此只允许本次绑定的回调来源。
         final String source = callback.getHost() == null ? callback.getScheme() + ":"
@@ -218,6 +228,7 @@ public class ApiV3OAuthProcessor {
             throw new ApiV3Exception(401, "invalid_client", "客户端不受支持");
         return value;
     }
+
     public void authorize(RequestContext c) {
         common(c);
         try {
@@ -312,7 +323,8 @@ public class ApiV3OAuthProcessor {
                 result = codes.exchange(client, required(values, "redirect_uri", 2048),
                         required(values, "code", 256), required(values, "code_verifier", 128));
             } else if ("refresh_token".equals(grant)) {
-                if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier")) throw bad();
+                if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier"))
+                    throw bad();
                 final String scope = values.get("scope");
                 result = tokens.refreshForClient(client, required(values, "refresh_token", 256), scope == null || scope.isEmpty() ? null : scope);
             } else throw new ApiV3Exception(400, "unsupported_grant_type", "授权方式不受支持");

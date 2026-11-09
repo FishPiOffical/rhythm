@@ -28,16 +28,23 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONObject;
 
-/** 只读取当前授予记录和勋章定义，跳过旧查询附带的过期记录清理。 */
+/**
+ * 只读取当前授予记录和勋章定义，跳过旧查询附带的过期记录清理。
+ */
 @Service
 public class ApiV3MedalImageQueryService {
-    @Inject private UserRepository users;
-    @Inject private MedalRepository medals;
-    @Inject private UserMedalRepository grants;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MedalRepository medals;
+    @Inject
+    private UserMedalRepository grants;
+
     public JSONObject definition(final String actor, final String name, final String medalId) {
-        if (actor == null || (!actor.isEmpty() && !actor.matches("[1-9][0-9]{0,18}")) || medalId == null || medalId.isBlank() || medalId.length()>128
-                || medalId.codePoints().anyMatch(c -> Character.isISOControl(c) || c>=0xD800 && c<=0xDFFF)
-                || name == null || !name.isEmpty() && !name.matches("[A-Za-z0-9_-]{1,64}")) throw ApiV3Requests.invalid();
+        if (actor == null || (!actor.isEmpty() && !actor.matches("[1-9][0-9]{0,18}")) || medalId == null || medalId.isBlank() || medalId.length() > 128
+                || medalId.codePoints().anyMatch(c -> Character.isISOControl(c) || c >= 0xD800 && c <= 0xDFFF)
+                || name == null || !name.isEmpty() && !name.matches("[A-Za-z0-9_-]{1,64}"))
+            throw ApiV3Requests.invalid();
         final boolean owner = name.isEmpty();
         if (owner && actor.isEmpty()) throw ApiV3Requests.invalid();
         try {
@@ -56,7 +63,12 @@ public class ApiV3MedalImageQueryService {
             if (rows.isEmpty()) throw ApiV3Requests.notFound();
             if (rows.size() != 1) throw unavailable();
             return rows.getFirst();
-        } catch (RepositoryException error) { throw unavailable(); }
+        } catch (RepositoryException error) {
+            throw unavailable();
+        }
     }
-    private static ApiV3Exception unavailable() { return new ApiV3Exception(503,"temporarily_unavailable","勋章图片暂不可用"); }
+
+    private static ApiV3Exception unavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "勋章图片暂不可用");
+    }
 }

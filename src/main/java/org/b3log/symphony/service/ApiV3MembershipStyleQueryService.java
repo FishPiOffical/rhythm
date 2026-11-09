@@ -24,21 +24,31 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.*;
+
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 
-/** 共享完整展示快照，版本未变化时也会重新校验权限。 */
+/**
+ * 共享完整展示快照，版本未变化时也会重新校验权限。
+ */
 @Service
 public class ApiV3MembershipStyleQueryService {
     private static final long CACHE_MS = 30_000;
     private static final int MAX_ROWS = 10_000, MAX_BYTES = 2_000_000;
-    @Inject private UserRepository users;
-    @Inject private MembershipRepository memberships;
-    @Inject private MembershipLevelRepository levels;
-    private record Snapshot(String version, String list, long until, long generation) { }
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MembershipRepository memberships;
+    @Inject
+    private MembershipLevelRepository levels;
+
+    private record Snapshot(String version, String list, long until, long generation) {
+    }
+
     private volatile Snapshot cached;
+
     protected long now() {
         return System.currentTimeMillis();
     }
@@ -99,11 +109,13 @@ public class ApiV3MembershipStyleQueryService {
                 configs.put(id, ApiV3Json.canonical(style(row)));
             } catch (ApiV3Exception | IllegalArgumentException invalidRow) {
                 // 单个会员数据异常时保留其余昵称，null 表示配置未知。
-                seen.add(id); configs.put(id, JSONObject.NULL);
+                seen.add(id);
+                configs.put(id, JSONObject.NULL);
             }
         }
         final JSONArray list = new JSONArray();
-        for (final var entry : configs.entrySet()) list.put(new JSONObject().put("userId", entry.getKey()).put("configJson", entry.getValue()));
+        for (final var entry : configs.entrySet())
+            list.put(new JSONObject().put("userId", entry.getKey()).put("configJson", entry.getValue()));
         final String encoded = ApiV3Json.canonical(list);
         if (encoded.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw unavailable();
         final String revision;
@@ -125,9 +137,11 @@ public class ApiV3MembershipStyleQueryService {
         final JSONObject config = config(row.opt("configJson")), style = new JSONObject();
         for (final String field : Set.of("bold", "underline"))
             if (definition.has(field) && config.opt(field) instanceof Boolean flag) style.put(field, flag);
-        if (definition.has("color") && config.opt("color") instanceof String color && ApiV3MembershipConfiguration.colorAllowed(code, color)) style.put("color", color);
+        if (definition.has("color") && config.opt("color") instanceof String color && ApiV3MembershipConfiguration.colorAllowed(code, color))
+            style.put("color", color);
         return style;
     }
+
     private static JSONObject config(Object raw) {
         if (!(raw instanceof String text) || text.length() > 102400) throw unavailable();
         if (text.isBlank()) return new JSONObject();
@@ -138,6 +152,7 @@ public class ApiV3MembershipStyleQueryService {
             throw unavailable();
         }
     }
+
     private static long expiry(Object raw) {
         if (!(raw instanceof Number number)) throw unavailable();
         try {
@@ -149,6 +164,7 @@ public class ApiV3MembershipStyleQueryService {
             throw unavailable();
         }
     }
+
     private static ApiV3Exception unavailable() {
         return ApiV3MembershipConfiguration.unavailable();
     }

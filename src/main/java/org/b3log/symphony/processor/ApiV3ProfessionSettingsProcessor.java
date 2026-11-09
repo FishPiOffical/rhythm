@@ -32,14 +32,18 @@ import org.b3log.symphony.util.ApiV3ProfessionSettingsInputs;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 显式更新跳过状态和隐私设置，入参不接受所有者、版本或任意引导状态。 */
+/**
+ * 显式更新跳过状态和隐私设置，入参不接受所有者、版本或任意引导状态。
+ */
 @Singleton
 public class ApiV3ProfessionSettingsProcessor {
     private static final int MAX_BODY_BYTES = 4096;
     @Inject
     private ApiV3ProfessionSettingsService service;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ProfessionSettingsProcessor.class);
@@ -48,17 +52,21 @@ public class ApiV3ProfessionSettingsProcessor {
         Dispatcher.put("/api/v3/me/professions/onboarding", p::onboarding, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/professions/privacy", p::privacy, auth::settingsWrite, writes::handle);
     }
+
     private static JSONObject body(final RequestContext context, final Set<String> fields) {
         final var bytes = context.getRequest().getBytes();
-        if (bytes != null && bytes.length > MAX_BODY_BYTES) throw new ApiV3Exception(413, "body_too_large", "请求体过大");
+        if (bytes != null && bytes.length > MAX_BODY_BYTES)
+            throw new ApiV3Exception(413, "body_too_large", "请求体过大");
         return ApiV3WriteInputs.body(context, fields, false);
     }
+
     public void onboarding(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             ApiV3ProfessionSettingsInputs.onboarding(body(context, Set.of("onboardingState")));
             return service.skip(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void privacy(final RequestContext context) {
         ApiV3Requests.respond(context, () -> service.privacy(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID),
                 body(context, Set.of("preset", "moduleVisibility")), ApiV3WriteInputs.idempotencyKey(context)));

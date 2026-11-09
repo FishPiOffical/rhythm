@@ -20,17 +20,25 @@ package org.b3log.symphony.util;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
-/** 只校验传输结构，权限范围、名称和回调策略由客户端注册逻辑校验。 */
+/**
+ * 只校验传输结构，权限范围、名称和回调策略由客户端注册逻辑校验。
+ */
 public final class ApiV3ClientManagementInputs {
-    private ApiV3ClientManagementInputs() { }
+    private ApiV3ClientManagementInputs() {
+    }
+
     // 这里只限制单个客户端的回调数量，URI 策略由注册逻辑处理。
     public static final int MAX_REDIRECTS = 20;
 
     public record Registration(String name, String scope, List<String> redirectUris) {
-        public Registration { redirectUris = List.copyOf(redirectUris); }
+        public Registration {
+            redirectUris = List.copyOf(redirectUris);
+        }
+
         public JSONObject normalized() {
             return new JSONObject().put("name", name).put("scope", scope).put("redirectUris", new JSONArray(redirectUris));
         }
@@ -43,7 +51,8 @@ public final class ApiV3ClientManagementInputs {
                 || uris.length() > MAX_REDIRECTS) throw ApiV3WriteInputs.invalid();
         final List<String> redirects = new ArrayList<>();
         for (final Object value : uris) {
-            if (!(value instanceof String uri) || uri.length() > 2048 || uri.isEmpty()) throw ApiV3WriteInputs.invalid();
+            if (!(value instanceof String uri) || uri.length() > 2048 || uri.isEmpty())
+                throw ApiV3WriteInputs.invalid();
             redirects.add(uri);
         }
         return new Registration(name, scope, redirects);

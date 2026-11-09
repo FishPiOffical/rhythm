@@ -33,7 +33,9 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
-/** 只读查询状态和当前参考费用。实际写入仍须持锁复核所有资格。 */
+/**
+ * 只读查询状态和当前参考费用。实际写入仍须持锁复核所有资格。
+ */
 @Service
 public class ApiV3CommentRewardQueryService {
     @Inject
@@ -46,15 +48,17 @@ public class ApiV3CommentRewardQueryService {
     private ApiV3ContentQueryService visibility;
 
     public JSONObject read(final JSONObject viewer, final String id, final boolean acceptance) throws Exception {
-        if (viewer == null || viewer.optString(Keys.OBJECT_ID).isBlank()) throw new ApiV3Exception(401, "unauthorized", "需要登录");
-        if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw new ApiV3Exception(422, "invalid_input", "评论编号不合法");
+        if (viewer == null || viewer.optString(Keys.OBJECT_ID).isBlank())
+            throw new ApiV3Exception(401, "unauthorized", "需要登录");
+        if (id == null || !id.matches("[1-9][0-9]{0,18}"))
+            throw new ApiV3Exception(422, "invalid_input", "评论编号不合法");
         final String actor = viewer.getString(Keys.OBJECT_ID);
         final var rows = comments.select("SELECT c.oId,c.commentOnArticleId,c.commentAuthorId,c.commentStatus,c.commentVisible,"
-                + "c.commentAnonymous,c.commentThankCnt,c.commentQnAOffered,"
-                + "EXISTS(SELECT 1 FROM `" + rewards.getName() + "` r WHERE r.senderId=? AND r.dataId=c.oId AND r.`type`=?) AS recorded,"
-                + "EXISTS(SELECT 1 FROM `" + comments.getName() + "` ac WHERE ac.commentOnArticleId=c.commentOnArticleId AND ac.commentQnAOffered=?) AS anyAccepted "
-                + "FROM `" + comments.getName() + "` c JOIN `" + users.getName() + "` au ON au.oId=c.commentAuthorId AND au.userStatus=? "
-                + "JOIN `" + users.getName() + "` actor ON actor.oId=? AND actor.userStatus=? WHERE c.oId=? AND c.commentStatus=? LIMIT 1",
+                        + "c.commentAnonymous,c.commentThankCnt,c.commentQnAOffered,"
+                        + "EXISTS(SELECT 1 FROM `" + rewards.getName() + "` r WHERE r.senderId=? AND r.dataId=c.oId AND r.`type`=?) AS recorded,"
+                        + "EXISTS(SELECT 1 FROM `" + comments.getName() + "` ac WHERE ac.commentOnArticleId=c.commentOnArticleId AND ac.commentQnAOffered=?) AS anyAccepted "
+                        + "FROM `" + comments.getName() + "` c JOIN `" + users.getName() + "` au ON au.oId=c.commentAuthorId AND au.userStatus=? "
+                        + "JOIN `" + users.getName() + "` actor ON actor.oId=? AND actor.userStatus=? WHERE c.oId=? AND c.commentStatus=? LIMIT 1",
                 actor, Reward.TYPE_C_COMMENT, Comment.COMMENT_QNA_OFFERED_C_YES, UserExt.USER_STATUS_C_VALID,
                 actor, UserExt.USER_STATUS_C_VALID, id, Comment.COMMENT_STATUS_C_VALID);
         if (rows.isEmpty()) throw missing();
@@ -73,7 +77,8 @@ public class ApiV3CommentRewardQueryService {
                     .put("offerPoint", anonymous ? 0 : offer);
         }
         final int count = comment.getInt(Comment.COMMENT_THANK_CNT);
-        if (count < 0 || Symphonys.POINT_THANK_COMMENT < 0) throw new IllegalStateException("invalid comment thanks values");
+        if (count < 0 || Symphonys.POINT_THANK_COMMENT < 0)
+            throw new IllegalStateException("invalid comment thanks values");
         final boolean recorded = comment.getInt("recorded") != 0;
         return new JSONObject().put("id", id).put("thanked", recorded).put("canThank", !own && !recorded)
                 .put("thankCount", count).put("thankPoint", anonymous ? 0 : Symphonys.POINT_THANK_COMMENT);

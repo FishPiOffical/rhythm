@@ -33,6 +33,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -47,9 +48,11 @@ public class ApiV3ClientUpdateProcessor {
         registerRoutes(beans.getReference(ApiV3ClientUpdateProcessor.class), beans.getReference(ApiV3AuthMidware.class),
                 beans.getReference(ApiV3WriteMidware.class));
     }
+
     static void registerRoutes(final ApiV3ClientUpdateProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
         Dispatcher.put("/api/v3/admin/oauth/clients/{clientId}", p::update, auth::settingsWrite, p::administrator, writes::handle);
     }
+
     public void administrator(final RequestContext context) {
         context.getResponse().setHeader("Cache-Control", "no-store");
         context.getResponse().setHeader("Vary", "Authorization");
@@ -65,6 +68,7 @@ public class ApiV3ClientUpdateProcessor {
             context.abort();
         }
     }
+
     public void update(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final JSONObject body = ApiV3WriteInputs.body(context, Set.of("name", "scope", "redirectUris"), false);
@@ -72,6 +76,7 @@ public class ApiV3ClientUpdateProcessor {
                     ApiV3ClientManagementInputs.registration(body), ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     private static JSONObject identity(final RequestContext context) {
         return (JSONObject) context.attr(ApiV3Processor.IDENTITY);
     }

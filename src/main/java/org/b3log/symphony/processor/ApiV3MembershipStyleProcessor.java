@@ -23,6 +23,7 @@ import org.b3log.latke.ioc.*;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3MembershipStyleQueryService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -36,7 +37,7 @@ public class ApiV3MembershipStyleProcessor {
     }
 
     public static void registerRoutes(ApiV3MembershipStyleProcessor p, ApiV3AuthMidware auth) {
-        Dispatcher.get("/api/v3/membership/styles",p::styles,auth::profileRead);
+        Dispatcher.get("/api/v3/membership/styles", p::styles, auth::profileRead);
     }
 
     public void styles(RequestContext context) {

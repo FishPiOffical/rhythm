@@ -20,18 +20,24 @@ package org.b3log.symphony.util;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-/** 校验客户端卡片数据及大小，URL 只作为资源标识，不在此处访问。 */
+/**
+ * 校验客户端卡片数据及大小，URL 只作为资源标识，不在此处访问。
+ */
 public final class ApiV3ChatCardInputs {
     public static final Set<String> WEATHER_CODES = Set.of("CLEAR_DAY", "CLEAR_NIGHT", "CLOUDY", "DUST", "FOG",
             "HEAVY_HAZE", "HEAVY_RAIN", "HEAVY_SNOW", "LIGHT_HAZE", "LIGHT_RAIN", "LIGHT_SNOW", "MODERATE_HAZE",
             "MODERATE_RAIN", "MODERATE_SNOW", "PARTLY_CLOUDY_DAY", "PARTLY_CLOUDY_NIGHT", "SAND", "STORM_RAIN", "STORM_SNOW", "WIND");
-    private ApiV3ChatCardInputs() { }
+
+    private ApiV3ChatCardInputs() {
+    }
+
     public static JSONObject music(JSONObject body) {
         keys(body, Set.of("title", "from", "source", "coverURL"));
         final String source = string(body, "source", false);
@@ -40,6 +46,7 @@ public final class ApiV3ChatCardInputs {
                 .put("source", source.matches("[0-9]{1,32}") ? source : https(source))
                 .put("coverURL", string(body, "coverURL", true).isEmpty() ? "" : https(string(body, "coverURL", true)));
     }
+
     public static JSONObject weather(JSONObject body) {
         keys(body, Set.of("city", "description", "days"));
         final Object raw = body.opt("days");
@@ -71,7 +78,10 @@ public final class ApiV3ChatCardInputs {
         return new JSONObject().put("city", text(string(body, "city", false), 64, false))
                 .put("description", text(string(body, "description", true), 128, true)).put("days", normalized);
     }
-    /** 内容审核只处理可见文字，保留签名 URL 和 JSON 键的原值。 */
+
+    /**
+     * 内容审核只处理可见文字，保留签名 URL 和 JSON 键的原值。
+     */
     public static JSONObject prepare(String kind, JSONObject normalized, UnaryOperator<String> moderate) {
         final JSONObject card = new JSONObject(normalized.toString());
         for (String key : "music".equals(kind) ? new String[]{"title", "from"} : new String[]{"city", "description"}) {
@@ -81,19 +91,28 @@ public final class ApiV3ChatCardInputs {
         }
         return "music".equals(kind) ? music(card) : weather(card);
     }
-    /** Stored legacy-compatible envelope, consumed by both existing chat skins and v3 raw-message reads. */
+
+    /**
+     * Stored legacy-compatible envelope, consumed by both existing chat skins and v3 raw-message reads.
+     */
     public static String content(String kind, JSONObject normalized) {
         if ("music".equals(kind)) return new JSONObject(normalized.toString()).put("msgType", "music")
                 .put("cardVersion", 3).put("payload", new JSONObject(normalized.toString())).toString();
         final JSONArray days = normalized.getJSONArray("days");
         final String[] dates = new String[5], codes = new String[5], min = new String[5], max = new String[5];
-        for (int i = 0; i < 5; i++) { final JSONObject d = days.getJSONObject(i); dates[i] = d.getString("date");
-            codes[i] = d.getString("code"); min[i] = Integer.toString(d.getInt("min")); max[i] = Integer.toString(d.getInt("max")); }
+        for (int i = 0; i < 5; i++) {
+            final JSONObject d = days.getJSONObject(i);
+            dates[i] = d.getString("date");
+            codes[i] = d.getString("code");
+            min[i] = Integer.toString(d.getInt("min"));
+            max[i] = Integer.toString(d.getInt("max"));
+        }
         return new JSONObject().put("msgType", "weather").put("date", String.join(",", dates)).put("weatherCode", String.join(",", codes))
                 .put("min", String.join(",", min)).put("max", String.join(",", max))
                 .put("t", normalized.getString("city")).put("st", normalized.getString("description"))
                 .put("cardVersion", 3).put("payload", new JSONObject(normalized.toString())).toString();
     }
+
     private static int temperature(Object raw) {
         if (!(raw instanceof Integer || raw instanceof Long || raw instanceof java.math.BigInteger))
             throw ApiV3WriteInputs.invalid();
@@ -107,25 +126,31 @@ public final class ApiV3ChatCardInputs {
             throw ApiV3WriteInputs.invalid();
         return (int) value;
     }
+
     private static String text(String value, int max, boolean empty) {
         // 去除首尾空白前先拒绝控制字符，避免首尾换行在校验前被移除。
         unicode(value);
         final String result = value.strip();
-        if ((!empty && result.isEmpty()) || result.length() > max || result.matches("(?s).*<[^>]*>.*")) throw ApiV3WriteInputs.invalid();
+        if ((!empty && result.isEmpty()) || result.length() > max || result.matches("(?s).*<[^>]*>.*"))
+            throw ApiV3WriteInputs.invalid();
         return result;
     }
+
     private static String https(String value) {
         unicode(value);
-        if (value.isEmpty() || value.length() > 2048 || !value.equals(value.strip()) || value.indexOf('\\') >= 0) throw ApiV3WriteInputs.invalid();
+        if (value.isEmpty() || value.length() > 2048 || !value.equals(value.strip()) || value.indexOf('\\') >= 0)
+            throw ApiV3WriteInputs.invalid();
         try {
             final URI uri = new URI(value);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getHost().isBlank()
-                    || uri.getRawUserInfo() != null || uri.getRawFragment() != null || uri.getPort() < -1 || uri.getPort() > 65535) throw ApiV3WriteInputs.invalid();
+                    || uri.getRawUserInfo() != null || uri.getRawFragment() != null || uri.getPort() < -1 || uri.getPort() > 65535)
+                throw ApiV3WriteInputs.invalid();
             return value;
         } catch (java.net.URISyntaxException error) {
             throw ApiV3WriteInputs.invalid();
         }
     }
+
     private static void unicode(String value) {
         for (int i = 0; i < value.length(); i++) {
             final char c = value.charAt(i);
@@ -138,10 +163,12 @@ public final class ApiV3ChatCardInputs {
                 throw ApiV3WriteInputs.invalid();
         }
     }
+
     private static void keys(JSONObject body, Set<String> allowed) {
         if (body == null || !allowed.containsAll(body.keySet()))
             throw ApiV3WriteInputs.invalid();
     }
+
     private static String string(JSONObject body, String key, boolean optional) {
         final Object raw = body.has(key) ? body.opt(key) : optional ? "" : null;
         if (!(raw instanceof String value))

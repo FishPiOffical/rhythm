@@ -33,6 +33,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 public class ApiV3RankingProcessor {
     @Inject
     private ApiV3RankingQueryService rankings;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3RankingProcessor processor = beans.getReference(ApiV3RankingProcessor.class);
@@ -40,6 +41,7 @@ public class ApiV3RankingProcessor {
         final AnonymousViewCheckMidware anonymous = beans.getReference(AnonymousViewCheckMidware.class);
         Dispatcher.get("/api/v3/rankings/{type}", processor::ranking, auth::optionalContent, anonymous::handle);
     }
+
     public void ranking(final RequestContext context) {
         ApiV3Requests.read(context, () -> {
             final String type = ApiV3Requests.text(context.pathVar("type"), 16, true);

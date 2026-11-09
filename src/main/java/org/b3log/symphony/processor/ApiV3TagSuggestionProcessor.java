@@ -29,6 +29,7 @@ import org.b3log.latke.util.Requests;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TagSuggestionQueryService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -40,13 +41,14 @@ public class ApiV3TagSuggestionProcessor {
     private ApiV3TagSuggestionQueryService query;
     private static final Cache<String, AtomicInteger> COUNTS = Caffeine.newBuilder().maximumSize(100000).expireAfterWrite(1, TimeUnit.MINUTES).build();
     private static final Semaphore QUERIES = new Semaphore(4);
+
     public static void register() {
         final var b = BeanManager.getInstance();
         registerRoutes(b.getReference(ApiV3TagSuggestionProcessor.class), b.getReference(ApiV3AuthMidware.class));
     }
 
     public static void registerRoutes(ApiV3TagSuggestionProcessor p, ApiV3AuthMidware auth) {
-        Dispatcher.get("/api/v3/suggestions/tags",p::suggestions,auth::contentRead);
+        Dispatcher.get("/api/v3/suggestions/tags", p::suggestions, auth::contentRead);
     }
 
     public void suggestions(RequestContext context) {

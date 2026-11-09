@@ -30,6 +30,7 @@ import org.b3log.symphony.service.ApiV3FishGameSubmissionService;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
@@ -42,8 +43,8 @@ public class ApiV3FishGameSubmissionProcessor {
         var p = beans.getReference(ApiV3FishGameSubmissionProcessor.class);
         var auth = beans.getReference(ApiV3AuthMidware.class);
         var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.post("/api/v3/fish-games",p::submit,auth::contentWrite,writes::handle);
-        Dispatcher.put("/api/v3/fish-games/{gameId}",p::edit,auth::contentWrite,writes::handle);
+        Dispatcher.post("/api/v3/fish-games", p::submit, auth::contentWrite, writes::handle);
+        Dispatcher.put("/api/v3/fish-games/{gameId}", p::edit, auth::contentWrite, writes::handle);
     }
 
     public void submit(RequestContext c) {

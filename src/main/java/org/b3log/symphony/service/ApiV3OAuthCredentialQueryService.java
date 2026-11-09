@@ -27,37 +27,52 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 只读校验当前端点的专用凭据。写入服务仍须在自己的根事务中重新鉴权。 */
+/**
+ * 只读校验当前端点的专用凭据。写入服务仍须在自己的根事务中重新鉴权。
+ */
 @Service
 public class ApiV3OAuthCredentialQueryService {
-    @Inject private ApiV3ClientRepository clients;
-    @Inject private ApiV3ClientRedirectRepository redirects;
-    @Inject private ApiV3AuthorizationCodeRepository codes;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private UserRepository users;
+    @Inject
+    private ApiV3ClientRepository clients;
+    @Inject
+    private ApiV3ClientRedirectRepository redirects;
+    @Inject
+    private ApiV3AuthorizationCodeRepository codes;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private UserRepository users;
+
     protected long now() {
         return System.currentTimeMillis();
     }
-    private boolean client(String id)throws Exception{
-        if(id==null||!id.matches("[\\x21-\\x7E]{1,64}")||ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(id))return false;
+
+    private boolean client(String id) throws Exception {
+        if (id == null || !id.matches("[\\x21-\\x7E]{1,64}") || ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(id))
+            return false;
         final var row = clients.getByClientId(id);
         return row != null && id.equals(row.optString(ApiV3Client.CLIENT_ID))
                 && row.optInt(ApiV3Client.STATUS, -1) == ApiV3Client.STATUS_ACTIVE;
     }
-    private JSONObject user(String id)throws Exception{
-        if(id==null||!id.matches("[1-9][0-9]{0,18}"))return null;
-        final var rows=users.select("SELECT oId,userStatus FROM `"+users.getName()+"` WHERE oId=?",id);
-        if(rows.size()!=1||!id.equals(rows.getFirst().optString(Keys.OBJECT_ID))||rows.getFirst().optInt(UserExt.USER_STATUS,-1)!=UserExt.USER_STATUS_C_VALID)return null;
-        return new JSONObject().put(Keys.OBJECT_ID,id);
+
+    private JSONObject user(String id) throws Exception {
+        if (id == null || !id.matches("[1-9][0-9]{0,18}")) return null;
+        final var rows = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=?", id);
+        if (rows.size() != 1 || !id.equals(rows.getFirst().optString(Keys.OBJECT_ID)) || rows.getFirst().optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+            return null;
+        return new JSONObject().put(Keys.OBJECT_ID, id);
     }
-    private boolean liveFamily(String client,String actor,String family,long time)throws Exception{
-        if(family==null||!family.matches("[0-9a-f]{32}"))return false;
-        return !tokens.select("SELECT oId FROM `"+tokens.getName()+"` WHERE clientId=? AND userId=? AND familyId=? AND state=? AND expiresAt>? LIMIT 1",client,actor,family,ApiV3Token.STATE_ACTIVE,time).isEmpty();
+
+    private boolean liveFamily(String client, String actor, String family, long time) throws Exception {
+        if (family == null || !family.matches("[0-9a-f]{32}")) return false;
+        return !tokens.select("SELECT oId FROM `" + tokens.getName() + "` WHERE clientId=? AND userId=? AND familyId=? AND state=? AND expiresAt>? LIMIT 1", client, actor, family, ApiV3Token.STATE_ACTIVE, time).isEmpty();
     }
-    public JSONObject code(String client,String uri,String raw,String verifier)throws Exception{
-        if(!ApiV3TokenUtil.isValidFormat(raw)||!ApiV3Pkce.validVerifier(verifier)||uri==null
-                ||!ApiV3OAuthRedirects.valid(uri,Latkes.RuntimeMode.DEVELOPMENT==Latkes.getRuntimeMode())||!client(client))return null;
-        if(redirects.getRegistered(client,uri)==null)return null;
+
+    public JSONObject code(String client, String uri, String raw, String verifier) throws Exception {
+        if (!ApiV3TokenUtil.isValidFormat(raw) || !ApiV3Pkce.validVerifier(verifier) || uri == null
+                || !ApiV3OAuthRedirects.valid(uri, Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode()) || !client(client))
+            return null;
+        if (redirects.getRegistered(client, uri) == null) return null;
         final String hash = ApiV3TokenUtil.hash("oauth-code\0" + raw);
         final var rows = codes.select("SELECT * FROM `" + codes.getName() + "` WHERE oId=?", hash);
         if (rows.size() != 1)
@@ -65,9 +80,10 @@ public class ApiV3OAuthCredentialQueryService {
         final var row = rows.getFirst();
         final long time = now(), created = row.optLong("createdAt", -1),
                 expires = row.optLong("expiresAt", -1), consumed = row.optLong("consumedAt", -1);
-        if(!hash.equals(row.optString("oId"))||!client.equals(row.optString("clientId"))||!uri.equals(row.optString("redirectUri"))||!ApiV3Pkce.matches(row.optString("codeChallenge"),verifier)
-                ||created<=0||created>time||created>Long.MAX_VALUE-ApiV3AuthorizationCodeService.CODE_TTL_MILLIS||expires!=created+ApiV3AuthorizationCodeService.CODE_TTL_MILLIS||consumed<0||consumed>time)return null;
-        final String actor=row.optString("userId");
+        if (!hash.equals(row.optString("oId")) || !client.equals(row.optString("clientId")) || !uri.equals(row.optString("redirectUri")) || !ApiV3Pkce.matches(row.optString("codeChallenge"), verifier)
+                || created <= 0 || created > time || created > Long.MAX_VALUE - ApiV3AuthorizationCodeService.CODE_TTL_MILLIS || expires != created + ApiV3AuthorizationCodeService.CODE_TTL_MILLIS || consumed < 0 || consumed > time)
+            return null;
+        final String actor = row.optString("userId");
         // 已消费授权码仅在原家族仍有效时通过此处预检，后续事务负责处理重放。
         if (consumed == 0) {
             if (expires <= time || !row.optString("familyId").isEmpty())
@@ -76,8 +92,9 @@ public class ApiV3OAuthCredentialQueryService {
             return null;
         return user(actor);
     }
-    public JSONObject token(String client,String raw,boolean revocation)throws Exception{
-        if(!ApiV3TokenUtil.isValidFormat(raw)||!client(client))return null;
+
+    public JSONObject token(String client, String raw, boolean revocation) throws Exception {
+        if (!ApiV3TokenUtil.isValidFormat(raw) || !client(client)) return null;
         final String hash = ApiV3TokenUtil.hash(raw);
         final var row = tokens.getByHash(hash);
         if (row == null || !hash.equals(row.optString(ApiV3Token.TOKEN_HASH))

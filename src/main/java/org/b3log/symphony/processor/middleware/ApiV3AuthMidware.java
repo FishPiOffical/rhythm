@@ -28,14 +28,18 @@ import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.json.JSONObject;
 
-/** API v3 仅从 Authorization 请求头接受 Bearer 凭据作为身份。 */
+/**
+ * API v3 仅从 Authorization 请求头接受 Bearer 凭据作为身份。
+ */
 @Singleton
 public class ApiV3AuthMidware {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3AuthMidware.class);
     @Inject
     private ApiV3TokenMgmtService apiV3TokenMgmtService;
 
-    /** 公开资源允许匿名访问，显式提交的凭据必须通过验证。 */
+    /**
+     * 公开资源允许匿名访问，显式提交的凭据必须通过验证。
+     */
     public void optionalContent(final RequestContext context) {
         optional(context, "content.read");
     }
@@ -64,21 +68,61 @@ public class ApiV3AuthMidware {
         if (null != resolve(context)) context.handle();
     }
 
-    public void messagesRead(final RequestContext context) { required(context, "messages.read"); }
-    public void messagesWrite(final RequestContext context) { required(context, "messages.write"); }
+    public void messagesRead(final RequestContext context) {
+        required(context, "messages.read");
+    }
 
-    public void notificationsRead(final RequestContext context) { required(context, "notifications.read"); }
-    public void notificationsWrite(final RequestContext context) { required(context, "notifications.write"); }
-    public void commentsWrite(final RequestContext context) { required(context, "comments.write"); }
-    public void reactionsWrite(final RequestContext context) { required(context, "reactions.write"); }
-    public void followsWrite(final RequestContext context) { required(context, "follows.write"); }
-    public void settingsWrite(final RequestContext context) { required(context, "settings.write"); }
-    public void uploadsWrite(final RequestContext context) { required(context, "uploads.write"); }
-    public void contentWrite(final RequestContext context) { required(context, "content.write"); }
-    public void contentRead(final RequestContext context) { required(context, "content.read"); }
-    public void activityWrite(final RequestContext context) { required(context, "activity.write"); }
-    public void activityRead(final RequestContext context) { required(context, "activity.read"); }
-    public void profileRead(final RequestContext context) { required(context, "profile.read"); }
+    public void messagesWrite(final RequestContext context) {
+        required(context, "messages.write");
+    }
+
+    public void notificationsRead(final RequestContext context) {
+        required(context, "notifications.read");
+    }
+
+    public void notificationsWrite(final RequestContext context) {
+        required(context, "notifications.write");
+    }
+
+    public void commentsWrite(final RequestContext context) {
+        required(context, "comments.write");
+    }
+
+    public void reactionsWrite(final RequestContext context) {
+        required(context, "reactions.write");
+    }
+
+    public void followsWrite(final RequestContext context) {
+        required(context, "follows.write");
+    }
+
+    public void settingsWrite(final RequestContext context) {
+        required(context, "settings.write");
+    }
+
+    public void uploadsWrite(final RequestContext context) {
+        required(context, "uploads.write");
+    }
+
+    public void contentWrite(final RequestContext context) {
+        required(context, "content.write");
+    }
+
+    public void contentRead(final RequestContext context) {
+        required(context, "content.read");
+    }
+
+    public void activityWrite(final RequestContext context) {
+        required(context, "activity.write");
+    }
+
+    public void activityRead(final RequestContext context) {
+        required(context, "activity.read");
+    }
+
+    public void profileRead(final RequestContext context) {
+        required(context, "profile.read");
+    }
 
     private void required(final RequestContext context, final String scope) {
         final JSONObject identity = resolve(context);

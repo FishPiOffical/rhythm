@@ -27,17 +27,23 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.Locale;
 
-/** 限量查询当前公开用户资料，直接读取数据库。 */
+/**
+ * 限量查询当前公开用户资料，直接读取数据库。
+ */
 @Service
 public class ApiV3UserSuggestionQueryService {
-    @Inject private UserRepository users;
+    @Inject
+    private UserRepository users;
+
     public static String prefix(String value) {
         if (value == null) return "";
         if (!value.isEmpty() && !value.matches("[A-Za-z0-9_-]{1,64}")) throw ApiV3Requests.invalid();
         return value.toLowerCase(Locale.ROOT);
     }
+
     public JSONObject suggestions(String actor, String raw) {
         final String prefix = prefix(raw);
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.forbidden();
@@ -47,12 +53,13 @@ public class ApiV3UserSuggestionQueryService {
             final JSONArray list = new JSONArray();
             if (prefix.isEmpty()) return new JSONObject().put("list", list);
             final var rows = users.select("SELECT oId,userName,userNickname,userAvatarURL FROM `" + users.getName()
-                    + "` WHERE userStatus=0 AND LOWER(userName) LIKE ? ESCAPE '=' ORDER BY LOWER(userName),userName,oId LIMIT 10",
+                            + "` WHERE userStatus=0 AND LOWER(userName) LIKE ? ESCAPE '=' ORDER BY LOWER(userName),userName,oId LIMIT 10",
                     prefix.replace("_", "=_") + "%");
             if (rows.size() > 10) throw unavailable();
             for (final var row : rows) {
                 final String id = row.optString("oId"), name = row.optString("userName");
-                if (!id.matches("[1-9][0-9]{0,18}") || !name.matches("[A-Za-z0-9_-]{1,64}") || !name.toLowerCase(Locale.ROOT).startsWith(prefix)) throw unavailable();
+                if (!id.matches("[1-9][0-9]{0,18}") || !name.matches("[A-Za-z0-9_-]{1,64}") || !name.toLowerCase(Locale.ROOT).startsWith(prefix))
+                    throw unavailable();
                 final String nickname = row.optString("userNickname");
                 list.put(new JSONObject().put("id", id).put("userName", name)
                         .put("userNickname", nickname.length() <= 255 && nickname.codePoints().noneMatch(Character::isISOControl) ? nickname : "")
@@ -63,6 +70,7 @@ public class ApiV3UserSuggestionQueryService {
             throw unavailable();
         }
     }
+
     private static ApiV3Exception unavailable() {
         return new ApiV3Exception(503, "temporarily_unavailable", "用户联想暂不可用");
     }

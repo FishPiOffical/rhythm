@@ -25,10 +25,14 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.util.*;
+
 import static org.b3log.symphony.service.ArticleRewardMgmtService.Kind.*;
 
-/** 使用 SQLite 执行实际文章打赏汇总、业务操作和回执，运行环境及可见性由夹具适配。 */
+/**
+ * 使用 SQLite 执行实际文章打赏汇总、业务操作和回执，运行环境及可见性由夹具适配。
+ */
 public class ApiV3ArticleRewardServiceTest {
     public static void main(String[] args) throws Exception {
         final var props = new Properties();
@@ -42,8 +46,8 @@ public class ApiV3ArticleRewardServiceTest {
             final var viewer = f.viewer("outsider");
             Assert.assertFalse(f.rewardApi.read(viewer, "10", THANK).getBoolean("thanked"));
             Assert.assertFalse(f.rewardApi.read(viewer, "10", REWARD).getBoolean("rewarded"));
-            Assert.assertEquals(f.rewardApi.read(viewer,"10",THANK).getInt("thankPoint"),20);
-            Assert.assertTrue(f.rewardApi.read(f.viewer("older"),"10",REWARD).getBoolean("rewarded"));
+            Assert.assertEquals(f.rewardApi.read(viewer, "10", THANK).getInt("thankPoint"), 20);
+            Assert.assertTrue(f.rewardApi.read(f.viewer("older"), "10", REWARD).getBoolean("rewarded"));
             // 感谢和购买可以使用同一键，各自生成回执并按业务类型记账。
             var thank = f.rewardApi.apply(viewer, "10", THANK, "same-key");
             var paid = f.rewardApi.apply(viewer, "10", REWARD, "same-key");
@@ -53,10 +57,10 @@ public class ApiV3ArticleRewardServiceTest {
             Assert.assertEquals(f.scalar("SELECT userPoint FROM user WHERE oId='older'"), 950L);
             Assert.assertEquals(f.scalar("SELECT articleThankCnt FROM article WHERE oId='10'"), 1L);
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM reward"), 2L);
-            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger l JOIN reward r ON r.oId=l.dataId JOIN notification n ON n.dataId=r.oId"),2L);
-            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger l JOIN reward r ON r.oId=l.dataId JOIN notification n ON n.dataId=r.oId WHERE l.recipient='older' AND n.userId='older' AND ((r.type="+Reward.TYPE_C_THANK_ARTICLE+" AND l.transferType="+Pointtransfer.TRANSFER_TYPE_C_ARTICLE_THANK+" AND n.dataType="+Notification.DATA_TYPE_C_POINT_ARTICLE_THANK+") OR (r.type="+Reward.TYPE_C_ARTICLE+" AND l.transferType="+Pointtransfer.TRANSFER_TYPE_C_ARTICLE_REWARD+" AND n.dataType="+Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD+"))"),2L);
-            Assert.assertEquals(f.scalar("SELECT amount FROM ledger WHERE transferType="+Pointtransfer.TRANSFER_TYPE_C_ARTICLE_THANK),20L);
-            Assert.assertEquals(f.scalar("SELECT amount FROM ledger WHERE transferType="+Pointtransfer.TRANSFER_TYPE_C_ARTICLE_REWARD),30L);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger l JOIN reward r ON r.oId=l.dataId JOIN notification n ON n.dataId=r.oId"), 2L);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger l JOIN reward r ON r.oId=l.dataId JOIN notification n ON n.dataId=r.oId WHERE l.recipient='older' AND n.userId='older' AND ((r.type=" + Reward.TYPE_C_THANK_ARTICLE + " AND l.transferType=" + Pointtransfer.TRANSFER_TYPE_C_ARTICLE_THANK + " AND n.dataType=" + Notification.DATA_TYPE_C_POINT_ARTICLE_THANK + ") OR (r.type=" + Reward.TYPE_C_ARTICLE + " AND l.transferType=" + Pointtransfer.TRANSFER_TYPE_C_ARTICLE_REWARD + " AND n.dataType=" + Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD + "))"), 2L);
+            Assert.assertEquals(f.scalar("SELECT amount FROM ledger WHERE transferType=" + Pointtransfer.TRANSFER_TYPE_C_ARTICLE_THANK), 20L);
+            Assert.assertEquals(f.scalar("SELECT amount FROM ledger WHERE transferType=" + Pointtransfer.TRANSFER_TYPE_C_ARTICLE_REWARD), 30L);
             Assert.assertEquals(f.activityFields, List.of(Liveness.LIVENESS_REWARD, Liveness.LIVENESS_REWARD));
             Assert.assertEquals(f.indexEvents, 2);
             Assert.assertEquals(f.refreshed, List.of("older", "older"));
@@ -73,7 +77,7 @@ public class ApiV3ArticleRewardServiceTest {
             f.rewardApi.apply(viewer, "10", REWARD, "changed-price");
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 2L);
             f.exec("UPDATE article SET articleType=1,articleContent='@nobody ' WHERE oId='10'");
-            Assert.assertEquals(f.rewardApi.apply(viewer,"10",REWARD,"same-key").toString(),paid.toString());
+            Assert.assertEquals(f.rewardApi.apply(viewer, "10", REWARD, "same-key").toString(), paid.toString());
             expect(404, () -> f.rewardApi.read(viewer, "10", REWARD));
             expect(404, () -> f.rewardApi.apply(viewer, "10", REWARD, "now-unreadable"));
         }
@@ -118,14 +122,14 @@ public class ApiV3ArticleRewardServiceTest {
                 Assert.fail();
             } catch (RepositoryException rejected) {
             }
-            Assert.assertEquals(f.snapshot(),before);
+            Assert.assertEquals(f.snapshot(), before);
         }
         System.out.println("PASS lookup/transfer/counter/reward/notification/receipt failures roll all financial and related writes back, including partial debit and same-key retry");
         try (var f = new Rewards()) {
             f.exec("UPDATE article SET articleAnonymous=1 WHERE oId='10'");
             f.exec("UPDATE user SET userPoint=0 WHERE oId='outsider'");
-            Assert.assertEquals(f.rewardApi.read(f.viewer("outsider"),"10",THANK).getInt("thankPoint"),0);
-            for(var kind:List.of(THANK,REWARD))f.rewardApi.apply(f.viewer("outsider"),"10",kind,"anonymous");
+            Assert.assertEquals(f.rewardApi.read(f.viewer("outsider"), "10", THANK).getInt("thankPoint"), 0);
+            for (var kind : List.of(THANK, REWARD)) f.rewardApi.apply(f.viewer("outsider"), "10", kind, "anonymous");
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 0L);
             Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM reward"), 2L);
             Assert.assertEquals(f.indexEvents, 0);
@@ -144,21 +148,25 @@ public class ApiV3ArticleRewardServiceTest {
         }
         System.out.println("PASS anonymous articles retain no-transfer grants at zero balance; ordinary insufficient-balance requests cannot grant access and can retry after funding");
         try (var f = new Rewards()) {
-            Assert.assertTrue(f.core("older",REWARD,(a,b)->{}).mayExposeRewardContent());
-            Assert.assertFalse(f.core("older",THANK,(a,b)->{}).mayExposeRewardContent());
+            Assert.assertTrue(f.core("older", REWARD, (a, b) -> {
+            }).mayExposeRewardContent());
+            Assert.assertFalse(f.core("older", THANK, (a, b) -> {
+            }).mayExposeRewardContent());
             expect(422, () -> f.rewardApi.apply(f.viewer("older"), "10", REWARD, "self"));
             expect(422, () -> f.rewardApi.apply(f.viewer("older"), "10", THANK, "self"));
             f.exec("UPDATE article SET articleRewardPoint=0 WHERE oId='10'");
-            var disabled = f.core("outsider", REWARD, (a, b) -> {});
+            var disabled = f.core("outsider", REWARD, (a, b) -> {
+            });
             Assert.assertEquals(disabled.state(), ArticleRewardMgmtService.State.NOT_ENABLED);
             Assert.assertFalse(disabled.mayExposeRewardContent());
-            expect(422,()->f.rewardApi.apply(f.viewer("outsider"),"10",REWARD,"disabled"));
+            expect(422, () -> f.rewardApi.apply(f.viewer("outsider"), "10", REWARD, "disabled"));
             f.exec("UPDATE article SET articleRewardPoint=30 WHERE oId='10'");
             f.exec("UPDATE user SET userStatus=1 WHERE oId='outsider'");
-            var invalid = f.core("outsider", REWARD, (a, b) -> {});
+            var invalid = f.core("outsider", REWARD, (a, b) -> {
+            });
             Assert.assertEquals(invalid.state(), ArticleRewardMgmtService.State.UNAVAILABLE);
             Assert.assertFalse(invalid.mayExposeRewardContent());
-            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"),0L);
+            Assert.assertEquals(f.scalar("SELECT COUNT(*) FROM ledger"), 0L);
         }
         System.out.println("PASS owner/no-op/disabled/unavailable outcomes explicitly distinguish safe legacy body exposure from purchases; v3 rejects self and disabled operations");
         try (var f = new Rewards()) {
@@ -168,7 +176,7 @@ public class ApiV3ArticleRewardServiceTest {
             expect(403, () -> f.rewardApi.apply(stale, "10", THANK, "revoked-thank"));
             Assert.assertEquals(f.snapshot(), before);
             Assert.assertFalse(f.rewardApi.read(f.viewer("outsider"), "10", THANK).getBoolean("thanked"));
-            f.rewardApi.apply(f.viewer("outsider"),"10",REWARD,"purchase-not-post-permission");
+            f.rewardApi.apply(f.viewer("outsider"), "10", REWARD, "purchase-not-post-permission");
         }
         for (var kind : List.of(THANK, REWARD)) {
             try (var f = new Rewards()) {
@@ -211,7 +219,8 @@ public class ApiV3ArticleRewardServiceTest {
             expect(401, () -> f.rewardApi.apply(null, "10", REWARD, "no-identity"));
             String before = f.snapshot();
             try {
-                f.mutations.applyInCurrentTransaction("outsider", "10", "older", THANK, (a, b) -> {});
+                f.mutations.applyInCurrentTransaction("outsider", "10", "older", THANK, (a, b) -> {
+                });
                 Assert.fail();
             } catch (IllegalStateException rejected) {
             }
@@ -222,6 +231,7 @@ public class ApiV3ArticleRewardServiceTest {
         }
         System.out.println("PASS missing identity/targets, invalid state, corrupt anonymity/overflow and transaction/explicit-read guards cannot create a grant or partial charge");
     }
+
     @FunctionalInterface
     interface Checked {
         Object run() throws Exception;
@@ -283,7 +293,7 @@ public class ApiV3ArticleRewardServiceTest {
         }
 
         ArticleRewardMgmtService.Result core(String actor, ArticleRewardMgmtService.Kind kind,
-                ArticleRewardMgmtService.TargetCheck check) throws Exception {
+                                             ArticleRewardMgmtService.TargetCheck check) throws Exception {
             return new ArticleMgmtService().withPublicationLocks(actor, List.of(Pointtransfer.ID_C_SYS, "older"), () -> {
                 var tx = new ArticleRepository().beginTransaction();
                 try {
@@ -293,7 +303,8 @@ public class ApiV3ArticleRewardServiceTest {
                 } finally {
                     if (tx.isActive()) tx.rollback();
                 }
-            }, ignored -> {});
+            }, ignored -> {
+            });
         }
     }
 }

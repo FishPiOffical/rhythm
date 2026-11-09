@@ -22,15 +22,21 @@ import org.b3log.symphony.model.Emotion;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** 返回有序的表情选项分组，顺序与 PC 和移动端设置页一致。 */
+/**
+ * 返回有序的表情选项分组，顺序与 PC 和移动端设置页一致。
+ */
 public final class ApiV3EmotionOptions {
-    private ApiV3EmotionOptions() { }
+    private ApiV3EmotionOptions() {
+    }
+
     public static final String DEFAULTS = "smile,flushed,joy,sob,yum,trollface,tada,heart,+1,ok_hand,pray";
+
     public static String[][] legacyGroups() {
         final String[][] copy = new String[GROUPS.length][];
         for (int i = 0; i < GROUPS.length; i++) copy[i] = GROUPS[i].clone();
         return copy;
     }
+
     public static JSONObject options() {
         final JSONArray groups = new JSONArray();
         for (final String[] group : GROUPS) {
@@ -40,6 +46,7 @@ public final class ApiV3EmotionOptions {
         }
         return new JSONObject().put("groups", groups).put("defaults", new JSONArray(DEFAULTS.split(",")));
     }
+
     private static final String[][] GROUPS = {{
             "smile",
             "laughing",

@@ -21,15 +21,20 @@ package org.b3log.symphony.util;
 import org.b3log.latke.util.Strings;
 import org.json.JSONObject;
 import org.jsoup.parser.Parser;
+
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.Arrays;
 import java.util.TimeZone;
 
-/** API-to-storage whitelist. New subresources leave the existing aggregate read contract unchanged. */
+/**
+ * API-to-storage whitelist. New subresources leave the existing aggregate read contract unchanged.
+ */
 public final class ApiV3Settings {
-    private ApiV3Settings() { }
+    private ApiV3Settings() {
+    }
+
     public static final Map<String, String> PERSONALITY = Map.of("mbti", "mbti");
     public static final Map<String, String> AVATAR = Map.of("avatarURL", "userAvatarURL");
     public static final Map<String, String> PROFILE = Map.of("userNickname", "userNickname", "userIntro", "userIntro", "userURL", "userURL");
@@ -48,6 +53,7 @@ public final class ApiV3Settings {
     public static final Set<String> FUNCTION_SWITCHES = Set.of("notifications", "subscriptionEmail", "keyboardShortcuts", "autoSubscribeOnReply", "externalLinkConfirmation", "chatImageBlur");
     public static final Map<String, String> LOCATION = Map.of("publicLocation", "userGeoStatus");
     public static final Map<String, String> LOCALE = Map.of("language", "userLanguage", "timezone", "userTimezone");
+
     public static Map<String, String> fields(final String group) {
         return switch (group) {
             case "personality" -> PERSONALITY;
@@ -61,9 +67,11 @@ public final class ApiV3Settings {
             default -> throw new IllegalArgumentException("unknown settings group");
         };
     }
+
     public static JSONObject normalize(final String group, final JSONObject body) {
         return normalize(group, body, "");
     }
+
     public static JSONObject normalize(final String group, final JSONObject body, final String site) {
         final Map<String, String> fields = fields(group);
         if (body.isEmpty() || !fields.keySet().containsAll(body.keySet())) throw ApiV3WriteInputs.invalid();
@@ -87,52 +95,72 @@ public final class ApiV3Settings {
                     default -> 32;
                 };
                 String value = ApiV3WriteInputs.string(body, key, max, true);
-                if (value.codePoints().anyMatch(cp -> Character.isISOControl(cp) && !("userIntro".equals(key) && (cp == '\n' || cp == '\r' || cp == '\t')))) throw ApiV3WriteInputs.invalid();
-                if (Set.of("skin", "mobileSkin").contains(key) && (!value.matches("[A-Za-z0-9_/-]{1,32}") || value.contains("..") || value.startsWith("/"))) throw ApiV3WriteInputs.invalid();
+                if (value.codePoints().anyMatch(cp -> Character.isISOControl(cp) && !("userIntro".equals(key) && (cp == '\n' || cp == '\r' || cp == '\t'))))
+                    throw ApiV3WriteInputs.invalid();
+                if (Set.of("skin", "mobileSkin").contains(key) && (!value.matches("[A-Za-z0-9_/-]{1,32}") || value.contains("..") || value.startsWith("/")))
+                    throw ApiV3WriteInputs.invalid();
                 if ("mbti".equals(key)) value = ApiV3Personality.normalize(value);
                 if ("avatarURL".equals(key)) value = avatarURL(value);
                 if ("userURL".equals(key) && !value.isEmpty()) {
                     try {
                         final URI uri = new URI(value);
-                        if (!Strings.isURL(value) || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) || null == uri.getHost() || null != uri.getUserInfo()) throw ApiV3WriteInputs.invalid();
-                    } catch (final java.net.URISyntaxException e) { throw ApiV3WriteInputs.invalid(); }
+                        if (!Strings.isURL(value) || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) || null == uri.getHost() || null != uri.getUserInfo())
+                            throw ApiV3WriteInputs.invalid();
+                    } catch (final java.net.URISyntaxException e) {
+                        throw ApiV3WriteInputs.invalid();
+                    }
                 }
                 if ("indexRedirectURL".equals(key)) {
                     value = SettingsRedirects.normalize(value, site);
                     if (value.length() > 255)
                         throw ApiV3WriteInputs.invalid();
                 }
-                if ("language".equals(key) && !Languages.getAvailableLanguages().contains(value)) throw ApiV3WriteInputs.invalid();
-                if ("timezone".equals(key) && !Arrays.asList(TimeZone.getAvailableIDs()).contains(value)) throw ApiV3WriteInputs.invalid();
+                if ("language".equals(key) && !Languages.getAvailableLanguages().contains(value))
+                    throw ApiV3WriteInputs.invalid();
+                if ("timezone".equals(key) && !Arrays.asList(TimeZone.getAvailableIDs()).contains(value))
+                    throw ApiV3WriteInputs.invalid();
                 changes.put(fields.get(key), value);
             }
         }
         return changes;
     }
-    /** 保存调用方提供的 HTTPS 地址，保留签名查询参数且不访问该地址。 */
+
+    /**
+     * 保存调用方提供的 HTTPS 地址，保留签名查询参数且不访问该地址。
+     */
     public static String avatarURL(final String value) {
         if (null == value || value.isBlank() || value.length() > 255 || value.indexOf('\\') >= 0
-                || value.codePoints().anyMatch(cp -> Character.isISOControl(cp) || Character.isWhitespace(cp))) throw ApiV3WriteInputs.invalid();
+                || value.codePoints().anyMatch(cp -> Character.isISOControl(cp) || Character.isWhitespace(cp)))
+            throw ApiV3WriteInputs.invalid();
         try {
             final URI uri = new URI(value);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || null == uri.getHost() || uri.getHost().isBlank()
-                    || null != uri.getRawUserInfo() || uri.getPort() > 65535 || uri.getRawAuthority().endsWith(":")) throw ApiV3WriteInputs.invalid();
+                    || null != uri.getRawUserInfo() || uri.getPort() > 65535 || uri.getRawAuthority().endsWith(":"))
+                throw ApiV3WriteInputs.invalid();
             return value;
-        } catch (final java.net.URISyntaxException e) { throw ApiV3WriteInputs.invalid(); }
+        } catch (final java.net.URISyntaxException e) {
+            throw ApiV3WriteInputs.invalid();
+        }
     }
+
     public static JSONObject dto(final String group, final JSONObject row) {
         if ("personality".equals(group)) return ApiV3Personality.dto(row);
         final JSONObject dto = new JSONObject();
         for (final var field : fields(group).entrySet()) {
-            if ("privacy".equals(group) || "location".equals(group) || FUNCTION_SWITCHES.contains(field.getKey())) dto.put(field.getKey(), row.optInt(field.getValue()) == 0);
-            else if (Set.of("commentViewMode", "avatarViewMode", "listViewMode", "listPageSize").contains(field.getKey())) dto.put(field.getKey(), row.optInt(field.getValue()));
+            if ("privacy".equals(group) || "location".equals(group) || FUNCTION_SWITCHES.contains(field.getKey()))
+                dto.put(field.getKey(), row.optInt(field.getValue()) == 0);
+            else if (Set.of("commentViewMode", "avatarViewMode", "listViewMode", "listPageSize").contains(field.getKey()))
+                dto.put(field.getKey(), row.optInt(field.getValue()));
             else {
                 String value = row.optString(field.getValue());
                 if ("userURL".equals(field.getKey()) && !value.isEmpty()) {
                     try {
                         final URI uri = new URI(value);
-                        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) || null == uri.getHost() || null != uri.getUserInfo()) value = "";
-                    } catch (final java.net.URISyntaxException e) { value = ""; }
+                        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) || null == uri.getHost() || null != uri.getUserInfo())
+                            value = "";
+                    } catch (final java.net.URISyntaxException e) {
+                        value = "";
+                    }
                 }
                 dto.put(field.getKey(), "profile".equals(group) && !"userURL".equals(field.getKey()) ? Parser.unescapeEntities(value, false) : value);
             }

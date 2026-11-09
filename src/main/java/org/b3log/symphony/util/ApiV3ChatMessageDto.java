@@ -21,96 +21,105 @@ package org.b3log.symphony.util;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.function.Function;
 
-/** 将持久化聊天消息和支持的卡片类型按白名单投影为公开字段。 */
+/**
+ * 将持久化聊天消息和支持的卡片类型按白名单投影为公开字段。
+ */
 public final class ApiV3ChatMessageDto {
-    private static final int MAX_STORED_LENGTH=102400;
-    private ApiV3ChatMessageDto() { }
-    public static JSONObject from(final JSONObject row, final Function<String,String> render) {
-        final String id=row.optString("oId");
-        final JSONObject dto=new JSONObject().put("id",id).put("createdAt",number(id,0))
-                .put("type","unavailable").put("content","").put("contentHtml","").put("card",new JSONObject())
-                .put("author",new JSONObject().put("id","").put("userName","").put("userNickname","").put("userAvatarURL",""))
-                .put("client","").put("appearance",ApiV3ChatAppearance.defaults());
+    private static final int MAX_STORED_LENGTH = 102400;
+
+    private ApiV3ChatMessageDto() {
+    }
+
+    public static JSONObject from(final JSONObject row, final Function<String, String> render) {
+        final String id = row.optString("oId");
+        final JSONObject dto = new JSONObject().put("id", id).put("createdAt", number(id, 0))
+                .put("type", "unavailable").put("content", "").put("contentHtml", "").put("card", new JSONObject())
+                .put("author", new JSONObject().put("id", "").put("userName", "").put("userNickname", "").put("userAvatarURL", ""))
+                .put("client", "").put("appearance", ApiV3ChatAppearance.defaults());
         final JSONObject source;
         try {
-            final String stored=row.optString("content");
-            if(stored.isEmpty()||stored.length()>MAX_STORED_LENGTH)return dto;
-            source=ApiV3Json.parse(stored.getBytes(StandardCharsets.UTF_8));
+            final String stored = row.optString("content");
+            if (stored.isEmpty() || stored.length() > MAX_STORED_LENGTH) return dto;
+            source = ApiV3Json.parse(stored.getBytes(StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             return dto;
         }
-        final Object body=source.opt("content");
-        if(!(body instanceof String)&&!(body instanceof JSONObject))return dto;
-        final String content=body.toString();
-        if(content.length()>MAX_STORED_LENGTH)return dto;
-        final String authorId=source.optString("userOId");
-        dto.put("createdAt",number(source.opt("time"),number(id,0)))
-                .put("author",new JSONObject().put("id",authorId.matches("[1-9][0-9]{0,31}")?authorId:"")
-                        .put("userName",plain(source.opt("userName"),64)).put("userNickname",plain(source.opt("userNickname"),64))
-                        .put("userAvatarURL",ApiV3CommunityDto.safeUrl(source.optString("userAvatarURL"))))
-                .put("client",plain(source.opt("client"),64))
-                .put("appearance",ApiV3ChatAppearance.publicSnapshot(source.opt("appearance")));
+        final Object body = source.opt("content");
+        if (!(body instanceof String) && !(body instanceof JSONObject)) return dto;
+        final String content = body.toString();
+        if (content.length() > MAX_STORED_LENGTH) return dto;
+        final String authorId = source.optString("userOId");
+        dto.put("createdAt", number(source.opt("time"), number(id, 0)))
+                .put("author", new JSONObject().put("id", authorId.matches("[1-9][0-9]{0,31}") ? authorId : "")
+                        .put("userName", plain(source.opt("userName"), 64)).put("userNickname", plain(source.opt("userNickname"), 64))
+                        .put("userAvatarURL", ApiV3CommunityDto.safeUrl(source.optString("userAvatarURL"))))
+                .put("client", plain(source.opt("client"), 64))
+                .put("appearance", ApiV3ChatAppearance.publicSnapshot(source.opt("appearance")));
         final JSONObject card;
         try {
             card = content.stripLeading().startsWith("{") ? ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)) : null;
         } catch (IllegalArgumentException e) {
             return dto.put("type", "text").put("content", content).put("contentHtml", render.apply(content));
         }
-        final String kind=card==null?"":card.optString("msgType");
+        final String kind = card == null ? "" : card.optString("msgType");
         // 新卡片精确保留已校验的纯文本和签名 URL，历史消息沿用原投影。
         if (card != null && card.optInt("cardVersion") == 3 && Set.of("music", "weather").contains(kind)) {
             try {
-                final JSONObject payload=card.getJSONObject("payload");
-                final JSONObject normalized="music".equals(kind)?ApiV3ChatCardInputs.music(payload):ApiV3ChatCardInputs.weather(payload);
-                final JSONObject projected=new JSONObject(ApiV3ChatCardInputs.content(kind,normalized));
+                final JSONObject payload = card.getJSONObject("payload");
+                final JSONObject normalized = "music".equals(kind) ? ApiV3ChatCardInputs.music(payload) : ApiV3ChatCardInputs.weather(payload);
+                final JSONObject projected = new JSONObject(ApiV3ChatCardInputs.content(kind, normalized));
                 projected.remove("msgType");
                 projected.remove("cardVersion");
                 projected.remove("payload");
-                return dto.put("type",kind).put("card",projected);
+                return dto.put("type", kind).put("card", projected);
             } catch (RuntimeException invalidCard) {
                 return dto;
             }
         }
-        switch(kind){
+        switch (kind) {
             case "redPacket" -> {
-                final String type=card.optString("type");
-                dto.put("type","redPacket").put("card",new JSONObject()
-                        .put("type",Set.of("random","average","specify","heartbeat","rockPaperScissors","dice").contains(type)?type:"unknown")
-                        .put("message",plain(card.opt("msg"),4096)).put("money",number(card.opt("money"),0))
-                        .put("count",number(card.opt("count"),0)).put("got",number(card.opt("got"),0)));
+                final String type = card.optString("type");
+                dto.put("type", "redPacket").put("card", new JSONObject()
+                        .put("type", Set.of("random", "average", "specify", "heartbeat", "rockPaperScissors", "dice").contains(type) ? type : "unknown")
+                        .put("message", plain(card.opt("msg"), 4096)).put("money", number(card.opt("money"), 0))
+                        .put("count", number(card.opt("count"), 0)).put("got", number(card.opt("got"), 0)));
             }
             case "weather" -> {
-                final var weather=new JSONObject();
-                for(final String field:new String[]{"date","weatherCode","max","min","t","st"})weather.put(field,plain(card.opt(field),4096));
-                dto.put("type","weather").put("card",weather);
+                final var weather = new JSONObject();
+                for (final String field : new String[]{"date", "weatherCode", "max", "min", "t", "st"})
+                    weather.put(field, plain(card.opt(field), 4096));
+                dto.put("type", "weather").put("card", weather);
             }
             case "music" -> {
-                final String musicSource=plain(card.opt("source"),2048);
-                dto.put("type","music").put("card",new JSONObject().put("title",plain(card.opt("title"),4096))
-                        .put("source",musicSource.matches("[0-9]{1,32}")?musicSource:ApiV3CommunityDto.safeUrl(musicSource))
-                        .put("coverURL",ApiV3CommunityDto.safeUrl(card.optString("coverURL"))).put("from",plain(card.opt("from"),64)));
+                final String musicSource = plain(card.opt("source"), 2048);
+                dto.put("type", "music").put("card", new JSONObject().put("title", plain(card.opt("title"), 4096))
+                        .put("source", musicSource.matches("[0-9]{1,32}") ? musicSource : ApiV3CommunityDto.safeUrl(musicSource))
+                        .put("coverURL", ApiV3CommunityDto.safeUrl(card.optString("coverURL"))).put("from", plain(card.opt("from"), 64)));
             }
-            default -> dto.put("type","text").put("content",content).put("contentHtml",render.apply(content));
+            default -> dto.put("type", "text").put("content", content).put("contentHtml", render.apply(content));
         }
         return dto;
     }
-    private static long number(final Object value,final long fallback){
-        if(value==null||!value.toString().matches("[0-9]{1,19}"))return fallback;
+
+    private static long number(final Object value, final long fallback) {
+        if (value == null || !value.toString().matches("[0-9]{1,19}")) return fallback;
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
             return fallback;
         }
     }
-    private static String plain(final Object value,final int limit){
-        if(!(value instanceof String)&&!(value instanceof Number))return "";
-        final String text=Jsoup.clean(value.toString(),"",Safelist.none()).strip();
-        final StringBuilder out=new StringBuilder();
-        text.codePoints().filter(c->!Character.isISOControl(c)).limit(limit).forEach(out::appendCodePoint);
+
+    private static String plain(final Object value, final int limit) {
+        if (!(value instanceof String) && !(value instanceof Number)) return "";
+        final String text = Jsoup.clean(value.toString(), "", Safelist.none()).strip();
+        final StringBuilder out = new StringBuilder();
+        text.codePoints().filter(c -> !Character.isISOControl(c)).limit(limit).forEach(out::appendCodePoint);
         return out.toString();
     }
 }

@@ -18,10 +18,14 @@
  */
 package org.b3log.symphony.model;
 
-/** 一次性 OAuth 授权码及其对应的授权范围，授权码只存哈希。 */
+/**
+ * 一次性 OAuth 授权码及其对应的授权范围，授权码只存哈希。
+ */
 public final class ApiV3AuthorizationCode {
-    private ApiV3AuthorizationCode(){ }
-    public static final String TABLE="api_v3_authorization_code";
-    public static final String CLIENT_ID="clientId",USER_ID="userId",REDIRECT_URI="redirectUri",SCOPE="scope",
-            CHALLENGE="codeChallenge",CREATED_AT="createdAt",EXPIRES_AT="expiresAt",CONSUMED_AT="consumedAt",FAMILY_ID="familyId";
+    private ApiV3AuthorizationCode() {
+    }
+
+    public static final String TABLE = "api_v3_authorization_code";
+    public static final String CLIENT_ID = "clientId", USER_ID = "userId", REDIRECT_URI = "redirectUri", SCOPE = "scope",
+            CHALLENGE = "codeChallenge", CREATED_AT = "createdAt", EXPIRES_AT = "expiresAt", CONSUMED_AT = "consumedAt", FAMILY_ID = "familyId";
 }

@@ -22,11 +22,17 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.json.JSONObject;
 
-/** 存储接口用于隔离验证事务语义，无需启动数据库或应用。 */
+/**
+ * 存储接口用于隔离验证事务语义，无需启动数据库或应用。
+ */
 public interface ApiV3MutationStore {
     Transaction beginTransaction();
+
     boolean hasTransactionBegun();
+
     JSONObject getForUpdate(String id) throws RepositoryException;
+
     String add(JSONObject row) throws RepositoryException;
+
     void update(String id, JSONObject row, String... propertyNames) throws RepositoryException;
 }

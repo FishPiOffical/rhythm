@@ -32,22 +32,33 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** 公开排行榜快照，仅使用预设的类型与子类型组合作为缓存键。 */
+/**
+ * 公开排行榜快照，仅使用预设的类型与子类型组合作为缓存键。
+ */
 @Singleton
 public class ApiV3RankingQueryService {
-    @Inject private RankingQueryService rankings;
-    @Inject private ActivityQueryService activities;
-    @Inject private PointtransferQueryService points;
-    @Inject private LinkQueryService links;
-    @Inject private UserQueryService users;
-    @Inject private ApiV3ContentDtoService dto;
+    @Inject
+    private RankingQueryService rankings;
+    @Inject
+    private ActivityQueryService activities;
+    @Inject
+    private PointtransferQueryService points;
+    @Inject
+    private LinkQueryService links;
+    @Inject
+    private UserQueryService users;
+    @Inject
+    private ApiV3ContentDtoService dto;
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<>();
     private final Map<String, Object> locks = new ConcurrentHashMap<>();
     private static final java.util.concurrent.atomic.AtomicLong SETTINGS_REVISION = new java.util.concurrent.atomic.AtomicLong();
+
     public static void invalidateSettings() {
         SETTINGS_REVISION.incrementAndGet();
     }
-    private record Snapshot(long at, long revision, String data) { }
+
+    private record Snapshot(long at, long revision, String data) {
+    }
 
     public JSONObject ranking(final String type, final String subType, final int p, final int size) throws Exception {
         final String normalizedSubType = ApiV3RankingDto.subType(type, subType);
@@ -59,17 +70,20 @@ public class ApiV3RankingQueryService {
         if (board.has("summary")) result.put("summary", board.getJSONObject("summary"));
         return result;
     }
+
     private JSONObject snapshot(final String type, final String subType) throws Exception {
         final String key = type + ":" + subType;
         synchronized (locks.computeIfAbsent(key, ignored -> new Object())) {
             return load(type, subType, key);
         }
     }
+
     private JSONObject load(final String type, final String subType, final String key) throws Exception {
         final long now = System.nanoTime();
         final long revision = SETTINGS_REVISION.get();
         final Snapshot cached = snapshots.get(key);
-        if (null != cached && cached.revision == revision && now - cached.at < TimeUnit.SECONDS.toNanos(10)) return new JSONObject(cached.data);
+        if (null != cached && cached.revision == revision && now - cached.at < TimeUnit.SECONDS.toNanos(10))
+            return new JSONObject(cached.data);
         final int count = Symphonys.TOP_CNT;
         JSONObject summary = null;
         final List<JSONObject> source;
@@ -100,7 +114,8 @@ public class ApiV3RankingQueryService {
             JSONObject user = row.optJSONObject("profile");
             if ("xiaoice".equals(type)) user = users.getUserByName(row.optString("uname"));
             else if (null == user) user = row;
-            if (!"links".equals(type) && (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS))) continue;
+            if (!"links".equals(type) && (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)))
+                continue;
             list.put(ApiV3RankingDto.entry(type, subType, list.length() + 1, row, "links".equals(type) ? null : dto.author(user, false)));
         }
         final JSONObject result = new JSONObject().put("list", list);

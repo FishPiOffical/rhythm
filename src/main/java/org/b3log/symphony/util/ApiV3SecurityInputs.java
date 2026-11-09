@@ -19,13 +19,18 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 校验安全凭据，但不将它们纳入普通幂等回执。 */
+/**
+ * 校验安全凭据，但不将它们纳入普通幂等回执。
+ */
 public final class ApiV3SecurityInputs {
-    private ApiV3SecurityInputs() { }
+    private ApiV3SecurityInputs() {
+    }
 
-    public record Password(String currentPassword, String newPassword, String currentTotp) { }
+    public record Password(String currentPassword, String newPassword, String currentTotp) {
+    }
 
     public static Password password(final JSONObject body) {
         if (body == null || !Set.of("currentPassword", "newPassword", "currentTotp").containsAll(body.keySet()))

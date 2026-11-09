@@ -30,9 +30,12 @@ import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.*;
 
-/** 通过 Bearer 身份查询聊天室历史，使用受限的 ID 游标分页。 */
+/**
+ * 通过 Bearer 身份查询聊天室历史，使用受限的 ID 游标分页。
+ */
 @Service
 public class ApiV3ChatQueryService {
     @Inject
@@ -44,6 +47,7 @@ public class ApiV3ChatQueryService {
         final var current = topics.readCommitted();
         return new JSONObject().put("text", current == null ? ChatroomChannel.discussing : current.text());
     }
+
     public JSONObject barragerPrice() {
         final var price = ChatroomProcessor.getBarragerPrice();
         return new JSONObject().put("amount", price.amount()).put("unit", price.unit());

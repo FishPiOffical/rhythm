@@ -21,6 +21,7 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Milestone;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
@@ -28,11 +29,15 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.List;
 import java.util.regex.Pattern;
+
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 
 public class ApiV3MilestoneInputsTest {
-    private static JSONObject valid() { return new JSONObject().put("title", " title ").put("date", "2026-10-17").put("content", "# Markdown\n\n**bold**"); }
+    private static JSONObject valid() {
+        return new JSONObject().put("title", " title ").put("date", "2026-10-17").put("content", "# Markdown\n\n**bold**");
+    }
+
     public static void main(final String[] args) throws Exception {
         final JSONObject normalized = ApiV3MilestoneInputs.normalize(valid().put("endDate", "2026-10-18").put("mediaURL", "https://example.test/a'b.png").put("mediaType", "image"));
         Assert.assertEquals(normalized.getString(Milestone.MILESTONE_TITLE), "title");
@@ -70,7 +75,8 @@ public class ApiV3MilestoneInputsTest {
                 } else {
                     for (final String expression : List.of("${e.title?html?js_string}", "${e.media.caption?html?js_string}")) {
                         Assert.assertTrue(source.contains(expression));
-                        final var out = new StringWriter(); new Template("timeline", new StringReader(expression), config).process(Map.of("e", Map.of("title", payload, "media", Map.of("caption", payload))), out);
+                        final var out = new StringWriter();
+                        new Template("timeline", new StringReader(expression), config).process(Map.of("e", Map.of("title", payload, "media", Map.of("caption", payload))), out);
                         Assert.assertFalse(out.toString().contains("<img"));
                         Assert.assertFalse(out.toString().contains("</script>"));
                     }

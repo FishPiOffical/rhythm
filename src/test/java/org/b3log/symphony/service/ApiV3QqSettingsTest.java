@@ -27,16 +27,21 @@ import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import org.testng.Assert;
 import io.netty.handler.codec.http.*;
+
 import java.util.*;
+
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
-/** 覆盖第一方 SQL 凭据校验、严格写入和回执及 HTTP 中间件。SQLite 适配层移除 FOR UPDATE。 */
+/**
+ * 覆盖第一方 SQL 凭据校验、严格写入和回执及 HTTP 中间件。SQLite 适配层移除 FOR UPDATE。
+ */
 public class ApiV3QqSettingsTest {
     static Object field(Object target, Class<?> type, String name) throws Exception {
         final var f = type.getDeclaredField(name);
         f.setAccessible(true);
         return f.get(target);
     }
+
     static class Fixture extends ApiV3IdentityApplicationTest.Fixture {
         final ApiV3QqSettingsService qq = new ApiV3QqSettingsService() {
             protected long now() {
@@ -44,6 +49,7 @@ public class ApiV3QqSettingsTest {
             }
         };
         final ApiV3ProfileSettingsProcessor endpointQq = new ApiV3ProfileSettingsProcessor();
+
         Fixture() throws Exception {
             sql(db, "ALTER TABLE u ADD userQQ TEXT DEFAULT ''");
             sql(db, "ALTER TABLE u ADD userUpdateTime BIGINT DEFAULT 0");
@@ -54,7 +60,11 @@ public class ApiV3QqSettingsTest {
             inject(qq, "proofs", proof);
             inject(endpointQq, "qq", qq);
         }
-        String stored() throws Exception { return rows(db,"SELECT userQQ FROM u WHERE oId='1'").getFirst().getString("userQQ"); }
+
+        String stored() throws Exception {
+            return rows(db, "SELECT userQQ FROM u WHERE oId='1'").getFirst().getString("userQQ");
+        }
+
         RequestContext requestQq(String method, String token, String key, String body) throws Exception {
             final var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, io.netty.handler.codec.http.HttpMethod.valueOf(method), "/api/v3/me/settings/qq");
             try {
@@ -80,11 +90,19 @@ public class ApiV3QqSettingsTest {
             }
         }
     }
+
     public static void main(String[] args) throws Exception {
-        final var props = new Properties(); props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", ""); Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        for (String value : List.of("", "0", "00123", "123456789012")) Assert.assertEquals(ApiV3QqSettingsService.normalize(new JSONObject().put("qq", " " + value + " ")).getString("qq"), value);
-        for (String value : List.of("NaN", "Infinity", "1e3", "+123", "-123", "12.3", "１２３", "١٢٣", "1234567890123", "1 23", "<b>123</b>")) error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", value)));
-        error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", 123))); error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", "123").put("userId", "2")));
+        final var props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
+        props.setProperty("contextPath", "");
+        Latkes.setLatkeProps(props);
+        Latkes.setLocalProps(props);
+        for (String value : List.of("", "0", "00123", "123456789012"))
+            Assert.assertEquals(ApiV3QqSettingsService.normalize(new JSONObject().put("qq", " " + value + " ")).getString("qq"), value);
+        for (String value : List.of("NaN", "Infinity", "1e3", "+123", "-123", "12.3", "１２３", "١٢٣", "1234567890123", "1 23", "<b>123</b>"))
+            error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", value)));
+        error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", 123)));
+        error(422, () -> ApiV3QqSettingsService.normalize(new JSONObject().put("qq", "123").put("userId", "2")));
         System.out.println("PASS qq 1 exact ASCII 1..12 digits, strip/clear/leading-zero semantics; floats and hidden owner inputs rejected");
         try (var f = new Fixture()) {
             Assert.assertEquals(f.qq.read(identity()).toString(), new JSONObject().put("qq", "00123").toString());
@@ -105,8 +123,10 @@ public class ApiV3QqSettingsTest {
         try (var f = new Fixture()) {
             sql(f.db, "UPDATE tokens SET tokenType='access',scope='profile.read settings.write' WHERE oId='101'");
             final var third = new JSONObject().put("tokenId", "101").put("user", new JSONObject().put("oId", "1"));
-            error(403, () -> f.qq.read(third)); error(403, () -> f.qq.update(third, new JSONObject().put("qq", "456"), "third"));
-            f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid"); sql(f.db, "UPDATE tokens SET state=1 WHERE oId='100'");
+            error(403, () -> f.qq.read(third));
+            error(403, () -> f.qq.update(third, new JSONObject().put("qq", "456"), "third"));
+            f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid");
+            sql(f.db, "UPDATE tokens SET state=1 WHERE oId='100'");
             error(403, () -> f.qq.read(identity()));
             error(403, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "valid"));
             Assert.assertEquals(f.count("receipt"), 1);
@@ -117,12 +137,14 @@ public class ApiV3QqSettingsTest {
             error(422, () -> f.qq.update(identity(), new JSONObject().put("qq", "NaN"), "legacy"));
         }
         System.out.println("PASS qq 3 real SQL first-party/current-grant checks apply to reads and replays; legacy invalid stored value is not falsely cleared");
-        for (String failure : List.of("UPDATE `u`", "receipt", "commit")) try (var f = new Fixture()) {
-            if (failure.startsWith("UPDATE")) f.writeFault = failure; else f.fault = failure;
-            error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "fault"));
-            Assert.assertEquals(f.stored(), "00123");
-            Assert.assertEquals(f.count("receipt"), 0);
-        }
+        for (String failure : List.of("UPDATE `u`", "receipt", "commit"))
+            try (var f = new Fixture()) {
+                if (failure.startsWith("UPDATE")) f.writeFault = failure;
+                else f.fault = failure;
+                error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "fault"));
+                Assert.assertEquals(f.stored(), "00123");
+                Assert.assertEquals(f.count("receipt"), 0);
+            }
         try (var f = new Fixture()) {
             f.fault = "ack";
             error(503, () -> f.qq.update(identity(), new JSONObject().put("qq", "456"), "ack"));
@@ -133,7 +155,8 @@ public class ApiV3QqSettingsTest {
         }
         System.out.println("PASS qq 4 setting/receipt/commit failures roll back; lost commit ACK replays a single committed result");
         try (var f = new Fixture()) {
-            ApiV3ProfileSettingsProcessor.registerRoutes(f.endpointQq, f.auth, f.writes); Dispatcher.mapping();
+            ApiV3ProfileSettingsProcessor.registerRoutes(f.endpointQq, f.auth, f.writes);
+            Dispatcher.mapping();
             Assert.assertEquals(f.requestQq("GET", null, null, null).attr("test.status"), 401);
             Assert.assertEquals(f.requestQq("GET", "scope", null, null).attr("test.status"), 403);
             final var read = f.requestQq("GET", "owner", null, null);

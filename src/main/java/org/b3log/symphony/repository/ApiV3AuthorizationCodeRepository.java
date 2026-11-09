@@ -27,14 +27,20 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 
 @Repository
 public class ApiV3AuthorizationCodeRepository extends AbstractRepository {
-    public ApiV3AuthorizationCodeRepository(){super(ApiV3AuthorizationCode.TABLE);}
-    public int invalidatePendingForUserInCurrentTransaction(String userId)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("authorization code transaction required");
-        if(userId==null||!userId.matches("[1-9][0-9]{0,18}"))throw new IllegalArgumentException("account identity");
-        return ApiV3TransactionStatements.execute("DELETE FROM `"+getName()+"` WHERE userId=? AND consumedAt=0",userId);
+    public ApiV3AuthorizationCodeRepository() {
+        super(ApiV3AuthorizationCode.TABLE);
     }
 
-    /** 在授权码消费事务内按哈希锁定记录，交由调用方检查并标记消费。 */
+    public int invalidatePendingForUserInCurrentTransaction(String userId) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("authorization code transaction required");
+        if (userId == null || !userId.matches("[1-9][0-9]{0,18}"))
+            throw new IllegalArgumentException("account identity");
+        return ApiV3TransactionStatements.execute("DELETE FROM `" + getName() + "` WHERE userId=? AND consumedAt=0", userId);
+    }
+
+    /**
+     * 在授权码消费事务内按哈希锁定记录，交由调用方检查并标记消费。
+     */
     public JSONObject getForUpdate(final String hash) throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("authorization code transaction required");

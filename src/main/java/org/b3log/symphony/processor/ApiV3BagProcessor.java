@@ -29,12 +29,14 @@ import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3BagMgmtService;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+
 import java.util.Set;
 
 @Singleton
 public class ApiV3BagProcessor {
     @Inject
     private ApiV3BagMgmtService management;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3BagProcessor p = beans.getReference(ApiV3BagProcessor.class);
@@ -45,6 +47,7 @@ public class ApiV3BagProcessor {
         Dispatcher.post("/api/v3/me/bag/patchCheckinCard/use", p::patch, auth::activityWrite, writes::handle);
         Dispatcher.post("/api/v3/me/bag/nameCard/use", p::name, auth::activityWrite, auth::settingsWrite, writes::handle);
     }
+
     public void oneDay(final RequestContext c) {
         use(c, "checkin1day");
     }
@@ -52,12 +55,14 @@ public class ApiV3BagProcessor {
     public void twoDays(final RequestContext c) {
         use(c, "checkin2days");
     }
+
     public void patch(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);
             return management.usePatch(ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID), ApiV3WriteInputs.idempotencyKey(c));
         });
     }
+
     public void name(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             final var body = ApiV3WriteInputs.body(c, Set.of("userName"), false);
@@ -65,6 +70,7 @@ public class ApiV3BagProcessor {
                     ApiV3WriteInputs.string(body, "userName", 64, true), ApiV3WriteInputs.idempotencyKey(c));
         });
     }
+
     private void use(final RequestContext c, final String item) {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);

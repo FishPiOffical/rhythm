@@ -19,11 +19,14 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** 红包类型规则在隔离环境中验证，外部存储、支付和服务端链路另行验收。 */
+/**
+ * 红包类型规则在隔离环境中验证，外部存储、支付和服务端链路另行验收。
+ */
 public final class ApiV3RedPacketTypesTest {
     public static void main(final String[] args) {
         final JSONObject catalog = ApiV3RedPacketTypes.catalog();

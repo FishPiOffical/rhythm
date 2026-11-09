@@ -30,11 +30,14 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-/** 作者付费置顶的时长、扣费和重试回执在同一个严格事务中提交。 */
+/**
+ * 作者付费置顶的时长、扣费和重试回执在同一个严格事务中提交。
+ */
 @Service
 public class ApiV3ArticleStickService {
     private static final String OPERATION = "articles.stick";
@@ -50,6 +53,7 @@ public class ApiV3ArticleStickService {
     private PointtransferRepository transfers;
     @Inject
     private PointtransferRedcRepository indexes;
+
     protected long now() {
         return System.currentTimeMillis();
     }
@@ -92,26 +96,29 @@ public class ApiV3ArticleStickService {
                         }
                     };
                     return ApiV3IdempotencyMgmtService.runAtomic(store, actor, OPERATION, key, new JSONObject().put("id", articleId),
-                        () -> ApiV3TransactionSavepoint.run(() -> {
-                            final JSONObject owner = requireActor(actor);
-                            final JSONObject article = articles.getOwnedForUpdate(articleId, actor);
-                            if (article == null || exact(article.opt("articleStatus")) != Article.ARTICLE_STATUS_C_VALID
-                                    || !ApiV3ContentUtil.canViewArticle(article, owner, Set.of())) throw ApiV3Requests.notFound();
-                            final long previous = exact(article.opt("articleStick"));
-                            if (previous < 0) throw unavailable();
-                            if (previous == Long.MAX_VALUE) throw new ApiV3Exception(409, "permanent_stick", "不能覆盖管理员永久置顶");
-                            final int price = Pointtransfer.TRANSFER_SUM_C_STICK_ARTICLE;
-                            if (price <= 0) throw unavailable();
-                            if (exact(owner.opt("userPoint")) < price) throw new ApiV3Exception(409, "insufficient_points", "积分不足");
-                            final long time = now();
-                            if (time <= 0 || time == Long.MAX_VALUE) throw unavailable();
-                            articles.update(articleId, new JSONObject().put("articleStick", time), "articleStick");
-                            final String transferId = points.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
-                                    Pointtransfer.TRANSFER_TYPE_C_STICK_ARTICLE, price, articleId, time, "",
-                                    new PointtransferSource("", "", OPERATION, sourceId), false);
-                            if (!ledgerId(transferId)) throw unavailable();
-                            return new JSONObject().put("id", articleId).put("stuckAt", time).put("paidPoints", price).put("indexTransferId", transferId);
-                        }));
+                            () -> ApiV3TransactionSavepoint.run(() -> {
+                                final JSONObject owner = requireActor(actor);
+                                final JSONObject article = articles.getOwnedForUpdate(articleId, actor);
+                                if (article == null || exact(article.opt("articleStatus")) != Article.ARTICLE_STATUS_C_VALID
+                                        || !ApiV3ContentUtil.canViewArticle(article, owner, Set.of()))
+                                    throw ApiV3Requests.notFound();
+                                final long previous = exact(article.opt("articleStick"));
+                                if (previous < 0) throw unavailable();
+                                if (previous == Long.MAX_VALUE)
+                                    throw new ApiV3Exception(409, "permanent_stick", "不能覆盖管理员永久置顶");
+                                final int price = Pointtransfer.TRANSFER_SUM_C_STICK_ARTICLE;
+                                if (price <= 0) throw unavailable();
+                                if (exact(owner.opt("userPoint")) < price)
+                                    throw new ApiV3Exception(409, "insufficient_points", "积分不足");
+                                final long time = now();
+                                if (time <= 0 || time == Long.MAX_VALUE) throw unavailable();
+                                articles.update(articleId, new JSONObject().put("articleStick", time), "articleStick");
+                                final String transferId = points.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
+                                        Pointtransfer.TRANSFER_TYPE_C_STICK_ARTICLE, price, articleId, time, "",
+                                        new PointtransferSource("", "", OPERATION, sourceId), false);
+                                if (!ledgerId(transferId)) throw unavailable();
+                                return new JSONObject().put("id", articleId).put("stuckAt", time).put("paidPoints", price).put("indexTransferId", transferId);
+                            }));
                 }
             });
             final JSONObject result = project(receipt, articleId);
@@ -123,43 +130,53 @@ public class ApiV3ArticleStickService {
             throw unavailable();
         }
     }
+
     private JSONObject requireActor(String actor) throws RepositoryException {
         final JSONObject user = users.getForUpdate(actor);
         if (user == null || !actor.equals(user.optString("oId")) || exact(user.opt("userStatus")) != UserExt.USER_STATUS_C_VALID)
             throw ApiV3Requests.notFound();
         return user;
     }
+
     private static JSONObject project(JSONObject receipt, String articleId) {
         if (!receipt.keySet().equals(Set.of("id", "stuckAt", "paidPoints", "indexTransferId"))
                 || !articleId.equals(receipt.optString("id")) || !ledgerId(receipt.optString("indexTransferId"))
                 || exact(receipt.opt("stuckAt")) <= 0 || exact(receipt.opt("stuckAt")) == Long.MAX_VALUE
-                || exact(receipt.opt("paidPoints")) <= 0 || exact(receipt.opt("paidPoints")) > Integer.MAX_VALUE) throw unavailable();
+                || exact(receipt.opt("paidPoints")) <= 0 || exact(receipt.opt("paidPoints")) > Integer.MAX_VALUE)
+            throw unavailable();
         return new JSONObject().put("id", articleId).put("stuckAt", receipt.getLong("stuckAt")).put("paidPoints", receipt.getInt("paidPoints"));
     }
+
     private void repairIndex(String actor, String articleId, String sourceId, String transferId) {
         Transaction transaction = null;
         try {
             if (transfers.hasTransactionBegun()) throw new IllegalStateException("committed stick ledger required");
             transaction = ApiV3Transactions.strict(transfers.beginTransaction());
             final var parent = transfers.select("SELECT oId FROM `" + transfers.getName()
-                    + "` WHERE oId=? AND fromId=? AND toId=? AND type=? AND dataId=? AND sourceScene=? AND sourceRequestId=? LIMIT 2 FOR UPDATE",
+                            + "` WHERE oId=? AND fromId=? AND toId=? AND type=? AND dataId=? AND sourceScene=? AND sourceRequestId=? LIMIT 2 FOR UPDATE",
                     transferId, actor, Pointtransfer.ID_C_SYS, Pointtransfer.TRANSFER_TYPE_C_STICK_ARTICLE, articleId, OPERATION, sourceId);
             if (parent.size() != 1 || !transferId.equals(parent.getFirst().optString("oId"))) throw unavailable();
             for (String user : List.of(actor, Pointtransfer.ID_C_SYS)) {
                 final var found = indexes.select("SELECT oId FROM `" + indexes.getName() + "` WHERE userId=? AND rawId=? LIMIT 2 FOR UPDATE", user, transferId);
                 if (found.isEmpty() && ApiV3TransactionStatements.execute("INSERT INTO `" + indexes.getName()
-                        + "` (oId,userId,rawId) VALUES(?,?,?)", Ids.genTimeMillisId(), user, transferId) != 1) throw unavailable();
+                        + "` (oId,userId,rawId) VALUES(?,?,?)", Ids.genTimeMillisId(), user, transferId) != 1)
+                    throw unavailable();
             }
             transaction.commit();
         } catch (Exception error) {
             if (transaction != null && transaction.isActive())
                 try {
                     transaction.rollback();
-                } catch (RuntimeException ignored) { }
+                } catch (RuntimeException ignored) {
+                }
             org.apache.logging.log4j.LogManager.getLogger(getClass()).warn("Committed article stick indexing delayed");
         }
     }
-    private static boolean ledgerId(String id) { return id != null && id.matches("[1-9][0-9]{0,18}"); }
+
+    private static boolean ledgerId(String id) {
+        return id != null && id.matches("[1-9][0-9]{0,18}");
+    }
+
     private static long exact(Object value) {
         if (!(value instanceof Number number)) throw unavailable();
         try {

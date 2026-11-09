@@ -31,22 +31,31 @@ import org.b3log.symphony.util.ApiV3MedalDto;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.List;
 
-/** 本人可查看隐藏勋章，公开资料只显示当前展示且未过期的勋章。查询过程无清理写入。 */
+/**
+ * 本人可查看隐藏勋章，公开资料只显示当前展示且未过期的勋章。查询过程无清理写入。
+ */
 @Service
 public class ApiV3MedalQueryService {
-    @Inject private UserRepository users;
-    @Inject private MedalRepository medals;
-    @Inject private UserMedalRepository grants;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private MedalRepository medals;
+    @Inject
+    private UserMedalRepository grants;
+
     public JSONObject mine(final String actor, final int page, final int size) {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
         return read(actor, true, page, size);
     }
+
     public JSONObject displayed(final String name, final int page, final int size) {
         if (name == null || !name.matches("[A-Za-z0-9_-]{1,64}")) throw ApiV3Requests.invalid();
         return read(name, false, page, size);
     }
+
     private JSONObject read(final String identity, final boolean owner, final int page, final int size) {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
         try {
@@ -67,7 +76,9 @@ public class ApiV3MedalQueryService {
                     : new Object[]{identity, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN, now, true};
             final long total = grants.select("SELECT COUNT(*) AS total" + from, args).getFirst().optLong("total");
             final Object[] pageArgs = new Object[args.length + 2];
-            System.arraycopy(args, 0, pageArgs, 0, args.length); pageArgs[args.length] = size; pageArgs[args.length + 1] = (page - 1) * size;
+            System.arraycopy(args, 0, pageArgs, 0, args.length);
+            pageArgs[args.length] = size;
+            pageArgs[args.length + 1] = (page - 1) * size;
             final List<JSONObject> rows = grants.select("SELECT m.medal_id,m.medal_name,m.medal_type,m.medal_description,um.data,um.expire_time,um.display,um.display_order"
                     + from + " ORDER BY um.display_order ASC,um.oId ASC,m.oId ASC LIMIT ? OFFSET ?", pageArgs);
             final JSONArray list = new JSONArray();

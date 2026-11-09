@@ -20,15 +20,20 @@ package org.b3log.symphony.util;
 
 import org.json.JSONObject;
 
-/** 历史版本响应仅返回元数据和清理后的标题、正文，省略编辑者身份。 */
+/**
+ * 历史版本响应仅返回元数据和清理后的标题、正文，省略编辑者身份。
+ */
 public final class ApiV3RevisionDto {
-    private ApiV3RevisionDto() { }
+    private ApiV3RevisionDto() {
+    }
+
     public static JSONObject metadata(final String id, final Long time, final int index) {
         return new JSONObject().put("id", id)
                 .put("time", time == null ? JSONObject.NULL : time)
                 .put("index", index)
                 .put("current", "current".equals(id));
     }
+
     public static JSONObject detail(final JSONObject metadata, final JSONObject data, final boolean article) {
         final JSONObject dto = new JSONObject(metadata.toString());
         if (article)
@@ -40,11 +45,13 @@ public final class ApiV3RevisionDto {
             throw unavailable();
         return dto;
     }
+
     public static String text(final JSONObject data, final String field) {
         if (!(data.opt(field) instanceof String text))
             throw unavailable();
         return text;
     }
+
     public static ApiV3Exception unavailable() {
         return new ApiV3Exception(503, "temporarily_unavailable", "历史版本暂不可用");
     }

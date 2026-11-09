@@ -29,10 +29,14 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 
-/** 只投影当前有效账号保存的头像地址，保留原地址用于个人设置。 */
+/**
+ * 只投影当前有效账号保存的头像地址，保留原地址用于个人设置。
+ */
 @Service
 public class ApiV3AvatarQueryService {
-    @Inject private UserRepository users;
+    @Inject
+    private UserRepository users;
+
     public JSONObject read(String actor) throws RepositoryException {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}"))
             throw ApiV3WriteInputs.invalid();

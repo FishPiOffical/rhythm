@@ -44,7 +44,9 @@ import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-/** 签发、验证、轮换及撤销 API v3 凭据。 */
+/**
+ * 签发、验证、轮换及撤销 API v3 凭据。
+ */
 @Service
 public class ApiV3TokenMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3TokenMgmtService.class);
@@ -57,11 +59,16 @@ public class ApiV3TokenMgmtService {
     private ApiV3TokenRepository apiV3TokenRepository;
     @Inject
     private ApiV3ClientRepository apiV3ClientRepository;
-    @Inject private UserRepository userRepository;
-    protected long now(){return System.currentTimeMillis();}
+    @Inject
+    private UserRepository userRepository;
 
-    private Transaction beginRoot(){
-        if(apiV3TokenRepository.hasTransactionBegun())throw new IllegalStateException("use current-transaction token primitive");
+    protected long now() {
+        return System.currentTimeMillis();
+    }
+
+    private Transaction beginRoot() {
+        if (apiV3TokenRepository.hasTransactionBegun())
+            throw new IllegalStateException("use current-transaction token primitive");
         return ApiV3Transactions.strict(apiV3TokenRepository.beginTransaction());
     }
 
@@ -83,7 +90,9 @@ public class ApiV3TokenMgmtService {
         }
     }
 
-    /** 仅在显式第一方登录时记录，凭据轮换和 OAuth 授权跳过此步骤。 */
+    /**
+     * 仅在显式第一方登录时记录，凭据轮换和 OAuth 授权跳过此步骤。
+     */
     public void recordSuccessfulLoginInCurrentTransaction(final String userId, final long time) throws Exception {
         if (!apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login transaction required");
         if (userId == null || !userId.matches("[1-9][0-9]{0,18}") || time <= 0)
@@ -99,9 +108,12 @@ public class ApiV3TokenMgmtService {
             throw new ServiceException("login_activity_unavailable");
     }
 
-    /** 登录提交后再清理缓存，清理失败只记日志。 */
+    /**
+     * 登录提交后再清理缓存，清理失败只记日志。
+     */
     public void evictLoginCacheAfterTransaction(final String userId) {
-        if (apiV3TokenRepository.hasTransactionBegun()) throw new IllegalStateException("login cache eviction before commit");
+        if (apiV3TokenRepository.hasTransactionBegun())
+            throw new IllegalStateException("login cache eviction before commit");
         try {
             userRepository.evictSettingsCaches(userId);
         } catch (final RuntimeException error) {
@@ -109,16 +121,19 @@ public class ApiV3TokenMgmtService {
         }
     }
 
-    /** Existing website cookie refresh cannot be used to refresh a different registered client's grant. */
+    /**
+     * Existing website cookie refresh cannot be used to refresh a different registered client's grant.
+     */
     public JSONObject refresh(final String refreshToken) throws ServiceException {
-        return refreshForClient(WEBSITE_CLIENT,refreshToken);
+        return refreshForClient(WEBSITE_CLIENT, refreshToken);
     }
 
-    public JSONObject refreshForClient(final String clientId,final String refreshToken) throws ServiceException {
-        return refreshForClient(clientId,refreshToken,null);
+    public JSONObject refreshForClient(final String clientId, final String refreshToken) throws ServiceException {
+        return refreshForClient(clientId, refreshToken, null);
     }
-    public JSONObject refreshForClient(final String clientId,final String refreshToken,final String requestedScope) throws ServiceException {
-        if (clientId==null||clientId.isBlank()||clientId.length()>64||!ApiV3TokenUtil.isValidFormat(refreshToken)) {
+
+    public JSONObject refreshForClient(final String clientId, final String refreshToken, final String requestedScope) throws ServiceException {
+        if (clientId == null || clientId.isBlank() || clientId.length() > 64 || !ApiV3TokenUtil.isValidFormat(refreshToken)) {
             throw new ServiceException("unauthorized");
         }
         final Transaction transaction = beginRoot();
@@ -153,8 +168,8 @@ public class ApiV3TokenMgmtService {
                 throw new ServiceException("unauthorized");
             }
             // Every client, including the website, must use the current locked account status.
-            final var rows=userRepository.select("SELECT oId,userStatus FROM `"+userRepository.getName()+"` WHERE oId=? FOR UPDATE",current.getString(ApiV3Token.USER_ID));
-            final JSONObject user=rows.size()==1?rows.getFirst():null;
+            final var rows = userRepository.select("SELECT oId,userStatus FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", current.getString(ApiV3Token.USER_ID));
+            final JSONObject user = rows.size() == 1 ? rows.getFirst() : null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) {
                 current.put(ApiV3Token.STATE, ApiV3Token.STATE_REVOKED).put(ApiV3Token.UPDATED_AT, now);
                 apiV3TokenRepository.update(current.optString(Keys.OBJECT_ID), current);
@@ -166,20 +181,23 @@ public class ApiV3TokenMgmtService {
                     .put(ApiV3Token.LAST_USED_AT, now).put(ApiV3Token.UPDATED_AT, now);
             apiV3TokenRepository.update(current.optString(Keys.OBJECT_ID), current);
             String scope;
-            if(WEBSITE_CLIENT.equals(clientId))scope=current.optString(ApiV3Token.SCOPE);
-            else{
-                final var permitted=new java.util.TreeSet<String>();
-                for(final String granted:StringUtils.split(current.optString(ApiV3Token.SCOPE),' '))if(hasScope(client.optString(ApiV3Client.SCOPE),granted))permitted.add(granted);
-                scope=StringUtils.join(permitted," ");
+            if (WEBSITE_CLIENT.equals(clientId)) scope = current.optString(ApiV3Token.SCOPE);
+            else {
+                final var permitted = new java.util.TreeSet<String>();
+                for (final String granted : StringUtils.split(current.optString(ApiV3Token.SCOPE), ' '))
+                    if (hasScope(client.optString(ApiV3Client.SCOPE), granted)) permitted.add(granted);
+                scope = StringUtils.join(permitted, " ");
             }
-            if(!WEBSITE_CLIENT.equals(clientId)&&scope.isEmpty())throw new ServiceException("invalid_scope");
-            if(requestedScope!=null){
-                if(requestedScope.isBlank()||requestedScope.length()>255||requestedScope.codePoints().anyMatch(Character::isISOControl))throw new ServiceException("invalid_scope");
-                final String narrowed=normalizeScope(requestedScope);
-                for(String item:StringUtils.split(narrowed,' ')){
-                    if(!item.matches("[\\x21\\x23-\\x5B\\x5D-\\x7E]+")||!hasScope(scope,item))throw new ServiceException("invalid_scope");
+            if (!WEBSITE_CLIENT.equals(clientId) && scope.isEmpty()) throw new ServiceException("invalid_scope");
+            if (requestedScope != null) {
+                if (requestedScope.isBlank() || requestedScope.length() > 255 || requestedScope.codePoints().anyMatch(Character::isISOControl))
+                    throw new ServiceException("invalid_scope");
+                final String narrowed = normalizeScope(requestedScope);
+                for (String item : StringUtils.split(narrowed, ' ')) {
+                    if (!item.matches("[\\x21\\x23-\\x5B\\x5D-\\x7E]+") || !hasScope(scope, item))
+                        throw new ServiceException("invalid_scope");
                 }
-                scope=narrowed;
+                scope = narrowed;
             }
             final JSONObject result = issueInternal(current.optString(ApiV3Token.USER_ID), clientId, scope,
                     current.optString(ApiV3Token.FAMILY_ID), current.optString(Keys.OBJECT_ID));
@@ -206,8 +224,8 @@ public class ApiV3TokenMgmtService {
             final JSONObject client = apiV3ClientRepository.getByClientId(row.optString(ApiV3Token.CLIENT_ID));
             if (null == client || ApiV3Client.STATUS_ACTIVE != client.optInt(ApiV3Client.STATUS)) return null;
             // UserRepository.get/UserQueryService.getUser may return a stale per-node cache entry.
-            final var users=userRepository.select("SELECT * FROM `"+userRepository.getName()+"` WHERE oId=? LIMIT 2",row.optString(ApiV3Token.USER_ID));
-            final JSONObject user=users.size()==1?users.getFirst():null;
+            final var users = userRepository.select("SELECT * FROM `" + userRepository.getName() + "` WHERE oId=? LIMIT 2", row.optString(ApiV3Token.USER_ID));
+            final JSONObject user = users.size() == 1 ? users.getFirst() : null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) return null;
             markAccessUsed(row);
             return new JSONObject().put("user", user).put("scope", row.optString(ApiV3Token.SCOPE))
@@ -218,11 +236,12 @@ public class ApiV3TokenMgmtService {
     }
 
     public void revokeRefresh(final String refreshToken) throws ServiceException {
-        revokeForClient(WEBSITE_CLIENT,refreshToken);
+        revokeForClient(WEBSITE_CLIENT, refreshToken);
     }
 
-    public void revokeForClient(final String clientId,final String refreshToken) throws ServiceException {
-        if(clientId==null||clientId.isBlank()||clientId.length()>64)throw new ServiceException("unauthorized");
+    public void revokeForClient(final String clientId, final String refreshToken) throws ServiceException {
+        if (clientId == null || clientId.isBlank() || clientId.length() > 64)
+            throw new ServiceException("unauthorized");
         if (!ApiV3TokenUtil.isValidFormat(refreshToken)) return;
         final Transaction transaction = beginRoot();
         try {
@@ -237,7 +256,9 @@ public class ApiV3TokenMgmtService {
         }
     }
 
-    /** OAuth 撤销可用客户端令牌家族中的访问令牌或刷新令牌，旧撤销入口保持仅接受刷新令牌。 */
+    /**
+     * OAuth 撤销可用客户端令牌家族中的访问令牌或刷新令牌，旧撤销入口保持仅接受刷新令牌。
+     */
     public void revokeTokenForClient(final String clientId, final String credential) throws ServiceException {
         if (clientId == null || clientId.isBlank() || clientId.length() > 64)
             throw new ServiceException("unauthorized");
@@ -258,26 +279,33 @@ public class ApiV3TokenMgmtService {
             throw new ServiceException(e);
         }
     }
+
     public static boolean hasScope(final String scopes, final String required) {
         return new HashSet<>(Arrays.asList(StringUtils.split(StringUtils.trimToEmpty(scopes), ' '))).contains(required);
     }
 
-    /** 授权码交换加入消费授权码的事务，由调用方统一提交。 */
-    public JSONObject issueForClientInCurrentTransaction(final String userId,final String clientId,final String scope)throws Exception {
-        if(!apiV3TokenRepository.hasTransactionBegun())throw new IllegalStateException("client grant transaction required");
-        if(userId==null||!userId.matches("[0-9]{1,19}")||clientId==null||clientId.isBlank()||clientId.length()>64
-                ||scope==null||scope.length()>255)throw new IllegalArgumentException("client grant");
-        return ApiV3TransactionSavepoint.run(()->{
-            final JSONObject client=apiV3ClientRepository.getByClientIdForUpdate(clientId);
-            if(client==null||client.optInt(ApiV3Client.STATUS,-1)!=ApiV3Client.STATUS_ACTIVE)throw new ServiceException("client_disabled");
+    /**
+     * 授权码交换加入消费授权码的事务，由调用方统一提交。
+     */
+    public JSONObject issueForClientInCurrentTransaction(final String userId, final String clientId, final String scope) throws Exception {
+        if (!apiV3TokenRepository.hasTransactionBegun())
+            throw new IllegalStateException("client grant transaction required");
+        if (userId == null || !userId.matches("[0-9]{1,19}") || clientId == null || clientId.isBlank() || clientId.length() > 64
+                || scope == null || scope.length() > 255) throw new IllegalArgumentException("client grant");
+        return ApiV3TransactionSavepoint.run(() -> {
+            final JSONObject client = apiV3ClientRepository.getByClientIdForUpdate(clientId);
+            if (client == null || client.optInt(ApiV3Client.STATUS, -1) != ApiV3Client.STATUS_ACTIVE)
+                throw new ServiceException("client_disabled");
             // 使用当前数据库投影确认用户状态，避免信任缓存或请求携带的用户快照。
-            final var users=userRepository.select("SELECT oId,userStatus FROM `"+userRepository.getName()+"` WHERE oId=? FOR UPDATE",userId);
-            if(users.size()!=1||users.getFirst().optInt(UserExt.USER_STATUS,-1)!=UserExt.USER_STATUS_C_VALID)throw new ServiceException("unauthorized");
-            final String normalized=normalizeScope(scope);
-            for(final String required:StringUtils.split(normalized,' ')){
-                if(!required.matches("[\\x21\\x23-\\x5B\\x5D-\\x7E]+")||!hasScope(client.optString(ApiV3Client.SCOPE),required))throw new ServiceException("invalid_scope");
+            final var users = userRepository.select("SELECT oId,userStatus FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", userId);
+            if (users.size() != 1 || users.getFirst().optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+                throw new ServiceException("unauthorized");
+            final String normalized = normalizeScope(scope);
+            for (final String required : StringUtils.split(normalized, ' ')) {
+                if (!required.matches("[\\x21\\x23-\\x5B\\x5D-\\x7E]+") || !hasScope(client.optString(ApiV3Client.SCOPE), required))
+                    throw new ServiceException("invalid_scope");
             }
-            return issueInternal(userId,clientId,normalized,null,null);
+            return issueInternal(userId, clientId, normalized, null, null);
         });
     }
 
@@ -310,8 +338,8 @@ public class ApiV3TokenMgmtService {
         return client;
     }
 
-    private static String normalizeScope(final String scope){
-        return StringUtils.join(new java.util.TreeSet<>(Arrays.asList(StringUtils.split(StringUtils.trimToEmpty(scope),' ')))," ");
+    private static String normalizeScope(final String scope) {
+        return StringUtils.join(new java.util.TreeSet<>(Arrays.asList(StringUtils.split(StringUtils.trimToEmpty(scope), ' '))), " ");
     }
 
     private void add(final String token, final String type, final String userId, final String clientId, final String scope, final String familyId,
@@ -326,13 +354,13 @@ public class ApiV3TokenMgmtService {
 
     private void revokeFamily(final JSONObject token, final long now) throws Exception {
         apiV3TokenRepository.revokeFamilyInCurrentTransaction(token.getString(ApiV3Token.CLIENT_ID),
-                token.getString(ApiV3Token.USER_ID),token.getString(ApiV3Token.FAMILY_ID),now);
+                token.getString(ApiV3Token.USER_ID), token.getString(ApiV3Token.FAMILY_ID), now);
     }
 
     private void markAccessUsed(final JSONObject token) {
         final Transaction transaction = beginRoot();
         try {
-            apiV3TokenRepository.markAccessUsedInCurrentTransaction(token.getString(Keys.OBJECT_ID),now());
+            apiV3TokenRepository.markAccessUsedInCurrentTransaction(token.getString(Keys.OBJECT_ID), now());
             transaction.commit();
         } catch (final Exception e) {
             rollback(transaction);

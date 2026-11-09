@@ -58,10 +58,16 @@ export function access(route, args, scopes) {
   if (key === 'WEBSOCKET /api/v3/realtime') return {kind: 'reviewed-websocket-protocol', middleware, manualReviewRequired: true}
   throw Error('Unclassified access chain ' + key)
 }
+export function scopedMethods(source) {
+  const code = source.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\r\n]*|\/\*[\s\S]*?\*\//g,
+    value => value.startsWith('//') || value.startsWith('/*') ? value.replace(/[^\r\n]/g, ' ') : value)
+  // Accept formatting changes, but only recognize direct, unconditional scope wrappers.
+  const declaration = /\bpublic\s+void\s+(\w+)\s*\(\s*final\s+RequestContext\s+context\s*\)\s*\{\s*required\s*\(\s*context\s*,\s*"([^"\\]+)"\s*\)\s*;\s*\}/g
+  return Object.fromEntries([...code.matchAll(declaration)].map(match => [match[1], match[2]]))
+}
 export function inventory(contract) {
   const source = fs.readFileSync('src/main/java/org/b3log/symphony/processor/middleware/ApiV3AuthMidware.java', 'utf8')
-  // 这里按单行包装方法的源码形状提取权限。
-  const scopes = Object.fromEntries([...source.matchAll(/public void (\w+)\(final RequestContext context\)\s*\{ required\(context, "([^"]+)"\); \}/g)].map(x => [x[1], x[2]]))
+  const scopes = scopedMethods(source)
   const rows = [], problems = []
   for (const route of contract.routes) {
     try {

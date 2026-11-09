@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.util.NetUtil;
 import org.b3log.latke.http.WebSocketSession;
+
 import java.lang.reflect.Field;
 
 /**
@@ -34,8 +35,11 @@ import java.lang.reflect.Field;
  * 查询参数可以覆盖框架写入的 ip 参数，因此只接受与预期路径完全一致、没有查询串的请求。
  */
 public final class ApiV3SocketHandshake {
-    private ApiV3SocketHandshake() { }
-    public record Peer(String ip) { }
+    private ApiV3SocketHandshake() {
+    }
+
+    public record Peer(String ip) {
+    }
 
     public static boolean writable(final WebSocketSession session) {
         try {
@@ -46,7 +50,9 @@ public final class ApiV3SocketHandshake {
         }
     }
 
-    /** 请求认证帧之前，为当前连接设置单帧和分片聚合后的大小上限。 */
+    /**
+     * 请求认证帧之前，为当前连接设置单帧和分片聚合后的大小上限。
+     */
     public static boolean prepare(final WebSocketSession session) {
         try {
             final var context = (ChannelHandlerContext) Metadata.CONTEXT.get(session);
@@ -81,10 +87,13 @@ public final class ApiV3SocketHandshake {
         }
     }
 
-    /** 返回 null 表示框架元数据不受支持或请求已被拒绝，调用方须关闭连接。 */
+    /**
+     * 返回 null 表示框架元数据不受支持或请求已被拒绝，调用方须关闭连接。
+     */
     public static Peer inspect(final WebSocketSession session, final String expectedPath) {
         if (null == session || null == expectedPath || !expectedPath.startsWith("/")
-                || expectedPath.startsWith("//") || expectedPath.contains("?") || expectedPath.contains("#")) return null;
+                || expectedPath.startsWith("//") || expectedPath.contains("?") || expectedPath.contains("#"))
+            return null;
         try {
             final var context = (ChannelHandlerContext) Metadata.CONTEXT.get(session);
             if (null == context) return null;
@@ -94,7 +103,8 @@ public final class ApiV3SocketHandshake {
             if (null == handshaker || !expectedPath.equals(handshaker.uri())) return null;
             // 确认握手路径没有查询串后，才读取框架写入的 IP。
             final String ip = session.getParameter("ip");
-            if (null == ip || ip.length() > 128 || (!NetUtil.isValidIpV4Address(ip) && !NetUtil.isValidIpV6Address(ip))) return null;
+            if (null == ip || ip.length() > 128 || (!NetUtil.isValidIpV4Address(ip) && !NetUtil.isValidIpV6Address(ip)))
+                return null;
             return new Peer(ip);
         } catch (final ReflectiveOperationException | RuntimeException | LinkageError e) {
             // 框架内部结构不兼容时直接失败，避免回退到会话、Cookie 或请求参数。
@@ -106,6 +116,7 @@ public final class ApiV3SocketHandshake {
         static final Field CONTEXT = field(WebSocketSession.class, "ctx");
         static final Class<? extends ChannelHandler> HANDLER = handlerType();
         static final Field HANDSHAKER = field(HANDLER, "handshaker");
+
         static Field field(final Class<?> type, final String name) {
             try {
                 final Field value = type.getDeclaredField(name);
@@ -115,6 +126,7 @@ public final class ApiV3SocketHandshake {
                 throw new IllegalStateException("unsupported Latke socket metadata", e);
             }
         }
+
         static Class<? extends ChannelHandler> handlerType() {
             try {
                 return Class.forName("org.b3log.latke.http.WebSocketHandler").asSubclass(ChannelHandler.class);

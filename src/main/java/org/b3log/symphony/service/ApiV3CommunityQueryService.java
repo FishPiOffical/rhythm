@@ -46,18 +46,29 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
-/** 查询经审核的社区资源和明确公开的地理位置列表。 */
+/**
+ * 查询经审核的社区资源和明确公开的地理位置列表。
+ */
 @Service
 public class ApiV3CommunityQueryService {
-    @Inject private FishGameRepository gameRepository;
-    @Inject private FishGameCommentRepository commentRepository;
-    @Inject private FishGameVoteRepository voteRepository;
-    @Inject private MilestoneRepository milestoneRepository;
-    @Inject private UserRepository userRepository;
-    @Inject private UserQueryService userQueryService;
-    @Inject private ApiV3ContentDtoService contentDtoService;
-    @Inject private OptionQueryService optionQueryService;
-    @Inject private ApiV3DiscoveryQueryService discoveryQueryService;
+    @Inject
+    private FishGameRepository gameRepository;
+    @Inject
+    private FishGameCommentRepository commentRepository;
+    @Inject
+    private FishGameVoteRepository voteRepository;
+    @Inject
+    private MilestoneRepository milestoneRepository;
+    @Inject
+    private UserRepository userRepository;
+    @Inject
+    private UserQueryService userQueryService;
+    @Inject
+    private ApiV3ContentDtoService contentDtoService;
+    @Inject
+    private OptionQueryService optionQueryService;
+    @Inject
+    private ApiV3DiscoveryQueryService discoveryQueryService;
 
     public JSONObject games(final JSONObject viewer, final int p, final int size, final String sort) throws RepositoryException {
         final JSONArray list = new JSONArray();
@@ -65,7 +76,11 @@ public class ApiV3CommunityQueryService {
         final long total = gameRepository.count(new Query().setFilter(new PropertyFilter(FishGame.STATUS, FilterOperator.EQUAL, FishGame.STATUS_APPROVED)));
         return ApiV3Requests.pagination(list, p, size, total);
     }
-    public JSONObject game(final String id, final JSONObject viewer) throws RepositoryException { return gameDto(approvedGame(id), viewer); }
+
+    public JSONObject game(final String id, final JSONObject viewer) throws RepositoryException {
+        return gameDto(approvedGame(id), viewer);
+    }
+
     public JSONObject gameComments(final String id, final int p, final int size) throws RepositoryException {
         approvedGame(id);
         final Filter filter = new PropertyFilter(FishGameComment.GAME_ID, FilterOperator.EQUAL, id);
@@ -77,6 +92,7 @@ public class ApiV3CommunityQueryService {
         }
         return ApiV3Requests.pagination(list, p, size, commentRepository.count(new Query().setFilter(filter)));
     }
+
     public JSONObject gameCommentDto(final JSONObject row) {
         final JSONObject user = userQueryService.getUser(row.optString(FishGameComment.AUTHOR_ID));
         final boolean available = null != user && UserExt.USER_STATUS_C_INVALID != user.optInt(UserExt.USER_STATUS)
@@ -85,11 +101,13 @@ public class ApiV3CommunityQueryService {
                 .put("content", available ? row.optString(FishGameComment.CONTENT) : "").put("contentAvailable", available)
                 .put("author", contentDtoService.author(available ? user : null, false)).put("createdAt", row.optLong(FishGameComment.CREATED_TIME));
     }
+
     private JSONObject approvedGame(final String id) throws RepositoryException {
         final JSONObject row = gameRepository.get(id);
         if (null == row || FishGame.STATUS_APPROVED != row.optInt(FishGame.STATUS)) throw ApiV3Requests.notFound();
         return row;
     }
+
     private JSONObject gameDto(final JSONObject row, final JSONObject viewer) throws RepositoryException {
         final JSONObject user = userQueryService.getUser(row.optString(FishGame.AUTHOR_ID));
         final JSONObject vote = null == viewer ? null : voteRepository.getByUserAndGame(viewer.optString(Keys.OBJECT_ID), row.optString(Keys.OBJECT_ID));
@@ -104,15 +122,19 @@ public class ApiV3CommunityQueryService {
         for (final JSONObject row : milestoneRepository.getList(query)) list.put(milestoneDto(row));
         return ApiV3Requests.pagination(list, p, size, milestoneRepository.count(new Query().setFilter(filter)));
     }
+
     public JSONObject milestone(final String id) throws RepositoryException {
         final JSONObject row = milestoneRepository.get(id);
-        if (null == row || Milestone.STATUS_C_APPROVED != row.optInt(Milestone.MILESTONE_STATUS)) throw ApiV3Requests.notFound();
+        if (null == row || Milestone.STATUS_C_APPROVED != row.optInt(Milestone.MILESTONE_STATUS))
+            throw ApiV3Requests.notFound();
         return milestoneDto(row);
     }
+
     private JSONObject milestoneDto(final JSONObject row) {
         final String html = Markdowns.clean(row.optString(Milestone.MILESTONE_CONTENT), "");
         return ApiV3CommunityDto.milestone(row, html, Jsoup.parse(html).text());
     }
+
     public JSONObject statistics() {
         final int online = optionQueryService.getOnlineVisitorCount();
         final int members = optionQueryService.getOnlineMemberCount();
@@ -125,6 +147,7 @@ public class ApiV3CommunityQueryService {
                 .put("peakOnlineVisitorCount", Math.max(online, raw.optLong(Option.ID_C_STATISTIC_MAX_ONLINE_VISITOR_COUNT)))
                 .put("onlineVisitorCount", online).put("onlineMemberCount", members);
     }
+
     public JSONObject cityUsers(final String city, final int p, final int size) throws RepositoryException {
         final Filter filter = CompositeFilterOperator.and(new PropertyFilter(UserExt.USER_CITY, FilterOperator.EQUAL, city),
                 new PropertyFilter(UserExt.USER_GEO_STATUS, FilterOperator.EQUAL, UserExt.USER_GEO_STATUS_C_PUBLIC),
@@ -132,9 +155,11 @@ public class ApiV3CommunityQueryService {
         final Query query = new Query().setFilter(filter).setPage(p, size).setPageCount(1)
                 .addSort(UserExt.USER_LATEST_LOGIN_TIME, SortDirection.DESCENDING).addSort(Keys.OBJECT_ID, SortDirection.DESCENDING);
         final JSONArray list = new JSONArray();
-        for (final JSONObject user : userRepository.getList(query)) list.put(contentDtoService.author(user, false).put("userIntro", user.optString(UserExt.USER_INTRO)));
+        for (final JSONObject user : userRepository.getList(query))
+            list.put(contentDtoService.author(user, false).put("userIntro", user.optString(UserExt.USER_INTRO)));
         return ApiV3Requests.pagination(list, p, size, userRepository.count(new Query().setFilter(filter)));
     }
+
     public JSONObject cityArticles(final String city, final JSONObject viewer, final int p, final int size, final String sort) throws RepositoryException {
         return discoveryQueryService.articles(viewer, p, size, sort, "all", new ApiV3DiscoveryQueryService.Selection(null, null, null, null, null, city));
     }

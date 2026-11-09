@@ -19,13 +19,19 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** 校验表情分组设置的字段类型，分组名称须为纯文本。 */
+/**
+ * 校验表情分组设置的字段类型，分组名称须为纯文本。
+ */
 public final class ApiV3EmojiGroupInputs {
     private static final Pattern MARKUP = Pattern.compile("<\\s*(?:/?\\s*[a-zA-Z]|!|\\?)");
-    private ApiV3EmojiGroupInputs() { }
+
+    private ApiV3EmojiGroupInputs() {
+    }
+
     public static JSONObject normalize(final JSONObject body) {
         if (body == null || !Set.of("name", "sort").containsAll(body.keySet())
                 || !(body.opt("name") instanceof String raw) || raw.length() > 4096) throw ApiV3WriteInputs.invalid();

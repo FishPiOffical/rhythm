@@ -26,9 +26,12 @@ import io.netty.handler.codec.http.websocketx.WebSocket13FrameDecoder;
 import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
 import org.b3log.latke.http.WebSocketSession;
 import org.testng.Assert;
+
 import java.util.Map;
 
-/** 使用随包发布的 Latke 会话和处理器字段，以及实际 Netty 管道。 */
+/**
+ * 使用随包发布的 Latke 会话和处理器字段，以及实际 Netty 管道。
+ */
 public class ApiV3SocketHandshakeTest {
     static final String PATH = "/api/v3/socket";
 
@@ -36,6 +39,7 @@ public class ApiV3SocketHandshakeTest {
         final EmbeddedChannel channel = new EmbeddedChannel();
         final Object handler;
         final WebSocketSession session;
+
         Fixture(String target, String ip) throws Exception {
             final var type = Class.forName("org.b3log.latke.http.WebSocketHandler");
             final var ctor = type.getDeclaredConstructor();
@@ -52,8 +56,7 @@ public class ApiV3SocketHandshakeTest {
             session = sessionCtor.newInstance(channel.pipeline().context((ChannelHandler) handler));
             final var parameters = WebSocketSession.class.getDeclaredField("params");
             parameters.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            final Map<String, String> params = (Map<String, String>) parameters.get(session);
+            @SuppressWarnings("unchecked") final Map<String, String> params = (Map<String, String>) parameters.get(session);
             if (null != ip) params.put("ip", ip);
         }
 

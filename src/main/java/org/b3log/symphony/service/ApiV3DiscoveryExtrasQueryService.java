@@ -32,6 +32,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
@@ -41,7 +42,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** 按固定条数查询发现内容，日志只返回元数据。 */
+/**
+ * 按固定条数查询发现内容，日志只返回元数据。
+ */
 @Service
 public class ApiV3DiscoveryExtrasQueryService {
     public static final List<String> LOG_CATEGORIES = List.of("增加积分", "扣除积分", "发送系统通知", "调整用户背包", "移除勋章",
@@ -63,7 +66,8 @@ public class ApiV3DiscoveryExtrasQueryService {
         try {
             final JSONArray list = new JSONArray();
             for (final JSONObject user : users.select("SELECT " + USER_FIELDS + " FROM `" + users.getName()
-                    + "` WHERE userStatus=? ORDER BY oId DESC LIMIT 20", UserExt.USER_STATUS_C_VALID)) list.put(dto.author(user, false));
+                    + "` WHERE userStatus=? ORDER BY oId DESC LIMIT 20", UserExt.USER_STATUS_C_VALID))
+                list.put(dto.author(user, false));
             return new JSONObject().put("list", list);
         } catch (final RepositoryException error) {
             throw unavailable();
@@ -79,7 +83,8 @@ public class ApiV3DiscoveryExtrasQueryService {
     }
 
     public JSONObject random(final JSONObject viewer, final int size, final String excluded) {
-        if (size < 1 || size > 20 || excluded == null || !excluded.isEmpty() && !excluded.matches("[0-9]{1,32}")) throw ApiV3Requests.invalid();
+        if (size < 1 || size > 20 || excluded == null || !excluded.isEmpty() && !excluded.matches("[0-9]{1,32}"))
+            throw ApiV3Requests.invalid();
         final double pivot = pivot();
         if (!Double.isFinite(pivot) || pivot < 0 || pivot >= 1) throw new IllegalStateException("Invalid random pivot");
         try {
@@ -111,7 +116,7 @@ public class ApiV3DiscoveryExtrasQueryService {
             final List<JSONObject> output = new ArrayList<>();
             for (final JSONObject article : selected.values()) {
                 final List<JSONObject> current = users.select("SELECT " + USER_FIELDS + " FROM `" + users.getName()
-                        + "` WHERE oId=? AND userStatus IN (?,?)", article.optString("articleAuthorId"),
+                                + "` WHERE oId=? AND userStatus IN (?,?)", article.optString("articleAuthorId"),
                         UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN);
                 if (current.size() == 1) output.add(dto.summary(article, current.getFirst()));
             }
@@ -121,6 +126,7 @@ public class ApiV3DiscoveryExtrasQueryService {
             throw unavailable();
         }
     }
+
     public JSONObject logs(final int p, final int size) {
         if (p < 1 || p > Integer.MAX_VALUE / 50 || size < 1 || size > 50) throw ApiV3Requests.invalid();
         try {
@@ -134,7 +140,8 @@ public class ApiV3DiscoveryExtrasQueryService {
             final JSONArray list = new JSONArray();
             for (final JSONObject row : logs.select("SELECT oId,key1,key3" + from + " ORDER BY oId DESC LIMIT ? OFFSET ?", args.toArray())) {
                 final String id = row.optString("oId"), time = row.optString("key1"), category = row.optString("key3");
-                if (!id.matches("[1-9][0-9]{0,18}") || !LOG_CATEGORIES.contains(category) || time.length() != 19) throw unavailable();
+                if (!id.matches("[1-9][0-9]{0,18}") || !LOG_CATEGORIES.contains(category) || time.length() != 19)
+                    throw unavailable();
                 try {
                     LocalDateTime.parse(time, LOG_TIME);
                 } catch (final RuntimeException badTime) {
@@ -147,6 +154,7 @@ public class ApiV3DiscoveryExtrasQueryService {
             throw unavailable();
         }
     }
+
     private ApiV3Exception unavailable() {
         LogManager.getLogger(getClass()).warn("Discovery extra reads unavailable");
         return new ApiV3Exception(503, "temporarily_unavailable", "读取暂不可用");

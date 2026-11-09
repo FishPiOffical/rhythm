@@ -31,7 +31,9 @@ import org.json.JSONObject;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 在全站防火墙之外，对 v3 写请求按用户及 IP 计入共享额度。 */
+/**
+ * 在全站防火墙之外，对 v3 写请求按用户及 IP 计入共享额度。
+ */
 @Singleton
 public class ApiV3WriteMidware {
     private static final int USER_LIMIT = 30;

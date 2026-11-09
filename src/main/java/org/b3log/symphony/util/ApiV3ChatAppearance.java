@@ -19,23 +19,37 @@
 package org.b3log.symphony.util;
 
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 不可变的 v1 聊天气泡样式目录，历史快照无需重验作者当前的会员状态。 */
+/**
+ * 不可变的 v1 聊天气泡样式目录，历史快照无需重验作者当前的会员状态。
+ */
 public final class ApiV3ChatAppearance {
-    private ApiV3ChatAppearance() { }
-    private static final Set<String> BUBBLES=Set.of("classic","candy","paipai-orange","fishpond-blue");
-    private static final Set<String> FRAMES=Set.of("none","gold","paipai-orange","fishpond-blue");
-    public static JSONObject defaults(){return new JSONObject().put("bubbleId","classic").put("frameId","none").put("version",1);}
-    public static JSONObject input(JSONObject body){
-        if(body==null||!body.keySet().equals(Set.of("bubbleId","frameId"))
-                ||!(body.opt("bubbleId") instanceof String bubble)||!BUBBLES.contains(bubble)
-                ||!(body.opt("frameId") instanceof String frame)||!FRAMES.contains(frame))throw ApiV3WriteInputs.invalid();
-        return new JSONObject().put("bubbleId",bubble).put("frameId",frame);
+    private ApiV3ChatAppearance() {
     }
-    public static boolean premium(JSONObject value){return "candy".equals(value.optString("bubbleId"))||"gold".equals(value.optString("frameId"));}
-    public static JSONObject effective(JSONObject value,boolean vip){
-        final JSONObject current=publicSnapshot(value);
+
+    private static final Set<String> BUBBLES = Set.of("classic", "candy", "paipai-orange", "fishpond-blue");
+    private static final Set<String> FRAMES = Set.of("none", "gold", "paipai-orange", "fishpond-blue");
+
+    public static JSONObject defaults() {
+        return new JSONObject().put("bubbleId", "classic").put("frameId", "none").put("version", 1);
+    }
+
+    public static JSONObject input(JSONObject body) {
+        if (body == null || !body.keySet().equals(Set.of("bubbleId", "frameId"))
+                || !(body.opt("bubbleId") instanceof String bubble) || !BUBBLES.contains(bubble)
+                || !(body.opt("frameId") instanceof String frame) || !FRAMES.contains(frame))
+            throw ApiV3WriteInputs.invalid();
+        return new JSONObject().put("bubbleId", bubble).put("frameId", frame);
+    }
+
+    public static boolean premium(JSONObject value) {
+        return "candy".equals(value.optString("bubbleId")) || "gold".equals(value.optString("frameId"));
+    }
+
+    public static JSONObject effective(JSONObject value, boolean vip) {
+        final JSONObject current = publicSnapshot(value);
         if (!vip) {
             if ("candy".equals(current.optString("bubbleId")))
                 current.put("bubbleId", "classic");
@@ -44,9 +58,11 @@ public final class ApiV3ChatAppearance {
         }
         return current;
     }
-    public static JSONObject publicSnapshot(Object raw){
-        if(!(raw instanceof JSONObject value)||!(value.opt("version") instanceof Number n)||n.doubleValue()!=1)return defaults();
-        return new JSONObject().put("bubbleId",BUBBLES.contains(value.optString("bubbleId"))?value.getString("bubbleId"):"classic")
-                .put("frameId",FRAMES.contains(value.optString("frameId"))?value.getString("frameId"):"none").put("version",1);
+
+    public static JSONObject publicSnapshot(Object raw) {
+        if (!(raw instanceof JSONObject value) || !(value.opt("version") instanceof Number n) || n.doubleValue() != 1)
+            return defaults();
+        return new JSONObject().put("bubbleId", BUBBLES.contains(value.optString("bubbleId")) ? value.getString("bubbleId") : "classic")
+                .put("frameId", FRAMES.contains(value.optString("frameId")) ? value.getString("frameId") : "none").put("version", 1);
     }
 }

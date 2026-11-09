@@ -30,41 +30,51 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.HashSet;
 import java.util.Locale;
 
 @Service
 public class ApiV3TagSuggestionQueryService {
-    @Inject private UserRepository users;
-    @Inject private TagRepository tags;
-    @Inject private TagArticleRepository relations;
-    @Inject private ArticleRepository articles;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private TagRepository tags;
+    @Inject
+    private TagArticleRepository relations;
+    @Inject
+    private ArticleRepository articles;
+
     public static String prefix(String value) {
-        if(value==null)return "";
+        if (value == null) return "";
         // 去除首尾空白时与浏览器 trim 使用同一字符集合，包括 Unicode 分隔符和 BOM。
-        final String text=value.replaceAll("^[\\s\\p{Z}\\uFEFF]+|[\\s\\p{Z}\\uFEFF]+$", "");
-        if(text.length()>64||!text.isEmpty()&&!Tag.TAG_TITLE_PATTERN.matcher(text).matches())throw ApiV3Requests.invalid();
+        final String text = value.replaceAll("^[\\s\\p{Z}\\uFEFF]+|[\\s\\p{Z}\\uFEFF]+$", "");
+        if (text.length() > 64 || !text.isEmpty() && !Tag.TAG_TITLE_PATTERN.matcher(text).matches())
+            throw ApiV3Requests.invalid();
         return text.toLowerCase(Locale.ROOT);
     }
-    public JSONObject suggestions(String actor,String raw) {
-        final String prefix=prefix(raw);
-        if(actor==null||!actor.matches("[1-9][0-9]{0,18}"))throw ApiV3Requests.forbidden();
+
+    public JSONObject suggestions(String actor, String raw) {
+        final String prefix = prefix(raw);
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.forbidden();
         try {
-            if(users.select("SELECT oId FROM `"+users.getName()+"` WHERE oId=? AND userStatus=0 LIMIT 1",actor).size()!=1)throw ApiV3Requests.notFound();
-            final var rows=tags.select("SELECT t.tagTitle FROM `"+tags.getName()+"` t WHERE t.tagStatus=0 AND t.tagReferenceCount>0"
-                    +" AND EXISTS(SELECT 1 FROM `"+relations.getName()+"` r JOIN `"+articles.getName()+"` a ON a.oId=r.article_oId WHERE r.tag_oId=t.oId)"
-                    +(prefix.isEmpty()?"":" AND LOWER(t.tagTitle) LIKE ? ESCAPE '='")
-                    +" ORDER BY t.tagReferenceCount DESC,LOWER(t.tagTitle),t.oId LIMIT 7",
-                    prefix.isEmpty()?new Object[]{}:new Object[]{prefix.replace("_","=_")+"%"});
-            if(rows.size()>7)throw unavailable();
+            if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=0 LIMIT 1", actor).size() != 1)
+                throw ApiV3Requests.notFound();
+            final var rows = tags.select("SELECT t.tagTitle FROM `" + tags.getName() + "` t WHERE t.tagStatus=0 AND t.tagReferenceCount>0"
+                            + " AND EXISTS(SELECT 1 FROM `" + relations.getName() + "` r JOIN `" + articles.getName() + "` a ON a.oId=r.article_oId WHERE r.tag_oId=t.oId)"
+                            + (prefix.isEmpty() ? "" : " AND LOWER(t.tagTitle) LIKE ? ESCAPE '='")
+                            + " ORDER BY t.tagReferenceCount DESC,LOWER(t.tagTitle),t.oId LIMIT 7",
+                    prefix.isEmpty() ? new Object[]{} : new Object[]{prefix.replace("_", "=_") + "%"});
+            if (rows.size() > 7) throw unavailable();
             final JSONArray list = new JSONArray();
             final var seen = new HashSet<String>();
-            for(final var row:rows){
-                final String title=row.optString("tagTitle"),lower=title.toLowerCase(Locale.ROOT);
-                if(title.isEmpty()||title.length()>255||!Tag.TAG_TITLE_PATTERN.matcher(title).matches()||!lower.startsWith(prefix)||!seen.add(lower))throw unavailable();
+            for (final var row : rows) {
+                final String title = row.optString("tagTitle"), lower = title.toLowerCase(Locale.ROOT);
+                if (title.isEmpty() || title.length() > 255 || !Tag.TAG_TITLE_PATTERN.matcher(title).matches() || !lower.startsWith(prefix) || !seen.add(lower))
+                    throw unavailable();
                 list.put(title);
             }
-            return new JSONObject().put("list",list);
+            return new JSONObject().put("list", list);
         } catch (RepositoryException error) {
             throw unavailable();
         }

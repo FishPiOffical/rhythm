@@ -27,11 +27,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** 排行榜仅返回明确列出的分数和展示字段，省略任意存档及用户字段。 */
+/**
+ * 排行榜仅返回明确列出的分数和展示字段，省略任意存档及用户字段。
+ */
 public final class ApiV3RankingDto {
     public static final Set<String> TYPES = Set.of("links", "balance", "consumption", "checkin", "online", "adr", "mofish",
             "smallmofish", "lifeRestart", "evolve", "emoji", "xiaoice", "invite", "donate", "perfect");
-    private ApiV3RankingDto() { }
+
+    private ApiV3RankingDto() {
+    }
 
     public static String subType(final String type, final String raw) {
         if (!TYPES.contains(type)) throw invalid();
@@ -45,7 +49,9 @@ public final class ApiV3RankingDto {
         return value;
     }
 
-    /** org.json may wrap put(Collection) as JSONArray; legacy handlers must accept both. */
+    /**
+     * org.json may wrap put(Collection) as JSONArray; legacy handlers must accept both.
+     */
     public static List<JSONObject> rows(final Object value) {
         final List<JSONObject> rows = new ArrayList<>();
         if (value instanceof JSONArray array) {
@@ -86,7 +92,8 @@ public final class ApiV3RankingDto {
                 metrics.put(scoreField, row.optLong("count"));
             }
             case "donate" -> {
-                scoreField = "amount"; metrics.put(scoreField, decimal(row, "total")).put("count", row.optLong("totalCount"));
+                scoreField = "amount";
+                metrics.put(scoreField, decimal(row, "total")).put("count", row.optLong("totalCount"));
             }
             case "links" -> {
                 scoreField = "clickCount";
@@ -102,7 +109,8 @@ public final class ApiV3RankingDto {
                 final JSONObject data = row.optJSONObject("data");
                 final JSONObject top = null == data ? null : data.optJSONObject("top");
                 final JSONObject stats = null == data ? null : data.optJSONObject("stats");
-                for (final String key : new String[]{"achievement", "know", "reset", "days"}) metrics.put(key, null == top ? 0 : top.optLong(key));
+                for (final String key : new String[]{"achievement", "know", "reset", "days"})
+                    metrics.put(key, null == top ? 0 : top.optLong(key));
                 metrics.put("currentKnow", null == stats ? 0 : stats.optLong("know")).put("currentDays", null == stats ? 0 : stats.optLong("days"));
             }
             case "xiaoice" -> {
@@ -113,7 +121,8 @@ public final class ApiV3RankingDto {
                     default -> "exp";
                 };
                 metrics.put(scoreField, row.optLong(scoreField));
-                if ("0".equals(subType)) metrics.put("ancestry", row.optString("ancestry")).put("gongfa", row.optString("gongfa"));
+                if ("0".equals(subType))
+                    metrics.put("ancestry", row.optString("ancestry")).put("gongfa", row.optString("gongfa"));
             }
             default -> {
                 scoreField = "points";
@@ -124,7 +133,8 @@ public final class ApiV3RankingDto {
         if ("links".equals(type)) return result.put("link", new JSONObject().put("id", row.optString(Keys.OBJECT_ID))
                 .put("title", row.optString(Link.LINK_TITLE)).put("url", ApiV3CommunityDto.safeUrl(row.optString(Link.LINK_ADDR))));
         final JSONObject profile = new JSONObject();
-        for (final String key : new String[]{"id", "userName", "userNickname", "userAvatarURL"}) profile.put(key, null == user ? "" : user.optString(key));
+        for (final String key : new String[]{"id", "userName", "userNickname", "userAvatarURL"})
+            profile.put(key, null == user ? "" : user.optString(key));
         return result.put("user", profile);
     }
 
@@ -132,9 +142,13 @@ public final class ApiV3RankingDto {
         return new JSONObject().put("amount", null == raw ? 0 : decimal(raw, "totalAmount"))
                 .put("supportedDays", null == raw ? 0 : decimal(raw, "donateMakeDays"));
     }
+
     private static double decimal(final JSONObject row, final String key) {
         final double value = row.optDouble(key, 0);
         return Double.isFinite(value) ? value : 0;
     }
-    private static ApiV3Exception invalid() { return new ApiV3Exception(422, "invalid_request", "排行榜参数不合法"); }
+
+    private static ApiV3Exception invalid() {
+        return new ApiV3Exception(422, "invalid_request", "排行榜参数不合法");
+    }
 }

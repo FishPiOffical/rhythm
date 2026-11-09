@@ -29,9 +29,13 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3RepeaterLikeService {
-    @Inject private UserRepository users;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private RepeaterLikeMutationService mutation;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private RepeaterLikeMutationService mutation;
+
     public JSONObject set(final String actor, final String itemId, final boolean liked, final String key) throws Exception {
         RepeaterLikeMutationService.id(actor);
         RepeaterLikeMutationService.id(itemId);
@@ -58,9 +62,10 @@ public class ApiV3RepeaterLikeService {
                     requests.update(id, row, fields);
                 }
             };
-            final JSONObject stored=ApiV3IdempotencyMgmtService.runAtomic(guarded,actor,"repeater.like",key,new JSONObject().put("id",itemId).put("liked",liked),()->mutation.setInCurrentTransaction(actor,itemId,liked));
-            if(!itemId.equals(stored.optString("id")) || !(stored.opt("liked") instanceof Boolean) || RepeaterLikeMutationService.exact(stored,"likeCount")<0 || RepeaterLikeMutationService.exact(stored,"likeCount")>Integer.MAX_VALUE) throw RepeaterLikeMutationService.unavailable();
-            return new JSONObject().put("id",itemId).put("liked",stored.getBoolean("liked")).put("likeCount",stored.getLong("likeCount"));
+            final JSONObject stored = ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "repeater.like", key, new JSONObject().put("id", itemId).put("liked", liked), () -> mutation.setInCurrentTransaction(actor, itemId, liked));
+            if (!itemId.equals(stored.optString("id")) || !(stored.opt("liked") instanceof Boolean) || RepeaterLikeMutationService.exact(stored, "likeCount") < 0 || RepeaterLikeMutationService.exact(stored, "likeCount") > Integer.MAX_VALUE)
+                throw RepeaterLikeMutationService.unavailable();
+            return new JSONObject().put("id", itemId).put("liked", stored.getBoolean("liked")).put("likeCount", stored.getLong("likeCount"));
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {

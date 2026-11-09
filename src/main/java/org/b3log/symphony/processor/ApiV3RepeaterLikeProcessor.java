@@ -28,6 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3RepeaterLikeService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 
 @Singleton
@@ -40,8 +41,8 @@ public class ApiV3RepeaterLikeProcessor {
         final var p = beans.getReference(ApiV3RepeaterLikeProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         final var writes = beans.getReference(ApiV3WriteMidware.class);
-        Dispatcher.put("/api/v3/repeater/items/{itemId}/like",p::like,auth::contentWrite,writes::handle);
-        Dispatcher.delete("/api/v3/repeater/items/{itemId}/like",p::unlike,auth::contentWrite,writes::handle);
+        Dispatcher.put("/api/v3/repeater/items/{itemId}/like", p::like, auth::contentWrite, writes::handle);
+        Dispatcher.delete("/api/v3/repeater/items/{itemId}/like", p::unlike, auth::contentWrite, writes::handle);
     }
 
     public void like(final RequestContext context) {

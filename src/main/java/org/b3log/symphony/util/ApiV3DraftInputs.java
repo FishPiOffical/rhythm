@@ -22,11 +22,16 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.ArticleDraft;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 草稿请求字段，未完成的草稿沿用编辑器的内容规则。 */
+/**
+ * 草稿请求字段，未完成的草稿沿用编辑器的内容规则。
+ */
 public final class ApiV3DraftInputs {
-    private ApiV3DraftInputs() { }
+    private ApiV3DraftInputs() {
+    }
+
     public static final Set<String> FIELDS = Set.of("title", "content", "thoughtContent", "tags", "type", "columnId", "columnTitle",
             "chapterNo", "rewardContent", "rewardPoint", "qnaOfferPoint", "commentable", "anonymous", "notifyFollowers", "showInList", "statement");
 

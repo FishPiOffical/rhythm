@@ -36,7 +36,9 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 
-/** 只替换认证用户本人的 type=0 表情选择，并与回执同事务提交。 */
+/**
+ * 只替换认证用户本人的 type=0 表情选择，并与回执同事务提交。
+ */
 @Service
 public class ApiV3EmotionSettingsService {
     @Inject
@@ -83,6 +85,7 @@ public class ApiV3EmotionSettingsService {
             throw unavailable();
         }
     }
+
     public JSONObject updateInCurrentTransaction(final String actor, final JSONObject body) throws Exception {
         id(actor);
         final JSONObject normalized = ApiV3EmotionSettingsInputs.normalize(body);
@@ -93,19 +96,21 @@ public class ApiV3EmotionSettingsService {
             final var aliases = normalized.getJSONArray("emotions");
             for (int i = 0; i < aliases.length(); i++) {
                 final int changed = ApiV3TransactionStatements.execute("INSERT INTO `" + emotions.getName()
-                        + "` (oId,emotionUserId,emotionContent,emotionSort,emotionType) VALUES(?,?,?,?,0)",
+                                + "` (oId,emotionUserId,emotionContent,emotionSort,emotionType) VALUES(?,?,?,?,0)",
                         Ids.genTimeMillisId(), actor, aliases.getString(i), i);
                 if (changed != 1) throw unavailable();
             }
             return ApiV3EmotionSettingsInputs.effective(normalized);
         });
     }
+
     private void owner(final String actor) throws RepositoryException {
         final var rows = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
         if (rows.size() != 1 || !actor.equals(rows.getFirst().optString("oId"))
                 || !(rows.getFirst().opt("userStatus") instanceof Number status) || status.intValue() != UserExt.USER_STATUS_C_VALID
                 || status.doubleValue() != UserExt.USER_STATUS_C_VALID) throw ApiV3Requests.notFound();
     }
+
     private static void id(final String actor) {
         if (actor == null || !actor.matches("[1-9][0-9]{0,18}"))
             throw ApiV3Requests.invalid();

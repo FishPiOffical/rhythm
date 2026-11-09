@@ -29,13 +29,19 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-/** 仅投影公开的社区元数据，省略待审核记录和用户联系方式。 */
+/**
+ * 仅投影公开的社区元数据，省略待审核记录和用户联系方式。
+ */
 public final class ApiV3CommunityDto {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneId.systemDefault());
-    private ApiV3CommunityDto() { }
+
+    private ApiV3CommunityDto() {
+    }
+
     public static JSONObject game(final JSONObject row, final JSONObject author, final String userVote) {
         final JSONObject publicAuthor = new JSONObject();
-        for (final String key : new String[]{"id", "userName", "userNickname", "userAvatarURL"}) publicAuthor.put(key, author.optString(key));
+        for (final String key : new String[]{"id", "userName", "userNickname", "userAvatarURL"})
+            publicAuthor.put(key, author.optString(key));
         final String vote = FishGameVote.VALUE_LIKE.equals(userVote) || FishGameVote.VALUE_DISLIKE.equals(userVote) ? userVote : "";
         return new JSONObject().put("id", row.optString(Keys.OBJECT_ID)).put("name", row.optString(FishGame.NAME))
                 .put("description", row.optString(FishGame.DESCRIPTION)).put("url", safeUrl(row.optString(FishGame.URL)))
@@ -44,6 +50,7 @@ public final class ApiV3CommunityDto {
                 .put("createdAt", row.optLong(FishGame.CREATED_TIME)).put("updatedAt", row.optLong(FishGame.UPDATED_TIME))
                 .put("userVote", vote);
     }
+
     public static JSONObject milestone(final JSONObject row, final String html, final String plain) {
         final long end = row.optLong(Milestone.MILESTONE_END_DATE);
         final String mediaType = row.optString(Milestone.MILESTONE_MEDIA_TYPE);
@@ -55,14 +62,18 @@ public final class ApiV3CommunityDto {
                         .put("type", "image".equals(mediaType) || "video".equals(mediaType) ? mediaType : "")
                         .put("caption", row.optString(Milestone.MILESTONE_MEDIA_CAPTION)));
     }
+
     public static String safeUrl(final String raw) {
         final String url = null == raw ? "" : raw.trim();
-        if (url.length() > 2048 || url.indexOf('\\') >= 0 || url.codePoints().anyMatch(Character::isISOControl)) return "";
+        if (url.length() > 2048 || url.indexOf('\\') >= 0 || url.codePoints().anyMatch(Character::isISOControl))
+            return "";
         try {
             final URI uri = new URI(url);
             if (url.startsWith("/") && !url.startsWith("//") && null == uri.getRawAuthority()) return url;
             if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) return "";
             return null != uri.getRawAuthority() && !uri.getRawAuthority().isBlank() && null == uri.getUserInfo() ? url : "";
-        } catch (final Exception e) { return ""; }
+        } catch (final Exception e) {
+            return "";
+        }
     }
 }

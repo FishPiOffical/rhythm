@@ -23,9 +23,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-/** RFC 7636 S256 摘要，直接使用 verifier 的 ASCII 字节，不添加应用前缀或盐。 */
+/**
+ * RFC 7636 S256 摘要，直接使用 verifier 的 ASCII 字节，不添加应用前缀或盐。
+ */
 public final class ApiV3Pkce {
-    private ApiV3Pkce() { }
+    private ApiV3Pkce() {
+    }
 
     public static boolean validVerifier(final String value) {
         return value != null && value.matches("[A-Za-z0-9._~-]{43,128}");

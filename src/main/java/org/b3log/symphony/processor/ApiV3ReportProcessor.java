@@ -29,6 +29,7 @@ import org.b3log.symphony.service.ApiV3ReportQueryService;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.service.ApiV3ReportPublicationService;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
+
 import java.util.Set;
 
 @Singleton
@@ -37,15 +38,18 @@ public class ApiV3ReportProcessor {
     private ApiV3ReportQueryService query;
     @Inject
     private ApiV3ReportPublicationService publication;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         registerRoutes(beans.getReference(ApiV3ReportProcessor.class), beans.getReference(ApiV3AuthMidware.class),
                 beans.getReference(ApiV3WriteMidware.class));
     }
+
     static void registerRoutes(final ApiV3ReportProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
-        Dispatcher.get("/api/v3/report/options",p::options,auth::contentRead);
-        Dispatcher.post("/api/v3/reports",p::publish,auth::contentWrite,writes::handle);
+        Dispatcher.get("/api/v3/report/options", p::options, auth::contentRead);
+        Dispatcher.post("/api/v3/reports", p::publish, auth::contentWrite, writes::handle);
     }
+
     public void publish(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final byte[] bytes = context.getRequest().getBytes();
@@ -55,6 +59,7 @@ public class ApiV3ReportProcessor {
                     ApiV3WriteInputs.idempotencyKey(context));
         });
     }
+
     public void options(final RequestContext context) {
         ApiV3Requests.read(context, () -> query.options(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID)));
     }

@@ -26,16 +26,22 @@ import org.json.JSONObject;
 
 @Service
 public class ApiV3ActivityMgmtService {
-    @Inject private LivenessRewardMgmtService rewards;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private LivenessRewardMgmtService rewards;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
+
     public JSONObject status(final String actor) throws Exception {
         return rewards.status(actor);
     }
+
     public JSONObject claim(final String actor, final String key) throws Exception {
         return claim(actor, key, null);
     }
+
     public JSONObject claim(final String actor, final String key, final String expectedDate) throws Exception {
-        if (expectedDate != null && !LivenessRewardClaim.validExpectedDate(expectedDate)) throw new ApiV3Exception(422, "invalid_request", "奖励日期不合法");
+        if (expectedDate != null && !LivenessRewardClaim.validExpectedDate(expectedDate))
+            throw new ApiV3Exception(422, "invalid_request", "奖励日期不合法");
         final JSONObject normalized = new JSONObject();
         if (expectedDate != null) normalized.put("expectedDate", expectedDate);
         return rewards.withTransferLock(actor, () -> {

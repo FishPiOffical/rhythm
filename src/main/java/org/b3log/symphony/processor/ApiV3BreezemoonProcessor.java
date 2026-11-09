@@ -36,6 +36,7 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.b3log.symphony.util.Geos;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -44,6 +45,7 @@ public class ApiV3BreezemoonProcessor {
     private ApiV3BreezemoonMgmtService management;
     @Inject
     private ApiV3DiscoveryQueryService discovery;
+
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3BreezemoonProcessor p = beans.getReference(ApiV3BreezemoonProcessor.class);
@@ -56,9 +58,11 @@ public class ApiV3BreezemoonProcessor {
         Dispatcher.post("/api/v3/breezemoons", p::create, auth::contentWrite, writes::handle);
         Dispatcher.delete("/api/v3/breezemoons/{breezemoonId}", p::remove, auth::contentWrite, writes::handle);
     }
+
     public void detail(final RequestContext c) {
         ApiV3Requests.read(c, () -> discovery.breezemoon(ApiV3Requests.id(c, "breezemoonId"), ApiV3Requests.viewer(c)));
     }
+
     public void create(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             final String content = ApiV3BreezemoonInputs.content(ApiV3WriteInputs.body(c, Set.of("content"), false));
@@ -70,9 +74,11 @@ public class ApiV3BreezemoonProcessor {
                     null == address ? "" : address.optString(Common.CITY));
         });
     }
+
     public void following(final RequestContext c) {
         ApiV3Requests.read(c, () -> discovery.followingBreezemoons(ApiV3Requests.viewer(c).optString(Keys.OBJECT_ID), ApiV3Requests.page(c), ApiV3Requests.size(c)));
     }
+
     public void update(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             final String content = ApiV3BreezemoonInputs.content(ApiV3WriteInputs.body(c, Set.of("content"), false));
@@ -81,6 +87,7 @@ public class ApiV3BreezemoonProcessor {
                     ApiV3WriteInputs.idempotencyKey(c), Requests.getRemoteAddr(c.getRequest()), null == ua ? "" : ua);
         });
     }
+
     public void remove(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);

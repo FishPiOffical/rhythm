@@ -22,11 +22,16 @@ import org.b3log.symphony.util.ApiV3ArticleStickState;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
+
 import java.util.Set;
 
-/** 覆盖实际置顶元数据和文章摘要投影，渲染及作者来源使用测试适配器。 */
+/**
+ * 覆盖实际置顶元数据和文章摘要投影，渲染及作者来源使用测试适配器。
+ */
 public final class ApiV3ArticleStickStateTest {
-    interface Work { void run(); }
+    interface Work {
+        void run();
+    }
 
     static void invalid(Work work) {
         try {

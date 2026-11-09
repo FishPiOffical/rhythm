@@ -29,6 +29,7 @@ import org.b3log.latke.util.Requests;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3ChatMuteQueryService;
 import org.b3log.symphony.util.*;
+
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -40,13 +41,14 @@ public class ApiV3ChatMuteProcessor {
     private ApiV3ChatMuteQueryService query;
     private static final Cache<String, AtomicInteger> COUNTS = Caffeine.newBuilder().maximumSize(100000).expireAfterWrite(1, TimeUnit.MINUTES).build();
     private static final Semaphore QUERIES = new Semaphore(4);
+
     public static void register() {
         final var b = BeanManager.getInstance();
         registerRoutes(b.getReference(ApiV3ChatMuteProcessor.class), b.getReference(ApiV3AuthMidware.class));
     }
 
     public static void registerRoutes(ApiV3ChatMuteProcessor p, ApiV3AuthMidware auth) {
-        Dispatcher.get("/api/v3/chat/mutes",p::list,auth::contentRead);
+        Dispatcher.get("/api/v3/chat/mutes", p::list, auth::contentRead);
     }
 
     public void list(RequestContext context) {
@@ -77,6 +79,7 @@ public class ApiV3ChatMuteProcessor {
             }
         });
     }
+
     private static int number(String raw, int fallback, int max) {
         if (raw == null) return fallback;
         if (!raw.matches("[0-9]{1,10}")) throw ApiV3Requests.invalid();

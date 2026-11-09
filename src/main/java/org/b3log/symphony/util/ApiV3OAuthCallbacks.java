@@ -24,11 +24,14 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/** 把 OAuth 响应参数追加到已校验、与注册值精确匹配的 URI，不发起网络请求。 */
+/**
+ * 把 OAuth 响应参数追加到已校验、与注册值精确匹配的 URI，不发起网络请求。
+ */
 public final class ApiV3OAuthCallbacks {
     private static final Set<String> RESERVED = Set.of("code", "state", "error", "error_description", "error_uri", "iss");
 
-    private ApiV3OAuthCallbacks() { }
+    private ApiV3OAuthCallbacks() {
+    }
 
     public static boolean hasResponseParameters(final URI uri) {
         final String query = uri.getRawQuery();
@@ -46,6 +49,7 @@ public final class ApiV3OAuthCallbacks {
         }
         return false;
     }
+
     public static void validateState(final String state) {
         if (state == null || state.length() > 1024 || state.codePoints().anyMatch(Character::isISOControl))
             throw new IllegalArgumentException("OAuth state");
@@ -53,6 +57,7 @@ public final class ApiV3OAuthCallbacks {
         if (state.getBytes(StandardCharsets.UTF_8).length > 1024)
             throw new IllegalArgumentException("OAuth state bytes");
     }
+
     public static String result(final String registered, final String state, final String code, final boolean approved) {
         if (!ApiV3OAuthRedirects.valid(registered, true))
             throw new IllegalArgumentException("callback binding");
@@ -64,6 +69,7 @@ public final class ApiV3OAuthCallbacks {
                 : registered.endsWith("?") || registered.endsWith("&") ? "" : "&";
         return URI.create(registered + separator + first + (state.isEmpty() ? "" : "&state=" + encode(state))).toASCIIString();
     }
+
     private static String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }

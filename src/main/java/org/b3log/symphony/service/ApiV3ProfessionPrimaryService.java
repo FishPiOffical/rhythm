@@ -32,20 +32,28 @@ import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 免费选择主职业，加入共享幂等事务并由其统一提交。 */
+/**
+ * 免费选择主职业，加入共享幂等事务并由其统一提交。
+ */
 @Service
 public class ApiV3ProfessionPrimaryService {
     private static final Set<String> MODULES = Set.of("primaryProfession", "allProfessions", "experience", "rarity",
             "majorContributions", "contributionStats", "activityFeed", "levelHistory", "rewards", "ranking");
-    @Inject private UserRepository users;
-    @Inject private ProfessionRepository professions;
-    @Inject private UserProfessionPrivacyRepository privacy;
-    @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ProfessionRepository professions;
+    @Inject
+    private UserProfessionPrivacyRepository privacy;
+    @Inject
+    private ApiV3IdempotencyMgmtService idempotency;
 
     public JSONObject set(final String actor, final String professionId, final String key) {
-        id(actor); id(professionId);
+        id(actor);
+        id(professionId);
         try {
             // 回放不进入写入回调，须在读取回执前确认缓存凭据对应的账号当前有效。
             if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=?", actor,
@@ -60,10 +68,15 @@ public class ApiV3ProfessionPrimaryService {
             throw new ApiV3Exception(503, "temporarily_unavailable", "职业设置暂不可用");
         }
     }
-    /** 在调用方事务中依次锁定当前用户、目标职业和隐私设置。 */
+
+    /**
+     * 在调用方事务中依次锁定当前用户、目标职业和隐私设置。
+     */
     public JSONObject setInCurrentTransaction(final String actor, final String professionId) throws Exception {
-        id(actor); id(professionId);
-        if (!privacy.hasTransactionBegun()) throw new IllegalStateException("profession selection transaction required");
+        id(actor);
+        id(professionId);
+        if (!privacy.hasTransactionBegun())
+            throw new IllegalStateException("profession selection transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
             final var actors = users.select("SELECT oId,userStatus FROM `" + users.getName() + "` WHERE oId=? FOR UPDATE", actor);
             if (actors.size() != 1 || actors.getFirst().optInt("userStatus", -1) != UserExt.USER_STATUS_C_VALID)
@@ -79,23 +92,25 @@ public class ApiV3ProfessionPrimaryService {
                 final var visibility = new JSONObject();
                 for (final String module : MODULES) visibility.put(module, "PUBLIC");
                 final int count = ApiV3TransactionStatements.execute("INSERT INTO `" + privacy.getName()
-                        + "` (oId,userId,onboardingState,primaryProfessionId,privacyPreset,moduleVisibilityJson,"
-                        + "userProgressVersion,userPrivacyVersion,publicStatsVersion,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                                + "` (oId,userId,onboardingState,primaryProfessionId,privacyPreset,moduleVisibilityJson,"
+                                + "userProgressVersion,userPrivacyVersion,publicStatsVersion,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                         Ids.genTimeMillisId(), actor, "SELECTED", professionId, "ALL_PUBLIC", visibility.toString(),
                         1L, 0L, 0L, now, now);
                 if (count != 1) throw new RepositoryException("Profession privacy insert failed");
             } else {
                 final var current = states.getFirst();
                 final long version = current.getLong("userProgressVersion");
-                if (version < 0 || version == Long.MAX_VALUE) throw new RepositoryException("Invalid profession progress version");
+                if (version < 0 || version == Long.MAX_VALUE)
+                    throw new RepositoryException("Invalid profession progress version");
                 final int count = ApiV3TransactionStatements.execute("UPDATE `" + privacy.getName()
-                        + "` SET onboardingState=?,primaryProfessionId=?,userProgressVersion=?,updatedAt=? WHERE oId=? AND userId=?",
+                                + "` SET onboardingState=?,primaryProfessionId=?,userProgressVersion=?,updatedAt=? WHERE oId=? AND userId=?",
                         "SELECTED", professionId, version + 1L, now, current.getString("oId"), actor);
                 if (count != 1) throw new RepositoryException("Profession privacy update failed");
             }
             return new JSONObject().put("onboardingState", "SELECTED").put("primaryProfessionId", professionId);
         });
     }
+
     private static void id(final String value) {
         if (value == null || !value.matches("[0-9]{1,19}")) throw ApiV3Requests.invalid();
     }

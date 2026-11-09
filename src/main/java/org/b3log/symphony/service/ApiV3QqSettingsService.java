@@ -31,23 +31,33 @@ import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 私有 QQ 设置，第三方客户端的现有 profile.read 投影保持独立。 */
+/**
+ * 私有 QQ 设置，第三方客户端的现有 profile.read 投影保持独立。
+ */
 @Service
 public class ApiV3QqSettingsService {
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private UserRepository users;
-    @Inject private ApiV3SecurityProofService proofs;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private UserRepository users;
+    @Inject
+    private ApiV3SecurityProofService proofs;
+
     protected long now() {
         return System.currentTimeMillis();
     }
+
     public static JSONObject normalize(JSONObject body) {
-        if (body == null || !body.keySet().equals(Set.of("qq")) || !(body.opt("qq") instanceof String raw)) throw ApiV3WriteInputs.invalid();
+        if (body == null || !body.keySet().equals(Set.of("qq")) || !(body.opt("qq") instanceof String raw))
+            throw ApiV3WriteInputs.invalid();
         final String value = raw.strip();
         if (!value.isEmpty() && !value.matches("[0-9]{1,12}")) throw ApiV3WriteInputs.invalid();
         return new JSONObject().put("qq", value);
     }
+
     public JSONObject read(JSONObject identity) {
         Transaction transaction = null;
         try {
@@ -65,10 +75,11 @@ public class ApiV3QqSettingsService {
                 transaction.rollback();
         }
     }
+
     public JSONObject update(JSONObject identity, JSONObject body, String key) {
         final JSONObject value = normalize(body);
         final String actor = actor(identity);
-        final boolean[] authorized = { false };
+        final boolean[] authorized = {false};
         try {
             final ApiV3MutationStore guarded = new ApiV3MutationStore() {
                 public Transaction beginTransaction() {
@@ -99,7 +110,8 @@ public class ApiV3QqSettingsService {
                     final long time = now();
                     if (time <= 0)
                         throw unavailable();
-                    if (ApiV3TransactionStatements.execute("UPDATE `" + users.getName() + "` SET userQQ=?,userUpdateTime=? WHERE oId=? AND userStatus=0", qq, time, actor) != 1) throw unavailable();
+                    if (ApiV3TransactionStatements.execute("UPDATE `" + users.getName() + "` SET userQQ=?,userUpdateTime=? WHERE oId=? AND userStatus=0", qq, time, actor) != 1)
+                        throw unavailable();
                 }
                 return new JSONObject().put("qq", qq);
             });
@@ -121,19 +133,25 @@ public class ApiV3QqSettingsService {
                 }
         }
     }
+
     private JSONObject current(String actor) throws RepositoryException {
         final var rows = users.select("SELECT userQQ FROM `" + users.getName() + "` WHERE oId=? AND userStatus=0 FOR UPDATE", actor);
-        if (rows.size() != 1 || !(rows.getFirst().opt("userQQ") instanceof String value) || value.length() > 12) throw unavailable();
+        if (rows.size() != 1 || !(rows.getFirst().opt("userQQ") instanceof String value) || value.length() > 12)
+            throw unavailable();
         // 旧值可能不符合新写入规则，读取时按实际存储值返回。
         return new JSONObject().put("qq", value);
     }
+
     private void authorize(JSONObject identity, String scope) throws RepositoryException {
-        if (!actor(identity).equals(proofs.authorizeFirstPartyInCurrentTransaction(identity, scope).optString("oId"))) throw ApiV3Requests.forbidden();
+        if (!actor(identity).equals(proofs.authorizeFirstPartyInCurrentTransaction(identity, scope).optString("oId")))
+            throw ApiV3Requests.forbidden();
     }
+
     private Transaction begin() {
         if (requests.hasTransactionBegun()) throw new IllegalStateException("private QQ root required");
         return ApiV3Transactions.strict(requests.beginTransaction());
     }
+
     private static String actor(JSONObject identity) {
         final JSONObject user = identity == null ? null : identity.optJSONObject("user");
         final String actor = user == null ? "" : user.optString("oId");

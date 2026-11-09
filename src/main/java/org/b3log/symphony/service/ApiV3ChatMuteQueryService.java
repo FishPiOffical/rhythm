@@ -28,9 +28,12 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.*;
 
-/** 按账号读取当前禁言记录，并联查有效账号的公开资料。 */
+/**
+ * 按账号读取当前禁言记录，并联查有效账号的公开资料。
+ */
 @Service
 public class ApiV3ChatMuteQueryService {
     @Inject
@@ -38,14 +41,17 @@ public class ApiV3ChatMuteQueryService {
     @Inject
     private UserRepository users;
     private static final int READ_BUDGET = 10000;
+
     protected long now() {
         return System.currentTimeMillis();
     }
+
     protected List<JSONObject> rows() throws RepositoryException {
         return cloud.select("SELECT c.userId,c.gameId,c.data,u.oId,u.userName,u.userNickname,u.userAvatarURL FROM `"
                 + cloud.getName() + "` c INNER JOIN `" + users.getName() + "` u ON u.oId=c.userId"
                 + " WHERE c.gameId=? AND u.userStatus=0 ORDER BY c.oId LIMIT " + (READ_BUDGET + 1), "sys-mute");
     }
+
     public JSONObject list(final int page, final int size) {
         if (page < 1 || page > Integer.MAX_VALUE / 50 || size < 1 || size > 50)
             throw ApiV3Requests.invalid();

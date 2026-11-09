@@ -30,7 +30,9 @@ import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 
-/** 通过锁定当前账号行串行处理个人外观设置与发送消息时的外观快照。 */
+/**
+ * 通过锁定当前账号行串行处理个人外观设置与发送消息时的外观快照。
+ */
 @Service
 public class ApiV3ChatAppearanceService {
     @Inject
@@ -115,14 +117,19 @@ public class ApiV3ChatAppearanceService {
         }
     }
 
-    /** 仅在消息发送方的根事务中调用，以数据库中的设置生成外观快照。 */
-    public JSONObject snapshotInCurrentTransaction(String actor)throws RepositoryException{
-        if(!users.hasTransactionBegun()||!appearances.hasTransactionBegun())throw new IllegalStateException("chat appearance snapshot transaction required");
-        final JSONObject owner=users.getForUpdate(actor);
-        if(owner==null||owner.optInt(UserExt.USER_STATUS,-1)!=UserExt.USER_STATUS_C_VALID)throw ApiV3Requests.notFound();
-        final JSONObject value=choice(actor);
-        return ApiV3ChatAppearance.effective(value,!ApiV3ChatAppearance.premium(value)||vip(actor));
+    /**
+     * 仅在消息发送方的根事务中调用，以数据库中的设置生成外观快照。
+     */
+    public JSONObject snapshotInCurrentTransaction(String actor) throws RepositoryException {
+        if (!users.hasTransactionBegun() || !appearances.hasTransactionBegun())
+            throw new IllegalStateException("chat appearance snapshot transaction required");
+        final JSONObject owner = users.getForUpdate(actor);
+        if (owner == null || owner.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+            throw ApiV3Requests.notFound();
+        final JSONObject value = choice(actor);
+        return ApiV3ChatAppearance.effective(value, !ApiV3ChatAppearance.premium(value) || vip(actor));
     }
+
     private JSONObject choice(String actor) throws RepositoryException {
         final var rows = appearances.select("SELECT bubbleId,frameId,version FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
         if (rows.size() > 1)

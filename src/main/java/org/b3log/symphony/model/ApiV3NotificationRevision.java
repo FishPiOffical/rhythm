@@ -18,9 +18,13 @@
  */
 package org.b3log.symphony.model;
 
-/** 按所有者记录已提交的通知失效标记，省略消息正文和凭据。 */
+/**
+ * 按所有者记录已提交的通知失效标记，省略消息正文和凭据。
+ */
 public final class ApiV3NotificationRevision {
-    private ApiV3NotificationRevision() { }
+    private ApiV3NotificationRevision() {
+    }
+
     public static final String REPOSITORY = "api_v3_notification_revision";
     public static final String REVISION = "revision";
     public static final String UPDATED_AT = "updatedAt";

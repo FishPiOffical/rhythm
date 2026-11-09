@@ -32,12 +32,14 @@ import org.b3log.symphony.util.ApiV3Requests;
 public class ApiV3ArticleHeatProcessor {
     @Inject
     private ApiV3ArticleHeatQueryService query;
+
     public static void register() {
         final var beans = BeanManager.getInstance();
         final var p = beans.getReference(ApiV3ArticleHeatProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         Dispatcher.get("/api/v3/articles/{articleId}/heat", p::heat, auth::contentRead);
     }
+
     public void heat(final RequestContext context) {
         ApiV3Requests.read(context, () -> query.read(ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID), ApiV3Requests.id(context, "articleId")));
     }

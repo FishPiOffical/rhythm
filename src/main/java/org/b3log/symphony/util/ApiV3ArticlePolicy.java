@@ -21,12 +21,18 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Article;
 import org.json.JSONObject;
 
-/** 读取当前文章策略，遇到无法识别的历史值时维持未知状态。 */
+/**
+ * 读取当前文章策略，遇到无法识别的历史值时维持未知状态。
+ */
 public final class ApiV3ArticlePolicy {
     public static final String RAW_COMMENTABLE = "v3ContentCommentable";
-    private ApiV3ArticlePolicy() { }
 
-    /** 用查询别名绕开 Latke 的布尔转换，保留原始值和共享 Repository 的字段映射。 */
+    private ApiV3ArticlePolicy() {
+    }
+
+    /**
+     * 用查询别名绕开 Latke 的布尔转换，保留原始值和共享 Repository 的字段映射。
+     */
     public static String commentableColumn(final String prefix) {
         if (!prefix.matches("[A-Za-z0-9_]*"))
             throw new IllegalArgumentException("internal alias");

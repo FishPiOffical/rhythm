@@ -25,6 +25,7 @@ import org.b3log.symphony.processor.middleware.*;
 import org.b3log.symphony.service.ApiV3SecuritySettingsService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -39,8 +40,8 @@ public class ApiV3SecurityProcessor {
     }
 
     public static void registerRoutes(final ApiV3SecurityProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
-        Dispatcher.get("/api/v3/me/security/mfa",p::mfa,auth::profileRead);
-        Dispatcher.put("/api/v3/me/settings/password",p::password,auth::settingsWrite,writes::handle);
+        Dispatcher.get("/api/v3/me/security/mfa", p::mfa, auth::profileRead);
+        Dispatcher.put("/api/v3/me/settings/password", p::password, auth::settingsWrite, writes::handle);
     }
 
     private static JSONObject identity(final RequestContext c) {

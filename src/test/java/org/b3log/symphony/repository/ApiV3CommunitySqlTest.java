@@ -35,19 +35,28 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-/** 在隔离的 SQLite 上验证实际的已审核游戏查询，并验证公开元数据处理。 */
+/**
+ * 在隔离的 SQLite 上验证实际的已审核游戏查询，并验证公开元数据处理。
+ */
 public class ApiV3CommunitySqlTest {
     @Test
     public void approvedGamesHaveRealPaginationAndBothClosedSortModes() throws Exception {
         try (final Fixture f = fixture()) {
-            f.seed("01", 1, 10, 0, 100); f.seed("02", 1, 5, 100, 200); f.seed("03", 1, 10, 0, 101);
-            f.seed("04", 0, 1000, 1000, 500); f.seed("05", 2, 1000, 1000, 500); f.seed("06", 3, 1000, 1000, 500);
+            f.seed("01", 1, 10, 0, 100);
+            f.seed("02", 1, 5, 100, 200);
+            f.seed("03", 1, 10, 0, 101);
+            f.seed("04", 0, 1000, 1000, 500);
+            f.seed("05", 2, 1000, 1000, 500);
+            f.seed("06", 3, 1000, 1000, 500);
             Assert.assertEquals(ids(f.games.getV3ApprovedPage(1, 2, "likes")), List.of("03", "01"));
             Assert.assertEquals(ids(f.games.getV3ApprovedPage(2, 2, "likes")), List.of("02"));
             Assert.assertTrue(f.games.getV3ApprovedPage(3, 2, "likes").isEmpty());
             Assert.assertEquals(ids(f.games.getV3ApprovedPage(1, 3, "votes")), List.of("02", "03", "01"));
-            try { f.games.getV3ApprovedPage(1, 2, "fishGameName DESC"); Assert.fail("Arbitrary sort accepted"); }
-            catch (final IllegalArgumentException expected) { }
+            try {
+                f.games.getV3ApprovedPage(1, 2, "fishGameName DESC");
+                Assert.fail("Arbitrary sort accepted");
+            } catch (final IllegalArgumentException expected) {
+            }
         }
     }
 
@@ -85,33 +94,59 @@ public class ApiV3CommunitySqlTest {
         Assert.assertEquals(dto.getString("endDate"), "");
     }
 
-    private List<String> ids(final List<JSONObject> rows) { return rows.stream().map(row -> row.optString(Keys.OBJECT_ID)).toList(); }
+    private List<String> ids(final List<JSONObject> rows) {
+        return rows.stream().map(row -> row.optString(Keys.OBJECT_ID)).toList();
+    }
+
     private Fixture fixture() throws Exception {
-        final var field = Latkes.class.getDeclaredField("localProps"); field.setAccessible(true);
+        final var field = Latkes.class.getDeclaredField("localProps");
+        field.setAccessible(true);
         final Properties previous = (Properties) field.get(null);
         final Properties properties = new Properties();
         if (null != previous) properties.putAll(previous);
-        properties.setProperty("runtimeDatabase", "NONE"); Latkes.setLocalProps(properties);
-        try { return new Fixture(); } finally { Latkes.setLocalProps(previous); }
+        properties.setProperty("runtimeDatabase", "NONE");
+        Latkes.setLocalProps(properties);
+        try {
+            return new Fixture();
+        } finally {
+            Latkes.setLocalProps(previous);
+        }
     }
+
     private static final class Fixture implements AutoCloseable {
         private final Connection connection = DriverManager.getConnection("jdbc:sqlite::memory:");
         private final Games games = new Games();
+
         private Fixture() throws Exception {
             try (final var statement = connection.createStatement()) {
                 statement.execute("CREATE TABLE fish_game (oId TEXT PRIMARY KEY,fishGameStatus INTEGER,fishGameLikeCount INTEGER,fishGameDislikeCount INTEGER,fishGameCreatedTime INTEGER)");
             }
         }
+
         private void seed(final String id, final int status, final int likes, final int dislikes, final int created) throws Exception {
             try (final var statement = connection.prepareStatement("INSERT INTO fish_game VALUES (?,?,?,?,?)")) {
-                statement.setString(1, id); statement.setInt(2, status); statement.setInt(3, likes); statement.setInt(4, dislikes); statement.setInt(5, created);
+                statement.setString(1, id);
+                statement.setInt(2, status);
+                statement.setInt(3, likes);
+                statement.setInt(4, dislikes);
+                statement.setInt(5, created);
                 statement.executeUpdate();
             }
         }
-        @Override public void close() throws Exception { connection.close(); }
+
+        @Override
+        public void close() throws Exception {
+            connection.close();
+        }
+
         private final class Games extends FishGameRepository {
-            @Override public String getName() { return "fish_game"; }
-            @Override public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
+            @Override
+            public String getName() {
+                return "fish_game";
+            }
+
+            @Override
+            public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
                 try (final var statement = connection.prepareStatement(sql)) {
                     for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
                     try (final var result = statement.executeQuery()) {
@@ -119,10 +154,13 @@ public class ApiV3CommunitySqlTest {
                         while (result.next()) rows.add(new JSONObject().put(Keys.OBJECT_ID, result.getString("oId")));
                         return rows;
                     }
-                } catch (final Exception e) { throw new RepositoryException(e); }
+                } catch (final Exception e) {
+                    throw new RepositoryException(e);
+                }
             }
         }
     }
+
     public static void main(final String[] args) throws Exception {
         Class.forName("org.sqlite.JDBC");
         final var test = new ApiV3CommunitySqlTest();

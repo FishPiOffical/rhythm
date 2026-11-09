@@ -21,29 +21,50 @@ package org.b3log.symphony.repository;
 import org.b3log.latke.repository.AbstractRepository;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
-/** Shared committed invalidation storage; mutation and marker must use the same caller-owned transaction. */
+/**
+ * Shared committed invalidation storage; mutation and marker must use the same caller-owned transaction.
+ */
 public abstract class ApiV3RevisionRepository extends AbstractRepository {
-    protected ApiV3RevisionRepository(String repository){super(repository);}
-    protected Connection currentConnection(){
-        final var transaction=JdbcRepository.TX.get();
-        if(transaction==null||!transaction.isActive())throw new IllegalStateException("revision transaction required");
+    protected ApiV3RevisionRepository(String repository) {
+        super(repository);
+    }
+
+    protected Connection currentConnection() {
+        final var transaction = JdbcRepository.TX.get();
+        if (transaction == null || !transaction.isActive())
+            throw new IllegalStateException("revision transaction required");
         return transaction.getConnection();
     }
-    protected String upsertSql(){return "INSERT INTO `"+getName()+"` (oId,revision,updatedAt) VALUES(?,?,?)"
-            +" ON DUPLICATE KEY UPDATE revision=VALUES(revision),updatedAt=VALUES(updatedAt)";}
-    /** Join the resource's transaction; the marker is observable only with its committed writes. */
-    public void touchInCurrentTransaction(String owner)throws RepositoryException {
-        if(!hasTransactionBegun())throw new IllegalStateException("revision transaction required");
-        if(owner==null||owner.isEmpty())return;
-        try(var statement=currentConnection().prepareStatement(upsertSql())){
-            statement.setString(1,owner);statement.setString(2,UUID.randomUUID().toString().replace("-",""));statement.setLong(3,System.currentTimeMillis());statement.executeUpdate();
-        }catch(SQLException e){throw new RepositoryException(e);}
+
+    protected String upsertSql() {
+        return "INSERT INTO `" + getName() + "` (oId,revision,updatedAt) VALUES(?,?,?)"
+                + " ON DUPLICATE KEY UPDATE revision=VALUES(revision),updatedAt=VALUES(updatedAt)";
     }
-    /** 在写事务之外分批查询，只读取已提交的修订标记，所有 ID 均通过参数绑定。 */
+
+    /**
+     * Join the resource's transaction; the marker is observable only with its committed writes.
+     */
+    public void touchInCurrentTransaction(String owner) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("revision transaction required");
+        if (owner == null || owner.isEmpty()) return;
+        try (var statement = currentConnection().prepareStatement(upsertSql())) {
+            statement.setString(1, owner);
+            statement.setString(2, UUID.randomUUID().toString().replace("-", ""));
+            statement.setLong(3, System.currentTimeMillis());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RepositoryException(e);
+        }
+    }
+
+    /**
+     * 在写事务之外分批查询，只读取已提交的修订标记，所有 ID 均通过参数绑定。
+     */
     public Map<String, String> snapshot(Collection<String> owners) throws RepositoryException {
         if (hasTransactionBegun())
             throw new IllegalStateException("revision snapshot inside writer transaction");

@@ -18,7 +18,9 @@
  */
 package org.b3log.symphony.model;
 
-/** API v3 访问令牌和刷新令牌的存储字段，令牌明文不入库。 */
+/**
+ * API v3 访问令牌和刷新令牌的存储字段，令牌明文不入库。
+ */
 public final class ApiV3Token {
     private ApiV3Token() {
     }

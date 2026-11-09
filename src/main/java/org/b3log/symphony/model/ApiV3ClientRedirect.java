@@ -18,10 +18,14 @@
  */
 package org.b3log.symphony.model;
 
-/** 注册回调地址按完整值精确匹配，以服务端保存的记录为准。 */
+/**
+ * 注册回调地址按完整值精确匹配，以服务端保存的记录为准。
+ */
 public final class ApiV3ClientRedirect {
-    private ApiV3ClientRedirect(){ }
-    public static final String TABLE="api_v3_client_redirect";
-    public static final String CLIENT_ID="clientId",REDIRECT_URI="redirectUri",STATUS="status";
-    public static final int ACTIVE=0;
+    private ApiV3ClientRedirect() {
+    }
+
+    public static final String TABLE = "api_v3_client_redirect";
+    public static final String CLIENT_ID = "clientId", REDIRECT_URI = "redirectUri", STATUS = "status";
+    public static final int ACTIVE = 0;
 }

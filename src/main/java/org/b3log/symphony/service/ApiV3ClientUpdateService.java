@@ -43,23 +43,35 @@ import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** 完整替换登记元数据。授权变化时在同一个事务中撤销原有授权和凭据。 */
+/**
+ * 完整替换登记元数据。授权变化时在同一个事务中撤销原有授权和凭据。
+ */
 @Service
 public class ApiV3ClientUpdateService {
-    @Inject private ApiV3ClientManagementService management;
-    @Inject private ApiV3ClientRegistrationService registration;
-    @Inject private ApiV3ClientRepository clients;
-    @Inject private ApiV3ClientRedirectRepository redirects;
-    @Inject private ApiV3TokenRepository tokens;
-    @Inject private ApiV3AuthorizationCodeRepository codes;
-    @Inject private ApiV3AuthorizationRequestRepository consents;
-    @Inject private ApiV3RequestRepository requests;
-    @Inject private ApiV3AppLoginRequestRepository appLogins;
+    @Inject
+    private ApiV3ClientManagementService management;
+    @Inject
+    private ApiV3ClientRegistrationService registration;
+    @Inject
+    private ApiV3ClientRepository clients;
+    @Inject
+    private ApiV3ClientRedirectRepository redirects;
+    @Inject
+    private ApiV3TokenRepository tokens;
+    @Inject
+    private ApiV3AuthorizationCodeRepository codes;
+    @Inject
+    private ApiV3AuthorizationRequestRepository consents;
+    @Inject
+    private ApiV3RequestRepository requests;
+    @Inject
+    private ApiV3AppLoginRequestRepository appLogins;
 
     public JSONObject update(final JSONObject identity, final String clientId,
                              final ApiV3ClientManagementInputs.Registration input, final String key) throws Exception {
@@ -83,10 +95,12 @@ public class ApiV3ClientUpdateService {
                 public boolean hasTransactionBegun() {
                     return requests.hasTransactionBegun();
                 }
+
                 public JSONObject getForUpdate(final String id) throws RepositoryException {
                     management.requireAdministrator(identity, true);
                     return requests.getForUpdate(id);
                 }
+
                 public String add(final JSONObject row) throws RepositoryException {
                     return requests.add(row);
                 }
@@ -106,15 +120,18 @@ public class ApiV3ClientUpdateService {
         }
     }
 
-    /** 仅在根事务按固定顺序锁定客户端命名空间和当前管理身份、用户、令牌、请求后调用。 */
+    /**
+     * 仅在根事务按固定顺序锁定客户端命名空间和当前管理身份、用户、令牌、请求后调用。
+     */
     private JSONObject updateInCurrentTransaction(final String clientId,
-                                                 final ApiV3ClientRegistrationService.Definition desired,
-                                                 final List<String> callbacks) throws Exception {
+                                                  final ApiV3ClientRegistrationService.Definition desired,
+                                                  final List<String> callbacks) throws Exception {
         if (!requests.hasTransactionBegun()) throw new IllegalStateException("client update transaction required");
         return ApiV3TransactionSavepoint.run(() -> {
             final var rows = clients.select("SELECT oId,clientId,name,scope,status FROM `" + clients.getName()
                     + "` WHERE clientId=? LIMIT 2 FOR UPDATE", clientId);
-            if (rows.isEmpty() || !clientId.equals(rows.getFirst().optString("clientId"))) throw ApiV3Requests.notFound();
+            if (rows.isEmpty() || !clientId.equals(rows.getFirst().optString("clientId")))
+                throw ApiV3Requests.notFound();
             if (rows.size() != 1) throw unavailable();
             final JSONObject current = rows.getFirst();
             ApiV3ClientManagementDto.client(current); // 已存元数据或状态格式异常时拒绝更新。
@@ -142,14 +159,14 @@ public class ApiV3ClientUpdateService {
             ApiV3TransactionStatements.execute("DELETE FROM `" + redirects.getName() + "` WHERE clientId=?", clientId);
             for (final String uri : callbacks) {
                 final int added = ApiV3TransactionStatements.execute("INSERT INTO `" + redirects.getName()
-                        + "` (oId,clientId,redirectUri,status) VALUES (?,?,?,?)",
+                                + "` (oId,clientId,redirectUri,status) VALUES (?,?,?,?)",
                         ApiV3ClientRedirectRepository.identity(clientId, uri), clientId, uri, ApiV3ClientRedirect.ACTIVE);
                 if (added != 1) throw unavailable();
             }
             if (changed) {
                 if (ApiV3Client.APP_CLIENT.equals(clientId)) appLogins.invalidatePendingInCurrentTransaction();
                 final int revoked = ApiV3TransactionStatements.execute("UPDATE `" + tokens.getName()
-                        + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
+                                + "` SET state=?,updatedAt=? WHERE clientId=? AND (state<>? OR state IS NULL)",
                         ApiV3Token.STATE_REVOKED, System.currentTimeMillis(), clientId, ApiV3Token.STATE_REVOKED);
                 if (revoked < 0) throw unavailable();
                 // 清除所有历史授权码，保留消费时间与令牌家族绑定的原有含义。

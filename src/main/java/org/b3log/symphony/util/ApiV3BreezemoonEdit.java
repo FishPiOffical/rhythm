@@ -21,9 +21,13 @@ package org.b3log.symphony.util;
 import org.b3log.symphony.model.Breezemoon;
 import org.json.JSONObject;
 
-/** 本人编辑时保留作者、创建时间、城市和审核状态。 */
+/**
+ * 本人编辑时保留作者、创建时间、城市和审核状态。
+ */
 public final class ApiV3BreezemoonEdit {
-    private ApiV3BreezemoonEdit() { }
+    private ApiV3BreezemoonEdit() {
+    }
+
     public static JSONObject apply(final JSONObject old, final String content, final String ip, final String ua,
                                    final long now, final int maxUa) {
         final String agent = null == ua ? "" : ua;

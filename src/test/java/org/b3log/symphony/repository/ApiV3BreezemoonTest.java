@@ -34,7 +34,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/** 验证实际的入参规则和仓库 SQL。应用数据库、内容审核和职业执行器需另行验证。 */
+/**
+ * 验证实际的入参规则和仓库 SQL。应用数据库、内容审核和职业执行器需另行验证。
+ */
 public class ApiV3BreezemoonTest {
     public static void main(final String[] args) throws Exception {
         Assert.assertEquals(ApiV3BreezemoonInputs.content(new JSONObject().put("content", "  测试\n[链接](https://example.test)  ")), "测试\n[链接](https://example.test)");
@@ -43,14 +45,16 @@ public class ApiV3BreezemoonTest {
             try {
                 ApiV3BreezemoonInputs.content(new JSONObject().put("content", value));
                 Assert.fail("Invalid content accepted");
+            } catch (final ApiV3Exception expected) {
+                Assert.assertEquals(expected.status, 422);
             }
-            catch (final ApiV3Exception expected) { Assert.assertEquals(expected.status, 422); }
         }
         Assert.assertEquals(ApiV3BreezemoonInputs.publishable("<b>正文</b>"), "正文");
         try {
             ApiV3BreezemoonInputs.publishable("<script>alert(1)</script>");
             Assert.fail();
-        } catch (final ApiV3Exception expected) { }
+        } catch (final ApiV3Exception expected) {
+        }
         System.out.println("PASS content type/length/control checks and legacy publish HTML stripping");
         Assert.assertEquals(ApiV3BreezemoonInputs.editable("  <b>编辑</b>  "), "<b>编辑</b>");
         final JSONObject old = new JSONObject().put("oId", "id").put(Breezemoon.BREEZEMOON_AUTHOR_ID, "owner")
@@ -70,7 +74,8 @@ public class ApiV3BreezemoonTest {
         final var field = Latkes.class.getDeclaredField("localProps");
         field.setAccessible(true);
         final Object original = field.get(null);
-        final Properties props = new Properties(); props.setProperty("runtimeDatabase", "NONE");
+        final Properties props = new Properties();
+        props.setProperty("runtimeDatabase", "NONE");
         final Rows repo;
         try {
             field.set(null, props);
@@ -104,27 +109,52 @@ public class ApiV3BreezemoonTest {
             try {
                 repo.getOwnedForUpdate("public", "1");
                 Assert.fail();
-            } catch (final IllegalStateException expected) { }
+            } catch (final IllegalStateException expected) {
+            }
             db.setAutoCommit(false);
             Assert.assertNotNull(repo.getForUpdate("1"));
             Assert.assertNotNull(repo.getOwnedForUpdate("public", "1"));
             Assert.assertNull(repo.getOwnedForUpdate("private", "1"));
             Assert.assertNull(repo.getOwnedForUpdate("public' OR 1=1 --", "1"));
-            db.rollback(); System.out.println("PASS owner+ID transaction guard and binding; SQLite does not test FOR UPDATE");
+            db.rollback();
+            System.out.println("PASS owner+ID transaction guard and binding; SQLite does not test FOR UPDATE");
         }
     }
+
     private static class Rows extends BreezemoonRepository {
         Connection db;
-        @Override public String getName() { return "breezemoon"; }
-        @Override public boolean hasTransactionBegun() { try { return null != db && !db.getAutoCommit(); } catch (Exception e) { throw new IllegalStateException(e); } }
-        @Override public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
+
+        @Override
+        public String getName() {
+            return "breezemoon";
+        }
+
+        @Override
+        public boolean hasTransactionBegun() {
+            try {
+                return null != db && !db.getAutoCommit();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        @Override
+        public List<JSONObject> select(final String sql, final Object... args) throws RepositoryException {
             try (final var statement = db.prepareStatement(sql.replace(" FOR UPDATE", ""))) {
                 for (int i = 0; i < args.length; i++) statement.setObject(i + 1, args[i]);
                 final List<JSONObject> rows = new ArrayList<>();
-                try (final var rs = statement.executeQuery()) { while (rs.next()) { final JSONObject row = new JSONObject();
-                    for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) row.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i)); rows.add(row); } }
+                try (final var rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        final JSONObject row = new JSONObject();
+                        for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++)
+                            row.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i));
+                        rows.add(row);
+                    }
+                }
                 return rows;
-            } catch (final Exception e) { throw new RepositoryException(e); }
+            } catch (final Exception e) {
+                throw new RepositoryException(e);
+            }
         }
     }
 }

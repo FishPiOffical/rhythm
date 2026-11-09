@@ -37,13 +37,16 @@ public class ApiV3SocketTicketRepository extends AbstractRepository {
         return ApiV3Transactions.strict(super.beginTransaction());
     }
 
-    /** 在消费事务中锁定票据，供调用方检查并更新当前记录。 */
+    /**
+     * 在消费事务中锁定票据，供调用方检查并更新当前记录。
+     */
     public JSONObject getForUpdate(final String hash) throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("socket ticket transaction required");
         final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", hash);
         return rows.isEmpty() ? null : rows.getFirst();
     }
+
     public java.util.List<JSONObject> expiredBatchForUpdate(final long cutoff) throws RepositoryException {
         if (!hasTransactionBegun())
             throw new IllegalStateException("socket ticket transaction required");

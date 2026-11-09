@@ -28,6 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3ChatAppearanceService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
 @Singleton
@@ -40,9 +41,10 @@ public class ApiV3ChatAppearanceProcessor {
         final var p = beans.getReference(ApiV3ChatAppearanceProcessor.class);
         registerRoutes(p, beans.getReference(ApiV3AuthMidware.class), beans.getReference(ApiV3WriteMidware.class));
     }
+
     public static void registerRoutes(ApiV3ChatAppearanceProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes) {
-        Dispatcher.get("/api/v3/me/chat-appearance",p::read,auth::profileRead);
-        Dispatcher.put("/api/v3/me/chat-appearance",p::save,auth::settingsWrite,writes::handle);
+        Dispatcher.get("/api/v3/me/chat-appearance", p::read, auth::profileRead);
+        Dispatcher.put("/api/v3/me/chat-appearance", p::save, auth::settingsWrite, writes::handle);
     }
 
     public void read(RequestContext c) {

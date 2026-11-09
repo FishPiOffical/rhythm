@@ -30,9 +30,12 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.service.ApiV3AppLoginService;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
+
 import java.util.Set;
 
-/** 通过 JSON 传递应用登录凭据。只有发起请求的网站使用 Bearer 身份，原生应用凭据不放入 URL。 */
+/**
+ * 通过 JSON 传递应用登录凭据。只有发起请求的网站使用 Bearer 身份，原生应用凭据不放入 URL。
+ */
 @Singleton
 public class ApiV3AppLoginProcessor {
     @Inject
@@ -44,16 +47,18 @@ public class ApiV3AppLoginProcessor {
         registerRoutes(beans.getReference(ApiV3AppLoginProcessor.class), beans.getReference(ApiV3AuthMidware.class),
                 beans.getReference(ApiV3WriteMidware.class), beans.getReference(AnonymousViewCheckMidware.class));
     }
+
     public static void registerRoutes(ApiV3AppLoginProcessor p, ApiV3AuthMidware auth, ApiV3WriteMidware writes,
                                       AnonymousViewCheckMidware anonymous) {
-        Dispatcher.post("/api/v3/auth/app-login/requests",p::create,p::privacy,auth::settingsWrite,writes::handle);
-        Dispatcher.post("/api/v3/auth/app-login/status",p::webStatus,p::privacy,auth::profileRead,writes::handle);
-        Dispatcher.post("/api/v3/auth/app-login/decision",p::webDecision,p::privacy,auth::settingsWrite,writes::handle);
-        Dispatcher.post("/api/v3/auth/app-login/claim",p::claim,p::privacy,p::budget,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/app-login/app-status",p::appStatus,p::privacy,p::budget,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/app-login/app-decision",p::appDecision,p::privacy,p::budget,anonymous::handle);
-        Dispatcher.post("/api/v3/auth/app-login/exchange",p::exchange,p::privacy,p::budget,anonymous::handle);
+        Dispatcher.post("/api/v3/auth/app-login/requests", p::create, p::privacy, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/auth/app-login/status", p::webStatus, p::privacy, auth::profileRead, writes::handle);
+        Dispatcher.post("/api/v3/auth/app-login/decision", p::webDecision, p::privacy, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/auth/app-login/claim", p::claim, p::privacy, p::budget, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/app-login/app-status", p::appStatus, p::privacy, p::budget, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/app-login/app-decision", p::appDecision, p::privacy, p::budget, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/app-login/exchange", p::exchange, p::privacy, p::budget, anonymous::handle);
     }
+
     public void privacy(RequestContext c) {
         c.setHeader("Cache-Control", "no-store");
         c.setHeader("Pragma", "no-cache");
@@ -71,6 +76,7 @@ public class ApiV3AppLoginProcessor {
         }
         c.handle();
     }
+
     public void create(RequestContext c) {
         ApiV3Requests.respond(c, () -> {
             body(c, Set.of(), true);

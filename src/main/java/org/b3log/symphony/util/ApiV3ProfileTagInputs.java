@@ -20,13 +20,18 @@ package org.b3log.symphony.util;
 
 import org.b3log.symphony.model.Tag;
 import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** 规范化之前逐个校验原始标签，遇到无效值直接拒绝。 */
+/**
+ * 规范化之前逐个校验原始标签，遇到无效值直接拒绝。
+ */
 public final class ApiV3ProfileTagInputs {
-    private ApiV3ProfileTagInputs() { }
+    private ApiV3ProfileTagInputs() {
+    }
+
     public static List<String> tokens(JSONObject body) {
         if (body == null || !body.keySet().equals(Set.of("tags"))
                 || !(body.opt("tags") instanceof String raw) || raw.length() > 128)
@@ -47,6 +52,7 @@ public final class ApiV3ProfileTagInputs {
             throw ApiV3WriteInputs.invalid();
         return result;
     }
+
     public static void requireTitle(String value) {
         if (value == null || value.isEmpty() || value.length() > 128
                 || value.codePoints().anyMatch(cp -> Character.isISOControl(cp) || Character.isWhitespace(cp))
@@ -56,6 +62,7 @@ public final class ApiV3ProfileTagInputs {
                 || !Tag.containsWhiteListTags(value) && value.length() > Tag.MAX_TAG_TITLE_LENGTH)
             throw ApiV3WriteInputs.invalid();
     }
+
     public static JSONObject result(List<String> titles) {
         if (titles.size() > Tag.MAX_TAG_COUNT)
             throw ApiV3WriteInputs.invalid();
