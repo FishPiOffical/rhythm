@@ -28,6 +28,7 @@ import org.b3log.latke.util.Execs;
 import org.b3log.symphony.cache.UserCache;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
@@ -77,6 +78,8 @@ public final class Firewall {
      */
     private static final Map<String, Counter> COUNTERS = new ConcurrentHashMap<>();
 
+    private static final Set<String> CC_WHITELIST = ConcurrentHashMap.newKeySet();
+
     /**
      * 已封禁的 IP，避免重复执行 shell；无过期，需管理员手动解封。
      */
@@ -122,6 +125,13 @@ public final class Firewall {
             SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
                     "cc", "allow", "已验证蜘蛛");
             return true;
+        }
+
+        if (CC_WHITELIST.contains(ip)) {
+            final boolean allowed = null == BANNED.getIfPresent(ip);
+            SecurityMonitor.record(ip, method, uri, "BeforeRequestHandler -> Firewall",
+                    "cc", allowed ? "allow" : "deny", allowed ? "CC白名单" : "已封禁");
+            return allowed;
         }
 
         final long nowBucket = System.currentTimeMillis() / WINDOW_MILLIS;
@@ -176,6 +186,15 @@ public final class Firewall {
     public static String unbanIp(final String ip) {
         BANNED.invalidate(ip);
         return runIpset("del", ip);
+    }
+
+    /** Exempts an IP from automatic CC counting without overriding manual bans. */
+    public static void addCcWhitelist(final String ip) {
+        if (StringUtils.isBlank(ip)) {
+            throw new IllegalArgumentException("IP must not be blank");
+        }
+        CC_WHITELIST.add(ip);
+        COUNTERS.remove(ip);
     }
 
     private static String runIpset(final String operation, final String ip) {
