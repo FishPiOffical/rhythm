@@ -82,6 +82,40 @@ public class ChatRoomBot {
 
     private static String allLatestMessage = "";
 
+    public static boolean allowRedPacketSend(final RequestContext context, final String userName,
+                                             final String userId, final String type) {
+        if ("admin".equals(userName)) return true;
+        if (!RECORD_POOL_5_IN_1M.access(userName)) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("你的红包被机器人打回，原因：红包发送频率过快，每分钟仅允许发送5个红包，请稍候重试");
+            return false;
+        }
+
+        // 心跳红包限制
+        int date = Integer.parseInt(DateFormatUtils.format(System.currentTimeMillis(), "HHmm"));
+        /*if (type.equals("heartbeat")) {
+            if (date > 1800 || date < 830) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("这个时段无法发送心跳红包！允许时间：08:30-18:00");
+                return false;
+            }
+        }*/
+
+        // 猜拳红包限制
+        if (type.equals("rockPaperScissors")) {
+            boolean morning = date >= 830 && date <= 1130;
+            boolean afternoon = date >= 1330 && date <= 1800;
+            // 判断是否在上午或下午时段
+            if (morning || afternoon) {
+                // 每30秒每人只允许发送一条
+                if (!RECORD_POOL_05_IN_1M.access("rps+" + userId)) {
+                    context.renderJSON(StatusCodes.ERR).renderMsg("现在是聊天高峰期，每人每2分钟只允许发送一个猜拳红包，请稍候重试。高峰期时段为：08:30-11:30、13:30-18:00");
+                    return false;
+                }
+
+            }
+        }
+        return true;
+    }
+
     // 记录并分析消息是否可疑
     public static boolean record(final RequestContext context) {
         boolean pass = true;
@@ -620,40 +654,9 @@ public class ChatRoomBot {
         // ==! 判定复读机 !==
 
         // ==? 发红包频率限制 ?==
-        if (!userName.equals("admin")) {
-            if (content.startsWith("[redpacket]") && content.endsWith("[/redpacket]")) {
-                if (!RECORD_POOL_5_IN_1M.access(userName)) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("你的红包被机器人打回，原因：红包发送频率过快，每分钟仅允许发送5个红包，请稍候重试");
-                    return false;
-                }
-
-                // 心跳红包限制
-                String redpacketString = content.replaceAll("^\\[redpacket\\]", "").replaceAll("\\[/redpacket\\]$", "");
-                JSONObject redpacket = new JSONObject(redpacketString);
-                String type = redpacket.optString("type");
-                int date = Integer.parseInt(DateFormatUtils.format(System.currentTimeMillis(), "HHmm"));
-                /*if (type.equals("heartbeat")) {
-                    if (date > 1800 || date < 830) {
-                        context.renderJSON(StatusCodes.ERR).renderMsg("这个时段无法发送心跳红包！允许时间：08:30-18:00");
-                        return false;
-                    }
-                }*/
-
-                // 猜拳红包限制
-                if (type.equals("rockPaperScissors")) {
-                    boolean morning = date >= 830 && date <= 1130;
-                    boolean afternoon = date >= 1330 && date <= 1800;
-                    // 判断是否在上午或下午时段
-                    if (morning || afternoon) {
-                        // 每30秒每人只允许发送一条
-                        if (!RECORD_POOL_05_IN_1M.access("rps+" + userId)) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("现在是聊天高峰期，每人每2分钟只允许发送一个猜拳红包，请稍候重试。高峰期时段为：08:30-11:30、13:30-18:00");
-                            return false;
-                        }
-
-                    }
-                }
-            }
+        if (content.startsWith("[redpacket]") && content.endsWith("[/redpacket]")) {
+            final JSONObject packet = new JSONObject(content.substring(11, content.length() - 12));
+            if (!allowRedPacketSend(context, userName, userId, packet.optString("type"))) return false;
         }
         // ==! 发红包频率限制 !==
 

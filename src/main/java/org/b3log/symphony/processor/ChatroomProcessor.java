@@ -22,7 +22,6 @@ import static org.b3log.symphony.processor.channel.ChatroomChannel.sendCustomMes
 
 import java.io.UnsupportedEncodingException;
 import java.lang.Character;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
@@ -1274,12 +1273,100 @@ public class ChatroomProcessor {
 
 
 
+    private void sendClassicRedPacket(final RequestContext context, final String content) {
+        // The classic input format is retained. The following original settlement notes describe the old path.
+        // 是否收税
+        // 基础税率 猜拳
+        // 获取用户会员状态
+        // 是否是尊贵的会员
+        // 免税
+        // 扣积分
+        // 征税 VIP4免税
+        // 重新设置税点
+        // 重新设置税点
+        // 重新设置税点
+        // 组合新的 JSON
+        // 收税的时候 直接扣减
+        // 已经抢了这个红包的人数
+        // 已经抢了这个红包的人以及抢到的金额
+        // 红包特殊标识，堵漏洞
+        // 税给admin V4没有税
+        // 写入数据库
+        // 预分配红包
+        // 预分配红包
+        // 发通知
+        // ignore
+/*toatlMoney = 250;
+                                int userPoint = currentUser.optInt("userPoint");
+                                if (userPoint < 1500 * 6) {
+                                    context.renderJSON(StatusCodes.ERR).renderMsg("少年,资产不足以开盘!");
+                                    return;
+                                }
+                                if (count > 15) {
+                                    context.renderJSON(StatusCodes.ERR).renderMsg("开盘人数不成超过15人,小赌怡情！");
+                                    return;
+                                }
+                                break;*/
+        try {
+            final JSONObject actor = (JSONObject) context.attr(User.USER);
+            if (actor == null) throw new ApiV3Exception(401, "unauthorized", "请先登录。");
+            if (actor.optString("userPhone").isEmpty()) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("未绑定手机号码，无法使用此功能。请至设置-账户中绑定手机号码。");
+                return;
+            }
+            final JSONObject input = new JSONObject(content.substring(11, content.length() - 12));
+            final String type = StringUtils.defaultIfBlank(input.optString("type"), "random");
+            final String rawMessage = input.optString("msg");
+            final String filtered = rawMessage.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5,，.。！!?？《》\\s]", "");
+            final JSONObject body = new JSONObject().put("type", type).put("money", input.optInt("money"))
+                    .put("message", filtered.substring(0, Math.min(20, filtered.length())));
+            if ("specify".equals(type)) {
+                final JSONArray names = input.optJSONArray("recivers") != null ? input.getJSONArray("recivers")
+                        : new JSONArray(StringUtils.defaultIfBlank(input.optString("recivers"), "[]"));
+                if (names.isEmpty() || names.length() > 100) throw ApiV3WriteInputs.invalid();
+                final JSONArray recipients = new JSONArray();
+                for (Object name : names) {
+                    if (!(name instanceof String userName) || userName.isBlank()) throw ApiV3WriteInputs.invalid();
+                    final JSONObject user = userQueryService.getUserByName(userName);
+                    if (user == null) throw ApiV3WriteInputs.invalid();
+                    recipients.put(user.optString(Keys.OBJECT_ID));
+                }
+                body.put("recipientIds", recipients);
+            } else if ("rockPaperScissors".equals(type)) {
+                body.put("gesture", input.optInt("gesture", -1));
+            } else {
+                body.put("count", input.optInt("count"));
+            }
+            // Classic send is the explicit choice of packet type; claim confirmation is separate.
+            if (ApiV3RedPacketInputs.risky(type)) body.put("riskAccepted", true);
+            ApiV3RedPacketInputs.prepare(body, actor.optString(Keys.OBJECT_ID));
+            if (!ChatRoomBot.allowRedPacketSend(context, actor.optString(User.USER_NAME),
+                    actor.optString(Keys.OBJECT_ID), type)) return;
+            final String key = context.header("Idempotency-Key");
+            redPackets().create(actor, body, StringUtils.isBlank(key) ? java.util.UUID.randomUUID().toString() : key);
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ApiV3Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());
+        } catch (final org.json.JSONException error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包参数不合法");
+        } catch (final Exception error) {
+            LOGGER.error("Create classic chat red packet failed", error);
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+        }
+    }
+
     /**
      * Send chatroom message.
      *
      * @param context Everything
      */
     public void addChatRoomMsg(final RequestContext context) {
+        final JSONObject request = (JSONObject) context.attr(Keys.REQUEST);
+        final String incoming = request.optString(Common.CONTENT);
+        if (incoming.startsWith("[redpacket]") && incoming.endsWith("[/redpacket]")) {
+            sendClassicRedPacket(context, incoming);
+            return;
+        }
         if (ChatRoomBot.record(context)) {
             final JSONObject requestJSONObject = (JSONObject) context.attr(Keys.REQUEST);
             String content = requestJSONObject.optString(Common.CONTENT);
@@ -1322,244 +1409,7 @@ public class ChatroomProcessor {
 
             String userId = currentUser.optString(Keys.OBJECT_ID);
 
-            if (content.startsWith("[redpacket]") && content.endsWith("[/redpacket]")) {
-                LOGGER.log(Level.INFO, "Sent red packet [content={}], userName={}]", content, userName);
-                // 是否收税
-                Boolean collectTaxes = false;
-                // 基础税率 猜拳
-                BigDecimal taxRate = new BigDecimal("0.15");
-                try {
-                    // 获取用户会员状态
-                    JSONObject memberShip = membershipQueryService.getStatusByUserId(userId);
-                    // 是否是尊贵的会员
-                    boolean notSVIP = true;
-                    if (Objects.nonNull(memberShip) && memberShip.getInt(Membership.STATE) != 0) {
-                        if (memberShip.optString(Membership.LV_CODE).contains("VIP4")) {
-                            // 免税
-                            notSVIP = false;
-                        }
-                    }
-                    String redpacketString = content.replaceAll("^\\[redpacket\\]", "").replaceAll("\\[/redpacket\\]$", "");
-                    JSONObject redpacket = new JSONObject(redpacketString);
-                    String type = redpacket.optString("type");
-                    if (StringUtils.isBlank(type)) {
-                        type = "random";
-                    }
-                    int money = redpacket.optInt("money");
-                    int count = redpacket.optInt("count");
-                    String recivers = redpacket.optString("recivers");
-                    String message = redpacket.optString("msg");
-                    int gesture = redpacket.optInt("gesture", -1);
-                    if (!userName.equals("admin")) {
-                        message = message.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5,，.。！!?？《》\\s]", "");
-                        if (message.length() > 20) {
-                            message = message.substring(0, 20);
-                        }
-                        if (type.equals("heartbeat")) {
-                            if (count < 5) {
-                                context.renderJSON(StatusCodes.ERR).renderMsg("心跳红包个数至少为5个！");
-                                return;
-                            }
-                        }
-                        // 扣积分
-                        if (money > 10240) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包发送失败！红包最大限额为" + 10240 + "！");
-                            return;
-                        }
-                        if (money < (type.equals("rockPaperScissors") ? 256 : 32)) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg(type.equals("rockPaperScissors") ? "红包最小金额为256！" : "红包最小金额为32！");
-                            return;
-                        }
-                        if (count < 1) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包最少发1份！");
-                            return;
-                        }
-                        if (count > 100) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包最多发100份！");
-                            return;
-                        }
-                        if (count > money) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包个数不能大于总金额！");
-                            return;
-                        }
-                    }
-                    try {
-                        int toatlMoney = 0;
-                        switch (type) {
-                            case "dice":
-                                context.renderJSON(StatusCodes.ERR).renderMsg("暂不支持摇骰子红包！");
-                                return;
-                                /*toatlMoney = 250;
-                                int userPoint = currentUser.optInt("userPoint");
-                                if (userPoint < 1500 * 6) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("少年,资产不足以开盘!");
-                                    return;
-                                }
-                                if (count > 15) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("开盘人数不成超过15人,小赌怡情！");
-                                    return;
-                                }
-                                break;*/
-                            case "rockPaperScissors":
-                                if (gesture < 0 || gesture > 2) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("数据不合法！");
-                                    return;
-                                }
-                                count = 1;
-                                toatlMoney = money;
-                                // 征税 VIP4免税
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                }
-                                break;
-                            case "average":
-                                toatlMoney = money * count;
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                    // 重新设置税点
-                                    taxRate = new BigDecimal("0.03");
-                                }
-                                break;
-                            case "specify":
-                                if (StringUtils.isNotBlank(recivers)) {
-                                    final JSONArray reciverArray = new JSONArray(recivers);
-                                    final int length = reciverArray.length();
-                                    if (length == 1 && userName.equals(reciverArray.optString(0))) {
-                                        context.renderJSON(StatusCodes.ERR).renderMsg("不允许自己给自己单独发专属红包! ");
-                                        return;
-                                    }
-                                    if (length > 0) {
-                                        toatlMoney = money * length;
-                                        if (notSVIP) {
-                                            collectTaxes = true;
-                                            // 重新设置税点
-                                            taxRate = new BigDecimal("0.01");
-                                        }
-                                    } else {
-                                        context.renderJSON(StatusCodes.ERR).renderMsg("专属红包需要指定用户！");
-                                        return;
-                                    }
-                                } else {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("专属红包需要指定用户！");
-                                    return;
-                                }
-                                break;
-                            case "random":
-                            case "heartbeat":
-                            default:
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                    // 重新设置税点
-                                    taxRate = new BigDecimal("0.03");
-                                }
-                                toatlMoney = money;
-                        }
-                        final boolean succ = null != pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
-                                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_SEND_RED_PACKET,
-                                toatlMoney, "", System.currentTimeMillis(), collectTaxes ? "collectTaxes" : "");
-                        if (!succ) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                            return;
-                        }
-                    } catch (Exception e) {
-                        context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                        return;
-                    }
-                    // 组合新的 JSON
-                    JSONObject redPacketJSON = new JSONObject();
-                    redPacketJSON.put("senderId", userId);
-                    redPacketJSON.put("type", type);
-                    // 收税的时候 直接扣减
-                    redPacketJSON.put("money", collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money);
-                    redPacketJSON.put("count", count);
-                    redPacketJSON.put("msg", message);
-                    redPacketJSON.put("recivers", recivers);
-                    // 已经抢了这个红包的人数
-                    redPacketJSON.put("got", 0);
-                    // 已经抢了这个红包的人以及抢到的金额
-                    redPacketJSON.put("who", new JSONArray());
-                    // 红包特殊标识，堵漏洞
-                    redPacketJSON.put("msgType", "redPacket");
-
-                    // 税给admin V4没有税
-                    if (notSVIP) {
-                        int tax = money - BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue();
-                        if (tax < 1) {
-                            tax = 1;
-                        }
-                        if (StringUtils.isNotBlank(recivers)) {
-                            final JSONArray reciverArray = new JSONArray(recivers);
-                            final int length = reciverArray.length();
-                            if (length > 1) {
-                                tax *= length;
-                            }else if(StringUtils.equals(type, "average")){
-                                tax *= count;
-                            }
-                        }
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS,
-                                userQueryService.getUserByName("admin").optString(Keys.OBJECT_ID),
-                                Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, tax, userId, System.currentTimeMillis(),
-                                type + " 红包税收，纳税人：" + userName);
-                    }
-                    // 写入数据库
-                    final Transaction transaction = chatRoomRepository.beginTransaction();
-                    try {
-                        msg.put(Common.CONTENT, redPacketJSON.toString());
-                        String oId = chatRoomRepository.add(new JSONObject().put("content", msg.toString()));
-                        msg.put("oId", oId);
-                    } catch (RepositoryException e) {
-                        LOGGER.log(Level.ERROR, "Cannot save ChatRoom message to the database.", e);
-                    }
-                    transaction.commit();
-                    switch (type) {
-                        case "rockPaperScissors":
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateRockRedPacket(msg.optString("oId"), gesture));
-                            msg.put(Common.CONTENT, redPacketJSON.toString());
-                            break;
-                        case "heartbeat":
-                            // 预分配红包
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateHeartbeatRedPacket(msg.optString("oId"), userId, collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money, count, 3));
-                            break;
-                        case "random":
-                            // 预分配红包
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateRedPacket(msg.optString("oId"), userId, collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money, count, 2));
-                            break;
-                        case "specify":
-                            // 发通知
-                            final JSONArray jsonArray = new JSONArray(recivers);
-                            for (Object o : jsonArray) {
-                                final String reciver = (String) o;
-                                final JSONObject user = userQueryService.getUserByName(reciver);
-                                if (Objects.isNull(user) || user.optString("oId").equals(currentUser.optString("oId"))) {
-                                    continue;
-                                }
-                                final JSONObject notification = new JSONObject();
-                                notification.put(Notification.NOTIFICATION_USER_ID, user.optString("oId"));
-                                notification.put(Notification.NOTIFICATION_DATA_ID, msg.optString("oId"));
-                                notificationMgmtService.addRedPacketNotification(notification);
-                            }
-                            break;
-                        default:
-                            // ignore
-                    }
-                    final JSONObject pushMsg = JSONs.clone(msg);
-                    pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
-                    fillPushMessageReactions(pushMsg);
-                    ChatroomChannel.notifyChat(pushMsg);
-
-                    try {
-                        final JSONObject user = userQueryService.getUser(userId);
-                        user.put(UserExt.USER_LATEST_CMT_TIME, System.currentTimeMillis());
-                        userMgmtService.updateUser(userId, user);
-                    } catch (final Exception e) {
-                        LOGGER.log(Level.ERROR, "Update user latest comment time failed", e);
-                    }
-
-                    context.renderJSON(StatusCodes.SUCC);
-                } catch (Exception e) {
-                    LOGGER.log(Level.INFO, "User " + userName + " failed to send a red packet.");
-                }
-            } else if (content.startsWith("[weather]") && content.endsWith("[/weather]")) {
+            if (content.startsWith("[weather]") && content.endsWith("[/weather]")) {
                 String weatherString = content.replaceAll("^\\[weather\\]", "").replaceAll("\\[/weather\\]$", "");
                 JSONObject weather = new JSONObject(weatherString);
                 weather.put("msgType", "weather");

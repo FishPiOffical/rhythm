@@ -142,9 +142,63 @@ public class ApiV3ChatRedPacketService {
         final Transaction root=ApiV3Transactions.strict(requests.beginTransaction());
         try{
             final JSONObject owner=requireActor(actor,false);final JSONObject message=message(messageId);
-            final JSONObject packet=packet(messageId,message);final List<JSONObject> current=slots.current(messageId,true);validateSlots(packet,current);
+            final JSONObject packet=packets.current(messageId,true);
+            if (packet==null) {
+                final JSONObject result=classicDetail(actor,messageId,message);
+                root.commit();
+                return result;
+            }
+            validatePacketMessage(packet,message);
+            final List<JSONObject> current=slots.current(messageId,true);validateSlots(packet,current);
             final JSONObject result=detailInCurrentTransaction(owner,packet,current);root.commit();return result;
         }finally{if(root.isActive())root.rollback();}
+    }
+    private JSONObject classicDetail(final String actor, final String messageId,
+                                     final JSONObject message) throws RepositoryException {
+        final JSONObject envelope, card;
+        try {
+            envelope=new JSONObject(message.getString("content"));
+            card=new JSONObject(envelope.getString("content"));
+        } catch (org.json.JSONException ignored) { throw ApiV3Requests.notFound(); }
+        if (card.has("settlement") || !"redPacket".equals(card.optString("msgType"))) throw ApiV3Requests.notFound();
+        final String sender=card.optString("senderId"), type=card.optString("type");
+        if (!id(sender) || !sender.equals(envelope.optString("userOId"))
+                || !Set.of("random","average","specify","heartbeat","rockPaperScissors","dice").contains(type)) {
+            throw ApiV3Requests.notFound();
+        }
+        final int count=card.optInt("count"), got=card.optInt("got");
+        if (count<1 || got<0 || got>count) throw unavailable();
+        final JSONArray records=card.optJSONArray("who"), claims=new JSONArray();
+        if (records!=null && records.length()>1000) throw unavailable();
+        final Set<String> seen=new HashSet<>();
+        JSONObject current=null;
+        for (int i=0; records!=null && i<records.length(); i++) {
+            final JSONObject row=records.optJSONObject(i);
+            if (row==null) continue;
+            final String userId=row.optString("userId");
+            if (!id(userId) || !(row.opt("userMoney") instanceof Number) || !seen.add(userId)) continue;
+            final JSONObject claim=new JSONObject().put("amount",row.getInt("userMoney"))
+                    .put("claimedAt",classicClaimTime(row.optString("time")));
+            if (actor.equals(userId)) current=new JSONObject(claim.toString());
+            claims.put(claim.put("user",new JSONObject().put("id",userId)
+                    .put("userName",row.optString("userName")).put("userNickname","")
+                    .put("userAvatarURL",ApiV3CommunityDto.safeUrl(row.optString("avatar")))));
+        }
+        final JSONObject result=new JSONObject().put("legacy",true).put("id",messageId).put("type",type)
+                .put("message",card.optString("msg")).put("count",count).put("got",got)
+                .put("sender",publicUser(sender)).put("claims",claims)
+                .put("currentUserClaim",current==null?JSONObject.NULL:current);
+        if (card.opt("money") instanceof Number && card.optInt("money",-1)>=0) result.put("money",card.getInt("money"));
+        final int gesture=card.optInt("gesture",-1);
+        if ("rockPaperScissors".equals(type) && got==count && gesture>=0 && gesture<=2) result.put("senderGesture",gesture);
+        return result;
+    }
+    private static long classicClaimTime(final String value) {
+        if (!value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")) return 0;
+        final SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        format.setLenient(false);
+        try { return Math.max(0,format.parse(value).getTime()); }
+        catch (java.text.ParseException ignored) { return 0; }
     }
     public JSONObject claim(JSONObject viewer,String messageId,String key)throws Exception {return claim(viewer,messageId,new JSONObject(),key);}
     public JSONObject claim(JSONObject viewer,String messageId,JSONObject body,String key)throws Exception {
@@ -272,11 +326,15 @@ public class ApiV3ChatRedPacketService {
     }
     private JSONObject packet(String id,JSONObject message)throws RepositoryException {
         final JSONObject packet=packets.current(id,true);if(packet==null)throw ApiV3Requests.notFound();
+        validatePacketMessage(packet,message);
+        return packet;
+    }
+    private void validatePacketMessage(final JSONObject packet, final JSONObject message) {
         try{
             final JSONObject envelope=new JSONObject(message.getString("content")),card=new JSONObject(envelope.getString("content"));
             if(!ChatRedPacket.MARKER.equals(card.optString("settlement"))||!"redPacket".equals(card.optString("msgType"))
                     ||!packet.getString("senderId").equals(envelope.optString("userOId"))||!packet.getString("type").equals(card.optString("type")))throw unavailable();
-        }catch(ApiV3Exception e){throw e;}catch(RuntimeException e){throw unavailable();}return packet;
+        }catch(ApiV3Exception e){throw e;}catch(RuntimeException e){throw unavailable();}
     }
     private void validateSlots(JSONObject packet,List<JSONObject> rows){
         final int count=exact(packet,"count"),got=exact(packet,"got");final String type=packet.optString("type");
