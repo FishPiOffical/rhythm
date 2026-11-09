@@ -23,6 +23,7 @@ import org.b3log.latke.http.*;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.ChatRoomRepository;
+import org.b3log.symphony.repository.ReactionRepository;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.processor.ApiV3ChatProcessor;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
@@ -41,7 +42,8 @@ import java.util.function.Consumer;
  */
 public class ApiV3ChatQueryServiceTest {
     static void inject(Object bean, String field, Object value) throws Exception {
-        var f = bean.getClass().getDeclaredField(field);
+        var type = bean instanceof ApiV3ChatQueryService ? ApiV3ChatQueryService.class : bean.getClass();
+        var f = type.getDeclaredField(field);
         f.setAccessible(true);
         f.set(bean, value);
     }
@@ -61,7 +63,7 @@ public class ApiV3ChatQueryServiceTest {
 
     static class Fixture implements AutoCloseable {
         final Connection db = DriverManager.getConnection("jdbc:sqlite::memory:");
-        final ApiV3ChatQueryService service = new ApiV3ChatQueryService();
+        final ApiV3ChatQueryService service;
         final ApiV3ChatProcessor processor = new ApiV3ChatProcessor();
         final ApiV3AuthMidware auth = new ApiV3AuthMidware();
         final List<String> sql = new ArrayList<>();
@@ -71,6 +73,11 @@ public class ApiV3ChatQueryServiceTest {
         String scope = "content.read";
 
         Fixture() throws Exception {
+            this(new ApiV3ChatQueryService());
+        }
+
+        Fixture(ApiV3ChatQueryService service) throws Exception {
+            this.service = service;
             try (var s = db.createStatement()) {
                 s.execute("CREATE TABLE chat_room(oId TEXT PRIMARY KEY,content TEXT)");
             }
@@ -98,6 +105,17 @@ public class ApiV3ChatQueryServiceTest {
                 }
             };
             inject(service, "messages", repository);
+            inject(service, "reactions", new ReactionRepository() {
+                @Override
+                public String getName() {
+                    return "reaction";
+                }
+
+                @Override
+                public List<JSONObject> select(String query, Object... args) {
+                    return List.of();
+                }
+            });
             inject(processor, "query", service);
             inject(service, "topics", new ChatTopicMgmtService() {
                 @Override
@@ -169,6 +187,45 @@ public class ApiV3ChatQueryServiceTest {
         Assert.assertFalse(value.toString().contains("PRIVATE"), value.keySet().toString());
     }
 
+    static void verifyReactionReadFailure() throws Exception {
+        var service = new ApiV3ChatQueryService() {
+            @Override
+            protected String render(String content) {
+                return "<p>" + content + "</p>";
+            }
+        };
+        try (var f = new Fixture(service)) {
+            f.message("101", "保留消息");
+            var failing = new ReactionRepository() {
+                @Override
+                public String getName() {
+                    return "reaction";
+                }
+
+                @Override
+                public List<JSONObject> select(String query, Object... args) throws RepositoryException {
+                    throw new RepositoryException("模拟表态表查询失败");
+                }
+            };
+            inject(f.service, "reactions", failing);
+
+            final var page = f.service.list(null, null, 1, "123");
+            Assert.assertEquals(page.getString("nextAfter"), "101");
+            final var realtime = f.service.realtimeSnapshot("101");
+            for (var message : List.of(page.getJSONArray("list").getJSONObject(0),
+                    f.service.detail("101", "123"), realtime.message())) {
+                Assert.assertEquals(message.getString("content"), "保留消息");
+                Assert.assertEquals(message.getString("contentHtml"), "<p>保留消息</p>");
+                Assert.assertTrue(message.getBoolean("reactionsUnavailable"));
+                Assert.assertFalse(message.has("reactions"));
+            }
+            Assert.assertTrue(realtime.selections().isEmpty());
+            f.unavailable = true;
+            Assert.expectThrows(RepositoryException.class, () -> f.service.detail("101", "123"));
+        }
+        System.out.println("PASS 表态查询故障时保留消息列表、详情和实时快照");
+    }
+
     public static void main(String[] args) throws Exception {
         var props = new Properties();
         props.setProperty("runtimeDatabase", "NONE");
@@ -178,6 +235,7 @@ public class ApiV3ChatQueryServiceTest {
         Latkes.setServerHost("localhost");
         Latkes.setServerPort("8080");
         Latkes.setContextPath("");
+        verifyReactionReadFailure();
         try (var f = new Fixture()) {
             for (int i = 101; i <= 110; i++) f.message("" + i, "message-" + i);
             var first = f.service.list(null, null, 3);

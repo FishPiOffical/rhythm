@@ -124,6 +124,14 @@ public class ApiV3RealtimeSessionsTest {
         Assert.assertFalse(otherState.getJSONArray("summary").getJSONObject(0).getBoolean("selected"));
         Assert.assertFalse(other.sent.getLast().getJSONObject("data").has("message"));
         Assert.assertFalse(reaction.getBoolean("selected"));
+        var unavailable = new JSONObject().put("id", "789").put("content", "保留消息")
+                .put("reactionsUnavailable", true);
+        registry.chatChanged("created", "789", 2, unavailable);
+        Assert.assertTrue(own.sent.getLast().getJSONObject("data").getJSONObject("message").similar(unavailable));
+        registry.chatChanged("reactions", "789", 3, unavailable);
+        var failedReaction = own.sent.getLast().getJSONObject("data");
+        Assert.assertTrue(failedReaction.getBoolean("reactionsUnavailable"));
+        Assert.assertFalse(failedReaction.has("reactions"));
         registry.closeChat();
         System.out.println("PASS 两个聊天室连接只收到各自的表态选择");
     }

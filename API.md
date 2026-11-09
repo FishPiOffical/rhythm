@@ -4856,6 +4856,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | --- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
 | -- client | 客户端标记，可能为空 | Web/PC网页端 |
 | -- card | 卡片数据；普通消息及 unavailable 为空对象，字段见下表 | `{}` |
+| -- reactionsUnavailable | 表态查询失败时为 true，消息正文仍可读取 | true |
 | -- reactions | 可读消息的表态快照，含汇总和当前账号的选择 | `{"targetId":"1792304000000","targetType":"chat","groupType":"emoji","currentUserReaction":"","summary":[]}` |
 | - hasMore | 当前查询方向是否还有更多消息；不传游标时指更早消息 | true |
 | - nextBefore | 本批最早消息 ID，用于继续查询更早消息；空列表为空 | 1792304000000 |
@@ -5038,7 +5039,7 @@ JS
 
 > 变更类型为 chat.message.created、chat.message.updated、chat.message.deleted、chat.message.reactions，分别表示消息创建、内容/卡片更新、撤回及 emoji reaction 变化。
 >
-> 创建或更新事件可携带 data.message，表态事件可携带 data.reactions。表态快照包含当前连接所属账号的选择。快照缺失时按消息 ID 补读相应接口。撤回后移除对应缓存。
+> 创建或更新事件可携带 data.message，表态事件可携带 data.reactions。表态快照包含当前连接所属账号的选择。消息快照或表态事件标记 reactionsUnavailable=true 时，显示表态暂不可用并跳过自动补查。未带标记的旧事件缺失快照时，可按消息 ID 补读相应接口。撤回后移除对应缓存。
 >
 > chat.topic_changed 的 data 仅包含 revision；收到后重新读取 GET /api/v3/chat/topic，不按消息 ID 查询。客户端应忽略无法识别的提示类型。
 >

@@ -18,6 +18,8 @@
  */
 package org.b3log.symphony.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
@@ -40,6 +42,7 @@ import java.util.*;
  */
 @Service
 public class ApiV3ChatQueryService {
+    private static final Logger LOGGER = LogManager.getLogger(ApiV3ChatQueryService.class);
     @Inject
     private ChatRoomRepository messages;
     @Inject
@@ -131,7 +134,25 @@ public class ApiV3ChatQueryService {
                 .put("selected", selected).put("users", new JSONArray());
     }
 
-    private void fillReactions(final JSONArray list, final String viewerId) throws RepositoryException {
+    private void fillReactions(final JSONArray list, final String viewerId) {
+        try {
+            readReactions(list, viewerId);
+        } catch (final RepositoryException | RuntimeException failure) {
+            LOGGER.warn("聊天室表态查询失败", failure);
+            for (int i = 0; i < list.length(); i++) {
+                final var message = list.getJSONObject(i);
+                if (hasVisibleContent(message)) markReactionsUnavailable(message);
+            }
+        }
+    }
+
+    private static void markReactionsUnavailable(final JSONObject message) {
+        // 保留消息正文，用独立标记区分查询失败与空表态。
+        message.remove("reactions");
+        message.put("reactionsUnavailable", true);
+    }
+
+    private void readReactions(final JSONArray list, final String viewerId) throws RepositoryException {
         final Map<String, JSONObject> visible = new LinkedHashMap<>();
         for (int i = 0; i < list.length(); i++) {
             final var message = list.getJSONObject(i);
@@ -164,6 +185,16 @@ public class ApiV3ChatQueryService {
     public RealtimeSnapshot realtimeSnapshot(final String id) throws RepositoryException {
         final var message = detail(id);
         if (!hasVisibleContent(message)) return new RealtimeSnapshot(message, Map.of());
+        try {
+            return readRealtimeReactions(id, message);
+        } catch (final RepositoryException | RuntimeException failure) {
+            LOGGER.warn("聊天室实时表态查询失败", failure);
+            markReactionsUnavailable(message);
+            return new RealtimeSnapshot(message, Map.of());
+        }
+    }
+
+    private RealtimeSnapshot readRealtimeReactions(final String id, final JSONObject message) throws RepositoryException {
         // 读取一次供本节点广播使用。大规模表态改由客户端按需读取单条详情。
         final var rows = reactions.select("SELECT reactionUserId,reactionValue FROM `" + reactions.getName()
                 + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId=? ORDER BY oId LIMIT 2001",

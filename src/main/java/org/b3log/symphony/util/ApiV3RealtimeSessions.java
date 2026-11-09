@@ -256,6 +256,7 @@ public final class ApiV3RealtimeSessions {
         } else if (snapshot != null && "reactions".equals(kind) && messageId.equals(snapshot.optString("id"))) {
             final var summary = snapshot.optJSONObject("reactions");
             if (summary != null) data.put("reactions", summary);
+            if (snapshot.optBoolean("reactionsUnavailable")) data.put("reactionsUnavailable", true);
         }
         broadcastChat("chat.message." + kind, data, selections);
     }
