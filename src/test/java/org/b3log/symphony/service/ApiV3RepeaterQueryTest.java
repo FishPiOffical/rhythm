@@ -243,7 +243,7 @@ public class ApiV3RepeaterQueryTest {
             for (int i = 0; i < 200; i++) {
                 var item = f.query.next("", "", "101").getJSONObject("item");
                 int id = Integer.parseInt(item.getString("id"));
-                Assert.assertTrue(id >= 102 && id <= 150);
+                Assert.assertTrue(id >= 102 && id <= 155);
             }
             f.sql("DELETE FROM c WHERE oId<>'101'");
             Assert.assertTrue(f.query.next("", "", "101").isNull("item"));
@@ -251,7 +251,7 @@ public class ApiV3RepeaterQueryTest {
             f.sql("DELETE FROM c");
             Assert.assertTrue(f.query.next("", "", "").isNull("item"));
         }
-        System.out.println("PASS 2 next exclusively uses top 50 before exclusion; excluded only item and empty pool return explicit null");
+        System.out.println("PASS 2 next uses all valid contents before exclusion; excluded only item and empty pool return explicit null");
         try (var f = new Fixture()) {
             f.sql("UPDATE c SET repeaterContentLikeCount=100,repeaterContentCreatedTime=5 WHERE oId IN ('101','102')");
             Assert.assertEquals(f.query.items("", "", 2).getJSONArray("items").getJSONObject(0).getString("id"), "102");
@@ -331,6 +331,36 @@ public class ApiV3RepeaterQueryTest {
             Assert.assertEquals(f.http(null, "items", Map.of()).attr("test.status"), 401);
         }
         System.out.println("PASS 6 actual Dispatcher/controller optional auth and anonymous middleware wiring, Cookie/apiKey never personalize, valid/wrong/expired Bearer and input failures");
-        System.out.println("Repeater isolated tests passed: 6 groups");
+        try (var f = new Fixture()) {
+            f.sql("ALTER TABLE c ADD COLUMN repeaterContentUpdatedTime INT DEFAULT 0");
+            final RepeaterQueryService legacy = new RepeaterQueryService();
+            inject(legacy, "repeaterContentRepository", new RepeaterContentRepository() {
+                public String getName() { return "c"; }
+                public List<JSONObject> select(String sql, Object... args) throws RepositoryException { return f.selectSQL(sql, args); }
+            });
+            inject(legacy, "userRepository", new UserRepository() {
+                public String getName() { return "u"; }
+                public List<JSONObject> select(String sql, Object... args) throws RepositoryException { return f.selectSQL(sql, args); }
+            });
+            final JSONObject board = legacy.leaderboard();
+            Assert.assertEquals(board.getJSONArray("authors").length(), 1);
+            Assert.assertEquals(board.getJSONArray("authors").getJSONObject(0).getLong("likeCount"), 1431L);
+            Assert.assertEquals(board.getJSONArray("items").getJSONObject(0).getString("authorName"), "");
+            Assert.assertEquals(board.getJSONArray("items").length(), 20);
+            f.sql("DELETE FROM c WHERE oId<>'155'");
+            Assert.assertEquals(f.query.next("", "", "").getJSONObject("item").getString("id"), "155");
+            final JSONObject item = legacy.next("fish", "", List.of());
+            Assert.assertEquals(item.getString("oId"), "155");
+            Assert.assertTrue(item.has("repeaterContentSource"));
+            Assert.assertTrue(item.has("repeaterContentUpdatedTime"));
+            Assert.assertEquals(item.getString("repeaterContentAuthorName"), "Bob");
+            Assert.assertNull(legacy.next("fish", "", List.of("155")));
+            f.sql("UPDATE c SET repeaterContentStatus=1");
+            Assert.assertTrue(legacy.leaderboard().getJSONArray("items").isEmpty());
+            Assert.assertTrue(legacy.leaderboard().getJSONArray("authors").isEmpty());
+        }
+        System.out.println("PASS 7 classic discovery full projection and exclusion, low-rank candidate, author totals, deleted exclusion and disabled author privacy");
+        System.out.println("Repeater isolated tests passed: 7 groups");
+
     }
 }

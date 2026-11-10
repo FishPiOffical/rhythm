@@ -19,36 +19,31 @@
 package org.b3log.symphony.service;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
-import org.b3log.latke.repository.CompositeFilterOperator;
-import org.b3log.latke.repository.FilterOperator;
-import org.b3log.latke.repository.PropertyFilter;
-import org.b3log.latke.repository.Query;
-import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Ids;
 import org.b3log.symphony.model.RepeaterContent;
-import org.b3log.symphony.model.RepeaterLike;
 import org.b3log.symphony.repository.RepeaterContentRepository;
-import org.b3log.symphony.repository.RepeaterLikeRepository;
+import org.b3log.symphony.repository.OperationRepository;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
+import org.b3log.symphony.util.ApiV3RepeaterPublicationInputs;
 
 /**
  * 复读机转录站管理服务。
  */
 @Service
 public class RepeaterMgmtService {
+    private static final Logger LOGGER = LogManager.getLogger(RepeaterMgmtService.class);
 
     @Inject
     private RepeaterContentRepository repeaterContentRepository;
-
-    @Inject
-    private RepeaterLikeRepository repeaterLikeRepository;
 
     @Inject
     private RepeaterQueryService repeaterQueryService;
@@ -56,9 +51,18 @@ public class RepeaterMgmtService {
     @Inject
     private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
 
+    @Inject
+    private RepeaterContentModerationService moderationService;
+
+    @Inject
+    private OperationRepository operationRepository;
+
     public JSONObject createUserContent(final String userId, final JSONObject request) throws ServiceException {
-        return createContent(userId, request.optString(RepeaterContent.TYPE),
-                request.optString(RepeaterContent.CONTENT), RepeaterContent.SOURCE_USER);
+        if (request == null || !(request.opt(RepeaterContent.TYPE) instanceof String type)
+                || !(request.opt(RepeaterContent.CONTENT) instanceof String content) || type.length() > 32) {
+            throw new ServiceException("内容格式不合法");
+        }
+        return createContent(userId, type, content, RepeaterContent.SOURCE_USER);
     }
 
     @Inject
@@ -67,7 +71,7 @@ public class RepeaterMgmtService {
     public JSONObject toggleLike(final String userId, final String contentId) throws ServiceException {
         // This endpoint owns its root. Never commit an unrelated caller transaction.
         if (repeaterContentRepository.hasTransactionBegun()) throw new ServiceException("复读机操作暂不可用");
-        final Transaction transaction = org.b3log.symphony.util.ApiV3Transactions.strict(repeaterContentRepository.beginTransaction());
+        final Transaction transaction = ApiV3Transactions.strict(repeaterContentRepository.beginTransaction());
         try {
             final JSONObject result = repeaterLikeMutationService.setInCurrentTransaction(userId, contentId, null);
             transaction.commit();
@@ -75,26 +79,59 @@ public class RepeaterMgmtService {
                     .put(RepeaterContent.LIKE_COUNT, result.getLong("likeCount"));
         } catch (final Exception e) {
             rollback(transaction);
-            if (e instanceof org.b3log.symphony.util.ApiV3Exception api) throw new ServiceException(api.getMessage());
+            if (e instanceof ApiV3Exception api) throw new ServiceException(api.getMessage());
             throw new ServiceException("复读机操作暂不可用");
+        }
+    }
+
+    public void removeContent(final String contentId, final JSONObject operation) throws ServiceException {
+        if (contentId == null || !contentId.matches("[1-9][0-9]{0,18}")
+                || repeaterContentRepository.hasTransactionBegun()) {
+            throw new ServiceException("复读内容删除暂不可用");
+        }
+        final Transaction transaction = ApiV3Transactions.strict(repeaterContentRepository.beginTransaction());
+        try {
+            final var rows = repeaterContentRepository.select("SELECT oId,repeaterContentStatus FROM `"
+                    + repeaterContentRepository.getName() + "` WHERE oId=? FOR UPDATE", contentId);
+            if (rows.size() != 1 || RepeaterContent.STATUS_C_VALID != rows.getFirst().optInt(RepeaterContent.STATUS)) {
+                throw new ServiceException("内容不存在或已删除");
+            }
+            repeaterContentRepository.update(contentId, new JSONObject()
+                    .put(RepeaterContent.STATUS, RepeaterContent.STATUS_C_REMOVED)
+                    .put(RepeaterContent.UPDATED_TIME, System.currentTimeMillis()),
+                    RepeaterContent.STATUS, RepeaterContent.UPDATED_TIME);
+            professionSourceEventCaptureService.targetRemoved("repeater", contentId);
+            operationRepository.add(operation);
+            transaction.commit();
+        } catch (final Exception e) {
+            rollback(transaction);
+            if (e instanceof ServiceException serviceException) throw serviceException;
+            LOGGER.error("Repeater deletion failed, contentId={}", contentId, e);
+            throw new ServiceException("复读内容删除暂不可用");
         }
     }
 
     private JSONObject createContent(final String userId, final String type, final String content,
                                      final String source) throws ServiceException {
         final JSONObject item = buildContent(userId, type, content, source);
-        final Transaction transaction = repeaterContentRepository.beginTransaction();
+        if (RepeaterContent.SOURCE_USER.equals(source)) {
+            try {
+                moderationService.requireApproved(item.getString(RepeaterContent.CONTENT));
+            } catch (final ApiV3Exception e) {
+                throw new ServiceException(e.getMessage());
+            }
+        }
+        if (repeaterContentRepository.hasTransactionBegun()) throw new ServiceException("复读机操作暂不可用");
+        final Transaction transaction = ApiV3Transactions.strict(repeaterContentRepository.beginTransaction());
         try {
             repeaterContentRepository.add(item);
             professionSourceEventCaptureService.repeaterPublished(item);
             repeaterQueryService.fillViewFields(item, userId);
             transaction.commit();
             return item;
-        } catch (final ServiceException e) {
+        } catch (final Exception e) {
             rollback(transaction);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(transaction);
+            if (e instanceof ServiceException failure) throw failure;
             throw new ServiceException(e);
         }
     }
@@ -126,7 +163,12 @@ public class RepeaterMgmtService {
     }
 
     private String normalizeContent(final String content) throws ServiceException {
-        final String plain = Jsoup.clean(StringUtils.trimToEmpty(content), Safelist.none()).replaceAll("\\s+", " ");
+        final String plain;
+        try {
+            plain = ApiV3RepeaterPublicationInputs.plainText(content);
+        } catch (final ApiV3Exception e) {
+            throw new ServiceException("内容格式不合法");
+        }
         if (plain.length() < RepeaterContent.MIN_CONTENT_LENGTH) {
             throw new ServiceException("内容太短");
         }
@@ -134,28 +176,6 @@ public class RepeaterMgmtService {
             throw new ServiceException("内容长度不能超过 " + RepeaterContent.MAX_CONTENT_LENGTH + " 个字符");
         }
         return plain;
-    }
-
-    private JSONObject getLike(final String userId, final String contentId) throws RepositoryException {
-        final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                new PropertyFilter(RepeaterLike.USER_ID, FilterOperator.EQUAL, userId),
-                new PropertyFilter(RepeaterLike.CONTENT_ID, FilterOperator.EQUAL, contentId))).setPageCount(1);
-        return repeaterLikeRepository.getFirst(query);
-    }
-
-    private void addLike(final String userId, final String contentId) throws RepositoryException {
-        final JSONObject like = new JSONObject();
-        like.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-        like.put(RepeaterLike.USER_ID, userId);
-        like.put(RepeaterLike.CONTENT_ID, contentId);
-        like.put(RepeaterLike.CREATED_TIME, System.currentTimeMillis());
-        repeaterLikeRepository.add(like);
-    }
-
-    private int countLikes(final String contentId) throws RepositoryException {
-        final Query query = new Query().setFilter(new PropertyFilter(RepeaterLike.CONTENT_ID,
-                FilterOperator.EQUAL, contentId));
-        return (int) repeaterLikeRepository.count(query);
     }
 
     private void rollback(final Transaction transaction) {

@@ -21,6 +21,9 @@ var HomePersonalize = {
   repeater: {
     type: 'joke',
     item: null,
+    seen: {joke: [], kfc: [], fish: []},
+    exhausted: false,
+    leaderboard: null,
   },
   visiblePresetSizes: {
     compact: 6,

@@ -36,7 +36,7 @@ public final class ApiV3ReportInputs {
 
     public static List<Integer> reasonsFor(final int targetType) {
         return switch (targetType) {
-            case 0, 1, 3 -> CONTENT_REASONS;
+            case 0, 1, 3, 4 -> CONTENT_REASONS;
             case 2 -> USER_REASONS;
             default -> throw ApiV3Requests.invalid();
         };
@@ -46,7 +46,7 @@ public final class ApiV3ReportInputs {
         if (body == null || !Set.of("targetType", "targetId", "reason", "memo").containsAll(body.keySet())
                 || !body.has("targetType") || !body.has("targetId") || !body.has("reason"))
             throw ApiV3Requests.invalid();
-        final int type = ApiV3WriteInputs.integer(body, "targetType", -1, 0, 3);
+        final int type = ApiV3WriteInputs.integer(body, "targetType", -1, 0, 4);
         final int reason = ApiV3WriteInputs.integer(body, "reason", -1, 0, 49);
         if (!(body.opt("targetId") instanceof String target) || !target.matches("[1-9][0-9]{0,18}"))
             throw ApiV3Requests.invalid();

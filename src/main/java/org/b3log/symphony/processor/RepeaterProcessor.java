@@ -34,10 +34,12 @@ import org.b3log.symphony.service.RepeaterMgmtService;
 import org.b3log.symphony.service.RepeaterQueryService;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.RepeaterWriteSecurity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * 复读机转录站接口。
@@ -61,6 +63,8 @@ public class RepeaterProcessor {
 
         Dispatcher.get("/api/repeater/items", processor::list, anonymousView::handle);
         Dispatcher.get("/api/repeater/next", processor::next, anonymousView::handle);
+        Dispatcher.get("/api/repeater/leaderboard", processor::leaderboard, anonymousView::handle);
+        Dispatcher.get("/api/repeater/items/{id}", processor::item, anonymousView::handle);
         Dispatcher.post("/api/repeater", processor::create, loginCheck::handle);
         Dispatcher.post("/api/repeater/{id}/like", processor::like, loginCheck::handle);
     }
@@ -77,15 +81,51 @@ public class RepeaterProcessor {
 
     public void next(final RequestContext context) {
         try {
+            final String encodedSeen = context.param("excludeIds");
+            if (encodedSeen != null && encodedSeen.length() > 8192) {
+                throw new ServiceException("本轮浏览内容过多，请重新开始");
+            }
+            final List<String> seen = new ArrayList<>();
+            if (encodedSeen != null && !encodedSeen.isBlank()) {
+                for (final String id : encodedSeen.split(",")) {
+                    if (!id.matches("[0-9]{1,32}")) throw new ServiceException("请求参数不合法");
+                    seen.add(id);
+                }
+            } else {
+                final String excluded = context.param("excludeId");
+                if (excluded != null && !excluded.isBlank()) seen.add(excluded);
+            }
+            if (seen.size() > 250) throw new ServiceException("本轮浏览内容过多，请重新开始");
             final JSONObject item = repeaterQueryService.next(
-                    context.param(RepeaterContent.TYPE), getUserIdOrBlank(context), context.param("excludeId"));
+                    context.param(RepeaterContent.TYPE), getUserIdOrBlank(context), seen);
             renderSuccess(context, new JSONObject().put("item", null == item ? new JSONObject() : item));
         } catch (final ServiceException e) {
             renderError(context, e.getMessage());
         }
     }
 
+    public void leaderboard(final RequestContext context) {
+        try {
+            renderSuccess(context, repeaterQueryService.leaderboard());
+        } catch (final ServiceException e) {
+            renderError(context, e.getMessage());
+        }
+    }
+
+    public void item(final RequestContext context) {
+        try {
+            final String id = context.pathVar("id");
+            if (id == null || !id.matches("[0-9]{1,32}")) throw new ServiceException("请求参数不合法");
+            final JSONObject item = repeaterQueryService.getValidContent(id);
+            repeaterQueryService.fillViewFields(item, getUserIdOrBlank(context));
+            renderSuccess(context, new JSONObject().put("item", item));
+        } catch (final ServiceException e) {
+            renderError(context, e.getMessage());
+        }
+    }
+
     public void create(final RequestContext context) {
+        if (!RepeaterWriteSecurity.allowed(context)) { context.sendError(403); return; }
         try {
             final JSONObject item = repeaterMgmtService.createUserContent(getUserId(context), context.requestJSON());
             renderSuccess(context, new JSONObject().put("item", item));
@@ -95,6 +135,7 @@ public class RepeaterProcessor {
     }
 
     public void like(final RequestContext context) {
+        if (!RepeaterWriteSecurity.allowed(context)) { context.sendError(403); return; }
         try {
             final JSONObject result = repeaterMgmtService.toggleLike(getUserId(context), context.pathVar("id"));
             renderSuccess(context, result);

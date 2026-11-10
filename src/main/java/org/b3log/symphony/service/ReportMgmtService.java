@@ -30,7 +30,11 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.Report;
+import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.repository.ReportRepository;
+import org.b3log.symphony.repository.RepeaterContentRepository;
+import org.b3log.symphony.util.ApiV3ReportInputs;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
 /**
@@ -53,6 +57,9 @@ public class ReportMgmtService {
      */
     @Inject
     private ReportRepository reportRepository;
+
+    @Inject
+    private RepeaterContentRepository repeaterContentRepository;
 
     /**
      * Language service.
@@ -138,7 +145,30 @@ public class ReportMgmtService {
         report.put(Report.REPORT_HANDLED, Report.REPORT_HANDLED_C_NOT);
 
         try {
+            if (Report.REPORT_DATA_TYPE_C_REPEATER == report.optInt(Report.REPORT_DATA_TYPE)) {
+                final JSONObject normalized;
+                try {
+                    normalized = ApiV3ReportInputs.normalize(new JSONObject().put("targetType", 4)
+                            .put("targetId", report.opt(Report.REPORT_DATA_ID)).put("reason", report.opt(Report.REPORT_TYPE))
+                            .put("memo", report.opt(Report.REPORT_MEMO)));
+                } catch (final ApiV3Exception e) {
+                    throw new ServiceException("举报参数不合法");
+                }
+                final String targetId = normalized.getString("targetId");
+                final var rows = repeaterContentRepository.select("SELECT repeaterContentStatus,repeaterContentAuthorId FROM `"
+                        + repeaterContentRepository.getName() + "` WHERE oId=? FOR UPDATE", targetId);
+                if (rows.size() != 1 || rows.getFirst().optInt(RepeaterContent.STATUS) != RepeaterContent.STATUS_C_VALID
+                        || rows.getFirst().optString(RepeaterContent.AUTHOR_ID).equals(report.optString(Report.REPORT_USER_ID))) {
+                    throw new ServiceException("该内容无法举报");
+                }
+                if (!reportRepository.select("SELECT oId FROM `" + reportRepository.getName()
+                        + "` WHERE reportUserId=? AND reportDataType=4 AND reportDataId=? AND reportHandled=0 LIMIT 1 FOR UPDATE",
+                        report.getString(Report.REPORT_USER_ID), targetId).isEmpty()) return;
+                report.put(Report.REPORT_MEMO, org.apache.commons.lang.StringEscapeUtils.escapeHtml(normalized.getString("memo")));
+            }
             reportRepository.add(report);
+        } catch (final ServiceException e) {
+            throw e;
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Adds a report failed", e);
 

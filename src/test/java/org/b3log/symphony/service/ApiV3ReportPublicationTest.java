@@ -102,6 +102,12 @@ public class ApiV3ReportPublicationTest {
             sql(db, "INSERT INTO c VALUES('20','2','10',0,0),('21','2','10',0,1),('22','1','10',0,0)");
             sql(db, "CREATE TABLE chat(oId TEXT PRIMARY KEY,content TEXT)");
             sql(db, "INSERT INTO chat VALUES('30','{\"userOId\":\"2\",\"userName\":\"reader\"}'),('31','{\"userName\":\"writer\"}')");
+            sql(db, "CREATE TABLE repeater(oId TEXT PRIMARY KEY,repeaterContentAuthorId TEXT,repeaterContentStatus INT)");
+            sql(db, "INSERT INTO repeater VALUES('40','2',0),('41','',0),('42','1',0),('43','2',1)");
+            inject(service, "repeaters", new RepeaterContentRepository() {
+                public String getName() { return "repeater"; }
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException { return F.this.select(q, a); }
+            });
             sql(db, "CREATE TABLE r(oId TEXT PRIMARY KEY,reportUserId TEXT,reportDataId TEXT,reportDataType INT,reportType INT,reportMemo TEXT,reportHandled INT)");
             sql(db, "CREATE TABLE receipts(oId TEXT PRIMARY KEY,value TEXT)");
             inject(service, "users", new UserRepository() {
@@ -431,6 +437,20 @@ public class ApiV3ReportPublicationTest {
             Assert.assertEquals(f.count("r"), 2);
         }
         System.out.println("PASS publication 7 actual integer and 18-digit chat author IDs, no floating-point loss, malformed/self owners remain denied");
+
+        try (var f = new F()) {
+            final String first = f.send(4, "40", "repeater").getString("id");
+            Assert.assertEquals(f.send(4, "40", "repeater-again").getString("id"), first);
+            f.send(4, "41", "seed");
+            error(404, () -> f.send(4, "42", "self"));
+            error(404, () -> f.send(4, "43", "removed"));
+            error(404, () -> f.send(4, "99", "missing"));
+            Assert.assertEquals(f.count("r"), 2);
+            sql(f.db, "UPDATE repeater SET repeaterContentStatus=1 WHERE oId='40'");
+            Assert.assertEquals(f.send(4, "40", "repeater").getString("id"), first);
+            error(404, () -> f.send(4, "40", "deleted-new-key"));
+        }
+        System.out.println("PASS publication 8 repeater and seed targets, duplicate pending report, self/deleted/missing denied, committed replay");
 
     }
 }

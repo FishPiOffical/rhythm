@@ -49,6 +49,7 @@ public class ApiV3ReportQueryService {
             targets.put(target(1, "评论"));
             targets.put(target(2, "用户"));
             targets.put(target(3, "聊天室消息"));
+            targets.put(target(4, "复读内容"));
             return new JSONObject().put("targets", targets);
         } catch (final RepositoryException e) {
             throw new ApiV3Exception(503, "temporarily_unavailable", "举报选项暂不可用");

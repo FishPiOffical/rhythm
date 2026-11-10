@@ -26,6 +26,7 @@ import org.b3log.latke.util.Ids;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
@@ -46,6 +47,8 @@ public class ApiV3ReportPublicationService {
     private CommentRepository comments;
     @Inject
     private ChatRoomRepository chat;
+    @Inject
+    private RepeaterContentRepository repeaters;
     @Inject
     private ReportRepository reports;
     @Inject
@@ -160,6 +163,16 @@ public class ApiV3ReportPublicationService {
         final String suffix = lock ? " FOR UPDATE" : "";
         JSONObject row, article = new JSONObject();
         String author;
+        if (type == 4) {
+            row = one(repeaters.select("SELECT oId,repeaterContentAuthorId,repeaterContentStatus FROM `"
+                    + repeaters.getName() + "` WHERE oId=?" + suffix, target));
+            if (integer(row, RepeaterContent.STATUS) != RepeaterContent.STATUS_C_VALID)
+                throw ApiV3Requests.notFound();
+            author = row.getString(RepeaterContent.AUTHOR_ID);
+            if (author.isEmpty()) return new Target(row, article, author, Set.of());
+            idOrNotFound(author);
+            return new Target(row, article, author, Set.of(author));
+        }
         if (type == 3) {
             row = one(chat.select("SELECT oId,SUBSTR(content,1,102401) AS content FROM `" + chat.getName() + "` WHERE oId=?" + suffix, target));
             final String raw = row.getString("content");

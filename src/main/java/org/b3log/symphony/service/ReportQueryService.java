@@ -35,6 +35,7 @@ import org.b3log.latke.util.Paginator;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Report;
+import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Emotions;
@@ -85,6 +86,9 @@ public class ReportQueryService {
      */
     @Inject
     private CommentRepository commentRepository;
+
+    @Inject
+    private RepeaterContentRepository repeaterContentRepository;
 
     /**
      * Language service.
@@ -164,8 +168,8 @@ public class ReportQueryService {
 
         final List<JSONObject> records = (List<JSONObject>) result.opt(Keys.RESULTS);
         final List<JSONObject> reports = new ArrayList<>();
-        String chatContent = "";
         for (final JSONObject record : records) {
+            String chatContent = "";
             final JSONObject report = new JSONObject();
             report.put(Keys.OBJECT_ID, record.optString(Keys.OBJECT_ID));
             try {
@@ -179,6 +183,18 @@ public class ReportQueryService {
                 report.put(Report.REPORT_DATA_TYPE, dataType);
                 String reportData = langPropsService.get("removedLabel");
                 switch (dataType) {
+                    case Report.REPORT_DATA_TYPE_C_REPEATER:
+                        report.put(Report.REPORT_T_DATA_TYPE_STR, "复读内容");
+                        final JSONObject repeater = repeaterContentRepository.get(dataId);
+                        if (null != repeater) {
+                            reportData = "<div style=\"white-space:pre-wrap\">"
+                                    + Escapes.escapeHTML(repeater.optString(RepeaterContent.CONTENT)) + "</div>";
+                            if (RepeaterContent.STATUS_C_VALID == repeater.optInt(RepeaterContent.STATUS)
+                                    && dataId.matches("[1-9][0-9]{0,18}")) {
+                                report.put("repeaterId", dataId);
+                            }
+                        }
+                        break;
                     case Report.REPORT_DATA_TYPE_C_ARTICLE:
                         report.put(Report.REPORT_T_DATA_TYPE_STR, langPropsService.get("articleLabel"));
                         final JSONObject article = articleRepository.get(dataId);

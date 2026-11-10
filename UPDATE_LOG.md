@@ -2,6 +2,15 @@
 
 本文主要适用于第三方开发者，更新日志会着重偏向API的更新，以便第三方开发者能够方便、快速的更新客户端。
 
+# 261111
+
+## 复读机转录站
+
+- 新旧投稿入口保留换行和内部空白，清理 HTML 标签后进行文本审核。未通过或审核暂不可用时不发布；v3 已成功请求可继续回放。
+- 新增 `GET /api/repeater/leaderboard`，返回作者累计点赞榜、单条点赞榜，各前20条；新增 `GET /api/repeater/items/{id}` 读取有效内容。
+- 新旧随机读取均从全部有效内容取样，不再限于热门前50条；旧随机接口新增可选 `excludeIds`，最多250个，非空时优先于 `excludeId`。
+- `POST /report` 新增 `reportDataType=4`；`GET /api/v3/report/options` 和 `POST /api/v3/reports` 新增 `targetType=4`，用于复读内容举报。原类型编号保持不变。
+
 # 261109
 
 ## 聊天室表态快照
