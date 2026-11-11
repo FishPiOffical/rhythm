@@ -122,7 +122,10 @@ if (publicUser) {
     assert.ok(Number.isSafeInteger(data.onlineMinute) && data.onlineMinute >= 0);
     assert.equal(typeof data.userNo, 'string');
     assert.match(data.userNo, /^(?:[1-9][0-9]{0,18})?$/);
-    assert.deepEqual(Object.keys(data).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL', 'userIntro', 'userURL', 'cardBg', 'userNo', 'userPoint', 'onlineMinute'].sort());
+    assert.equal(typeof data.userRole, 'string');
+    assert.equal(typeof data.userCity, 'string');
+    assert.equal(typeof data.userOnlineFlag, 'boolean');
+    assert.deepEqual(Object.keys(data).sort(), ['id', 'userName', 'userNickname', 'userAvatarURL', 'userIntro', 'userURL', 'cardBg', 'userNo', 'userRole', 'userCity', 'userOnlineFlag', 'userPoint', 'onlineMinute'].sort());
   });
   for (const suffix of suffixes) await check(`public user list ${suffix}`, async () => page(await request(`${root}${suffix}?size=2`)));
 } else console.log('SKIP public profile lists: set API_V3_PUBLIC_USER with all tested lists public');

@@ -34,6 +34,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Breezemoon;
 import org.b3log.symphony.model.Domain;
 import org.b3log.symphony.model.Follow;
+import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.Tag;
 import org.b3log.symphony.model.SystemSettings;
 import org.b3log.symphony.model.UserExt;
@@ -88,6 +89,8 @@ public class ApiV3DiscoveryQueryService {
     private BreezemoonRepository breezemoonRepository;
     @Inject
     private ApiV3ContentDtoService contentDtoService;
+    @Inject
+    private RoleQueryService roleQueryService;
 
     public record Following(String ownerId, String source) {
     }
@@ -289,10 +292,18 @@ public class ApiV3DiscoveryQueryService {
             throw new ApiV3Exception(503, "temporarily_unavailable", "用户统计暂不可用");
         }
         final String memberNumber = user.optString(UserExt.USER_NO);
+        final String roleId = user.optString(User.USER_ROLE);
+        final JSONObject role = roleId.isEmpty() ? null : roleQueryService.getRole(roleId);
+        // 仅当用户明确公开位置时返回城市，不投影其他地理资料。
+        final String city = user.optInt(UserExt.USER_GEO_STATUS, -1) == UserExt.USER_GEO_STATUS_C_PUBLIC
+                ? user.optString(UserExt.USER_CITY) : "";
         return author(user).put("userIntro", user.optString(UserExt.USER_INTRO))
                 .put("userURL", user.optString(User.USER_URL))
                 .put("cardBg", cardBackground(user.optString(Keys.OBJECT_ID)))
                 .put("userNo", memberNumber.matches("[1-9][0-9]{0,18}") ? memberNumber : "")
+                .put("userRole", role == null ? "" : role.optString(Role.ROLE_NAME))
+                .put("userCity", city)
+                .put("userOnlineFlag", user.optBoolean(UserExt.USER_ONLINE_FLAG))
                 .put("userPoint", points).put("onlineMinute", onlineMinutes);
     }
 
