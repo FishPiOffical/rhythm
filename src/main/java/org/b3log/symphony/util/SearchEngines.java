@@ -20,6 +20,8 @@ package org.b3log.symphony.util;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
+import com.github.benmanes.caffeine.cache.Ticker;
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
@@ -38,15 +40,42 @@ public final class SearchEngines {
     private static final Cache<String, Verification> VERIFIED_CRAWLERS = Caffeine.newBuilder()
             .expireAfterWrite(6, TimeUnit.HOURS).maximumSize(10000).build();
 
-    private static final Cache<String, Verification> REJECTED_CRAWLERS = Caffeine.newBuilder()
-            .expireAfterWrite(10, TimeUnit.MINUTES).maximumSize(10000).build();
+    private static final Cache<String, Verification> REJECTED_CRAWLERS = newRejectedCache(Ticker.systemTicker());
+
+    static Cache<String, Verification> newRejectedCache(final Ticker ticker) {
+        return Caffeine.newBuilder().ticker(ticker)
+            .expireAfter(new Expiry<String, Verification>() {
+                @Override
+                public long expireAfterCreate(final String key, final Verification value, final long currentTime) {
+                    // DNS 临时故障短暂缓存，避免一次解析异常持续阻断真实蜘蛛。
+                    return value.transientFailure() ? TimeUnit.SECONDS.toNanos(15) : TimeUnit.MINUTES.toNanos(10);
+                }
+
+                @Override
+                public long expireAfterUpdate(final String key, final Verification value, final long currentTime,
+                                              final long currentDuration) {
+                    return expireAfterCreate(key, value, currentTime);
+                }
+
+                @Override
+                public long expireAfterRead(final String key, final Verification value, final long currentTime,
+                                            final long currentDuration) {
+                    return currentDuration;
+                }
+            }).maximumSize(10000).build();
+    }
 
     private SearchEngines() {
     }
 
     /** 记录实际校验结果；缓存命中保留原校验时间，不为展示再次查询 DNS。 */
     public record Verification(Engine engine, boolean verified, String reason, String ptr, String forward,
-                               long checkedAt, boolean cached) {
+                               long checkedAt, boolean cached, boolean transientFailure) {
+        public Verification(final Engine engine, final boolean verified, final String reason, final String ptr,
+                            final String forward, final long checkedAt, final boolean cached) {
+            this(engine, verified, reason, ptr, forward, checkedAt, cached, false);
+        }
+
         public Verification {
             reason = diagnosticText(reason);
             ptr = diagnosticText(ptr);
@@ -54,7 +83,7 @@ public final class SearchEngines {
         }
 
         private Verification fromCache() {
-            return new Verification(engine, verified, reason, ptr, forward, checkedAt, true);
+            return new Verification(engine, verified, reason, ptr, forward, checkedAt, true, transientFailure);
         }
 
         private static String diagnosticText(final String value) {

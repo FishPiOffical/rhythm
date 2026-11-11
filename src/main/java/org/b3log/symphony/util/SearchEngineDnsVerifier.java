@@ -20,9 +20,11 @@ package org.b3log.symphony.util;
 
 import org.apache.commons.lang.StringUtils;
 
+import javax.naming.CommunicationException;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.ServiceUnavailableException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
@@ -77,7 +79,11 @@ final class SearchEngineDnsVerifier {
             return result(engine, false, allowed ? "正向解析未匹配来源 IP" : "反向域名后缀不符", ptr, forward);
         } catch (final Exception e) {
             // 只保留异常类型与查询阶段，避免把解析器配置等内部信息带入诊断。
-            return result(engine, false, stage + "异常（" + e.getClass().getSimpleName() + "）", ptr, forward);
+            final boolean transientFailure = e instanceof CommunicationException
+                    || e instanceof ServiceUnavailableException;
+            return new SearchEngines.Verification(engine, false,
+                    stage + "异常（" + e.getClass().getSimpleName() + "）", String.join(", ", ptr),
+                    String.join("; ", forward), System.currentTimeMillis(), false, transientFailure);
         }
     }
 

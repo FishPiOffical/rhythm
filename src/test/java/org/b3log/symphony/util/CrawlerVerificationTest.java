@@ -23,15 +23,95 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import javax.naming.CommunicationException;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+import javax.naming.ServiceUnavailableException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
 @Test(singleThreaded = true, timeOut = 60_000)
 public class CrawlerVerificationTest {
     private static final String IP = "192.0.2.13";
     private static final SearchEngines.Engine ENGINE = SearchEngines.Engine.BAIDU;
+
+    public void onlyTemporaryDnsFailuresUseShortCache() {
+        for (final NamingException exception : List.of(new CommunicationException("private resolver"),
+                new ServiceUnavailableException("private resolver"), new NameNotFoundException("private resolver"),
+                new NamingException("private resolver"))) {
+            for (final boolean forward : List.of(false, true)) {
+                final var result = SearchEngineDnsVerifier.verify(IP, ENGINE, (name, attrs) -> {
+                    if (forward && attrs[0].equals("PTR")) return List.of("spider.baidu.com");
+                    throw exception;
+                });
+                Assert.assertFalse(result.verified());
+                Assert.assertEquals(result.transientFailure(), exception instanceof CommunicationException
+                        || exception instanceof ServiceUnavailableException);
+                Assert.assertTrue(result.reason().startsWith(forward ? "正向查询异常" : "反向查询异常"));
+                Assert.assertFalse(result.toString().contains("private resolver"));
+            }
+        }
+    }
+
+    public void transientCacheExpiresAt15SecondsWithoutReadExtension() {
+        final AtomicLong clock = new AtomicLong();
+        final Cache<String, SearchEngines.Verification> cache = SearchEngines.newRejectedCache(clock::get);
+        final var temporary = new SearchEngines.Verification(ENGINE, false, "临时异常", "", "", 1L, false, true);
+        final var mismatch = new SearchEngines.Verification(ENGINE, false, "身份不符", "", "", 1L, false);
+        cache.put("temporary", temporary);
+        cache.put("mismatch", mismatch);
+        clock.set(TimeUnit.SECONDS.toNanos(14));
+        Assert.assertSame(cache.getIfPresent("temporary"), temporary);
+        clock.set(TimeUnit.SECONDS.toNanos(15));
+        Assert.assertNull(cache.getIfPresent("temporary"));
+        Assert.assertSame(cache.getIfPresent("mismatch"), mismatch);
+        clock.set(TimeUnit.MINUTES.toNanos(10));
+        Assert.assertNull(cache.getIfPresent("mismatch"));
+
+        cache.put("updated", mismatch);
+        cache.put("updated", temporary);
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(15));
+        Assert.assertNull(cache.getIfPresent("updated"));
+        cache.put("updated", temporary);
+        cache.put("updated", mismatch);
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(15));
+        Assert.assertSame(cache.getIfPresent("updated"), mismatch);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void expiredTemporaryFailureReverifiesInsteadOfTrustingFailedResult() throws Exception {
+        final Field field = SearchEngines.class.getDeclaredField("REJECTED_CRAWLERS");
+        field.setAccessible(true);
+        final Cache<String, SearchEngines.Verification> cache =
+                (Cache<String, SearchEngines.Verification>) field.get(null);
+        final String ip = "42.236.12.123";
+        final String key = "360:" + ip;
+        final var temporary = new SearchEngines.Verification(SearchEngines.Engine.SO360, false,
+                "临时异常", "", "", 123L, false, true);
+        try {
+            cache.put(key, temporary);
+            final var cached = SearchEngines.crawlerVerification(ip, "360Spider");
+            Assert.assertFalse(cached.verified());
+            Assert.assertTrue(cached.cached());
+            Assert.assertTrue(cached.transientFailure());
+            Assert.assertEquals(cached.checkedAt(), 123L);
+            // 到期后走真实官方网段校验，不以缓存失效本身作为放行依据。
+            cache.policy().expireVariably().orElseThrow().setExpiresAfter(key, 0, TimeUnit.NANOSECONDS);
+            final var recovered = SearchEngines.crawlerVerification(ip, "360Spider");
+            Assert.assertTrue(recovered.verified());
+            Assert.assertFalse(recovered.cached());
+            Assert.assertFalse(recovered.transientFailure());
+            Assert.assertEquals(recovered.reason(), "360 官方网段校验通过");
+        } finally {
+            cache.invalidate(key);
+            final Field verifiedField = SearchEngines.class.getDeclaredField("VERIFIED_CRAWLERS");
+            verifiedField.setAccessible(true);
+            ((Cache<String, SearchEngines.Verification>) verifiedField.get(null)).invalidate(key);
+        }
+    }
 
     public void allDnsEnginesQueryOnlyMatchingAddressFamilyWithoutAny() {
         final Map<SearchEngines.Engine, String> hosts = Map.of(
