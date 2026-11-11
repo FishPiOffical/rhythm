@@ -139,7 +139,8 @@ public class LogsService {
         final ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
         try {
             JSONObject messageInfo = chatRoomRepository.get(oId);
-            log("cr-revoke", getTime(), getAddress(context), userName, messageInfo.toString(), false);
+            // key3 存 oId，方便按 type+key3 精确查询，避免全表 LIKE 扫描
+            log("cr-revoke", getTime(), getAddress(context), oId, messageInfo.toString(), false);
         } catch (Exception ignored) {
         }
     }

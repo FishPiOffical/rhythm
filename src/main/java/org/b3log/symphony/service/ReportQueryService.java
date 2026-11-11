@@ -223,12 +223,26 @@ public class ReportQueryService {
                         final JSONObject redPacket = chatRoomService.getChatMsg(dataId);
                         if (redPacket == null) {
                             try {
-                                JSONObject log = logsRepository.select("" +
-                                                "select * from " + logsRepository.getName() + " " +
-                                                "where data like '%\"oId\":\"" + dataId + "\"%' order by oId desc limit 1;")
-                                        .get(0);
-                                final JSONObject content = new JSONObject(new JSONObject(log.optString("data")).optString(Common.CONTENT));
-                                chatContent = "[该数据已被撤回或删除，此为快照记录] [" + content.optString(User.USER_NAME) + "] " + content.optString("content");
+                                // 先用 type+key3(oId) 精确查，新数据直接命中；
+                                // 历史数据 key3 存的是 userName，回落到 LIKE（但加 type 过滤减少扫描量）
+                                List<JSONObject> preciseRows = logsRepository.select(
+                                        "SELECT * FROM " + logsRepository.getName()
+                                        + " WHERE type='cr-revoke' AND key3='" + dataId.replace("'", "''") + "' ORDER BY oId DESC LIMIT 1");
+                                JSONObject log;
+                                if (!preciseRows.isEmpty()) {
+                                    log = preciseRows.get(0);
+                                } else {
+                                    List<JSONObject> fallback = logsRepository.select(
+                                            "SELECT * FROM " + logsRepository.getName()
+                                            + " WHERE type='cr-revoke' AND data LIKE '%\"oId\":\"" + dataId + "\"%' ORDER BY oId DESC LIMIT 1");
+                                    log = fallback.isEmpty() ? null : fallback.get(0);
+                                }
+                                if (log != null) {
+                                    final JSONObject content = new JSONObject(new JSONObject(log.optString("data")).optString(Common.CONTENT));
+                                    chatContent = "[该数据已被撤回或删除，此为快照记录] [" + content.optString(User.USER_NAME) + "] " + content.optString("content");
+                                } else {
+                                    chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + dataId;
+                                }
                             } catch (Exception e) {
                                 chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + dataId;
                             }
