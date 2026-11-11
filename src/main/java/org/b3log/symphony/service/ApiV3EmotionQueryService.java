@@ -121,6 +121,17 @@ public class ApiV3EmotionQueryService {
     }
 
     public JSONObject items(final String actor, final String groupId, final int page, final int size) {
+        return items(actor, groupId, page, size, null);
+    }
+
+    public JSONObject items(final String actor, final String groupId, final int page, final int size, final String order) {
+        // 排序先于分页。只拼接固定 SQL，避免直接使用请求参数。
+        final String ordering = switch (order == null ? "" : order) {
+            case "", "manual" -> "i.emojiGroupItemSort ASC,i.oId ASC";
+            case "newest" -> "i.emojiGroupItemCreateTime DESC,i.oId DESC";
+            case "oldest" -> "i.emojiGroupItemCreateTime ASC,i.oId ASC";
+            default -> throw ApiV3Requests.invalid();
+        };
         id(groupId);
         pagination(page, size);
         return read(() -> {
@@ -133,7 +144,7 @@ public class ApiV3EmotionQueryService {
                     + "` e ON e.oId=i.emojiGroupItemEmojiId WHERE g.oId=? AND g.emojiGroupUserId=? AND e.emojiStatus=0";
             final long total = items.select("SELECT COUNT(*) AS total" + from, groupId, actor).getFirst().optLong("total");
             final List<JSONObject> rows = items.select("SELECT i.oId,e.oId AS emojiId,i.emojiGroupItemName,i.emojiGroupItemSort,e.emojiUrl" + from
-                    + " ORDER BY i.emojiGroupItemSort ASC,i.oId ASC LIMIT ? OFFSET ?", groupId, actor, size, (page - 1) * size);
+                    + " ORDER BY " + ordering + " LIMIT ? OFFSET ?", groupId, actor, size, (page - 1) * size);
             final JSONArray list = new JSONArray();
             for (final JSONObject row : rows)
                 list.put(new JSONObject().put("id", row.optString("oId")).put("emojiId", row.optString("emojiId"))

@@ -33,6 +33,11 @@ public class ChatRedPacketRepository extends AbstractRepository {
         final var rows=select("SELECT * FROM `"+getName()+"` WHERE oId=?"+(lock?" FOR UPDATE":""),messageId);
         if(rows.size()>1)throw new RepositoryException("packet duplicate");return rows.isEmpty()?null:rows.getFirst();
     }
+    public boolean hasRecentRps(String senderId, long after) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("packet transaction required");
+        return !select("SELECT oId FROM `" + getName() + "` WHERE senderId=? AND type=? AND createdAt>? LIMIT 1 FOR UPDATE",
+                senderId, "rockPaperScissors", after).isEmpty();
+    }
     /** Caller already holds current chat-message row; no deletion or refund is performed here. */
     public void requireSettledForRemoval(String messageId)throws RepositoryException {
         final var packet=current(messageId,true);
