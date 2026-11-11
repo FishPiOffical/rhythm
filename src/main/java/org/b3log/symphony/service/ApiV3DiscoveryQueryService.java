@@ -288,9 +288,11 @@ public class ApiV3DiscoveryQueryService {
         if (points < -9007199254740991L || points > 9007199254740991L || onlineMinutes < 0 || onlineMinutes > 9007199254740991L) {
             throw new ApiV3Exception(503, "temporarily_unavailable", "用户统计暂不可用");
         }
+        final String memberNumber = user.optString(UserExt.USER_NO);
         return author(user).put("userIntro", user.optString(UserExt.USER_INTRO))
                 .put("userURL", user.optString(User.USER_URL))
                 .put("cardBg", cardBackground(user.optString(Keys.OBJECT_ID)))
+                .put("userNo", memberNumber.matches("[1-9][0-9]{0,18}") ? memberNumber : "")
                 .put("userPoint", points).put("onlineMinute", onlineMinutes);
     }
 
