@@ -34,13 +34,33 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SearchEngines {
 
-    private static final Cache<String, Engine> VERIFIED_CRAWLERS = Caffeine.newBuilder()
+    private static final Cache<String, Verification> VERIFIED_CRAWLERS = Caffeine.newBuilder()
             .expireAfterWrite(6, TimeUnit.HOURS).maximumSize(10000).build();
 
-    private static final Cache<String, Boolean> REJECTED_CRAWLERS = Caffeine.newBuilder()
+    private static final Cache<String, Verification> REJECTED_CRAWLERS = Caffeine.newBuilder()
             .expireAfterWrite(10, TimeUnit.MINUTES).maximumSize(10000).build();
 
     private SearchEngines() {
+    }
+
+    /** 记录实际校验结果；缓存命中保留原校验时间，不为展示再次查询 DNS。 */
+    public record Verification(Engine engine, boolean verified, String reason, String ptr, String forward,
+                               long checkedAt, boolean cached) {
+        public Verification {
+            reason = diagnosticText(reason);
+            ptr = diagnosticText(ptr);
+            forward = diagnosticText(forward);
+        }
+
+        private Verification fromCache() {
+            return new Verification(engine, verified, reason, ptr, forward, checkedAt, true);
+        }
+
+        private static String diagnosticText(final String value) {
+            if (value == null) return "";
+            final String clean = value.replaceAll("[\\p{Cntrl}]", " ");
+            return clean.length() > 1024 ? clean.substring(0, 1024) + "…" : clean;
+        }
     }
 
     public enum Engine {
@@ -100,40 +120,52 @@ public final class SearchEngines {
     }
 
     public static Engine verifiedCrawler(final String ip, final String ua) {
+        final Verification result = crawlerVerification(ip, ua);
+        return result != null && result.verified() ? result.engine() : null;
+    }
+
+    public static Verification crawlerVerification(final String ip, final String ua) {
         final Engine engine = detectCrawler(ua);
-        if (null == engine || StringUtils.isBlank(ip)) {
+        if (null == engine) {
             return null;
+        }
+        if (StringUtils.isBlank(ip)) {
+            return new Verification(engine, false, "来源 IP 为空", "", "", System.currentTimeMillis(), false);
         }
 
         final String cacheKey = engine.key() + ':' + ip;
-        final Engine verified = VERIFIED_CRAWLERS.getIfPresent(cacheKey);
+        final Verification verified = VERIFIED_CRAWLERS.getIfPresent(cacheKey);
         if (null != verified) {
-            return verified;
+            return verified.fromCache();
         }
-        if (null != REJECTED_CRAWLERS.getIfPresent(cacheKey)) {
-            return null;
+        final Verification rejected = REJECTED_CRAWLERS.getIfPresent(cacheKey);
+        if (null != rejected) {
+            return rejected.fromCache();
         }
 
-        if (verifyCrawler(ip, engine)) {
-            VERIFIED_CRAWLERS.put(cacheKey, engine);
-            return engine;
+        final Verification result = verifyCrawler(ip, engine);
+        if (result.verified()) {
+            VERIFIED_CRAWLERS.put(cacheKey, result);
+        } else {
+            REJECTED_CRAWLERS.put(cacheKey, result);
         }
-        REJECTED_CRAWLERS.put(cacheKey, true);
-        return null;
+        return result;
     }
 
     public static boolean isVerifiedCrawler(final String ip, final String ua) {
         return null != verifiedCrawler(ip, ua);
     }
 
-    private static boolean verifyCrawler(final String ip, final Engine engine) {
+    private static Verification verifyCrawler(final String ip, final Engine engine) {
         if (Engine.DUCKDUCKGO == engine) {
-            return SearchEngineBotIpRanges.containsDuckDuckGo(ip);
+            final boolean verified = SearchEngineBotIpRanges.containsDuckDuckGo(ip);
+            return new Verification(engine, verified, verified ? "本地网段校验通过" : "本地网段校验未通过",
+                    "", "", System.currentTimeMillis(), false);
         }
         if (supportsDnsVerification(engine)) {
             return SearchEngineDnsVerifier.verify(ip, engine);
         }
-        return false;
+        return new Verification(engine, false, "未支持此爬虫校验", "", "", System.currentTimeMillis(), false);
     }
 
     private static boolean supportsDnsVerification(final Engine engine) {

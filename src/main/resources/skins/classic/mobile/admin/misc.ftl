@@ -93,7 +93,7 @@
                 <p class="security-observation-note">仅统计已识别的搜索爬虫。校验未通过不代表一定伪造。</p>
                 <div class="security-events-wrap" role="region" aria-labelledby="securityCrawlerTitle" tabindex="0">
                     <table class="table security-events security-crawler-summary">
-                        <thead><tr><th>爬虫</th><th>身份校验</th><th>请求次数</th><th>最近访问</th><th>未存明细</th><th>路径</th></tr></thead>
+                        <thead><tr><th>爬虫</th><th>身份校验</th><th>请求次数</th><th>最近访问</th><th>未存明细</th><th>明细</th></tr></thead>
                         <tbody id="securityCrawlerGroups">
                             <#list crawlerStats.groups as item>
                             <tr>
@@ -110,9 +110,18 @@
                     </table>
                 </div>
                 <details id="securityCrawlerDetails">
-                    <summary id="securityCrawlerSelection">访问路径</summary>
+                    <summary id="securityCrawlerSelection">访问明细</summary>
+                    <h4 id="securityCrawlerSourcesTitle">来源与校验</h4>
+                    <p id="securityCrawlerSourcesNote" class="security-observation-note">每个 IP 显示最近校验。</p>
+                    <div class="security-events-wrap" id="securityCrawlerSourcesViewport" role="region"
+                         aria-labelledby="securityCrawlerSourcesTitle" tabindex="0">
+                        <table class="table security-events security-crawler-sources">
+                            <thead><tr><th>来源 IP</th><th>请求次数</th><th>最近访问</th><th>校验结果</th><th>反向域名</th><th>正向解析</th><th>校验时间</th><th>最近请求</th></tr></thead>
+                            <tbody id="securityCrawlerSources"><tr><td colspan="8">请选择爬虫</td></tr></tbody>
+                        </table>
+                    </div>
                     <div class="security-actions">
-                        <button type="button" onclick="SecuritySwitches.latestCrawlerPaths()">最新路径</button>
+                        <button type="button" onclick="SecuritySwitches.latestCrawlerPaths()">最新明细</button>
                         <span>每组最多1000条路径；不含查询参数。</span>
                     </div>
                     <div class="security-events-wrap" id="securityCrawlerPathsViewport" role="region"
@@ -328,7 +337,7 @@ const SecuritySwitches = {
             button.type = 'button';
             button.textContent = '查看';
             button.dataset.crawler = item.key;
-            button.setAttribute('aria-label', item.name + (item.verified ? '已验证' : '未通过') + '访问路径');
+            button.setAttribute('aria-label', item.name + (item.verified ? '已验证' : '未通过') + '访问明细');
             button.addEventListener('click', () => this.selectCrawler(item));
             td.appendChild(button);
             tr.appendChild(td);
@@ -347,9 +356,35 @@ const SecuritySwitches = {
             const button = Array.from(body.querySelectorAll('button')).find(item => item.dataset.crawler === activeKey);
             if (button) button.focus({preventScroll: true});
         }
+        // 分组切换时忽略旧请求；来源与路径分别保持阅读位置。
+        if (data.selectedGroup !== this.crawlerGroup) return;
+        const sourceViewport = document.getElementById('securityCrawlerSourcesViewport');
+        if (sourceViewport.scrollTop === 0 && sourceViewport.scrollLeft === 0) {
+            const sources = document.createDocumentFragment();
+            data.sources.forEach(item => {
+                const tr = document.createElement('tr');
+                [item.ip, item.count, item.lastSeen, item.reason, item.ptr || '—', item.forward || '—',
+                    item.checkedAt, item.cached ? '使用缓存' : '实时校验'].forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                sources.appendChild(tr);
+            });
+            if (!data.sources.length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 8;
+                td.textContent = this.crawlerGroup ? '暂无来源明细' : '请选择爬虫';
+                tr.appendChild(td);
+                sources.appendChild(tr);
+            }
+            document.getElementById('securityCrawlerSources').replaceChildren(sources);
+            document.getElementById('securityCrawlerSourcesNote').textContent =
+                '每个 IP 显示最近校验；未存来源 ' + data.sourceOmitted + ' 次。';
+        }
         const viewport = document.getElementById('securityCrawlerPathsViewport');
-        // 分组切换时忽略旧请求明细；阅读历史路径时不重绘以免打断滚动。
-        if (data.selectedGroup !== this.crawlerGroup || viewport.scrollTop > 0 || viewport.scrollLeft > 0) return;
+        if (viewport.scrollTop > 0 || viewport.scrollLeft > 0) return;
         const paths = document.createDocumentFragment();
         data.paths.forEach(item => {
             const tr = document.createElement('tr');
@@ -375,12 +410,15 @@ const SecuritySwitches = {
         document.getElementById('securityCrawlerDetails').open = true;
         document.getElementById('securityCrawlerSelection').textContent = item.name + ' · ' + (item.verified ? '已验证' : '未通过');
         document.getElementById('securityCrawlerPaths').textContent = '';
+        document.getElementById('securityCrawlerSources').textContent = '';
         return this.latestCrawlerPaths();
     },
     latestCrawlerPaths() {
-        const viewport = document.getElementById('securityCrawlerPathsViewport');
-        viewport.scrollTop = 0;
-        viewport.scrollLeft = 0;
+        ['securityCrawlerPathsViewport', 'securityCrawlerSourcesViewport'].forEach(id => {
+            const viewport = document.getElementById(id);
+            viewport.scrollTop = 0;
+            viewport.scrollLeft = 0;
+        });
         return this.refresh();
     },
     setRefreshMessage(text, failed = false) {

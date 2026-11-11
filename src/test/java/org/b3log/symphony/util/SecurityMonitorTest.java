@@ -213,7 +213,7 @@ public class SecurityMonitorTest {
 
     public void bothObservationTablesRenderEscapedValuesAndEmptyState() throws Exception {
         final var cfg = new Configuration(Configuration.VERSION_2_3_30);
-        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, false, "/<script>unsafe</script>");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "测试校验", "", "", 123L, false), "192.0.2.241", "/<script>unsafe</script>");
         for (String skin : List.of("pc", "mobile")) {
             final String source = java.nio.file.Files.readString(Path.of(
                     "src/main/resources/skins/classic", skin, "admin/misc.ftl"));

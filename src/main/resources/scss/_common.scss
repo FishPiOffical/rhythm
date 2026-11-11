@@ -927,6 +927,19 @@ blockquote {
       white-space: normal;
     }
 
+    .security-crawler-sources {
+      min-width: 1200px;
+
+      td:nth-child(4),
+      td:nth-child(5),
+      td:nth-child(6) {
+        min-width: 180px;
+        max-width: 320px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+    }
+
     button {
       min-width: 44px;
       min-height: 44px;

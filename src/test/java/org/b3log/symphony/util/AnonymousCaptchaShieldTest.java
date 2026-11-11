@@ -236,17 +236,17 @@ public class AnonymousCaptchaShieldTest {
 
     @Test
     public void verifiedCrawlerExemptionUsesVerifierResultNotOnlyUa() throws Exception {
-        @SuppressWarnings("unchecked") final Cache<String, SearchEngines.Engine> verified =
-                (Cache<String, SearchEngines.Engine>) field(SearchEngines.class, "VERIFIED_CRAWLERS");
-        verified.put("google:" + IP, SearchEngines.Engine.GOOGLE);
+        @SuppressWarnings("unchecked") final Cache<String, SearchEngines.Verification> verified =
+                (Cache<String, SearchEngines.Verification>) field(SearchEngines.class, "VERIFIED_CRAWLERS");
+        verified.put("google:" + IP, new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, true, "双向 DNS 校验通过", "crawl.googlebot.com", IP, 123L, false));
         try (final Exchange exchange = new Exchange("/", "GET", null, "Googlebot")) {
             exchange.run(middleware::handle);
             Assert.assertTrue(exchange.reached);
             Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
         } finally { verified.invalidate("google:" + IP); }
-        @SuppressWarnings("unchecked") final Cache<String, Boolean> rejected =
-                (Cache<String, Boolean>) field(SearchEngines.class, "REJECTED_CRAWLERS");
-        rejected.put("google:" + IP, true);
+        @SuppressWarnings("unchecked") final Cache<String, SearchEngines.Verification> rejected =
+                (Cache<String, SearchEngines.Verification>) field(SearchEngines.class, "REJECTED_CRAWLERS");
+        rejected.put("google:" + IP, new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "反向解析无记录", "", "", 123L, false));
         try (final Exchange exchange = new Exchange("/", "GET", null, "Googlebot")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);

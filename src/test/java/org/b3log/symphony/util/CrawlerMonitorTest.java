@@ -86,10 +86,10 @@ public class CrawlerMonitorTest {
     }
 
     public void separatesIdentityAndStripsQueryWithoutLosingTotals() {
-        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, true, "/article/1?apiKey=private#fragment");
-        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, true, "/article/1?other=2");
-        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, false, "/article/2");
-        CrawlerMonitor.record(null, false, "/ignored");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/1?apiKey=private#fragment");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/1?other=2");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/2");
+        CrawlerMonitor.record(null, "", "/ignored");
         final var result = CrawlerMonitor.snapshot("google-verified");
         Assert.assertEquals(rows(result, "groups").size(), 2);
         Assert.assertEquals(rows(result, "paths").getFirst().get("count"), 2L);
@@ -101,9 +101,9 @@ public class CrawlerMonitorTest {
     }
 
     public void boundedPathsKeepExactTotalAndExposeOmissions() {
-        for (int i = 0; i < 1005; i++) CrawlerMonitor.record(SearchEngines.Engine.BING, true, "/article/" + i);
-        CrawlerMonitor.record(SearchEngines.Engine.BING, true, "/article/0");
-        CrawlerMonitor.record(SearchEngines.Engine.BING, true, "/" + "x".repeat(2048));
+        for (int i = 0; i < 1005; i++) CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BING, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/" + i);
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BING, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/0");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BING, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/" + "x".repeat(2048));
         final var result = CrawlerMonitor.snapshot("bing-verified");
         final var group = rows(result, "groups").getFirst();
         Assert.assertEquals(group.get("count"), 1007L);
@@ -117,7 +117,7 @@ public class CrawlerMonitorTest {
         try (var pool = Executors.newFixedThreadPool(4)) {
             final List<java.util.concurrent.Future<?>> tasks = new ArrayList<>();
             for (int i = 0; i < 4; i++) tasks.add(pool.submit(() -> {
-                for (int j = 0; j < 100; j++) CrawlerMonitor.record(SearchEngines.Engine.BAIDU, true, "/");
+                for (int j = 0; j < 100; j++) CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BAIDU, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/");
             }));
             for (var task : tasks) task.get(10, TimeUnit.SECONDS);
         }
@@ -130,15 +130,15 @@ public class CrawlerMonitorTest {
     public void entryRecordsVerifiedAndUnverifiedWithoutChangingDecision() throws Exception {
         final var verify = BeforeRequestHandler.class.getDeclaredMethod("fillBotAttrs", RequestContext.class);
         verify.setAccessible(true);
-        final Cache<String, SearchEngines.Engine> verified =
-                (Cache<String, SearchEngines.Engine>) field(SearchEngines.class, "VERIFIED_CRAWLERS");
-        final Cache<String, Boolean> rejected = (Cache<String, Boolean>) field(SearchEngines.class, "REJECTED_CRAWLERS");
-        verified.put("google:" + IP, SearchEngines.Engine.GOOGLE);
+        final Cache<String, SearchEngines.Verification> verified =
+                (Cache<String, SearchEngines.Verification>) field(SearchEngines.class, "VERIFIED_CRAWLERS");
+        final Cache<String, SearchEngines.Verification> rejected = (Cache<String, SearchEngines.Verification>) field(SearchEngines.class, "REJECTED_CRAWLERS");
+        verified.put("google:" + IP, new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, true, "双向 DNS 校验通过", "crawl.googlebot.com", IP, 123L, false));
         Assert.assertEquals(verify.invoke(null, context("Googlebot")), true);
         Assert.assertTrue(Sessions.isBot());
         Assert.assertEquals(SecurityMonitor.recentEvents().getFirst().get("type"), "crawler");
         verified.invalidateAll();
-        rejected.put("google:" + IP, true);
+        rejected.put("google:" + IP, new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "反向解析无记录", "", "", 123L, false));
         Assert.assertEquals(verify.invoke(null, context("Googlebot")), false);
         Assert.assertFalse(Sessions.isBot());
         Assert.assertEquals(rows(CrawlerMonitor.snapshot(null), "groups").size(), 2);
@@ -152,7 +152,7 @@ public class CrawlerMonitorTest {
     }
 
     public void crawlerDataRequiresExistingSecurityOperator() {
-        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, false, "/private-admin-observation");
+        CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "测试校验", "", "", 123L, false), "192.0.2.241", "/private-admin-observation");
         final var processor = new AdminProcessor();
         for (final String name : List.of("", "other-admin")) {
             Sessions.setUser(name.isEmpty() ? null : new JSONObject().put(User.USER_NAME, name));

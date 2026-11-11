@@ -236,9 +236,10 @@ public class BeforeRequestHandler implements Handler {
     private static boolean fillBotAttrs(final RequestContext context) {
         final String userAgentStr = context.header(Common.USER_AGENT);
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
-        final boolean verified = null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr);
-        CrawlerMonitor.record(claimedEngine, verified, context.requestURI());
+        final SearchEngines.Verification verification = SearchEngines.crawlerVerification(ip, userAgentStr);
+        final SearchEngines.Engine claimedEngine = verification == null ? null : verification.engine();
+        final boolean verified = verification != null && verification.verified();
+        CrawlerMonitor.record(verification, ip, context.requestURI());
         if (verified) {
             logShield(context, ip, "放行", "已验证蜘蛛", "engine=" + claimedEngine.key() + " ua=\"" + shortUa(userAgentStr) + "\"");
             SecurityMonitor.record(context, "crawler", "verified", claimedEngine.displayName() + "：已验证蜘蛛",
