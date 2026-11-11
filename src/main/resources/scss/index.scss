@@ -3674,8 +3674,79 @@ code .dec {
   color: #1428a0;
 }
 
-.article-visit-source--iphone .article-visit-source__icon {
+.article-visit-source--iphone .article-visit-source__icon,
+.article-visit-source--ipad .article-visit-source__icon,
+.article-visit-source--macos .article-visit-source__icon {
   color: #6e6e73;
+}
+
+
+.article-visit-source--qq-browser .article-visit-source__icon {
+  color: #1687ff;
+}
+
+.article-visit-source--quark .article-visit-source__icon {
+  color: #2468f2;
+}
+
+.article-visit-source--uc .article-visit-source__icon {
+  color: #f57c00;
+}
+
+.article-visit-source--huawei .article-visit-source__icon {
+  color: #cf0a2c;
+}
+
+.article-visit-source--honor .article-visit-source__icon {
+  color: #0074ff;
+}
+
+.article-visit-source--miui .article-visit-source__icon {
+  color: #ff6900;
+}
+
+.article-visit-source--vivo .article-visit-source__icon {
+  color: #415fff;
+}
+
+.article-visit-source--heytap .article-visit-source__icon {
+  color: #51bba6;
+}
+
+.article-visit-source--yandex-browser .article-visit-source__icon {
+  color: #fc3f1d;
+}
+
+.article-visit-source--vivaldi .article-visit-source__icon {
+  color: #ef3939;
+}
+
+.article-visit-source--wechat .article-visit-source__icon {
+  color: #07c160;
+}
+
+.article-visit-source--qq-app .article-visit-source__icon {
+  color: #1296db;
+}
+
+.article-visit-source--baidu-app .article-visit-source__icon {
+  color: #3355ff;
+}
+
+.article-visit-source--wecom .article-visit-source__icon {
+  color: #2383ed;
+}
+
+.article-visit-source--linux .article-visit-source__icon {
+  color: #444444;
+}
+
+.article-visit-source--harmonyos .article-visit-source__icon {
+  color: #007dff;
+}
+
+.article-visit-source--openharmony .article-visit-source__icon {
+  color: #007dff;
 }
 
 .article-visit-source--oai-search .article-visit-source__icon {

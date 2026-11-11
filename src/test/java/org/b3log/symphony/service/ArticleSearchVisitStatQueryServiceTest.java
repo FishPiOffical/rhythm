@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.service;
 
+import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.Query;
 import org.b3log.symphony.model.ArticleSearchVisitStat;
 import org.b3log.symphony.repository.ArticleSearchVisitStatRepository;
@@ -25,6 +26,8 @@ import org.b3log.symphony.util.ClientVisitSources;
 import org.b3log.symphony.util.SearchEngines;
 import org.json.JSONObject;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +48,28 @@ import java.util.regex.Pattern;
 public class ArticleSearchVisitStatQueryServiceTest {
 
     private static final Map<SearchEngines.Engine, String> ENGINE_ICONS = new LinkedHashMap<>();
+    private final Map<String, Object> originalProperties = new LinkedHashMap<>();
+
+    @BeforeClass
+    public void useNoDatabaseRepository() throws Exception {
+        final Properties properties = new Properties();
+        properties.setProperty("runtimeDatabase", "NONE");
+        for (final String name : List.of("latkeProps", "localProps")) {
+            final var field = Latkes.class.getDeclaredField(name);
+            field.setAccessible(true);
+            originalProperties.put(name, field.get(null));
+            field.set(null, properties);
+        }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void restoreProperties() throws Exception {
+        for (final var original : originalProperties.entrySet()) {
+            final var field = Latkes.class.getDeclaredField(original.getKey());
+            field.setAccessible(true);
+            field.set(null, original.getValue());
+        }
+    }
 
     static {
         ENGINE_ICONS.put(SearchEngines.Engine.GOOGLE, "visitSourceGoogle");
@@ -131,6 +157,54 @@ public class ArticleSearchVisitStatQueryServiceTest {
         for (final JSONObject stat : stats) {
             final String icon = stat.getString(ArticleSearchVisitStat.SOURCE_ICON);
             Assert.assertTrue(ids.contains(icon), "symbol-defs.js 缺少图标 " + icon);
+        }
+    }
+
+    public void everyClientSourceKeepsItsOwnCountNameAndIcon() throws Exception {
+        final List<JSONObject> rows = new ArrayList<>();
+        int count = 1;
+        for (final ClientVisitSources.Source source : ClientVisitSources.Source.values()) {
+            rows.add(row(source.key(), 0, count++));
+        }
+        final List<JSONObject> stats = service(rows).getStats("a1");
+        Assert.assertEquals(stats.size(), ClientVisitSources.Source.values().length);
+        count = 1;
+        for (final ClientVisitSources.Source source : ClientVisitSources.Source.values()) {
+            final JSONObject stat = stats.get(count - 1);
+            Assert.assertEquals(stat.getString(ArticleSearchVisitStat.SOURCE_KEY), source.key());
+            Assert.assertEquals(stat.getString(ArticleSearchVisitStat.SOURCE_NAME), source.displayName());
+            Assert.assertEquals(stat.getString(ArticleSearchVisitStat.SOURCE_ICON), source.icon());
+            Assert.assertEquals(stat.getString(ArticleSearchVisitStat.SOURCE_TYPE), source.type());
+            Assert.assertEquals(stat.getString(ArticleSearchVisitStat.SOURCE_CSS), source.css());
+            Assert.assertEquals(stat.getInt(ArticleSearchVisitStat.VISIT_CNT), count++);
+        }
+    }
+
+    public void historicalSamsungAndIphoneRowsRemainReadable() throws Exception {
+        final List<JSONObject> stats = service(List.of(
+                row("browser:samsung", 0, 71), row("device:iphone", 0, 82),
+                row("device:ipad", 0, 3), row("device:macos", 0, 4), row("apple", 5, 0))).getStats("a1");
+        Assert.assertEquals(stats.size(), 5);
+        Assert.assertEquals(stats.get(0).getString(ArticleSearchVisitStat.SOURCE_ICON), "visitSourceApple");
+        Assert.assertEquals(stats.get(1).getString(ArticleSearchVisitStat.SOURCE_NAME), "三星浏览器");
+        Assert.assertEquals(stats.get(1).getInt(ArticleSearchVisitStat.VISIT_CNT), 71);
+        Assert.assertEquals(stats.get(2).getString(ArticleSearchVisitStat.SOURCE_ICON), "visitSourceIphone");
+        Assert.assertEquals(stats.get(2).getInt(ArticleSearchVisitStat.VISIT_CNT), 82);
+        Assert.assertEquals(stats.get(3).getString(ArticleSearchVisitStat.SOURCE_ICON), "visitSourceIpad");
+        Assert.assertEquals(stats.get(4).getString(ArticleSearchVisitStat.SOURCE_ICON), "visitSourceMacos");
+    }
+
+    public void clientColorsAndDeviceSymbolsExistOnBothSkins() throws Exception {
+        final String defs = Files.readString(Path.of("src/main/resources/js/symbol-defs.js"));
+        for (final String sheet : List.of("index", "mobile-base")) {
+            final String scss = Files.readString(Path.of("src/main/resources/scss/" + sheet + ".scss"));
+            for (final ClientVisitSources.Source source : ClientVisitSources.Source.values()) {
+                Assert.assertTrue(scss.contains(".article-visit-source--" + source.css()
+                        + " .article-visit-source__icon"), "缺少配色 " + sheet + ":" + source.key());
+            }
+        }
+        for (final String icon : List.of("visitSourceIphone", "visitSourceIpad", "visitSourceMacos")) {
+            Assert.assertTrue(defs.contains("id=\"" + icon + "\""), "缺少设备图标 " + icon);
         }
     }
 

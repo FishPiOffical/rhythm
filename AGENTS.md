@@ -107,6 +107,7 @@
 - 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
 
 ## 关键链路（持续维护）
+- 文章浏览器/设备来源仅由 `ClientVisitSources` 分类，经原浏览量去重后记入来源表；不可用于蜘蛛身份或风控放行。宿主优先于内核，鸿蒙仅认明确系统标识；历史 `browser:samsung`/`device:iphone` 保留，新增设备不回填，iPad桌面UA不推测；设备图标独立于Applebot。
 - 验证码盾集中在 `util/AnonymousCaptchaShield`；原中间件保留身份解析与匿名阅读限制，全局入口须在 CC 后、CORS 前调用黑名单拦截。极验共享校验、状态及开关只经此类访问；未经阿达明确允许，禁止修改、移动、删除该类及各处受保护调用，禁止增加绕过分支。修改获批后才可同步策略版本、`tools/captcha-shield-lock.json` 与回归；部署前运行 `python tools/check-captcha-shield.py`，不得自动重建指纹来消除失败。范围和验收见 `docs/captcha-shield.md`。
 - v3登录时间只在ApiV3TokenMgmtService.issue与AppLoginService.exchange签发根内记录，失败同回滚；刷新/普通认证/OAuth授权不记录。只更新userLatestLoginTime，缓存提交后失效，不复用会改在线标志和地理资料的updateOnlineStatus。
 - 职业来源事件未关联外部应用/请求时保留sourceAppId/externalRequestId为NULL，不能以空字符串占位；二者有组合唯一约束。消费验证须区分受控来源输入与真实业务捕获/结算。
