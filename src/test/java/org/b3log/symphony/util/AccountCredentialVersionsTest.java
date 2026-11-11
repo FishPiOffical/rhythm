@@ -14,24 +14,26 @@ import org.testng.annotations.Test;
 
 public class AccountCredentialVersionsTest {
     @Test(timeOut = 60_000)
-    public void acceptsLegacyKeyWhenPasswordMatchesAfterCredentialVersionChanges() {
-        Assert.assertTrue(AccountCredentialVersions.matchesPayload(true, 4, 0, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(true, 4, 0, "password", "old-password"));
+    public void acceptsLegacyKeyOnlyForLegacyCredentialVersion() {
+        Assert.assertTrue(AccountCredentialVersions.matchesPayload(0, 0, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(0, 0, "password", "old-password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 0, "password", "password"));
     }
 
     @Test(timeOut = 60_000)
     public void requiresMatchingVersionForNewKey() {
-        Assert.assertTrue(AccountCredentialVersions.matchesPayload(false, 4, 4, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(false, 4, 3, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(false, 4, 4, "password", "old-password"));
+        Assert.assertTrue(AccountCredentialVersions.matchesPayload(4, 4, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 3, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 4, "password", "old-password"));
     }
 
     public static void main(final String[] args) {
-        Assert.assertTrue(AccountCredentialVersions.matchesPayload(true, 4, 0, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(true, 4, 0, "password", "old-password"));
-        Assert.assertTrue(AccountCredentialVersions.matchesPayload(false, 4, 4, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(false, 4, 3, "password", "password"));
-        Assert.assertFalse(AccountCredentialVersions.matchesPayload(false, 4, 4, "password", "old-password"));
+        Assert.assertTrue(AccountCredentialVersions.matchesPayload(0, 0, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(0, 0, "password", "old-password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 0, "password", "password"));
+        Assert.assertTrue(AccountCredentialVersions.matchesPayload(4, 4, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 3, "password", "password"));
+        Assert.assertFalse(AccountCredentialVersions.matchesPayload(4, 4, "password", "old-password"));
         System.out.println("PASS API key legacy and credential epoch compatibility");
     }
 }
