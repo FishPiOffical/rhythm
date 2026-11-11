@@ -95,6 +95,44 @@
                 <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
             <#if currentUser.userName == "adlered">
+            <div class="security-monitor security-crawlers">
+                <div class="security-monitor-heading">
+                    <h3 id="securityCrawlerTitle">爬虫访问</h3><span>本次启动 · 重启清空</span>
+                </div>
+                <p class="security-observation-note">仅统计已识别的搜索爬虫。校验未通过不代表一定伪造。</p>
+                <div class="security-events-wrap" role="region" aria-labelledby="securityCrawlerTitle" tabindex="0">
+                    <table class="table security-events security-crawler-summary">
+                        <thead><tr><th>爬虫</th><th>身份校验</th><th>请求次数</th><th>最近访问</th><th>未存明细</th><th>路径</th></tr></thead>
+                        <tbody id="securityCrawlerGroups">
+                            <#list crawlerStats.groups as item>
+                            <tr>
+                                <td>${item.name?html}</td>
+                                <td>${item.verified?then('已验证','未通过')}</td>
+                                <td>${item.count?c}</td>
+                                <td>${item.lastSeen?html}</td>
+                                <td>${item.omitted?c}</td>
+                                <td><button type="button" data-crawler="${item.key?html}">查看</button></td>
+                            </tr>
+                            <#else><tr><td colspan="6">暂无爬虫访问</td></tr>
+                            </#list>
+                        </tbody>
+                    </table>
+                </div>
+                <details id="securityCrawlerDetails">
+                    <summary id="securityCrawlerSelection">访问路径</summary>
+                    <div class="security-actions">
+                        <button type="button" onclick="SecuritySwitches.latestCrawlerPaths()">最新路径</button>
+                        <span>每组最多1000条路径；不含查询参数。</span>
+                    </div>
+                    <div class="security-events-wrap" id="securityCrawlerPathsViewport" role="region"
+                         aria-labelledby="securityCrawlerSelection" tabindex="0">
+                        <table class="table security-events security-crawler-paths">
+                            <thead><tr><th>路径</th><th>请求次数</th><th>最近访问</th></tr></thead>
+                            <tbody id="securityCrawlerPaths"><tr><td colspan="3">请选择爬虫</td></tr></tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
             <div class="security-monitor security-observations">
                 <div class="security-monitor-heading"><h3 id="securityObservationTitle">链路观测</h3><span>本次启动 · 最近2小时 · 最多200条</span></div>
                 <p class="security-observation-note">按来源 IP 关联；页面渲染不代表浏览器已显示，集合核对不代表网络拦截。</p>
@@ -293,6 +331,79 @@ const SecuritySwitches = {
         document.getElementById('securityObservationRetention').textContent =
             '已过期或淘汰 ' + (data.observationDiscarded || 0) + ' 条；重启清空。未有后续访问时保持待确认。';
     },
+    crawlerGroup: '',
+    renderCrawlers(data) {
+        const body = document.getElementById('securityCrawlerGroups');
+        if (!body || !data) return;
+        const activeKey = document.activeElement && document.activeElement.dataset.crawler;
+        const rows = document.createDocumentFragment();
+        data.groups.forEach(item => {
+            const tr = document.createElement('tr');
+            [item.name, item.verified ? '已验证' : '未通过', item.count, item.lastSeen, item.omitted].forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            const td = document.createElement('td');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = '查看';
+            button.dataset.crawler = item.key;
+            button.setAttribute('aria-label', item.name + (item.verified ? '已验证' : '未通过') + '访问路径');
+            button.addEventListener('click', () => this.selectCrawler(item));
+            td.appendChild(button);
+            tr.appendChild(td);
+            rows.appendChild(tr);
+        });
+        if (!data.groups.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.textContent = '暂无爬虫访问';
+            tr.appendChild(td);
+            rows.appendChild(tr);
+        }
+        body.replaceChildren(rows);
+        if (activeKey) {
+            const button = Array.from(body.querySelectorAll('button')).find(item => item.dataset.crawler === activeKey);
+            if (button) button.focus({preventScroll: true});
+        }
+        const viewport = document.getElementById('securityCrawlerPathsViewport');
+        // 分组切换时忽略旧请求明细；阅读历史路径时不重绘以免打断滚动。
+        if (data.selectedGroup !== this.crawlerGroup || viewport.scrollTop > 0 || viewport.scrollLeft > 0) return;
+        const paths = document.createDocumentFragment();
+        data.paths.forEach(item => {
+            const tr = document.createElement('tr');
+            [item.path, item.count, item.lastSeen].forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                tr.appendChild(td);
+            });
+            paths.appendChild(tr);
+        });
+        if (!data.paths.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 3;
+            td.textContent = this.crawlerGroup ? '暂无路径明细' : '请选择爬虫';
+            tr.appendChild(td);
+            paths.appendChild(tr);
+        }
+        document.getElementById('securityCrawlerPaths').replaceChildren(paths);
+    },
+    selectCrawler(item) {
+        this.crawlerGroup = item.key;
+        document.getElementById('securityCrawlerDetails').open = true;
+        document.getElementById('securityCrawlerSelection').textContent = item.name + ' · ' + (item.verified ? '已验证' : '未通过');
+        document.getElementById('securityCrawlerPaths').textContent = '';
+        return this.latestCrawlerPaths();
+    },
+    latestCrawlerPaths() {
+        const viewport = document.getElementById('securityCrawlerPathsViewport');
+        viewport.scrollTop = 0;
+        viewport.scrollLeft = 0;
+        return this.refresh();
+    },
     setRefreshMessage(text, failed = false) {
         const message = document.getElementById('securityRefreshMessage');
         message.textContent = text;
@@ -301,7 +412,8 @@ const SecuritySwitches = {
     refresh(silent = false) {
         if (this.refreshing) return;
         this.refreshing = true;
-        return fetch(this.servePath + '/admin/security/monitor')
+        const requestedCrawler = this.crawlerGroup;
+        return fetch(this.servePath + '/admin/security/monitor' + (this.crawlerGroup ? '?crawler=' + encodeURIComponent(this.crawlerGroup) : ''))
             .then(response => {
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 return response.json();
@@ -312,6 +424,7 @@ const SecuritySwitches = {
                     throw new Error(result.msg || '监控数据无效');
                 }
                 this.renderObservations(data);
+                this.renderCrawlers(data.crawlers);
                 document.getElementById('securityTotal').textContent = data.total;
                 document.getElementById('securityLast10').textContent = data.last10Minutes;
                 const viewport = document.getElementById('securityEventsViewport');
@@ -326,7 +439,10 @@ const SecuritySwitches = {
                 this.setRefreshMessage('已更新 ' + new Date().toLocaleTimeString());
             })
             .catch(error => this.setRefreshMessage('刷新失败：' + error.message, true))
-            .finally(() => { this.refreshing = false; });
+            .finally(() => {
+                this.refreshing = false;
+                if (requestedCrawler !== this.crawlerGroup) return this.refresh();
+            });
     },
     showLatest() {
         const viewport = document.getElementById('securityEventsViewport');
@@ -341,6 +457,13 @@ const SecuritySwitches = {
     startAutoRefresh() {
         const toggle = document.getElementById('securityAutoRefresh');
         if (!toggle) return;
+        const crawlerBody = document.getElementById('securityCrawlerGroups');
+        if (crawlerBody) crawlerBody.querySelectorAll('button[data-crawler]').forEach(button => {
+            button.addEventListener('click', () => this.selectCrawler({
+                key: button.dataset.crawler, name: button.closest('tr').cells[0].textContent,
+                verified: button.closest('tr').cells[1].textContent === '已验证'
+            }));
+        });
         const viewport = document.getElementById('securityEventsViewport');
         viewport.addEventListener('scroll', () => {
             if (viewport.scrollTop === 0 && viewport.scrollLeft === 0 && this.pendingEvents) {

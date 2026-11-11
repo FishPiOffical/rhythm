@@ -48,6 +48,7 @@
 - 安全基线（已审计）：防扫描验证码链路核心在 `BeforeRequestHandler` + `AnonymousViewCheckMidware#handle` + `CaptchaProcessor#validateCaptcha`；`LoginCheckMidware#handle` 负责登录态校验（含 apiKey），两套逻辑都不可被绕过。
 - 安全面板约定：CC/验证码/首访验证与请求阈值均为进程内临时状态，重启恢复默认；`DEVELOPMENT` 才允许统一保存，`PRODUCTION` 只读且服务端拒绝所有开关写入。统计与自检为有界内存数据，不写数据库、不代表完整生产审计。
 - 安全链路观测复用`SecurityMonitor`（2小时/200条，重启清空），`SkinRenderer`真实渲染后确认页面结果；后台/静态请求不能冒充验证后恢复。ipset须退出结果+成员核实，集合成员不代表真实丢包；监控不自动解封/加白，缺后续保持待确认。
+- 爬虫运行统计在`CrawlerMonitor`，复用入口验证结果，已验证/校验未通过分组且不能把后者断言为伪造；每组1000条去查询参数路径，超出计数保留。仅adlered经原后台监控读取，重启清空；不覆盖Nginx/ipset提前拦截或独立WebSocket链路。
 - 验证码盾验收进度在 `.codex-tasks/captcha-shield-e2e`；固定L加5个源IP、DPAPI密码，不读写`jiyan.key`。每次浏览器测试先用两个独立localhost窗口登录baseline/admin后关闭，恢复业务账号IP；不清封禁/加白。监控/自检服务端仅允许`adlered`独立L会话；禁止为跑通工具放宽权限。
 - 验收菜单8通过 `tools/captcha-shield-suite.mjs` 组合模块并复用选择，菜单7固定L/A/B；日志须匹配本轮事件及统计，解封D按服务端实际IP格式操作；`results.json` 保留结果，失败保留浏览器，隔离HTTP夹具通过不能当真实极验或Linux ipset通过。
 - 验证码盾验收统一PRODUCTION，不开发DEVELOPMENT写入测试；可选`pressure`只用E真实绑定HTTP（不带Cookie、不跟跳转），按服务端固定分钟验证匿名阈值及429，监控独立L/adlered；应用封禁保留，Windows结果不证明ipset成功。

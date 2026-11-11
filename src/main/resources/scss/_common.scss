@@ -907,6 +907,43 @@ blockquote {
     line-height: 1.7;
   }
 
+  .security-crawlers {
+    .security-events-wrap {
+      max-height: min(40vh, 360px);
+    }
+
+    .security-events {
+      min-width: 640px;
+
+      td {
+        min-width: 0;
+        white-space: nowrap;
+      }
+    }
+
+    .security-crawler-paths td:first-child {
+      min-width: 240px;
+      max-width: 600px;
+      white-space: normal;
+    }
+
+    button {
+      min-width: 44px;
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    details {
+      margin-top: 14px;
+    }
+
+    summary {
+      padding: 12px 0;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  }
+
   .security-observations {
     .security-events-wrap {
       max-height: min(40vh, 360px);

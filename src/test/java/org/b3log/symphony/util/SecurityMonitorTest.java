@@ -213,6 +213,7 @@ public class SecurityMonitorTest {
 
     public void bothObservationTablesRenderEscapedValuesAndEmptyState() throws Exception {
         final var cfg = new Configuration(Configuration.VERSION_2_3_30);
+        CrawlerMonitor.record(SearchEngines.Engine.GOOGLE, false, "/<script>unsafe</script>");
         for (String skin : List.of("pc", "mobile")) {
             final String source = java.nio.file.Files.readString(Path.of(
                     "src/main/resources/skins/classic", skin, "admin/misc.ftl"));
@@ -223,16 +224,18 @@ public class SecurityMonitorTest {
             SecurityMonitor.ipsetResult("<img src=x>", "封禁", false, "<script>unsafe</script>");
             final var output = new java.io.StringWriter();
             template.process(Map.of("currentUser", Map.of("userName", "adlered"),
-                    "securityStats", SecurityMonitor.snapshot()), output);
+                    "securityStats", SecurityMonitor.snapshot(), "crawlerStats", CrawlerMonitor.snapshot(null)), output);
             Assert.assertTrue(output.toString().contains("&lt;script&gt;"));
             Assert.assertFalse(output.toString().contains("<script>unsafe"));
             final var hidden = new java.io.StringWriter();
             template.process(Map.of("currentUser", Map.of("userName", "other-admin"),
                     "securityStats", SecurityMonitor.snapshot()), hidden);
             Assert.assertFalse(hidden.toString().contains("链路观测"));
+            Assert.assertFalse(hidden.toString().contains("爬虫访问"));
             final var empty = new java.io.StringWriter();
             template.process(Map.of("currentUser", Map.of("userName", "adlered"),
-                    "securityStats", Map.of("observations", List.of(), "observationDiscarded", 0)), empty);
+                    "securityStats", Map.of("observations", List.of(), "observationDiscarded", 0),
+                    "crawlerStats", CrawlerMonitor.snapshot(null)), empty);
             Assert.assertTrue(empty.toString().contains("暂无观测"));
         }
     }

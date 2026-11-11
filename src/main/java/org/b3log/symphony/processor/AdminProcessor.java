@@ -2665,6 +2665,9 @@ public class AdminProcessor {
         dataModel.put("securitySwitchEditable", Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode());
         dataModel.put("securityStats", SecurityMonitor.snapshot());
         dataModel.put("securityEvents", SecurityMonitor.recentEvents());
+        if (isSecurityOperator(getCurrentUser(context))) {
+            dataModel.put("crawlerStats", CrawlerMonitor.snapshot(null));
+        }
         dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
@@ -2819,6 +2822,7 @@ public class AdminProcessor {
             return;
         }
         context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecurityMonitor.snapshot())
+                .put("crawlers", CrawlerMonitor.snapshot(context.param("crawler")))
                 .put("events", SecurityMonitor.recentEvents()));
     }
 

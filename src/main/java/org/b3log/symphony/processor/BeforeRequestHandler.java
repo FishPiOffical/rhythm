@@ -45,6 +45,7 @@ import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.Firewall;
 import org.b3log.symphony.util.SecurityMonitor;
+import org.b3log.symphony.util.CrawlerMonitor;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
@@ -87,6 +88,7 @@ public class BeforeRequestHandler implements Handler {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (context.header(Common.USER_AGENT) == null) {
             logShield(context, ip, "拒绝", "缺少UA", null);
+            SecurityMonitor.record(context, "request", "deny", "缺少UA", "BeforeRequestHandler");
             context.sendStatus(418);
             context.abort();
             return;
@@ -235,8 +237,12 @@ public class BeforeRequestHandler implements Handler {
         final String userAgentStr = context.header(Common.USER_AGENT);
         final String ip = Requests.getRemoteAddr(context.getRequest());
         final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
-        if (null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr)) {
+        final boolean verified = null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr);
+        CrawlerMonitor.record(claimedEngine, verified, context.requestURI());
+        if (verified) {
             logShield(context, ip, "放行", "已验证蜘蛛", "engine=" + claimedEngine.key() + " ua=\"" + shortUa(userAgentStr) + "\"");
+            SecurityMonitor.record(context, "crawler", "verified", claimedEngine.displayName() + "：已验证蜘蛛",
+                    "BeforeRequestHandler -> SearchEngines");
             Sessions.setBot(true);
             return true;
         }

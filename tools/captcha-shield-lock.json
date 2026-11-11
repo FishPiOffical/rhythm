@@ -14,7 +14,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
       "method": "public void handle(final RequestContext context)",
-      "sha256": "b8eeb6e36b30a6bda526a1f29ea10a9f5f26e8da5af477fb50de033dfd76b4c9"
+      "sha256": "f013df922577d69c0de6f5dad56a27ab8ae1d6380a7541d7082466d40cecb11f"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
@@ -39,7 +39,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void showMisc(final RequestContext context)",
-      "sha256": "34f8ff905996992db535aab9eade15774bef227855383a76fbcc612a73bd5263"
+      "sha256": "b2902e02741e877cc5699621090f64526d50a592b88dc767a23ca8069ac9b0c3"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
