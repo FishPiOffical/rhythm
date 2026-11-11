@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Search engine crawler IP ranges.
@@ -54,6 +55,28 @@ final class SearchEngineBotIpRanges {
 
     static boolean contains360(final String ip) {
         return contains(ip, SO360_RANGES);
+    }
+
+    static boolean supportsSearchCrawler(final SearchEngines.Engine engine) {
+        return engine == SearchEngines.Engine.OAI_SEARCH || engine == SearchEngines.Engine.CLAUDE_SEARCH
+                || engine == SearchEngines.Engine.PERPLEXITY || engine == SearchEngines.Engine.MISTRAL_INDEX;
+    }
+
+    static boolean containsSearchCrawler(final String ip, final SearchEngines.Engine engine) {
+        // 来源必须是地址字面量，不能把请求传入的主机名再解析为可信地址。
+        if (ip == null || !(ip.matches("[0-9.]+") || (ip.contains(":") && ip.matches("[0-9a-fA-F:.]+")))) {
+            return false;
+        }
+        return contains(ip, SearchCrawlerRanges.RANGES.getOrDefault(engine, List.of()));
+    }
+
+    // 各搜索角色独立加载官方快照，不合并训练或用户触发抓取器的网段；请求期间不下载列表。
+    private static final class SearchCrawlerRanges {
+        private static final Map<SearchEngines.Engine, List<CidrBlock>> RANGES = Map.of(
+                SearchEngines.Engine.OAI_SEARCH, loadRanges("/search-engines/oai-search-bot-prefixes.json", "OAI-SearchBot"),
+                SearchEngines.Engine.CLAUDE_SEARCH, loadRanges("/search-engines/claude-search-bot-prefixes.json", "Claude-SearchBot"),
+                SearchEngines.Engine.PERPLEXITY, loadRanges("/search-engines/perplexity-bot-prefixes.json", "PerplexityBot"),
+                SearchEngines.Engine.MISTRAL_INDEX, loadRanges("/search-engines/mistral-index-bot-prefixes.json", "MistralAI-Index"));
     }
 
     private static boolean contains(final String ip, final List<CidrBlock> ranges) {

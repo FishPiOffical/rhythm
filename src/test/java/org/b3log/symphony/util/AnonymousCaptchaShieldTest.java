@@ -254,6 +254,36 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void newSearchRolesReuseVerifiedExemptionWithoutWhitelistingOrdinaryTraffic() throws Exception {
+        final Cache<String, SearchEngines.Verification> verified =
+                (Cache<String, SearchEngines.Verification>) field(SearchEngines.class, "VERIFIED_CRAWLERS");
+        for (final var role : Map.of(SearchEngines.Engine.OAI_SEARCH, "OAI-SearchBot",
+                SearchEngines.Engine.CLAUDE_SEARCH, "Claude-SearchBot",
+                SearchEngines.Engine.PERPLEXITY, "PerplexityBot", SearchEngines.Engine.APPLE, "Applebot",
+                SearchEngines.Engine.MISTRAL_INDEX, "MistralAI-Index").entrySet()) {
+            final String key = role.getKey().key() + ':' + IP;
+            // 隔离来源校验结果，验证真实中间件不因角色扩充而把 IP 加入永久白名单。
+            verified.put(key, new SearchEngines.Verification(role.getKey(), true, "测试校验", "", "", 123L, false));
+            try {
+                try (final Exchange exchange = new Exchange("/", "GET", null, role.getValue() + "/1.0")) {
+                    exchange.run(middleware::handle);
+                    Assert.assertTrue(exchange.reached, role.getValue());
+                    Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
+                    Assert.assertFalse(whitelist().contains(IP));
+                }
+                try (final Exchange exchange = new Exchange("/", "GET", null, UA)) {
+                    exchange.run(middleware::handle);
+                    Assert.assertEquals(exchange.status, 302);
+                }
+            } finally {
+                verified.invalidate(key);
+                reset();
+            }
+        }
+    }
+
+    @Test
     public void globalBlacklistPrecedesCorsAndDoesNotDependOnPageAuth() throws Exception {
         cache("ipBlacklistCache").put(IP, true);
         Firewall.setEnabled(false);

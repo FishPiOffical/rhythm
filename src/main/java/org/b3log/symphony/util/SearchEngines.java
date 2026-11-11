@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Search engine verification and source detection.
@@ -70,14 +71,27 @@ public final class SearchEngines {
         SOGOU("sogou", "搜狗"),
         YANDEX("yandex", "Yandex"),
         SO360("360", "360"),
-        DUCKDUCKGO("duckduckgo", "DuckDuckGo");
+        DUCKDUCKGO("duckduckgo", "DuckDuckGo"),
+        OAI_SEARCH("oai-search", "OAI-SearchBot", "oai-searchbot"),
+        CLAUDE_SEARCH("claude-search", "Claude-SearchBot", "claude-searchbot"),
+        PERPLEXITY("perplexity", "PerplexityBot", "perplexitybot"),
+        APPLE("apple", "Applebot", "applebot"),
+        MISTRAL_INDEX("mistral-index", "MistralAI-Index", "mistralai-index");
 
         private final String key;
         private final String displayName;
+        private final Pattern crawlerProduct;
 
         Engine(final String key, final String displayName) {
+            this(key, displayName, null);
+        }
+
+        Engine(final String key, final String displayName, final String product) {
             this.key = key;
             this.displayName = displayName;
+            // 按完整产品标识匹配，不能把 Applebot-Extended 等非搜索角色当成搜索蜘蛛。
+            this.crawlerProduct = product == null ? null
+                    : Pattern.compile("(?:^|[\\s;(])" + Pattern.quote(product) + "(?=$|[\\s;/)])");
         }
 
         public String key() {
@@ -168,6 +182,11 @@ public final class SearchEngines {
             return new Verification(engine, verified, verified ? "本地网段校验通过" : "本地网段校验未通过",
                     "", "", System.currentTimeMillis(), false);
         }
+        if (SearchEngineBotIpRanges.supportsSearchCrawler(engine)) {
+            final boolean verified = SearchEngineBotIpRanges.containsSearchCrawler(ip, engine);
+            return new Verification(engine, verified, verified ? "官方网段校验通过" : "未匹配官方网段",
+                    "", "", System.currentTimeMillis(), false);
+        }
         if (supportsDnsVerification(engine)) {
             return SearchEngineDnsVerifier.verify(ip, engine);
         }
@@ -176,7 +195,7 @@ public final class SearchEngines {
 
     private static boolean supportsDnsVerification(final Engine engine) {
         return Engine.GOOGLE == engine || Engine.BAIDU == engine || Engine.BING == engine
-                || Engine.SOGOU == engine || Engine.YANDEX == engine;
+                || Engine.SOGOU == engine || Engine.YANDEX == engine || Engine.APPLE == engine;
     }
 
     private static Engine detectRefererHost(final String host) {
@@ -207,7 +226,7 @@ public final class SearchEngines {
             case DUCKDUCKGO:
                 return ua.contains("duckduckbot") || ua.contains("duckassistbot");
             default:
-                return false;
+                return engine.crawlerProduct != null && engine.crawlerProduct.matcher(ua).find();
         }
     }
 

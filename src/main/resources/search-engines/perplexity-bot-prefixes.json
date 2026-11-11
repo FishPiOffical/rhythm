@@ -1,0 +1,48 @@
+{
+    "source":  {
+                   "name":  "PerplexityBot",
+                   "url":  "https://www.perplexity.ai/perplexitybot.json",
+                   "creationTime":  "2026-10-28T16:48:51.000000"
+               },
+    "prefixes":  [
+                     {
+                         "ipv4Prefix":  "107.20.236.150/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.210.92.235/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.1.228/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.100/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.101/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.102/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.103/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.96/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.97/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.98/32"
+                     },
+                     {
+                         "ipv4Prefix":  "18.97.9.99/32"
+                     },
+                     {
+                         "ipv4Prefix":  "3.222.232.239/32"
+                     },
+                     {
+                         "ipv4Prefix":  "3.224.62.45/32"
+                     }
+                 ]
+}

@@ -136,3 +136,7 @@ PC/mobile 同步显示分组及路径表，复用每秒轮询，阅读明细时�
 2026-11-11 按 [360 官方蜘蛛 IP 说明](https://www.so.com/help/spider_ip.html) 修正：官方明确暂不支持 nslookup 核验，使用官方公布的 IP。`360Spider`（包括 Image/Video 子串）由现有 UA 识别，来源须命中 `search-engines/360-bot-prefixes.json` 的六个 /24 才进入原已验证爬虫链路，不写全局白名单、不更改验证码盾调用或人工封禁状态。360 不再走 DNS，诊断显示官方网段通过/未匹配，PTR 和正向地址为空是正常现象。官方网段为随包本地快照，不在请求中联网；更新须对照官方页面人工审查，不扩大为整个运营商网段。
 
 实际验收前须重新编译/打包并重启服务，确保新 JSON 资源入包。等待原 `180.153.236.*` 真实360到访，后台应出现已验证及“360 官方网段校验通过”；官方网段外伪造360 UA仍不能通过，百度/Bing维持双向校验。重启清统计和缓存，不自动清除历史封禁，Nginx/ipset前置拦截不会出现在应用统计中。无前端更改，不需要前端构建。官方依据与覆盖缺口见 `docs/search-engine-verification-audit.md`。
+
+## 搜索角色扩充（2026-11-11）
+
+新增 OAI-SearchBot、Claude-SearchBot、PerplexityBot、Applebot、MistralAI-Index，仅复用现有可信爬虫判定，不修改验证码盾及其受保护调用。Applebot 走官方域名双向 DNS，其他四种按完整 UA 产品标识与各自官方 CIDR 快照核验；训练/用户触发角色不新增豁免，不把来源 IP 加入全局白名单。原百度/Bing/360等策略不变。维护方式和人工验证边界见 `docs/search-engine-verification-audit.md`。

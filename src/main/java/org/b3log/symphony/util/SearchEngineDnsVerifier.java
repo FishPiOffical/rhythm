@@ -175,6 +175,8 @@ final class SearchEngineDnsVerifier {
                 return SearchEngines.hasDnsSuffix(hostname, "yandex.ru")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.net")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.com");
+            case APPLE:
+                return SearchEngines.hasDnsSuffix(hostname, "applebot.apple.com");
             default:
                 return false;
         }
