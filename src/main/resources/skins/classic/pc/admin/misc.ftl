@@ -91,7 +91,7 @@
             <div class="security-monitor">
                 <div class="security-monitor-heading"><h3 id="securityEventsTitle">最近访问</h3><span>本次启动 · 最多100条</span></div>
                 <div class="security-stat-strip"><span>记录 <strong class="security-stat-value" id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong class="security-stat-value" id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage" role="status" aria-live="polite">刚刚更新</span></div>
-                <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.showLatest()">最新记录</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（2秒）</label></div>
+                <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.showLatest()">最新记录</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（1秒）</label></div>
                 <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
             <#if currentUser.userName == "adlered">
@@ -315,7 +315,7 @@ const SecuritySwitches = {
                 document.getElementById('securityTotal').textContent = data.total;
                 document.getElementById('securityLast10').textContent = data.last10Minutes;
                 const viewport = document.getElementById('securityEventsViewport');
-                // 查看历史或横向列时不重绘列表，避免两秒刷新打断阅读。
+                // 查看历史或横向列时不重绘列表，避免自动刷新打断阅读。
                 if (silent && (viewport.scrollTop > 0 || viewport.scrollLeft > 0)) {
                     this.pendingEvents = data.events;
                     this.setRefreshMessage('阅读中，列表暂缓更新');
@@ -354,7 +354,7 @@ const SecuritySwitches = {
         clearInterval(this.timer);
         this.timer = setInterval(() => {
             if (toggle.checked && !document.hidden) this.refresh(true);
-        }, 2000);
+        }, 1000);
     },
     check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='结构自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
