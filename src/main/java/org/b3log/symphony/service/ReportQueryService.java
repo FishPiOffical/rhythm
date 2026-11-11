@@ -111,6 +111,22 @@ public class ReportQueryService {
     @Inject
     private LogsRepository logsRepository;
 
+    JSONObject findChatRevokeLog(final String dataId) throws RepositoryException {
+        final List<JSONObject> preciseRows = logsRepository.select(
+                "SELECT * FROM " + logsRepository.getName()
+                        + " WHERE type=? AND key3=? ORDER BY oId DESC LIMIT 1", "cr-revoke", dataId);
+        if (!preciseRows.isEmpty()) {
+            return preciseRows.get(0);
+        }
+        // 历史日志按 JSON 中的消息 ID 匹配，转义 LIKE 通配符，避免扩大查询范围。
+        final String escapedId = dataId.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        final List<JSONObject> fallback = logsRepository.select(
+                "SELECT * FROM " + logsRepository.getName()
+                        + " WHERE type=? AND data LIKE ? ESCAPE '!' ORDER BY oId DESC LIMIT 1",
+                "cr-revoke", "%\"oId\":\"" + escapedId + "\"%");
+        return fallback.isEmpty() ? null : fallback.get(0);
+    }
+
     /**
      * Gets report by the specified request json object.
      *
@@ -223,20 +239,7 @@ public class ReportQueryService {
                         final JSONObject redPacket = chatRoomService.getChatMsg(dataId);
                         if (redPacket == null) {
                             try {
-                                // 先用 type+key3(oId) 精确查，新数据直接命中；
-                                // 历史数据 key3 存的是 userName，回落到 LIKE（但加 type 过滤减少扫描量）
-                                List<JSONObject> preciseRows = logsRepository.select(
-                                        "SELECT * FROM " + logsRepository.getName()
-                                        + " WHERE type='cr-revoke' AND key3='" + dataId.replace("'", "''") + "' ORDER BY oId DESC LIMIT 1");
-                                JSONObject log;
-                                if (!preciseRows.isEmpty()) {
-                                    log = preciseRows.get(0);
-                                } else {
-                                    List<JSONObject> fallback = logsRepository.select(
-                                            "SELECT * FROM " + logsRepository.getName()
-                                            + " WHERE type='cr-revoke' AND data LIKE '%\"oId\":\"" + dataId + "\"%' ORDER BY oId DESC LIMIT 1");
-                                    log = fallback.isEmpty() ? null : fallback.get(0);
-                                }
+                                final JSONObject log = findChatRevokeLog(dataId);
                                 if (log != null) {
                                     final JSONObject content = new JSONObject(new JSONObject(log.optString("data")).optString(Common.CONTENT));
                                     chatContent = "[该数据已被撤回或删除，此为快照记录] [" + content.optString(User.USER_NAME) + "] " + content.optString("content");
