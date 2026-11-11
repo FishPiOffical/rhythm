@@ -1340,10 +1340,8 @@ public class ChatroomProcessor {
             // Classic send is the explicit choice of packet type; claim confirmation is separate.
             if (ApiV3RedPacketInputs.risky(type)) body.put("riskAccepted", true);
             ApiV3RedPacketInputs.prepare(body, actor.optString(Keys.OBJECT_ID));
-            if (!ChatRoomBot.allowRedPacketSend(context, actor.optString(User.USER_NAME),
-                    actor.optString(Keys.OBJECT_ID), type)) return;
             final String key = context.header("Idempotency-Key");
-            redPackets().create(actor, body, StringUtils.isBlank(key) ? java.util.UUID.randomUUID().toString() : key);
+            redPackets().create(actor, body, StringUtils.isBlank(key) ? java.util.UUID.randomUUID().toString() : key, true);
             context.renderJSON(StatusCodes.SUCC);
         } catch (final ApiV3Exception error) {
             context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());

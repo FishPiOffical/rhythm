@@ -61,7 +61,7 @@ public class ApiV3EmotionProcessor {
 
     public void items(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.items(actor(c), ApiV3Requests.id(c, "groupId"),
-                ApiV3Requests.page(c), ApiV3Requests.size(c)));
+                ApiV3Requests.page(c), ApiV3Requests.size(c), c.param("order")));
     }
 
     private static String actor(final RequestContext c) {

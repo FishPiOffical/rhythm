@@ -26,6 +26,7 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.ChatroomProcessor;
+import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
 import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.*;
@@ -87,8 +88,12 @@ public class ApiV3ChatRedPacketService {
     }
 
     public JSONObject create(JSONObject viewer, JSONObject body, String key) throws Exception {
+        return create(viewer, body, key, false);
+    }
+
+    public JSONObject create(JSONObject viewer, JSONObject body, String key, boolean classic) throws Exception {
         try {
-            return createCore(viewer, body, key);
+            return createCore(viewer, body, key, classic);
         } catch (ApiV3Exception error) {
             throw error;
         } catch (Exception error) {
@@ -96,7 +101,7 @@ public class ApiV3ChatRedPacketService {
         }
     }
 
-    private JSONObject createCore(JSONObject viewer, JSONObject body, String key) throws Exception {
+    private JSONObject createCore(JSONObject viewer, JSONObject body, String key, boolean classic) throws Exception {
         final String actor = actor(viewer);
         final var input = ApiV3RedPacketInputs.prepare(body, actor);
         final String requestId = requestId(actor, "chat.red-packets.create", key);
@@ -108,6 +113,7 @@ public class ApiV3ChatRedPacketService {
         final var ids = new TreeSet<String>(input.recipientIds());
         ids.add(actor);
         ids.add(fee);
+        final var classicFrequencyAllowed = new AtomicReference<Boolean>();
         final var saved = new AtomicReference<JSONObject>();
         final var repeat = new AtomicReference<ChatMessageAbuseState.Repeat>();
         final var penalty = new AtomicReference<ChatMessagePenaltyMgmtService.Result>();
@@ -134,6 +140,17 @@ public class ApiV3ChatRedPacketService {
                             if (!command.equals(prepared))
                                 throw new ApiV3Exception(422, "invalid_content", "红包内容不合法");
                             final long time = now();
+                            final String username = owner.getString(User.USER_NAME);
+                            // 仅检查首次执行。发送者行锁让经典站和 V3 的并发请求共用同一段冷却。
+                            if (input.type().equals("rockPaperScissors") && !"admin".equals(username)
+                                    && ChatRoomBot.isPeakPacketTime(time) && packets.hasRecentRps(actor, time - 120_000L))
+                                throw new ApiV3Exception(409, "red_packet_cooldown", "聊天高峰期每人每两分钟可发一个猜拳红包");
+                            if (classic) {
+                                if (classicFrequencyAllowed.get() == null)
+                                    classicFrequencyAllowed.set(ChatRoomBot.allowClassicPacketFrequency(username));
+                                if (!classicFrequencyAllowed.get())
+                                    throw new ApiV3Exception(409, "red_packet_cooldown", "每分钟最多发送五个红包，请稍候重试");
+                            }
                             ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor), operator(owner), command, time, () -> {
                                 if (command.equals(confirmed.get())) return true;
                                 boolean yes = ChatMessageAbuseState.confirmRisk(actor, command);
