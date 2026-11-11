@@ -660,8 +660,14 @@ blockquote {
   }
 }
 
-/* Admin security monitor: compact controls and readable long-form event rows. */
+/* 安全监控保持独立滚动，避免访问记录撑开整个管理页面。 */
 .security-panel {
+  --security-ink: #243b53;
+  --security-muted: #52606d;
+  --security-line: #e5e9ef;
+  --security-surface: #fff;
+  --security-subtle: #f5f7fa;
+
   .security-mode {
     display: flex;
     align-items: baseline;
@@ -689,6 +695,8 @@ blockquote {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      margin: 0;
+      float: none;
       white-space: nowrap;
       line-height: 32px;
     }
@@ -708,6 +716,7 @@ blockquote {
 
   .security-monitor {
     margin-top: 20px;
+    min-width: 0;
   }
 
   .security-monitor-heading,
@@ -733,7 +742,7 @@ blockquote {
     span,
     .security-stat-strip,
     #securityRefreshMessage {
-      color: #7b8794;
+      color: var(--security-muted);
       font-size: 12px;
     }
   }
@@ -767,10 +776,27 @@ blockquote {
   .security-actions {
     margin-bottom: 10px;
 
+    button {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--security-line);
+      border-radius: 5px;
+      background: var(--security-surface);
+      color: var(--security-ink);
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
     label {
       display: inline-flex;
       align-items: center;
       gap: 5px;
+      margin: 0;
+      float: none;
+      white-space: nowrap;
       color: #52606d;
       font-size: 12px;
       line-height: 30px;
@@ -784,35 +810,71 @@ blockquote {
 
   .security-events-wrap {
     max-width: 100%;
-    overflow-x: auto;
-    border: 1px solid #e5e9ef;
+    max-height: min(60vh, 560px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    border: 1px solid var(--security-line);
     border-radius: 6px;
+    background: var(--security-surface);
+    scrollbar-color: #a8b4c2 var(--security-subtle);
+  }
+
+  .security-events-wrap:focus-visible,
+  .security-actions button:focus-visible,
+  .security-actions input:focus-visible {
+    outline: 2px solid #3e7250;
+    outline-offset: 2px;
+  }
+
+  #securityRefreshMessage {
+    color: var(--security-muted);
+  }
+
+  #securityRefreshMessage[data-state='error'] {
+    color: #b42318;
   }
 
   .security-events {
     min-width: 1180px;
     margin: 0;
     table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
 
     th,
     td {
-      padding: 7px 9px;
+      padding: 10px 12px;
       white-space: nowrap;
       vertical-align: top;
+      border: 0;
+      border-bottom: 1px solid var(--security-line);
+      line-height: 1.6;
     }
 
     th {
       position: sticky;
       top: 0;
       z-index: 1;
-      background: #f5f7fa;
-      color: #52606d;
+      background: var(--security-subtle);
+      color: var(--security-muted);
       font-size: 12px;
+      text-align: left;
     }
 
     td {
-      color: #243b53;
+      color: var(--security-ink);
       font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    td:first-child,
+    td:nth-child(2) {
+      font-variant-numeric: tabular-nums;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
     }
 
     td:nth-child(3),
@@ -839,8 +901,21 @@ blockquote {
   }
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .security-panel {
+    .security-actions button:hover,
+    .security-events tbody tr:hover {
+      background: var(--security-subtle);
+    }
+  }
+}
+
 @media (max-width: 680px) {
   .security-panel {
+    .security-mode {
+      flex-wrap: wrap;
+    }
+
     .security-controls {
       align-items: flex-start;
       flex-direction: column;
@@ -850,6 +925,19 @@ blockquote {
     .security-monitor-heading {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .security-events-wrap {
+      max-height: min(55vh, 440px);
+    }
+
+    .security-actions {
+      gap: 8px;
+
+      button,
+      label {
+        min-height: 44px;
+      }
     }
   }
 }
