@@ -32,6 +32,8 @@ import org.b3log.symphony.model.Report;
 import org.b3log.symphony.service.ReportMgmtService;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
+import org.b3log.symphony.util.RepeaterWriteSecurity;
+import org.b3log.latke.model.User;
 import org.json.JSONObject;
 
 /**
@@ -73,12 +75,18 @@ public class ReportProcessor {
         context.renderJSON(StatusCodes.ERR);
 
         final JSONObject requestJSONObject = context.requestJSON();
+        if (requestJSONObject.optInt(Report.REPORT_DATA_TYPE) == Report.REPORT_DATA_TYPE_C_REPEATER
+                && !RepeaterWriteSecurity.allowed(context)) {
+            context.sendError(403);
+            return;
+        }
 
         JSONObject currentUser = Sessions.getUser();
         try {
             currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
         } catch (NullPointerException ignored) {
         }
+        if (context.attr(User.USER) instanceof JSONObject authenticated) currentUser = authenticated;
         final String userId = currentUser.optString(Keys.OBJECT_ID);
         final String dataId = requestJSONObject.optString(Report.REPORT_DATA_ID);
         final int dataType = requestJSONObject.optInt(Report.REPORT_DATA_TYPE);

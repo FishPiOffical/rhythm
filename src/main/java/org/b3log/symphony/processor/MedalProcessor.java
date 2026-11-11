@@ -18,7 +18,6 @@
  */
 package org.b3log.symphony.processor;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Dispatcher;
 import org.b3log.latke.http.RequestContext;
@@ -33,7 +32,6 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.model.User;
 import org.b3log.latke.service.ServiceException;
-import org.b3log.latke.util.Crypts;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.repository.MedalRepository;
 import org.b3log.symphony.repository.UserMedalRepository;
@@ -43,7 +41,6 @@ import org.b3log.symphony.service.MedalService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Sessions;
-import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -118,13 +115,7 @@ public class MedalProcessor {
             return;
         }
         // 放 ApiKey
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final String userPassword = currentUser.optString(User.USER_PASSWORD);
-        final JSONObject cookieJSONObject = new JSONObject();
-        cookieJSONObject.put(Keys.OBJECT_ID, userId);
-        final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, userPassword + ApiProcessor.COOKIE_ITEM_SEPARATOR + random);
-        final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+        final String key = ApiProcessor.issueApiKey(currentUser);
         dataModel.put("apiKey", key);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);

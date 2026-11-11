@@ -132,9 +132,9 @@ public class ApiV3ReportTest {
             var data = f.query.options("1");
             Assert.assertEquals(data.keySet(), Set.of("targets"));
             var t = data.getJSONArray("targets");
-            Assert.assertEquals(t.length(), 4);
-            int[][] values = {{0, 1, 2, 3, 4, 49}, {0, 1, 2, 3, 4, 49}, {5, 6, 7, 49}, {0, 1, 2, 3, 4, 49}};
-            for (int i = 0; i < 4; i++) {
+            Assert.assertEquals(t.length(), 5);
+            int[][] values = {{0, 1, 2, 3, 4, 49}, {0, 1, 2, 3, 4, 49}, {5, 6, 7, 49}, {0, 1, 2, 3, 4, 49}, {0, 1, 2, 3, 4, 49}};
+            for (int i = 0; i < 5; i++) {
                 var target = t.getJSONObject(i);
                 Assert.assertEquals(target.keySet(), Set.of("targetType", "label", "reasons"));
                 Assert.assertEquals(target.getInt("targetType"), i);
@@ -148,9 +148,9 @@ public class ApiV3ReportTest {
             }
             Assert.assertFalse(data.toString().contains("PRIVATE"));
             t.remove(0);
-            Assert.assertEquals(f.query.options("1").getJSONArray("targets").length(), 4);
+            Assert.assertEquals(f.query.options("1").getJSONArray("targets").length(), 5);
         }
-        System.out.println("PASS 1 exact existing four targets/reason sets and labels, fresh whitelist DTO, no target or user disclosure");
+        System.out.println("PASS 1 exact five targets/reason sets and labels, fresh whitelist DTO, no target or user disclosure");
         try (var f = new Fixture()) {
             for (String id : Arrays.asList(null, "", "0", "1 OR 1=1", "1".repeat(20)))
                 error(422, () -> f.query.options(id));
@@ -177,7 +177,7 @@ public class ApiV3ReportTest {
             Assert.assertEquals(c.attr("test.status"), 200);
             Assert.assertEquals(c.getResponse().getHeader("Cache-Control"), "no-store");
             Assert.assertEquals(c.getResponse().getHeader("Vary"), "Authorization");
-            Assert.assertEquals(((JSONObject) c.attr("test.data")).getJSONArray("targets").length(), 4);
+            Assert.assertEquals(((JSONObject) c.attr("test.data")).getJSONArray("targets").length(), 5);
             Assert.assertEquals(f.http("disabled").attr("test.status"), 404);
         }
         System.out.println("PASS 3 real Dispatcher/controller content.read gate, Cookie/apiKey cannot supply identity, no-store envelope");

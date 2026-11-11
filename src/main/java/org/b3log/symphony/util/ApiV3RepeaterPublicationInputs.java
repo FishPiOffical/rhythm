@@ -40,11 +40,26 @@ public final class ApiV3RepeaterPublicationInputs {
         validateUnicode(type);
         validateUnicode(content);
         final String normalizedType = StringUtils.trimToEmpty(type);
-        final String normalizedContent = Jsoup.clean(StringUtils.trimToEmpty(content), Safelist.none()).replaceAll("\\s+", " ");
+        final String normalizedContent = plainText(content);
         if (!RepeaterContent.isSupportedType(normalizedType) || normalizedContent.length() < RepeaterContent.MIN_CONTENT_LENGTH
                 || normalizedContent.length() > RepeaterContent.MAX_CONTENT_LENGTH) throw ApiV3WriteInputs.invalid();
         validateUnicode(normalizedContent);
         return new JSONObject().put("type", normalizedType).put("content", normalizedContent);
+    }
+
+    public static String plainText(final String content) {
+        if (content == null || content.length() > 8192) throw ApiV3WriteInputs.invalid();
+        validateUnicode(content);
+        final var document = Jsoup.parseBodyFragment(content);
+        document.select("script,style").remove();
+        return document.body().wholeText().replace("\r\n", "\n").replace('\r', '\n').strip();
+    }
+
+    /** 仅用于核对升级前已经成功的回执，不用于新内容入库。 */
+    public static JSONObject legacyReceipt(final JSONObject body) {
+        return new JSONObject().put("type", StringUtils.trimToEmpty(body.getString("type")))
+                .put("content", Jsoup.clean(StringUtils.trimToEmpty(body.getString("content")), Safelist.none())
+                        .replaceAll("\\s+", " "));
     }
 
     private static void validateUnicode(final String text) {
@@ -52,7 +67,8 @@ public final class ApiV3RepeaterPublicationInputs {
             final char c = text.charAt(i);
             if (Character.isHighSurrogate(c)) {
                 if (++i >= text.length() || !Character.isLowSurrogate(text.charAt(i))) throw ApiV3WriteInputs.invalid();
-            } else if (Character.isLowSurrogate(c) || c == 0) throw ApiV3WriteInputs.invalid();
+            } else if (Character.isLowSurrogate(c)
+                    || Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t') throw ApiV3WriteInputs.invalid();
         }
     }
 }

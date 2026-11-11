@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 只读查询热门复读，沿用现有公开复读功能的候选池规则。
+ * 列表按热度展示，随机发现覆盖全部有效复读内容。
  */
 @Service
 public class ApiV3RepeaterQueryService {
@@ -54,12 +54,16 @@ public class ApiV3RepeaterQueryService {
     }
 
     private List<JSONObject> pool(final String actor, final String type, final int size) throws RepositoryException {
-        final String columns = "SELECT c.oId AS id,c.repeaterContentType AS type,SUBSTR(c.repeaterContent,1,501) AS content,c.repeaterContentLikeCount AS likeCount,c.repeaterContentCreatedTime AS createdTime,"
-                + "CASE WHEN u.userStatus=0 THEN u.oId ELSE '' END AS authorId,CASE WHEN u.userStatus=0 THEN SUBSTR(u.userName,1,65) ELSE '' END AS authorName,"
-                + "CASE WHEN ?<>'' AND EXISTS(SELECT 1 FROM `" + likes.getName() + "` k WHERE k.repeaterLikeContentId=c.oId AND k.repeaterLikeUserId=?) THEN 1 ELSE 0 END AS liked";
+        final String columns = columns();
         return contents.select(columns + " FROM `" + contents.getName() + "` c LEFT JOIN `" + users.getName() + "` u ON u.oId=c.repeaterContentAuthorId WHERE c.repeaterContentStatus=0"
                         + (type.isEmpty() ? "" : " AND c.repeaterContentType=?") + " ORDER BY c.repeaterContentLikeCount DESC,c.repeaterContentCreatedTime DESC,c.oId DESC LIMIT ?",
                 type.isEmpty() ? new Object[]{actor, actor, size} : new Object[]{actor, actor, type, size});
+    }
+
+    private String columns() {
+        return "SELECT c.oId AS id,c.repeaterContentType AS type,SUBSTR(c.repeaterContent,1,501) AS content,c.repeaterContentLikeCount AS likeCount,c.repeaterContentCreatedTime AS createdTime,"
+                + "CASE WHEN u.userStatus=0 THEN u.oId ELSE '' END AS authorId,CASE WHEN u.userStatus=0 THEN SUBSTR(u.userName,1,65) ELSE '' END AS authorName,"
+                + "CASE WHEN ?<>'' AND EXISTS(SELECT 1 FROM `" + likes.getName() + "` k WHERE k.repeaterLikeContentId=c.oId AND k.repeaterLikeUserId=?) THEN 1 ELSE 0 END AS liked";
     }
 
     public JSONObject items(final String actor, final String type, final int size) {
@@ -90,11 +94,33 @@ public class ApiV3RepeaterQueryService {
     public JSONObject next(final String actor, final String type, final String excludeId) {
         if (excludeId == null || !excludeId.isEmpty() && !excludeId.matches("[0-9]{1,32}"))
             throw ApiV3Requests.invalid();
-        final JSONArray rows = items(actor, type, 50).getJSONArray("items");
-        final JSONArray candidates = new JSONArray();
-        for (int i = 0; i < rows.length(); i++)
-            if (!excludeId.equals(rows.getJSONObject(i).getString("id")))
-                candidates.put(rows.getJSONObject(i));
-        return new JSONObject().put("item", candidates.isEmpty() ? JSONObject.NULL : candidates.getJSONObject(ThreadLocalRandom.current().nextInt(candidates.length())));
+        if (actor == null || type == null || !type.isEmpty() && !RepeaterContent.isSupportedType(type))
+            throw ApiV3Requests.invalid();
+        try {
+            actor(actor);
+            final String where = " WHERE c.repeaterContentStatus=0"
+                    + (type.isEmpty() ? "" : " AND c.repeaterContentType=?") + " AND c.oId<>?";
+            final var args = new java.util.ArrayList<Object>();
+            if (!type.isEmpty()) args.add(type);
+            args.add(excludeId);
+            final long count = contents.select("SELECT COUNT(*) AS total FROM `" + contents.getName() + "` c" + where,
+                    args.toArray()).getFirst().getLong("total");
+            if (count == 0) return new JSONObject().put("item", JSONObject.NULL);
+            final var readArgs = new java.util.ArrayList<Object>(List.of(actor, actor));
+            readArgs.addAll(args);
+            readArgs.add(ThreadLocalRandom.current().nextLong(count));
+            final String from = " FROM `" + contents.getName() + "` c LEFT JOIN `" + users.getName()
+                    + "` u ON u.oId=c.repeaterContentAuthorId";
+            final var rows = contents.select(columns() + from + where + " ORDER BY c.repeaterContentLikeCount,c.oId LIMIT 1 OFFSET ?", readArgs.toArray());
+            if (rows.isEmpty()) return new JSONObject().put("item", JSONObject.NULL);
+            final JSONObject item = ApiV3RepeaterDto.item(rows.getFirst());
+            final var current = contents.select(columns() + from + " WHERE c.oId=? AND c.repeaterContentStatus=0",
+                    actor, actor, item.getString("id"));
+            actor(actor);
+            if (current.size() != 1 || !item.similar(ApiV3RepeaterDto.item(current.getFirst()))) throw ApiV3RepeaterDto.unavailable();
+            return new JSONObject().put("item", item);
+        } catch (final RepositoryException e) {
+            throw ApiV3RepeaterDto.unavailable();
+        }
     }
 }

@@ -177,6 +177,82 @@
     </li>
 </#if>
 
+<li class="home-module" data-home-module="repeater" data-home-title="复读机转录站">
+    <section class="repeater-station repeater-station--mobile-users" data-csrf="${csrfToken}" data-current-user-id="<#if isLoggedIn>${currentUser.oId}</#if>">
+        <div class="repeater-station__head">
+            <strong class="repeater-station__title">复读机转录站</strong>
+            <button type="button" class="repeater-station__btn-sm" data-repeater-action="leaderboard">排行榜</button>
+        </div>
+        <div class="repeater-station__tabs" role="group" aria-label="内容分类">
+            <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke" aria-pressed="true">段子</button>
+            <button type="button" class="repeater-station__tab" data-repeater-type="kfc" aria-pressed="false">星期四</button>
+            <button type="button" class="repeater-station__tab" data-repeater-type="fish" aria-pressed="false">鱼科普</button>
+        </div>
+        <div class="repeater-station__body">
+            <div class="repeater-station__quote" id="repeaterContent" tabindex="0" aria-label="复读内容">加载中…</div>
+            <div class="repeater-station__meta">
+                <span id="repeaterAuthor"></span>
+            </div>
+        </div>
+        <div class="repeater-station__actions">
+            <button type="button" class="repeater-station__btn repeater-station__btn--primary" data-repeater-action="next">换一个</button>
+            <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
+            <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like" aria-label="点赞" aria-pressed="false">
+                <svg aria-hidden="true"><use xlink:href="#heart"></use></svg>
+                <span id="repeaterLikeCount">0</span>
+            </button>
+            <#if isLoggedIn>
+                <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
+                <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="report">举报</button>
+                <#if permissions["menuAdminReports"].permissionGrant!false>
+                    <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="remove">删除</button>
+                </#if>
+            <#else>
+                <a class="repeater-station__btn" href="${servePath}/login">登录</a>
+            </#if>
+        </div>
+        <#if isLoggedIn>
+            <div class="repeater-station__create" id="repeaterCreatePanel" hidden>
+                <label class="repeater-station__input-label" for="repeaterCreateContent">转录内容</label>
+                <textarea id="repeaterCreateContent" maxlength="500" placeholder="写点有趣的，支持换行"></textarea>
+                <div class="repeater-station__create-actions">
+                    <button type="button" class="green" data-repeater-action="submit">提交</button>
+                    <button type="button" data-repeater-action="closeCreate">取消</button>
+                </div>
+            </div>
+        </#if>
+        <dialog class="repeater-station__dialog" id="repeaterLeaderboardDialog" aria-label="复读排行榜">
+            <div class="repeater-station__dialog-head">
+                <strong>复读排行榜</strong>
+                <button type="button" class="repeater-station__text-btn" data-repeater-action="closeDialog">关闭</button>
+            </div>
+            <div class="repeater-station__tabs" role="group" aria-label="排行类型">
+                <button type="button" class="repeater-station__tab repeater-station__tab--active" data-rank-tab="authors" aria-pressed="true">作者榜</button>
+                <button type="button" class="repeater-station__tab" data-rank-tab="items" aria-pressed="false">单条榜</button>
+            </div>
+            <ol class="repeater-station__rank-list" id="repeaterRankList"></ol>
+            <div class="repeater-station__status" id="repeaterRankStatus" role="status" aria-live="polite"></div>
+        </dialog>
+        <#if isLoggedIn>
+            <dialog class="repeater-station__dialog" id="repeaterReportDialog" aria-label="举报复读内容">
+                <div class="repeater-station__dialog-head">
+                    <strong>举报复读内容</strong>
+                    <button type="button" class="repeater-station__text-btn" data-repeater-action="closeDialog">关闭</button>
+                </div>
+                <label>原因
+                    <select id="repeaterReportReason">
+                        <option value="0">垃圾广告</option><option value="1">低俗色情</option>
+                        <option value="2">违法违规</option><option value="3">涉嫌侵权</option>
+                        <option value="4">人身攻击</option><option value="49">其他</option>
+                    </select>
+                </label>
+                <label>补充说明<textarea id="repeaterReportMemo" maxlength="2000"></textarea></label>
+                <button type="button" class="green" data-repeater-action="submitReport">提交举报</button>
+            </dialog>
+        </#if>
+    </section>
+</li>
+
 <#if  niceUsers?size!=0>
     <li class="home-module" data-home-module="users" data-home-title="最新注册">
     <div class="module_new">
@@ -184,48 +260,6 @@
             最新注册
         </h2>
     </div>
-    <section class="repeater-station repeater-station--mobile-users">
-        <div class="repeater-station__head">
-            <div class="repeater-station__title">
-                <svg><use xlink:href="#refresh"></use></svg>
-                <span>复读机转录站</span>
-            </div>
-            <div class="repeater-station__tabs" role="tablist">
-                <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke">段子</button>
-                <button type="button" class="repeater-station__tab" data-repeater-type="kfc">星期四</button>
-                <button type="button" class="repeater-station__tab" data-repeater-type="fish">鱼科普</button>
-            </div>
-        </div>
-        <div class="repeater-station__body">
-            <div class="repeater-station__quote" id="repeaterContent">加载中...</div>
-            <div class="repeater-station__meta">
-                <span id="repeaterTypeLabel">段子</span>
-                <span id="repeaterAuthor"></span>
-            </div>
-        </div>
-        <div class="repeater-station__actions">
-            <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
-            <button type="button" class="repeater-station__btn" data-repeater-action="next">换一个</button>
-            <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like">
-                <svg><use xlink:href="#heart"></use></svg>
-                <span id="repeaterLikeCount">0</span>
-            </button>
-            <#if isLoggedIn>
-                <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
-            <#else>
-                <a class="repeater-station__btn" href="${servePath}/login">登录</a>
-            </#if>
-        </div>
-        <#if isLoggedIn>
-            <div class="repeater-station__create" id="repeaterCreatePanel" hidden>
-                <textarea id="repeaterCreateContent" maxlength="500" placeholder="输入转录内容"></textarea>
-                <div class="repeater-station__create-actions">
-                    <button type="button" class="green" data-repeater-action="submit">提交</button>
-                    <button type="button" data-repeater-action="closeCreate">取消</button>
-                </div>
-            </div>
-        </#if>
-    </section>
     <div class="module__body">
         <#list recentRegUsers as user>
             <a  rel="nofollow"

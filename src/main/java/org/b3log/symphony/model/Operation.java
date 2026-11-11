@@ -319,6 +319,8 @@ public final class Operation {
      */
     public static final int OPERATION_CODE_C_DEACTIVATE_USER = 49;
 
+    public static final int OPERATION_CODE_C_REMOVE_REPEATER = 50;
+
 
     //// Transient ////
 

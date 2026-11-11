@@ -20,7 +20,6 @@ package org.b3log.symphony.processor;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +32,6 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
-import org.b3log.latke.util.Crypts;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.channel.ChatChannel;
@@ -431,13 +429,7 @@ public class ChatProcessor {
             return;
         }
         // 放 ApiKey
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final String userPassword = currentUser.optString(User.USER_PASSWORD);
-        final JSONObject cookieJSONObject = new JSONObject();
-        cookieJSONObject.put(Keys.OBJECT_ID, userId);
-        final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, userPassword + ApiProcessor.COOKIE_ITEM_SEPARATOR + random);
-        final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+        final String key = ApiProcessor.issueApiKey(currentUser);
         dataModel.put("apiKey", key);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);

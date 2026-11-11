@@ -9554,7 +9554,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterCont
 
 `GET /api/repeater/next`
 
-按类型随机获取一条转录内容。传入 `excludeId` 时，会尽量避开当前内容。
+按类型从全部有效内容中随机获取一条。传入 `excludeId` 或 `excludeIds` 排除已看内容；`excludeIds` 非空时优先使用它。无候选时返回空对象。
 
 请求：
 
@@ -9562,6 +9562,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterCont
 | ------------------- | ----------------------------------------- | -------------------------------- |
 | repeaterContentType | 内容类型：`joke`/`kfc`/`fish`，不传查全部 | joke                             |
 | excludeId           | 需要排除的内容 Id，可选                   | 1770000000000                    |
+| excludeIds          | 本轮已看内容 Id，逗号分隔，最多 250 个，可选 | 1770000000000,1770000000001 |
 | apiKey              | 通用密钥，可选                            | YOUR_API_KEY |
 
 请求示例：
@@ -9583,7 +9584,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/next?repeaterConte
 
 `POST /api/repeater`
 
-登录用户上传一条复读机转录内容。
+上传一条复读机转录内容，需要 apiKey。正文保留换行，审核通过后发布；审核未通过或暂不可用时不发布。
 
 请求：
 
@@ -9591,7 +9592,7 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/next?repeaterConte
 | ------------------- | ------------------------------------- | -------------------------------- |
 | apiKey              | 通用密钥                              | YOUR_API_KEY |
 | repeaterContentType | 内容类型：`joke`/`kfc`/`fish`         | kfc                              |
-| repeaterContent     | 正文，2 到 500 字符，会清理 HTML 标签 | 今天疯狂星期四                   |
+| repeaterContent     | 正文，2 到 500 字符，清理 HTML 标签并保留换行 | 今天疯狂星期四                   |
 
 请求示例：
 
@@ -9640,6 +9641,101 @@ curl --location --request POST 'https://fishpi.cn/api/repeater/1770000000000/lik
 | data                       | 响应数据             | `{...}` |
 | - liked                    | 操作后是否已点赞     | true |
 | - repeaterContentLikeCount | 操作后的点赞数       | 11   |
+
+### 查询单条转录内容
+
+`GET /api/repeater/items/{id}`
+
+读取指定的有效转录内容。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| id | 内容 Id，URL 参数 | 1770000000000 |
+| apiKey | 通用密钥（可选） | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/repeater/items/1770000000000?apiKey=YOUR_API_KEY'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0成功/-1失败 | 0 |
+| msg | 错误信息 | 内容不存在 |
+| data | 响应数据 | `{...}` |
+| - item | 单条转录内容，字段同列表接口 | `{...}` |
+
+### 查询复读排行榜
+
+`GET /api/repeater/leaderboard`
+
+返回有效内容的作者累计点赞榜和单条点赞榜，各前 20 条；删除内容不计入累计赞数。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥（可选） | YOUR_API_KEY |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/repeater/leaderboard'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0成功/-1失败 | 0 |
+| msg | 错误信息 | |
+| data | 响应数据 | `{...}` |
+| - authors | 作者累计点赞榜 | `[...]` |
+| -- authorId | 作者 Id | 1770000000000 |
+| -- authorName | 作者名 | fishpi |
+| -- likeCount | 作者有效内容累计点赞数 | 20 |
+| - items | 单条点赞榜 | `[...]` |
+| -- id | 内容 Id，可用于查询单条内容 | 1770000000000 |
+| -- content | 纯文本正文，保留换行 | `第一行\n第二行` |
+| -- likeCount | 当前点赞数 | 10 |
+| -- authorId | 作者 Id，无可显示作者时为空 | 1770000000000 |
+| -- authorName | 作者名，无可显示作者时为空 | fishpi |
+
+### 举报复读内容
+
+`POST /report`
+
+举报复读内容，需要 apiKey。不能举报自己的内容；同一用户对同一内容的待处理举报不会重复创建。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| apiKey | 通用密钥 | YOUR_API_KEY |
+| reportDataId | 复读内容 Id | 1770000000000 |
+| reportDataType | 目标类型，复读内容为 `4` | 4 |
+| reportType | 0垃圾广告、1低俗色情、2违法违规、3涉嫌侵权、4人身攻击、49其他 | 0 |
+| reportMemo | 补充说明，可选，最多10240字符 | 广告内容 |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/report' \
+  -H 'Content-Type: application/json' \
+  -d '{"apiKey":"YOUR_API_KEY","reportDataId":"1770000000000","reportDataType":4,"reportType":0,"reportMemo":"广告内容"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0成功/-1失败 | 0 |
+| msg | 错误信息 | 不能举报自己的内容 |
 
 ## 鱼游
 
@@ -13354,7 +13450,7 @@ curl 'https://fishpi.cn/api/v3/repeater/items?type=joke&size=12' \
 
 `GET /api/v3/repeater/next`
 
-从对应类型排序前50条中排除指定内容，再随机返回一条。
+从对应类型的全部有效内容中排除指定内容，再随机返回一条。
 
 请求：
 
@@ -13380,13 +13476,13 @@ curl 'https://fishpi.cn/api/v3/repeater/next?type=joke&excludeId=123' \
 | data | 随机结果 | `{...}` |
 | - item | 与复读机列表单项字段相同；没有候选时为null | `{"id":"124","type":"joke","content":"今日笑话","likeCount":0,"createdTime":1792584000000,"liked":false,"author":null}` |
 
-> 排除操作在前50条候选池确定后进行，不补入第51条。没有候选时返回item:null；未传excludeId时允许返回当前已显示的内容。非法类型或ID返回422，内容资料异常或暂不可读返回503。
+> 候选不再限于热门前50条。没有候选时返回item:null；未传excludeId时允许返回当前已显示的内容。非法类型或ID返回422，内容资料异常或暂不可读返回503。
 
 ### 投稿复读内容
 
 `POST /api/v3/repeater/items`
 
-提交纯文本复读内容。需要 Bearer Access Token（content.write），并提供 Idempotency-Key。
+提交纯文本复读内容，审核通过后发布。需要 Bearer Access Token（content.write），并提供 Idempotency-Key。
 
 请求：
 
@@ -13395,7 +13491,7 @@ curl 'https://fishpi.cn/api/v3/repeater/next?type=joke&excludeId=123' \
 | Authorization | 请求头，Bearer访问令牌 | Bearer ACCESS_TOKEN |
 | Idempotency-Key | 本次操作幂等键，请求头 | repeater-post-001 |
 | type | joke、kfc 或 fish，首尾空白会移除 | joke |
-| content | 去HTML并折叠空白后2至500个UTF-16单位 | 今天也要开心摸鱼 |
+| content | 清理HTML后2至500个UTF-16单位，保留换行与内部空白 | 今天也要开心摸鱼 |
 
 请求示例：
 
@@ -13416,7 +13512,7 @@ curl -X POST 'https://fishpi.cn/api/v3/repeater/items' \
 | - type | 类型 | joke |
 | - createdTime | 创建时间，毫秒 | 1790000000000 |
 
-> 同一键与相同规范化内容重试返回原结果；同一键提交不同内容返回409。
+> 同一键与相同规范化内容重试返回原结果；同一键提交不同内容返回409。新投稿审核未通过返回422，审核暂不可用返回503。已成功投稿的回执仍可回放。
 
 ### 设置复读内容点赞
 
@@ -14619,7 +14715,7 @@ curl 'http://localhost:8080/api/v3/report/options' -H 'Authorization: Bearer ACC
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | data.targets | 举报目标数组 | [] |
-| - targetType | 0文章、1评论、2用户、3聊天室消息 | 0 |
+| - targetType | 0文章、1评论、2用户、3聊天室消息、4复读内容 | 0 |
 | - label | 目标名称 | 文章 |
 | - reasons | 当前目标可用理由。聊天室消息支持垃圾广告、低俗色情、违法违规、涉嫌侵权、人身攻击、其他 | [] |
 | -- reason | 理由编号 | 49 |
@@ -14637,7 +14733,7 @@ curl 'http://localhost:8080/api/v3/report/options' -H 'Authorization: Bearer ACC
 | --- | --- | --- |
 | Authorization | Bearer Token | Bearer ACCESS_TOKEN |
 | Idempotency-Key | 本次请求幂等键 | report-001 |
-| targetType | 0文章、1评论、2用户、3聊天室消息 | 0 |
+| targetType | 0文章、1评论、2用户、3聊天室消息、4复读内容 | 0 |
 | targetId | 目标ID字符串 | 1636516552191 |
 | reason | 分类接口返回的理由编号 | 49 |
 | memo | 可选纯文本备注，去HTML并去首尾空白，最多10240字符；格式或存储长度约束不满足时422 | 需要核实 |

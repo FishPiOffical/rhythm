@@ -263,3 +263,5 @@
 - 聊天外观由ApiV3ChatAppearanceService管理固定v1目录，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；版本1目录视觉不可原地改版。
 
 - 公开职业徽牌走 /api/v3/users/{userName}/professions/summary，按主职业隐私投影，不运行完整职业详情查询。公开勋章图片沿用 gen.metal.url，复用公开列表的访客门禁，只渲染当前公开且有效的授予；/me 图片仍需 profile.read。
+
+- 复读机新旧投稿共用 RepeaterContentModerationService 七牛审核（事务外，异常拒绝）；v3 新回执以 textVersion 区分保留换行规则，旧成功回执仅兼容读。举报 type=4 复用 report；管理员删除须同根软删、职业 targetRemoved 与 operation 审计，PC/mobile 首页及举报后台均有入口。

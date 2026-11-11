@@ -89,10 +89,10 @@
                 <button type="button" class="green" id="securitySaveButton" onclick="SecuritySwitches.save()" <#if !securitySwitchEditable>disabled</#if>>保存</button>
             </div>
             <div class="security-monitor">
-                <div class="security-monitor-heading"><h3>访问监控</h3><span>本次启动 · 最多100条</span></div>
-                <div class="security-stat-strip"><span>记录 <strong class="security-stat-value" id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong class="security-stat-value" id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage">刚刚更新</span></div>
-                <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（10秒）</label></div>
-                <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
+                <div class="security-monitor-heading"><h3 id="securityEventsTitle">最近访问</h3><span>本次启动 · 最多100条</span></div>
+                <div class="security-stat-strip"><span>记录 <strong class="security-stat-value" id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong class="security-stat-value" id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage" role="status" aria-live="polite">刚刚更新</span></div>
+                <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.showLatest()">最新记录</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（2秒）</label></div>
+                <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
             <div class="security-self-check" id="securitySelfCheck"><strong>自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
         </div>
@@ -234,9 +234,90 @@ const SecuritySwitches = {
           .catch(err=>alert('保存失败：'+err.message)).finally(()=>{button.disabled=${securitySwitchEditable?then('false','true')};});
     },
     apply(data) { if(data.firewallEnabled!==undefined)document.getElementById('firewallEnabled').checked=!!data.firewallEnabled; if(data.threshold!==undefined)document.getElementById('firewallThreshold').value=data.threshold; if(data.verificationEnabled!==undefined)document.getElementById('verificationEnabled').checked=!!data.verificationEnabled; if(data.firstVisitCaptchaEnabled!==undefined)document.getElementById('firstVisitCaptchaEnabled').checked=!!data.firstVisitCaptchaEnabled; },
-    renderEvents(events) { const tbody=document.getElementById('securityEvents'); tbody.textContent=''; (events||[]).forEach(e=>{ const tr=document.createElement('tr'); ['time','ip','userStatus','request','handler','flow','result','reason'].forEach(key=>{ const td=document.createElement('td'); td.textContent=key==='request'?((e.method||'-')+' '+(e.uri||'-')):(e[key]||'-'); tr.appendChild(td); }); tbody.appendChild(tr); }); if(!tbody.children.length){ const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=8; td.textContent='暂无记录'; tr.appendChild(td); tbody.appendChild(tr); } },
-    refresh(silent) { fetch(this.servePath+'/admin/security/monitor').then(res=>res.json()).then(result=>{const d=result.data||{};document.getElementById('securityTotal').textContent=d.total||0;document.getElementById('securityLast10').textContent=d.last10Minutes||0;this.renderEvents(d.events);document.getElementById('securityRefreshMessage').textContent=(silent?'自动更新：':'')+new Date().toLocaleTimeString();}).catch(err=>{if(!silent)document.getElementById('securityRefreshMessage').textContent='刷新失败：'+err.message;}); },
-    startAutoRefresh() { this.timer=setInterval(()=>{ const toggle=document.getElementById('securityAutoRefresh'); if(toggle.checked && !document.hidden)this.refresh(true); },10000); },
+    renderEvents(events) {
+        const tbody = document.getElementById('securityEvents');
+        const rows = document.createDocumentFragment();
+        events.forEach(event => {
+            const tr = document.createElement('tr');
+            ['time', 'ip', 'userStatus', 'request', 'handler', 'flow', 'result', 'reason'].forEach(key => {
+                const td = document.createElement('td');
+                td.textContent = key === 'request' ? ((event.method || '-') + ' ' + (event.uri || '-')) : (event[key] || '-');
+                tr.appendChild(td);
+            });
+            rows.appendChild(tr);
+        });
+        if (!events.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 8;
+            td.textContent = '暂无记录';
+            tr.appendChild(td);
+            rows.appendChild(tr);
+        }
+        tbody.replaceChildren(rows);
+    },
+    setRefreshMessage(text, failed = false) {
+        const message = document.getElementById('securityRefreshMessage');
+        message.textContent = text;
+        message.dataset.state = failed ? 'error' : 'ready';
+    },
+    refresh(silent = false) {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        return fetch(this.servePath + '/admin/security/monitor')
+            .then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(result => {
+                const data = result.data;
+                if (result.code !== 0 || !data || !Array.isArray(data.events)) {
+                    throw new Error(result.msg || '监控数据无效');
+                }
+                document.getElementById('securityTotal').textContent = data.total;
+                document.getElementById('securityLast10').textContent = data.last10Minutes;
+                const viewport = document.getElementById('securityEventsViewport');
+                // 查看历史或横向列时不重绘列表，避免两秒刷新打断阅读。
+                if (silent && (viewport.scrollTop > 0 || viewport.scrollLeft > 0)) {
+                    this.pendingEvents = data.events;
+                    this.setRefreshMessage('阅读中，列表暂缓更新');
+                    return;
+                }
+                this.renderEvents(data.events);
+                this.pendingEvents = null;
+                this.setRefreshMessage('已更新 ' + new Date().toLocaleTimeString());
+            })
+            .catch(error => this.setRefreshMessage('刷新失败：' + error.message, true))
+            .finally(() => { this.refreshing = false; });
+    },
+    showLatest() {
+        const viewport = document.getElementById('securityEventsViewport');
+        viewport.scrollTop = 0;
+        viewport.scrollLeft = 0;
+        if (this.pendingEvents) {
+            this.renderEvents(this.pendingEvents);
+            this.pendingEvents = null;
+        }
+        this.refresh();
+    },
+    startAutoRefresh() {
+        const toggle = document.getElementById('securityAutoRefresh');
+        if (!toggle) return;
+        const viewport = document.getElementById('securityEventsViewport');
+        viewport.addEventListener('scroll', () => {
+            if (viewport.scrollTop === 0 && viewport.scrollLeft === 0 && this.pendingEvents) {
+                this.renderEvents(this.pendingEvents);
+                this.pendingEvents = null;
+                if (document.getElementById('securityRefreshMessage').dataset.state !== 'error') {
+                    this.setRefreshMessage('已显示最近记录');
+                }
+            }
+        }, {passive: true});
+        clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            if (toggle.checked && !document.hidden) this.refresh(true);
+        }, 2000);
+    },
     check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
 SecuritySwitches.startAutoRefresh();

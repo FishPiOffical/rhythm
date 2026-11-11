@@ -332,6 +332,9 @@ public class AdminProcessor {
     @Inject
     private ReportQueryService reportQueryService;
 
+    @Inject
+    private RepeaterMgmtService repeaterMgmtService;
+
     /**
      * Operation management service.
      */
@@ -397,6 +400,8 @@ public class AdminProcessor {
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
         Dispatcher.get("/admin/reports", adminProcessor::showReports, middlewares);
+        Dispatcher.post("/admin/repeater/{id}/remove", adminProcessor::removeRepeater,
+                loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/admin/role/{roleId}/remove", adminProcessor::removeRole, middlewares);
         Dispatcher.get("/admin/breezemoons", adminProcessor::showBreezemoons, middlewares);
         Dispatcher.get("/admin/breezemoon/{breezemoonId}", adminProcessor::showBreezemoon, middlewares);
@@ -957,6 +962,26 @@ public class AdminProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, CollectionUtils.jsonArrayToList(pageNums));
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    public void removeRepeater(final RequestContext context) {
+        final JSONObject actor = (JSONObject) context.attr(User.USER);
+        if (actor == null || Sessions.getUser() == null
+                || !actor.optString(Keys.OBJECT_ID).equals(Sessions.getUser().optString(Keys.OBJECT_ID))
+                || !Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_MENU_ADMIN_REPORTS),
+                roleQueryService.getPermissions(actor.optString(User.USER_ROLE)))) {
+            context.sendError(403);
+            return;
+        }
+        final String id = context.pathVar("id");
+        try {
+            repeaterMgmtService.removeContent(id, Operation.newOperation(context.getRequest(),
+                    Operation.OPERATION_CODE_C_REMOVE_REPEATER, id));
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ServiceException e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg(e.getMessage());
+        }
     }
 
     /**

@@ -266,6 +266,22 @@
                     },
                 });
             }
+            AdminRepeaterRemove = function (it, id, token) {
+                if (it.disabled || !window.confirm('确认删除这条复读内容？')) return;
+                it.disabled = true;
+                $.ajax({
+                    url: '/admin/repeater/' + encodeURIComponent(id) + '/remove',
+                    type: 'POST',
+                    headers: {'csrfToken': token},
+                    cache: false,
+                    success: function (result) {
+                        if (result && result.code === 0) window.location.reload();
+                        else Util.alert(result && result.msg ? result.msg : '删除失败');
+                    },
+                    error: function () { Util.alert('删除失败'); },
+                    complete: function () { it.disabled = false; },
+                });
+            }
         </script>
     </#if>
     </body>
