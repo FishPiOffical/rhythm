@@ -90,7 +90,9 @@ final class SearchEngineDnsVerifier {
 
     private static boolean forwardMatches(final String hostname, final InetAddress address, final DnsLookup dns,
                                           final List<String> forward) throws NamingException {
-        final List<String> values = dns.lookup(hostname, "A", "AAAA");
+        // JNDI 同查 A/AAAA 会合成 ANY；只查来源地址族，避免解析器拒绝 ANY 而误拒真实爬虫。
+        final String recordType = address.getAddress().length == 4 ? "A" : "AAAA";
+        final List<String> values = dns.lookup(hostname, recordType);
         forward.add(hostname + " → " + (values.isEmpty() ? "无记录" : String.join(", ", values)));
         for (final String value : values) {
             try {

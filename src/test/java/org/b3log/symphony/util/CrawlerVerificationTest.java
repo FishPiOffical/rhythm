@@ -33,6 +33,51 @@ public class CrawlerVerificationTest {
     private static final String IP = "192.0.2.13";
     private static final SearchEngines.Engine ENGINE = SearchEngines.Engine.BAIDU;
 
+    public void allDnsEnginesQueryOnlyMatchingAddressFamilyWithoutAny() {
+        final Map<SearchEngines.Engine, String> hosts = Map.of(
+                SearchEngines.Engine.BAIDU, "spider.crawl.baidu.com",
+                SearchEngines.Engine.BING, "msnbot.search.msn.com",
+                SearchEngines.Engine.GOOGLE, "crawl.googlebot.com",
+                SearchEngines.Engine.SOGOU, "spider.sogou.com",
+                SearchEngines.Engine.YANDEX, "spider.yandex.com",
+                SearchEngines.Engine.SO360, "spider.so.com");
+        for (final var entry : hosts.entrySet()) {
+            for (final String ip : List.of(IP, "2001:db8::1")) {
+                final String recordType = ip.contains(":") ? "AAAA" : "A";
+                final AtomicInteger calls = new AtomicInteger();
+                final var result = SearchEngineDnsVerifier.verify(ip, entry.getKey(), (name, attrs) -> {
+                    calls.incrementAndGet();
+                    // JNDI 多种类型会合并为 ANY，模拟生产拒绝 ANY 的 DNS。
+                    Assert.assertEquals(attrs.length, 1, "每次 DNS 请求必须只有一个记录类型");
+                    if (attrs[0].equals("PTR")) return List.of(entry.getValue());
+                    Assert.assertEquals(attrs[0], recordType);
+                    Assert.assertEquals(name, entry.getValue());
+                    return List.of(ip);
+                });
+                Assert.assertTrue(result.verified(), entry.getKey() + " " + ip);
+                Assert.assertEquals(calls.get(), 2);
+            }
+        }
+    }
+
+    public void singleTypeLookupStillRejectsNoDataMismatchAndDnsErrors() {
+        for (final String ip : List.of(IP, "2001:db8::1")) {
+            for (final String outcome : List.of("empty", "mismatch", "exception")) {
+                final var result = SearchEngineDnsVerifier.verify(ip, SearchEngines.Engine.BING, (name, attrs) -> {
+                    Assert.assertEquals(attrs.length, 1);
+                    if (attrs[0].equals("PTR")) return List.of("msnbot.search.msn.com");
+                    Assert.assertEquals(attrs[0], ip.contains(":") ? "AAAA" : "A");
+                    if (outcome.equals("exception")) throw new CommunicationException("test timeout");
+                    if (outcome.equals("empty")) return List.of();
+                    return List.of(ip.contains(":") ? "2001:db8::2" : "192.0.2.14");
+                });
+                Assert.assertFalse(result.verified());
+                Assert.assertEquals(result.reason(), outcome.equals("exception")
+                        ? "正向查询异常（CommunicationException）" : "正向解析未匹配来源 IP");
+            }
+        }
+    }
+
     public void recordsSuccessAndEveryDnsFailureStage() {
         final var noPtr = SearchEngineDnsVerifier.verify(IP, ENGINE, (name, attrs) -> List.of());
         Assert.assertFalse(noPtr.verified());
