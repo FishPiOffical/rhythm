@@ -199,7 +199,7 @@ $.extend(HomePersonalize, {
     ;(rows || []).forEach(function (row, index) {
       var $entry = $('<li>').addClass('repeater-station__rank-entry')
       var $head = $('<div>').addClass('repeater-station__rank-head').appendTo($entry)
-      $('<span>').addClass('repeater-station__rank-number').text(index + 1).appendTo($head)
+      $('<span>').addClass('repeater-station__rank-number').attr('data-rank', index + 1).text(index + 1).appendTo($head)
       HomePersonalize.repeaterAuthorLink(row.authorName).appendTo($head)
       $('<span>').addClass('repeater-station__rank-count').text((row.likeCount || 0) + ' 赞').appendTo($head)
       if (type === 'authors') {

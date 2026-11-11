@@ -144,14 +144,18 @@
   outline-offset: 3px;
 }
 
+
 /* 复读机：和 .module 保持一致的卡片容器 */
 .repeater-station {
-  --repeater-text: #3b3e43;
-  --repeater-muted: #888;
-  --repeater-line: #eee;
-  --repeater-soft: #f5f6f7;
-  --repeater-accent: #3b82f6;
-  --repeater-active: #eff6ff;
+  --rs-text:   #3b3e43;
+  --rs-sub:    #666;
+  --rs-muted:  #999;
+  --rs-line:   #ebebeb;
+  --rs-soft:   #f7f8fa;
+  --rs-accent: #2563eb;
+  --rs-active: #eff6ff;
+  --rs-radius: 5px;
+  --rs-h:      28px;
 
   box-sizing: border-box;
   margin-bottom: 20px;
@@ -159,73 +163,133 @@
   border-radius: 8px;
   background: $theme-primary;
   box-shadow: 0 0 2px rgba(98, 124, 153, .10);
-  color: var(--repeater-text);
+  color: var(--rs-text);
 
-  button, a { -webkit-tap-highlight-color: transparent; }
-  button:disabled { opacity: .38; cursor: not-allowed; }
-  button:focus-visible, a:focus-visible { outline: 2px solid var(--repeater-accent); outline-offset: 2px; }
+  button {
+    padding: 0; border: 0; border-radius: 0;
+    background: transparent; box-shadow: none;
+    line-height: inherit; font-weight: normal;
+    color: inherit; white-space: nowrap; transition: none;
+    &:hover  { box-shadow: none; background: transparent; color: inherit; }
+    &:active { background: transparent; color: inherit; }
+    &:disabled { opacity: .38; cursor: not-allowed; }
+  }
+  a { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--rs-accent); outline-offset: 2px; }
 }
 
-/* 标题行 — 和 .module-header 对齐 */
+/* ── 通用按钮原子（排行榜/换一个/复制/举报/关闭 全部统一） ── */
+.rs-btn,
+.repeater-station .repeater-station__btn,
+.repeater-station .repeater-station__btn-sm,
+.repeater-station .repeater-station__text-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: var(--rs-h);
+  padding: 0 11px;
+  border: 1px solid var(--rs-line);
+  border-radius: var(--rs-radius);
+  background: transparent;
+  color: var(--rs-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: border-color .15s, color .15s, background .15s;
+  svg { width: 13px; height: 13px; flex-shrink: 0; }
+  &:hover:not(:disabled) {
+    border-color: var(--rs-accent);
+    color: var(--rs-accent);
+    background: var(--rs-active);
+  }
+}
+
+/* 换一个：主色 */
+.repeater-station .repeater-station__btn--primary,
+.repeater-station .repeater-station__btn--next {
+  background: var(--rs-active);
+  color: var(--rs-accent);
+  border-color: rgba(37, 99, 235, .25);
+  font-weight: 600;
+  &:hover:not(:disabled) { background: #dbeafe; border-color: var(--rs-accent); }
+}
+
+/* 举报/删除 */
+.repeater-station .repeater-station__btn--muted {
+  color: #c0c0c0;
+  border-color: #e8e8e8;
+  &:hover:not(:disabled) { color: #e53935; border-color: #e53935; background: #fff5f5; }
+}
+
+/* 点赞后 */
+.repeater-station .repeater-station__btn--liked { color: #e53935; border-color: rgba(229,57,53,.28); }
+
+/* 推到最右 */
+.repeater-station .repeater-station__btn[data-repeater-action="openCreate"],
+.repeater-station .repeater-station__btn[href*="login"] { margin-left: auto; }
+
+/* ── 标题行 ── */
 .repeater-station__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 15px;
-  border-bottom: 1px solid #eee;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rs-line);
   border-radius: 8px 8px 0 0;
 }
-
-.repeater-station__title { font-size: 13px; font-weight: bold; color: $theme-secondary; }
-
-/* tab 行 */
-.repeater-station__tabs {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0 15px;
-  border-bottom: 1px solid var(--repeater-line);
+.repeater-station__title {
+  font-size: 13px; font-weight: 600; color: var(--rs-text); letter-spacing: .01em;
 }
 
+/* ── tab 行 ── */
+.repeater-station__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--rs-line);
+}
 .repeater-station .repeater-station__tab {
-  min-height: 34px;
-  margin: 0;
-  padding: 0 12px 0 0;
+  height: 34px;
+  margin: 0 12px 0 0;
+  padding: 0;
   border: 0;
   border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: var(--repeater-muted);
+  color: var(--rs-muted);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
   margin-bottom: -1px;
-
-  &:hover:not(:disabled) { color: var(--repeater-text); }
+  &:hover:not(:disabled) { color: var(--rs-text); }
 }
-
 .repeater-station .repeater-station__tab--active {
-  border-bottom-color: var(--repeater-accent);
-  color: var(--repeater-accent);
-  font-weight: 500;
+  border-bottom-color: var(--rs-accent);
+  color: var(--rs-accent);
+  font-weight: 600;
 }
 
-/* 内容区 */
+/* ── 阅读区 ── */
 .repeater-station__body {
   display: flex;
   flex-direction: column;
   height: 180px;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 12px 15px 0;
+  padding: 12px 14px 0;
 }
-
 .repeater-station__quote {
   flex: 1 1 auto;
   min-height: 0;
-  color: var(--repeater-text);
+  color: var(--rs-text);
   font-size: 14px;
   line-height: 1.85;
   overflow-wrap: anywhere;
@@ -234,139 +298,71 @@
   scrollbar-width: thin;
 }
 
-/* meta 行：作者 + 举报/删除 */
+/* ── 作者行 ── */
 .repeater-station__meta {
-  display: flex;
   flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 15px;
-  color: var(--repeater-muted);
+  padding: 7px 0 0;
   font-size: 12px;
-  border-top: 1px solid var(--repeater-line);
-  margin-top: 8px;
-
-  #repeaterAuthor { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  color: var(--rs-muted);
+  #repeaterAuthor { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
-
 .repeater-station .repeater-station__author-link {
-  color: var(--repeater-muted);
-  text-decoration: none;
-  &:hover { color: var(--repeater-accent); text-decoration: underline; }
+  color: var(--rs-muted); text-decoration: none;
+  &:hover { color: var(--rs-accent); text-decoration: underline; }
 }
-.repeater-station__author-empty { color: var(--repeater-muted); font-style: italic; }
+.repeater-station__author-empty { color: var(--rs-muted); font-style: italic; }
 
-/* 轻量文字按钮（举报/删除/关闭/排行榜 等） */
-.repeater-station .repeater-station__text-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  min-height: 24px;
-  margin: 0;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--repeater-muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover:not(:disabled) { background: var(--repeater-soft); color: var(--repeater-accent); }
-}
-
-/* 操作行：换一个 / 复制 / 点赞 / 上传 */
+/* ── 操作行 ── */
 .repeater-station__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 15px 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--rs-line);
 }
 
-.repeater-station .repeater-station__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  min-width: 0;
-  min-height: 28px;
-  gap: 4px;
-  margin: 0;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--repeater-muted);
-  box-shadow: none;
-  font: inherit;
-  font-size: 12px;
-  text-decoration: none;
-  cursor: pointer;
-  white-space: nowrap;
-
-  svg { width: 13px; height: 13px; flex-shrink: 0; }
-  &:hover:not(:disabled) { background: var(--repeater-soft); color: var(--repeater-text); }
-
-  /* 换一个：主色调，稍微突出 */
-  &--next {
-    background: var(--repeater-active);
-    color: var(--repeater-accent);
-    border-color: rgba(59, 130, 246, .2);
-    &:hover:not(:disabled) { background: #dbeafe; }
-  }
-
-  /* 点赞后高亮 */
-  &--liked { color: #e53935; }
-
-  /* 把上传/登录推到最右 */
-  &:last-child { margin-left: auto; }
-}
-
-/* 投稿区 */
-.repeater-station__create { padding: 12px 15px 0; }
-.repeater-station__input-label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--repeater-muted); }
+/* ── 投稿区 ── */
+.repeater-station__create { padding: 12px 14px 0; }
+.repeater-station__input-label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--rs-muted); }
 .repeater-station__create textarea {
   display: block;
   box-sizing: border-box;
   width: 100%;
   min-height: 100px;
-  margin: 0;
   padding: 8px 10px;
-  border: 1px solid var(--repeater-line);
-  border-radius: 5px;
+  border: 1px solid var(--rs-line);
+  border-radius: var(--rs-radius);
   background: transparent;
-  color: var(--repeater-text);
+  color: var(--rs-text);
   font: inherit;
   font-size: 13px;
   line-height: 1.65;
   resize: vertical;
-  &:focus { outline: none; border-color: var(--repeater-accent); }
+  &:focus { outline: none; border-color: var(--rs-accent); }
 }
-.repeater-station__create-actions { display: flex; gap: 8px; margin-top: 10px; padding-bottom: 12px; }
-.repeater-station__create-actions button { min-height: 32px; margin: 0; padding: 0 14px; }
+.repeater-station__create-actions {
+  display: flex; gap: 8px; margin-top: 10px; padding-bottom: 12px;
+  button { height: var(--rs-h); min-height: 0; padding: 0 16px; border: 1px solid var(--rs-line); border-radius: var(--rs-radius); }
+}
 
-/* 排行榜 / 举报弹窗 */
+/* ── 弹窗 ── */
 .repeater-station__dialog {
   box-sizing: border-box;
-  width: min(520px, calc(100vw - 32px));
-  max-height: min(720px, calc(100dvh - 32px));
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(680px, calc(100dvh - 32px));
   padding: 0;
   border: 0;
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, .18);
+  box-shadow: 0 4px 6px rgba(0,0,0,.04), 0 16px 48px rgba(0,0,0,.14);
   background: #fff;
-  color: var(--repeater-text);
+  color: var(--rs-text);
   overflow: auto;
-
-  &::backdrop { background: rgba(0, 0, 0, .36); }
-  button, select { min-height: 34px; }
-  label { display: block; margin: 12px 20px; }
-  select, textarea { display: block; box-sizing: border-box; width: 100%; margin-top: 6px; }
-  textarea { min-height: 80px; resize: vertical; }
-  > button[data-repeater-action="submitReport"] { margin: 0 20px 20px; }
+  /* 强制屏幕正中，不受父容器宽度影响 */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  &::backdrop { background: rgba(0,0,0,.4); }
 }
 
 .repeater-station__dialog-head {
@@ -374,83 +370,148 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--repeater-line);
-
-  strong { font-size: 15px; }
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--rs-line);
+  strong { font-size: 15px; font-weight: 600; color: var(--rs-text); }
 }
 
-.repeater-station__rank-list { margin: 0; padding: 0 20px; list-style: none; }
+.repeater-station__dialog .repeater-station__tabs {
+  padding: 0 20px;
+  border-bottom: 1px solid var(--rs-line);
+  .repeater-station__tab { height: 40px; font-size: 13px; }
+}
+
+/* 举报弹窗 */
+.repeater-station__dialog label {
+  display: block;
+  margin: 16px 20px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rs-muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.repeater-station__dialog select,
+.repeater-station__dialog textarea {
+  display: block;
+  box-sizing: border-box;
+  width: calc(100% - 40px);
+  margin: 6px 20px 0;
+  padding: 9px 12px;
+  border: 1px solid var(--rs-line);
+  border-radius: var(--rs-radius);
+  background: var(--rs-soft);
+  color: var(--rs-text);
+  font: inherit;
+  font-size: 13px;
+  &:focus { outline: none; border-color: var(--rs-accent); background: #fff; }
+}
+.repeater-station__dialog textarea { min-height: 80px; resize: vertical; line-height: 1.65; }
+.repeater-station__dialog > button[data-repeater-action="submitReport"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--rs-h);
+  padding: 0 20px;
+  margin: 16px 20px 20px;
+  border: 1px solid rgba(37,99,235,.25);
+  border-radius: var(--rs-radius);
+  background: var(--rs-active);
+  color: var(--rs-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { background: #dbeafe; border-color: var(--rs-accent); }
+}
+
+/* ── 排行榜列表 ── */
+.repeater-station__rank-list { margin: 0; padding: 0; list-style: none; }
+
 .repeater-station__rank-entry {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--repeater-line);
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: start;
+  column-gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rs-line);
   &:last-child { border-bottom: 0; }
 }
-.repeater-station__rank-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
 .repeater-station__rank-number {
-  min-width: 20px;
-  color: var(--repeater-muted);
+  grid-column: 1; grid-row: 1;
+  font-size: 11px; font-weight: 700;
+  color: var(--rs-muted);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  padding-top: 2px;
+  /* TOP3 */
+  &[data-rank="1"] { color: #d4a017; }
+  &[data-rank="2"] { color: #9ea7b3; }
+  &[data-rank="3"] { color: #c17f4b; }
 }
-.repeater-station__rank-head .repeater-station__author-link {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--repeater-text);
-  font-weight: 500;
+
+.repeater-station__rank-head {
+  grid-column: 2; grid-row: 1;
+  display: flex;
+  align-items: center;
+  .repeater-station__author-link {
+    font-size: 13px; font-weight: 600;
+    color: var(--rs-text); text-decoration: none;
+    &:hover { color: var(--rs-accent); }
+  }
 }
+
 .repeater-station__rank-count {
-  flex-shrink: 0;
-  color: var(--repeater-muted);
-  font-size: 12px;
-  white-space: nowrap;
+  grid-column: 3; grid-row: 1;
+  font-size: 12px; color: var(--rs-muted);
+  white-space: nowrap; padding-top: 2px;
 }
+
 .repeater-station__rank-content {
-  margin: 6px 0 4px 28px;
-  font-size: 13px;
-  line-height: 1.75;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--repeater-text);
+  grid-column: 2 / 4; grid-row: 2;
+  margin-top: 5px;
+  font-size: 13px; line-height: 1.75;
+  color: var(--rs-sub);
+  white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.repeater-station__status { padding: 8px 20px; font-size: 12px; color: var(--repeater-muted); min-height: 24px; }
+
+/* 单条榜复制 */
+.repeater-station__rank-entry .repeater-station__text-btn {
+  grid-column: 2; grid-row: 3;
+  margin-top: 8px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+  /* text-btn 已经有 border，这里只需 margin */
+}
+
+.repeater-station__status {
+  padding: 10px 20px; font-size: 12px;
+  color: var(--rs-muted); min-height: 24px;
+}
 
 /* 夜间模式 */
-body.night .home-personalize-panel { border-color: rgba(255, 255, 255, .1); background: #1e293b; }
+body.night .home-personalize-panel { border-color: rgba(255,255,255,.1); background: #1e293b; }
 body.night .home-personalize-panel__item { color: #e5e7eb; }
 body.night .repeater-station {
-  --repeater-text: #e5e7eb;
-  --repeater-muted: #9ca3af;
-  --repeater-line: #333;
-  --repeater-soft: #2a2a2a;
-  --repeater-accent: #60a5fa;
-  --repeater-active: #1e3a5f;
+  --rs-text:   #e5e7eb;
+  --rs-sub:    #c4c9d4;
+  --rs-muted:  #9ca3af;
+  --rs-line:   #2d2d2d;
+  --rs-soft:   #252525;
+  --rs-accent: #60a5fa;
+  --rs-active: #1e3a5f;
   background: #1e1e1e;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06);
 }
-body.night .repeater-station__dialog { background: #252525; }
-body.night .repeater-station__dialog-head { border-bottom-color: #333; }
+body.night .repeater-station__dialog { background: #1e1e1e; }
 
 /* 移动端 */
 @media (max-width: 768px) {
-  .home-personalize-toolbar {
-    margin: 0 10px;
-    padding-top: 8px;
-  }
-
-  .home-personalize-panel {
-    top: 48px;
-    right: 0;
-    left: 0;
-    width: auto;
-  }
-
+  .home-personalize-toolbar { margin: 0 10px; padding-top: 8px; }
+  .home-personalize-panel { top: 48px; right: 0; left: 0; width: auto; }
+  .repeater-station { --rs-h: 36px; }
   .repeater-station__body { height: 196px; }
-  .repeater-station .repeater-station__tab { min-height: 40px; }
-  .repeater-station .repeater-station__btn { min-height: 36px; }
-  .repeater-station .repeater-station__text-btn { min-height: 36px; }
-  .repeater-station__create-actions button { min-height: 40px; }
-  .repeater-station__meta { min-height: 36px; }
+  .repeater-station .repeater-station__tab { height: 44px; }
 }
 /* end home-personalize */

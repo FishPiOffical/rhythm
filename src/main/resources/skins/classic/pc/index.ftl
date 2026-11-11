@@ -676,7 +676,7 @@
                 <section class="repeater-station repeater-station--sidebar" data-csrf="${csrfToken}" data-current-user-id="<#if isLoggedIn>${currentUser.oId}</#if>">
                     <div class="repeater-station__head">
                         <strong class="repeater-station__title">复读机转录站</strong>
-                        <button type="button" class="repeater-station__text-btn" data-repeater-action="leaderboard">排行榜</button>
+                        <button type="button" class="repeater-station__btn-sm" data-repeater-action="leaderboard">排行榜</button>
                     </div>
                     <div class="repeater-station__tabs" role="group" aria-label="内容分类">
                         <button type="button" class="repeater-station__tab repeater-station__tab--active" data-repeater-type="joke" aria-pressed="true">段子</button>
@@ -687,16 +687,10 @@
                         <div class="repeater-station__quote" id="repeaterContent" tabindex="0" aria-label="复读内容">加载中…</div>
                         <div class="repeater-station__meta">
                             <span id="repeaterAuthor"></span>
-                            <#if isLoggedIn>
-                                <button type="button" class="repeater-station__text-btn" data-repeater-action="report">举报</button>
-                                <#if permissions["menuAdminReports"].permissionGrant!false>
-                                    <button type="button" class="repeater-station__text-btn" data-repeater-action="remove">删除</button>
-                                </#if>
-                            </#if>
                         </div>
                     </div>
                     <div class="repeater-station__actions">
-                        <button type="button" class="repeater-station__btn repeater-station__btn--next" data-repeater-action="next">换一个</button>
+                        <button type="button" class="repeater-station__btn repeater-station__btn--primary" data-repeater-action="next">换一个</button>
                         <button type="button" class="repeater-station__btn" data-repeater-action="copy">复制</button>
                         <button type="button" class="repeater-station__btn repeater-station__btn--like" data-repeater-action="like" aria-label="点赞" aria-pressed="false">
                             <svg aria-hidden="true"><use xlink:href="#heart"></use></svg>
@@ -704,6 +698,10 @@
                         </button>
                         <#if isLoggedIn>
                             <button type="button" class="repeater-station__btn" data-repeater-action="openCreate">上传</button>
+                            <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="report">举报</button>
+                            <#if permissions["menuAdminReports"].permissionGrant!false>
+                                <button type="button" class="repeater-station__btn repeater-station__btn--muted" data-repeater-action="remove">删除</button>
+                            </#if>
                         <#else>
                             <a class="repeater-station__btn" href="${servePath}/login">登录</a>
                         </#if>
