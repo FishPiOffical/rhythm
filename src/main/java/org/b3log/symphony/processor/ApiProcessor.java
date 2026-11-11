@@ -177,10 +177,10 @@ public class ApiProcessor {
         if (StringUtils.isBlank(userId)) {
             throw new IllegalStateException("authenticated user id required");
         }
-        AccountCredentialVersions.Proof proof = AccountCredentialVersions.snapshot(userId);
-        if (proof == null) {
-            proof = AccountCredentialVersions.current(userId);
-        }
+        final AccountCredentialVersions.Proof snapshot = AccountCredentialVersions.snapshot(userId);
+        final AccountCredentialVersions.Proof proof = snapshot == null
+                ? AccountCredentialVersions.current(userId)
+                : AccountCredentialVersions.issuance(userId, null);
         if (proof == null) {
             throw new IllegalStateException("credential state unavailable");
         }
