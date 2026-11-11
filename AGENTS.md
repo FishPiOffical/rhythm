@@ -50,6 +50,7 @@
 - 安全链路观测复用`SecurityMonitor`（2小时/200条，重启清空），`SkinRenderer`真实渲染后确认页面结果；后台/静态请求不能冒充验证后恢复。ipset须退出结果+成员核实，集合成员不代表真实丢包；监控不自动解封/加白，缺后续保持待确认。
 - 爬虫运行统计在`CrawlerMonitor`，复用入口验证结果，已验证/校验未通过分组且不能把后者断言为伪造；每组1000条去查询参数路径，超出计数保留。仅adlered经原后台监控读取，重启清空；不覆盖Nginx/ipset提前拦截或独立WebSocket链路。来源明细按IP保留最近实际校验原因/PTR/正向地址/时间/缓存标志，随原正负缓存保存，不为展示再查DNS；每组最多1000来源，超量请求单列计数。
 - 蜘蛛校验缓存按类型区分：DNS通信异常/服务暂不可用15秒，其余失败10分钟，成功6小时；命中不续期，到期后由下一次请求重新核验，不因临时异常自动放行，不按诊断字符串判断缓存期限。
+- 文章访问来源图标：`ArticleSearchVisitStatQueryService#engineIcon` 为每个 `SearchEngines.Engine` 显式映射 `symbol-defs.js` 中已存在的 symbol，新增引擎须同步补图标、PC/移动 SCSS 颜色及 `ArticleSearchVisitStatQueryServiceTest`；移动端未加载 tooltipped 样式，来源名称靠 `tabindex` 聚焦后的 `::after` 显示。
 - 验证码盾验收进度在 `.codex-tasks/captcha-shield-e2e`；固定L加5个源IP、DPAPI密码，不读写`jiyan.key`。每次浏览器测试先用两个独立localhost窗口登录baseline/admin后关闭，恢复业务账号IP；不清封禁/加白。监控/自检服务端仅允许`adlered`独立L会话；禁止为跑通工具放宽权限。
 - 验收菜单8通过 `tools/captcha-shield-suite.mjs` 组合模块并复用选择，菜单7固定L/A/B；日志须匹配本轮事件及统计，解封D按服务端实际IP格式操作；`results.json` 保留结果，失败保留浏览器，隔离HTTP夹具通过不能当真实极验或Linux ipset通过。
 - 验证码盾验收统一PRODUCTION，不开发DEVELOPMENT写入测试；可选`pressure`只用E真实绑定HTTP（不带Cookie、不跟跳转），按服务端固定分钟验证匿名阈值及429，监控独立L/adlered；应用封禁保留，Windows结果不证明ipset成功。

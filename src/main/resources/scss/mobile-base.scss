@@ -2567,11 +2567,33 @@ body.long-article-page .article-reaction .reaction-popover {
 }
 
 .article-visit-source {
+  position: relative;
   display: inline-flex;
   align-items: center;
   color: #8b8b8b;
   font-size: 12px;
   line-height: 18px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+
+  // 移动端未加载 PC 的 tooltipped 样式，点按聚焦后显示来源名称与抓取/来源次数。
+  &:focus::after,
+  &:active::after {
+    content: attr(aria-label);
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    z-index: 10;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(27, 31, 35, 0.86);
+    color: #fff;
+    font-size: 12px;
+    line-height: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
 }
 
 .article-visit-source__icon {
@@ -2641,6 +2663,26 @@ body.long-article-page .article-reaction .reaction-popover {
 
 .article-visit-source--iphone .article-visit-source__icon {
   color: #6e6e73;
+}
+
+.article-visit-source--oai-search .article-visit-source__icon {
+  color: #000000;
+}
+
+.article-visit-source--claude-search .article-visit-source__icon {
+  color: #d97757;
+}
+
+.article-visit-source--perplexity .article-visit-source__icon {
+  color: #20808d;
+}
+
+.article-visit-source--apple .article-visit-source__icon {
+  color: #000000;
+}
+
+.article-visit-source--mistral-index .article-visit-source__icon {
+  color: #fa500f;
 }
 
 .share {

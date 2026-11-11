@@ -157,8 +157,19 @@ public class ArticleSearchVisitStatQueryService {
                 return "visitSourceSo360";
             case DUCKDUCKGO:
                 return "visitSourceDuckDuckGo";
+            case OAI_SEARCH:
+                return "visitSourceOpenAI";
+            case CLAUDE_SEARCH:
+                return "visitSourceClaude";
+            case PERPLEXITY:
+                return "visitSourcePerplexity";
+            case APPLE:
+                return "visitSourceApple";
+            case MISTRAL_INDEX:
+                return "visitSourceMistral";
             default:
-                return "visitSourceSearch";
+                // 兜底必须指向 symbol-defs.js 中已定义的图标，避免新增引擎时只剩空白占位。
+                return "view";
         }
     }
 }

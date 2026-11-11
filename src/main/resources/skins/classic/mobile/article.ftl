@@ -178,7 +178,7 @@
                         <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
                         <span class="article-visit-sources">
                             <#list articleVisitSourceStats as sourceStat>
-                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" aria-label="${sourceStat.sourceName}">
+                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" tabindex="0" aria-label="${sourceStat.sourceName}">
                                 <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>${sourceStat.visitCount}
                             </span>
                             </#list>

@@ -3678,6 +3678,26 @@ code .dec {
   color: #6e6e73;
 }
 
+.article-visit-source--oai-search .article-visit-source__icon {
+  color: #000000;
+}
+
+.article-visit-source--claude-search .article-visit-source__icon {
+  color: #d97757;
+}
+
+.article-visit-source--perplexity .article-visit-source__icon {
+  color: #20808d;
+}
+
+.article-visit-source--apple .article-visit-source__icon {
+  color: #000000;
+}
+
+.article-visit-source--mistral-index .article-visit-source__icon {
+  color: #fa500f;
+}
+
 .article__cnt {
   font-size: 14px;
   line-height: 20px;
