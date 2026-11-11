@@ -33,10 +33,38 @@ Applebot-Extended 是 robots 控制标记而非独立 HTTP 抓取器，iTMS 是�
 ### 列表维护与部署
 
 - 资源在 `src/main/resources/search-engines/`，四种角色独立文件并保留官方来源及 creationTime。2026-11-11 下载分别为 39、14、13、2 条，仅为当时快照，不固定测试条数。
-- 打包前运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/update-search-crawler-prefixes.ps1`。该工具仅访问上表四个固定官方端点；校验非空、地址族及 CIDR，拒绝 /0；全部下载校验成功后逐文件替换，失败明确报错，不覆盖为假成功或空列表。写盘失败可能留下部分已更新文件，必须处理错误并重新执行成功后才可打包。
-- 本地被忽略的 `scripts/deploy.ps1` 已接入工具并在错误时停止部署，该私有脚本不提交。其他环境的打包流水线须显式执行上述命令并检查退出码，不能假定 Git 包含私有部署挂钩。未执行更新时仍用随包快照，官方范围变化需更新并重新打包、重启，不在请求线程下载。
+- 打包前统一运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-duckduckgo-bot-prefixes.ps1`。历史文件名保留，但现在访问六个固定官方 JSON：DuckDuckBot、DuckAssistBot、OAI-SearchBot、Claude-SearchBot、PerplexityBot、MistralAI-Index。DuckDuckGo 沿用两来源去重合并，其他四种分别保存，不合并不同搜索角色的列表。旧 `tools/update-search-crawler-prefixes.ps1` 已删除，不再维护双入口。
+- 脚本校验非空、地址族及 CIDR，拒绝 /0；六来源全部下载校验成功后才逐文件替换，失败明确报错，不覆盖为假成功或空列表。写盘失败可能留下部分已更新文件，必须处理错误并重新执行成功后才可打包。`-OutputDirectory` 可指定隔离目录验证，不必改动正式资源。
+- 360官网可读取但没有本次核实到的官方 JSON 接口，统一脚本明确提示人工维护，不自动抽取网页，也不改 `360-bot-prefixes.json`；人工对照官网六个网段后审查差异。DNS 引擎不下载 IP 列表，也不增加 DNS 失败后的列表放行分支。
+- 指定更新脚本已单独纳入 Git；其余私有 `scripts` 文件仍忽略。本机 `scripts/deploy.ps1` 只调用统一入口并在错误时停止部署，该私有脚本不提交。其他环境须显式执行上述命令并检查退出码。未执行更新时仍用随包快照，官方范围变化需更新并重新打包、重启，不在请求线程下载。
 - 新资源由现有 Maven resources 规则随包，不改依赖或数据库。进程重启重新加载列表与校验缓存。
 - 新角色复用既有 CC/验证码可信爬虫判定和后台分组，记录源 IP、校验原因及 URL；不加入全局 IP 白名单，不增加后台权限或绕过登录/apiKey。相同 IP 的普通 UA 仍按普通流量处理。文章抓取统计沿现有来源键记录，使用通用搜索图标，不猜测新 Referer 归属。
+
+## 全部已支持角色复核（2026-11-11）
+
+本轮重新读取了上表全部官方核验说明，不将 HTTP 200 当作规则已验证，逐项核对实际正文中的域名或官方列表。共 12 个引擎分组、15 个现有 UA 标识；专用图片/视频 UA 等仍按原有识别规则，不宣称覆盖各品牌全部产品。
+
+| 分组与现有标识 | 维护类别 | 本轮结果 |
+| --- | --- | --- |
+| Google：googlebot | 双向 DNS | 官方域名规则吻合；独立 DNS 样本 `66.249.66.1` 双向匹配 |
+| 百度：baiduspider | 双向 DNS | 官方反查规则吻合，保留额外正向校验；独立 DNS 样本 `116.179.37.120` 双向匹配，另有先前生产修复后成功记录 |
+| Bing：bingbot / msnbot / bingpreview | 双向 DNS | 官方 search.msn.com 规则吻合；从官方 bingbot JSON 选取样本 `157.55.39.0` 双向匹配；旧文档示例 IP 无 PTR 不能当作现行故障证据 |
+| 搜狗：sogou web spider | 双向 DNS | 官方 sogou.com 反查规则吻合，官方也支持签名核验但本项目不实现新分支；本轮无可确认的真实来源样本，不能声称实际请求已通过 |
+| Yandex：yandexbot | 双向 DNS | 官方三个后缀规则吻合；独立 DNS 样本 `77.88.5.245` 双向匹配 |
+| Apple：Applebot | 双向 DNS | 官方 applebot.apple.com 规则吻合；独立 DNS 样本 `17.58.101.179` 双向匹配 |
+| DuckDuckGo：DuckDuckBot / DuckAssistBot | 自动拉取 | 两个实时官方列表各 486 条，去重合集 486 条，与现有快照一致 |
+| OpenAI：OAI-SearchBot | 自动拉取 | 实时官方列表 39 条，与现有快照一致 |
+| Claude：Claude-SearchBot | 自动拉取 | 实时官方列表 14 条，与现有快照一致；共享来源须同时匹配搜索角色 UA |
+| Perplexity：PerplexityBot | 自动拉取 | 实时官方列表 13 条，与现有快照一致，不读取 User 列表 |
+| Mistral：MistralAI-Index | 自动拉取 | 实时官方列表 2 条，与现有快照一致，不读取 User 或 Training 列表 |
+| 360：360Spider | 人工复核 | 实时官网仍说明不支持 nslookup，六个 /24 与现有快照逐一一致；更新脚本不写此文件 |
+
+### 可用性与验收边界
+
+- 开发机系统 DNS 本轮正向返回 `198.18.*`，疑似本地代理 Fake-IP，不能作为生产 DNS 成败依据。上表五个成功样本另用独立 `dns.google` HTTPS DNS 接口查询 PTR 和单一 A 记录交叉核对；这只是诊断取证，没有写入应用 DNS 配置，没有新增运行期外部解析服务。
+- 规则核实、独立样本、隔离 Java 测试都不等于生产可用率。无法根据这些样本承诺 99.99%；生产实际解析器超时、缓存中的失败结果、官方列表变化、未更新部署、已有 ipset/上游拦截仍可能影响真实请求。
+- 若要衡量 99.99%，需先定义观察周期与“经官方证据独立确认的真实蜘蛛请求”分母，同时记录误拒、解析异常与最终 HTTP 结果；不能把“已通过身份核验的请求”自作分母排除所有失败。现有有界内存面板不是完整持久化审计，不足以证明这个指标。
+- 人工链路：先在隔离目录运行统一脚本确认五份输出且360原文件不变，再打包重启；真实蜘蛛到访后核对分组、来源IP、DNS/网段诊断及访问日志的最终正文响应；普通IP伪造UA不得变成可信来源，匿名/登录/apiKey和验证码解封保持旧行为。没有真实极验证据或Linux ipset成员及实际访问验证，不能宣布整条防火墙链路已验收。
 
 ## 仍未覆盖的其他来源
 
