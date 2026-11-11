@@ -159,6 +159,36 @@ public class ApiV3MedalImageTest {
             Assert.assertFalse(clean.contains(s), s);
         Assert.assertTrue(clean.contains("stroke:red"));
         System.out.println("PASS medal image 3 actual SVG sanitizer keeps safe shapes/text/SMIL/styles and strips script HTML navigation and external resources");
+        final String webp = "data:image/webp;base64,UklGRj4AAABXRUJQVlA4IDIAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8JCj/4cp8OU+HKf8OU/9QZ8tD5aH63AAAA==";
+        final String legacy = """
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 28">
+                  <foreignObject width="104" height="28">
+                    <html xmlns="http://www.w3.org/1999/xhtml">
+                      <style>
+                        .img { width: 21px; background-image: url('%s'); }
+                        .bar { height: 21px; background: linear-gradient(to bottom, rgb(143,107,31), #ad8029); }
+                        span { background: linear-gradient(to right, #fff, #ffd454); }
+                      </style>
+                      <div class="container">
+                        <div class="bar"><span class="shadow">影子</span><span>功勋玩家α &amp; 鱼</span></div>
+                        <div class="img" onclick="evil()"></div>
+                        <script>evil()</script>
+                      </div>
+                    </html>
+                  </foreignObject>
+                </svg>
+                """;
+        clean = new String(ApiV3MedalSvg.clean(bytes(legacy.formatted(webp))), StandardCharsets.UTF_8);
+        Assert.assertTrue(clean.contains("<rect") && clean.contains("<text") && clean.contains("功勋玩家α &amp; 鱼"));
+        Assert.assertTrue(clean.contains("<image") && clean.contains(webp) && clean.contains("<linearGradient") && clean.contains("#8f6b1f"));
+        for (String s : List.of("foreignObject", "<html", "<style", "<script", "onclick", "影子"))
+            Assert.assertFalse(clean.contains(s), s);
+        clean = new String(ApiV3MedalSvg.clean(bytes(legacy.formatted("https://example.test/icon.webp"))), StandardCharsets.UTF_8);
+        Assert.assertTrue(clean.contains("功勋玩家α"));
+        Assert.assertFalse(clean.contains("<image") || clean.contains("https://example.test"));
+        clean = new String(ApiV3MedalSvg.clean(bytes(legacy.formatted("data:image/webp;base64,R0lGODlhAQABAAAAACw="))), StandardCharsets.UTF_8);
+        Assert.assertFalse(clean.contains("<image"));
+        System.out.println("PASS legacy medal template projects to pure SVG and only embeds validated bitmap data");
         status(503, () -> ApiV3MedalSvg.clean(bytes("<!DOCTYPE svg [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><svg xmlns='http://www.w3.org/2000/svg'>&x;</svg>")));
         status(503, () -> ApiV3MedalSvg.clean(new byte[ApiV3MedalSvg.MAX_BYTES + 1]));
         status(503, () -> ApiV3MedalSvg.clean(bytes("<html>bad</html>")));

@@ -69,6 +69,7 @@ public final class ApiV3MedalSvg {
                     doc.removeChild(n);
                 n = next;
             }
+            ApiV3LegacyMedalSvg.convert(root);
             int[] count = {0};
             cleanElement(root, 0, count);
             root.setAttribute("xmlns", NS);
@@ -134,14 +135,21 @@ public final class ApiV3MedalSvg {
         }
     }
 
-    private static boolean dataImage(String value) {
-        if (value.length() > 350000 || !value.matches("data:image/(png|jpeg|gif);base64,[A-Za-z0-9+/]+={0,2}"))
+    static boolean dataImage(String value) {
+        if (value.length() > 350000 || !value.matches("data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}"))
             return false;
         try {
             byte[] b = Base64.getDecoder().decode(value.substring(value.indexOf(',') + 1));
-            return b.length >= 8 && ((b[0] & 255) == 137 && b[1] == 80 && b[2] == 78 && b[3] == 71
-                    || (b[0] & 255) == 255 && (b[1] & 255) == 216 && (b[2] & 255) == 255
-                    || b[0] == 71 && b[1] == 73 && b[2] == 70);
+            if (b.length < 8) return false;
+            final String mime = value.substring(11, value.indexOf(';'));
+            return switch (mime) {
+                case "png" -> (b[0] & 255) == 137 && b[1] == 80 && b[2] == 78 && b[3] == 71;
+                case "jpeg" -> (b[0] & 255) == 255 && (b[1] & 255) == 216 && (b[2] & 255) == 255;
+                case "gif" -> b[0] == 71 && b[1] == 73 && b[2] == 70;
+                case "webp" -> b.length >= 16 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+                        && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
+                default -> false;
+            };
         } catch (IllegalArgumentException e) {
             return false;
         }

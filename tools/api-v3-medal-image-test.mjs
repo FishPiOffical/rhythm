@@ -33,7 +33,7 @@ try{
  shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;public class UserRepository extends org.b3log.latke.repository.AbstractRepository{public UserRepository(){super("user");}}');
  shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys{public static String get(String k){return "http://127.0.0.1:3001/gen";}}');
  shim('org/b3log/symphony/util/ApiV3Requests','package org.b3log.symphony.util;public class ApiV3Requests{public static ApiV3Exception invalid(){return new ApiV3Exception(422,"invalid_request","bad");}public static ApiV3Exception notFound(){return new ApiV3Exception(404,"not_found","missing");}}');
- const source=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java','utf8');
+ const source=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java','utf8').replace(/\s+/g,'');
  if(!source.includes('Dispatcher.get("/api/v3/me/medals/image",p::mine,auth::profileRead)')||
     !source.includes('Dispatcher.get("/api/v3/users/{userName}/medals/image",p::displayed,auth::optionalProfile,beans.getReference(AnonymousViewCheckMidware.class)::handle)'))throw Error('Missing protected image routes');
  if(!fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3Processor.java','utf8').includes('ApiV3MedalImageProcessor.register();'))throw Error('Missing root');
@@ -41,6 +41,7 @@ try{
   'repository/MedalRepository',
   'repository/UserMedalRepository',
   'util/ApiV3Exception',
+  'util/ApiV3LegacyMedalSvg',
   'util/ApiV3MedalSvg',
   'service/ApiV3MedalImageQueryService',
   'service/ApiV3MedalImageService'
