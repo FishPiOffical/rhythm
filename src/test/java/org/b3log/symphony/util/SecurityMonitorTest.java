@@ -217,6 +217,11 @@ public class SecurityMonitorTest {
         for (String skin : List.of("pc", "mobile")) {
             final String source = java.nio.file.Files.readString(Path.of(
                     "src/main/resources/skins/classic", skin, "admin/misc.ftl"));
+            Assert.assertTrue(source.contains("<th>后续状态</th>"));
+            Assert.assertTrue(source.contains("item.subsequentStatus"));
+            Assert.assertTrue(source.contains("item.recoveredAt"));
+            Assert.assertTrue(source.contains("td.colSpan = 9;"));
+            Assert.assertTrue(source.contains("td.textContent = value;"));
             final int start = source.indexOf("            <#if currentUser.userName == \"adlered\">");
             final int end = source.indexOf("            <div class=\"security-self-check\"", start);
             final var template = new freemarker.template.Template("observations",

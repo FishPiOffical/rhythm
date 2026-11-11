@@ -116,8 +116,8 @@
                     <div class="security-events-wrap" id="securityCrawlerSourcesViewport" role="region"
                          aria-labelledby="securityCrawlerSourcesTitle" tabindex="0">
                         <table class="table security-events security-crawler-sources">
-                            <thead><tr><th>来源 IP</th><th>请求次数</th><th>最近访问</th><th>校验结果</th><th>反向域名</th><th>正向解析</th><th>校验时间</th><th>最近请求</th></tr></thead>
-                            <tbody id="securityCrawlerSources"><tr><td colspan="8">请选择爬虫</td></tr></tbody>
+                            <thead><tr><th>来源 IP</th><th>请求次数</th><th>最近访问</th><th>校验结果</th><th>反向域名</th><th>正向解析</th><th>校验时间</th><th>最近请求</th><th>后续状态</th></tr></thead>
+                            <tbody id="securityCrawlerSources"><tr><td colspan="9">请选择爬虫</td></tr></tbody>
                         </table>
                     </div>
                     <div class="security-actions">
@@ -364,7 +364,8 @@ const SecuritySwitches = {
             data.sources.forEach(item => {
                 const tr = document.createElement('tr');
                 [item.ip, item.count, item.lastSeen, item.reason, item.ptr || '—', item.forward || '—',
-                    item.checkedAt, item.cached ? '使用缓存' : '实时校验'].forEach(value => {
+                    item.checkedAt, item.cached ? '使用缓存' : '实时校验',
+                    item.subsequentStatus ? item.subsequentStatus + (item.recoveredAt ? '（' + item.recoveredAt + '）' : '') : '—'].forEach(value => {
                     const td = document.createElement('td');
                     td.textContent = value;
                     tr.appendChild(td);
@@ -374,7 +375,7 @@ const SecuritySwitches = {
             if (!data.sources.length) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = 8;
+                td.colSpan = 9;
                 td.textContent = this.crawlerGroup ? '暂无来源明细' : '请选择爬虫';
                 tr.appendChild(td);
                 sources.appendChild(tr);

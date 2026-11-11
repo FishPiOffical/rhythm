@@ -64,6 +64,15 @@ public final class CrawlerMonitor {
     private static final class Source {
         final Visit visits = new Visit();
         SearchEngines.Verification verification;
+        SearchEngines.Verification latestVerification;
+
+        void observe(final SearchEngines.Verification result) {
+            // 以真实校验时间而非并发请求到达顺序关联，旧缓存不能覆盖较新的结论。
+            if (latestVerification == null || result.checkedAt() > latestVerification.checkedAt()
+                    || (result.checkedAt() == latestVerification.checkedAt() && !result.verified())) {
+                latestVerification = result;
+            }
+        }
     }
 
     private CrawlerMonitor() {
@@ -80,6 +89,10 @@ public final class CrawlerMonitor {
         synchronized (GROUPS) {
             final Group group = GROUPS.computeIfAbsent(key, ignored -> new Group(engine, verified));
             group.total.record(now);
+            final Group other = GROUPS.get(engine.key() + (verified ? "-unverified" : "-verified"));
+            final Source counterpart = other == null ? null : other.sources.get(ip);
+            // 即使当前组来源已满，也要更新另一组已保存来源的后续状态。
+            if (counterpart != null) counterpart.observe(verification);
             // 来源与路径独立限量，路径未保留时仍可定位来源及其最近一次真实校验。
             if (ip == null || ip.isBlank() || ip.length() > 64
                     || (!group.sources.containsKey(ip) && group.sources.size() >= MAX_SOURCES_PER_GROUP)) {
@@ -88,6 +101,11 @@ public final class CrawlerMonitor {
                 final Source source = group.sources.computeIfAbsent(ip, ignored -> new Source());
                 source.visits.record(now);
                 source.verification = verification;
+                source.observe(verification);
+                if (counterpart != null) {
+                    // 只关联已有来源，不额外扩张存储，也不改变两组历史次数与失败详情。
+                    source.observe(counterpart.latestVerification);
+                }
             }
             // 不截断后合并不同长路径；未保留的请求单独计数，总次数不丢失。
             if (path == null || (!group.paths.containsKey(path) && group.paths.size() >= MAX_PATHS_PER_GROUP)) {
@@ -117,10 +135,13 @@ public final class CrawlerMonitor {
                         .forEach(entry -> {
                             final Source source = entry.getValue();
                             final SearchEngines.Verification result = source.verification;
+                            final boolean recovered = !selected.verified && source.latestVerification.verified();
                             sources.add(Map.of("ip", entry.getKey(), "count", source.visits.count,
                                     "lastSeen", time(source.visits.lastSeen), "reason", result.reason(),
                                     "ptr", result.ptr(), "forward", result.forward(), "checkedAt", time(result.checkedAt()),
-                                    "cached", result.cached()));
+                                    "cached", result.cached(),
+                                    "subsequentStatus", selected.verified ? "" : recovered ? "现已验证通过" : "尚未观察到通过",
+                                    "recoveredAt", recovered ? time(source.latestVerification.checkedAt()) : ""));
                         });
                 selected.paths.entrySet().stream()
                         .sorted(Comparator.<Map.Entry<String, Visit>>comparingLong(entry -> entry.getValue().lastSeen)

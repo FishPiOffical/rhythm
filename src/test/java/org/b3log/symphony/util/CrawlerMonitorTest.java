@@ -100,6 +100,69 @@ public class CrawlerMonitorTest {
         Assert.assertEquals(rows(CrawlerMonitor.snapshot("google-unverified"), "paths").size(), 1);
     }
 
+    public void laterVerificationMarksRecoveryWithoutChangingFailureHistory() {
+        observe(SearchEngines.Engine.BING, IP, false, 100L, false);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "尚未观察到通过");
+        observe(SearchEngines.Engine.BING, IP, true, 200L, false);
+        final var recovered = failedSource("bing");
+        Assert.assertEquals(recovered.get("subsequentStatus"), "现已验证通过");
+        Assert.assertFalse(recovered.get("recoveredAt").toString().isBlank());
+        Assert.assertEquals(recovered.get("reason"), "失败原因");
+        Assert.assertEquals(recovered.get("count"), 1L);
+        Assert.assertEquals(rows(CrawlerMonitor.snapshot("bing-unverified"), "paths").getFirst().get("count"), 1L);
+        Assert.assertEquals(rows(CrawlerMonitor.snapshot("bing-verified"), "sources").getFirst().get("subsequentStatus"), "");
+
+        observe(SearchEngines.Engine.BING, IP, false, 300L, false);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "尚未观察到通过");
+        Assert.assertEquals(failedSource("bing").get("recoveredAt"), "");
+        observe(SearchEngines.Engine.BING, IP, true, 400L, false);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "现已验证通过");
+    }
+
+    public void recoveryRequiresSameEngineAndIpAndNewerCheck() {
+        observe(SearchEngines.Engine.BING, IP, false, 100L, false);
+        observe(SearchEngines.Engine.GOOGLE, IP, true, 200L, false);
+        observe(SearchEngines.Engine.BING, "192.0.2.242", true, 200L, false);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "尚未观察到通过");
+        observe(SearchEngines.Engine.BING, IP, true, 200L, false);
+        final var recoveryTime = failedSource("bing").get("recoveredAt");
+        observe(SearchEngines.Engine.BING, IP, false, 100L, true);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "现已验证通过");
+        Assert.assertEquals(failedSource("bing").get("recoveredAt"), recoveryTime);
+        observe(SearchEngines.Engine.BING, IP, false, 300L, false);
+        observe(SearchEngines.Engine.BING, IP, true, 200L, true);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "尚未观察到通过");
+    }
+
+    public void olderFailureArrivingAfterSuccessIsStillCorrelatedAndEqualTimeFailsClosed() {
+        observe(SearchEngines.Engine.BING, IP, true, 200L, false);
+        observe(SearchEngines.Engine.BING, IP, false, 100L, true);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "现已验证通过");
+        observe(SearchEngines.Engine.BING, IP, false, 200L, false);
+        observe(SearchEngines.Engine.BING, IP, true, 200L, true);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "尚未观察到通过");
+    }
+
+    public void fullVerifiedSourceGroupStillUpdatesExistingFailedSource() {
+        observe(SearchEngines.Engine.BING, IP, false, 100L, false);
+        for (int i = 0; i < 1000; i++) {
+            observe(SearchEngines.Engine.BING, "2001:db8::" + Integer.toHexString(i), true, 150L, false);
+        }
+        observe(SearchEngines.Engine.BING, IP, true, 200L, false);
+        Assert.assertEquals(failedSource("bing").get("subsequentStatus"), "现已验证通过");
+        Assert.assertEquals(rows(CrawlerMonitor.snapshot("bing-verified"), "sources").size(), 1000);
+    }
+
+    private static void observe(final SearchEngines.Engine engine, final String ip, final boolean verified,
+                                final long checkedAt, final boolean cached) {
+        CrawlerMonitor.record(new SearchEngines.Verification(engine, verified, verified ? "成功原因" : "失败原因",
+                "", "", checkedAt, cached), ip, "/article/1");
+    }
+
+    private static Map<String, Object> failedSource(final String engine) {
+        return rows(CrawlerMonitor.snapshot(engine + "-unverified"), "sources").getFirst();
+    }
+
     public void boundedPathsKeepExactTotalAndExposeOmissions() {
         for (int i = 0; i < 1005; i++) CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BING, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/" + i);
         CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.BING, true, "测试校验", "", "", 123L, false), "192.0.2.241", "/article/0");
