@@ -153,38 +153,8 @@
   min-height: 30px;
 }
 
-.repeater-station--sidebar {
-  margin-bottom: 12px;
-  padding: 10px;
-}
-
-.repeater-station--sidebar .repeater-station__head {
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.repeater-station--sidebar .repeater-station__body {
-  min-height: 72px;
-  padding: 10px 0;
-}
-
-.repeater-station--sidebar .repeater-station__quote {
-  font-size: 13px;
-  line-height: 1.65;
-}
-
-.repeater-station--sidebar .repeater-station__tab,
-.repeater-station--sidebar .repeater-station__btn {
-  min-height: 28px;
-  padding: 0 8px;
-}
-
-.repeater-station--mobile-users {
-  margin: 0 10px 10px;
-  border: 0;
-  background: transparent;
-}
+.repeater-station--sidebar { margin-bottom: 0; }
+.repeater-station--mobile-users { margin: 0 10px 14px; }
 
 @media (max-width: 768px) {
   .home-personalize-toolbar {

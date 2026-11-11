@@ -10,6 +10,7 @@
 - 新增 `GET /api/repeater/leaderboard`，返回作者累计点赞榜、单条点赞榜，各前20条；新增 `GET /api/repeater/items/{id}` 读取有效内容。
 - 新旧随机读取均从全部有效内容取样，不再限于热门前50条；旧随机接口新增可选 `excludeIds`，最多250个，非空时优先于 `excludeId`。
 - `POST /report` 新增 `reportDataType=4`；`GET /api/v3/report/options` 和 `POST /api/v3/reports` 新增 `targetType=4`，用于复读内容举报。原类型编号保持不变。
+- 举报复读内容（`reportDataType=4`）失败时，`msg` 现在区分"不能举报自己的内容"和"内容不存在或已删除"，不再统一返回"该内容无法举报"。
 
 # 261109
 

@@ -157,9 +157,11 @@ public class ReportMgmtService {
                 final String targetId = normalized.getString("targetId");
                 final var rows = repeaterContentRepository.select("SELECT repeaterContentStatus,repeaterContentAuthorId FROM `"
                         + repeaterContentRepository.getName() + "` WHERE oId=? FOR UPDATE", targetId);
-                if (rows.size() != 1 || rows.getFirst().optInt(RepeaterContent.STATUS) != RepeaterContent.STATUS_C_VALID
-                        || rows.getFirst().optString(RepeaterContent.AUTHOR_ID).equals(report.optString(Report.REPORT_USER_ID))) {
-                    throw new ServiceException("该内容无法举报");
+                if (rows.size() != 1 || rows.getFirst().optInt(RepeaterContent.STATUS) != RepeaterContent.STATUS_C_VALID) {
+                    throw new ServiceException("内容不存在或已删除");
+                }
+                if (rows.getFirst().optString(RepeaterContent.AUTHOR_ID).equals(report.optString(Report.REPORT_USER_ID))) {
+                    throw new ServiceException("不能举报自己的内容");
                 }
                 if (!reportRepository.select("SELECT oId FROM `" + reportRepository.getName()
                         + "` WHERE reportUserId=? AND reportDataType=4 AND reportDataId=? AND reportHandled=0 LIMIT 1 FOR UPDATE",

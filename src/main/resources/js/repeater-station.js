@@ -34,8 +34,10 @@ $.extend(HomePersonalize, {
       .on('click.repeater', '[data-rank-tab]', function () {
         HomePersonalize.renderRepeaterLeaderboard($(this).data('rank-tab'))
       })
-      .on('click.repeater', '[data-repeater-id]', function () {
-        HomePersonalize.openRankedRepeater($(this).attr('data-repeater-id'))
+      .on('click.repeater', '[data-rank-copy]', function () {
+        var rows = (HomePersonalize.repeater.leaderboard || {}).items || []
+        var row = rows[Number($(this).attr('data-rank-copy'))]
+        if (row) HomePersonalize.copyRepeaterText(row.content, true)
       })
   },
 
@@ -113,7 +115,7 @@ $.extend(HomePersonalize, {
         var item = data.item || {}
         state.exhausted = !item.oId
         if (!item.oId) {
-          HomePersonalize.renderRepeater({repeaterContent: '这一轮看完了，再点“换一个”。'})
+          HomePersonalize.renderRepeater({repeaterContent: state.seen[type].length ? '这一轮看完了，再换一轮。' : '暂无内容，来投稿吧。'})
           return
         }
         if (id) {
@@ -138,11 +140,14 @@ $.extend(HomePersonalize, {
   renderRepeater: function (item) {
     HomePersonalize.repeater.item = item
     $('#repeaterContent').text(item.repeaterContent || '暂无内容').scrollTop(0)
-    $('#repeaterTypeLabel').text(item.repeaterContentTypeLabel || HomePersonalize.typeLabel(HomePersonalize.repeater.type))
-    $('#repeaterAuthor').text(item.repeaterContentAuthorName ? '来自 ' + item.repeaterContentAuthorName : '')
+    $('#repeaterAuthor').empty()
+    if (item.oId) HomePersonalize.repeaterAuthorLink(item.repeaterContentAuthorName).appendTo('#repeaterAuthor')
     $('#repeaterLikeCount').text(item.repeaterContentLikeCount || 0)
     $('[data-repeater-action="copy"], [data-repeater-action="report"], [data-repeater-action="remove"]')
       .prop('disabled', !item.oId)
+    var ownContent = HomePersonalize.isOwnRepeater(item)
+    $('[data-repeater-action="report"]').prop('disabled', !item.oId || ownContent)
+      .attr('title', ownContent ? '不能举报自己的内容' : '举报内容')
     $('.repeater-station__btn--like').toggleClass('repeater-station__btn--liked', !!item.repeaterContentLiked)
       .attr('aria-pressed', !!item.repeaterContentLiked).prop('disabled', !item.oId || !!HomePersonalize.repeater.liking)
     $('[data-repeater-action="next"]').text(HomePersonalize.repeater.seen[HomePersonalize.repeater.type].length >= 250 ? '再一轮' : '换一个')
@@ -152,10 +157,22 @@ $.extend(HomePersonalize, {
     return HomePersonalize.repeater.item ? HomePersonalize.repeater.item.oId : ''
   },
 
+  isOwnRepeater: function (item) {
+    var actor = $('.repeater-station').attr('data-current-user-id') || ''
+    return !!actor && !!item && actor === item.repeaterContentAuthorId
+  },
+
+  repeaterAuthorLink: function (name) {
+    if (!name) return $('<span>').addClass('repeater-station__author-empty').text('转录站')
+    return $('<a>').addClass('repeater-station__author-link')
+      .attr('href', Label.servePath + '/member/' + encodeURIComponent(name)).text(name)
+  },
+
   openRepeaterLeaderboard: function () {
     var dialog = document.getElementById('repeaterLeaderboardDialog')
     if (!dialog || dialog.open) return
     dialog.showModal()
+    $('#repeaterRankStatus').text('')
     $('#repeaterRankList').empty().append($('<li>').text('加载中…'))
     HomePersonalize.repeater.leaderboard = null
     var sequence = (HomePersonalize.repeater.rankSequence || 0) + 1
@@ -178,30 +195,29 @@ $.extend(HomePersonalize, {
       .filter('[data-rank-tab="' + type + '"]').addClass('repeater-station__tab--active').attr('aria-pressed', 'true')
     var rows = type === 'items' ? board.items : board.authors
     var $list = $('#repeaterRankList').empty()
+    $('#repeaterRankStatus').text('')
     ;(rows || []).forEach(function (row, index) {
-      var $entry = $('<li>')
+      var $entry = $('<li>').addClass('repeater-station__rank-entry')
+      var $head = $('<div>').addClass('repeater-station__rank-head').appendTo($entry)
+      $('<span>').addClass('repeater-station__rank-number').text(index + 1).appendTo($head)
+      HomePersonalize.repeaterAuthorLink(row.authorName).appendTo($head)
+      $('<span>').addClass('repeater-station__rank-count').text((row.likeCount || 0) + ' 赞').appendTo($head)
       if (type === 'authors') {
-        $('<a>').attr('href', Label.servePath + '/member/' + encodeURIComponent(row.authorName || ''))
-          .text((index + 1) + '. ' + (row.authorName || '用户')).appendTo($entry)
+        $entry.addClass('repeater-station__rank-entry--author')
       } else {
-        $('<button type="button">').attr('data-repeater-id', row.id)
-          .text((index + 1) + '. ' + (row.content || '')).appendTo($entry)
+        $('<p>').addClass('repeater-station__rank-content').text(row.content || '').appendTo($entry)
+        $('<button type="button">').addClass('repeater-station__text-btn')
+          .attr('data-rank-copy', index).text('复制').appendTo($entry)
       }
-      $('<span>').addClass('repeater-station__rank-count').text((row.likeCount || 0) + ' 赞').appendTo($entry)
       $list.append($entry)
     })
     if (!rows || !rows.length) $list.append($('<li>').text('暂无排行'))
   },
 
-  openRankedRepeater: function (id) {
-    HomePersonalize.closeRepeaterDialog()
-    HomePersonalize.loadRepeater(id)
-    document.getElementById('repeaterContent').focus({preventScroll: true})
-  },
-
   openRepeaterReport: function () {
     if (!Label.isLoggedIn) { Util.needLogin(); return }
     if (HomePersonalize.repeater.reporting) return
+    if (HomePersonalize.isOwnRepeater(HomePersonalize.repeater.item)) { Util.alert('不能举报自己的内容'); return }
     var id = HomePersonalize.currentRepeaterId()
     if (!id) return
     if (HomePersonalize.repeater.reportId !== id) $('#repeaterReportMemo').val('')
@@ -236,9 +252,17 @@ $.extend(HomePersonalize, {
   copyRepeater: function () {
     var item = HomePersonalize.repeater.item
     if (!item || !item.oId) return
-    if (!navigator.clipboard) { Util.alert('当前浏览器不支持复制'); return }
-    navigator.clipboard.writeText(item.repeaterContent).then(function () { Util.alert('已复制') })
-      .catch(function () { Util.alert('复制失败') })
+    HomePersonalize.copyRepeaterText(item.repeaterContent, false)
+  },
+
+  copyRepeaterText: function (text, inLeaderboard) {
+    var feedback = function (message) {
+      if (inLeaderboard) $('#repeaterRankStatus').text(message)
+      else Util.alert(message)
+    }
+    if (!navigator.clipboard) { feedback('当前浏览器不支持复制'); return }
+    navigator.clipboard.writeText(text).then(function () { feedback('已复制') })
+      .catch(function () { feedback('复制失败，请选中文字复制') })
   },
 
   likeRepeater: function () {
