@@ -157,6 +157,12 @@ public final class SearchEngines {
     }
 
     private static Verification verifyCrawler(final String ip, final Engine engine) {
+        if (Engine.SO360 == engine) {
+            // 360 官方不支持反向 DNS 核验，只接受官方公布网段，UA 已由入口识别。
+            final boolean verified = SearchEngineBotIpRanges.contains360(ip);
+            return new Verification(engine, verified, verified ? "360 官方网段校验通过" : "未匹配 360 官方网段",
+                    "", "", System.currentTimeMillis(), false);
+        }
         if (Engine.DUCKDUCKGO == engine) {
             final boolean verified = SearchEngineBotIpRanges.containsDuckDuckGo(ip);
             return new Verification(engine, verified, verified ? "本地网段校验通过" : "本地网段校验未通过",
@@ -170,7 +176,7 @@ public final class SearchEngines {
 
     private static boolean supportsDnsVerification(final Engine engine) {
         return Engine.GOOGLE == engine || Engine.BAIDU == engine || Engine.BING == engine
-                || Engine.SOGOU == engine || Engine.YANDEX == engine || Engine.SO360 == engine;
+                || Engine.SOGOU == engine || Engine.YANDEX == engine;
     }
 
     private static Engine detectRefererHost(final String host) {

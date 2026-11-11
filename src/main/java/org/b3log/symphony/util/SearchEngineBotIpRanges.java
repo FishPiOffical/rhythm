@@ -41,15 +41,25 @@ final class SearchEngineBotIpRanges {
 
     private static final Logger LOGGER = LogManager.getLogger(SearchEngineBotIpRanges.class);
     private static final String DUCKDUCKGO_RESOURCE = "/search-engines/duckduckgo-bot-prefixes.json";
+    private static final String SO360_RESOURCE = "/search-engines/360-bot-prefixes.json";
+    private static final List<CidrBlock> SO360_RANGES = loadRanges(SO360_RESOURCE, "360");
     private static volatile List<CidrBlock> duckDuckGoRanges;
 
     private SearchEngineBotIpRanges() {
     }
 
     static boolean containsDuckDuckGo(final String ip) {
+        return contains(ip, duckDuckGoRanges());
+    }
+
+    static boolean contains360(final String ip) {
+        return contains(ip, SO360_RANGES);
+    }
+
+    private static boolean contains(final String ip, final List<CidrBlock> ranges) {
         try {
             final InetAddress address = InetAddress.getByName(ip);
-            for (final CidrBlock range : duckDuckGoRanges()) {
+            for (final CidrBlock range : ranges) {
                 if (range.contains(address)) {
                     return true;
                 }
@@ -69,29 +79,29 @@ final class SearchEngineBotIpRanges {
         synchronized (SearchEngineBotIpRanges.class) {
             ranges = duckDuckGoRanges;
             if (null == ranges) {
-                ranges = loadDuckDuckGoRanges();
+                ranges = loadRanges(DUCKDUCKGO_RESOURCE, "DuckDuckGo");
                 duckDuckGoRanges = ranges;
             }
         }
         return ranges;
     }
 
-    private static List<CidrBlock> loadDuckDuckGoRanges() {
-        try (InputStream in = SearchEngineBotIpRanges.class.getResourceAsStream(DUCKDUCKGO_RESOURCE)) {
+    private static List<CidrBlock> loadRanges(final String resource, final String engine) {
+        try (InputStream in = SearchEngineBotIpRanges.class.getResourceAsStream(resource)) {
             if (null == in) {
-                LOGGER.log(Level.ERROR, "DuckDuckGo crawler IP range resource is missing [{}]", DUCKDUCKGO_RESOURCE);
+                LOGGER.log(Level.ERROR, "{} crawler IP range resource is missing [{}]", engine, resource);
                 return Collections.emptyList();
             }
 
             final String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             final JSONArray prefixes = new JSONObject(text).optJSONArray("prefixes");
             if (null == prefixes) {
-                LOGGER.log(Level.ERROR, "DuckDuckGo crawler IP range resource has no prefixes");
+                LOGGER.log(Level.ERROR, "{} crawler IP range resource has no prefixes [{}]", engine, resource);
                 return Collections.emptyList();
             }
             return parsePrefixes(prefixes);
         } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Loads DuckDuckGo crawler IP ranges failed", e);
+            LOGGER.log(Level.ERROR, "Loads crawler IP ranges failed [" + resource + "]", e);
             return Collections.emptyList();
         }
     }

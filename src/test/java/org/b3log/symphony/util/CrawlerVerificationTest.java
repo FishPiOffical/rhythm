@@ -39,8 +39,7 @@ public class CrawlerVerificationTest {
                 SearchEngines.Engine.BING, "msnbot.search.msn.com",
                 SearchEngines.Engine.GOOGLE, "crawl.googlebot.com",
                 SearchEngines.Engine.SOGOU, "spider.sogou.com",
-                SearchEngines.Engine.YANDEX, "spider.yandex.com",
-                SearchEngines.Engine.SO360, "spider.so.com");
+                SearchEngines.Engine.YANDEX, "spider.yandex.com");
         for (final var entry : hosts.entrySet()) {
             for (final String ip : List.of(IP, "2001:db8::1")) {
                 final String recordType = ip.contains(":") ? "AAAA" : "A";
@@ -60,6 +59,35 @@ public class CrawlerVerificationTest {
         }
     }
 
+    public void so360RequiresOfficialRangeAndClaimedIdentityWithoutDns() {
+        final List<String> networks = List.of("42.236.10.", "42.236.12.", "42.236.17.",
+                "42.236.101.", "180.153.236.", "180.163.220.");
+        for (final String network : networks) {
+            for (final String suffix : List.of("0", "21", "80", "255")) {
+                final String ip = network + suffix;
+                final var result = SearchEngines.crawlerVerification(ip, "Mozilla/5.0; 360Spider");
+                Assert.assertTrue(result.verified(), ip);
+                Assert.assertEquals(result.engine(), SearchEngines.Engine.SO360);
+                Assert.assertEquals(result.reason(), "360 官方网段校验通过");
+                Assert.assertEquals(result.ptr(), "");
+                Assert.assertEquals(result.forward(), "");
+                Assert.assertNull(SearchEngines.crawlerVerification(ip, "Mozilla/5.0"));
+            }
+        }
+        for (final String ip : List.of("180.153.235.255", "180.153.237.0", "42.236.11.1",
+                "42.236.100.255", "42.236.102.0", "192.0.2.13", "2001:db8::1")) {
+            final var result = SearchEngines.crawlerVerification(ip, "360Spider");
+            Assert.assertFalse(result.verified(), ip);
+            Assert.assertEquals(result.reason(), "未匹配 360 官方网段");
+            Assert.assertEquals(result.ptr(), "");
+        }
+        final var cached = SearchEngines.crawlerVerification("180.153.236.80", "360Spider");
+        Assert.assertTrue(cached.verified());
+        Assert.assertTrue(cached.cached());
+        Assert.assertEquals(SearchEngines.detectCrawler("360Spider-Image"), SearchEngines.Engine.SO360);
+        Assert.assertEquals(SearchEngines.detectCrawler("360Spider-Video"), SearchEngines.Engine.SO360);
+    }
+
     public void singleTypeLookupStillRejectsNoDataMismatchAndDnsErrors() {
         for (final String ip : List.of(IP, "2001:db8::1")) {
             for (final String outcome : List.of("empty", "mismatch", "exception")) {
@@ -75,6 +103,32 @@ public class CrawlerVerificationTest {
                 Assert.assertEquals(result.reason(), outcome.equals("exception")
                         ? "正向查询异常（CommunicationException）" : "正向解析未匹配来源 IP");
             }
+        }
+    }
+
+    public void dnsOfficialSuffixCannotBeSpoofedByAppendingAnotherDomain() {
+        final Map<SearchEngines.Engine, String> hosts = Map.of(
+                SearchEngines.Engine.BAIDU, "spider.baidu.com.fake.test",
+                SearchEngines.Engine.BING, "msnbot.search.msn.com.fake.test",
+                SearchEngines.Engine.GOOGLE, "crawl.googlebot.com.fake.test",
+                SearchEngines.Engine.SOGOU, "spider.sogou.com.fake.test",
+                SearchEngines.Engine.YANDEX, "spider.yandex.com.fake.test");
+        for (final var entry : hosts.entrySet()) {
+            final var result = SearchEngineDnsVerifier.verify(IP, entry.getKey(), (name, attrs) -> {
+                Assert.assertEquals(attrs[0], "PTR", "非官方域名不应进入正向查询");
+                return List.of(entry.getValue());
+            });
+            Assert.assertFalse(result.verified());
+            Assert.assertEquals(result.reason(), "反向域名后缀不符");
+        }
+    }
+
+    public void duckDuckGoKeepsExistingLocalRangeVerification() {
+        for (final String ua : List.of("DuckDuckBot/1.1", "DuckAssistBot/1.2")) {
+            final var allowed = SearchEngines.crawlerVerification("104.43.54.127", ua);
+            Assert.assertTrue(allowed.verified());
+            Assert.assertEquals(allowed.reason(), "本地网段校验通过");
+            Assert.assertFalse(SearchEngines.crawlerVerification(IP, ua).verified());
         }
     }
 
