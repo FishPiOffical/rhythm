@@ -133,6 +133,11 @@ public final class SecurityMonitor {
             }
             MINUTES[(int) (currentMinute % MINUTE_BUCKETS)]++;
         }
+        // 监控轮询保留统计和异常观测，但不挤占最近访问记录。
+        if ("GET".equals(method) && "/admin/security/monitor".equals(uri)) {
+            CURRENT_EVENT.remove();
+            return;
+        }
         final Map<String, Object> event = new LinkedHashMap<>();
         event.put("timestamp", now);
         event.put("time", TIME_FORMAT.format(Instant.ofEpochMilli(now)));

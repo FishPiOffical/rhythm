@@ -63,6 +63,8 @@ public class SecurityMonitorTest {
         Latkes.setLatkeProps(props);
         Latkes.setLocalProps(props);
         ((Deque<?>) field(SecurityMonitor.class, "OBSERVATIONS").get(null)).clear();
+        ((Deque<?>) field(SecurityMonitor.class, "EVENTS").get(null)).clear();
+        SecurityMonitor.clearRequest();
         field(SecurityMonitor.class, "discardedObservations").setLong(null, 0L);
         Sessions.clearThreadLocalData();
     }
@@ -70,6 +72,8 @@ public class SecurityMonitorTest {
     @AfterMethod(alwaysRun = true)
     public void cleanup() throws Exception {
         ((Deque<?>) field(SecurityMonitor.class, "OBSERVATIONS").get(null)).clear();
+        ((Deque<?>) field(SecurityMonitor.class, "EVENTS").get(null)).clear();
+        SecurityMonitor.clearRequest();
         ((Cache<?, ?>) field(AnonymousCaptchaShield.class, "ipBlacklistCache").get(null)).invalidateAll();
         Sessions.clearThreadLocalData();
         Latkes.setLatkeProps(oldProps);
@@ -95,6 +99,30 @@ public class SecurityMonitorTest {
         request.setParams(new HashMap<>());
         return new RequestContext(request,
                 new Response(null, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
+    }
+
+    public void monitorPollingKeepsStatisticsWithoutDisplacingRecentVisits() throws Exception {
+        SecurityMonitor.record(IP, "GET", "/article/123", "test", "cc", "allow", "阈值内");
+        final long before = ((Number) SecurityMonitor.snapshot().get("total")).longValue();
+        for (int i = 0; i < 110; i++) {
+            SecurityMonitor.record(IP, "GET", "/admin/security/monitor", "test", "cc", "allow", "阈值内");
+        }
+        Assert.assertEquals(((Number) SecurityMonitor.snapshot().get("total")).longValue(), before + 110);
+        Assert.assertEquals(SecurityMonitor.recentEvents().size(), 1);
+        Assert.assertEquals(SecurityMonitor.recentEvents().getFirst().get("uri"), "/article/123");
+        Assert.assertNull(((ThreadLocal<?>) field(SecurityMonitor.class, "CURRENT_EVENT").get(null)).get());
+
+        SecurityMonitor.record(IP, "POST", "/admin/security/monitor", "test", "cc", "allow", "阈值内");
+        SecurityMonitor.record(IP, "GET", "/admin/security/self-check", "test", "cc", "allow", "阈值内");
+        Assert.assertEquals(SecurityMonitor.recentEvents().size(), 3);
+    }
+
+    public void monitorPollingStillRecordsRecoveryFailures() {
+        challenge();
+        SecurityMonitor.captchaValidated(IP, true, true);
+        SecurityMonitor.record(IP, "GET", "/admin/security/monitor", "test", "cc", "deny", "已封禁");
+        Assert.assertEquals(latest().get("failure"), "验证码已通过，仍被 CC 拦截");
+        Assert.assertEquals(SecurityMonitor.recentEvents().size(), 1);
     }
 
     public void actualArrivalAndRecoveryAreSeparateFromRedirect() {
