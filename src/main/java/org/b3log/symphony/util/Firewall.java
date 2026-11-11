@@ -21,13 +21,18 @@ package org.b3log.symphony.util;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.b3log.latke.util.Execs;
 import org.b3log.symphony.cache.UserCache;
 
 import java.util.Map;
+import java.util.HashMap;
+import java.io.ByteArrayOutputStream;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -50,13 +55,6 @@ public final class Firewall {
     private static final int IPSET_TIMEOUT_MILLIS = 3000;
 
     private static final String IPSET_NAME = "fishpi";
-
-    /**
-     * 封禁为永久生效，由管理员在后台 /admin/ip 手动解封。
-     */
-    private static final String IPSET_ADD_COMMAND = "ipset add \"$1\" \"$2\"";
-
-    private static final String IPSET_DEL_COMMAND = "ipset del \"$1\" \"$2\"";
 
     /**
      * Runtime threshold, adjustable and reset on restart.
@@ -200,14 +198,75 @@ public final class Firewall {
     }
 
     private static String runIpset(final String operation, final String ip) {
+        return runIpset(operation, ip, Firewall::executeIpset);
+    }
+
+    record CommandResult(int exitCode, boolean timedOut, String output) {
+    }
+
+    @FunctionalInterface
+    interface IpsetRunner {
+        CommandResult run(String operation, String ip) throws Exception;
+    }
+
+    static String runIpset(final String operation, final String ip, final IpsetRunner runner) {
         if (StringUtils.isBlank(operation) || StringUtils.isBlank(ip)) {
             throw new IllegalArgumentException("ipset operation and IP must not be blank");
         }
-        if ("add".equals(operation)) {
-            return Execs.exec(new String[]{"sh", "-c", IPSET_ADD_COMMAND,
-                    "ipset", IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
+        final String action = "add".equals(operation) ? "封禁" : "解封";
+        try {
+            final CommandResult change = runner.run(operation, ip);
+            final CommandResult test = runner.run("test", ip);
+            final boolean present = !test.timedOut() && test.exitCode() == 0;
+            // ipset 的退出码 1 也可能是权限/集合错误，必须同时核对明确的非成员结果。
+            final boolean absent = !test.timedOut() && test.exitCode() == 1
+                    && test.output().contains(" is NOT in set " + IPSET_NAME);
+            final boolean verified = !change.timedOut() && change.exitCode() == 0
+                    && ("add".equals(operation) ? present : absent);
+            final String detail = "命令=" + commandSummary(change) + "；成员核对="
+                    + (present ? "存在" : absent ? "不存在" : commandSummary(test));
+            SecurityMonitor.ipsetResult(ip, action, verified, detail);
+            if (!verified) LOGGER.warn("[SHIELD] ip={} 结果=防火墙执行异常 操作={} {}", ip, action, detail);
+            return detail;
+        } catch (final Exception e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            final String detail = "命令异常：" + e.getClass().getSimpleName();
+            SecurityMonitor.ipsetResult(ip, action, false, detail);
+            LOGGER.warn("[SHIELD] ip={} 结果=防火墙执行异常 操作={}", ip, action, e);
+            return detail;
         }
-        return Execs.exec(new String[]{"sh", "-c", IPSET_DEL_COMMAND, "ipset", IPSET_NAME, ip}, IPSET_TIMEOUT_MILLIS);
+    }
+
+    private static String commandSummary(final CommandResult result) {
+        if (result.timedOut()) return "超时";
+        if (result.exitCode() == 0) return "成功";
+        final String output = result.output().replaceAll("[\\r\\n\\t]", " ");
+        return "退出码 " + result.exitCode() + " " + output.substring(0, Math.min(160, output.length()));
+    }
+
+    private static CommandResult executeIpset(final String operation, final String ip) throws Exception {
+        final CommandLine command = new CommandLine("ipset");
+        command.addArgument(operation, false);
+        command.addArgument(IPSET_NAME, false);
+        command.addArgument(ip, false);
+        final DefaultExecutor executor = new DefaultExecutor();
+        final ExecuteWatchdog watchdog = new ExecuteWatchdog(IPSET_TIMEOUT_MILLIS);
+        executor.setWatchdog(watchdog);
+        executor.setExitValues(null);
+        // 只保留诊断所需前缀，子进程输出持续消费，避免输出管道堵塞。
+        final ByteArrayOutputStream output = new ByteArrayOutputStream() {
+            @Override public synchronized void write(final byte[] bytes, final int offset, final int length) {
+                super.write(bytes, offset, Math.min(length, Math.max(0, 1024 - size())));
+            }
+            @Override public synchronized void write(final int value) {
+                if (size() < 1024) super.write(value);
+            }
+        };
+        executor.setStreamHandler(new PumpStreamHandler(output));
+        final Map<String, String> environment = new HashMap<>(System.getenv());
+        environment.put("LC_ALL", "C");
+        final int exit = executor.execute(command, environment);
+        return new CommandResult(exit, watchdog.killedProcess(), output.toString(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     public static void cleanupOldBuckets(final long currentBucket) {

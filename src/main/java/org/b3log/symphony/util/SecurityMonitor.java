@@ -57,6 +57,28 @@ public final class SecurityMonitor {
     private static long minuteEpoch = System.currentTimeMillis() / 60000L;
     private static final Deque<Map<String, Object>> EVENTS = new ArrayDeque<>();
     private static final ThreadLocal<Map<String, Object>> CURRENT_EVENT = new ThreadLocal<>();
+    private static final int MAX_OBSERVATIONS = 200;
+    private static final long OBSERVATION_TTL = java.util.concurrent.TimeUnit.HOURS.toMillis(2);
+    private static final Deque<Observation> OBSERVATIONS = new ArrayDeque<>();
+    private static long discardedObservations;
+
+    private static final class Observation {
+        final long started = System.currentTimeMillis();
+        final String ip;
+        final String kind;
+        String state;
+        String detail;
+        String failure = "";
+        boolean passed;
+        boolean recovered;
+
+        Observation(final String ip, final String kind, final String state, final String detail) {
+            this.ip = clean(ip, "-");
+            this.kind = kind;
+            this.state = state;
+            this.detail = detail;
+        }
+    }
 
     private SecurityMonitor() {
     }
@@ -76,6 +98,29 @@ public final class SecurityMonitor {
         final String safeType = clean(type, "unknown");
         final String safeResult = clean(result, "unknown");
         final String safeReason = clean(reason, "");
+        if ("captcha".equals(safeType) && "challenge".equals(safeResult)) {
+            synchronized (OBSERVATIONS) {
+                addObservation(new Observation(ip, "验证码", "待到达", "已要求进入验证页"));
+            }
+        }
+        if ("captcha".equals(safeType) && "redirect".equals(safeResult)) {
+            synchronized (OBSERVATIONS) {
+                final Observation observation = captchaObservation(ip);
+                if (observation == null || observation.recovered) {
+                    addObservation(new Observation(ip, "验证码", "待到达", "验证码黑名单要求进入验证页"));
+                } else if (observation.passed) {
+                    fail(observation, "验证通过后仍被验证码黑名单跳转");
+                }
+            }
+        }
+        if ("cc".equals(safeType) && ("deny".equals(safeResult) || "ban".equals(safeResult))) {
+            synchronized (OBSERVATIONS) {
+                final Observation observation = captchaObservation(ip);
+                if (observation != null && observation.passed && !observation.recovered) {
+                    fail(observation, "验证码已通过，仍被 CC 拦截");
+                }
+            }
+        }
         final long now = System.currentTimeMillis();
         TOTAL.increment();
         COUNTERS.computeIfAbsent(safeType + "." + safeResult, ignored -> new LongAdder()).increment();
@@ -123,7 +168,143 @@ public final class SecurityMonitor {
         }
         result.put("last10Minutes", lastMinute);
         result.put("retention", "本次启动内，最多保留100条记录");
+        synchronized (OBSERVATIONS) {
+            pruneObservations();
+            final List<Map<String, Object>> observations = new ArrayList<>();
+            for (final Observation observation : OBSERVATIONS) {
+                final Map<String, Object> row = new LinkedHashMap<>();
+                row.put("time", TIME_FORMAT.format(Instant.ofEpochMilli(observation.started)));
+                row.put("ip", observation.ip);
+                row.put("kind", observation.kind);
+                row.put("state", observation.state);
+                row.put("detail", observation.detail);
+                row.put("failure", observation.failure);
+                observations.add(row);
+            }
+            result.put("observations", observations);
+            result.put("observationDiscarded", discardedObservations);
+        }
         return result;
+    }
+
+    /** 只记录真实到达展示分支，不把跳转指令当作页面已到达。 */
+    public static void challengePageReached(final String ip) {
+        synchronized (OBSERVATIONS) {
+            Observation observation = captchaObservation(ip);
+            if (observation == null || observation.recovered) {
+                observation = new Observation(ip, "验证码", "已到达", "已进入验证页展示分支");
+                addObservation(observation);
+            }
+            observation.state = "已到达";
+            observation.detail = "已进入验证页，等待服务端渲染";
+        }
+    }
+
+    public static void captchaValidated(final String ip, final boolean accepted, final boolean cleared) {
+        synchronized (OBSERVATIONS) {
+            Observation observation = captchaObservation(ip);
+            if (observation == null || observation.recovered) {
+                observation = new Observation(ip, "验证码", "待确认", "未观察到本轮验证页");
+                addObservation(observation);
+            }
+            if (!accepted) {
+                observation.state = "未通过";
+                observation.detail = "验证未通过或供应商不可用，限制不变";
+                return;
+            }
+            observation.passed = true;
+            observation.state = "待恢复";
+            observation.detail = "验证已通过，等待后续业务页面";
+            if (!cleared) fail(observation, "验证通过后验证码限制仍存在");
+        }
+    }
+
+    /** 只接受真实模板渲染结果；不根据 HTTP 200、静态资源或后台轮询推断恢复。 */
+    public static void pageRendered(final RequestContext context, final String template, final boolean rendered) {
+        if (!"GET".equals(context.method())) return;
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        synchronized (OBSERVATIONS) {
+            final Observation observation = captchaObservation(ip);
+            if (observation == null || observation.recovered) return;
+            if ("/test".equals(context.requestURI()) && "captcha.ftl".equals(template)) {
+                if (!rendered) {
+                    fail(observation, "验证页服务端渲染失败");
+                } else if (!observation.passed) {
+                    observation.state = "待验证";
+                    observation.detail = "验证页已由服务端渲染，等待完成验证";
+                }
+            } else if (observation.passed && !"/test".equals(context.requestURI())
+                    && !context.requestURI().startsWith("/admin/")) {
+                if (!rendered || context.attr(RequestContext.ERROR_CODE) != null) {
+                    fail(observation, "验证通过后页面处理失败");
+                } else if (context.getResponse().getHeader("Location") == null
+                        && !AnonymousCaptchaShield.isRestricted(ip)) {
+                    observation.recovered = true;
+                    observation.state = "已恢复";
+                    observation.detail = "验证通过后业务页面已由服务端渲染";
+                }
+            }
+        }
+    }
+
+    public static void ipsetResult(final String ip, final String operation, final boolean verified,
+                                   final String detail) {
+        synchronized (OBSERVATIONS) {
+            final Observation observation = new Observation(ip, "Linux 防火墙",
+                    verified ? "已核实" : "执行异常", clean(operation + "：" + detail, ""));
+            if (!verified) observation.failure = observation.detail;
+            addObservation(observation);
+        }
+    }
+
+    public static void requestFinished(final RequestContext context) {
+        if (!"GET".equals(context.method()) || context.getRequest().isStaticResource()
+                || context.requestURI().startsWith("/admin/")) return;
+        if (context.attr(RequestContext.ERROR_CODE) == null
+                && !(context.getRenderer() instanceof org.b3log.latke.http.renderer.Http500Renderer)
+                && !(context.getRenderer() instanceof org.b3log.latke.http.renderer.Http404Renderer)) return;
+        final String ip = Requests.getRemoteAddr(context.getRequest());
+        synchronized (OBSERVATIONS) {
+            final Observation observation = captchaObservation(ip);
+            if (observation != null && !observation.recovered) {
+                if ("/test".equals(context.requestURI())) {
+                    fail(observation, "验证页请求处理失败");
+                } else if (observation.passed) {
+                    fail(observation, "验证通过后请求处理失败");
+                }
+            }
+        }
+    }
+
+    private static void fail(final Observation observation, final String reason) {
+        observation.state = "异常";
+        observation.detail = reason;
+        if (observation.failure.isEmpty()) observation.failure = reason;
+    }
+
+    private static Observation captchaObservation(final String ip) {
+        pruneObservations();
+        for (final Observation observation : OBSERVATIONS) {
+            if (observation.ip.equals(ip) && "验证码".equals(observation.kind)) return observation;
+        }
+        return null;
+    }
+
+    private static void addObservation(final Observation observation) {
+        pruneObservations();
+        OBSERVATIONS.addFirst(observation);
+        if (OBSERVATIONS.size() > MAX_OBSERVATIONS) {
+            OBSERVATIONS.removeLast();
+            discardedObservations++;
+        }
+    }
+
+    private static void pruneObservations() {
+        final long cutoff = System.currentTimeMillis() - OBSERVATION_TTL;
+        while (!OBSERVATIONS.isEmpty() && OBSERVATIONS.peekLast().started < cutoff) {
+            OBSERVATIONS.removeLast();
+            discardedObservations++;
+        }
     }
 
     public static List<Map<String, Object>> recentEvents() {

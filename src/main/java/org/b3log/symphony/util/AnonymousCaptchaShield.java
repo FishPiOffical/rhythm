@@ -52,7 +52,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 1;
+    public static final int POLICY_VERSION = 2;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -307,6 +307,7 @@ public final class AnonymousCaptchaShield {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         // 黑名单判断
         if (isAwaitingCaptcha(ip)) {
+            SecurityMonitor.challengePageReached(ip);
             new SkinRenderer(context, "captcha.ftl");
         } else {
             context.sendRedirect("/");
@@ -320,9 +321,12 @@ public final class AnonymousCaptchaShield {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (verifyProof(captcha)) {
             recordCaptchaPass(ip);
+            SecurityMonitor.captchaValidated(ip, true, !isAwaitingCaptcha(ip)
+                    && ipVisitCountCache.getIfPresent(ip) == null);
             LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=放行 原因=验证码通过", ip);
             context.renderJSON(StatusCodes.SUCC);
         } else {
+            SecurityMonitor.captchaValidated(ip, false, false);
             LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=拒绝 原因=验证码错误", ip);
             context.renderJSON(StatusCodes.ERR);
         }

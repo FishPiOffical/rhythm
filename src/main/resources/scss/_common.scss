@@ -899,6 +899,35 @@ blockquote {
       color: #172b4d;
     }
   }
+
+  .security-observation-note {
+    margin: 8px 0;
+    color: var(--security-muted);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .security-observations {
+    .security-events-wrap {
+      max-height: min(40vh, 360px);
+    }
+
+    .security-events {
+      min-width: 900px;
+
+      td:nth-child(3),
+      td:nth-child(4) {
+        min-width: 80px;
+      }
+
+      td:nth-child(5),
+      td:nth-child(6) {
+        min-width: 240px;
+        max-width: 320px;
+        white-space: normal;
+      }
+    }
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {

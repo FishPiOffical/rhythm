@@ -85,7 +85,17 @@
                 <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.showLatest()">最新记录</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（2秒）</label></div>
                 <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
             </div>
-            <div class="security-self-check" id="securitySelfCheck"><strong>自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
+            <#if currentUser.userName == "adlered">
+            <div class="security-monitor security-observations">
+                <div class="security-monitor-heading"><h3 id="securityObservationTitle">链路观测</h3><span>本次启动 · 最近2小时 · 最多200条</span></div>
+                <p class="security-observation-note">按来源 IP 关联；页面渲染不代表浏览器已显示，集合核对不代表网络拦截。</p>
+                <div class="security-events-wrap" id="securityObservationViewport" role="region" aria-labelledby="securityObservationTitle" tabindex="0">
+                    <table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>环节</th><th>状态</th><th>说明</th><th>异常记录</th></tr></thead><tbody id="securityObservations"><#list securityStats.observations as item><tr><td>${item.time?html}</td><td>${item.ip?html}</td><td>${item.kind?html}</td><td>${item.state?html}</td><td>${item.detail?html}</td><td>${item.failure?has_content?then(item.failure, '—')?html}</td></tr><#else><tr><td colspan="6">暂无观测</td></tr></#list></tbody></table>
+                </div>
+                <p class="security-observation-note" id="securityObservationRetention">已过期或淘汰 ${securityStats.observationDiscarded} 条；重启清空。未有后续访问时保持待确认。</p>
+            </div>
+            </#if>
+            <div class="security-self-check" id="securitySelfCheck"><strong>结构自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
         </div>
     </div>
 
@@ -235,6 +245,33 @@ const SecuritySwitches = {
         }
         tbody.replaceChildren(rows);
     },
+    renderObservations(data) {
+        const viewport = document.getElementById('securityObservationViewport');
+        if (!viewport) return;
+        // 独立观察表同样保留阅读现场，回到左上角后下轮刷新展示新结果。
+        if (viewport.scrollTop > 0 || viewport.scrollLeft > 0) return;
+        const rows = document.createDocumentFragment();
+        (data.observations || []).forEach(item => {
+            const tr = document.createElement('tr');
+            ['time', 'ip', 'kind', 'state', 'detail', 'failure'].forEach(key => {
+                const td = document.createElement('td');
+                td.textContent = item[key] || '—';
+                tr.appendChild(td);
+            });
+            rows.appendChild(tr);
+        });
+        if (!rows.childNodes.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.textContent = '暂无观测';
+            tr.appendChild(td);
+            rows.appendChild(tr);
+        }
+        document.getElementById('securityObservations').replaceChildren(rows);
+        document.getElementById('securityObservationRetention').textContent =
+            '已过期或淘汰 ' + (data.observationDiscarded || 0) + ' 条；重启清空。未有后续访问时保持待确认。';
+    },
     setRefreshMessage(text, failed = false) {
         const message = document.getElementById('securityRefreshMessage');
         message.textContent = text;
@@ -253,6 +290,7 @@ const SecuritySwitches = {
                 if (result.code !== 0 || !data || !Array.isArray(data.events)) {
                     throw new Error(result.msg || '监控数据无效');
                 }
+                this.renderObservations(data);
                 document.getElementById('securityTotal').textContent = data.total;
                 document.getElementById('securityLast10').textContent = data.last10Minutes;
                 const viewport = document.getElementById('securityEventsViewport');
@@ -297,7 +335,7 @@ const SecuritySwitches = {
             if (toggle.checked && !document.hidden) this.refresh(true);
         }, 2000);
     },
-    check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
+    check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='结构自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
 SecuritySwitches.startAutoRefresh();
 </script>

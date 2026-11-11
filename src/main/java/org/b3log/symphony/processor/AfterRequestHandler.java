@@ -51,6 +51,7 @@ public class AfterRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        SecurityMonitor.requestFinished(context);
         Locales.setLocale(null);
         Sessions.clearThreadLocalData();
         SecurityMonitor.clearRequest();

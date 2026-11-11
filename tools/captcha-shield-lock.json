@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
-  "policyVersion": 1,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged.",
+  "policyVersion": 2,
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "69693fa47922e3bed781881d2cee31244c0255bddb3c936a894fd83f051452f9"
+      "sha256": "8695262ae624d9848206f69e758a924162b5da13bc48de113331ba4dc932f190"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -117,7 +117,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
-      "sha256": "e96bf799c446522c85b7642418c76e0950e59929a1b477beee5690f091541214"
+      "sha256": "234bc0652f1a19f789257e9f3a84c47d708dc4672b788df04b87b905b32902b7"
     }
   ]
 }
