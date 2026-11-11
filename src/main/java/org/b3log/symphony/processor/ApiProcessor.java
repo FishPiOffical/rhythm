@@ -157,20 +157,39 @@ public class ApiProcessor {
             currentUser=Sessions.currentCookieUser(context.getRequest());
         }
         if(currentUser==null){context.sendError(401);return;}
-        String userId = currentUser.optString(Keys.OBJECT_ID);
-        final String userPassword = currentUser.optString(User.USER_PASSWORD);
-
-        final JSONObject cookieJSONObject = new JSONObject();
-        cookieJSONObject.put(Keys.OBJECT_ID, userId);
-        final var credentialProof = AccountCredentialVersions.issuance(userId, null);
-        if (credentialProof == null) { context.sendError(401); return; }
-        cookieJSONObject.put("credentialEpoch", credentialProof.epoch());
-
-        final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, credentialProof.password() + COOKIE_ITEM_SEPARATOR + random);
-        final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+        final String key;
+        try {
+            key = issueApiKey(currentUser);
+        } catch (final IllegalStateException e) {
+            context.sendError(401);
+            return;
+        }
 
         context.renderJSON(StatusCodes.SUCC).renderJSON(new JSONObject().put("apiKey", key));
+    }
+
+    /** 签发带凭据版本的 API key；历史 key 由校验器保留密码兼容。 */
+    public static String issueApiKey(final JSONObject user) {
+        if (user == null) {
+            throw new IllegalStateException("authenticated user required");
+        }
+        final String userId = user.optString(Keys.OBJECT_ID);
+        if (StringUtils.isBlank(userId)) {
+            throw new IllegalStateException("authenticated user id required");
+        }
+        AccountCredentialVersions.Proof proof = AccountCredentialVersions.snapshot(userId);
+        if (proof == null) {
+            proof = AccountCredentialVersions.current(userId);
+        }
+        if (proof == null) {
+            throw new IllegalStateException("credential state unavailable");
+        }
+        final JSONObject payload = new JSONObject()
+                .put(Keys.OBJECT_ID, userId)
+                .put("credentialEpoch", proof.epoch())
+                .put(Keys.TOKEN, proof.password() + COOKIE_ITEM_SEPARATOR
+                        + RandomStringUtils.randomAlphanumeric(16));
+        return Crypts.encryptByAES(payload.toString(), Symphonys.COOKIE_SECRET_API);
     }
 
     public void loginWebInApiKey(final RequestContext context) {
@@ -434,15 +453,13 @@ public class ApiProcessor {
                 }
 
                 AccountCredentialVersions.remember(proof);
-                final var issued = AccountCredentialVersions.issuance(userId, null);
-                if (issued == null) { context.sendError(401); return; }
-                final JSONObject cookieJSONObject = new JSONObject();
-                cookieJSONObject.put(Keys.OBJECT_ID, userId);
-                cookieJSONObject.put("credentialEpoch", issued.epoch());
-
-                final String random = RandomStringUtils.randomAlphanumeric(16);
-                cookieJSONObject.put(Keys.TOKEN, userPassword + COOKIE_ITEM_SEPARATOR + random);
-                final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+                final String key;
+                try {
+                    key = issueApiKey(user);
+                } catch (final IllegalStateException e) {
+                    context.sendError(401);
+                    return;
+                }
 
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue("Key", key);
