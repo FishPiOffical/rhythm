@@ -82,10 +82,10 @@
     <meta name="twitter:site" content="@B3logOS"/>
     <meta name="twitter:creator" content="@B3logOS"/>
 </head>
-<body itemscope itemtype="http://schema.org/Product" class="article<#if 6 == article.articleType> long-article-page</#if>">
+<body class="article<#if 6 == article.articleType> long-article-page</#if>">
 <#assign hidePageChrome = (6 == article.articleType)>
-<img itemprop="image" class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
-<p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+<img class="fn-none" src="${article.articleAuthorThumbnailURL210}"/>
+<p class="fn-none">"${article.articlePreviewContent}"</p>
 <#if !hidePageChrome>
 <#include "header.ftl">
 </#if>
@@ -104,7 +104,7 @@
                 <span>首页</span>
             </a>
         </#if>
-        <h1 class="article-title" itemprop="name">
+        <h1 class="article-title">
             <@icon article.articlePerfect article.articleType></@icon>
             <#if article.isGoodArticle?? && "yes" == article.isGoodArticle>
                 <span class="article-good-post-badge" aria-label="好帖">好帖</span>

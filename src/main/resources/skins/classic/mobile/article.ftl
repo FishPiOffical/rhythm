@@ -37,10 +37,10 @@
             <link rel="stylesheet" href="${staticServePath}/css/long-article-image-menu.css?${staticResourceVersion}">
         </#if>
     </head>
-    <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
+    <body<#if 6 == article.articleType> class="long-article-page"</#if>>
         <#assign hidePageChrome = (6 == article.articleType)>
-        <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
-        <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+        <img class="fn-none"  src="${staticServePath}/images/faviconH.png" />
+        <p class="fn-none">"${article.articlePreviewContent}"</p>
         <#if !hidePageChrome>
         <#include "header.ftl">
         </#if>
@@ -116,7 +116,7 @@
                 <#if showTopAd>
                     ${HeaderBannerLabel}
                 </#if>
-                <h1 class="article-title" itemprop="name">
+                <h1 class="article-title">
                     <@icon article.articlePerfect article.articleType></@icon>
                     <#if article.isGoodArticle?? && "yes" == article.isGoodArticle>
                         <span class="article-good-post-badge" aria-label="好帖">好帖</span>
