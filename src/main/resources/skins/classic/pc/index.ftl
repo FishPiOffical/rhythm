@@ -39,7 +39,7 @@
 <div class="main">
     <#-- 新版入口只作站点导航，不传递账号凭据。 -->
     <div class="wrapper v3-home-promo-wrap">
-        <a class="v3-home-promo" href="https://yui.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
+        <a class="v3-home-promo" href="https://new.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
             <img class="v3-home-promo__logo" src="${staticServePath}/images/favicon.png" width="48" height="48" alt=""/>
             <span class="v3-home-promo__copy">
                 <span class="v3-home-promo__eyebrow">新版体验 <span>V3</span></span>

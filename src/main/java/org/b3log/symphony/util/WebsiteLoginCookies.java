@@ -44,7 +44,7 @@ public final class WebsiteLoginCookies {
             final boolean own = uri.getScheme().equalsIgnoreCase(site.getScheme())
                     && uri.getHost().equalsIgnoreCase(site.getHost()) && uri.getPort() == site.getPort();
             final boolean newer = "https".equalsIgnoreCase(uri.getScheme())
-                    && "yui.fishpi.cn".equalsIgnoreCase(uri.getHost()) && (uri.getPort() == -1 || uri.getPort() == 443)
+                    && "new.fishpi.cn".equalsIgnoreCase(uri.getHost()) && (uri.getPort() == -1 || uri.getPort() == 443)
                     && "fishpi.cn".equalsIgnoreCase(site.getHost());
             final boolean local = ("localhost".equals(site.getHost()) || "127.0.0.1".equals(site.getHost()))
                     && ("localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost()))

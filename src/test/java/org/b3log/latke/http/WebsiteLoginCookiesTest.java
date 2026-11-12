@@ -49,6 +49,7 @@ public final class WebsiteLoginCookiesTest {
         Latkes.setServerScheme("https");
         Latkes.setEnabledSession(true);
         try {
+            trustedOrigins();
             final String legacy = Crypts.encryptByAES(new JSONObject().put(Keys.OBJECT_ID, ACTOR)
                     .put(Keys.TOKEN, "test-password:random").put("credentialEpoch", 0).toString(), Symphonys.COOKIE_SECRET);
             check(legacy != null, "旧 Cookie 夹具必须使用真实加密");
@@ -58,6 +59,56 @@ public final class WebsiteLoginCookiesTest {
             System.out.println("website-login-cookies: " + checks + " checks passed");
         } finally {
             Sessions.clearThreadLocalData();
+        }
+    }
+
+    private static void trustedOrigins() {
+        Latkes.setServerHost("fishpi.cn");
+        Latkes.setServerPort("443");
+        origin("https://new.fishpi.cn", null, "same-site", false, true);
+        origin("https://new.fishpi.cn:443", null, "same-site", false, true);
+        origin(null, "https://new.fishpi.cn/article/123", "same-site", false, true);
+        origin("https://fishpi.cn", null, "same-origin", false, true);
+        origin("https://yui.fishpi.cn", null, "same-site", false, false);
+        origin(null, "https://yui.fishpi.cn/", "same-site", false, false);
+        origin("http://new.fishpi.cn", null, "same-site", false, false);
+        origin("https://new.fishpi.cn:444", null, "same-site", false, false);
+        origin("https://new.fishpi.cn.evil.example", null, "same-site", false, false);
+        origin("https://other.fishpi.cn", null, "same-site", false, false);
+        origin("https://new.fishpi.cn@evil.example", null, "same-site", false, false);
+        origin("https://evil.example@new.fishpi.cn", null, "same-site", false, false);
+        origin("null", "https://new.fishpi.cn/", "same-site", false, false);
+        origin("https://evil.example", "https://new.fishpi.cn/", "same-site", false, false);
+        origin("https://new.fishpi.cn", null, "cross-site", false, false);
+        origin(null, null, null, false, false);
+        origin(null, null, null, true, true);
+
+        // 本地规则保持独立，不能因新增生产来源而放行本地站点的跨域请求。
+        Latkes.setServerHost("localhost");
+        Latkes.setServerPort("8081");
+        Latkes.setServerScheme("http");
+        origin("http://localhost:5173", null, "same-site", false, true);
+        origin("http://localhost:8081", null, "same-origin", false, true);
+        origin("http://localhost:5174", null, "same-site", false, false);
+        origin("https://new.fishpi.cn", null, null, false, false);
+        Latkes.setServerScheme("https");
+        Latkes.setServerHost("fishpi.cn");
+        Latkes.setServerPort("443");
+    }
+
+    private static void origin(final String source, final String referer, final String fetchSite,
+                               final boolean navigation, final boolean expected) {
+        final var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/api/v3/auth/session");
+        try {
+            if (source != null) raw.headers().set("Origin", source);
+            if (referer != null) raw.headers().set("Referer", referer);
+            if (fetchSite != null) raw.headers().set("Sec-Fetch-Site", fetchSite);
+            final var request = new Request(null, raw);
+            final var response = new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK));
+            check(WebsiteLoginCookies.trustedOrigin(new RequestContext(request, response), navigation) == expected,
+                    "来源校验：" + source + ", referer=" + referer + ", fetchSite=" + fetchSite);
+        } finally {
+            raw.release();
         }
     }
 

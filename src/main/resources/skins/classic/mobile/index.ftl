@@ -40,7 +40,7 @@
 
 <#-- 新版入口与 PC 首页保持一致。 -->
 <div class="v3-home-promo-wrap v3-home-promo-wrap--mobile">
-    <a class="v3-home-promo" href="https://yui.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
+    <a class="v3-home-promo" href="https://new.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
         <img class="v3-home-promo__logo" src="${staticServePath}/images/favicon.png" width="48" height="48" alt=""/>
         <span class="v3-home-promo__copy">
             <span class="v3-home-promo__eyebrow">新版体验 <span>V3</span></span>

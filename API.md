@@ -219,6 +219,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/complete' \
 
 > 网站客户端统一使用本节登录、刷新和退出接口；旧 `POST /__fp/page-auth` 转换入口已停止提供，已有集成请迁移。
 
+> 新版网页入口为 https://new.fishpi.cn/，原 yui.fishpi.cn 已停用。
+
 `POST /api/v3/auth/login`
 
 用于 website_v3 登录并获取短期访问令牌。
