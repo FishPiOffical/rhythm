@@ -24,7 +24,10 @@ import org.b3log.symphony.model.ApiV3ChatEvent;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,6 +65,11 @@ public final class ApiV3RealtimeSessions {
     private final ConcurrentHashMap<String, Set<Connection>> byArticle = new ConcurrentHashMap<>();
     private final Set<Connection> chat = ConcurrentHashMap.newKeySet();
     private final Map<String, Integer> ips = new HashMap<>(), users = new HashMap<>();
+    private Set<String> lastChatPresence = Set.of();
+    private final Set<String> announcedChatPresence = new HashSet<>();
+
+    public record ChatPresence(String userId, boolean joined) {
+    }
 
     private static final class Connection {
         final Object key;
@@ -70,6 +78,7 @@ public final class ApiV3RealtimeSessions {
         final long deadline;
         final ReentrantLock lock = new ReentrantLock();
         volatile Grant grant;
+        volatile boolean ready;
         long nextCheck, window;
         int messages;
         boolean closed;
@@ -164,6 +173,7 @@ public final class ApiV3RealtimeSessions {
                 if (ApiV3SocketTicket.CHANNEL_ARTICLE.equals(grant.channel()))
                     ready.put("articleId", grant.targetId());
                 c.transport.send(new JSONObject().put("type", "ready").put("data", ready).toString());
+                c.ready = true;
             } else {
                 if (!body.keySet().equals(Set.of("type")) || !"ping".equals(body.opt("type")) || !valid(c))
                     throw new IllegalArgumentException();
@@ -265,6 +275,44 @@ public final class ApiV3RealtimeSessions {
         broadcastChat("chat.barrager", event.dto());
     }
 
+    public void chatRedPacketClaimed(final JSONObject data) {
+        broadcastChat("chat.red_packet.claimed", data);
+    }
+
+    public void chatPresenceChanged(final List<JSONObject> changes) {
+        if (changes.isEmpty()) return;
+        final var frames = changes.stream()
+                .map(data -> new JSONObject().put("type", "chat.presence.changed").put("data", data).toString())
+                .toList();
+        broadcastChatFrames(frames, Map.of(), false);
+    }
+
+    public List<ChatPresence> pollChatPresence() {
+        synchronized (admission) {
+            final var current = new HashSet<String>();
+            for (final Connection c : chat) {
+                if (c.ready) current.add(c.grant.userId());
+            }
+            final var changes = new ArrayList<ChatPresence>();
+            // 连续两次观测一致才推送，合并短暂重连。同一账号多个标签页只计一次。
+            final var departed = announcedChatPresence.iterator();
+            while (departed.hasNext() && changes.size() < 16) {
+                final String id = departed.next();
+                if (!current.contains(id) && !lastChatPresence.contains(id)) {
+                    changes.add(new ChatPresence(id, false));
+                    departed.remove();
+                }
+            }
+            for (final String id : current) {
+                if (changes.size() >= 16) break;
+                if (lastChatPresence.contains(id) && announcedChatPresence.add(id))
+                    changes.add(new ChatPresence(id, true));
+            }
+            lastChatPresence = current;
+            return changes;
+        }
+    }
+
     public void chatSyncRequired() {
         broadcastChat("chat.sync_required", new JSONObject());
     }
@@ -275,6 +323,10 @@ public final class ApiV3RealtimeSessions {
 
     private void broadcastChat(String type, JSONObject data, Map<String, String> selections) {
         final String frame = new JSONObject().put("type", type).put("data", data).toString();
+        broadcastChatFrames(List.of(frame), selections, data.has("message") || data.has("reactions"));
+    }
+
+    private void broadcastChatFrames(final List<String> frames, final Map<String, String> selections, final boolean personalized) {
         for (Connection c : chat) {
             c.lock.lock();
             try {
@@ -285,7 +337,8 @@ public final class ApiV3RealtimeSessions {
                     continue;
                 }
                 final String selected = selections.get(c.grant.userId());
-                c.transport.send(selected == null || !data.has("message") && !data.has("reactions") ? frame : personalizedChatFrame(frame, selected));
+                for (final String frame : frames)
+                    c.transport.send(selected == null || !personalized ? frame : personalizedChatFrame(frame, selected));
             } catch (Exception e) {
                 remove(c);
             } finally {

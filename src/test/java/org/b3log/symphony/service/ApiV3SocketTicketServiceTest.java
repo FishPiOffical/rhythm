@@ -34,10 +34,7 @@ import java.util.*;
 public class ApiV3SocketTicketServiceTest {
     static Fixture current;
 
-    public static class Users extends AbstractRepository {
-        public Users() {
-            super("user");
-        }
+    public static class Users extends UserRepository {
 
         @Override
         public String getName() {
@@ -45,10 +42,7 @@ public class ApiV3SocketTicketServiceTest {
         }
     }
 
-    public static class Articles extends AbstractRepository {
-        public Articles() {
-            super("article");
-        }
+    public static class Articles extends ArticleRepository {
 
         @Override
         public String getName() {
@@ -185,14 +179,14 @@ public class ApiV3SocketTicketServiceTest {
             write("CREATE TABLE symphony_article(oId TEXT PRIMARY KEY,articleAuthorId TEXT,articleType INT,articleStatus INT,articleAnonymousView INT,articleContent TEXT)");
             write("INSERT INTO symphony_article VALUES('789','321',0,0,0,'PRIVATE-article'),('987','321',0,0,0,'OTHER-private')");
             var targets = new ApiV3RealtimeTargetService();
-            for (var entry : Map.<String, Object>of("articles", new ArticleRepository(), "users", new UserRepository()).entrySet()) {
+            for (var entry : Map.<String, Object>of("articles", new Articles(), "users", new Users()).entrySet()) {
                 var field = ApiV3RealtimeTargetService.class.getDeclaredField(entry.getKey());
                 field.setAccessible(true);
                 field.set(targets, entry.getValue());
             }
             write("INSERT INTO symphony_api_v3_client VALUES('website_v3',0)");
             write("INSERT INTO symphony_api_v3_token VALUES('456','123','website_v3','access',0,'profile.read notifications.read',125000),('654','321','website_v3','access',0,'notifications.read',125000)");
-            for (var entry : Map.<String, Object>of("targets", targets, "tickets", tickets, "tokens", new Tokens(), "clients", new Clients(), "users", new UserRepository()).entrySet()) {
+            for (var entry : Map.<String, Object>of("targets", targets, "tickets", tickets, "tokens", new Tokens(), "clients", new Clients(), "users", new Users()).entrySet()) {
                 var field = ApiV3SocketTicketService.class.getDeclaredField(entry.getKey());
                 field.setAccessible(true);
                 field.set(core, entry.getValue());

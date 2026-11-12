@@ -5047,7 +5047,18 @@ JS
 >
 > 地址不带查询参数，认证仅提交 type 和 ticket；成功后可发送 {"type":"ping"}，收到 pong。票据重放/过期、非法消息、令牌或账号失效时连接关闭；刷新访问令牌不会延长已有连接，需重新取票连接。
 >
-> 本订阅支持已保存消息、emoji reaction、话题变更提示及即时 chat.barrager 弹幕事件。发送仍使用 HTTP 接口；不提供在线人数事件。
+> 本订阅支持已保存消息、emoji reaction、话题变更提示、即时弹幕及下列聊天室公告。发送仍使用 HTTP 接口；不提供在线人数事件。
+
+### 接收红包领取和进出场提示
+
+认证为 `chat` 后，当前连接所在的 Rhythm 实例可推送以下即时事件：
+
+| type | data 字段 | 触发条件 |
+| --- | --- | --- |
+| `chat.red_packet.claimed` | `id`、`createdAt`、`actor`、`sender`、`packetId`、`got`、`count` | V3 结算服务首次成功提交一笔领取，包括经过该服务的经典站领取 |
+| `chat.presence.changed` | `id`、`createdAt`、`actor`、`kind`（`join` 或 `leave`） | 公开在线状态的用户在本实例建立第一个 V3 聊天订阅，或关闭最后一个；合并短暂重连 |
+
+`actor` 和 `sender` 只包含 `id`、`userName`、`userNickname`。红包事件不包含积分、出拳结果或指定领取名单。`createdAt` 为毫秒时间戳，`id` 用于客户端去重。事件不写入聊天历史，断线后不补播。进出场状态按实例计数，经典站连接及其他节点不纳入。
 
 ### 接收即时弹幕
 

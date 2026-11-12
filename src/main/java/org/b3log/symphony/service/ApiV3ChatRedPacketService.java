@@ -78,6 +78,8 @@ public class ApiV3ChatRedPacketService {
     private ApiV3ChatPublicationService admissionEffects;
     @Inject
     private ChatroomProcessor delivery;
+    @Inject
+    private ApiV3RealtimeService realtime;
 
     protected long now() {
         return System.currentTimeMillis();
@@ -423,6 +425,9 @@ public class ApiV3ChatRedPacketService {
         }
         if (execution.applied() && updated.get() != null) {
             safely(() -> ChatroomChannel.notifyChat(updated.get()));
+            // 重放和已领过的请求没有新的领取记录，不补播公告。
+            safely(() -> realtime.publishRedPacketClaim(messageId, actor, sender,
+                    updated.get().getInt("got"), updated.get().getInt("count"), result.getLong("claimedAt")));
             safely(() -> notificationDelivery.publishRefreshNotification(actor));
         }
         return result;

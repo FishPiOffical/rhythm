@@ -19,6 +19,7 @@
 package org.b3log.symphony.service;
 
 import org.b3log.latke.Latkes;
+import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
 import org.testng.Assert;
@@ -136,6 +137,63 @@ public class ApiV3RealtimeSessionsTest {
         System.out.println("PASS 两个聊天室连接只收到各自的表态选择");
     }
 
+    private static void verifyChatNotices() {
+        final var registry = new ApiV3RealtimeSessions(new ApiV3RealtimeSessions.Authority() {
+            public ApiV3SocketTicketService.Grant consume(String ticket) {
+                return new ApiV3SocketTicketService.Grant("123", "456", 10_000, "chat", "");
+            }
+
+            public boolean authorized(ApiV3SocketTicketService.Grant grant) {
+                return true;
+            }
+        }, (ip, record) -> true, () -> 0);
+        final String auth = new JSONObject().put("type", "authenticate").put("ticket", "A".repeat(43)).toString();
+        final var pending = new Transport();
+        registry.open("pending", pending, "192.0.2.1");
+        final var first = new Transport();
+        registry.open("first", first, "192.0.2.2");
+        registry.receive("first", auth);
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        Assert.assertEquals(registry.pollChatPresence(), List.of(new ApiV3RealtimeSessions.ChatPresence("123", true)));
+
+        registry.open("second", new Transport(), "192.0.2.3");
+        registry.receive("second", auth);
+        registry.close("first");
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        registry.close("second");
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+
+        final var resumed = new Transport();
+        registry.open("resumed", resumed, "192.0.2.4");
+        registry.receive("resumed", auth);
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        final var user = new JSONObject().put("oId", "123").put("userName", "fish").put("userNickname", "小鱼")
+                .put("userStatus", UserExt.USER_STATUS_C_VALID).put("email", "private@example.test");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100));
+        user.put("userOnlineStatus", 1);
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100));
+        user.put("userOnlineStatus", UserExt.USER_XXX_STATUS_C_ENABLED);
+        final var presence = ApiV3RealtimeService.chatPresenceNotice(user, true, 100);
+        Assert.assertEquals(presence.getJSONObject("actor").keySet(), Set.of("id", "userName", "userNickname"));
+        registry.chatPresenceChanged(List.of(presence));
+        Assert.assertEquals(resumed.sent.getLast().getString("type"), "chat.presence.changed");
+        final var actor = presence.getJSONObject("actor");
+        final var claim = new JSONObject().put("id", "claim:7:1").put("createdAt", 100).put("actor", actor)
+                .put("sender", actor).put("packetId", "7").put("got", 1).put("count", 2);
+        registry.chatRedPacketClaimed(claim);
+        Assert.assertEquals(resumed.sent.getLast().getString("type"), "chat.red_packet.claimed");
+        Assert.assertTrue(resumed.sent.getLast().getJSONObject("data").similar(claim));
+        Assert.assertEquals(pending.sent.size(), 1);
+
+        registry.close("resumed");
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        Assert.assertEquals(registry.pollChatPresence(), List.of(new ApiV3RealtimeSessions.ChatPresence("123", false)));
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        registry.closeAll();
+        System.out.println("PASS 红包及进出场公告仅发给已认证连接，在线隐私和多会话去重");
+    }
+
     public static void main(String[] args) throws Exception {
         verifyChatReactionSelection();
         var props = new Properties();
@@ -145,6 +203,7 @@ public class ApiV3RealtimeSessionsTest {
             field.setAccessible(true);
             field.set(null, props);
         }
+        verifyChatNotices();
         try (var f = new Live()) {
             var a = f.authenticate("a", "123", "456");
             var b = f.authenticate("b", "321", "654");
@@ -331,7 +390,8 @@ public class ApiV3RealtimeSessionsTest {
             Assert.assertEquals(data.keySet(), Set.of("messageId", "revision", "message"));
             Assert.assertEquals(data.getString("messageId"), "789");
             Assert.assertEquals(data.getString("revision"), "1");
-            Assert.assertTrue(data.getJSONObject("message").similar(snapshot));
+            // 比较序列化后的数值类型，避免小范围 Long 在接收端解析为 Integer。
+            Assert.assertTrue(data.getJSONObject("message").similar(new JSONObject(snapshot.toString())));
             Assert.assertEquals(data.getJSONObject("message").getJSONObject("author").getString("userName"), "sender");
             Assert.assertEquals(data.getJSONObject("message").getString("contentHtml"), "<p>hello</p>");
             Assert.assertEquals(data.getJSONObject("message").getJSONObject("appearance").getString("frameId"), "gold");

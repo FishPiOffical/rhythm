@@ -18,11 +18,15 @@
  */
 package org.b3log.symphony.service;
 
+import org.b3log.latke.Keys;
 import org.b3log.latke.http.WebSocketSession;
+import org.b3log.latke.model.User;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.model.ApiV3ChatEvent;
+import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
@@ -36,7 +40,13 @@ import org.b3log.symphony.repository.ApiV3ArticleRevisionRepository;
 import org.b3log.symphony.repository.ApiV3ChatEventRepository;
 import org.b3log.symphony.util.ApiV3ChatStream;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,6 +57,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ApiV3RealtimeService {
     @Inject
     private ApiV3SocketTicketService tickets;
+    @Inject
+    private UserRepository users;
     @Inject
     private ApiV3NotificationRevisionRepository revisions;
     @Inject
@@ -296,6 +308,69 @@ public class ApiV3RealtimeService {
         });
     }
 
+    /**
+     * 领取事务提交后发布即时提示，失败不会改变已确认的领取结果。
+     */
+    public void publishRedPacketClaim(final String packetId, final String actorId, final String senderId,
+                                      final int got, final int count, final long claimedAt) {
+        tickets.requireNoTransaction();
+        final var active = sessions;
+        if (active == null || !active.hasChat()) return;
+        executeWorker(() -> {
+            try {
+                final var participants = chatNoticeUsers(actorId.equals(senderId) ? Set.of(actorId) : Set.of(actorId, senderId));
+                final var actor = chatNoticeUser(participants.get(actorId));
+                final var sender = chatNoticeUser(participants.get(senderId));
+                if (actor == null || sender == null) return;
+                active.chatRedPacketClaimed(new JSONObject().put("id", "claim:" + packetId + ":" + got)
+                        .put("createdAt", claimedAt).put("actor", actor).put("sender", sender)
+                        .put("packetId", packetId).put("got", got).put("count", count));
+            } catch (RepositoryException failure) {
+                org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 红包领取提示读取失败");
+            }
+        });
+    }
+
+    private void pollChatPresence(final ApiV3RealtimeSessions active) throws RepositoryException {
+        final var changes = active.pollChatPresence();
+        if (changes.isEmpty() || !active.hasChat()) return;
+        final var participants = chatNoticeUsers(changes.stream().map(ApiV3RealtimeSessions.ChatPresence::userId).toList());
+        final long now = System.currentTimeMillis();
+        final var notices = new ArrayList<JSONObject>();
+        for (final var change : changes) {
+            final var notice = chatPresenceNotice(participants.get(change.userId()), change.joined(), now);
+            if (notice != null) notices.add(notice);
+        }
+        active.chatPresenceChanged(notices);
+    }
+
+    static JSONObject chatPresenceNotice(final JSONObject user, final boolean joined, final long now) {
+        // 公告会发给整个聊天室，只有明确公开在线状态的用户才能出现在公告中。
+        if (user == null || user.optInt(UserExt.USER_ONLINE_STATUS, -1) != UserExt.USER_XXX_STATUS_C_ENABLED)
+            return null;
+        final var actor = chatNoticeUser(user);
+        if (actor == null) return null;
+        return new JSONObject().put("id", UUID.randomUUID().toString()).put("kind", joined ? "join" : "leave")
+                .put("createdAt", now).put("actor", actor);
+    }
+
+    private Map<String, JSONObject> chatNoticeUsers(final Collection<String> ids) throws RepositoryException {
+        final var rows = users.select("SELECT oId,userName,userNickname,userOnlineStatus,userStatus FROM `" + users.getName()
+                + "` WHERE oId IN (" + String.join(",", Collections.nCopies(ids.size(), "?")) + ")", ids.toArray());
+        final var result = new HashMap<String, JSONObject>();
+        for (final var row : rows) result.put(row.getString(Keys.OBJECT_ID), row);
+        return result;
+    }
+
+    private static JSONObject chatNoticeUser(final JSONObject user) {
+        if (user == null || user.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID) return null;
+        final String name = user.optString(User.USER_NAME);
+        if (!name.matches("[A-Za-z0-9_-]{1,64}")) return null;
+        final String nickname = user.optString(UserExt.USER_NICKNAME);
+        return new JSONObject().put("id", user.getString(Keys.OBJECT_ID)).put("userName", name)
+                .put("userNickname", nickname.length() <= 128 && nickname.codePoints().noneMatch(c -> c < 32 || c == 127) ? nickname : "");
+    }
+
     public void pollTopic() throws Exception {
         tickets.requireNoTransaction();
         topicDelivery.refreshCommitted();
@@ -305,6 +380,11 @@ public class ApiV3RealtimeService {
         if (sessions == null)
             return;
         tickets.requireNoTransaction();
+        try {
+            pollChatPresence(sessions);
+        } catch (RepositoryException failure) {
+            org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class).warn("V3 聊天室进出场提示读取失败");
+        }
         if (!sessions.hasChat()) {
             resetChat();
             return;
