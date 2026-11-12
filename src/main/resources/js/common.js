@@ -29,6 +29,31 @@
  * @static
  */
 var Util = {
+    // 小尾巴与正文分开渲染，不进入引用、复读或 Markdown 解析。
+    renderChatTail: function (data) {
+        const tail = data && data.tail;
+        if (!tail || typeof tail.text !== 'string' || !tail.text.trim() || tail.text.length > 512 ||
+            /[\u0000-\u001f\u007f-\u009f\u2028-\u202e\u2066-\u2069]/u.test(tail.text)) {
+            return '';
+        }
+        const body = document.createElement('div');
+        body.innerHTML = data.content || '';
+        body.querySelectorAll('blockquote,img,picture,audio,video,iframe,object,embed,svg,script,style').forEach(node => node.remove());
+        if (!body.textContent.trim()) return '';
+        try {
+            const card = JSON.parse(data.md || body.textContent);
+            if (card && card.msgType) return '';
+        } catch (error) {
+            // 普通消息不是 JSON，继续按纯文本尾巴展示。
+        }
+        const text = document.createElement('span');
+        text.textContent = tail.text;
+        return '<div class="fp-chat-tail" data-chat-tail>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="小尾巴"><title>小尾巴</title>' +
+            '<path d="M20.2 3.8a5.5 5.5 0 0 1 0 7.8L9 23H1v-8L12.2 3.8a5.5 5.5 0 0 1 8 0Z" transform="translate(1 -1) scale(.92)"/><path d="m5 19 10-10M9 15h5"/></svg>' +
+            text.outerHTML + '</div>';
+    },
+
     bling: undefined,
     isBlinging: false,
 

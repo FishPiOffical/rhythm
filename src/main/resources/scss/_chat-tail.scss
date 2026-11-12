@@ -1,0 +1,24 @@
+// PC、移动端和两种聊天室布局共用消息签名样式。
+.fp-chat-tail {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(128, 128, 128, .22);
+  color: #888;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  > svg {
+    fill: none;
+    stroke: currentColor;
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-top: 2px;
+  }
+
+  > span { min-width: 0; }
+}

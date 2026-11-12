@@ -74,6 +74,7 @@ import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.AvatarQueryService;
 import org.b3log.symphony.service.ChatRoomService;
 import org.b3log.symphony.service.ApiV3ChatRedPacketService;
+import org.b3log.symphony.util.ApiV3ChatTail;
 import org.b3log.symphony.service.ChatMessageMgmtService;
 import org.b3log.symphony.service.ChatTopicWriteService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
@@ -1685,6 +1686,9 @@ public class ChatroomProcessor {
             for (final String field : new String[]{Keys.OBJECT_ID, User.USER_NAME, UserExt.USER_NICKNAME, UserExt.USER_AVATAR_URL, "userOId", "sysMetal", "client"}) {
                 if (message.has(field)) push.put(field, message.get(field));
             }
+            // 旧站实时消息也携带已保存的尾巴快照，正文和旧站发送流程保持不变。
+            final JSONObject tail = ApiV3ChatTail.snapshot(message.opt("tail"));
+            if (tail != null && ApiV3ChatTail.eligibleHtml(html)) push.put("tail", tail);
             push.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(message.getLong(Common.TIME)));
             fillPushMessageReactions(push);
             ChatroomChannel.notifyChat(push);

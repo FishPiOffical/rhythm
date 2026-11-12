@@ -2322,10 +2322,10 @@ ${result.info.msg}
         // 看看是否有备注
         let remark = ChatRoom.remarkList[data.userOId];
         if ((!more) && catchUsers.includes(userName) && newContent.indexOf("\"msgType\":\"redPacket\"") == -1 && newContent.indexOf("\"msgType\":\"music\"") == -1 && newContent.indexOf("\"msgType\":\"weather\"") == -1) {
-            let robotDom = '<div class="robot-msg-item"><div class="avatar" style="background-image: url(' + robotAvatar + ')"></div><div class="robot-msg-content"><div class="robot-username"><p>' + userName + '</p></div> ' + newContent + ' <div class="fn__right" style="margin-top: 5px; font-size: 10px;">' + data.time + '</div></div></div>';
+            let robotDom = '<div class="robot-msg-item"><div class="avatar" style="background-image: url(' + robotAvatar + ')"></div><div class="robot-msg-content"><div class="robot-username"><p>' + userName + '</p></div> ' + newContent + Util.renderChatTail(data) + ' <div class="fn__right" style="margin-top: 5px; font-size: 10px;">' + data.time + '</div></div></div>';
             ChatRoom.addRobotMsg(robotDom);
         } else if ((!more) && $('#catch-word').prop('checked') && newContent.indexOf("\"msgType\":\"redPacket\"") == -1 && catchKeys.some(key => newMd.startsWith(key))) {
-            let robotDom = '<div class="robot-msg-item"><div class="avatar" style="background-image: url(' + robotAvatar + ')"></div><div class="robot-msg-content"><div class="robot-username"><p>' + userName + '</p></div> ' + newContent + ' <div class="fn__right" style="margin-top: 5px; font-size: 10px;">' + data.time + '</div></div></div>';
+            let robotDom = '<div class="robot-msg-item"><div class="avatar" style="background-image: url(' + robotAvatar + ')"></div><div class="robot-msg-content"><div class="robot-username"><p>' + userName + '</p></div> ' + newContent + Util.renderChatTail(data) + ' <div class="fn__right" style="margin-top: 5px; font-size: 10px;">' + data.time + '</div></div></div>';
             ChatRoom.addRobotMsg(robotDom);
         } else {
             let isRedPacket = false;
@@ -2510,6 +2510,7 @@ ${result.info.msg}
             newHTML += '        <div class="vditor-reset ft__smaller ' + Label.chatRoomPictureStatus + '" style="margin-top: 6px">\n' +
                 '            ' + ChatRoom.filterContent(data.content, isAdmin) + '\n' +
                 '        </div>\n' +
+                ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatTail(data) : '') +
                 (data.reactionDisabled ? '' : ChatRoom.renderReactionBar(data.oId, data.reactionSummary, data.currentUserReaction)) +
                 '\n' +
                 '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +
