@@ -16683,3 +16683,17 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 | body | SVG图片二进制 | medal-mini.svg |
 
 > 用户、勋章不存在或当前未公开展示返回404。当前用户也不能通过此路径读取自己的隐藏勋章，请改用本人路径。公开勋章列表仍可按原接口读取；图片需要profile.read，游客客户端可继续展示名称和描述。
+
+### 宠物家园（第一批）
+
+以下接口需要当前第一方 V3 Bearer；不支持 Cookie 或旧 apiKey。两项读取使用 `profile.read`，五项写入使用 `settings.write`，写入需 `Idempotency-Key`。
+
+- `GET /api/v3/pets/catalog`：四种宠物、食品价格、规则及目录版本。
+- `GET /api/v3/me/pet`：本人宠物、宠物币、背包、今日补给与活动状态。未领养返回 `pet:null`，读取不创建账号。
+- `POST /api/v3/me/pet/adoption`：`{speciesId,name}`，每账号免费领养一次；名字为 1～12 个可见字素。
+- `PUT /api/v3/me/pet/name`：`{petId,name}`，修改当前宠物名字。
+- `POST /api/v3/me/pet/actions`：`{petId,action,itemId?}`；action 为 `feed/water/pet/play/rest/wake`，仅 feed 需要 `itemId:"food"`。
+- `POST /api/v3/me/pet/supplies`：`{expectedDate}`，上海自然日日期 `YYYY-MM-DD`，每日一次。
+- `POST /api/v3/me/pet/purchases`：`{petId,itemId:"food",quantity,catalogVersion}`，数量 1～20，服务端核价及扣宠物币。
+
+写回执只包含 `{operation,petId,committedAt}`，客户端再读取聚合状态，不把旧回执当当前余额。未知结果使用原内容和原键恢复，不自动创建另一笔消费。协议、试运行参数、迁移与人工验收见 [宠物第一批说明](docs/api-v3-pets-phase-one.md)。

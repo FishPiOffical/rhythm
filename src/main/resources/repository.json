@@ -10,6 +10,193 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_account",
+      "description": "宠物钱包及账号级每日奖励，oId为用户ID",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "coins",
+          "type": "int"
+        },
+        {
+          "name": "supplyDate",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "growthDate",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "growthCount",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "user_pet",
+      "description": "本人唯一宠物及活动状态",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "speciesId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "length": 256
+        },
+        {
+          "name": "hunger",
+          "type": "double"
+        },
+        {
+          "name": "water",
+          "type": "double"
+        },
+        {
+          "name": "mood",
+          "type": "double"
+        },
+        {
+          "name": "energy",
+          "type": "double"
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "friendship",
+          "type": "int"
+        },
+        {
+          "name": "lastCalculatedAt",
+          "type": "long"
+        },
+        {
+          "name": "activityKind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "activityStartedAt",
+          "type": "long"
+        },
+        {
+          "name": "activityEndsAt",
+          "type": "long"
+        },
+        {
+          "name": "petAvailableAt",
+          "type": "long"
+        },
+        {
+          "name": "playAvailableAt",
+          "type": "long"
+        },
+        {
+          "name": "adoptedAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_inventory",
+      "description": "宠物独立背包，同用户同物品唯一",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "itemId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "quantity",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_ledger",
+      "description": "宠物币与口粮流水，不参与站点积分",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "coinDelta",
+          "type": "int"
+        },
+        {
+          "name": "foodDelta",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "appearance_product",
       "description": "积分外观商城",
       "keys": [
