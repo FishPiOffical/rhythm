@@ -29,8 +29,8 @@ public final class ApiV3ChatAppearance {
     private ApiV3ChatAppearance() {
     }
 
-    private static final Set<String> BUBBLES = Set.of("classic", "candy", "paipai-orange", "fishpond-blue");
-    private static final Set<String> FRAMES = Set.of("none", "gold", "paipai-orange", "fishpond-blue");
+    private static final Set<String> BUBBLES = Set.of("classic", "candy", "paipai-orange", "fishpond-blue", "sea-soda", "sunset-letter", "star-route");
+    private static final Set<String> FRAMES = Set.of("none", "gold", "paipai-orange", "fishpond-blue", "tide", "paipai-stamp", "star-ring");
 
     public static JSONObject defaults() {
         return new JSONObject().put("bubbleId", "classic").put("frameId", "none").put("version", 1);

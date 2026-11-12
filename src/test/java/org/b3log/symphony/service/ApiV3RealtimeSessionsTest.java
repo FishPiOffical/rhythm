@@ -153,6 +153,13 @@ public class ApiV3RealtimeSessionsTest {
         final var first = new Transport();
         registry.open("first", first, "192.0.2.2");
         registry.receive("first", auth);
+        Assert.assertTrue(first.sent.getLast().getJSONObject("data").getBoolean("presenceControl"));
+        // 首页只接收消息；切入聊天室后使用同一连接参与进场，不新建票据。
+        registry.receive("first", "{\"type\":\"chat.presence\",\"active\":false}");
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        Assert.assertTrue(registry.pollChatPresence().isEmpty());
+        Assert.assertFalse(first.closed);
+        registry.receive("first", "{\"type\":\"chat.presence\",\"active\":true}");
         Assert.assertTrue(registry.pollChatPresence().isEmpty());
         Assert.assertEquals(registry.pollChatPresence(), List.of(new ApiV3RealtimeSessions.ChatPresence("123", true)));
 
@@ -386,7 +393,7 @@ public class ApiV3RealtimeSessionsTest {
             var duplicate = f.chat("duplicate");
             var pending = f.open("pending-online", "192.0.2.99");
             Assert.assertEquals(f.registry.chatUserIds(), Set.of("123"));
-            Assert.assertEquals(chat.sent.get(1).getJSONObject("data").keySet(), Set.of("channel", "expiresAt"));
+            Assert.assertEquals(chat.sent.get(1).getJSONObject("data").keySet(), Set.of("channel", "expiresAt", "presenceControl"));
             Assert.assertEquals(chat.sent.get(1).getJSONObject("data").getString("channel"), "chat");
             Assert.assertEquals(f.registry.owners(), Set.of("321"));
             Assert.assertEquals(f.registry.articleIds(), Set.of("789"));

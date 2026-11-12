@@ -79,6 +79,8 @@ public final class ApiV3RealtimeSessions {
         final ReentrantLock lock = new ReentrantLock();
         volatile Grant grant;
         volatile boolean ready;
+        // 旧客户端默认参与进出场；新版首页仅订阅消息，不冒充进入聊天室。
+        volatile boolean presence = true;
         long nextCheck, window;
         int messages;
         boolean closed;
@@ -170,11 +172,18 @@ public final class ApiV3RealtimeSessions {
                 }
                 c.nextCheck = clock.getAsLong() + RECHECK_INTERVAL;
                 final var ready = new JSONObject().put("channel", grant.channel()).put("expiresAt", grant.expiresAt());
+                if (ApiV3SocketTicket.CHANNEL_CHAT.equals(grant.channel())) ready.put("presenceControl", true);
                 if (ApiV3SocketTicket.CHANNEL_ARTICLE.equals(grant.channel()))
                     ready.put("articleId", grant.targetId());
                 c.transport.send(new JSONObject().put("type", "ready").put("data", ready).toString());
                 c.ready = true;
             } else {
+                if (ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()) && "chat.presence".equals(body.opt("type"))) {
+                    if (!body.keySet().equals(Set.of("type", "active")) || !(body.opt("active") instanceof Boolean active) || !valid(c))
+                        throw new IllegalArgumentException();
+                    c.presence = active;
+                    return;
+                }
                 if (!body.keySet().equals(Set.of("type")) || !"ping".equals(body.opt("type")) || !valid(c))
                     throw new IllegalArgumentException();
                 c.transport.send(new JSONObject().put("type", "pong").put("data", new JSONObject()).toString());
@@ -291,7 +300,7 @@ public final class ApiV3RealtimeSessions {
         synchronized (admission) {
             final var current = new HashSet<String>();
             for (final Connection c : chat) {
-                if (c.ready) current.add(c.grant.userId());
+                if (c.ready && c.presence) current.add(c.grant.userId());
             }
             final var changes = new ArrayList<ChatPresence>();
             // 连续两次观测一致才推送，合并短暂重连。同一账号多个标签页只计一次。

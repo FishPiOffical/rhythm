@@ -285,6 +285,11 @@ public class PointtransferQueryService {
                     desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
                 }
 
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
+                    record.put(Common.DISPLAY_TYPE, "外观购买");
+                    desTemplate = Escapes.escapeHTML(dataId);
+                }
+
                 switch (type) {
                     case Pointtransfer.TRANSFER_TYPE_C_DATA_EXPORT:
                         desTemplate = desTemplate.replace("{num}", record.optString(Pointtransfer.DATA_ID));

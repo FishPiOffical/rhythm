@@ -46,6 +46,9 @@ public class ApiV3ChatAppearanceService {
     @Inject
     private ApiV3SecurityProofService proofs;
 
+    @Inject
+    private ApiV3AppearanceShopService shop;
+
     protected long now() {
         return System.currentTimeMillis();
     }
@@ -57,7 +60,7 @@ public class ApiV3ChatAppearanceService {
             final String actor = actor(identity);
             authorize(identity, "profile.read");
             final JSONObject value = choice(actor);
-            final JSONObject result = ApiV3ChatAppearance.effective(value, !ApiV3ChatAppearance.premium(value) || vip(actor));
+            final JSONObject result = effective(actor, value);
             tx.commit();
             return result;
         } catch (ApiV3Exception e) {
@@ -100,6 +103,8 @@ public class ApiV3ChatAppearanceService {
                 // 新设置使用当前会员状态校验，幂等回放走已保存的回执。
                 if (ApiV3ChatAppearance.premium(input) && !vip(actor))
                     throw new ApiV3Exception(403, "membership_required", "该外观需要有效会员");
+                // 积分外观独立于会员权限，仅有效权益可以装备。
+                if (paid(input)) shop.effective(actor, input, true);
                 final var existing = appearances.select("SELECT oId FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
                 final JSONObject value = new JSONObject(input.toString()).put("version", 1).put("updatedAt", now());
                 if (existing.size() > 1)
@@ -127,7 +132,17 @@ public class ApiV3ChatAppearanceService {
         if (owner == null || owner.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
             throw ApiV3Requests.notFound();
         final JSONObject value = choice(actor);
-        return ApiV3ChatAppearance.effective(value, !ApiV3ChatAppearance.premium(value) || vip(actor));
+        return effective(actor, value);
+    }
+
+    private static boolean paid(JSONObject value) {
+        return ApiV3AppearanceCatalog.style("bubble", value.optString("bubbleId")) != null
+                || ApiV3AppearanceCatalog.style("frame", value.optString("frameId")) != null;
+    }
+
+    private JSONObject effective(String actor, JSONObject value) throws RepositoryException {
+        final JSONObject result = ApiV3ChatAppearance.effective(value, !ApiV3ChatAppearance.premium(value) || vip(actor));
+        return paid(result) ? shop.effective(actor, result, false) : result;
     }
 
     private JSONObject choice(String actor) throws RepositoryException {

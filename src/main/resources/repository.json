@@ -10,6 +10,108 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "appearance_product",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "price7",
+          "type": "int"
+        },
+        {
+          "name": "price30",
+          "type": "int"
+        },
+        {
+          "name": "enabled",
+          "type": "int"
+        },
+        {
+          "name": "revision",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "appearance_entitlement",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "productId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "equipped",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "appearance_purchase",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "productId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "days",
+          "type": "int"
+        },
+        {
+          "name": "paidPoints",
+          "type": "int"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "transferId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "api_v3_game_save",
       "description": "Private versioned current saves for registered external games",
       "keys": [

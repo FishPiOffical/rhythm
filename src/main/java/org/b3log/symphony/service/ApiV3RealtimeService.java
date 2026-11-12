@@ -31,6 +31,7 @@ import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
+import org.b3log.symphony.util.ApiV3AppearanceCatalog;
 import org.jsoup.Jsoup;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3RealtimeSessions;
@@ -68,6 +69,9 @@ public class ApiV3RealtimeService {
     private CloudRepository cloud;
     @Inject
     private MembershipQueryService memberships;
+    @Inject
+    private ApiV3AppearanceShopService appearanceShop;
+
     private static final String PRESENCE_GAME_ID = "sys-custom-message";
     private static final int MAX_PRESENCE_TEXT = 512;
     private static final Pattern PRESENCE_VARIABLE = Pattern.compile("\\{(userName|userNickName|userPoint|userLevel|userNo|userCity)}");
@@ -352,8 +356,9 @@ public class ApiV3RealtimeService {
         parameters.add(UserExt.USER_XXX_STATUS_C_ENABLED);
         Collections.addAll(parameters, ids);
         // 只读取管理员已配置且公开在线状态的账号，领取红包仍使用原有用户投影。
+        // 座驾新增独立权益：使用左连接保留没有管理员文案但已装备座驾的公开账号。
         final var rows = users.select("SELECT u.oId,u.userName,u.userNickname,u.userOnlineStatus,u.userStatus,"
-                        + "u.userPoint,u.userNo,u.userCity,c.data FROM `" + users.getName() + "` u JOIN `" + cloud.getName()
+                        + "u.userPoint,u.userNo,u.userCity,u.userAvatarURL,c.data FROM `" + users.getName() + "` u LEFT JOIN `" + cloud.getName()
                         + "` c ON c.userId=u.oId AND c.gameId=? WHERE u.userOnlineStatus=? AND u.oId IN ("
                         + String.join(",", Collections.nCopies(ids.length, "?")) + ")", parameters.toArray());
         final var participants = new HashMap<String, JSONObject>();
@@ -365,12 +370,32 @@ public class ApiV3RealtimeService {
         duplicates.forEach(participants::remove);
         final long now = System.currentTimeMillis();
         final var notices = new ArrayList<JSONObject>();
+        final var mounts = appearanceShop.mounts(participants.keySet(), now);
         for (final var change : changes) {
+            final var participant = participants.get(change.userId());
+            final var mount = mounts.get(change.userId());
+            final var mountNotice = change.joined() ? chatMountNotice(participant, mount, now) : null;
+            if (mountNotice != null) {
+                notices.add(mountNotice);
+                continue;
+            }
             final var notice = chatPresenceNotice(participants.get(change.userId()), change.joined(), now,
                     () -> chatPresenceLevel(change.userId()));
             if (notice != null) notices.add(notice);
         }
         active.chatPresenceChanged(notices);
+    }
+
+    /** 座驾只替代本次进场文案，不影响管理员配置的退场提示。 */
+    static JSONObject chatMountNotice(final JSONObject user, final ApiV3AppearanceCatalog.Product mount, final long now) {
+        if (mount == null || user == null || user.optInt(UserExt.USER_ONLINE_STATUS, -1) != UserExt.USER_XXX_STATUS_C_ENABLED) return null;
+        final var actor = chatNoticeUser(user);
+        if (actor == null) return null;
+        final String nickname = actor.optString("userNickname").isEmpty() ? actor.getString("userName") : actor.getString("userNickname");
+        return new JSONObject().put("id", UUID.randomUUID().toString()).put("kind", "join").put("createdAt", now)
+                .put("actor", actor).put("text", nickname + mount.verb() + mount.name() + "进入了聊天室")
+                .put("mount", new JSONObject().put("id", mount.styleId()).put("version", 1))
+                .put("avatarURL", user.optString("userAvatarURL"));
     }
 
     private String chatPresenceLevel(final String userId) {
