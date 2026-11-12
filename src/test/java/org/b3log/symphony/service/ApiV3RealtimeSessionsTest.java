@@ -170,11 +170,26 @@ public class ApiV3RealtimeSessionsTest {
         Assert.assertTrue(registry.pollChatPresence().isEmpty());
         final var user = new JSONObject().put("oId", "123").put("userName", "fish").put("userNickname", "小鱼")
                 .put("userStatus", UserExt.USER_STATUS_C_VALID).put("email", "private@example.test");
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100));
+        user.put("data", "小鱼来了&&&小鱼先走");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
         user.put("userOnlineStatus", 1);
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100));
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP"));
         user.put("userOnlineStatus", UserExt.USER_XXX_STATUS_C_ENABLED);
-        final var presence = ApiV3RealtimeService.chatPresenceNotice(user, true, 100);
+        user.remove("data");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("data", "未分隔的旧数据");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("data", "<b>{userNickName}</b> 来了 {userLevel}&&& ");
+        user.put("userNickname", "$小鱼");
+        final var presence = ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP");
+        Assert.assertEquals(presence.getString("text"), "$小鱼 来了 VIP");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP"));
+        user.put("data", "&&&<span>{userName} 下线了</span>");
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        final var leave = ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> {
+            throw new AssertionError("文案没有会员变量时不得读取会员状态");
+        });
+        Assert.assertEquals(leave.getString("text"), "fish 下线了");
         Assert.assertEquals(presence.getJSONObject("actor").keySet(), Set.of("id", "userName", "userNickname"));
         registry.chatPresenceChanged(List.of(presence));
         Assert.assertEquals(resumed.sent.getLast().getString("type"), "chat.presence.changed");

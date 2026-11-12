@@ -5056,7 +5056,9 @@ JS
 | type | data 字段 | 触发条件 |
 | --- | --- | --- |
 | `chat.red_packet.claimed` | `id`、`createdAt`、`actor`、`sender`、`packetId`、`got`、`count` | V3 结算服务首次成功提交一笔领取，包括经过该服务的经典站领取 |
-| `chat.presence.changed` | `id`、`createdAt`、`actor`、`kind`（`join` 或 `leave`） | 公开在线状态的用户在本实例建立第一个 V3 聊天订阅，或关闭最后一个；合并短暂重连 |
+| `chat.presence.changed` | `id`、`createdAt`、`actor`、`kind`（`join` 或 `leave`）、`text` | 公开在线状态且配置了对应提示的用户在本实例建立第一个 V3 聊天订阅，或关闭最后一个；合并短暂重连 |
+
+进出场文案复用经典站管理员配置，缺少对应方向的文案时不发事件。`text` 为完成变量替换后的纯文本，最多 512 个 Unicode 字符。
 
 `actor` 和 `sender` 只包含 `id`、`userName`、`userNickname`。红包事件不包含积分、出拳结果或指定领取名单。`createdAt` 为毫秒时间戳，`id` 用于客户端去重。事件不写入聊天历史，断线后不补播。进出场状态按实例计数，经典站连接及其他节点不纳入。
 

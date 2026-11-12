@@ -22,13 +22,16 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.model.User;
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.model.ApiV3ChatEvent;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.CloudRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3RealtimeSessions;
 import org.b3log.symphony.util.Firewall;
@@ -49,6 +52,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 实时传输适配和有界广播，业务写入与旧消息转发由其他链路处理。
@@ -59,6 +64,13 @@ public class ApiV3RealtimeService {
     private ApiV3SocketTicketService tickets;
     @Inject
     private UserRepository users;
+    @Inject
+    private CloudRepository cloud;
+    @Inject
+    private MembershipQueryService memberships;
+    private static final String PRESENCE_GAME_ID = "sys-custom-message";
+    private static final int MAX_PRESENCE_TEXT = 512;
+    private static final Pattern PRESENCE_VARIABLE = Pattern.compile("\\{(userName|userNickName|userPoint|userLevel|userNo|userCity)}");
     @Inject
     private ApiV3NotificationRevisionRepository revisions;
     @Inject
@@ -334,24 +346,71 @@ public class ApiV3RealtimeService {
     private void pollChatPresence(final ApiV3RealtimeSessions active) throws RepositoryException {
         final var changes = active.pollChatPresence();
         if (changes.isEmpty() || !active.hasChat()) return;
-        final var participants = chatNoticeUsers(changes.stream().map(ApiV3RealtimeSessions.ChatPresence::userId).toList());
+        final var ids = changes.stream().map(ApiV3RealtimeSessions.ChatPresence::userId).toArray();
+        final var parameters = new ArrayList<Object>();
+        parameters.add(PRESENCE_GAME_ID);
+        parameters.add(UserExt.USER_XXX_STATUS_C_ENABLED);
+        Collections.addAll(parameters, ids);
+        // 只读取管理员已配置且公开在线状态的账号，领取红包仍使用原有用户投影。
+        final var rows = users.select("SELECT u.oId,u.userName,u.userNickname,u.userOnlineStatus,u.userStatus,"
+                        + "u.userPoint,u.userNo,u.userCity,c.data FROM `" + users.getName() + "` u JOIN `" + cloud.getName()
+                        + "` c ON c.userId=u.oId AND c.gameId=? WHERE u.userOnlineStatus=? AND u.oId IN ("
+                        + String.join(",", Collections.nCopies(ids.length, "?")) + ")", parameters.toArray());
+        final var participants = new HashMap<String, JSONObject>();
+        final var duplicates = new java.util.HashSet<String>();
+        for (final var row : rows) {
+            final var id = row.getString(Keys.OBJECT_ID);
+            if (participants.putIfAbsent(id, row) != null) duplicates.add(id);
+        }
+        duplicates.forEach(participants::remove);
         final long now = System.currentTimeMillis();
         final var notices = new ArrayList<JSONObject>();
         for (final var change : changes) {
-            final var notice = chatPresenceNotice(participants.get(change.userId()), change.joined(), now);
+            final var notice = chatPresenceNotice(participants.get(change.userId()), change.joined(), now,
+                    () -> chatPresenceLevel(change.userId()));
             if (notice != null) notices.add(notice);
         }
         active.chatPresenceChanged(notices);
     }
 
-    static JSONObject chatPresenceNotice(final JSONObject user, final boolean joined, final long now) {
+    private String chatPresenceLevel(final String userId) {
+        try {
+            return memberships.getStatusByUserId(userId).optString("lvCode").split("_", 2)[0];
+        } catch (ServiceException failure) {
+            // 与经典版一致，会员等级暂时不可读时变量留空。
+            return "";
+        }
+    }
+
+    static JSONObject chatPresenceNotice(final JSONObject user, final boolean joined, final long now,
+                                         final java.util.function.Supplier<String> level) {
         // 公告会发给整个聊天室，只有明确公开在线状态的用户才能出现在公告中。
         if (user == null || user.optInt(UserExt.USER_ONLINE_STATUS, -1) != UserExt.USER_XXX_STATUS_C_ENABLED)
             return null;
         final var actor = chatNoticeUser(user);
         if (actor == null) return null;
+        final String[] templates = user.optString("data").split("&&&", 3);
+        if (templates.length < 2) return null;
+        final String template = templates[joined ? 0 : 1].strip();
+        if (template.isEmpty()) return null;
+
+        // 经典版允许写入 HTML。V3 只广播文本，先提取模板中的文字，再以字面量替换变量。
+        final String plain = Jsoup.parseBodyFragment(template).text();
+        final String membership = plain.contains("{userLevel}") ? level.get() : "";
+        final String city = user.optString(UserExt.USER_CITY);
+        final String text = PRESENCE_VARIABLE.matcher(plain).replaceAll(match -> Matcher.quoteReplacement(switch (match.group(1)) {
+            case "userName" -> user.optString(User.USER_NAME);
+            case "userNickName" -> user.optString(UserExt.USER_NICKNAME);
+            case "userPoint" -> user.optString(UserExt.USER_POINT);
+            case "userNo" -> user.optString(UserExt.USER_NO);
+            case "userCity" -> city.isEmpty() ? "神秘角落" : city;
+            case "userLevel" -> membership;
+            default -> match.group();
+        })).replaceAll("[\\p{Cc}]+", " ").strip();
+        if (text.isEmpty()) return null;
+        final int end = text.offsetByCodePoints(0, Math.min(MAX_PRESENCE_TEXT, text.codePointCount(0, text.length())));
         return new JSONObject().put("id", UUID.randomUUID().toString()).put("kind", joined ? "join" : "leave")
-                .put("createdAt", now).put("actor", actor);
+                .put("createdAt", now).put("actor", actor).put("text", text.substring(0, end));
     }
 
     private Map<String, JSONObject> chatNoticeUsers(final Collection<String> ids) throws RepositoryException {
