@@ -1,0 +1,125 @@
+/* 仅由旧版首页加载；独立命名，避免影响首页模块及其他皮肤。 */
+.wrapper.v3-home-promo-wrap {
+  padding-bottom: 16px;
+}
+
+.v3-home-promo-wrap--mobile {
+  margin: 12px;
+}
+
+.v3-home-promo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 22px 28px;
+  overflow: hidden;
+  border: 1px solid #d8e8dc;
+  border-radius: 14px;
+  background: linear-gradient(110deg, #eef8f0, #f8fcf6 65%, #e7f4ee);
+  color: #233d2e;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+
+  &:hover {
+    border-color: #98bda2;
+    box-shadow: 0 4px 16px rgba(36, 76, 49, .07);
+    color: #233d2e;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #367c49;
+    outline-offset: 3px;
+  }
+
+  &__logo {
+    display: block;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  &__copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: 6px;
+
+    strong {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.4;
+      letter-spacing: .02em;
+    }
+  }
+
+  &__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #4e745b;
+    font-size: 11px;
+    line-height: 16px;
+
+    span {
+      padding: 0 5px;
+      border: 1px solid #bfd7c5;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+  }
+
+  &__description {
+    color: #577160;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    gap: 16px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    background: #367c49;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    span { transition: transform 160ms ease; }
+  }
+
+  &:hover &__action span { transform: translate(2px, -2px); }
+}
+
+@media (max-width: 600px) {
+  .v3-home-promo {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+
+    &__logo { width: 40px; height: 40px; }
+    &__copy { flex-basis: calc(100% - 52px); }
+    &__copy strong { font-size: 18px; }
+    &__description { font-size: 12px; }
+    &__action {
+      justify-content: space-between;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-home-promo,
+  .v3-home-promo__action span { transition: none; }
+}

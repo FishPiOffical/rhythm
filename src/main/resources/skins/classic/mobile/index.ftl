@@ -26,6 +26,7 @@
     <@head title="${symphonyLabel}">
         <meta name="description" content="${symDescriptionLabel}"/>
     </@head>
+    <link rel="stylesheet" href="${staticServePath}/css/home-v3-promo.css?${staticResourceVersion}"/>
 </head>
 <body class="index" style="background-color: #f6f6f6;">
 <div class="mobile-head">
@@ -36,6 +37,19 @@
 <#if showTopAd>
     ${HeaderBannerLabel}
 </#if>
+
+<#-- 新版入口与 PC 首页保持一致。 -->
+<div class="v3-home-promo-wrap v3-home-promo-wrap--mobile">
+    <a class="v3-home-promo" href="https://yui.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
+        <img class="v3-home-promo__logo" src="${staticServePath}/images/favicon.png" width="48" height="48" alt=""/>
+        <span class="v3-home-promo__copy">
+            <span class="v3-home-promo__eyebrow">新版体验 <span>V3</span></span>
+            <strong>摸鱼派 V3，换个方式摸鱼</strong>
+            <span class="v3-home-promo__description">全新界面与聊天体验，欢迎来试试。</span>
+        </span>
+        <span class="v3-home-promo__action">体验新版 <span aria-hidden="true">↗</span></span>
+    </a>
+</div>
 
 <#if esEnabled || algoliaEnabled>
     <form class="form wrapper" style="margin-top: 10px" action="/search">

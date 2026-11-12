@@ -28,6 +28,7 @@
     </@head>
     <link rel="stylesheet" href="${staticServePath}/css/index.css?${staticResourceVersion}"/>
     <link rel="canonical" href="${servePath}">
+    <link rel="stylesheet" href="${staticServePath}/css/home-v3-promo.css?${staticResourceVersion}"/>
 </head>
 <body class="index">
 
@@ -36,6 +37,18 @@
     ${HeaderBannerLabel}
 </#if>
 <div class="main">
+    <#-- 新版入口只作站点导航，不传递账号凭据。 -->
+    <div class="wrapper v3-home-promo-wrap">
+        <a class="v3-home-promo" href="https://yui.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
+            <img class="v3-home-promo__logo" src="${staticServePath}/images/favicon.png" width="48" height="48" alt=""/>
+            <span class="v3-home-promo__copy">
+                <span class="v3-home-promo__eyebrow">新版体验 <span>V3</span></span>
+                <strong>摸鱼派 V3，换个方式摸鱼</strong>
+                <span class="v3-home-promo__description">全新界面与聊天体验，欢迎来试试。</span>
+            </span>
+            <span class="v3-home-promo__action">体验新版 <span aria-hidden="true">↗</span></span>
+        </a>
+    </div>
     <div class="wrapper index-full-size-white" id="nightTips" style="display: none"></div>
     <div class="home-personalize-toolbar">
         <button class="home-personalize-toolbar__btn" id="homePersonalizeOpen" type="button" aria-label="配置首页模块">
