@@ -37,6 +37,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.UserMgmtService;
+import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.UserQueryService;
 import org.json.JSONObject;
 
@@ -310,6 +311,11 @@ public final class Sessions {
      * @return token, returns {@code null} if login failed
      */
     public static String login(final Response response, final String userId, final boolean rememberLogin) {
+        return loginWebsiteCookie(response, userId, rememberLogin, null);
+    }
+
+    /** 家族来自服务端签发结果，不接受请求参数指定。旧调用保持原有 Cookie 格式。 */
+    public static String loginWebsiteCookie(final Response response, final String userId, final boolean rememberLogin, final String family) {
         try {
             final var proof = AccountCredentialVersions.issuance(userId, null);
             if (proof == null) return null;
@@ -332,6 +338,10 @@ public final class Sessions {
             final JSONObject cookieJSONObject = new JSONObject();
             cookieJSONObject.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
             cookieJSONObject.put("credentialEpoch", proof.epoch());
+            if (family != null) {
+                if (!family.matches("[a-f0-9]{32}")) return null;
+                cookieJSONObject.put("websiteFamily", family);
+            }
 
             final String random = RandomStringUtils.randomAlphanumeric(16);
             cookieJSONObject.put(Keys.TOKEN, proof.password() + COOKIE_ITEM_SEPARATOR + random);
@@ -341,11 +351,12 @@ public final class Sessions {
             final Cookie cookie = new Cookie(COOKIE_NAME, ret);
             cookie.setPath("/");
             if (rememberLogin) {
-                cookie.setMaxAge(COOKIE_EXPIRY);
+                cookie.setMaxAge(family == null ? COOKIE_EXPIRY : 30 * 24 * 60 * 60);
             }
             cookie.setHttpOnly(true);
             cookie.setSecure(StringUtils.equalsIgnoreCase(Latkes.getServerScheme(), "https"));
 
+            if (family != null) cookie.setSameSite("Lax");
             response.addCookie(cookie);
 
             return ret;
@@ -407,6 +418,43 @@ public final class Sessions {
         return currentCookieUser(request);
     }
 
+    /** 只解码用于撤销的绑定标识，不据此授予登录权限，也不依赖数据库可用性。 */
+    public static JSONObject websiteSession(final Request request) {
+        for (final Cookie cookie : request.getCookies()) {
+            if (!COOKIE_NAME.equals(cookie.getName())) continue;
+            try {
+                if (cookie.getValue().length() > 1024) return null;
+                final JSONObject value = new JSONObject(Crypts.decryptByAES(cookie.getValue(), Symphonys.COOKIE_SECRET));
+                final String actor = value.optString(Keys.OBJECT_ID);
+                final String family = value.optString("websiteFamily");
+                if (actor.matches("[1-9][0-9]{0,18}") && family.matches("[a-f0-9]{32}"))
+                    return new JSONObject().put(Keys.OBJECT_ID, actor).put("websiteFamily", family)
+                            .put(Common.REMEMBER_LOGIN, value.optBoolean(Common.REMEMBER_LOGIN));
+            } catch (final Exception ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /** 状态探测只验证 Cookie 凭据；存储异常向上传递，不能被解释成用户已经退出。 */
+    public static boolean websiteCredentialValid(final Request request, final String actor) {
+        JSONObject payload = null;
+        for (final Cookie cookie : request.getCookies()) {
+            if (!COOKIE_NAME.equals(cookie.getName())) continue;
+            try {
+                if (cookie.getValue().length() > 1024) return false;
+                payload = new JSONObject(Crypts.decryptByAES(cookie.getValue(), Symphonys.COOKIE_SECRET));
+            } catch (final Exception invalid) {
+                return false;
+            }
+            break;
+        }
+        if (payload == null || !actor.equals(payload.optString(Keys.OBJECT_ID))) return false;
+        final String password = StringUtils.substringBeforeLast(payload.optString(Keys.TOKEN), COOKIE_ITEM_SEPARATOR);
+        return AccountCredentialVersions.authenticate(actor, payload, password);
+    }
+
     /** Existing Cookie validation branch, callable without the legacy apiKey-first resolver. */
     public static JSONObject currentCookieUser(final Request request) {
         AccountCredentialVersions.clear();
@@ -447,6 +495,11 @@ public final class Sessions {
                 if (!AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
                     return null;
                 }
+                if (cookieJSONObject.has("websiteFamily") && !BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class)
+                        .websiteFamilyActive(userId, cookieJSONObject.optString("websiteFamily"))) {
+                    AccountCredentialVersions.clear();
+                    return null;
+                }
                 ret.put(User.USER_PASSWORD, password);
 
                 if (UserExt.USER_STATUS_C_INVALID == ret.optInt(UserExt.USER_STATUS)
@@ -463,7 +516,9 @@ public final class Sessions {
                     SESSION_CACHE.put(userId, ret);
                 }
 
-                return JSONs.clone(ret);
+                final JSONObject result = JSONs.clone(ret);
+                if (cookieJSONObject.has("websiteFamily")) result.put("websiteFamily", cookieJSONObject.getString("websiteFamily"));
+                return result;
             }
         } catch (final Exception ignored) {
         }
@@ -535,6 +590,9 @@ public final class Sessions {
             final long epoch=captured==null?0:Long.parseLong(captured);
             final var current=AccountCredentialVersions.current(actor);
             if(epoch<0||current==null||current.epoch()!=epoch||!current.password().equals(user.optString(User.USER_PASSWORD)))return null;
+            // 已建立的旧站 WebSocket 也要遵守该浏览器会话的撤销状态。
+            if (user.has("websiteFamily") && !BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class)
+                    .websiteFamilyActive(actor, user.optString("websiteFamily"))) return null;
             return user;
         }catch(Exception e){return null;}
         finally {

@@ -27,13 +27,20 @@ public final class ApiV3RefreshCookies {
     private ApiV3RefreshCookies() { }
     /** Latke prepopulates response cookies from request headers without their original security attributes. */
     public static void discardFrameworkEcho(final RequestContext context) {
-        context.getResponse().getCookies().removeIf(cookie -> NAME.equals(cookie.getName()));
+        // 旧站绑定 Cookie 同样不能被框架无属性地回写，否则浏览页面后会丢失 HttpOnly。
+        context.getResponse().getCookies().removeIf(cookie -> NAME.equals(cookie.getName()) || "sym-ce".equals(cookie.getName()));
     }
 
     public static Cookie create(final String value, final long seconds) {
+        final Cookie cookie = createSession(value);
+        cookie.setMaxAge(ApiV3TokenUtil.cookieMaxAgeSeconds(seconds));
+        return cookie;
+    }
+
+    /** 未勾选记住登录时不设置 Max-Age；Netty 的 -1 会删除 Cookie，不能用来表示会话级。 */
+    public static Cookie createSession(final String value) {
         final Cookie cookie = new Cookie(NAME, value);
         cookie.setPath("/api/v3/auth");
-        cookie.setMaxAge(ApiV3TokenUtil.cookieMaxAgeSeconds(seconds));
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setSameSite("Strict");

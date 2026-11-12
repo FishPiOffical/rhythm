@@ -48,6 +48,7 @@ import org.b3log.symphony.processor.middleware.validate.UserRegisterValidationMi
 import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
+import org.b3log.symphony.util.WebsiteLoginCookies;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.StatusCodes;
@@ -666,7 +667,7 @@ public class LoginProcessor {
                     Requests.getRemoteAddr(request));
             if (result.success()) {
                 final String userId = result.user().optString(Keys.OBJECT_ID);
-                final String token = Sessions.login(response, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
+                final String token = WebsiteLoginCookies.login(response, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue(Keys.TOKEN, token);
                 return;
@@ -769,9 +770,18 @@ public class LoginProcessor {
      * @param context the specified context
      */
     public void logout(final RequestContext context) {
-        final JSONObject user = Sessions.getUser();
-        if (null != user) {
-            Sessions.logout(user.optString(Keys.OBJECT_ID), context.getRequest(), context.getResponse());
+        // 旧版 GET 退出仍保留，但拒绝明确的跨站触发，避免注销 CSRF。
+        if (!WebsiteLoginCookies.trustedOrigin(context, true)) {
+            context.sendStatus(403);
+            return;
+        }
+        try {
+            WebsiteLoginCookies.logout(context);
+        } catch (final ServiceException error) {
+            context.setStatus(503);
+            context.getResponse().setHeader("Content-Type", "text/plain; charset=UTF-8");
+            context.sendString("退出暂未完成，请返回后重试");
+            return;
         }
 
         String destinationURL = context.param(Common.GOTO);

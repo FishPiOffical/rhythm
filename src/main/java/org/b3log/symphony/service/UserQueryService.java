@@ -377,7 +377,12 @@ public class UserQueryService {
 
         final String id = currentUser.optString(Keys.OBJECT_ID);
 
-        return getUser(id);
+        final JSONObject user = getUser(id);
+        if (user == null) return null;
+        // 绑定只随已验证的当前请求传递，不能写入按用户共享的资料缓存。
+        final JSONObject result = new JSONObject(user.toString());
+        if (currentUser.has("websiteFamily")) result.put("websiteFamily", currentUser.getString("websiteFamily"));
+        return result;
     }
 
     /**

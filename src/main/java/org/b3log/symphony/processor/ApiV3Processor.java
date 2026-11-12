@@ -33,6 +33,8 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
+import org.b3log.symphony.util.WebsiteLoginCookies;
+import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
@@ -160,6 +162,7 @@ public class ApiV3Processor {
         Dispatcher.post("/api/v3/auth/login", processor::login, anonymous::handle);
         Dispatcher.post("/api/v3/auth/refresh", processor::refresh, anonymous::handle);
         Dispatcher.post("/api/v3/auth/logout", processor::logout, anonymous::handle);
+        Dispatcher.post("/api/v3/auth/session", processor::websiteSession, anonymous::handle);
         Dispatcher.get("/api/v3/me", processor::me, auth::handle);
         Dispatcher.get("/api/v3/columns", processor::columns, auth::optionalContent, anonymous::handle);
         Dispatcher.get("/api/v3/columns/hot", processor::hotColumns, auth::optionalContent, anonymous::handle);
@@ -192,7 +195,15 @@ public class ApiV3Processor {
                 audit(context, "login", result.code(), null);
                 return;
             }
-            final JSONObject token = apiV3TokenMgmtService.issue(result.user().optString(Keys.OBJECT_ID));
+            final JSONObject token;
+            if (WebsiteLoginCookies.trustedOrigin(context, false)) {
+                final var website = apiV3TokenMgmtService.issueWebsite(result.user().getString(Keys.OBJECT_ID));
+                WebsiteLoginCookies.attach(context.getResponse(), website, true);
+                token = website.tokens();
+            } else {
+                // 无网页来源的既有客户端维持原令牌流程，不扩展为旧站会话。
+                token = apiV3TokenMgmtService.issue(result.user().getString(Keys.OBJECT_ID));
+            }
             // 刷新令牌通过 Cookie 交付，从 JSON 响应移除。
             setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
@@ -206,15 +217,25 @@ public class ApiV3Processor {
 
     public void refresh(final RequestContext context) {
         // 先验证来源和正文，再读取并消费 Cookie 中的刷新令牌。
-        if (!isSameOrigin(context)) {
+        if (!WebsiteLoginCookies.trustedOrigin(context, false)) {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
         }
         if (authenticationBody(context, Set.of(), true) == null) return;
         final String refreshToken = cookie(context, REFRESH_COOKIE);
+        final JSONObject binding = Sessions.websiteSession(context.getRequest());
+        final boolean renew;
+        try {
+            renew = binding != null && apiV3TokenMgmtService.websiteRefreshMatches(refreshToken,
+                    binding.getString(Keys.OBJECT_ID), binding.getString("websiteFamily"));
+        } catch (final Exception error) {
+            error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
+            return;
+        }
         try {
             final JSONObject token = apiV3TokenMgmtService.refresh(refreshToken);
-            setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
+            if (renew) WebsiteLoginCookies.renew(context, binding, token);
+            else setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
             audit(context, "refresh", "success", null);
             success(context, token);
@@ -225,19 +246,57 @@ public class ApiV3Processor {
         }
     }
 
+    /** 页面重新获得焦点时核对绑定状态；只返回身份标识，不兑换旧 Cookie 或签发令牌。 */
+    public void websiteSession(final RequestContext context) {
+        if (!WebsiteLoginCookies.trustedOrigin(context, false)) {
+            error(context, 403, "forbidden", "请求来源不合法");
+            return;
+        }
+        if (authenticationBody(context, Set.of(), true) == null) return;
+        ApiV3RefreshCookies.discardFrameworkEcho(context);
+        context.getResponse().setHeader("Cache-Control", "no-store");
+        final JSONObject binding = Sessions.websiteSession(context.getRequest());
+        // 升级前的新版登录没有旧站绑定，探测不能把仍可用的独立登录误判为退出。
+        if (binding == null && StringUtils.isNotBlank(cookie(context, REFRESH_COOKIE))) {
+            success(context, new JSONObject().put("linked", false));
+            return;
+        }
+        try {
+            if (binding != null) {
+                // 显式检查存储故障，不能把查询失败当成已退出。
+                final String actor = binding.getString(Keys.OBJECT_ID);
+                final String family = binding.getString("websiteFamily");
+                if (apiV3TokenMgmtService.websiteFamilyActive(actor, family)
+                        && Sessions.websiteCredentialValid(context.getRequest(), actor)) {
+                    success(context, new JSONObject().put("userId", actor)
+                            .put("revision", ApiV3TokenUtil.hash(family)));
+                    return;
+                }
+            }
+            success(context, new JSONObject().put("userId", JSONObject.NULL).put("revision", JSONObject.NULL));
+        } catch (final Exception error) {
+            error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
+        }
+    }
+
     public void logout(final RequestContext context) {
         // 来源和正文校验通过后，才撤销刷新令牌并清理 Cookie。
-        if (!isSameOrigin(context)) {
+        if (!WebsiteLoginCookies.trustedOrigin(context, false)) {
             error(context, 403, "forbidden", "请求来源不合法");
             return;
         }
         if (authenticationBody(context, Set.of(), true) == null) return;
         try {
+            // 两种凭据可能来自不同的历史登录，全部撤销成功后才清理 Cookie。
             apiV3TokenMgmtService.revokeRefresh(cookie(context, REFRESH_COOKIE));
+            WebsiteLoginCookies.logout(context);
             audit(context, "logout", "success", null);
         } catch (final ServiceException ignored) {
             audit(context, "logout", "persistence_error", null);
             // 存储暂不可用时仍保持退出操作幂等。
+            // 不把尚未完成的服务端撤销伪装成退出成功，允许用户重试。
+            error(context, 503, "temporarily_unavailable", "退出暂未完成，请重试");
+            return;
         }
         clearRefreshCookie(context);
         success(context, new JSONObject());

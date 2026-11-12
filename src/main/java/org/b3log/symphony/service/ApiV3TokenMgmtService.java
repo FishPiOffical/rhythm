@@ -90,6 +90,61 @@ public class ApiV3TokenMgmtService {
         }
     }
 
+    /** 第一方网页会话同时绑定旧版 Cookie 与 V3 令牌家族，不向客户端 JSON 暴露家族标识。 */
+    public record WebsiteLogin(JSONObject tokens, String actor, String family) { }
+
+    public WebsiteLogin issueWebsite(final String userId) throws ServiceException {
+        final Transaction transaction = beginRoot();
+        try {
+            final JSONObject client = ensureWebsiteClient();
+            if (org.b3log.symphony.util.AccountCredentialVersions.issuance(userId, null) == null)
+                throw new ServiceException("unauthorized");
+            final String family = UUID.randomUUID().toString().replace("-", "");
+            final JSONObject tokens = issueInternal(userId, WEBSITE_CLIENT, client.getString(ApiV3Client.SCOPE), family, null);
+            recordSuccessfulLoginInCurrentTransaction(userId, now());
+            transaction.commit();
+            evictLoginCacheAfterTransaction(userId);
+            return new WebsiteLogin(tokens, userId, family);
+        } catch (final Exception error) {
+            rollback(transaction);
+            throw new ServiceException(error);
+        }
+    }
+
+    /** 每次旧版 Cookie 校验都读取服务端撤销状态，缓存不能让已经退出的会话复活。 */
+    public boolean websiteFamilyActive(final String actor, final String family) throws Exception {
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}") || family == null || !family.matches("[a-f0-9]{32}")) return false;
+        return !apiV3TokenRepository.select("SELECT t.oId FROM `" + apiV3TokenRepository.getName()
+                + "` t JOIN `" + apiV3ClientRepository.getName() + "` c ON c.clientId=t.clientId"
+                + " WHERE t.clientId=? AND t.userId=? AND t.familyId=? AND t.tokenType=? AND t.state=? AND t.expiresAt>? AND c.status=? LIMIT 1",
+                WEBSITE_CLIENT, actor, family, ApiV3Token.TYPE_REFRESH, ApiV3Token.STATE_ACTIVE, now(), ApiV3Client.STATUS_ACTIVE).isEmpty();
+    }
+
+    /** 刷新前核对两种 Cookie 是否属于同一个会话，不用另一账号的刷新结果延长旧 Cookie。 */
+    public boolean websiteRefreshMatches(final String token, final String actor, final String family) throws Exception {
+        if (!ApiV3TokenUtil.isValidFormat(token)) return false;
+        final JSONObject row = apiV3TokenRepository.getByHash(ApiV3TokenUtil.hash(token));
+        return row != null && WEBSITE_CLIENT.equals(row.optString(ApiV3Token.CLIENT_ID))
+                && ApiV3Token.TYPE_REFRESH.equals(row.optString(ApiV3Token.TOKEN_TYPE))
+                && ApiV3Token.STATE_ACTIVE == row.optInt(ApiV3Token.STATE) && row.optLong(ApiV3Token.EXPIRES_AT) > now()
+                && actor.equals(row.optString(ApiV3Token.USER_ID)) && family.equals(row.optString(ApiV3Token.FAMILY_ID));
+    }
+
+    /** 旧版退出只撤销当前浏览器绑定的网页家族，其他设备和第三方授权不受影响。 */
+    public void revokeWebsiteFamily(final String actor, final String family) throws ServiceException {
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}") || family == null || !family.matches("[a-f0-9]{32}"))
+            throw new ServiceException("unauthorized");
+        final Transaction transaction = beginRoot();
+        try {
+            apiV3ClientRepository.getByClientIdForUpdate(WEBSITE_CLIENT);
+            apiV3TokenRepository.revokeFamilyInCurrentTransaction(WEBSITE_CLIENT, actor, family, now());
+            transaction.commit();
+        } catch (final Exception error) {
+            rollback(transaction);
+            throw new ServiceException(error);
+        }
+    }
+
     /**
      * 仅在显式第一方登录时记录，凭据轮换和 OAuth 授权跳过此步骤。
      */

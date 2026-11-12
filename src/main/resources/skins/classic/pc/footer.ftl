@@ -118,6 +118,9 @@
 <script src="${staticServePath}/js/lib/compress/libs.min.js?${staticResourceVersion}"></script>
 <script src="https://file.fishpi.cn/vditor/latest/dist/index.min.js"></script>
 <script src="${staticServePath}/js/common${miniPostfix}.js?${staticResourceVersion}"></script>
+<script defer src="${staticServePath}/js/website-session${miniPostfix}.js?${staticResourceVersion}"
+        data-current-user="<#if isLoggedIn>${currentUser.oId?html}</#if>"
+        data-session-managed="<#if !isLoggedIn || currentUser.websiteFamily??>true<#else>false</#if>"></script>
 <script src="${staticServePath}/js/count${miniPostfix}.js?${staticResourceVersion}"></script>
 <script>
     var Label = {

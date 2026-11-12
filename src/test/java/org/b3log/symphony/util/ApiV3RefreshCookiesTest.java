@@ -33,6 +33,12 @@ public class ApiV3RefreshCookiesTest {
             Assert.assertNull(cookie.getDomain());
             Assert.assertEquals(cookie.getMaxAge(), (long) ApiV3TokenUtil.cookieMaxAgeSeconds(seconds));
         }
+        final var session = ApiV3RefreshCookies.createSession("opaque");
+        Assert.assertEquals(session.getMaxAge(), new org.b3log.latke.http.Cookie("baseline", "value").getMaxAge());
+        Assert.assertTrue(session.isHttpOnly());
+        Assert.assertTrue(session.isSecure());
+        Assert.assertEquals(session.getPath(), "/api/v3/auth");
+        Assert.assertEquals(session.getSameSite(), "Strict");
         System.out.println("PASS actual Latke refresh-cookie API, issue/clear flags, host-only domain and bounded max age");
     }
 }
