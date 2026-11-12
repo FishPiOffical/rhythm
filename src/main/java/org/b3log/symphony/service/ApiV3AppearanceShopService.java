@@ -170,7 +170,7 @@ public class ApiV3AppearanceShopService {
         return result;
     }
 
-    /** 一批进场账号只读一次权益，隐私及有效账号校验由进场服务继续负责。 */
+    /** 一批进场账号只读一次权益，有效账号校验由进场服务继续负责。 */
     public Map<String, ApiV3AppearanceCatalog.Product> mounts(Collection<String> actors, long time) throws RepositoryException {
         final Map<String, ApiV3AppearanceCatalog.Product> result = new HashMap<>();
         if (actors.isEmpty()) return result;

@@ -179,10 +179,14 @@ public class ApiV3RealtimeSessionsTest {
         final var user = new JSONObject().put("oId", "123").put("userName", "fish").put("userNickname", "小鱼")
                 .put("userStatus", UserExt.USER_STATUS_C_VALID).put("email", "private@example.test");
         user.put("data", "小鱼来了&&&小鱼先走");
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        Assert.assertEquals(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP").getString("text"), "小鱼来了");
         user.put("userOnlineStatus", 1);
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP"));
+        Assert.assertEquals(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP").getString("text"), "小鱼先走");
         user.put("userOnlineStatus", UserExt.USER_XXX_STATUS_C_ENABLED);
+        Assert.assertNotNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("userStatus", -1);
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("userStatus", UserExt.USER_STATUS_C_VALID);
         user.remove("data");
         Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
         user.put("data", "未分隔的旧数据");
@@ -214,7 +218,7 @@ public class ApiV3RealtimeSessionsTest {
         Assert.assertEquals(registry.pollChatPresence(), List.of(new ApiV3RealtimeSessions.ChatPresence("123", false)));
         Assert.assertTrue(registry.pollChatPresence().isEmpty());
         registry.closeAll();
-        System.out.println("PASS 红包及进出场公告仅发给已认证连接，在线隐私和多会话去重");
+        System.out.println("PASS 公告仅发给已认证连接，进出提示独立于在线隐私且多会话去重");
     }
 
     public static void main(String[] args) throws Exception {

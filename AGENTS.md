@@ -97,6 +97,7 @@
 - 鱼游投稿链路由 `FishGameProcessor` + `FishGameMgmtService` + `FishGameQueryService` 负责，数据表为 `fish_game`、`fish_game_vote`、`fish_game_comment`；投稿必须通过 OAuth 说明网址校验后进入待审，管理员导入旧清单按已审核处理并按目标网址去重。`/activities` 只展示已审核记录并按点赞数排序，PC/移动模板和资源需同步维护。
 
 - v3 聊天室在线名单由 `ApiV3ChatOnlineQueryService` 合并当前实例旧连接、已认证 chat 订阅和 `ChatOnlineSnapshot` 节点采样，按当前资料过滤在线隐私与有效状态后分页；人数只计可见用户。节点采样原子发布仅用户名，不返回节点凭据；其他实例的 v3 连接未共享，不能宣称全站实时人数。
+- 聊天室进出提示和座驾独立于 `userOnlineStatus` 在线隐私；仍校验账号有效性、文案配置与座驾权益，在线名单继续遵守隐私，不能把名单过滤复用于播报。
 
 - v3历史读取在`ApiV3RevisionQueryService`：本人或当前精确历史权限的合法读者，私密仍限双方；只投影清洗正文，不返编辑者ID，current仅已有历史且原文忽略空白不同，评论current.time=null。分组写入`ApiV3EmojiGroupService`仅本人type0，type1不可改删，删除保留全局图片/其他组/分享；旧写不共锁，不能宣称新旧全局唯一。
 

@@ -146,7 +146,12 @@ public class ApiV3AppearanceShopTest {
         final JSONObject user=new JSONObject().put("oId","1").put("userName","owner").put("userNickname","昵称").put("userStatus",0).put("userOnlineStatus",0);
         Assert.assertNotNull(ApiV3RealtimeService.chatMountNotice(user,ApiV3AppearanceCatalog.find(mount),NOW));
         user.put("userOnlineStatus",1);
+        Assert.assertNotNull(ApiV3RealtimeService.chatMountNotice(user,ApiV3AppearanceCatalog.find(mount),NOW));
+        user.remove("userOnlineStatus");
+        Assert.assertNotNull(ApiV3RealtimeService.chatMountNotice(user,ApiV3AppearanceCatalog.find(mount),NOW));
+        Assert.assertNull(ApiV3RealtimeService.chatMountNotice(user,null,NOW));
+        user.put("userStatus",-1);
         Assert.assertNull(ApiV3RealtimeService.chatMountNotice(user,ApiV3AppearanceCatalog.find(mount),NOW));
-        System.out.println("PASS 消息外观历史快照和到期回退、在线隐私");
+        System.out.println("PASS 消息外观历史快照和到期回退、座驾独立于在线隐私");
     }
 }
