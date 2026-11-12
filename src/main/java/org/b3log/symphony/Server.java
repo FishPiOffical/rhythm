@@ -66,6 +66,7 @@ import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
+import org.b3log.symphony.service.UserOnlineService;
 import org.b3log.symphony.service.CronMgmtService;
 import org.b3log.symphony.service.InitMgmtService;
 import org.b3log.symphony.util.*;
@@ -99,6 +100,18 @@ public final class Server extends BaseServer {
      * Startup time && static version
      */
     public static String STARTUP_STR = "";
+
+    @Override
+    public void start(final int listenPort) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(listenPort);
+    }
+
+    @Override
+    public void start(final String socketPath) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(socketPath);
+    }
 
     /**
      * Main.

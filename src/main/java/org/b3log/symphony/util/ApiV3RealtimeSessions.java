@@ -55,10 +55,11 @@ public final class ApiV3RealtimeSessions {
     }
 
     private static final int MAX_CONNECTIONS = 4000, MAX_PER_IP = 32, MAX_PER_USER = 8, MAX_MESSAGES = 60;
-    private static final long AUTH_TIMEOUT = 5000, RECHECK_INTERVAL = 15000;
+    private static final long AUTH_TIMEOUT = 5000, RECHECK_INTERVAL = 15000, HEARTBEAT_TIMEOUT = 60000;
     private final Authority authority;
     private final Guard guard;
     private final LongSupplier clock;
+    private final UserOnlineTracker online;
     private final Object admission = new Object();
     private final ConcurrentHashMap<Object, Connection> connections = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Set<Connection>> byUser = new ConcurrentHashMap<>();
@@ -81,7 +82,7 @@ public final class ApiV3RealtimeSessions {
         volatile boolean ready;
         // 旧客户端默认参与进出场；新版首页仅订阅消息，不冒充进入聊天室。
         volatile boolean presence = true;
-        long nextCheck, window;
+        long nextCheck, window, heartbeatDeadline;
         int messages;
         boolean closed;
 
@@ -95,9 +96,14 @@ public final class ApiV3RealtimeSessions {
     }
 
     public ApiV3RealtimeSessions(Authority authority, Guard guard, LongSupplier clock) {
+        this(authority, guard, clock, UserOnlineStatus.tracker());
+    }
+
+    public ApiV3RealtimeSessions(Authority authority, Guard guard, LongSupplier clock, UserOnlineTracker online) {
         this.authority = authority;
         this.guard = guard;
         this.clock = clock;
+        this.online = online;
     }
 
     public void open(Object key, Transport transport, String ip) {
@@ -178,7 +184,8 @@ public final class ApiV3RealtimeSessions {
                 c.transport.send(new JSONObject().put("type", "ready").put("data", ready).toString());
                 c.ready = true;
                 // 仅认证及 ready 发送成功后登记；使用连接对象隔离不同订阅和重连。
-                if (!c.closed) UserOnlineStatus.connected(c, grant.userId(), grant.expiresAt());
+                c.heartbeatDeadline = clock.getAsLong() + HEARTBEAT_TIMEOUT;
+                if (!c.closed) online.connected(c, grant.userId(), Math.min(grant.expiresAt(), c.heartbeatDeadline));
             } else {
                 if (ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()) && "chat.presence".equals(body.opt("type"))) {
                     if (!body.keySet().equals(Set.of("type", "active")) || !(body.opt("active") instanceof Boolean active) || !valid(c))
@@ -187,6 +194,9 @@ public final class ApiV3RealtimeSessions {
                     return;
                 }
                 if (!body.keySet().equals(Set.of("type")) || !"ping".equals(body.opt("type")) || !valid(c))
+                    throw new IllegalArgumentException();
+                c.heartbeatDeadline = clock.getAsLong() + HEARTBEAT_TIMEOUT;
+                if (!online.renew(c, Math.min(c.grant.expiresAt(), c.heartbeatDeadline)))
                     throw new IllegalArgumentException();
                 c.transport.send(new JSONObject().put("type", "pong").put("data", new JSONObject()).toString());
             }
@@ -444,7 +454,7 @@ public final class ApiV3RealtimeSessions {
                 if (c.closed)
                     continue;
                 if (!guard.allowed(c.ip, false) || (c.grant == null ? now >= c.deadline
-                        : c.grant.expiresAt() <= now || now >= c.nextCheck && !valid(c)))
+                        : c.grant.expiresAt() <= now || c.heartbeatDeadline <= now || now >= c.nextCheck && !valid(c)))
                     remove(c);
             } catch (Exception e) {
                 remove(c);
@@ -464,7 +474,7 @@ public final class ApiV3RealtimeSessions {
             try {
                 final long now = clock.getAsLong();
                 if (!c.closed && (!guard.allowed(c.ip, false)
-                        || (c.grant == null ? now >= c.deadline : c.grant.expiresAt() <= now)))
+                        || (c.grant == null ? now >= c.deadline : c.grant.expiresAt() <= now || c.heartbeatDeadline <= now)))
                     remove(c);
             } catch (RuntimeException e) {
                 remove(c);
@@ -476,6 +486,7 @@ public final class ApiV3RealtimeSessions {
 
     private boolean valid(Connection c) throws Exception {
         if (c.closed || c.grant == null || c.grant.expiresAt() <= clock.getAsLong()
+                || c.heartbeatDeadline <= clock.getAsLong()
                 || !guard.allowed(c.ip, false) || !authority.authorized(c.grant))
             return false;
         c.nextCheck = clock.getAsLong() + RECHECK_INTERVAL;
@@ -503,7 +514,7 @@ public final class ApiV3RealtimeSessions {
         if (c.closed)
             return;
         c.closed = true;
-        UserOnlineStatus.disconnected(c);
+        online.disconnected(c);
         // 在同一把登记锁内撤销连接、计数和订阅索引，再关闭底层传输。
         synchronized (admission) {
             connections.remove(c.key, c);

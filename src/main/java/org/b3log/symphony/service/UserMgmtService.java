@@ -51,6 +51,7 @@ import org.b3log.symphony.util.Geos;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.UserRegistrationDefaults;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
@@ -58,6 +59,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.function.IntUnaryOperator;
 
 /**
  * User management service.
@@ -228,26 +230,20 @@ public class UserMgmtService {
     }
 
     /**
-     * Updates a user's online status and saves the login time and IP.
+     * 保留旧连接触发的登录时间和 IP 更新，在线标志由统一服务同步。
      *
      * @param userId     the specified user id
      * @param ip         the specified IP, could be {@code null}
-     * @param onlineFlag the specified online flag
-     * @param force      the specified force flag to update
      */
     @Transactional
-    public void updateOnlineStatus(final String userId, final String ip, final boolean onlineFlag, final boolean force) {
+    public void updateOnlineDetails(final String userId, final String ip) {
         try {
             final JSONObject user = userRepository.get(userId);
             if (null == user) {
                 return;
             }
 
-            final long updatedAt = user.optLong(UserExt.USER_UPDATE_TIME);
             final long now = System.currentTimeMillis();
-            if (now - updatedAt < 1000 * 60 && !force) {
-                return;
-            }
 
             if (StringUtils.isNotBlank(ip)) {
                 final JSONObject address = Geos.getAddressByGeoIP(ip);
@@ -263,12 +259,12 @@ public class UserMgmtService {
                 user.put(UserExt.USER_LATEST_LOGIN_IP, ip);
             }
 
-            user.put(UserExt.USER_ONLINE_FLAG, onlineFlag);
+            // 保留旧连接的登录资料更新；在线标志统一由新旧连接并集决定。
             user.put(UserExt.USER_LATEST_LOGIN_TIME, now);
             user.put(UserExt.USER_UPDATE_TIME, now);
-            userRepository.update(userId, user, UserExt.USER_COUNTRY, UserExt.USER_PROVINCE, UserExt.USER_CITY, UserExt.USER_LATEST_LOGIN_IP, UserExt.USER_ONLINE_FLAG, UserExt.USER_LATEST_LOGIN_TIME, UserExt.USER_UPDATE_TIME);
+            userRepository.update(userId, user, UserExt.USER_COUNTRY, UserExt.USER_PROVINCE, UserExt.USER_CITY, UserExt.USER_LATEST_LOGIN_IP, UserExt.USER_LATEST_LOGIN_TIME, UserExt.USER_UPDATE_TIME);
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Updates user online status failed [id=" + userId + ", ip=" + ip + ", flag=" + onlineFlag + "]", e);
+            LOGGER.log(Level.ERROR, "Updates user online details failed [id=" + userId + ", ip=" + ip + "]", e);
         }
     }
 
@@ -602,35 +598,39 @@ public class UserMgmtService {
         }
     }
 
-    /**
-     * Set an online minute.
-     *
-     * @param userId user id.
-     * @param minute online minute.
-     * @throws ServiceException an normal exception.
-     */
-    public void settleOnlineMinute(final String userId, final int minute, final long occurredAt) {
-        final Transaction transaction = userRepository.beginTransaction();
-
+    /** 按当前锁定行同步在线标志和累计分钟，分钟与职业事件同事务提交。 */
+    public void persistOnlineState(final String userId, final boolean online, final IntUnaryOperator target,
+                                   final long occurredAt) throws RepositoryException {
+        final Transaction transaction = ApiV3Transactions.strict(userRepository.beginTransaction());
         try {
-            final JSONObject user = userRepository.get(userId);
+            final JSONObject user = userRepository.getForUpdate(userId);
             if (null == user) {
                 throw new IllegalArgumentException("用户不存在");
             }
             final int beforeMinute = user.optInt(UserExt.ONLINE_MINUTE);
-            final int afterMinute = Math.max(beforeMinute, minute);
-            user.put(UserExt.ONLINE_MINUTE, afterMinute);
-            userRepository.update(userId, user, UserExt.ONLINE_MINUTE);
+            final int afterMinute = target.applyAsInt(beforeMinute);
+            if (afterMinute < beforeMinute) {
+                throw new IllegalArgumentException("在线累计分钟不能减少");
+            }
+            final JSONObject changes = new JSONObject();
+            if (user.optBoolean(UserExt.USER_ONLINE_FLAG) != online) {
+                changes.put(UserExt.USER_ONLINE_FLAG, online);
+            }
+            if (afterMinute > beforeMinute) {
+                changes.put(UserExt.ONLINE_MINUTE, afterMinute);
+            }
+            if (!changes.isEmpty()) {
+                userRepository.updateColumnsInCurrentTransaction(userId, changes);
+            }
             professionSourceEventCaptureService.onlineMinutesSettled(userId, beforeMinute, afterMinute, occurredAt);
-
             transaction.commit();
-        } catch (final Exception e) {
+        } catch (final RepositoryException | RuntimeException e) {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
-            LOGGER.log(Level.ERROR, "Set online minute [id=" + userId + ", minute=" + minute + "] failed", e);
-            throw new IllegalStateException("结算在线时长失败", e);
+            throw e;
         }
+        userRepository.evictSettingsCaches(userId);
     }
 
     /**

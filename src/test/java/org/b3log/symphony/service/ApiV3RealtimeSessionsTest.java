@@ -63,7 +63,8 @@ public class ApiV3RealtimeSessionsTest {
                 public boolean authorized(ApiV3SocketTicketService.Grant grant) throws Exception {
                     return core.authorized(grant);
                 }
-            }, (ip, record) -> allowed, () -> clock);
+            }, (ip, record) -> allowed, () -> clock,
+                    new UserOnlineTracker(() -> clock, () -> java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(clock)));
         }
 
         Transport open(Object key, String ip) {
@@ -106,7 +107,7 @@ public class ApiV3RealtimeSessionsTest {
             public boolean authorized(ApiV3SocketTicketService.Grant grant) {
                 return true;
             }
-        }, (ip, record) -> true, () -> 0);
+        }, (ip, record) -> true, () -> 0, new UserOnlineTracker(() -> 0, () -> 0));
         final var own = new Transport();
         final var other = new Transport();
         registry.open("own", own, "192.0.2.1");
@@ -146,7 +147,7 @@ public class ApiV3RealtimeSessionsTest {
             public boolean authorized(ApiV3SocketTicketService.Grant grant) {
                 return true;
             }
-        }, (ip, record) -> true, () -> 0);
+        }, (ip, record) -> true, () -> 0, new UserOnlineTracker(() -> 0, () -> 0));
         final String auth = new JSONObject().put("type", "authenticate").put("ticket", "A".repeat(43)).toString();
         final var pending = new Transport();
         registry.open("pending", pending, "192.0.2.1");

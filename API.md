@@ -4363,10 +4363,16 @@ curl --request POST 'https://fishpi.cn/api/v3/realtime/tickets' \
 ```bash
 SOCKET_TICKET='OPAQUE_TICKET' node --input-type=module <<'JS'
 const socket = new WebSocket('wss://fishpi.cn/api/v3/realtime');
+let heartbeat;
+socket.addEventListener('close', () => clearInterval(heartbeat));
 socket.addEventListener('message', ({ data }) => {
   const message = JSON.parse(data);
   if (message.type === 'authentication.required') {
     socket.send(JSON.stringify({ type: 'authenticate', ticket: process.env.SOCKET_TICKET }));
+  } else if (message.type === 'ready') {
+    heartbeat = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, 25000);
   } else {
     console.log(message);
   }
@@ -4383,7 +4389,7 @@ JS
 | - channel | ready消息中的订阅类型 | notifications |
 | - expiresAt | ready消息中的连接授权到期时间，毫秒时间戳 | 1792304100000 |
 
-> 连接地址不带查询参数；认证只接受`{"type":"authenticate","ticket":"..."}`。不要在URL中放票据、accessToken或apiKey。认证成功后可发送`{"type":"ping"}`，服务端返回pong。重复认证、无效/过期/已使用票据、非法消息或失效的连接授权会关闭连接。
+> 连接地址不带查询参数；认证只接受`{"type":"authenticate","ticket":"..."}`。不要在URL中放票据、accessToken或apiKey。认证成功后需定期发送`{"type":"ping"}`，服务端返回pong；建议每25秒一次，连续60秒未发送会关闭连接。服务端推送不会代替客户端心跳，连接授权到期仍需重新取票连接。重复认证、无效/过期/已使用票据、非法消息或失效的连接授权会关闭连接。
 >
 > notifications.changed是本账号通知刷新的提示，data为空；收到后重新调用`GET /api/v3/me/notifications/unread-count`或通知列表。提示可能合并或重复，不提供持久化重放；建立、恢复连接时应主动读取HTTP状态。
 >
@@ -5011,10 +5017,16 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/realtime-ticket' \
 ```bash
 SOCKET_TICKET='OPAQUE_TICKET' node --input-type=module <<'JS'
 const socket = new WebSocket('wss://fishpi.cn/api/v3/realtime');
+let heartbeat;
+socket.addEventListener('close', () => clearInterval(heartbeat));
 socket.addEventListener('message', ({ data }) => {
   const message = JSON.parse(data);
   if (message.type === 'authentication.required') {
     socket.send(JSON.stringify({ type: 'authenticate', ticket: process.env.SOCKET_TICKET }));
+  } else if (message.type === 'ready') {
+    heartbeat = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, 25000);
   } else if (message.type === 'chat.sync_required') {
     console.log('丢弃旧缓存并重新读取当前消息窗口');
   } else if (message.type.startsWith('chat.message.')) {
@@ -5045,7 +5057,7 @@ JS
 >
 > 首次连接、重连后应主动读取 HTTP 状态。收到 chat.sync_required 时，清除旧消息缓存及版本去重状态，重新同步当前窗口。提示可能重复，不提供按版本断点续传；不能只依赖提示恢复历史状态。
 >
-> 地址不带查询参数，认证仅提交 type 和 ticket；成功后可发送 {"type":"ping"}，收到 pong。票据重放/过期、非法消息、令牌或账号失效时连接关闭；刷新访问令牌不会延长已有连接，需重新取票连接。
+> 地址不带查询参数，认证仅提交 type 和 ticket；成功后需定期发送 {"type":"ping"}，收到 pong；建议每25秒一次，连续60秒未发送会关闭连接。服务端推送不会代替客户端心跳，连接授权到期仍需重新取票连接。票据重放/过期、非法消息、令牌或账号失效时连接关闭；刷新访问令牌不会延长已有连接，需重新取票连接。
 >
 > 本订阅支持已保存消息、emoji reaction、话题变更提示、即时弹幕及下列聊天室公告。发送仍使用 HTTP 接口；不提供在线人数事件。
 
@@ -5160,10 +5172,16 @@ curl --request POST 'https://fishpi.cn/api/v3/articles/1636516552191/realtime-ti
 ```bash
 SOCKET_TICKET='OPAQUE_TICKET' node --input-type=module <<'JS'
 const socket = new WebSocket('wss://fishpi.cn/api/v3/realtime');
+let heartbeat;
+socket.addEventListener('close', () => clearInterval(heartbeat));
 socket.addEventListener('message', ({ data }) => {
   const message = JSON.parse(data);
   if (message.type === 'authentication.required') {
     socket.send(JSON.stringify({ type: 'authenticate', ticket: process.env.SOCKET_TICKET }));
+  } else if (message.type === 'ready') {
+    heartbeat = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, 25000);
   } else if (message.type === 'article.changed') {
     console.log('请重新读取文章及评论', message.data.articleId);
   } else {
@@ -5183,7 +5201,7 @@ JS
 | - articleId | ready 与 article.changed 中的目标文章 ID | 1636516552191 |
 | - expiresAt | ready 中的连接授权到期时间，毫秒时间戳 | 1792304100000 |
 
-> 连接地址不带查询参数。认证成功后可发送 `{"type":"ping"}`，收到 pong。票据重放、过期、非法消息、访问令牌失效或失去文章阅读权限时连接关闭；文章删除后应重新请求 HTTP 接口确认状态。
+> 连接地址不带查询参数。认证成功后需定期发送 `{"type":"ping"}`，收到 pong；建议每25秒一次，连续60秒未发送会关闭连接。服务端推送不会代替客户端心跳，连接授权到期仍需重新取票连接。票据重放、过期、非法消息、访问令牌失效或失去文章阅读权限时连接关闭；文章删除后应重新请求 HTTP 接口确认状态。
 >
 > article.changed 提示文章、评论或 emoji reaction 已变化，不携带正文、评论作者或互动明细。请用同一访问身份重新读取相应 HTTP 接口。提示可能合并或重复，不提供持久化重放；首次连接及重连后应主动读取 HTTP 状态。
 >
@@ -7743,11 +7761,18 @@ curl --request POST 'https://fishpi.cn/api/v3/me/messages/realtime-ticket' \
 ```bash
 SOCKET_TICKET='OPAQUE_TICKET' node --input-type=module <<'JS'
 const socket = new WebSocket('wss://fishpi.cn/api/v3/realtime');
+let heartbeat;
+socket.addEventListener('close', () => clearInterval(heartbeat));
 socket.addEventListener('message', ({ data }) => {
   const message = JSON.parse(data);
   if (message.type === 'authentication.required') {
     socket.send(JSON.stringify({ type: 'authenticate', ticket: process.env.SOCKET_TICKET }));
-  } else if (message.type === 'ready' || message.type === 'messages.changed') {
+  } else if (message.type === 'ready') {
+    heartbeat = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ping' }));
+    }, 25000);
+    console.log('重新读取本人会话、历史及未读数');
+  } else if (message.type === 'messages.changed') {
     console.log('重新读取本人会话、历史及未读数');
   }
 });
@@ -7767,7 +7792,7 @@ JS
 >
 > 首次 ready 和重连 ready 后必须主动查询当前状态。提示可能合并、重复或在断开时丢失，不提供逐条消息事件、可靠送达或断点续传；不要将提示数量当作消息数，也不要只依赖提示恢复历史。
 >
-> 地址不带查询参数，认证仅提交 type 和 ticket；成功后可发送 {"type":"ping"}，收到 pong。票据重放/过期、非法消息、令牌或账号失效时连接关闭；刷新访问令牌不会延长已有连接，需重新取票连接。发送、已读和撤回继续使用对应 HTTP 接口。
+> 地址不带查询参数，认证仅提交 type 和 ticket；成功后需定期发送 {"type":"ping"}，收到 pong；建议每25秒一次，连续60秒未发送会关闭连接。服务端推送不会代替客户端心跳，连接授权到期仍需重新取票连接。票据重放/过期、非法消息、令牌或账号失效时连接关闭；刷新访问令牌不会延长已有连接，需重新取票连接。发送、已读和撤回继续使用对应 HTTP 接口。
 
 ## 私信（兼容接口）
 

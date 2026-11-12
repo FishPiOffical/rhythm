@@ -79,7 +79,7 @@
 - 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
 - 内容删除统一经`ReactionRepository#removeTargetInCurrentTransaction`按类型+ID清理reaction，调用方须先锁目标并在同事务提交；文章、管理员评论级联及本人评论删除均已接入，禁止只按ID清理。
 - 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
-- 用户在线时间结算链路在 `processor/channel/UserChannel`；`onlineMinute` 是分钟数整型字段，结算毫秒差必须先用 long/TimeUnit 转分钟，不能先强转 `int`，否则单次连接超过约 24.85 天会溢出为负数。
+- 单实例在线状态/时长由 `UserOnlineTracker` + `UserOnlineService` 统一：旧 `/user-channel` 不加心跳，V3 JSON ping 60秒租约且授权到期优先；按用户连接并集计时，最终离线/停机结算，余数仅存内存。`userOnlineStatus` 仍是隐私，`userOnlineFlag` 异步兼容写库；累计分钟与职业事件在锁定用户行的同一事务提交，失败固定目标重试，不能用会话分钟替代连续累计 before/after。耗时采用单调 long，禁止强转 int 毫秒差。
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`；Evolve CDN 依赖是长缓存，主脚本和与主脚本版本强绑定的库（如 Popper）都需要带 `${staticResourceVersion}`。
 - 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
 - CSRF 安全判断必须先确认接口是否同时支持页面 Cookie 与 `apiKey` 客户端调用；已兼容 `apiKey` 的写接口不能直接补 `csrfMidware::check`，否则会破坏 RESTful/API 客户端。加固这类接口需先拆分页面入口与 API 入口，或设计明确兼容 `apiKey` 的 CSRF 例外。

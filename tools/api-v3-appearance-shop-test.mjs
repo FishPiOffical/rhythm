@@ -9,13 +9,13 @@ if (!dependencies) throw Error('请通过 API_V3_TEST_CLASSPATH 提供 IDEA 编�
 const home = process.env.JAVA_HOME || '/Applications/Android Studio.app/Contents/jbr/Contents/Home'
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-appearance-shop-'))
 function run(name, args) {
-  const result = spawnSync(path.join(home, 'bin', name), args, { stdio: 'inherit' })
+  const result = spawnSync(path.join(home, 'bin', name), args, { stdio: 'inherit', timeout: 60000 })
   if (result.error) throw result.error
   if (result.status !== 0) throw Error(`${name} 校验失败`)
 }
 try {
   const files = [
-    'model/Pointtransfer', 'util/ApiV3AppearanceCatalog', 'util/ApiV3ChatAppearance', 'util/ApiV3RealtimeSessions', 'util/UserOnlineStatus',
+    'model/Pointtransfer', 'util/ApiV3AppearanceCatalog', 'util/ApiV3ChatAppearance', 'util/ApiV3RealtimeSessions', 'util/UserOnlineStatus', 'util/UserOnlineTracker',
     'repository/AppearanceProductRepository', 'repository/AppearanceEntitlementRepository', 'repository/AppearancePurchaseRepository',
     'service/ApiV3AppearanceShopService', 'service/ApiV3ChatAppearanceService', 'service/ApiV3RealtimeService',
     'service/PointtransferMgmtService', 'service/PointtransferQueryService', 'processor/ApiV3ChatAppearanceProcessor',

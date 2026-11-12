@@ -27,10 +27,15 @@ import org.b3log.symphony.service.ApiV3RealtimeService;
 import org.b3log.symphony.util.ApiV3SocketHandshake;
 import org.b3log.symphony.util.ApiV3Transactions;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
+
 @Singleton
 public class ApiV3RealtimeChannel implements WebSocketChannel {
     @Inject
     private ApiV3RealtimeService realtime;
+    private final Set<WebSocketSession> closed = Collections.newSetFromMap(new WeakHashMap<>());
 
     public static String path() {
         return Latkes.getContextPath() + "/api/v3/realtime";
@@ -43,7 +48,12 @@ public class ApiV3RealtimeChannel implements WebSocketChannel {
             session.close();
             return;
         }
-        realtime.open(session, peer.ip());
+        synchronized (closed) {
+            // 关闭回调可能先于异步连接回调到达，不能重新接纳已关闭的会话。
+            if (!closed.contains(session)) {
+                realtime.open(session, peer.ip());
+            }
+        }
     }
 
     @Override
@@ -62,11 +72,14 @@ public class ApiV3RealtimeChannel implements WebSocketChannel {
 
     @Override
     public void onClose(WebSocketSession session) {
+        synchronized (closed) {
+            closed.add(session);
+        }
         realtime.close(session);
     }
 
     @Override
     public void onError(Error error) {
-        realtime.close(error.session);
+        onClose(error.session);
     }
 }

@@ -388,7 +388,6 @@ public final class Sessions {
 
         //final BeanManager beanManager = BeanManager.getInstance();
         //final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-        //userMgmtService.updateOnlineStatus(userId, "", false, true);
     }
 
     /**
@@ -561,7 +560,6 @@ public final class Sessions {
             final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
             if (AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
                 ret.put(User.USER_PASSWORD, password);
-                //userMgmtService.updateOnlineStatus(userId, ip, true, true);
 
                 SESSION_CACHE.put(userId, ret);
 
