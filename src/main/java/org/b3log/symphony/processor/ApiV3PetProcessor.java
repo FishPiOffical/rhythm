@@ -52,6 +52,8 @@ public class ApiV3PetProcessor {
         Dispatcher.post("/api/v3/me/pet/actions", processor::action, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/supplies", processor::supplies, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/purchases", processor::purchase, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/pet/crafts", processor::craft, auth::settingsWrite, writes::handle);
+        Dispatcher.get("/api/v3/me/pet/journal", processor::journal, auth::profileRead);
         Dispatcher.get("/api/v3/me/pet/activities", processor::history, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/activities", processor::startActivity, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/activities/claim", processor::claimActivity, auth::settingsWrite, writes::handle);
@@ -88,6 +90,17 @@ public class ApiV3PetProcessor {
     public void purchase(final RequestContext context) {
         ApiV3Requests.respond(context, () -> pets.purchase(identity(context),
                 body(context, Set.of("petId", "itemId", "quantity", "catalogVersion")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void craft(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> pets.craft(identity(context),
+                body(context, Set.of("petId", "recipeId", "catalogVersion")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void journal(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.journal(identity(context),
+                ApiV3Requests.choice(context, "kind", "all", Set.of("all", "outing", "course", "work", "care", "craft", "purchase")),
+                ApiV3Requests.number(context, "p", 1, 10_000), ApiV3Requests.number(context, "size", 10, 50)));
     }
 
     public void history(final RequestContext context) {

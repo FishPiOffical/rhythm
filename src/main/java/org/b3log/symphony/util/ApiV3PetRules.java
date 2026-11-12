@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 
 /** 第一批试运行数值及目录集中维护，后续课程、地点和工作不伪造可用入口。 */
 public final class ApiV3PetRules {
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     public static final int NAME_LENGTH = 12;
     public static final int INITIAL_COINS = 100;
     public static final int INITIAL_FOOD = 6;

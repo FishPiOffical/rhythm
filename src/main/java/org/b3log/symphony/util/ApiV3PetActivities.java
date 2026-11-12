@@ -28,7 +28,7 @@ import java.util.Set;
 
 /** 外出与入门课程的试运行目录；费用和成果均在出发时冻结，领取不重新计算目录。 */
 public final class ApiV3PetActivities {
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
     public static final List<Skill> SKILLS = List.of(
             new Skill("vitality", "体能", "散步、运动和远足积累的好体力"),
             new Skill("exploration", "探索", "观察身边的变化，发现新事物"),
@@ -59,9 +59,10 @@ public final class ApiV3PetActivities {
                         int hunger, int water, int experience, int food, int mood, String skillId, int skillExperience) {
         public JSONObject json() {
             return new JSONObject().put("id", id).put("name", name).put("description", description).put("durationMs", minutes * 60_000L)
+                    .put("requirements", new JSONArray())
                     .put("cost", new JSONObject().put("coins", coins).put("energy", energy).put("hunger", hunger).put("water", water))
                     .put("rewards", new JSONObject().put("experience", experience).put("food", food).put("mood", mood).put("coins", 0).put("proficiency", 0)
-                            .put("skills", new JSONArray().put(new JSONObject().put("id", skillId).put("experience", skillExperience))));
+                            .put("skills", new JSONArray().put(new JSONObject().put("id", skillId).put("experience", skillExperience))).put("items", new JSONArray()));
         }
     }
 
@@ -73,14 +74,26 @@ public final class ApiV3PetActivities {
         final JSONArray places = new JSONArray(), courses = new JSONArray(), skills = new JSONArray();
         for (Skill skill : SKILLS) skills.put(skill.json());
         for (Entry entry : ENTRIES) (entry.kind().equals("outing") ? places : courses).put(entry.json());
-        return catalog.put("activityVersion", VERSION).put("skills", skills).put("places", places).put("courses", courses)
-                .put("jobs", ApiV3PetWork.catalog()).put("incomeRules", new JSONObject().put("dailyLimit", ApiV3PetWork.DAILY_LIMIT));
+        for (var place : ApiV3PetExploration.PLACES) places.put(place.json());
+        final JSONArray jobs = ApiV3PetWork.catalog();
+        for (int index = 0; index < jobs.length(); index++) extendWork(jobs.getJSONObject(index));
+        return ApiV3PetExploration.extendCatalog(catalog.put("activityVersion", VERSION).put("skills", skills).put("places", places).put("courses", courses)
+                .put("jobs", jobs).put("incomeRules", new JSONObject().put("dailyLimit", ApiV3PetWork.DAILY_LIMIT)));
     }
 
     public static JSONObject find(final String kind, final String id) {
-        if ("work".equals(kind)) return ApiV3PetWork.find(id);
+        if ("work".equals(kind)) return extendWork(ApiV3PetWork.find(id));
+        if ("outing".equals(kind)) {
+            final var advanced = ApiV3PetExploration.PLACES.stream().filter(place -> place.id().equals(id)).findFirst();
+            if (advanced.isPresent()) return advanced.get().json();
+        }
         return ENTRIES.stream().filter(entry -> entry.kind().equals(kind) && entry.id().equals(id)).findFirst()
                 .orElseThrow(() -> ApiV3PetRules.invalid("这个活动暂未开放")).json();
+    }
+
+    private static JSONObject extendWork(final JSONObject entry) {
+        entry.getJSONObject("rewards").put("items", new JSONArray());
+        return entry.put("requirements", new JSONArray().put(new JSONObject(entry.getJSONObject("requirement").toString())));
     }
 
     public static boolean skill(final String id) {
@@ -100,8 +113,12 @@ public final class ApiV3PetActivities {
             final boolean work = "work".equals(row.optString("kind"));
             if (work && version < 2) throw unavailable();
             final JSONObject entry = snapshot.getJSONObject("entry");
-            keys(entry, work ? Set.of("id", "name", "description", "durationMs", "cost", "rewards", "requirement")
-                    : Set.of("id", "name", "description", "durationMs", "cost", "rewards"));
+            final Set<String> entryKeys = new HashSet<>(Set.of("id", "name", "description", "durationMs", "cost", "rewards"));
+            if (work) entryKeys.add("requirement");
+            if (version >= 3) entryKeys.add("requirements");
+            keys(entry, entryKeys);
+            if (version < 3) entry.put("requirements", new JSONArray());
+            validateRequirements(entry.getJSONArray("requirements"));
             if (work) {
                 if (!ApiV3PetWork.known(entry.getString("id"))) throw unavailable();
                 final JSONObject requirement = entry.getJSONObject("requirement");
@@ -118,10 +135,16 @@ public final class ApiV3PetActivities {
             keys(cost, Set.of("coins", "energy", "hunger", "water"));
             integer(cost, "coins", 0, 1_000_000);
             for (String field : Set.of("energy", "hunger", "water")) integer(cost, field, 0, 100);
-            keys(rewards, version == 1 ? Set.of("experience", "food", "mood", "skills")
-                    : Set.of("experience", "food", "mood", "skills", "coins", "proficiency"));
+            final Set<String> rewardKeys = new HashSet<>(Set.of("experience", "food", "mood", "skills"));
+            if (version >= 2) rewardKeys.addAll(Set.of("coins", "proficiency"));
+            if (version >= 3) rewardKeys.add("items");
+            keys(rewards, rewardKeys);
             // 第一版没有产币或工作熟练度，此处仅投影确定为零的旧字段，不修改原始历史快照。
             if (version == 1) rewards.put("coins", 0).put("proficiency", 0);
+            // 旧活动没有材料奖励，投影时补确定为空的数组，不改数据库旧快照。
+            if (version < 3) rewards.put("items", new JSONArray());
+            validateItems(rewards.getJSONArray("items"));
+            if (!"outing".equals(row.optString("kind")) && !rewards.getJSONArray("items").isEmpty()) throw unavailable();
             integer(rewards, "coins", 0, work ? 1_000_000 : 0);
             integer(rewards, "proficiency", work ? 1 : 0, work ? 10_000 : 0);
             integer(rewards, "experience", 0, 10_000);
@@ -155,6 +178,30 @@ public final class ApiV3PetActivities {
                 .put("startedAt", row.getLong("startedAt")).put("endsAt", row.getLong("endsAt"))
                 .put("status", current >= row.getLong("endsAt") ? "claimable" : "running")
                 .put("cost", entry.getJSONObject("cost")).put("rewards", entry.getJSONObject("rewards"));
+    }
+
+    public static void validateRequirements(final JSONArray requirements) {
+        if (requirements.length() > SKILLS.size()) throw unavailable();
+        final Set<String> seen = new HashSet<>();
+        for (int index = 0; index < requirements.length(); index++) {
+            final JSONObject requirement = requirements.getJSONObject(index);
+            keys(requirement, Set.of("skillId", "experience"));
+            final String id = requirement.getString("skillId");
+            if (!skill(id) || !seen.add(id)) throw unavailable();
+            integer(requirement, "experience", 1, 1_000_000);
+        }
+    }
+
+    public static void validateItems(final JSONArray items) {
+        if (items.length() > ApiV3PetExploration.ITEMS.size()) throw unavailable();
+        final Set<String> seen = new HashSet<>();
+        for (int index = 0; index < items.length(); index++) {
+            final JSONObject item = items.getJSONObject(index);
+            keys(item, Set.of("itemId", "quantity"));
+            final String id = item.getString("itemId");
+            if (!ApiV3PetExploration.knownItem(id) || !seen.add(id)) throw unavailable();
+            integer(item, "quantity", 1, 100);
+        }
     }
 
     private static void keys(final JSONObject object, final Set<String> fields) {

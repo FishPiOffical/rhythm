@@ -10,6 +10,71 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_collection",
+      "description": "账号永久纪念收藏，不随宠物替换清除",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "collectionId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "unlockedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_journal",
+      "description": "照顾、制作和购买的事务事件快照，计时活动日志单独联查",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "action",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "occurredAt",
+          "type": "long"
+        },
+        {
+          "name": "eventJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
       "name": "pet_job_progress",
       "keys": [
         {

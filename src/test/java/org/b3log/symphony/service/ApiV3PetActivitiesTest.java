@@ -37,7 +37,7 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 /** 第二批隔离持久化测试：读取无奖励、服务端计时、活动槽互斥、快照结算与故障恢复。 */
 public class ApiV3PetActivitiesTest {
     static JSONObject start(final String petId, final String kind, final String entry) {
-        return new JSONObject().put("petId", petId).put("kind", kind).put("entryId", entry).put("activityVersion", 2);
+        return new JSONObject().put("petId", petId).put("kind", kind).put("entryId", entry).put("activityVersion", 3);
     }
     static JSONObject claim(final String petId, final String activityId) {
         return new JSONObject().put("petId", petId).put("activityId", activityId);
@@ -57,10 +57,10 @@ public class ApiV3PetActivitiesTest {
     static void catalogAndEntries() throws Exception {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 1);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 2);
+            Assert.assertEquals(catalog.getInt("version"), 2);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 3);
             Assert.assertEquals(catalog.getJSONArray("skills").length(), 6);
-            Assert.assertEquals(catalog.getJSONArray("places").length(), 3);
+            Assert.assertEquals(catalog.getJSONArray("places").length(), 6);
             Assert.assertEquals(catalog.getJSONArray("courses").length(), 6);
             f.adopt();
             Assert.assertEquals(pet(f).getJSONArray("skills").length(), 6);
@@ -167,7 +167,7 @@ public class ApiV3PetActivitiesTest {
             final String id = f.adopt();
             for (Object invalid : List.of("1", 1.5, 0, -1, true))
                 error(422, () -> f.pets.startActivity(identity(), start(id, "outing", "plaza").put("activityVersion", invalid), "invalid-version"));
-            error(409, () -> f.pets.startActivity(identity(), start(id, "outing", "plaza").put("activityVersion", 3), "old-version"));
+            error(409, () -> f.pets.startActivity(identity(), start(id, "outing", "plaza").put("activityVersion", 2), "old-version"));
             error(422, () -> f.pets.startActivity(identity(), start(id, "journey", "plaza"), "unknown-kind"));
             error(422, () -> f.pets.startActivity(identity(), start(id, "course", "plaza"), "unknown-course"));
             error(422, () -> f.pets.startActivity(identity(), start(id, "outing", "plaza").put("rewards", new JSONObject()), "forged"));

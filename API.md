@@ -16712,3 +16712,19 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - `GET /api/v3/me/pet/activities`：第一方本人 `profile.read`。`kind=all|outing|course|work`，`p=1..10000`，`size=1..50`（缺省10），按开始时间/ID倒序，返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。日志分别提供冻结 `rewards` 与 `actualRewards`，旧记录实际成果未知为 null。
 
 原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算，每日补给独立。迁移、完整字段与兼容见 [第三批协议](docs/api-v3-pets-phase-three.md)。
+
+
+### 宠物进阶探索、配方与统一日志（第四批）
+
+仍仅本人第一方 Bearer；读取 `profile.read`，写入 `settings.write` 与 `Idempotency-Key`。目录 `version=2`、`activityVersion=3`，旧开始活动的快照不重新核价或改奖。
+
+- `GET /api/v3/pets/catalog`：新增三个进阶地点、`recipes`、永久 `collections` 与扩展 `items`。活动目录统一 `requirements:[{skillId,experience}]`；工作仍保留原 `requirement`。所有 `rewards` 新增 `items:[{itemId,quantity}]`。
+- `GET /api/v3/me/pet`：库存投影全部已知物品，未持有为 0；新增账号永久收藏 `collections:[{id,unlockedAt}]`。
+- `POST /api/v3/me/pet/actions`：`feed` 可传食品 `itemId`；`water` 不传 `itemId` 仍免费饮水，传 `spring-water` 消费饮料。材料不能当食品或饮料使用。六种日常照顾均与状态同事务记入日志。
+- `POST /api/v3/me/pet/purchases`：仍为 `{petId,itemId,quantity,catalogVersion}`，数量 1～20；只有目录 `price` 非 null 的物品可购买，服务端核价及扣宠物币。
+- `POST /api/v3/me/pet/crafts`：`{petId,recipeId,catalogVersion}`。空闲且技能达标后，原子扣材料与宠物币、解锁永久收藏；同收藏每账号仅一次。写回执继续为 `{operation:"craft",petId,committedAt}`，客户端确认后读取聚合状态。
+- `GET /api/v3/me/pet/journal?kind=all&p=1&size=10`：统一本人计时活动和照顾/制作/购买事件。`kind=all|outing|course|work|care|craft|purchase`，`p=1..10000`、`size=1..50`；返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。按事件时间/ID 倒序进行数据库真实分页，旧 `/activities` 仍保留计时活动列表。
+
+日志条目是联合类型：`recordType:"activity"` 保留原活动历史字段；`recordType:"event"` 包含 `{id,petId,kind,action,name,occurredAt,itemChanges:[{itemId,quantity}],coinsDelta,effects:{hunger,water,mood,energy,experience,friendship},collectionId}`。`quantity` 与 `coinsDelta` 为有符号实际变化；前四个效果允许小数且在 -100～100，经验与亲密度为非负整数。效果在离线结算之后计算，只记录本次操作净变化；非制作事件 `collectionId=null`。不回填此前未记录的照顾行为。
+
+新增冲突包括 `409 skill_required`、`collection_owned`、`not_enough_items`；沿用 `catalog_changed`、`pet_resting`、`pet_busy`、`not_enough_coins` 等原语义。未知物品/配方或错误使用类别为 422，坏存储快照为 503，均不自动二次消费。完整目录、迁移和验收见 [第四批协议](docs/api-v3-pets-phase-four.md)。

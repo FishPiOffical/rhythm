@@ -32,6 +32,8 @@ import org.b3log.symphony.repository.PetJobProgressRepository;
 import org.b3log.symphony.repository.PetIncomeAccountRepository;
 import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
+import org.b3log.symphony.repository.PetCollectionRepository;
+import org.b3log.symphony.repository.PetJournalRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.util.ApiV3Exception;
@@ -39,6 +41,8 @@ import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3PetRules;
 import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3PetWork;
+import org.b3log.symphony.util.ApiV3PetExploration;
+import org.b3log.symphony.util.ApiV3PetJournal;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3WriteInputs;
@@ -54,6 +58,8 @@ public class ApiV3PetService {
     @Inject private PetAccountRepository accounts;
     @Inject private UserPetRepository pets;
     @Inject private PetInventoryRepository inventory;
+    @Inject private PetCollectionRepository collections;
+    @Inject private PetJournalRepository journal;
     @Inject private PetLedgerRepository ledger;
     @Inject private PetActivityRepository activities;
     @Inject private PetSkillRepository skills;
@@ -89,6 +95,7 @@ public class ApiV3PetService {
             if ((account == null) != (pet == null)) throw unavailable();
             final JSONObject result = new JSONObject().put("serverNow", current).put("today", today)
                     .put("catalogVersion", ApiV3PetRules.VERSION)
+                    .put("collections", collectionState(actor(identity)))
                     .put("income", incomeState(incomeRow(actor(identity)), today))
                     .put("wallet", new JSONObject().put("coins", account == null ? 0 : account.getInt("coins")))
                     .put("dailySupply", new JSONObject().put("claimed", account != null && today.compareTo(account.getString("supplyDate")) <= 0)
@@ -103,7 +110,7 @@ public class ApiV3PetService {
                 projected.put("activity", ApiV3PetActivities.publicActivity(active, current));
             }
             return result.put("pet", projected)
-                    .put("inventory", new JSONArray().put(new JSONObject().put("itemId", "food").put("quantity", food(actor(identity)).getInt("quantity"))));
+                    .put("inventory", inventoryState(actor(identity)));
         });
     }
 
@@ -152,11 +159,15 @@ public class ApiV3PetService {
         if (body == null || !Set.of("petId", "action", "itemId").containsAll(body.keySet())) throw ApiV3WriteInputs.invalid();
         final String id = petId(body), action = string(body, "action");
         if (!ApiV3PetRules.ACTIONS.contains(action)) throw ApiV3WriteInputs.invalid();
+        final String itemId = body.has("itemId") ? string(body, "itemId") : null;
+        final ApiV3PetExploration.Item item = itemId == null ? null : ApiV3PetExploration.item(itemId);
         if ("feed".equals(action)) {
-            if (!"food".equals(string(body, "itemId"))) throw ApiV3WriteInputs.invalid();
-        } else if (body.has("itemId")) throw ApiV3WriteInputs.invalid();
+            if (item == null || !"food".equals(item.category())) throw ApiV3WriteInputs.invalid();
+        } else if ("water".equals(action)) {
+            if (item != null && !"drink".equals(item.category())) throw ApiV3WriteInputs.invalid();
+        } else if (item != null) throw ApiV3WriteInputs.invalid();
         final JSONObject input = new JSONObject().put("petId", id).put("action", action);
-        if ("feed".equals(action)) input.put("itemId", "food");
+        if (itemId != null) input.put("itemId", itemId);
         return mutate(identity, "action", key, input, () -> {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
@@ -165,18 +176,26 @@ public class ApiV3PetService {
             requireActivityFree(actor, id);
             if ("rest".equals(pet.getString("activityKind")) && !"wake".equals(action))
                 throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再照顾它吧");
+            final JSONObject before = new JSONObject(pet.toString());
+            final JSONArray itemChanges = new JSONArray();
             switch (action) {
                 case "feed" -> {
-                    if (pet.getDouble("hunger") > 99 + 1e-9) throw ApiV3PetRules.conflict("already_full", "宠物现在还不饿");
-                    final JSONObject food = food(actor);
-                    if (food.getInt("quantity") < 1) throw ApiV3PetRules.conflict("not_enough_food", "口粮不足，先去商店补充吧");
-                    changeFood(food, -1, current);
-                    pet.put("hunger", Math.min(100, pet.getDouble("hunger") + ApiV3PetRules.FOOD_HUNGER));
-                    record(actor, id, "feed", 0, -1, current);
+                    if ("food".equals(itemId) ? pet.getDouble("hunger") > 99 + 1e-9 : !itemHasEffect(item, pet))
+                        throw ApiV3PetRules.conflict("already_full", "宠物现在不需要这份食物");
+                    consumeItem(actor, item, pet, current);
+                    itemChanges.put(itemChange(itemId, -1));
+                    record(actor, id, "feed", 0, "food".equals(itemId) ? -1 : 0, current);
                 }
                 case "water" -> {
-                    if (pet.getDouble("water") > 99 + 1e-9) throw ApiV3PetRules.conflict("already_full", "宠物现在还不渴");
-                    pet.put("water", Math.min(100, pet.getDouble("water") + ApiV3PetRules.WATER_GAIN));
+                    if (item == null ? pet.getDouble("water") > 99 + 1e-9 : !itemHasEffect(item, pet))
+                        throw ApiV3PetRules.conflict("already_full", "宠物现在不需要饮水");
+                    if (item == null) {
+                        // 免费饮水继续沿用原来的增量；指定饮料才消费背包。
+                        pet.put("water", Math.min(100, pet.getDouble("water") + ApiV3PetRules.WATER_GAIN));
+                    } else {
+                        consumeItem(actor, item, pet, current);
+                        itemChanges.put(itemChange(itemId, -1));
+                    }
                 }
                 case "pet" -> {
                     cooldown(pet, "petAvailableAt", current);
@@ -204,6 +223,10 @@ public class ApiV3PetService {
             account.put("updatedAt", current);
             pets.update(id, pet, PET_FIELDS);
             accounts.update(actor, account, ACCOUNT_FIELDS);
+            // 与状态/消耗同一事务写日志；净变化从离线结算之后算起，不把离线衰减算成此次操作效果。
+            appendJournal(actor, id, "care", action, ApiV3PetJournal.actionName(action)
+                    + (item == null ? "" : " · " + item.name()), itemChanges, 0,
+                    ApiV3PetJournal.effects(before, pet), null, current);
             return receipt(action, id, current);
         });
     }
@@ -236,24 +259,73 @@ public class ApiV3PetService {
     public JSONObject purchase(final JSONObject identity, final JSONObject body, final String key) {
         exact(body, Set.of("petId", "itemId", "quantity", "catalogVersion"));
         final String id = petId(body);
-        if (!"food".equals(string(body, "itemId"))) throw ApiV3WriteInputs.invalid();
+        final String itemId = string(body, "itemId");
+        final ApiV3PetExploration.Item item = ApiV3PetExploration.item(itemId);
+        if (item.price() == null) throw ApiV3PetRules.invalid("这个材料只能通过探索获得");
         final int quantity = ApiV3WriteInputs.integer(body, "quantity", -1, 1, 20);
         final int version = ApiV3WriteInputs.integer(body, "catalogVersion", -1, 1, Integer.MAX_VALUE);
-        final JSONObject input = new JSONObject().put("petId", id).put("itemId", "food")
+        final JSONObject input = new JSONObject().put("petId", id).put("itemId", itemId)
                 .put("quantity", quantity).put("catalogVersion", version);
         return mutate(identity, "purchase", key, input, () -> {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             owned(actor, id);
             if (version != ApiV3PetRules.VERSION) throw ApiV3PetRules.conflict("catalog_changed", "商品价格已更新，请重新查看");
-            final int price = Math.multiplyExact(quantity, ApiV3PetRules.FOOD_PRICE);
+            final int price = Math.multiplyExact(quantity, item.price());
             if (account.getInt("coins") < price) throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             final long current = now();
             account.put("coins", account.getInt("coins") - price).put("updatedAt", current);
-            changeFood(food(actor), quantity, current);
+            changeItem(actor, itemId, quantity, current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
-            record(actor, id, "purchase", -price, quantity, current);
+            record(actor, id, "purchase", -price, "food".equals(itemId) ? quantity : 0, current);
+            appendJournal(actor, id, "purchase", "purchase", "购买 · " + item.name(),
+                    new JSONArray().put(itemChange(itemId, quantity)), -price, ApiV3PetJournal.zeroEffects(), null, current);
             return receipt("purchase", id, current);
+        });
+    }
+
+    public JSONObject craft(final JSONObject identity, final JSONObject body, final String key) {
+        exact(body, Set.of("petId", "recipeId", "catalogVersion"));
+        final String id = petId(body), recipeId = string(body, "recipeId");
+        final int version = ApiV3WriteInputs.integer(body, "catalogVersion", -1, 1, Integer.MAX_VALUE);
+        final JSONObject input = new JSONObject().put("petId", id).put("recipeId", recipeId).put("catalogVersion", version);
+        return mutate(identity, "craft", key, input, () -> {
+            final String actor = actor(identity);
+            final JSONObject account = requiredAccount(actor);
+            final long current = now();
+            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
+            requireActivityFree(actor, id);
+            if ("rest".equals(pet.getString("activityKind")))
+                throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再制作吧");
+            if (version != ApiV3PetRules.VERSION)
+                throw ApiV3PetRules.conflict("catalog_changed", "配方已更新，请重新查看");
+            final JSONObject recipe = ApiV3PetExploration.recipe(recipeId).json();
+            final String collectionId = recipe.getString("collectionId");
+            final JSONArray owned = collectionState(actor);
+            for (int index = 0; index < owned.length(); index++) {
+                if (collectionId.equals(owned.getJSONObject(index).getString("id")))
+                    throw ApiV3PetRules.conflict("collection_owned", "这件纪念收藏已经制作过了");
+            }
+            requireSkills(actor, id, recipe.getJSONArray("requirements"));
+            final int cost = recipe.getInt("coins");
+            if (account.getInt("coins") < cost) throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
+            final JSONArray ingredients = recipe.getJSONArray("ingredients"), changes = new JSONArray();
+            // 用户锁串行化所有背包写入，逐项校验与扣除仍在同一事务，失败时不会留下部分消耗。
+            for (int index = 0; index < ingredients.length(); index++) {
+                final JSONObject ingredient = ingredients.getJSONObject(index);
+                final String itemId = ingredient.getString("itemId");
+                final int quantity = ingredient.getInt("quantity");
+                changeItem(actor, itemId, -quantity, current);
+                changes.put(itemChange(itemId, -quantity));
+            }
+            account.put("coins", account.getInt("coins") - cost).put("updatedAt", current);
+            accounts.update(actor, account, ACCOUNT_FIELDS);
+            collections.add(new JSONObject().put("oId", actor + ":" + collectionId).put("userId", actor)
+                    .put("collectionId", collectionId).put("unlockedAt", current));
+            appendJournal(actor, id, "craft", "craft", "制作 · " + recipe.getString("name"), changes, -cost,
+                    ApiV3PetJournal.zeroEffects(), collectionId, current);
+            record(actor, id, "craft", -cost, 0, current);
+            return receipt("craft", id, current);
         });
     }
 
@@ -301,6 +373,7 @@ public class ApiV3PetService {
                 if (experience < requirement.getInt("experience"))
                     throw ApiV3PetRules.conflict("job_locked", "先完成对应的入门课程，再来尝试这份工作吧");
             }
+            requireSkills(actor, id, entry.getJSONArray("requirements"));
             if (account.getInt("coins") < cost.getInt("coins"))
                 throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             for (String field : Set.of("energy", "hunger", "water")) {
@@ -369,6 +442,11 @@ public class ApiV3PetService {
                 }
             }
             changeFood(food(actor), rewards.getInt("food"), current);
+            final JSONArray materials = rewards.getJSONArray("items");
+            for (int index = 0; index < materials.length(); index++) {
+                final JSONObject material = materials.getJSONObject(index);
+                changeItem(actor, material.getString("itemId"), material.getInt("quantity"), current);
+            }
             pets.update(id, pet, PET_FIELDS);
             activity.put("claimedAt", current).put("slotKey", "claimed:" + activityId);
             activities.update(activityId, activity, "claimedAt", "slotKey");
@@ -414,6 +492,69 @@ public class ApiV3PetService {
         });
     }
 
+    /** 计时活动与瞬时照顾统一分页；旧活动直接联查，不用迁移伪造旧照顾事件。 */
+    public JSONObject journal(final JSONObject identity, final String kind, final int page, final int size) {
+        if (!Set.of("all", "outing", "course", "work", "care", "craft", "purchase").contains(kind)
+                || page < 1 || page > 10_000 || size < 1 || size > 50) throw ApiV3WriteInputs.invalid();
+        return readTransaction(identity, () -> {
+            final String actor = actor(identity);
+            final long current = now();
+            final java.util.List<Object> params = new java.util.ArrayList<>();
+            final StringBuilder union = new StringBuilder();
+            if (Set.of("all", "outing", "course", "work").contains(kind)) {
+                union.append("SELECT 'activity' AS recordType,oId,startedAt AS eventTime FROM `")
+                        .append(activities.getName()).append("` WHERE userId=?");
+                params.add(actor);
+                if (!"all".equals(kind)) {
+                    union.append(" AND kind=?");
+                    params.add(kind);
+                }
+            }
+            if (Set.of("all", "care", "craft", "purchase").contains(kind)) {
+                if (!union.isEmpty()) union.append(" UNION ALL ");
+                union.append("SELECT 'event' AS recordType,oId,occurredAt AS eventTime FROM `")
+                        .append(journal.getName()).append("` WHERE userId=?");
+                params.add(actor);
+                if (!"all".equals(kind)) {
+                    union.append(" AND kind=?");
+                    params.add(kind);
+                }
+            }
+            final var totals = journal.select("SELECT COUNT(*) AS total FROM (" + union + ") pet_log", params.toArray());
+            if (totals.size() != 1) throw unavailable();
+            nonnegative(totals.getFirst(), "total");
+            final int total = totals.getFirst().getInt("total");
+            params.add(size);
+            params.add((page - 1) * size);
+            // 先在数据库合并排序和分页，再联查本页内容；不向应用层拉取全部历史、不逐条查询。
+            final String query = "SELECT x.recordType,a.*,r.actualJson AS actualJson,r.userId AS resultUserId,r.petId AS resultPetId,"
+                    + "j.oId AS eventId,j.userId AS eventUserId,j.petId AS eventPetId,j.kind AS eventKind,"
+                    + "j.action AS eventAction,j.occurredAt AS eventOccurredAt,j.eventJson AS eventJson FROM ("
+                    + union + " ORDER BY eventTime DESC,oId DESC,recordType DESC LIMIT ? OFFSET ?) x"
+                    + " LEFT JOIN `" + activities.getName() + "` a ON x.recordType='activity' AND a.oId=x.oId"
+                    + " LEFT JOIN `" + results.getName() + "` r ON x.recordType='activity' AND r.oId=x.oId"
+                    + " LEFT JOIN `" + journal.getName() + "` j ON x.recordType='event' AND j.oId=x.oId"
+                    + " ORDER BY x.eventTime DESC,x.oId DESC,x.recordType DESC";
+            final JSONArray list = new JSONArray();
+            for (JSONObject row : journal.select(query, params.toArray())) {
+                if ("event".equals(row.getString("recordType"))) {
+                    list.put(ApiV3PetJournal.read(row, actor));
+                } else {
+                    if (!actor.equals(row.optString("userId"))) throw unavailable();
+                    final JSONObject item = ApiV3PetActivities.publicActivity(row, current)
+                            .put("recordType", "activity").put("petId", row.getString("petId"));
+                    final long claimedAt = row.getLong("claimedAt");
+                    if (claimedAt > 0) item.put("status", "claimed");
+                    list.put(item.put("claimedAt", claimedAt > 0 ? claimedAt : JSONObject.NULL)
+                            .put("actualRewards", actualResult(row)));
+                }
+            }
+            return new JSONObject().put("serverNow", current).put("list", list)
+                    .put("pagination", new JSONObject().put("page", page).put("pageSize", size).put("total", total)
+                            .put("pageCount", Math.max(1, (total + size - 1) / size)));
+        });
+    }
+
     private Object actualResult(final JSONObject row) {
         final boolean hasResult = row.opt("actualJson") instanceof String;
         if (!hasResult) {
@@ -427,6 +568,10 @@ public class ApiV3PetService {
         try {
             final JSONObject planned = ApiV3PetActivities.snapshot(row).getJSONObject("rewards");
             final JSONObject actual = new JSONObject(row.getString("actualJson"));
+            final int version = new JSONObject(row.getString("snapshotJson")).getInt("version");
+            // 第三批及更早的实际结果没有材料字段，只补确定为空的投影，不回写历史数据。
+            if (version < 3 && !actual.has("items")) actual.put("items", new JSONArray());
+            if (!actual.getJSONArray("items").similar(planned.getJSONArray("items"))) throw unavailable();
             if (!actual.keySet().equals(planned.keySet())) throw unavailable();
             for (String field : Set.of("experience", "food", "coins", "proficiency")) nonnegative(actual, field);
             for (String field : Set.of("experience", "food", "proficiency"))
@@ -619,6 +764,99 @@ public class ApiV3PetService {
         final JSONObject pet = pet(actor);
         if (pet == null || (expectedId != null && !expectedId.equals(pet.optString("oId")))) throw ApiV3Requests.notFound();
         return pet;
+    }
+
+    private void requireSkills(final String actor, final String id, final JSONArray requirements) throws RepositoryException {
+        if (requirements.isEmpty()) return;
+        final var progress = skillRows(actor, id);
+        for (int index = 0; index < requirements.length(); index++) {
+            final JSONObject requirement = requirements.getJSONObject(index);
+            final int experience = progress.stream()
+                    .filter(row -> requirement.getString("skillId").equals(row.getString("skillId")))
+                    .mapToInt(row -> row.getInt("experience")).findFirst().orElse(0);
+            if (experience < requirement.getInt("experience"))
+                throw ApiV3PetRules.conflict("skill_required", "先完成对应入门课程，再来尝试吧");
+        }
+    }
+
+    private JSONArray collectionState(final String actor) throws RepositoryException {
+        final JSONArray state = new JSONArray();
+        final Set<String> seen = new java.util.HashSet<>();
+        final var rows = collections.select("SELECT * FROM `" + collections.getName() + "` WHERE userId=? ORDER BY unlockedAt,oId", actor);
+        if (rows.size() > ApiV3PetExploration.RECIPES.size()) throw unavailable();
+        for (JSONObject row : rows) {
+            final String id = row.optString("collectionId");
+            if (!ApiV3PetExploration.knownCollection(id) || !seen.add(id) || row.getLong("unlockedAt") < 0) throw unavailable();
+            state.put(new JSONObject().put("id", id).put("unlockedAt", row.getLong("unlockedAt")));
+        }
+        return state;
+    }
+
+    private JSONArray inventoryState(final String actor) throws RepositoryException {
+        final var rows = inventory.select("SELECT * FROM `" + inventory.getName() + "` WHERE userId=? FOR UPDATE", actor);
+        final Set<String> seen = new java.util.HashSet<>();
+        for (JSONObject row : rows) {
+            if (!ApiV3PetExploration.knownItem(row.optString("itemId")) || !seen.add(row.getString("itemId"))) throw unavailable();
+            nonnegative(row, "quantity");
+        }
+        if (!seen.contains("food")) throw unavailable();
+        final JSONArray state = new JSONArray();
+        for (var definition : ApiV3PetExploration.ITEMS) {
+            final int quantity = rows.stream().filter(row -> definition.id().equals(row.getString("itemId")))
+                    .mapToInt(row -> row.getInt("quantity")).findFirst().orElse(0);
+            state.put(new JSONObject().put("itemId", definition.id()).put("quantity", quantity));
+        }
+        return state;
+    }
+
+    private static boolean itemHasEffect(final ApiV3PetExploration.Item item, final JSONObject pet) {
+        final JSONObject gains = item.effects();
+        for (String field : Set.of("hunger", "water", "mood", "energy")) {
+            if (gains.getInt(field) > 0 && pet.getDouble(field) < 100 - 1e-9) return true;
+        }
+        return false;
+    }
+
+    private void consumeItem(final String actor, final ApiV3PetExploration.Item item, final JSONObject pet,
+                             final long current) throws RepositoryException {
+        changeItem(actor, item.id(), -1, current);
+        final JSONObject gains = item.effects();
+        for (String field : Set.of("hunger", "water", "mood", "energy"))
+            pet.put(field, Math.min(100, pet.getDouble(field) + gains.getInt(field)));
+    }
+
+    private void changeItem(final String actor, final String itemId, final int difference, final long current) throws RepositoryException {
+        if (!ApiV3PetExploration.knownItem(itemId)) throw unavailable();
+        final var rows = inventory.select("SELECT * FROM `" + inventory.getName() + "` WHERE userId=? AND itemId=? FOR UPDATE", actor, itemId);
+        if (rows.size() > 1 || (rows.isEmpty() && "food".equals(itemId))) throw unavailable();
+        final JSONObject previous = rows.isEmpty() ? null : rows.getFirst();
+        if (previous != null) nonnegative(previous, "quantity");
+        final int quantity = Math.addExact(previous == null ? 0 : previous.getInt("quantity"), difference);
+        if (quantity < 0) throw ApiV3PetRules.conflict("food".equals(itemId) ? "not_enough_food" : "not_enough_items", "背包里的物品不足");
+        if (previous == null) {
+            inventory.add(new JSONObject().put("oId", actor + ":" + itemId).put("userId", actor).put("itemId", itemId)
+                    .put("quantity", quantity).put("updatedAt", current));
+        } else {
+            previous.put("quantity", quantity).put("updatedAt", current);
+            inventory.update(previous.getString("oId"), previous, "quantity", "updatedAt");
+        }
+    }
+
+    private static JSONObject itemChange(final String itemId, final int quantity) {
+        return new JSONObject().put("itemId", itemId).put("quantity", quantity);
+    }
+
+    private void appendJournal(final String actor, final String petId, final String kind, final String action, final String name,
+                               final JSONArray itemChanges, final int coins, final JSONObject effects,
+                               final String collectionId, final long current) throws RepositoryException {
+        final String id = Ids.genTimeMillisId();
+        final JSONObject event = new JSONObject().put("recordType", "event").put("id", id).put("petId", petId)
+                .put("kind", kind).put("action", action).put("name", name).put("occurredAt", current)
+                .put("itemChanges", itemChanges).put("coinsDelta", coins).put("effects", effects)
+                .put("collectionId", collectionId == null ? JSONObject.NULL : collectionId);
+        ApiV3PetJournal.validate(event);
+        journal.add(new JSONObject().put("oId", id).put("userId", actor).put("petId", petId).put("kind", kind)
+                .put("action", action).put("occurredAt", current).put("eventJson", event.toString()));
     }
 
     private JSONObject food(final String actor) throws RepositoryException {

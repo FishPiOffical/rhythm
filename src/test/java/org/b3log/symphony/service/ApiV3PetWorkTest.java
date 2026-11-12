@@ -190,6 +190,8 @@ public class ApiV3PetWorkTest {
             final String id = f.adopt(), activity = begin(f, id, "outing", "plaza");
             final JSONObject snapshot = new JSONObject(row(f, activity).getString("snapshotJson"));
             snapshot.put("version", 1);
+            snapshot.getJSONObject("entry").remove("requirements");
+            snapshot.getJSONObject("entry").getJSONObject("rewards").remove("items");
             snapshot.getJSONObject("entry").getJSONObject("rewards").remove("coins");
             snapshot.getJSONObject("entry").getJSONObject("rewards").remove("proficiency");
             sql(f.db, "UPDATE pet_activity SET snapshotJson=? WHERE oId=?", snapshot.toString(), activity);
