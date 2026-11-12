@@ -16741,3 +16741,23 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - `GET /api/v3/me/pet/journal` 新增 kind=story/readoption。事件奖励为正向物品、零币；重新领养为负 512 币、无物品变化，effects 均为零，不伪造成长增减。旧日志字段不变。
 
 两新增写接口沿本人第一方 `settings.write`、`Idempotency-Key`、原命令恢复与同用户行锁。事件进度和触发它的业务动作同事务，领奖和换宠也完整原子提交。原成功键在当前 petId 或目录变化后仍只重放旧回执，客户端随后重读聚合状态。迁移、完整数值、事件步骤与人工验收见 [第五批协议](docs/api-v3-pets-phase-five.md)。
+
+### 宠物成长规则与活动数值（第六批）
+
+`GET /api/v3/pets/catalog`
+
+沿原认证与目录响应，`version` 仍为 3，`activityVersion` 升为 5。新开始的广场散步获得 5 宠物经验；六门进阶课各获得 45 宠物经验、30 对应技能经验。其他成果、成本和时长不变；旧活动按出发时保存的成果领取，不补差或追溯修改历史。
+
+响应增加：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| growthRules | 宠物成长规则 | object |
+| - experiencePerLevel | 每一级需要的经验 | 100 |
+| - maxLevel | 显示的最高等级 | 30 |
+| - careExperience | 当日成长次数内，每次成功照顾的经验 | 10 |
+| - careFriendship | 当日成长次数内，每次成功照顾的亲密度，上限 100 | 2 |
+
+> 成长照顾包括喂食、饮水、抚摸、玩耍；休息和醒来不增加经验或亲密度。每日次数继续读取 `rules.growthDailyLimit`，超过次数仍能照顾宠物。等级为 `min(maxLevel,1+floor(experience/experiencePerLevel))`，满级后仍保留实际累计经验。工作收入与每日补给分别查询原 `income`、`dailySupply`，消费不会恢复当天工作收入额度。
+
+> 客户端兼容旧后端时，可以将 `growthRules` 作为可选字段；缺少时不应猜测下一级进度。开始新活动应使用当前返回的 `activityVersion`，原成功命令仍使用原请求和原幂等键恢复。

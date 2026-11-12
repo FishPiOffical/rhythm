@@ -78,7 +78,7 @@ public class ApiV3PetProgressionTest {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
             Assert.assertEquals(catalog.getInt("version"), 3);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 4);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 5);
             Assert.assertEquals(catalog.getJSONArray("courses").length(), 12);
             Assert.assertEquals(catalog.getJSONArray("stories").length(), 3);
             Assert.assertEquals(catalog.getJSONObject("readoptionRules").getInt("coins"), 512);
@@ -103,8 +103,8 @@ public class ApiV3PetProgressionTest {
                 Assert.assertEquals(story(f, "first-career").getInt("completedSteps"), 0);
                 f.rejectActivityCatalog = true;
                 f.pets.claimActivity(identity(), claim(id, activity), "claim");
-                Assert.assertEquals(skill(f, course.getValue()), 40);
-                Assert.assertEquals(pet(f).getInt("experience"), 30);
+                Assert.assertEquals(skill(f, course.getValue()), 50);
+                Assert.assertEquals(pet(f).getInt("experience"), 45);
                 Assert.assertEquals(item(f, "food"), 6);
                 Assert.assertEquals(story(f, "first-career").getInt("completedSteps"), 1);
                 f.pets.claimActivity(identity(), claim(id, activity), "claim");

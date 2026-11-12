@@ -42,6 +42,10 @@ public final class ApiV3PetRules {
     public static final int PLAY_MOOD = 20;
     public static final int PLAY_ENERGY = 10;
     public static final int DAILY_GROWTH = 10;
+    public static final int EXPERIENCE_PER_LEVEL = 100;
+    public static final int MAX_LEVEL = 30;
+    public static final int CARE_EXPERIENCE = 10;
+    public static final int CARE_FRIENDSHIP = 2;
     public static final long HOUR = 3_600_000L;
     public static final long CARE_COOLDOWN = HOUR / 2;
     public static final long REST_DURATION = 4 * HOUR;
@@ -85,6 +89,8 @@ public final class ApiV3PetRules {
                 .put(species("yubingmiao", "鱼饼喵", "好奇又贪吃，陪你一起摸鱼"))
                 .put(species("paixiaoyu", "派小鱼", "熟悉的派小鱼，今天也一起玩吧"));
         return new JSONObject().put("version", VERSION).put("species", species)
+                .put("growthRules", new JSONObject().put("experiencePerLevel", EXPERIENCE_PER_LEVEL).put("maxLevel", MAX_LEVEL)
+                        .put("careExperience", CARE_EXPERIENCE).put("careFriendship", CARE_FRIENDSHIP))
                 .put("readoptionRules", new JSONObject().put("coins", READOPTION_COINS))
                 .put("stories", ApiV3PetStories.catalog())
                 .put("items", new JSONArray().put(new JSONObject().put("id", "food").put("name", "基础口粮")
@@ -132,7 +138,7 @@ public final class ApiV3PetRules {
                 .put("name", pet.getString("name")).put("hunger", (int) Math.ceil(pet.getDouble("hunger") - 1e-9))
                 .put("water", (int) Math.ceil(pet.getDouble("water") - 1e-9)).put("mood", (int) Math.ceil(pet.getDouble("mood") - 1e-9))
                 .put("energy", (int) Math.floor(pet.getDouble("energy") + 1e-9)).put("experience", pet.getInt("experience"))
-                .put("level", Math.min(30, 1 + pet.getInt("experience") / 100)).put("friendship", pet.getInt("friendship"))
+                .put("level", Math.min(MAX_LEVEL, 1 + pet.getInt("experience") / EXPERIENCE_PER_LEVEL)).put("friendship", pet.getInt("friendship"))
                 .put("adoptedAt", pet.getLong("adoptedAt")).put("activity", activity == null ? JSONObject.NULL : activity)
                 .put("cooldowns", new JSONObject().put("pet", pet.getLong("petAvailableAt")).put("play", pet.getLong("playAvailableAt")))
                 .put("growthToday", new JSONObject().put("used", today.compareTo(account.getString("growthDate")) <= 0

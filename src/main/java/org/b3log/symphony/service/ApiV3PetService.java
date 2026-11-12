@@ -818,8 +818,8 @@ public class ApiV3PetService {
         if (today.compareTo(account.getString("growthDate")) > 0) account.put("growthDate", today).put("growthCount", 0);
         if (account.getInt("growthCount") >= ApiV3PetRules.DAILY_GROWTH) return;
         account.put("growthCount", account.getInt("growthCount") + 1);
-        pet.put("experience", Math.addExact(pet.getInt("experience"), 10))
-                .put("friendship", Math.min(100, pet.getInt("friendship") + 2));
+        pet.put("experience", Math.addExact(pet.getInt("experience"), ApiV3PetRules.CARE_EXPERIENCE))
+                .put("friendship", Math.min(100, pet.getInt("friendship") + ApiV3PetRules.CARE_FRIENDSHIP));
     }
 
     private static void cooldown(final JSONObject pet, final String field, final long current) {
