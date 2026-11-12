@@ -296,3 +296,5 @@
 - 新旧在线状态统一由 `UserOnlineStatus` 登记当前实例的已认证连接：旧 `UserChannel` 与 V3 实时订阅独立计数，最后一个有效连接断开才离线；V3 过期票据不计在线。公开资料遵守 `userOnlineStatus`，数据库 `userOnlineFlag` 不再作为上述资料接口的在线证据；原在线时长结算保留，尚未引入跨实例在线汇总。
 
 - 宠物第二批外出/课程在 ApiV3PetActivities 与 ApiV3PetService，独立 activityVersion；先新增 pet_activity/pet_skill 两表再更新客户端。休息沿原字段；外出/课程使用独立持久槽，待领取也占槽，wake/rest/照顾不得覆盖。成果读取不发奖，开始冻结费用/时长/奖励，领取必须本人+当前 petId+activityId、服务端到期，奖励/claimedAt/清槽/流水/回执同事务。保留领取历史防回执过期后复领，技能属于 petId，不随账号旧宠物继承；无取消/工作/产币。专项与边界见 docs/api-v3-pets-phase-two.md。
+
+- 宠物第三批工作在 ApiV3PetWork，activityVersion=2；3新表及2日志索引先迁移20261112_api_v3_pet_work.sql。工作技能解锁与job熟练度独立，账号产币上限按上海领取日结算，补给不占额度；最高结算日/时间只前进，换宠不能重置预算。结果/预算/余额/进度/清槽同事务。活动日志只读本人真实分页，冻结计划和实际成果分开；仅v1旧记录可实际未知，新记录缺结果503。详见docs/api-v3-pets-phase-three.md。

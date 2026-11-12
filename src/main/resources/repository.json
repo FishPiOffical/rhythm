@@ -10,6 +10,91 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_job_progress",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "jobId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "completed",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_income_account",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "date",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "earned",
+          "type": "int"
+        },
+        {
+          "name": "lastSettlementAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_activity_result",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "actualJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
       "name": "pet_activity",
       "keys": [
         {

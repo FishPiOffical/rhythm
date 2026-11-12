@@ -28,7 +28,7 @@ import java.util.Set;
 
 /** 外出与入门课程的试运行目录；费用和成果均在出发时冻结，领取不重新计算目录。 */
 public final class ApiV3PetActivities {
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     public static final List<Skill> SKILLS = List.of(
             new Skill("vitality", "体能", "散步、运动和远足积累的好体力"),
             new Skill("exploration", "探索", "观察身边的变化，发现新事物"),
@@ -60,7 +60,7 @@ public final class ApiV3PetActivities {
         public JSONObject json() {
             return new JSONObject().put("id", id).put("name", name).put("description", description).put("durationMs", minutes * 60_000L)
                     .put("cost", new JSONObject().put("coins", coins).put("energy", energy).put("hunger", hunger).put("water", water))
-                    .put("rewards", new JSONObject().put("experience", experience).put("food", food).put("mood", mood)
+                    .put("rewards", new JSONObject().put("experience", experience).put("food", food).put("mood", mood).put("coins", 0).put("proficiency", 0)
                             .put("skills", new JSONArray().put(new JSONObject().put("id", skillId).put("experience", skillExperience))));
         }
     }
@@ -73,10 +73,12 @@ public final class ApiV3PetActivities {
         final JSONArray places = new JSONArray(), courses = new JSONArray(), skills = new JSONArray();
         for (Skill skill : SKILLS) skills.put(skill.json());
         for (Entry entry : ENTRIES) (entry.kind().equals("outing") ? places : courses).put(entry.json());
-        return catalog.put("activityVersion", VERSION).put("skills", skills).put("places", places).put("courses", courses);
+        return catalog.put("activityVersion", VERSION).put("skills", skills).put("places", places).put("courses", courses)
+                .put("jobs", ApiV3PetWork.catalog()).put("incomeRules", new JSONObject().put("dailyLimit", ApiV3PetWork.DAILY_LIMIT));
     }
 
     public static JSONObject find(final String kind, final String id) {
+        if ("work".equals(kind)) return ApiV3PetWork.find(id);
         return ENTRIES.stream().filter(entry -> entry.kind().equals(kind) && entry.id().equals(id)).findFirst()
                 .orElseThrow(() -> ApiV3PetRules.invalid("这个活动暂未开放")).json();
     }
@@ -94,9 +96,19 @@ public final class ApiV3PetActivities {
         try {
             final JSONObject snapshot = new JSONObject(row.getString("snapshotJson"));
             keys(snapshot, Set.of("version", "entry"));
-            integer(snapshot, "version", 1, Integer.MAX_VALUE);
+            final int version = integer(snapshot, "version", 1, VERSION);
+            final boolean work = "work".equals(row.optString("kind"));
+            if (work && version < 2) throw unavailable();
             final JSONObject entry = snapshot.getJSONObject("entry");
-            keys(entry, Set.of("id", "name", "description", "durationMs", "cost", "rewards"));
+            keys(entry, work ? Set.of("id", "name", "description", "durationMs", "cost", "rewards", "requirement")
+                    : Set.of("id", "name", "description", "durationMs", "cost", "rewards"));
+            if (work) {
+                if (!ApiV3PetWork.known(entry.getString("id"))) throw unavailable();
+                final JSONObject requirement = entry.getJSONObject("requirement");
+                keys(requirement, Set.of("skillId", "experience"));
+                if (!skill(requirement.getString("skillId"))) throw unavailable();
+                integer(requirement, "experience", 1, 1_000_000);
+            }
             if (!entry.getString("id").equals(row.getString("entryId"))
                     || !entry.getString("id").matches("[a-z][a-z0-9-]{0,47}")) throw unavailable();
             text(entry, "name", 64);
@@ -106,12 +118,17 @@ public final class ApiV3PetActivities {
             keys(cost, Set.of("coins", "energy", "hunger", "water"));
             integer(cost, "coins", 0, 1_000_000);
             for (String field : Set.of("energy", "hunger", "water")) integer(cost, field, 0, 100);
-            keys(rewards, Set.of("experience", "food", "mood", "skills"));
+            keys(rewards, version == 1 ? Set.of("experience", "food", "mood", "skills")
+                    : Set.of("experience", "food", "mood", "skills", "coins", "proficiency"));
+            // 第一版没有产币或工作熟练度，此处仅投影确定为零的旧字段，不修改原始历史快照。
+            if (version == 1) rewards.put("coins", 0).put("proficiency", 0);
+            integer(rewards, "coins", 0, work ? 1_000_000 : 0);
+            integer(rewards, "proficiency", work ? 1 : 0, work ? 10_000 : 0);
             integer(rewards, "experience", 0, 10_000);
             integer(rewards, "food", 0, 100);
             integer(rewards, "mood", 0, 100);
             final JSONArray skills = rewards.getJSONArray("skills");
-            if (skills.length() < 1 || skills.length() > SKILLS.size()) throw unavailable();
+            if (work ? skills.length() != 0 : skills.length() < 1 || skills.length() > SKILLS.size()) throw unavailable();
             final Set<String> seen = new HashSet<>();
             for (int i = 0; i < skills.length(); i++) {
                 final JSONObject reward = skills.getJSONObject(i);
@@ -122,7 +139,7 @@ public final class ApiV3PetActivities {
             }
             final long started = row.getLong("startedAt"), ended = row.getLong("endsAt");
             if (started < 0 || ended < started || ended - started != duration
-                    || !Set.of("outing", "course").contains(row.getString("kind")) || row.getLong("claimedAt") < 0) throw unavailable();
+                    || !Set.of("outing", "course", "work").contains(row.getString("kind")) || row.getLong("claimedAt") < 0) throw unavailable();
             return entry;
         } catch (ApiV3Exception error) {
             throw error;

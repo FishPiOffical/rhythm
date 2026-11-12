@@ -32,6 +32,9 @@ import org.b3log.symphony.processor.ApiV3PetProcessor;
 import org.b3log.symphony.repository.PetAccountRepository;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.PetSkillRepository;
+import org.b3log.symphony.repository.PetJobProgressRepository;
+import org.b3log.symphony.repository.PetIncomeAccountRepository;
+import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
@@ -82,6 +85,27 @@ public class ApiV3PetTest {
             sql(db, "CREATE TABLE pet_ledger(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,operation TEXT,coinDelta INT,foodDelta INT,createdAt BIGINT)");
             sql(db, "CREATE TABLE pet_activity(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,kind TEXT,entryId TEXT,slotKey TEXT UNIQUE,startedAt BIGINT,endsAt BIGINT,claimedAt BIGINT,snapshotJson TEXT)");
             sql(db, "CREATE TABLE pet_skill(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,skillId TEXT,experience INT,updatedAt BIGINT,UNIQUE(petId,skillId))");
+            sql(db, "CREATE TABLE pet_job_progress(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,jobId TEXT,experience INT,completed INT,updatedAt BIGINT,UNIQUE(petId,jobId))");
+            sql(db, "CREATE TABLE pet_income_account(oId TEXT PRIMARY KEY,date TEXT,earned INT,lastSettlementAt BIGINT)");
+            sql(db, "CREATE TABLE pet_activity_result(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,actualJson TEXT)");
+            inject(pets, "jobs", new PetJobProgressRepository() {
+                public String getName() { return "pet_job_progress"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_job_progress", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_job_progress", id, row, fields); }
+            });
+            inject(pets, "income", new PetIncomeAccountRepository() {
+                public String getName() { return "pet_income_account"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_income_account", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_income_account", id, row, fields); }
+            });
+            inject(pets, "results", new PetActivityResultRepository() {
+                public String getName() { return "pet_activity_result"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_activity_result", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_activity_result", id, row, fields); }
+            });
             inject(pets, "activities", new PetActivityRepository() {
                 public String getName() { return "pet_activity"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
@@ -160,6 +184,7 @@ public class ApiV3PetTest {
                 parse.setAccessible(true);
                 parse.invoke(request);
                 request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
+                new io.netty.handler.codec.http.QueryStringDecoder(path).parameters().forEach((name, values) -> request.setParameter(name, values.getFirst()));
                 final var context = new RequestContext(request, new Response(null,
                         new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
                 context.addHandler(new org.b3log.latke.http.handler.RouteHandler());
@@ -175,6 +200,7 @@ public class ApiV3PetTest {
                         case "purchase" -> endpointPet.purchase(current);
                         case "startActivity" -> endpointPet.startActivity(current);
                         case "claimActivity" -> endpointPet.claimActivity(current);
+                        case "history" -> endpointPet.history(current);
                         default -> throw new AssertionError("未知宠物路由");
                     }
                 });

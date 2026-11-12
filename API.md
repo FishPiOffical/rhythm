@@ -16706,3 +16706,9 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - `POST /api/v3/me/pet/activities/claim`：`{petId,activityId}`，服务器计时到期后领取冻结成果。正在活动及待领取都占用唯一活动槽，不允许照顾/休息覆盖。
 
 目录新增独立 `activityVersion`、六项 `skills`、`places`、`courses`。本人聚合增加 `pet.skills`，新活动包含 `id/kind/entryId/name/startedAt/endsAt/status/cost/rewards`，status 为 `running/claimable`。读取不发奖。写回执为 `{operation,petId,activityId,committedAt}`，operation 为 `activity-start/activity-claim`。成本、成果、状态、迁移顺序与防重复领取约定见 [第二批协议](docs/api-v3-pets-phase-two.md)。
+
+### 宠物见习工作与活动日志（第三批）
+
+- `GET /api/v3/me/pet/activities`：第一方本人 `profile.read`。`kind=all|outing|course|work`，`p=1..10000`，`size=1..50`（缺省10），按开始时间/ID倒序，返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。日志分别提供冻结 `rewards` 与 `actualRewards`，旧记录实际成果未知为 null。
+
+原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算，每日补给独立。迁移、完整字段与兼容见 [第三批协议](docs/api-v3-pets-phase-three.md)。
