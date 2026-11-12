@@ -207,6 +207,16 @@
       ]
     },
     {
+      "name": "user_chat_tail",
+      "description": "用户小尾巴设置，oId为用户ID，消息另存发送快照",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19 },
+        { "name": "enabled", "type": "int" },
+        { "name": "text", "type": "String", "length": 512 },
+        { "name": "updatedAt", "type": "long" }
+      ]
+    },
+    {
       "name": "user_chat_appearance",
       "description": "用户当前聊天外观，消息另存发送快照",
       "keys": [

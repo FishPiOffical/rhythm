@@ -58,6 +58,8 @@ public class ApiV3ChatPublicationService {
     @Inject
     private ChatMessageMgmtService messages;
     @Inject
+    private ApiV3ChatTailService tails;
+    @Inject
     private CloudService cloud;
     @Inject
     private NotificationMgmtService notifications;
@@ -143,6 +145,12 @@ public class ApiV3ChatPublicationService {
                             .put("userNickname", current.optString(UserExt.USER_NICKNAME)).put("userAvatarURL", current.optString(UserExt.USER_AVATAR_URL))
                             .put("userOId", Long.parseLong(actor)).put("content", prepared).put("time", time)
                             .put("sysMetal", cloud.getEnabledMedal(actor));
+                    // 小尾巴独立于原正文保存；只有新版普通消息可以生成，业务卡片不参与。
+                    if (card == null) {
+                        final String html = Markdowns.cleanChat(Markdowns.toHTML(Emotions.convert(prepared)), "");
+                        final JSONObject tail = tails.snapshotInCurrentTransaction(actor, html);
+                        if (tail != null) envelope.put("tail", tail);
+                    }
                     final String mark = ChatMessageClients.normalize(client);
                     if (!mark.isEmpty()) envelope.put("client", mark);
                     final JSONObject message = messages.saveInCurrentTransaction(envelope, actor);

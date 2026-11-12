@@ -64,7 +64,7 @@ public final class ApiV3ChatMessageDto {
         try {
             card = content.stripLeading().startsWith("{") ? ApiV3Json.parse(content.getBytes(StandardCharsets.UTF_8)) : null;
         } catch (IllegalArgumentException e) {
-            return dto.put("type", "text").put("content", content).put("contentHtml", render.apply(content));
+            return text(dto, source, content, render);
         }
         final String kind = card == null ? "" : card.optString("msgType");
         // 新卡片精确保留已校验的纯文本和签名 URL，历史消息沿用原投影。
@@ -101,8 +101,18 @@ public final class ApiV3ChatMessageDto {
                         .put("source", musicSource.matches("[0-9]{1,32}") ? musicSource : ApiV3CommunityDto.safeUrl(musicSource))
                         .put("coverURL", ApiV3CommunityDto.safeUrl(card.optString("coverURL"))).put("from", plain(card.opt("from"), 64)));
             }
-            default -> dto.put("type", "text").put("content", content).put("contentHtml", render.apply(content));
+            default -> text(dto, source, content, render);
         }
+        return dto;
+    }
+
+    private static JSONObject text(final JSONObject dto, final JSONObject source, final String content,
+                                   final Function<String, String> render) {
+        final String html = render.apply(content);
+        dto.put("type", "text").put("content", content).put("contentHtml", html);
+        // 只投影可见普通正文的合法快照；缺失与坏快照不影响原消息读取。
+        final JSONObject tail = ApiV3ChatTail.snapshot(source.opt("tail"));
+        if (tail != null && ApiV3ChatTail.eligibleHtml(html)) dto.put("tail", tail);
         return dto;
     }
 
