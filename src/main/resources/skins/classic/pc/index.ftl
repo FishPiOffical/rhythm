@@ -37,18 +37,6 @@
     ${HeaderBannerLabel}
 </#if>
 <div class="main">
-    <#-- 新版入口只作站点导航，不传递账号凭据。 -->
-    <div class="wrapper v3-home-promo-wrap">
-        <a class="v3-home-promo" href="https://new.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="体验摸鱼派 V3，新标签页打开">
-            <img class="v3-home-promo__logo" src="${staticServePath}/images/favicon.png" width="48" height="48" alt=""/>
-            <span class="v3-home-promo__copy">
-                <span class="v3-home-promo__eyebrow">新版体验 <span>V3</span></span>
-                <strong>摸鱼派 V3，换个方式摸鱼</strong>
-                <span class="v3-home-promo__description">全新界面与聊天体验，欢迎来试试。</span>
-            </span>
-            <span class="v3-home-promo__action">体验新版 <span aria-hidden="true">↗</span></span>
-        </a>
-    </div>
     <div class="wrapper index-full-size-white" id="nightTips" style="display: none"></div>
     <div class="home-personalize-toolbar">
         <button class="home-personalize-toolbar__btn" id="homePersonalizeOpen" type="button" aria-label="配置首页模块">
@@ -174,18 +162,17 @@
                         </div>
                     </div>
                 <#elseif TGIF == '-1'>
-                    <div class="TGIF__item" style="margin-bottom: 29px; margin-top: 7px">
-                        <div style="float: left">
-                            <img src="https://file.fishpi.cn/logo_app.png" style="width: 35px; height: 35px;" />
-                        </div>
-                        <button class="green fn-right" style="margin-left: 5px" onclick="window.location.href=Label.servePath+'/download'">下载</button>
-
-                        <div style="padding-left:40px">
-                            <b>随时随地摸鱼？</b>
-                            <br>
-                            下载摸鱼派客户端，想摸就摸！
-                        </div>
-                    </div>
+                    <a class="v3-home-promo v3-home-promo--pc" href="https://new.fishpi.cn/" target="_blank" rel="noopener noreferrer" aria-label="去看看摸鱼派新版，新标签页打开">
+                        <img class="v3-home-promo__logo" src="https://file.fishpi.cn/logo_app.png" width="34" height="34" alt=""/>
+                        <span class="v3-home-promo__copy">
+                            <span class="v3-home-promo__heading"><strong>摸鱼派V3</strong><span class="v3-home-promo__edition">NEW</span></span>
+                            <span class="v3-home-promo__description">全新界面，宠物、装扮功能上线</span>
+                            <span class="v3-home-promo__domain">请访问 new.fishpi.cn</span>
+                        </span>
+                        <span class="v3-home-promo__action" aria-hidden="true">
+                            <svg viewBox="0 0 16 16"><path d="M3 8h9M8 4l4 4-4 4"/></svg>
+                        </span>
+                    </a>
                 <#else>
                     <div class="TGIF__item" style="margin-bottom: 32px; margin-top: 5px">
                         <div style="float: left">
