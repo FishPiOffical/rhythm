@@ -19,7 +19,7 @@
 /* 仅由旧版首页加载，替换原客户端下载卡片。 */
 a.v3-home-promo {
   --entry-ink: #27352c;
-  --entry-green: #367a46;
+  --entry-orange: #b8651b;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -88,8 +88,8 @@ a.v3-home-promo {
     min-height: 32px;
     padding: 0 10px;
     border-radius: 4px;
-    background: #edf5ec;
-    color: var(--entry-green);
+    background: #fff0df;
+    color: var(--entry-orange);
     font-size: 12px;
     font-weight: 600;
     transition: background 160ms ease;
@@ -106,10 +106,10 @@ a.v3-home-promo {
   }
   &:hover {
     transform: translateY(-2px);
-    border-color: #a9bfa8;
+    border-color: #e3b47e;
     box-shadow: 0 3px 9px #27352c0a;
     .v3-home-promo__action {
-      background: #e2eedf;
+      background: #f9e2c8;
     }
     .v3-home-promo__action svg {
       transform: translateX(2px);
@@ -119,7 +119,7 @@ a.v3-home-promo {
     transform: translateY(0);
   }
   &:focus-visible {
-    outline: 2px solid var(--entry-green);
+    outline: 2px solid var(--entry-orange);
     outline-offset: 3px;
   }
 }
