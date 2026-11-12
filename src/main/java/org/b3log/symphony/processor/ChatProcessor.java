@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang.StringUtils;
@@ -390,7 +391,7 @@ public class ChatProcessor {
             if (!otherId.equals("1000000000086")) {
                 info.put("receiverUserName", otherUser.optString(User.USER_NAME));
                 info.put("receiverAvatar", otherUser.optString(UserExt.USER_AVATAR_URL) + "?imageView2/1/w/48/h/48/interlace/0/q/100");
-                info.put("receiverOnlineFlag", otherUser.optBoolean(UserExt.USER_ONLINE_FLAG));
+                info.put("receiverOnlineFlag", Boolean.TRUE.equals(UserOnlineStatus.publicFlag(otherUser)));
             } else {
                 info.put("receiverOnlineFlag", true);
                 info.put("receiverUserName", "文件传输助手");

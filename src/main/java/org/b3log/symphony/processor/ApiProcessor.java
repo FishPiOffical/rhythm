@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import com.qiniu.cdn.CdnManager;
 import com.qiniu.cdn.CdnResult;
 import com.qiniu.util.Auth;
@@ -482,7 +483,7 @@ public class ApiProcessor {
             JSONObject user = ApiProcessor.getUserByKey(context.param("apiKey"));
             final JSONObject filteredUserProfile = new JSONObject();
             filteredUserProfile.put(User.USER_NAME, user.optString(User.USER_NAME));
-            filteredUserProfile.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+            filteredUserProfile.put(UserExt.USER_ONLINE_FLAG, UserOnlineStatus.isOnline(user));
             filteredUserProfile.put(UserExt.ONLINE_MINUTE, user.optInt(UserExt.ONLINE_MINUTE));
             filteredUserProfile.put(User.USER_URL, user.optString(User.USER_URL));
             filteredUserProfile.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));

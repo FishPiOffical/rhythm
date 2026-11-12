@@ -283,3 +283,5 @@
 - 公开职业徽牌走 /api/v3/users/{userName}/professions/summary，按主职业隐私投影，不运行完整职业详情查询。公开勋章图片沿用 gen.metal.url，复用公开列表的访客门禁，只渲染当前公开且有效的授予；/me 图片仍需 profile.read。
 
 - 复读机新旧投稿共用 RepeaterContentModerationService 七牛审核（事务外，异常拒绝）；v3 新回执以 textVersion 区分保留换行规则，旧成功回执仅兼容读。举报 type=4 复用 report；管理员删除须同根软删、职业 targetRemoved 与 operation 审计，PC/mobile 首页及举报后台均有入口。
+
+- 新旧在线状态统一由 `UserOnlineStatus` 登记当前实例的已认证连接：旧 `UserChannel` 与 V3 实时订阅独立计数，最后一个有效连接断开才离线；V3 过期票据不计在线。公开资料遵守 `userOnlineStatus`，数据库 `userOnlineFlag` 不再作为上述资料接口的在线证据；原在线时长结算保留，尚未引入跨实例在线汇总。

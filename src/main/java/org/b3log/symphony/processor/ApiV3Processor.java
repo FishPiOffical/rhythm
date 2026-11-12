@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.StringUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.http.Cookie;
@@ -276,7 +277,7 @@ public class ApiV3Processor {
                 .put("userAppRole", user.optInt(UserExt.USER_APP_ROLE))
                 .put("userCity", user.optInt(UserExt.USER_GEO_STATUS, -1) == UserExt.USER_GEO_STATUS_C_PUBLIC
                         ? user.optString(UserExt.USER_CITY) : "")
-                .put("userOnlineFlag", user.optBoolean(UserExt.USER_ONLINE_FLAG))
+                .put("userOnlineFlag", UserOnlineStatus.isOnline(user))
                 .put("onlineMinute", Math.max(0, user.optInt(UserExt.ONLINE_MINUTE))));
     }
 

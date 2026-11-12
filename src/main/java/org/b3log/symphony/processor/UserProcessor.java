@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.StringUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.event.Event;
@@ -1283,7 +1284,7 @@ public class UserProcessor {
         }
         final JSONObject filteredUserProfile = new JSONObject();
         filteredUserProfile.put(User.USER_NAME, user.optString(User.USER_NAME));
-        filteredUserProfile.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+        filteredUserProfile.put(UserExt.USER_ONLINE_FLAG, Boolean.TRUE.equals(UserOnlineStatus.publicFlag(user)));
         filteredUserProfile.put(UserExt.ONLINE_MINUTE, user.optInt(UserExt.ONLINE_MINUTE));
         filteredUserProfile.put(User.USER_URL, user.optString(User.USER_URL));
         filteredUserProfile.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));
@@ -2242,6 +2243,8 @@ public class UserProcessor {
      * @param user      the specified user
      */
     static void fillHomeUser(final Map<String, Object> dataModel, final JSONObject user, final RoleQueryService roleQueryService) {
+        // PC 与移动端共用资料模型，在线隐私仍由原模板按读者权限控制。
+        user.put(UserExt.USER_ONLINE_FLAG, UserOnlineStatus.isOnline(user));
         Escapes.escapeHTML(user);
         dataModel.put(User.USER, user);
         final BeanManager beanManager = BeanManager.getInstance();

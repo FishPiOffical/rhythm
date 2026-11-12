@@ -31,6 +31,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.AdminProcessor;
 import org.b3log.symphony.processor.ApiProcessor;
@@ -95,7 +96,7 @@ public class UserChannel implements WebSocketChannel {
      * @param session session
      */
     @Override
-    public void onConnect(final WebSocketSession session) {
+    public synchronized void onConnect(final WebSocketSession session) {
         final Session httpSession = session.getHttpSession();
         JSONObject user = org.b3log.symphony.util.Sessions.currentSocketUser(session);
         if (null == user) {
@@ -118,6 +119,8 @@ public class UserChannel implements WebSocketChannel {
 
         SESSIONS.put(userId, userSessions);
         CONNECTION_OWNERS.put(session, userId);
+        // 旧连接与 V3 订阅共同决定在线状态，关闭其中一个标签页不会抹掉其他连接。
+        UserOnlineStatus.connected(session, userId, Long.MAX_VALUE);
 
         final BeanManager beanManager = BeanManager.getInstance();
         final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
@@ -215,6 +218,7 @@ public class UserChannel implements WebSocketChannel {
      */
     private synchronized void removeSession(final WebSocketSession session) {
         // Closing a revoked connection must still remove its server-recorded ownership and settle time.
+        UserOnlineStatus.disconnected(session);
         final String userId = CONNECTION_OWNERS.remove(session);
         if (userId == null) return;
         final Session httpSession = session.getHttpSession();

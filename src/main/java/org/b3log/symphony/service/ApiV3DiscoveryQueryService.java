@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.service;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.time.DateUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
@@ -303,7 +304,7 @@ public class ApiV3DiscoveryQueryService {
                 .put("userNo", memberNumber.matches("[1-9][0-9]{0,18}") ? memberNumber : "")
                 .put("userRole", role == null ? "" : role.optString(Role.ROLE_NAME))
                 .put("userCity", city)
-                .put("userOnlineFlag", user.optBoolean(UserExt.USER_ONLINE_FLAG))
+                .put("userOnlineFlag", UserOnlineStatus.publicFlag(user))
                 .put("userPoint", points).put("onlineMinute", onlineMinutes);
     }
 

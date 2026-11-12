@@ -177,6 +177,8 @@ public final class ApiV3RealtimeSessions {
                     ready.put("articleId", grant.targetId());
                 c.transport.send(new JSONObject().put("type", "ready").put("data", ready).toString());
                 c.ready = true;
+                // 仅认证及 ready 发送成功后登记；使用连接对象隔离不同订阅和重连。
+                if (!c.closed) UserOnlineStatus.connected(c, grant.userId(), grant.expiresAt());
             } else {
                 if (ApiV3SocketTicket.CHANNEL_CHAT.equals(c.grant.channel()) && "chat.presence".equals(body.opt("type"))) {
                     if (!body.keySet().equals(Set.of("type", "active")) || !(body.opt("active") instanceof Boolean active) || !valid(c))
@@ -501,6 +503,7 @@ public final class ApiV3RealtimeSessions {
         if (c.closed)
             return;
         c.closed = true;
+        UserOnlineStatus.disconnected(c);
         // 在同一把登记锁内撤销连接、计数和订阅索引，再关闭底层传输。
         synchronized (admission) {
             connections.remove(c.key, c);

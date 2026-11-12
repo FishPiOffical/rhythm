@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -580,7 +581,7 @@ public class OpenIdProcessor {
         final String userId = user.optString(Keys.OBJECT_ID);
         final JSONObject data = new JSONObject();
         data.put(User.USER_NAME, user.optString(User.USER_NAME));
-        data.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+        data.put(UserExt.USER_ONLINE_FLAG, UserOnlineStatus.isOnline(user));
         data.put(UserExt.ONLINE_MINUTE, user.optInt(UserExt.ONLINE_MINUTE));
         data.put(User.USER_URL, user.optString(User.USER_URL));
         data.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));
