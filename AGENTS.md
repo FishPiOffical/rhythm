@@ -13,7 +13,7 @@
 ## 第一方网页登录互通
 
 - 密码登录由 `WebsiteLoginCookies` 绑定旧 `sym-ce` 与 V3 网页令牌家族；Cookie 保持 host-only，Bearer 仍仅在新版内存，不恢复旧 apiKey 桥接。存量未绑定 Cookie 不自动兑换，需重新登录一次。
-- 任一端退出先撤销当前家族再清 Cookie，存储失败保留凭据以便重试；旧 HTTP/WebSocket 同样检查绑定家族。绑定不得写入跨浏览器共享的用户缓存。`/api/v3/auth/session` 仅做可信来源状态探测，不签发令牌；前端聚焦合并检查，无定时轮询。实现与本地验收见 `docs/website-login-interoperability.md`。
+- 任一端退出先撤销当前家族再清 Cookie，存储失败保留凭据以便重试；未绑定或失效 Cookie 退出也须清理 HTTP Session 用户和凭据版本，不能只删 Cookie，否则旧 WebSocket 会保留身份。旧 HTTP/WebSocket 同样检查绑定家族。绑定不得写入跨浏览器共享的用户缓存。`/api/v3/auth/session` 仅做可信来源状态探测，不签发令牌；前端聚焦合并检查，无定时轮询。实现与本地验收见 `docs/website-login-interoperability.md`。
 
 ## 用户关键要求
 - 所有文件不要直接修改 `.css`，而是修改 `.scss`，然后执行 `yarn run build` 生成新的 CSS。js同理，请修改js，而不是min.js，然后同样是通过 `yarn run build` 编译min.js

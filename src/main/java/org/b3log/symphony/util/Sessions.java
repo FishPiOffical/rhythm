@@ -381,10 +381,14 @@ public final class Sessions {
             response.addCookie(cookie);
         }
 
-        SESSION_CACHE.remove(userId);
+        // 匿名或失效 Cookie 的退出仍需清理会话，但不能用空用户标识访问缓存。
+        if (StringUtils.isNotBlank(userId)) {
+            SESSION_CACHE.remove(userId);
+        }
 
         final Session httpSession = request.getSession();
         httpSession.setAttribute(User.USER, null);
+        httpSession.setAttribute("accountCredentialEpoch", null);
 
         //final BeanManager beanManager = BeanManager.getInstance();
         //final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);

@@ -98,19 +98,17 @@ public final class WebsiteLoginCookies {
     public static void logout(final RequestContext context) throws ServiceException {
         ApiV3RefreshCookies.discardFrameworkEcho(context);
         final JSONObject user = Sessions.websiteSession(context.getRequest());
+        final String actor;
         if (user != null) {
-            final String actor = user.getString(Keys.OBJECT_ID);
+            actor = user.getString(Keys.OBJECT_ID);
             final String family = user.getString("websiteFamily");
             if (family != null) BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class).revokeWebsiteFamily(actor, family);
-            Sessions.logout(actor, context.getRequest(), context.getResponse());
         } else {
-            // 即使旧 Cookie 已过期或家族已撤销，也明确清理浏览器里的残留值。
-            final var cookie = new org.b3log.latke.http.Cookie(Sessions.COOKIE_NAME, "");
-            cookie.setPath("/");
-            cookie.setMaxAge(0);
-            cookie.setHttpOnly(true);
-            context.getResponse().addCookie(cookie);
+            final JSONObject current = Sessions.getUser();
+            actor = current == null ? null : current.optString(Keys.OBJECT_ID);
         }
+        // 未绑定旧会话和失效 Cookie 也必须清理服务端身份，阻止已有 WebSocket 继续认证。
+        Sessions.logout(actor, context.getRequest(), context.getResponse());
         context.getResponse().addCookie(ApiV3RefreshCookies.create("", 0));
     }
 }

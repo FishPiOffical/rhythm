@@ -44,3 +44,13 @@
 5. PC 和手机分别检查顶部身份、退出、登录页及编辑页面的行为。生产极验需要真实受限 IP 人工验证，不能由本地白名单结果代替。
 
 状态：待开发者亲自验收；本地提交不代表允许合入或发布。
+
+## 2026-11-12 退出清理回归与配套核查
+
+- 修复未绑定旧 Cookie、失效 Cookie 或缺少 Cookie 时退出只清浏览器 Cookie、遗漏服务端 HTTP Session 身份的问题。所有成功退出分支统一经过 `Sessions.logout`，清理 `User.USER` 和 `accountCredentialEpoch`；已有旧 WebSocket 后续认证不再取得该身份。
+- 绑定会话仍先撤销家族，撤销异常不会提前清理凭据；没有新增接口、变更返回字段或扩大退出到其他浏览器。
+- 长期回归为 `src/test/java/org/b3log/latke/http/WebsiteLoginCookiesTest.java`，使用真实 Latke HTTP/Session/WebSocket 对象和会话缓存；不连接数据库、不启动服务。覆盖未绑定、无效及缺失 Cookie、已有 Socket 身份清理、重复退出、其他会话与用户缓存保留。它不替代绑定家族撤销、数据库故障与浏览器联调验收。
+- 运行入口：设置 `JAVA_HOME` 为 Java 25，`API_V3_TEST_CLASSPATH` 为现有应用编译目录（含资源）、捆绑 Latke JAR 及运行依赖的 classpath，然后执行 `node tools/website-login-cookies-test.mjs`。源码和测试隔离编译到系统临时目录，编译与执行各有 60 秒硬超时，不覆盖 `target/classes`。
+- 本次结果：退出回归 32 项通过；将修复前的 `WebsiteLoginCookies.java` 隔离编译后，同一用例在清理服务端用户的断言失败。令牌/Cookie/PKCE 回归通过；凭据状态脚本提供完整运行依赖后编译闭包通过（默认 IDE 依赖路径在 Windows 缺少 Caffeine，首次运行失败，不计为行为测试）。验证码盾 24 个受保护源码项通过，180 个 JS 文件版本号命中为 0。
+- 本次核查的 Windows `fishpi_website_v3` 工作副本（`b636a6a`）没有上文所述的聚焦会话同步及退出失败重试；其 `auth.ts` 会忽略退出请求错误。后端撤销失败时仍保留刷新 Cookie，该前端重新加载可能恢复登录。上文配套能力与历史验证记录不能作为该副本或当前部署已完整配套的证明；本次仅修复 Rhythm 的退出清理，未修改或验证生产前端。
+- 联调前必须通过 IDEA 重新编译或重启服务端。人工验收还需覆盖升级前旧 Cookie/注册后旧会话在退出后的 Socket 写入拒绝，并分别检查 PC、移动端及独立浏览器。
