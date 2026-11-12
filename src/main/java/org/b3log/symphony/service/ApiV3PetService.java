@@ -26,12 +26,15 @@ import org.b3log.latke.util.Ids;
 import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.PetAccountRepository;
+import org.b3log.symphony.repository.PetActivityRepository;
+import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3PetRules;
+import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3WriteInputs;
@@ -48,6 +51,8 @@ public class ApiV3PetService {
     @Inject private UserPetRepository pets;
     @Inject private PetInventoryRepository inventory;
     @Inject private PetLedgerRepository ledger;
+    @Inject private PetActivityRepository activities;
+    @Inject private PetSkillRepository skills;
     @Inject private ApiV3RequestRepository requests;
     @Inject private ApiV3SecurityProofService proofs;
 
@@ -65,7 +70,7 @@ public class ApiV3PetService {
     }
 
     public JSONObject catalog(final JSONObject identity) {
-        return readTransaction(identity, ApiV3PetRules::catalog);
+        return readTransaction(identity, () -> ApiV3PetActivities.extendCatalog(ApiV3PetRules.catalog()));
     }
 
     public JSONObject read(final JSONObject identity) {
@@ -81,7 +86,14 @@ public class ApiV3PetService {
                     .put("dailySupply", new JSONObject().put("claimed", account != null && today.compareTo(account.getString("supplyDate")) <= 0)
                             .put("coins", ApiV3PetRules.DAILY_COINS).put("food", ApiV3PetRules.DAILY_FOOD));
             if (pet == null) return result.put("pet", JSONObject.NULL).put("inventory", new JSONArray());
-            return result.put("pet", ApiV3PetRules.publicPet(ApiV3PetRules.settle(pet, current), account, today))
+            final JSONObject projected = ApiV3PetRules.publicPet(ApiV3PetRules.settle(pet, current), account, today)
+                    .put("skills", skillState(actor(identity), pet.getString("oId")));
+            final JSONObject active = activeActivity(actor(identity), pet.getString("oId"));
+            if (active != null) {
+                if (!projected.isNull("activity")) throw unavailable();
+                projected.put("activity", ApiV3PetActivities.publicActivity(active, current));
+            }
+            return result.put("pet", projected)
                     .put("inventory", new JSONArray().put(new JSONObject().put("itemId", "food").put("quantity", food(actor(identity)).getInt("quantity"))));
         });
     }
@@ -141,6 +153,7 @@ public class ApiV3PetService {
             final JSONObject account = requiredAccount(actor);
             final long current = now();
             final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
+            requireActivityFree(actor, id);
             if ("rest".equals(pet.getString("activityKind")) && !"wake".equals(action))
                 throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再照顾它吧");
             switch (action) {
@@ -233,6 +246,148 @@ public class ApiV3PetService {
             record(actor, id, "purchase", -price, quantity, current);
             return receipt("purchase", id, current);
         });
+    }
+
+    /** 查询目录只用于新的出发命令；已经开始的活动始终使用数据库冻结的成果。 */
+    protected JSONObject activityEntry(final String kind, final String id) {
+        return ApiV3PetActivities.find(kind, id);
+    }
+
+    public JSONObject startActivity(final JSONObject identity, final JSONObject body, final String key) {
+        exact(body, Set.of("petId", "kind", "entryId", "activityVersion"));
+        final String id = petId(body), kind = string(body, "kind"), entryId = string(body, "entryId");
+        if (!Set.of("outing", "course").contains(kind) || !entryId.matches("[a-z][a-z0-9-]{0,47}"))
+            throw ApiV3WriteInputs.invalid();
+        final int version = ApiV3WriteInputs.integer(body, "activityVersion", -1, 1, Integer.MAX_VALUE);
+        final JSONObject input = new JSONObject().put("petId", id).put("kind", kind)
+                .put("entryId", entryId).put("activityVersion", version);
+        return mutate(identity, "activity-start", key, input, () -> {
+            final String actor = actor(identity);
+            final JSONObject account = requiredAccount(actor);
+            final long current = now();
+            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
+            requireActivityFree(actor, id);
+            if ("rest".equals(pet.getString("activityKind")))
+                throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再出发吧");
+            if (current < pet.getLong("lastCalculatedAt"))
+                throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再出发");
+            if (version != ApiV3PetActivities.VERSION)
+                throw ApiV3PetRules.conflict("catalog_changed", "活动安排已更新，请重新查看");
+            final JSONObject entry = activityEntry(kind, entryId), cost = entry.getJSONObject("cost");
+            final String activityId = Ids.genTimeMillisId();
+            final JSONObject row = new JSONObject().put("oId", activityId).put("userId", actor).put("petId", id)
+                    .put("kind", kind).put("entryId", entryId).put("slotKey", "active:" + actor)
+                    .put("startedAt", current).put("endsAt", Math.addExact(current, entry.getLong("durationMs")))
+                    .put("claimedAt", 0L).put("snapshotJson", new JSONObject().put("version", version).put("entry", entry).toString());
+            ApiV3PetActivities.snapshot(row);
+            if (account.getInt("coins") < cost.getInt("coins"))
+                throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
+            for (String field : Set.of("energy", "hunger", "water")) {
+                if (pet.getDouble(field) < cost.getInt(field))
+                    throw ApiV3PetRules.conflict("not_enough_" + field, "宠物状态不足，先照顾好它再出发吧");
+            }
+            for (String field : Set.of("energy", "hunger", "water")) pet.put(field, pet.getDouble(field) - cost.getInt(field));
+            pet.put("updatedAt", current);
+            account.put("coins", account.getInt("coins") - cost.getInt("coins")).put("updatedAt", current);
+            // 用户行锁与活动槽唯一键同时保护不同幂等键；费用、计时、快照和流水不可分开提交。
+            activities.add(row);
+            pets.update(id, pet, PET_FIELDS);
+            accounts.update(actor, account, ACCOUNT_FIELDS);
+            record(actor, id, "activity-start", -cost.getInt("coins"), 0, current);
+            return receipt("activity-start", id, current).put("activityId", activityId);
+        });
+    }
+
+    public JSONObject claimActivity(final JSONObject identity, final JSONObject body, final String key) {
+        exact(body, Set.of("petId", "activityId"));
+        final String id = petId(body), activityId = string(body, "activityId");
+        if (!activityId.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        final JSONObject input = new JSONObject().put("petId", id).put("activityId", activityId);
+        return mutate(identity, "activity-claim", key, input, () -> {
+            final String actor = actor(identity);
+            requiredAccount(actor);
+            final long current = now();
+            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
+            final var rows = activities.select("SELECT * FROM `" + activities.getName() + "` WHERE oId=? AND userId=? FOR UPDATE", activityId, actor);
+            if (rows.isEmpty()) throw ApiV3Requests.notFound();
+            if (rows.size() != 1) throw unavailable();
+            final JSONObject activity = rows.getFirst();
+            if (!id.equals(activity.optString("petId"))) throw ApiV3Requests.notFound();
+            final JSONObject rewards = ApiV3PetActivities.snapshot(activity).getJSONObject("rewards");
+            if (activity.getLong("claimedAt") > 0)
+                throw ApiV3PetRules.conflict("activity_claimed", "这次活动的成果已经领取了");
+            if (!activityId.equals(requiredActivity(actor, id).getString("oId")) || !pet.getString("activityKind").isEmpty()) throw unavailable();
+            if (current < activity.getLong("endsAt"))
+                throw ApiV3PetRules.conflict("activity_running", "活动还没结束，等宠物回来再领取吧");
+            if (current < pet.getLong("lastCalculatedAt"))
+                throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再领取");
+            // 到时仅变为待领取，读取和重连不发奖；已领取记录持久保留，超过回执保留期也不能重复领取。
+            pet.put("experience", Math.addExact(pet.getInt("experience"), rewards.getInt("experience")))
+                    .put("mood", Math.min(100, pet.getDouble("mood") + rewards.getInt("mood"))).put("updatedAt", current);
+            final var existingSkills = skillRows(actor, id);
+            final JSONArray gains = rewards.getJSONArray("skills");
+            for (int index = 0; index < gains.length(); index++) {
+                final JSONObject gain = gains.getJSONObject(index);
+                final String skillId = gain.getString("id");
+                final JSONObject progress = existingSkills.stream().filter(row -> row.getString("skillId").equals(skillId)).findFirst().orElse(null);
+                if (progress == null) {
+                    skills.add(new JSONObject().put("oId", id + ":" + skillId).put("userId", actor).put("petId", id)
+                            .put("skillId", skillId).put("experience", gain.getInt("experience")).put("updatedAt", current));
+                } else {
+                    progress.put("experience", Math.addExact(progress.getInt("experience"), gain.getInt("experience"))).put("updatedAt", current);
+                    skills.update(progress.getString("oId"), progress, "experience", "updatedAt");
+                }
+            }
+            changeFood(food(actor), rewards.getInt("food"), current);
+            pets.update(id, pet, PET_FIELDS);
+            activity.put("claimedAt", current).put("slotKey", "claimed:" + activityId);
+            activities.update(activityId, activity, "claimedAt", "slotKey");
+            record(actor, id, "activity-claim", 0, rewards.getInt("food"), current);
+            return receipt("activity-claim", id, current).put("activityId", activityId);
+        });
+    }
+
+    private JSONObject activeActivity(final String actor, final String id) throws RepositoryException {
+        final var rows = activities.select("SELECT * FROM `" + activities.getName() + "` WHERE userId=? AND claimedAt=0 FOR UPDATE", actor);
+        if (rows.isEmpty()) return null;
+        if (rows.size() != 1) throw unavailable();
+        final JSONObject row = rows.getFirst();
+        if (!id.equals(row.optString("petId")) || !("active:" + actor).equals(row.optString("slotKey"))) throw unavailable();
+        ApiV3PetActivities.snapshot(row);
+        return row;
+    }
+
+    private JSONObject requiredActivity(final String actor, final String id) throws RepositoryException {
+        final JSONObject active = activeActivity(actor, id);
+        if (active == null) throw unavailable();
+        return active;
+    }
+
+    private void requireActivityFree(final String actor, final String id) throws RepositoryException {
+        if (activeActivity(actor, id) != null)
+            throw ApiV3PetRules.conflict("pet_busy", "宠物正在活动或等待领取成果，完成后再照顾它吧");
+    }
+
+    private java.util.List<JSONObject> skillRows(final String actor, final String id) throws RepositoryException {
+        final var rows = skills.select("SELECT * FROM `" + skills.getName() + "` WHERE petId=? FOR UPDATE", id);
+        final Set<String> seen = new java.util.HashSet<>();
+        for (JSONObject row : rows) {
+            final String skill = row.optString("skillId");
+            if (!actor.equals(row.optString("userId")) || !ApiV3PetActivities.skill(skill) || !seen.add(skill)) throw unavailable();
+            nonnegative(row, "experience");
+        }
+        return rows;
+    }
+
+    private JSONArray skillState(final String actor, final String id) throws RepositoryException {
+        final var rows = skillRows(actor, id);
+        final JSONArray result = new JSONArray();
+        for (var definition : ApiV3PetActivities.SKILLS) {
+            final int experience = rows.stream().filter(row -> row.getString("skillId").equals(definition.id()))
+                    .mapToInt(row -> row.getInt("experience")).findFirst().orElse(0);
+            result.put(new JSONObject().put("id", definition.id()).put("experience", experience).put("level", ApiV3PetActivities.level(experience)));
+        }
+        return result;
     }
 
     private void grow(final JSONObject pet, final JSONObject account, final long current) {

@@ -294,3 +294,5 @@
 - 复读机新旧投稿共用 RepeaterContentModerationService 七牛审核（事务外，异常拒绝）；v3 新回执以 textVersion 区分保留换行规则，旧成功回执仅兼容读。举报 type=4 复用 report；管理员删除须同根软删、职业 targetRemoved 与 operation 审计，PC/mobile 首页及举报后台均有入口。
 
 - 新旧在线状态统一由 `UserOnlineStatus` 登记当前实例的已认证连接：旧 `UserChannel` 与 V3 实时订阅独立计数，最后一个有效连接断开才离线；V3 过期票据不计在线。公开资料遵守 `userOnlineStatus`，数据库 `userOnlineFlag` 不再作为上述资料接口的在线证据；原在线时长结算保留，尚未引入跨实例在线汇总。
+
+- 宠物第二批外出/课程在 ApiV3PetActivities 与 ApiV3PetService，独立 activityVersion；先新增 pet_activity/pet_skill 两表再更新客户端。休息沿原字段；外出/课程使用独立持久槽，待领取也占槽，wake/rest/照顾不得覆盖。成果读取不发奖，开始冻结费用/时长/奖励，领取必须本人+当前 petId+activityId、服务端到期，奖励/claimedAt/清槽/流水/回执同事务。保留领取历史防回执过期后复领，技能属于 petId，不随账号旧宠物继承；无取消/工作/产币。专项与边界见 docs/api-v3-pets-phase-two.md。

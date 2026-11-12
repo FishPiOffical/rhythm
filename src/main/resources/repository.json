@@ -10,6 +10,91 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_activity",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "entryId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "slotKey",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "startedAt",
+          "type": "long"
+        },
+        {
+          "name": "endsAt",
+          "type": "long"
+        },
+        {
+          "name": "claimedAt",
+          "type": "long"
+        },
+        {
+          "name": "snapshotJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
+      "name": "pet_skill",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "skillId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "pet_account",
       "description": "宠物钱包及账号级每日奖励，oId为用户ID",
       "keys": [

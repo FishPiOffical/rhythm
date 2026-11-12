@@ -30,6 +30,8 @@ import org.b3log.latke.http.Response;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.processor.ApiV3PetProcessor;
 import org.b3log.symphony.repository.PetAccountRepository;
+import org.b3log.symphony.repository.PetActivityRepository;
+import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
@@ -58,8 +60,13 @@ public class ApiV3PetTest {
     static class Fixture extends ApiV3IdentityApplicationTest.Fixture {
         long clock = NOW;
         boolean rejectName;
+        boolean rejectActivityCatalog;
         final ApiV3PetService pets = new ApiV3PetService() {
             protected long now() { return clock; }
+            protected JSONObject activityEntry(final String kind, final String id) {
+                if (rejectActivityCatalog) throw new ApiV3Exception(503, "temporarily_unavailable", "测试目录已变更");
+                return super.activityEntry(kind, id);
+            }
             protected void checkName(final String name) {
                 if (rejectName) throw new ApiV3Exception(422, "content_rejected", "测试审核拒绝");
             }
@@ -73,6 +80,20 @@ public class ApiV3PetTest {
             sql(db, "CREATE TABLE user_pet(oId TEXT PRIMARY KEY,userId TEXT UNIQUE,speciesId TEXT,name TEXT,hunger DOUBLE,water DOUBLE,mood DOUBLE,energy DOUBLE,experience INT,friendship INT,lastCalculatedAt BIGINT,activityKind TEXT,activityStartedAt BIGINT,activityEndsAt BIGINT,petAvailableAt BIGINT,playAvailableAt BIGINT,adoptedAt BIGINT,updatedAt BIGINT)");
             sql(db, "CREATE TABLE pet_inventory(oId TEXT PRIMARY KEY,userId TEXT,itemId TEXT,quantity INT,updatedAt BIGINT,UNIQUE(userId,itemId))");
             sql(db, "CREATE TABLE pet_ledger(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,operation TEXT,coinDelta INT,foodDelta INT,createdAt BIGINT)");
+            sql(db, "CREATE TABLE pet_activity(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,kind TEXT,entryId TEXT,slotKey TEXT UNIQUE,startedAt BIGINT,endsAt BIGINT,claimedAt BIGINT,snapshotJson TEXT)");
+            sql(db, "CREATE TABLE pet_skill(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,skillId TEXT,experience INT,updatedAt BIGINT,UNIQUE(petId,skillId))");
+            inject(pets, "activities", new PetActivityRepository() {
+                public String getName() { return "pet_activity"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_activity", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_activity", id, row, fields); }
+            });
+            inject(pets, "skills", new PetSkillRepository() {
+                public String getName() { return "pet_skill"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_skill", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_skill", id, row, fields); }
+            });
             inject(pets, "accounts", new PetAccountRepository() {
                 public String getName() { return "pet_account"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
@@ -152,6 +173,8 @@ public class ApiV3PetTest {
                         case "action" -> endpointPet.action(current);
                         case "supplies" -> endpointPet.supplies(current);
                         case "purchase" -> endpointPet.purchase(current);
+                        case "startActivity" -> endpointPet.startActivity(current);
+                        case "claimActivity" -> endpointPet.claimActivity(current);
                         default -> throw new AssertionError("未知宠物路由");
                     }
                 });

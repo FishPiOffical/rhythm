@@ -21,11 +21,11 @@ function run(name, arguments_) {
   if (result.status !== 0) throw new Error('宠物专项失败');
 }
 try {
-  const sources = ['util/ApiV3PetRules', 'service/ApiV3PetService', 'processor/ApiV3PetProcessor', 'processor/ApiV3Processor',
+  const sources = ['util/ApiV3PetRules', 'util/ApiV3PetActivities', 'service/ApiV3PetService', 'processor/ApiV3PetProcessor', 'processor/ApiV3Processor',
     'util/WebsiteLoginCookies', 'util/ApiV3RefreshCookies', 'util/Sessions', 'service/ApiV3TokenMgmtService',
     'processor/ApiV3ChatTailProcessor', 'service/ApiV3ChatTailService', 'util/ApiV3ChatTail', 'repository/UserChatTailRepository',
-    'repository/PetAccountRepository', 'repository/UserPetRepository', 'repository/PetInventoryRepository', 'repository/PetLedgerRepository'];
-  const tests = ['ApiV3SecurityTest', 'ApiV3IdentityApplicationTest', 'ApiV3QqSettingsTest', 'ApiV3PetTest'];
+    'repository/PetActivityRepository', 'repository/PetSkillRepository', 'repository/PetAccountRepository', 'repository/UserPetRepository', 'repository/PetInventoryRepository', 'repository/PetLedgerRepository'];
+  const tests = ['ApiV3SecurityTest', 'ApiV3IdentityApplicationTest', 'ApiV3QqSettingsTest', 'ApiV3PetTest', 'ApiV3PetActivitiesTest'];
   run('javac', ['--release', '25', '-proc:none', '-encoding', 'UTF-8', '-cp', dependencies, '-d', output,
     ...sources.map(file => `src/main/java/org/b3log/symphony/${file}.java`),
     ...tests.map(file => `src/test/java/org/b3log/symphony/service/${file}.java`)]);
@@ -39,7 +39,8 @@ public class ApiV3Processor {
     public static void error(org.b3log.latke.http.RequestContext context, int status, String code, String msg) { context.attr("test.status", status); context.attr("test.code", code); }
 }`);
   run('javac', ['--release', '25', '-cp', dependencies, '-d', output, shim]);
-  run('java', ['-cp', output + path.delimiter + dependencies, 'org.b3log.symphony.service.ApiV3PetTest']);
+  for (const test of ['ApiV3PetTest', 'ApiV3PetActivitiesTest'])
+    run('java', ['-cp', output + path.delimiter + dependencies, `org.b3log.symphony.service.${test}`]);
 } finally {
   fs.rmSync(output, { recursive: true, force: true });
 }

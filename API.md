@@ -16697,3 +16697,12 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - `POST /api/v3/me/pet/purchases`：`{petId,itemId:"food",quantity,catalogVersion}`，数量 1～20，服务端核价及扣宠物币。
 
 写回执只包含 `{operation,petId,committedAt}`，客户端再读取聚合状态，不把旧回执当当前余额。未知结果使用原内容和原键恢复，不自动创建另一笔消费。协议、试运行参数、迁移与人工验收见 [宠物第一批说明](docs/api-v3-pets-phase-one.md)。
+
+### 宠物外出与学校（第二批）
+
+继续使用上述本人第一方授权与幂等写入。
+
+- `POST /api/v3/me/pet/activities`：`{petId,kind:"outing"|"course",entryId,activityVersion}`，开始三地点或六课程之一，费用/时长/成果由服务端冻结。
+- `POST /api/v3/me/pet/activities/claim`：`{petId,activityId}`，服务器计时到期后领取冻结成果。正在活动及待领取都占用唯一活动槽，不允许照顾/休息覆盖。
+
+目录新增独立 `activityVersion`、六项 `skills`、`places`、`courses`。本人聚合增加 `pet.skills`，新活动包含 `id/kind/entryId/name/startedAt/endsAt/status/cost/rewards`，status 为 `running/claimable`。读取不发奖。写回执为 `{operation,petId,activityId,committedAt}`，operation 为 `activity-start/activity-claim`。成本、成果、状态、迁移顺序与防重复领取约定见 [第二批协议](docs/api-v3-pets-phase-two.md)。

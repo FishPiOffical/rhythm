@@ -52,6 +52,8 @@ public class ApiV3PetProcessor {
         Dispatcher.post("/api/v3/me/pet/actions", processor::action, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/supplies", processor::supplies, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/purchases", processor::purchase, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/pet/activities", processor::startActivity, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/pet/activities/claim", processor::claimActivity, auth::settingsWrite, writes::handle);
     }
 
     public void catalog(final RequestContext context) {
@@ -85,6 +87,16 @@ public class ApiV3PetProcessor {
     public void purchase(final RequestContext context) {
         ApiV3Requests.respond(context, () -> pets.purchase(identity(context),
                 body(context, Set.of("petId", "itemId", "quantity", "catalogVersion")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void startActivity(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> pets.startActivity(identity(context),
+                body(context, Set.of("petId", "kind", "entryId", "activityVersion")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void claimActivity(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> pets.claimActivity(identity(context),
+                body(context, Set.of("petId", "activityId")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     private static JSONObject body(final RequestContext context, final Set<String> fields) {
