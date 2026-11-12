@@ -294,9 +294,12 @@ public final class Sessions {
         JSONObject csrfTokenValue = SESSION_CACHE.get(userId + Common.CSRF_TOKEN);
         if (null == csrfTokenValue) {
             csrfTokenValue = new JSONObject();
-            csrfTokenValue.put(Common.DATA, RandomStringUtils.randomAlphanumeric(12));
+            final String token = RandomStringUtils.randomAlphanumeric(12);
+            csrfTokenValue.put(Common.DATA, token);
 
             SESSION_CACHE.put(userId + Common.CSRF_TOKEN, csrfTokenValue);
+            LOGGER.log(Level.WARN, "CSRF token initialized while reading [userId={}, token={}]",
+                    userId, csrfTokenSummary(token));
         }
 
         return csrfTokenValue.optString(Common.DATA);
@@ -332,8 +335,11 @@ public final class Sessions {
             SESSION_CACHE.put(userId, user);
 
             final JSONObject csrfToken = new JSONObject();
-            csrfToken.put(Common.DATA, RandomStringUtils.randomAlphanumeric(12));
+            final String token = RandomStringUtils.randomAlphanumeric(12);
+            csrfToken.put(Common.DATA, token);
             SESSION_CACHE.put(userId + Common.CSRF_TOKEN, csrfToken);
+            LOGGER.log(Level.WARN, "CSRF token initialized during login [userId={}, token={}]",
+                    userId, csrfTokenSummary(token));
 
             final JSONObject cookieJSONObject = new JSONObject();
             cookieJSONObject.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
@@ -636,6 +642,10 @@ public final class Sessions {
     public static void invalidate(final String userId) {
         SESSION_CACHE.remove(userId);
         SESSION_CACHE.remove(userId + Common.CSRF_TOKEN);
+    }
+
+    private static String csrfTokenSummary(final String token) {
+        return token.substring(0, 4) + "****" + token.substring(token.length() - 4);
     }
 
     /**
