@@ -19,12 +19,16 @@
 package org.b3log.symphony.processor.middleware;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.renderer.AbstractResponseRenderer;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.model.User;
 import org.b3log.latke.service.LangPropsService;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.util.Sessions;
@@ -42,6 +46,8 @@ import java.util.Map;
  */
 @Singleton
 public class CSRFMidware {
+
+    private static final Logger LOGGER = LogManager.getLogger(CSRFMidware.class);
 
     /**
      * Language service.
@@ -67,7 +73,10 @@ public class CSRFMidware {
 
         // 1. Check Referer
         final String referer = context.header("Referer");
-        if (!StringUtils.startsWith(referer, StringUtils.substringBeforeLast(Latkes.getServePath(), ":"))) {
+        final boolean refererValid = StringUtils.startsWith(referer,
+                StringUtils.substringBeforeLast(Latkes.getServePath(), ":"));
+        if (!refererValid) {
+            logFailure(context, "referer", null, null, refererValid);
             context.renderJSON(exception);
             context.abort();
             return;
@@ -78,11 +87,41 @@ public class CSRFMidware {
         final String serverToken = Sessions.getCSRFToken(context);
 
         if (!StringUtils.equals(clientToken, serverToken)) {
+            logFailure(context, "token", clientToken, serverToken, refererValid);
             context.renderJSON(exception);
             context.abort();
             return;
         }
 
         context.handle();
+    }
+
+    /** 记录 CSRF 失败的最小诊断信息，不写入完整令牌、Cookie 或 Referer。 */
+    private void logFailure(final RequestContext context, final String reason,
+                            final String clientToken, final String serverToken,
+                            final boolean refererValid) {
+        final JSONObject attrUser = (JSONObject) context.attr(User.USER);
+        final JSONObject sessionUser = Sessions.getUser();
+        LOGGER.log(Level.WARN,
+                "CSRF check failed [uri={}, reason={}, refererValid={}, attrUserId={}, sessionUserId={}, "
+                        + "clientToken={}, serverToken={}]",
+                context.requestURI(), reason, refererValid, userId(attrUser), userId(sessionUser),
+                tokenSummary(clientToken), tokenSummary(serverToken));
+    }
+
+    private String userId(final JSONObject user) {
+        return null == user ? "" : user.optString(Keys.OBJECT_ID, "");
+    }
+
+    private String tokenSummary(final String token) {
+        if (StringUtils.isBlank(token)) {
+            return "len=0";
+        }
+        final String value = token.trim();
+        if (value.length() <= 8) {
+            return "len=" + value.length() + ",value=****";
+        }
+        return "len=" + value.length() + ",value=" + value.substring(0, 4) + "****"
+                + value.substring(value.length() - 4);
     }
 }
