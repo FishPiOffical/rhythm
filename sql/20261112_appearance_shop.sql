@@ -34,20 +34,20 @@ CREATE TABLE IF NOT EXISTS `symphony_appearance_purchase` (
  KEY `idx_appearance_purchase_owner` (`userId`,`createdAt`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-paipai-scooter',1024,3584,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-paipai-scooter',256,896,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-paper-plane',1024,3584,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-paper-plane',256,896,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-deepsea-submarine',2048,7168,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('mount-deepsea-submarine',256,896,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-sea-soda',256,896,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-sea-soda',64,224,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-sunset-letter',256,896,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-sunset-letter',64,224,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-star-route',512,1792,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('bubble-star-route',64,224,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-tide',256,896,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-tide',64,224,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-paipai-stamp',256,896,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-paipai-stamp',64,224,1,1);
 
-INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-star-ring',512,1792,1,1);
+INSERT IGNORE INTO `symphony_appearance_product` (oId,price7,price30,enabled,revision) VALUES ('frame-star-ring',64,224,1,1);
