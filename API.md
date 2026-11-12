@@ -4456,7 +4456,7 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/messages' \
 | - id | 消息 ID | 1792304100000 |
 | - createdAt | 发送时间 | 1792304100000 |
 
-> 只接受普通正文；完整的红包、音乐、天气、话题、弹幕业务包装，执法/zf命令，以及红包/天气/音乐卡片 JSON 返回 HTTP 422（special_message_required）。解释性引用按普通正文发送，不执行业务命令或自动 AI 回复。
+> 普通正文也支持管理员执法命令：账号具备旧版执法权限时，`执法` 或 `zf` 前缀会复用旧聊天室命令处理；无权限返回 HTTP 403（forbidden）。命令首次提交成功后执行一次，同键同内容重试不会重复执行。完整的红包、音乐、天气、话题、弹幕业务包装及红包/天气/音乐卡片 JSON 仍返回 HTTP 422（special_message_required）；解释性引用按普通正文发送，不执行业务命令或自动 AI 回复。
 >
 > 正文按平台规则处理并去除首尾空白。client 使用支持的品牌和格式，不能识别的标记不展示。未绑定手机或当前账号不可发言时拒绝发送；需要再次确认正文时返回 HTTP 409（confirmation_required），请使用原 Idempotency-Key 和原请求体再次发送。
 >

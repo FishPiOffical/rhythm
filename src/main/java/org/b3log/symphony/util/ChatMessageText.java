@@ -28,13 +28,23 @@ public final class ChatMessageText {
     private static final String[] TAGS = {"redpacket", "weather", "music", "setdiscuss", "barrager"};
     private ChatMessageText() { }
 
+    /** 保留旧版命令前缀，执行权限由可信用户资料判断。 */
+    public static boolean isLawCommand(final String content) {
+        return content != null && (content.startsWith("执法") || content.startsWith("zf"));
+    }
+
     /** Call on both raw and moderated text; reserved-word replacement must not introduce commands. */
     public static void requireOrdinary(final String content) {
+        requireMessage(content, false);
+    }
+
+    /** 仅发送入口可接纳执法正文；红包、音乐等业务包装仍走专用接口。 */
+    public static void requireMessage(final String content, final boolean allowLawCommand) {
         if (content == null || content.isBlank() || content.length() > ChatMessageValidation.MAX_CONTENT_LENGTH) {
             throw new ApiV3Exception(422, "invalid_content", "聊天消息内容为空或过多（大于4096字符）");
         }
         final String text = content.strip();
-        boolean reserved = text.startsWith("执法") || text.startsWith("zf");
+        boolean reserved = isLawCommand(text) && !allowLawCommand;
         for (final String tag : TAGS) {
             if (text.startsWith("[" + tag + "]") && text.endsWith("[/" + tag + "]")) reserved = true;
         }

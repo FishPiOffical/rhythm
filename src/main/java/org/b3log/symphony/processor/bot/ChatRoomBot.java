@@ -29,6 +29,8 @@ import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
+import org.b3log.latke.http.Request;
+import org.b3log.symphony.util.ChatMessageText;
 import org.b3log.latke.http.WebSocketSession;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.model.User;
@@ -123,6 +125,417 @@ public class ChatRoomBot {
         return true;
     }
 
+    /** 新旧入口共用执法处理；身份由调用方认证，禁止在可自动重试的事务回调中执行。 */
+    public static boolean handleLawCommand(final Request request,
+                                           final JSONObject currentUser, final String content) {
+        if (currentUser == null || !DataModelService.hasPermission(currentUser.optString(User.USER_ROLE), 3)
+                || !ChatMessageText.isLawCommand(content)) {
+            return false;
+        }
+        try {
+            String cmd1 = content.replaceAll("(执法)(\\s)+", "").replaceAll("(zf)(\\s)+", "");
+            String cmd2 = cmd1.split("\\s")[0];
+            switch (cmd2) {
+                case "jy":
+                    cmd2 = "禁言";
+                    break;
+                case "qyjy":
+                    cmd2 = "全员禁言";
+                    break;
+                case "fk":
+                    cmd2 = "风控";
+                    break;
+                case "fwqzt":
+                    cmd2 = "服务器状态";
+                    break;
+                case "sxhc":
+                    cmd2 = "刷新缓存";
+                    break;
+                case "gbsz":
+                    cmd2 = "广播设置";
+                    break;
+                case "wh":
+                    cmd2 = "维护";
+                    break;
+                case "cf":
+                    cmd2 = "处罚";
+                    break;
+                case "dkhh":
+                    cmd2 = "断开会话";
+                    break;
+                case "dm":
+                    cmd2 = "弹幕";
+                    break;
+                case "jcts":
+                    cmd2 = "进出提示";
+                    break;
+                case "hs":
+                    cmd2 = "回溯";
+                    break;
+            }
+            switch (cmd2) {
+                case "禁言":
+                    try {
+                        String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
+                        String time = "";
+                        try {
+                            time = cmd1.split("\\s")[2];
+                        } catch (Exception ignored) {
+                        }
+                        final BeanManager beanManager = BeanManager.getInstance();
+                        UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
+                        JSONObject targetUser = userQueryService.getUserByName(user);
+                        if (null == targetUser) {
+                            sendBotMsg("指令执行失败，用户不存在。");
+                            break;
+                        }
+                        String targetUserId = targetUser.optString(Keys.OBJECT_ID);
+                        if (time.isEmpty()) {
+                            int muted = muted(targetUserId);
+                            // 是否全员禁言中
+                            boolean isAll = muted < 0 && muted != -1;
+                            if (isAll){
+                                // 回正
+                                muted *= -1;
+                            }
+                            if (muted != -1) {
+                                int muteDay = muted / (24 * 60 * 60);
+                                int muteHour = muted % (24 * 60 * 60) / (60 * 60);
+                                int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
+                                int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
+                                sendBotMsg("查询结果：该用户剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
+                            } else if (isAll){
+                                int muteDay = muted / (24 * 60 * 60);
+                                int muteHour = muted % (24 * 60 * 60) / (60 * 60);
+                                int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
+                                int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
+                                sendBotMsg("查询结果：全员禁言中 剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
+                            }else {
+                                sendBotMsg("查询结果：该用户当前未被禁言。");
+                            }
+                        } else {
+                            int minute = Integer.parseInt(time);
+                            muteAndNotice(user, targetUserId, minute);
+                        }
+                    } catch (Exception e) {
+                        sendBotMsg("指令执行失败，禁言命令的正确格式：\n执法 禁言 @[用户名] [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]");
+                    }
+                    break;
+                case "全员禁言":
+                    try {
+                        String time = "";
+                        try {
+                            time = cmd1.split("\\s")[1];
+                        } catch (Exception ignored) {
+                            // 切出去. 什么也不干. 拿不到命令
+                        }
+                        // 目标特殊 key 全员禁言
+                        String targetUserId = "all:fish:mute";
+                        if (time.isEmpty()) {
+                            int muted = muted(targetUserId);
+                            if (muted != -1) {
+                                int muteDay = muted / (24 * 60 * 60);
+                                int muteHour = muted % (24 * 60 * 60) / (60 * 60);
+                                int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
+                                int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
+                                sendBotMsg("查询结果：全员剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
+                            } else {
+                                sendBotMsg("查询结果：当前未开启全员禁言。");
+                            }
+                        } else {
+                            int minute = Integer.parseInt(time);
+                            // 全员禁言
+                            allMuteAndNotice(currentUser.optString(User.USER_NAME), targetUserId, minute);
+                        }
+                    } catch (Exception e) {
+                        sendBotMsg("指令执行失败，禁言命令的正确格式：\n执法 全员禁言 [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]");
+                    }
+                    break;
+                case "风控":
+                    try {
+                        String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
+                        String time = "";
+                        try {
+                            time = cmd1.split("\\s")[2];
+                        } catch (Exception ignored) {
+                        }
+                        final BeanManager beanManager = BeanManager.getInstance();
+                        UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
+                        JSONObject targetUser = userQueryService.getUserByName(user);
+                        if (null == targetUser) {
+                            sendBotMsg("指令执行失败，用户不存在。");
+                            break;
+                        }
+                        String targetUserId = targetUser.optString(Keys.OBJECT_ID);
+                        if (time.isEmpty()) {
+                            int risksControlled = risksControlled(targetUserId);
+                            if (risksControlled != -1) {
+                                int risksControlDay = risksControlled / (24 * 60 * 60);
+                                int risksControlHour = risksControlled % (24 * 60 * 60) / (60 * 60);
+                                int risksControlMinute = risksControlled % (24 * 60 * 60) % (60 * 60) / 60;
+                                int risksControlSecond = risksControlled % (24 * 60 * 60) % (60 * 60) % 60;
+                                sendBotMsg("查询结果：该用户剩余风控时间为：" + risksControlDay + " 天 " + risksControlHour + " 小时 " + risksControlMinute + " 分 " + risksControlSecond + " 秒。");
+                            } else {
+                                sendBotMsg("查询结果：该用户当前未被风控。");
+                            }
+                        } else {
+                            int minute = Integer.parseInt(time);
+                            risksControlAndNotice(user, targetUserId, minute);
+                        }
+                    } catch (Exception e) {
+                        sendBotMsg("指令执行失败，风控命令的正确格式：\n执法 风控 @[用户名] [时间 `单位：分钟` `如不填此项将查询剩余风控时间` `设置为0将解除风控`]\n\n" +
+                                "风控内容：\n" +
+                                "* 每次发消息，需要二次确认\n" +
+                                "* 限制发送最少字数、不允许单发一张图片\n" +
+                                "* 限制通过聊天室获取的活跃度，每15分钟仅有效1条\n" +
+                                "* 每30分钟只允许抢一次红包");
+                    }
+                    break;
+                case "服务器状态":
+                    Map<String, Integer> sessionList = new HashMap<>();
+                    for (WebSocketSession session : ChatroomChannel.SESSIONS) {
+                        try {
+                            String uName = ChatroomChannel.onlineUsers.get(session).optString(User.USER_NAME);
+                            if (sessionList.containsKey(uName)) {
+                                sessionList.put(uName, sessionList.get(uName) + 1);
+                            } else {
+                                sessionList.put(uName, 1);
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    StringBuilder userSessionList = new StringBuilder();
+                    userSessionList.append("<details><summary>故障转移区（" + ChatroomChannel.SESSIONS.size() + "人）</summary>");
+                    for (Map.Entry<String, Integer> s : sessionList.entrySet()) {
+                        userSessionList.append(s.getKey() + " " + s.getValue() + "<br>");
+                    }
+                    userSessionList.append("</details>");
+                    for (String key : NodeUtil.nodeNickNames.keySet()) {
+                        String nickName = NodeUtil.nodeNickNames.get(key);
+                        HashMap<String, Integer> map = NodeUtil.remoteUserPerNode.get(key);
+                        if (null == map) {
+                            continue;
+                        }
+                        int count = 0;
+                        for (String i : map.keySet()) {
+                            count += map.get(i);
+                        }
+                        userSessionList.append("<details><summary>" + nickName + "（" + count + "人）</summary>");
+                        for (String i : map.keySet()) {
+                            int onlineNum = map.get(i);
+                            userSessionList.append(i + " " + onlineNum + "<br>");
+                        }
+                        userSessionList.append("</details>");
+                    }
+                    int sessions = ChatroomChannel.SESSIONS.size() + NodeUtil.remoteUsers.length();
+                    sendBotMsg("" +
+                            "当前聊天室会话数：" + sessions + "\n" +
+                            userSessionList);
+                    break;
+                case "刷新缓存":
+                    ChatroomChannel.sendOnlineMsg();
+                    int online = ChatroomChannel.SESSIONS.size();
+                    int estimatedTime = online / 2;
+                    clearScreen();
+                    sendBotMsg("在线人数缓存刷新请求已提交，预计需要时间 **" + estimatedTime + "** 秒。\n" +
+                            "在线用户全体清屏请求已提交，预计需要时间 **" + estimatedTime + "** 秒。");
+                    break;
+                case "广播设置":
+                    try {
+                        int notQuickCheck = Integer.parseInt(cmd1.split("\\s")[1]);
+                        int notQuickSleep = Integer.parseInt(cmd1.split("\\s")[2]);
+                        int quickCheck = Integer.parseInt(cmd1.split("\\s")[3]);
+                        int quickSleep = Integer.parseInt(cmd1.split("\\s")[4]);
+                        ChatroomChannel.notQuickCheck = notQuickCheck;
+                        ChatroomChannel.notQuickSleep = notQuickSleep;
+                        ChatroomChannel.quickCheck = quickCheck;
+                        ChatroomChannel.quickSleep = quickSleep;
+                        sendBotMsg("广播设置成功。");
+                    } catch (Exception e) {
+                        sendBotMsg("当前参数：" + ChatroomChannel.notQuickCheck + " " + ChatroomChannel.notQuickSleep + " " + ChatroomChannel.quickCheck + " " + ChatroomChannel.quickSleep);
+                    }
+                    break;
+                case "断开会话":
+                    try {
+                        String disconnectUser = cmd1.split("\\s")[1];
+                        sendBotMsg("@" + disconnectUser + "  你的连接被管理员断开，请重新连接。");
+                        Thread.startVirtualThread(() -> {
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            NodeUtil.sendKick(disconnectUser);
+                            List<WebSocketSession> senderSessions = new ArrayList<>();
+                            for (Map.Entry<WebSocketSession, JSONObject> entry : ChatroomChannel.onlineUsers.entrySet()) {
+                                try {
+                                    String tempUserName = entry.getValue().optString(User.USER_NAME);
+                                    if (tempUserName.equals(disconnectUser)) {
+                                        senderSessions.add(entry.getKey());
+                                    }
+                                } catch (Exception ignored) {
+                                }
+                            }
+                            for (WebSocketSession session : senderSessions) {
+                                ChatroomChannel.removeSession(session);
+                            }
+                            JdbcRepository.dispose();
+                        });
+                    } catch (Exception e) {
+                        sendBotMsg("参数错误。");
+                    }
+                    break;
+                case "维护":
+                    Map<String, Long> result = ChatroomChannel.check();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (result.isEmpty()) {
+                        sendBotMsg("故障转移区：报告！没有超过6小时未活跃的成员，一切都很和谐~");
+                    } else {
+                        stringBuilder.append("故障转移区：报告！成功扫描超过6小时未活跃的成员，并已将他们断开连接：<br>");
+                        stringBuilder.append("<details><summary>不活跃用户列表</summary>");
+                        for (String i : result.keySet()) {
+                            long time = result.get(i);
+                            stringBuilder.append(i + " AFK " + time + "小时<br>");
+                        }
+                        stringBuilder.append("</details>");
+                        sendBotMsg(stringBuilder.toString());
+                    }
+                    NodeUtil.sendClear();
+                    break;
+                case "处罚":
+                    try {
+                        String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
+                        int point = Integer.parseInt(cmd1.split("\\s")[2].replaceAll("[-.]", ""));
+                        String reas0n = cmd1.split("\\s")[3];
+                        final BeanManager beanManager = BeanManager.getInstance();
+                        UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
+                        JSONObject targetUser = userQueryService.getUserByName(user);
+                        if (null == targetUser) {
+                            sendBotMsg("指令执行失败，用户不存在。");
+                            break;
+                        }
+                        String targetUserId = targetUser.optString(Keys.OBJECT_ID);
+
+                        PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
+                        OperationMgmtService operationMgmtService = beanManager.getReference(OperationMgmtService.class);
+                        NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
+
+                        final String transferId = pointtransferMgmtService.transfer(targetUserId, Pointtransfer.ID_C_SYS,
+                                Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT, point, reas0n, System.currentTimeMillis(), "");
+                        operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_DEDUCT_POINT, transferId, currentUser));
+
+                        final JSONObject notification = new JSONObject();
+                        notification.put(Notification.NOTIFICATION_USER_ID, targetUserId);
+                        notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
+                        notificationMgmtService.addAbusePointDeductNotification(notification);
+
+                        sendBotMsg("成功扣除成员 " + user + " 的 " + point + " 积分，原因：" + reas0n);
+                    } catch (Exception e) {
+                        sendBotMsg("参数错误。");
+                    }
+                    break;
+                case "弹幕":
+                    try {
+                        int cost = Integer.parseInt(cmd1.split("\\s")[1]);
+                        String unit = cmd1.split("\\s")[2];
+                        ChatroomProcessor.setBarragerPrice(cost, unit);
+                        refreshBarrager(cost, unit);
+                        sendBotMsg("弹幕价格设置为: **" + cost + "** " + unit + "/次。\n" +
+                                "弹幕价格将在下次重启服务器后自动恢复为默认值 (5积分/次)。\n" +
+                                "正在向成员推送新的弹幕价格，预计需要 **" + (ChatroomChannel.SESSIONS.size() / 2) + "** 秒。");
+                    } catch (Exception e) {
+                        sendBotMsg("参数错误。");
+                    }
+                    break;
+                case "进出提示":
+                    try {
+                        String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
+                        if (user.equals("查询") || user.equals("cx")) {
+                            String uname = cmd1.split("\\s")[2];
+                            String join = ChatroomChannel.getCustomMessage(1, uname);
+                            if (join.isEmpty()) {
+                                join = "未设定";
+                            }
+                            String left = ChatroomChannel.getCustomMessage(0, uname);
+                            if (left.isEmpty()) {
+                                left = "未设定";
+                            }
+                            sendBotMsg("用户 **" + uname + "** 的进出提示设定如下：\n" +
+                                    "进入：" + join + "\n" +
+                                    "离开：" + left + "\n");
+                        } else if (user.equals("帮助") || user.equals("bz")) {
+                            sendBotMsg("**进出提示变量**：\n" +
+                                    "设置格式：执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]" +
+                                    "{userName} 用户名\n" +
+                                    "{userNickName} 用户昵称\n" +
+                                    "{userPoint} 用户积分余额\n" +
+                                    "{userLevel} 用户VIP等级（如过期会为空）\n" +
+                                    "{userNo} 用户编号\n" +
+                                    "{userCity} 用户所在城市"
+                            );
+                        } else {
+                            if (currentUser.optString(User.USER_ROLE).equals(Role.ROLE_ID_C_ADMIN)) {
+                                if (cmd1.split("\\s").length == 2) {
+                                    ChatroomChannel.removeCustomMessage(user);
+                                    sendBotMsg("用户 **" + user + "** 的进出提示已关闭。");
+                                } else if (cmd1.split("\\s").length >= 3) {
+                                    String msg = content.replaceAll("执法 ", "")
+                                            .replaceAll("zf ", "")
+                                            .replaceAll("进出提示 ", "")
+                                            .replaceAll("jcts ", "")
+                                            .replaceAll(user + " ", "");
+                                    ChatroomChannel.addCustomMessage(user, msg);
+                                    sendBotMsg("用户 **" + user + "** 的进出提示已设置完毕。");
+                                }
+                            } else {
+                                sendBotMsg("操作失败，权限不足。");
+                            }
+                        }
+                    } catch (Exception e) {
+                        sendBotMsg("参数错误。");
+                    }
+                    break;
+                case "回溯":
+                    if (!AIProviderFactory.isChatroomRecapAvailable()) {
+                        sendBotMsg("回溯功能未启用。");
+                        break;
+                    }
+                    sendBotMsg("正在回溯近2小时的聊天记录，请稍候...");
+                    Thread.startVirtualThread(() -> {
+                        try {
+                            generateChatRecap();
+                        } catch (Exception e) {
+                            LOGGER.log(Level.ERROR, "Chat recap failed", e);
+                            sendBotMsg("回溯失败，请稍后重试。");
+                        }
+                    });
+                    break;
+                default:
+                    sendBotMsg("<details><summary>执法帮助菜单</summary>\n" +
+                            "如无特殊备注，则需要纪律委员及以上分组才可执行\n\n" +
+                            "* **禁言指定用户** 执法 禁言 [用户名] [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]\n" +
+                            "* **全员禁言** 执法 全员禁言 [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除全员禁言`]\n" +
+                            "* **风控模式** 执法 风控 [用户名] [时间 `单位：分钟` `如不填此项将查询剩余风控时间` `设置为0将解除风控`]\n" +
+                            "* **查询服务器状态** 执法 服务器状态\n" +
+                            "* **刷新全体成员的聊天室缓存** 执法 刷新缓存\n" +
+                            "* **广播设置** 执法 广播设置 [普通消息数目检测阈值] [普通消息间隔毫秒] [特殊消息数目检测阈值] [特殊消息间隔毫秒]\n" +
+                            "* **检测聊天室内长时间不发言的成员，并将其移除** 执法 维护\n" +
+                            "* **扣除指定成员的积分** 执法 处罚 [用户名] [扣除积分数量] [理由]\n" +
+                            "* **断开指定用户的全部聊天室会话** 执法 断开会话 [用户名]\n" +
+                            "* **进出提示恢复默认（未经管理员允许禁止使用）** 执法 进出提示 [用户名]\n" +
+                            "* **设置进出提示（详细变量列表请输入：执法 进出提示 帮助）** 执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]\n" +
+                            "* **查询进出提示** 执法 进出提示 查询 [用户名]\n" +
+                            "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]\n" +
+                            "* **AI总结近2小时聊天内容** 执法 回溯</details>\n" +
+                            "<p></p>");
+            }
+            return true;
+        } catch (Exception ignored) {
+            sendBotMsg("指令执行失败。");
+        }
+        return false;
+    }
+
     // 记录并分析消息是否可疑
     public static boolean record(final RequestContext context) {
         boolean pass = true;
@@ -172,413 +585,9 @@ public class ChatRoomBot {
         }
         // ==! 发弹幕频率限制 !==
 
-        // ==? 指令 ?==
-        if (DataModelService.hasPermission(currentUser.optString(User.USER_ROLE), 3)) {
-            if (content.startsWith("执法") || content.startsWith("zf")) {
-                try {
-                    String cmd1 = content.replaceAll("(执法)(\\s)+", "").replaceAll("(zf)(\\s)+", "");
-                    String cmd2 = cmd1.split("\\s")[0];
-                    switch (cmd2) {
-                        case "jy":
-                            cmd2 = "禁言";
-                            break;
-                        case "qyjy":
-                            cmd2 = "全员禁言";
-                            break;
-                        case "fk":
-                            cmd2 = "风控";
-                            break;
-                        case "fwqzt":
-                            cmd2 = "服务器状态";
-                            break;
-                        case "sxhc":
-                            cmd2 = "刷新缓存";
-                            break;
-                        case "gbsz":
-                            cmd2 = "广播设置";
-                            break;
-                        case "wh":
-                            cmd2 = "维护";
-                            break;
-                        case "cf":
-                            cmd2 = "处罚";
-                            break;
-                        case "dkhh":
-                            cmd2 = "断开会话";
-                            break;
-                        case "dm":
-                            cmd2 = "弹幕";
-                            break;
-                        case "jcts":
-                            cmd2 = "进出提示";
-                            break;
-                        case "hs":
-                            cmd2 = "回溯";
-                            break;
-                    }
-                    switch (cmd2) {
-                        case "禁言":
-                            try {
-                                String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
-                                String time = "";
-                                try {
-                                    time = cmd1.split("\\s")[2];
-                                } catch (Exception ignored) {
-                                }
-                                final BeanManager beanManager = BeanManager.getInstance();
-                                UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
-                                JSONObject targetUser = userQueryService.getUserByName(user);
-                                if (null == targetUser) {
-                                    sendBotMsg("指令执行失败，用户不存在。");
-                                    break;
-                                }
-                                String targetUserId = targetUser.optString(Keys.OBJECT_ID);
-                                if (time.isEmpty()) {
-                                    int muted = muted(targetUserId);
-                                    // 是否全员禁言中
-                                    boolean isAll = muted < 0 && muted != -1;
-                                    if (isAll){
-                                        // 回正
-                                        muted *= -1;
-                                    }
-                                    if (muted != -1) {
-                                        int muteDay = muted / (24 * 60 * 60);
-                                        int muteHour = muted % (24 * 60 * 60) / (60 * 60);
-                                        int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
-                                        int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
-                                        sendBotMsg("查询结果：该用户剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
-                                    } else if (isAll){
-                                        int muteDay = muted / (24 * 60 * 60);
-                                        int muteHour = muted % (24 * 60 * 60) / (60 * 60);
-                                        int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
-                                        int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
-                                        sendBotMsg("查询结果：全员禁言中 剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
-                                    }else {
-                                        sendBotMsg("查询结果：该用户当前未被禁言。");
-                                    }
-                                } else {
-                                    int minute = Integer.parseInt(time);
-                                    muteAndNotice(user, targetUserId, minute);
-                                }
-                            } catch (Exception e) {
-                                sendBotMsg("指令执行失败，禁言命令的正确格式：\n执法 禁言 @[用户名] [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]");
-                            }
-                            break;
-                        case "全员禁言":
-                            try {
-                                String time = "";
-                                try {
-                                    time = cmd1.split("\\s")[1];
-                                } catch (Exception ignored) {
-                                    // 切出去. 什么也不干. 拿不到命令
-                                }
-                                // 目标特殊 key 全员禁言
-                                String targetUserId = "all:fish:mute";
-                                if (time.isEmpty()) {
-                                    int muted = muted(targetUserId);
-                                    if (muted != -1) {
-                                        int muteDay = muted / (24 * 60 * 60);
-                                        int muteHour = muted % (24 * 60 * 60) / (60 * 60);
-                                        int muteMinute = muted % (24 * 60 * 60) % (60 * 60) / 60;
-                                        int muteSecond = muted % (24 * 60 * 60) % (60 * 60) % 60;
-                                        sendBotMsg("查询结果：全员剩余禁言时间为：" + muteDay + " 天 " + muteHour + " 小时 " + muteMinute + " 分 " + muteSecond + " 秒。");
-                                    } else {
-                                        sendBotMsg("查询结果：当前未开启全员禁言。");
-                                    }
-                                } else {
-                                    int minute = Integer.parseInt(time);
-                                    // 全员禁言
-                                    allMuteAndNotice(currentUser.optString(User.USER_NAME), targetUserId, minute);
-                                }
-                            } catch (Exception e) {
-                                sendBotMsg("指令执行失败，禁言命令的正确格式：\n执法 全员禁言 [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]");
-                            }
-                            break;
-                        case "风控":
-                            try {
-                                String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
-                                String time = "";
-                                try {
-                                    time = cmd1.split("\\s")[2];
-                                } catch (Exception ignored) {
-                                }
-                                final BeanManager beanManager = BeanManager.getInstance();
-                                UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
-                                JSONObject targetUser = userQueryService.getUserByName(user);
-                                if (null == targetUser) {
-                                    sendBotMsg("指令执行失败，用户不存在。");
-                                    break;
-                                }
-                                String targetUserId = targetUser.optString(Keys.OBJECT_ID);
-                                if (time.isEmpty()) {
-                                    int risksControlled = risksControlled(targetUserId);
-                                    if (risksControlled != -1) {
-                                        int risksControlDay = risksControlled / (24 * 60 * 60);
-                                        int risksControlHour = risksControlled % (24 * 60 * 60) / (60 * 60);
-                                        int risksControlMinute = risksControlled % (24 * 60 * 60) % (60 * 60) / 60;
-                                        int risksControlSecond = risksControlled % (24 * 60 * 60) % (60 * 60) % 60;
-                                        sendBotMsg("查询结果：该用户剩余风控时间为：" + risksControlDay + " 天 " + risksControlHour + " 小时 " + risksControlMinute + " 分 " + risksControlSecond + " 秒。");
-                                    } else {
-                                        sendBotMsg("查询结果：该用户当前未被风控。");
-                                    }
-                                } else {
-                                    int minute = Integer.parseInt(time);
-                                    risksControlAndNotice(user, targetUserId, minute);
-                                }
-                            } catch (Exception e) {
-                                sendBotMsg("指令执行失败，风控命令的正确格式：\n执法 风控 @[用户名] [时间 `单位：分钟` `如不填此项将查询剩余风控时间` `设置为0将解除风控`]\n\n" +
-                                        "风控内容：\n" +
-                                        "* 每次发消息，需要二次确认\n" +
-                                        "* 限制发送最少字数、不允许单发一张图片\n" +
-                                        "* 限制通过聊天室获取的活跃度，每15分钟仅有效1条\n" +
-                                        "* 每30分钟只允许抢一次红包");
-                            }
-                            break;
-                        case "服务器状态":
-                            Map<String, Integer> sessionList = new HashMap<>();
-                            for (WebSocketSession session : ChatroomChannel.SESSIONS) {
-                                try {
-                                    String uName = ChatroomChannel.onlineUsers.get(session).optString(User.USER_NAME);
-                                    if (sessionList.containsKey(uName)) {
-                                        sessionList.put(uName, sessionList.get(uName) + 1);
-                                    } else {
-                                        sessionList.put(uName, 1);
-                                    }
-                                } catch (Exception ignored) {
-                                }
-                            }
-                            StringBuilder userSessionList = new StringBuilder();
-                            userSessionList.append("<details><summary>故障转移区（" + ChatroomChannel.SESSIONS.size() + "人）</summary>");
-                            for (Map.Entry<String, Integer> s : sessionList.entrySet()) {
-                                userSessionList.append(s.getKey() + " " + s.getValue() + "<br>");
-                            }
-                            userSessionList.append("</details>");
-                            for (String key : NodeUtil.nodeNickNames.keySet()) {
-                                String nickName = NodeUtil.nodeNickNames.get(key);
-                                HashMap<String, Integer> map = NodeUtil.remoteUserPerNode.get(key);
-                                if (null == map) {
-                                    continue;
-                                }
-                                int count = 0;
-                                for (String i : map.keySet()) {
-                                    count += map.get(i);
-                                }
-                                userSessionList.append("<details><summary>" + nickName + "（" + count + "人）</summary>");
-                                for (String i : map.keySet()) {
-                                    int onlineNum = map.get(i);
-                                    userSessionList.append(i + " " + onlineNum + "<br>");
-                                }
-                                userSessionList.append("</details>");
-                            }
-                            int sessions = ChatroomChannel.SESSIONS.size() + NodeUtil.remoteUsers.length();
-                            sendBotMsg("" +
-                                    "当前聊天室会话数：" + sessions + "\n" +
-                                    userSessionList);
-                            break;
-                        case "刷新缓存":
-                            ChatroomChannel.sendOnlineMsg();
-                            int online = ChatroomChannel.SESSIONS.size();
-                            int estimatedTime = online / 2;
-                            clearScreen();
-                            sendBotMsg("在线人数缓存刷新请求已提交，预计需要时间 **" + estimatedTime + "** 秒。\n" +
-                                    "在线用户全体清屏请求已提交，预计需要时间 **" + estimatedTime + "** 秒。");
-                            break;
-                        case "广播设置":
-                            try {
-                                int notQuickCheck = Integer.parseInt(cmd1.split("\\s")[1]);
-                                int notQuickSleep = Integer.parseInt(cmd1.split("\\s")[2]);
-                                int quickCheck = Integer.parseInt(cmd1.split("\\s")[3]);
-                                int quickSleep = Integer.parseInt(cmd1.split("\\s")[4]);
-                                ChatroomChannel.notQuickCheck = notQuickCheck;
-                                ChatroomChannel.notQuickSleep = notQuickSleep;
-                                ChatroomChannel.quickCheck = quickCheck;
-                                ChatroomChannel.quickSleep = quickSleep;
-                                sendBotMsg("广播设置成功。");
-                            } catch (Exception e) {
-                                sendBotMsg("当前参数：" + ChatroomChannel.notQuickCheck + " " + ChatroomChannel.notQuickSleep + " " + ChatroomChannel.quickCheck + " " + ChatroomChannel.quickSleep);
-                            }
-                            break;
-                        case "断开会话":
-                            try {
-                                String disconnectUser = cmd1.split("\\s")[1];
-                                sendBotMsg("@" + disconnectUser + "  你的连接被管理员断开，请重新连接。");
-                                Thread.startVirtualThread(() -> {
-                                    try {
-                                        Thread.sleep(2000);
-                                    } catch (InterruptedException e) {
-                                        e.printStackTrace();
-                                    }
-                                    NodeUtil.sendKick(disconnectUser);
-                                    List<WebSocketSession> senderSessions = new ArrayList<>();
-                                    for (Map.Entry<WebSocketSession, JSONObject> entry : ChatroomChannel.onlineUsers.entrySet()) {
-                                        try {
-                                            String tempUserName = entry.getValue().optString(User.USER_NAME);
-                                            if (tempUserName.equals(disconnectUser)) {
-                                                senderSessions.add(entry.getKey());
-                                            }
-                                        } catch (Exception ignored) {
-                                        }
-                                    }
-                                    for (WebSocketSession session : senderSessions) {
-                                        ChatroomChannel.removeSession(session);
-                                    }
-                                    JdbcRepository.dispose();
-                                });
-                            } catch (Exception e) {
-                                sendBotMsg("参数错误。");
-                            }
-                            break;
-                        case "维护":
-                            Map<String, Long> result = ChatroomChannel.check();
-                            StringBuilder stringBuilder = new StringBuilder();
-                            if (result.isEmpty()) {
-                                sendBotMsg("故障转移区：报告！没有超过6小时未活跃的成员，一切都很和谐~");
-                            } else {
-                                stringBuilder.append("故障转移区：报告！成功扫描超过6小时未活跃的成员，并已将他们断开连接：<br>");
-                                stringBuilder.append("<details><summary>不活跃用户列表</summary>");
-                                for (String i : result.keySet()) {
-                                    long time = result.get(i);
-                                    stringBuilder.append(i + " AFK " + time + "小时<br>");
-                                }
-                                stringBuilder.append("</details>");
-                                sendBotMsg(stringBuilder.toString());
-                            }
-                            NodeUtil.sendClear();
-                            break;
-                        case "处罚":
-                            try {
-                                String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
-                                int point = Integer.parseInt(cmd1.split("\\s")[2].replaceAll("[-.]", ""));
-                                String reas0n = cmd1.split("\\s")[3];
-                                final BeanManager beanManager = BeanManager.getInstance();
-                                UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
-                                JSONObject targetUser = userQueryService.getUserByName(user);
-                                if (null == targetUser) {
-                                    sendBotMsg("指令执行失败，用户不存在。");
-                                    break;
-                                }
-                                String targetUserId = targetUser.optString(Keys.OBJECT_ID);
-
-                                PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
-                                OperationMgmtService operationMgmtService = beanManager.getReference(OperationMgmtService.class);
-                                NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
-
-                                final String transferId = pointtransferMgmtService.transfer(targetUserId, Pointtransfer.ID_C_SYS,
-                                        Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT, point, reas0n, System.currentTimeMillis(), "");
-                                operationMgmtService.addOperation(Operation.newOperation(context.getRequest(), Operation.OPERATION_CODE_C_DEDUCT_POINT, transferId));
-
-                                final JSONObject notification = new JSONObject();
-                                notification.put(Notification.NOTIFICATION_USER_ID, targetUserId);
-                                notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                                notificationMgmtService.addAbusePointDeductNotification(notification);
-
-                                sendBotMsg("成功扣除成员 " + user + " 的 " + point + " 积分，原因：" + reas0n);
-                            } catch (Exception e) {
-                                sendBotMsg("参数错误。");
-                            }
-                            break;
-                        case "弹幕":
-                            try {
-                                int cost = Integer.parseInt(cmd1.split("\\s")[1]);
-                                String unit = cmd1.split("\\s")[2];
-                                ChatroomProcessor.setBarragerPrice(cost, unit);
-                                refreshBarrager(cost, unit);
-                                sendBotMsg("弹幕价格设置为: **" + cost + "** " + unit + "/次。\n" +
-                                        "弹幕价格将在下次重启服务器后自动恢复为默认值 (5积分/次)。\n" +
-                                        "正在向成员推送新的弹幕价格，预计需要 **" + (ChatroomChannel.SESSIONS.size() / 2) + "** 秒。");
-                            } catch (Exception e) {
-                                sendBotMsg("参数错误。");
-                            }
-                            break;
-                        case "进出提示":
-                            try {
-                                String user = cmd1.split("\\s")[1].replaceAll("^(@)", "");
-                                if (user.equals("查询") || user.equals("cx")) {
-                                    String uname = cmd1.split("\\s")[2];
-                                    String join = ChatroomChannel.getCustomMessage(1, uname);
-                                    if (join.isEmpty()) {
-                                        join = "未设定";
-                                    }
-                                    String left = ChatroomChannel.getCustomMessage(0, uname);
-                                    if (left.isEmpty()) {
-                                        left = "未设定";
-                                    }
-                                    sendBotMsg("用户 **" + uname + "** 的进出提示设定如下：\n" +
-                                            "进入：" + join + "\n" +
-                                            "离开：" + left + "\n");
-                                } else if (user.equals("帮助") || user.equals("bz")) {
-                                    sendBotMsg("**进出提示变量**：\n" +
-                                            "设置格式：执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]" +
-                                            "{userName} 用户名\n" +
-                                            "{userNickName} 用户昵称\n" +
-                                            "{userPoint} 用户积分余额\n" +
-                                            "{userLevel} 用户VIP等级（如过期会为空）\n" +
-                                            "{userNo} 用户编号\n" +
-                                            "{userCity} 用户所在城市"
-                                    );
-                                } else {
-                                    if (currentUser.optString(User.USER_ROLE).equals(Role.ROLE_ID_C_ADMIN)) {
-                                        if (cmd1.split("\\s").length == 2) {
-                                            ChatroomChannel.removeCustomMessage(user);
-                                            sendBotMsg("用户 **" + user + "** 的进出提示已关闭。");
-                                        } else if (cmd1.split("\\s").length >= 3) {
-                                            String msg = content.replaceAll("执法 ", "")
-                                                    .replaceAll("zf ", "")
-                                                    .replaceAll("进出提示 ", "")
-                                                    .replaceAll("jcts ", "")
-                                                    .replaceAll(user + " ", "");
-                                            ChatroomChannel.addCustomMessage(user, msg);
-                                            sendBotMsg("用户 **" + user + "** 的进出提示已设置完毕。");
-                                        }
-                                    } else {
-                                        sendBotMsg("操作失败，权限不足。");
-                                    }
-                                }
-                            } catch (Exception e) {
-                                sendBotMsg("参数错误。");
-                            }
-                            break;
-                        case "回溯":
-                            if (!AIProviderFactory.isChatroomRecapAvailable()) {
-                                sendBotMsg("回溯功能未启用。");
-                                break;
-                            }
-                            sendBotMsg("正在回溯近2小时的聊天记录，请稍候...");
-                            Thread.startVirtualThread(() -> {
-                                try {
-                                    generateChatRecap();
-                                } catch (Exception e) {
-                                    LOGGER.log(Level.ERROR, "Chat recap failed", e);
-                                    sendBotMsg("回溯失败，请稍后重试。");
-                                }
-                            });
-                            break;
-                        default:
-                            sendBotMsg("<details><summary>执法帮助菜单</summary>\n" +
-                                    "如无特殊备注，则需要纪律委员及以上分组才可执行\n\n" +
-                                    "* **禁言指定用户** 执法 禁言 [用户名] [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除禁言`]\n" +
-                                    "* **全员禁言** 执法 全员禁言 [时间 `单位: 分钟` `如不填此项将查询剩余禁言时间` `设置为0将解除全员禁言`]\n" +
-                                    "* **风控模式** 执法 风控 [用户名] [时间 `单位：分钟` `如不填此项将查询剩余风控时间` `设置为0将解除风控`]\n" +
-                                    "* **查询服务器状态** 执法 服务器状态\n" +
-                                    "* **刷新全体成员的聊天室缓存** 执法 刷新缓存\n" +
-                                    "* **广播设置** 执法 广播设置 [普通消息数目检测阈值] [普通消息间隔毫秒] [特殊消息数目检测阈值] [特殊消息间隔毫秒]\n" +
-                                    "* **检测聊天室内长时间不发言的成员，并将其移除** 执法 维护\n" +
-                                    "* **扣除指定成员的积分** 执法 处罚 [用户名] [扣除积分数量] [理由]\n" +
-                                    "* **断开指定用户的全部聊天室会话** 执法 断开会话 [用户名]\n" +
-                                    "* **进出提示恢复默认（未经管理员允许禁止使用）** 执法 进出提示 [用户名]\n" +
-                                    "* **设置进出提示（详细变量列表请输入：执法 进出提示 帮助）** 执法 进出提示 [用户名] [进入内容及变量]&&&[退出内容及变量]\n" +
-                                    "* **查询进出提示** 执法 进出提示 查询 [用户名]\n" +
-                                    "* **设置弹幕价格(服务器重启后失效)** 执法 弹幕 [价格] [单位]\n" +
-                                    "* **AI总结近2小时聊天内容** 执法 回溯</details>\n" +
-                                    "<p></p>");
-                    }
-                    return true;
-                } catch (Exception ignored) {
-                    sendBotMsg("指令执行失败。");
-                }
-            }
+        if (handleLawCommand(context.getRequest(), currentUser, content)) {
+            return true;
         }
-        // ==! 指令 !==
 
         // ==? 风控 ?==
         int risksControlled = risksControlled(userId);

@@ -391,7 +391,7 @@ public class ApiV3RealtimeService {
         if (actor == null) return null;
         final String nickname = actor.optString("userNickname").isEmpty() ? actor.getString("userName") : actor.getString("userNickname");
         return new JSONObject().put("id", UUID.randomUUID().toString()).put("kind", "join").put("createdAt", now)
-                .put("actor", actor).put("text", nickname + mount.verb() + mount.name() + "进入了聊天室")
+                .put("actor", actor).put("text", nickname + mount.verb() + mount.name() + "来了")
                 .put("mount", new JSONObject().put("id", mount.styleId()).put("version", 1))
                 .put("avatarURL", user.optString("userAvatarURL"));
     }
