@@ -633,7 +633,7 @@ public class UserMgmtService {
         // 提交后重新读取最新行刷新快照，避免并发设置更新被旧快照覆盖；不失效 CSRF 令牌。
         try {
             userRepository.refreshSettingsCache(userId);
-        } catch (final RuntimeException e) {
+        } catch (final RepositoryException | RuntimeException e) {
             // 持久化已提交，缓存刷新失败不能让在线结算重试并重复执行后置逻辑。
             LOGGER.log(Level.WARN, "Refresh online state cache failed [userId=" + userId + "]", e);
         }
