@@ -173,7 +173,7 @@ public class UserOnlinePersistenceTest {
                 }
 
                 @Override
-                public void publishSettingsCache(final JSONObject user) {
+                public void refreshSettingsCache(final String id) {
                     Assert.assertFalse(active, "提交前不能发布缓存");
                     calls.add("refresh");
                 }

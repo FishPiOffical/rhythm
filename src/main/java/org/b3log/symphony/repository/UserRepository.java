@@ -115,12 +115,6 @@ public class UserRepository extends AbstractRepository {
         }
     }
 
-    /** 发布已提交的用户快照，不撤销登录会话或 CSRF 令牌。 */
-    public void publishSettingsCache(final JSONObject user) {
-        if (hasTransactionBegun()) throw new IllegalStateException("settings cache publication before transaction end");
-        if (null != user) userCache.putUser(user);
-    }
-
     @Override
     public JSONObject get(final String id) throws RepositoryException {
         if (ArticlePublicationCaches.active()) {
