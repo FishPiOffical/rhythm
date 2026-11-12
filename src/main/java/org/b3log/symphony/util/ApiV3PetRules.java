@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
 
 /** 第一批试运行数值及目录集中维护，后续课程、地点和工作不伪造可用入口。 */
 public final class ApiV3PetRules {
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
+    public static final int READOPTION_COINS = 512;
     public static final int NAME_LENGTH = 12;
     public static final int INITIAL_COINS = 100;
     public static final int INITIAL_FOOD = 6;
@@ -84,6 +85,8 @@ public final class ApiV3PetRules {
                 .put(species("yubingmiao", "鱼饼喵", "好奇又贪吃，陪你一起摸鱼"))
                 .put(species("paixiaoyu", "派小鱼", "熟悉的派小鱼，今天也一起玩吧"));
         return new JSONObject().put("version", VERSION).put("species", species)
+                .put("readoptionRules", new JSONObject().put("coins", READOPTION_COINS))
+                .put("stories", ApiV3PetStories.catalog())
                 .put("items", new JSONArray().put(new JSONObject().put("id", "food").put("name", "基础口粮")
                         .put("price", FOOD_PRICE).put("hunger", FOOD_HUNGER)))
                 .put("rules", new JSONObject().put("maxNameLength", NAME_LENGTH).put("initialCoins", INITIAL_COINS)

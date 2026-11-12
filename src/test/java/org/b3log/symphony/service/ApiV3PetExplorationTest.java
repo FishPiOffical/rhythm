@@ -47,7 +47,7 @@ public class ApiV3PetExplorationTest {
     }
 
     static JSONObject crafting(final String id, final String recipe) {
-        return new JSONObject().put("petId", id).put("recipeId", recipe).put("catalogVersion", 2);
+        return new JSONObject().put("petId", id).put("recipeId", recipe).put("catalogVersion", 3);
     }
 
     static int item(final Fixture f, final String id) {
@@ -74,8 +74,8 @@ public class ApiV3PetExplorationTest {
     static void catalogAndExpeditions() throws Exception {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 2);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 3);
+            Assert.assertEquals(catalog.getInt("version"), 3);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 4);
             Assert.assertEquals(catalog.getJSONArray("items").length(), 6);
             Assert.assertEquals(catalog.getJSONArray("recipes").length(), 3);
             Assert.assertEquals(catalog.getJSONArray("collections").length(), 3);

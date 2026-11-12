@@ -37,6 +37,8 @@ import org.b3log.symphony.repository.PetIncomeAccountRepository;
 import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetCollectionRepository;
 import org.b3log.symphony.repository.PetJournalRepository;
+import org.b3log.symphony.repository.PetStoryProgressRepository;
+import org.b3log.symphony.repository.PetArchiveRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
@@ -92,6 +94,19 @@ public class ApiV3PetTest {
             sql(db, "CREATE TABLE pet_activity_result(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,actualJson TEXT)");
             sql(db, "CREATE TABLE pet_collection(oId TEXT PRIMARY KEY,userId TEXT,collectionId TEXT,unlockedAt BIGINT,UNIQUE(userId,collectionId))");
             sql(db, "CREATE TABLE pet_journal(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,kind TEXT,action TEXT,occurredAt BIGINT,eventJson TEXT)");
+            sql(db, "CREATE TABLE pet_story_progress(oId TEXT PRIMARY KEY,userId TEXT,storyId TEXT,completedSteps INT,completedAt BIGINT,claimedAt BIGINT,snapshotJson TEXT,updatedAt BIGINT,UNIQUE(userId,storyId))");
+            sql(db, "CREATE TABLE pet_archive(oId TEXT PRIMARY KEY,userId TEXT,retiredAt BIGINT,snapshotJson TEXT)");
+            inject(pets, "storyProgress", new PetStoryProgressRepository() {
+                public String getName() { return "pet_story_progress"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_story_progress", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_story_progress", id, row, fields); }
+            });
+            inject(pets, "archives", new PetArchiveRepository() {
+                public String getName() { return "pet_archive"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_archive", row); }
+            });
             inject(pets, "collections", new PetCollectionRepository() {
                 public String getName() { return "pet_collection"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
@@ -142,6 +157,10 @@ public class ApiV3PetTest {
                 public String getName() { return "user_pet"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
                 public String add(final JSONObject row) throws RepositoryException { return insert("user_pet", row); }
+                public void remove(final String id) throws RepositoryException {
+                    Assert.assertTrue(active());
+                    sql(writer, "DELETE FROM user_pet WHERE oId=?", id);
+                }
                 public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("user_pet", id, row, fields); }
             });
             inject(pets, "inventory", new PetInventoryRepository() {
@@ -223,6 +242,8 @@ public class ApiV3PetTest {
                         case "history" -> endpointPet.history(current);
                         case "craft" -> endpointPet.craft(current);
                         case "journal" -> endpointPet.journal(current);
+                        case "claimStory" -> endpointPet.claimStory(current);
+                        case "readopt" -> endpointPet.readopt(current);
                         default -> throw new AssertionError("未知宠物路由");
                     }
                 });
@@ -241,7 +262,7 @@ public class ApiV3PetTest {
         return input;
     }
     static JSONObject purchase(final String id, final int quantity) {
-        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", quantity).put("catalogVersion", 2);
+        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", quantity).put("catalogVersion", 3);
     }
 
     static void names() throws Exception {

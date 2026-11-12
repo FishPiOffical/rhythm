@@ -28,7 +28,7 @@ import java.util.Set;
 
 /** 外出与入门课程的试运行目录；费用和成果均在出发时冻结，领取不重新计算目录。 */
 public final class ApiV3PetActivities {
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
     public static final List<Skill> SKILLS = List.of(
             new Skill("vitality", "体能", "散步、运动和远足积累的好体力"),
             new Skill("exploration", "探索", "观察身边的变化，发现新事物"),
@@ -74,6 +74,7 @@ public final class ApiV3PetActivities {
         final JSONArray places = new JSONArray(), courses = new JSONArray(), skills = new JSONArray();
         for (Skill skill : SKILLS) skills.put(skill.json());
         for (Entry entry : ENTRIES) (entry.kind().equals("outing") ? places : courses).put(entry.json());
+        for (var course : ApiV3PetAdvancedCourses.COURSES) courses.put(ApiV3PetAdvancedCourses.json(course));
         for (var place : ApiV3PetExploration.PLACES) places.put(place.json());
         final JSONArray jobs = ApiV3PetWork.catalog();
         for (int index = 0; index < jobs.length(); index++) extendWork(jobs.getJSONObject(index));
@@ -83,6 +84,10 @@ public final class ApiV3PetActivities {
 
     public static JSONObject find(final String kind, final String id) {
         if ("work".equals(kind)) return extendWork(ApiV3PetWork.find(id));
+        if ("course".equals(kind)) {
+            final var advanced = ApiV3PetAdvancedCourses.COURSES.stream().filter(course -> course.id().equals(id)).findFirst();
+            if (advanced.isPresent()) return ApiV3PetAdvancedCourses.json(advanced.get());
+        }
         if ("outing".equals(kind)) {
             final var advanced = ApiV3PetExploration.PLACES.stream().filter(place -> place.id().equals(id)).findFirst();
             if (advanced.isPresent()) return advanced.get().json();

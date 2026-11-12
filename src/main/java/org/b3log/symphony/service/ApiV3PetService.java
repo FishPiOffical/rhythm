@@ -34,6 +34,8 @@ import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetCollectionRepository;
 import org.b3log.symphony.repository.PetJournalRepository;
+import org.b3log.symphony.repository.PetStoryProgressRepository;
+import org.b3log.symphony.repository.PetArchiveRepository;
 import org.b3log.symphony.repository.PetLedgerRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.util.ApiV3Exception;
@@ -43,6 +45,7 @@ import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3PetWork;
 import org.b3log.symphony.util.ApiV3PetExploration;
 import org.b3log.symphony.util.ApiV3PetJournal;
+import org.b3log.symphony.util.ApiV3PetStories;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3WriteInputs;
@@ -60,6 +63,8 @@ public class ApiV3PetService {
     @Inject private PetInventoryRepository inventory;
     @Inject private PetCollectionRepository collections;
     @Inject private PetJournalRepository journal;
+    @Inject private PetStoryProgressRepository storyProgress;
+    @Inject private PetArchiveRepository archives;
     @Inject private PetLedgerRepository ledger;
     @Inject private PetActivityRepository activities;
     @Inject private PetSkillRepository skills;
@@ -96,6 +101,7 @@ public class ApiV3PetService {
             final JSONObject result = new JSONObject().put("serverNow", current).put("today", today)
                     .put("catalogVersion", ApiV3PetRules.VERSION)
                     .put("collections", collectionState(actor(identity)))
+                    .put("stories", storyState(actor(identity)))
                     .put("income", incomeState(incomeRow(actor(identity)), today))
                     .put("wallet", new JSONObject().put("coins", account == null ? 0 : account.getInt("coins")))
                     .put("dailySupply", new JSONObject().put("claimed", account != null && today.compareTo(account.getString("supplyDate")) <= 0)
@@ -139,6 +145,58 @@ public class ApiV3PetService {
                     .put("petAvailableAt", 0L).put("playAvailableAt", 0L).put("adoptedAt", current).put("updatedAt", current));
             record(actor, id, "adoption", ApiV3PetRules.INITIAL_COINS, ApiV3PetRules.INITIAL_FOOD, current);
             return receipt("adoption", id, current);
+        });
+    }
+
+    public JSONObject readopt(final JSONObject identity, final JSONObject body, final String key) {
+        exact(body, Set.of("petId", "speciesId", "name", "catalogVersion", "resetAccepted"));
+        final String previousId = petId(body), species = string(body, "speciesId");
+        if (!ApiV3PetRules.SPECIES.contains(species) || !Boolean.TRUE.equals(body.opt("resetAccepted")))
+            throw ApiV3WriteInputs.invalid();
+        final String name = ApiV3PetRules.name(body.opt("name"));
+        final int version = ApiV3WriteInputs.integer(body, "catalogVersion", -1, 1, Integer.MAX_VALUE);
+        final JSONObject input = new JSONObject().put("petId", previousId).put("speciesId", species).put("name", name)
+                .put("catalogVersion", version).put("resetAccepted", true);
+        return mutate(identity, "readoption", key, input, () -> {
+            final String actor = actor(identity);
+            final JSONObject account = requiredAccount(actor);
+            final long current = now();
+            final JSONObject previous = ApiV3PetRules.settle(owned(actor, previousId), current);
+            requireActivityFree(actor, previousId);
+            if ("rest".equals(previous.getString("activityKind")))
+                throw ApiV3PetRules.conflict("pet_resting", "先让宠物醒来，再重新领养吧");
+            if (current < previous.getLong("lastCalculatedAt"))
+                throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再领养");
+            if (version != ApiV3PetRules.VERSION)
+                throw ApiV3PetRules.conflict("catalog_changed", "领养费用已更新，请重新查看");
+            if (account.getInt("coins") < ApiV3PetRules.READOPTION_COINS)
+                throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
+            checkName(name);
+            final String id = Ids.genTimeMillisId();
+            // 原主体先归档再替换，新旧宠物使用不同 ID；历史技能、工作、活动和日志不删除。
+            archives.add(new JSONObject().put("oId", previousId).put("userId", actor).put("retiredAt", current)
+                    .put("snapshotJson", previous.toString()));
+            pets.remove(previousId);
+            pets.add(new JSONObject().put("oId", id).put("userId", actor).put("speciesId", species).put("name", name)
+                    .put("hunger", 100.0).put("water", 100.0).put("mood", 100.0).put("energy", 100.0)
+                    .put("experience", 0).put("friendship", 0).put("lastCalculatedAt", current)
+                    .put("activityKind", "").put("activityStartedAt", 0L).put("activityEndsAt", 0L)
+                    .put("petAvailableAt", previous.getLong("petAvailableAt")).put("playAvailableAt", previous.getLong("playAvailableAt"))
+                    .put("adoptedAt", current).put("updatedAt", current));
+            // 只扣领养费用，不重置补给、成长日限、工作预算或首次奖励，也不赠新手物品。
+            account.put("coins", account.getInt("coins") - ApiV3PetRules.READOPTION_COINS).put("updatedAt", current);
+            accounts.update(actor, account, ACCOUNT_FIELDS);
+            final String speciesName = switch (species) {
+                case "momota" -> "摸摸獭";
+                case "hexiaotun" -> "荷小豚";
+                case "yubingmiao" -> "鱼饼喵";
+                case "paixiaoyu" -> "派小鱼";
+                default -> throw unavailable();
+            };
+            appendJournal(actor, id, "readoption", "readoption", "重新领养 · " + speciesName,
+                    new JSONArray(), -ApiV3PetRules.READOPTION_COINS, ApiV3PetJournal.zeroEffects(), null, current);
+            record(actor, id, "readoption", -ApiV3PetRules.READOPTION_COINS, 0, current);
+            return receipt("readoption", id, current).put("previousPetId", previousId);
         });
     }
 
@@ -227,6 +285,7 @@ public class ApiV3PetService {
             appendJournal(actor, id, "care", action, ApiV3PetJournal.actionName(action)
                     + (item == null ? "" : " · " + item.name()), itemChanges, 0,
                     ApiV3PetJournal.effects(before, pet), null, current);
+            advanceStories(actor, "care", action, "", "", current);
             return receipt(action, id, current);
         });
     }
@@ -326,6 +385,51 @@ public class ApiV3PetService {
                     ApiV3PetJournal.zeroEffects(), collectionId, current);
             record(actor, id, "craft", -cost, 0, current);
             return receipt("craft", id, current);
+        });
+    }
+
+    public JSONObject claimStory(final JSONObject identity, final JSONObject body, final String key) {
+        exact(body, Set.of("petId", "storyId", "catalogVersion"));
+        final String id = petId(body), storyId = string(body, "storyId");
+        if (!ApiV3PetStories.known(storyId)) throw ApiV3WriteInputs.invalid();
+        final int version = ApiV3WriteInputs.integer(body, "catalogVersion", -1, 1, Integer.MAX_VALUE);
+        final JSONObject input = new JSONObject().put("petId", id).put("storyId", storyId).put("catalogVersion", version);
+        return mutate(identity, "story-claim", key, input, () -> {
+            final String actor = actor(identity);
+            requiredAccount(actor);
+            final long current = now();
+            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
+            requireActivityFree(actor, id);
+            if ("rest".equals(pet.getString("activityKind")))
+                throw ApiV3PetRules.conflict("pet_resting", "先让宠物醒来，再领取事件奖励吧");
+            if (version != ApiV3PetRules.VERSION)
+                throw ApiV3PetRules.conflict("catalog_changed", "事件目录已更新，请重新查看");
+            final JSONObject row = storyRows(actor).stream().filter(item -> storyId.equals(item.getString("storyId")))
+                    .findFirst().orElse(null);
+            if (row == null || row.getLong("completedAt") == 0)
+                throw ApiV3PetRules.conflict("story_incomplete", "这段事件还没有完成");
+            if (row.getLong("claimedAt") > 0)
+                throw ApiV3PetRules.conflict("story_claimed", "这段事件的奖励已经领取了");
+            if (current < row.getLong("updatedAt") || current < pet.getLong("lastCalculatedAt"))
+                throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后领取");
+            final JSONObject snapshot = ApiV3PetStories.snapshot(row, actor);
+            final JSONArray items = snapshot.getJSONObject("rewards").getJSONArray("items"), changes = new JSONArray();
+            int foodDelta = 0;
+            // 事件奖励只给固定物品，不产币、不侵入工作收入额度，且同账号整链只领取一次。
+            for (int index = 0; index < items.length(); index++) {
+                final JSONObject item = items.getJSONObject(index);
+                final String itemId = item.getString("itemId");
+                final int quantity = item.getInt("quantity");
+                changeItem(actor, itemId, quantity, current);
+                changes.put(itemChange(itemId, quantity));
+                if ("food".equals(itemId)) foodDelta = Math.addExact(foodDelta, quantity);
+            }
+            row.put("claimedAt", current).put("updatedAt", current);
+            storyProgress.update(row.getString("oId"), row, "claimedAt", "updatedAt");
+            appendJournal(actor, id, "story", "story-claim", "事件奖励 · " + snapshot.getString("name"),
+                    changes, 0, ApiV3PetJournal.zeroEffects(), null, current);
+            record(actor, id, "story-claim", 0, foodDelta, current);
+            return receipt("story-claim", id, current).put("storyId", storyId);
         });
     }
 
@@ -453,6 +557,7 @@ public class ApiV3PetService {
             // 保存实际入账与心情净增量，历史页不能把计划薪酬或被上限截断的心情当成实际成果。
             results.add(new JSONObject().put("oId", activityId).put("userId", actor).put("petId", id).put("actualJson", actual.toString()));
             record(actor, id, "activity-claim", actual.getInt("coins"), rewards.getInt("food"), current);
+            advanceStories(actor, "activity", "", activity.getString("kind"), activity.getString("entryId"), current);
             return receipt("activity-claim", id, current).put("activityId", activityId);
         });
     }
@@ -494,7 +599,7 @@ public class ApiV3PetService {
 
     /** 计时活动与瞬时照顾统一分页；旧活动直接联查，不用迁移伪造旧照顾事件。 */
     public JSONObject journal(final JSONObject identity, final String kind, final int page, final int size) {
-        if (!Set.of("all", "outing", "course", "work", "care", "craft", "purchase").contains(kind)
+        if (!Set.of("all", "outing", "course", "work", "care", "craft", "purchase", "story", "readoption").contains(kind)
                 || page < 1 || page > 10_000 || size < 1 || size > 50) throw ApiV3WriteInputs.invalid();
         return readTransaction(identity, () -> {
             final String actor = actor(identity);
@@ -510,7 +615,7 @@ public class ApiV3PetService {
                     params.add(kind);
                 }
             }
-            if (Set.of("all", "care", "craft", "purchase").contains(kind)) {
+            if (Set.of("all", "care", "craft", "purchase", "story", "readoption").contains(kind)) {
                 if (!union.isEmpty()) union.append(" UNION ALL ");
                 union.append("SELECT 'event' AS recordType,oId,occurredAt AS eventTime FROM `")
                         .append(journal.getName()).append("` WHERE userId=?");
@@ -764,6 +869,53 @@ public class ApiV3PetService {
         final JSONObject pet = pet(actor);
         if (pet == null || (expectedId != null && !expectedId.equals(pet.optString("oId")))) throw ApiV3Requests.notFound();
         return pet;
+    }
+
+    private java.util.List<JSONObject> storyRows(final String actor) throws RepositoryException {
+        final var rows = storyProgress.select("SELECT * FROM `" + storyProgress.getName() + "` WHERE userId=? FOR UPDATE", actor);
+        if (rows.size() > ApiV3PetStories.STORIES.size()) throw unavailable();
+        final Set<String> seen = new java.util.HashSet<>();
+        for (JSONObject row : rows) {
+            ApiV3PetStories.snapshot(row, actor);
+            if (!seen.add(row.getString("storyId"))) throw unavailable();
+        }
+        return rows;
+    }
+
+    private JSONArray storyState(final String actor) throws RepositoryException {
+        final var rows = storyRows(actor);
+        final JSONArray state = new JSONArray();
+        for (var definition : ApiV3PetStories.STORIES) {
+            final JSONObject row = rows.stream().filter(item -> definition.id().equals(item.getString("storyId")))
+                    .findFirst().orElse(null);
+            state.put(ApiV3PetStories.state(definition, row));
+        }
+        return state;
+    }
+
+    /** 仅当前步骤消费一次真实业务事件，越序动作不累计；进度写入与原动作成败一致。 */
+    private void advanceStories(final String actor, final String trigger, final String action,
+                                final String kind, final String entryId, final long current) throws RepositoryException {
+        final var rows = storyRows(actor);
+        for (var definition : ApiV3PetStories.STORIES) {
+            final JSONObject previous = rows.stream().filter(item -> definition.id().equals(item.getString("storyId")))
+                    .findFirst().orElse(null);
+            final JSONObject story = previous == null ? definition.json() : ApiV3PetStories.snapshot(previous, actor);
+            final JSONArray steps = story.getJSONArray("steps");
+            final int completed = previous == null ? 0 : previous.getInt("completedSteps");
+            if (completed >= steps.length() || !ApiV3PetStories.matches(steps.getJSONObject(completed), trigger, action, kind, entryId)) continue;
+            if (previous != null && current < previous.getLong("updatedAt"))
+                throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再试");
+            final JSONObject row = previous == null
+                    ? new JSONObject().put("oId", actor + ":" + definition.id()).put("userId", actor).put("storyId", definition.id())
+                            .put("claimedAt", 0L).put("snapshotJson", ApiV3PetStories.freeze(definition))
+                    : previous;
+            row.put("completedSteps", completed + 1).put("completedAt", completed + 1 == steps.length() ? current : 0L)
+                    .put("updatedAt", current);
+            ApiV3PetStories.snapshot(row, actor);
+            if (previous == null) storyProgress.add(row);
+            else storyProgress.update(row.getString("oId"), row, "completedSteps", "completedAt", "updatedAt");
+        }
     }
 
     private void requireSkills(final String actor, final String id, final JSONArray requirements) throws RepositoryException {

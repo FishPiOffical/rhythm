@@ -48,6 +48,8 @@ public class ApiV3PetProcessor {
         Dispatcher.get("/api/v3/pets/catalog", processor::catalog, auth::profileRead);
         Dispatcher.get("/api/v3/me/pet", processor::read, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/adoption", processor::adopt, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/pet/readoption", processor::readopt, auth::settingsWrite, writes::handle);
+        Dispatcher.post("/api/v3/me/pet/stories/claim", processor::claimStory, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/pet/name", processor::rename, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/actions", processor::action, auth::settingsWrite, writes::handle);
         Dispatcher.post("/api/v3/me/pet/supplies", processor::supplies, auth::settingsWrite, writes::handle);
@@ -70,6 +72,16 @@ public class ApiV3PetProcessor {
     public void adopt(final RequestContext context) {
         ApiV3Requests.respond(context, () -> pets.adopt(identity(context),
                 body(context, Set.of("speciesId", "name")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void readopt(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> pets.readopt(identity(context),
+                body(context, Set.of("petId", "speciesId", "name", "catalogVersion", "resetAccepted")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void claimStory(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> pets.claimStory(identity(context),
+                body(context, Set.of("petId", "storyId", "catalogVersion")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void rename(final RequestContext context) {
@@ -99,7 +111,7 @@ public class ApiV3PetProcessor {
 
     public void journal(final RequestContext context) {
         ApiV3Requests.read(context, () -> pets.journal(identity(context),
-                ApiV3Requests.choice(context, "kind", "all", Set.of("all", "outing", "course", "work", "care", "craft", "purchase")),
+                ApiV3Requests.choice(context, "kind", "all", Set.of("all", "outing", "course", "work", "care", "craft", "purchase", "story", "readoption")),
                 ApiV3Requests.number(context, "p", 1, 10_000), ApiV3Requests.number(context, "size", 10, 50)));
     }
 

@@ -67,12 +67,14 @@ public final class ApiV3PetJournal {
             final String kind = event.getString("kind"), action = event.getString("action");
             if ("care".equals(kind)) {
                 if (!ApiV3PetRules.ACTIONS.contains(action)) throw unavailable();
-            } else if (!Set.of("craft", "purchase").contains(kind) || !kind.equals(action)) throw unavailable();
+            } else if ("story".equals(kind)) {
+                if (!"story-claim".equals(action)) throw unavailable();
+            } else if (!Set.of("craft", "purchase", "readoption").contains(kind) || !kind.equals(action)) throw unavailable();
             final String name = event.getString("name");
             if (name.isBlank() || name.length() > 80 || name.codePoints().anyMatch(Character::isISOControl)) throw unavailable();
             integer(event, "occurredAt", 0, Long.MAX_VALUE);
             integer(event, "coinsDelta", Integer.MIN_VALUE, 0);
-            if ("care".equals(kind) && event.getInt("coinsDelta") != 0) throw unavailable();
+            if (Set.of("care", "story").contains(kind) && event.getInt("coinsDelta") != 0) throw unavailable();
             final JSONObject effects = event.getJSONObject("effects");
             if (!effects.keySet().equals(EFFECTS)) throw unavailable();
             for (String field : STATS) {
@@ -95,8 +97,10 @@ public final class ApiV3PetJournal {
                 if (!ApiV3PetExploration.knownItem(itemId) || !seen.add(itemId)) throw unavailable();
                 integer(item, "quantity", Integer.MIN_VALUE, Integer.MAX_VALUE);
                 final int quantity = item.getInt("quantity");
-                if (quantity == 0 || ("purchase".equals(kind) ? quantity < 0 : quantity > 0)) throw unavailable();
+                if (quantity == 0 || (Set.of("purchase", "story").contains(kind) ? quantity < 0 : quantity > 0)) throw unavailable();
             }
+            if ("story".equals(kind) && items.isEmpty()) throw unavailable();
+            if ("readoption".equals(kind) && (!items.isEmpty() || event.getInt("coinsDelta") >= 0)) throw unavailable();
             if ("craft".equals(kind)) {
                 if (!ApiV3PetExploration.knownCollection(event.getString("collectionId")) || items.isEmpty()) throw unavailable();
             } else if (!event.isNull("collectionId")) throw unavailable();

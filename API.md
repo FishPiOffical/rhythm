@@ -16728,3 +16728,16 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 日志条目是联合类型：`recordType:"activity"` 保留原活动历史字段；`recordType:"event"` 包含 `{id,petId,kind,action,name,occurredAt,itemChanges:[{itemId,quantity}],coinsDelta,effects:{hunger,water,mood,energy,experience,friendship},collectionId}`。`quantity` 与 `coinsDelta` 为有符号实际变化；前四个效果允许小数且在 -100～100，经验与亲密度为非负整数。效果在离线结算之后计算，只记录本次操作净变化；非制作事件 `collectionId=null`。不回填此前未记录的照顾行为。
 
 新增冲突包括 `409 skill_required`、`collection_owned`、`not_enough_items`；沿用 `catalog_changed`、`pet_resting`、`pet_busy`、`not_enough_coins` 等原语义。未知物品/配方或错误使用类别为 422，坏存储快照为 503，均不自动二次消费。完整目录、迁移和验收见 [第四批协议](docs/api-v3-pets-phase-four.md)。
+
+
+### 宠物进阶课程、事件链与重新领养（第五批）
+
+目录 `version=3`、`activityVersion=4`。新增六门进阶课，沿原 course 活动开始及领取接口；同技能经验需 ≥20，30 分钟、10 宠物币，成果为 30 宠物经验/20 对应技能/5 心情，具体消耗见目录。旧冻结活动保持原成果。
+
+- `GET /api/v3/pets/catalog` 新增 `stories:[{id,name,description,steps:[{id,description}],rewards:{items:[{itemId,quantity}]}}]` 与 `readoptionRules:{coins:512}`。
+- `GET /api/v3/me/pet` 新增 `stories:[{id,completedSteps,status,completedAt,claimedAt}]`，status 为 active/claimable/claimed；未完成/未领取时间为 null。三步顺序按真实照顾动作或活动领取推进，不追溯旧历史，不接受客户端自报进度。
+- `POST /api/v3/me/pet/stories/claim`：`{petId,storyId,catalogVersion}`。本人空闲后显式领完整事件链的一次性物品奖励；回执 `{operation:"story-claim",petId,storyId,committedAt}`。新增 `story_incomplete`、`story_claimed` 冲突。
+- `POST /api/v3/me/pet/readoption`：`{petId,speciesId,name,catalogVersion,resetAccepted:true}`。空闲且余额充足后扣 512 宠物币，原宠物归档、新 ID 从初始状态开始，不发首奖；回执 `{operation:"readoption",petId:"新ID",previousPetId:"旧ID",committedAt}`。账号钱包、背包、收藏、补给、每日成长次数、收入预算、事件进度及原互动冷却保留，旧成长和活动记录不删。
+- `GET /api/v3/me/pet/journal` 新增 kind=story/readoption。事件奖励为正向物品、零币；重新领养为负 512 币、无物品变化，effects 均为零，不伪造成长增减。旧日志字段不变。
+
+两新增写接口沿本人第一方 `settings.write`、`Idempotency-Key`、原命令恢复与同用户行锁。事件进度和触发它的业务动作同事务，领奖和换宠也完整原子提交。原成功键在当前 petId 或目录变化后仍只重放旧回执，客户端随后重读聚合状态。迁移、完整数值、事件步骤与人工验收见 [第五批协议](docs/api-v3-pets-phase-five.md)。

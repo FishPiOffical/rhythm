@@ -12,7 +12,7 @@
 
 ## 宠物家园（pet 分支）
 
-- `ApiV3PetProcessor/Service` 第一批仅本人第一方 Bearer（读取 profile.read、写 settings.write）与独立宠物币；四张表先迁移 `20261112_api_v3_pets.sql`。所有写入共用户行锁和原键回执，GET 仅读惰性结算、不发奖；账号账本不能随未来重新领养删除。玩法参数及范围见 `docs/api-v3-pets-phase-one.md` 至 `docs/api-v3-pets-phase-four.md`；后续已接外出、课程、见习工作、进阶材料与收藏，不接回站点积分。永久收藏属于账号，不能随换宠物删除；统一日志按本人惰性真分页联查旧活动和新照顾/制作/购买事件，不能回填假历史。
+- `ApiV3PetProcessor/Service` 第一批仅本人第一方 Bearer（读取 profile.read、写 settings.write）与独立宠物币；四张表先迁移 `20261112_api_v3_pets.sql`。所有写入共用户行锁和原键回执，GET 仅读惰性结算、不发奖；账号账本不能随未来重新领养删除。玩法参数及范围见 `docs/api-v3-pets-phase-one.md` 至 `docs/api-v3-pets-phase-five.md`；后续已接外出、课程、见习工作、进阶材料与收藏，不接回站点积分。永久收藏属于账号，不能随换宠物删除；统一日志按本人惰性真分页联查旧活动和新照顾/制作/购买事件，不能回填假历史。第五批事件按账号冻结并顺序推进、整链物品奖只领一次；重新领养512宠物币，新petId归档旧主体，账号日限/冷却/补给/预算/进度保持，不再发首奖。
 
 ## 第一方网页登录互通
 
