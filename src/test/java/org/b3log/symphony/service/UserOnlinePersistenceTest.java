@@ -66,13 +66,13 @@ public class UserOnlinePersistenceTest {
     public void locksCurrentRowAndPublishesCacheOnlyAfterCommit() throws Exception {
         final var f = new Fixture();
         f.service.persistOnlineState("actor", false, before -> before + 1, 1234);
-        Assert.assertEquals(f.calls, List.of("begin", "lock", "update", "event:9:10:1234", "commit", "evict"));
+        Assert.assertEquals(f.calls, List.of("begin", "lock", "update", "event:9:10:1234", "commit", "refresh"));
         Assert.assertEquals(f.row.getInt(UserExt.ONLINE_MINUTE), 10);
         Assert.assertFalse(f.row.getBoolean(UserExt.USER_ONLINE_FLAG));
         Assert.assertEquals(f.events, List.of("9:10"));
         f.calls.clear();
         f.service.persistOnlineState("actor", false, before -> before, 1234);
-        Assert.assertEquals(f.calls, List.of("begin", "lock", "event:10:10:1234", "commit", "evict"));
+        Assert.assertEquals(f.calls, List.of("begin", "lock", "event:10:10:1234", "commit", "refresh"));
         Assert.assertEquals(f.events.size(), 1, "不增加分钟时不能重复产生职业事件");
     }
 
@@ -173,9 +173,9 @@ public class UserOnlinePersistenceTest {
                 }
 
                 @Override
-                public void evictSettingsCaches(final String id) {
+                public void publishSettingsCache(final JSONObject user) {
                     Assert.assertFalse(active, "提交前不能发布缓存");
-                    calls.add("evict");
+                    calls.add("refresh");
                 }
             });
             inject(service, "professionSourceEventCaptureService", new ProfessionSourceEventCaptureService() {

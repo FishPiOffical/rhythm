@@ -621,6 +621,9 @@ public class UserMgmtService {
             }
             if (!changes.isEmpty()) {
                 userRepository.updateColumnsInCurrentTransaction(userId, changes);
+                for (final String key : changes.keySet()) {
+                    user.put(key, changes.opt(key));
+                }
             }
             professionSourceEventCaptureService.onlineMinutesSettled(userId, beforeMinute, afterMinute, occurredAt);
             transaction.commit();
@@ -630,7 +633,13 @@ public class UserMgmtService {
             }
             throw e;
         }
-        userRepository.evictSettingsCaches(userId);
+        // 在线状态写入后刷新用户快照，但不能使登录会话和 CSRF 令牌失效。
+        try {
+            userRepository.publishSettingsCache(user);
+        } catch (final RuntimeException e) {
+            // 持久化已提交，缓存刷新失败不能让在线结算重试并重复执行后置逻辑。
+            LOGGER.log(Level.WARN, "Refresh online state cache failed [userId=" + userId + "]", e);
+        }
     }
 
     /**
