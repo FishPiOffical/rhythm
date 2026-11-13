@@ -2491,7 +2491,8 @@ ${result.info.msg}
             // let display = Label.currentUser === data.userName && !isPlusOne ? 'display: none;' : ''
             let display = '';
             newHTML += '<div id="userName" class="ft__fade ft__smaller" style="' + display + 'padding-bottom: 3px;border-bottom: 1px solid #eee">\n' +
-                ChatRoom.setVipUserName(data, remark);
+                ChatRoom.setVipUserName(data, remark) +
+                ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatPetStatus(data) : '');
             if (data.sysMetal !== undefined && data.sysMetal !== "") {
                 let list = JSON.parse(data.sysMetal).list;
                 if (list !== undefined) {
@@ -2511,7 +2512,6 @@ ${result.info.msg}
                 '            ' + ChatRoom.filterContent(data.content, isAdmin) + '\n' +
                 '        </div>\n' +
                 ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatTail(data) : '') +
-                ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatPetStatus(data) : '') +
                 (data.reactionDisabled ? '' : ChatRoom.renderReactionBar(data.oId, data.reactionSummary, data.currentUserReaction)) +
                 '\n' +
                 '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +

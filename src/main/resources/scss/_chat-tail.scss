@@ -44,13 +44,16 @@
 }
 
 .fp-chat-pet-status {
-  width: fit-content;
-  max-width: 100%;
-  margin: 6px 0 2px;
-  padding: 3px 8px;
-  border: 1px solid var(--layer-border-color, #dce5df);
-  border-radius: 8px;
+  display: inline-block;
+  max-width: min(100%, 15em);
+  margin-inline-start: 6px;
+  padding-inline-start: 6px;
+  border-inline-start: 1px solid currentColor;
   color: var(--text-gray-color, #53655a);
-  font-size: 12px;
-  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.3;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -45,4 +45,4 @@
 - v3 Socket票据以channel/targetId绑定通知或单篇文章，按频道复核scope；文章授权经`ApiV3RealtimeTargetService`直接查询当前文章/作者/读者，讨论邀请解析与旧链路共用`UserMentionCandidates`，不得用缓存身份延续已撤销权限。文章取票在`/api/v3/articles/{articleId}/realtime-ticket`；ArticleRepository/CommentRepository和共享ReactionMgmtService在原事务内写`api_v3_article_revision`，后台只轮询已提交标记，逐连接授权后发仅ID的article.changed。通知与文章订阅索引隔离，禁止直接转发旧ArticleChannel完整事件；热度/在线人数另行接入。
 - 当前Latke WS升级不走HTTP顶层中间件，query还会覆盖ip。v3 realtime先由`ApiV3SocketHandshake`查精确无query路径/帧上限和显式风控，再等authentication.required后首帧票据认证；禁止Cookie/apiKey回退。通知写入与`api_v3_notification_revision`标记同事务，`ApiV3RealtimeService`只读已提交标记、逐连接重查原access后发本人空提示，不转发旧UserChannel JSON。批量通知删除用owner-aware方法，通用remove(Query)不自动追踪owner。上线前同步建表和repository.json。
 
-- 宠物状态由共享消息保存链在发言时按真实发送者生成，V3 和旧网页读取同一 `petStatus` 快照。字段只有昵称及活动类别，不含体力、余额或活动详情；前端不逐条补查。旧消息无快照时省略。见 [聊天室接口说明](../../API.md#聊天消息宠物状态)。
+- 宠物状态由共享消息保存链在发言时按真实发送者生成，V3 和旧网页读取同一 `petStatus` 快照。字段只有昵称、活动类别及等级，不含体力、余额或活动详情；前端不逐条补查。旧消息无快照时省略。见 [聊天室接口说明](../../API.md#聊天消息宠物状态)。

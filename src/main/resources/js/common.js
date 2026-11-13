@@ -60,9 +60,11 @@ var Util = {
         const labels = {idle: '空闲', rest: '休息中', outing: '外出中', course: '上课中', work: '兼职中', claimable: '待领取'};
         if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
             !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
-        const element = document.createElement('div');
+        const element = document.createElement('span');
+        const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? ' · Lv.' + pet.level : '';
         element.className = 'fp-chat-pet-status';
-        element.textContent = '宠物 · ' + pet.name + ' · ' + labels[pet.state];
+        element.textContent = pet.name + level + ' · ' + labels[pet.state];
+        element.title = '宠物：' + element.textContent;
         return element.outerHTML;
     },
 

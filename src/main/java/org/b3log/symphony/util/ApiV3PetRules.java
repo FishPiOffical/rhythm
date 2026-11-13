@@ -57,6 +57,10 @@ public final class ApiV3PetRules {
 
     private ApiV3PetRules() { }
 
+    public static int level(final int experience) {
+        return Math.min(MAX_LEVEL, 1 + experience / EXPERIENCE_PER_LEVEL);
+    }
+
     public static String today(final long now) {
         return Instant.ofEpochMilli(now).atZone(ZONE).toLocalDate().toString();
     }
@@ -138,7 +142,7 @@ public final class ApiV3PetRules {
                 .put("name", pet.getString("name")).put("hunger", (int) Math.ceil(pet.getDouble("hunger") - 1e-9))
                 .put("water", (int) Math.ceil(pet.getDouble("water") - 1e-9)).put("mood", (int) Math.ceil(pet.getDouble("mood") - 1e-9))
                 .put("energy", (int) Math.floor(pet.getDouble("energy") + 1e-9)).put("experience", pet.getInt("experience"))
-                .put("level", Math.min(MAX_LEVEL, 1 + pet.getInt("experience") / EXPERIENCE_PER_LEVEL)).put("friendship", pet.getInt("friendship"))
+                .put("level", level(pet.getInt("experience"))).put("friendship", pet.getInt("friendship"))
                 .put("adoptedAt", pet.getLong("adoptedAt")).put("activity", activity == null ? JSONObject.NULL : activity)
                 .put("cooldowns", new JSONObject().put("pet", pet.getLong("petAvailableAt")).put("play", pet.getLong("playAvailableAt")))
                 .put("careAvailableAt", new JSONObject().put("feed", careAvailableAt(pet, "hunger", 2))

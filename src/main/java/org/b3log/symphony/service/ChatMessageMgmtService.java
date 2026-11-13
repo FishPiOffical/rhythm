@@ -30,6 +30,7 @@ import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.model.Reaction;
 import org.b3log.symphony.util.ApiV3ChatMessageDto;
+import org.b3log.symphony.util.ApiV3PetRules;
 import org.b3log.symphony.util.ApiV3ChatTransaction;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
@@ -97,7 +98,7 @@ public class ChatMessageMgmtService {
         if (pets == null || petActivities == null) return null;
         final long now = System.currentTimeMillis();
         try {
-            final var rows = pets.select("SELECT p.name,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
+            final var rows = pets.select("SELECT p.name,p.experience,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
                     + " FROM `" + pets.getName() + "` p LEFT JOIN `" + petActivities.getName()
                     + "` a ON a.slotKey=CONCAT('active:',p.userId) AND a.userId=p.userId AND a.petId=p.oId"
                     + " WHERE p.userId=?", actor);
@@ -109,7 +110,7 @@ public class ChatMessageMgmtService {
             } else {
                 state = "rest".equals(row.optString("activityKind")) && row.optLong("activityEndsAt") > now ? "rest" : "idle";
             }
-            return ApiV3ChatMessageDto.petStatus(new JSONObject().put("name", row.optString("name")).put("state", state));
+            return ApiV3ChatMessageDto.petStatus(new JSONObject().put("name", row.optString("name")).put("state", state).put("level", ApiV3PetRules.level(row.getInt("experience"))));
         } catch (final RepositoryException unavailable) {
             // 聊天可先于宠物表部署，附加资料读取失败时仍提交正文。
             return null;

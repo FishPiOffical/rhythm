@@ -123,7 +123,12 @@ public final class ApiV3ChatMessageDto {
                 || !(pet.opt("state") instanceof String state) || name.isBlank() || name.length() > 256
                 || name.codePoints().anyMatch(cp -> Character.isISOControl(cp) || (Character.getType(cp) == Character.FORMAT && cp != 0x200D))
                 || !Set.of("idle", "rest", "outing", "course", "work", "claimable").contains(state)) return null;
-        return new JSONObject().put("name", name).put("state", state);
+        final JSONObject snapshot = new JSONObject().put("name", name).put("state", state);
+        if (pet.opt("level") instanceof Number level && level.doubleValue() == level.intValue()
+                && level.intValue() >= 1 && level.intValue() <= ApiV3PetRules.MAX_LEVEL) {
+            snapshot.put("level", level.intValue());
+        }
+        return snapshot;
     }
 
     private static long number(final Object value, final long fallback) {
