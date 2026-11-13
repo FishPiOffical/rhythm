@@ -78,6 +78,9 @@
         <#if type == "reports">
             <@head title="${reportsAdminLabel} - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "petLogs">
+            <@head title="宠物日志 - ${symphonyLabel}"></@head>
+        </#if>
         <#if type == "auditlog">
             <@head title="${auditlogLabel} - ${symphonyLabel}"></@head>
         </#if>
@@ -157,6 +160,7 @@
                                 </#if>
                                 <#if isLoggedIn && "adminRole" == currentUser.userRole>
                                 <a href="${servePath}/admin/medal" target="_blank">勋章管理</a>
+                                <a href="${servePath}/admin/pet-logs"<#if type == "petLogs"> class="current"</#if>>宠物日志</a>
                                 <a href="${servePath}/admin/profession" target="_blank">职业管理</a>
                                 </#if>
                                 <a href="${servePath}/admin/vip"<#if type == "vipManage"> class="current"</#if>>VIP 管理</a>

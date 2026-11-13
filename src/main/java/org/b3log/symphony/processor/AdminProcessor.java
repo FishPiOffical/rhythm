@@ -73,6 +73,8 @@ import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -384,6 +386,9 @@ public class AdminProcessor {
     @Inject
     private LongArticleReadService longArticleReadService;
 
+    @Inject
+    private PetAdminLogQueryService petAdminLogQueryService;
+
     /**
      * Register request handlers.
      */
@@ -397,6 +402,7 @@ public class AdminProcessor {
 
         Dispatcher.get("/cron/long-article/settle", adminProcessor::settleLongArticleReward, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/admin/auditlog", adminProcessor::showAuditlog, middlewares);
+        Dispatcher.get("/admin/pet-logs", adminProcessor::showPetLogs);
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
         Dispatcher.get("/admin/reports", adminProcessor::showReports, middlewares);
@@ -886,6 +892,47 @@ public class AdminProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, CollectionUtils.jsonArrayToList(pageNums));
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    /** 只使用已校验的网页会话，旧 apiKey 不可读取宠物日志。 */
+    public void showPetLogs(final RequestContext context) {
+        context.getResponse().setHeader("Cache-Control", "private, no-store");
+        final JSONObject admin = Sessions.getUser();
+        if (admin == null || !Role.ROLE_ID_C_ADMIN.equals(admin.optString(User.USER_ROLE))
+                || admin.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID || isApiKeyRequest(context)) {
+            context.sendError(admin == null ? 401 : 403);
+            context.abort();
+            return;
+        }
+
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        final var renderer = new SkinRenderer(context, "admin/pet-logs.ftl");
+        final Map<String, Object> data = renderer.getDataModel();
+        final String tab = "risk".equals(context.param("tab")) ? "risk" : "activity";
+        var filters = PetAdminLogQueryService.filters(tab, null, null, null, null, null, today);
+        var result = new PetAdminLogQueryService.Page(List.of(), false);
+        try {
+            filters = PetAdminLogQueryService.filters(context.param("tab"), context.param("user"),
+                    context.param("from"), context.param("to"), context.param("operation"), context.param("p"), today);
+            result = petAdminLogQueryService.list(filters);
+        } catch (final IllegalArgumentException error) {
+            context.setStatus(400);
+            data.put("petLogError", error.getMessage());
+        } catch (final RepositoryException error) {
+            context.setStatus(503);
+            data.put("petLogError", "宠物日志暂时无法读取，请检查相关数据表是否已迁移。");
+            LOGGER.warn("读取宠物日志失败", error);
+        }
+        data.put("petLogTab", filters.tab());
+        data.put("petLogUser", filters.user());
+        data.put("petLogFrom", filters.from());
+        data.put("petLogTo", filters.to());
+        data.put("petLogOperation", filters.operation());
+        data.put("petLogOperations", PetAdminLogQueryService.operations(filters.tab()));
+        data.put("petLogPage", filters.page());
+        data.put("petLogHasNext", result.hasNext());
+        data.put("petLogRows", result.rows());
+        dataModelService.fillHeaderAndFooter(context, data);
     }
 
     /**

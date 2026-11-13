@@ -77,6 +77,9 @@
         <#if type == "reports">
             <@head title="${reportsAdminLabel} - ${symphonyLabel}"></@head>
         </#if>
+        <#if type == "petLogs">
+            <@head title="宠物日志 - ${symphonyLabel}"></@head>
+        </#if>
         <#if type == "auditlog">
             <@head title="${auditlogLabel} - ${symphonyLabel}"></@head>
         </#if>
@@ -139,6 +142,7 @@
                     <#if type == "misc"  && permissions["menuAdminMisc"].permissionGrant>
                     ${miscAdminLabel}
                     </#if>
+                    <#if type == "petLogs">宠物日志</#if>
                     <#if type == "auditlog"  && permissions["menuAdmin"].permissionGrant>
                         ${auditlogLabel}
                     </#if>
@@ -216,6 +220,7 @@
                     </#if>
                     <#if isLoggedIn && "adminRole" == currentUser.userRole>
                     <li><a href="${servePath}/admin/medal" target="_blank">勋章管理</a></li>
+                    <li<#if type == "petLogs"> class="fn-none"</#if>><a href="${servePath}/admin/pet-logs">宠物日志</a></li>
                     <li><a href="${servePath}/admin/profession" target="_blank">职业管理</a></li>
                     </#if>
                     <li<#if type == "vipManage"> class="fn-none"</#if>><a href="${servePath}/admin/vip">VIP 管理</a></li>
