@@ -16,12 +16,12 @@ function jars(directory) {
 }
 export const dependencies = process.env.API_V3_TEST_CLASSPATH || [path.join(root, 'target/classes'),
   path.join(root, 'src/main/resources/lib/latke-core.jar'), ...jars(path.join(os.homedir(), '.m2/repository'))].join(path.delimiter);
-export const suites = ['ApiV3PetTest', 'ApiV3PetActivitiesTest', 'ApiV3PetWorkTest', 'ApiV3PetExplorationTest', 'ApiV3PetProgressionTest', 'ApiV3PetBalanceTest'];
-export const sources = ['util/ApiV3PetRules', 'util/ApiV3PetActivities', 'util/ApiV3PetWork', 'util/ApiV3PetExploration', 'util/ApiV3PetJournal', 'util/ApiV3PetStories', 'util/ApiV3PetAdvancedCourses', 'service/ApiV3PetService', 'processor/ApiV3PetProcessor', 'processor/ApiV3Processor',
+export const suites = ['ApiV3PetTest', 'ApiV3PetActivitiesTest', 'ApiV3PetWorkTest', 'ApiV3PetExplorationTest', 'ApiV3PetProgressionTest', 'ApiV3PetBalanceTest', 'ApiV3PetRiskTest', 'ApiV3PetRiskHttpTest'];
+export const sources = ['util/ApiV3PetRules', 'util/ApiV3PetActivities', 'util/ApiV3PetWork', 'util/ApiV3PetExploration', 'util/ApiV3PetJournal', 'util/ApiV3PetStories', 'util/ApiV3PetAdvancedCourses', 'service/ApiV3PetService', 'service/ApiV3PetRiskService', 'service/ApiV3PetCaptchaService', 'repository/PetRiskStateRepository', 'repository/PetRiskAuditRepository', 'repository/PetRiskProofRepository', 'processor/ApiV3PetProcessor', 'processor/ApiV3Processor',
     'util/WebsiteLoginCookies', 'util/ApiV3RefreshCookies', 'util/Sessions', 'service/ApiV3TokenMgmtService',
     'processor/ApiV3ChatTailProcessor', 'service/ApiV3ChatTailService', 'util/ApiV3ChatTail', 'repository/UserChatTailRepository',
     'repository/PetStoryProgressRepository', 'repository/PetArchiveRepository', 'repository/PetCollectionRepository', 'repository/PetJournalRepository', 'repository/PetJobProgressRepository', 'repository/PetIncomeAccountRepository', 'repository/PetActivityResultRepository', 'repository/PetActivityRepository', 'repository/PetSkillRepository', 'repository/PetAccountRepository', 'repository/UserPetRepository', 'repository/PetInventoryRepository', 'repository/PetLedgerRepository'];
-export const tests = ['ApiV3SecurityTest', 'ApiV3IdentityApplicationTest', 'ApiV3QqSettingsTest', 'ApiV3PetTest', 'ApiV3PetActivitiesTest', 'ApiV3PetWorkTest', 'ApiV3PetExplorationTest', 'ApiV3PetProgressionTest', 'ApiV3PetBalanceTest', 'ApiV3PetSequenceTest'];
+export const tests = ['ApiV3SecurityTest', 'ApiV3IdentityApplicationTest', 'ApiV3QqSettingsTest', 'ApiV3PetTest', 'ApiV3PetActivitiesTest', 'ApiV3PetWorkTest', 'ApiV3PetExplorationTest', 'ApiV3PetProgressionTest', 'ApiV3PetBalanceTest', 'ApiV3PetSequenceTest', 'ApiV3PetRiskTest', 'ApiV3PetRiskHttpTest'];
 
 export function runJava(name, arguments_, options = {}) {
   const result = spawnSync(path.join(javaHome, 'bin', name), arguments_, { cwd: root, stdio: 'inherit', timeout: 1_200_000, ...options });

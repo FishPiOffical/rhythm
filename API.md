@@ -16761,3 +16761,160 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 > 成长照顾包括喂食、饮水、抚摸、玩耍；休息和醒来不增加经验或亲密度。每日次数继续读取 `rules.growthDailyLimit`，超过次数仍能照顾宠物。等级为 `min(maxLevel,1+floor(experience/experiencePerLevel))`，满级后仍保留实际累计经验。工作收入与每日补给分别查询原 `income`、`dailySupply`，消费不会恢复当天工作收入额度。
 
 > 客户端兼容旧后端时，可以将 `growthRules` 作为可选字段；缺少时不应猜测下一级进度。开始新活动应使用当前返回的 `activityVersion`，原成功命令仍使用原请求和原幂等键恢复。
+
+## v3 宠物账号保护（本地待人工验收）
+
+本节三个接口仅接受当前本人第一方 V3 Bearer，均要求 `settings.write`；不接受页面 Cookie、旧 apiKey 或第三方令牌。不新增 IP 封禁，也不修改全站防火墙、宠物币、照顾收益或活动数值。
+
+宠物写入按账号执行持久化保护：十秒内最多 12 个新命令、每分钟最多 30 个新命令；超限返回 `429 pet_rate_limited`，响应头提供 `Retry-After: 60` 并通过 `Access-Control-Expose-Headers` 暴露给浏览器。五分钟内 8 个不同命令的明确业务拒绝会要求验证；同键重试、通信或数据库故障不重复累计该判断。不同幂等键仍视为不同命令。
+
+已成功的相同操作、内容及幂等键优先恢复原回执，不受宠物业务冷却、验证码要求或全站共享写额度阻断；另有每账号每分钟 240 次写请求传输保护，包含同键回放，超限同样返回 429，但不据此认定作弊。状态与挑战读取共用每分钟 60 次额度，验证提交每分钟最多 10 次。客户端应遵守冷却并由用户继续，不循环重试。
+
+> 使用前需执行 `sql/20261113_api_v3_pet_risk.sql`，按实际 `jdbc.tablePrefix` 调整表前缀，创建风险状态、审计和证明使用记录三张表。审计仅记录账号、操作类别、摘要、原因和时间，每账号保留最近 200 条；不记录原请求正文、密码、Bearer 或验证码证明。原有宠物迁移仍需先完成。
+
+### 读取本人宠物操作保护状态
+
+`GET /api/v3/me/pet/risk`
+
+在操作被限流或要求验证后显式读取当前状态，不需要定时轮询。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 第一方 Bearer，需 settings.write | Bearer ACCESS_TOKEN |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/risk' \
+  --header 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 当前账号的保护状态 | {} |
+| - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
+| - retryAt | 业务冷却截止毫秒时间戳，0 表示没有业务冷却；传输额度另按 Retry-After 等待 | 1794528060000 |
+| - verificationRequired | 后续原命令是否需要安全验证 | true |
+
+> 客户端用 `serverNow` 换算本机倒计时；`retryAt` 已过期不代表某个业务命令一定可以成功，资格、余额和活动状态仍由原写接口复核。没有有效 Bearer 返回 401，缺少权限或非第一方返回 403，存储暂不可用返回 503。
+
+### 为被拦截的原命令申请验证
+
+`POST /api/v3/me/pet/risk/challenge`
+
+只接受已在宠物写接口登记的原命令。响应不执行该命令，不扣款、不发奖；不用为此接口另外创建业务幂等键。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 第一方 Bearer，需 settings.write | Bearer ACCESS_TOKEN |
+| operation | 原命令服务端类别，见下方说明 | purchase |
+| idempotencyKey | 原写请求的 Idempotency-Key，1～128 位字母、数字、点、下划线、冒号或连字符 | pet-buy-001 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/risk/challenge' \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{"operation":"purchase","idempotencyKey":"pet-buy-001"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 与原命令绑定的挑战 | {} |
+| - operation | 原命令类别 | purchase |
+| - idempotencyKey | 原业务幂等键 | pet-buy-001 |
+| - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
+| - challengeId | 挑战标识，与当前账号及原命令绑定 | 00000000-0000-4000-8000-000000000000 |
+| - expiresAt | 未验证时为挑战到期时间，已验证时为原命令授权到期时间 | 1794528300000 |
+| - verified | 该原命令是否已经验证成功，用于恢复丢失的验证回执 | false |
+| - provider | 验证提供方 | geetest4 |
+| - captchaId | 极验公开组件 ID，不是服务端密钥 | CAPTCHA_ID |
+
+> `operation` 可为 `adoption/readoption/story-claim/name/action/supplies/purchase/craft/activity-start/activity-claim`，对应原宠物写接口的操作，不使用复数 URL 片段作为操作名。服务端绑定首次登记的正文摘要，不接受客户端另传作者、正文摘要或恢复标志。
+
+> 挑战有效期为 5 分钟；同一挑战最多 5 次验证失败，达到次数或到期后可显式重新申请。未登记或不需要验证返回 `409 pet_challenge_unavailable`，仍处于冷却返回 429，组件配置或存储不可用返回 503。若 `verified=true`，可以直接让用户继续原操作，无需再次完成验证码。
+
+### 提交宠物操作验证证明
+
+`POST /api/v3/me/pet/risk/verify`
+
+提交极验组件生成的证明；验证通过只授权被冻结的原命令，不自动执行任何宠物操作。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 第一方 Bearer，需 settings.write | Bearer ACCESS_TOKEN |
+| challengeId | 上一步返回的挑战标识 | 00000000-0000-4000-8000-000000000000 |
+| captcha | JSON 字符串，仅含下述四个字符串字段，总计不超过 4096 UTF-8 字节 | JSON 字符串 |
+| - lot_number | 极验批次号，同批次不能用于别的账号或挑战 | LOT_NUMBER |
+| - captcha_output | 极验返回的验证结果 | CAPTCHA_OUTPUT |
+| - pass_token | 极验返回的证明令牌 | PASS_TOKEN |
+| - gen_time | 极验生成时间，秒级时间戳字符串；不得由客户端伪造当前时间 | 1794528000 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/risk/verify' \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{"challengeId":"00000000-0000-4000-8000-000000000000","captcha":"{\"lot_number\":\"LOT_NUMBER\",\"captcha_output\":\"CAPTCHA_OUTPUT\",\"pass_token\":\"PASS_TOKEN\",\"gen_time\":\"1794528000\"}"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 原命令验证结果 | {} |
+| - operation | 原命令类别 | purchase |
+| - idempotencyKey | 原业务幂等键 | pet-buy-001 |
+| - verified | 验证是否成功，成功为 true | true |
+| - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
+| - expiresAt | 原命令授权到期时间，成功后有效 15 分钟 | 1794528900000 |
+
+> 证明格式错误返回 `422 invalid_request`；证明时间不合法、批次已使用或供应商判定失败返回 `422 invalid_captcha`。挑战不存在、跨账号或过期返回 `409 pet_challenge_expired`，验证超频返回 429，供应商通信故障返回 503。通信故障不累计验证码失败次数，原业务命令仍保留；重新获取有效证明后再验证，不记录或持久化证明。
+
+> 验证回执丢失时，先为同一原命令重新申请挑战；服务端可返回 `verified=true` 恢复结果。用户确认继续时，使用原操作、原内容、原 Idempotency-Key 再调用原写接口。授权仅在原命令成功提交的同一事务内消费并恢复账号状态；业务失败回滚授权消费。成功写回执后只重读当前聚合状态，不能将旧回执当成当前余额，也不能因读取失败再次创建消费。未知结果仍保留原内容和原键。
+
+### 读取普通喂食与饮水的可核对时间
+
+`GET /api/v3/me/pet`
+
+沿原本人第一方 `profile.read` 授权读取聚合状态；新增可选 `pet.careAvailableAt`，既有字段及业务规则不变。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | 第一方 Bearer，需 profile.read | Bearer ACCESS_TOKEN |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet' \
+  --header 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应增加：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 原宠物聚合状态 | {} |
+| - serverNow | 服务端当前毫秒时间戳 | 1794528000000 |
+| - pet | 本人宠物，未领养仍为 null | {} |
+| -- careAvailableAt | 基于当前真实小数状态计算的普通照顾可核对时间 | {} |
+| --- feed | 普通口粮达到有效喂食阈值的毫秒时间戳 | 1794529800000 |
+| --- water | 免费饮水达到有效操作阈值的毫秒时间戳 | 1794529200000 |
+
+> 时间小于或等于 `serverNow` 表示已达到对应状态阈值，不保证库存、活动、休息、账号保护等其他条件也满足。客户端到点合并一次状态读取，不能直接衰减或改写权威快照，不进行轮询；旧后端缺少该字段时保持兼容。扩展食品、饮料仍按实际物品效果和原写接口判断。
+
+> 本批仍为本地待人工验收：隔离测试不能替代真实极验成功、失败、回执丢失与换号流程，也不能替代 MySQL/InnoDB 多进程并发、同键恢复和事务回滚验证。完成迁移并重新编译服务端后，再按实际部署环境进行 PC/移动端人工测试；未完成前不视为可发布。

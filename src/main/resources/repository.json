@@ -10,6 +10,91 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_risk_state",
+      "description": "宠物账号保护状态与有界命令记录",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "stateJson",
+          "type": "String",
+          "length": 131072
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_risk_audit",
+      "description": "宠物保护事件摘要，不保存身份令牌与验证码证明",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 36
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "commandHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "bodyHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "reason",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "occurredAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_risk_proof",
+      "description": "验证码批次一次性消费记录，仅保存摘要",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "challengeId",
+          "type": "String",
+          "length": 36
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "pet_story_progress",
       "description": "账号事件链冻结步骤、进度与一次性领奖事实",
       "keys": [

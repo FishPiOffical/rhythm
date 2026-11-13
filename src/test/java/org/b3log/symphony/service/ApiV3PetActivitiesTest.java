@@ -43,7 +43,8 @@ public class ApiV3PetActivitiesTest {
         return new JSONObject().put("petId", petId).put("activityId", activityId);
     }
     static String begin(final Fixture f, final String id, final String kind, final String entry) {
-        return f.pets.startActivity(identity(), start(id, kind, entry), "start").getString("activityId");
+        // 切换活动属于新命令；同一种活动的失败恢复仍沿用原键，验证真实重试语义。
+        return f.pets.startActivity(identity(), start(id, kind, entry), "start-" + kind + "-" + entry).getString("activityId");
     }
     static JSONObject pet(final Fixture f) { return f.state().getJSONObject("pet"); }
     static int skill(final Fixture f, final String name) {

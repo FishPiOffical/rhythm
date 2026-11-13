@@ -141,8 +141,16 @@ public final class ApiV3PetRules {
                 .put("level", Math.min(MAX_LEVEL, 1 + pet.getInt("experience") / EXPERIENCE_PER_LEVEL)).put("friendship", pet.getInt("friendship"))
                 .put("adoptedAt", pet.getLong("adoptedAt")).put("activity", activity == null ? JSONObject.NULL : activity)
                 .put("cooldowns", new JSONObject().put("pet", pet.getLong("petAvailableAt")).put("play", pet.getLong("playAvailableAt")))
+                .put("careAvailableAt", new JSONObject().put("feed", careAvailableAt(pet, "hunger", 2))
+                        .put("water", careAvailableAt(pet, "water", 3)))
                 .put("growthToday", new JSONObject().put("used", today.compareTo(account.getString("growthDate")) <= 0
                         ? account.getInt("growthCount") : 0).put("limit", DAILY_GROWTH));
+    }
+
+    /** 普通口粮与免费饮水达到下一次有效操作阈值的时刻，客户端只到点核对，不自行放行。 */
+    private static long careAvailableAt(final JSONObject pet, final String field, final int decayPerHour) {
+        final double missing = Math.max(0, pet.getDouble(field) - 99 - 1e-9);
+        return pet.getLong("lastCalculatedAt") + (long) Math.ceil(missing / decayPerHour * HOUR);
     }
 
     public static ApiV3Exception invalid(final String message) {

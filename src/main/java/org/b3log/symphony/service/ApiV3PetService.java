@@ -73,6 +73,7 @@ public class ApiV3PetService {
     @Inject private PetActivityResultRepository results;
     @Inject private ApiV3RequestRepository requests;
     @Inject private ApiV3SecurityProofService proofs;
+    @Inject private ApiV3PetRiskService risk;
 
     private static final String[] PET_FIELDS = {"name", "hunger", "water", "mood", "energy", "experience", "friendship",
             "lastCalculatedAt", "activityKind", "activityStartedAt", "activityEndsAt", "petAvailableAt", "playAvailableAt", "updatedAt"};
@@ -1049,6 +1050,8 @@ public class ApiV3PetService {
 
     private JSONObject mutate(final JSONObject identity, final String operation, final String key, final JSONObject input,
                               final ApiV3IdempotencyMgmtService.Mutation mutation) {
+        final var admission = risk.before(identity, operation, key, input);
+        if (admission.receipt() != null) return admission.receipt();
         final String actor = actor(identity);
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
             public Transaction beginTransaction() { return begin(); }
@@ -1064,8 +1067,12 @@ public class ApiV3PetService {
             }
         };
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "pet." + operation, key, input, mutation);
+            return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "pet." + operation, key, input, () -> {
+                risk.authorizeMutation(actor, operation, key, input);
+                return mutation.apply();
+            });
         } catch (ApiV3Exception error) {
+            risk.denied(identity, operation, key, input, error);
             throw error;
         } catch (Exception error) {
             throw unavailable();

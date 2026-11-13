@@ -30,6 +30,10 @@ import org.b3log.latke.http.Response;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.processor.ApiV3PetProcessor;
 import org.b3log.symphony.repository.PetAccountRepository;
+import org.b3log.symphony.repository.PetRiskStateRepository;
+import org.b3log.symphony.repository.PetRiskAuditRepository;
+import org.b3log.symphony.repository.PetRiskProofRepository;
+import org.b3log.latke.repository.Transaction;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.PetJobProgressRepository;
@@ -66,6 +70,19 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 public class ApiV3PetTest {
     static class Fixture extends ApiV3IdentityApplicationTest.Fixture {
         long clock = NOW;
+        // 业务专项使用加速时钟，不把集中执行的测试操作误认为真实点击；保护专项启用正式额度。
+        boolean enforceRisk;
+        String riskCommitFault = "";
+        boolean captchaValid = true;
+        boolean captchaUnavailable;
+        int captchaCalls;
+        final ApiV3PetRiskService risk = new ApiV3PetRiskService() {
+            protected long now() { return clock; }
+            protected int minuteLimit() { return enforceRisk ? super.minuteLimit() : 100_000; }
+            protected int burstLimit() { return enforceRisk ? super.burstLimit() : 100_000; }
+            protected int denialLimit() { return enforceRisk ? super.denialLimit() : 100_000; }
+            protected int transportLimit() { return enforceRisk ? super.transportLimit() : 100_000; }
+        };
         boolean rejectName;
         boolean rejectActivityCatalog;
         final ApiV3PetService pets = new ApiV3PetService() {
@@ -96,6 +113,57 @@ public class ApiV3PetTest {
             sql(db, "CREATE TABLE pet_journal(oId TEXT PRIMARY KEY,userId TEXT,petId TEXT,kind TEXT,action TEXT,occurredAt BIGINT,eventJson TEXT)");
             sql(db, "CREATE TABLE pet_story_progress(oId TEXT PRIMARY KEY,userId TEXT,storyId TEXT,completedSteps INT,completedAt BIGINT,claimedAt BIGINT,snapshotJson TEXT,updatedAt BIGINT,UNIQUE(userId,storyId))");
             sql(db, "CREATE TABLE pet_archive(oId TEXT PRIMARY KEY,userId TEXT,retiredAt BIGINT,snapshotJson TEXT)");
+            sql(db, "CREATE TABLE pet_risk_state(oId TEXT PRIMARY KEY,stateJson TEXT,updatedAt BIGINT)");
+            sql(db, "CREATE TABLE pet_risk_audit(oId TEXT PRIMARY KEY,userId TEXT,operation TEXT,commandHash TEXT,bodyHash TEXT,reason TEXT,occurredAt BIGINT)");
+            sql(db, "CREATE TABLE pet_risk_proof(oId TEXT PRIMARY KEY,userId TEXT,challengeId TEXT,expiresAt BIGINT)");
+            inject(risk, "states", new PetRiskStateRepository() {
+                public String getName() { return "pet_risk_state"; }
+                public Transaction beginTransaction() {
+                    final Transaction root = org.b3log.symphony.util.ApiV3Transactions.strict(begin());
+                    return new Transaction() {
+                        public String getId() { return root.getId(); }
+                        public boolean isActive() { return root.isActive(); }
+                        public void rollback() { root.rollback(); }
+                        public void commit() {
+                            // 风险短事务与业务提交分开注入故障，避免丢回包用例提前失败而漏测实际扣款恢复。
+                            final String businessFault = fault;
+                            fault = riskCommitFault;
+                            try { root.commit(); }
+                            finally { fault = businessFault; }
+                        }
+                    };
+                }
+                public boolean hasTransactionBegun() { return active(); }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_risk_state", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_risk_state", id, row, fields); }
+            });
+            inject(risk, "audits", new PetRiskAuditRepository() {
+                public String getName() { return "pet_risk_audit"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_risk_audit", row); }
+                public void remove(final String id) throws RepositoryException { sql(writer, "DELETE FROM pet_risk_audit WHERE oId=?", id); }
+            });
+            inject(risk, "proofUses", new PetRiskProofRepository() {
+                public String getName() { return "pet_risk_proof"; }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_risk_proof", row); }
+                public void remove(final String id) throws RepositoryException { sql(writer, "DELETE FROM pet_risk_proof WHERE oId=?", id); }
+            });
+            inject(risk, "requests", ApiV3QqSettingsTest.field(service, ApiV3IdentityApplicationService.class, "requests"));
+            inject(risk, "proofs", proof);
+            inject(risk, "options", new AccountCaptchaService() {
+                public JSONObject options() { return new JSONObject().put("provider", "geetest4").put("captchaId", "fixture"); }
+            });
+            inject(risk, "captcha", new ApiV3PetCaptchaService() {
+                public boolean verify(final String value) {
+                    captchaCalls++;
+                    if (captchaUnavailable) throw new ApiV3Exception(503, "temporarily_unavailable", "隔离供应商故障");
+                    return captchaValid;
+                }
+            });
+            inject(pets, "risk", risk);
+            inject(endpointPet, "risk", risk);
             inject(pets, "storyProgress", new PetStoryProgressRepository() {
                 public String getName() { return "pet_story_progress"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
@@ -230,6 +298,9 @@ public class ApiV3PetTest {
                 context.addHandler(current -> {
                     final var match = (org.b3log.latke.http.handler.RouteResolution) current.attr("MATCH_RESULT");
                     switch (match.getContextHandlerMeta().getInvokeHolder().getName()) {
+                        case "riskState" -> endpointPet.riskState(current);
+                        case "challenge" -> endpointPet.challenge(current);
+                        case "verify" -> endpointPet.verify(current);
                         case "catalog" -> endpointPet.catalog(current);
                         case "read" -> endpointPet.read(current);
                         case "adopt" -> endpointPet.adopt(current);

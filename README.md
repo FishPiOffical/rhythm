@@ -30,3 +30,8 @@ Rhythm 社区系统，超丰富的社区功能，基于 Symphony 社区版深度
 <a href="https://github.com/FishPiOffical/rhythm/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=FishPiOffical/rhythm" />
 </a>
+
+
+### pet 分支账号操作保护
+
+宠物操作保护使用账号级持久化额度和可恢复的原命令验证码，不新增 IP 封禁。启动新代码前须执行 `sql/20261113_api_v3_pet_risk.sql`；阈值、三项验证接口、极验故障规则、审计查询与保留策略见 [宠物账号保护说明](docs/api-v3-pet-risk.md)。未执行迁移时保护读取会明确失败，不静默放行。现有养成奖励与业务参数保持不变，正在运行的长测数据库不要中途迁移。

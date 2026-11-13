@@ -72,7 +72,8 @@ public class ApiV3PetWorkTest {
             Assert.assertEquals(f.count("pet_income_account"), 0);
             final String id = f.adopt();
             Assert.assertEquals(pet(f).getJSONArray("jobs").length(), 6);
-            error(409, () -> begin(f, id, "work", "delivery-assistant"));
+            // 明确失败后改成另一种活动属于新命令，不能复用被冻结的操作键。
+            error(409, () -> f.pets.startActivity(identity(), start(id, "work", "delivery-assistant"), "locked-work"));
             final String course = begin(f, id, "course", "fitness-basics");
             finish(f, id, course, "learn");
             Assert.assertEquals(skill(f, "vitality"), 10);
