@@ -178,7 +178,7 @@
                     </div>
                 </div>
                 <div class="list" id="comments" style="overflow: visible; height: auto; margin-top: -15px; padding: 20px 30px 5px 30px">
-                    <div id="chats">
+                    <div id="chats" data-pet-home-url="${petHomeUrl?html}">
                     </div>
                     <#if !isLoggedIn>
                         <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div>

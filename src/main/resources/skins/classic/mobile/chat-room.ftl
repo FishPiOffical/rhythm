@@ -196,7 +196,7 @@
                 </#if>
             </div>
             <div class="list" style="overflow: visible; height: 100%; margin: 0 -12px;">
-                <div id="chats">
+                <div id="chats" data-pet-home-url="${petHomeUrl?html}">
                 </div>
                 <#if !isLoggedIn>
                     <div style="color:rgba(0,0,0,0.54);">登录后查看更多</div></#if>

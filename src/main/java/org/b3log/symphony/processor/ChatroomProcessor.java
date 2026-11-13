@@ -1850,6 +1850,7 @@ public class ChatroomProcessor {
 
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, template);
         final Map<String, Object> dataModel = renderer.getDataModel();
+        dataModel.put("petHomeUrl", WebsiteLoginCookies.petHomeUrl());
         try {
             String oId = context.param("oId");
             if (oId == null) {

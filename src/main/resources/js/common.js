@@ -60,7 +60,9 @@ var Util = {
         const labels = {idle: '空闲', rest: '休息中', outing: '外出中', course: '上课中', work: '兼职中', claimable: '待领取'};
         if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
             !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
-        const element = document.createElement('span');
+        const destination = document.getElementById('chats')?.dataset.petHomeUrl;
+        const element = document.createElement(destination ? 'a' : 'span');
+        if (destination) element.href = destination;
         const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? pet.level : null;
         element.className = 'fp-chat-pet-status';
         if (['momota', 'hexiaotun', 'yubingmiao', 'paixiaoyu'].includes(pet.speciesId)) {
@@ -81,7 +83,7 @@ var Util = {
         state.className = 'fp-chat-pet-state';
         state.textContent = labels[pet.state];
         element.appendChild(state);
-        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent;
+        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent + (destination ? ' · 前往宠物家园' : '');
         return element.outerHTML;
     },
 

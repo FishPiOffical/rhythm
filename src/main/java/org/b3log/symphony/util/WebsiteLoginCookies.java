@@ -66,6 +66,18 @@ public final class WebsiteLoginCookies {
                 .equals(System.getProperty("rhythm.dev.websiteOrigin"));
     }
 
+    /** 经典聊天室跳转到新版宠物家园，隔离预览沿用已配置的回环前端。 */
+    public static String petHomeUrl() {
+        final String configured = System.getProperty("rhythm.dev.websiteOrigin", "");
+        try {
+            final var site = java.net.URI.create(org.b3log.latke.Latkes.getServePath());
+            if (localPreviewOrigin(site, java.net.URI.create(configured))) return configured + "/pets";
+        } catch (final IllegalArgumentException ignored) {
+            // 配置不合法时使用正式站点入口。
+        }
+        return "https://new.fishpi.cn/pets";
+    }
+
     private static boolean isLoopbackHost(final String host) {
         return "localhost".equals(host) || "127.0.0.1".equals(host);
     }
