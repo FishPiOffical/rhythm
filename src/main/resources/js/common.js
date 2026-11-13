@@ -61,10 +61,27 @@ var Util = {
         if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
             !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
         const element = document.createElement('span');
-        const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? ' · Lv.' + pet.level : '';
+        const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? pet.level : null;
         element.className = 'fp-chat-pet-status';
-        element.textContent = pet.name + level + ' · ' + labels[pet.state];
-        element.title = '宠物：' + element.textContent;
+        if (['momota', 'hexiaotun', 'yubingmiao', 'paixiaoyu'].includes(pet.speciesId)) {
+            element.dataset.species = pet.speciesId;
+        }
+        const name = document.createElement('span');
+        name.className = 'fp-chat-pet-name';
+        name.textContent = pet.name;
+        element.appendChild(name);
+        if (level !== null) {
+            const badge = document.createElement('span');
+            badge.className = 'fp-chat-pet-level';
+            badge.dataset.tier = Math.floor(level / 10);
+            badge.textContent = 'Lv.' + level;
+            element.appendChild(badge);
+        }
+        const state = document.createElement('span');
+        state.className = 'fp-chat-pet-state';
+        state.textContent = labels[pet.state];
+        element.appendChild(state);
+        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent;
         return element.outerHTML;
     },
 

@@ -242,9 +242,19 @@ public class ApiV3Processor {
             audit(context, "refresh", "success", null);
             success(context, token);
         } catch (final ServiceException e) {
-            audit(context, "refresh", "unauthorized", null);
-            clearRefreshCookie(context);
-            error(context, 401, "unauthorized", "登录状态已失效");
+            if ("unauthorized".equals(e.getMessage())) {
+                audit(context, "refresh", "unauthorized", null);
+                clearRefreshCookie(context);
+                error(context, 401, "unauthorized", "登录状态已失效");
+                return;
+            }
+            // 临时存储故障不代表凭据失效，保留刷新 Cookie 供后续恢复。
+            audit(context, "refresh", "temporarily_unavailable", null);
+            error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
+        } catch (final RuntimeException e) {
+            LOGGER.error("Refreshes website login failed", e);
+            audit(context, "refresh", "temporarily_unavailable", null);
+            error(context, 503, "temporarily_unavailable", "登录状态暂不可用");
         }
     }
 

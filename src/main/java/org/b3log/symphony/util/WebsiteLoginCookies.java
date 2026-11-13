@@ -49,10 +49,25 @@ public final class WebsiteLoginCookies {
             final boolean local = ("localhost".equals(site.getHost()) || "127.0.0.1".equals(site.getHost()))
                     && ("localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost()))
                     && "http".equals(uri.getScheme()) && (uri.getPort() == 5173 || uri.getPort() == site.getPort());
-            return own || newer || local;
+            // 隔离预览可显式配置一个回环前端来源，生产环境不读取这个例外。
+            final boolean preview = localPreviewOrigin(site, uri);
+            return own || newer || local || preview;
         } catch (final IllegalArgumentException error) {
             return false;
         }
+    }
+
+    private static boolean localPreviewOrigin(final java.net.URI site, final java.net.URI source) {
+        if (org.b3log.latke.Latkes.getRuntimeMode() != org.b3log.latke.Latkes.RuntimeMode.DEVELOPMENT
+                || !isLoopbackHost(site.getHost())
+                || !isLoopbackHost(source.getHost())
+                || !"http".equals(source.getScheme()) || source.getPort() <= 0) return false;
+        return ("http://" + source.getHost() + ":" + source.getPort())
+                .equals(System.getProperty("rhythm.dev.websiteOrigin"));
+    }
+
+    private static boolean isLoopbackHost(final String host) {
+        return "localhost".equals(host) || "127.0.0.1".equals(host);
     }
 
     public static String login(final Response response, final String actor, final boolean remember) throws ServiceException {

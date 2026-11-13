@@ -128,6 +128,9 @@ public final class ApiV3ChatMessageDto {
                 && level.intValue() >= 1 && level.intValue() <= ApiV3PetRules.MAX_LEVEL) {
             snapshot.put("level", level.intValue());
         }
+        if (pet.opt("speciesId") instanceof String speciesId && ApiV3PetRules.SPECIES.contains(speciesId)) {
+            snapshot.put("speciesId", speciesId);
+        }
         return snapshot;
     }
 

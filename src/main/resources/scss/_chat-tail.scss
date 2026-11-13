@@ -44,16 +44,37 @@
 }
 
 .fp-chat-pet-status {
-  display: inline-block;
-  max-width: min(100%, 15em);
-  margin-inline-start: 6px;
-  padding-inline-start: 6px;
-  border-inline-start: 1px solid currentColor;
-  color: var(--text-gray-color, #53655a);
-  font-size: 11px;
-  line-height: 1.3;
-  vertical-align: middle;
+  --pet-color: #758295;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 15em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pet-color) 13%, transparent);
+  font-size: 10px;
+  line-height: 1.5;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-inline-start: 5px;
+  vertical-align: middle;
+  color: color-mix(in srgb, var(--pet-color) 65%, var(--text-color, #292d32));
 }
+.fp-chat-pet-status[data-species="momota"] { --pet-color: #a76a45; }
+.fp-chat-pet-status[data-species="hexiaotun"] { --pet-color: #5c913c; }
+.fp-chat-pet-status[data-species="yubingmiao"] { --pet-color: #cc6b26; }
+.fp-chat-pet-status[data-species="paixiaoyu"] { --pet-color: #448bb8; }
+.fp-chat-pet-name { overflow: hidden; text-overflow: ellipsis; }
+.fp-chat-pet-level {
+  --level-color: #758295;
+  flex: none;
+  padding-inline: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--level-color) 19%, transparent);
+  color: color-mix(in srgb, var(--level-color) 65%, var(--text-color, #292d32));
+  font-weight: 700;
+}
+.fp-chat-pet-level[data-tier="1"] { --level-color: #4383ce; }
+.fp-chat-pet-level[data-tier="2"] { --level-color: #9564c5; }
+.fp-chat-pet-level[data-tier="3"] { --level-color: #bd841f; }
+.fp-chat-pet-state { flex: none; color: var(--text-gray-color, #53655a); }

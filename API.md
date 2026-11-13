@@ -287,6 +287,8 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/refresh'
 
 > 刷新成功后浏览器使用新的登录 Cookie。请勿重复使用刷新前的 Cookie；重复使用会使本次登录失效，需要重新登录。 账号已停用、未激活或不存在时返回 HTTP 401，不能继续刷新。
 
+> 登录存储暂时不可用时返回 HTTP 503，保留刷新 Cookie。
+
 ### 退出登录
 
 `POST /api/v3/auth/logout`
@@ -16948,4 +16950,4 @@ curl 'https://fishpi.cn/api/v3/me/pet' \
 
 ### 聊天消息宠物状态
 
-旧版网页聊天室普通消息及 V3 普通聊天消息可以带有可选字段 `petStatus: {name, state, level?}`。这是发言时的公开展示快照，包含宠物昵称、状态类别和等级。旧快照可能缺少等级。状态值为 `idle`（空闲）、`rest`（休息中）、`outing`（外出中）、`course`（上课中）、`work`（兼职中）、`claimable`（待领取）。未领养、历史消息没有快照或无法取得宠物数据时省略字段。客户端无需另外请求宠物资料。
+旧版网页聊天室普通消息及 V3 普通聊天消息可以带有可选字段 `petStatus: {name, state, level?, speciesId?}`。这是发言时的公开展示快照，包含宠物昵称、状态类别、等级和品种 ID。旧快照可能缺少等级或品种；品种取值为 `momota`、`hexiaotun`、`yubingmiao`、`paixiaoyu`。状态值为 `idle`（空闲）、`rest`（休息中）、`outing`（外出中）、`course`（上课中）、`work`（兼职中）、`claimable`（待领取）。未领养、历史消息没有快照或无法取得宠物数据时省略字段。客户端无需另外请求宠物资料。

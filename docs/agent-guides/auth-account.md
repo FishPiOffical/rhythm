@@ -8,6 +8,7 @@
 
 - 密码登录由 `WebsiteLoginCookies` 绑定旧 `sym-ce` 与 V3 网页令牌家族；Cookie 保持 host-only，Bearer 仍仅在新版内存，不恢复旧 apiKey 桥接。存量未绑定 Cookie 不自动兑换，需重新登录一次。
 - 任一端退出先撤销当前家族再清 Cookie，存储失败保留凭据以便重试；未绑定或失效 Cookie 退出也须清理 HTTP Session 用户和凭据版本，不能只删 Cookie，否则旧 WebSocket 会保留身份。旧 HTTP/WebSocket 同样检查绑定家族。绑定不得写入跨浏览器共享的用户缓存。`/api/v3/auth/session` 仅做可信来源状态探测，不签发令牌；前端聚焦合并检查，无定时轮询。实现与本地验收见 `docs/website-login-interoperability.md`。
+- 本地额外预览来源由 JVM 属性 `rhythm.dev.websiteOrigin` 精确配置，仅 DEVELOPMENT 且前后端均为 HTTP 回环主机时可用。Cookie 按主机隔离，独立实例可以分别使用 `localhost` 和 `127.0.0.1`。刷新仅在凭据明确失效时清 Cookie；存储异常返回 503。
 - v3登录时间只在ApiV3TokenMgmtService.issue与AppLoginService.exchange签发根内记录，失败同回滚；刷新/普通认证/OAuth授权不记录。只更新userLatestLoginTime，缓存提交后失效，不复用会改在线标志和地理资料的updateOnlineStatus。
 
 ## OAuth、Token 与应用管理
