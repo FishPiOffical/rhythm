@@ -75,6 +75,10 @@ var Util = {
         name.className = 'fp-chat-pet-name';
         name.textContent = pet.name;
         element.appendChild(name);
+        const state = document.createElement('span');
+        state.className = 'fp-chat-pet-state';
+        state.textContent = labels[pet.state];
+        element.appendChild(state);
         if (level !== null) {
             const badge = document.createElement('span');
             badge.className = 'fp-chat-pet-level';
@@ -82,11 +86,7 @@ var Util = {
             badge.textContent = 'Lv.' + level;
             element.appendChild(badge);
         }
-        const state = document.createElement('span');
-        state.className = 'fp-chat-pet-state';
-        state.textContent = labels[pet.state];
-        element.appendChild(state);
-        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent + (destination ? (ownPet ? ' · 前往宠物家园' : ' · 查看宠物资料') : '');
+        element.title = '宠物：' + pet.name + ' · ' + state.textContent + (level === null ? '' : ' · Lv.' + level) + (destination ? (ownPet ? ' · 前往宠物家园' : ' · 查看宠物资料') : '');
         return element.outerHTML;
     },
 
