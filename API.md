@@ -7392,7 +7392,13 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 
 宠物榜只统计有效账号当前领养的宠物，沿用总榜条数上限。等级降序，同级经验降序，同经验按宠物 ID 升序。可使用榜单返回的 `pet.id` 查询公开资料，无需登录；可选 Bearer 需要 `content.read`。
 
-`data` 返回 `id`、`name`、`speciesId`、`level`、`experience` 和与榜单相同的 `user` 摘要。重新领养后旧宠物 ID 返回 404，停用账号的宠物也返回 404。
+`data` 返回 `id`、`name`、`speciesId`、`level`、`experience` 和与榜单相同的 `user` 摘要。另返回 `learning`（学习技能）和 `career`（职业熟练度），每项包含目录的 `id`、`name` 及当前 `level`。重新领养后旧宠物 ID 返回 404，停用账号的宠物也返回 404。
+
+#### 从聊天室查看宠物资料
+
+`GET /api/v3/chat/messages/{messageId}/pet`
+
+需要 `content.read`。返回可见消息的宠物资料与发送人摘要 `user`，活动状态 `state` 取自发言时。宠物仍由同一主人领养时，返回当前等级、经验、`learning` 和 `career`；旧快照通过主人、品种与领养时间核对。无法匹配的历史宠物仍显示发言时的资料，省略成长等级。消息已撤回、不可见或无宠物快照时返回 404。
 
 ## 私信（API v3）
 
@@ -16960,4 +16966,4 @@ curl 'https://fishpi.cn/api/v3/me/pet' \
 
 ### 聊天消息宠物状态
 
-旧版网页聊天室普通消息及 V3 普通聊天消息可以带有可选字段 `petStatus: {name, state, level?, speciesId?}`。这是发言时的公开展示快照，包含宠物昵称、状态类别、等级和品种 ID。旧快照可能缺少等级或品种；品种取值为 `momota`、`hexiaotun`、`yubingmiao`、`paixiaoyu`。状态值为 `idle`（空闲）、`rest`（休息中）、`outing`（外出中）、`course`（上课中）、`work`（兼职中）、`claimable`（待领取）。未领养、历史消息没有快照或无法取得宠物数据时省略字段。客户端无需另外请求宠物资料。
+旧版网页聊天室普通消息及 V3 普通聊天消息可以带有可选字段 `petStatus: {name, state, level?, speciesId?, petId?}`。这是发言时的公开展示快照，包含宠物昵称、状态类别、等级、品种 ID 和宠物 ID。旧快照可能缺少等级或品种；品种取值为 `momota`、`hexiaotun`、`yubingmiao`、`paixiaoyu`。状态值为 `idle`（空闲）、`rest`（休息中）、`outing`（外出中）、`course`（上课中）、`work`（兼职中）、`claimable`（待领取）。未领养、历史消息没有快照或无法取得宠物数据时省略字段。客户端无需另外请求宠物资料。

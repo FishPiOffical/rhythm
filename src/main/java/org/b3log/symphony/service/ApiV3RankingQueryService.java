@@ -19,10 +19,15 @@
 package org.b3log.symphony.service;
 
 import org.b3log.latke.ioc.Inject;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.PetJobProgressRepository;
+import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.util.ApiV3PetActivities;
+import org.b3log.symphony.util.ApiV3PetWork;
 import org.b3log.symphony.util.ApiV3RankingDto;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.Symphonys;
@@ -55,6 +60,10 @@ public class ApiV3RankingQueryService {
     private UserPetRepository pets;
     @Inject
     private UserRepository petOwners;
+    @Inject
+    private PetSkillRepository petSkills;
+    @Inject
+    private PetJobProgressRepository petJobs;
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<>();
     private final Map<String, Object> locks = new ConcurrentHashMap<>();
     private static final java.util.concurrent.atomic.AtomicLong SETTINGS_REVISION = new java.util.concurrent.atomic.AtomicLong();
@@ -81,7 +90,46 @@ public class ApiV3RankingQueryService {
         final var rows = pets.select(petRowsSql() + " AND p.oId=?", UserExt.USER_STATUS_C_VALID, id);
         if (rows.size() != 1) throw ApiV3Requests.notFound();
         final JSONObject row = rows.getFirst();
-        return ApiV3RankingDto.pet(row).put("user", ApiV3RankingDto.user(dto.author(row, false)));
+        final JSONObject profile = ApiV3RankingDto.pet(row).put("user", ApiV3RankingDto.user(dto.author(row, false)));
+        return withPetProgress(profile, id, row.getString("oId"));
+    }
+
+    public JSONObject chatPetProfile(final JSONObject message) throws RepositoryException {
+        final JSONObject snapshot = message.optJSONObject("petStatus");
+        if (snapshot == null) throw ApiV3Requests.notFound();
+        final JSONObject author = message.getJSONObject("author");
+        final String ownerId = author.getString("id");
+        final JSONObject profile = new JSONObject(snapshot.toString()).put("user", ApiV3RankingDto.user(author));
+        final String petId = snapshot.optString("petId");
+        // 旧快照没有宠物 ID，用领养时间与品种核对，避免把新宠物的成长挂到旧消息上。
+        final var rows = petId.isEmpty()
+                ? pets.select(petRowsSql() + " AND p.userId=? AND p.adoptedAt<=? AND p.speciesId=?",
+                        UserExt.USER_STATUS_C_VALID, ownerId, message.getLong("createdAt"), snapshot.optString("speciesId"))
+                : pets.select(petRowsSql() + " AND p.userId=? AND p.oId=?", UserExt.USER_STATUS_C_VALID, ownerId, petId);
+        if (rows.size() != 1) return profile;
+        final JSONObject pet = ApiV3RankingDto.pet(rows.getFirst());
+        pet.put("state", snapshot.getString("state")).put("user", ApiV3RankingDto.user(author));
+        return withPetProgress(pet, pet.getString("id"), ownerId);
+    }
+
+    private JSONObject withPetProgress(final JSONObject profile, final String petId, final String ownerId) throws RepositoryException {
+        final var skills = petSkills.select("SELECT skillId,experience FROM `" + petSkills.getName()
+                + "` WHERE petId=? AND userId=?", petId, ownerId);
+        final var jobs = petJobs.select("SELECT jobId,experience FROM `" + petJobs.getName()
+                + "` WHERE petId=? AND userId=?", petId, ownerId);
+        final JSONArray learning = new JSONArray();
+        for (final var skill : ApiV3PetActivities.SKILLS)
+            learning.put(progress(skills, "skillId", skill.id(), skill.name()));
+        final JSONArray career = new JSONArray();
+        for (final var job : ApiV3PetWork.JOBS)
+            career.put(progress(jobs, "jobId", job.id(), job.name()));
+        return profile.put("learning", learning).put("career", career);
+    }
+
+    private static JSONObject progress(final List<JSONObject> rows, final String key, final String id, final String name) {
+        final int experience = rows.stream().filter(row -> id.equals(row.optString(key)))
+                .mapToInt(row -> row.getInt("experience")).findFirst().orElse(0);
+        return new JSONObject().put("id", id).put("name", name).put("level", ApiV3PetActivities.level(experience));
     }
 
     private String petRowsSql() {

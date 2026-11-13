@@ -98,7 +98,7 @@ public class ChatMessageMgmtService {
         if (pets == null || petActivities == null) return null;
         final long now = System.currentTimeMillis();
         try {
-            final var rows = pets.select("SELECT p.name,p.speciesId,p.experience,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
+            final var rows = pets.select("SELECT p.oId AS petId,p.name,p.speciesId,p.experience,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
                     + " FROM `" + pets.getName() + "` p LEFT JOIN `" + petActivities.getName()
                     + "` a ON a.slotKey=CONCAT('active:',p.userId) AND a.userId=p.userId AND a.petId=p.oId"
                     + " WHERE p.userId=?", actor);
@@ -111,6 +111,7 @@ public class ChatMessageMgmtService {
                 state = "rest".equals(row.optString("activityKind")) && row.optLong("activityEndsAt") > now ? "rest" : "idle";
             }
             return ApiV3ChatMessageDto.petStatus(new JSONObject()
+                    .put("petId", row.optString("petId"))
                     .put("name", row.optString("name"))
                     .put("speciesId", row.optString("speciesId"))
                     .put("state", state)

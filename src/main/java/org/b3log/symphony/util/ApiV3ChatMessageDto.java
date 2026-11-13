@@ -131,6 +131,9 @@ public final class ApiV3ChatMessageDto {
         if (pet.opt("speciesId") instanceof String speciesId && ApiV3PetRules.SPECIES.contains(speciesId)) {
             snapshot.put("speciesId", speciesId);
         }
+        if (pet.opt("petId") instanceof String petId && petId.matches("[0-9]{1,19}")) {
+            snapshot.put("petId", petId);
+        }
         return snapshot;
     }
 

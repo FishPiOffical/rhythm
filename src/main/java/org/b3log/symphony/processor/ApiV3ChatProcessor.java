@@ -28,6 +28,7 @@ import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
 import org.b3log.symphony.service.ApiV3ChatPublicationService;
 import org.b3log.symphony.service.ApiV3ChatQueryService;
+import org.b3log.symphony.service.ApiV3RankingQueryService;
 import org.b3log.symphony.service.ApiV3ChatOnlineQueryService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
 import org.b3log.symphony.service.ApiV3ChatTopicService;
@@ -41,6 +42,8 @@ import java.util.Set;
 public class ApiV3ChatProcessor {
     @Inject
     private ApiV3ChatQueryService query;
+    @Inject
+    private ApiV3RankingQueryService rankings;
     @Inject
     private ApiV3ChatOnlineQueryService onlineQuery;
     @Inject
@@ -68,6 +71,7 @@ public class ApiV3ChatProcessor {
         Dispatcher.post("/api/v3/chat/barrager", p::sendBarrage, auth::contentWrite, writes::handle);
         Dispatcher.get("/api/v3/chat/barrager/price", p::barragerPrice, auth::contentRead);
         Dispatcher.get("/api/v3/chat/messages/{messageId}", p::detail, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/messages/{messageId}/pet", p::pet, auth::contentRead);
         Dispatcher.get("/api/v3/chat/messages/{messageId}/context", p::context, auth::contentRead);
     }
 
@@ -133,6 +137,10 @@ public class ApiV3ChatProcessor {
 
     public void detail(final RequestContext c) {
         ApiV3Requests.read(c, () -> query.detail(ApiV3Requests.id(c, "messageId"), ApiV3Requests.viewer(c).getString(Keys.OBJECT_ID)));
+    }
+
+    public void pet(final RequestContext c) {
+        ApiV3Requests.read(c, () -> rankings.chatPetProfile(query.detail(ApiV3Requests.id(c, "messageId"))));
     }
 
     public void context(final RequestContext c) {
