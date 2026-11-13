@@ -7392,13 +7392,13 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 
 宠物榜只统计有效账号当前领养的宠物，沿用总榜条数上限。等级降序，同级经验降序，同经验按宠物 ID 升序。可使用榜单返回的 `pet.id` 查询公开资料，无需登录；可选 Bearer 需要 `content.read`。
 
-`data` 返回 `id`、`name`、`speciesId`、`level`、`experience` 和与榜单相同的 `user` 摘要。另返回 `learning`（学习技能）和 `career`（职业熟练度），每项包含目录的 `id`、`name` 及当前 `level`。重新领养后旧宠物 ID 返回 404，停用账号的宠物也返回 404。
+`data` 返回 `id`、`name`、`speciesId`、`level`、`experience` 和与榜单相同的 `user` 摘要。另返回 `learning`（学习技能）和 `career`（职业熟练度），每项包含目录的 `id`、`name` 及当前 `level`。重新领养后旧宠物 ID 仍可读取，返回归档时的等级、经验和旧宠物的学习及职业等级，附加 `archived: true`。停用账号的宠物返回 404。
 
 #### 从聊天室查看宠物资料
 
 `GET /api/v3/chat/messages/{messageId}/pet`
 
-需要 `content.read`。返回可见消息的宠物资料与发送人摘要 `user`，活动状态 `state` 取自发言时。宠物仍由同一主人领养时，返回当前等级、经验、`learning` 和 `career`；旧快照通过主人、品种与领养时间核对。无法匹配的历史宠物仍显示发言时的资料，省略成长等级。消息已撤回、不可见或无宠物快照时返回 404。
+需要 `content.read`。返回可见消息的宠物资料与发送人摘要 `user`，活动状态 `state` 取自发言时。宠物仍由同一主人领养时，返回当前等级、经验、`learning` 和 `career`；已归档宠物附加 `archived: true`，学习与职业等级仍按旧宠物 ID 读取。没有宠物 ID 的旧快照通过主人、品种及领养与归档时间核对。无法匹配的历史宠物仍显示发言时的资料，省略成长等级。消息已撤回、不可见或无宠物快照时返回 404。
 
 ## 私信（API v3）
 

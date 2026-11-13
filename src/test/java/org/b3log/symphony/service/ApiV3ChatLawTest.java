@@ -30,6 +30,8 @@ import org.b3log.symphony.model.Role;
 import org.b3log.symphony.processor.ChatroomProcessor;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
+import org.b3log.symphony.repository.PetActivityRepository;
+import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3AppearanceCatalog;
 import org.b3log.symphony.util.ArticlePublicationCaches;
@@ -43,6 +45,8 @@ import org.testng.annotations.Test;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
@@ -58,7 +62,7 @@ public class ApiV3ChatLawTest {
     }
 
     static class Fixture extends F {
-        int executions, deliveries, restrictionsRead, saveAttempts, failures;
+        int executions, deliveries, restrictionsRead, saveAttempts, failures, petReads;
         String replacement;
         final DefaultFullHttpRequest raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.POST, "/api/v3/chat/messages");
@@ -143,6 +147,13 @@ public class ApiV3ChatLawTest {
                 public JSONObject snapshotInCurrentTransaction(final String actor, final String html) { return null; }
             });
             inject(publication, "messages", new ChatMessageMgmtService() {
+                public JSONObject capturePetStatus(final String actor) {
+                    Assert.assertFalse(active());
+                    Assert.assertFalse(ArticlePublicationCaches.active());
+                    petReads++;
+                    return new JSONObject().put("petId", "80").put("name", "荷小豚").put("state", "idle");
+                }
+
                 public JSONObject saveInCurrentTransaction(final JSONObject envelope, final String actor) throws RepositoryException {
                     Assert.assertTrue(active());
                     saveAttempts++;
@@ -173,6 +184,45 @@ public class ApiV3ChatLawTest {
         public void close() throws Exception {
             raw.release();
             super.close();
+        }
+    }
+
+    @Test
+    public void petSnapshotIsCapturedBeforeChatTransaction() throws Exception {
+        try (final var f = new Fixture()) {
+            f.send("宠物事务专项消息", "pet-chat-snapshot-test");
+            Assert.assertEquals(f.petReads, 1);
+            final var row = rows(f.db, "SELECT content FROM chat").getFirst();
+            final var message = new JSONObject(row.getString("content"));
+            Assert.assertEquals(message.getJSONObject("petStatus").getString("petId"), "80");
+        }
+    }
+
+    @Test(timeOut = 5000)
+    public void slowPetSnapshotDoesNotBlockTheCallerUntilTheQueryCompletes() throws Exception {
+        final var service = new ChatMessageMgmtService();
+        final var entered = new CountDownLatch(1);
+        final var release = new CountDownLatch(1);
+        final var caller = Thread.currentThread();
+        inject(service, "pets", new UserPetRepository() {
+            public List<JSONObject> select(final String query, final Object... args) throws RepositoryException {
+                Assert.assertNotSame(Thread.currentThread(), caller);
+                entered.countDown();
+                try {
+                    release.await();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RepositoryException(e);
+                }
+                return List.of();
+            }
+        });
+        inject(service, "petActivities", new PetActivityRepository());
+        try {
+            Assert.assertNull(service.capturePetStatus("1"));
+            Assert.assertTrue(entered.await(1, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
         }
     }
 

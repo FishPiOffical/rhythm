@@ -108,6 +108,7 @@ public class ApiV3ChatPublicationService {
         final var confirmed = new AtomicReference<String>();
         final boolean lawCommand = card == null && ChatMessageText.isLawCommand(content.strip());
         final var lawActor = new AtomicReference<JSONObject>();
+        final JSONObject petStatus = card == null && !lawCommand ? messages.capturePetStatus(actor) : null;
         final Published result = points.executeWithTransferLocks(actor, List.of(Pointtransfer.ID_C_SYS), () -> {
             try (final var caches = ArticlePublicationCaches.open(users::hasTransactionBegun)) {
                 ArticlePublicationCaches.afterTransaction("chat-user:" + actor, () -> {
@@ -158,6 +159,7 @@ public class ApiV3ChatPublicationService {
                             .put("sysMetal", cloud.getEnabledMedal(actor));
                     // 小尾巴独立于原正文保存；只有新版普通消息可以生成，业务卡片不参与。
                     if (card == null) {
+                        if (petStatus != null) envelope.put("petStatus", petStatus);
                         final String html = renderChatHtml(prepared);
                         final JSONObject tail = tails.snapshotInCurrentTransaction(actor, html);
                         if (tail != null) envelope.put("tail", tail);

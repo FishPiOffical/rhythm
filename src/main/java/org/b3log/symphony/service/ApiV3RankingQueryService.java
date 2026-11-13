@@ -22,6 +22,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.PetArchiveRepository;
 import org.b3log.symphony.repository.PetJobProgressRepository;
 import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.UserPetRepository;
@@ -61,6 +62,8 @@ public class ApiV3RankingQueryService {
     @Inject
     private UserRepository petOwners;
     @Inject
+    private PetArchiveRepository petArchives;
+    @Inject
     private PetSkillRepository petSkills;
     @Inject
     private PetJobProgressRepository petJobs;
@@ -88,9 +91,17 @@ public class ApiV3RankingQueryService {
 
     public JSONObject petProfile(final String id) throws Exception {
         final var rows = pets.select(petRowsSql() + " AND p.oId=?", UserExt.USER_STATUS_C_VALID, id);
-        if (rows.size() != 1) throw ApiV3Requests.notFound();
-        final JSONObject row = rows.getFirst();
-        final JSONObject profile = ApiV3RankingDto.pet(row).put("user", ApiV3RankingDto.user(dto.author(row, false)));
+        if (rows.size() == 1) {
+            final JSONObject row = rows.getFirst();
+            final JSONObject profile = ApiV3RankingDto.pet(row).put("user", ApiV3RankingDto.user(dto.author(row, false)));
+            return withPetProgress(profile, id, row.getString("oId"));
+        }
+        final var archived = petArchives.select(archivedPetsSql() + " AND a.oId=?", UserExt.USER_STATUS_C_VALID, id);
+        if (archived.size() != 1) throw ApiV3Requests.notFound();
+        final JSONObject row = archived.getFirst();
+        final JSONObject profile = archivedPet(row, null);
+        if (profile == null) throw ApiV3Requests.notFound();
+        profile.put("user", ApiV3RankingDto.user(dto.author(row, false)));
         return withPetProgress(profile, id, row.getString("oId"));
     }
 
@@ -106,10 +117,39 @@ public class ApiV3RankingQueryService {
                 ? pets.select(petRowsSql() + " AND p.userId=? AND p.adoptedAt<=? AND p.speciesId=?",
                         UserExt.USER_STATUS_C_VALID, ownerId, message.getLong("createdAt"), snapshot.optString("speciesId"))
                 : pets.select(petRowsSql() + " AND p.userId=? AND p.oId=?", UserExt.USER_STATUS_C_VALID, ownerId, petId);
-        if (rows.size() != 1) return profile;
-        final JSONObject pet = ApiV3RankingDto.pet(rows.getFirst());
+        final JSONObject pet;
+        if (rows.size() == 1) {
+            pet = ApiV3RankingDto.pet(rows.getFirst());
+        } else {
+            final var archived = petId.isEmpty()
+                    ? petArchives.select(archivedPetsSql() + " AND a.userId=? AND a.retiredAt>? ORDER BY a.retiredAt,a.oId LIMIT 1",
+                            UserExt.USER_STATUS_C_VALID, ownerId, message.getLong("createdAt"))
+                    : petArchives.select(archivedPetsSql() + " AND a.userId=? AND a.oId=?", UserExt.USER_STATUS_C_VALID, ownerId, petId);
+            if (archived.size() != 1) return profile;
+            pet = archivedPet(archived.getFirst(), petId.isEmpty() ? message : null);
+            if (pet == null) return profile;
+        }
         pet.put("state", snapshot.getString("state")).put("user", ApiV3RankingDto.user(author));
         return withPetProgress(pet, pet.getString("id"), ownerId);
+    }
+
+    private String archivedPetsSql() {
+        return "SELECT a.oId AS petId,a.snapshotJson,u.oId,u.userName,u.userNickname,u.userAvatarURL,u.userStatus"
+                + " FROM `" + petArchives.getName() + "` a JOIN `" + petOwners.getName() + "` u ON u.oId=a.userId"
+                + " WHERE u.userStatus=?";
+    }
+
+    private static JSONObject archivedPet(final JSONObject row, final JSONObject legacyMessage) {
+        final JSONObject saved = new JSONObject(row.getString("snapshotJson"));
+        if (legacyMessage != null) {
+            // 无宠物 ID 的旧消息只匹配发言时已领养、尚未归档的同品种宠物。
+            final JSONObject snapshot = legacyMessage.getJSONObject("petStatus");
+            if (!saved.getString("speciesId").equals(snapshot.optString("speciesId"))
+                    || saved.getLong("adoptedAt") > legacyMessage.getLong("createdAt")) return null;
+        }
+        return ApiV3RankingDto.pet(new JSONObject().put("petId", row.getString("petId"))
+                .put("petName", saved.getString("name")).put("speciesId", saved.getString("speciesId"))
+                .put("experience", saved.getInt("experience"))).put("archived", true);
     }
 
     private JSONObject withPetProgress(final JSONObject profile, final String petId, final String ownerId) throws RepositoryException {

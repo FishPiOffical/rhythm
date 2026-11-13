@@ -18,10 +18,12 @@
  */
 package org.b3log.symphony.service;
 
+import org.apache.logging.log4j.LogManager;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
+import org.b3log.latke.repository.jdbc.JdbcRepository;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.ChatRoomRepository;
 import org.b3log.symphony.repository.ChatRedPacketRepository;
@@ -35,9 +37,17 @@ import org.b3log.symphony.util.ApiV3ChatTransaction;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /** Persistence only: callers must finish authentication, validation and admission before entering. */
 @Service
 public class ChatMessageMgmtService {
+    private static final Semaphore PET_SNAPSHOT_READS = new Semaphore(4);
+    private static final long PET_SNAPSHOT_WAIT_MS = 100;
     @Inject private ChatRoomRepository messages;
     @Inject private ApiV3ChatAppearanceService appearances;
     @Inject private ChatRedPacketRepository redPackets;
@@ -85,7 +95,7 @@ public class ChatMessageMgmtService {
             final JSONObject saved = new JSONObject(envelope.toString());
             saved.put("appearance", appearances.snapshotInCurrentTransaction(actor));
             saved.remove("petStatus");
-            final JSONObject petStatus = petStatus(actor);
+            final JSONObject petStatus = ApiV3ChatMessageDto.petStatus(envelope.opt("petStatus"));
             if (petStatus != null) saved.put("petStatus", petStatus);
             saved.put(Keys.OBJECT_ID, messages.add(new JSONObject().put("content", saved.toString())));
             professions.chatroomMessagePublished(saved, actor);
@@ -93,41 +103,68 @@ public class ChatMessageMgmtService {
         });
     }
 
-    /** 只公开发言时的宠物昵称、品种、等级和活动类别，缺少宠物数据不影响发送。 */
-    private JSONObject petStatus(final String actor) {
-        if (pets == null || petActivities == null) return null;
+    /** 发送前限时读取附加资料。慢查询占用的并发有上限，超时仍可提交正文。 */
+    public JSONObject capturePetStatus(final String actor) {
+        if (pets == null || petActivities == null || !PET_SNAPSHOT_READS.tryAcquire()) return null;
         final long now = System.currentTimeMillis();
-        try {
-            final var rows = pets.select("SELECT p.oId AS petId,p.name,p.speciesId,p.experience,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
-                    + " FROM `" + pets.getName() + "` p LEFT JOIN `" + petActivities.getName()
-                    + "` a ON a.slotKey=CONCAT('active:',p.userId) AND a.userId=p.userId AND a.petId=p.oId"
-                    + " WHERE p.userId=?", actor);
-            if (rows.size() != 1) return null;
-            final JSONObject row = rows.getFirst();
-            final String state;
-            if (!row.optString("kind", "").isEmpty()) {
-                state = row.optLong("endsAt") <= now ? "claimable" : row.optString("kind");
-            } else {
-                state = "rest".equals(row.optString("activityKind")) && row.optLong("activityEndsAt") > now ? "rest" : "idle";
+        final var result = new CompletableFuture<JSONObject>();
+        Thread.startVirtualThread(() -> {
+            try {
+                result.complete(readPetStatus(actor, now));
+            } catch (final RepositoryException | RuntimeException e) {
+                result.completeExceptionally(e);
+            } finally {
+                // 独立线程没有 HTTP 请求结束钩子，必须主动归还 JDBC 连接。
+                try {
+                    JdbcRepository.dispose();
+                } finally {
+                    PET_SNAPSHOT_READS.release();
+                }
             }
-            return ApiV3ChatMessageDto.petStatus(new JSONObject()
-                    .put("petId", row.optString("petId"))
-                    .put("name", row.optString("name"))
-                    .put("speciesId", row.optString("speciesId"))
-                    .put("state", state)
-                    .put("level", ApiV3PetRules.level(row.getInt("experience"))));
-        } catch (final RepositoryException unavailable) {
-            // 聊天可先于宠物表部署，附加资料读取失败时仍提交正文。
+        });
+        try {
+            return result.get(PET_SNAPSHOT_WAIT_MS, TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (final TimeoutException e) {
+            // 查询可能仍在执行，名额由查询线程在结束后释放。
+            return null;
+        } catch (final ExecutionException e) {
+            LogManager.getLogger(ChatMessageMgmtService.class).debug("聊天室宠物快照读取失败", e.getCause());
             return null;
         }
+    }
+
+    private JSONObject readPetStatus(final String actor, final long now) throws RepositoryException {
+        final var rows = pets.select("SELECT p.oId AS petId,p.name,p.speciesId,p.experience,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
+                + " FROM `" + pets.getName() + "` p LEFT JOIN `" + petActivities.getName()
+                + "` a ON a.slotKey=CONCAT('active:',p.userId) AND a.userId=p.userId AND a.petId=p.oId"
+                + " WHERE p.userId=?", actor);
+        if (rows.size() != 1) return null;
+        final JSONObject row = rows.getFirst();
+        final String state;
+        if (!row.optString("kind", "").isEmpty()) {
+            state = row.optLong("endsAt") <= now ? "claimable" : row.optString("kind");
+        } else {
+            state = "rest".equals(row.optString("activityKind")) && row.optLong("activityEndsAt") > now ? "rest" : "idle";
+        }
+        return ApiV3ChatMessageDto.petStatus(new JSONObject()
+                .put("petId", row.optString("petId"))
+                .put("name", row.optString("name"))
+                .put("speciesId", row.optString("speciesId"))
+                .put("state", state)
+                .put("level", ApiV3PetRules.level(row.getInt("experience"))));
     }
 
     /** Legacy root boundary; never call this from an idempotency callback. */
     public JSONObject saveLegacy(final JSONObject envelope, final String actor) throws RepositoryException {
         if (messages.hasTransactionBegun()) throw new IllegalStateException("use current-transaction chat primitive");
+        final JSONObject prepared = new JSONObject(envelope.toString());
+        prepared.put("petStatus", capturePetStatus(actor));
         final Transaction transaction = ApiV3Transactions.strict(messages.beginTransaction());
         try {
-            final JSONObject saved = saveInCurrentTransaction(envelope, actor);
+            final JSONObject saved = saveInCurrentTransaction(prepared, actor);
             transaction.commit();
             return saved;
         } finally {

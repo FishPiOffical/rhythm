@@ -28,6 +28,7 @@ import org.json.JSONObject;
 
 /** 第一方网页的双 Cookie 交付；令牌仅留在 HttpOnly Cookie 或既有 V3 响应。 */
 public final class WebsiteLoginCookies {
+    private static final String WEBSITE_HOST = "new.fishpi.cn";
     private WebsiteLoginCookies() { }
 
     /** 仅信任本站和明确的新站；旧版直接打开退出地址时允许没有来源头。 */
@@ -44,7 +45,7 @@ public final class WebsiteLoginCookies {
             final boolean own = uri.getScheme().equalsIgnoreCase(site.getScheme())
                     && uri.getHost().equalsIgnoreCase(site.getHost()) && uri.getPort() == site.getPort();
             final boolean newer = "https".equalsIgnoreCase(uri.getScheme())
-                    && "new.fishpi.cn".equalsIgnoreCase(uri.getHost()) && (uri.getPort() == -1 || uri.getPort() == 443)
+                    && WEBSITE_HOST.equalsIgnoreCase(uri.getHost()) && (uri.getPort() == -1 || uri.getPort() == 443)
                     && "fishpi.cn".equalsIgnoreCase(site.getHost());
             final boolean local = ("localhost".equals(site.getHost()) || "127.0.0.1".equals(site.getHost()))
                     && ("localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost()))
@@ -75,7 +76,7 @@ public final class WebsiteLoginCookies {
         } catch (final IllegalArgumentException ignored) {
             // 配置不合法时使用正式站点入口。
         }
-        return "https://new.fishpi.cn/pets";
+        return "https://" + WEBSITE_HOST + "/pets";
     }
 
     private static boolean isLoopbackHost(final String host) {

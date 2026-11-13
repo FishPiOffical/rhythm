@@ -31,6 +31,7 @@
 
 - v3 普通消息 POST `/chat/messages` 走 `ApiV3ChatPublicationService`：content.write、白名单正文/客户端与幂等；先取得actor/sys账户对，再打开缓存边界和事务，当前用户/限制/适用处罚/消息/职业/最后发言时间同事务。仅applied后广播、活跃度与提醒；处罚由 `ChatMessagePenaltyMgmtService` 写禁言/思过簿/扣分通知，提醒走 `ChatMessageNoticeService` 独立严格提交并释放连接。具备旧版执法权限的账号可在正文中使用 `执法`/`zf`，提交成功后复用 `ChatRoomBot.handleLawCommand` 执行一次，幂等回放不重复执行；其他普通正文不执行业务命令或AI。
 - 聊天风控重复确认和复读计数由 `ChatMessageAbuseState` 供新旧入口共用；普通保存核心不能替代准入。v3 禁言/风控读取走 `ChatMessageRestrictionQueryService`，要求已有事务并锁定当前记录，只读到期时间、不自行清理或提交；损坏/重复记录须报错，不能当作未限制。`ChatMessageRestrictions` 保留风险校验→确认→禁言顺序及全员禁言时的管理例外。
+- 经典聊天室宠物标记指向 `https://new.fishpi.cn/pets`，他人的标记通过消息 ID 打开资料。普通发送在写事务之前限时获取可选宠物快照，超时或读取不可用时仍保存正文，写事务只持久化已取得的快照。归档宠物按原宠物和主人核对后读取成长，历史消息不关联重新领养的新宠物。
 - 普通聊天保存共用 `ChatMessageMgmtService`：`saveInCurrentTransaction` 用保存点绑定消息、变更序列和职业来源，外层须提交；旧入口用严格根事务 `saveLegacy`，确认提交后才回填消息ID。v3 用 `ChatMessageText` 拒绝完整业务包装及卡片JSON；执法/zf 前缀仅在权限核验通过后按共享处理器执行。该保存核心不负责禁言、重复确认、复读处罚或外部广播，不能据此直接开放发送。
 - 聊天发送基础校验共用ChatMessageValidation/ChatMessageValidationService，客户端标记共用ChatMessageClients；保留旧频控→保留词→trim/4096 UTF-16长度顺序和管理员例外。MIN_STEP_CHAT_TIME当前为0，不能擅自增加业务频控；基础校验不负责禁言、命令或费用。旧ChatRoomBot.muted/risksControlled在记录过期时自行开事务，v3事务体不能直接调用；v3须显式传Bearer用户，不能复用依赖Sessions的旧middleware。
 

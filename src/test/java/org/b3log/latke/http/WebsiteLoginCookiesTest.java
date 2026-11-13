@@ -48,6 +48,7 @@ public final class WebsiteLoginCookiesTest {
         Latkes.setLatkeProperty("contextPath", "");
         Latkes.setServerScheme("https");
         Latkes.setEnabledSession(true);
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
         try {
             trustedOrigins();
             final String legacy = Crypts.encryptByAES(new JSONObject().put(Keys.OBJECT_ID, ACTOR)
@@ -65,6 +66,7 @@ public final class WebsiteLoginCookiesTest {
     private static void trustedOrigins() {
         Latkes.setServerHost("fishpi.cn");
         Latkes.setServerPort("443");
+        check("https://new.fishpi.cn/pets".equals(WebsiteLoginCookies.petHomeUrl()), "经典聊天室必须指向正式宠物家园");
         origin("https://new.fishpi.cn", null, "same-site", false, true);
         origin("https://new.fishpi.cn:443", null, "same-site", false, true);
         origin(null, "https://new.fishpi.cn/article/123", "same-site", false, true);
