@@ -119,6 +119,8 @@
   td strong { font-size: 14px; font-weight: 650; }
   .pet-log-unit, .pet-log-detail { color: var(--pet-muted); }
   .pet-log-detail { display: block; margin-top: 2px; font-size: 12px; }
+  .pet-log-detail:has(.pet-log-pet-name) { margin-top: 6px; }
+  .pet-log-detail .pet-log-pet-name { font-size: inherit; color: var(--pet-ink); }
   .pet-log-time, .pet-log-user { font-variant-numeric: tabular-nums; }
   .pet-log-time { color: var(--pet-muted); }
   .pet-log-status { display: inline-block; padding: 2px 7px; border-radius: 4px; background: var(--pet-panel); font-size: 12px; }

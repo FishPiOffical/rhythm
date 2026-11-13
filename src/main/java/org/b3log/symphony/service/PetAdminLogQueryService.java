@@ -22,10 +22,13 @@ import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.symphony.repository.PetArchiveRepository;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.PetJournalRepository;
 import org.b3log.symphony.repository.PetRiskAuditRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.UserPetRepository;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.time.Instant;
@@ -65,6 +68,8 @@ public class PetAdminLogQueryService {
     @Inject private PetJournalRepository journal;
     @Inject private PetRiskAuditRepository riskAudit;
     @Inject private UserRepository users;
+    @Inject private UserPetRepository pets;
+    @Inject private PetArchiveRepository archives;
 
     public record Filters(String tab, String user, String from, String to, String operation, int page) {
     }
@@ -131,8 +136,17 @@ public class PetAdminLogQueryService {
         // 多读一条判断下一页，避免对所有符合条件的记录做额外计数。
         params.add(PAGE_SIZE + 1);
         params.add((filters.page() - 1) * PAGE_SIZE);
-        final String query = "SELECT * FROM (" + String.join(" UNION ALL ", sources)
-                + ") pet_logs ORDER BY eventTime DESC,oId DESC,recordType DESC LIMIT ? OFFSET ?";
+        final boolean risk = "risk".equals(filters.tab());
+        // 先取日志分页，再关联本页用户和宠物。风控事件只记录账号，显示该账号的当前宠物。
+        final String pageQuery = String.join(" UNION ALL ", sources)
+                + " ORDER BY eventTime DESC,oId DESC,recordType DESC LIMIT ? OFFSET ?";
+        final String query = "SELECT logs.*, u.userNickname, u.userName, p.name AS petName,"
+                + (risk ? " p.oId AS displayPetId, NULL AS archivedPet" : " logs.petId AS displayPetId, a.snapshotJson AS archivedPet")
+                + " FROM (" + pageQuery + ") logs LEFT JOIN `" + users.getName() + "` u ON u.oId=logs.userId"
+                + " LEFT JOIN `" + pets.getName() + "` p ON p.userId=logs.userId"
+                + (risk ? "" : " AND p.oId=logs.petId LEFT JOIN `" + archives.getName()
+                        + "` a ON a.oId=logs.petId AND a.userId=logs.userId AND p.oId IS NULL")
+                + " ORDER BY logs.eventTime DESC,logs.oId DESC,logs.recordType DESC";
         final List<JSONObject> records = journal.select(query, params.toArray());
         final List<Map<String, String>> rows = new ArrayList<>();
         final long now = System.currentTimeMillis();
@@ -143,12 +157,35 @@ public class PetAdminLogQueryService {
             final String status = "activity".equals(type) ? activityStatus(row, now) : "";
             rows.add(Map.of(
                     "time", TIME.format(Instant.ofEpochMilli(row.getLong("eventTime"))),
-                    "userId", row.getString("userId"), "petId", row.getString("petId"),
+                    "userId", row.getString("userId"), "userNickname", userNickname(row),
+                    "petId", row.optString("displayPetId", ""), "petName", petName(row),
                     "operation", operations(filters.tab()).getOrDefault(action, action),
                     "detail", "risk".equals(type) ? RISK_REASONS.getOrDefault(detail, detail) : detail,
                     "status", status));
         }
         return new Page(rows, records.size() > PAGE_SIZE && filters.page() < MAX_PAGE);
+    }
+
+    private static String userNickname(final JSONObject row) {
+        final String nickname = row.optString("userNickname", "").strip();
+        if (!nickname.isEmpty()) return nickname;
+        final String username = row.optString("userName", "");
+        return username.isBlank() ? "未知用户" : username;
+    }
+
+    private static String petName(final JSONObject row) {
+        final String name = row.optString("petName", "");
+        if (!name.isBlank()) return name;
+        final String archive = row.optString("archivedPet", "");
+        if (!archive.isBlank()) {
+            try {
+                final String archivedName = new JSONObject(archive).optString("name", "");
+                if (!archivedName.isBlank()) return archivedName;
+            } catch (final JSONException ignored) {
+                // 归档快照损坏时仍可凭日志里的宠物 ID 排查。
+            }
+        }
+        return "未知宠物";
     }
 
     private static String activityStatus(final JSONObject row, final long now) {

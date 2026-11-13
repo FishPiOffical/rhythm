@@ -46,7 +46,7 @@
             <table aria-label="<#if risk>风控日志<#else>活动日志</#if>">
                 <thead><tr>
                     <th scope="col">操作</th>
-                    <th scope="col">用户</th>
+                    <th scope="col">用户 / 宠物</th>
                     <th scope="col">时间</th>
                     <#if !risk><th scope="col">状态</th></#if>
                 </tr></thead>
@@ -58,8 +58,12 @@
                                 <#if row.detail?has_content><span class="pet-log-detail">${row.detail?html}</span></#if>
                             </td>
                             <td>
-                                <span class="pet-log-user"><span class="pet-log-unit">UID</span> ${row.userId?html}</span>
-                                <#if row.petId?has_content><span class="pet-log-detail">宠物 ${row.petId?html}</span></#if>
+                                <strong>${row.userNickname?html}</strong>
+                                <span class="pet-log-detail pet-log-user">UID ${row.userId?html}</span>
+                                <#if row.petId?has_content>
+                                    <span class="pet-log-detail"><#if risk>当前宠物<#else>宠物</#if> <strong class="pet-log-pet-name">${row.petName?html}</strong></span>
+                                    <span class="pet-log-detail pet-log-user">ID ${row.petId?html}</span>
+                                </#if>
                             </td>
                             <td class="pet-log-time">${row.time?html}</td>
                             <#if !risk>
