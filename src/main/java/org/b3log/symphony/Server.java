@@ -66,6 +66,7 @@ import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
+import org.b3log.symphony.service.UserOnlineService;
 import org.b3log.symphony.service.CronMgmtService;
 import org.b3log.symphony.service.InitMgmtService;
 import org.b3log.symphony.util.*;
@@ -99,6 +100,18 @@ public final class Server extends BaseServer {
      * Startup time && static version
      */
     public static String STARTUP_STR = "";
+
+    @Override
+    public void start(final int listenPort) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(listenPort);
+    }
+
+    @Override
+    public void start(final String socketPath) {
+        BeanManager.getInstance().getReference(UserOnlineService.class).start();
+        super.start(socketPath);
+    }
 
     /**
      * Main.
@@ -355,16 +368,16 @@ public final class Server extends BaseServer {
         }
 
         try {
-            for (final InetAddress address : InetAddress.getAllByName("yui.fishpi.cn")) {
+            for (final InetAddress address : InetAddress.getAllByName("new.fishpi.cn")) {
                 final String ip = address.getHostAddress();
                 Firewall.unbanIp(ip);
                 Firewall.addCcWhitelist(ip);
                 // 启动时复用后台解封流程；阿达已授权为 SSR 域名解析结果加白。
                 AnonymousCaptchaShield.administratorUnban(ip);
-                LOGGER.info("SSR server startup unban requested and CC/captcha whitelist added [host=yui.fishpi.cn, ip={}]", ip);
+                LOGGER.info("SSR server startup unban requested and CC/captcha whitelist added [host=new.fishpi.cn, ip={}]", ip);
             }
         } catch (final Exception e) {
-            LOGGER.warn("SSR server startup unban/whitelist failed [host=yui.fishpi.cn]", e);
+            LOGGER.warn("SSR server startup unban/whitelist failed [host=new.fishpi.cn]", e);
         }
 
         final String unixDomainSocketPath = commandLine.getOptionValue("unix_domain_socket_path");

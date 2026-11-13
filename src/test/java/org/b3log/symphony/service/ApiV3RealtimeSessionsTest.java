@@ -63,7 +63,8 @@ public class ApiV3RealtimeSessionsTest {
                 public boolean authorized(ApiV3SocketTicketService.Grant grant) throws Exception {
                     return core.authorized(grant);
                 }
-            }, (ip, record) -> allowed, () -> clock);
+            }, (ip, record) -> allowed, () -> clock,
+                    new UserOnlineTracker(() -> clock, () -> java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(clock)));
         }
 
         Transport open(Object key, String ip) {
@@ -106,7 +107,7 @@ public class ApiV3RealtimeSessionsTest {
             public boolean authorized(ApiV3SocketTicketService.Grant grant) {
                 return true;
             }
-        }, (ip, record) -> true, () -> 0);
+        }, (ip, record) -> true, () -> 0, new UserOnlineTracker(() -> 0, () -> 0));
         final var own = new Transport();
         final var other = new Transport();
         registry.open("own", own, "192.0.2.1");
@@ -146,7 +147,7 @@ public class ApiV3RealtimeSessionsTest {
             public boolean authorized(ApiV3SocketTicketService.Grant grant) {
                 return true;
             }
-        }, (ip, record) -> true, () -> 0);
+        }, (ip, record) -> true, () -> 0, new UserOnlineTracker(() -> 0, () -> 0));
         final String auth = new JSONObject().put("type", "authenticate").put("ticket", "A".repeat(43)).toString();
         final var pending = new Transport();
         registry.open("pending", pending, "192.0.2.1");
@@ -178,10 +179,14 @@ public class ApiV3RealtimeSessionsTest {
         final var user = new JSONObject().put("oId", "123").put("userName", "fish").put("userNickname", "小鱼")
                 .put("userStatus", UserExt.USER_STATUS_C_VALID).put("email", "private@example.test");
         user.put("data", "小鱼来了&&&小鱼先走");
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        Assert.assertEquals(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP").getString("text"), "小鱼来了");
         user.put("userOnlineStatus", 1);
-        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP"));
+        Assert.assertEquals(ApiV3RealtimeService.chatPresenceNotice(user, false, 100, () -> "VIP").getString("text"), "小鱼先走");
         user.put("userOnlineStatus", UserExt.USER_XXX_STATUS_C_ENABLED);
+        Assert.assertNotNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("userStatus", -1);
+        Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
+        user.put("userStatus", UserExt.USER_STATUS_C_VALID);
         user.remove("data");
         Assert.assertNull(ApiV3RealtimeService.chatPresenceNotice(user, true, 100, () -> "VIP"));
         user.put("data", "未分隔的旧数据");
@@ -213,7 +218,7 @@ public class ApiV3RealtimeSessionsTest {
         Assert.assertEquals(registry.pollChatPresence(), List.of(new ApiV3RealtimeSessions.ChatPresence("123", false)));
         Assert.assertTrue(registry.pollChatPresence().isEmpty());
         registry.closeAll();
-        System.out.println("PASS 红包及进出场公告仅发给已认证连接，在线隐私和多会话去重");
+        System.out.println("PASS 公告仅发给已认证连接，进出提示独立于在线隐私且多会话去重");
     }
 
     public static void main(String[] args) throws Exception {

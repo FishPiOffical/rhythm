@@ -20,6 +20,7 @@ package org.b3log.symphony.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.b3log.latke.Keys;
+import org.b3log.latke.http.Request;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
@@ -29,6 +30,7 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ChatroomProcessor;
+import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONObject;
@@ -37,7 +39,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 通过 Bearer 身份发送普通文本，所有持久化写入与重放回执一起提交。
+ * 通过 Bearer 身份发送聊天室文本，所有持久化写入与重放回执一起提交。
  */
 @Service
 public class ApiV3ChatPublicationService {
@@ -74,7 +76,7 @@ public class ApiV3ChatPublicationService {
 
     private record Published(ApiV3IdempotencyMgmtService.Execution execution, JSONObject message,
                              ChatMessageAbuseState.Repeat repeat, ChatMessagePenaltyMgmtService.Result penalty,
-                             boolean card) {
+                             boolean card, JSONObject lawActor) {
     }
 
     private record RepeatDecision(String name, String content, ChatMessageAbuseState.Repeat decision) {
@@ -86,16 +88,17 @@ public class ApiV3ChatPublicationService {
             case "weather" -> ApiV3ChatCardInputs.weather(body);
             default -> throw ApiV3WriteInputs.invalid();
         };
-        return publishInternal(viewer, "", "", key, kind, card);
+        return publishInternal(viewer, "", "", key, kind, card, null);
     }
 
-    public JSONObject publish(final JSONObject viewer, final String content, final String client, final String key) throws Exception {
-        ChatMessageText.requireOrdinary(content);
-        return publishInternal(viewer, content, client, key, null, null);
+    public JSONObject publish(final JSONObject viewer, final String content, final String client, final String key,
+                              final Request request) throws Exception {
+        ChatMessageText.requireMessage(content, true);
+        return publishInternal(viewer, content, client, key, null, null, request);
     }
 
     private JSONObject publishInternal(final JSONObject viewer, final String content, final String client, final String key,
-                                       final String kind, final JSONObject card) throws Exception {
+                                       final String kind, final JSONObject card, final Request request) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!actor.matches("[0-9]{1,19}")) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
         if (client == null || client.length() > 128 || client.indexOf(0) >= 0) throw ApiV3WriteInputs.invalid();
@@ -103,6 +106,8 @@ public class ApiV3ChatPublicationService {
         final var penalty = new AtomicReference<ChatMessagePenaltyMgmtService.Result>();
         final var repeat = new AtomicReference<RepeatDecision>();
         final var confirmed = new AtomicReference<String>();
+        final boolean lawCommand = card == null && ChatMessageText.isLawCommand(content.strip());
+        final var lawActor = new AtomicReference<JSONObject>();
         final Published result = points.executeWithTransferLocks(actor, List.of(Pointtransfer.ID_C_SYS), () -> {
             try (final var caches = ArticlePublicationCaches.open(users::hasTransactionBegun)) {
                 ArticlePublicationCaches.afterTransaction("chat-user:" + actor, () -> {
@@ -117,6 +122,9 @@ public class ApiV3ChatPublicationService {
                     if (current == null || current.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID) {
                         throw new ApiV3Exception(404, "not_found", "用户不存在或不可用");
                     }
+                    if (lawCommand && !DataModelService.hasPermission(current.optString(User.USER_ROLE), 3)) {
+                        throw new ApiV3Exception(403, "forbidden", "无执法权限");
+                    }
                     if (current.optString("userPhone").isBlank())
                         throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
                     final String prepared;
@@ -126,28 +134,31 @@ public class ApiV3ChatPublicationService {
                     } catch (final ChatMessageValidation.Rejected e) {
                         throw new ApiV3Exception(e.status, e.code, e.getMessage());
                     }
-                    if (card == null) ChatMessageText.requireOrdinary(prepared);
+                    if (card == null) ChatMessageText.requireMessage(prepared, lawCommand);
                     final long time = now();
-                    ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
-                            DataModelService.hasPermission(current.optString(User.USER_ROLE), 3), prepared, time, () -> {
-                                if (prepared.equals(confirmed.get())) return true;
-                                final boolean value = ChatMessageAbuseState.confirmRisk(actor, prepared);
-                                if (value) confirmed.set(prepared);
-                                return value;
-                            });
-                    // 存储层自动重试复用同一次风控判定，已成功请求的回放不进入此回调。
-                    final String name = current.getString(User.USER_NAME);
-                    if (repeat.get() == null || !name.equals(repeat.get().name()) || !prepared.equals(repeat.get().content())) {
-                        repeat.set(new RepeatDecision(name, prepared, ChatMessageAbuseState.repeated(name, prepared)));
+                    // 旧版执法先于禁言、风控和复读判定，仅已核验权限的命令沿用该顺序。
+                    if (!lawCommand) {
+                        ChatMessageRestrictions.check(restrictions.readInCurrentTransaction(actor),
+                                DataModelService.hasPermission(current.optString(User.USER_ROLE), 3), prepared, time, () -> {
+                                    if (prepared.equals(confirmed.get())) return true;
+                                    final boolean value = ChatMessageAbuseState.confirmRisk(actor, prepared);
+                                    if (value) confirmed.set(prepared);
+                                    return value;
+                                });
+                        // 存储层自动重试复用同一次风控判定，已成功请求的回放不进入此回调。
+                        final String name = current.getString(User.USER_NAME);
+                        if (repeat.get() == null || !name.equals(repeat.get().name()) || !prepared.equals(repeat.get().content())) {
+                            repeat.set(new RepeatDecision(name, prepared, ChatMessageAbuseState.repeated(name, prepared)));
+                        }
+                        penalty.set(repeat.get().decision() == ChatMessageAbuseState.Repeat.PENALIZE ? penalties.applyInCurrentTransaction(actor, time) : null);
                     }
-                    penalty.set(repeat.get().decision() == ChatMessageAbuseState.Repeat.PENALIZE ? penalties.applyInCurrentTransaction(actor, time) : null);
                     final JSONObject envelope = new JSONObject().put("userName", current.getString(User.USER_NAME))
                             .put("userNickname", current.optString(UserExt.USER_NICKNAME)).put("userAvatarURL", current.optString(UserExt.USER_AVATAR_URL))
                             .put("userOId", Long.parseLong(actor)).put("content", prepared).put("time", time)
                             .put("sysMetal", cloud.getEnabledMedal(actor));
                     // 小尾巴独立于原正文保存；只有新版普通消息可以生成，业务卡片不参与。
                     if (card == null) {
-                        final String html = Markdowns.cleanChat(Markdowns.toHTML(Emotions.convert(prepared)), "");
+                        final String html = renderChatHtml(prepared);
                         final JSONObject tail = tails.snapshotInCurrentTransaction(actor, html);
                         if (tail != null) envelope.put("tail", tail);
                     }
@@ -156,6 +167,11 @@ public class ApiV3ChatPublicationService {
                     final JSONObject message = messages.saveInCurrentTransaction(envelope, actor);
                     users.updateColumnsInCurrentTransaction(actor, new JSONObject().put(UserExt.USER_LATEST_CMT_TIME, time));
                     saved.set(message);
+                    if (lawCommand) {
+                        lawActor.set(new JSONObject().put(Keys.OBJECT_ID, actor)
+                                .put(User.USER_ROLE, current.getString(User.USER_ROLE))
+                                .put(User.USER_NAME, current.getString(User.USER_NAME)));
+                    }
                     return new JSONObject().put("id", message.getString(Keys.OBJECT_ID)).put("createdAt", time);
                 };
                 final ApiV3IdempotencyMgmtService.Execution outcome;
@@ -189,22 +205,36 @@ public class ApiV3ChatPublicationService {
                     };
                     outcome = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(store, actor, "chat." + kind + ".create", key, card, mutation);
                 }
-                return new Published(outcome, saved.get(), repeat.get() == null ? null : repeat.get().decision(), penalty.get(), card != null);
+                return new Published(outcome, saved.get(), repeat.get() == null ? null : repeat.get().decision(), penalty.get(), card != null, lawActor.get());
             }
         });
-        if (result.execution().applied()) afterPublished(actor, result);
+        if (result.execution().applied()) afterPublished(actor, result, request);
         return result.execution().result();
     }
 
-    private void afterPublished(final String actor, final Published result) {
+    private void afterPublished(final String actor, final Published result, final Request request) {
         if (users.hasTransactionBegun() || ArticlePublicationCaches.active())
             throw new IllegalStateException("chat delivery before transaction end");
-        ChatMessageAbuseState.accepted(result.message().getString("content"));
-        afterSharedAdmission(actor, result.message().getString("userName"), result.repeat(), result.penalty());
+        if (result.lawActor() != null) {
+            // 扣分、禁言、广播等旧命令自带副作用；提交后仅首次请求执行，重放不再执行。
+            executeLawCommand(request, result.lawActor(), result.message().getString("content"));
+        } else {
+            ChatMessageAbuseState.accepted(result.message().getString("content"));
+            afterSharedAdmission(actor, result.message().getString("userName"), result.repeat(), result.penalty());
+        }
         safely(() -> {
             if (result.card()) delivery.afterApiCardPublished(result.message());
             else delivery.afterApiMessagePublished(result.message());
         });
+    }
+
+    protected void executeLawCommand(final Request request, final JSONObject actor, final String content) {
+        ChatRoomBot.handleLawCommand(request, actor, content);
+    }
+
+    /** 将聊天正文转换为尾巴所需的 HTML；测试可替换该渲染步骤。 */
+    protected String renderChatHtml(final String content) {
+        return Markdowns.cleanChat(Markdowns.toHTML(Emotions.convert(content)), "");
     }
 
     /**

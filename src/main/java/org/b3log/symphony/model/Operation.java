@@ -348,9 +348,14 @@ public final class Operation {
      * @return an operation
      */
     public static JSONObject newOperation(final Request request, final int code, final String dataId) {
+        return newOperation(request, code, dataId, Sessions.getUser());
+    }
+
+    /** API 操作使用已认证的操作者，不能依赖网页 Session。 */
+    public static JSONObject newOperation(final Request request, final int code, final String dataId,
+                                          final JSONObject user) {
         final String ip = Requests.getRemoteAddr(request);
         final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
-        final JSONObject user = Sessions.getUser();
 
         return new JSONObject().
                 put(Operation.OPERATION_USER_ID, user.optString(Keys.OBJECT_ID)).

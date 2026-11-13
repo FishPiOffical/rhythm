@@ -1,47 +1,58 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package org.b3log.symphony.util;
 
 import org.b3log.latke.Keys;
 import org.b3log.symphony.model.UserExt;
 import org.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * 当前实例中新旧客户端共用的在线连接登记，不使用数据库遗留标志推断在线。
  */
 public final class UserOnlineStatus {
-    private static final Map<Object, String> OWNERS = new HashMap<>();
-    private static final Map<String, Map<Object, Long>> USERS = new HashMap<>();
+    private static final UserOnlineTracker TRACKER = new UserOnlineTracker(System::currentTimeMillis, System::nanoTime);
 
     private UserOnlineStatus() {
     }
 
-    public static synchronized void connected(final Object connection, final String userId, final long expiresAt) {
-        if (connection == null || userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("online connection owner");
-        }
-        disconnected(connection);
-        OWNERS.put(connection, userId);
-        USERS.computeIfAbsent(userId, ignored -> new HashMap<>()).put(connection, expiresAt);
+    public static void connected(final Object connection, final String userId, final long expiresAt) {
+        TRACKER.connected(connection, userId, expiresAt);
     }
 
-    public static synchronized void disconnected(final Object connection) {
-        final String userId = OWNERS.remove(connection);
-        if (userId == null) return;
-        final Map<Object, Long> connections = USERS.get(userId);
-        connections.remove(connection);
-        if (connections.isEmpty()) USERS.remove(userId);
+    public static void disconnected(final Object connection) {
+        TRACKER.disconnected(connection);
+    }
+
+    public static boolean renew(final Object connection, final long expiresAt) {
+        return TRACKER.renew(connection, expiresAt);
+    }
+
+    public static UserOnlineTracker tracker() {
+        return TRACKER;
     }
 
     public static boolean isOnline(final JSONObject user) {
-        return user != null && isOnline(user.optString(Keys.OBJECT_ID), System.currentTimeMillis());
+        return user != null && isOnline(user.optString(Keys.OBJECT_ID));
     }
 
-    public static synchronized boolean isOnline(final String userId, final long now) {
-        final Map<Object, Long> connections = USERS.get(userId);
-        // 每个标签页、每种订阅独立登记；过期票据在定时清理之前也不能维持在线。
-        return connections != null && connections.values().stream().anyMatch(expiresAt -> expiresAt > now);
+    public static boolean isOnline(final String userId) {
+        return TRACKER.isOnline(userId);
     }
 
     public static Boolean publicFlag(final JSONObject user) {

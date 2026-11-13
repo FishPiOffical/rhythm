@@ -353,13 +353,11 @@ public class ApiV3RealtimeService {
         final var ids = changes.stream().map(ApiV3RealtimeSessions.ChatPresence::userId).toArray();
         final var parameters = new ArrayList<Object>();
         parameters.add(PRESENCE_GAME_ID);
-        parameters.add(UserExt.USER_XXX_STATUS_C_ENABLED);
         Collections.addAll(parameters, ids);
-        // 只读取管理员已配置且公开在线状态的账号，领取红包仍使用原有用户投影。
-        // 座驾新增独立权益：使用左连接保留没有管理员文案但已装备座驾的公开账号。
-        final var rows = users.select("SELECT u.oId,u.userName,u.userNickname,u.userOnlineStatus,u.userStatus,"
+        // 播报独立于在线名单隐私；左连接保留没有管理员文案但已装备座驾的账号。
+        final var rows = users.select("SELECT u.oId,u.userName,u.userNickname,u.userStatus,"
                         + "u.userPoint,u.userNo,u.userCity,u.userAvatarURL,c.data FROM `" + users.getName() + "` u LEFT JOIN `" + cloud.getName()
-                        + "` c ON c.userId=u.oId AND c.gameId=? WHERE u.userOnlineStatus=? AND u.oId IN ("
+                        + "` c ON c.userId=u.oId AND c.gameId=? WHERE u.oId IN ("
                         + String.join(",", Collections.nCopies(ids.length, "?")) + ")", parameters.toArray());
         final var participants = new HashMap<String, JSONObject>();
         final var duplicates = new java.util.HashSet<String>();
@@ -388,12 +386,12 @@ public class ApiV3RealtimeService {
 
     /** 座驾只替代本次进场文案，不影响管理员配置的退场提示。 */
     static JSONObject chatMountNotice(final JSONObject user, final ApiV3AppearanceCatalog.Product mount, final long now) {
-        if (mount == null || user == null || user.optInt(UserExt.USER_ONLINE_STATUS, -1) != UserExt.USER_XXX_STATUS_C_ENABLED) return null;
+        if (mount == null || user == null) return null;
         final var actor = chatNoticeUser(user);
         if (actor == null) return null;
         final String nickname = actor.optString("userNickname").isEmpty() ? actor.getString("userName") : actor.getString("userNickname");
         return new JSONObject().put("id", UUID.randomUUID().toString()).put("kind", "join").put("createdAt", now)
-                .put("actor", actor).put("text", nickname + mount.verb() + mount.name() + "进入了聊天室")
+                .put("actor", actor).put("text", nickname + mount.verb() + mount.name() + "来了")
                 .put("mount", new JSONObject().put("id", mount.styleId()).put("version", 1))
                 .put("avatarURL", user.optString("userAvatarURL"));
     }
@@ -409,9 +407,8 @@ public class ApiV3RealtimeService {
 
     static JSONObject chatPresenceNotice(final JSONObject user, final boolean joined, final long now,
                                          final java.util.function.Supplier<String> level) {
-        // 公告会发给整个聊天室，只有明确公开在线状态的用户才能出现在公告中。
-        if (user == null || user.optInt(UserExt.USER_ONLINE_STATUS, -1) != UserExt.USER_XXX_STATUS_C_ENABLED)
-            return null;
+        // 进出提示按配置播报，不受在线名单的隐私设置影响。
+        if (user == null) return null;
         final var actor = chatNoticeUser(user);
         if (actor == null) return null;
         final String[] templates = user.optString("data").split("&&&", 3);

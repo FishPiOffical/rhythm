@@ -80,7 +80,7 @@ public class ApiV3ChatProcessor {
         ApiV3Requests.respond(c, () -> {
             final var body = ApiV3WriteInputs.body(c, Set.of("content", "client"), false);
             return publication.publish(ApiV3Requests.viewer(c), ApiV3WriteInputs.string(body, "content", 4096, false),
-                    ApiV3WriteInputs.string(body, "client", 128, false), ApiV3WriteInputs.idempotencyKey(c));
+                    ApiV3WriteInputs.string(body, "client", 128, false), ApiV3WriteInputs.idempotencyKey(c), c.getRequest());
         });
     }
 
