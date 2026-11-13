@@ -60,7 +60,10 @@ var Util = {
         const labels = {idle: '空闲', rest: '休息中', outing: '外出中', course: '上课中', work: '兼职中', claimable: '待领取'};
         if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
             !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
-        const destination = document.getElementById('chats')?.dataset.petHomeUrl;
+        const home = document.getElementById('chats')?.dataset.petHomeUrl;
+        const ownPet = Label.currentUserId && String(data.userOId) === Label.currentUserId;
+        const messageId = String(data.oId);
+        const destination = home && (ownPet ? home : /^\d{1,32}$/.test(messageId) ? home + '/chat/' + messageId : '');
         const element = document.createElement(destination ? 'a' : 'span');
         if (destination) element.href = destination;
         const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? pet.level : null;
@@ -83,7 +86,7 @@ var Util = {
         state.className = 'fp-chat-pet-state';
         state.textContent = labels[pet.state];
         element.appendChild(state);
-        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent + (destination ? ' · 前往宠物家园' : '');
+        element.title = '宠物：' + pet.name + (level === null ? '' : ' · Lv.' + level) + ' · ' + state.textContent + (destination ? (ownPet ? ' · 前往宠物家园' : ' · 查看宠物资料') : '');
         return element.outerHTML;
     },
 

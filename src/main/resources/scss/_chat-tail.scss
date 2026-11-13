@@ -63,7 +63,7 @@
 a.fp-chat-pet-status:hover,
 a.fp-chat-pet-status:focus-visible {
   background: color-mix(in srgb, var(--pet-color) 23%, transparent);
-  text-decoration: underline;
+  text-decoration: none;
 }
 .fp-chat-pet-status[data-species="momota"] { --pet-color: #a76a45; }
 .fp-chat-pet-status[data-species="hexiaotun"] { --pet-color: #5c913c; }
