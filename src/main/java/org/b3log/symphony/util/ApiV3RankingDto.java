@@ -32,7 +32,7 @@ import java.util.Set;
  */
 public final class ApiV3RankingDto {
     public static final Set<String> TYPES = Set.of("links", "balance", "consumption", "checkin", "online", "adr", "mofish",
-            "smallmofish", "lifeRestart", "evolve", "emoji", "xiaoice", "invite", "donate", "perfect");
+            "smallmofish", "lifeRestart", "evolve", "emoji", "xiaoice", "invite", "donate", "perfect", "pets");
 
     private ApiV3RankingDto() {
     }
@@ -67,6 +67,11 @@ public final class ApiV3RankingDto {
         final JSONObject metrics = new JSONObject();
         final String scoreField;
         switch (type) {
+            case "pets" -> {
+                scoreField = "level";
+                final int experience = row.getInt("experience");
+                metrics.put(scoreField, ApiV3PetRules.level(experience)).put("experience", experience);
+            }
             case "balance" -> {
                 scoreField = "points";
                 metrics.put(scoreField, row.optLong("userPoint"));
@@ -132,10 +137,22 @@ public final class ApiV3RankingDto {
         final JSONObject result = new JSONObject().put("rank", rank).put("score", metrics.get(scoreField)).put("metrics", metrics);
         if ("links".equals(type)) return result.put("link", new JSONObject().put("id", row.optString(Keys.OBJECT_ID))
                 .put("title", row.optString(Link.LINK_TITLE)).put("url", ApiV3CommunityDto.safeUrl(row.optString(Link.LINK_ADDR))));
+        if ("pets".equals(type)) result.put("pet", pet(row));
+        return result.put("user", user(user));
+    }
+
+    public static JSONObject pet(final JSONObject row) {
+        final int experience = row.getInt("experience");
+        return new JSONObject().put("id", row.getString("petId")).put("name", row.getString("petName"))
+                .put("speciesId", row.getString("speciesId"))
+                .put("level", ApiV3PetRules.level(experience)).put("experience", experience);
+    }
+
+    public static JSONObject user(final JSONObject user) {
         final JSONObject profile = new JSONObject();
         for (final String key : new String[]{"id", "userName", "userNickname", "userAvatarURL"})
             profile.put(key, null == user ? "" : user.optString(key));
-        return result.put("user", profile);
+        return profile;
     }
 
     public static JSONObject summary(final JSONObject raw) {

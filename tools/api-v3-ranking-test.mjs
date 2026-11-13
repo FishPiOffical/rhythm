@@ -14,7 +14,8 @@ const java = path.join(home, 'bin', `java${suffix}`);
 const javac = path.join(home, 'bin', `javac${suffix}`);
 const latke = 'src/main/resources/lib/latke-core.jar';
 for (const file of [java, javac, testng, latke]) if (!fs.existsSync(file)) throw new Error('Configure Java 25, TestNG paths');
-const sources = ['model/Link', 'model/FishGame', 'model/FishGameVote', 'model/Milestone', 'util/ApiV3Exception', 'util/ApiV3CommunityDto', 'util/ApiV3RankingDto'];
+const sources = ['model/Link', 'model/FishGame', 'model/FishGameVote', 'model/Milestone', 'util/ApiV3Exception', 'util/ApiV3CommunityDto', 'util/ApiV3RankingDto', 'util/ApiV3PetRules', 'util/ApiV3PetStories', 'util/ApiV3PetActivities',
+  'util/ApiV3PetAdvancedCourses', 'util/ApiV3PetExploration', 'util/ApiV3PetWork'];
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'rhythm-v3-ranking-test-'));
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit' });

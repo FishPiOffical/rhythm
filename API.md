@@ -7337,7 +7337,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| type | URL 参数；links、balance、consumption、checkin、online、adr、mofish、smallmofish、lifeRestart、evolve、emoji、xiaoice、invite、donate、perfect | balance |
+| type | URL 参数；links、balance、consumption、checkin、online、adr、mofish、smallmofish、lifeRestart、evolve、emoji、xiaoice、invite、donate、perfect、pets | balance |
 | subType | evolve 支持 achievement（默认）、know、reset、days；xiaoice 支持 0（默认）、1、2、3；其他榜单省略 | achievement |
 | p | 页码，默认 1 | 1 |
 | size | 每页条数，默认 20，最大 50 | 20 |
@@ -7361,6 +7361,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | -- metrics | 该榜单的公开指标，见下表 | `{...}` |
 | -- user | 用户榜单的公开资料 | `{...}` |
 | --- id / userName / userNickname / userAvatarURL | 用户 ID / 用户名 / 昵称 / 头像 | 123 / user / 昵称 / URL |
+| -- pet | 仅 pets 返回，含 id、name、speciesId、level、experience | `{...}` |
 | -- link | links 榜单的链接资料，此类记录没有 user | `{...}` |
 | --- id / title / url | 链接 ID / 标题 / 链接地址 | 123 / 标题 / URL |
 | - summary | 仅 donate 返回全站赞助汇总 | `{...}` |
@@ -7381,8 +7382,17 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | invite | 邀请次数 | count |
 | donate | 赞助金额 | amount、count（赞助次数） |
 | perfect | 优选文章数量 | count |
+| pets | 宠物等级 | level、experience |
 
 > 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
+
+### 查看宠物资料
+
+`GET /api/v3/pets/{petId}/profile`
+
+宠物榜只统计有效账号当前领养的宠物，沿用总榜条数上限。等级降序，同级经验降序，同经验按宠物 ID 升序。可使用榜单返回的 `pet.id` 查询公开资料，无需登录；可选 Bearer 需要 `content.read`。
+
+`data` 返回 `id`、`name`、`speciesId`、`level`、`experience` 和与榜单相同的 `user` 摘要。重新领养后旧宠物 ID 返回 404，停用账号的宠物也返回 404。
 
 ## 私信（API v3）
 

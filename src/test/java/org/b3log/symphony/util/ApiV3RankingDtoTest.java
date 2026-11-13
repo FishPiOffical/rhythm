@@ -40,7 +40,7 @@ public class ApiV3RankingDtoTest {
 
     @Test
     public void closedTypesAndSubTypesRejectArbitraryFieldsAndUrls() {
-        Assert.assertEquals(ApiV3RankingDto.TYPES.size(), 15);
+        Assert.assertEquals(ApiV3RankingDto.TYPES.size(), 16);
         Assert.assertEquals(ApiV3RankingDto.subType("evolve", null), "achievement");
         Assert.assertEquals(ApiV3RankingDto.subType("xiaoice", null), "0");
         for (final String type : ApiV3RankingDto.TYPES) {
@@ -136,6 +136,16 @@ public class ApiV3RankingDtoTest {
         Assert.assertEquals(ApiV3RankingDto.rows(objectOverload.opt("data")).size(), 1);
         Assert.assertEquals(ApiV3RankingDto.rows(new JSONArray().put(row).put("invalid")).size(), 1);
         Assert.assertTrue(ApiV3RankingDto.rows(null).isEmpty());
+    }
+
+    @Test
+    public void petRankingProjectsOnlyPublicFields() {
+        final JSONObject pet = new JSONObject().put("petId", "123").put("petName", "摸摸獭")
+                .put("speciesId", "momota").put("experience", 3500).put("hunger", 99);
+        final JSONObject entry = ApiV3RankingDto.entry("pets", "", 1, pet, new JSONObject());
+        Assert.assertEquals(entry.getInt("score"), ApiV3PetRules.MAX_LEVEL);
+        Assert.assertEquals(entry.getJSONObject("metrics").getInt("experience"), 3500);
+        Assert.assertEquals(entry.getJSONObject("pet").keySet(), Set.of("id", "name", "speciesId", "level", "experience"));
     }
 
     public static void main(final String[] args) throws Exception {

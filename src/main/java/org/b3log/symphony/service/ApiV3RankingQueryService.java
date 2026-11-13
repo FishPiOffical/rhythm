@@ -21,6 +21,8 @@ package org.b3log.symphony.service;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.UserPetRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3RankingDto;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.Symphonys;
@@ -49,6 +51,10 @@ public class ApiV3RankingQueryService {
     private UserQueryService users;
     @Inject
     private ApiV3ContentDtoService dto;
+    @Inject
+    private UserPetRepository pets;
+    @Inject
+    private UserRepository petOwners;
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<>();
     private final Map<String, Object> locks = new ConcurrentHashMap<>();
     private static final java.util.concurrent.atomic.AtomicLong SETTINGS_REVISION = new java.util.concurrent.atomic.AtomicLong();
@@ -71,6 +77,20 @@ public class ApiV3RankingQueryService {
         return result;
     }
 
+    public JSONObject petProfile(final String id) throws Exception {
+        final var rows = pets.select(petRowsSql() + " AND p.oId=?", UserExt.USER_STATUS_C_VALID, id);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        final JSONObject row = rows.getFirst();
+        return ApiV3RankingDto.pet(row).put("user", ApiV3RankingDto.user(dto.author(row, false)));
+    }
+
+    private String petRowsSql() {
+        return "SELECT p.oId AS petId,p.name AS petName,p.speciesId,p.experience,"
+                + "u.oId,u.userName,u.userNickname,u.userAvatarURL,u.userStatus"
+                + " FROM `" + pets.getName() + "` p JOIN `" + petOwners.getName() + "` u ON u.oId=p.userId"
+                + " WHERE u.userStatus=? AND p.experience>=0";
+    }
+
     private JSONObject snapshot(final String type, final String subType) throws Exception {
         final String key = type + ":" + subType;
         synchronized (locks.computeIfAbsent(key, ignored -> new Object())) {
@@ -88,6 +108,9 @@ public class ApiV3RankingQueryService {
         JSONObject summary = null;
         final List<JSONObject> source;
         switch (type) {
+            // 等级由经验单调推导，按经验降序同时满足等级优先与同级排序；完全同分按宠物 ID 固定顺序。
+            case "pets" -> source = pets.select(petRowsSql() + " ORDER BY p.experience DESC,p.oId ASC LIMIT ?",
+                    UserExt.USER_STATUS_C_VALID, count);
             case "links" -> source = links.getTopLink(count);
             case "balance" -> source = points.getTopBalanceUsers(count);
             case "consumption" -> source = points.getTopConsumptionUsers(count);

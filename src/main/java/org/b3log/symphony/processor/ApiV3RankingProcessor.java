@@ -40,6 +40,11 @@ public class ApiV3RankingProcessor {
         final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
         final AnonymousViewCheckMidware anonymous = beans.getReference(AnonymousViewCheckMidware.class);
         Dispatcher.get("/api/v3/rankings/{type}", processor::ranking, auth::optionalContent, anonymous::handle);
+        Dispatcher.get("/api/v3/pets/{petId}/profile", processor::petProfile, auth::optionalContent, anonymous::handle);
+    }
+
+    public void petProfile(final RequestContext context) {
+        ApiV3Requests.read(context, () -> rankings.petProfile(ApiV3Requests.id(context, "petId")));
     }
 
     public void ranking(final RequestContext context) {
