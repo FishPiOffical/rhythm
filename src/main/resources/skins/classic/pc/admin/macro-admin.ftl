@@ -80,6 +80,7 @@
         </#if>
         <#if type == "petLogs">
             <@head title="宠物日志 - ${symphonyLabel}"></@head>
+            <link rel="stylesheet" href="${staticServePath}/css/pet-admin-logs.css?${staticResourceVersion}" />
         </#if>
         <#if type == "auditlog">
             <@head title="${auditlogLabel} - ${symphonyLabel}"></@head>
