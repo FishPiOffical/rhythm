@@ -71,14 +71,17 @@ var Util = {
         if (['momota', 'hexiaotun', 'yubingmiao', 'paixiaoyu'].includes(pet.speciesId)) {
             element.dataset.species = pet.speciesId;
         }
+        const info = document.createElement('span');
+        info.className = 'fp-chat-pet-info';
         const name = document.createElement('span');
         name.className = 'fp-chat-pet-name';
         name.textContent = pet.name;
-        element.appendChild(name);
+        info.appendChild(name);
         const state = document.createElement('span');
         state.className = 'fp-chat-pet-state';
         state.textContent = labels[pet.state];
-        element.appendChild(state);
+        info.appendChild(state);
+        element.appendChild(info);
         if (level !== null) {
             const badge = document.createElement('span');
             badge.className = 'fp-chat-pet-level';

@@ -50,9 +50,6 @@
   gap: 4px;
   min-width: 0;
   max-width: 15em;
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--pet-color) 13%, transparent);
   font-size: 10px;
   line-height: 1.5;
   white-space: nowrap;
@@ -62,19 +59,31 @@
 }
 a.fp-chat-pet-status:hover,
 a.fp-chat-pet-status:focus-visible {
-  background: color-mix(in srgb, var(--pet-color) 23%, transparent);
   text-decoration: none;
 }
 .fp-chat-pet-status[data-species="momota"] { --pet-color: #a76a45; }
 .fp-chat-pet-status[data-species="hexiaotun"] { --pet-color: #5c913c; }
 .fp-chat-pet-status[data-species="yubingmiao"] { --pet-color: #cc6b26; }
 .fp-chat-pet-status[data-species="paixiaoyu"] { --pet-color: #448bb8; }
+.fp-chat-pet-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pet-color) 13%, transparent);
+}
+a.fp-chat-pet-status:hover .fp-chat-pet-info,
+a.fp-chat-pet-status:focus-visible .fp-chat-pet-info {
+  background: color-mix(in srgb, var(--pet-color) 23%, transparent);
+}
 .fp-chat-pet-name { overflow: hidden; text-overflow: ellipsis; }
 .fp-chat-pet-level {
   --level-color: #758295;
   flex: none;
-  padding-inline: 3px;
-  border-radius: 3px;
+  padding: 1px 5px;
+  border-radius: 5px;
   background: color-mix(in srgb, var(--level-color) 19%, transparent);
   color: color-mix(in srgb, var(--level-color) 65%, var(--text-color, #292d32));
   font-weight: 700;
