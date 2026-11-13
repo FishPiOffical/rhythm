@@ -2459,6 +2459,7 @@ ${result.info.msg}
                 '            ' + ChatRoom.filterContent(data.content, isAdmin) + '\n' +
                 '        </div>\n' +
                 ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatTail(data) : '') +
+                ((!isRedPacket && !isWeather && !isMusic) ? Util.renderChatPetStatus(data) : '') +
                 (data.reactionDisabled ? '' : ChatRoom.renderReactionBar(data.oId, data.reactionSummary, data.currentUserReaction)) +
                 '\n' +
                 '        <div class="ft__smaller ft__fade fn__right date-bar">\n' +

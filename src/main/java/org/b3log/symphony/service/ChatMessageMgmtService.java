@@ -26,7 +26,10 @@ import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.repository.ChatRoomRepository;
 import org.b3log.symphony.repository.ChatRedPacketRepository;
 import org.b3log.symphony.repository.ReactionRepository;
+import org.b3log.symphony.repository.UserPetRepository;
+import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.model.Reaction;
+import org.b3log.symphony.util.ApiV3ChatMessageDto;
 import org.b3log.symphony.util.ApiV3ChatTransaction;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
@@ -39,6 +42,8 @@ public class ChatMessageMgmtService {
     @Inject private ChatRedPacketRepository redPackets;
     @Inject private ProfessionSourceEventCaptureService professions;
     @Inject private ReactionRepository reactions;
+    @Inject private UserPetRepository pets;
+    @Inject private PetActivityRepository petActivities;
 
     @FunctionalInterface public interface RemovalCheck { void check(JSONObject message) throws RepositoryException; }
 
@@ -78,10 +83,37 @@ public class ChatMessageMgmtService {
         return ApiV3ChatTransaction.write(() -> {
             final JSONObject saved = new JSONObject(envelope.toString());
             saved.put("appearance", appearances.snapshotInCurrentTransaction(actor));
+            saved.remove("petStatus");
+            final JSONObject petStatus = petStatus(actor);
+            if (petStatus != null) saved.put("petStatus", petStatus);
             saved.put(Keys.OBJECT_ID, messages.add(new JSONObject().put("content", saved.toString())));
             professions.chatroomMessagePublished(saved, actor);
             return saved;
         });
+    }
+
+    /** 只公开发言时的昵称和活动类别，缺少宠物数据不影响发送。 */
+    private JSONObject petStatus(final String actor) {
+        if (pets == null || petActivities == null) return null;
+        final long now = System.currentTimeMillis();
+        try {
+            final var rows = pets.select("SELECT p.name,p.activityKind,p.activityEndsAt,a.kind,a.endsAt"
+                    + " FROM `" + pets.getName() + "` p LEFT JOIN `" + petActivities.getName()
+                    + "` a ON a.slotKey=CONCAT('active:',p.userId) AND a.userId=p.userId AND a.petId=p.oId"
+                    + " WHERE p.userId=?", actor);
+            if (rows.size() != 1) return null;
+            final JSONObject row = rows.getFirst();
+            final String state;
+            if (!row.optString("kind", "").isEmpty()) {
+                state = row.optLong("endsAt") <= now ? "claimable" : row.optString("kind");
+            } else {
+                state = "rest".equals(row.optString("activityKind")) && row.optLong("activityEndsAt") > now ? "rest" : "idle";
+            }
+            return ApiV3ChatMessageDto.petStatus(new JSONObject().put("name", row.optString("name")).put("state", state));
+        } catch (final RepositoryException unavailable) {
+            // 聊天可先于宠物表部署，附加资料读取失败时仍提交正文。
+            return null;
+        }
     }
 
     /** Legacy root boundary; never call this from an idempotency callback. */

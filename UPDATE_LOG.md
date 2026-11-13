@@ -4,6 +4,8 @@
 
 # 261113
 
+- 新旧网页聊天室的普通消息支持显示发言时的宠物昵称和状态快照。
+
 ## 宠物账号保护与照顾状态核对（pet 分支，本地待人工验收）
 
 - 新增 `GET /api/v3/me/pet/risk`、`POST /api/v3/me/pet/risk/challenge`、`POST /api/v3/me/pet/risk/verify`，均仅本人第一方 Bearer 与 `settings.write`；不接受 Cookie、旧 apiKey 或第三方令牌。

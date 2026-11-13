@@ -1689,6 +1689,7 @@ public class ChatroomProcessor {
             // 旧站实时消息也携带已保存的尾巴快照，正文和旧站发送流程保持不变。
             final JSONObject tail = ApiV3ChatTail.snapshot(message.opt("tail"));
             if (tail != null && ApiV3ChatTail.eligibleHtml(html)) push.put("tail", tail);
+            push.put("petStatus", ApiV3ChatMessageDto.petStatus(message.opt("petStatus")));
             push.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(message.getLong(Common.TIME)));
             fillPushMessageReactions(push);
             ChatroomChannel.notifyChat(push);
@@ -2071,6 +2072,7 @@ public class ChatroomProcessor {
     private void saveChatMessageAndCapture(final JSONObject message, final String userId) throws RepositoryException {
         final JSONObject saved = chatMessageMgmtService.saveLegacy(message, userId);
         message.put(Keys.OBJECT_ID, saved.getString(Keys.OBJECT_ID));
+        message.put("petStatus", saved.optJSONObject("petStatus"));
     }
 
     public static List<JSONObject> getContext(String oId, int size, int mode, String type) {

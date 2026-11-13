@@ -54,6 +54,18 @@ var Util = {
             text.outerHTML + '</div>';
     },
 
+    // 宠物快照与正文分开，昵称作为纯文本展示。
+    renderChatPetStatus: function (data) {
+        const pet = data && data.petStatus;
+        const labels = {idle: '空闲', rest: '休息中', outing: '外出中', course: '上课中', work: '兼职中', claimable: '待领取'};
+        if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
+            !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
+        const element = document.createElement('div');
+        element.className = 'fp-chat-pet-status';
+        element.textContent = '宠物 · ' + pet.name + ' · ' + labels[pet.state];
+        return element.outerHTML;
+    },
+
     bling: undefined,
     isBlinging: false,
 

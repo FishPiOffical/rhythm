@@ -113,7 +113,17 @@ public final class ApiV3ChatMessageDto {
         // 只投影可见普通正文的合法快照；缺失与坏快照不影响原消息读取。
         final JSONObject tail = ApiV3ChatTail.snapshot(source.opt("tail"));
         if (tail != null && ApiV3ChatTail.eligibleHtml(html)) dto.put("tail", tail);
+        final JSONObject pet = petStatus(source.opt("petStatus"));
+        if (pet != null && !dto.getJSONObject("author").optString("id").isEmpty()) dto.put("petStatus", pet);
         return dto;
+    }
+
+    public static JSONObject petStatus(final Object value) {
+        if (!(value instanceof JSONObject pet) || !(pet.opt("name") instanceof String name)
+                || !(pet.opt("state") instanceof String state) || name.isBlank() || name.length() > 256
+                || name.codePoints().anyMatch(cp -> Character.isISOControl(cp) || (Character.getType(cp) == Character.FORMAT && cp != 0x200D))
+                || !Set.of("idle", "rest", "outing", "course", "work", "claimable").contains(state)) return null;
+        return new JSONObject().put("name", name).put("state", state);
     }
 
     private static long number(final Object value, final long fallback) {
