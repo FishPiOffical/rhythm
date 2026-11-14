@@ -24,7 +24,7 @@
 
 - 新旧话题写入共用 `ChatTopicWriteService` / `ChatTopicMgmtService`：账户对锁及缓存边界外包事务，当前用户→房间head→option/chatRoomTopic，16积分、话题及topic/0事件同保存点；v3 PUT由 `ApiV3ChatTopicService` 显式Bearer准入及幂等。v3沿用字符过滤且超64 UTF-16拒绝，旧入口保留过滤/截断；投影worker重读已提交最新状态恢复旧页面，topic WS仅发revision，不能冒充messageId=0。旧Bot准入先执行，不能称整个旧Bot处罚与话题原子化。
 - v3 弹幕 POST `/chat/barrager` 走 `ApiV3ChatBarrageService`：content.write、当前用户/手机/限制、纯文本清洗后32 UTF-16及#RRGGBB，费用与回执同幂等事务；`ChatBarrageQuota`共用旧用户名额度与admin例外，自动重试只计一次。提交后才发旧广播及当前实例的 `chat.barrager` 白名单事件，v3逐连接重验授权；即时动画不入历史/提交游标、不补播，不能声称跨实例或可靠送达。旧弹幕输入/扣款链路暂保留，展示插件前必须编码正文/昵称与作者路径，两套源码/产物同步。
-- 新旧聊天室撤回共用 `ChatMessageWithdrawalMgmtService`：事务前账户对锁及缓存边界，按作者ID检查、锁用户后锁cloud的sys-chat-revoke每日记录；费用0/32/64……，与消息/删除事件/reaction/职业撤销同保存点。用户已同意共享持久计次、改名/重启不清零及旧入口失败不扣款；旧管理跨作者/免计次保留，v3 DELETE仅本人、content.write及幂等，确认提交后才索引/通知。存储删除核心为 `ChatMessageMgmtService#removeInCurrentTransaction`，不得绕回独立扣费或用户名归属。
+- 新旧聊天室撤回共用 `ChatMessageWithdrawalMgmtService`：事务前账户对锁及缓存边界，按作者ID检查、锁用户后锁cloud的sys-chat-revoke每日记录；费用0/32/64……，与消息/删除事件/reaction/职业撤销同保存点。用户已同意共享持久计次、改名/重启不清零及旧入口失败不扣款；旧管理跨作者/免计次保留，v3 DELETE 对第三方令牌仍仅本人；第一方 website_v3 令牌可使用事务内实时校验的旧 level3 跨作者撤回，仍需 content.write 及幂等，确认提交后才索引/通知。存储删除核心为 `ChatMessageMgmtService#removeInCurrentTransaction`，不得绕回独立扣费或用户名归属。
 - v3 GET `/chat/topic` 读取已提交持久话题（初始无记录兼容进程默认值），`/chat/barrager/price`读取当前进程价格，均需content.read；话题是纯文本，价格经ChatroomProcessor.get/setBarragerPrice成对访问。旧话题通知在channel.js/channel-2.js中必须文本编码话题/作者并编码作者路径，两套源码和min产物同步维护。
 
 ## 普通消息与风控

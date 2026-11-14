@@ -348,6 +348,9 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 | data.userPoint | 积分 |
 | data.userGuideStep | 新手引导进度 |
 | data.isAdmin | 当前账号为管理员且使用网站第一方访问令牌时为 true |
+| data.capabilities.chatRevokeOthers | 第一方网页账号是否具有旧站聊天室管理撤回权限；管理员、OP、纪律委员为 true |
+| data.capabilities.viewArticleHistory / data.capabilities.viewCommentHistory | 第一方网页账号当前角色是否获授文章 / 评论历史查看权限；作者自己的历史仍由资源接口单独校验 |
+| data.capabilities.canAccessAdmin | 第一方网页账号当前角色是否获授旧后台入口权限 menuAdmin |
 | data.userRole / data.userRoleId | 角色显示名 / 角色 ID，仅供展示与识别 |
 | data.userNo / data.userAppRole | 用户编号 / 社区角色 |
 | data.userCity | 公开城市，位置未公开时为空字符串 |
@@ -355,6 +358,8 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 
 
 > 返回当前账号资料；账号不再有效或已删除时，原访问令牌也会返回 HTTP 401。
+>
+> capabilities 仅是网站入口提示，不代替资源接口的当前鉴权；第三方访问令牌的以上能力均为 false，不扩大其 OAuth 授权。角色名称和 ID 仅用于展示，不能据此推导管理权限。历史查看与后台入口取当前角色的真实权限配置，权限回收后重新读取即更新；isAdmin 仍只代表管理员，不包含 OP 或纪律委员。
 
 ### 最新专栏
 
@@ -2575,6 +2580,7 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa'
 | - id / userName | 用户 ID / 用户名 |
 | - userNickname / userAvatarURL | 昵称 / 头像 |
 | - userIntro / userURL | 个人介绍文本 / 个人网址 |
+| - userRole / userRoleId | 当前角色显示名 / 稳定角色 ID，仅供身份标签展示，不是读者的操作授权 |
 | - cardBg | 个性卡片背景图片 URL，未设置或无有效图片地址时为空字符串 |
 | - userPoint | 当前积分余额，整数 |
 | - onlineMinute | 累计在线时长，单位分钟，非负整数 |
@@ -4464,11 +4470,11 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/messages' \
 >
 > 同键同内容重试返回首次结果，不重复发送或扣分；同键不同内容返回 HTTP 409（idempotency_conflict）。服务端错误或断线后也请使用原键和原请求体重试确认结果。广播和提醒可能延迟或丢失，客户端应结合消息查询与实时提示同步记录。
 
-### 撤回本人消息
+### 撤回聊天室消息
 
 `DELETE /api/v3/chat/messages/{messageId}`
 
-撤回当前账号发布的聊天室消息，需要 content.write 和 Idempotency-Key。
+撤回当前账号发布的聊天室消息，需要 content.write 和 Idempotency-Key。第一方网页的管理员、OP、纪律委员另可沿用旧站权限撤回他人普通消息；第三方访问令牌始终只能撤回本人消息。
 
 请求：
 
@@ -4476,7 +4482,7 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/messages' \
 | --- | --- | --- |
 | Authorization（Header） | Bearer 访问令牌 | Bearer {accessToken} |
 | Idempotency-Key（Header） | 本次操作的幂等键 | chat-withdraw-001 |
-| messageId（Path） | 本人消息 ID | 1792304100000 |
+| messageId（Path） | 待撤回消息 ID | 1792304100000 |
 
 请求示例：
 
@@ -4497,11 +4503,13 @@ curl --request DELETE 'https://fishpi.cn/api/v3/chat/messages/1792304100000' \
 | - removed | 已撤回 | true |
 | - cost | 本次消耗积分 | 32 |
 
-> 无需请求体，也可发送空 JSON 对象。普通用户每天可撤回多次，当天费用依次为 0、32、64……积分，与旧撤回接口共享计次；改名和服务重启不重置计次，平台自然日切换后重新计算。原有管理角色的免费规则保留，本接口仅撤回本人消息。
+> 无需请求体，也可发送空 JSON 对象。普通用户每天可撤回多次，当天费用依次为 0、32、64……积分，与旧撤回接口共享计次；改名和服务重启不重置计次，平台自然日切换后重新计算。原有管理角色的免费规则保留。第一方网页管理撤回在写事务内重新核验当前角色；权限回收后不能用旧的页面能力或令牌内用户快照继续撤回他人消息。
 >
-> 不存在、已撤回或非本人消息返回 HTTP 404；红包消息返回 HTTP 409（message_not_removable），积分不足返回 HTTP 409（insufficient_points）。未提交成功的操作不会扣分或增加计次。 拒绝撤回时保留消息及已有互动，客户端无需按撤回成功清理记录。
+> 不存在、已撤回或无权撤回的消息返回 HTTP 404；红包消息对所有角色返回 HTTP 409（message_not_removable），积分不足返回 HTTP 409（insufficient_points）。未提交成功的操作不会扣分或增加计次。 拒绝撤回时保留消息及已有互动，客户端无需按撤回成功清理记录。
 >
 > 同键重试返回首次成功回执，不重复扣分。报错或断线后请保留原消息 ID 和幂等键重试确认，不要换键；成功后可用消息查询接口确认 HTTP 404，并清理本地记录及 reaction。实时提示可能延迟或丢失。
+>
+> 回执仍绑定当前账号、目标 ID 和原幂等键，只包含 id、removed、cost。随后角色或客户端变化时可恢复该历史元数据，但不会再次删除、扣分或广播，也不授予新的管理操作；身份和 content.write 校验仍照常执行。
 
 ### 查询当前话题
 

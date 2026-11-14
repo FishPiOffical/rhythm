@@ -70,13 +70,25 @@ public class ChatMessageWithdrawalMgmtService {
 
     /** Bearer owner-only adapter; a replay returns its receipt without charging or broadcasting again. */
     public JSONObject withdraw(final JSONObject viewer, final String id, final String key) throws Exception {
+        return withdraw(viewer, id, key, false);
+    }
+
+    /** 第一方网页沿用旧站管理撤回；客户端身份只能取自认证中间件，不能来自请求正文。 */
+    public JSONObject withdrawAuthenticated(final JSONObject identity, final String id, final String key) throws Exception {
+        final JSONObject viewer = identity == null ? null : identity.optJSONObject("user");
+        return withdraw(viewer, id, key, ApiV3UserCapabilities.website(identity));
+    }
+
+    private JSONObject withdraw(final JSONObject viewer, final String id, final String key,
+                                final boolean allowModeration) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!validActor(actor)) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
         if (id == null || !id.matches("[0-9]{1,32}")) throw new ApiV3Exception(422, "invalid_request", "消息 ID 格式不合法");
         final var removed = new AtomicReference<Result>();
         final var outcome = boundary(actor, () -> idempotency.executeWithOutcome(actor, "chat.messages.withdraw:" + id, key,
                 new JSONObject(), () -> {
-                    final Result result = withdrawInCurrentTransaction(actor, id, false);
+                    // 原键仍只恢复已提交元数据；首次执行必须锁定当前账号并再次核对管理角色。
+                    final Result result = withdrawInCurrentTransaction(actor, id, allowModeration);
                     removed.set(result);
                     return new JSONObject().put("id", result.id()).put("removed", true).put("cost", result.cost());
                 }));
@@ -111,6 +123,7 @@ public class ChatMessageWithdrawalMgmtService {
     private static boolean validActor(final String actor) { return actor != null && actor.matches("[1-9][0-9]{0,31}"); }
 
     /** allowModeration is for the legacy operator entry; owner-only v3 passes false. */
+    // 第一方网页入口也可传入 true；是否有旧站管理权限仍以本事务锁定的用户角色为准。
     public Result withdrawInCurrentTransaction(final String actor, final String id, final boolean allowModeration) throws RepositoryException {
         if (!validActor(actor) || id == null || !id.matches("[0-9]{1,32}")) throw new IllegalArgumentException("withdrawal target");
         if (!users.hasTransactionBegun() || !ArticlePublicationCaches.active()

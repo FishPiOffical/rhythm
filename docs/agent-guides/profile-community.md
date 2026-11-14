@@ -14,6 +14,7 @@
 - v3 个人读取在 `ApiV3PersonalProcessor` / `ApiV3PersonalQueryService`；scope 分 profile.read、content.read、activity.read，目标用户只能来自 Bearer。草稿详情必须用 owner+ID 联合过滤，积分 DTO 不得带双边余额或内部应用请求编号。
 - v3 主页评论与关注动态的查询片段在 `ApiV3ProfileQueries`：评论列表不聚合讨论帖，私密正文复用 `commentDto`；`watching` 是关注用户/标签动态，`watching/articles` 是 `ARTICLE_WATCH` 订阅，不能与 `following/articles` 收藏混淆。
 - v3 搜索/标签/领域/用户文章共用 `ApiV3DiscoveryQueryService` 的可见性、计数和分页条件；`ApiV3ContentDtoService` 只做公开 DTO 映射。用户主页子列表需用 Bearer 阅读者检查对应隐私开关；禁止从 Sessions 或旧 apiKey 补身份。
+- `/me.capabilities` 仅为第一方网页提示：管理撤回复用旧 level3，历史和后台入口读取当前 role_permission；第三方全部 false，isAdmin 仍仅管理员。公开资料新增 userRoleId 仅作身份标签，不能按标签决定操作授权。
 - v3公开资料`ApiV3DiscoveryQueryService.profile`返回cardBg/userPoint/onlineMinute，cardBg只读目标system_settings的单字段并校验图片URL，禁止裸返settings；余额和累计分钟沿用主页公开展示，userPointStatus为流水权限、userOnlineStatus为在线标志权限，不能混为余额/累计时长。
 
 ## 关注与社区内容

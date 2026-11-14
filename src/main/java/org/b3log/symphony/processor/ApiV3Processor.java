@@ -32,6 +32,7 @@ import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.util.ApiV3TokenUtil;
+import org.b3log.symphony.util.ApiV3UserCapabilities;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.WebsiteLoginCookies;
 import org.b3log.symphony.util.Sessions;
@@ -342,6 +343,8 @@ public class ApiV3Processor {
                 && ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(identity.optString("clientId"));
         success(context, userDto(user, true)
                 .put("isAdmin", administrator)
+                .put("capabilities", ApiV3UserCapabilities.project(user, identity,
+                        ApiV3UserCapabilities.website(identity) ? roleQueryService.getPermissions(roleId) : Set.of()))
                 .put("userRole", role == null ? "" : role.optString(Role.ROLE_NAME))
                 .put("userRoleId", roleId)
                 .put("userNo", user.optString(UserExt.USER_NO))

@@ -303,6 +303,7 @@ public class ApiV3DiscoveryQueryService {
                 .put("cardBg", cardBackground(user.optString(Keys.OBJECT_ID)))
                 .put("userNo", memberNumber.matches("[1-9][0-9]{0,18}") ? memberNumber : "")
                 .put("userRole", role == null ? "" : role.optString(Role.ROLE_NAME))
+                .put("userRoleId", roleId)
                 .put("userCity", city)
                 .put("userOnlineFlag", UserOnlineStatus.publicFlag(user))
                 .put("userPoint", points).put("onlineMinute", onlineMinutes);
