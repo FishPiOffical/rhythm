@@ -4,6 +4,11 @@
 
 # 261114
 
+- **管理后台 V3 基础能力与第一阶段管理接口**
+  - 新增 `GET /api/v3/admin/capabilities` 与 `GET /api/v3/admin/dashboard`，提供第一方管理员/运营/指定审核员能力矩阵、真实待办与基础统计汇总
+  - 新增举报管理 V3 接口（`GET /api/v3/admin/reports`、`POST /api/v3/admin/reports/{reportId}/handle`、`POST /api/v3/admin/reports/{reportId}/ignore`、`POST /api/v3/admin/repeater/{id}/remove`），强制分离处置动作、禁止自举自审并接入 `Idempotency-Key` 严格事务
+  - 新增用户管理 V3 接口（`GET /api/v3/admin/users`、`GET /api/v3/admin/users/{userId}`、`PUT /api/v3/admin/users/{userId}`、`POST /api/v3/admin/users/{userId}/deactivate`、`POST /api/v3/admin/users/{userId}/remove-mfa`），脱敏敏感凭据、隔离基础/高级/角色/永久停用权限并禁止停用本人与恢复状态 4 账号
+
 - 举报后台统一安全渲染现存聊天正文与撤回快照，PC 和移动端保留正常文字、图片、链接和换行；举报接口与处理操作保持不变。
 - 修复新旧聊天室撤回记录缺失；撤回与非公开管理记录一并保存，失败时不部分扣款或删除消息。接口请求和成功响应保持不变。
 - V3 当前用户资料增加网站操作能力提示，恢复有权限账号的聊天室管理撤回、文章和评论历史入口及旧后台入口。权限仍由服务端逐次校验，第三方客户端原有授权范围保持不变。

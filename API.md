@@ -16979,3 +16979,359 @@ curl 'https://fishpi.cn/api/v3/me/pet' \
 ### 聊天消息宠物状态
 
 旧版网页聊天室普通消息及 V3 普通聊天消息可以带有可选字段 `petStatus: {name, state, level?, speciesId?, petId?}`。这是发言时的公开展示快照，包含宠物昵称、状态类别、等级、品种 ID 和宠物 ID。旧快照可能缺少等级或品种；品种取值为 `momota`、`hexiaotun`、`yubingmiao`、`paixiaoyu`。状态值为 `idle`（空闲）、`rest`（休息中）、`outing`（外出中）、`course`（上课中）、`work`（兼职中）、`claimable`（待领取）。未领养、历史消息没有快照或无法取得宠物数据时省略字段。客户端无需另外请求宠物资料。
+
+## API v3 管理后台（能力、工作台、举报与用户）
+
+### 读取当前登录用户的后台能力矩阵
+
+`GET /api/v3/admin/capabilities`
+
+需要网站第一方有效 Bearer accessToken 和 `profile.read`；返回角色标识、特殊操作员标记、指定认证审核员标记、图床开关、权限明细及九大一级入口可见性。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/capabilities' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 权限与菜单能力矩阵 | {} |
+| - canAccessAdmin | 是否具备基础后台入口权限 `menuAdmin` | true |
+| - canEnterConsole | 是否允许进入后台或独立认证审核工作台 | true |
+| - userId / userName / userNickname / avatarUrl | 当前操作者基础身份信息 | 1630399192600 / admin |
+| - roleId / roleName | 当前角色 ID 与名称 | adminRole / 管理员 |
+| - isAdmin / isSecurityOperator / isIdentityReviewer / rhypicEnabled | 管理员、安全特殊操作员、指定认证审核员与图床启用标记 | true / false / true / false |
+| - permissions | 各细粒度后台与用户权限布尔字典 | {} |
+| - menus | 九大一级菜单可见性字典 | {} |
+| - actions | 各管理写操作授权布尔字典 | {} |
+| - fetchedAt | 服务端采样毫秒时间戳 | 1763100000000 |
+
+> 仅管理前端依赖该矩阵控制导航与按钮显隐，服务端仍会在每次请求时重新查库鉴权；第三方 OAuth 令牌一律返回 403。
+
+### 读取管理后台工作台概览
+
+`GET /api/v3/admin/dashboard`
+
+需要网站第一方有效 Bearer accessToken、`profile.read` 以及 `menuAdmin` 或指定审核员身份。返回真实待办数量、社区基础统计和最近操作审计记录。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/dashboard' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 工作台汇总数据 | {} |
+| - capabilities | 最新后台权限与菜单矩阵 | {} |
+| - todos | 待办计数，无权或缺失数据源时为 `null` | `{"pendingReports":3,"pendingIdentityApplications":1}` |
+| - communityStats | 社区基础统计项，缺少数据源时为 `null` | {} |
+| - recentOperations | 最近 10 条管理操作审计记录 | `[]` |
+| - meta | 数据来源与说明摘要 | {} |
+
+> 缺省指标返回 `null`，前端应展示“未知”而非填零或使用演示数据。
+
+### 分页检索举报列表
+
+`GET /api/v3/admin/reports`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 及 `menuAdminReports` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| status | 处理状态筛选：`all`、`pending`（默认）、`handled`、`ignored` | pending |
+| dataType | 目标类型筛选：`all`（默认）、`0`（文章）、`1`（评论）、`2`（用户）、`3`（聊天消息）、`4`（复读内容） | all |
+| p / size | 页码（默认 1）/ 每页条数（默认 20，最多 50） | 1 / 20 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/reports?status=pending&dataType=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 分页数据 | {} |
+| - list | 举报记录列表，含安全清洗后的对象上下文 `target` 与是否本人举报 `isOwnReport` | `[]` |
+| - pagination | `p`、`size`、`total`、`pageCount` | {} |
+
+### 标记举报为已处理
+
+`POST /api/v3/admin/reports/{reportId}/handle`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin` 与 `menuAdminReports` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次处理的幂等键 | report-handle-001 |
+| reportId（Path） | 举报记录 ID | 1763100000001 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/reports/1763100000001/handle' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: report-handle-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 更新结果（`reportId`、`reportHandled=1`、`updatedAt`） | {} |
+
+> 禁止处理自己提交的举报（HTTP 422 `self_report_forbidden`）；若举报已被处理或忽略返回 HTTP 409 `report_state_conflict`。“标记已处理”“忽略”“移除复读机内容”为相互独立的动作。
+
+### 标记举报为已忽略
+
+`POST /api/v3/admin/reports/{reportId}/ignore`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin` 与 `menuAdminReports` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次忽略的幂等键 | report-ignore-001 |
+| reportId（Path） | 举报记录 ID | 1763100000001 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/reports/1763100000001/ignore' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: report-ignore-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 更新结果（`reportId`、`reportHandled=2`、`updatedAt`） | {} |
+
+### 移除被举报复读机内容
+
+`POST /api/v3/admin/repeater/{id}/remove`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin` 与 `menuAdminReports` 权限。独立于举报状态流转。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次移除的幂等键 | repeater-remove-001 |
+| id（Path） | 复读机内容 ID | 1763100000002 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/repeater/1763100000002/remove' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: repeater-remove-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 移除结果（`repeaterId`、`status=1`、`removedAt`） | {} |
+
+### 分页查询管理用户列表
+
+`GET /api/v3/admin/users`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminUsers` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| keyword | 可选搜索关键字（用户名、昵称、UID、编号、邮箱、最近登录 IP），最多 64 字符 | admin |
+| status | 状态筛选：`all`（默认）、`0`（正常）、`1`（封禁）、`2`（未验证）、`3`（登录失效）、`4`（永久停用） | all |
+| roleId | 可选角色 ID 筛选或 `all` | all |
+| p / size | 页码（默认 1）/ 每页条数（默认 20，最多 50） | 1 / 20 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/users?status=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 分页数据，包含脱敏用户列表 `list`、分页 `pagination` 与角色选项 `roleOptions` | {} |
+
+> 返回字段仅含展示与管理必需字段，不返回密码哈希、MFA 密钥或各类令牌。
+
+### 查询管理用户详情
+
+`GET /api/v3/admin/users/{userId}`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminUsers` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| userId（Path） | 用户 ID | 1630399192600 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/users/1630399192600' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 用户详情对象，含脱敏档案 `user`、最近审计操作 `recentOperations`、可选角色 `roleOptions`、背包摘要 `bagItems` 与勋章摘要 `medals` | {} |
+
+### 更新用户资料与状态
+
+`PUT /api/v3/admin/users/{userId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminUsers` 及对应字段修改权限（`userUpdateUserBasic` 或 `userUpdateUserAdvanced`）。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次修改的幂等键 | user-update-001 |
+| userId（Path） | 目标用户 ID | 1630399192600 |
+| userNickname / userURL / userIntro / userTags / userEmail | 基础资料字段（需 `userUpdateUserBasic`） | 昵称 |
+| userStatus / userCommentStatus / userPointStatus / userRole | 高级状态与角色字段（需 `userUpdateUserAdvanced`；调整角色另需管理员或 OP，且仅管理员可任免 `adminRole`） | 0 |
+
+请求示例：
+
+```bash
+curl --request PUT 'https://fishpi.cn/api/v3/admin/users/1630399192600' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: user-update-001' \
+  --header 'Content-Type: application/json' \
+  --data '{"userNickname":"测试昵称","userStatus":0}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 修改结果回执与最新重读的完整详情 `detail` | {} |
+
+> 已永久停用账号（`userStatus=4`）禁止通过该接口编辑或恢复；禁止在常规编辑中设为状态 `4`，且禁止管理员将自身改为非正常状态或更改自身角色。
+
+### 永久停用用户账号
+
+`POST /api/v3/admin/users/{userId}/deactivate`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin` 与**管理员角色（`adminRole`）**。永久停用后匿名化账号资料、清除关联活跃与通知数据并吊销全部 V3 令牌。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次停用的幂等键 | user-deactivate-001 |
+| userId（Path） | 目标用户 ID | 1630399192601 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/users/1630399192601/deactivate' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: user-deactivate-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 停用结果与最新重读的用户详情 `detail` | {} |
+
+> 严格禁止永久停用当前登录管理员本人（HTTP 422 `cannot_deactivate_self`），亦不可直接停用 `adminRole` 账号或重复停用已停用账号。
+
+### 清除用户两步验证（MFA）
+
+`POST /api/v3/admin/users/{userId}/remove-mfa`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin` 与 `userRemoveMFA` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次清除的幂等键 | user-mfa-001 |
+| userId（Path） | 目标用户 ID | 1630399192601 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/users/1630399192601/remove-mfa' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: user-mfa-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 操作结果（`userId`、`hasMfa=false`、`updatedAt`）及最新 `detail` | {} |
