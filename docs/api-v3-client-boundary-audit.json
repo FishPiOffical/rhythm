@@ -1,0 +1,1129 @@
+{
+  "scope": "src TS and Vue scripts; literal API seeds/imports only, not full runtime or permission coverage",
+  "sourceFileCount": 330,
+  "apiSeedCount": 165,
+  "findings": [],
+  "apiSeeds": [
+    {
+      "file": "src/api/fishpi.ts",
+      "line": 450,
+      "prefix": "/api/v3/auth/login"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 76,
+      "prefix": "/api/v3/auth/refresh"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 126,
+      "prefix": "/api/v3/auth/captcha-options"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 31,
+      "prefix": "/api/v3/auth/registration-options"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 38,
+      "prefix": "/api/v3/auth/captcha-options"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 49,
+      "prefix": "/api/v3/auth/registration/request"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 52,
+      "prefix": "/api/v3/auth/password-reset/request"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 56,
+      "prefix": "/api/v3/auth/registration/complete"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 60,
+      "prefix": "/api/v3/auth/password-reset/complete"
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 19,
+      "prefix": "/api/v3/me/checkin"
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 23,
+      "prefix": "/api/v3/me/activity/yesterday-reward"
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 30,
+      "prefix": "/api/v3/me/activity/yesterday-reward"
+    },
+    {
+      "file": "src/api/v3-anonymous-content.ts",
+      "line": 16,
+      "prefix": "/api/v3/me/anonymous-"
+    },
+    {
+      "file": "src/api/v3-app-login.ts",
+      "line": 19,
+      "prefix": "/api/v3/auth/app-login/"
+    },
+    {
+      "file": "src/api/v3-article-heat.ts",
+      "line": 4,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 14,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 33,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 10,
+      "prefix": "/api/v3/me/articles/"
+    },
+    {
+      "file": "src/api/v3-article-owner.ts",
+      "line": 17,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-author-columns.ts",
+      "line": 9,
+      "prefix": "/api/v3/me/columns?p="
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 16,
+      "prefix": "/api/v3/breezemoons?p="
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 20,
+      "prefix": "/api/v3/breezemoons/"
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 24,
+      "prefix": "/api/v3/breezemoons"
+    },
+    {
+      "file": "src/api/v3-chat-barrage.ts",
+      "line": 13,
+      "prefix": "/api/v3/chat/barrager/price"
+    },
+    {
+      "file": "src/api/v3-chat-barrage.ts",
+      "line": 20,
+      "prefix": "/api/v3/chat/barrager"
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 14,
+      "prefix": "/api/v3/chat/messages/"
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 20,
+      "prefix": "/api/v3/chat/messages?"
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 23,
+      "prefix": "/api/v3/chat/topic"
+    },
+    {
+      "file": "src/api/v3-chat-messages.ts",
+      "line": 25,
+      "prefix": "/api/v3/chat/messages/"
+    },
+    {
+      "file": "src/api/v3-chat-music.ts",
+      "line": 20,
+      "prefix": "/api/v3/chat/music"
+    },
+    {
+      "file": "src/api/v3-chat-mutes.ts",
+      "line": 9,
+      "prefix": "/api/v3/chat/mutes?p="
+    },
+    {
+      "file": "src/api/v3-chat-online.ts",
+      "line": 9,
+      "prefix": "/api/v3/chat/online-users?p="
+    },
+    {
+      "file": "src/api/v3-chat-publication.ts",
+      "line": 6,
+      "prefix": "/api/v3/chat/messages"
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 43,
+      "prefix": "/api/v3/chat/red-packets"
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 44,
+      "prefix": "/api/v3/chat/red-packets/"
+    },
+    {
+      "file": "src/api/v3-chat-red-packets.ts",
+      "line": 45,
+      "prefix": "/api/v3/chat/red-packets/"
+    },
+    {
+      "file": "src/api/v3-chat-revoke.ts",
+      "line": 6,
+      "prefix": "/api/v3/chat/messages/"
+    },
+    {
+      "file": "src/api/v3-chat-topic.ts",
+      "line": 6,
+      "prefix": "/api/v3/chat/topic"
+    },
+    {
+      "file": "src/api/v3-chat-weather.ts",
+      "line": 27,
+      "prefix": "/api/v3/chat/weather"
+    },
+    {
+      "file": "src/api/v3-cities.ts",
+      "line": 11,
+      "prefix": "/api/v3/cities/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 29,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 29,
+      "prefix": "/api/v3/comments/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 36,
+      "prefix": "/api/v3/comments/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 38,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 43,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 52,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 6,
+      "prefix": "/api/v3/me/"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 88,
+      "prefix": "/api/v3/articles?"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 93,
+      "prefix": "/api/v3/search?"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 100,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 117,
+      "prefix": "/api/v3/search?"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 122,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 129,
+      "prefix": "/api/v3/articles?"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 148,
+      "prefix": "/api/v3/tags?"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 155,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 156,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-directory.ts",
+      "line": 31,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 17,
+      "prefix": "/api/v3/recent-members"
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 20,
+      "prefix": "/api/v3/articles/random?size="
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 34,
+      "prefix": "/api/v3/logs?p="
+    },
+    {
+      "file": "src/api/v3-donation.ts",
+      "line": 12,
+      "prefix": "/api/v3/payments/donation-page"
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 4,
+      "prefix": "/api/v3/me/settings"
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 22,
+      "prefix": "/api/v3/me/point-transfers"
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 28,
+      "prefix": "/api/v3/me/invitation-codes"
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 34,
+      "prefix": "/api/v3/invitation-codes/status"
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 24,
+      "prefix": "/api/v3/fish-games?p="
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 25,
+      "prefix": "/api/v3/fish-games/"
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 26,
+      "prefix": "/api/v3/fish-games/"
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 29,
+      "prefix": "/api/v3/fish-games"
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 14,
+      "prefix": "/api/v3/me/watching/breezemoons?p="
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 14,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 25,
+      "prefix": "/api/v3/game-save-options"
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 32,
+      "prefix": "/api/v3/me/game-saves/"
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 39,
+      "prefix": "/api/v3/me/game-saves/"
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 35,
+      "prefix": "/api/v3/me/identity-applications/enterprise"
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 39,
+      "prefix": "/api/v3/me/identity-applications?p="
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 45,
+      "prefix": "/api/v3/me/identity-applications/"
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 29,
+      "prefix": "/api/v3/me/bag"
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 33,
+      "prefix": "/api/v3/me/settings/user-name"
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 33,
+      "prefix": "/api/v3/me/bag/"
+    },
+    {
+      "file": "src/api/v3-markdown.ts",
+      "line": 10,
+      "prefix": "/api/v3/markdown/preview"
+    },
+    {
+      "file": "src/api/v3-medal-images.ts",
+      "line": 10,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 16,
+      "prefix": "/api/v3/me/medals"
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 52,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-member-content.ts",
+      "line": 15,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-membership-styles.ts",
+      "line": 18,
+      "prefix": "/api/v3/membership/styles?"
+    },
+    {
+      "file": "src/api/v3-membership-styles.ts",
+      "line": 26,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 31,
+      "prefix": "/api/v3/me/membership"
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 41,
+      "prefix": "/api/v3/membership/levels?p="
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 69,
+      "prefix": "/api/v3/me/membership/config"
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 80,
+      "prefix": "/api/v3/me/membership"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 18,
+      "prefix": "/api/v3/me/conversations?p="
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 19,
+      "prefix": "/api/v3/me/conversations/"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 21,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 22,
+      "prefix": "/api/v3/me/messages/unread-count"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 24,
+      "prefix": "/api/v3/me/conversations/read"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 25,
+      "prefix": "/api/v3/me/conversations/"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 26,
+      "prefix": "/api/v3/me/messages/"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 26,
+      "prefix": "/api/v3/me/conversations/"
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 20,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 21,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 23,
+      "prefix": "/api/v3/milestones"
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 78,
+      "prefix": "/api/v3/me/notifications?type="
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 85,
+      "prefix": "/api/v3/me/notifications/unread-count"
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 98,
+      "prefix": "/api/v3/me/notifications/read"
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 13,
+      "prefix": "/api/v3/me/points?p="
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 24,
+      "prefix": "/api/v3/me"
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 23,
+      "prefix": "/api/v3/me/exports/posts"
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 26,
+      "prefix": "/api/v3/me/exports/posts/"
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 31,
+      "prefix": "/api/v3/me/exports/posts/"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 20,
+      "prefix": "/api/v3/me/articles/"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 22,
+      "prefix": "/api/v3/me/drafts?p="
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 23,
+      "prefix": "/api/v3/me/drafts/"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "prefix": "/api/v3/articles"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 69,
+      "prefix": "/api/v3/me/drafts"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 44,
+      "prefix": "/api/v3/me/settings/"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 54,
+      "prefix": "/api/v3/me/settings/"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 58,
+      "prefix": "/api/v3/me/settings/locale-options"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 65,
+      "prefix": "/api/v3/me/settings/skins"
+    },
+    {
+      "file": "src/api/v3-profession-public.ts",
+      "line": 47,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 104,
+      "prefix": "/api/v3/professions?"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 105,
+      "prefix": "/api/v3/me/professions?"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 107,
+      "prefix": "/api/v3/me/professions/"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 120,
+      "prefix": "/api/v3/me/professions/"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 149,
+      "prefix": "/api/v3/me/professions/"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 181,
+      "prefix": "/api/v3/professions/"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 194,
+      "prefix": "/api/v3/professions/"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 4,
+      "prefix": "/api/v3/me/settings"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 64,
+      "prefix": "/api/v3/uploads/tickets"
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 31,
+      "prefix": "/api/v3/columns"
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 37,
+      "prefix": "/api/v3/columns/"
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 42,
+      "prefix": "/api/v3/columns/"
+    },
+    {
+      "file": "src/api/v3-public-user.ts",
+      "line": 20,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-rankings.ts",
+      "line": 61,
+      "prefix": "/api/v3/rankings/"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 9,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 11,
+      "prefix": "/api/v3/reactions/emojis"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 5,
+      "prefix": "/api/v3/realtime/tickets"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 9,
+      "prefix": "/api/v3/articles/"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 11,
+      "prefix": "/api/v3/me/messages/realtime-ticket"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 24,
+      "prefix": "/api/v3/chat/realtime-ticket"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 59,
+      "prefix": "/api/v3/realtime"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 15,
+      "prefix": "/api/v3/repeater/items?"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 16,
+      "prefix": "/api/v3/repeater/next"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 18,
+      "prefix": "/api/v3/repeater/items"
+    },
+    {
+      "file": "src/api/v3-reports.ts",
+      "line": 18,
+      "prefix": "/api/v3/report/options"
+    },
+    {
+      "file": "src/api/v3-reports.ts",
+      "line": 27,
+      "prefix": "/api/v3/reports"
+    },
+    {
+      "file": "src/api/v3-revisions.ts",
+      "line": 11,
+      "prefix": "/api/v3/"
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "prefix": "/api/v3/me/"
+    },
+    {
+      "file": "src/api/v3-saved-content.ts",
+      "line": 17,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 22,
+      "prefix": "/api/v3/me/security/mfa"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 25,
+      "prefix": "/api/v3/me/settings/password"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 28,
+      "prefix": "/api/v3/me/security/mfa/preparations"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 38,
+      "prefix": "/api/v3/me/security/mfa"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 52,
+      "prefix": "/api/v3/me/settings/"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 53,
+      "prefix": "/api/v3/me/settings/"
+    },
+    {
+      "file": "src/api/v3-statistics.ts",
+      "line": 24,
+      "prefix": "/api/v3/statistics"
+    },
+    {
+      "file": "src/api/v3-tag-suggestions.ts",
+      "line": 7,
+      "prefix": "/api/v3/suggestions/tags?prefix="
+    },
+    {
+      "file": "src/api/v3-uploads.ts",
+      "line": 21,
+      "prefix": "/api/v3/uploads/tickets"
+    },
+    {
+      "file": "src/api/v3-user-follow.ts",
+      "line": 7,
+      "prefix": "/api/v3/me/follows/users/"
+    },
+    {
+      "file": "src/api/v3-user-follow.ts",
+      "line": 13,
+      "prefix": "/api/v3/me/follows/users/"
+    },
+    {
+      "file": "src/api/v3-user-relations.ts",
+      "line": 22,
+      "prefix": "/api/v3/users/"
+    },
+    {
+      "file": "src/api/v3-user-suggestions.ts",
+      "line": 7,
+      "prefix": "/api/v3/suggestions/users?prefix="
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 40,
+      "prefix": "/api/v3/me"
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 85,
+      "prefix": "/api/v3/me/membership"
+    },
+    {
+      "file": "src/stores/auth.ts",
+      "line": 131,
+      "prefix": "/api/v3/auth/logout"
+    }
+  ],
+  "servicePathChecks": [
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 70,
+      "prefix": "/api/v1/files"
+    },
+    {
+      "file": "src/api/v3-uploads.ts",
+      "line": 28,
+      "prefix": "/api/v1/files"
+    }
+  ],
+  "dynamicCalls": [
+    {
+      "file": "src/api/http.ts",
+      "line": 126,
+      "callee": "fetch",
+      "expression": "resolveUrl('/api/v3/auth/captcha-options')"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 191,
+      "callee": "fetch",
+      "expression": "resolveUrl(path)"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 251,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 252,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 271,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 279,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/http.ts",
+      "line": 308,
+      "callee": "fetch",
+      "expression": "resolveUrl(path)"
+    },
+    {
+      "file": "src/api/v3-account-access.ts",
+      "line": 10,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-activity.ts",
+      "line": 17,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-app-login.ts",
+      "line": 19,
+      "callee": "request",
+      "expression": "'/api/v3/auth/app-login/' + path"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 18,
+      "callee": "request",
+      "expression": "path(kind,id,resource)"
+    },
+    {
+      "file": "src/api/v3-article-interactions.ts",
+      "line": 26,
+      "callee": "request",
+      "expression": "path(kind,id,resource)"
+    },
+    {
+      "file": "src/api/v3-breezemoons.ts",
+      "line": 6,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-comments.ts",
+      "line": 10,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 9,
+      "callee": "request",
+      "expression": "path(kind,id)"
+    },
+    {
+      "file": "src/api/v3-content-relations.ts",
+      "line": 12,
+      "callee": "request",
+      "expression": "path(kind,id)"
+    },
+    {
+      "file": "src/api/v3-content.ts",
+      "line": 29,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-discovery-extras.ts",
+      "line": 10,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-emojis.ts",
+      "line": 13,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-finance.ts",
+      "line": 13,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-fish-games.ts",
+      "line": 22,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-following-feed.ts",
+      "line": 15,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-game-saves.ts",
+      "line": 23,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-identity.ts",
+      "line": 18,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-inventory.ts",
+      "line": 18,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-medals.ts",
+      "line": 12,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-membership.ts",
+      "line": 26,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-messages.ts",
+      "line": 15,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-milestones.ts",
+      "line": 19,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-notifications.ts",
+      "line": 26,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-points.ts",
+      "line": 10,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-post-export.ts",
+      "line": 20,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-posts.ts",
+      "line": 70,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-preferences.ts",
+      "line": 30,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-professions.ts",
+      "line": 92,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 9,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-profile.ts",
+      "line": 78,
+      "callee": "fetch",
+      "expression": "endpoint"
+    },
+    {
+      "file": "src/api/v3-public-columns.ts",
+      "line": 27,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 26,
+      "callee": "request",
+      "expression": "path(kind,id)"
+    },
+    {
+      "file": "src/api/v3-reactions.ts",
+      "line": 29,
+      "callee": "request",
+      "expression": "path(kind,id)"
+    },
+    {
+      "file": "src/api/v3-realtime.ts",
+      "line": 56,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 15,
+      "callee": "request",
+      "expression": "'/api/v3/repeater/items?'+q"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 16,
+      "callee": "request",
+      "expression": "'/api/v3/repeater/next'+(q.size?'?'+q:'')"
+    },
+    {
+      "file": "src/api/v3-repeater.ts",
+      "line": 18,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-security.ts",
+      "line": 18,
+      "callee": "request",
+      "expression": "path"
+    },
+    {
+      "file": "src/api/v3-uploads.ts",
+      "line": 33,
+      "callee": "fetch",
+      "expression": "endpoint"
+    },
+    {
+      "file": "src/composables/useCityFeed.ts",
+      "line": 10,
+      "callee": "fetch",
+      "expression": "next"
+    }
+  ]
+}

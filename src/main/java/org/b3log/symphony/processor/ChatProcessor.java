@@ -18,9 +18,9 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +33,6 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.*;
-import org.b3log.latke.util.Crypts;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.channel.ChatChannel;
@@ -82,6 +81,9 @@ public class ChatProcessor {
 
     @Inject
     private ChatInfoRepository chatInfoRepository;
+
+    @Inject private PrivateMessageWithdrawalService privateWithdrawals;
+    @Inject private ApiV3PrivateMessageQueryService privateMessages;
 
     @Inject
     private ChatListService chatListService;
@@ -140,57 +142,27 @@ public class ChatProcessor {
     }
 
     public void revoke(final RequestContext context) {
-        context.renderJSON(new JSONObject().put("result", 0));
-        JSONObject currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        String userId = currentUser.optString(Keys.OBJECT_ID);
+        final JSONObject currentUser=(JSONObject)context.attr(User.USER);
+        if(currentUser==null){context.renderJSON(new JSONObject().put("result","Unauthorized"));return;}
+        context.renderJSON(new JSONObject().put("result",0));
+        final String actor=currentUser.optString(Keys.OBJECT_ID),id=context.param("oId");
         try {
-            String oId = context.param("oId");
-            JSONObject msg = chatInfoRepository.get(oId);
-            if (userId.equals(msg.optString("fromId"))) {
-                LogsService.chatLog(context, oId, currentUser.optString(User.USER_NAME));
-                final Transaction transaction = chatInfoRepository.beginTransaction();
-                chatInfoRepository.remove(oId);
-                transaction.commit();
-
-                // 清除缓存
-                String fromId = msg.optString("fromId");
-                String toId = msg.optString("toId");
-                invalidateChatListCache(fromId, toId);
-
-                // 新增：删除与此条消息相关的未读记录（按 fromId/toId 匹配）
-                try {
-                    final Transaction unreadTx = chatUnreadRepository.beginTransaction();
-                    Query q = new Query().setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter("fromId", FilterOperator.EQUAL, msg.optString("fromId")),
-                            new PropertyFilter("toId", FilterOperator.EQUAL, msg.optString("toId"))
-                    ));
-                    chatUnreadRepository.remove(q);
-                    unreadTx.commit();
-
-                    // 通知接收者刷新未读数
-                    try {
-                        Query queryUnread = new Query().setFilter(new PropertyFilter("toId", FilterOperator.EQUAL, msg.optString("toId")));
-                        List<JSONObject> remain = chatUnreadRepository.getList(queryUnread);
-                        final JSONObject cmd = new JSONObject();
-                        cmd.put(UserExt.USER_T_ID, msg.optString("toId"));
-                        cmd.put(Common.COMMAND, "chatUnreadCountRefresh");
-                        cmd.put("count", remain == null ? 0 : remain.size());
-                        UserChannel.sendCmd(cmd);
-                    } catch (Exception ignored) {
-                    }
-                } catch (Exception ignored) {
-                }
-
-                ChatChannel.sendMsg(msg.optString("fromId"), msg.optString("toId"), oId);
-            } else {
-                context.renderJSON(new JSONObject()
-                        .put("result", -1)
-                        .put("msg", "撤回失败，这不是你发的消息。"));
-            }
-        } catch (Exception e) {
-            context.renderJSON(new JSONObject()
-                    .put("result", -1)
-                    .put("msg", "撤回失败 " + e.getMessage()));
+            final JSONObject result=privateWithdrawals.removeLegacy(actor,id);
+            final String peer=result.getString("peerId");
+            invalidateChatListCache(actor,peer);
+            try{LogsService.chatLog(context,id,currentUser.optString(User.USER_NAME));}
+            catch(Exception ignored){LOGGER.warn("Private withdrawal audit unavailable");}
+            try{
+                final long count=privateMessages.unread(new JSONObject().put(Keys.OBJECT_ID,peer)).getLong("count");
+                UserChannel.sendCmd(new JSONObject().put(UserExt.USER_T_ID,peer).put(Common.COMMAND,"chatUnreadCountRefresh").put("count",count));
+            }catch(Exception ignored){LOGGER.warn("Private withdrawal unread refresh unavailable");}
+            try{ChatChannel.sendMsg(actor,peer,id);}
+            catch(Exception ignored){LOGGER.warn("Private withdrawal transport unavailable");}
+        } catch(ApiV3Exception e) {
+            context.renderJSON(new JSONObject().put("result",-1).put("msg",e.status==404?"撤回失败，这不是你发的消息。":e.getMessage()));
+        } catch(Exception e) {
+            LOGGER.warn("Private withdrawal unavailable");
+            context.renderJSON(new JSONObject().put("result",-1).put("msg","撤回暂不可用，请稍后重试"));
         }
     }
 
@@ -217,7 +189,7 @@ public class ChatProcessor {
                 }
             }
             final Transaction transaction = chatUnreadRepository.beginTransaction();
-            chatUnreadRepository.remove(query);
+            chatUnreadRepository.removeForOwnerInCurrentTransaction(userId,query);
             transaction.commit();
             // 通知用户
             final JSONObject cmd = new JSONObject();
@@ -258,7 +230,7 @@ public class ChatProcessor {
             }
 
             final Transaction transaction = chatUnreadRepository.beginTransaction();
-            chatUnreadRepository.remove(query);
+            chatUnreadRepository.removeForOwnerInCurrentTransaction(userId,query);
             transaction.commit();
             // 通知用户
             Query queryUnread = new Query().setFilter(new PropertyFilter("toId", FilterOperator.EQUAL, userId));
@@ -419,7 +391,7 @@ public class ChatProcessor {
             if (!otherId.equals("1000000000086")) {
                 info.put("receiverUserName", otherUser.optString(User.USER_NAME));
                 info.put("receiverAvatar", otherUser.optString(UserExt.USER_AVATAR_URL) + "?imageView2/1/w/48/h/48/interlace/0/q/100");
-                info.put("receiverOnlineFlag", otherUser.optBoolean(UserExt.USER_ONLINE_FLAG));
+                info.put("receiverOnlineFlag", Boolean.TRUE.equals(UserOnlineStatus.publicFlag(otherUser)));
             } else {
                 info.put("receiverOnlineFlag", true);
                 info.put("receiverUserName", "文件传输助手");
@@ -458,13 +430,7 @@ public class ChatProcessor {
             return;
         }
         // 放 ApiKey
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final String userPassword = currentUser.optString(User.USER_PASSWORD);
-        final JSONObject cookieJSONObject = new JSONObject();
-        cookieJSONObject.put(Keys.OBJECT_ID, userId);
-        final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, userPassword + ApiProcessor.COOKIE_ITEM_SEPARATOR + random);
-        final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+        final String key = ApiProcessor.issueApiKey(currentUser);
         dataModel.put("apiKey", key);
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
@@ -488,6 +454,7 @@ public class ChatProcessor {
         try {
             List<JSONObject> result = chatUnreadRepository.getList(query);
             for (JSONObject info : result) {
+                info.remove("messageId"); // Internal association is not part of the legacy response.
                 String fromId = info.optString("fromId");
                 String toId = info.optString("toId");
                 JSONObject senderJSON = userQueryService.getUser(fromId);

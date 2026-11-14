@@ -41,12 +41,12 @@ public class LongArticleReadUserRepository extends AbstractRepository {
     }
 
     public boolean claim(final LongArticleReadClaim claim) throws RepositoryException {
-        final String sql = "INSERT INTO `" + getName() + "` (`oId`,`articleId`,`userId`,`firstReadAt`) "
-                + "VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE `oId`=`oId`";
-        AtomicRepositorySupport.executeUpdate(sql, claim.id(), claim.articleId(), claim.subjectId(),
+        final String sql = "INSERT INTO `" + getName() + "` (`oId`,`articleId`,`userId`,`windowStart`,`firstReadAt`) "
+                + "VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE `oId`=`oId`";
+        AtomicRepositorySupport.executeUpdate(sql, claim.id(), claim.articleId(), claim.subjectId(), claim.windowStart(),
                 claim.occurredAt());
-        final String selectSql = "SELECT `oId` FROM `" + getName() + "` WHERE `articleId`=? AND `userId`=?";
-        final List<JSONObject> stored = select(selectSql, claim.articleId(), claim.subjectId());
+        final String selectSql = "SELECT `oId` FROM `" + getName() + "` WHERE `articleId`=? AND `userId`=? AND `windowStart`=? FOR UPDATE";
+        final List<JSONObject> stored = select(selectSql, claim.articleId(), claim.subjectId(), claim.windowStart());
         return !stored.isEmpty() && claim.id().equals(stored.getFirst().getString("oId"));
     }
 }

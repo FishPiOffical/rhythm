@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Search engine crawler IP ranges.
@@ -41,15 +42,47 @@ final class SearchEngineBotIpRanges {
 
     private static final Logger LOGGER = LogManager.getLogger(SearchEngineBotIpRanges.class);
     private static final String DUCKDUCKGO_RESOURCE = "/search-engines/duckduckgo-bot-prefixes.json";
+    private static final String SO360_RESOURCE = "/search-engines/360-bot-prefixes.json";
+    private static final List<CidrBlock> SO360_RANGES = loadRanges(SO360_RESOURCE, "360");
     private static volatile List<CidrBlock> duckDuckGoRanges;
 
     private SearchEngineBotIpRanges() {
     }
 
     static boolean containsDuckDuckGo(final String ip) {
+        return contains(ip, duckDuckGoRanges());
+    }
+
+    static boolean contains360(final String ip) {
+        return contains(ip, SO360_RANGES);
+    }
+
+    static boolean supportsSearchCrawler(final SearchEngines.Engine engine) {
+        return engine == SearchEngines.Engine.OAI_SEARCH || engine == SearchEngines.Engine.CLAUDE_SEARCH
+                || engine == SearchEngines.Engine.PERPLEXITY || engine == SearchEngines.Engine.MISTRAL_INDEX;
+    }
+
+    static boolean containsSearchCrawler(final String ip, final SearchEngines.Engine engine) {
+        // 来源必须是地址字面量，不能把请求传入的主机名再解析为可信地址。
+        if (ip == null || !(ip.matches("[0-9.]+") || (ip.contains(":") && ip.matches("[0-9a-fA-F:.]+")))) {
+            return false;
+        }
+        return contains(ip, SearchCrawlerRanges.RANGES.getOrDefault(engine, List.of()));
+    }
+
+    // 各搜索角色独立加载官方快照，不合并训练或用户触发抓取器的网段；请求期间不下载列表。
+    private static final class SearchCrawlerRanges {
+        private static final Map<SearchEngines.Engine, List<CidrBlock>> RANGES = Map.of(
+                SearchEngines.Engine.OAI_SEARCH, loadRanges("/search-engines/oai-search-bot-prefixes.json", "OAI-SearchBot"),
+                SearchEngines.Engine.CLAUDE_SEARCH, loadRanges("/search-engines/claude-search-bot-prefixes.json", "Claude-SearchBot"),
+                SearchEngines.Engine.PERPLEXITY, loadRanges("/search-engines/perplexity-bot-prefixes.json", "PerplexityBot"),
+                SearchEngines.Engine.MISTRAL_INDEX, loadRanges("/search-engines/mistral-index-bot-prefixes.json", "MistralAI-Index"));
+    }
+
+    private static boolean contains(final String ip, final List<CidrBlock> ranges) {
         try {
             final InetAddress address = InetAddress.getByName(ip);
-            for (final CidrBlock range : duckDuckGoRanges()) {
+            for (final CidrBlock range : ranges) {
                 if (range.contains(address)) {
                     return true;
                 }
@@ -69,29 +102,29 @@ final class SearchEngineBotIpRanges {
         synchronized (SearchEngineBotIpRanges.class) {
             ranges = duckDuckGoRanges;
             if (null == ranges) {
-                ranges = loadDuckDuckGoRanges();
+                ranges = loadRanges(DUCKDUCKGO_RESOURCE, "DuckDuckGo");
                 duckDuckGoRanges = ranges;
             }
         }
         return ranges;
     }
 
-    private static List<CidrBlock> loadDuckDuckGoRanges() {
-        try (InputStream in = SearchEngineBotIpRanges.class.getResourceAsStream(DUCKDUCKGO_RESOURCE)) {
+    private static List<CidrBlock> loadRanges(final String resource, final String engine) {
+        try (InputStream in = SearchEngineBotIpRanges.class.getResourceAsStream(resource)) {
             if (null == in) {
-                LOGGER.log(Level.ERROR, "DuckDuckGo crawler IP range resource is missing [{}]", DUCKDUCKGO_RESOURCE);
+                LOGGER.log(Level.ERROR, "{} crawler IP range resource is missing [{}]", engine, resource);
                 return Collections.emptyList();
             }
 
             final String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             final JSONArray prefixes = new JSONObject(text).optJSONArray("prefixes");
             if (null == prefixes) {
-                LOGGER.log(Level.ERROR, "DuckDuckGo crawler IP range resource has no prefixes");
+                LOGGER.log(Level.ERROR, "{} crawler IP range resource has no prefixes [{}]", engine, resource);
                 return Collections.emptyList();
             }
             return parsePrefixes(prefixes);
         } catch (final Exception e) {
-            LOGGER.log(Level.ERROR, "Loads DuckDuckGo crawler IP ranges failed", e);
+            LOGGER.log(Level.ERROR, "Loads crawler IP ranges failed [" + resource + "]", e);
             return Collections.emptyList();
         }
     }

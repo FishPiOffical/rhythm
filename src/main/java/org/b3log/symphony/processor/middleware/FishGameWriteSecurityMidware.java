@@ -27,14 +27,11 @@ import org.b3log.latke.model.User;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.util.StatusCodes;
 import org.json.JSONObject;
-import pers.adlered.simplecurrentlimiter.main.SimpleCurrentLimiter;
+import org.b3log.symphony.util.FishGameWriteQuota;
 
 /** 鱼游写入接口的 CSRF 与频率校验。 */
 @Singleton
 public class FishGameWriteSecurityMidware {
-    private static final SimpleCurrentLimiter SUBMISSION_LIMITER = new SimpleCurrentLimiter(60 * 30, 10);
-    private static final SimpleCurrentLimiter COMMENT_LIMITER = new SimpleCurrentLimiter(60 * 10, 5);
-    private static final SimpleCurrentLimiter VOTE_LIMITER = new SimpleCurrentLimiter(60, 10);
     private static final String RATE_LIMIT_MESSAGE = "操作过于频繁，请稍候重试。";
 
     @Inject
@@ -56,15 +53,15 @@ public class FishGameWriteSecurityMidware {
     }
 
     public void checkSubmissionLimit(final RequestContext context) {
-        checkRateLimit(SUBMISSION_LIMITER, context);
+        checkRateLimit(FishGameWriteQuota.Kind.SUBMISSION, context);
     }
 
     public void checkCommentLimit(final RequestContext context) {
-        checkRateLimit(COMMENT_LIMITER, context);
+        checkRateLimit(FishGameWriteQuota.Kind.COMMENT, context);
     }
 
     public void checkVoteLimit(final RequestContext context) {
-        checkRateLimit(VOTE_LIMITER, context);
+        checkRateLimit(FishGameWriteQuota.Kind.VOTE, context);
     }
 
     private String requestApiKey(final RequestContext context) {
@@ -75,7 +72,7 @@ public class FishGameWriteSecurityMidware {
         return context.requestJSON().optString("apiKey");
     }
 
-    private void checkRateLimit(final SimpleCurrentLimiter limiter, final RequestContext context) {
+    private void checkRateLimit(final FishGameWriteQuota.Kind kind, final RequestContext context) {
         final Object user = context.attr(User.USER);
         if (!(user instanceof JSONObject)) {
             context.sendError(401);
@@ -83,7 +80,7 @@ public class FishGameWriteSecurityMidware {
             return;
         }
         final String userId = ((JSONObject) user).optString(Keys.OBJECT_ID);
-        if (!limiter.access(userId)) {
+        if (!FishGameWriteQuota.access(kind, userId)) {
             context.renderJSON(new JSONObject().put(Keys.CODE, StatusCodes.ERR).put(Keys.MSG, RATE_LIMIT_MESSAGE));
             context.abort();
             return;

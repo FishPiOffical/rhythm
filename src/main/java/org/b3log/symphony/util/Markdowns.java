@@ -542,6 +542,15 @@ public final class Markdowns {
         return ret;
     }
 
+    /** Confidential text stays on the local parser, outside public caches/remote conversion/failure logging. */
+    public static String toPrivateHTML(final String markdownText) {
+        if (StringUtils.isBlank(markdownText)) return "";
+        final Safelist whitelist = Safelist.relaxed().addTags("del", "s", "hr").addAttributes(":all", "class")
+                .addEnforcedAttribute("a", "rel", "nofollow noopener noreferrer");
+        return Jsoup.clean(toHtmlByFlexmark(Emotions.convert(markdownText)), Latkes.getServePath(), whitelist,
+                new Document.OutputSettings().prettyPrint(false));
+    }
+
     private static String toHtmlByFlexmark(final String markdownText) {
         com.vladsch.flexmark.util.ast.Node document = PARSER.parse(markdownText);
 

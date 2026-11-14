@@ -29,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.util.Crypts;
+import org.b3log.latke.util.Strings;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.model.Common;
 import org.json.JSONObject;
@@ -113,6 +114,43 @@ public final class Mails {
      * Private constructor.
      */
     private Mails() {
+    }
+
+    /** Synchronous provider acceptance for account binding; never logs the target, code or body. */
+    public static boolean sendAccountBindingCode(final String target, final String code) {
+        if (target == null || target.length() > 255 || target.codePoints().anyMatch(c -> Character.isISOControl(c) || Character.isWhitespace(c)) || !Strings.isEmail(target)
+                || code == null || !code.matches("[0-9]{6}")) return false;
+        final String html = "<p>摸鱼派邮箱验证码：<strong>" + code + "</strong></p><p>10分钟内有效。请勿向他人提供验证码。</p>";
+        final String subject = "摸鱼派邮箱验证码";
+        final String channel = DOMAIN_CHANNEL.getOrDefault(StringUtils.substringAfter(target, "@"), Symphonys.MAIL_CHANNEL);
+        try {
+            switch (channel) {
+                case "local":
+                    if (StringUtils.isBlank(MailSender.username) || StringUtils.isBlank(MailSender.password)) return false;
+                    MailSender.getInstance().sendAccountMessage(new String[]{target}, subject, html);
+                    return true;
+                case "aliyun":
+                    if (StringUtils.isBlank(Symphonys.MAIL_ALIYUN_AK) || StringUtils.isBlank(Symphonys.MAIL_ALIYUN_SK)) return false;
+                    return aliSendHtmlAccepted(Symphonys.MAIL_ALIYUN_FROM, "FishPi", subject, target, html,
+                            Symphonys.MAIL_ALIYUN_AK, Symphonys.MAIL_ALIYUN_SK, false);
+                case "sendcloud":
+                    if (StringUtils.isBlank(Symphonys.MAIL_SENDCLOUD_API_USER) || StringUtils.isBlank(Symphonys.MAIL_SENDCLOUD_API_KEY)) return false;
+                    final Map<String, Object> form = new HashMap<>();
+                    form.put("apiUser", Symphonys.MAIL_SENDCLOUD_API_USER); form.put("apiKey", Symphonys.MAIL_SENDCLOUD_API_KEY);
+                    form.put("from", Symphonys.MAIL_SENDCLOUD_FROM); form.put("fromName", "FishPi");
+                    form.put("subject", subject); form.put("to", target); form.put("html", html);
+                    final HttpResponse response = HttpRequest.post("https://api.sendcloud.net/apiv2/mail/send").form(form)
+                            .header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT).connectionTimeout(5000).timeout(30000).send();
+                    try {
+                        response.charset("UTF-8");
+                        return AccountMailResponses.accepted("sendcloud", response.statusCode(), response.bodyText());
+                    } finally { response.close(); }
+                default: return false;
+            }
+        } catch (final Exception ignored) {
+            LOGGER.warn("Account email provider did not confirm acceptance");
+            return false;
+        }
     }
 
     /**
@@ -321,6 +359,11 @@ public final class Mails {
      */
     private static void aliSendHtml(final String sendMail, final String fromName, final String subject, final String toMail,
                                     final String html, final String accessKey, final String accessSecret) {
+        aliSendHtmlAccepted(sendMail, fromName, subject, toMail, html, accessKey, accessSecret, true);
+    }
+
+    private static boolean aliSendHtmlAccepted(final String sendMail, final String fromName, final String subject, final String toMail,
+                                    final String html, final String accessKey, final String accessSecret, final boolean logResponse) {
         final Map<String, Object> map = new HashMap<>();
         map.put("Action", "SingleSendMail");
         map.put("Format", "JSON");
@@ -357,9 +400,12 @@ public final class Mails {
 
         final HttpResponse response = HttpRequest.post("https://dm.aliyuncs.com").form(map).header(Common.USER_AGENT, Symphonys.USER_AGENT_BOT).
                 connectionTimeout(5000).timeout(30000).send();
-        response.close();
-        response.charset("UTF-8");
-        LOGGER.debug(response.bodyText());
+        try {
+            response.charset("UTF-8");
+            final String body = response.bodyText();
+            if (logResponse) LOGGER.debug(body);
+            return AccountMailResponses.accepted("aliyun", response.statusCode(), body);
+        } finally { response.close(); }
     }
 
     private static String percentEncode(final String value) {
@@ -522,23 +568,35 @@ final class MailSender implements java.io.Serializable {
     }
 
     public void sendMessage(String[] tos, String subject, String content) throws Exception {
+        sendMessage(tos, subject, content, true);
+    }
+
+    /** Account proofs must never inherit the legacy SMTP debug/body logging setting. */
+    public void sendAccountMessage(String[] tos, String subject, String content) throws Exception {
+        sendMessage(tos, subject, content, false);
+    }
+
+    private void sendMessage(String[] tos, String subject, String content, boolean allowLogging) throws Exception {
         // 1、创建session
         Session session = Session.getInstance(prop);
         // 开启Session的debug模式，这样就可以查看到程序发送Email的运行状态
-        session.setDebug(is_debug);
+        session.setDebug(allowLogging && is_debug);
         // 2、通过session得到transport对象
         Transport ts = session.getTransport();
         // 3、使用邮箱的用户名和密码连上邮件服务器，发送邮件时，发件人需要提交邮箱的用户名和密码给smtp服务器，用户名和密码都通过验证之后才能够正常发送邮件给收件人。
+        try {
         ts.connect(mail_host, Integer.valueOf(mail_port), username, password);
         // 4、创建邮件
         MimeMessage message = new MimeMessage(session);
         createTextMail(message, sender, tos, subject, content);
         // 5、发送邮件
         ts.sendMessage(message, message.getAllRecipients());
-        LOGGER.debug(Arrays.toString(tos));
-        LOGGER.debug(subject);
-        LOGGER.debug(content);
-        ts.close();
+        if (allowLogging) {
+            LOGGER.debug(Arrays.toString(tos));
+            LOGGER.debug(subject);
+            LOGGER.debug(content);
+        }
+        } finally { ts.close(); }
     }
 
     /**

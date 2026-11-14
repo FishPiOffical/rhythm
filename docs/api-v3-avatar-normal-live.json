@@ -1,0 +1,113 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 91346
+  },
+  "scope": "Stored own avatar normal HTTPS/query/length and idempotency, without remote fetch",
+  "results": [
+    {
+      "step": "own-avatar-read",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "save-signed-query-https",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "read-query-exact",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "same-key-same-url",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "save-255-unit-url",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-first-receipt",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "replay-keeps-current-second-url",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "same-key-different-url",
+      "status": 409,
+      "expected": 409,
+      "passed": true
+    },
+    {
+      "step": "over-255",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "invalid-high-port",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "embedded-space",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "url-credentials",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "cannot-override-owner",
+      "status": 422,
+      "expected": 422,
+      "passed": true
+    },
+    {
+      "step": "invalid-writes-preserve-current",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "other-account-avatar-unchanged",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-legacy-avatar-readable",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "avatarUrlAndTypeRestored": true,
+  "balancesUnchanged": true,
+  "legacyHttpRestoreUsedGuardedSqlAndSettingsCacheRefresh": true,
+  "limits": [
+    "No remote image fetch/availability assertion; example.test URLs are synthetic and server must not fetch them",
+    "Avatar URL/type restored; genuine successful writes may advance userUpdateTime and keep idempotency receipts",
+    "HTTP legacy original cannot be newly submitted through strict HTTPS setter; cleanup does not change this contract"
+  ]
+}

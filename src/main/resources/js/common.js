@@ -29,6 +29,70 @@
  * @static
  */
 var Util = {
+    // 小尾巴与正文分开渲染，不进入引用、复读或 Markdown 解析。
+    renderChatTail: function (data) {
+        const tail = data && data.tail;
+        if (!tail || typeof tail.text !== 'string' || !tail.text.trim() || tail.text.length > 512 ||
+            /[\u0000-\u001f\u007f-\u009f\u2028-\u202e\u2066-\u2069]/u.test(tail.text)) {
+            return '';
+        }
+        const body = document.createElement('div');
+        body.innerHTML = data.content || '';
+        body.querySelectorAll('blockquote,img,picture,audio,video,iframe,object,embed,svg,script,style').forEach(node => node.remove());
+        if (!body.textContent.trim()) return '';
+        try {
+            const card = JSON.parse(data.md || body.textContent);
+            if (card && card.msgType) return '';
+        } catch (error) {
+            // 普通消息不是 JSON，继续按纯文本尾巴展示。
+        }
+        const text = document.createElement('span');
+        text.textContent = tail.text;
+        return '<div class="fp-chat-tail" data-chat-tail>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="小尾巴"><title>小尾巴</title>' +
+            '<path fill="currentColor" stroke="none" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>' +
+            text.outerHTML + '</div>';
+    },
+
+    // 宠物快照与正文分开，昵称作为纯文本展示。
+    renderChatPetStatus: function (data) {
+        const pet = data && data.petStatus;
+        const labels = {idle: '空闲', rest: '休息中', outing: '外出中', course: '上课中', work: '兼职中', claimable: '待领取'};
+        if (!pet || typeof pet.name !== 'string' || !pet.name.trim() || pet.name.length > 256 ||
+            !Object.prototype.hasOwnProperty.call(labels, pet.state)) return '';
+        const home = document.getElementById('chats')?.dataset.petHomeUrl;
+        const ownPet = Label.currentUserId && String(data.userOId) === Label.currentUserId;
+        const messageId = String(data.oId);
+        const destination = home && (ownPet ? home : /^\d{1,32}$/.test(messageId) ? home + '/chat/' + messageId : '');
+        const element = document.createElement(destination ? 'a' : 'span');
+        if (destination) element.href = destination;
+        const level = Number.isInteger(pet.level) && pet.level >= 1 && pet.level <= 30 ? pet.level : null;
+        element.className = 'fp-chat-pet-status';
+        if (['momota', 'hexiaotun', 'yubingmiao', 'paixiaoyu'].includes(pet.speciesId)) {
+            element.dataset.species = pet.speciesId;
+        }
+        const info = document.createElement('span');
+        info.className = 'fp-chat-pet-info';
+        const name = document.createElement('span');
+        name.className = 'fp-chat-pet-name';
+        name.textContent = pet.name;
+        info.appendChild(name);
+        const state = document.createElement('span');
+        state.className = 'fp-chat-pet-state';
+        state.textContent = labels[pet.state];
+        info.appendChild(state);
+        element.appendChild(info);
+        if (level !== null) {
+            const badge = document.createElement('span');
+            badge.className = 'fp-chat-pet-level';
+            badge.dataset.tier = Math.floor(level / 10);
+            badge.textContent = 'Lv.' + level;
+            element.appendChild(badge);
+        }
+        element.title = '宠物：' + pet.name + ' · ' + state.textContent + (level === null ? '' : ' · Lv.' + level) + (destination ? (ownPet ? ' · 前往宠物家园' : ' · 查看宠物资料') : '');
+        return element.outerHTML;
+    },
+
     bling: undefined,
     isBlinging: false,
 

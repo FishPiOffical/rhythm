@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-02",
+  "scope": "Real current comment privacy/anonymity/body/status and reactions on dedicated fixtures",
+  "results": [
+    {
+      "step": "public-current-comment",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "public-current-reactions",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-private-other-placeholder",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-private-other-reactions",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "current-private-owner-content",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-private-list",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "deactivated-commenter-owner-placeholder",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "invalid-current-comment",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "invalid-current-comment-reactions",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    }
+  ],
+  "fixturesRestored": true
+}

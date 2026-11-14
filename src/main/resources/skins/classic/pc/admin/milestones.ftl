@@ -55,16 +55,16 @@
                         <div class="fn-flex">
                             <#if milestone.milestoneMediaType == 'image'>
                                 <div class="avatar tooltipped tooltipped-s"
-                                     aria-label="${milestone.milestoneTitle}"
-                                     style="background-image:url('${milestone.milestoneMediaUrl}')">
+                                     aria-label="${milestone.milestoneTitle?html}"
+                                     style="background-image:url('${milestone.milestoneMediaUrl?html}')">
                                 </div>
 
                             </#if>
 
                             <div class="fn-flex" style="flex-direction: column">
                                 <h2>
-                                    <a href="${milestone.milestoneLink}" target="_blank">
-                                        ${milestone.milestoneTitle}
+                                    <a href="${milestone.milestoneLink?html}" target="_blank">
+                                        ${milestone.milestoneTitle?html}
                                     </a>
                                     <span class="ft-smaller">
                                     <#-- 状态 -->
@@ -79,7 +79,7 @@
                                 </h2>
 
                                 <span class="ft-fade ft-smaller">
-                                    ${milestone.milestoneContent}
+                                    ${milestone.milestoneContent?html}
                                      •
                                      ${milestone.milestoneDate}
                                 </span>

@@ -1,0 +1,2164 @@
+{
+  "scope": "Syntactic registration reachability from Router -> ApiV3Processor.register, including local register helpers; not Java compilation, IoC, database or HTTP verification",
+  "registrationMethods": [
+    "ApiV3AccountProcessor.register",
+    "ApiV3ActivityProcessor.register",
+    "ApiV3AnonymousContentProcessor.register",
+    "ApiV3AppLoginProcessor.register",
+    "ApiV3AppLoginProcessor.registerRoutes",
+    "ApiV3ArticleHeatProcessor.register",
+    "ApiV3ArticleRewardProcessor.register",
+    "ApiV3ArticleStickProcessor.register",
+    "ApiV3ArticleStickProcessor.registerRoutes",
+    "ApiV3ArticleWriteProcessor.register",
+    "ApiV3BagProcessor.register",
+    "ApiV3BreezemoonProcessor.register",
+    "ApiV3ChatMuteProcessor.register",
+    "ApiV3ChatMuteProcessor.registerRoutes",
+    "ApiV3ChatProcessor.register",
+    "ApiV3ChatRedPacketProcessor.register",
+    "ApiV3ChatRedPacketProcessor.registerRoutes",
+    "ApiV3ClientDisableProcessor.register",
+    "ApiV3ClientDisableProcessor.registerRoutes",
+    "ApiV3ClientManagementProcessor.register",
+    "ApiV3ClientManagementProcessor.registerRoutes",
+    "ApiV3ClientUpdateProcessor.register",
+    "ApiV3ClientUpdateProcessor.registerRoutes",
+    "ApiV3ColumnProcessor.register",
+    "ApiV3CommentProcessor.register",
+    "ApiV3CommentRewardProcessor.register",
+    "ApiV3CommentRewardProcessor.registerRoutes",
+    "ApiV3CommunityProcessor.register",
+    "ApiV3ContactSettingsProcessor.register",
+    "ApiV3ContactSettingsProcessor.registerRoutes",
+    "ApiV3ContentProcessor.register",
+    "ApiV3DiscoveryExtrasProcessor.register",
+    "ApiV3DiscoveryProcessor.register",
+    "ApiV3DonationProcessor.register",
+    "ApiV3DonationProcessor.registerRoutes",
+    "ApiV3DraftProcessor.register",
+    "ApiV3EmojiGroupProcessor.register",
+    "ApiV3EmojiItemProcessor.register",
+    "ApiV3EmojiTransferProcessor.register",
+    "ApiV3EmotionProcessor.register",
+    "ApiV3EmotionSettingsProcessor.register",
+    "ApiV3FishGameProcessor.register",
+    "ApiV3FishGameSubmissionProcessor.register",
+    "ApiV3FollowProcessor.register",
+    "ApiV3FollowProcessor.registerRoutes",
+    "ApiV3GameSaveProcessor.register",
+    "ApiV3GameSaveProcessor.registerRoutes",
+    "ApiV3IdentityApplicationProcessor.register",
+    "ApiV3IdentityApplicationProcessor.registerRoutes",
+    "ApiV3InvitationProcessor.register",
+    "ApiV3InvitationPurchaseProcessor.register",
+    "ApiV3MarkdownProcessor.register",
+    "ApiV3MarkdownProcessor.registerRoutes",
+    "ApiV3MedalDisplayProcessor.register",
+    "ApiV3MedalImageProcessor.register",
+    "ApiV3MedalOrderProcessor.register",
+    "ApiV3MedalProcessor.register",
+    "ApiV3MembershipOpeningProcessor.register",
+    "ApiV3MembershipProcessor.register",
+    "ApiV3MembershipProcessor.registerRoutes",
+    "ApiV3MembershipSettingsProcessor.register",
+    "ApiV3MembershipStyleProcessor.register",
+    "ApiV3MembershipStyleProcessor.registerRoutes",
+    "ApiV3MfaProcessor.register",
+    "ApiV3MfaProcessor.registerRoutes",
+    "ApiV3MilestoneProcessor.register",
+    "ApiV3NotificationProcessor.register",
+    "ApiV3OAuthProcessor.register",
+    "ApiV3OAuthProcessor.registerRoutes",
+    "ApiV3ParagraphProcessor.register",
+    "ApiV3PersonalProcessor.register",
+    "ApiV3PointTransferProcessor.register",
+    "ApiV3PostExportProcessor.register",
+    "ApiV3PostExportProcessor.registerRoutes",
+    "ApiV3PrivateMessageProcessor.register",
+    "ApiV3Processor.register",
+    "ApiV3ProfessionDetailProcessor.register",
+    "ApiV3ProfessionDetailProcessor.registerRoutes",
+    "ApiV3ProfessionGuideProcessor.register",
+    "ApiV3ProfessionGuideProcessor.registerRoutes",
+    "ApiV3ProfessionPrimaryProcessor.register",
+    "ApiV3ProfessionProcessor.register",
+    "ApiV3ProfessionPublicProcessor.register",
+    "ApiV3ProfessionPublicProcessor.registerRoutes",
+    "ApiV3ProfessionRankingProcessor.register",
+    "ApiV3ProfessionRankingProcessor.registerRoutes",
+    "ApiV3ProfessionSettingsProcessor.register",
+    "ApiV3ProfileSettingsProcessor.register",
+    "ApiV3ProfileSettingsProcessor.registerRoutes",
+    "ApiV3RankingProcessor.register",
+    "ApiV3ReactionProcessor.register",
+    "ApiV3RealtimeProcessor.register",
+    "ApiV3RedPacketProcessor.register",
+    "ApiV3RepeaterLikeProcessor.register",
+    "ApiV3RepeaterProcessor.register",
+    "ApiV3RepeaterProcessor.registerRoutes",
+    "ApiV3RepeaterPublicationProcessor.register",
+    "ApiV3ReportProcessor.register",
+    "ApiV3ReportProcessor.registerRoutes",
+    "ApiV3RevisionProcessor.register",
+    "ApiV3RevisionProcessor.registerRoutes",
+    "ApiV3SecurityProcessor.register",
+    "ApiV3SecurityProcessor.registerRoutes",
+    "ApiV3SettingsProcessor.register",
+    "ApiV3TagSuggestionProcessor.register",
+    "ApiV3TagSuggestionProcessor.registerRoutes",
+    "ApiV3UploadProcessor.register",
+    "ApiV3UserNameProcessor.register",
+    "ApiV3UserNameProcessor.registerRoutes",
+    "ApiV3UserSuggestionProcessor.register",
+    "ApiV3UserSuggestionProcessor.registerRoutes",
+    "ApiV3VoteProcessor.register",
+    "Router.registerProcessors",
+    "Router.requestMapping"
+  ],
+  "count": 290,
+  "methods": {
+    "GET": 147,
+    "POST": 72,
+    "PUT": 46,
+    "DELETE": 24,
+    "WEBSOCKET": 1
+  },
+  "documentedCount": 290,
+  "missingDocs": [],
+  "missingRoutes": [],
+  "duplicates": [],
+  "problems": [],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/admin/oauth/clients",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientDisableProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ClientDisableProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientManagementProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ClientManagementProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/admin/oauth/clients/{clientId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ClientUpdateProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ClientUpdateProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ContentProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ArticleWriteProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ArticleWriteProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ContentProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleWriteProcessor.java",
+      "line": 27,
+      "registration": "ApiV3ArticleWriteProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContentProcessor.java",
+      "line": 31,
+      "registration": "ApiV3ContentProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 27,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/heat",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleHeatProcessor.java",
+      "line": 20,
+      "registration": "ApiV3ArticleHeatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraph-comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ParagraphProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/paragraphs",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ParagraphProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 40,
+      "registration": "ApiV3RealtimeProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 16,
+      "registration": "ApiV3RevisionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/revisions/{revisionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 17,
+      "registration": "ApiV3RevisionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ArticleRewardProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ArticleRewardProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/stick",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleStickProcessor.java",
+      "line": 19,
+      "registration": "ApiV3ArticleStickProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ArticleRewardProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/articles/{articleId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ArticleRewardProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ArticleRewardProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 25,
+      "registration": "ApiV3VoteProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 23,
+      "registration": "ApiV3VoteProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{articleId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3VoteProcessor.java",
+      "line": 24,
+      "registration": "ApiV3VoteProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/articles/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/articles/random",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 22,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/app-decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 33,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/app-status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 32,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/claim",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 31,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 30,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/exchange",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 34,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/requests",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 28,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/app-login/status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AppLoginProcessor.java",
+      "line": 29,
+      "registration": "ApiV3AppLoginProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/auth/captcha-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 39,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/login",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 129,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/logout",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 131,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/password-reset/complete",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 40,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/password-reset/request",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 41,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/refresh",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 130,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/auth/registration-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 38,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/registration/complete",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 43,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/auth/registration/request",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AccountProcessor.java",
+      "line": 42,
+      "registration": "ApiV3AccountProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 56,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 36,
+      "registration": "ApiV3BreezemoonProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 37,
+      "registration": "ApiV3BreezemoonProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 33,
+      "registration": "ApiV3BreezemoonProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/breezemoons/{breezemoonId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 35,
+      "registration": "ApiV3BreezemoonProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/barrager",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 40,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/barrager/price",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 41,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 36,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 42,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{messageId}/context",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 43,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 37,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 31,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/messages/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 36,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/music",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/mutes",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatMuteProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ChatMuteProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/online-users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 37,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 41,
+      "registration": "ApiV3RealtimeProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packet-types",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RedPacketProcessor.java",
+      "line": 18,
+      "registration": "ApiV3RedPacketProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 16,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/red-packets/{id}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 17,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/red-packets/{id}/claims",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatRedPacketProcessor.java",
+      "line": 18,
+      "registration": "ApiV3ChatRedPacketProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/chat/topic",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 38,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/chat/topic",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 39,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/chat/weather",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ChatProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ChatProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 30,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/cities/{cityName}/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 29,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 133,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/columns/{columnId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ColumnProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 136,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/{columnId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 135,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/cover",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 27,
+      "registration": "ApiV3ColumnProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/columns/{columnId}/title",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ColumnProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/columns/hot",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 134,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 29,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ParagraphProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 28,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentRewardProcessor.java",
+      "line": 21,
+      "registration": "ApiV3CommentRewardProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/accept",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 31,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 18,
+      "registration": "ApiV3RevisionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/revisions/{revisionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RevisionProcessor.java",
+      "line": 19,
+      "registration": "ApiV3RevisionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentRewardProcessor.java",
+      "line": 20,
+      "registration": "ApiV3CommentRewardProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/comments/{commentId}/thanks",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 30,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 34,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 32,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{commentId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommentProcessor.java",
+      "line": 33,
+      "registration": "ApiV3CommentProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/comments/{targetId}/reactions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 42,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 45,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 44,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/domains/{domainId}/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 43,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 23,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameSubmissionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3FishGameSubmissionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 25,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameSubmissionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3FishGameSubmissionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 24,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/fish-games/{gameId}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 28,
+      "registration": "ApiV3FishGameProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 27,
+      "registration": "ApiV3FishGameProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/fish-games/{gameId}/vote",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FishGameProcessor.java",
+      "line": 26,
+      "registration": "ApiV3FishGameProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/game-save-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 22,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/invitation-codes/status",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3InvitationProcessor.java",
+      "line": 28,
+      "registration": "ApiV3InvitationProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/logs",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 23,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/markdown/preview",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MarkdownProcessor.java",
+      "line": 39,
+      "registration": "ApiV3MarkdownProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3Processor.java",
+      "line": 132,
+      "registration": "ApiV3Processor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ActivityProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ActivityProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/activity/yesterday-reward",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ActivityProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ActivityProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AnonymousContentProcessor.java",
+      "line": 21,
+      "registration": "ApiV3AnonymousContentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/anonymous-comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3AnonymousContentProcessor.java",
+      "line": 22,
+      "registration": "ApiV3AnonymousContentProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/articles/{articleId}/source",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 29,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/bag",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 24,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin1day/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 24,
+      "registration": "ApiV3BagProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/checkin2days/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 25,
+      "registration": "ApiV3BagProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/nameCard/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 27,
+      "registration": "ApiV3BagProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/bag/patchCheckinCard/use",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BagProcessor.java",
+      "line": 26,
+      "registration": "ApiV3BagProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/checkin",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 23,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 40,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 47,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 38,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/collections/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 46,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/columns",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 28,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/columns/order",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ColumnProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ColumnProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 23,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 24,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/messages",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 28,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/{peerId}/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 29,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/conversations/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 30,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 26,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/drafts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 28,
+      "registration": "ApiV3DraftProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 30,
+      "registration": "ApiV3DraftProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 27,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/drafts/{draftId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DraftProcessor.java",
+      "line": 29,
+      "registration": "ApiV3DraftProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/exports/posts",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 17,
+      "registration": "ApiV3PostExportProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 18,
+      "registration": "ApiV3PostExportProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/exports/posts/{jobId}/download",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PostExportProcessor.java",
+      "line": 19,
+      "registration": "ApiV3PostExportProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 36,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 45,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 37,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/tags/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 44,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 34,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 43,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 35,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/follows/users/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 42,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 23,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/game-saves/{gameId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 24,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/game-saves/{gameId}/migrations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3GameSaveProcessor.java",
+      "line": 25,
+      "registration": "ApiV3GameSaveProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 26,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/identity-applications/{applicationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 27,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/identity-applications/enterprise",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 25,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/invitation-codes",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3InvitationPurchaseProcessor.java",
+      "line": 26,
+      "registration": "ApiV3InvitationPurchaseProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/medals/{medalId}/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalDisplayProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalDisplayProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/medals/{medalId}/move",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalOrderProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MedalOrderProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/medals/image",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java",
+      "line": 15,
+      "registration": "ApiV3MedalImageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/membership",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipProcessor.java",
+      "line": 22,
+      "registration": "ApiV3MembershipProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/membership",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipOpeningProcessor.java",
+      "line": 26,
+      "registration": "ApiV3MembershipOpeningProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/membership/config",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipSettingsProcessor.java",
+      "line": 25,
+      "registration": "ApiV3MembershipSettingsProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 31,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/{messageId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 27,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/messages/realtime-ticket",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 42,
+      "registration": "ApiV3RealtimeProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/messages/unread-count",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PrivateMessageProcessor.java",
+      "line": 26,
+      "registration": "ApiV3PrivateMessageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 28,
+      "registration": "ApiV3MilestoneProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/milestones/{milestoneId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 29,
+      "registration": "ApiV3MilestoneProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 41,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 35,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 40,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/{notificationId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 37,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/{notificationId}/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 38,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/notifications/read",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 39,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/notifications/unread-count",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3NotificationProcessor.java",
+      "line": 36,
+      "registration": "ApiV3NotificationProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/point-transfers",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PointTransferProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PointTransferProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/points",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 25,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3ProfessionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionDetailProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionDetailProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/professions/{professionId}/records",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionDetailProcessor.java",
+      "line": 22,
+      "registration": "ApiV3ProfessionDetailProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/onboarding",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionSettingsProcessor.java",
+      "line": 29,
+      "registration": "ApiV3ProfessionSettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/primary",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionPrimaryProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ProfessionPrimaryProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/professions/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionSettingsProcessor.java",
+      "line": 30,
+      "registration": "ApiV3ProfessionSettingsProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 19,
+      "registration": "ApiV3MfaProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SecurityProcessor.java",
+      "line": 17,
+      "registration": "ApiV3SecurityProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/security/mfa",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 18,
+      "registration": "ApiV3MfaProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/security/mfa/preparations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MfaProcessor.java",
+      "line": 17,
+      "registration": "ApiV3MfaProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3PersonalProcessor.java",
+      "line": 22,
+      "registration": "ApiV3PersonalProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/avatar",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 32,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/avatar",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 42,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 35,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/display",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 48,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/email",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 22,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/email/verification",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 20,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-group-imports",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiTransferProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmotionProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiGroupProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmojiGroupProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiGroupProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiGroupProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmotionProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmojiItemProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmojiItemProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/emojis/{itemId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiItemProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-groups/{groupId}/shares",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmojiTransferProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emoji-migrations",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiTransferProcessor.java",
+      "line": 24,
+      "registration": "ApiV3EmojiTransferProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmojiItemProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmojiItemProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotion-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3EmotionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/emotions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionProcessor.java",
+      "line": 22,
+      "registration": "ApiV3EmotionProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/emotions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3EmotionSettingsProcessor.java",
+      "line": 25,
+      "registration": "ApiV3EmotionSettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/functions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 37,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/functions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 43,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 39,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/locale",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 45,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/locale-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 40,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/location",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 38,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/location",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 44,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/password",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SecurityProcessor.java",
+      "line": 18,
+      "registration": "ApiV3SecurityProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 30,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/personality",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 41,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/personality-options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 31,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/phone",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/me/settings/phone/verification",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ContactSettingsProcessor.java",
+      "line": 19,
+      "registration": "ApiV3ContactSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 34,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/privacy",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 47,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/profile",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 33,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/profile",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 46,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/qq",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 32,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/qq",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 33,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/skins",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3SettingsProcessor.java",
+      "line": 36,
+      "registration": "ApiV3SettingsProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/settings/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 34,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfileSettingsProcessor.java",
+      "line": 35,
+      "registration": "ApiV3ProfileSettingsProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/settings/user-name",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UserNameProcessor.java",
+      "line": 16,
+      "registration": "ApiV3UserNameProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 41,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 49,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 39,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/me/subscriptions/{targetId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3FollowProcessor.java",
+      "line": 48,
+      "registration": "ApiV3FollowProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/me/watching/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3BreezemoonProcessor.java",
+      "line": 34,
+      "registration": "ApiV3BreezemoonProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/levels",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipProcessor.java",
+      "line": 23,
+      "registration": "ApiV3MembershipProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/membership/styles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MembershipStyleProcessor.java",
+      "line": 14,
+      "registration": "ApiV3MembershipStyleProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 26,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/milestones",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MilestoneProcessor.java",
+      "line": 27,
+      "registration": "ApiV3MilestoneProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/milestones/{milestoneId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 27,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/oauth/authorize",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 42,
+      "registration": "ApiV3OAuthProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/consent",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 43,
+      "registration": "ApiV3OAuthProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/revoke",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 45,
+      "registration": "ApiV3OAuthProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/oauth/token",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3OAuthProcessor.java",
+      "line": 44,
+      "registration": "ApiV3OAuthProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/payments/donation-page",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DonationProcessor.java",
+      "line": 20,
+      "registration": "ApiV3DonationProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionProcessor.java",
+      "line": 23,
+      "registration": "ApiV3ProfessionProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/guides",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionGuideProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionGuideProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/professions/{professionId}/ranking",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionRankingProcessor.java",
+      "line": 21,
+      "registration": "ApiV3ProfessionRankingProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/rankings/{type}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RankingProcessor.java",
+      "line": 22,
+      "registration": "ApiV3RankingProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/reactions/emojis",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReactionProcessor.java",
+      "line": 28,
+      "registration": "ApiV3ReactionProcessor.register"
+    },
+    {
+      "method": "WEBSOCKET",
+      "path": "/api/v3/realtime",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 43,
+      "registration": "ApiV3RealtimeProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/realtime/tickets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RealtimeProcessor.java",
+      "line": 39,
+      "registration": "ApiV3RealtimeProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/recent-members",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryExtrasProcessor.java",
+      "line": 21,
+      "registration": "ApiV3DiscoveryExtrasProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/items",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterProcessor.java",
+      "line": 20,
+      "registration": "ApiV3RepeaterProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/repeater/items",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterPublicationProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterPublicationProcessor.register"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterLikeProcessor.java",
+      "line": 22,
+      "registration": "ApiV3RepeaterLikeProcessor.register"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/repeater/items/{itemId}/like",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterLikeProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterLikeProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/repeater/next",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3RepeaterProcessor.java",
+      "line": 21,
+      "registration": "ApiV3RepeaterProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/report/options",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReportProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ReportProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/reports",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ReportProcessor.java",
+      "line": 26,
+      "registration": "ApiV3ReportProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/review/identity-applications",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 28,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v3/review/identity-applications/{applicationId}/decision",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 30,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/review/identity-applications/{applicationId}/material/open",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3IdentityApplicationProcessor.java",
+      "line": 29,
+      "registration": "ApiV3IdentityApplicationProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/search",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 38,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/statistics",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3CommunityProcessor.java",
+      "line": 28,
+      "registration": "ApiV3CommunityProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3TagSuggestionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3TagSuggestionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/suggestions/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UserSuggestionProcessor.java",
+      "line": 25,
+      "registration": "ApiV3UserSuggestionProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 39,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 41,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/tags/{tagId}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 40,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/uploads/tickets",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3UploadProcessor.java",
+      "line": 24,
+      "registration": "ApiV3UploadProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 55,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 49,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/breezemoons",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 50,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/comments",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 46,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/followers",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 54,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 53,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/tags",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 52,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/following/users",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 51,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalProcessor.java",
+      "line": 24,
+      "registration": "ApiV3MedalProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/medals/image",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3MedalImageProcessor.java",
+      "line": 16,
+      "registration": "ApiV3MedalImageProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/professions",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3ProfessionPublicProcessor.java",
+      "line": 25,
+      "registration": "ApiV3ProfessionPublicProcessor.registerRoutes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 48,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/users/{userName}/watching/articles",
+      "source": "src/main/java/org/b3log/symphony/processor/ApiV3DiscoveryProcessor.java",
+      "line": 47,
+      "registration": "ApiV3DiscoveryProcessor.register"
+    }
+  ]
+}

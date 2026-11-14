@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-02",
+  "scope": "User-approved authenticated bare-home preference navigation in website_v3; local source/build/browser evidence",
+  "productionFiles": [
+    "src/components/home/HomePreferenceRedirect.vue",
+    "src/utils/homeRedirect.ts",
+    "src/views/HomeView.vue"
+  ],
+  "testFiles": [
+    "tools/v3-home-redirect-test.mjs",
+    "tools/v3-home-reads-test.mjs"
+  ],
+  "runners": [
+    {
+      "runner": "tools/v3-home-redirect-test.mjs",
+      "exitCode": 0,
+      "passLines": 12
+    },
+    {
+      "runner": "tools/v3-home-reads-test.mjs",
+      "exitCode": 0,
+      "passLines": 18
+    },
+    {
+      "runner": "tools/v3-client-startup-test.mjs",
+      "exitCode": 0,
+      "passLines": 9
+    },
+    {
+      "runner": "tools/v3-preferences-test.mjs",
+      "exitCode": 0,
+      "passLines": 8
+    }
+  ],
+  "totalPassLines": 47,
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "includes": [
+      "vue-tsc",
+      "client",
+      "SSR"
+    ]
+  },
+  "boundary": {
+    "sourceFileCount": 336,
+    "findingCount": 0,
+    "dynamicCalls": 47,
+    "servicePathChecks": 2
+  },
+  "generatedAssets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "browser": {
+    "realBackend": true,
+    "configuredTargetAfterLoginRestore": true,
+    "queryHomePreserved": true,
+    "hashHomePreserved": true,
+    "unsupportedTargetStaysHomeWithRetryAndSettings": true,
+    "retryReadsChangedCurrentTarget": true,
+    "emptySettingStaysHome": true,
+    "viewportWidth": 390,
+    "scrollWidth": 390,
+    "viewportReset": true,
+    "capturedWarnErrorCount": 0,
+    "functionSettingsRestored": true,
+    "balanceUnchanged": true,
+    "screenshots": [
+      "browser-home-redirect-unsupported-mobile.png",
+      "browser-home-redirect-retry-mobile.png"
+    ],
+    "finalUnsupportedScreenshotDimensions": [
+      390,
+      844
+    ],
+    "settingsLinkUnbrokenWidth": 84,
+    "screenshotsRetakenAfterViewportStabilized": true
+  },
+  "limits": [
+    "Read-failure/navigation-abort, account-switch and delayed reply behavior run in actual-component isolated tests; no real server 503 injected in this browser run",
+    "Only configured origins and supported Vue routes are used; unsupported classic pages are intentionally not navigated",
+    "Subpath deployment and physical devices are not runtime-validated",
+    "Does not claim every other stored preference has been consumed by website_v3"
+  ]
+}

@@ -37,6 +37,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.UserMgmtService;
+import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.UserQueryService;
 import org.json.JSONObject;
 
@@ -266,6 +267,7 @@ public final class Sessions {
      */
     public static void clearThreadLocalData() {
         THREAD_LOCAL_DATA.set(null);
+        AccountCredentialVersions.endHttp();
     }
 
     /**
@@ -275,7 +277,11 @@ public final class Sessions {
      * @return CSRF token, returns {@code ""} if not found
      */
     public static String getCSRFToken(final RequestContext context) {
-        final JSONObject user = Sessions.getUser();
+        return getCSRFTokenForUser(Sessions.getUser());
+    }
+
+    /** Explicit authenticated principal for Cookie-only consent; no thread-local apiKey identity fallback. */
+    public static String getCSRFTokenForUser(final JSONObject user) {
         if (null == user) {
             return "";
         }
@@ -288,9 +294,12 @@ public final class Sessions {
         JSONObject csrfTokenValue = SESSION_CACHE.get(userId + Common.CSRF_TOKEN);
         if (null == csrfTokenValue) {
             csrfTokenValue = new JSONObject();
-            csrfTokenValue.put(Common.DATA, RandomStringUtils.randomAlphanumeric(12));
+            final String token = RandomStringUtils.randomAlphanumeric(12);
+            csrfTokenValue.put(Common.DATA, token);
 
             SESSION_CACHE.put(userId + Common.CSRF_TOKEN, csrfTokenValue);
+            LOGGER.log(Level.WARN, "CSRF token initialized while reading [userId={}, token={}]",
+                    userId, csrfTokenSummary(token));
         }
 
         return csrfTokenValue.optString(Common.DATA);
@@ -305,7 +314,14 @@ public final class Sessions {
      * @return token, returns {@code null} if login failed
      */
     public static String login(final Response response, final String userId, final boolean rememberLogin) {
+        return loginWebsiteCookie(response, userId, rememberLogin, null);
+    }
+
+    /** 家族来自服务端签发结果，不接受请求参数指定。旧调用保持原有 Cookie 格式。 */
+    public static String loginWebsiteCookie(final Response response, final String userId, final boolean rememberLogin, final String family) {
         try {
+            final var proof = AccountCredentialVersions.issuance(userId, null);
+            if (proof == null) return null;
             final BeanManager beanManager = BeanManager.getInstance();
             final UserRepository userRepository = beanManager.getReference(UserRepository.class);
             final JSONObject user = userRepository.get(userId);
@@ -315,28 +331,38 @@ public final class Sessions {
                 return null;
             }
 
+            user.put(User.USER_PASSWORD, proof.password());
             SESSION_CACHE.put(userId, user);
 
             final JSONObject csrfToken = new JSONObject();
-            csrfToken.put(Common.DATA, RandomStringUtils.randomAlphanumeric(12));
+            final String token = RandomStringUtils.randomAlphanumeric(12);
+            csrfToken.put(Common.DATA, token);
             SESSION_CACHE.put(userId + Common.CSRF_TOKEN, csrfToken);
+            LOGGER.log(Level.WARN, "CSRF token initialized during login [userId={}, token={}]",
+                    userId, csrfTokenSummary(token));
 
             final JSONObject cookieJSONObject = new JSONObject();
             cookieJSONObject.put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID));
+            cookieJSONObject.put("credentialEpoch", proof.epoch());
+            if (family != null) {
+                if (!family.matches("[a-f0-9]{32}")) return null;
+                cookieJSONObject.put("websiteFamily", family);
+            }
 
             final String random = RandomStringUtils.randomAlphanumeric(16);
-            cookieJSONObject.put(Keys.TOKEN, user.optString(User.USER_PASSWORD) + COOKIE_ITEM_SEPARATOR + random);
+            cookieJSONObject.put(Keys.TOKEN, proof.password() + COOKIE_ITEM_SEPARATOR + random);
             cookieJSONObject.put(Common.REMEMBER_LOGIN, rememberLogin);
 
             final String ret = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET);
             final Cookie cookie = new Cookie(COOKIE_NAME, ret);
             cookie.setPath("/");
             if (rememberLogin) {
-                cookie.setMaxAge(COOKIE_EXPIRY);
+                cookie.setMaxAge(family == null ? COOKIE_EXPIRY : 30 * 24 * 60 * 60);
             }
             cookie.setHttpOnly(true);
             cookie.setSecure(StringUtils.equalsIgnoreCase(Latkes.getServerScheme(), "https"));
 
+            if (family != null) cookie.setSameSite("Lax");
             response.addCookie(cookie);
 
             return ret;
@@ -361,14 +387,17 @@ public final class Sessions {
             response.addCookie(cookie);
         }
 
-        SESSION_CACHE.remove(userId);
+        // 匿名或失效 Cookie 的退出仍需清理会话，但不能用空用户标识访问缓存。
+        if (StringUtils.isNotBlank(userId)) {
+            SESSION_CACHE.remove(userId);
+        }
 
         final Session httpSession = request.getSession();
         httpSession.setAttribute(User.USER, null);
+        httpSession.setAttribute("accountCredentialEpoch", null);
 
         //final BeanManager beanManager = BeanManager.getInstance();
         //final UserMgmtService userMgmtService = beanManager.getReference(UserMgmtService.class);
-        //userMgmtService.updateOnlineStatus(userId, "", false, true);
     }
 
     /**
@@ -395,6 +424,49 @@ public final class Sessions {
             return null;
         }
 
+        return currentCookieUser(request);
+    }
+
+    /** 只解码用于撤销的绑定标识，不据此授予登录权限，也不依赖数据库可用性。 */
+    public static JSONObject websiteSession(final Request request) {
+        for (final Cookie cookie : request.getCookies()) {
+            if (!COOKIE_NAME.equals(cookie.getName())) continue;
+            try {
+                if (cookie.getValue().length() > 1024) return null;
+                final JSONObject value = new JSONObject(Crypts.decryptByAES(cookie.getValue(), Symphonys.COOKIE_SECRET));
+                final String actor = value.optString(Keys.OBJECT_ID);
+                final String family = value.optString("websiteFamily");
+                if (actor.matches("[1-9][0-9]{0,18}") && family.matches("[a-f0-9]{32}"))
+                    return new JSONObject().put(Keys.OBJECT_ID, actor).put("websiteFamily", family)
+                            .put(Common.REMEMBER_LOGIN, value.optBoolean(Common.REMEMBER_LOGIN));
+            } catch (final Exception ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /** 状态探测只验证 Cookie 凭据；存储异常向上传递，不能被解释成用户已经退出。 */
+    public static boolean websiteCredentialValid(final Request request, final String actor) {
+        JSONObject payload = null;
+        for (final Cookie cookie : request.getCookies()) {
+            if (!COOKIE_NAME.equals(cookie.getName())) continue;
+            try {
+                if (cookie.getValue().length() > 1024) return false;
+                payload = new JSONObject(Crypts.decryptByAES(cookie.getValue(), Symphonys.COOKIE_SECRET));
+            } catch (final Exception invalid) {
+                return false;
+            }
+            break;
+        }
+        if (payload == null || !actor.equals(payload.optString(Keys.OBJECT_ID))) return false;
+        final String password = StringUtils.substringBeforeLast(payload.optString(Keys.TOKEN), COOKIE_ITEM_SEPARATOR);
+        return AccountCredentialVersions.authenticate(actor, payload, password);
+    }
+
+    /** Existing Cookie validation branch, callable without the legacy apiKey-first resolver. */
+    public static JSONObject currentCookieUser(final Request request) {
+        AccountCredentialVersions.clear();
         final Set<Cookie> cookies = request.getCookies();
         if (cookies.isEmpty()) {
             return null;
@@ -406,7 +478,7 @@ public final class Sessions {
                     continue;
                 }
 
-                if (cookie.getValue().length() != 224) {
+                if (cookie.getValue().length() < 128 || cookie.getValue().length() > 1024) {
                     return null;
                 }
 
@@ -429,15 +501,21 @@ public final class Sessions {
                 final String token = cookieJSONObject.optString(Keys.TOKEN);
                 final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
                 final String userPassword = ret.optString(User.USER_PASSWORD);
-                if (!userPassword.equals(password)) {
+                if (!AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
                     return null;
                 }
+                if (cookieJSONObject.has("websiteFamily") && !BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class)
+                        .websiteFamilyActive(userId, cookieJSONObject.optString("websiteFamily"))) {
+                    AccountCredentialVersions.clear();
+                    return null;
+                }
+                ret.put(User.USER_PASSWORD, password);
 
                 if (UserExt.USER_STATUS_C_INVALID == ret.optInt(UserExt.USER_STATUS)
                         || UserExt.USER_STATUS_C_INVALID_LOGIN == ret.optInt(UserExt.USER_STATUS)
                         || UserExt.USER_STATUS_C_DEACTIVATED == ret.optInt(UserExt.USER_STATUS)) {
                     SESSION_CACHE.remove(userId);
-
+                    AccountCredentialVersions.clear();
                     return null;
                 }
 
@@ -447,11 +525,14 @@ public final class Sessions {
                     SESSION_CACHE.put(userId, ret);
                 }
 
-                return JSONs.clone(ret);
+                final JSONObject result = JSONs.clone(ret);
+                if (cookieJSONObject.has("websiteFamily")) result.put("websiteFamily", cookieJSONObject.getString("websiteFamily"));
+                return result;
             }
         } catch (final Exception ignored) {
         }
 
+        AccountCredentialVersions.clear();
         return null;
     }
 
@@ -487,8 +568,8 @@ public final class Sessions {
             final String userPassword = ret.optString(User.USER_PASSWORD);
             final String token = cookieJSONObject.optString(Keys.TOKEN);
             final String password = StringUtils.substringBeforeLast(token, COOKIE_ITEM_SEPARATOR);
-            if (userPassword.equals(password)) {
-                //userMgmtService.updateOnlineStatus(userId, ip, true, true);
+            if (AccountCredentialVersions.authenticate(userId, cookieJSONObject, password)) {
+                ret.put(User.USER_PASSWORD, password);
 
                 SESSION_CACHE.put(userId, ret);
 
@@ -498,6 +579,34 @@ public final class Sessions {
         }
 
         return null;
+    }
+
+    /** Native sockets retain the credential version captured by the HTTP handshake, never a fresh upgrade. */
+    public static JSONObject currentSocketUser(final WebSocketSession session) {
+        final boolean http=AccountCredentialVersions.isHttp();
+        final boolean release=!http&&!AccountCredentialVersions.hasActiveTransaction();
+        final var previous=AccountCredentialVersions.saved();
+        try {
+            String apiKey=session.getParameter("apiKey");
+            if(apiKey!=null&&!apiKey.isEmpty())return ApiProcessor.getUserByKeyForSocket(apiKey);
+            final Session state=session.getHttpSession();
+            final String raw=state.getAttribute(User.USER);
+            if(raw==null)return null;
+            final JSONObject user=new JSONObject(raw);
+            final String actor=user.optString(Keys.OBJECT_ID);
+            final String captured=state.getAttribute("accountCredentialEpoch");
+            final long epoch=captured==null?0:Long.parseLong(captured);
+            final var current=AccountCredentialVersions.current(actor);
+            if(epoch<0||current==null||current.epoch()!=epoch||!current.password().equals(user.optString(User.USER_PASSWORD)))return null;
+            // 已建立的旧站 WebSocket 也要遵守该浏览器会话的撤销状态。
+            if (user.has("websiteFamily") && !BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class)
+                    .websiteFamilyActive(actor, user.optString("websiteFamily"))) return null;
+            return user;
+        }catch(Exception e){return null;}
+        finally {
+            AccountCredentialVersions.remember(http?previous:null);
+            if(release)ApiV3Transactions.releaseThreadResources();
+        }
     }
 
     /**
@@ -533,6 +642,10 @@ public final class Sessions {
     public static void invalidate(final String userId) {
         SESSION_CACHE.remove(userId);
         SESSION_CACHE.remove(userId + Common.CSRF_TOKEN);
+    }
+
+    private static String csrfTokenSummary(final String token) {
+        return token.substring(0, 4) + "****" + token.substring(token.length() - 4);
     }
 
     /**

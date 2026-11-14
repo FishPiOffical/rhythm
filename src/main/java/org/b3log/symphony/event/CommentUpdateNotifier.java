@@ -31,8 +31,7 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Permission;
-import org.b3log.symphony.repository.NotificationRepository;
-import org.b3log.symphony.service.NotificationMgmtService;
+import org.b3log.symphony.service.CommentNotificationMgmtService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.UserQueryService;
 import org.json.JSONObject;
@@ -56,16 +55,10 @@ public class CommentUpdateNotifier extends AbstractEventListener<JSONObject> {
     private static final Logger LOGGER = LogManager.getLogger(CommentUpdateNotifier.class);
 
     /**
-     * Notification repository.
-     */
-    @Inject
-    private NotificationRepository notificationRepository;
-
-    /**
      * Notification management service.
      */
     @Inject
-    private NotificationMgmtService notificationMgmtService;
+    private CommentNotificationMgmtService commentNotifications;
 
     /**
      * User query service.
@@ -115,12 +108,11 @@ public class CommentUpdateNotifier extends AbstractEventListener<JSONObject> {
                     }
 
                     final String atUserId = atUser.optString(Keys.OBJECT_ID);
-                    if (!notificationRepository.hasSentByDataIdAndType(atUserId, commentId, Notification.DATA_TYPE_C_AT)) {
-                        final JSONObject requestJSONObject = new JSONObject();
-                        requestJSONObject.put(Notification.NOTIFICATION_USER_ID, atUserId);
-                        requestJSONObject.put(Notification.NOTIFICATION_DATA_ID, commentId);
-                        notificationMgmtService.addAtNotification(requestJSONObject);
+                    if (originalComment.optInt(Comment.COMMENT_VISIBLE) == Comment.COMMENT_VISIBLE_C_AUTHOR
+                            && !atUserId.equals(articleAuthorId) && !atUserId.equals(commenterId)) {
+                        continue;
                     }
+                    commentNotifications.send(atUserId, originalArticle.optString(Keys.OBJECT_ID), commentId, Notification.DATA_TYPE_C_AT);
 
                     atIds.add(atUserId);
                 }

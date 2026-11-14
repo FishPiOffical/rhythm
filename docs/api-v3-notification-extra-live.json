@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "scope": "Actual article purchase and newly created comment thank notifications; target title/current visibility and ownership",
+  "results": [
+    {
+      "step": "comment-thank-before-state",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-create-real-event",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-same-key-no-extra-charge",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-warm",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-foreign-owner",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-guest",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-current-title",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-list-current-title",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-invalid-target-placeholder",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-list-invalid-target",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-restored-current",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-warm",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-foreign-owner",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-guest",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-current-title",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-list-current-title",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-invalid-target-placeholder",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-list-invalid-target",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "article-purchase-restored-current",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-invalid-comment-placeholder",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-reader-access-withdrawn",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "comment-thank-reader-restored",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "newCommentThankPoints": 15,
+  "newCommentThankCount": 1,
+  "articleFieldsRestored": true,
+  "commentStatusRestored": true,
+  "readOnlyMatrixBalancesUnchanged": true,
+  "notificationRowsAndUnreadUnchanged": true,
+  "retainedFixture": "One normal dedicated-account comment thank, its configured fee, reward, ledger and recipient notification retained; existing purchase event reused.",
+  "limits": [
+    "No fabricated perfect-article, accepted-answer or system-announcement events; these three real event flows remain unverified",
+    "Node/HTTP and SQL verification; no new browser event UI test",
+    "Production anonymous/captcha/blacklist, external services, CDN/directory audit and multiple instances remain unverified"
+  ],
+  "oneCommentThankTransfer": true,
+  "bothAccountIndexesUnique": true
+}

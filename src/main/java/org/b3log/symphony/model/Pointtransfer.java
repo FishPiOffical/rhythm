@@ -518,6 +518,9 @@ public final class Pointtransfer {
      */
     public static final int TRANSFER_SUM_C_BLMZ = 5;
 
+    /** 积分外观购买与续期。 */
+    public static final int TRANSFER_TYPE_C_APPEARANCE_PURCHASE = 57;
+
 
     /**
      * Private constructor.

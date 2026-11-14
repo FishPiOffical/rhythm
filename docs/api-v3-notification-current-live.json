@@ -1,0 +1,114 @@
+{
+  "date": "2026-11-02",
+  "scope": "Latest notification renderer on actual dedicated article thank event; current title/sender and visibility, no business event fabrication",
+  "results": [
+    {
+      "step": "warm-actual-thank-notification",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "foreign-owner-denied",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    },
+    {
+      "step": "guest-denied",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "step": "current-article-title",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-notification-title",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-notification-list",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-sender-name",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "invalid-target-placeholder",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "invalid-target-list-placeholder",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "restored-target-current",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "discussion-owner-still-readable",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-invalid-reader-denied",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "step": "restored-current-reader",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "articleRestored": true,
+  "senderRestored": true,
+  "ownerStatusRestored": true,
+  "balancesUnchanged": true,
+  "unreadUnchanged": true,
+  "deployment": {
+    "javaPid": 91346,
+    "userConfirmedRebuild": true
+  },
+  "limits": [
+    "Actual business event is article thanks; other five content description categories are covered by complete-query SQLite/MySQL regression, not all six real event creation flows",
+    "Discussion owner remains allowed; no claim of all notification recipient role/mention combinations",
+    "No cross-instance or network-loss notification matrix"
+  ],
+  "browser": {
+    "actualThankNotification": true,
+    "currentTitleAfterRefresh": true,
+    "unavailableHidesOldTitle": true,
+    "restoredTitleAfterRefresh": true,
+    "mobileWidth": 390,
+    "mobileScrollWidth": 390,
+    "unreadUnchanged": true,
+    "fixtureRestored": true,
+    "viewportReset": true,
+    "capturedWarnErrorCount": 0,
+    "screenshots": [
+      "browser-notification-current-mobile.png",
+      "browser-notification-unavailable-mobile.png"
+    ]
+  }
+}

@@ -1,150 +1,32 @@
-## 用户关键要求
-- 所有文件不要直接修改 `.css`，而是修改 `.scss`，然后执行 `yarn run build` 生成新的 CSS。js同理，请修改js，而不是min.js，然后同样是通过 `yarn run build` 编译min.js
-- 在 WSL 中执行 Maven 时，优先复用 Windows 本地仓库：`-Dmaven.repo.local=/mnt/c/.m2/repository`（对应 Windows 的 `C:\.m2\repository`），可避免依赖下载时的 SSL 握手失败；Java 版本固定使用 25。
-- 如果你的更改涉及到操作数据库，请注意在引用Repository类的时候不要加上包名org.b3log.latke.repository，如果没有请直接import，另外除了查询以外，增、删、改 所有写入的操作都需要用Transaction进行完整的事务commit，否则会无法正常写入。
-- 涉及到前端的更改，请不要只修改classic（PC端）皮肤，mobile（移动端）皮肤也要同步修改
-- 涉及到新增 Repository（新增表/集合）时，除了 SQL 建表外，必须同步更新 `src/main/resources/repository.json`，并且 Repository 的 `super("...")`/模型常量中不要写 `symphony_` 前缀（框架会根据 `jdbc.tablePrefix` 自动加前缀）。
-- 除非用户提到代码编译有问题或者主动要求你进行编译，否则不要使用mvn编译java，这个过程会浪费用户的时间，除非你觉得非常有必要，并且询问用户且被同意
-- 每次遇到新的项目架构关键信息，对后续项目AI使用有帮助的，请主动维护AGENTS.md，注意每次维护不要过度细节，只要让AI正确理解就可以了，防止prompt token过长
-- 我和你沟通都是在开发环境（http://localhost:8080），生产环境是摸鱼派（https://fishpi.cn），如果你能调用Chrome，可以调试辅助你诊断代码，注意，如果你编译了js和css，强制刷新开发环境就会生效，如果你改了Java或者FTL，那就需要告知用户通过IDEA重新编译或者重启服务端才能生效；当前本地运行环境经常直接读取 `target/classes` 下的资源，如果源码已改但浏览器仍是旧效果，优先同步对应资源到 `target/classes` 或提醒我重新编译
-- 只要本轮改动涉及 Java / FTL，联调前就要明确提醒我手动通过 IDEA 重新编译或重启服务端；不要假设我已经做了，确认前不要把浏览器里的旧行为当成代码未生效
-- 在 WSL 环境中不要依赖 git 状态/差异判断工作区是否干净（可能存在异常噪声）；默认按任务目标直接改指定文件，git 清理由用户在 Windows 环境统一处理
+# 项目 Agent 约定
 
-## 协作目标
-- `AGENTS.md` 保持精简，只保留会影响决策的长期约定；新增内容优先补充“关键链路”，避免堆砌背景信息。
+## 开始任务必读
 
-## 开发硬约束
-- 前端改动只改源码：`.scss` 与非 `min.js`；执行 `yarn run build` 生成产物；PC/移动端经典皮肤当前目录分别为 `skins/classic/pc` 与 `skins/classic/mobile`，改动需同步评估两端。
-- 页面分区的卡片应保持同级关系，禁止使用“卡片套卡片”的嵌套容器；外层布局容器不应再使用卡片背景、边框或阴影包裹内部卡片。
-- JS 版本号暴露排查使用 `tools/js-version-audit.mjs`；清理后执行 `yarn run build` 并复查，生产静态资源不要发布可泄露依赖信息的 source map。
-- 质量复盘约束：近期提交后多轮修 bug 的主要原因是只验证了局部代码，未按真实用户链路完整反查入口、模板、生成产物和浏览器行为。后续代码改动提交前必须完成对应层级闭环：读清调用链与数据形态；同步检查 PC/移动、源码/生成产物、权限/匿名/apiKey；前端改动执行 `yarn run build` 并用浏览器验证关键操作；Java/FTL 改动先提醒用户通过 IDEA 重新编译或重启服务端；无法验证的项必须在最终回复中明确列出，不能用猜测代替验证。
-- 每次完成改动后的最终回复必须明确列出实际修改的文件与行为，并提供覆盖完整用户链路的人工测试步骤；测试步骤需包含入口、核心操作、成功结果及相关的异常或边界场景。
-- 发布前检查基线：先看 `git status --short` 与未提交 diff，按新增/修改路由、模板、JS/CSS、SQL/Repository 分类；所有新增或改造的匿名入口必须确认会经过 `AnonymousViewCheckMidware` 或明确要求登录，不能让新 IP 直接访问新功能接口绕过 `/test` 极验；复核 `BeforeRequestHandler` 黑名单重定向、`AnonymousViewCheckMidware` 首访/每 5 次验证码、`CaptchaProcessor#validateCaptcha` 解封链路未被绕过；扫描新增公网静态资源和 CDN URL 是否暴露版本号、`sourceMappingURL` 或可枚举目录；接口按未鉴权访问、越权、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露逐项给结论。
-- 反漏扫底线：任何未提交代码审查、发布前检查、公开入口新增或改造都必须检查反漏扫；至少覆盖匿名访问链路、黑名单/验证码链路、`anonymous.viewSkips`、公开 API 鉴权、静态资源/CDN 版本号、`sourceMappingURL`、目录枚举、上传/下载返回路径；无法实际验证的项必须在最终回复中列出，不能跳过或默认通过。
-- CDN 防漏扫排查：当用户要求“CDN 防漏扫/刷新列表/替换目录”时，扫描项目内 `https://file.fishpi.cn/...` 具体资源（排除 `.codex-tasks`、`target`、`node_modules`、`cdn-version-replacements`），下载可访问资源，检测路径/查询参数/内容中的版本号与 `sourceMappingURL`；命中资源按 CDN 路径镜像到 `cdn-version-replacements/files/`，但路径版本号目录改为稳定目录名（如 `vditor/3.11.1/dist -> vditor/latest/dist`），文件名版本号去掉（如 `jquery.color-2.1.2.min.js -> jquery.color.min.js`），源码引用也同步改成新 URL；版本目录型库必须在 CDN 侧保留原目录并复制完整目录树到稳定目录，不能只上传入口文件；生成 `report.md`、`version-findings.json`、`replacement-validation.json` 和一行一个的 `refresh-urls.txt`；替换副本需复扫并对 JS 执行 `node --check`，下载失败或动态拼接 URL 单独记录，不伪造结果。
-- 鱼排扩展独立脚本需包含标准 `UserScript` 头（至少 `@name`、`@match`、`@grant`、`@run-at`）；聊天室联调脚本建议同时匹配 `https://fishpi.cn/cr*` 与 `http://localhost:8080/cr*`。
-- WSL 执行 Maven 优先使用：`-Dmaven.repo.local=/mnt/c/.m2/repository`；Java 固定 25。
-- 未经用户明确要求，不主动执行 `mvn` 编译。
-- 涉及数据库写操作（增/删/改）必须使用 `Transaction` 并完整 `commit`。
-- `Repository` 相关类直接 `import`，不要在代码里写 `org.b3log.latke.repository` 全限定名。
-- 新增 Repository（新表/集合）时：同步更新 `src/main/resources/repository.json`；`super("...")`/模型常量不要写 `symphony_` 前缀。
-- 安全基线（已审计）：防扫描验证码链路核心在 `BeforeRequestHandler` + `AnonymousViewCheckMidware#handle` + `CaptchaProcessor#validateCaptcha`；`LoginCheckMidware#handle` 负责登录态校验（含 apiKey），两套逻辑都不可被绕过。
-- 用户脱敏基线（已审计）：对外接口用户对象统一走 `DesensitizeUtil`（移除密码/邮箱/手机/QQ/2FA/apiKey/token/IP/UA 等）或字段白名单；已知存量风险（用户知情暂不修）：`/reset-pwd?code=` 与 `/register?code=` 页面把完整 `user.userPhone` 输出到 HTML（LoginProcessor + verify/reset-pwd.ftl、verify/register2.ftl，匿名可见）；`TopProcessor#removePrivateData` 不移除签到/登录时间戳等活动字段。
-- `symphony.properties` 中提交的 `upload.rhypic.ticketPrivateKey` / `upload.rhypic.internalToken` 是开发调试专用，生产环境使用独立生成的密钥，审计时不要当作泄露误报。
-- 搜索引擎爬虫校验：`SearchEngines` 对 Google/Baidu/Bing/Sogou/Yandex 走 DNS 双向校验；DuckDuckGo 走本地 CIDR 资源 `src/main/resources/search-engines/duckduckgo-bot-prefixes.json`，该文件由 `scripts/deploy.ps1` 调用 `scripts/update-duckduckgo-bot-prefixes.ps1` 在打包前合并官方 JSON。
-- 访问控制基线（已审计）：当前未登录可访问并不只首页/文章/登录/注册，还包含验证码页、`/about`、`/download`、`/privacy`、`/agreement` 及部分公开 API；匿名可访问范围还受 `symphony.properties` 的 `anonymous.viewSkips` 影响。
-- 新增页面/路由默认要求登录（优先挂 `loginCheck::handle`）；若业务必须匿名访问，必须显式接入 `anonymousViewCheckMidware::handle` 并评审风险，不能裸放。
-- 新增或改造登录/入口逻辑必须做回归：未登录拦截、登录后放行、黑名单 IP 跳转 `/test`、`/validateCaptcha` 解封、开发模式关闭风控后行为一致。
-- `loginCheck::handle` 默认兼容 `Sessions` + `apiKey`（query 参数与 JSON body），并写入 `context.attr(User.USER)`；后续处理逻辑优先从该 attr 取当前用户。
-- `apiCheck::handle` 同样支持 `apiKey` 并写入 `context.attr(User.USER)`，但未登录返回 JSON `{"result":"Unauthorized"}`；适合纯 API 场景。
-- `permissionMidware::check` 只做权限判断，不负责写入 `context.attr(User.USER)`；若处理方法还需要当前用户信息，必须自行取用户（或叠加 `loginCheck`）。
-- `permissionMidware::check` 在 `permission.rule.url.*` 缺失时会直接放行（含匿名）；凡仅挂 `permissionMidware` 的路由必须同步补齐对应权限规则，避免后台能力裸露。
-- 处理方法取当前用户推荐顺序：`context.attr(User.USER)` -> `Sessions.getUser()` -> `ApiProcessor.getUserByKey(...)`；不要只依赖 `Sessions.getUser()`。
-- 聊天室 `/cr` 的两套样式分别走 `chat-room.js` 与 `chat-room-2.js`，但红包消息都通过 `/chat-room/getMessage` 返回原始 JSON（`msgType=redPacket`），领取统一走 `/chat-room/red-packet/open`。
-- 聊天室红包详情/打开后的弹层头部走前端通用 `Util.alert()`（`src/main/resources/js/common.js`），标题与关闭按钮布局异常优先排查这个公共弹层，而不是红包业务模板。
-- 评论与聊天室 emoji reaction 共用 `reaction` 表；历史接口直接补 `reactionSummary/currentUserReaction`，聊天室实时选中态需结合 `chatReaction` 增量事件里的 `actorUserId/actorReaction` 在前端按当前用户合并。
-- 聊天室红包风险约束：`heartbeat` 可能抢到负积分，`rockPaperScissors` 猜错会扣积分，`dice` 当前服务端不支持领取；自动化脚本默认只建议开启安全类型。
-- 用户在线时间结算链路在 `processor/channel/UserChannel`；`onlineMinute` 是分钟数整型字段，结算毫秒差必须先用 long/TimeUnit 转分钟，不能先强转 `int`，否则单次连接超过约 24.85 天会溢出为负数。
-- Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`；Evolve CDN 依赖是长缓存，主脚本和与主脚本版本强绑定的库（如 Popper）都需要带 `${staticResourceVersion}`。
-- 接口设计安全约束：前后端新增/改造接口时，必须同时评估常见漏洞（越权、未鉴权访问、CSRF、XSS、注入、SSRF、批量请求滥用、敏感信息泄露）。
-- CSRF 安全判断必须先确认接口是否同时支持页面 Cookie 与 `apiKey` 客户端调用；已兼容 `apiKey` 的写接口不能直接补 `csrfMidware::check`，否则会破坏 RESTful/API 客户端。加固这类接口需先拆分页面入口与 API 入口，或设计明确兼容 `apiKey` 的 CSRF 例外。
-- 评论/文章公开接口与 WebSocket 事件必须使用响应白名单；允许返回 `commentAuthorId`、`articleAuthorId` 这类公开用户 ID，但禁止返回 `commentIP`、`commentUA`、`articleIP`、`articleUA`、`userPassword`、`userLatestLoginIP`、`userPhone`、`userEmail`、`userQQ`、`secret2fa`、token/key 等高敏字段。完整 `Article` 或完整用户对象不得裸传，需先脱敏。
-- 评论读取类公开接口即使不走 `/article/{id}` 路径，也必须按目标文章执行 `articleAnonymousView` 与讨论帖可见性校验；校验当前用户时必须兼容 `Sessions` 和 `apiKey`，否则会绕过文章页匿名访问限制或误拒绝合法 API 客户端。
-- 公开页面模板也不得把 IP/UA/密码/联系方式/2FA/token/key 等高敏字段写入 HTML 或 `data-*`；后台管理审计页可显示 IP/UA，但必须保留登录与权限保护。
-- 涉及 API 入参或返回字段变更，且可能影响第三方客户端兼容性时，必须先说明接口、字段、兼容影响和替代方案，经过用户同意后再修改；安全漏洞修复也要把破坏性影响显式说清楚。
-- 对外接口文档维护：只要新增、修改或删除接口，必须直接更新项目根目录 `API.md`，并与 `UPDATE_LOG.md` 同步产出面向第三方开发者的更新记录；`UPDATE_LOG.md` 按时间倒序维护，新记录必须写在适用说明之后、既有记录之前；最终回复提醒用户把 `API.md` 内容同步到网站 API 文档文章 `https://fishpi.cn/article/1636516552191`；文档保持该文章 Markdown 风格：模块用 `## 模块名`，接口用 `### 接口名`；接口行使用反引号包裹的 `METHOD /path`；包含简短用途说明、`请求:`/`请求：`、`| Key | 说明 | 示例 |` 表格、`请求示例：` 的 `bash` curl 代码块、`响应：` 表格；嵌套字段用 `-`、`--`、`---` 前缀；注意事项用 `>` 引用块；不要改成 OpenAPI/schema 或纯文本表格风格。
-- 字符串输入必须做限制与校验：长度上限、空白处理、字符白名单/黑名单、格式校验（如用户名/URL/JSON）、必要的转义或编码；禁止直接信任前端传参。
-- API.md / UPDATE_LOG.md 是公开文档，禁止写入安全与实现细节：限流阈值（如"60 秒 10 次/IP"）、匿名访问校验策略、CSRF 设计、防扫描链路、"与页面态接口互相独立"等内部关系说明一律不写；鉴权描述统一为"需要 apiKey"（匿名可访问接口在请求参数表加一行 `apiKey | 通用密钥（可选）`，正文不再啰嗦说明）；分页/条数上限（size 默认值与最大值）属于接口契约可以写。
-- 不要顺手把硬编码业务值改成 `symphony.properties` 配置项；需要共享取值时提取为 Java 常量即可，只有用户明确要求或确有运维调整需求才做配置化。
-- 涉及业务规则（可用字符、最大长度、是否允许 HTML/Markdown、过滤策略）不明确时，先与用户确认规则再实现，避免误伤或放漏。
-- 上传链路：编辑器贴图走 RhyPic 前端直传（`Util.rhypicTicket` + `pic.fishpi.cn/api/v1/files`，字段名 `file`）；头像/裁剪/涂鸦等 `/upload` 代理通道字段名必须是 `file[]`，由 `FileUploadProcessor#uploadViaRhypic` 签票转发。图床拒绝无扩展名文件：FormData 裸 Blob（cropper、聊天室涂鸦）必须带文件名（append 第三参数），后端同时按 Content-Type 为无后缀文件名补扩展名，并在 succMap 保留原名别名兼容 `succMap.blob` 类老前端。前端魔数校验 `isImage` 只认 JPEG(SOI FF D8 FF)/PNG/GIF，WebP 不在 `upload.suffix` 白名单，头像场景给明确提示。
-- 鱼游投稿链路由 `FishGameProcessor` + `FishGameMgmtService` + `FishGameQueryService` 负责，数据表为 `fish_game`、`fish_game_vote`、`fish_game_comment`；投稿必须通过 OAuth 说明网址校验后进入待审，管理员导入旧清单按已审核处理并按目标网址去重。`/activities` 只展示已审核记录并按点赞数排序，PC/移动模板和资源需同步维护。
+- 所有 AI 开始任务先读 [维护问题与规避要求](docs/agent-guides/maintenance.md)、[专题索引](docs/agent-guides/README.md)；代码实施前再读 [开发、验证与交付](docs/agent-guides/workflow.md) 及索引中命中的专题。专题约定与本文件共同生效，不能只读根文件就修改代码。
+- 当前问题是规则重复、旧结论覆盖新协议、临时环境写成长久事实，以及只测局部导致反复修 bug；规避办法见必读维护文档。后续架构、业务细节、迁移和验收要求统一维护在 `docs/agent-guides/` 对应专题及其引用文档，更新索引；根文件只保留最高优先级、跨任务的长期约束，禁止追加修复流水账。
+- 所有 AI 对本轮发现的长期规则、明确偏好、实现变化和文档错误负有主动维护责任，不等待用户再次提醒；按 [维护触发与完成标准](docs/agent-guides/maintenance.md#维护触发与完成标准) 当轮更新，交付时说明更新位置或无需更新的理由。不得为凑记录重复追加、猜测用户性格或把临时状态写成长期事实。
+- 文档维护绝对禁止记录任何涉密内容，包括真实密码、密钥、令牌、Cookie、验证码及其片段；此要求覆盖规则文档、任务记录、示例、截图、日志摘录和提交说明，具体按 [文档保密要求](docs/agent-guides/maintenance.md#文档保密要求) 执行。
+- 调研、排错和方案回复先用具体使用场景讲清用户操作、触发条件、预期与实际结果及影响，再给证据和不确定项；任务未完成时说明下一步及所需确认，将需用户协助的问题汇成编号清单。必要时询问能否联系生产环境 AI，用户确认后提供具体、只读且不含秘密的转发提示词，详见 [沟通与协查](docs/agent-guides/communication.md)。
 
-## 目录速览
-- 后端：`src/main/java/org/b3log/symphony`（入口 `Server.java`，核心分层 `processor/service/repository/model/util`）。
-- 资源：`src/main/resources`（配置、静态资源、`skins` 模板）。
-- 前端编译输出：`src/main/resources/css`、`src/main/resources/js`。
-- 构建：后端 Maven（`pom.xml`），前端 Gulp（`gulpfile.js`、`package.json`）。
-- 本地 Latke 框架源码：`C:\Users\陈辉\IdeaProjects\rhy-latke`（非官方版本，分析框架行为优先对照这里，不要假设与官方仓库一致）。
+## 开发门禁
 
-## 关键链路（持续维护）
-- 职业成长系统完全独立于 `userAppRole`：定义、等级方案、自动化、来源事件、效果、用户汇总和贡献均走 `profession_*` / `user_profession*` 新表；效果和来源事件均先独立提交领取状态，再在所有权条件下完成事务，防止回滚后的并发覆盖。等级方案 `MIGRATE_ALL` 与 `SCHEDULED_SWITCH` 由 `ProfessionLevelMigrationService` 分批切换，定时方案由 `ProfessionScheduledSchemeService` 激活。首次选择职业的升级来源由 `ProfessionGrowthGuideQueryService` 根据已发布自动化规则动态提供，禁止在前端写死职业升级方式。停用职业由 `ProfessionRetirementMgmtService` 锁定定义与受影响用户，将系统通知与停用状态同事务提交，并在提交后刷新通知，禁止直接写通知表。
-- 职业管理数据读取分为 `/catalog-summary`（分页摘要）和 `/catalog-detail/{professionId}`（单职业完整配置）；导入必须先走 `/config/precheck`，排序经 `/catalog/order` 在同一事务内校验并保存全部职业顺序，二者均限管理员登录态与 CSRF。
-- 职业自动化执行器包含经验调整和系统通知；系统通知配置 `notificationContent` / `notificationWhen`（`ALWAYS`、`LEVEL_UP`），由 `ProfessionAutomationNotificationService` 在职业效果事务中经 `NotificationMgmtService` 发送，不能直接写通知表。通知效果必须排在经验效果之后，正文变量为 `{职业}`、`{等级}`、`{经验}`、`{变化}`、`{奖励}`；等级方案迁移不会回放来源事件，但会对新跨越的每级分别补发允许的等级奖励，并为已发布 `LEVEL_UP` 通知创建独立幂等效果。金手指外部职业经验效果没有 `automationRevisionId`，通知判断必须先识别这种外部效果，不能查询自动化版本，否则效果会进入 `APPLY_RETRY`。
-- Latke 原生仅提供轻量皮肤元信息能力（如 `Latkes#getSkinName` 读取 `/skins/<dir>/skin.properties`），不负责 Rhythm 的运行时选肤；Rhythm 当前皮肤链路在 `BeforeRequestHandler#resolveSkinDir` + `Sessions` + `processor/SkinRenderer` + `util/Templates`。
-- Latke IoC 会通过 Javassist 为每个 `@Singleton` Bean 生成子类代理，因此 `@Singleton` 类不能声明为 `final`；新增或修改 Bean 后需检查这一点，否则生产启动可能只显示 `Latke init failed`。
-- Rhythm 当前“皮肤”本质是模板目录名：默认值来自 `symphony.properties` 的 `skinDirName=classic/pc`、`mobileSkinDirName=classic/mobile`；运行时先按 UA 分流 pc/mobile 默认皮肤，再按用户字段 `userSkin` / `userMobileSkin` 覆盖，设置页通过 `/settings/skin` 保存，`SkinQueryService` 负责扫描 `/skins/**/skin.properties` 识别可选主题。
-- Rhythm 侧 `SkinQueryService` 现已按 UTF-8 读取 `skin.properties`，皮肤名称/描述可直接写中文；但 `src/main/resources/lib/latke-core.jar` 内的 `Latkes#getSkinName` 仍是旧 `Properties.load`，若后续有代码依赖该方法读取皮肤元信息，需要同步改 Latke 并替换 jar。
-- 模板加载已支持“同设备 fallback”：若自定义皮肤缺少某个 FTL，`Templates` 会回退到默认皮肤的同路径模板（如 `foo/pc/header.ftl -> classic/pc/header.ftl`，`foo/mobile/common/comment.ftl -> classic/mobile/common/comment.ftl`）；因此新增皮肤可以按需覆盖，但至少要提供对应目录与 `skin.properties`。
-- Freemarker + `org.json` 兼容约束：顶层放进 dataModel 的 `List/JSONArray` 可直接 `#list`，但挂在 `JSONObject` 字段里的嵌套 `JSONArray/Iterable` 在 FTL 中可能被包装成非序列；这类数据优先展开成固定字段，或改为顶层列表再渲染。
-- 皮肤设置页预览图来自各皮肤目录下 `skin.properties` 的 `previewUrl`；新增皮肤若希望在设置页展示预览图，需要同步配置该字段。
-- 前端全局主题变量入口：`src/main/resources/scss/_variables.scss`；`$theme-primary` 会影响 `module`/首页卡片/聊天室等主区背景，深色会导致整站大面积染色；顶栏建议在 `base.scss`/`mobile-base.scss` 的 `.nav` 单独设色。
-- 移动端文章页（`skins/classic/mobile/article.ftl`）存在多个 `#replyUseName`（含隐藏占位 `.fn-none`）；`m-article.js` 处理回复目标时需优先选中非 `.fn-none` 节点，避免“回复对象已记录但指示未显示”。
-- 评论区交互不是单点模板：首屏评论列表由 `ArticleProcessor` + `CommentQueryService#getArticleComments` 组装，展开“原评论/回复”走 `CommentProcessor#getOriginalComment/getReplies`，实时新评论卡片由 `processor/channel/ArticleChannel` 渲染 `skins/**/common/comment.ftl`；改评论动作区时需同步评估 PC/移动模板、`article.js`/`m-article.js` 以及实时插入链路。
-- 文章代码高亮由 `src/main/resources/js/common.js` 的 `Util.parseHljs` 统一加载；`vditor/latest` 的 `.min.css` 高亮样式对应 `highlight.min.js` + `third-languages.js`，旧版样式才对应 `highlight.pack.js`。
-- RSS 订阅链路在 `FeedProcessor` + `model/feed/RSS*` 手写 XML；输出前必须保证 XML 1.0 字符合法并处理 CDATA 结束符，思绪正文不要作为普通 `articleContent` 放进 RSS description。
-- 首页摸鱼倒计时的节假日数据在 `util/Vocation`：数据源为 holiday-cn（jsDelivr/GitHub raw 年度 JSON，国务院官方公告），本地计算 type/dayName/vName/vRest/wRest；不再依赖 timor.tech；刷新失败保留上次成功数据并按周末规则兜底，字段契约与 `/api/vocation` 不变。
-- `symphony_article.articleHotScore` 是数据库生成列，只用于查询排序；文章写入统一经 `ArticleRepository` 过滤该字段，业务代码不要把它作为普通字段增改。
-- 文章历史版本链路：前端通过 `/article/{id}/revisions/list` 获取轻量版本列表，再按需调用 `/article/{id}/revisions/{revisionId}` 获取单个版本正文；旧 `/article/{id}/revisions` 已删除；两个新接口都挂 `loginCheck` + `permissionMidware` 并兼容 `apiKey`。
-- 文章上下篇链路：`ArticleProcessor` 统一填充时间、作者、热门三组导航数据及小窗口列表；PC/移动模板共用 `skins/classic/*/common/article-adjacent-nav.ftl`；“全部文章”排序选择由 `article.js`/`m-article.js` 写入 `localStorage.articleAdjacentSort`。
-- 发帖草稿箱链路：前端入口在 classic PC/移动 `home/post.ftl`、`home/long-article-post.ftl` + `add-article.js`，后端为 `ArticleDraftProcessor` + `ArticleDraftMgmtService` + `article_draft`；接口 `/api/article-drafts*` 挂 `loginCheck` 并支持 `apiKey`，不挂 CSRF；普通文章与长文章共用同一组草稿接口，长文章通过 `articleType=6` 和 `columnId/columnTitle/chapterNo` 区分；思绪帖草稿必须同时保存编辑器正文与 `articleDraftThoughtContent`。
-- 新版表情面板的入口与工具条统一由 `src/main/resources/js/emoji-groups.js` 渲染；文章页/聊天室 FTL 里旧的 `#uploadEmoji` 尾栏大多已注释，恢复“本地上传”优先改这里，不要分别恢复多套模板。
-- 表情集分享链路使用新表 `emoji_share` 保存“分组快照 + 永久分享码”；分享内容是静态快照，后续源分组变更不会实时同步，导入会在目标用户下新建自定义分组并同步补入其“全部”分组。
-- 首页右栏专栏列表（classic/pc）需使用 `module-list long-column-module-list`（见 `skins/classic/pc/index.ftl` 的“最新专栏/热门专栏/最近阅读”）；否则会命中 `.module-list .title` 默认 `margin-left: 30px` 产生左侧空白。
-- 勋章管理页：`/admin/medal`
-- 个人主页勋章由 `settings.js` 的 `Settings.initHome` 动态调用公开只读接口 `GET /user/{userName}/medal`，再渲染到 PC/移动端 `home-side.ftl` 的 `#metal`；不要依赖可选游戏组件的 `window.onload`，也不要改回 FTL 服务端渲染。
-  - 后端：`src/main/java/org/b3log/symphony/processor/MedalProcessor.java`（`showAdminMedal`、`register`）
-  - 前端：`src/main/resources/js/medal.js`
-- 模板：`src/main/resources/skins/classic/pc/admin/medal.ftl`、`src/main/resources/skins/classic/mobile/admin/medal.ftl`
-- 管理 API：`/api/medal/admin/list`、`/api/medal/admin/search`、`/api/medal/admin/grant`、`/api/medal/admin/grant-batch`、`/api/medal/admin/revoke`、`/api/medal/admin/owners`、`/api/medal/admin/holds`
-- 会员状态 API：`GET /api/membership/{userId}`（`MembershipProcessor#getUserMembershipStatus`）
-- VIP 管理页：`/admin/vip`（`MembershipProcessor#showAdminVipManagePage`，classic/pc 与 classic/mobile 同路径模板 `admin/vip.ftl`）。
-- VIP 管理 API（仅 `adminRole`）：`/api/admin/vip/list`、`/api/admin/vip/add`、`/api/admin/vip/update`、`/api/admin/vip/refund`、`/api/admin/vip/extend`。
-- VIP 管理服务关键方法位于 `MembershipMgmtService`：免费新增（不扣积分）、手工维护、按剩余天数退款并失效。
-- VIP 按天退款成功后会复用“系统转账通知”（`Notification.DATA_TYPE_C_POINT_TRANSFER`）给用户发送站内通知。
-- 积分变更统一走 `PointtransferMgmtService`：独立流程用 `transfer(...)`（方法内自带事务）；若外层已有事务，必须用 `transferInCurrentTransaction(...)` 避免事务冲突。
-- credit 应用积分链路：`POST /user/edit/points` 携带完整 `sourceAppId/sourceAppName/sourceScene/requestId` 时走 `ExternalPointAdjustMgmtService`，使用 `Pointtransfer` 类型 55、通知类型 42 与 `external_point_request` 保证幂等；账户方向仍为 `sys` 与用户，应用来源只作为可信快照和展示信息，内部请求编号不得通过积分记录接口公开。
-- 发积分/扣积分约定：发积分用 `fromId=Pointtransfer.ID_C_SYS`、`toId=userId`；扣积分用 `fromId=userId`、`toId=Pointtransfer.ID_C_SYS`（常用类型 `Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT`）。
-- 需要给用户发“系统转账通知”时：在转账成功拿到 `transferId` 后，调用 `NotificationMgmtService#addPointTransferNotification`，并设置 `Notification.NOTIFICATION_USER_ID` 与 `Notification.NOTIFICATION_DATA_ID=transferId`。
-- 通知金手指：`POST /user/edit/notification`（`UserProcessor#sendSystemNotification`），使用 `gold.finger.notification` 校验；请求体使用 `userName` + `notification` + `goldFingerKey`，新正文优先写 `notification.content`（最大 4096），老库未补 `content` 列时仅兼容旧 64 字纯文本 `dataId` 链路。
-- 定制系统通知渲染：`Notification.DATA_TYPE_C_CUSTOM_SYS` 在 `NotificationQueryService#getSysAnnounceNotifications` 处理；`dataId=1` 为固定“水贴提醒”模板，水贴检测新增通知需调用 `NotificationMgmtService#addSysAnnounceShuiTieNotification`，不要把 `"1"` 作为正文传给 `addSysAnnounceCustomNotification`；`content` 支持 Markdown 链接 `[文本](http/https://...)` 与换行，原始 HTML 会被转义后再清洗。
-- VIP 管理页配置项不再手填 JSON：前端依据等级 `benefits` 模板自动生成可视化表单，再序列化为 `configJson` 提交。
-- VIP 管理页样式需注意 `home.css` 的 `.form--admin label { flex: 1; }` 会影响布局；配置项行在 `vip-admin.scss` 中需显式改为整行（label/builder 100%）并对 checkbox 使用类型选择器，避免控件被放大。
-- 有效期字段：勋章 `expireTime`（毫秒，`0`=永久）；会员 `expiresAt`（可回填勋章到期）。
-- 首页最新文章链路：`IndexProcessor#loadIndexData` 通过 `ArticleQueryService#getIndexRecentArticles(fetchSize, page)` 组装 classic/pc 与 classic/mobile 首页“最新文章”；第一页置顶插入与数量行为在该方法维护。
-- 首页模块个性化链路：classic PC/移动首页模板引入 `home-personalize.js`、`home-modules.js`、`repeater-station.js`，配置状态保存在浏览器 `localStorage`；重置布局要按初始 DOM 锚点恢复，不能简单 append 到父容器末尾；移动端首页参与配置的模块需作为同一个 `home-personalize-zone` 的直接子项；复读机接口在 `RepeaterProcessor`，数据表为 `repeater_content`/`repeater_like`。
-- `/recent` 与 `/api/articles/recent*` 共用 `ArticleQueryService#getRecentArticles`；该链路已明确排除长篇（`articleType=6`），长篇列表请走 `/recent/long` 页面或 `GET /api/articles/recent/long`。
-- 首页两列对齐约束：`getIndexRecentArticles` 的第一页会插入全部置顶且不截断；第二页起需按第一页“置顶占位数”补偿 `fetchSize` 与分页偏移，并基于已排除置顶 ID 的普通文章序列取数，保证两列等高、不重复、不丢中间文章。
-- 首页右侧排行补偿（无前端延迟）：由 `IndexProcessor#loadIndexData` 按两列最新文章的最大行数计算 `rankCompensateRows`，先换算“右栏总补偿行数”再分摊到 `checkinVisibleCount/onlineVisibleCount`，Freemarker 直接按该数量渲染，不再依赖 JS 运行时增删行。
-- 专栏封面链路：封面字段是 `long_article_column.columnCoverURL`；默认封面在 `LongArticleColumnQueryService` 填充；作者管理页为 `/column/manage`，编辑长篇页的弹窗脚本是 `long-article-cover-dialog.js`，新建长篇封面随 `/article` 请求的 `columnCoverURL` 写入；封面保存接口为 `POST /api/columns/{columnId}/cover`，处理器是 `LongArticleColumnProcessor`。
-- 长文阅读页以 `articleType=6` 区分，PC/移动模板均为 `skins/classic/*/article.ftl`，样式在 `index.scss`/`mobile-base.scss`，交互在 `long-article.js`/`m-long-article.js`；模板通过 `hidePageChrome` 不渲染顶部与底部视觉内容，但 footer 的公共脚本仍需加载；桌面宽度和两端字号统一保存在 `localStorage.longArticleSettings`，宽度仅在 PC 生效；PC 评论按钮控制居中的“正文 + 评论”阅读舞台，移动端使用右侧抽屉，现有评论列表、筛选、分页和编辑器均复用；专栏目录直接复用阅读页数据模型中的 `longArticleChapters`，PC/移动均需同步目录模板、样式与工具栏脚本。
-- 长文段评链路：`LongArticleParagraphService` 根据服务端清洗后的正文生成段落锚点并给 HTML 添加 `data-long-paragraph-*`；段评字段存于 `comment`（`commentType=1`），新增接口位于 `CommentProcessor` 的 `/comment/paragraph*`；评论编辑事务调用段落迁移，无法匹配的段评标记为失效但保留快照。PC/移动均加载 `long-article-paragraph.js`，段评列表复用现有评论线程与编辑器能力。
-- 管理员文章页编辑长文专栏时，`admin/article.ftl` 会随文章表单提交 `columnCoverURL`，后端在 `ArticleMgmtService` 的文章事务内复用 `ColumnCoverMgmtService` 校验并更新或清空专栏封面。
-- 路由总入口：`Router#requestMapping` + 各 Processor `register()`；新增路由先决定使用 `loginCheck` / `apiCheck` / `permission` / `anonymousViewCheck` 哪条链路。
-- Latke 路由存在静态段被相邻动态段截获的风险（如 `/article/{id}/revisions/list` 可能进入 `/article/{id}/revisions/{revisionId}`）；新增相邻路由时需避免路径歧义，或在处理方法中显式识别保留字。
-- `BeforeRequestHandler` 通过 `Dispatcher.startRequestHandler` 在路由中间件前执行；该阶段 `query/form/cookie` 已由 latke-core 解析，可直接读取请求参数与 Cookie。
-- `BeforeRequestHandler` 获取当前用户优先用 `UserQueryService#getCurrentUser(request)`（底层 `Sessions.currentUser(request)`）；`Sessions.getUser()` 仅读取 ThreadLocal，未 `Sessions.setUser(...)` 前通常为 `null`。
-- `LoginCheckMidware#handle`：未登录统一 401（特殊 URI `/gen` 返回空 SVG）；支持 `Sessions` 与 `apiKey` 两种登录态来源。
-- 新接口若需“页面登录态 + apiKey 调用”双兼容，路由层优先挂 `loginCheck::handle`，处理方法再读取 `context.attr(User.USER)`；避免只挂 `permission` 导致拿不到当前用户对象。
-- OAuth/OpenID 用户资源链路在 `OpenIdProcessor`：`/openid/login` 通过 `fishpi.scope` 请求 `profile.read/profile.detail.read/points.read/articles.read/membership.read`，`/openid/verify` 成功后返回 Bearer `access_token` 与可轮换 `refresh_token`；资源接口只认 `Authorization: Bearer`，续签走匿名 `POST /openid/token`，不接收 `apiKey`、不支持 `userId` 代查。
-- 文章页实时链路走 `ArticleChannel`：新增评论仍是 `type=comment`，评论 reaction 增量走 `type=commentReaction`，帖子本体 reaction 增量走 `type=articleReaction`；联调这类 Java 推送改动时，前端强刷还不够，必须让用户重启或重新编译服务端。
-- 账号设置手机/邮箱验证码链路：PC/移动模板在 `skins/classic/*/home/settings/account.ftl`，前端在 `settings.js`，发送接口在 `SettingsProcessor#sendPhoneVC/sendEmailVC`；验证码形态调整需同步前端提交字段与后端校验方式。
-- `AnonymousViewCheckMidware#handle`：匿名访客的验证码判定顺序为「登录态/apiKey → 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同 IP 有用户登录过就永久免验证，属既定设计）→ 2 小时内已通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 每 5 次访问」。计数窗口为 2 小时，累计 300 次触发 `Firewall` 封禁；`/api/` 命中验证码规则时返回 401 且不拉黑，避免服务端客户端被永久卡住。`sitemap.xml` 不在豁免名单内，仍依赖已验证蜘蛛通行。
-- `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。
-- 历史遗留：部分接口未在路由层挂登录中间件而在方法内鉴权（如 `MedalProcessor#requireAdmin/requireLogin`、`UserProcessor` 的 goldFingerKey 系列）；新增接口不要复用该模式，优先路由层显式鉴权。
-- 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
-- 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。
+- 每个新代码任务先核实现有入口、调用链、业务规则和事务边界，说明方案、影响、兼容风险与自测要求，并发送 [开发准入提醒](docs/agent-guides/workflow.md#开发准入与兼容)。收到当前开发者明确确认后才可改代码；未确认只能只读调研。恢复任务须核实本轮确认记录，范围或规则实质变化须再次确认；用户明确要求的本文件及配套规则文档维护不受代码门禁阻塞。
+- 不猜业务规则，不擅改旧入口、接口字段、鉴权、异常语义或兼容行为；不以吞错、静默降级或夹具成功掩盖问题。源码清晰可读，新增注释用简体中文；不顺手扩大重构或把业务值配置化。
+- 验证码盾及受保护调用未经阿达明确允许不得修改、移动、删除或绕过；部署前运行 `python tools/check-captcha-shield.py`，禁止重建指纹消除失败。相关任务必读 [保护边界](docs/agent-guides/captcha-crawlers.md) 和 [验证码盾说明](docs/captcha-shield.md)。
 
-## 反漏扫 / 搜索引擎 / 封禁链路（现行基线）
+## 实施底线
 
-- 威胁模型：单位漏扫通常从 `/` 起步；搜索引擎爬虫与搜索落地用户会直接从文章页进入。因此「文章页首访免验证码」是刻意设计，不要改成「未验证就零内容」，也不要为方便爬虫把 `/sitemap.xml` 加进公开豁免（会被漏扫利用）。
-- 蜘蛛识别顺序：`SearchEngines.detectCrawler(UA)` 判定身份 → `verifiedCrawler(ip, ua)` 做 PTR 反查 + 正向 A 双向校验（`SearchEngineDnsVerifier`），正向缓存 6 小时、负缓存 10 分钟。DNS 瞬断会让真爬虫被当匿名 10 分钟，排查「蜘蛛被弹验证码」时先看这里。
-- DuckDuckGo 没有可用 PTR（Azure 通用域名），只能靠本地 CIDR 文件 `src/main/resources/search-engines/duckduckgo-bot-prefixes.json` 匹配，不做 DNS 校验；该文件由部署脚本在打包前合并官方 JSON。
-- `BeforeRequestHandler` 的蜘蛛豁免只认 `verifiedCrawler` 的返回值，不要用 `Sessions.isBot()`：后者对 Iframely / BUbiNG / ltx71 等 UA 也为 true，等于给伪造 UA 开了后门。
-- `Firewall`：已验证蜘蛛不计数、不封禁；`ipset` 集合 `fishpi` 为永久封禁（`ipset add` 不带 timeout，`BANNED` 缓存无过期），解封唯一入口是后台 `/admin/ip`。该操作会 `ipset del`、清黑名单/计数/首访缓存、把 IP 加入内存白名单并回填通过时间；白名单与缓存都是内存态，服务重启后解封失效。
-- `ipset` 集合创建时未带 `timeout` 就无法对单条记录设置过期；要恢复过期能力必须用 `ipset swap` 重建集合并同步 iptables，不能直接 `ipset add ... timeout`。
-- 生产 nginx 为直连（未走 CDN），`$clientRealIp` 直接取 `$remote_addr`，XFF 等头不可伪造；`/etc/nginx/blockip.conf` 现在只是封禁记录文件，nginx 已不再 include，实际拦截靠 ipset。
-- 运维脚本 `scripts/anti_cc.sh`（`/scripts/` 已被 `.gitignore` 忽略，内含部署凭证，禁止提交）：保留「单 IP 400 req/min、503 超量、CONNECT/特殊字符」三段检测，封禁前做蜘蛛豁免（含 DuckDuckGo CIDR），单次运行内对 PTR/正向查询做缓存；日志固定写独立文件（默认 `/var/log/anti_cc.log`，不可写回退 `/tmp`）；封禁同样不带 timeout。解封需 `ipset del` 且删除记录行，只删 ipset 会被脚本按记录行判重重新加回。
-- SEO 基线：`robots.txt` 对 `/recent` `/qna` `/column` `/tag/` `/api/` `/article/1636516552191` `/article/*/revisions/` 等做 disallow；`articleType=1`（讨论帖）不再输出 NOINDEX；PC/移动 `article.ftl` 的 canonical 统一用 `${servePath}${article.permalink}`；PC/移动 `macro-head.ftl` 保留 `applicable-device`。
-- 匿名可见性过滤：首页最新文章、标签/列表、置顶、作者上/下一篇、时间导航、sitemap 统一排除 `articleAnonymousView == NOT_ALLOW`。Latke 的 `NOT_EQUAL` 生成标准 SQL `!=`，**NULL 行会被排除**，历史数据必须保证该字段非 NULL，否则内容会成片消失。
-- `/sitemap.xml` 是单文件、`setPage(1, Integer.MAX_VALUE)` 一次性取全部文章；超过 5 万条 URL 或响应过大时 Google Search Console / 百度会报「无法读取」。若需修复，应改为 sitemap index + 分片，而不是放宽访问控制。
+- 当前开发环境为 `http://localhost:8080`，生产为 `https://fishpi.cn`。Java 固定25；未经用户明确要求或同意，不主动执行 Maven 编译。Java/FTL 联调前明确提醒用户通过 IDEA 重新编译或重启并等待确认；JS/SCSS 构建后强刷。环境、`target/classes` 与本地 Latke 陷阱见 [框架专题](docs/agent-guides/environment-framework.md)。
+- 前端只改 `.scss` 与非 `min.js` 源码，执行 `yarn run build` 生成产物；同步评估 `skins/classic/pc` 与 `skins/classic/mobile`，不得只修一端。页面卡片保持同级，不嵌套卡片容器。
+- 数据库写入必须完整事务提交；新增 Repository 同步 SQL 和 `src/main/resources/repository.json`，模型/仓库名不加 `symphony_` 前缀。框架严格提交、锁序和缓存边界按相关专题执行。
+- 新路由默认显式要求登录，匿名入口必须接入验证码盾；旧接口的 Sessions/apiKey 与 V3 Bearer 身份边界不可混用。公开响应、模板和事件使用白名单/脱敏；接口变更须评估鉴权、越权、CSRF、XSS、注入、SSRF、批量滥用及敏感信息泄露，详见 [访问控制](docs/agent-guides/security-access.md)。
+- 新增、修改、删除接口须同步 `API.md` 和 `UPDATE_LOG.md`，影响客户端的契约变更先取得同意；文档格式、鉴权文案、公开边界及网站同步要求见 [接口文档专题](docs/agent-guides/api-contracts.md)。
+
+## 验证与提交
+
+- 提交前完成与范围匹配的自动验证和真实链路核对；代码审查、发布及公开入口改动必须执行适用 [反漏扫检查](docs/agent-guides/security-access.md#反漏扫与安全检查)、验证码盾指纹、JS版本/CDN/source map检查。不适用说明依据，未验证明确保留；夹具、构建或AI检查不能替代人工验收。
+- 交付列出实际文件与行为、验证命令和结果、未覆盖风险，并提供完整人工测试步骤；前端须开发者亲测PC/移动。阶段完成先报告并等待用户确认，未收到亲测结果只能标“待人工验收”，不得宣称可合入/发布；缺少亲测、检查失败或质量不足按 [交付门禁](docs/agent-guides/workflow.md#测试与交付) 明确“拒绝合入”。
+- 自动 commit 按会话确认，尚无明确选择时只询问一次；同意后每次修改完成并验证即自动本地提交，不重复询问，拒绝或未答复不自动提交，后续明确指令可变更选择。无关工作区改动保留并继续本次任务，结束只提交本次必要改动，告知跳过项；同文件交叉改动按 [提交边界](docs/agent-guides/workflow.md#协作与文档维护) 处理。
+- 用户消息去除首尾空白后仅为 `commit`，即授权提交当前工作区全部未提交内容；仅为 `push`，即授权先提交全部未提交内容再推送。Rhythm 与 website_v3 分别提交，未明确要求不推送；提交消息必须中文，技术标识可保留英文，开头可加一个 Git emoji，**emoji 后必须加一个空格**，例如 `:memo: 精简项目约定`。
+
+目录、模块入口和全部细节见 [专题索引](docs/agent-guides/README.md)；旧条目去向见 [迁移对照](docs/agent-guides/migration-map.md)。Claude/Gemini 入口只引用本文件，不另存一套规则。

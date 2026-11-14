@@ -116,6 +116,9 @@ public class CommentProcessor {
     @Inject
     private CommentMgmtService commentMgmtService;
 
+    @Inject
+    private CommentRemovalMgmtService commentRemovalMgmtService;
+
     /**
      * Comment query service.
      */
@@ -208,7 +211,8 @@ public class CommentProcessor {
         context.renderJSON(StatusCodes.ERR);
 
         final JSONObject requestJSONObject = context.requestJSON();
-        final JSONObject currentUser = Sessions.getUser();
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) { context.sendError(403); return; }
         final String userId = currentUser.optString(Keys.OBJECT_ID);
         final String commentId = requestJSONObject.optString(Comment.COMMENT_T_ID);
 
@@ -231,7 +235,7 @@ public class CommentProcessor {
                 return;
             }
 
-            commentMgmtService.acceptComment(commentId);
+            commentMgmtService.acceptComment(commentId, userId);
 
             context.renderJSON(StatusCodes.SUCC);
         } catch (final ServiceException e) {
@@ -251,13 +255,11 @@ public class CommentProcessor {
             return;
         }
 
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            final JSONObject requestJSONObject = context.requestJSON();
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) {
+            context.sendError(403);
+            return;
         }
-
         final String currentUserId = currentUser.optString(Keys.OBJECT_ID);
         final JSONObject comment = commentQueryService.getComment(id);
         if (null == comment) {
@@ -273,27 +275,30 @@ public class CommentProcessor {
 
         context.renderJSON(StatusCodes.ERR);
         try {
-            // 评论扣除100积分
-            final boolean succ = null != pointtransferMgmtService.transfer(currentUserId, Pointtransfer.ID_C_SYS,
-                    Pointtransfer.TRANSFER_TYPE_C_DEL_COMMENT,
-                    Symphonys.POINT_DELETE_COMMENT, "", System.currentTimeMillis(), "");
-            if (!succ) {
-                context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                return;
-            }
-
-            // 日志记录
-            LogsService.commentLog(context, currentUser.optString(User.USER_NAME), comment);
-
-            commentMgmtService.removeComment(id);
+            final JSONObject audit = new JSONObject();
+            commentRemovalMgmtService.remove(currentUserId, id, (actor, article, lockedComment) -> {
+                audit.put("name", actor.optString(User.USER_NAME));
+                audit.put("comment", new JSONObject(lockedComment.toString()));
+            });
+            LogsService.commentLog(context, audit.optString("name"), audit.getJSONObject("comment"));
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
             context.renderJSONValue(Comment.COMMENT_T_ID, id);
-        } catch (final ServiceException e) {
-            final String msg = e.getMessage();
-
-            context.renderMsg(msg);
-            context.renderJSONValue(Keys.CODE, StatusCodes.ERR);
+        } catch (final CommentRemoval.Rejected e) {
+            if ("not_found".equals(e.code)) { context.sendError(404); return; }
+            if ("forbidden".equals(e.code)) { context.sendError(403); return; }
+            final String message = switch (e.code) {
+                case "has_replies" -> langPropsService.get("removeCommentFoundReplyLabel");
+                case "has_votes" -> langPropsService.get("removeCommentFoundWatchEtcLabel");
+                case "has_thanks" -> langPropsService.get("removeCommentFoundThankLabel");
+                case "accepted" -> langPropsService.get("removeCommentFoundOfferedLabel");
+                case "insufficient_balance" -> "少年，你的积分不足！";
+                default -> "删除评论失败，请稍后重试";
+            };
+            context.renderMsg(message);
+        } catch (final Exception e) {
+            LOGGER.error("Remove own comment failed [id={}]", id, e);
+            context.renderMsg("删除评论失败，请稍后重试");
         }
     }
 
@@ -372,11 +377,7 @@ public class CommentProcessor {
             }
 
             final JSONObject requestJSONObject = (JSONObject) context.attr(Keys.REQUEST);
-            JSONObject currentUser = Sessions.getUser();
-            try {
-                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-            } catch (NullPointerException ignored) {
-            }
+            final JSONObject currentUser = (JSONObject) context.attr(User.USER);
             if (!currentUser.optString(Keys.OBJECT_ID).equals(comment.optString(Comment.COMMENT_AUTHOR_ID))) {
                 context.sendError(403);
                 return;
@@ -942,11 +943,7 @@ public class CommentProcessor {
         }
 
         try {
-            JSONObject currentUser = Sessions.getUser();
-            try {
-                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-            } catch (NullPointerException ignored) {
-            }
+            final JSONObject currentUser = (JSONObject) context.attr(User.USER);
             final String userPhone = currentUser.optString("userPhone");
             if (userPhone.isEmpty()) {
                 context.renderJSON(StatusCodes.ERR).renderMsg("未绑定手机号码，无法使用此功能。请至设置-账户中绑定手机号码。");
@@ -985,12 +982,6 @@ public class CommentProcessor {
 
             final String commentId = commentMgmtService.addComment(comment);
 
-            if ((!commentAuthorId.equals(articleAuthorId) &&
-                    UserExt.USER_XXX_STATUS_C_ENABLED == currentUser.optInt(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS))
-                    || Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)) {
-                followMgmtService.watchArticle(commentAuthorId, articleId);
-            }
-
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
             if (paragraphComment) {
                 context.renderJSONValue("commentId", commentId);
@@ -1009,11 +1000,8 @@ public class CommentProcessor {
         context.renderJSON(StatusCodes.ERR);
 
         final JSONObject requestJSONObject = context.requestJSON();
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-        } catch (NullPointerException ignored) {
-        }
+        final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+        if (null == currentUser) { context.sendError(403); return; }
         final String commentId = requestJSONObject.optString(Comment.COMMENT_T_ID);
 
         try {

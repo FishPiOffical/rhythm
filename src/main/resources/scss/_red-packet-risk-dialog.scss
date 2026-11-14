@@ -1,0 +1,53 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+// Risk confirmation must remain usable when the desktop skin runs in a narrow window.
+// Util.alert sets inline coordinates before this scoped class is attached.
+.dialog-panel.dialog-panel--packet-risk {
+  inset: 16px !important;
+  margin: auto;
+  box-sizing: border-box;
+  width: 500px;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+
+  .red-packet-risk-field {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .red-packet-risk-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    button {
+      max-width: 100%;
+      min-height: 40px;
+      margin: 0;
+      white-space: normal;
+    }
+  }
+}

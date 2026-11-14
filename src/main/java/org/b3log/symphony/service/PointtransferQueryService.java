@@ -34,6 +34,7 @@ import org.b3log.symphony.util.DateUtils;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Escapes;
 import org.b3log.symphony.util.Symphonys;
+import org.b3log.symphony.util.UserNamePointData;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -282,6 +283,11 @@ public class PointtransferQueryService {
                     desTemplate = buildAppPointDescription(record, userId.equals(toId));
                 } else {
                     desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
+                }
+
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
+                    record.put(Common.DISPLAY_TYPE, "外观购买");
+                    desTemplate = Escapes.escapeHTML(dataId);
                 }
 
                 switch (type) {
@@ -592,9 +598,7 @@ public class PointtransferQueryService {
                         desTemplate = desTemplate.replace("{article}", articleLink34);
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_CHANGE_USERNAME:
-                        final String oldName = dataId.split("-")[0];
-                        final String newName = dataId.split("-")[1];
-                        desTemplate = desTemplate.replace("{oldName}", oldName).replace("{newName}", newName);
+                        desTemplate = UserNamePointData.description(record, desTemplate);
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_BLMZ:
                         break;

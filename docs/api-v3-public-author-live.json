@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-02",
+  "deployment": {
+    "javaPid": 96544,
+    "userConfirmedRebuild": true
+  },
+  "scope": "Actual recompiled article page author JOIN, public profile/comment projections and stored avatar URL preservation",
+  "results": [
+    {
+      "step": "warm-article-list",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-detail-author",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-public-profile",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-avatar-setting",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-list-author-latest",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-list-author-active",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-list-author-hot",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-list-author-comments",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-list-author-month-comments",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-long-list-authors",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "current-comment-authors",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "anonymous-detail-no-identity",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "anonymous-list-no-identity",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "invalid-stored-avatar-is-empty",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "invalid-public-avatar-safe-default",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "legacy-query-avatar-readable",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "step": "legacy-query-public-profile",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    }
+  ],
+  "originalUserFieldsRestored": true,
+  "articleAnonymousRestored": true,
+  "balancesUnchanged": true,
+  "limits": [
+    "Synthetic signed URL is not fetched remotely; exact returned URI is verified, not provider signature validity or image availability",
+    "Five recent sorts and long list checked; not every search/following/domain/city query combination or multi-node race",
+    "No claim of all legacy classic image transforms or physical-device image rendering"
+  ]
+}

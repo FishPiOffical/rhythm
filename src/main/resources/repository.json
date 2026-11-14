@@ -10,37 +10,1704 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_risk_state",
+      "description": "宠物账号保护状态与有界命令记录",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "stateJson",
+          "type": "String",
+          "length": 131072
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_risk_audit",
+      "description": "宠物保护事件摘要，不保存身份令牌与验证码证明",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 36
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "commandHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "bodyHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "reason",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "occurredAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_risk_proof",
+      "description": "验证码批次一次性消费记录，仅保存摘要",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "challengeId",
+          "type": "String",
+          "length": 36
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_story_progress",
+      "description": "账号事件链冻结步骤、进度与一次性领奖事实",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "storyId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "completedSteps",
+          "type": "int"
+        },
+        {
+          "name": "completedAt",
+          "type": "long"
+        },
+        {
+          "name": "claimedAt",
+          "type": "long"
+        },
+        {
+          "name": "snapshotJson",
+          "type": "String",
+          "length": 8192
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_archive",
+      "description": "重新领养前原宠物主体归档，成长历史仍在原记录中",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "retiredAt",
+          "type": "long"
+        },
+        {
+          "name": "snapshotJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
+      "name": "pet_collection",
+      "description": "账号永久纪念收藏，不随宠物替换清除",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "collectionId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "unlockedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_journal",
+      "description": "照顾、制作和购买的事务事件快照，计时活动日志单独联查",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "action",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "occurredAt",
+          "type": "long"
+        },
+        {
+          "name": "eventJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
+      "name": "pet_job_progress",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "jobId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "completed",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_income_account",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "date",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "earned",
+          "type": "int"
+        },
+        {
+          "name": "lastSettlementAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_activity_result",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "actualJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
+      "name": "pet_activity",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "entryId",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "slotKey",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "startedAt",
+          "type": "long"
+        },
+        {
+          "name": "endsAt",
+          "type": "long"
+        },
+        {
+          "name": "claimedAt",
+          "type": "long"
+        },
+        {
+          "name": "snapshotJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
+      "name": "pet_skill",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "skillId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_account",
+      "description": "宠物钱包及账号级每日奖励，oId为用户ID",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "coins",
+          "type": "int"
+        },
+        {
+          "name": "supplyDate",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "growthDate",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "growthCount",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "user_pet",
+      "description": "本人唯一宠物及活动状态",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "speciesId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "length": 256
+        },
+        {
+          "name": "hunger",
+          "type": "double"
+        },
+        {
+          "name": "water",
+          "type": "double"
+        },
+        {
+          "name": "mood",
+          "type": "double"
+        },
+        {
+          "name": "energy",
+          "type": "double"
+        },
+        {
+          "name": "experience",
+          "type": "int"
+        },
+        {
+          "name": "friendship",
+          "type": "int"
+        },
+        {
+          "name": "lastCalculatedAt",
+          "type": "long"
+        },
+        {
+          "name": "activityKind",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "activityStartedAt",
+          "type": "long"
+        },
+        {
+          "name": "activityEndsAt",
+          "type": "long"
+        },
+        {
+          "name": "petAvailableAt",
+          "type": "long"
+        },
+        {
+          "name": "playAvailableAt",
+          "type": "long"
+        },
+        {
+          "name": "adoptedAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_inventory",
+      "description": "宠物独立背包，同用户同物品唯一",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "itemId",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "quantity",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "pet_ledger",
+      "description": "宠物币与口粮流水，不参与站点积分",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "coinDelta",
+          "type": "int"
+        },
+        {
+          "name": "foodDelta",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "appearance_product",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "price7",
+          "type": "int"
+        },
+        {
+          "name": "price30",
+          "type": "int"
+        },
+        {
+          "name": "enabled",
+          "type": "int"
+        },
+        {
+          "name": "revision",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "appearance_entitlement",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "productId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "equipped",
+          "type": "int"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "appearance_purchase",
+      "description": "积分外观商城",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "productId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "days",
+          "type": "int"
+        },
+        {
+          "name": "paidPoints",
+          "type": "int"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "transferId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_game_save",
+      "description": "Private versioned current saves for registered external games",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "gameId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "revision",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        },
+        {
+          "name": "byteLength",
+          "type": "int"
+        },
+        {
+          "name": "sha256",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "data",
+          "type": "String",
+          "length": 500000
+        }
+      ]
+    },
+    {
+      "name": "api_v3_app_login_request",
+      "description": "Short-lived explicitly confirmed native APP login requests",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "issuerTokenId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "credentialEpoch",
+          "type": "long"
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255
+        },
+        {
+          "name": "state",
+          "type": "String",
+          "length": 16
+        },
+        {
+          "name": "codeChallenge",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "user_chat_tail",
+      "description": "用户小尾巴设置，oId为用户ID，消息另存发送快照",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19 },
+        { "name": "enabled", "type": "int" },
+        { "name": "text", "type": "String", "length": 512 },
+        { "name": "updatedAt", "type": "long" }
+      ]
+    },
+    {
+      "name": "user_chat_appearance",
+      "description": "用户当前聊天外观，消息另存发送快照",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID主键"
+        },
+        {
+          "name": "bubbleId",
+          "type": "String",
+          "length": 32,
+          "description": "气泡包ID"
+        },
+        {
+          "name": "frameId",
+          "type": "String",
+          "length": 32,
+          "description": "头像框包ID"
+        },
+        {
+          "name": "version",
+          "type": "int",
+          "description": "外观格式版本"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
+    },
+    {
+      "name": "chat_red_packet",
+      "description": "Durable chat red packet settlement",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "senderId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "type",
+          "type": "String",
+          "length": 17
+        },
+        {
+          "name": "message",
+          "type": "String",
+          "length": 20
+        },
+        {
+          "name": "money",
+          "type": "int"
+        },
+        {
+          "name": "count",
+          "type": "int"
+        },
+        {
+          "name": "got",
+          "type": "int"
+        },
+        {
+          "name": "principalPoints",
+          "type": "int"
+        },
+        {
+          "name": "poolPoints",
+          "type": "int"
+        },
+        {
+          "name": "taxPoints",
+          "type": "int"
+        },
+        {
+          "name": "feeRecipientId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "senderGesture",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "chat_red_packet_slot",
+      "description": "Durable chat red packet settlement",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "messageId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "ordinal",
+          "type": "int"
+        },
+        {
+          "name": "amount",
+          "type": "int"
+        },
+        {
+          "name": "recipientId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "claimUserId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "claimedAt",
+          "type": "long"
+        },
+        {
+          "name": "transferId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "gesture",
+          "type": "int"
+        },
+        {
+          "name": "senderRefundPoints",
+          "type": "int"
+        },
+        {
+          "name": "senderTransferId",
+          "type": "String",
+          "length": 19
+        }
+      ]
+    },
+    {
+      "name": "api_v3_post_export",
+      "description": "Private expiring owner-bound content export",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "capturedAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "articleCount",
+          "type": "long"
+        },
+        {
+          "name": "commentCount",
+          "type": "long"
+        },
+        {
+          "name": "sourceBytes",
+          "type": "long"
+        },
+        {
+          "name": "byteLength",
+          "type": "long"
+        },
+        {
+          "name": "sha256",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "chunkCount",
+          "type": "int"
+        },
+        {
+          "name": "paidPoints",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_post_export_chunk",
+      "description": "Private expiring owner-bound content export",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "jobId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "sequenceNo",
+          "type": "int"
+        },
+        {
+          "name": "byteLength",
+          "type": "int"
+        },
+        {
+          "name": "data",
+          "type": "String",
+          "length": 65536
+        }
+      ]
+    },
+    {
+      "name": "api_v3_mfa_preparation",
+      "description": "Owner-bound ten-minute MFA preparation; secret never enters ordinary receipts",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "preparationHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "secret",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "proofBinding",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "state",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "account_credential_state",
+      "description": "独立账户凭据撤销版本",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID"
+        },
+        {
+          "name": "credentialEpoch",
+          "type": "long",
+          "description": "内部凭据版本"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_authorization_request",
+      "description": "Server-owned one-use explicit OAuth consent requests",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "redirectUri",
+          "type": "String",
+          "length": 2048
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255
+        },
+        {
+          "name": "state",
+          "type": "String",
+          "length": 1024
+        },
+        {
+          "name": "codeChallenge",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "consentHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "decidedAt",
+          "type": "long"
+        },
+        {
+          "name": "decision",
+          "type": "String",
+          "length": 16
+        }
+      ]
+    },
+    {
+      "name": "api_v3_client_redirect",
+      "description": "Exact OAuth client callback registrations",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "redirectUri",
+          "type": "String",
+          "length": 2048
+        },
+        {
+          "name": "status",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_authorization_code",
+      "description": "Hash-only one-use OAuth S256 authorization grants",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "redirectUri",
+          "type": "String",
+          "length": 2048
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255
+        },
+        {
+          "name": "codeChallenge",
+          "type": "String",
+          "length": 43
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "consumedAt",
+          "type": "long"
+        },
+        {
+          "name": "familyId",
+          "type": "String",
+          "length": 64
+        }
+      ]
+    },
+    {
+      "name": "api_v3_chat_state",
+      "description": "Committed public-room change sequence",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Room key"
+        },
+        {
+          "name": "revision",
+          "type": "long",
+          "description": "Committed room revision"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Last change time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_chat_event",
+      "description": "Committed chat changes without message payloads",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Revision key"
+        },
+        {
+          "name": "revision",
+          "type": "long",
+          "description": "Commit-serialized room revision"
+        },
+        {
+          "name": "messageId",
+          "type": "String",
+          "length": 32,
+          "description": "Changed message ID"
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 16,
+          "description": "Change kind"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "Change time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_article_revision",
+      "description": "Committed article and interaction invalidation per article",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Article ID"
+        },
+        {
+          "name": "revision",
+          "type": "String",
+          "length": 32,
+          "description": "Opaque change marker"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Last change time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_notification_revision",
+      "description": "Committed notification invalidation per owner",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Notification owner"
+        },
+        {
+          "name": "revision",
+          "type": "String",
+          "length": 32,
+          "description": "Opaque change marker"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Last change time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_private_revision",
+      "description": "Committed private-message invalidation per owner",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Private-message owner"
+        },
+        {
+          "name": "revision",
+          "type": "String",
+          "length": 32,
+          "description": "Opaque change marker"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Last change time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_socket_ticket",
+      "description": "API v3 one-use socket grants; only credential hashes are stored",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64,
+          "description": "Ticket hash"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "Owner"
+        },
+        {
+          "name": "parentTokenId",
+          "type": "String",
+          "length": 19,
+          "description": "Authorizing access token row"
+        },
+        {
+          "name": "channel",
+          "type": "String",
+          "length": 32,
+          "description": "Authorized channel"
+        },
+        {
+          "name": "targetId",
+          "type": "String",
+          "length": 32,
+          "description": "Authorized resource or empty for owner notifications"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "Issue time"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long",
+          "description": "Authentication deadline"
+        },
+        {
+          "name": "consumedAt",
+          "type": "long",
+          "description": "Zero until consumed"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_request",
+      "description": "API v3 committed idempotent mutation results",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64,
+          "description": "Hashed user/operation/idempotency key"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "Owner"
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 128,
+          "description": "Mutation operation"
+        },
+        {
+          "name": "requestHash",
+          "type": "String",
+          "length": 64,
+          "description": "Normalized request hash"
+        },
+        {
+          "name": "responseJson",
+          "type": "String",
+          "length": 65536,
+          "description": "Successful response data"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "Committed request time"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_client",
+      "description": "API v3 client registrations",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Primary key"
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64,
+          "description": "Client identifier"
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "length": 128,
+          "description": "Display name"
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255,
+          "description": "Allowed scopes"
+        },
+        {
+          "name": "status",
+          "type": "int",
+          "description": "0 active"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_token",
+      "description": "API v3 access and refresh token hashes",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Primary key"
+        },
+        {
+          "name": "tokenHash",
+          "type": "String",
+          "length": 128,
+          "description": "Token hash"
+        },
+        {
+          "name": "tokenType",
+          "type": "String",
+          "length": 16,
+          "description": "access or refresh"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "User ID"
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64,
+          "description": "Client identifier"
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255,
+          "description": "Granted scopes"
+        },
+        {
+          "name": "familyId",
+          "type": "String",
+          "length": 64,
+          "description": "Rotation family"
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "length": 19,
+          "description": "Prior refresh token"
+        },
+        {
+          "name": "state",
+          "type": "int",
+          "description": "0 active, 1 rotated, 2 revoked, 3 expired"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "Created time"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Updated time"
+        },
+        {
+          "name": "lastUsedAt",
+          "type": "long",
+          "description": "Last used time"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long",
+          "description": "Expiration time"
+        }
+      ]
+    },
+    {
       "name": "openid_refresh_token",
       "description": "OpenID refresh token sessions",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "Primary key" },
-        { "name": "tokenHash", "type": "String", "length": 128, "description": "Refresh token hash" },
-        { "name": "userId", "type": "String", "length": 19, "description": "User ID" },
-        { "name": "realm", "type": "String", "length": 512, "description": "OpenID realm" },
-        { "name": "scope", "type": "String", "length": 255, "description": "Authorized scopes" },
-        { "name": "familyId", "type": "String", "length": 64, "description": "Token family ID" },
-        { "name": "parentId", "type": "String", "length": 19, "description": "Parent token row ID" },
-        { "name": "state", "type": "int", "description": "0 active, 1 rotated, 2 revoked, 3 expired" },
-        { "name": "createdAt", "type": "long", "description": "Created time" },
-        { "name": "updatedAt", "type": "long", "description": "Updated time" },
-        { "name": "lastUsedAt", "type": "long", "description": "Last used time" },
-        { "name": "idleExpiresAt", "type": "long", "description": "Idle expiration time" },
-        { "name": "maxExpiresAt", "type": "long", "description": "Max expiration time" }
+        {
+          "name": "credentialEpoch",
+          "type": "long",
+          "description": "内部账户凭据版本"
+        },
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "Primary key"
+        },
+        {
+          "name": "tokenHash",
+          "type": "String",
+          "length": 128,
+          "description": "Refresh token hash"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "User ID"
+        },
+        {
+          "name": "realm",
+          "type": "String",
+          "length": 512,
+          "description": "OpenID realm"
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "length": 255,
+          "description": "Authorized scopes"
+        },
+        {
+          "name": "familyId",
+          "type": "String",
+          "length": 64,
+          "description": "Token family ID"
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "length": 19,
+          "description": "Parent token row ID"
+        },
+        {
+          "name": "state",
+          "type": "int",
+          "description": "0 active, 1 rotated, 2 revoked, 3 expired"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "Created time"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "Updated time"
+        },
+        {
+          "name": "lastUsedAt",
+          "type": "long",
+          "description": "Last used time"
+        },
+        {
+          "name": "idleExpiresAt",
+          "type": "long",
+          "description": "Idle expiration time"
+        },
+        {
+          "name": "maxExpiresAt",
+          "type": "long",
+          "description": "Max expiration time"
+        }
       ]
     },
     {
       "name": "membership_level",
       "description": "会员等级定义",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "lvName", "type": "String", "length": 64, "description": "等级名称" },
-        { "name": "lvCode", "type": "String", "length": 32, "description": "等级编码" },
-        { "name": "price", "type": "int", "description": "售价（正整数）" },
-        { "name": "durationType", "type": "String", "length": 16, "description": "周期名称（示例：体验卡/日卡/周卡/月卡/年卡/终身卡）" },
-        { "name": "durationValue", "type": "int", "description": "周期值（天），最小 1" },
-        { "name": "benefits", "type": "String", "length": 102400, "description": "权益细节 JSON" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "lvName",
+          "type": "String",
+          "length": 64,
+          "description": "等级名称"
+        },
+        {
+          "name": "lvCode",
+          "type": "String",
+          "length": 32,
+          "description": "等级编码"
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "description": "售价（正整数）"
+        },
+        {
+          "name": "durationType",
+          "type": "String",
+          "length": 16,
+          "description": "周期名称（示例：体验卡/日卡/周卡/月卡/年卡/终身卡）"
+        },
+        {
+          "name": "durationValue",
+          "type": "int",
+          "description": "周期值（天），最小 1"
+        },
+        {
+          "name": "benefits",
+          "type": "String",
+          "length": 102400,
+          "description": "权益细节 JSON"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
@@ -96,30 +1763,112 @@
       "name": "membership",
       "description": "会员记录表",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户ID" },
-        { "name": "lvCode", "type": "String", "length": 32, "description": "等级编码" },
-        { "name": "state", "type": "int", "description": "0 未开通/已过期，1 已开通" },
-        { "name": "expiresAt", "type": "long", "description": "过期时间（终身为 0）" },
-        { "name": "configJson", "type": "String", "length": 102400, "description": "权益配置 JSON" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID"
+        },
+        {
+          "name": "lvCode",
+          "type": "String",
+          "length": 32,
+          "description": "等级编码"
+        },
+        {
+          "name": "state",
+          "type": "int",
+          "description": "0 未开通/已过期，1 已开通"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long",
+          "description": "过期时间（终身为 0）"
+        },
+        {
+          "name": "configJson",
+          "type": "String",
+          "length": 102400,
+          "description": "权益配置 JSON"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "membership_activation",
       "description": "等级开通记录",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户ID" },
-        { "name": "lvCode", "type": "String", "length": 32, "description": "等级编码" },
-        { "name": "price", "type": "int", "description": "售价（正整数）" },
-        { "name": "durationType", "type": "String", "length": 16, "description": "周期名称" },
-        { "name": "durationValue", "type": "int", "description": "周期值（天）" },
-        { "name": "couponCode", "type": "String", "length": 32, "description": "使用的优惠券代码（可为空）" },
-        { "name": "configJson", "type": "String", "length": 102400, "description": "权益配置 JSON" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户ID"
+        },
+        {
+          "name": "lvCode",
+          "type": "String",
+          "length": 32,
+          "description": "等级编码"
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "description": "售价（正整数）"
+        },
+        {
+          "name": "durationType",
+          "type": "String",
+          "length": 16,
+          "description": "周期名称"
+        },
+        {
+          "name": "durationValue",
+          "type": "int",
+          "description": "周期值（天）"
+        },
+        {
+          "name": "couponCode",
+          "type": "String",
+          "length": 32,
+          "description": "使用的优惠券代码（可为空）"
+        },
+        {
+          "name": "configJson",
+          "type": "String",
+          "length": 102400,
+          "description": "权益配置 JSON"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
@@ -899,6 +2648,12 @@
           "name": "expired",
           "type": "long",
           "description": "过期时间"
+        },
+        {
+          "name": "accountContext",
+          "type": "String",
+          "length": 512,
+          "description": "服务端注册短信的名称与邀请绑定"
         }
       ]
     },
@@ -1005,7 +2760,7 @@
         {
           "name": "sourceScene",
           "type": "String",
-          "length": 20,
+          "length": 64,
           "description": "来源场景"
         },
         {
@@ -2463,7 +4218,7 @@
         {
           "name": "content",
           "type": "String",
-          "length": 512,
+          "length": 10240,
           "description": "私聊消息内容"
         }
       ]
@@ -2525,6 +4280,12 @@
           "type": "String",
           "length": 64,
           "description": "两个用户的Hash"
+        },
+        {
+          "name": "messageId",
+          "type": "String",
+          "length": 19,
+          "description": "关联私信消息，历史记录为空"
         }
       ]
     },
@@ -2565,7 +4326,7 @@
         {
           "name": "data",
           "type": "String",
-          "length": 2000,
+          "length": 102400,
           "description": "数据"
         },
         {
@@ -2719,104 +4480,358 @@
       "name": "article_long_read_stat",
       "description": "长文阅读统计（当前窗口+累计）",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒，6 小时一轮）" },
-        { "name": "registeredUnsettledCnt", "type": "int", "description": "当前窗口已注册未结算阅读数" },
-        { "name": "anonymousUnsettledCnt", "type": "int", "description": "当前窗口未注册未结算阅读数" },
-        { "name": "registeredTotalCnt", "type": "int", "description": "累计已注册阅读数" },
-        { "name": "anonymousTotalCnt", "type": "int", "description": "累计未注册阅读数" },
-        { "name": "lastSettledAt", "type": "long", "description": "上次结算时间" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口开始时间（毫秒，6 小时一轮）"
+        },
+        {
+          "name": "registeredUnsettledCnt",
+          "type": "int",
+          "description": "当前窗口已注册未结算阅读数"
+        },
+        {
+          "name": "anonymousUnsettledCnt",
+          "type": "int",
+          "description": "当前窗口未注册未结算阅读数"
+        },
+        {
+          "name": "registeredTotalCnt",
+          "type": "int",
+          "description": "累计已注册阅读数"
+        },
+        {
+          "name": "anonymousTotalCnt",
+          "type": "int",
+          "description": "累计未注册阅读数"
+        },
+        {
+          "name": "lastSettledAt",
+          "type": "long",
+          "description": "上次结算时间"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "article_long_read_history",
       "description": "长文阅读结算历史",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒）" },
-        { "name": "windowEnd", "type": "long", "description": "窗口结束时间（毫秒）" },
-        { "name": "registeredCnt", "type": "int", "description": "窗口内已注册阅读数" },
-        { "name": "anonymousCnt", "type": "int", "description": "窗口内未注册阅读数" },
-        { "name": "anonymousCappedCnt", "type": "int", "description": "窗口内未注册计入封顶后的值" },
-        { "name": "rewardPoint", "type": "int", "description": "本次结算奖励积分" },
-        { "name": "settledAt", "type": "long", "description": "结算时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口开始时间（毫秒）"
+        },
+        {
+          "name": "windowEnd",
+          "type": "long",
+          "description": "窗口结束时间（毫秒）"
+        },
+        {
+          "name": "registeredCnt",
+          "type": "int",
+          "description": "窗口内已注册阅读数"
+        },
+        {
+          "name": "anonymousCnt",
+          "type": "int",
+          "description": "窗口内未注册阅读数"
+        },
+        {
+          "name": "anonymousCappedCnt",
+          "type": "int",
+          "description": "窗口内未注册计入封顶后的值"
+        },
+        {
+          "name": "rewardPoint",
+          "type": "int",
+          "description": "本次结算奖励积分"
+        },
+        {
+          "name": "settledAt",
+          "type": "long",
+          "description": "结算时间"
+        }
       ]
     },
     {
       "name": "article_long_read_user",
-      "description": "长文阅读去重（注册用户）",
+      "description": "长文阅读去重（注册用户，按窗口）",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "firstReadAt", "type": "long", "description": "首次阅读时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "六小时窗口起点"
+        },
+        {
+          "name": "firstReadAt",
+          "type": "long",
+          "description": "首次阅读时间"
+        }
       ]
     },
     {
       "name": "article_long_read_anon",
       "description": "长文阅读去重（未注册，按窗口）",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "windowStart", "type": "long", "description": "窗口开始时间（毫秒）" },
-        { "name": "readerHash", "type": "String", "length": 64, "description": "IP+UA 哈希" },
-        { "name": "firstReadAt", "type": "long", "description": "首次阅读时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口开始时间（毫秒）"
+        },
+        {
+          "name": "readerHash",
+          "type": "String",
+          "length": 64,
+          "description": "IP+UA 哈希"
+        },
+        {
+          "name": "firstReadAt",
+          "type": "long",
+          "description": "首次阅读时间"
+        }
       ]
     },
     {
       "name": "long_article_column",
       "description": "长文专栏",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "columnTitle", "type": "String", "length": 64, "description": "专栏名称" },
-        { "name": "columnAuthorId", "type": "String", "length": 19, "description": "专栏作者 ID" },
-        { "name": "columnCoverURL", "type": "String", "length": 1024, "description": "专栏封面图地址" },
-        { "name": "columnArticleCount", "type": "int", "description": "专栏文章数" },
-        { "name": "columnStatus", "type": "int", "description": "状态：0 有效，1 无效" },
-        { "name": "columnOrder", "type": "int", "description": "排序（越小越靠前）" },
-        { "name": "columnCreateTime", "type": "long", "description": "创建时间" },
-        { "name": "columnUpdateTime", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "columnTitle",
+          "type": "String",
+          "length": 64,
+          "description": "专栏名称"
+        },
+        {
+          "name": "columnAuthorId",
+          "type": "String",
+          "length": 19,
+          "description": "专栏作者 ID"
+        },
+        {
+          "name": "columnCoverURL",
+          "type": "String",
+          "length": 1024,
+          "description": "专栏封面图地址"
+        },
+        {
+          "name": "columnArticleCount",
+          "type": "int",
+          "description": "专栏文章数"
+        },
+        {
+          "name": "columnStatus",
+          "type": "int",
+          "description": "状态：0 有效，1 无效"
+        },
+        {
+          "name": "columnOrder",
+          "type": "int",
+          "description": "排序（越小越靠前）"
+        },
+        {
+          "name": "columnCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "columnUpdateTime",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "long_article_column_chapter",
       "description": "长文专栏章节映射",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "columnId", "type": "String", "length": 19, "description": "专栏 ID" },
-        { "name": "chapterNo", "type": "int", "description": "章节号" },
-        { "name": "chapterCreateTime", "type": "long", "description": "创建时间" },
-        { "name": "chapterUpdateTime", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "columnId",
+          "type": "String",
+          "length": 19,
+          "description": "专栏 ID"
+        },
+        {
+          "name": "chapterNo",
+          "type": "int",
+          "description": "章节号"
+        },
+        {
+          "name": "chapterCreateTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "chapterUpdateTime",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "repeater_content",
       "description": "复读机转录站内容",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "repeaterContentType", "type": "String", "length": 16, "description": "类型：joke/kfc/fish" },
-        { "name": "repeaterContent", "type": "String", "length": 500, "description": "正文" },
-        { "name": "repeaterContentAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
-        { "name": "repeaterContentSource", "type": "String", "length": 16, "description": "来源：user/seed" },
-        { "name": "repeaterContentStatus", "type": "int", "description": "状态：0 有效，1 已删除" },
-        { "name": "repeaterContentLikeCount", "type": "int", "description": "点赞数" },
-        { "name": "repeaterContentCreatedTime", "type": "long", "description": "创建时间" },
-        { "name": "repeaterContentUpdatedTime", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "repeaterContentType",
+          "type": "String",
+          "length": 16,
+          "description": "类型：joke/kfc/fish"
+        },
+        {
+          "name": "repeaterContent",
+          "type": "String",
+          "length": 500,
+          "description": "正文"
+        },
+        {
+          "name": "repeaterContentAuthorId",
+          "type": "String",
+          "length": 19,
+          "description": "作者 ID"
+        },
+        {
+          "name": "repeaterContentSource",
+          "type": "String",
+          "length": 16,
+          "description": "来源：user/seed"
+        },
+        {
+          "name": "repeaterContentStatus",
+          "type": "int",
+          "description": "状态：0 有效，1 已删除"
+        },
+        {
+          "name": "repeaterContentLikeCount",
+          "type": "int",
+          "description": "点赞数"
+        },
+        {
+          "name": "repeaterContentCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "repeaterContentUpdatedTime",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "repeater_like",
       "description": "复读机转录站点赞",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "repeaterLikeContentId", "type": "String", "length": 19, "description": "内容 ID" },
-        { "name": "repeaterLikeUserId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "repeaterLikeCreatedTime", "type": "long", "description": "创建时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "repeaterLikeContentId",
+          "type": "String",
+          "length": 19,
+          "description": "内容 ID"
+        },
+        {
+          "name": "repeaterLikeUserId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "repeaterLikeCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        }
       ]
     },
     {
@@ -3167,380 +5182,1738 @@
       "name": "fish_game",
       "description": "鱼游投稿与审核",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "fishGameName", "type": "String", "length": 80, "description": "名称" },
-        { "name": "fishGameDescription", "type": "String", "length": 1000, "description": "描述" },
-        { "name": "fishGameUrl", "type": "String", "length": 512, "description": "网址" },
-        { "name": "fishGameIconUrl", "type": "String", "length": 512, "description": "图标网址" },
-        { "name": "fishGameAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
-        { "name": "fishGameStatus", "type": "int", "description": "状态" },
-        { "name": "fishGameEditPending", "type": "int", "description": "是否有待审核编辑" },
-        { "name": "fishGamePendingName", "type": "String", "length": 80, "description": "待审核名称" },
-        { "name": "fishGamePendingDescription", "type": "String", "length": 1000, "description": "待审核描述" },
-        { "name": "fishGamePendingUrl", "type": "String", "length": 512, "description": "待审核网址" },
-        { "name": "fishGamePendingIconUrl", "type": "String", "length": 512, "description": "待审核图标网址" },
-        { "name": "fishGameLikeCount", "type": "int", "description": "点赞数" },
-        { "name": "fishGameDislikeCount", "type": "int", "description": "点踩数" },
-        { "name": "fishGameCreatedTime", "type": "long", "description": "创建时间" },
-        { "name": "fishGameUpdatedTime", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "fishGameName",
+          "type": "String",
+          "length": 80,
+          "description": "名称"
+        },
+        {
+          "name": "fishGameDescription",
+          "type": "String",
+          "length": 1000,
+          "description": "描述"
+        },
+        {
+          "name": "fishGameUrl",
+          "type": "String",
+          "length": 512,
+          "description": "网址"
+        },
+        {
+          "name": "fishGameIconUrl",
+          "type": "String",
+          "length": 512,
+          "description": "图标网址"
+        },
+        {
+          "name": "fishGameOauthLoginUrl",
+          "type": "String",
+          "length": 4096,
+          "description": "待管理员审核的旧OpenID登录地址"
+        },
+        {
+          "name": "fishGamePendingOauthLoginUrl",
+          "type": "String",
+          "length": 4096,
+          "description": "编辑申请的旧OpenID登录地址"
+        },
+        {
+          "name": "fishGameAuthorId",
+          "type": "String",
+          "length": 19,
+          "description": "作者 ID"
+        },
+        {
+          "name": "fishGameStatus",
+          "type": "int",
+          "description": "状态"
+        },
+        {
+          "name": "fishGameEditPending",
+          "type": "int",
+          "description": "是否有待审核编辑"
+        },
+        {
+          "name": "fishGamePendingName",
+          "type": "String",
+          "length": 80,
+          "description": "待审核名称"
+        },
+        {
+          "name": "fishGamePendingDescription",
+          "type": "String",
+          "length": 1000,
+          "description": "待审核描述"
+        },
+        {
+          "name": "fishGamePendingUrl",
+          "type": "String",
+          "length": 512,
+          "description": "待审核网址"
+        },
+        {
+          "name": "fishGamePendingIconUrl",
+          "type": "String",
+          "length": 512,
+          "description": "待审核图标网址"
+        },
+        {
+          "name": "fishGameLikeCount",
+          "type": "int",
+          "description": "点赞数"
+        },
+        {
+          "name": "fishGameDislikeCount",
+          "type": "int",
+          "description": "点踩数"
+        },
+        {
+          "name": "fishGameCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "fishGameUpdatedTime",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "fish_game_vote",
       "description": "鱼游投票",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "fishGameVoteGameId", "type": "String", "length": 19, "description": "鱼游 ID" },
-        { "name": "fishGameVoteUserId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "fishGameVoteValue", "type": "String", "length": 16, "description": "投票值" },
-        { "name": "fishGameVoteCreatedTime", "type": "long", "description": "创建时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "fishGameVoteGameId",
+          "type": "String",
+          "length": 19,
+          "description": "鱼游 ID"
+        },
+        {
+          "name": "fishGameVoteUserId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "fishGameVoteValue",
+          "type": "String",
+          "length": 16,
+          "description": "投票值"
+        },
+        {
+          "name": "fishGameVoteCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        }
       ]
     },
     {
       "name": "fish_game_comment",
       "description": "鱼游评论",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "fishGameCommentGameId", "type": "String", "length": 19, "description": "鱼游 ID" },
-        { "name": "fishGameCommentAuthorId", "type": "String", "length": 19, "description": "作者 ID" },
-        { "name": "fishGameCommentContent", "type": "String", "length": 500, "description": "评论内容" },
-        { "name": "fishGameCommentCreatedTime", "type": "long", "description": "创建时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "fishGameCommentGameId",
+          "type": "String",
+          "length": 19,
+          "description": "鱼游 ID"
+        },
+        {
+          "name": "fishGameCommentAuthorId",
+          "type": "String",
+          "length": 19,
+          "description": "作者 ID"
+        },
+        {
+          "name": "fishGameCommentContent",
+          "type": "String",
+          "length": 500,
+          "description": "评论内容"
+        },
+        {
+          "name": "fishGameCommentCreatedTime",
+          "type": "long",
+          "description": "创建时间"
+        }
       ]
     },
     {
       "name": "profession",
       "description": "职业稳定定义",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "professionCode", "type": "String", "length": 64, "description": "职业稳定编码" },
-        { "name": "currentRevisionId", "type": "String", "length": 19, "description": "当前职业版本" },
-        { "name": "currentLevelSchemeId", "type": "String", "length": 19, "description": "当前等级方案" },
-        { "name": "status", "type": "String", "length": 24, "description": "状态" },
-        { "name": "sortOrder", "type": "int", "description": "排序" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "professionCode",
+          "type": "String",
+          "length": 64,
+          "description": "职业稳定编码"
+        },
+        {
+          "name": "currentRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "当前职业版本"
+        },
+        {
+          "name": "currentLevelSchemeId",
+          "type": "String",
+          "length": 19,
+          "description": "当前等级方案"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 24,
+          "description": "状态"
+        },
+        {
+          "name": "sortOrder",
+          "type": "int",
+          "description": "排序"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_revision",
       "description": "职业不可变版本",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "revisionNo", "type": "int", "description": "版本号" },
-        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
-        { "name": "status", "type": "String", "length": 24, "description": "状态" },
-        { "name": "displayName", "type": "String", "length": 64, "description": "展示名称" },
-        { "name": "shortName", "type": "String", "length": 32, "description": "简称" },
-        { "name": "description", "type": "String", "length": 1024, "description": "职业描述" },
-        { "name": "defaultPresentationJson", "type": "String", "length": 102400, "description": "默认展示配置 JSON" },
-        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
-        { "name": "effectiveTo", "type": "long", "description": "失效时间，0 表示未失效" },
-        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
-        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "revisionNo",
+          "type": "int",
+          "description": "版本号"
+        },
+        {
+          "name": "schemaVersion",
+          "type": "int",
+          "description": "结构版本"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 24,
+          "description": "状态"
+        },
+        {
+          "name": "displayName",
+          "type": "String",
+          "length": 64,
+          "description": "展示名称"
+        },
+        {
+          "name": "shortName",
+          "type": "String",
+          "length": 32,
+          "description": "简称"
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "length": 1024,
+          "description": "职业描述"
+        },
+        {
+          "name": "defaultPresentationJson",
+          "type": "String",
+          "length": 102400,
+          "description": "默认展示配置 JSON"
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "long",
+          "description": "生效时间"
+        },
+        {
+          "name": "effectiveTo",
+          "type": "long",
+          "description": "失效时间，0 表示未失效"
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "length": 19,
+          "description": "创建者"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "publishedBy",
+          "type": "String",
+          "length": 19,
+          "description": "发布者"
+        },
+        {
+          "name": "publishedAt",
+          "type": "long",
+          "description": "发布时间"
+        }
       ]
     },
     {
       "name": "profession_level_scheme",
       "description": "职业等级方案版本",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
-        { "name": "revisionNo", "type": "int", "description": "方案版本号" },
-        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
-        { "name": "status", "type": "String", "length": 24, "description": "状态" },
-        { "name": "migrationPolicy", "type": "String", "length": 32, "description": "迁移策略" },
-        { "name": "rewardMigrationPolicy", "type": "String", "length": 32, "description": "奖励迁移策略" },
-        { "name": "migrationConfigJson", "type": "String", "length": 102400, "description": "迁移策略配置" },
-        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
-        { "name": "effectiveTo", "type": "long", "description": "失效时间" },
-        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
-        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "professionRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业版本 ID"
+        },
+        {
+          "name": "revisionNo",
+          "type": "int",
+          "description": "方案版本号"
+        },
+        {
+          "name": "schemaVersion",
+          "type": "int",
+          "description": "结构版本"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 24,
+          "description": "状态"
+        },
+        {
+          "name": "migrationPolicy",
+          "type": "String",
+          "length": 32,
+          "description": "迁移策略"
+        },
+        {
+          "name": "rewardMigrationPolicy",
+          "type": "String",
+          "length": 32,
+          "description": "奖励迁移策略"
+        },
+        {
+          "name": "migrationConfigJson",
+          "type": "String",
+          "length": 102400,
+          "description": "迁移策略配置"
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "long",
+          "description": "生效时间"
+        },
+        {
+          "name": "effectiveTo",
+          "type": "long",
+          "description": "失效时间"
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "length": 19,
+          "description": "创建者"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "publishedBy",
+          "type": "String",
+          "length": 19,
+          "description": "发布者"
+        },
+        {
+          "name": "publishedAt",
+          "type": "long",
+          "description": "发布时间"
+        }
       ]
     },
     {
       "name": "profession_level",
       "description": "职业等级",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
-        { "name": "levelCode", "type": "String", "length": 64, "description": "等级稳定编码" },
-        { "name": "sortOrder", "type": "int", "description": "显示排序" },
-        { "name": "requiredTotalExperience", "type": "long", "description": "累计经验门槛" },
-        { "name": "displayName", "type": "String", "length": 64, "description": "展示名称" },
-        { "name": "shortName", "type": "String", "length": 32, "description": "简称" },
-        { "name": "description", "type": "String", "length": 1024, "description": "等级介绍" },
-        { "name": "achievementDescription", "type": "String", "length": 1024, "description": "达成描述" },
-        { "name": "isTopLevel", "type": "boolean", "description": "是否最高等级" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "schemeId",
+          "type": "String",
+          "length": 19,
+          "description": "等级方案 ID"
+        },
+        {
+          "name": "levelCode",
+          "type": "String",
+          "length": 64,
+          "description": "等级稳定编码"
+        },
+        {
+          "name": "sortOrder",
+          "type": "int",
+          "description": "显示排序"
+        },
+        {
+          "name": "requiredTotalExperience",
+          "type": "long",
+          "description": "累计经验门槛"
+        },
+        {
+          "name": "displayName",
+          "type": "String",
+          "length": 64,
+          "description": "展示名称"
+        },
+        {
+          "name": "shortName",
+          "type": "String",
+          "length": 32,
+          "description": "简称"
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "length": 1024,
+          "description": "等级介绍"
+        },
+        {
+          "name": "achievementDescription",
+          "type": "String",
+          "length": 1024,
+          "description": "达成描述"
+        },
+        {
+          "name": "isTopLevel",
+          "type": "boolean",
+          "description": "是否最高等级"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_level_presentation",
       "description": "职业等级展示样式",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "levelId", "type": "String", "length": 19, "description": "等级 ID" },
-        { "name": "positionCode", "type": "String", "length": 32, "description": "展示位置编码" },
-        { "name": "lightConfigJson", "type": "String", "length": 102400, "description": "浅色展示配置 JSON" },
-        { "name": "darkConfigJson", "type": "String", "length": 102400, "description": "深色展示配置 JSON" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "levelId",
+          "type": "String",
+          "length": 19,
+          "description": "等级 ID"
+        },
+        {
+          "name": "positionCode",
+          "type": "String",
+          "length": 32,
+          "description": "展示位置编码"
+        },
+        {
+          "name": "lightConfigJson",
+          "type": "String",
+          "length": 102400,
+          "description": "浅色展示配置 JSON"
+        },
+        {
+          "name": "darkConfigJson",
+          "type": "String",
+          "length": 102400,
+          "description": "深色展示配置 JSON"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_level_reward",
       "description": "职业等级奖励定义",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
-        { "name": "levelId", "type": "String", "length": 19, "description": "等级 ID" },
-        { "name": "levelCode", "type": "String", "length": 64, "description": "等级编码快照" },
-        { "name": "rewardCode", "type": "String", "length": 64, "description": "奖励稳定编码" },
-        { "name": "rewardType", "type": "String", "length": 32, "description": "奖励类型" },
-        { "name": "rewardConfigJson", "type": "String", "length": 102400, "description": "奖励配置 JSON" },
-        { "name": "grantPolicy", "type": "String", "length": 32, "description": "发放策略" },
-        { "name": "downgradePolicy", "type": "String", "length": 32, "description": "降级策略" },
-        { "name": "sortOrder", "type": "int", "description": "排序" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "schemeId",
+          "type": "String",
+          "length": 19,
+          "description": "等级方案 ID"
+        },
+        {
+          "name": "levelId",
+          "type": "String",
+          "length": 19,
+          "description": "等级 ID"
+        },
+        {
+          "name": "levelCode",
+          "type": "String",
+          "length": 64,
+          "description": "等级编码快照"
+        },
+        {
+          "name": "rewardCode",
+          "type": "String",
+          "length": 64,
+          "description": "奖励稳定编码"
+        },
+        {
+          "name": "rewardType",
+          "type": "String",
+          "length": 32,
+          "description": "奖励类型"
+        },
+        {
+          "name": "rewardConfigJson",
+          "type": "String",
+          "length": 102400,
+          "description": "奖励配置 JSON"
+        },
+        {
+          "name": "grantPolicy",
+          "type": "String",
+          "length": 32,
+          "description": "发放策略"
+        },
+        {
+          "name": "downgradePolicy",
+          "type": "String",
+          "length": 32,
+          "description": "降级策略"
+        },
+        {
+          "name": "sortOrder",
+          "type": "int",
+          "description": "排序"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_automation",
       "description": "职业自动化稳定定义",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "automationCode", "type": "String", "length": 64, "description": "自动化稳定编码" },
-        { "name": "currentRevisionId", "type": "String", "length": 19, "description": "当前自动化版本" },
-        { "name": "status", "type": "String", "length": 24, "description": "状态" },
-        { "name": "sortOrder", "type": "int", "description": "排序" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "automationCode",
+          "type": "String",
+          "length": 64,
+          "description": "自动化稳定编码"
+        },
+        {
+          "name": "currentRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "当前自动化版本"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 24,
+          "description": "状态"
+        },
+        {
+          "name": "sortOrder",
+          "type": "int",
+          "description": "排序"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_automation_revision",
       "description": "职业自动化不可变版本",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "automationId", "type": "String", "length": 19, "description": "自动化 ID" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "revisionNo", "type": "int", "description": "版本号" },
-        { "name": "schemaVersion", "type": "int", "description": "结构版本" },
-        { "name": "status", "type": "String", "length": 24, "description": "状态" },
-        { "name": "triggerType", "type": "String", "length": 64, "description": "触发器类型" },
-        { "name": "triggerSchemaVersion", "type": "int", "description": "触发器结构版本" },
-        { "name": "configurationJson", "type": "String", "length": 102400, "description": "自动化配置 JSON" },
-        { "name": "configurationHash", "type": "String", "length": 64, "description": "自动化配置哈希" },
-        { "name": "effectiveFrom", "type": "long", "description": "生效时间" },
-        { "name": "effectiveTo", "type": "long", "description": "失效时间" },
-        { "name": "createdBy", "type": "String", "length": 19, "description": "创建者" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "publishedBy", "type": "String", "length": 19, "description": "发布者" },
-        { "name": "publishedAt", "type": "long", "description": "发布时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "automationId",
+          "type": "String",
+          "length": 19,
+          "description": "自动化 ID"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "revisionNo",
+          "type": "int",
+          "description": "版本号"
+        },
+        {
+          "name": "schemaVersion",
+          "type": "int",
+          "description": "结构版本"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 24,
+          "description": "状态"
+        },
+        {
+          "name": "triggerType",
+          "type": "String",
+          "length": 64,
+          "description": "触发器类型"
+        },
+        {
+          "name": "triggerSchemaVersion",
+          "type": "int",
+          "description": "触发器结构版本"
+        },
+        {
+          "name": "configurationJson",
+          "type": "String",
+          "length": 102400,
+          "description": "自动化配置 JSON"
+        },
+        {
+          "name": "configurationHash",
+          "type": "String",
+          "length": 64,
+          "description": "自动化配置哈希"
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "long",
+          "description": "生效时间"
+        },
+        {
+          "name": "effectiveTo",
+          "type": "long",
+          "description": "失效时间"
+        },
+        {
+          "name": "createdBy",
+          "type": "String",
+          "length": 19,
+          "description": "创建者"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "publishedBy",
+          "type": "String",
+          "length": 19,
+          "description": "发布者"
+        },
+        {
+          "name": "publishedAt",
+          "type": "long",
+          "description": "发布时间"
+        }
       ]
     },
     {
       "name": "profession_source_event",
       "description": "职业可信来源事件",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "eventKey", "type": "String", "length": 191, "description": "事件幂等键" },
-        { "name": "eventType", "type": "String", "length": 64, "description": "事件类型" },
-        { "name": "schemaVersion", "type": "int", "description": "事件结构版本" },
-        { "name": "subjectUserId", "type": "String", "length": 19, "description": "经验归属用户" },
-        { "name": "actorUserId", "type": "String", "length": 19, "description": "行为用户" },
-        { "name": "targetType", "type": "String", "length": 32, "description": "目标类型" },
-        { "name": "targetId", "type": "String", "length": 19, "description": "目标 ID" },
-        { "name": "occurredAt", "type": "long", "description": "业务发生时间" },
-        { "name": "capturedAt", "type": "long", "description": "采集时间" },
-        { "name": "payloadJson", "type": "String", "length": 102400, "description": "受控事件载荷 JSON" },
-        { "name": "visibilityClass", "type": "String", "length": 24, "description": "来源可见范围" },
-        { "name": "reversalOfEventKey", "type": "String", "length": 191, "description": "被撤销事件键" },
-        { "name": "sourceSystem", "type": "String", "length": 64, "description": "来源系统" },
-        { "name": "sourceAppId", "type": "String", "length": 64, "description": "外部来源应用" },
-        { "name": "externalRequestId", "type": "String", "length": 128, "description": "外部幂等请求号" },
-        { "name": "status", "type": "String", "length": 32, "description": "执行状态" },
-        { "name": "processingAttempt", "type": "int", "description": "处理次数" },
-        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
-        { "name": "lockedAt", "type": "long", "description": "领取时间" },
-        { "name": "errorCode", "type": "String", "length": 64, "description": "错误码" },
-        { "name": "errorMessage", "type": "String", "length": 2048, "description": "错误信息" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "eventKey",
+          "type": "String",
+          "length": 191,
+          "description": "事件幂等键"
+        },
+        {
+          "name": "eventType",
+          "type": "String",
+          "length": 64,
+          "description": "事件类型"
+        },
+        {
+          "name": "schemaVersion",
+          "type": "int",
+          "description": "事件结构版本"
+        },
+        {
+          "name": "subjectUserId",
+          "type": "String",
+          "length": 19,
+          "description": "经验归属用户"
+        },
+        {
+          "name": "actorUserId",
+          "type": "String",
+          "length": 19,
+          "description": "行为用户"
+        },
+        {
+          "name": "targetType",
+          "type": "String",
+          "length": 32,
+          "description": "目标类型"
+        },
+        {
+          "name": "targetId",
+          "type": "String",
+          "length": 19,
+          "description": "目标 ID"
+        },
+        {
+          "name": "occurredAt",
+          "type": "long",
+          "description": "业务发生时间"
+        },
+        {
+          "name": "capturedAt",
+          "type": "long",
+          "description": "采集时间"
+        },
+        {
+          "name": "payloadJson",
+          "type": "String",
+          "length": 102400,
+          "description": "受控事件载荷 JSON"
+        },
+        {
+          "name": "visibilityClass",
+          "type": "String",
+          "length": 24,
+          "description": "来源可见范围"
+        },
+        {
+          "name": "reversalOfEventKey",
+          "type": "String",
+          "length": 191,
+          "description": "被撤销事件键"
+        },
+        {
+          "name": "sourceSystem",
+          "type": "String",
+          "length": 64,
+          "description": "来源系统"
+        },
+        {
+          "name": "sourceAppId",
+          "type": "String",
+          "length": 64,
+          "description": "外部来源应用"
+        },
+        {
+          "name": "externalRequestId",
+          "type": "String",
+          "length": 128,
+          "description": "外部幂等请求号"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 32,
+          "description": "执行状态"
+        },
+        {
+          "name": "processingAttempt",
+          "type": "int",
+          "description": "处理次数"
+        },
+        {
+          "name": "nextRetryAt",
+          "type": "long",
+          "description": "下次重试时间"
+        },
+        {
+          "name": "lockedAt",
+          "type": "long",
+          "description": "领取时间"
+        },
+        {
+          "name": "errorCode",
+          "type": "String",
+          "length": 64,
+          "description": "错误码"
+        },
+        {
+          "name": "errorMessage",
+          "type": "String",
+          "length": 2048,
+          "description": "错误信息"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_event_effect",
       "description": "职业经验与等级实际效果",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "effectKey", "type": "String", "length": 255, "description": "效果幂等键" },
-        { "name": "sourceEventId", "type": "String", "length": 19, "description": "来源事件 ID" },
-        { "name": "eventKey", "type": "String", "length": 191, "description": "事件键快照" },
-        { "name": "bucketId", "type": "String", "length": 19, "description": "聚合桶 ID" },
-        { "name": "bucketKey", "type": "String", "length": 191, "description": "聚合桶键快照" },
-        { "name": "automationRevisionId", "type": "String", "length": 19, "description": "自动化版本 ID" },
-        { "name": "actionCode", "type": "String", "length": 64, "description": "执行器动作编码" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
-        { "name": "levelSchemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
-        { "name": "actualExperienceDelta", "type": "long", "description": "实际经验变化" },
-        { "name": "beforeExperience", "type": "long", "description": "变化前经验" },
-        { "name": "afterExperience", "type": "long", "description": "变化后经验" },
-        { "name": "beforeLevelCode", "type": "String", "length": 64, "description": "变化前等级" },
-        { "name": "afterLevelCode", "type": "String", "length": 64, "description": "变化后等级" },
-        { "name": "status", "type": "String", "length": 32, "description": "效果状态" },
-        { "name": "processingAttempt", "type": "int", "description": "应用尝试次数" },
-        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
-        { "name": "lockedAt", "type": "long", "description": "领取时间" },
-        { "name": "errorCode", "type": "String", "length": 64, "description": "应用错误码" },
-        { "name": "errorMessage", "type": "String", "length": 2048, "description": "应用错误摘要" },
-        { "name": "reversesEffectId", "type": "String", "length": 19, "description": "反向效果目标" },
-        { "name": "reversedByEffectId", "type": "String", "length": 19, "description": "成功撤销效果" },
-        { "name": "occurredAt", "type": "long", "description": "业务发生时间" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "effectKey",
+          "type": "String",
+          "length": 255,
+          "description": "效果幂等键"
+        },
+        {
+          "name": "sourceEventId",
+          "type": "String",
+          "length": 19,
+          "description": "来源事件 ID"
+        },
+        {
+          "name": "eventKey",
+          "type": "String",
+          "length": 191,
+          "description": "事件键快照"
+        },
+        {
+          "name": "bucketId",
+          "type": "String",
+          "length": 19,
+          "description": "聚合桶 ID"
+        },
+        {
+          "name": "bucketKey",
+          "type": "String",
+          "length": 191,
+          "description": "聚合桶键快照"
+        },
+        {
+          "name": "automationRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "自动化版本 ID"
+        },
+        {
+          "name": "actionCode",
+          "type": "String",
+          "length": 64,
+          "description": "执行器动作编码"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "professionRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业版本 ID"
+        },
+        {
+          "name": "levelSchemeId",
+          "type": "String",
+          "length": 19,
+          "description": "等级方案 ID"
+        },
+        {
+          "name": "actualExperienceDelta",
+          "type": "long",
+          "description": "实际经验变化"
+        },
+        {
+          "name": "beforeExperience",
+          "type": "long",
+          "description": "变化前经验"
+        },
+        {
+          "name": "afterExperience",
+          "type": "long",
+          "description": "变化后经验"
+        },
+        {
+          "name": "beforeLevelCode",
+          "type": "String",
+          "length": 64,
+          "description": "变化前等级"
+        },
+        {
+          "name": "afterLevelCode",
+          "type": "String",
+          "length": 64,
+          "description": "变化后等级"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 32,
+          "description": "效果状态"
+        },
+        {
+          "name": "processingAttempt",
+          "type": "int",
+          "description": "应用尝试次数"
+        },
+        {
+          "name": "nextRetryAt",
+          "type": "long",
+          "description": "下次重试时间"
+        },
+        {
+          "name": "lockedAt",
+          "type": "long",
+          "description": "领取时间"
+        },
+        {
+          "name": "errorCode",
+          "type": "String",
+          "length": 64,
+          "description": "应用错误码"
+        },
+        {
+          "name": "errorMessage",
+          "type": "String",
+          "length": 2048,
+          "description": "应用错误摘要"
+        },
+        {
+          "name": "reversesEffectId",
+          "type": "String",
+          "length": 19,
+          "description": "反向效果目标"
+        },
+        {
+          "name": "reversedByEffectId",
+          "type": "String",
+          "length": 19,
+          "description": "成功撤销效果"
+        },
+        {
+          "name": "occurredAt",
+          "type": "long",
+          "description": "业务发生时间"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_event_bucket",
       "description": "高频职业事件聚合桶",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "bucketKey", "type": "String", "length": 191, "description": "聚合桶幂等键" },
-        { "name": "triggerType", "type": "String", "length": 64, "description": "触发器类型" },
-        { "name": "automationRevisionId", "type": "String", "length": 19, "description": "自动化版本 ID" },
-        { "name": "subjectUserId", "type": "String", "length": 19, "description": "经验归属用户" },
-        { "name": "windowStart", "type": "long", "description": "窗口起点" },
-        { "name": "dimensionKey", "type": "String", "length": 1024, "description": "聚合维度" },
-        { "name": "dimensionHash", "type": "String", "length": 64, "description": "聚合维度哈希" },
-        { "name": "eventCount", "type": "long", "description": "事件数量" },
-        { "name": "numericSum", "type": "long", "description": "数值累计" },
-        { "name": "distinctCount", "type": "long", "description": "去重数量" },
-        { "name": "settlementSequence", "type": "int", "description": "结算序号" },
-        { "name": "status", "type": "String", "length": 32, "description": "结算状态" },
-        { "name": "lastOccurredAt", "type": "long", "description": "最后发生时间" },
-        { "name": "nextSettleAt", "type": "long", "description": "下次结算时间" },
-        { "name": "lockedAt", "type": "long", "description": "领取时间" },
-        { "name": "processingAttempt", "type": "int", "description": "处理次数" },
-        { "name": "nextRetryAt", "type": "long", "description": "下次重试时间" },
-        { "name": "errorCode", "type": "String", "length": 64, "description": "错误码" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "bucketKey",
+          "type": "String",
+          "length": 191,
+          "description": "聚合桶幂等键"
+        },
+        {
+          "name": "triggerType",
+          "type": "String",
+          "length": 64,
+          "description": "触发器类型"
+        },
+        {
+          "name": "automationRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "自动化版本 ID"
+        },
+        {
+          "name": "subjectUserId",
+          "type": "String",
+          "length": 19,
+          "description": "经验归属用户"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口起点"
+        },
+        {
+          "name": "dimensionKey",
+          "type": "String",
+          "length": 1024,
+          "description": "聚合维度"
+        },
+        {
+          "name": "dimensionHash",
+          "type": "String",
+          "length": 64,
+          "description": "聚合维度哈希"
+        },
+        {
+          "name": "eventCount",
+          "type": "long",
+          "description": "事件数量"
+        },
+        {
+          "name": "numericSum",
+          "type": "long",
+          "description": "数值累计"
+        },
+        {
+          "name": "distinctCount",
+          "type": "long",
+          "description": "去重数量"
+        },
+        {
+          "name": "settlementSequence",
+          "type": "int",
+          "description": "结算序号"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 32,
+          "description": "结算状态"
+        },
+        {
+          "name": "lastOccurredAt",
+          "type": "long",
+          "description": "最后发生时间"
+        },
+        {
+          "name": "nextSettleAt",
+          "type": "long",
+          "description": "下次结算时间"
+        },
+        {
+          "name": "lockedAt",
+          "type": "long",
+          "description": "领取时间"
+        },
+        {
+          "name": "processingAttempt",
+          "type": "int",
+          "description": "处理次数"
+        },
+        {
+          "name": "nextRetryAt",
+          "type": "long",
+          "description": "下次重试时间"
+        },
+        {
+          "name": "errorCode",
+          "type": "String",
+          "length": 64,
+          "description": "错误码"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "user_profession",
       "description": "用户职业经验与等级汇总",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "professionRevisionId", "type": "String", "length": 19, "description": "职业版本 ID" },
-        { "name": "levelSchemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
-        { "name": "totalExperience", "type": "long", "description": "累计经验" },
-        { "name": "currentLevelCode", "type": "String", "length": 64, "description": "当前等级编码" },
-        { "name": "highestReachedLevelCode", "type": "String", "length": 64, "description": "历史最高等级编码" },
-        { "name": "highestReachedExperience", "type": "long", "description": "历史最高累计经验" },
-        { "name": "currentLevelReachedAt", "type": "long", "description": "当前等级达到时间" },
-        { "name": "highestLevelReachedAt", "type": "long", "description": "历史最高等级达到时间" },
-        { "name": "lastEffectAt", "type": "long", "description": "最后效果时间" },
-        { "name": "dataVersion", "type": "long", "description": "乐观并发版本" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "professionRevisionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业版本 ID"
+        },
+        {
+          "name": "levelSchemeId",
+          "type": "String",
+          "length": 19,
+          "description": "等级方案 ID"
+        },
+        {
+          "name": "totalExperience",
+          "type": "long",
+          "description": "累计经验"
+        },
+        {
+          "name": "currentLevelCode",
+          "type": "String",
+          "length": 64,
+          "description": "当前等级编码"
+        },
+        {
+          "name": "highestReachedLevelCode",
+          "type": "String",
+          "length": 64,
+          "description": "历史最高等级编码"
+        },
+        {
+          "name": "highestReachedExperience",
+          "type": "long",
+          "description": "历史最高累计经验"
+        },
+        {
+          "name": "currentLevelReachedAt",
+          "type": "long",
+          "description": "当前等级达到时间"
+        },
+        {
+          "name": "highestLevelReachedAt",
+          "type": "long",
+          "description": "历史最高等级达到时间"
+        },
+        {
+          "name": "lastEffectAt",
+          "type": "long",
+          "description": "最后效果时间"
+        },
+        {
+          "name": "dataVersion",
+          "type": "long",
+          "description": "乐观并发版本"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "user_profession_privacy",
       "description": "用户职业隐私、主职业与引导状态",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "onboardingState", "type": "String", "length": 16, "description": "首次选择状态" },
-        { "name": "primaryProfessionId", "type": "String", "length": 19, "description": "主职业 ID" },
-        { "name": "privacyPreset", "type": "String", "length": 24, "description": "隐私预设" },
-        { "name": "moduleVisibilityJson", "type": "String", "length": 102400, "description": "模块可见范围 JSON" },
-        { "name": "userProgressVersion", "type": "long", "description": "职业进度缓存版本" },
-        { "name": "userPrivacyVersion", "type": "long", "description": "职业隐私缓存版本" },
-        { "name": "publicStatsVersion", "type": "long", "description": "公开统计缓存版本" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "onboardingState",
+          "type": "String",
+          "length": 16,
+          "description": "首次选择状态"
+        },
+        {
+          "name": "primaryProfessionId",
+          "type": "String",
+          "length": 19,
+          "description": "主职业 ID"
+        },
+        {
+          "name": "privacyPreset",
+          "type": "String",
+          "length": 24,
+          "description": "隐私预设"
+        },
+        {
+          "name": "moduleVisibilityJson",
+          "type": "String",
+          "length": 102400,
+          "description": "模块可见范围 JSON"
+        },
+        {
+          "name": "userProgressVersion",
+          "type": "long",
+          "description": "职业进度缓存版本"
+        },
+        {
+          "name": "userPrivacyVersion",
+          "type": "long",
+          "description": "职业隐私缓存版本"
+        },
+        {
+          "name": "publicStatsVersion",
+          "type": "long",
+          "description": "公开统计缓存版本"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "profession_reward_grant",
       "description": "职业等级奖励发放记录",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "schemeId", "type": "String", "length": 19, "description": "等级方案 ID" },
-        { "name": "levelCode", "type": "String", "length": 64, "description": "等级编码" },
-        { "name": "rewardCode", "type": "String", "length": 64, "description": "奖励编码" },
-        { "name": "grantCycle", "type": "String", "length": 32, "description": "发放周期" },
-        { "name": "rewardType", "type": "String", "length": 32, "description": "奖励类型" },
-        { "name": "rewardConfigJson", "type": "String", "length": 102400, "description": "奖励配置快照 JSON" },
-        { "name": "sourceEffectId", "type": "String", "length": 19, "description": "来源效果 ID" },
-        { "name": "externalReferenceId", "type": "String", "length": 64, "description": "外部发放关联 ID" },
-        { "name": "status", "type": "String", "length": 32, "description": "发放状态" },
-        { "name": "grantedAt", "type": "long", "description": "发放时间" },
-        { "name": "revokedAt", "type": "long", "description": "收回时间" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "schemeId",
+          "type": "String",
+          "length": 19,
+          "description": "等级方案 ID"
+        },
+        {
+          "name": "levelCode",
+          "type": "String",
+          "length": 64,
+          "description": "等级编码"
+        },
+        {
+          "name": "rewardCode",
+          "type": "String",
+          "length": 64,
+          "description": "奖励编码"
+        },
+        {
+          "name": "grantCycle",
+          "type": "String",
+          "length": 32,
+          "description": "发放周期"
+        },
+        {
+          "name": "rewardType",
+          "type": "String",
+          "length": 32,
+          "description": "奖励类型"
+        },
+        {
+          "name": "rewardConfigJson",
+          "type": "String",
+          "length": 102400,
+          "description": "奖励配置快照 JSON"
+        },
+        {
+          "name": "sourceEffectId",
+          "type": "String",
+          "length": 19,
+          "description": "来源效果 ID"
+        },
+        {
+          "name": "externalReferenceId",
+          "type": "String",
+          "length": 64,
+          "description": "外部发放关联 ID"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 32,
+          "description": "发放状态"
+        },
+        {
+          "name": "grantedAt",
+          "type": "long",
+          "description": "发放时间"
+        },
+        {
+          "name": "revokedAt",
+          "type": "long",
+          "description": "收回时间"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "user_profession_contribution",
       "description": "用户职业贡献聚合",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "userId", "type": "String", "length": 19, "description": "用户 ID" },
-        { "name": "professionId", "type": "String", "length": 19, "description": "职业 ID" },
-        { "name": "actionCode", "type": "String", "length": 64, "description": "贡献动作编码" },
-        { "name": "experienceSum", "type": "long", "description": "累计实际经验" },
-        { "name": "eventCount", "type": "long", "description": "效果次数" },
-        { "name": "lastOccurredAt", "type": "long", "description": "最近发生时间" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19,
+          "description": "用户 ID"
+        },
+        {
+          "name": "professionId",
+          "type": "String",
+          "length": 19,
+          "description": "职业 ID"
+        },
+        {
+          "name": "actionCode",
+          "type": "String",
+          "length": 64,
+          "description": "贡献动作编码"
+        },
+        {
+          "name": "experienceSum",
+          "type": "long",
+          "description": "累计实际经验"
+        },
+        {
+          "name": "eventCount",
+          "type": "long",
+          "description": "效果次数"
+        },
+        {
+          "name": "lastOccurredAt",
+          "type": "long",
+          "description": "最近发生时间"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "article_long_read_window",
       "description": "长篇阅读窗口计数",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "windowStart", "type": "long", "description": "窗口起点" },
-        { "name": "registeredCnt", "type": "int", "description": "注册读者数量" },
-        { "name": "anonymousCnt", "type": "int", "description": "匿名读者数量" },
-        { "name": "state", "type": "String", "length": 16, "description": "结算状态" },
-        { "name": "settlementId", "type": "String", "length": 19, "description": "结算闸门 ID" },
-        { "name": "settledAt", "type": "long", "description": "结算时间" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口起点"
+        },
+        {
+          "name": "registeredCnt",
+          "type": "int",
+          "description": "注册读者数量"
+        },
+        {
+          "name": "anonymousCnt",
+          "type": "int",
+          "description": "匿名读者数量"
+        },
+        {
+          "name": "state",
+          "type": "String",
+          "length": 16,
+          "description": "结算状态"
+        },
+        {
+          "name": "settlementId",
+          "type": "String",
+          "length": 19,
+          "description": "结算闸门 ID"
+        },
+        {
+          "name": "settledAt",
+          "type": "long",
+          "description": "结算时间"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
       ]
     },
     {
       "name": "article_long_read_settlement",
       "description": "长篇阅读结算幂等闸门",
       "keys": [
-        { "name": "oId", "type": "String", "length": 19, "description": "主键" },
-        { "name": "articleId", "type": "String", "length": 19, "description": "文章 ID" },
-        { "name": "windowStart", "type": "long", "description": "窗口起点" },
-        { "name": "historyId", "type": "String", "length": 19, "description": "阅读历史 ID" },
-        { "name": "state", "type": "String", "length": 16, "description": "提交状态" },
-        { "name": "createdAt", "type": "long", "description": "创建时间" },
-        { "name": "updatedAt", "type": "long", "description": "更新时间" }
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19,
+          "description": "主键"
+        },
+        {
+          "name": "articleId",
+          "type": "String",
+          "length": 19,
+          "description": "文章 ID"
+        },
+        {
+          "name": "windowStart",
+          "type": "long",
+          "description": "窗口起点"
+        },
+        {
+          "name": "historyId",
+          "type": "String",
+          "length": 19,
+          "description": "阅读历史 ID"
+        },
+        {
+          "name": "state",
+          "type": "String",
+          "length": 16,
+          "description": "提交状态"
+        },
+        {
+          "name": "createdAt",
+          "type": "long",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long",
+          "description": "更新时间"
+        }
+      ]
+    },
+    {
+      "name": "account_contact_code",
+      "description": "私有新联系方式验证上下文",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "purpose",
+          "type": "String",
+          "length": 8
+        },
+        {
+          "name": "clientId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "credentialEpoch",
+          "type": "long"
+        },
+        {
+          "name": "target",
+          "type": "String",
+          "length": 255
+        },
+        {
+          "name": "codeHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "previousContactHash",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "api_v3_identity_application",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "type",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 16
+        },
+        {
+          "name": "pendingOwnerId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "materialReadAt",
+          "type": "long"
+        },
+        {
+          "name": "reviewedAt",
+          "type": "long"
+        },
+        {
+          "name": "note",
+          "type": "String",
+          "length": 256
+        }
+      ]
+    },
+    {
+      "name": "api_v3_identity_material",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "mediaType",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "byteLength",
+          "type": "int"
+        },
+        {
+          "name": "sha256",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "data",
+          "type": "String",
+          "length": 8388608
+        }
+      ]
+    },
+    {
+      "name": "api_v3_identity_reviewer",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        }
       ]
     }
   ]

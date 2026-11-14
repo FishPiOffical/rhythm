@@ -25,6 +25,7 @@ import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.latke.util.URLs;
 import org.b3log.symphony.cache.TagCache;
 import org.b3log.symphony.model.Tag;
+import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -62,8 +63,8 @@ public class TagRepository extends AbstractRepository {
     @Override
     public String add(final JSONObject tag) throws RepositoryException {
         final String ret = super.add(tag);
-
-        tagCache.putTag(tag);
+        if (ArticlePublicationCaches.active()) deferCache(ret);
+        else tagCache.putTag(tag);
 
         return ret;
     }
@@ -77,6 +78,11 @@ public class TagRepository extends AbstractRepository {
 
     @Override
     public void update(final String id, final JSONObject article, final String... propertyNames) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            deferCache(id);
+            super.update(id, article, propertyNames);
+            return;
+        }
         super.update(id, article, propertyNames);
 
         article.put(Keys.OBJECT_ID, id);
@@ -85,6 +91,11 @@ public class TagRepository extends AbstractRepository {
 
     @Override
     public JSONObject get(final String id) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+            final var rows = select("SELECT * FROM `" + getName() + "` WHERE oId=? FOR UPDATE", id);
+            return rows.isEmpty() ? null : rows.getFirst();
+        }
         JSONObject ret = tagCache.getTag(id);
         if (null != ret) {
             return ret;
@@ -133,8 +144,21 @@ public class TagRepository extends AbstractRepository {
      * @throws RepositoryException repository exception
      */
     public JSONObject getByTitle(final String tagTitle) throws RepositoryException {
+        if (ArticlePublicationCaches.active()) {
+            if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+            final var rows = select("SELECT * FROM `" + getName() + "` WHERE tagTitle=? LIMIT 1 FOR UPDATE", tagTitle);
+            return rows.isEmpty() ? null : rows.getFirst();
+        }
         final Query query = new Query().setFilter(new PropertyFilter(Tag.TAG_TITLE, FilterOperator.EQUAL, tagTitle)).setPageCount(1);
         return getFirst(query);
+    }
+
+    private void deferCache(final String id) {
+        if (!hasTransactionBegun()) throw new IllegalStateException("publication transaction required");
+        ArticlePublicationCaches.afterTransaction("tag:" + id, () -> {
+            tagCache.removeTag(id);
+            try { get(id); } catch (final RepositoryException e) { /* A later read can refill the durable cache. */ }
+        });
     }
 
     /**

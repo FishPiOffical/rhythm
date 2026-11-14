@@ -50,6 +50,7 @@
                 </div>
                 </#if>
                     </div>
+                    <#if item.repeaterId??><button class="mid" type="button" onclick="AdminRepeaterRemove(this, '${item.repeaterId}', '${csrfToken}')">删除</button></#if>
                     <div class="vditor-reset">
                         ${item.reportMemo}
                     </div>

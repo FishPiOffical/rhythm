@@ -37,10 +37,10 @@
             <link rel="stylesheet" href="${staticServePath}/css/long-article-image-menu.css?${staticResourceVersion}">
         </#if>
     </head>
-    <body itemscope itemtype="http://schema.org/Product"<#if 6 == article.articleType> class="long-article-page"</#if>>
+    <body<#if 6 == article.articleType> class="long-article-page"</#if>>
         <#assign hidePageChrome = (6 == article.articleType)>
-        <img itemprop="image" class="fn-none"  src="${staticServePath}/images/faviconH.png" />
-        <p itemprop="description" class="fn-none">"${article.articlePreviewContent}"</p>
+        <img class="fn-none"  src="${staticServePath}/images/faviconH.png" />
+        <p class="fn-none">"${article.articlePreviewContent}"</p>
         <#if !hidePageChrome>
         <#include "header.ftl">
         </#if>
@@ -116,7 +116,7 @@
                 <#if showTopAd>
                     ${HeaderBannerLabel}
                 </#if>
-                <h1 class="article-title" itemprop="name">
+                <h1 class="article-title">
                     <@icon article.articlePerfect article.articleType></@icon>
                     <#if article.isGoodArticle?? && "yes" == article.isGoodArticle>
                         <span class="article-good-post-badge" aria-label="好帖">好帖</span>
@@ -178,7 +178,7 @@
                         <#if articleVisitSourceStats?? && 0 < articleVisitSourceStats?size>
                         <span class="article-visit-sources">
                             <#list articleVisitSourceStats as sourceStat>
-                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" aria-label="${sourceStat.sourceName}">
+                            <span class="article-visit-source article-visit-source--${sourceStat.sourceCss}" tabindex="0" aria-label="${sourceStat.sourceName}">
                                 <span class="article-visit-source__icon"><svg><use xlink:href="#${sourceStat.sourceIcon}"></use></svg></span>${sourceStat.visitCount}
                             </span>
                             </#list>
@@ -740,8 +740,8 @@
                 Label.currentUserId = '${currentUser.oId}';
                 Label.notificationCmtIds = '${notificationCmtIds}';
             </#if>
-            <#if 3 == article.articleType>
-                Article.playThought('${article.articleContent}');
+            <#if 3 == article.articleType && thoughtPlaybackContent??>
+                Article.playThought('${thoughtPlaybackContent?js_string}');
             </#if>
             <#if 6 == article.articleType>
                 MLongArticle.init();

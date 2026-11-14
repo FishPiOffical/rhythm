@@ -18,25 +18,31 @@
  */
 package org.b3log.symphony.service;
 
-import org.apache.commons.lang.StringUtils;
-import org.b3log.latke.Keys;
+import org.apache.logging.log4j.LogManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Ids;
 import org.b3log.symphony.model.Article;
+import org.b3log.symphony.model.Tag;
+import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.util.ApiV3ContentUtil;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Requests;
+import org.b3log.symphony.util.ApiV3Transactions;
+import org.b3log.symphony.util.ApiV3TransactionSavepoint;
+import org.json.JSONObject;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.b3log.symphony.model.LongArticleReadClaim;
 import org.b3log.symphony.model.LongArticleReadWindowIncrement;
 import org.b3log.symphony.repository.ArticleRepository;
-import org.b3log.symphony.repository.LongArticleReadAnonRepository;
 import org.b3log.symphony.repository.LongArticleReadUserRepository;
 import org.b3log.symphony.repository.LongArticleReadWindowRepository;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
 /** 持久化长篇阅读去重与窗口计数。 */
@@ -52,87 +58,79 @@ public class LongArticleReadCaptureService {
     private LongArticleReadUserRepository userRepository;
 
     @Inject
-    private LongArticleReadAnonRepository anonymousRepository;
-
-    @Inject
     private LongArticleReadWindowRepository windowRepository;
 
-    public void record(final LongArticleReadCaptureRequest request) {
-        if (!isLongArticle(request.articleId())) {
-            return;
-        }
-        final long now = System.currentTimeMillis();
-        recordAt(request, now, now / WINDOW_MILLIS * WINDOW_MILLIS);
-    }
+    @Inject
+    private UserRepository readers;
 
-    private boolean isLongArticle(final String articleId) {
-        if (StringUtils.isBlank(articleId)) {
-            return false;
-        }
-        try {
-            final var article = articleRepository.get(articleId);
-            return null != article && Article.ARTICLE_TYPE_C_LONG == article.optInt(Article.ARTICLE_TYPE);
-        } catch (final RepositoryException e) {
-            throw new IllegalStateException("读取长篇文章失败", e);
-        }
-    }
+    protected long now() { return System.currentTimeMillis(); }
 
-    private void recordAt(final LongArticleReadCaptureRequest request, final long now, final long windowStart) {
-        final Transaction transaction = windowRepository.hasTransactionBegun() ? null : windowRepository.beginTransaction();
+    /** Current-reader eligibility, per-window claim and counter are one atomic operation. */
+    public boolean recordCurrent(final String articleId, final String actor) {
+        if (articleId == null || !articleId.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.invalid();
+        if (actor == null || !actor.matches("[1-9][0-9]{0,18}"))
+            throw new ApiV3Exception(401, "unauthorized", "需要登录");
+        Transaction transaction = null;
         try {
-            final boolean claimed = StringUtils.isNotBlank(request.userId())
-                    ? userRepository.claim(new LongArticleReadClaim(Ids.genTimeMillisId(), request.articleId(),
-                    request.userId(), windowStart, now))
-                    : claimAnonymous(request, windowStart, now);
-            if (!claimed) {
-                commit(transaction);
-                return;
-            }
-            final int registeredIncrement = StringUtils.isNotBlank(request.userId()) ? 1 : 0;
-            final int anonymousIncrement = registeredIncrement == 0 ? 1 : 0;
-            if (!windowRepository.increment(new LongArticleReadWindowIncrement(Ids.genTimeMillisId(),
-                    request.articleId(), windowStart, registeredIncrement, anonymousIncrement, now))) {
-                throw new RepositoryException("长篇阅读窗口已进入结算");
-            }
-            commit(transaction);
-        } catch (final Exception e) {
+            if (!windowRepository.hasTransactionBegun()) transaction = ApiV3Transactions.strict(windowRepository.beginTransaction());
+            final boolean recorded = ApiV3TransactionSavepoint.run(() -> recordCurrentInTransaction(articleId, actor));
+            if (transaction != null) transaction.commit();
+            return recorded;
+        } catch (final Exception error) {
             rollback(transaction);
-            throw new IllegalStateException("记录长篇阅读失败", e);
+            if (error instanceof ApiV3Exception policy) throw policy;
+            LogManager.getLogger(getClass()).error("Long article read registration failed", error);
+            throw new ApiV3Exception(503, "temporarily_unavailable", "阅读登记暂不可用");
         }
     }
 
-    private boolean claimAnonymous(final LongArticleReadCaptureRequest request, final long windowStart, final long now)
-            throws RepositoryException {
-        final String readerHash = hashReader(request.ip(), request.userAgent());
-        if (StringUtils.isBlank(readerHash)) {
-            return false;
+    private boolean recordCurrentInTransaction(final String articleId, final String actor) throws Exception {
+        // Resolve a lock hint only. Never treat an earlier article/user entity as authorization.
+        final String author = articleRepository.getCommentPublicationAuthor(articleId);
+        if (!author.matches("[1-9][0-9]{0,18}")) throw ApiV3Requests.notFound();
+        JSONObject reader = null, writer = null;
+        for (final String id : new TreeSet<>(List.of(actor, author))) {
+            final JSONObject user = readers.getForUpdate(id);
+            if (id.equals(actor)) reader = user;
+            if (id.equals(author)) writer = user;
         }
-        return anonymousRepository.claim(new LongArticleReadClaim(Ids.genTimeMillisId(), request.articleId(),
-                readerHash, windowStart, now));
+        if (reader == null || !actor.equals(reader.optString("oId"))
+                || reader.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID)
+            throw ApiV3Requests.notFound();
+        if (writer == null || !author.equals(writer.optString("oId"))
+                || (writer.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID
+                && writer.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_INVALID_LOGIN))
+            throw ApiV3Requests.notFound();
+        final JSONObject article = articleRepository.getForUpdate(articleId);
+        if (article == null || !author.equals(article.optString(Article.ARTICLE_AUTHOR_ID))
+                || article.optInt(Article.ARTICLE_STATUS, -1) != Article.ARTICLE_STATUS_C_VALID
+                || article.optInt(Article.ARTICLE_TYPE, -1) != Article.ARTICLE_TYPE_C_LONG
+                || article.optInt(Article.ARTICLE_ANONYMOUS, -1) != Article.ARTICLE_ANONYMOUS_C_PUBLIC
+                || article.optInt(Article.ARTICLE_SHOW_IN_LIST, -1) != Article.ARTICLE_SHOW_IN_LIST_C_YES
+                || Tag.TAG_TITLE_C_SANDBOX.equals(article.optString(Article.ARTICLE_TAGS))
+                || article.optString(Article.ARTICLE_TAGS).startsWith("B3log")
+                || !ApiV3ContentUtil.canViewArticle(article, reader, Set.of())) throw ApiV3Requests.notFound();
+        if (actor.equals(author)) throw new ApiV3Exception(409, "own_article", "本人阅读不计入统计");
+        // Calculate after waiting for the current user/article locks, so the window cannot age while queued.
+        final long time = now();
+        if (time <= 0) throw new IllegalStateException("invalid capture clock");
+        final long windowStart = time / WINDOW_MILLIS * WINDOW_MILLIS;
+        if (!userRepository.claim(new LongArticleReadClaim(Ids.genTimeMillisId(), articleId, actor, windowStart, time))) return false;
+        if (!windowRepository.increment(new LongArticleReadWindowIncrement(Ids.genTimeMillisId(), articleId, windowStart, 1, 0, time)))
+            throw new RepositoryException("长篇阅读窗口已进入结算");
+        return true;
     }
 
-    private String hashReader(final String ip, final String ua) {
-        if (StringUtils.isBlank(ip) && StringUtils.isBlank(ua)) {
-            return null;
-        }
-        try {
-            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            final String content = StringUtils.defaultString(ip) + '|' + StringUtils.defaultString(ua);
-            return HexFormat.of().formatHex(digest.digest(content.getBytes(StandardCharsets.UTF_8)));
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 不可用", e);
+    /** Classic view and Markdown callers retain their output for ineligible readers. */
+    public void record(final LongArticleReadCaptureRequest request) {
+        try { recordCurrent(request.articleId(), request.userId()); }
+        catch (final ApiV3Exception error) {
+            if (error.status != 401 && error.status != 404
+                    && !(error.status == 409 && "own_article".equals(error.code))) throw error;
         }
     }
 
     private void rollback(final Transaction transaction) {
-        if (null != transaction && transaction.isActive()) {
-            transaction.rollback();
-        }
-    }
-
-    private void commit(final Transaction transaction) {
-        if (null != transaction && transaction.isActive()) {
-            transaction.commit();
-        }
+        if (transaction != null && transaction.isActive()) transaction.rollback();
     }
 }

@@ -20,9 +20,11 @@ package org.b3log.symphony.util;
 
 import org.apache.commons.lang.StringUtils;
 
+import javax.naming.CommunicationException;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.ServiceUnavailableException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
@@ -44,23 +46,61 @@ final class SearchEngineDnsVerifier {
     private SearchEngineDnsVerifier() {
     }
 
-    static boolean verify(final String ip, final SearchEngines.Engine engine) {
-        try {
-            final InetAddress address = InetAddress.getByName(ip);
-            for (final String host : lookupPtr(reverseLookupName(address))) {
-                final String hostname = normalizeHostname(host);
-                if (isAllowedHostname(engine, hostname) && forwardMatches(hostname, address)) {
-                    return true;
-                }
-            }
-        } catch (final Exception ignored) {
-            return false;
-        }
-        return false;
+    @FunctionalInterface
+    interface DnsLookup {
+        List<String> lookup(String name, String... attrs) throws NamingException;
     }
 
-    private static boolean forwardMatches(final String hostname, final InetAddress address) throws NamingException {
-        for (final String value : lookup(hostname, "A", "AAAA")) {
+    static SearchEngines.Verification verify(final String ip, final SearchEngines.Engine engine) {
+        return verify(ip, engine, SearchEngineDnsVerifier::lookup);
+    }
+
+    static SearchEngines.Verification verify(final String ip, final SearchEngines.Engine engine,
+                                              final DnsLookup dns) {
+        final List<String> ptr = new ArrayList<>();
+        final List<String> forward = new ArrayList<>();
+        String stage = "来源 IP 解析";
+        try {
+            final InetAddress address = InetAddress.getByName(ip);
+            stage = "反向查询";
+            final List<String> hosts = dns.lookup(reverseLookupName(address), "PTR");
+            for (final String host : hosts) ptr.add(normalizeHostname(host));
+            if (hosts.isEmpty()) return result(engine, false, "反向解析无记录", ptr, forward);
+            boolean allowed = false;
+            for (final String host : hosts) {
+                final String hostname = normalizeHostname(host);
+                if (!isAllowedHostname(engine, hostname)) continue;
+                allowed = true;
+                stage = "正向查询";
+                if (forwardMatches(hostname, address, dns, forward)) {
+                    return result(engine, true, "双向 DNS 校验通过", ptr, forward);
+                }
+            }
+            return result(engine, false, allowed ? "正向解析未匹配来源 IP" : "反向域名后缀不符", ptr, forward);
+        } catch (final Exception e) {
+            // 只保留异常类型与查询阶段，避免把解析器配置等内部信息带入诊断。
+            final boolean transientFailure = e instanceof CommunicationException
+                    || e instanceof ServiceUnavailableException;
+            return new SearchEngines.Verification(engine, false,
+                    stage + "异常（" + e.getClass().getSimpleName() + "）", String.join(", ", ptr),
+                    String.join("; ", forward), System.currentTimeMillis(), false, transientFailure);
+        }
+    }
+
+    private static SearchEngines.Verification result(final SearchEngines.Engine engine, final boolean verified,
+                                                      final String reason, final List<String> ptr,
+                                                      final List<String> forward) {
+        return new SearchEngines.Verification(engine, verified, reason, String.join(", ", ptr),
+                String.join("; ", forward), System.currentTimeMillis(), false);
+    }
+
+    private static boolean forwardMatches(final String hostname, final InetAddress address, final DnsLookup dns,
+                                          final List<String> forward) throws NamingException {
+        // JNDI 同查 A/AAAA 会合成 ANY；只查来源地址族，避免解析器拒绝 ANY 而误拒真实爬虫。
+        final String recordType = address.getAddress().length == 4 ? "A" : "AAAA";
+        final List<String> values = dns.lookup(hostname, recordType);
+        forward.add(hostname + " → " + (values.isEmpty() ? "无记录" : String.join(", ", values)));
+        for (final String value : values) {
             try {
                 if (InetAddress.getByName(value).equals(address)) {
                     return true;
@@ -69,10 +109,6 @@ final class SearchEngineDnsVerifier {
             }
         }
         return false;
-    }
-
-    private static List<String> lookupPtr(final String reverseName) throws NamingException {
-        return lookup(reverseName, "PTR");
     }
 
     private static List<String> lookup(final String name, final String... attrs) throws NamingException {
@@ -145,9 +181,8 @@ final class SearchEngineDnsVerifier {
                 return SearchEngines.hasDnsSuffix(hostname, "yandex.ru")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.net")
                         || SearchEngines.hasDnsSuffix(hostname, "yandex.com");
-            case SO360:
-                return SearchEngines.hasDnsSuffix(hostname, "so.com")
-                        || SearchEngines.hasDnsSuffix(hostname, "360.cn");
+            case APPLE:
+                return SearchEngines.hasDnsSuffix(hostname, "applebot.apple.com");
             default:
                 return false;
         }

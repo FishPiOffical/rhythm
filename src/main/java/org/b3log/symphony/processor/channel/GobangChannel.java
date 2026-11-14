@@ -98,7 +98,8 @@ public class GobangChannel implements WebSocketChannel {
      */
     @Override
     public void onConnect(final WebSocketSession session) {
-        final String userStr = session.getHttpSession().getAttribute(User.USER);
+        final JSONObject credentialUser=org.b3log.symphony.util.Sessions.currentSocketUser(session);
+        final String userStr=credentialUser==null?null:credentialUser.toString();
         if (null == userStr) {
             session.close();
             return;
@@ -205,6 +206,7 @@ public class GobangChannel implements WebSocketChannel {
      */
     @Override
     public void onMessage(final Message message) throws JSONException {
+        if(org.b3log.symphony.util.Sessions.currentSocketUser(message.session)==null){message.session.close();return;}
         JSONObject jsonObject = new JSONObject(message.text);
         final String player = jsonObject.optString("player");
         final String anti = getAntiPlayer(player);

@@ -28,6 +28,7 @@ public final class OpenIdRefreshToken {
 
     public static final String OPENID_REFRESH_TOKEN = "openid_refresh_token";
 
+    public static final String CREDENTIAL_EPOCH = "credentialEpoch";
     public static final String TOKEN_HASH = "tokenHash";
     public static final String USER_ID = "userId";
     public static final String REALM = "realm";

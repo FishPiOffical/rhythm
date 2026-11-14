@@ -44,6 +44,13 @@ public class FishGameRepository extends AbstractRepository {
         return select(sql, FishGame.STATUS_APPROVED, pageSize);
     }
 
+    public List<JSONObject> getV3ApprovedPage(final int page, final int size, final String sort) throws RepositoryException {
+        if (!"likes".equals(sort) && !"votes".equals(sort)) throw new IllegalArgumentException("game sort");
+        final String votes = "votes".equals(sort) ? "(fishGameLikeCount+fishGameDislikeCount) DESC," : "";
+        return select("SELECT * FROM " + getName() + " WHERE fishGameStatus=? ORDER BY " + votes
+                + "fishGameLikeCount DESC,fishGameCreatedTime DESC,oId DESC LIMIT ?,?", FishGame.STATUS_APPROVED, (page - 1) * size, size);
+    }
+
     public List<JSONObject> getAll(final int page, final int pageSize) throws RepositoryException {
         final Query query = new Query().setPage(page, pageSize).setPageCount(1)
                 .addSort(FishGame.STATUS, SortDirection.ASCENDING)
@@ -66,6 +73,7 @@ public class FishGameRepository extends AbstractRepository {
     }
 
     public JSONObject getForUpdate(final String gameId) throws RepositoryException {
+        if (!hasTransactionBegun()) throw new IllegalStateException("fish game transaction required");
         final List<JSONObject> values = select("SELECT * FROM `" + getName() + "` WHERE `oId`=? FOR UPDATE", gameId);
         return values.isEmpty() ? null : values.getFirst();
     }

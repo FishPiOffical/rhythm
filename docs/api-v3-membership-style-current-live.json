@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-02",
+  "javaPid": 96544,
+  "scope": "Actual current public membership style projection; existing dedicated VIP4_MONTH target only, no purchase/config API mutations",
+  "results": [
+    {
+      "step": "warm-styles-current-members",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "changed-current-config-not-cached",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "legacy-invalid-values-omitted",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "expired-membership-empty-style",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "permanent-membership-style-visible",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "inactive-membership-empty-style",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "nonactive-user-status-1",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "nonactive-user-status-2",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "nonactive-user-status-3",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "nonactive-user-status-4",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "restored-valid-user-current-style",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    },
+    {
+      "step": "corrupt-config-explicit-error",
+      "status": 503,
+      "expected": 503,
+      "code": "temporarily_unavailable",
+      "passed": true
+    },
+    {
+      "step": "duplicate-requested-id-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "invalid_request",
+      "passed": true
+    },
+    {
+      "step": "unexpected-query-field-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "invalid_request",
+      "passed": true
+    },
+    {
+      "step": "missing-ids-rejected",
+      "status": 422,
+      "expected": 422,
+      "code": "invalid_request",
+      "passed": true
+    },
+    {
+      "step": "guest-denied",
+      "status": 401,
+      "expected": 401,
+      "code": "unauthorized",
+      "passed": true
+    },
+    {
+      "step": "final-original-style-restored",
+      "status": 200,
+      "expected": 200,
+      "code": 0,
+      "passed": true
+    }
+  ],
+  "membershipRowRestored": true,
+  "userStatusRestored": true,
+  "allFiveBalancesUnchanged": true,
+  "limits": [
+    "Temporary guarded SQL state fixtures, not natural expiry wait or admin disable UI",
+    "One node; public style is server projection only, not every client cache/render behavior",
+    "Malformed legacy config currently fails whole batch explicitly, no partial success",
+    "No purchase/points/notification mutation or source/Java change",
+    "Production captcha/blacklist and full CDN/directory/remote-image matrix not re-tested"
+  ]
+}

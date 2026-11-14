@@ -80,6 +80,8 @@ public final class Router {
         FishGameProcessor.register();
         // 韵图图床上传票据
         RhypicProcessor.register();
+        // Versioned third-party Web API
+        ApiV3Processor.register();
         // 帖子
         ArticleProcessor.register();
         // 帖子草稿

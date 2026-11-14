@@ -1,0 +1,99 @@
+/*
+ * Rhythm - A modern community (forum/BBS/SNS/blog) platform written in Java.
+ * Modified version from Symphony, Thanks Symphony :)
+ * Copyright (C) 2012-present, b3log.org
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+// PC、移动端和两种聊天室布局共用消息签名样式。
+.fp-chat-tail {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(128, 128, 128, .22);
+  color: #888;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  > svg {
+    fill: none;
+    stroke: currentColor;
+    // 旧站全局 SVG 默认无描边，线性图标需要明确恢复笔画宽度。
+    stroke-width: 1.6;
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-top: 2px;
+  }
+
+  > span { min-width: 0; }
+}
+
+.fp-chat-pet-status {
+  --pet-color: #758295;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 15em;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  margin-inline-start: 5px;
+  vertical-align: middle;
+  color: color-mix(in srgb, var(--pet-color) 65%, var(--text-color, #292d32));
+}
+a.fp-chat-pet-status:hover,
+a.fp-chat-pet-status:focus-visible {
+  text-decoration: none;
+}
+.fp-chat-pet-status[data-species="momota"] { --pet-color: #a76a45; }
+.fp-chat-pet-status[data-species="hexiaotun"] { --pet-color: #5c913c; }
+.fp-chat-pet-status[data-species="yubingmiao"] { --pet-color: #cc6b26; }
+.fp-chat-pet-status[data-species="paixiaoyu"] { --pet-color: #448bb8; }
+.fp-chat-pet-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pet-color) 13%, transparent);
+}
+.fp-chat-pet-info:not(:last-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+a.fp-chat-pet-status:hover .fp-chat-pet-info,
+a.fp-chat-pet-status:focus-visible .fp-chat-pet-info {
+  background: color-mix(in srgb, var(--pet-color) 23%, transparent);
+}
+.fp-chat-pet-name { overflow: hidden; text-overflow: ellipsis; }
+.fp-chat-pet-level {
+  --level-color: #758295;
+  flex: none;
+  padding: 1px 5px;
+  border-inline-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+  background: color-mix(in srgb, var(--level-color) 19%, transparent);
+  color: color-mix(in srgb, var(--level-color) 65%, var(--text-color, #292d32));
+  font-weight: 700;
+}
+.fp-chat-pet-level[data-tier="1"] { --level-color: #4383ce; }
+.fp-chat-pet-level[data-tier="2"] { --level-color: #9564c5; }
+.fp-chat-pet-level[data-tier="3"] { --level-color: #bd841f; }
+.fp-chat-pet-state { flex: none; color: var(--text-gray-color, #53655a); }

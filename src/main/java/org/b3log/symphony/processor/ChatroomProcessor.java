@@ -22,7 +22,6 @@ import static org.b3log.symphony.processor.channel.ChatroomChannel.sendCustomMes
 
 import java.io.UnsupportedEncodingException;
 import java.lang.Character;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
@@ -45,7 +44,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.logging.log4j.Level;
@@ -64,7 +62,6 @@ import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
-import org.b3log.latke.util.Crypts;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.ChatroomChannel;
@@ -76,6 +73,11 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.AvatarQueryService;
 import org.b3log.symphony.service.ChatRoomService;
+import org.b3log.symphony.service.ApiV3ChatRedPacketService;
+import org.b3log.symphony.util.ApiV3ChatTail;
+import org.b3log.symphony.service.ChatMessageMgmtService;
+import org.b3log.symphony.service.ChatTopicWriteService;
+import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
 import org.b3log.symphony.service.CloudService;
 import org.b3log.symphony.service.MedalService;
 import org.b3log.symphony.service.CommentMgmtService;
@@ -87,7 +89,6 @@ import org.b3log.symphony.service.MembershipQueryService;
 import org.b3log.symphony.service.NotificationMgmtService;
 import org.b3log.symphony.service.NotificationQueryService;
 import org.b3log.symphony.service.PointtransferMgmtService;
-import org.b3log.symphony.service.ProfessionSourceEventCaptureService;
 import org.b3log.symphony.service.ReactionQueryService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.ShortLinkQueryService;
@@ -244,12 +245,17 @@ public class ChatroomProcessor {
     @Inject
     private RoleQueryService roleQueryService;
 
-    @Inject
-    private ProfessionSourceEventCaptureService professionSourceEventCaptureService;
+    @Inject private ChatMessageMgmtService chatMessageMgmtService;
+    @Inject private ChatTopicWriteService chatTopicWrites;
+    @Inject private ChatMessageWithdrawalMgmtService chatMessageWithdrawals;
 
-    public static int barragerCost = 5;
+    public static volatile int barragerCost = 5;
 
-    public static String barragerUnit = "积分";
+    public static volatile String barragerUnit = "积分";
+
+    public record BarragerPrice(int amount, String unit) { }
+    public static synchronized BarragerPrice getBarragerPrice() { return new BarragerPrice(barragerCost, barragerUnit); }
+    public static synchronized void setBarragerPrice(final int amount, final String unit) { barragerCost = amount; barragerUnit = unit; }
 
     /**
      * Register request handlers.
@@ -280,7 +286,8 @@ public class ChatroomProcessor {
     }
 
     public void getBarragerCost(final RequestContext context) {
-        String result = barragerCost + barragerUnit;
+        final var price = getBarragerPrice();
+        String result = price.amount() + price.unit();
         context.renderJSON(StatusCodes.SUCC);
         context.renderData(result);
     }
@@ -717,13 +724,7 @@ public class ChatroomProcessor {
             context.abort();
             return;
         }
-        final String userId = currentUser.optString(Keys.OBJECT_ID);
-        final String userPassword = currentUser.optString(User.USER_PASSWORD);
-        final JSONObject cookieJSONObject = new JSONObject();
-        cookieJSONObject.put(Keys.OBJECT_ID, userId);
-        final String random = RandomStringUtils.randomAlphanumeric(16);
-        cookieJSONObject.put(Keys.TOKEN, userPassword + ApiProcessor.COOKIE_ITEM_SEPARATOR + random);
-        final String key = Crypts.encryptByAES(cookieJSONObject.toString(), Symphonys.COOKIE_SECRET_API);
+        final String key = ApiProcessor.issueApiKey(currentUser);
 
         JSONObject ret = new JSONObject();
         ret.put(Keys.CODE, StatusCodes.SUCC);
@@ -845,7 +846,36 @@ public class ChatroomProcessor {
      *
      * @param context
      */
+    // The packet service publishes through this processor; resolve it after singleton creation.
+    protected ApiV3ChatRedPacketService redPackets() {
+        return BeanManager.getInstance().getReference(ApiV3ChatRedPacketService.class);
+    }
+
     public synchronized void openRedPacket(final RequestContext context) {
+        try {
+            final JSONObject packetRequest = context.requestJSON();
+            final String packetId = packetRequest.optString("oId");
+            final ApiV3ChatRedPacketService apiV3RedPackets = redPackets();
+            if (apiV3RedPackets.recognizes(packetId)) {
+                if (packetRequest.has("riskAccepted")) {
+                    final String media = context.header("Content-Type");
+                    if (media == null || !"application/json".equalsIgnoreCase(media.split(";", 2)[0].trim()))
+                        throw new org.b3log.symphony.util.ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
+                }
+                final Object authenticated = context.attr(User.USER);
+                final JSONObject actor = authenticated instanceof JSONObject user ? user : Sessions.getUser();
+                context.renderJSON(apiV3RedPackets.legacyOpen(actor, packetId, packetRequest));
+                return;
+            }
+            if (packetRequest.has("viewOnly") || packetRequest.has("riskAccepted") || packetRequest.has("expectedUserId"))
+                throw new org.b3log.symphony.util.ApiV3Exception(404, "red_packet_not_found", "新核心红包不存在");
+        } catch (final org.b3log.symphony.util.ApiV3Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());
+            return;
+        } catch (final Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+            return;
+        }
         try {
             JSONObject currentUser = Sessions.getUser();
             try {
@@ -887,7 +917,7 @@ public class ChatroomProcessor {
             int risksControlMinute = risksControlled % (24 * 60 * 60) % (60 * 60) / 60;
             int risksControlSecond = risksControlled % (24 * 60 * 60) % (60 * 60) % 60;
             if (risksControlled != -1) {
-                if (!openRedPacketLimiter.access(userId)) {
+                if (!takeRedPacketRiskQuota(userId)) {
                     context.renderJSON(StatusCodes.ERR).renderMsg("抢红包失败，原因：你处于风控名单，每30分钟只能抢一个红包。剩余风控时间为：" + risksControlDay + " 天 " + risksControlHour + " 小时 " + risksControlMinute + " 分 " + risksControlSecond + " 秒。");
                     return;
                 }
@@ -898,6 +928,10 @@ public class ChatroomProcessor {
             String oId = requestJSONObject.optString("oId");
             JSONObject msg = chatRoomService.getChatMsg(oId);
             JSONObject redPacket = new JSONObject(new JSONObject(msg.optString("content")).optString("content"));
+            if (org.b3log.symphony.model.ChatRedPacket.MARKER.equals(redPacket.optString("settlement"))) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+                return;
+            }
             JSONObject info = new JSONObject();
             JSONObject sender = userQueryService.getUser(redPacket.optString("senderId"));
             info.put(UserExt.USER_AVATAR_URL, sender.optString(UserExt.USER_AVATAR_URL));
@@ -1227,31 +1261,90 @@ public class ChatroomProcessor {
     final private static SimpleCurrentLimiter chatRoomLivenessLimiter = new SimpleCurrentLimiter(60, 1);
     final private static SimpleCurrentLimiter risksControlMessageLimiter = new SimpleCurrentLimiter(15 * 60, 1);
     final private static SimpleCurrentLimiter openRedPacketLimiter = new SimpleCurrentLimiter(30 * 60, 1);
-    final private static List<String> LEGAL_CLIENT = List.of(
-            "Web",
-            "PC",
-            "Mobile",
-            "CLI",
-            "uTools",
-            "Windows",
-            "macOS",
-            "Linux",
-            "IceNet",
-            "ElvesOnline",
-            "iOS",
-            "Android",
-            "Extension",
-            "IDEA",
-            "Chrome",
-            "Edge",
-            "VSCode",
-            "Python",
-            "Golang",
-            "Bird",
-            "Dart",
-            "Harmony",
-            "Rust",
-            "Other");
+    /** New and historical packet claims share the existing risk quota on this instance. */
+    public static boolean takeRedPacketRiskQuota(final String actor) { return openRedPacketLimiter.access(actor); }
+
+
+
+    private void sendClassicRedPacket(final RequestContext context, final String content) {
+        // The classic input format is retained. The following original settlement notes describe the old path.
+        // 是否收税
+        // 基础税率 猜拳
+        // 获取用户会员状态
+        // 是否是尊贵的会员
+        // 免税
+        // 扣积分
+        // 征税 VIP4免税
+        // 重新设置税点
+        // 重新设置税点
+        // 重新设置税点
+        // 组合新的 JSON
+        // 收税的时候 直接扣减
+        // 已经抢了这个红包的人数
+        // 已经抢了这个红包的人以及抢到的金额
+        // 红包特殊标识，堵漏洞
+        // 税给admin V4没有税
+        // 写入数据库
+        // 预分配红包
+        // 预分配红包
+        // 发通知
+        // ignore
+/*toatlMoney = 250;
+                                int userPoint = currentUser.optInt("userPoint");
+                                if (userPoint < 1500 * 6) {
+                                    context.renderJSON(StatusCodes.ERR).renderMsg("少年,资产不足以开盘!");
+                                    return;
+                                }
+                                if (count > 15) {
+                                    context.renderJSON(StatusCodes.ERR).renderMsg("开盘人数不成超过15人,小赌怡情！");
+                                    return;
+                                }
+                                break;*/
+        try {
+            final JSONObject actor = (JSONObject) context.attr(User.USER);
+            if (actor == null) throw new ApiV3Exception(401, "unauthorized", "请先登录。");
+            if (actor.optString("userPhone").isEmpty()) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("未绑定手机号码，无法使用此功能。请至设置-账户中绑定手机号码。");
+                return;
+            }
+            final JSONObject input = new JSONObject(content.substring(11, content.length() - 12));
+            final String type = StringUtils.defaultIfBlank(input.optString("type"), "random");
+            final String rawMessage = input.optString("msg");
+            final String filtered = rawMessage.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5,，.。！!?？《》\\s]", "");
+            final JSONObject body = new JSONObject().put("type", type).put("money", input.optInt("money"))
+                    .put("message", filtered.substring(0, Math.min(20, filtered.length())));
+            if ("specify".equals(type)) {
+                final JSONArray names = input.optJSONArray("recivers") != null ? input.getJSONArray("recivers")
+                        : new JSONArray(StringUtils.defaultIfBlank(input.optString("recivers"), "[]"));
+                if (names.isEmpty() || names.length() > 100) throw ApiV3WriteInputs.invalid();
+                final JSONArray recipients = new JSONArray();
+                for (Object name : names) {
+                    if (!(name instanceof String userName) || userName.isBlank()) throw ApiV3WriteInputs.invalid();
+                    final JSONObject user = userQueryService.getUserByName(userName);
+                    if (user == null) throw ApiV3WriteInputs.invalid();
+                    recipients.put(user.optString(Keys.OBJECT_ID));
+                }
+                body.put("recipientIds", recipients);
+            } else if ("rockPaperScissors".equals(type)) {
+                body.put("gesture", input.optInt("gesture", -1));
+            } else {
+                body.put("count", input.optInt("count"));
+            }
+            // Classic send is the explicit choice of packet type; claim confirmation is separate.
+            if (ApiV3RedPacketInputs.risky(type)) body.put("riskAccepted", true);
+            ApiV3RedPacketInputs.prepare(body, actor.optString(Keys.OBJECT_ID));
+            final String key = context.header("Idempotency-Key");
+            redPackets().create(actor, body, StringUtils.isBlank(key) ? java.util.UUID.randomUUID().toString() : key, true);
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ApiV3Exception error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(error.getMessage());
+        } catch (final org.json.JSONException error) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包参数不合法");
+        } catch (final Exception error) {
+            LOGGER.error("Create classic chat red packet failed", error);
+            context.renderJSON(StatusCodes.ERR).renderMsg("红包暂不可用");
+        }
+    }
 
     /**
      * Send chatroom message.
@@ -1259,22 +1352,16 @@ public class ChatroomProcessor {
      * @param context Everything
      */
     public void addChatRoomMsg(final RequestContext context) {
+        final JSONObject request = (JSONObject) context.attr(Keys.REQUEST);
+        final String incoming = request.optString(Common.CONTENT);
+        if (incoming.startsWith("[redpacket]") && incoming.endsWith("[/redpacket]")) {
+            sendClassicRedPacket(context, incoming);
+            return;
+        }
         if (ChatRoomBot.record(context)) {
             final JSONObject requestJSONObject = (JSONObject) context.attr(Keys.REQUEST);
             String content = requestJSONObject.optString(Common.CONTENT);
-            String clientMark = requestJSONObject.optString("client");
-            String source = "";
-            try {
-                String client = clientMark.split("/")[0];
-                String version = clientMark.split("/")[1].replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5.\\s\\-]", "");
-                if (version.length() > 32) {
-                    version = version.substring(0, 31);
-                }
-                if (LEGAL_CLIENT.contains(client)) {
-                    source = client + "/" + version;
-                }
-            } catch (Exception ignored) {
-            }
+            final String source = ChatMessageClients.normalize(requestJSONObject.optString("client"));
 
             try {
                 JSONObject checkContent = new JSONObject(content);
@@ -1286,10 +1373,9 @@ public class ChatroomProcessor {
             }
 
             JSONObject currentUser = Sessions.getUser();
-            try {
-                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-            } catch (NullPointerException ignored) {
-            }
+            if(ChatTopicInputs.isEnvelope(content))currentUser=(JSONObject)context.attr(User.USER);
+            else try { currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey")); }
+            catch (NullPointerException ignored) { }
             final String userPhone = currentUser.optString("userPhone");
             if (userPhone.isEmpty()) {
                 context.renderJSON(StatusCodes.ERR).renderMsg("未绑定手机号码，无法使用此功能。请至设置-账户中绑定手机号码。");
@@ -1314,244 +1400,7 @@ public class ChatroomProcessor {
 
             String userId = currentUser.optString(Keys.OBJECT_ID);
 
-            if (content.startsWith("[redpacket]") && content.endsWith("[/redpacket]")) {
-                LOGGER.log(Level.INFO, "Sent red packet [content={}], userName={}]", content, userName);
-                // 是否收税
-                Boolean collectTaxes = false;
-                // 基础税率 猜拳
-                BigDecimal taxRate = new BigDecimal("0.15");
-                try {
-                    // 获取用户会员状态
-                    JSONObject memberShip = membershipQueryService.getStatusByUserId(userId);
-                    // 是否是尊贵的会员
-                    boolean notSVIP = true;
-                    if (Objects.nonNull(memberShip) && memberShip.getInt(Membership.STATE) != 0) {
-                        if (memberShip.optString(Membership.LV_CODE).contains("VIP4")) {
-                            // 免税
-                            notSVIP = false;
-                        }
-                    }
-                    String redpacketString = content.replaceAll("^\\[redpacket\\]", "").replaceAll("\\[/redpacket\\]$", "");
-                    JSONObject redpacket = new JSONObject(redpacketString);
-                    String type = redpacket.optString("type");
-                    if (StringUtils.isBlank(type)) {
-                        type = "random";
-                    }
-                    int money = redpacket.optInt("money");
-                    int count = redpacket.optInt("count");
-                    String recivers = redpacket.optString("recivers");
-                    String message = redpacket.optString("msg");
-                    int gesture = redpacket.optInt("gesture", -1);
-                    if (!userName.equals("admin")) {
-                        message = message.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5,，.。！!?？《》\\s]", "");
-                        if (message.length() > 20) {
-                            message = message.substring(0, 20);
-                        }
-                        if (type.equals("heartbeat")) {
-                            if (count < 5) {
-                                context.renderJSON(StatusCodes.ERR).renderMsg("心跳红包个数至少为5个！");
-                                return;
-                            }
-                        }
-                        // 扣积分
-                        if (money > 10240) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包发送失败！红包最大限额为" + 10240 + "！");
-                            return;
-                        }
-                        if (money < (type.equals("rockPaperScissors") ? 256 : 32)) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg(type.equals("rockPaperScissors") ? "红包最小金额为256！" : "红包最小金额为32！");
-                            return;
-                        }
-                        if (count < 1) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包最少发1份！");
-                            return;
-                        }
-                        if (count > 100) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包最多发100份！");
-                            return;
-                        }
-                        if (count > money) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("红包个数不能大于总金额！");
-                            return;
-                        }
-                    }
-                    try {
-                        int toatlMoney = 0;
-                        switch (type) {
-                            case "dice":
-                                context.renderJSON(StatusCodes.ERR).renderMsg("暂不支持摇骰子红包！");
-                                return;
-                                /*toatlMoney = 250;
-                                int userPoint = currentUser.optInt("userPoint");
-                                if (userPoint < 1500 * 6) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("少年,资产不足以开盘!");
-                                    return;
-                                }
-                                if (count > 15) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("开盘人数不成超过15人,小赌怡情！");
-                                    return;
-                                }
-                                break;*/
-                            case "rockPaperScissors":
-                                if (gesture < 0 || gesture > 2) {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("数据不合法！");
-                                    return;
-                                }
-                                count = 1;
-                                toatlMoney = money;
-                                // 征税 VIP4免税
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                }
-                                break;
-                            case "average":
-                                toatlMoney = money * count;
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                    // 重新设置税点
-                                    taxRate = new BigDecimal("0.03");
-                                }
-                                break;
-                            case "specify":
-                                if (StringUtils.isNotBlank(recivers)) {
-                                    final JSONArray reciverArray = new JSONArray(recivers);
-                                    final int length = reciverArray.length();
-                                    if (length == 1 && userName.equals(reciverArray.optString(0))) {
-                                        context.renderJSON(StatusCodes.ERR).renderMsg("不允许自己给自己单独发专属红包! ");
-                                        return;
-                                    }
-                                    if (length > 0) {
-                                        toatlMoney = money * length;
-                                        if (notSVIP) {
-                                            collectTaxes = true;
-                                            // 重新设置税点
-                                            taxRate = new BigDecimal("0.01");
-                                        }
-                                    } else {
-                                        context.renderJSON(StatusCodes.ERR).renderMsg("专属红包需要指定用户！");
-                                        return;
-                                    }
-                                } else {
-                                    context.renderJSON(StatusCodes.ERR).renderMsg("专属红包需要指定用户！");
-                                    return;
-                                }
-                                break;
-                            case "random":
-                            case "heartbeat":
-                            default:
-                                if (notSVIP) {
-                                    collectTaxes = true;
-                                    // 重新设置税点
-                                    taxRate = new BigDecimal("0.03");
-                                }
-                                toatlMoney = money;
-                        }
-                        final boolean succ = null != pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
-                                Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_SEND_RED_PACKET,
-                                toatlMoney, "", System.currentTimeMillis(), collectTaxes ? "collectTaxes" : "");
-                        if (!succ) {
-                            context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                            return;
-                        }
-                    } catch (Exception e) {
-                        context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                        return;
-                    }
-                    // 组合新的 JSON
-                    JSONObject redPacketJSON = new JSONObject();
-                    redPacketJSON.put("senderId", userId);
-                    redPacketJSON.put("type", type);
-                    // 收税的时候 直接扣减
-                    redPacketJSON.put("money", collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money);
-                    redPacketJSON.put("count", count);
-                    redPacketJSON.put("msg", message);
-                    redPacketJSON.put("recivers", recivers);
-                    // 已经抢了这个红包的人数
-                    redPacketJSON.put("got", 0);
-                    // 已经抢了这个红包的人以及抢到的金额
-                    redPacketJSON.put("who", new JSONArray());
-                    // 红包特殊标识，堵漏洞
-                    redPacketJSON.put("msgType", "redPacket");
-
-                    // 税给admin V4没有税
-                    if (notSVIP) {
-                        int tax = money - BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue();
-                        if (tax < 1) {
-                            tax = 1;
-                        }
-                        if (StringUtils.isNotBlank(recivers)) {
-                            final JSONArray reciverArray = new JSONArray(recivers);
-                            final int length = reciverArray.length();
-                            if (length > 1) {
-                                tax *= length;
-                            }else if(StringUtils.equals(type, "average")){
-                                tax *= count;
-                            }
-                        }
-                        pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS,
-                                userQueryService.getUserByName("admin").optString(Keys.OBJECT_ID),
-                                Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, tax, userId, System.currentTimeMillis(),
-                                type + " 红包税收，纳税人：" + userName);
-                    }
-                    // 写入数据库
-                    final Transaction transaction = chatRoomRepository.beginTransaction();
-                    try {
-                        msg.put(Common.CONTENT, redPacketJSON.toString());
-                        String oId = chatRoomRepository.add(new JSONObject().put("content", msg.toString()));
-                        msg.put("oId", oId);
-                    } catch (RepositoryException e) {
-                        LOGGER.log(Level.ERROR, "Cannot save ChatRoom message to the database.", e);
-                    }
-                    transaction.commit();
-                    switch (type) {
-                        case "rockPaperScissors":
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateRockRedPacket(msg.optString("oId"), gesture));
-                            msg.put(Common.CONTENT, redPacketJSON.toString());
-                            break;
-                        case "heartbeat":
-                            // 预分配红包
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateHeartbeatRedPacket(msg.optString("oId"), userId, collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money, count, 3));
-                            break;
-                        case "random":
-                            // 预分配红包
-                            RED_PACKET_BUCKET.put(msg.optString("oId"), allocateRedPacket(msg.optString("oId"), userId, collectTaxes ? BigDecimal.valueOf(money).multiply(BigDecimal.ONE.subtract(taxRate)).intValue() : money, count, 2));
-                            break;
-                        case "specify":
-                            // 发通知
-                            final JSONArray jsonArray = new JSONArray(recivers);
-                            for (Object o : jsonArray) {
-                                final String reciver = (String) o;
-                                final JSONObject user = userQueryService.getUserByName(reciver);
-                                if (Objects.isNull(user) || user.optString("oId").equals(currentUser.optString("oId"))) {
-                                    continue;
-                                }
-                                final JSONObject notification = new JSONObject();
-                                notification.put(Notification.NOTIFICATION_USER_ID, user.optString("oId"));
-                                notification.put(Notification.NOTIFICATION_DATA_ID, msg.optString("oId"));
-                                notificationMgmtService.addRedPacketNotification(notification);
-                            }
-                            break;
-                        default:
-                            // ignore
-                    }
-                    final JSONObject pushMsg = JSONs.clone(msg);
-                    pushMsg.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(msg.optLong(Common.TIME)));
-                    fillPushMessageReactions(pushMsg);
-                    ChatroomChannel.notifyChat(pushMsg);
-
-                    try {
-                        final JSONObject user = userQueryService.getUser(userId);
-                        user.put(UserExt.USER_LATEST_CMT_TIME, System.currentTimeMillis());
-                        userMgmtService.updateUser(userId, user);
-                    } catch (final Exception e) {
-                        LOGGER.log(Level.ERROR, "Update user latest comment time failed", e);
-                    }
-
-                    context.renderJSON(StatusCodes.SUCC);
-                } catch (Exception e) {
-                    LOGGER.log(Level.INFO, "User " + userName + " failed to send a red packet.");
-                }
-            } else if (content.startsWith("[weather]") && content.endsWith("[/weather]")) {
+            if (content.startsWith("[weather]") && content.endsWith("[/weather]")) {
                 String weatherString = content.replaceAll("^\\[weather\\]", "").replaceAll("\\[/weather\\]$", "");
                 JSONObject weather = new JSONObject(weatherString);
                 weather.put("msgType", "weather");
@@ -1621,32 +1470,11 @@ public class ChatroomProcessor {
                 }
 
             } else if (content.startsWith("[setdiscuss]") && content.endsWith("[/setdiscuss]")) {
-                // 扣钱
-                final boolean succ = null != pointtransferMgmtService.transfer(userId, Pointtransfer.ID_C_SYS,
-                        Pointtransfer.TRANSFER_TYPE_C_ACTIVITY_SET_DISCUSS,
-                        16, "", System.currentTimeMillis(), "");
-                if (!succ) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！");
-                    return;
-                }
-                String setdiscussString = content.replaceAll("^\\[setdiscuss\\]", "").replaceAll("\\[/setdiscuss\\]$", "");
-                setdiscussString = filterDiscussString(setdiscussString);
-                if (setdiscussString.length() > 64) {
-                    setdiscussString = setdiscussString.substring(0, 64);
-                }
-                if (setdiscussString.isEmpty()) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("这样不好玩哦～");
-                    return;
-                }
-                ChatroomChannel.discussing = setdiscussString;
-                // 广播话题情况
-                JSONObject discussStatus = new JSONObject();
-                discussStatus.put(Common.TYPE, "discussChanged");
-                discussStatus.put("whoChanged", userName);
-                discussStatus.put("newDiscuss", setdiscussString);
-                ChatroomChannel.notifyChat(discussStatus);
-
-                context.renderJSON(StatusCodes.SUCC);
+                try{
+                    chatTopicWrites.legacy(userId,ChatTopicInputs.unwrap(content));
+                    context.renderJSON(StatusCodes.SUCC);
+                }catch(ApiV3Exception e){context.renderJSON(StatusCodes.ERR).renderMsg("insufficient_points".equals(e.code)?"少年，你的积分不足！":"这样不好玩哦～");}
+                catch(Exception e){LOGGER.error("Change legacy chat topic failed",e);context.renderJSON(StatusCodes.ERR).renderMsg("话题保存失败，请稍后重试。");}
             } else if (content.startsWith("[barrager]") && content.endsWith("[/barrager]")) {
                 try {
                     // 扣钱
@@ -1807,6 +1635,79 @@ public class ChatroomProcessor {
     }
 
 
+    /** Called by v3 only after its first confirmed commit, with an internal whitelisted envelope. */
+    public void afterApiMessagePublished(final JSONObject message) {
+        publishCommittedChatMessage(message, true);
+    }
+    /** Structured cards have public text, but do not interpret JSON URLs/titles as mention commands. */
+    public void afterApiCardPublished(final JSONObject message) {
+        publishCommittedChatMessage(message, true, false);
+    }
+    /** Safe packet envelope contains only public summary/claims; private assignments are stored separately. */
+    public void afterApiRedPacketPublished(final JSONObject message) {
+        if (chatRoomRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) throw new IllegalStateException("packet delivery before commit");
+        chatroomChannel.userActive.put(message.getString(User.USER_NAME), message.getLong(Common.TIME));
+        try { incLiveness(message.get("userOId").toString()); } catch (final RuntimeException e) { LOGGER.warn("Committed packet activity delayed"); }
+        final JSONObject push = new JSONObject(message.toString());
+        push.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(message.getLong(Common.TIME)));
+        fillPushMessageReactions(push);
+        ChatroomChannel.notifyChat(push);
+    }
+    /** The caller has committed the v3 fee/receipt; this remains an ephemeral legacy notification. */
+    public void afterApiBarragePublished(final JSONObject event) {
+        if(chatRoomRepository.hasTransactionBegun()||ArticlePublicationCaches.active())throw new IllegalStateException("barrage delivery before commit");
+        final JSONObject author=event.getJSONObject("author");
+        ChatroomChannel.notifyChat(new JSONObject().put("type","barrager").put("barragerContent",event.getString("content"))
+                .put("barragerColor",event.getString("color")).put("userName",author.getString("userName"))
+                .put("userNickname",author.getString("userNickname")).put("userAvatarURL",author.getString("userAvatarURL")));
+        incLiveness(author.getString("id"));
+    }
+    /** A system notice carries no user activity or active-member update. */
+    public void afterApiBotNoticePublished(final JSONObject message) {
+        publishCommittedChatMessage(message, false);
+    }
+    private void publishCommittedChatMessage(final JSONObject message, final boolean activity) {
+        publishCommittedChatMessage(message, activity, true);
+    }
+    private void publishCommittedChatMessage(final JSONObject message, final boolean activity, final boolean mentions) {
+        if (chatRoomRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("chat effects before transaction end");
+        }
+        final String actor = message.get("userOId").toString();
+        final String name = message.getString(User.USER_NAME);
+        final String html = Markdowns.cleanChat(Markdowns.toHTML(Emotions.convert(message.getString(Common.CONTENT))), "");
+        if (activity) {
+            chatroomChannel.userActive.put(name, message.getLong(Common.TIME));
+            try { incLiveness(actor); }
+            catch (final RuntimeException e) { LOGGER.log(Level.ERROR, "Record committed v3 chat activity failed", e); }
+        }
+        try {
+            final JSONObject push = new JSONObject().put(Common.CONTENT, html).put("md", message.getString(Common.CONTENT));
+            for (final String field : new String[]{Keys.OBJECT_ID, User.USER_NAME, UserExt.USER_NICKNAME, UserExt.USER_AVATAR_URL, "userOId", "sysMetal", "client"}) {
+                if (message.has(field)) push.put(field, message.get(field));
+            }
+            // 旧站实时消息也携带已保存的尾巴快照，正文和旧站发送流程保持不变。
+            final JSONObject tail = ApiV3ChatTail.snapshot(message.opt("tail"));
+            if (tail != null && ApiV3ChatTail.eligibleHtml(html)) push.put("tail", tail);
+            push.put("petStatus", ApiV3ChatMessageDto.petStatus(message.opt("petStatus")));
+            push.put(Common.TIME, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(message.getLong(Common.TIME)));
+            fillPushMessageReactions(push);
+            ChatroomChannel.notifyChat(push);
+        } catch (final RuntimeException e) { LOGGER.log(Level.ERROR, "Broadcast committed v3 chat message failed", e); }
+        if (!mentions) return;
+        try {
+            final Set<String> recipients = new HashSet<>();
+            for (final JSONObject recipient : atUsers(html, name)) {
+                final String id = recipient.optString(Keys.OBJECT_ID);
+                if (!id.isEmpty() && recipients.add(id)) {
+                    try { notificationMgmtService.addChatRoomAtNotification(new JSONObject()
+                            .put(Notification.NOTIFICATION_USER_ID, id).put(Notification.NOTIFICATION_DATA_ID, message.getString(Keys.OBJECT_ID))); }
+                    catch (final Exception e) { LOGGER.log(Level.ERROR, "Notify committed v3 chat mention failed", e); }
+                }
+            }
+        } catch (final RuntimeException e) { LOGGER.log(Level.ERROR, "Resolve committed v3 chat mentions failed", e); }
+    }
+
     private void incLiveness(String userId) {
         int start = 1930;
         int end = 800;
@@ -1949,6 +1850,7 @@ public class ChatroomProcessor {
 
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, template);
         final Map<String, Object> dataModel = renderer.getDataModel();
+        dataModel.put("petHomeUrl", WebsiteLoginCookies.petHomeUrl());
         try {
             String oId = context.param("oId");
             if (oId == null) {
@@ -2109,82 +2011,23 @@ public class ChatroomProcessor {
      *
      * @param context
      */
-    private static Map<String/*userName*/, String/*data-times*/> revoke = new HashMap<>();
-
     public void revokeMessage(final RequestContext context) {
         try {
-            String removeMessageId = context.pathVar("oId");
-            JSONObject message = chatRoomRepository.get(removeMessageId);
-            JSONObject currentUser = Sessions.getUser();
-            try {
-                final JSONObject requestJSONObject = context.requestJSON();
-                currentUser = ApiProcessor.getUserByKey(requestJSONObject.optString("apiKey"));
-            } catch (NullPointerException ignored) {
+            final JSONObject currentUser = (JSONObject) context.attr(User.USER);
+            if (currentUser == null) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("请先登录。");
+                return;
             }
-            String content = message.optString("content");
-            try {
-                JSONObject checkContent = new JSONObject(new JSONObject(content).optString("content"));
-                if (checkContent.optString("msgType").equals("redPacket")) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("你想干嘛？");
-                    return;
-                }
-            } catch (Exception ignored) {
-            }
-            String msgUser = new JSONObject(message.optString("content")).optString(User.USER_NAME);
-            String curUser = currentUser.optString(User.USER_NAME);
-            boolean isAdmin = DataModelService.hasPermission(currentUser.optString(User.USER_ROLE), 3);
-            LogsService.chatroomLog(context, removeMessageId, curUser);
-
-            if (isAdmin) {
-                removeChatMessageAndReverseProfessionEvent(removeMessageId);
-                context.renderJSON(StatusCodes.SUCC).renderMsg("撤回成功。");
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put(Common.TYPE, "revoke");
-                jsonObject.put("oId", removeMessageId);
-                ChatroomChannel.notifyChat(jsonObject);
-            } else if (msgUser.equals(curUser)) {
-                final String date = DateFormatUtils.format(System.currentTimeMillis(), "yyyyMMdd");
-                // 撤回记录
-                String dateTimes = revoke.getOrDefault(curUser, date + ",0");
-                // 分割
-                String[] date_times = dateTimes.split(",");
-                // 上次撤回日期
-                String nDate = date_times[0];
-                // 次数
-                Integer times;
-                // 兼容旧数据
-                if (date_times.length > 1) {
-                    // 撤回次数
-                    times = Integer.valueOf(date_times[1]);
-                } else {
-                    // 今天撤回过了, 免费了一次? 要不要追扣一把
-                    times = 1;
-                }
-
-                // 当前日期不是今天 还没撤回过, times 归 0
-                if (!nDate.equals(date)) {
-                    times = 0;
-                }
-                // 需要扣减的积分 首次免费 以后 f(x) = 32x
-                Integer needDelPoint = times * 32;
-                // 扣钱
-                final boolean succ = null != pointtransferMgmtService.transfer(currentUser.optString(Keys.OBJECT_ID), Pointtransfer.ID_C_SYS,
-                        Pointtransfer.TRANSFER_TYPE_C_CHAT_ROOM_REVOKE,
-                        needDelPoint, "", System.currentTimeMillis(), "");
-                if (!succ) {
-                    context.renderJSON(StatusCodes.ERR).renderMsg("少年，你的积分不足！要为自己的言行负责~");
-                    return;
-                }
-                removeChatMessageAndReverseProfessionEvent(removeMessageId);
-                context.renderJSON(StatusCodes.SUCC).renderMsg("撤回成功，下次发消息一定要三思哦！本次消耗积分: " + needDelPoint);
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put(Common.TYPE, "revoke");
-                jsonObject.put("oId", removeMessageId);
-                ChatroomChannel.notifyChat(jsonObject);
-                revoke.put(curUser, date + "," + (times + 1));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+            final String id = context.pathVar("oId");
+            final var result = chatMessageWithdrawals.withdrawLegacy(currentUser.optString(Keys.OBJECT_ID), id,
+                    LogsService.getAddress(context));
+            context.renderJSON(StatusCodes.SUCC).renderMsg(result.privileged() ? "撤回成功。"
+                    : "撤回成功，下次发消息一定要三思哦！本次消耗积分: " + result.cost());
+        } catch (final ApiV3Exception e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("insufficient_points".equals(e.code)
+                    ? "少年，你的积分不足！要为自己的言行负责~" : "message_not_removable".equals(e.code) ? "你想干嘛？" : e.getMessage());
+        } catch (final Exception e) {
+            LOGGER.error("Withdraw legacy chat message failed", e);
             context.renderJSON(StatusCodes.ERR).renderMsg("撤回失败，请联系 @adlered。");
         }
     }
@@ -2227,33 +2070,9 @@ public class ChatroomProcessor {
     }
 
     private void saveChatMessageAndCapture(final JSONObject message, final String userId) throws RepositoryException {
-        final Transaction transaction = chatRoomRepository.beginTransaction();
-        try {
-            message.put(Keys.OBJECT_ID, chatRoomRepository.add(new JSONObject().put("content", message.toString())));
-            professionSourceEventCaptureService.chatroomMessagePublished(message, userId);
-            transaction.commit();
-        } catch (final RepositoryException e) {
-            rollback(transaction);
-            throw e;
-        }
-    }
-
-    private void removeChatMessageAndReverseProfessionEvent(final String messageId) throws RepositoryException {
-        final Transaction transaction = chatRoomRepository.beginTransaction();
-        try {
-            professionSourceEventCaptureService.targetRemoved("chatroom_message", messageId);
-            chatRoomRepository.remove(messageId);
-            transaction.commit();
-        } catch (final RepositoryException e) {
-            rollback(transaction);
-            throw e;
-        }
-    }
-
-    private void rollback(final Transaction transaction) {
-        if (transaction.isActive()) {
-            transaction.rollback();
-        }
+        final JSONObject saved = chatMessageMgmtService.saveLegacy(message, userId);
+        message.put(Keys.OBJECT_ID, saved.getString(Keys.OBJECT_ID));
+        message.put("petStatus", saved.optJSONObject("petStatus"));
     }
 
     public static List<JSONObject> getContext(String oId, int size, int mode, String type) {

@@ -19,6 +19,9 @@
 package org.b3log.symphony.repository;
 
 import org.b3log.latke.repository.AbstractRepository;
+import org.b3log.latke.repository.RepositoryException;
+import org.json.JSONObject;
+import java.util.List;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.symphony.model.LongArticleColumn;
 
@@ -33,5 +36,20 @@ public class LongArticleChapterRepository extends AbstractRepository {
 
     public LongArticleChapterRepository() {
         super(LongArticleColumn.CHAPTER);
+    }
+    /** Current reads are needed after waiting for a parent column lock under repeatable read. */
+    public List<JSONObject> getByColumnForUpdate(final String columnId) throws RepositoryException {
+        requireTransaction();
+        return select("SELECT * FROM " + getName() + " WHERE columnId=? ORDER BY chapterNo DESC FOR UPDATE", columnId);
+    }
+
+    public JSONObject getByArticleForUpdate(final String articleId) throws RepositoryException {
+        requireTransaction();
+        final var rows = select("SELECT * FROM " + getName() + " WHERE articleId=? FOR UPDATE", articleId);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    private void requireTransaction() {
+        if (!hasTransactionBegun()) throw new IllegalStateException("column chapter transaction required");
     }
 }

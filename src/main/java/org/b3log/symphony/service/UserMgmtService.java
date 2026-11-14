@@ -50,6 +50,8 @@ import org.b3log.symphony.repository.*;
 import org.b3log.symphony.util.Geos;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
+import org.b3log.symphony.util.UserRegistrationDefaults;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
@@ -57,6 +59,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.function.IntUnaryOperator;
 
 /**
  * User management service.
@@ -68,6 +71,9 @@ import java.util.regex.Pattern;
  */
 @Service
 public class UserMgmtService {
+
+    @Inject
+    private UserNameMgmtService userNames;
 
     /**
      * Logger.
@@ -224,26 +230,20 @@ public class UserMgmtService {
     }
 
     /**
-     * Updates a user's online status and saves the login time and IP.
+     * 保留旧连接触发的登录时间和 IP 更新，在线标志由统一服务同步。
      *
      * @param userId     the specified user id
      * @param ip         the specified IP, could be {@code null}
-     * @param onlineFlag the specified online flag
-     * @param force      the specified force flag to update
      */
     @Transactional
-    public void updateOnlineStatus(final String userId, final String ip, final boolean onlineFlag, final boolean force) {
+    public void updateOnlineDetails(final String userId, final String ip) {
         try {
             final JSONObject user = userRepository.get(userId);
             if (null == user) {
                 return;
             }
 
-            final long updatedAt = user.optLong(UserExt.USER_UPDATE_TIME);
             final long now = System.currentTimeMillis();
-            if (now - updatedAt < 1000 * 60 && !force) {
-                return;
-            }
 
             if (StringUtils.isNotBlank(ip)) {
                 final JSONObject address = Geos.getAddressByGeoIP(ip);
@@ -259,12 +259,12 @@ public class UserMgmtService {
                 user.put(UserExt.USER_LATEST_LOGIN_IP, ip);
             }
 
-            user.put(UserExt.USER_ONLINE_FLAG, onlineFlag);
+            // 保留旧连接的登录资料更新；在线标志统一由新旧连接并集决定。
             user.put(UserExt.USER_LATEST_LOGIN_TIME, now);
             user.put(UserExt.USER_UPDATE_TIME, now);
-            userRepository.update(userId, user, UserExt.USER_COUNTRY, UserExt.USER_PROVINCE, UserExt.USER_CITY, UserExt.USER_LATEST_LOGIN_IP, UserExt.USER_ONLINE_FLAG, UserExt.USER_LATEST_LOGIN_TIME, UserExt.USER_UPDATE_TIME);
+            userRepository.update(userId, user, UserExt.USER_COUNTRY, UserExt.USER_PROVINCE, UserExt.USER_CITY, UserExt.USER_LATEST_LOGIN_IP, UserExt.USER_LATEST_LOGIN_TIME, UserExt.USER_UPDATE_TIME);
         } catch (final RepositoryException e) {
-            LOGGER.log(Level.ERROR, "Updates user online status failed [id=" + userId + ", ip=" + ip + ", flag=" + onlineFlag + "]", e);
+            LOGGER.log(Level.ERROR, "Updates user online details failed [id=" + userId + ", ip=" + ip + "]", e);
         }
     }
 
@@ -288,7 +288,7 @@ public class UserMgmtService {
 
         try {
             final String oldUserId = requestJSONObject.optString(Keys.OBJECT_ID);
-            final JSONObject oldUser = userRepository.get(oldUserId);
+            final JSONObject oldUser = userRepository.getForUpdate(oldUserId);
 
             if (null == oldUser) {
                 throw new ServiceException(langPropsService.get("updateFailLabel"));
@@ -380,11 +380,10 @@ public class UserMgmtService {
         final Transaction transaction = userRepository.beginTransaction();
 
         try {
-            final String userEmail = requestJSONObject.optString(User.USER_EMAIL).trim().toLowerCase();
             final String userPhone = requestJSONObject.optString("userPhone");
             final String userName = requestJSONObject.optString(User.USER_NAME);
             final String mbti = SettingsProcessor.checkMBTI(requestJSONObject.optString("mbti"));
-            JSONObject user = userRepository.getByName(userName);
+            JSONObject user = userNames.registrationTargetInCurrentTransaction(userName);
             if (null != user && (UserExt.USER_STATUS_C_VALID == user.optInt(UserExt.USER_STATUS)
                     || UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)
                     || UserExt.USER_STATUS_C_INVALID_LOGIN == user.optInt(UserExt.USER_STATUS)
@@ -419,84 +418,9 @@ public class UserMgmtService {
                 avatarURL = user.optString(UserExt.USER_AVATAR_URL);
             }
 
-            user = new JSONObject();
-            user.put(User.USER_NAME, userName);
-            user.put("userPhone", userPhone);
-            user.put(User.USER_EMAIL, userEmail);
-            user.put(UserExt.USER_APP_ROLE, requestJSONObject.optInt(UserExt.USER_APP_ROLE));
-            user.put(User.USER_PASSWORD, requestJSONObject.optString(User.USER_PASSWORD));
-            user.put(User.USER_ROLE, requestJSONObject.optString(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT));
-            user.put(User.USER_URL, "");
-            user.put(UserExt.USER_ARTICLE_COUNT, 0);
-            user.put(UserExt.USER_COMMENT_COUNT, 0);
-            user.put(UserExt.USER_TAG_COUNT, 0);
-            user.put(UserExt.USER_INTRO, "");
-            user.put(UserExt.USER_NICKNAME, "");
-            user.put(UserExt.USER_AVATAR_TYPE, UserExt.USER_AVATAR_TYPE_C_UPLOAD);
-            user.put(UserExt.USER_QQ, "");
-            user.put(UserExt.USER_ONLINE_FLAG, false);
-            user.put(UserExt.USER_LATEST_ARTICLE_TIME, 0L);
-            user.put(UserExt.USER_LATEST_CMT_TIME, 0L);
-            user.put(UserExt.USER_LATEST_LOGIN_TIME, 0L);
-            user.put(UserExt.USER_LATEST_LOGIN_IP, "");
-            user.put(UserExt.USER_CHECKIN_TIME, 0);
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_START, 0);
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK_END, 0);
-            user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_START, 0);
-            user.put(UserExt.USER_LONGEST_CHECKIN_STREAK_END, 0);
-            user.put(UserExt.USER_LONGEST_CHECKIN_STREAK, 0);
-            user.put(UserExt.USER_CURRENT_CHECKIN_STREAK, 0);
-            user.put(UserExt.USER_POINT, 0);
-            user.put(UserExt.USER_USED_POINT, 0);
-            user.put(UserExt.USER_JOIN_POINT_RANK, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_JOIN_USED_POINT_RANK, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_TAGS, "");
-            user.put(UserExt.USER_SKIN, Symphonys.SKIN_DIR_NAME);
-            user.put(UserExt.USER_MOBILE_SKIN, Symphonys.MOBILE_SKIN_DIR_NAME);
-            user.put(UserExt.USER_COUNTRY, "");
-            user.put(UserExt.USER_PROVINCE, "");
-            user.put(UserExt.USER_CITY, "");
-            user.put(UserExt.USER_UPDATE_TIME, 0L);
-            user.put(UserExt.USER_GEO_STATUS, UserExt.USER_GEO_STATUS_C_PUBLIC);
-            final int status = requestJSONObject.optInt(UserExt.USER_STATUS, UserExt.USER_STATUS_C_NOT_VERIFIED);
-            user.put(UserExt.USER_STATUS, status);
-            user.put(UserExt.USER_COMMENT_VIEW_MODE, UserExt.USER_COMMENT_VIEW_MODE_C_REALTIME);
-            user.put(UserExt.USER_ONLINE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_ARTICLE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_COMMENT_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_FOLLOWING_ARTICLE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_WATCHING_ARTICLE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_FOLLOWING_TAG_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_FOLLOWING_USER_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_FOLLOWER_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.CHAT_ROOM_PICTURE_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED);
-            user.put(UserExt.USER_POINT_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_UA_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_NOTIFY_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_SUB_MAIL_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_LIST_PAGE_SIZE, Symphonys.ARTICLE_LIST_CNT);
-            user.put(UserExt.USER_LIST_VIEW_MODE, UserExt.USER_LIST_VIEW_MODE_TITLE_ABSTRACT);
-            user.put(UserExt.USER_AVATAR_VIEW_MODE, UserExt.USER_AVATAR_VIEW_MODE_C_ORIGINAL);
-            user.put(UserExt.USER_SUB_MAIL_SEND_TIME, System.currentTimeMillis());
-            user.put(UserExt.USER_KEYBOARD_SHORTCUTS_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED);
-            user.put(UserExt.USER_REPLY_WATCH_ARTICLE_STATUS, UserExt.USER_SUB_MAIL_STATUS_DISABLED);
-            user.put(UserExt.USER_FORWARD_PAGE_STATUS, UserExt.USER_XXX_STATUS_C_ENABLED);
-            user.put(UserExt.USER_INDEX_REDIRECT_URL, "");
-            user.put(UserExt.ONLINE_MINUTE, 0);
-            user.put("secret2fa", "");
-            user.put("mbti", mbti);
-
             final JSONObject optionLanguage = optionRepository.get(Option.ID_C_MISC_LANGUAGE);
-            final String adminSpecifiedLang = optionLanguage.optString(Option.OPTION_VALUE);
-            if ("0".equals(adminSpecifiedLang)) {
-                user.put(UserExt.USER_LANGUAGE, requestJSONObject.optString(UserExt.USER_LANGUAGE, "zh_CN"));
-            } else {
-                user.put(UserExt.USER_LANGUAGE, adminSpecifiedLang);
-            }
-
-            user.put(UserExt.USER_TIMEZONE, requestJSONObject.optString(UserExt.USER_TIMEZONE, "Asia/Shanghai"));
-            user.put(UserExt.USER_GUIDE_STEP, requestJSONObject.optInt(UserExt.USER_GUIDE_STEP, UserExt.USER_GUIDE_STEP_UPLOAD_AVATAR));
+            user = UserRegistrationDefaults.create(requestJSONObject, mbti, optionLanguage.optString(Option.OPTION_VALUE), System.currentTimeMillis());
+            final int status = user.optInt(UserExt.USER_STATUS, UserExt.USER_STATUS_C_NOT_VERIFIED);
 
             if (toUpdate) {
                 user.put(UserExt.USER_NO, userNo);
@@ -572,7 +496,7 @@ public class UserMgmtService {
                     }
                 }
 
-                final JSONObject memberCntOption = optionRepository.get(Option.ID_C_STATISTIC_MEMBER_COUNT);
+                final JSONObject memberCntOption = optionRepository.getForUpdate(Option.ID_C_STATISTIC_MEMBER_COUNT);
                 int memberCount = memberCntOption.optInt(Option.OPTION_VALUE) + 1; // Updates stat. (member count +1)
                 List<Integer> replacedNumbers = new ArrayList<>();
                 replacedNumbers.add(8888);
@@ -598,13 +522,9 @@ public class UserMgmtService {
                 // Occupy the username, defeat others
                 final Transaction trans = userRepository.beginTransaction();
                 try {
-                    final Query query = new Query();
-                    final List<Filter> filters = new ArrayList<>();
-                    filters.add(new PropertyFilter(User.USER_NAME, FilterOperator.EQUAL, userName));
-                    filters.add(new PropertyFilter(UserExt.USER_STATUS, FilterOperator.EQUAL,
-                            UserExt.USER_STATUS_C_NOT_VERIFIED));
-                    query.setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters));
-                    final List<JSONObject> others = userRepository.getList(query);
+                    userNames.lockNamespaceInCurrentTransaction();
+                    final List<JSONObject> others = userRepository.select("SELECT * FROM `" + userRepository.getName()
+                            + "` WHERE userName=? AND userStatus=? ORDER BY oId FOR UPDATE", userName, UserExt.USER_STATUS_C_NOT_VERIFIED);
                     for (final JSONObject u : others) {
                         final String id = u.optString(Keys.OBJECT_ID);
                         final String mail = u.optString(User.USER_EMAIL);
@@ -678,34 +598,44 @@ public class UserMgmtService {
         }
     }
 
-    /**
-     * Set an online minute.
-     *
-     * @param userId user id.
-     * @param minute online minute.
-     * @throws ServiceException an normal exception.
-     */
-    public void settleOnlineMinute(final String userId, final int minute, final long occurredAt) {
-        final Transaction transaction = userRepository.beginTransaction();
-
+    /** 按当前锁定行同步在线标志和累计分钟，分钟与职业事件同事务提交。 */
+    public void persistOnlineState(final String userId, final boolean online, final IntUnaryOperator target,
+                                   final long occurredAt) throws RepositoryException {
+        final Transaction transaction = ApiV3Transactions.strict(userRepository.beginTransaction());
         try {
-            final JSONObject user = userRepository.get(userId);
+            final JSONObject user = userRepository.getForUpdate(userId);
             if (null == user) {
                 throw new IllegalArgumentException("用户不存在");
             }
             final int beforeMinute = user.optInt(UserExt.ONLINE_MINUTE);
-            final int afterMinute = Math.max(beforeMinute, minute);
-            user.put(UserExt.ONLINE_MINUTE, afterMinute);
-            userRepository.update(userId, user, UserExt.ONLINE_MINUTE);
+            final int afterMinute = target.applyAsInt(beforeMinute);
+            if (afterMinute < beforeMinute) {
+                throw new IllegalArgumentException("在线累计分钟不能减少");
+            }
+            final JSONObject changes = new JSONObject();
+            if (user.optBoolean(UserExt.USER_ONLINE_FLAG) != online) {
+                changes.put(UserExt.USER_ONLINE_FLAG, online);
+            }
+            if (afterMinute > beforeMinute) {
+                changes.put(UserExt.ONLINE_MINUTE, afterMinute);
+            }
+            if (!changes.isEmpty()) {
+                userRepository.updateColumnsInCurrentTransaction(userId, changes);
+            }
             professionSourceEventCaptureService.onlineMinutesSettled(userId, beforeMinute, afterMinute, occurredAt);
-
             transaction.commit();
-        } catch (final Exception e) {
+        } catch (final RepositoryException | RuntimeException e) {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
-            LOGGER.log(Level.ERROR, "Set online minute [id=" + userId + ", minute=" + minute + "] failed", e);
-            throw new IllegalStateException("结算在线时长失败", e);
+            throw e;
+        }
+        // 提交后重新读取最新行刷新快照，避免并发设置更新被旧快照覆盖；不失效 CSRF 令牌。
+        try {
+            userRepository.refreshSettingsCache(userId);
+        } catch (final RepositoryException | RuntimeException e) {
+            // 持久化已提交，缓存刷新失败不能让在线结算重试并重复执行后置逻辑。
+            LOGGER.log(Level.WARN, "Refresh online state cache failed [userId=" + userId + "]", e);
         }
     }
 
@@ -819,32 +749,25 @@ public class UserMgmtService {
      * @throws ServiceException service exception
      */
     public void updateUserName(final String userId, final JSONObject user) throws ServiceException {
-        final String newUserName = user.optString(User.USER_NAME);
-        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
-            throw new ServiceException("永久停用账号不能修改用户名");
-        }
-
+        final String name = user.optString(User.USER_NAME);
         final Transaction transaction = userRepository.beginTransaction();
-
+        UserNameMgmtService.Rename result = null;
         try {
-            if (UserRegisterValidationMidware.invalidUserName(newUserName)) {
-                throw new ServiceException(langPropsService.get("invalidUserNameLabel") + " [" + newUserName + "]");
-            }
-
-            if (!UserExt.NULL_USER_NAME.equals(newUserName) && null != userRepository.getByName(newUserName)) {
-                throw new ServiceException(langPropsService.get("duplicatedUserNameLabel") + " [" + newUserName + "]");
-            }
-
-            userRepository.update(userId, user, User.USER_NAME);
-
+            result = userNames.renameInCurrentTransaction(userId, name);
             transaction.commit();
-        } catch (final RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-
-            LOGGER.log(Level.ERROR, "Updates username of the user[id=" + userId + "] failed", e);
+        } catch (final UserNameMgmtService.Rejected e) {
+            throw new ServiceException(switch (e.code) {
+                case "deactivated" -> "永久停用账号不能修改用户名";
+                case "invalid_name" -> langPropsService.get("invalidUserNameLabel") + " [" + name + "]";
+                case "name_taken" -> langPropsService.get("duplicatedUserNameLabel") + " [" + name + "]";
+                default -> "用户不存在";
+            });
+        } catch (final RepositoryException | RuntimeException e) {
+            LOGGER.log(Level.ERROR, "Updates username failed [id=" + userId + "]", e);
             throw new ServiceException(e);
+        } finally {
+            if (transaction.isActive()) transaction.rollback();
+            userNames.afterTransaction(userId, result);
         }
     }
 
@@ -856,13 +779,11 @@ public class UserMgmtService {
         final Date now = new Date();
         final long yesterdayTime = DateUtils.addDays(now, -1).getTime();
 
-        final List<Filter> filters = new ArrayList<>();
-        filters.add(new PropertyFilter(UserExt.USER_STATUS, FilterOperator.EQUAL, UserExt.USER_STATUS_C_NOT_VERIFIED));
-        filters.add(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.LESS_THAN_OR_EQUAL, yesterdayTime));
-        filters.add(new PropertyFilter(User.USER_NAME, FilterOperator.NOT_EQUAL, UserExt.NULL_USER_NAME));
-        final Query query = new Query().setFilter(new CompositeFilter(CompositeFilterOperator.AND, filters));
         try {
-            final List<JSONObject> users = userRepository.getList(query);
+            userNames.lockNamespaceInCurrentTransaction();
+            final List<JSONObject> users = userRepository.select("SELECT * FROM `" + userRepository.getName()
+                    + "` WHERE userStatus=? AND oId<=? AND userName<>? ORDER BY oId FOR UPDATE",
+                    UserExt.USER_STATUS_C_NOT_VERIFIED, yesterdayTime, UserExt.NULL_USER_NAME);
             for (final JSONObject user : users) {
                 user.put(User.USER_NAME, UserExt.NULL_USER_NAME);
                 final String email = user.optString(User.USER_EMAIL);

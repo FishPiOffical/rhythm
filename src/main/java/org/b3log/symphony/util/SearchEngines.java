@@ -20,11 +20,14 @@ package org.b3log.symphony.util;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
+import com.github.benmanes.caffeine.cache.Ticker;
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Search engine verification and source detection.
@@ -34,13 +37,60 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SearchEngines {
 
-    private static final Cache<String, Engine> VERIFIED_CRAWLERS = Caffeine.newBuilder()
+    private static final Cache<String, Verification> VERIFIED_CRAWLERS = Caffeine.newBuilder()
             .expireAfterWrite(6, TimeUnit.HOURS).maximumSize(10000).build();
 
-    private static final Cache<String, Boolean> REJECTED_CRAWLERS = Caffeine.newBuilder()
-            .expireAfterWrite(10, TimeUnit.MINUTES).maximumSize(10000).build();
+    private static final Cache<String, Verification> REJECTED_CRAWLERS = newRejectedCache(Ticker.systemTicker());
+
+    static Cache<String, Verification> newRejectedCache(final Ticker ticker) {
+        return Caffeine.newBuilder().ticker(ticker)
+            .expireAfter(new Expiry<String, Verification>() {
+                @Override
+                public long expireAfterCreate(final String key, final Verification value, final long currentTime) {
+                    // DNS 临时故障短暂缓存，避免一次解析异常持续阻断真实蜘蛛。
+                    return value.transientFailure() ? TimeUnit.SECONDS.toNanos(15) : TimeUnit.MINUTES.toNanos(10);
+                }
+
+                @Override
+                public long expireAfterUpdate(final String key, final Verification value, final long currentTime,
+                                              final long currentDuration) {
+                    return expireAfterCreate(key, value, currentTime);
+                }
+
+                @Override
+                public long expireAfterRead(final String key, final Verification value, final long currentTime,
+                                            final long currentDuration) {
+                    return currentDuration;
+                }
+            }).maximumSize(10000).build();
+    }
 
     private SearchEngines() {
+    }
+
+    /** 记录实际校验结果；缓存命中保留原校验时间，不为展示再次查询 DNS。 */
+    public record Verification(Engine engine, boolean verified, String reason, String ptr, String forward,
+                               long checkedAt, boolean cached, boolean transientFailure) {
+        public Verification(final Engine engine, final boolean verified, final String reason, final String ptr,
+                            final String forward, final long checkedAt, final boolean cached) {
+            this(engine, verified, reason, ptr, forward, checkedAt, cached, false);
+        }
+
+        public Verification {
+            reason = diagnosticText(reason);
+            ptr = diagnosticText(ptr);
+            forward = diagnosticText(forward);
+        }
+
+        private Verification fromCache() {
+            return new Verification(engine, verified, reason, ptr, forward, checkedAt, true, transientFailure);
+        }
+
+        private static String diagnosticText(final String value) {
+            if (value == null) return "";
+            final String clean = value.replaceAll("[\\p{Cntrl}]", " ");
+            return clean.length() > 1024 ? clean.substring(0, 1024) + "…" : clean;
+        }
     }
 
     public enum Engine {
@@ -50,14 +100,27 @@ public final class SearchEngines {
         SOGOU("sogou", "搜狗"),
         YANDEX("yandex", "Yandex"),
         SO360("360", "360"),
-        DUCKDUCKGO("duckduckgo", "DuckDuckGo");
+        DUCKDUCKGO("duckduckgo", "DuckDuckGo"),
+        OAI_SEARCH("oai-search", "OAI-SearchBot", "oai-searchbot"),
+        CLAUDE_SEARCH("claude-search", "Claude-SearchBot", "claude-searchbot"),
+        PERPLEXITY("perplexity", "PerplexityBot", "perplexitybot"),
+        APPLE("apple", "Applebot", "applebot"),
+        MISTRAL_INDEX("mistral-index", "MistralAI-Index", "mistralai-index");
 
         private final String key;
         private final String displayName;
+        private final Pattern crawlerProduct;
 
         Engine(final String key, final String displayName) {
+            this(key, displayName, null);
+        }
+
+        Engine(final String key, final String displayName, final String product) {
             this.key = key;
             this.displayName = displayName;
+            // 按完整产品标识匹配，不能把 Applebot-Extended 等非搜索角色当成搜索蜘蛛。
+            this.crawlerProduct = product == null ? null
+                    : Pattern.compile("(?:^|[\\s;(])" + Pattern.quote(product) + "(?=$|[\\s;/)])");
         }
 
         public String key() {
@@ -100,45 +163,68 @@ public final class SearchEngines {
     }
 
     public static Engine verifiedCrawler(final String ip, final String ua) {
+        final Verification result = crawlerVerification(ip, ua);
+        return result != null && result.verified() ? result.engine() : null;
+    }
+
+    public static Verification crawlerVerification(final String ip, final String ua) {
         final Engine engine = detectCrawler(ua);
-        if (null == engine || StringUtils.isBlank(ip)) {
+        if (null == engine) {
             return null;
+        }
+        if (StringUtils.isBlank(ip)) {
+            return new Verification(engine, false, "来源 IP 为空", "", "", System.currentTimeMillis(), false);
         }
 
         final String cacheKey = engine.key() + ':' + ip;
-        final Engine verified = VERIFIED_CRAWLERS.getIfPresent(cacheKey);
+        final Verification verified = VERIFIED_CRAWLERS.getIfPresent(cacheKey);
         if (null != verified) {
-            return verified;
+            return verified.fromCache();
         }
-        if (null != REJECTED_CRAWLERS.getIfPresent(cacheKey)) {
-            return null;
+        final Verification rejected = REJECTED_CRAWLERS.getIfPresent(cacheKey);
+        if (null != rejected) {
+            return rejected.fromCache();
         }
 
-        if (verifyCrawler(ip, engine)) {
-            VERIFIED_CRAWLERS.put(cacheKey, engine);
-            return engine;
+        final Verification result = verifyCrawler(ip, engine);
+        if (result.verified()) {
+            VERIFIED_CRAWLERS.put(cacheKey, result);
+        } else {
+            REJECTED_CRAWLERS.put(cacheKey, result);
         }
-        REJECTED_CRAWLERS.put(cacheKey, true);
-        return null;
+        return result;
     }
 
     public static boolean isVerifiedCrawler(final String ip, final String ua) {
         return null != verifiedCrawler(ip, ua);
     }
 
-    private static boolean verifyCrawler(final String ip, final Engine engine) {
+    private static Verification verifyCrawler(final String ip, final Engine engine) {
+        if (Engine.SO360 == engine) {
+            // 360 官方不支持反向 DNS 核验，只接受官方公布网段，UA 已由入口识别。
+            final boolean verified = SearchEngineBotIpRanges.contains360(ip);
+            return new Verification(engine, verified, verified ? "360 官方网段校验通过" : "未匹配 360 官方网段",
+                    "", "", System.currentTimeMillis(), false);
+        }
         if (Engine.DUCKDUCKGO == engine) {
-            return SearchEngineBotIpRanges.containsDuckDuckGo(ip);
+            final boolean verified = SearchEngineBotIpRanges.containsDuckDuckGo(ip);
+            return new Verification(engine, verified, verified ? "本地网段校验通过" : "本地网段校验未通过",
+                    "", "", System.currentTimeMillis(), false);
+        }
+        if (SearchEngineBotIpRanges.supportsSearchCrawler(engine)) {
+            final boolean verified = SearchEngineBotIpRanges.containsSearchCrawler(ip, engine);
+            return new Verification(engine, verified, verified ? "官方网段校验通过" : "未匹配官方网段",
+                    "", "", System.currentTimeMillis(), false);
         }
         if (supportsDnsVerification(engine)) {
             return SearchEngineDnsVerifier.verify(ip, engine);
         }
-        return false;
+        return new Verification(engine, false, "未支持此爬虫校验", "", "", System.currentTimeMillis(), false);
     }
 
     private static boolean supportsDnsVerification(final Engine engine) {
         return Engine.GOOGLE == engine || Engine.BAIDU == engine || Engine.BING == engine
-                || Engine.SOGOU == engine || Engine.YANDEX == engine || Engine.SO360 == engine;
+                || Engine.SOGOU == engine || Engine.YANDEX == engine || Engine.APPLE == engine;
     }
 
     private static Engine detectRefererHost(final String host) {
@@ -169,7 +255,7 @@ public final class SearchEngines {
             case DUCKDUCKGO:
                 return ua.contains("duckduckbot") || ua.contains("duckassistbot");
             default:
-                return false;
+                return engine.crawlerProduct != null && engine.crawlerProduct.matcher(ua).find();
         }
     }
 

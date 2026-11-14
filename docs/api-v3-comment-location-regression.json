@@ -1,0 +1,134 @@
+{
+  "date": "2026-11-03",
+  "batch": 76,
+  "approvedScope": "Read-only current comment position; current readable ordinary and paragraph pages; user-site navigation, no scan of all pages or classic fallback",
+  "newEndpoint": "GET /api/v3/comments/{commentId}/location",
+  "productionFiles": {
+    "rhythm": [
+      "src/main/java/org/b3log/symphony/util/ApiV3CommentLocationQueries.java",
+      "src/main/java/org/b3log/symphony/service/ApiV3ParagraphQueryService.java",
+      "src/main/java/org/b3log/symphony/processor/ApiV3ParagraphProcessor.java"
+    ],
+    "website_v3": [
+      "src/api/v3-comment-location.ts",
+      "src/api/v3-comments.ts",
+      "src/components/articles/ArticleCommentLocation.vue",
+      "src/components/articles/LongArticleReader.vue",
+      "src/views/ArticleView.vue",
+      "src/views/MemberView.vue",
+      "src/router/index.ts"
+    ]
+  },
+  "testFiles": {
+    "rhythm": [
+      "src/test/java/org/b3log/symphony/service/ApiV3CommentLocationTest.java",
+      "src/test/java/org/b3log/symphony/service/ApiV3CurrentContentTest.java",
+      "tools/api-v3-content-current-test.mjs"
+    ],
+    "website_v3": [
+      "tools/v3-comment-location-test.mjs",
+      "tools/v3-route-scroll-test.mjs",
+      "tools/v3-comments-test.mjs",
+      "tools/v3-long-reader-test.mjs",
+      "tools/v3-member-page-test.mjs"
+    ]
+  },
+  "documentationFiles": {
+    "rhythm": [
+      "AGENTS.md",
+      "API.md",
+      "UPDATE_LOG.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-comment-location-regression.json"
+    ],
+    "website_v3": [
+      "AGENTS.md",
+      "docs/V3_MIGRATION.md",
+      "docs/api-v3-progress.md",
+      "docs/api-v3-current-completion-audit.md",
+      "docs/api-v3-live-integration-work.md",
+      "docs/api-v3-comment-location-regression.json"
+    ]
+  },
+  "behavior": [
+    "Same current content service authorization, valid comment selection and ascending-ID order as existing ordinary/paragraph oldest lists",
+    "Single aggregate rank query binds target presence; page size20 and bounded page arithmetic; target deletion cannot invent a page",
+    "Private/anonymous comment positions do not reveal body, author or old paragraph snapshot; compatible active and orphaned groups kept separate",
+    "User profile comment link carries exact comment ID; destination validates target/article and obtains page; old numeric/comment/comment- fragments supported",
+    "Normal article waits for actual requested page and DOM; long drawer opens exact active/orphaned page; missing target gives explicit re-location",
+    "Identity/route changes and unmount abort or discard late responses; ordinary token rotation revalidates; SSR never requests a reader position",
+    "Malformed percent/UTF8 fragments cannot throw from router scrollBehavior"
+  ],
+  "tests": {
+    "sqliteCurrentAndLocationGroups": 18,
+    "mysqlCurrentAndLocationGroups": 18,
+    "actualLatkeMySQLGroups": 2,
+    "temporaryMySQLRemoved": true,
+    "commentSharedGroups": 43,
+    "routeAccessAuditGroups": 7,
+    "clientScripts": 95,
+    "clientPassGroups": 1066,
+    "clientFailures": [],
+    "npmBuildTypeClientSSRExit": 0,
+    "registeredRoutes": 293,
+    "documentedRoutes": 293,
+    "accessClassifiedRoutes": 293,
+    "accessInventoryProblems": 0,
+    "boundarySourceFiles": 338,
+    "boundaryFindings": 0,
+    "routeReferences": 216,
+    "routeParityFindings": 0,
+    "dynamicExpressionsNotRuntimeProof": 47,
+    "otherPaths": 2,
+    "generatedJSFiles": 79,
+    "versionFindings": 0,
+    "maps": 0,
+    "sourceMappingURL": 0
+  },
+  "negativeEvidence": [
+    "Existing member view test previously asserted a fragment that does not match actual CommentItem ID; now real parent/locator/comment DOM integration proves actual navigation",
+    "Actual old router scrollBehavior raises URIError for malformed fragment before fix; new four groups execute actual router option",
+    "Previous-page article metadata cannot fabricate a moved-target error; absent current target DOM now reports inability to locate"
+  ],
+  "securityReview": {
+    "anonymous": "Explicit optionalContent + AnonymousViewCheckMidware on new GET, no viewSkips changes; first-visit/periodic challenge not exercised against production",
+    "blacklistCaptcha": "Global BeforeRequestHandler and validateCaptcha untouched; real new-IP/blacklist/unlock behavior still requires live environment",
+    "authorization": "Current SQL comment/article authorization, same private placeholders as existing read; exact destination article binding and stale-identity guards",
+    "csrf": "Read-only GET, no new cookie/apiKey credential exception or content/point mutation",
+    "xss": "Fixed numeric IDs and bounded paragraph hex/state; Vue escaped status strings and literal getElementById, no new raw HTML",
+    "sqlInjection": "IDs passed as SQL parameters; table name from internal repository and checked where constructed; no caller sort or SQL",
+    "ssrf": "No outbound URL fetch, server URL projection or external transport introduced",
+    "bulkAbuse": "No all-page browser scans; filtered aggregate and existing paragraph formatter; no load/high-concurrency test or claim",
+    "sensitiveData": "Response six-field whitelist, paragraph only ID/state; no body, snapshots, IP/UA, contacts, token or anonymous author identity",
+    "staticCDNUploadDownload": "No new CDN URL, public upload/download endpoint or credentials in URL; local generated JS/map checks only, no complete production directory/CDN scan"
+  },
+  "pendingIDEAJava": [
+    "ApiV3ArticlePolicy.java",
+    "ApiV3ContentSnapshots.java",
+    "ArticleRepository.java",
+    "ApiV3CommentMgmtService.java",
+    "ApiV3CommentLocationQueries.java",
+    "ApiV3ParagraphQueryService.java",
+    "ApiV3ParagraphProcessor.java"
+  ],
+  "manualSteps": [
+    "IDEA recompile/restart Rhythm Local 8081 with seven pending classes; no SQL migration. Verify listener and public JSON before credentials.",
+    "5173 user profile -> public replies -> click an ordinary reply beyond first20; location GET gives page2 or later, actual comment is visible and scrolled to; browser refresh repeats current lookup.",
+    "Open a long article paragraph reply link; exact paragraph state/page is loaded and target highlighted. Existing orphaned paragraph comments remain readable without offering new replies to removed paragraph.",
+    "Delete an earlier disposable fixture comment or change its paragraph: click re-location and use current page; missing/invalid/unreadable targets show404/error rather than a successful jump or empty fake data.",
+    "Switch accounts or targets during slow lookup; old response cannot change page or scroll. Test lookup503/retry, pure numeric/legacy comment hash and malformed percent fragments.",
+    "Desktop and390px: verify status/re-location visibility, comment drawer, existing private body placeholder/anonymous identity hiding and no horizontal overflow. New comment mutations must remain blocked when article closed/unknown; original successful key still replays."
+  ],
+  "limits": [
+    "No actual HTTP request to the new endpoint until explicit manual IDEA rebuild confirmation; isolated SQL results do not prove full IoC/HTTP behavior",
+    "Paragraph formatter alias map is controlled in service SQL tests; real renderer compatibility has earlier separate tests, final whole-app alias navigation remains pending",
+    "Component tests use controlled DOM/transport and do not prove real browser scrolling, viewport layout or history restoration",
+    "Browser inventory is available again; positive PC/mobile navigation will run after Java rebuild confirmation",
+    "Production captcha/blacklist/CDN/directory enumeration, multi-instance and physical-device tests not performed"
+  ],
+  "migrationRequired": false,
+  "committed": false,
+  "pushed": false
+}

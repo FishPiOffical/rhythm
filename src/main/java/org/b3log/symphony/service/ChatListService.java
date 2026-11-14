@@ -18,14 +18,14 @@
  */
 package org.b3log.symphony.service;
 
-import com.google.common.collect.Collections2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.ioc.Inject;
-import org.b3log.latke.repository.*;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.service.annotation.Service;
-import org.b3log.latke.util.CollectionUtils;
 import org.b3log.symphony.repository.ChatListRepository;
+import org.b3log.symphony.processor.ChatProcessor;
+import org.b3log.symphony.util.ApiV3PrivateMessages;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -44,55 +44,22 @@ public class ChatListService {
     private ChatListRepository chatListRepository;
 
     public List<JSONObject> getChatList(final String userId) throws RepositoryException {
-        final String sql = String.format("SELECT * FROM symphony_chat_list AS info WHERE substring_index(info.sessionId,'_',1) = '%s' OR substring_index(substring_index(info.sessionId,'_',2),'_',-1) = '%s' order by lastMessageId desc limit 128;", userId, userId);
-        List<JSONObject> lists = chatListRepository.select(sql);
+        final String sql = "SELECT * FROM `" + chatListRepository.getName() + "` AS info WHERE substring_index(info.sessionId,'_',1) = ? OR substring_index(substring_index(info.sessionId,'_',2),'_',-1) = ? order by lastMessageId desc limit 128";
+        List<JSONObject> lists = chatListRepository.select(sql,userId,userId);
         if (Objects.isNull(lists) || lists.size() == 0) {
             return new ArrayList<>();
         }
         return lists;
     }
 
-    private void add(final JSONObject message) {
-        Transaction transaction = chatListRepository.beginTransaction();
-        try {
-            chatListRepository.add(message);
-            transaction.commit();
-        } catch (Exception e) {
-            LOGGER.error("add chat list error", e);
-            transaction.rollback();
-        }
-
-    }
+    @Inject private PrivateMessageListStateService projection;
 
     public void update(final JSONObject message) {
-        String sessionId = message.optString("user_session");
-        String time = message.optString("time");
-        String lastMessageId = message.optString("oId");
-        JSONObject chatList = new JSONObject();
-        chatList.put("sessionId", sessionId);
-        chatList.put("time", time);
-        chatList.put("lastMessageId", lastMessageId);
-        JSONObject oldData = null;
-        try {
-            oldData = chatListRepository.getFirst(new Query().setFilter(new PropertyFilter("sessionId", FilterOperator.EQUAL, sessionId)));
-        } catch (Exception e) {
-            LOGGER.error("get chat list error", e);
-            return;
+        try{
+            projection.refreshLegacy(message.optString("oId"));
+            final String from=message.optString("fromId"),to=message.optString("toId");
+            if(ApiV3PrivateMessages.validId(from)&&ApiV3PrivateMessages.validId(to))ChatProcessor.invalidateChatListCache(from,to);
         }
-
-        if (Objects.isNull(oldData)) {
-            add(chatList);
-        } else {
-            Transaction transaction = chatListRepository.beginTransaction();
-            try {
-                chatListRepository.update(oldData.optString("oId"), chatList);
-                transaction.commit();
-            } catch (Exception e) {
-                LOGGER.error("update chat list error", e);
-                transaction.rollback();
-            }
-
-        }
-
+        catch(Exception e){LOGGER.warn("Private message list refresh unavailable");}
     }
 }

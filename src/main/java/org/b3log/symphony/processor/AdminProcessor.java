@@ -55,7 +55,6 @@ import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.*;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.CSRFMidware;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.processor.middleware.PermissionMidware;
@@ -68,11 +67,14 @@ import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.*;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Firewall;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -332,6 +334,9 @@ public class AdminProcessor {
     @Inject
     private ReportQueryService reportQueryService;
 
+    @Inject
+    private RepeaterMgmtService repeaterMgmtService;
+
     /**
      * Operation management service.
      */
@@ -381,6 +386,9 @@ public class AdminProcessor {
     @Inject
     private LongArticleReadService longArticleReadService;
 
+    @Inject
+    private PetAdminLogQueryService petAdminLogQueryService;
+
     /**
      * Register request handlers.
      */
@@ -394,9 +402,12 @@ public class AdminProcessor {
 
         Dispatcher.get("/cron/long-article/settle", adminProcessor::settleLongArticleReward, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/admin/auditlog", adminProcessor::showAuditlog, middlewares);
+        Dispatcher.get("/admin/pet-logs", adminProcessor::showPetLogs);
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
         Dispatcher.get("/admin/reports", adminProcessor::showReports, middlewares);
+        Dispatcher.post("/admin/repeater/{id}/remove", adminProcessor::removeRepeater,
+                loginCheck::handle, csrfMidware::check);
         Dispatcher.post("/admin/role/{roleId}/remove", adminProcessor::removeRole, middlewares);
         Dispatcher.get("/admin/breezemoons", adminProcessor::showBreezemoons, middlewares);
         Dispatcher.get("/admin/breezemoon/{breezemoonId}", adminProcessor::showBreezemoon, middlewares);
@@ -471,6 +482,9 @@ public class AdminProcessor {
         Dispatcher.post("/admin/security/firewall", adminProcessor::toggleFirewall, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification", adminProcessor::toggleVerificationShield, permissionMidware::check, csrfMidware::check);
         Dispatcher.post("/admin/security/verification-first", adminProcessor::toggleFirstVisitCaptcha, permissionMidware::check, csrfMidware::check);
+        Dispatcher.post("/admin/security/save", adminProcessor::saveSecuritySwitches, permissionMidware::check, csrfMidware::check);
+        Dispatcher.get("/admin/security/monitor", adminProcessor::securityMonitor, permissionMidware::check);
+        Dispatcher.get("/admin/security/self-check", adminProcessor::securitySelfCheck, permissionMidware::check);
         Dispatcher.get("/admin/ip", adminProcessor::showIp, middlewares);
         Dispatcher.post("/admin/ip", adminProcessor::modifyIp, middlewares);
         Dispatcher.get("/admin/pic", adminProcessor::showPic, middlewares);
@@ -725,11 +739,8 @@ public class AdminProcessor {
                             continue;
                         }
                         Firewall.unbanIp(ip);
-                        AnonymousViewCheckMidware.whiteList.add(ip);
-                        AnonymousViewCheckMidware.ipBlacklistCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipVisitCountCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipFirstVisitTimeCache.invalidate(ip);
-                        AnonymousViewCheckMidware.ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
+                        // 验证码盾解封须在系统解封之后；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.administratorUnban(ip);
                         LogsService.simpleLog(context, "解封IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
                     break;
@@ -739,7 +750,8 @@ public class AdminProcessor {
                         if (ip.isEmpty()) {
                             continue;
                         }
-                        AnonymousViewCheckMidware.whiteList.remove(ip);
+                        // 系统封禁前撤销验证码豁免；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
+                        AnonymousCaptchaShield.removeWhitelist(ip);
                         Firewall.banIp(ip);
                         LogsService.simpleLog(context, "封禁IP", "操作员: " + operatorUserName + ", IP: " + ip);
                     }
@@ -882,6 +894,47 @@ public class AdminProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
+    /** 只使用已校验的网页会话，旧 apiKey 不可读取宠物日志。 */
+    public void showPetLogs(final RequestContext context) {
+        context.getResponse().setHeader("Cache-Control", "private, no-store");
+        final JSONObject admin = Sessions.getUser();
+        if (admin == null || !Role.ROLE_ID_C_ADMIN.equals(admin.optString(User.USER_ROLE))
+                || admin.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID || isApiKeyRequest(context)) {
+            context.sendError(admin == null ? 401 : 403);
+            context.abort();
+            return;
+        }
+
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        final var renderer = new SkinRenderer(context, "admin/pet-logs.ftl");
+        final Map<String, Object> data = renderer.getDataModel();
+        final String tab = "risk".equals(context.param("tab")) ? "risk" : "activity";
+        var filters = PetAdminLogQueryService.filters(tab, null, null, null, null, null, today);
+        var result = new PetAdminLogQueryService.Page(List.of(), false);
+        try {
+            filters = PetAdminLogQueryService.filters(context.param("tab"), context.param("user"),
+                    context.param("from"), context.param("to"), context.param("operation"), context.param("p"), today);
+            result = petAdminLogQueryService.list(filters);
+        } catch (final IllegalArgumentException error) {
+            context.setStatus(400);
+            data.put("petLogError", error.getMessage());
+        } catch (final RepositoryException error) {
+            context.setStatus(503);
+            data.put("petLogError", "宠物日志暂时无法读取，请检查相关数据表是否已迁移。");
+            LOGGER.warn("读取宠物日志失败", error);
+        }
+        data.put("petLogTab", filters.tab());
+        data.put("petLogUser", filters.user());
+        data.put("petLogFrom", filters.from());
+        data.put("petLogTo", filters.to());
+        data.put("petLogOperation", filters.operation());
+        data.put("petLogOperations", PetAdminLogQueryService.operations(filters.tab()));
+        data.put("petLogPage", filters.page());
+        data.put("petLogHasNext", result.hasNext());
+        data.put("petLogRows", result.rows());
+        dataModelService.fillHeaderAndFooter(context, data);
+    }
+
     /**
      * Makes a report as ignored .
      *
@@ -956,6 +1009,26 @@ public class AdminProcessor {
         dataModel.put(Pagination.PAGINATION_PAGE_NUMS, CollectionUtils.jsonArrayToList(pageNums));
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
+    }
+
+    public void removeRepeater(final RequestContext context) {
+        final JSONObject actor = (JSONObject) context.attr(User.USER);
+        if (actor == null || Sessions.getUser() == null
+                || !actor.optString(Keys.OBJECT_ID).equals(Sessions.getUser().optString(Keys.OBJECT_ID))
+                || !Permission.hasPermission(Set.of(Permission.PERMISSION_ID_C_MENU_ADMIN_REPORTS),
+                roleQueryService.getPermissions(actor.optString(User.USER_ROLE)))) {
+            context.sendError(403);
+            return;
+        }
+        final String id = context.pathVar("id");
+        try {
+            repeaterMgmtService.removeContent(id, Operation.newOperation(context.getRequest(),
+                    Operation.OPERATION_CODE_C_REMOVE_REPEATER, id));
+            context.renderJSON(StatusCodes.SUCC);
+        } catch (final ServiceException e) {
+            context.renderJSON(StatusCodes.ERR);
+            context.renderMsg(e.getMessage());
+        }
     }
 
     /**
@@ -2632,8 +2705,17 @@ public class AdminProcessor {
         dataModel.put(Option.OPTIONS, misc);
         dataModel.put("firewallEnabled", Firewall.isEnabled());
         dataModel.put("firewallThreshold", Firewall.getThreshold());
-        dataModel.put("verificationShieldEnabled", AnonymousViewCheckMidware.isEnabled());
-        dataModel.put("firstVisitCaptchaEnabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+        dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
+        dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
+        dataModel.put("securityRuntimeMode", Latkes.getRuntimeMode().name());
+        dataModel.put("securitySwitchEditable", Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode());
+        dataModel.put("securityStats", SecurityMonitor.snapshot());
+        dataModel.put("securityEvents", SecurityMonitor.recentEvents());
+        if (isSecurityOperator(getCurrentUser(context))) {
+            dataModel.put("crawlerStats", CrawlerMonitor.snapshot(null));
+        }
+        dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2680,7 +2762,7 @@ public class AdminProcessor {
      */
     public void toggleFirewall(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2710,17 +2792,19 @@ public class AdminProcessor {
      */
     public void toggleVerificationShield(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("社区验证盾已" + (enabled ? "开启" : "关闭"));
     }
 
@@ -2729,18 +2813,86 @@ public class AdminProcessor {
      */
     public void toggleFirstVisitCaptcha(final RequestContext context) {
         final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser)) {
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
         }
 
         final boolean enabled = Boolean.parseBoolean(context.param("enabled"));
-        AnonymousViewCheckMidware.setFirstVisitCaptchaEnabled(enabled);
+        // 须保留上方管理员鉴权；未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(enabled);
 
         final JSONObject data = new JSONObject();
-        data.put("enabled", AnonymousViewCheckMidware.isFirstVisitCaptchaEnabled());
+        // 验证码盾状态回读；未经阿达明确允许，不得修改、移动、删除此调用。
+        data.put("enabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
         context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("首次访问验证码已" + (enabled ? "开启" : "关闭"));
+    }
+
+    /** Atomically applies all temporary security switches in development mode. */
+    public void saveSecuritySwitches(final RequestContext context) {
+        final JSONObject currentUser = getCurrentUser(context);
+        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        final String thresholdText = StringUtils.trim(context.param("threshold"));
+        final int threshold;
+        try {
+            threshold = Integer.parseInt(thresholdText);
+        } catch (final NumberFormatException e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须是正整数");
+            return;
+        }
+        if (threshold <= 0) {
+            context.renderJSON(StatusCodes.ERR).renderMsg("每分钟请求数必须大于0");
+            return;
+        }
+        final boolean firewallEnabled = Boolean.parseBoolean(context.param("firewallEnabled"));
+        final boolean verificationEnabled = Boolean.parseBoolean(context.param("verificationEnabled"));
+        final boolean firstVisitEnabled = Boolean.parseBoolean(context.param("firstVisitCaptchaEnabled"));
+        Firewall.setThreshold(threshold);
+        Firewall.setEnabled(firewallEnabled);
+        // 未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
+        AnonymousCaptchaShield.setEnabled(verificationEnabled);
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(firstVisitEnabled);
+        final JSONObject data = securitySwitchData();
+        SecurityMonitor.record("settings", "update", "统一保存");
+        context.renderJSON(StatusCodes.SUCC).renderData(data).renderMsg("安全开关已保存");
+    }
+
+    public void securityMonitor(final RequestContext context) {
+        if (!isSecurityOperator(getCurrentUser(context))) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecurityMonitor.snapshot())
+                .put("crawlers", CrawlerMonitor.snapshot(context.param("crawler")))
+                .put("events", SecurityMonitor.recentEvents()));
+    }
+
+    public void securitySelfCheck(final RequestContext context) {
+        if (!isSecurityOperator(getCurrentUser(context))) {
+            context.sendError(403);
+            context.abort();
+            return;
+        }
+        context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecuritySelfCheck.run()));
+    }
+
+    private JSONObject securitySwitchData() {
+        return new JSONObject().put("firewallEnabled", Firewall.isEnabled())
+                .put("threshold", Firewall.getThreshold())
+                .put("verificationEnabled", AnonymousCaptchaShield.isEnabled())
+                .put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled())
+                .put("runtimeMode", Latkes.getRuntimeMode().name())
+                .put("editable", isSecurityEditable());
+    }
+
+    private boolean isSecurityEditable() {
+        return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
     }
 
     private JSONObject getCurrentUser(final RequestContext context) {

@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+/** 在临时 SQLite 上执行置顶、积分、回执与过期 SQL 及严格 JDBC 事务，传输和缓存使用适配器。 */
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
+const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
+const cp = [
+ process.env.API_V3_JSOUP_JAR || ide + '/lib/intellij.libraries.jsoup.jar',
+ 'src/main/resources/lib/latke-core.jar',
+ process.env.API_V3_CAFFEINE_JAR || `${ide}/lib/intellij.libraries.caffeine.jar`,
+ process.env.API_V3_TESTNG_JAR || `${ide}/plugins/testng/lib/testng.jar`,
+ process.env.API_V3_SQLITE_JAR || `${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`
+].join(path.delimiter);
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-v3-article-stick-')),shims=[];
+function shim(name, body) {
+ const file = path.join(dir, name + '.java');
+ fs.mkdirSync(path.dirname(file), { recursive: true });
+ fs.writeFileSync(file, body);
+ shims.push(file);
+}
+
+function method(source, signature) {
+ const begin = source.indexOf(signature);
+ if (begin < 0) throw Error(signature);
+ let depth = 0;
+ for (let i = source.indexOf('{', begin); i < source.length; i++) {
+  if (source[i] === '{') depth++;
+  if (source[i] === '}' && --depth === 0) return source.slice(begin, i + 1);
+ }
+ throw Error('Unclosed method');
+}
+
+function run(bin, args) {
+ const r = spawnSync(bin, args, { stdio: 'inherit' });
+ if (r.error) throw r.error;
+ if (r.status !== 0) throw Error('Article stick tests failed');
+}
+try{
+ const point=fs.readFileSync('src/main/java/org/b3log/symphony/model/Pointtransfer.java','utf8');
+ shim('org/b3log/symphony/util/Symphonys','package org.b3log.symphony.util;public class Symphonys {public static final long STICK_ARTICLE_TIME=1800000L;public static final String[] RESERVED_USER_NAMES={};public static final long INVITECODE_EXPIRED=259200000L;'+[...new Set([...point.matchAll(/Symphonys\.(POINT_[A-Z_]+)/g)].map(m=>m[1]))].map(k=>'public static final int '+k+'='+((k==='POINT_BUY_INVITECODE'||k==='POINT_STICK_ARTICLE')?100:0)+';').join('')+'}');
+ shim('org/b3log/symphony/repository/UserRepository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;import org.b3log.latke.repository.RepositoryException;public class UserRepository extends AbstractRepository {public void refreshSettingsCache(String id){}public void evictSettingsCaches(String id){}public UserRepository(){super("user");}public org.json.JSONObject getForUpdate(String id)throws RepositoryException{throw new UnsupportedOperationException();}public org.json.JSONObject getByName(String name)throws RepositoryException{throw new UnsupportedOperationException();}}');
+ shim('org/b3log/symphony/repository/PointtransferRedcRepository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;public class PointtransferRedcRepository extends AbstractRepository {public PointtransferRedcRepository(){super("pointtransfer_redc");}public static void addRecordAsync(String user,String raw){throw new AssertionError("unexpected legacy async indexing");}}');
+ const tokens=fs.readFileSync('src/main/java/org/b3log/symphony/service/ApiV3TokenMgmtService.java','utf8');
+ shim('org/b3log/symphony/service/ApiV3TokenMgmtService',`package org.b3log.symphony.service;import org.json.JSONObject;import org.apache.commons.lang.StringUtils;import java.util.*;public class ApiV3TokenMgmtService {public JSONObject authenticate(String value){return null;}${method(tokens,'public static boolean hasScope(')}}`);
+ shim('org/b3log/symphony/processor/ApiV3Processor','package org.b3log.symphony.processor;public class ApiV3Processor {public static final String IDENTITY="apiV3Identity";public static String requestId(org.b3log.latke.http.RequestContext c){return "fixture-invitation-purchase";}public static void success(org.b3log.latke.http.RequestContext c,Object data){c.attr("test.status",200);c.attr("test.data",data);}public static void error(org.b3log.latke.http.RequestContext c,int status,String code,String msg){c.attr("test.status",status);c.attr("test.code",code);c.attr("test.message",msg);}}');
+ shim('org/b3log/symphony/processor/ProfessionPrimaryRouteBindings','package org.b3log.symphony.processor;public class ProfessionPrimaryRouteBindings {public static void register(ApiV3ProfessionPrimaryProcessor p,org.b3log.symphony.processor.middleware.ApiV3AuthMidware a,org.b3log.symphony.processor.middleware.ApiV3WriteMidware w){}}');
+ const routes=fs.readFileSync('src/main/java/org/b3log/symphony/processor/ApiV3InvitationPurchaseProcessor.java','utf8').split('\n').filter(line=>line.includes('Dispatcher.post('));
+ if(routes.length!==1||!routes[0].includes('auth::activityWrite, writes::handle'))throw Error('Review invitation purchase route gates');
+ shim('org/b3log/symphony/processor/InvitationPurchaseRouteBindings',`package org.b3log.symphony.processor;import org.b3log.latke.http.Dispatcher;import org.b3log.symphony.processor.middleware.*;public class InvitationPurchaseRouteBindings {public static void register(ApiV3InvitationPurchaseProcessor p,ApiV3AuthMidware auth,ApiV3WriteMidware writes){${routes.join('\n')}}}`);
+ shim('org/b3log/symphony/cache/OptionCache','package org.b3log.symphony.cache;public class OptionCache {public void removeOption(String id){}public org.json.JSONObject getOption(String id){throw new AssertionError("cached option forbidden");}public void putOption(org.json.JSONObject value){throw new AssertionError("cached option forbidden");}}');
+
+ const articleSource=fs.readFileSync('src/main/java/org/b3log/symphony/repository/ArticleRepository.java','utf8');
+ shim('org/b3log/symphony/repository/ArticleRepository','package org.b3log.symphony.repository;import org.b3log.latke.repository.AbstractRepository;import org.b3log.latke.repository.RepositoryException;import org.b3log.symphony.model.Article;import org.json.JSONObject;public class ArticleRepository extends AbstractRepository {public ArticleRepository(){super("article");}private void requireWriteTransaction(){if(!hasTransactionBegun())throw new IllegalStateException("transaction required");}'+method(articleSource,'public JSONObject getOwnedForUpdate(')+method(articleSource,'public boolean expireStickIfCurrentInCurrentTransaction(')+'}');
+
+ shim('org/b3log/symphony/service/UserQueryService','package org.b3log.symphony.service;public class UserQueryService {public org.json.JSONObject getUser(String id){return new org.json.JSONObject().put("oId",id).put("userName","fixture").put("userStatus",0).put("userPassword","PRIVATE");}}');
+ shim('org/b3log/symphony/service/AvatarQueryService','package org.b3log.symphony.service;public class AvatarQueryService {public String getDefaultAvatarURL(String size){return "https://example.test/default-avatar.png";}public String getAvatarURLByUser(org.json.JSONObject user,String size){return "";}}');
+ shim('org/b3log/symphony/util/Emotions','package org.b3log.symphony.util;public class Emotions{public static String convert(String value){return value;}}');
+ shim('org/b3log/symphony/util/Markdowns','package org.b3log.symphony.util;public class Markdowns{public static String toHTML(String value){return value;}public static String clean(String value,String ignored){return value;}}');
+ const real=['util/ApiV3ArticleStickState','service/ApiV3ContentDtoService','util/ApiV3ContentSnapshots','util/ApiV3ArticlePolicy','util/ApiV3AvatarUrl','model/Article','model/Comment','util/ApiV3ContentUtil','service/ApiV3ArticleStickService','processor/ApiV3ArticleStickProcessor','model/UserExt','model/Role','model/Common','model/Notification','model/Profession','model/UserProfessionPrivacy','model/ApiV3Request','model/Pointtransfer','model/PointtransferSource','repository/ProfessionRepository','repository/UserProfessionPrivacyRepository','repository/ApiV3RequestRepository','repository/PointtransferRepository','util/ApiV3Requests','util/ApiV3Exception','util/ApiV3WriteInputs','util/ApiV3Json','util/ApiV3TokenUtil','util/ApiV3MutationStore','util/ApiV3Transactions','util/ApiV3TransactionSavepoint','util/ApiV3TransactionStatements','util/AccountPairLocks','util/ArticlePublicationCaches','service/ApiV3IdempotencyMgmtService','service/ApiV3ProfessionPrimaryService','processor/ApiV3ProfessionPrimaryProcessor','service/PointtransferMgmtService','service/ApiV3InvitationPurchaseService','processor/ApiV3InvitationPurchaseProcessor','util/ApiV3InvitationPurchaseInputs','model/Invitecode','repository/InvitecodeRepository','model/Option','repository/OptionRepository','processor/middleware/ApiV3AuthMidware','processor/middleware/ApiV3WriteMidware'];
+ run(path.join(home,'bin','javac'),['--release','25', 'src/main/java/org/b3log/latke/http/ApiV3GameSaveRawBody.java','-proc:none','-cp',cp,'-d',dir,...shims,...real.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),'src/test/java/org/b3log/symphony/service/ApiV3ArticleStickStateTest.java']);
+ run(path.join(home,'bin','java'),['-cp',[dir,cp].join(path.delimiter),'org.b3log.symphony.service.ApiV3ArticleStickStateTest']);
+} finally {
+ fs.rmSync(dir, { recursive: true, force: true });
+}

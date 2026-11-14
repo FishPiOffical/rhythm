@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.processor;
 
+import org.b3log.symphony.util.UserOnlineStatus;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -57,6 +58,7 @@ import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.SystemSettingsService;
 import org.b3log.symphony.service.UserQueryService;
 import org.b3log.symphony.util.OpenIdUtil;
+import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.StatusCodes;
 import org.b3log.symphony.util.Symphonys;
@@ -243,7 +245,10 @@ public class OpenIdProcessor {
 //        String realmName = realm.substring(realm.lastIndexOf("/")+1);
 
         final String authRequestId = UUID.randomUUID().toString().replace("-", "");
-        authRequestMap.put(authRequestId, new AuthRequest(ns, mode, return_to, realm, identity, claimed_id, requestedScopes));
+        final JSONObject owner=Sessions.getUser();
+        final var proof=owner==null?null:AccountCredentialVersions.snapshot(owner.optString("oId"));
+        if(proof==null||AccountCredentialVersions.issuance(proof.actor(),null)==null){context.sendError(401);return;}
+        authRequestMap.put(authRequestId, new AuthRequest(ns, mode, return_to, realm, identity, claimed_id, requestedScopes,proof.actor(),proof.epoch()));
 
         renderer.setTemplateName("verify/openid.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
@@ -297,6 +302,10 @@ public class OpenIdProcessor {
             // 取得当前登录的用户
             JSONObject user = Sessions.getUser();
             String userId = user.optString("oId");
+            final var proof=AccountCredentialVersions.snapshot(userId);
+            if(proof==null||!authRequest.userId.equals(userId)||proof.epoch()!=authRequest.epoch||!AccountCredentialVersions.matches(userId,authRequest.epoch)) {
+                redirectWithError(context,authRequest.returnTo);return;
+            }
             result.put(OPENID_NS_KEY,OPENID_NS);
             result.put(OPENID_OP_ENDPOINT_KEY, Latkes.getServePath()+"/openid" );
             result.put(OPENID_MODE_KEY, OPENID_MODE_RES);
@@ -305,7 +314,7 @@ public class OpenIdProcessor {
             result.put(OPENID_ASSOC_HANDLE_KEY, OPENID_ASSOC_HANDLE);
             String nonce = OpenIdUtil.generateNonce();
             result.put(OPENID_RESPONSE_NONCE_KEY, nonce);
-            respNonceMap.put(nonce, new AuthResult(userId, authRequest.realm, grantedScopes));
+            respNonceMap.put(nonce, new AuthResult(userId, authRequest.realm, grantedScopes,authRequest.epoch));
             result.put(OPENID_RETURN_TO_KEY, authRequest.returnTo);
             result.put(OPENID_SIGNED_KEY,OPENID_SIGNED);
             result.put(OPENID_SIG_KEY, OpenIdUtil.sign(result));
@@ -489,7 +498,7 @@ public class OpenIdProcessor {
             if (null != authResult && !authResult.scopes.isEmpty()) {
                 try {
                     final JSONObject tokenData = openIdRefreshTokenMgmtService.issueToken(authResult.userId,
-                            authResult.scopes, authResult.realm);
+                            authResult.scopes, authResult.realm,authResult.epoch);
                     builder.append("scope:").append(tokenData.optString("scope")).append("\n");
                     builder.append("token_type:").append(tokenData.optString("token_type")).append("\n");
                     builder.append("access_token:").append(tokenData.optString("access_token")).append("\n");
@@ -572,7 +581,7 @@ public class OpenIdProcessor {
         final String userId = user.optString(Keys.OBJECT_ID);
         final JSONObject data = new JSONObject();
         data.put(User.USER_NAME, user.optString(User.USER_NAME));
-        data.put(UserExt.USER_ONLINE_FLAG, user.optBoolean(UserExt.USER_ONLINE_FLAG));
+        data.put(UserExt.USER_ONLINE_FLAG, UserOnlineStatus.isOnline(user));
         data.put(UserExt.ONLINE_MINUTE, user.optInt(UserExt.ONLINE_MINUTE));
         data.put(User.USER_URL, user.optString(User.USER_URL));
         data.put(UserExt.USER_NICKNAME, user.optString(UserExt.USER_NICKNAME));
@@ -902,13 +911,16 @@ public class OpenIdProcessor {
         private final String returnTo;
         private final String realm;
         private final Set<String> requestedScopes;
+        private final String userId;
+        private final long epoch;
         private final long createdAt = System.currentTimeMillis();
 
         private AuthRequest(final String ns, final String mode, final String returnTo, final String realm,
-                            final String identity, final String claimedId, final Set<String> requestedScopes) {
+                            final String identity, final String claimedId, final Set<String> requestedScopes,final String userId,final long epoch) {
             this.returnTo = returnTo;
             this.realm = realm;
             this.requestedScopes = new LinkedHashSet<>(requestedScopes);
+            this.userId=userId;this.epoch=epoch;
         }
 
         private boolean isExpired() {
@@ -920,11 +932,13 @@ public class OpenIdProcessor {
         private final String userId;
         private final String realm;
         private final Set<String> scopes;
+        private final long epoch;
 
-        private AuthResult(final String userId, final String realm, final Set<String> scopes) {
+        private AuthResult(final String userId, final String realm, final Set<String> scopes,final long epoch) {
             this.userId = userId;
             this.realm = realm;
             this.scopes = new LinkedHashSet<>(scopes);
+            this.epoch=epoch;
         }
     }
 

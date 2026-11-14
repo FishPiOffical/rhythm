@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-03",
+  "batch": 79,
+  "productionFiles": [
+    "src/main/java/org/b3log/symphony/service/ShortLinkQueryService.java",
+    "src/main/java/org/b3log/symphony/service/LongArticleParagraphService.java"
+  ],
+  "testFiles": [
+    "src/test/java/org/b3log/symphony/service/LongArticleParagraphAnnotationTest.java",
+    "website_v3/tools/v3-comment-location-test.mjs"
+  ],
+  "baselineLive": {
+    "manualIDEAConfirmationReceived": true,
+    "javaPid": 45335,
+    "listenerAndPublicJSONVerified": true,
+    "httpOldAliasChecks": 6,
+    "mixedAliasComments": 23,
+    "locationPage": 2,
+    "desktopTargetBounds": {
+      "top": 391.984375,
+      "bottom": 498.078125,
+      "viewportHeight": 720
+    },
+    "restrictedTitleAbsent": true,
+    "browserObservedInvalidLink": "http://[:1]/article/<local-fixture-id>",
+    "latestHrefFixNotDeployed": true,
+    "temporaryArticlesCleaned": 2,
+    "temporaryCommentsCleaned": 23,
+    "fingerprintUnchanged": true
+  },
+  "latestFix": [
+    "New paired URL-title method preserves matched original absolute URL exactly as destination, including query/fragment; canonical/safe differ only label",
+    "Legacy Function/null entry delegates original rewrite path and remains unchanged",
+    "Configured original source prefix matched literally in URL-preserving mode before lookup; regex-lookalike host remains an ordinary URL",
+    "Existing canonical text hashes stay stable despite correct href; provisional URL alias continues to resolve",
+    "Structural/actual destination mismatch still409, no broad ignore-href relaxation"
+  ],
+  "regression": {
+    "paragraphParserActualProjectFlexmarkAndSQLiteMigrationPASS": 15,
+    "currentContentLocationPASS": 18,
+    "commentPASS": 43,
+    "articlePASS": 66,
+    "totalPASS": 142,
+    "maven": false,
+    "clientProductionChanged": false,
+    "newMigration": false,
+    "clientLocationTargetedPASS": 9,
+    "newClientHistoryCase": "Deferred201 -> 202 -> 201 navigation: original and middle responses cannot emit after back navigation restores original binding; current response emits once"
+  },
+  "security": [
+    "No new route, auth, anonymous.viewSkips, blacklisting/CAPTCHA exception, Cookie or write endpoint",
+    "Literal configured source URL prefix checked before paired title lookup; recognized URL contains existing path/query/fragment character restrictions, no arbitrary HTML/SQL",
+    "Original target from recognized trusted-site URL, no remote fetch; private title absent in emitted label/snapshot",
+    "Legacy null/Function behavior remains; missing-title callback does not query unrestricted fallback",
+    "No public fixture/upload/download/static/CDN changes; production scan, CAPTCHA and directory enumeration not performed"
+  ],
+  "pendingIDEAJava": [
+    "LongArticleParagraphService.java",
+    "ShortLinkQueryService.java"
+  ],
+  "manualSteps": [
+    "Recompile/restart8081 through IDEA, then verify process/public JSON before any credential use",
+    "Temporary local restricted-reference long article: GET paragraphs includeContent returns URL label and exact original valid href, no restricted title or409",
+    "Mixed canonical/provisional aliases: location gives canonical page2, exact list contains target; desktop/390px drawer target visible, re-location works",
+    "Browser back/forward between ordinary/long comments must retain correct target; removed target gives explicit unavailable and fresh lookup cannot resurrect old body",
+    "Known public title remains; unknown article URL stays raw; source-lookalike domain never receives internal title; genuine ambiguous structure still409",
+    "Clean temporary records transactionally and verify original business fingerprint"
+  ],
+  "limits": [
+    "Runtime6 checks cover preceding title/attribute fix, not newly modified href preservation",
+    "Latest real HTTP, mobile and history validation require new manual rebuild confirmation",
+    "Real project Flexmark test still controls sanitizer/emotions/media; actual runtime may use Lute",
+    "Production wind-control/CDN/directory enumeration/multi-instance/physical devices and entire v3 completion remain unproven"
+  ],
+  "committed": false,
+  "pushed": false
+}

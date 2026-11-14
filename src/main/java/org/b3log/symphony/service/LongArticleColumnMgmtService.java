@@ -23,12 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Inject;
-import org.b3log.latke.repository.CompositeFilterOperator;
-import org.b3log.latke.repository.FilterOperator;
-import org.b3log.latke.repository.PropertyFilter;
-import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
-import org.b3log.latke.repository.SortDirection;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
@@ -188,9 +183,7 @@ public class LongArticleColumnMgmtService {
     }
 
     private JSONObject getChapterByArticleId(final String articleId) throws RepositoryException {
-        final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.ARTICLE_ID,
-                FilterOperator.EQUAL, articleId)).setPageCount(1);
-        return longArticleChapterRepository.getFirst(query);
+        return longArticleChapterRepository.getByArticleForUpdate(articleId);
     }
 
     /**
@@ -203,106 +196,90 @@ public class LongArticleColumnMgmtService {
      * @throws ServiceException service exception
      */
     public JSONObject renameColumn(final String userId, final String columnId, final String columnTitle) throws ServiceException {
-        final String title = StringUtils.trimToEmpty(columnTitle);
-        if (StringUtils.isBlank(title)) {
-            throw new ServiceException("专栏名称不能为空");
-        }
-        if (title.length() > LongArticleColumn.MAX_COLUMN_TITLE_LENGTH) {
-            throw new ServiceException("专栏名称长度不能超过 " + LongArticleColumn.MAX_COLUMN_TITLE_LENGTH + " 个字符");
-        }
-
         final Transaction transaction = longArticleColumnRepository.beginTransaction();
         try {
-            final JSONObject column = getOwnedColumn(userId, columnId);
-            final Query duplicateQuery = new Query().setFilter(CompositeFilterOperator.and(
-                    new PropertyFilter(LongArticleColumn.COLUMN_AUTHOR_ID, FilterOperator.EQUAL, userId),
-                    new PropertyFilter(LongArticleColumn.COLUMN_TITLE, FilterOperator.EQUAL, title),
-                    new PropertyFilter(LongArticleColumn.COLUMN_STATUS, FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID)))
-                    .setPageCount(1);
-            final JSONObject duplicate = longArticleColumnRepository.getFirst(duplicateQuery);
-            if (null != duplicate && !StringUtils.equals(columnId, duplicate.optString(Keys.OBJECT_ID))) {
-                throw new ServiceException("已存在同名专栏");
-            }
+            final JSONObject result = renameColumnInCurrentTransaction(userId, columnId, columnTitle);
+            transaction.commit();
+            return result;
+        } catch (final ServiceException | RepositoryException e) {
+            rollback(transaction);
+            if (e instanceof ServiceException service) throw service;
+            throw new ServiceException(e);
+        }
+    }
 
+    public JSONObject renameColumnInCurrentTransaction(final String userId, final String columnId, final String columnTitle)
+            throws ServiceException, RepositoryException {
+        final String title = StringUtils.trimToEmpty(columnTitle);
+        if (StringUtils.isBlank(title)) throw new ServiceException("专栏名称不能为空");
+        if (title.length() > LongArticleColumn.MAX_COLUMN_TITLE_LENGTH) throw new ServiceException("专栏名称过长");
+        final JSONObject column = getOwnedColumn(userId, columnId);
+        final JSONObject duplicate = longArticleColumnRepository.findByTitleForUpdate(userId, title);
+        if (null != duplicate && !StringUtils.equals(columnId, duplicate.optString(Keys.OBJECT_ID))) {
+            throw new ServiceException("已存在同名专栏");
+        }
+        if (!title.equals(column.optString(LongArticleColumn.COLUMN_TITLE))) {
             column.put(LongArticleColumn.COLUMN_TITLE, title);
             column.put(LongArticleColumn.COLUMN_UPDATE_TIME, System.currentTimeMillis());
             longArticleColumnRepository.update(columnId, column);
-            transaction.commit();
-            return column;
-        } catch (final ServiceException e) {
-            rollback(transaction);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(transaction);
-            throw new ServiceException(e);
         }
+        return column;
     }
 
-    /**
-     * Updates display order of the specified user's columns in one transaction; the index of each id in the
-     * given list becomes its new order (smaller comes first). Columns not included keep their current order.
-     *
-     * @param userId    user id
-     * @param columnIds column ids in desired order
-     * @throws ServiceException service exception
-     */
+    /** Listed columns get zero-based positions; unlisted columns keep their order. */
     public void updateColumnOrder(final String userId, final List<String> columnIds) throws ServiceException {
-        if (null == columnIds || columnIds.isEmpty()) {
-            throw new ServiceException("请提供专栏排序");
-        }
-
-        final List<String> distinctIds = new ArrayList<>(new LinkedHashSet<>(columnIds));
-        if (distinctIds.size() > 200) {
-            throw new ServiceException("一次最多排序 200 个专栏");
-        }
-
         final Transaction transaction = longArticleColumnRepository.beginTransaction();
         try {
-            int order = 0;
-            for (final String columnId : distinctIds) {
-                final JSONObject column = getOwnedColumn(userId, columnId);
-                column.put(LongArticleColumn.COLUMN_ORDER, order++);
-                longArticleColumnRepository.update(columnId, column);
-            }
+            updateColumnOrderInCurrentTransaction(userId, columnIds);
             transaction.commit();
-        } catch (final ServiceException e) {
+        } catch (final ServiceException | RepositoryException e) {
             rollback(transaction);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(transaction);
+            if (e instanceof ServiceException service) throw service;
             throw new ServiceException(e);
         }
     }
 
-    /**
-     * Removes (marks invalid) an owned column. Refuses when the column still has chapters to avoid orphan
-     * chapter relations; move chapters out first.
-     *
-     * @param userId   user id
-     * @param columnId column id
-     * @throws ServiceException service exception
-     */
+    public void updateColumnOrderInCurrentTransaction(final String userId, final List<String> columnIds)
+            throws ServiceException, RepositoryException {
+        if (null == columnIds || columnIds.isEmpty()) throw new ServiceException("请提供专栏排序");
+        for (final String id : columnIds) {
+            if (StringUtils.isBlank(id)) throw new ServiceException("专栏不存在或无权限操作");
+        }
+        final List<String> ids = new ArrayList<>(new LinkedHashSet<>(columnIds));
+        if (ids.size() > 200) throw new ServiceException("一次最多排序 200 个专栏");
+        final java.util.Map<String, JSONObject> locked = new java.util.HashMap<>();
+        final List<String> lockOrder = new ArrayList<>(ids);
+        java.util.Collections.sort(lockOrder);
+        for (final String id : lockOrder) locked.put(id, getOwnedColumn(userId, id));
+        for (int order = 0; order < ids.size(); order++) {
+            final String id = ids.get(order);
+            final JSONObject column = locked.get(id);
+            column.put(LongArticleColumn.COLUMN_ORDER, order);
+            longArticleColumnRepository.update(id, column);
+        }
+    }
+
     public void removeColumn(final String userId, final String columnId) throws ServiceException {
         final Transaction transaction = longArticleColumnRepository.beginTransaction();
         try {
-            final JSONObject column = getOwnedColumn(userId, columnId);
-            final Query chapterQuery = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_ID,
-                    FilterOperator.EQUAL, columnId)).setPageCount(1);
-            if (longArticleChapterRepository.count(chapterQuery) > 0) {
-                throw new ServiceException("专栏下还有章节，请先移出章节后再删除");
-            }
-
-            column.put(LongArticleColumn.COLUMN_STATUS, LongArticleColumn.COLUMN_STATUS_C_INVALID);
-            column.put(LongArticleColumn.COLUMN_UPDATE_TIME, System.currentTimeMillis());
-            longArticleColumnRepository.update(columnId, column);
+            removeColumnInCurrentTransaction(userId, columnId);
             transaction.commit();
-        } catch (final ServiceException e) {
+        } catch (final ServiceException | RepositoryException e) {
             rollback(transaction);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(transaction);
+            if (e instanceof ServiceException service) throw service;
             throw new ServiceException(e);
         }
+    }
+
+    public void removeColumnInCurrentTransaction(final String userId, final String columnId)
+            throws ServiceException, RepositoryException {
+        final JSONObject column = getOwnedColumn(userId, columnId);
+        if (!longArticleChapterRepository.getByColumnForUpdate(columnId).isEmpty()) {
+            throw new ServiceException("专栏下还有章节，请先移出章节后再删除");
+        }
+        column.put(LongArticleColumn.COLUMN_STATUS, LongArticleColumn.COLUMN_STATUS_C_INVALID);
+        column.put(LongArticleColumn.COLUMN_UPDATE_TIME, System.currentTimeMillis());
+        longArticleColumnRepository.update(columnId, column);
     }
 
     private JSONObject getOwnedColumn(final String userId, final String columnId)
@@ -310,7 +287,7 @@ public class LongArticleColumnMgmtService {
         if (StringUtils.isBlank(columnId)) {
             throw new ServiceException("专栏不存在或无权限操作");
         }
-        final JSONObject column = longArticleColumnRepository.get(columnId);
+        final JSONObject column = longArticleColumnRepository.getForUpdate(columnId);
         if (null == column || LongArticleColumn.COLUMN_STATUS_C_VALID != column.optInt(LongArticleColumn.COLUMN_STATUS)
                 || !StringUtils.equals(userId, column.optString(LongArticleColumn.COLUMN_AUTHOR_ID))) {
             throw new ServiceException("专栏不存在或无权限操作");
@@ -336,16 +313,10 @@ public class LongArticleColumnMgmtService {
             throw new ServiceException("专栏名称长度不能超过 " + LongArticleColumn.MAX_COLUMN_TITLE_LENGTH + " 个字符");
         }
 
-        final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                new PropertyFilter(LongArticleColumn.COLUMN_AUTHOR_ID, FilterOperator.EQUAL, authorId),
-                new PropertyFilter(LongArticleColumn.COLUMN_TITLE, FilterOperator.EQUAL, columnTitle),
-                new PropertyFilter(LongArticleColumn.COLUMN_STATUS, FilterOperator.EQUAL, LongArticleColumn.COLUMN_STATUS_C_VALID)))
-                .setPageCount(1);
-        JSONObject column = longArticleColumnRepository.getFirst(query);
+        JSONObject column = longArticleColumnRepository.findByTitleForUpdate(authorId, columnTitle);
         if (null != column) {
-            if (StringUtils.isNotBlank(columnCoverURL)) {
-                updateColumnCoverURL(column.optString(Keys.OBJECT_ID), columnCoverURL);
-            }
+            validateColumnOwner(column.optString(Keys.OBJECT_ID), authorId);
+            if (StringUtils.isNotBlank(columnCoverURL)) updateColumnCoverURL(column.optString(Keys.OBJECT_ID), columnCoverURL);
             return column.optString(Keys.OBJECT_ID);
         }
 
@@ -365,7 +336,7 @@ public class LongArticleColumnMgmtService {
 
     private void updateColumnCoverURL(final String columnId, final String columnCoverURL)
             throws RepositoryException {
-        final JSONObject column = longArticleColumnRepository.get(columnId);
+        final JSONObject column = longArticleColumnRepository.getForUpdate(columnId);
         if (null == column) {
             return;
         }
@@ -374,7 +345,7 @@ public class LongArticleColumnMgmtService {
     }
 
     private void validateColumnOwner(final String columnId, final String authorId) throws RepositoryException, ServiceException {
-        final JSONObject column = longArticleColumnRepository.get(columnId);
+        final JSONObject column = longArticleColumnRepository.getForUpdate(columnId);
         if (null == column || LongArticleColumn.COLUMN_STATUS_C_VALID != column.optInt(LongArticleColumn.COLUMN_STATUS)
                 || !StringUtils.equals(authorId, column.optString(LongArticleColumn.COLUMN_AUTHOR_ID))) {
             throw new ServiceException("专栏不存在或无权限操作");
@@ -382,24 +353,20 @@ public class LongArticleColumnMgmtService {
     }
 
     private int getNextChapterNo(final String columnId) throws RepositoryException {
-        final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_ID,
-                FilterOperator.EQUAL, columnId)).addSort(LongArticleColumn.CHAPTER_NO,
-                SortDirection.DESCENDING).setPage(1, 1).setPageCount(1);
-        final JSONObject maxChapter = longArticleChapterRepository.getFirst(query);
-        if (null == maxChapter) {
-            return 1;
-        }
-        return Math.max(1, maxChapter.optInt(LongArticleColumn.CHAPTER_NO) + 1);
+        final var chapters = longArticleChapterRepository.getByColumnForUpdate(columnId);
+        if (chapters.isEmpty()) return 1;
+        final int last = chapters.getFirst().optInt(LongArticleColumn.CHAPTER_NO);
+        if (last == Integer.MAX_VALUE) throw new RepositoryException("chapter number exhausted");
+        return Math.max(1, last + 1);
     }
 
     private void ensureChapterNoAvailable(final String columnId, final int chapterNo, final String articleId)
             throws RepositoryException, ServiceException {
-        final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                new PropertyFilter(LongArticleColumn.COLUMN_ID, FilterOperator.EQUAL, columnId),
-                new PropertyFilter(LongArticleColumn.CHAPTER_NO, FilterOperator.EQUAL, chapterNo))).setPageCount(1);
-        final JSONObject chapter = longArticleChapterRepository.getFirst(query);
-        if (null != chapter && !StringUtils.equals(articleId, chapter.optString(LongArticleColumn.ARTICLE_ID))) {
-            throw new ServiceException("该章节号已被占用，请更换章节号");
+        for (final JSONObject chapter : longArticleChapterRepository.getByColumnForUpdate(columnId)) {
+            if (chapter.optInt(LongArticleColumn.CHAPTER_NO) == chapterNo
+                    && !StringUtils.equals(articleId, chapter.optString(LongArticleColumn.ARTICLE_ID))) {
+                throw new ServiceException("该章节号已被占用，请更换章节号");
+            }
         }
     }
 
@@ -408,14 +375,12 @@ public class LongArticleColumnMgmtService {
             return;
         }
 
-        final JSONObject column = longArticleColumnRepository.get(columnId);
+        final JSONObject column = longArticleColumnRepository.getForUpdate(columnId);
         if (null == column) {
             return;
         }
 
-        final Query query = new Query().setFilter(new PropertyFilter(LongArticleColumn.COLUMN_ID,
-                FilterOperator.EQUAL, columnId));
-        final int articleCount = (int) longArticleChapterRepository.count(query);
+        final int articleCount = longArticleChapterRepository.getByColumnForUpdate(columnId).size();
         column.put(LongArticleColumn.COLUMN_ARTICLE_COUNT, articleCount);
         column.put(LongArticleColumn.COLUMN_UPDATE_TIME, now);
         longArticleColumnRepository.update(columnId, column);

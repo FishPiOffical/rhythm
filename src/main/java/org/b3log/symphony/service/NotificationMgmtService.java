@@ -37,6 +37,7 @@ import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.NotificationProcessor;
 import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.NotificationRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.NotificationContents;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
@@ -72,6 +73,9 @@ public class NotificationMgmtService {
     @Inject
     private NotificationRepository notificationRepository;
 
+    @Inject
+    private UserRepository userRepository;
+
     /**
      * Adds a 'report handled' type notification with the specified request json object.
      *
@@ -102,11 +106,8 @@ public class NotificationMgmtService {
      */
     @Transactional
     public void removeNotifications(final String userId, final int type) {
-        final Query query = new Query().setFilter(CompositeFilterOperator.and(
-                new PropertyFilter(Notification.NOTIFICATION_USER_ID, FilterOperator.EQUAL, userId),
-                new PropertyFilter(Notification.NOTIFICATION_DATA_TYPE, FilterOperator.EQUAL, type)));
         try {
-            notificationRepository.remove(query);
+            notificationRepository.removeByUserIdAndType(userId,type);
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Removes user [id=" + userId + "]'s notifications [type=" + type + "] failed", e);
         }
@@ -262,9 +263,10 @@ public class NotificationMgmtService {
     @Transactional
     public void addArticleNewWatcherNotification(final JSONObject requestJSONObject) {
         try {
-            requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_ARTICLE_NEW_WATCHER);
-
-            addNotification(requestJSONObject);
+            if (addFollowNotificationInCurrentTransaction(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID),
+                    requestJSONObject.optString(Notification.NOTIFICATION_DATA_ID), Notification.DATA_TYPE_C_ARTICLE_NEW_WATCHER)) {
+                publishRefreshNotification(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
+            }
         } catch (final RepositoryException e) {
             final String msg = "Adds a notification [type=article_new_watcher] failed";
             LOGGER.log(Level.ERROR, msg, e);
@@ -281,9 +283,10 @@ public class NotificationMgmtService {
     @Transactional
     public void addArticleNewFollowerNotification(final JSONObject requestJSONObject) {
         try {
-            requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_ARTICLE_NEW_FOLLOWER);
-
-            addNotification(requestJSONObject);
+            if (addFollowNotificationInCurrentTransaction(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID),
+                    requestJSONObject.optString(Notification.NOTIFICATION_DATA_ID), Notification.DATA_TYPE_C_ARTICLE_NEW_FOLLOWER)) {
+                publishRefreshNotification(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
+            }
         } catch (final RepositoryException e) {
             final String msg = "Adds a notification [type=article_new_follower] failed";
             LOGGER.log(Level.ERROR, msg, e);
@@ -410,9 +413,10 @@ public class NotificationMgmtService {
     @Transactional
     public void addNewFollowerNotification(final JSONObject requestJSONObject) {
         try {
-            requestJSONObject.put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_NEW_FOLLOWER);
-
-            addNotification(requestJSONObject);
+            if (addFollowNotificationInCurrentTransaction(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID),
+                    requestJSONObject.optString(Notification.NOTIFICATION_DATA_ID), Notification.DATA_TYPE_C_NEW_FOLLOWER)) {
+                publishRefreshNotification(requestJSONObject.optString(Notification.NOTIFICATION_USER_ID));
+            }
         } catch (final RepositoryException e) {
             final String msg = "Adds a notification [type=new_follower] failed";
             LOGGER.log(Level.ERROR, msg, e);
@@ -786,11 +790,32 @@ public class NotificationMgmtService {
         addNotificationRecord(requestJSONObject);
     }
 
+    /** Caller commits the deduction and publishes the refresh after the business transaction. */
+    public void addAbusePointDeductNotificationInCurrentTransaction(final String userId, final String transferId)
+            throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        if (null == transferId || transferId.isBlank()) throw new IllegalArgumentException("deduction transfer required");
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, userId)
+                .put(Notification.NOTIFICATION_DATA_ID, transferId)
+                .put(Notification.NOTIFICATION_DATA_TYPE, Notification.DATA_TYPE_C_ABUSE_POINT_DEDUCT));
+    }
+
     /**
      * Publishes a notification refresh command after a transaction commits.
      *
      * @param userId user id
      */
+    /** Same count-bearing refresh as legacy mark-read, scheduled by publication only after commit. */
+    public void publishReadStateRefresh(final String userId) {
+        Symphonys.EXECUTOR_SERVICE.submit(() -> {
+            final JSONObject cmd = new JSONObject().put(UserExt.USER_T_ID, userId).put(Common.COMMAND, "refreshNotification");
+            final Map<String, Object> dataModel = new HashMap<>();
+            BeanManager.getInstance().getReference(NotificationProcessor.class).fillNotificationCount(userId, dataModel);
+            cmd.put("count", Integer.parseInt(dataModel.get(Common.UNREAD_NOTIFICATION_CNT).toString()));
+            UserChannel.sendCmd(cmd);
+        });
+    }
+
     public void publishRefreshNotification(final String userId) {
         Symphonys.EXECUTOR_SERVICE.submit(() -> {
             final JSONObject cmd = new JSONObject();
@@ -1100,6 +1125,87 @@ public class NotificationMgmtService {
     /**
      * Adds a notification record without publishing a user-channel command.
      */
+    /** Caller owns the relationship transaction; publication must happen after commit. */
+    public boolean addFollowNotificationInCurrentTransaction(final String recipient, final String dataId, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        if (type != Notification.DATA_TYPE_C_NEW_FOLLOWER && type != Notification.DATA_TYPE_C_ARTICLE_NEW_FOLLOWER
+                && type != Notification.DATA_TYPE_C_ARTICLE_NEW_WATCHER) throw new IllegalArgumentException("Unknown follow notification type");
+        // Legacy notifications run after their relationship transaction. Reacquiring the actor lock
+        // serializes their duplicate check with v3's atomic relationship + notification insert.
+        final String actor = type == Notification.DATA_TYPE_C_NEW_FOLLOWER ? dataId : dataId.substring(dataId.lastIndexOf('-') + 1);
+        if (notificationRepository.select("SELECT oId FROM " + userRepository.getName() + " WHERE oId=? FOR UPDATE", actor).isEmpty()) {
+            throw new RepositoryException("Follow notification actor not found");
+        }
+        if (!notificationRepository.select("SELECT oId FROM " + notificationRepository.getName()
+                + " WHERE userId=? AND dataId=? AND dataType=? LIMIT 1", recipient, dataId, type).isEmpty()) return false;
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, dataId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+        return true;
+    }
+
+    /** Reward and recipient are derived by the locked comment writer; publish only after commit. */
+    public void addCommentRewardNotificationInCurrentTransaction(final String recipient, final String rewardId, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        if (type != Notification.DATA_TYPE_C_POINT_COMMENT_THANK && type != Notification.DATA_TYPE_C_POINT_COMMENT_ACCEPT) {
+            throw new IllegalArgumentException("Unknown comment reward notification type");
+        }
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, rewardId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+    }
+
+    public void addArticleRewardNotificationInCurrentTransaction(final String recipient, final String rewardId, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        if (type != Notification.DATA_TYPE_C_POINT_ARTICLE_THANK && type != Notification.DATA_TYPE_C_POINT_ARTICLE_REWARD) throw new IllegalArgumentException("invalid article reward notification type");
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, rewardId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+    }
+
+    /** Caller holds the current comment row; no delayed insert may outlive that target. */
+    public boolean addCommentVoteNotificationInCurrentTransaction(final String recipient, final String commentId, final String actor) throws RepositoryException {
+        return addVoteNotificationInCurrentTransaction(recipient, commentId, actor, Notification.DATA_TYPE_C_COMMENT_VOTE_UP);
+    }
+
+    public boolean addArticleVoteNotificationInCurrentTransaction(final String recipient, final String articleId, final String actor) throws RepositoryException {
+        return addVoteNotificationInCurrentTransaction(recipient, articleId, actor, Notification.DATA_TYPE_C_ARTICLE_VOTE_UP);
+    }
+
+    private boolean addVoteNotificationInCurrentTransaction(final String recipient, final String resourceId, final String actor, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        final String dataId = resourceId + "-" + actor;
+        if (!notificationRepository.select("SELECT oId FROM `" + notificationRepository.getName()
+                + "` WHERE userId=? AND dataId=? AND dataType=? LIMIT 1 FOR UPDATE", recipient, dataId, type).isEmpty()) return false;
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, dataId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+        return true;
+    }
+
+    /** Background comment event owns the target lock and current visibility check. */
+    public boolean addCommentTargetNotificationInCurrentTransaction(final String recipient, final String commentId, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("notification transaction required");
+        if (type != Notification.DATA_TYPE_C_COMMENT && type != Notification.DATA_TYPE_C_AT && type != Notification.DATA_TYPE_C_COMMENTED
+                && type != Notification.DATA_TYPE_C_REPLY && type != Notification.DATA_TYPE_C_FOLLOWING_ARTICLE_COMMENT) throw new IllegalArgumentException("invalid comment notification type");
+        if (!notificationRepository.select("SELECT oId FROM `" + notificationRepository.getName()
+                + "` WHERE userId=? AND dataId=? AND dataType=? LIMIT 1 FOR UPDATE", recipient, commentId, type).isEmpty()) return false;
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, commentId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+        return true;
+    }
+
+    /** Activation owns proof, rewards and these notifications; refresh only after commit. */
+    public void addAccountRegistrationNotificationInCurrentTransaction(final String recipient, final String dataId, final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun()) throw new IllegalStateException("registration notification transaction required");
+        if (recipient == null || !recipient.matches("[1-9][0-9]{0,18}") || dataId == null
+                || type != Notification.DATA_TYPE_C_SYS_ANNOUNCE_NEW_USER
+                && type != Notification.DATA_TYPE_C_INVITATION_LINK_USED && type != Notification.DATA_TYPE_C_INVITECODE_USED) {
+            throw new IllegalArgumentException("invalid registration notification");
+        }
+        if (type == Notification.DATA_TYPE_C_SYS_ANNOUNCE_NEW_USER ? !dataId.isEmpty() : !dataId.matches("[1-9][0-9]{0,18}")) {
+            throw new IllegalArgumentException("invalid registration notification target");
+        }
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, recipient)
+                .put(Notification.NOTIFICATION_DATA_ID, dataId).put(Notification.NOTIFICATION_DATA_TYPE, type));
+    }
+
     private void addNotificationRecord(final JSONObject requestJSONObject) throws RepositoryException {
         final JSONObject notification = new JSONObject();
 

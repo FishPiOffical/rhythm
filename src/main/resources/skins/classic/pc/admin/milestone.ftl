@@ -42,7 +42,7 @@
                 <div class="fn__flex">
                     <label>
                         <div>大事记</div>
-                        <input type="text" id="milestoneTitle" name="milestoneTitle" value="${milestone.milestoneTitle}"/>
+                        <input type="text" id="milestoneTitle" name="milestoneTitle" value="${milestone.milestoneTitle?html}"/>
                     </label>
 
                 </div>
@@ -61,7 +61,7 @@
                 <div class="fn__flex">
                     <label >
                         <div>内容</div>
-                        <textarea class="form-control" id="milestoneContent" name="milestoneContent">${milestone.milestoneContent!''}</textarea>
+                        <textarea class="form-control" id="milestoneContent" name="milestoneContent">${(milestone.milestoneContent!'')?html}</textarea>
                     </label>
 
                 </div>
@@ -69,14 +69,14 @@
                 <div class="fn__flex">
                     <label >
                         <div>相关链接</div>
-                        <input type="text" class="form-control" id="milestoneLink" name="milestoneLink" value="${milestone.milestoneLink!''}">
+                        <input type="text" class="form-control" id="milestoneLink" name="milestoneLink" value="${(milestone.milestoneLink!'')?html}">
                     </label>
                 </div>
 
                 <div class="fn__flex">
                     <label >
                         <div>媒体标题</div>
-                        <input type="text" class="form-control" id="milestoneMediaCaption" name="milestoneMediaCaption" value="${milestone.milestoneMediaCaption!''}">
+                        <input type="text" class="form-control" id="milestoneMediaCaption" name="milestoneMediaCaption" value="${(milestone.milestoneMediaCaption!'')?html}">
                     </label>
 
                 </div>
@@ -84,7 +84,7 @@
                 <div class="fn__flex">
                     <label class="form-label">
                         <div>媒体链接</div>
-                        <input type="text" class="form-control" id="milestoneMediaUrl" name="milestoneMediaUrl" value="${milestone.milestoneMediaUrl!''}">
+                        <input type="text" class="form-control" id="milestoneMediaUrl" name="milestoneMediaUrl" value="${(milestone.milestoneMediaUrl!'')?html}">
                     </label>
                 </div>
 

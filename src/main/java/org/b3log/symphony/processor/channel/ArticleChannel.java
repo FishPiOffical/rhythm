@@ -39,7 +39,10 @@ import org.b3log.latke.util.Locales;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.AdminProcessor;
 import org.b3log.symphony.processor.ApiProcessor;
+import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.service.CloudService;
+import org.b3log.symphony.service.ApiV3ContentQueryService;
+import org.b3log.symphony.util.CommentRealtimeVisibility;
 import org.b3log.symphony.service.ReactionQueryService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.service.UserQueryService;
@@ -104,76 +107,42 @@ public class ArticleChannel implements WebSocketChannel {
     /**
      * Notifies the specified comment message to browsers.
      *
-     * @param message the specified message
+     * @param source the specified message
      */
-    public static void notifyComment(final JSONObject message) {
-        message.put(Common.TYPE, Comment.COMMENT);
+    public static void notifyComment(final JSONObject source) {
 
         final BeanManager beanManager = BeanManager.getInstance();
         final UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
         final RoleQueryService roleQueryService = beanManager.getReference(RoleQueryService.class);
         final LangPropsService langPropsService = beanManager.getReference(LangPropsService.class);
-        final JSONObject article = message.optJSONObject(Article.ARTICLE);
+        final ApiV3ContentQueryService content = beanManager.getReference(ApiV3ContentQueryService.class);
 
         for (final WebSocketSession session : SESSIONS) {
             final String viewingArticleId = session.getParameter(Article.ARTICLE_T_ID);
             if (StringUtils.isBlank(viewingArticleId)
-                    || !viewingArticleId.equals(message.optString(Article.ARTICLE_T_ID))) {
+                    || !viewingArticleId.equals(source.optString(Article.ARTICLE_T_ID))) {
                 continue;
             }
 
-            final int articleType = Integer.valueOf(session.getParameter(Article.ARTICLE_TYPE));
             final Session httpSession = session.getHttpSession();
-            String userStr = null;
-            try {
-                userStr = httpSession.getAttribute(User.USER);
-            } catch (NullPointerException ignored) {
-            }
-            try {
-                userStr = ApiProcessor.getUserByKey(session.getParameter("apiKey")).toString();
-            } catch (NullPointerException ignored) {
-            }
+            final JSONObject credentialUser=org.b3log.symphony.util.Sessions.currentSocketUser(session);
+            final String userStr=credentialUser==null?null:credentialUser.toString();
             if (null == userStr) {
                 continue;
             }
-            final boolean isLoggedIn = null != userStr;
-            JSONObject user = null;
-            if (isLoggedIn) {
-                user = new JSONObject(userStr);
-            }
-
             try {
-                if (Article.ARTICLE_TYPE_C_DISCUSSION == articleType) {
-                    if (!isLoggedIn) {
-                        continue;
-                    }
-
-                    final String userName = user.optString(User.USER_NAME);
-                    final String userRole = user.optString(User.USER_ROLE);
-
-                    final String articleAuthorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-                    final String userId = user.optString(Keys.OBJECT_ID);
-                    if (!userId.equals(articleAuthorId)) {
-                        final String articleContent = article.optString(Article.ARTICLE_CONTENT);
-                        final Set<String> userNames = userQueryService.getUserNames(articleContent);
-
-                        boolean invited = false;
-                        for (final String inviteUserName : userNames) {
-                            if (inviteUserName.equals(userName)) {
-                                invited = true;
-                                break;
-                            }
-                        }
-
-                        if (Role.ROLE_ID_C_ADMIN.equals(userRole)) {
-                            invited = true;
-                        }
-
-                        if (!invited) {
-                            continue; // next session
-                        }
-                    }
-                }
+                final JSONObject user = userQueryService.getUser(new JSONObject(userStr).optString(Keys.OBJECT_ID));
+                if (null == user || user.optInt(UserExt.USER_STATUS) != UserExt.USER_STATUS_C_VALID) continue;
+                final JSONObject currentArticle = content.viewableArticle(viewingArticleId, user);
+                if (null == currentArticle) continue;
+                final JSONObject article = new JSONObject(currentArticle.toString());
+                final boolean isLoggedIn = true;
+                final JSONObject currentComment = beanManager.getReference(CommentRepository.class).get(source.optString(Keys.OBJECT_ID));
+                if (null == currentComment || currentComment.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID) continue;
+                final JSONObject recipientSource = new JSONObject(source.toString());
+                recipientSource.put(Comment.COMMENT_VISIBLE, currentComment.optInt(Comment.COMMENT_VISIBLE));
+                final JSONObject message = CommentRealtimeVisibility.forRecipient(recipientSource, article, user);
+                message.put(Common.TYPE, Comment.COMMENT);
 
                 message.put(Comment.COMMENT_T_NICE, false);
                 message.put(Common.REWARED_COUNT, 0);
@@ -190,7 +159,7 @@ public class ArticleChannel implements WebSocketChannel {
                 dataModel.put(Common.CURRENT_USER, user);
                 article.put(Common.OFFERED, false);
                 dataModel.put(Article.ARTICLE, article);
-                dataModel.put(Common.CSRF_TOKEN, httpSession.getAttribute(Common.CSRF_TOKEN));
+                dataModel.put(Common.CSRF_TOKEN, null == httpSession ? "" : httpSession.getAttribute(Common.CSRF_TOKEN));
                 Keys.fillServer(dataModel);
                 dataModel.put(Comment.COMMENT, message);
 
@@ -231,7 +200,7 @@ public class ArticleChannel implements WebSocketChannel {
                 }
                 dataModel.put("comment", comment);
 
-                String templateDirName = httpSession.getAttribute(Keys.TEMPLATE_DIR_NAME);
+                String templateDirName = null == httpSession ? null : httpSession.getAttribute(Keys.TEMPLATE_DIR_NAME);
                 if (templateDirName == null) {
                     templateDirName = Symphonys.SKIN_DIR_NAME;
                 }
@@ -276,7 +245,7 @@ public class ArticleChannel implements WebSocketChannel {
                 ret.put(field, message.opt(field));
             }
         }
-        return ret;
+        return CommentRealtimeVisibility.publicPayload(ret);
     }
 
     public static void notifyCommentReaction(final JSONObject message) {

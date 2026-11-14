@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-02",
+  "scope": "Navigation/menu image failure falls back to existing initial placeholder without altering stored avatar URL",
+  "productionFiles": [
+    "src/layouts/AppShell.vue"
+  ],
+  "testFiles": [
+    "tools/v3-shell-avatar-test.mjs"
+  ],
+  "baseline": "Actual buyer-account mobile screenshot had a broken navigation image; AppShell two images had no error handler",
+  "change": "Shared failed-URL state for navigation and menu images, reset on current avatar URL/account ID changes; old-URL error ignored; existing initial placeholder reused",
+  "focusedPassLines": 4,
+  "fullSuite": {
+    "scripts": 90,
+    "passLines": 1007,
+    "failures": [],
+    "evidence": "/tmp/v3-purchase-avatar-suite.json"
+  },
+  "build": {
+    "command": "npm run build",
+    "exitCode": 0,
+    "log": "/tmp/v3-purchase-avatar-build.log"
+  },
+  "boundary": {
+    "sourceFileCount": 336,
+    "findingCount": 0,
+    "dynamicCallCount": 47,
+    "servicePathCheckCount": 2
+  },
+  "assets": {
+    "javascriptFiles": 78,
+    "versionFindings": 0,
+    "sourceMaps": 0
+  },
+  "contract": {
+    "registered": 292,
+    "documented": 292,
+    "findings": 0
+  },
+  "browser": {
+    "previouslyFailingAccountShowsInitialPlaceholder": true,
+    "navigationBrokenImageCount": 0,
+    "menuImageCountAfterFailure": 0,
+    "menuNamePreserved": true,
+    "paidContentUnaffected": true,
+    "mobileWidth": 390,
+    "scrollWidth": 390,
+    "capturedWarnErrorCount": 0,
+    "originalAccountAndViewportRestored": true,
+    "screenshot": "Private .idea/rhythm-local/browser-purchase-concurrent-mobile-fixed.png"
+  },
+  "limits": [
+    "New avatar retry and old-URL late event covered by actual setup reactivity isolation, not arbitrary network fault injection",
+    "Does not repair external picture provider availability or all other image consumers",
+    "No Java/FTL/API/DB schema changes; no Maven, commit, push or release",
+    "Production anonymous/blacklist/captcha unblock and full static/CDN/directory scan not repeated"
+  ]
+}

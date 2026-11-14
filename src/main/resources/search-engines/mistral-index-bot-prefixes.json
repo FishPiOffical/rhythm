@@ -1,0 +1,15 @@
+{
+    "source":  {
+                   "name":  "MistralAI-Index",
+                   "url":  "https://mistral.ai/mistralai-index-ips.json",
+                   "creationTime":  "2026-04-19T12:00:00.000000"
+               },
+    "prefixes":  [
+                     {
+                         "ipv4Prefix":  "135.225.57.92/32"
+                     },
+                     {
+                         "ipv4Prefix":  "20.240.192.194/32"
+                     }
+                 ]
+}

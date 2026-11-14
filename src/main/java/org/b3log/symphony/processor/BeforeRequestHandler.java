@@ -38,11 +38,14 @@ import org.b3log.latke.util.Stopwatchs;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.UserExt;
-import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
+import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
+import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.Firewall;
+import org.b3log.symphony.util.SecurityMonitor;
+import org.b3log.symphony.util.CrawlerMonitor;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SearchEngines;
 import org.b3log.symphony.util.Symphonys;
@@ -78,11 +81,14 @@ public class BeforeRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        ApiV3RefreshCookies.discardFrameworkEcho(context);
+        org.b3log.symphony.util.AccountCredentialVersions.beginHttp();
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");
 
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (context.header(Common.USER_AGENT) == null) {
             logShield(context, ip, "拒绝", "缺少UA", null);
+            SecurityMonitor.record(context, "request", "deny", "缺少UA", "BeforeRequestHandler");
             context.sendStatus(418);
             context.abort();
             return;
@@ -96,23 +102,34 @@ public class BeforeRequestHandler implements Handler {
         // 先识别搜索引擎爬虫（含 DNS 反查校验），后续防火墙与验证盾据此豁免
         final boolean verifiedCrawler = fillBotAttrs(context);
 
-        if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT))) {
+        if (!verifiedCrawler && !Firewall.recordAndMaybeBan(ip, context.header(Common.USER_AGENT),
+                context.method(), context.requestURI())) {
             logShield(context, ip, "拒绝", "请求频率超限", null);
             context.sendStatus(429);
             context.abort();
             return;
         }
-        // 黑名单判断
-        if (!verifiedCrawler
-                && AnonymousViewCheckMidware.isEnabled()
-                && AnonymousViewCheckMidware.ipBlacklistCache.getIfPresent(ip) != null
-                && !context.requestURI().equals("/test")
-                && !context.requestURI().equals("/validateCaptcha")) {
-            // 已经在黑名单，强制跳转到验证码页面
-            logShield(context, ip, "跳转", "已在验证黑名单", null);
-            context.sendRedirect("/test");
-            context.abort();
+        // 验证码盾保护入口：须在爬虫/CC检查之后、CORS预检之前执行。
+        // 未经阿达明确允许，不得修改、移动、删除此调用或增加绕过分支。
+        if (AnonymousCaptchaShield.redirectIfChallenged(context, verifiedCrawler)) {
             return;
+        }
+
+        // CORS 头放在全局盾链（无UA→418、fillBotAttrs、Firewall 429、黑名单→/test）之后，
+        // 确保 OPTIONS 预检也走完整反漏扫校验链
+        final String origin = context.header("Origin");
+        if (origin != null && context.requestURI().startsWith("/api/v3")) {
+            context.setHeader("Access-Control-Allow-Origin", origin);
+            context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
+            context.setHeader("Access-Control-Allow-Credentials", "true");
+            context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
+            context.setHeader("Access-Control-Max-Age", "86400");
+            if ("OPTIONS".equals(context.method())) {
+                context.sendStatus(204);
+                context.abort();
+                return;
+            }
         }
 
         Locales.setLocale(Latkes.getLocale());
@@ -180,13 +197,17 @@ public class BeforeRequestHandler implements Handler {
                 Locales.setLocale(Locales.getLocale(optionLangValue));
             }
 
-            httpSession.setAttribute(Common.IP, getIpAddr(request));
+            httpSession.setAttribute(Common.IP, Requests.getRemoteAddr(request));
 
             JSONObject user = userQueryService.getCurrentUser(request);
             if (null == user) {
                 return;
             }
 
+            final var credentialProof=org.b3log.symphony.util.AccountCredentialVersions.snapshot(user.optString(Keys.OBJECT_ID));
+            if(credentialProof==null)return;
+            user.put(User.USER_PASSWORD,credentialProof.password());
+            httpSession.setAttribute("accountCredentialEpoch",String.valueOf(credentialProof.epoch()));
             httpSession.setAttribute(User.USER, user.toString());
 
             final String skin = Sessions.isMobile() ? user.optString(UserExt.USER_MOBILE_SKIN) : user.optString(UserExt.USER_SKIN);
@@ -196,6 +217,7 @@ public class BeforeRequestHandler implements Handler {
             Sessions.setAvatarViewMode(user.optInt(UserExt.USER_AVATAR_VIEW_MODE));
             Sessions.setUser(user);
             Sessions.setLoggedIn(true);
+            SecurityMonitor.markAuthenticated(user);
 
             final Locale locale = Locales.getLocale(user.optString(UserExt.USER_LANGUAGE));
             Locales.setLocale(locale);
@@ -214,9 +236,14 @@ public class BeforeRequestHandler implements Handler {
     private static boolean fillBotAttrs(final RequestContext context) {
         final String userAgentStr = context.header(Common.USER_AGENT);
         final String ip = Requests.getRemoteAddr(context.getRequest());
-        final SearchEngines.Engine claimedEngine = SearchEngines.detectCrawler(userAgentStr);
-        if (null != claimedEngine && SearchEngines.isVerifiedCrawler(ip, userAgentStr)) {
+        final SearchEngines.Verification verification = SearchEngines.crawlerVerification(ip, userAgentStr);
+        final SearchEngines.Engine claimedEngine = verification == null ? null : verification.engine();
+        final boolean verified = verification != null && verification.verified();
+        CrawlerMonitor.record(verification, ip, context.requestURI());
+        if (verified) {
             logShield(context, ip, "放行", "已验证蜘蛛", "engine=" + claimedEngine.key() + " ua=\"" + shortUa(userAgentStr) + "\"");
+            SecurityMonitor.record(context, "crawler", "verified", claimedEngine.displayName() + "：已验证蜘蛛",
+                    "BeforeRequestHandler -> SearchEngines");
             Sessions.setBot(true);
             return true;
         }
@@ -264,23 +291,4 @@ public class BeforeRequestHandler implements Handler {
         return false;
     }
 
-    /**
-     * 获取 IP地址
-     * 使用 Nginx等反向代理软件， 则不能通过 request.getRemoteAddr()获取 IP地址
-     * 如果使用了多级反向代理的话，X-Forwarded-For的值并不止一个，而是一串IP地址，
-     * X-Forwarded-For中第一个非 unknown的有效IP字符串，则为真实IP地址
-     */
-    public static String getIpAddr(Request request) {
-        String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.length() == 0) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0) {
-            ip = request.getRemoteAddr();
-        }
-        return "[0:0:0:0:0:0:0:1]".equals(ip) ? "127.0.0.1" : ip;
-    }
 }

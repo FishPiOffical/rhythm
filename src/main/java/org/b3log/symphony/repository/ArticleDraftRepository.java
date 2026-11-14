@@ -50,6 +50,12 @@ public class ArticleDraftRepository extends AbstractRepository {
         return getFirst(query);
     }
 
+    public JSONObject getOwnedDraftForUpdate(final String userId, final String draftId) throws RepositoryException {
+        final List<JSONObject> rows = select("SELECT * FROM " + getName()
+                + " WHERE articleDraftUserId=? AND oId=? FOR UPDATE", userId, draftId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     public List<JSONObject> getUserDrafts(final String userId, final int fetchSize) throws RepositoryException {
         final Query query = new Query().setFilter(new PropertyFilter(ArticleDraft.USER_ID,
                 FilterOperator.EQUAL, userId))
