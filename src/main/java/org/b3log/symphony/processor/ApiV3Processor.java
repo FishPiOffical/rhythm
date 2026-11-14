@@ -161,6 +161,7 @@ public class ApiV3Processor {
         ApiV3AnonymousContentProcessor.register();
         ApiV3AccountProcessor.register();
         ApiV3AdminProcessor.register();
+        ApiV3AdminStage3Processor.register();
         final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
         final AnonymousViewCheckMidware anonymous = beans.getReference(AnonymousViewCheckMidware.class);
         Dispatcher.post("/api/v3/auth/login", processor::login, anonymous::handle);

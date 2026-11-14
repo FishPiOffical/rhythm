@@ -17863,3 +17863,89 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 | data.pagination | 分页信息 | {} |
 | data.codeOptions | 系统支持的操作编码与中文标签字典 | [] |
 | data.auditNote | 真实字段范围说明（不伪造字段级前后快照） | "" |
+
+### 管理后台三期运营接口
+
+需要网站第一方有效 Bearer accessToken、`profile.read`（读接口）或 `settings.write` 与 `Idempotency-Key`（写接口），并按接口要求校验对应菜单权限或管理员角色。
+
+#### 角色与邀请码
+
+- `GET /api/v3/admin/roles`：分页查询角色列表与绑定用户数（需 `menuAdminRoles`）
+- `POST /api/v3/admin/roles`：新增角色（需 `menuAdminRoles`）
+- `DELETE /api/v3/admin/roles/{roleId}`：删除非内置且无绑定用户的角色（需 `menuAdminRoles`）
+- `GET /api/v3/admin/roles/{roleId}/permissions`：查看角色权限矩阵（需 `menuAdminRoles`）
+- `PUT /api/v3/admin/roles/{roleId}/permissions`：更新角色权限矩阵，隔离非管理员对管理员/高危权限的越权修改（需 `menuAdminRoles`）
+- `GET /api/v3/admin/invitecodes`：分页查询邀请码列表（支持 `status` `0/1/2` 与 `keyword` 筛选，需 `menuAdminIcs`）
+- `POST /api/v3/admin/invitecodes/generate`：批量生成邀请码（需 `menuAdminIcs`）
+- `PUT /api/v3/admin/invitecodes/{invitecodeId}`：更新邀请码状态与备注（需 `menuAdminIcs`）
+
+#### VIP 与优惠券
+
+- `GET /api/v3/admin/vip/levels`：查询 VIP 等级配置列表（需管理员）
+- `POST /api/v3/admin/vip/levels`：新增 VIP 等级（需管理员）
+- `PUT /api/v3/admin/vip/levels/{levelId}`：更新 VIP 等级（需管理员）
+- `DELETE /api/v3/admin/vip/levels/{levelId}`：删除 VIP 等级（需管理员）
+- `GET /api/v3/admin/vip/users`：分页查询用户 VIP 实例（需管理员）
+- `POST /api/v3/admin/vip/users`：管理员免费授予用户 VIP 并发放初始礼包（需管理员）
+- `PUT /api/v3/admin/vip/users/{userId}`：修改用户 VIP 等级、状态、到期时间与配置（需管理员）
+- `POST /api/v3/admin/vip/users/{userId}/extend`：按天数延长用户 VIP 有效期（需管理员）
+- `POST /api/v3/admin/vip/users/{userId}/refund`：按剩余天数折算退还积分并停用 VIP（需管理员）
+- `GET /api/v3/admin/coupons`：查询优惠券列表（需管理员）
+- `POST /api/v3/admin/coupons`：创建优惠券（`times = -1` 表示无限次，需管理员）
+- `PUT /api/v3/admin/coupons/{couponId}`：更新优惠券可用次数（需管理员）
+- `DELETE /api/v3/admin/coupons/{couponId}`：删除优惠券（需管理员）
+
+#### 勋章管理
+
+- `GET /api/v3/admin/medals`：分页或按关键词查询勋章定义列表（需管理员或 `userGiveMetal` / `userRemoveMetal`）
+- `POST /api/v3/admin/medals`：新增勋章定义（需管理员）
+- `PUT /api/v3/admin/medals/{medalId}`：更新勋章定义（需管理员）
+- `DELETE /api/v3/admin/medals/{medalId}`：删除勋章定义（需管理员）
+- `POST /api/v3/admin/medals/sponsor/reorder`：重排赞助勋章顺序（需管理员）
+- `GET /api/v3/admin/medals/{medalId}/owners`：查询勋章持有者列表
+- `GET /api/v3/admin/medals/users/{target}`：查询指定用户持有勋章列表
+- `POST /api/v3/admin/medals/hold-check`：批量检测目标用户是否已持有指定勋章
+- `POST /api/v3/admin/medals/grant`：单个授予勋章（`expireTime = 0` 表示永久，需管理员或 `userGiveMetal`）
+- `POST /api/v3/admin/medals/revoke`：单个回收勋章（需管理员或 `userRemoveMetal`）
+- `POST /api/v3/admin/medals/batch-grant`：批量授予勋章并返回逐条成功/失败结果（需管理员或 `userGiveMetal`）
+
+#### 积分、工资与背包
+
+- `POST /api/v3/admin/points/charge`：积分充值（支持 `sponsor` 金额折算与 `direct` 直接入账，需管理员或 `userAddPoint`）
+- `POST /api/v3/admin/points/deduct`：扣除违规积分（需管理员或 `userDeductPoint`）
+- `POST /api/v3/admin/points/init`：初始化用户积分（需管理员或 `userAddPoint`）
+- `POST /api/v3/admin/points/exchange`：积分兑换扣减（需管理员或 `userExchangePoint`）
+- `POST /api/v3/admin/salary/pay`：批量发放工资并返回逐条结果明细（需管理员）
+- `POST /api/v3/admin/bags/adjust`：调整用户背包道具数量（需管理员或 `userAdjustBag`）
+
+#### 鱼游、大事记与图片审核
+
+- `GET /api/v3/admin/fish-games`：分页查询鱼游投稿、待审修改与列表（需管理员或 `menuAdminMisc`）
+- `POST /api/v3/admin/fish-games`：后台手工新增鱼游（需管理员或 `menuAdminMisc`）
+- `GET /api/v3/admin/fish-games/export`：导出鱼游 JSON（需管理员或 `menuAdminMisc`）
+- `POST /api/v3/admin/fish-games/import`：批量导入鱼游 JSON（需管理员或 `menuAdminMisc`）
+- `PUT /api/v3/admin/fish-games/{gameId}`：后台直接编辑鱼游（需管理员或 `menuAdminMisc`）
+- `POST /api/v3/admin/fish-games/{gameId}/review`：审核鱼游投稿或待审修改（需管理员）
+- `GET /api/v3/admin/milestones`：分页查询大事记列表（审核中心与日常维护共用数据源，需管理员或 `menuManageMilestone`）
+- `PUT /api/v3/admin/milestones/{milestoneId}`：审核状态变更或编辑大事记（需管理员或 `menuManageMilestone`）
+- `DELETE /api/v3/admin/milestones/{milestoneId}`：删除大事记（需管理员或 `menuManageMilestone`）
+- `GET /api/v3/admin/images`：查询 45 天内待审核公开上传图片（仅管理员且 `RHPIC_ENABLED == false` 时可用）
+- `POST /api/v3/admin/images/{imageId}/review`：标记图片为 `normal` 或 `illegal`（仅管理员且 `RHPIC_ENABLED == false` 时可用）
+
+#### 领域、标签、保留词与广告位
+
+- `GET /api/v3/admin/domains`：分页查询领域及已绑定标签（需 `menuAdminDomains`）
+- `POST /api/v3/admin/domains`：新增领域（需 `menuAdminDomains`）
+- `PUT /api/v3/admin/domains/{domainId}`：更新领域（需 `menuAdminDomains`）
+- `DELETE /api/v3/admin/domains/{domainId}`：删除领域（需 `menuAdminDomains`）
+- `POST /api/v3/admin/domains/{domainId}/tags`：为领域绑定标签（需 `menuAdminDomains`）
+- `DELETE /api/v3/admin/domains/{domainId}/tags/{tagId}`：解绑领域标签（需 `menuAdminDomains`）
+- `GET /api/v3/admin/tags`：分页查询标签列表（需 `menuAdminTags`）
+- `POST /api/v3/admin/tags`：新增标签（需 `menuAdminTags`）
+- `PUT /api/v3/admin/tags/{tagId}`：更新标签（需 `menuAdminTags`）
+- `POST /api/v3/admin/tags/remove-unused`：清理未使用标签（需 `menuAdminTags`）
+- `GET /api/v3/admin/reserved-words`：查询保留词列表（需 `menuAdminRWs`）
+- `POST /api/v3/admin/reserved-words`：新增保留词（需 `menuAdminRWs`）
+- `POST /api/v3/admin/reserved-words/remove`：删除保留词（需 `menuAdminRWs`）
+- `GET /api/v3/admin/ads`：读取侧边广告与顶栏横幅配置（需 `menuAdminAD`）
+- `PUT /api/v3/admin/ads`：更新侧边广告与顶栏横幅配置（需 `menuAdminAD`）

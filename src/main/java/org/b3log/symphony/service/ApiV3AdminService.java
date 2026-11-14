@@ -344,7 +344,7 @@ public class ApiV3AdminService {
     @Inject
     private LangPropsService langPropsService;
 
-    private record AuthorizedActor(
+    record AuthorizedActor(
             JSONObject user,
             String userId,
             String userName,
@@ -1009,8 +1009,8 @@ public class ApiV3AdminService {
     /**
      * 在当前事务中核验第一方网站登录身份、活跃状态与角色权限，并加载非敏感操作者信息。
      */
-    private AuthorizedActor authorizeInCurrentTransaction(final JSONObject identity, final String scope,
-                                                        final String requiredPermission, final boolean requireAdminRole)
+    AuthorizedActor authorizeInCurrentTransaction(final JSONObject identity, final String scope,
+                                                  final String requiredPermission, final boolean requireAdminRole)
             throws RepositoryException {
         final String expectedActorId = actorId(identity);
         final JSONObject proofUser = proofs.authorizeFirstPartyInCurrentTransaction(identity, scope);
@@ -1044,19 +1044,19 @@ public class ApiV3AdminService {
     /**
      * 构造受权限与幂等表加锁保护的写存储适配。
      */
-    private ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
-                                             final boolean requireAdminRole,
-                                             final AtomicReference<AuthorizedActor> actorRef) {
+    ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
+                                     final boolean requireAdminRole,
+                                     final AtomicReference<AuthorizedActor> actorRef) {
         return guardedWrite(identity, requiredPermission, requireAdminRole, actorRef, false);
     }
 
     /**
      * 构造受权限与幂等表加锁保护的写存储适配，必要时在获取用户锁前先锁定全局文章统计行以保持全局加锁序一致。
      */
-    private ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
-                                             final boolean requireAdminRole,
-                                             final AtomicReference<AuthorizedActor> actorRef,
-                                             final boolean lockStatisticOption) {
+    ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
+                                     final boolean requireAdminRole,
+                                     final AtomicReference<AuthorizedActor> actorRef,
+                                     final boolean lockStatisticOption) {
         return new ApiV3MutationStore() {
             @Override
             public Transaction beginTransaction() {
@@ -1196,7 +1196,39 @@ public class ApiV3AdminService {
                 .put("breezemoonRemove", canAccessAdmin
                         && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS)
                         && perms.contains(Permission.PERMISSION_ID_C_BREEZEMOON_REMOVE_BREEZEMOON))
-                .put("auditLogView", canAccessAdmin);
+                .put("auditLogView", canAccessAdmin)
+                .put("fishGameReview", canAccessAdmin && isAdmin)
+                .put("milestoneReview", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_MENU_MANAGE_MILESTONE)))
+                .put("imageReview", canAccessAdmin && isAdmin && !Symphonys.RHPIC_ENABLED)
+                .put("roleManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ROLES))
+                .put("invitecodeManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ICS))
+                .put("vipManage", canAccessAdmin && isAdmin)
+                .put("medalDefine", canAccessAdmin && isAdmin)
+                .put("medalGrant", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_GIVE_METAL)))
+                .put("medalRevoke", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_REMOVE_METAL)))
+                .put("medalManage", canAccessAdmin && (isAdmin || hasAny(perms,
+                        Permission.PERMISSION_ID_C_USER_GIVE_METAL,
+                        Permission.PERMISSION_ID_C_USER_REMOVE_METAL)))
+                .put("pointAdd", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_ADD_POINT)))
+                .put("pointDeduct", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_DEDUCT_POINT)))
+                .put("pointExchange", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_EXCHANGE_POINT)))
+                .put("bagAdjust", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_USER_ADJUST_BAG)))
+                .put("salaryPay", canAccessAdmin && isAdmin)
+                .put("domainManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_DOMAINS))
+                .put("tagManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_TAGS))
+                .put("reservedWordManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_RWS))
+                .put("adManage", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_AD))
+                .put("fishGameManage", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)))
+                .put("milestoneManage", canAccessAdmin
+                        && (isAdmin || perms.contains(Permission.PERMISSION_ID_C_MENU_MANAGE_MILESTONE)));
 
         final JSONObject userCopy = new JSONObject(actor.user().toString());
         avatarQueryService.fillUserAvatarURL(userCopy);
@@ -1641,20 +1673,25 @@ public class ApiV3AdminService {
         return rawList == null ? new JSONArray() : rawList;
     }
 
-    private Transaction begin() {
+    Transaction begin() {
         if (requests.hasTransactionBegun()) {
             throw new IllegalStateException("admin v3 root transaction required");
         }
         return ApiV3Transactions.strict(requests.beginTransaction());
     }
 
-    private static void rollbackIfActive(final Transaction tx) {
+    static void rollbackIfActive(final Transaction tx) {
         if (tx != null && tx.isActive()) {
             tx.rollback();
         }
     }
 
-    private static String actorId(final JSONObject identity) {
+    void recordOperation(final Request request, final int code, final String targetId, final JSONObject actorUser)
+            throws RepositoryException {
+        operations.add(Operation.newOperation(request, code, targetId, actorUser));
+    }
+
+    static String actorId(final JSONObject identity) {
         final JSONObject user = identity == null ? null : identity.optJSONObject("user");
         final String actor = user == null ? "" : user.optString(Keys.OBJECT_ID);
         if (!actor.matches("[1-9][0-9]{0,18}")) {
@@ -1663,7 +1700,7 @@ public class ApiV3AdminService {
         return actor;
     }
 
-    private static boolean hasAny(final Set<String> granted, final String... candidates) {
+    static boolean hasAny(final Set<String> granted, final String... candidates) {
         for (final String candidate : candidates) {
             if (granted.contains(candidate)) {
                 return true;
@@ -1672,7 +1709,7 @@ public class ApiV3AdminService {
         return false;
     }
 
-    private static int requireExactInt(final JSONObject body, final String key, final int min, final int max) {
+    static int requireExactInt(final JSONObject body, final String key, final int min, final int max) {
         final Object raw = body.opt(key);
         if (!(raw instanceof Number number) || raw instanceof Double || raw instanceof Float) {
             throw ApiV3WriteInputs.invalid();
@@ -3293,7 +3330,7 @@ public class ApiV3AdminService {
         return value;
     }
 
-    private static long requireExactLong(final JSONObject body, final String key, final long min, final long max) {
+    static long requireExactLong(final JSONObject body, final String key, final long min, final long max) {
         final Object raw = body.opt(key);
         if (!(raw instanceof Number number) || raw instanceof Double || raw instanceof Float) {
             throw ApiV3WriteInputs.invalid();
@@ -3305,7 +3342,7 @@ public class ApiV3AdminService {
         return value;
     }
 
-    private static boolean requireBoolean(final JSONObject body, final String key) {
+    static boolean requireBoolean(final JSONObject body, final String key) {
         final Object raw = body.opt(key);
         if (!(raw instanceof Boolean flag)) {
             throw ApiV3WriteInputs.invalid();
@@ -3313,8 +3350,8 @@ public class ApiV3AdminService {
         return flag;
     }
 
-    private static RuntimeException mapAdminServiceException(final ServiceException e,
-                                                             final int status, final String code) {
+    static RuntimeException mapAdminServiceException(final ServiceException e,
+                                                     final int status, final String code) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
             if (cause instanceof RepositoryException) {
                 return new IllegalStateException(e);
@@ -3361,7 +3398,7 @@ public class ApiV3AdminService {
         };
     }
 
-    private static ApiV3Exception unavailable() {
+    static ApiV3Exception unavailable() {
         return new ApiV3Exception(503, "temporarily_unavailable", "管理后台服务暂不可用");
     }
 }

@@ -4,6 +4,11 @@
 
 # 261114
 
+- **管理后台 V3 第三阶段完整运营功能接口**
+  - 新增角色权限配置与邀请码管理 V3 接口（`/api/v3/admin/roles*`、`/api/v3/admin/invitecodes*`），支持角色增删改查、权限矩阵更新（隔离非管理员越权）及邀请码生成与状态维护
+  - 新增会员资产运营 V3 接口（`/api/v3/admin/vip/*`、`/api/v3/admin/coupons*`、`/api/v3/admin/medals/*`、`/api/v3/admin/points/*`、`/api/v3/admin/salary/pay`、`/api/v3/admin/bags/adjust`），覆盖 VIP 等级/实例/退订、优惠券（`-1` 无限次）、勋章批量授予与持有预检、积分流水、批量工资与背包调整
+  - 新增内容/图片审核及社区运营 V3 接口（`/api/v3/admin/fish-games*`、`/api/v3/admin/milestones*`、`/api/v3/admin/images*`、`/api/v3/admin/domains*`、`/api/v3/admin/tags*`、`/api/v3/admin/reserved-words*`、`/api/v3/admin/ads`），严格校验 `RHPIC_ENABLED` 开关并保持写接口 `Idempotency-Key` 幂等与操作审计
+
 - **管理后台 V3 第二阶段内容管理与操作审计接口**
   - 新增文章管理 V3 接口（`GET /api/v3/admin/articles`、`POST /api/v3/admin/articles`、`GET /api/v3/admin/articles/{articleId}`、`PUT /api/v3/admin/articles/{articleId}`、`POST /api/v3/admin/articles/{articleId}/stick`、`POST /api/v3/admin/articles/{articleId}/cancel-stick`、`DELETE /api/v3/admin/articles/{articleId}`），在发布锁与事务缓存边界内执行，支持长文专栏章节与封面联动及强制删帖
   - 新增评论管理 V3 接口（`GET /api/v3/admin/comments`、`GET /api/v3/admin/comments/{commentId}`、`PUT /api/v3/admin/comments/{commentId}`、`DELETE /api/v3/admin/comments/{commentId}`）与清风明月管理 V3 接口（`GET /api/v3/admin/breezemoons`、`GET /api/v3/admin/breezemoons/{breezemoonId}`、`PUT /api/v3/admin/breezemoons/{breezemoonId}`、`DELETE /api/v3/admin/breezemoons/{breezemoonId}`），写接口均接入 `Idempotency-Key` 幂等保护、保留词/表情处理、索引事件同步与 `operation` 审计写入
