@@ -17949,3 +17949,52 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/reserved-words/remove`：删除保留词（需 `menuAdminRWs`）
 - `GET /api/v3/admin/ads`：读取侧边广告与顶栏横幅配置（需 `menuAdminAD`）
 - `PUT /api/v3/admin/ads`：更新侧边广告与顶栏横幅配置（需 `menuAdminAD`）
+
+### 管理后台四期专项与迁移收尾接口
+
+以下接口沿用管理后台第一方 `website_v3` Bearer accessToken、`Idempotency-Key`（系统/安全/索引写接口）与服务端权限校验。
+
+#### 宠物风控日志（严格只读）
+
+- `GET /api/v3/admin/pets/logs`：分页查询宠物活动与风控日志（仅管理员，`tab=activity|risk`，不提供改币或重置操作）
+
+#### IP 管理、站点设置、安全监控与索引维护
+
+- `GET /api/v3/admin/ips`：查询防火墙与验证码盾运行状态摘要（需 `ipManage`）
+- `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，保留验证码盾调用顺序并写日志，需 `ipManage`）
+- `GET /api/v3/admin/settings`：读取站点杂项配置列表（需 `menuAdminMisc`）
+- `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志（需 `menuAdminMisc`）
+- `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅安全操作员 `adlered`）
+- `GET /api/v3/admin/security/self-check`：执行安全自检（仅安全操作员 `adlered`）
+- `POST /api/v3/admin/security/switches`：保存临时安全开关（仅安全操作员 `adlered` 且仅开发模式可写，生产模式只读返回 403）
+- `POST /api/v3/admin/articles/reindex`：异步重建全站文章搜索索引并写审计日志（需 `articleReindexArticlesIndex`）
+- `POST /api/v3/admin/articles/{articleId}/reindex`：重建单篇文章搜索索引并写审计日志（需 `articleReindexArticleIndex`）
+
+#### 职业配置工作台（仅管理员）
+
+- `GET /api/v3/admin/professions/catalog`：读取全部职业定义、版本、等级方案与自动化规则
+- `GET /api/v3/admin/professions/catalog-summary`：分页摘要查询职业目录
+- `GET /api/v3/admin/professions/{professionId}`：读取单个职业完整版本树与操作员名称
+- `GET /api/v3/admin/professions/{professionId}/schemes/{schemeId}/impact`：预估等级方案变更影响人数
+- `GET /api/v3/admin/professions/config/export`：导出全部或单个职业配置 JSON
+- `GET /api/v3/admin/professions/definition/metadata`：读取职业定义展示元数据
+- `GET /api/v3/admin/professions/automation/metadata`：读取自动化规则编辑器元数据
+- `POST /api/v3/admin/professions/config/precheck`：配置 JSON 导入预检
+- `POST /api/v3/admin/professions/config/import`：执行配置 JSON 导入
+- `POST /api/v3/admin/professions/catalog/order`：重排职业目录顺序
+- `POST /api/v3/admin/professions/definition/draft`：创建职业定义草稿
+- `POST /api/v3/admin/professions/definition/publish`：发布职业定义版本
+- `POST /api/v3/admin/professions/definition/retire`：停用/归档职业定义
+- `POST /api/v3/admin/professions/definition/copy`：复制历史版本为新草稿
+- `POST /api/v3/admin/professions/definition/rollback`：回滚职业定义至历史版本
+- `POST /api/v3/admin/professions/scheme/draft`：创建等级方案草稿
+- `POST /api/v3/admin/professions/scheme/publish`：发布等级方案
+- `POST /api/v3/admin/professions/scheme/retire`：停用等级方案
+- `POST /api/v3/admin/professions/scheme/copy`：复制等级方案为新草稿
+- `POST /api/v3/admin/professions/scheme/rollback`：回滚等级方案至历史版本
+- `POST /api/v3/admin/professions/automation/draft`：创建自动化规则草稿
+- `POST /api/v3/admin/professions/automation/publish`：发布自动化规则版本
+- `POST /api/v3/admin/professions/automation/retire`：停用自动化规则
+- `POST /api/v3/admin/professions/automation/copy`：复制自动化规则为新草稿
+- `POST /api/v3/admin/professions/automation/rollback`：回滚自动化规则至历史版本
+- `POST /api/v3/admin/professions/automation/test`：测试/模拟自动化规则配置

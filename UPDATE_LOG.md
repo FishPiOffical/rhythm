@@ -4,6 +4,11 @@
 
 # 261114
 
+- **管理后台 V3 第四阶段专项管理与迁移收尾接口**
+  - 新增只读宠物活动与风控日志接口 `GET /api/v3/admin/pets/logs`（仅管理员可用，不提供改币或重置操作）
+  - 新增 IP 封禁/解封（`GET/POST /api/v3/admin/ips`）、站点杂项配置（`GET/PUT /api/v3/admin/settings`）、安全监控/自检/开发模式开关（`GET /api/v3/admin/security/monitor`、`GET /api/v3/admin/security/self-check`、`POST /api/v3/admin/security/switches`，保留 `adlered` 与生产只读限制）及文章索引重建接口（`POST /api/v3/admin/articles/reindex`、`POST /api/v3/admin/articles/{articleId}/reindex`）
+  - 新增职业配置工作台 V3 接口 `/api/v3/admin/professions/*`，完整覆盖职业目录、等级方案、自动化规则草稿/发布/停用/复制/回滚、配置导出/预检/导入与规则测试
+
 - **管理后台 V3 领域服务收敛与敏感字段权限对齐**
   - 恢复 `ArticleMgmtService` 至 `f427df8a^` 原始形态，将 V3 管理员文章新建、编辑与置顶事务原语抽离至独立公共领域服务 `ArticleAdminDomainService`
   - 统一 `CommentMgmtService`、`BreezemoonMgmtService` 与 `UserMgmtService` 事务内写原语，修复 V3 移除评论/清风明月绕过职业来源事件撤销以及编辑/停用逻辑分叉问题
