@@ -51,15 +51,21 @@ public class ChatMessageWithdrawalMgmtService {
     @Inject private ChatMessageMgmtService messages;
     @Inject private PointtransferMgmtService points;
     @Inject private ApiV3IdempotencyMgmtService idempotency;
+    @Inject private LogsService logs;
     public record Result(String actor, String id, int cost, String transferId, boolean privileged) { }
     protected long now() { return System.currentTimeMillis(); }
 
     /** Legacy root preserves the operator moderation branch. */
     public Result withdrawLegacy(final String actor, final String id) throws Exception {
+        return withdrawLegacy(actor, id, "");
+    }
+
+    /** 旧入口只传入脱敏地址；原消息与当前操作者由撤回事务获取。 */
+    public Result withdrawLegacy(final String actor, final String id, final String address) throws Exception {
         final Result result = boundary(actor, () -> {
             final Transaction transaction = ApiV3Transactions.strict(users.beginTransaction());
             try {
-                final Result removed = withdrawInCurrentTransaction(actor, id, true);
+                final Result removed = withdrawInCurrentTransaction(actor, id, true, address);
                 transaction.commit();
                 return removed;
             } finally { if (transaction.isActive()) transaction.rollback(); }
@@ -70,17 +76,23 @@ public class ChatMessageWithdrawalMgmtService {
 
     /** Bearer owner-only adapter; a replay returns its receipt without charging or broadcasting again. */
     public JSONObject withdraw(final JSONObject viewer, final String id, final String key) throws Exception {
-        return withdraw(viewer, id, key, false);
+        return withdraw(viewer, id, key, false, "");
     }
 
     /** 第一方网页沿用旧站管理撤回；客户端身份只能取自认证中间件，不能来自请求正文。 */
     public JSONObject withdrawAuthenticated(final JSONObject identity, final String id, final String key) throws Exception {
+        return withdrawAuthenticated(identity, id, key, "");
+    }
+
+    /** 保留原幂等摘要，地址只用于首次成功撤回的非公开审计。 */
+    public JSONObject withdrawAuthenticated(final JSONObject identity, final String id, final String key,
+                                           final String address) throws Exception {
         final JSONObject viewer = identity == null ? null : identity.optJSONObject("user");
-        return withdraw(viewer, id, key, ApiV3UserCapabilities.website(identity));
+        return withdraw(viewer, id, key, ApiV3UserCapabilities.website(identity), address);
     }
 
     private JSONObject withdraw(final JSONObject viewer, final String id, final String key,
-                                final boolean allowModeration) throws Exception {
+                                final boolean allowModeration, final String address) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!validActor(actor)) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
         if (id == null || !id.matches("[0-9]{1,32}")) throw new ApiV3Exception(422, "invalid_request", "消息 ID 格式不合法");
@@ -88,7 +100,7 @@ public class ChatMessageWithdrawalMgmtService {
         final var outcome = boundary(actor, () -> idempotency.executeWithOutcome(actor, "chat.messages.withdraw:" + id, key,
                 new JSONObject(), () -> {
                     // 原键仍只恢复已提交元数据；首次执行必须锁定当前账号并再次核对管理角色。
-                    final Result result = withdrawInCurrentTransaction(actor, id, allowModeration);
+                    final Result result = withdrawInCurrentTransaction(actor, id, allowModeration, address);
                     removed.set(result);
                     return new JSONObject().put("id", result.id()).put("removed", true).put("cost", result.cost());
                 }));
@@ -125,6 +137,11 @@ public class ChatMessageWithdrawalMgmtService {
     /** allowModeration is for the legacy operator entry; owner-only v3 passes false. */
     // 第一方网页入口也可传入 true；是否有旧站管理权限仍以本事务锁定的用户角色为准。
     public Result withdrawInCurrentTransaction(final String actor, final String id, final boolean allowModeration) throws RepositoryException {
+        return withdrawInCurrentTransaction(actor, id, allowModeration, "");
+    }
+
+    private Result withdrawInCurrentTransaction(final String actor, final String id, final boolean allowModeration,
+                                               final String address) throws RepositoryException {
         if (!validActor(actor) || id == null || !id.matches("[0-9]{1,32}")) throw new IllegalArgumentException("withdrawal target");
         if (!users.hasTransactionBegun() || !ArticlePublicationCaches.active()
                 || !AccountPairLocks.lock(actor, Pointtransfer.ID_C_SYS).isHeldByCurrentThread()) {
@@ -158,6 +175,8 @@ public class ChatMessageWithdrawalMgmtService {
                     if (rows.isEmpty()) cloud.add(record);
                     else cloud.update(rows.getFirst().getString(Keys.OBJECT_ID), record);
                 }
+                // 审计与消息删除、扣费及回执同事务；任何一步失败都不能留下部分撤回或重复日志。
+                logs.addChatroomRevokeInCurrentTransaction(row, actor, current.optString(User.USER_NAME), address);
                 result[0] = new Result(actor, id, quote.cost(), transfer, privileged);
             });
             if (!removed) throw new ApiV3Exception(404, "not_found", "消息不存在或已撤回");

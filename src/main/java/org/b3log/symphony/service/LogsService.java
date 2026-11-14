@@ -21,6 +21,7 @@ package org.b3log.symphony.service;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.b3log.latke.Keys;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
@@ -134,6 +135,8 @@ public class LogsService {
         };
     }
 
+    /** 历史调用兼容；撤回链改用同事务快照审计，不能在删除后调用此读取方法。 */
+    @Deprecated
     public static void chatroomLog(RequestContext context, String oId, String userName) {
         final BeanManager beanManager = BeanManager.getInstance();
         final ChatRoomRepository chatRoomRepository = beanManager.getReference(ChatRoomRepository.class);
@@ -143,6 +146,24 @@ public class LogsService {
             log("cr-revoke", getTime(), getAddress(context), oId, messageInfo.toString(), false);
         } catch (Exception ignored) {
         }
+    }
+
+    /** 撤回正文审计加入调用方事务，使用已锁定的删除前快照，不重新读取消息或独立提交。 */
+    public void addChatroomRevokeInCurrentTransaction(final JSONObject message, final String actorId,
+                                                     final String actorName, final String address) throws RepositoryException {
+        if (!logsRepository.hasTransactionBegun()) {
+            throw new IllegalStateException("chat withdrawal audit transaction required");
+        }
+        // 保留举报后台使用的聊天行结构；操作者来自锁定账号，不采信客户端或消息作者快照。
+        final String messageId = message.getString(Keys.OBJECT_ID);
+        final JSONObject snapshot = new JSONObject()
+                .put(Keys.OBJECT_ID, messageId)
+                .put("content", message.getString("content"))
+                .put("actorId", actorId)
+                .put("actorName", actorName);
+        // 原文仅存非公开审计表，不使用会吞错、另开事务或广播公开日志的 log 方法。
+        logsRepository.add("cr-revoke", getTime(), address == null ? "" : address,
+                messageId, snapshot.toString(), false);
     }
 
     public static void commentLog(RequestContext context, String userName, JSONObject text) {

@@ -4326,7 +4326,7 @@
         {
           "name": "data",
           "type": "String",
-          "length": 2000,
+          "length": 102400,
           "description": "数据"
         },
         {

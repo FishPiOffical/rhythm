@@ -484,3 +484,21 @@ SET @packet_cooldown_ddl = IF(EXISTS(SELECT 1 FROM information_schema.STATISTICS
 PREPARE packet_cooldown_stmt FROM @packet_cooldown_ddl;
 EXECUTE packet_cooldown_stmt;
 DEALLOCATE PREPARE packet_cooldown_stmt;
+
+-- --- 20261114_chat_revoke_audit.sql ---
+-- 完整撤回快照需要 MEDIUMTEXT；保留更大容量和现有列属性，不改写日志数据。
+SET @chat_revoke_audit_ddl = (
+  SELECT IF(DATA_TYPE IN ('mediumtext', 'longtext'), 'SELECT 1',
+    CONCAT('ALTER TABLE `symphony_logs` MODIFY COLUMN `data` MEDIUMTEXT',
+      IF(CHARACTER_SET_NAME IS NULL, '', CONCAT(' CHARACTER SET ', CHARACTER_SET_NAME)),
+      IF(COLLATION_NAME IS NULL, '', CONCAT(' COLLATE ', COLLATION_NAME)),
+      IF(IS_NULLABLE = 'YES', ' NULL', ' NOT NULL'),
+      IF(COLUMN_DEFAULT IS NULL, '', CONCAT(' DEFAULT (',
+        IF(LOCATE('DEFAULT_GENERATED', EXTRA) > 0, COLUMN_DEFAULT, QUOTE(COLUMN_DEFAULT)), ')')),
+      ' COMMENT ', QUOTE(COLUMN_COMMENT)))
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'symphony_logs' AND COLUMN_NAME = 'data'
+);
+PREPARE chat_revoke_audit_stmt FROM @chat_revoke_audit_ddl;
+EXECUTE chat_revoke_audit_stmt;
+DEALLOCATE PREPARE chat_revoke_audit_stmt;

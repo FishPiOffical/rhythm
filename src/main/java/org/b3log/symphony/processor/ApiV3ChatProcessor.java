@@ -31,6 +31,7 @@ import org.b3log.symphony.service.ApiV3ChatQueryService;
 import org.b3log.symphony.service.ApiV3RankingQueryService;
 import org.b3log.symphony.service.ApiV3ChatOnlineQueryService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
+import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.ApiV3ChatTopicService;
 import org.b3log.symphony.service.ApiV3ChatBarrageService;
 import org.b3log.symphony.util.ApiV3Requests;
@@ -109,7 +110,7 @@ public class ApiV3ChatProcessor {
         ApiV3Requests.respond(c, () -> {
             ApiV3WriteInputs.body(c, Set.of(), true);
             return withdrawals.withdrawAuthenticated((JSONObject) c.attr(ApiV3Processor.IDENTITY),
-                    ApiV3Requests.id(c, "messageId"), ApiV3WriteInputs.idempotencyKey(c));
+                    ApiV3Requests.id(c, "messageId"), ApiV3WriteInputs.idempotencyKey(c), LogsService.getAddress(c));
         });
     }
 

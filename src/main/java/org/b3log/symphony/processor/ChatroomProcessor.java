@@ -2019,9 +2019,8 @@ public class ChatroomProcessor {
                 return;
             }
             final String id = context.pathVar("oId");
-            final var result = chatMessageWithdrawals.withdrawLegacy(currentUser.optString(Keys.OBJECT_ID), id);
-            try { LogsService.chatroomLog(context, id, currentUser.optString(User.USER_NAME)); }
-            catch (final Exception e) { LOGGER.error("Audit committed legacy chat withdrawal failed", e); }
+            final var result = chatMessageWithdrawals.withdrawLegacy(currentUser.optString(Keys.OBJECT_ID), id,
+                    LogsService.getAddress(context));
             context.renderJSON(StatusCodes.SUCC).renderMsg(result.privileged() ? "撤回成功。"
                     : "撤回成功，下次发消息一定要三思哦！本次消耗积分: " + result.cost());
         } catch (final ApiV3Exception e) {
