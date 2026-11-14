@@ -29,15 +29,20 @@ import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.LangPropsService;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
+import org.b3log.latke.util.Requests;
 import org.b3log.symphony.model.ApiV3Token;
 import org.b3log.symphony.model.Article;
+import org.b3log.symphony.model.Breezemoon;
 import org.b3log.symphony.model.Comment;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.model.LongArticleColumn;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Operation;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.Permission;
+import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.model.Report;
 import org.b3log.symphony.model.Role;
@@ -47,11 +52,15 @@ import org.b3log.symphony.repository.ApiV3IdentityReviewerRepository;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.ArticleRepository;
+import org.b3log.symphony.repository.BreezemoonRepository;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.repository.EmotionRepository;
 import org.b3log.symphony.repository.LivenessRepository;
+import org.b3log.symphony.repository.LongArticleChapterRepository;
+import org.b3log.symphony.repository.LongArticleColumnRepository;
 import org.b3log.symphony.repository.NotificationRepository;
 import org.b3log.symphony.repository.OperationRepository;
+import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.repository.RepeaterContentRepository;
 import org.b3log.symphony.repository.ReportRepository;
 import org.b3log.symphony.repository.RoleRepository;
@@ -64,16 +73,23 @@ import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3WriteInputs;
+import org.b3log.symphony.util.Emotions;
+import org.b3log.symphony.util.Headers;
+import org.b3log.symphony.util.ReservedWords;
+import org.b3log.symphony.util.Runes;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,6 +105,9 @@ public class ApiV3AdminService {
     private static final String SECURITY_OPERATOR_NAME = "adlered";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
+
+    private record OperationCodeMeta(int code, String label, String targetType) {
+    }
 
     /**
      * 管理后台逐项映射的核心权限集合，用于稳定返回布尔能力字典。
@@ -117,7 +136,18 @@ public class ApiV3AdminService {
             Permission.PERMISSION_ID_C_USER_REMOVE_METAL,
             Permission.PERMISSION_ID_C_USER_ADD_POINT,
             Permission.PERMISSION_ID_C_USER_EXCHANGE_POINT,
-            Permission.PERMISSION_ID_C_USER_DEDUCT_POINT
+            Permission.PERMISSION_ID_C_USER_DEDUCT_POINT,
+            Permission.PERMISSION_ID_C_ARTICLE_ADD_ARTICLE,
+            Permission.PERMISSION_ID_C_ARTICLE_UPDATE_ARTICLE_BASIC,
+            Permission.PERMISSION_ID_C_ARTICLE_STICK_ARTICLE,
+            Permission.PERMISSION_ID_C_ARTICLE_CANCEL_STICK_ARTICLE,
+            Permission.PERMISSION_ID_C_ARTICLE_REMOVE_ARTICLE,
+            Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX,
+            Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLES_INDEX,
+            Permission.PERMISSION_ID_C_COMMENT_UPDATE_COMMENT_BASIC,
+            Permission.PERMISSION_ID_C_COMMENT_REMOVE_COMMENT,
+            Permission.PERMISSION_ID_C_BREEZEMOON_UPDATE_BREEZEMOON,
+            Permission.PERMISSION_ID_C_BREEZEMOON_REMOVE_BREEZEMOON
     );
 
     public static final Set<String> USER_UPDATE_ALLOWED_FIELDS = Set.of(
@@ -131,6 +161,127 @@ public class ApiV3AdminService {
             "userCommentStatus",
             "userPointStatus"
     );
+
+    public static final Set<String> ARTICLE_CREATE_ALLOWED_FIELDS = Set.of(
+            "userName",
+            "articleTitle",
+            "articleContent",
+            "articleRewardContent",
+            "articleTags",
+            "articleRewardPoint",
+            "articleQnAOfferPoint",
+            "articleType",
+            "articleShowInList",
+            "articleStatement",
+            "articleCommentable",
+            "columnId",
+            "columnTitle",
+            "columnCoverURL",
+            "chapterNo",
+            "time"
+    );
+
+    public static final Set<String> ARTICLE_UPDATE_ALLOWED_FIELDS = Set.of(
+            "articleTitle",
+            "articleContent",
+            "articleRewardContent",
+            "articleTags",
+            "articleRewardPoint",
+            "articleQnAOfferPoint",
+            "articlePushOrder",
+            "articleViewCount",
+            "articleGoodCnt",
+            "articleBadCnt",
+            "articleCollectCnt",
+            "articleWatchCnt",
+            "articleCommentable",
+            "articleType",
+            "articleStatus",
+            "articlePerfect",
+            "articleStatement",
+            "articleShowInList",
+            "columnId",
+            "columnTitle",
+            "columnCoverURL",
+            "chapterNo"
+    );
+
+    public static final Set<String> COMMENT_UPDATE_ALLOWED_FIELDS = Set.of(
+            "commentContent",
+            "commentStatus",
+            "commentGoodCnt",
+            "commentBadCnt",
+            "commentVisible"
+    );
+
+    public static final Set<String> BREEZEMOON_UPDATE_ALLOWED_FIELDS = Set.of(
+            "breezemoonContent",
+            "breezemoonStatus"
+    );
+
+    private static final List<OperationCodeMeta> OPERATION_CODE_META_LIST = List.of(
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_MAKE_REPORT_IGNORED, "忽略举报", "report"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_MAKE_REPORT_HANDLED, "标记举报已处理", "report"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_USER_ADDR, "更新用户地址", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_ROLE, "删除角色", "role"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_CHANGE_ARTICLE_EMAIL_PUSH_ORDER, "调整文章邮件推送排序", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_BREEZEMOON, "更新清风明月", "breezemoon"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_BREEZEMOON, "移除清风明月", "breezemoon"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_PUSH_TELEGRAM, "推送至 Telegram", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_WITHDRAW_B3T, "提现 B3T", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_UNUSED_TAGS, "清理未使用标签", "tag"),
+            new OperationCodeMeta(Operation.OPERAIONT_CODE_C_ADD_ROLE, "新增角色", "role"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_ROLE_PERMS, "更新角色权限", "role"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_AD_POS, "新增广告位", "ad"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_AD_POS, "更新广告位", "ad"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_TAG, "新增标签", "tag"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_STICK_ARTICLE, "置顶文章", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_CANCEL_STICK_ARTICLE, "取消置顶文章", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_GENERATE_INVITECODES, "生成邀请码", "invitecode"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_INVITECODE, "更新邀请码", "invitecode"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_ARTICLE, "后台发布文章", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_RESERVED_WORD, "新增保留词", "reserved_word"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_RESERVED_WORD, "更新保留词", "reserved_word"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_RESERVED_WORD, "移除保留词", "reserved_word"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_COMMENT, "移除评论", "comment"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_ARTICLE, "移除文章", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_USER, "新增用户", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_USER, "编辑用户信息/安全项", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_USER_EMAIL, "修改用户邮箱", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_USER_NAME, "修改用户名", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_CHARGE_POINT, "充值积分", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_DEDUCT_POINT, "扣除积分", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_INIT_POINT, "初始化积分", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_EXCHANGE_POINT, "兑换积分", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_ARTICLE, "更新文章", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_COMMENT, "更新评论", "comment"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_MISC, "修改系统杂项配置", "misc"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_TAG, "更新标签", "tag"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_DOMAIN, "更新领域", "domain"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_DOMAIN, "新增领域", "domain"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_DOMAIN, "移除领域", "domain"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_DOMAIN_TAG, "绑定领域标签", "domain"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_DOMAIN_TAG, "解绑领域标签", "domain"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REBUILD_ALGOLIA_TAG, "重建标签 Algolia 索引", "tag"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REBUILD_ALGOLIA_USER, "重建用户 Algolia 索引", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REBUILD_ARTICLES_SEARCH, "重建全站文章搜索索引", "system"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REBUILD_ARTICLE_SEARCH, "重建单篇文章搜索索引", "article"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_DELETE_PICTURE, "删除图片", "picture"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_MILESTONE, "更新里程碑", "milestone"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_DELETE_MILESTONE, "删除里程碑", "milestone"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_DEACTIVATE_USER, "永久停用用户", "user"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_REPEATER, "移除复读机内容", "repeater")
+    );
+
+    private static final Map<Integer, OperationCodeMeta> OPERATION_CODE_META_MAP = buildOperationCodeMetaMap();
+
+    private static Map<Integer, OperationCodeMeta> buildOperationCodeMetaMap() {
+        final Map<Integer, OperationCodeMeta> map = new LinkedHashMap<>();
+        for (final OperationCodeMeta meta : OPERATION_CODE_META_LIST) {
+            map.put(meta.code(), meta);
+        }
+        return Map.copyOf(map);
+    }
 
     @Inject
     private ApiV3RequestRepository requests;
@@ -151,13 +302,23 @@ public class ApiV3AdminService {
     @Inject
     private OptionQueryService optionQueryService;
     @Inject
+    private OptionRepository options;
+    @Inject
     private ReportRepository reports;
     @Inject
     private ReportQueryService reportQueryService;
     @Inject
     private ArticleRepository articles;
     @Inject
+    private ArticleMgmtService articleMgmtService;
+    @Inject
     private CommentRepository comments;
+    @Inject
+    private BreezemoonRepository breezemoons;
+    @Inject
+    private LongArticleColumnRepository longArticleColumns;
+    @Inject
+    private LongArticleChapterRepository longArticleChapters;
     @Inject
     private RepeaterContentRepository repeaters;
     @Inject
@@ -265,7 +426,7 @@ public class ApiV3AdminService {
             final JSONArray recentOps = new JSONArray();
             if (canAccessAdmin) {
                 final List<JSONObject> rows = operations.select(
-                        "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP "
+                        "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP,operationUA "
                                 + "FROM `" + operations.getName() + "` ORDER BY operationCreated DESC, oId DESC LIMIT 10");
                 for (final JSONObject row : rows) {
                     recentOps.put(formatOperationRow(row));
@@ -846,16 +1007,25 @@ public class ApiV3AdminService {
     }
 
     /**
-     * 在当前事务中核验第一方网站登录身份、活跃状态与角色权限。
+     * 在当前事务中核验第一方网站登录身份、活跃状态与角色权限，并加载非敏感操作者信息。
      */
     private AuthorizedActor authorizeInCurrentTransaction(final JSONObject identity, final String scope,
                                                         final String requiredPermission, final boolean requireAdminRole)
             throws RepositoryException {
         final String expectedActorId = actorId(identity);
-        final JSONObject actorUser = proofs.authorizeFirstPartyInCurrentTransaction(identity, scope);
-        if (actorUser == null || !expectedActorId.equals(actorUser.optString(Keys.OBJECT_ID))) {
+        final JSONObject proofUser = proofs.authorizeFirstPartyInCurrentTransaction(identity, scope);
+        if (proofUser == null || !expectedActorId.equals(proofUser.optString(Keys.OBJECT_ID))) {
             throw ApiV3Requests.forbidden();
         }
+        // proofs 仅返回主键，此处加载操作者非敏感基础资料与角色信息以供权限校验与审计展示
+        final List<JSONObject> actorRows = users.select(
+                "SELECT oId,userName,userNickname,userRole,userEmail,userStatus,userAvatarType,userAvatarURL "
+                        + "FROM `" + users.getName() + "` WHERE oId=? LIMIT 1",
+                expectedActorId);
+        if (actorRows.isEmpty()) {
+            throw ApiV3Requests.forbidden();
+        }
+        final JSONObject actorUser = actorRows.getFirst();
         final String userName = actorUser.optString(User.USER_NAME);
         final String roleId = actorUser.optString(User.USER_ROLE);
         final Set<String> permissions = roleQueryService.getPermissions(roleId);
@@ -877,6 +1047,16 @@ public class ApiV3AdminService {
     private ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
                                              final boolean requireAdminRole,
                                              final AtomicReference<AuthorizedActor> actorRef) {
+        return guardedWrite(identity, requiredPermission, requireAdminRole, actorRef, false);
+    }
+
+    /**
+     * 构造受权限与幂等表加锁保护的写存储适配，必要时在获取用户锁前先锁定全局文章统计行以保持全局加锁序一致。
+     */
+    private ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
+                                             final boolean requireAdminRole,
+                                             final AtomicReference<AuthorizedActor> actorRef,
+                                             final boolean lockStatisticOption) {
         return new ApiV3MutationStore() {
             @Override
             public Transaction beginTransaction() {
@@ -890,11 +1070,18 @@ public class ApiV3AdminService {
 
             @Override
             public JSONObject getForUpdate(final String id) throws RepositoryException {
+                final JSONObject existingRequest = requests.getForUpdate(id);
+                if (lockStatisticOption) {
+                    // 按全局统一顺序先锁定全站文章统计配置行，再进入用户与文章行锁
+                    if (null == options.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) {
+                        throw new IllegalStateException("缺少全站文章统计配置项");
+                    }
+                }
                 final AuthorizedActor actor = authorizeInCurrentTransaction(
                         identity, "settings.write", requiredPermission, requireAdminRole);
                 requireMenuAdmin(actor);
                 actorRef.set(actor);
-                return requests.getForUpdate(id);
+                return existingRequest;
             }
 
             @Override
@@ -981,7 +1168,35 @@ public class ApiV3AdminService {
                         && (isAdmin || Role.ROLE_ID_C_OP.equals(actor.roleId())))
                 .put("userDeactivate", canAccessAdmin && isAdmin)
                 .put("userRemoveMfa", canAccessAdmin && perms.contains(Permission.PERMISSION_ID_C_USER_REMOVE_MFA))
-                .put("oauthManage", canAccessAdmin && isAdmin);
+                .put("oauthManage", canAccessAdmin && isAdmin)
+                .put("articleCreate", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES)
+                        && perms.contains(Permission.PERMISSION_ID_C_ARTICLE_ADD_ARTICLE))
+                .put("articleEdit", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES)
+                        && perms.contains(Permission.PERMISSION_ID_C_ARTICLE_UPDATE_ARTICLE_BASIC))
+                .put("articleStick", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES)
+                        && perms.contains(Permission.PERMISSION_ID_C_ARTICLE_STICK_ARTICLE))
+                .put("articleCancelStick", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES)
+                        && perms.contains(Permission.PERMISSION_ID_C_ARTICLE_CANCEL_STICK_ARTICLE))
+                .put("articleRemove", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES)
+                        && perms.contains(Permission.PERMISSION_ID_C_ARTICLE_REMOVE_ARTICLE))
+                .put("commentEdit", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS)
+                        && perms.contains(Permission.PERMISSION_ID_C_COMMENT_UPDATE_COMMENT_BASIC))
+                .put("commentRemove", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS)
+                        && perms.contains(Permission.PERMISSION_ID_C_COMMENT_REMOVE_COMMENT))
+                .put("breezemoonEdit", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS)
+                        && perms.contains(Permission.PERMISSION_ID_C_BREEZEMOON_UPDATE_BREEZEMOON))
+                .put("breezemoonRemove", canAccessAdmin
+                        && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS)
+                        && perms.contains(Permission.PERMISSION_ID_C_BREEZEMOON_REMOVE_BREEZEMOON))
+                .put("auditLogView", canAccessAdmin);
 
         final JSONObject userCopy = new JSONObject(actor.user().toString());
         avatarQueryService.fillUserAvatarURL(userCopy);
@@ -1167,7 +1382,7 @@ public class ApiV3AdminService {
         profile.put("userFollowingUserStatus", row.optInt(UserExt.USER_FOLLOWING_USER_STATUS));
 
         final List<JSONObject> opRows = operations.select(
-                "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP "
+                "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP,operationUA "
                         + "FROM `" + operations.getName()
                         + "` WHERE operationDataId=? ORDER BY operationCreated DESC, oId DESC LIMIT 15",
                 userId);
@@ -1377,11 +1592,14 @@ public class ApiV3AdminService {
                 .put("oId", row.optString(Keys.OBJECT_ID))
                 .put("operationUserId", operatorId)
                 .put("operationUserName", operator == null ? "系统/未知" : operator.optString(User.USER_NAME))
+                .put("operationUserNickname", operator == null ? "" : operator.optString(UserExt.USER_NICKNAME))
                 .put("operationCode", code)
                 .put("operationCodeLabel", operationCodeLabel(code))
+                .put("targetType", classifyOperationTargetType(code))
                 .put("operationDataId", row.optString(Operation.OPERATION_DATA_ID))
                 .put("operationCreated", row.optLong(Operation.OPERATION_CREATED))
-                .put("operationIP", row.optString(Operation.OPERATION_IP));
+                .put("operationIP", row.optString(Operation.OPERATION_IP))
+                .put("operationUA", row.optString(Operation.OPERATION_UA));
     }
 
     private Object readOptionNumericValue(final String optionId) {
@@ -1561,20 +1779,1585 @@ public class ApiV3AdminService {
     }
 
     private static String operationCodeLabel(final int code) {
-        return switch (code) {
-            case Operation.OPERATION_CODE_C_MAKE_REPORT_IGNORED -> "忽略举报";
-            case Operation.OPERATION_CODE_C_MAKE_REPORT_HANDLED -> "标记举报已处理";
-            case Operation.OPERATION_CODE_C_UPDATE_USER -> "编辑用户信息/安全项";
-            case Operation.OPERATION_CODE_C_UPDATE_USER_EMAIL -> "修改用户邮箱";
-            case Operation.OPERATION_CODE_C_DEACTIVATE_USER -> "永久停用用户";
-            case Operation.OPERATION_CODE_C_REMOVE_REPEATER -> "移除复读机内容";
-            case Operation.OPERATION_CODE_C_REMOVE_ARTICLE -> "移除文章";
-            case Operation.OPERATION_CODE_C_UPDATE_ARTICLE -> "更新文章";
-            case Operation.OPERATION_CODE_C_REMOVE_COMMENT -> "移除评论";
-            case Operation.OPERATION_CODE_C_UPDATE_COMMENT -> "更新评论";
-            case Operation.OPERATION_CODE_C_UPDATE_ROLE_PERMS -> "更新角色权限";
-            case Operation.OPERATION_CODE_C_UPDATE_MISC -> "修改系统杂项配置";
-            default -> "管理操作 #" + code;
+        final OperationCodeMeta meta = OPERATION_CODE_META_MAP.get(code);
+        return meta != null ? meta.label() : "管理操作 #" + code;
+    }
+
+    private static String classifyOperationTargetType(final int code) {
+        final OperationCodeMeta meta = OPERATION_CODE_META_MAP.get(code);
+        return meta != null ? meta.targetType() : "other";
+    }
+
+    private static JSONArray buildOperationCodeOptions() {
+        final JSONArray options = new JSONArray();
+        for (final OperationCodeMeta meta : OPERATION_CODE_META_LIST) {
+            options.put(new JSONObject()
+                    .put("code", meta.code())
+                    .put("label", meta.label())
+                    .put("targetType", meta.targetType()));
+        }
+        return options;
+    }
+
+    // ==================== 第二阶段：文章、评论、清风明月管理与全站操作审计 ====================
+
+    /**
+     * 多条件分页查询管理后台文章列表，并附带作者信息及长文专栏绑定摘要。
+     */
+    public JSONObject getArticles(final JSONObject identity, final int p, final int size,
+                                  final String keyword, final String status, final String type) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false);
+            requireMenuAdmin(actor);
+
+            final List<String> conditions = new ArrayList<>();
+            final List<Object> args = new ArrayList<>();
+            if (!"all".equals(status)) {
+                conditions.add("a." + Article.ARTICLE_STATUS + "=?");
+                args.add(Integer.parseInt(status));
+            }
+            if (!"all".equals(type)) {
+                conditions.add("a." + Article.ARTICLE_TYPE + "=?");
+                args.add(Integer.parseInt(type));
+            }
+            final String trimmedKeyword = StringUtils.trimToEmpty(keyword);
+            if (!trimmedKeyword.isEmpty()) {
+                final String pattern = "%" + escapeLike(trimmedKeyword) + "%";
+                conditions.add("(a.oId=? OR a." + Article.ARTICLE_TITLE + " LIKE ? ESCAPE '!' "
+                        + "OR a." + Article.ARTICLE_TAGS + " LIKE ? ESCAPE '!' "
+                        + "OR u." + User.USER_NAME + " LIKE ? ESCAPE '!' "
+                        + "OR u." + UserExt.USER_NICKNAME + " LIKE ? ESCAPE '!')");
+                args.add(trimmedKeyword);
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+            }
+
+            final String fromClause = " FROM `" + articles.getName() + "` a LEFT JOIN `" + users.getName()
+                    + "` u ON u.oId=a." + Article.ARTICLE_AUTHOR_ID;
+            final String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+            final long total = countQuery("SELECT COUNT(a.oId) AS cnt" + fromClause + where, args.toArray());
+
+            final long offset = (long) (p - 1) * size;
+            final List<Object> listArgs = new ArrayList<>(args);
+            listArgs.add(size);
+            listArgs.add(offset);
+            final List<JSONObject> rows = articles.select(
+                    "SELECT a.*" + fromClause + where
+                            + " ORDER BY a." + Article.ARTICLE_STICK + " DESC, a.oId DESC LIMIT ? OFFSET ?",
+                    listArgs.toArray());
+
+            final JSONArray list = new JSONArray();
+            for (final JSONObject row : rows) {
+                list.put(buildArticleSummaryDto(row));
+            }
+            final JSONObject result = ApiV3Requests.pagination(list, p, size, total);
+            tx.commit();
+            return result;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询后台文章列表失败", e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 查询单篇文章管理详情（含正文、打赏区内容、作者、长文专栏选项与最近操作审计）。
+     */
+    public JSONObject getArticleDetail(final JSONObject identity, final String articleId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false);
+            requireMenuAdmin(actor);
+            final JSONObject detail = loadArticleDetailInTransaction(articleId);
+            tx.commit();
+            return detail;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询后台文章详情失败, articleId={}", articleId, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 管理员在后台新建文章并支持同步绑定长文专栏章节，操作通过发布锁、幂等表与审计表保障。
+     */
+    public JSONObject addArticle(final JSONObject identity, final JSONObject body,
+                                 final String idempotencyKey, final Request request) {
+        if (body == null || body.isEmpty() || !ARTICLE_CREATE_ALLOWED_FIELDS.containsAll(body.keySet())) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final JSONObject normalized = normalizeAdminArticleCreateInput(body);
+        final String targetUserName = normalized.optString(User.USER_NAME);
+        final String targetAuthorId = preReadUserIdByUserName(
+                identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES,
+                Permission.PERMISSION_ID_C_ARTICLE_ADD_ARTICLE, targetUserName);
+
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+        final AtomicReference<JSONObject> createdArticleRef = new AtomicReference<>();
+        final String articleIP = Requests.getRemoteAddr(request);
+        final String articleUA = Headers.getHeader(request, Common.USER_AGENT, "");
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLock(targetAuthorId, () -> {
+                final ApiV3MutationStore store = guardedWrite(
+                        identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef, true);
+                return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                        store,
+                        actorId,
+                        "admin.articles.add",
+                        idempotencyKey,
+                        normalized,
+                        () -> ApiV3TransactionSavepoint.run(() -> {
+                            final AuthorizedActor actor = actorRef.get();
+                            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_ARTICLE_ADD_ARTICLE)) {
+                                throw ApiV3Requests.forbidden();
+                            }
+                            final JSONObject adminReq = new JSONObject(normalized.toString())
+                                    .put(Article.ARTICLE_IP, articleIP)
+                                    .put(Article.ARTICLE_UA, articleUA);
+                            final JSONObject created;
+                            try {
+                                created = articleMgmtService.addArticleByAdminInCurrentTransaction(adminReq);
+                            } catch (final ServiceException e) {
+                                throw mapAdminServiceException(e, 422, "article_create_rejected");
+                            }
+                            createdArticleRef.set(created);
+                            final String articleId = created.optString(Keys.OBJECT_ID);
+                            operations.add(Operation.newOperation(
+                                    request, Operation.OPERATION_CODE_C_ADD_ARTICLE, articleId, actor.user()));
+                            return new JSONObject()
+                                    .put("oId", articleId)
+                                    .put("articleId", articleId)
+                                    .put("articlePermalink", created.optString(Article.ARTICLE_PERMALINK))
+                                    .put("createdAt", created.optLong(Article.ARTICLE_CREATE_TIME));
+                        }));
+            }, exec -> {
+                if (exec.applied() && createdArticleRef.get() != null) {
+                    articleMgmtService.afterAdminArticleAdded(createdArticleRef.get());
+                }
+            });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台新建文章失败, targetUserName={}", targetUserName, e);
+            throw unavailable();
+        }
+
+        final String createdId = execution.result().optString("articleId");
+        final JSONObject freshDetail = getArticleDetail(identity, createdId);
+        return new JSONObject(execution.result().toString())
+                .put("replayed", !execution.applied())
+                .put("detail", freshDetail);
+    }
+
+    /**
+     * 管理员编辑文章字段，并可选同步长文专栏章节绑定与专栏封面。
+     */
+    public JSONObject updateArticle(final JSONObject identity, final String articleId,
+                                    final JSONObject body, final String idempotencyKey, final Request request) {
+        if (body == null || body.isEmpty() || !ARTICLE_UPDATE_ALLOWED_FIELDS.containsAll(body.keySet())) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final ArticleUpdateInput updateInput = normalizeAdminArticleUpdateInput(body);
+        final String targetAuthorId = preReadArticleAuthorId(
+                identity, Permission.PERMISSION_ID_C_ARTICLE_UPDATE_ARTICLE_BASIC, articleId);
+
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+        final AtomicReference<JSONObject> outcomeRef = new AtomicReference<>();
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLock(targetAuthorId, () -> {
+                final ApiV3MutationStore store = guardedWrite(
+                        identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef, true);
+                return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                        store,
+                        actorId,
+                        "admin.articles.update:" + articleId,
+                        idempotencyKey,
+                        updateInput.canonicalRequest(),
+                        () -> ApiV3TransactionSavepoint.run(() -> {
+                            final AuthorizedActor actor = actorRef.get();
+                            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_ARTICLE_UPDATE_ARTICLE_BASIC)) {
+                                throw ApiV3Requests.forbidden();
+                            }
+                            final JSONObject outcome;
+                            try {
+                                outcome = articleMgmtService.updateArticleByAdminInCurrentTransaction(
+                                        articleId, updateInput.patch(), updateInput.longArticleColumnRequest());
+                            } catch (final ServiceException e) {
+                                if ("文章不存在".equals(e.getMessage())) {
+                                    throw ApiV3Requests.notFound();
+                                }
+                                throw mapAdminServiceException(e, 422, "article_update_rejected");
+                            }
+                            outcomeRef.set(outcome);
+                            operations.add(Operation.newOperation(
+                                    request, Operation.OPERATION_CODE_C_UPDATE_ARTICLE, articleId, actor.user()));
+                            return new JSONObject()
+                                    .put("oId", articleId)
+                                    .put("articleId", articleId)
+                                    .put("updatedAt", System.currentTimeMillis());
+                        }));
+            }, exec -> {
+                if (exec.applied() && outcomeRef.get() != null) {
+                    articleMgmtService.afterAdminArticleUpdated(outcomeRef.get());
+                }
+            });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台编辑文章失败, articleId={}", articleId, e);
+            throw unavailable();
+        }
+
+        final JSONObject freshDetail = getArticleDetail(identity, articleId);
+        return new JSONObject(execution.result().toString())
+                .put("replayed", !execution.applied())
+                .put("detail", freshDetail);
+    }
+
+    /**
+     * 置顶指定文章（设置当前置顶时间戳）。
+     */
+    public JSONObject stickArticle(final JSONObject identity, final String articleId,
+                                   final String idempotencyKey, final Request request) {
+        return mutateArticleStick(
+                identity, articleId, idempotencyKey, request, true,
+                "admin.articles.stick:" + articleId,
+                Permission.PERMISSION_ID_C_ARTICLE_STICK_ARTICLE,
+                Operation.OPERATION_CODE_C_STICK_ARTICLE);
+    }
+
+    /**
+     * 取消指定文章置顶（将置顶时间戳清零）。
+     */
+    public JSONObject cancelStickArticle(final JSONObject identity, final String articleId,
+                                         final String idempotencyKey, final Request request) {
+        return mutateArticleStick(
+                identity, articleId, idempotencyKey, request, false,
+                "admin.articles.cancelStick:" + articleId,
+                Permission.PERMISSION_ID_C_ARTICLE_CANCEL_STICK_ARTICLE,
+                Operation.OPERATION_CODE_C_CANCEL_STICK_ARTICLE);
+    }
+
+    /**
+     * 管理员强制移除指定文章（支持移除发布未满 24 小时的内容，清理关联标签、章节与索引）。
+     */
+    public JSONObject removeArticle(final JSONObject identity, final String articleId,
+                                    final String idempotencyKey, final Request request) {
+        final String targetAuthorId = preReadArticleAuthorId(
+                identity, Permission.PERMISSION_ID_C_ARTICLE_REMOVE_ARTICLE, articleId);
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+        final AtomicReference<ArticleMgmtService.Removal> removalRef = new AtomicReference<>();
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLock(targetAuthorId, () -> {
+                final ApiV3MutationStore store = guardedWrite(
+                        identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef, true);
+                return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                        store,
+                        actorId,
+                        "admin.articles.remove:" + articleId,
+                        idempotencyKey,
+                        new JSONObject().put("articleId", articleId),
+                        () -> ApiV3TransactionSavepoint.run(() -> {
+                            final AuthorizedActor actor = actorRef.get();
+                            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_ARTICLE_REMOVE_ARTICLE)) {
+                                throw ApiV3Requests.forbidden();
+                            }
+                            final ArticleMgmtService.Removal removal;
+                            try {
+                                removal = articleMgmtService.removeArticleInCurrentTransaction(articleId, true);
+                            } catch (final ServiceException e) {
+                                throw mapAdminServiceException(e, 422, "article_remove_rejected");
+                            }
+                            if (removal == null) {
+                                throw ApiV3Requests.notFound();
+                            }
+                            removalRef.set(removal);
+                            operations.add(Operation.newOperation(
+                                    request, Operation.OPERATION_CODE_C_REMOVE_ARTICLE, articleId, actor.user()));
+                            return new JSONObject()
+                                    .put("oId", articleId)
+                                    .put("articleId", articleId)
+                                    .put("deleted", true)
+                                    .put("removedAt", System.currentTimeMillis());
+                        }));
+            }, exec -> {
+                if (exec.applied() && removalRef.get() != null) {
+                    articleMgmtService.afterArticleRemoved(removalRef.get());
+                }
+            });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台移除文章失败, articleId={}", articleId, e);
+            throw unavailable();
+        }
+
+        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+    }
+
+    /**
+     * 多条件分页查询管理后台评论列表，并附带所属文章标题/永久链接及评论者资料。
+     */
+    public JSONObject getComments(final JSONObject identity, final int p, final int size,
+                                  final String keyword, final String status, final String articleId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS, false);
+            requireMenuAdmin(actor);
+
+            final List<String> conditions = new ArrayList<>();
+            final List<Object> args = new ArrayList<>();
+            if (!"all".equals(status)) {
+                conditions.add("c." + Comment.COMMENT_STATUS + "=?");
+                args.add(Integer.parseInt(status));
+            }
+            final String trimmedArticleId = StringUtils.trimToEmpty(articleId);
+            if (!trimmedArticleId.isEmpty()) {
+                conditions.add("c." + Comment.COMMENT_ON_ARTICLE_ID + "=?");
+                args.add(trimmedArticleId);
+            }
+            final String trimmedKeyword = StringUtils.trimToEmpty(keyword);
+            if (!trimmedKeyword.isEmpty()) {
+                final String pattern = "%" + escapeLike(trimmedKeyword) + "%";
+                conditions.add("(c.oId=? OR c." + Comment.COMMENT_ON_ARTICLE_ID + "=? "
+                        + "OR c." + Comment.COMMENT_CONTENT + " LIKE ? ESCAPE '!' "
+                        + "OR u." + User.USER_NAME + " LIKE ? ESCAPE '!' "
+                        + "OR u." + UserExt.USER_NICKNAME + " LIKE ? ESCAPE '!' "
+                        + "OR a." + Article.ARTICLE_TITLE + " LIKE ? ESCAPE '!')");
+                args.add(trimmedKeyword);
+                args.add(trimmedKeyword);
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+            }
+
+            final String fromClause = " FROM `" + comments.getName() + "` c"
+                    + " LEFT JOIN `" + users.getName() + "` u ON u.oId=c." + Comment.COMMENT_AUTHOR_ID
+                    + " LEFT JOIN `" + articles.getName() + "` a ON a.oId=c." + Comment.COMMENT_ON_ARTICLE_ID;
+            final String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+            final long total = countQuery("SELECT COUNT(c.oId) AS cnt" + fromClause + where, args.toArray());
+
+            final long offset = (long) (p - 1) * size;
+            final List<Object> listArgs = new ArrayList<>(args);
+            listArgs.add(size);
+            listArgs.add(offset);
+            final List<JSONObject> rows = comments.select(
+                    "SELECT c.*" + fromClause + where + " ORDER BY c.oId DESC LIMIT ? OFFSET ?",
+                    listArgs.toArray());
+
+            final JSONArray list = new JSONArray();
+            for (final JSONObject row : rows) {
+                list.put(buildCommentDto(row, false));
+            }
+            final JSONObject result = ApiV3Requests.pagination(list, p, size, total);
+            tx.commit();
+            return result;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询后台评论列表失败", e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 查询单条评论详情与最近操作审计记录。
+     */
+    public JSONObject getCommentDetail(final JSONObject identity, final String commentId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS, false);
+            requireMenuAdmin(actor);
+            final JSONObject detail = loadCommentDetailInTransaction(commentId);
+            tx.commit();
+            return detail;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询后台评论详情失败, commentId={}", commentId, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 管理员编辑评论内容、状态、可见性及赞踩计数（在发布锁与缓存作用域内更新）。
+     */
+    public JSONObject updateComment(final JSONObject identity, final String commentId,
+                                    final JSONObject body, final String idempotencyKey, final Request request) {
+        if (body == null || body.isEmpty() || !COMMENT_UPDATE_ALLOWED_FIELDS.containsAll(body.keySet())) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final JSONObject normalized = normalizeAdminCommentUpdateInput(body);
+        final CommentLockTarget target = preReadCommentTarget(
+                identity, Permission.PERMISSION_ID_C_COMMENT_UPDATE_COMMENT_BASIC, commentId);
+
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLock(target.commentAuthorId(), () -> {
+                final ApiV3MutationStore store = guardedWrite(
+                        identity, Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS, false, actorRef, true);
+                return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                        store,
+                        actorId,
+                        "admin.comments.update:" + commentId,
+                        idempotencyKey,
+                        new JSONObject().put("commentId", commentId).put("patch", normalized),
+                        () -> ApiV3TransactionSavepoint.run(() -> {
+                            final AuthorizedActor actor = actorRef.get();
+                            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_COMMENT_UPDATE_COMMENT_BASIC)) {
+                                throw ApiV3Requests.forbidden();
+                            }
+                            if (StringUtils.isNotBlank(target.commentAuthorId())) {
+                                users.getForUpdate(target.commentAuthorId());
+                            }
+                            if (StringUtils.isNotBlank(target.articleId())) {
+                                articles.getForUpdate(target.articleId());
+                            }
+                            final JSONObject lockedComment = comments.get(commentId);
+                            if (lockedComment == null) {
+                                throw ApiV3Requests.notFound();
+                            }
+                            for (final String key : normalized.keySet()) {
+                                lockedComment.put(key, normalized.opt(key));
+                            }
+                            comments.update(commentId, lockedComment);
+                            operations.add(Operation.newOperation(
+                                    request, Operation.OPERATION_CODE_C_UPDATE_COMMENT, commentId, actor.user()));
+                            return new JSONObject()
+                                    .put("oId", commentId)
+                                    .put("commentId", commentId)
+                                    .put("updatedAt", System.currentTimeMillis());
+                        }));
+            });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台更新评论失败, commentId={}", commentId, e);
+            throw unavailable();
+        }
+
+        final JSONObject freshDetail = getCommentDetail(identity, commentId);
+        return new JSONObject(execution.result().toString())
+                .put("replayed", !execution.applied())
+                .put("detail", freshDetail);
+    }
+
+    /**
+     * 管理员移除指定评论，清理评论计数值、通知与索引事件源。
+     */
+    public JSONObject removeComment(final JSONObject identity, final String commentId,
+                                    final String idempotencyKey, final Request request) {
+        final CommentLockTarget target = preReadCommentTarget(
+                identity, Permission.PERMISSION_ID_C_COMMENT_REMOVE_COMMENT, commentId);
+        final List<String> destinations = new ArrayList<>();
+        if (StringUtils.isNotBlank(target.articleAuthorId())
+                && !target.articleAuthorId().equals(target.commentAuthorId())) {
+            destinations.add(target.articleAuthorId());
+        }
+        destinations.add(Pointtransfer.ID_C_SYS);
+
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLocks(
+                    target.commentAuthorId(),
+                    destinations,
+                    () -> {
+                        final ApiV3MutationStore store = guardedWrite(
+                                identity, Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS, false, actorRef, true);
+                        return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                                store,
+                                actorId,
+                                "admin.comments.remove:" + commentId,
+                                idempotencyKey,
+                                new JSONObject().put("commentId", commentId),
+                                () -> ApiV3TransactionSavepoint.run(() -> {
+                                    final AuthorizedActor actor = actorRef.get();
+                                    if (!actor.permissions().contains(Permission.PERMISSION_ID_C_COMMENT_REMOVE_COMMENT)) {
+                                        throw ApiV3Requests.forbidden();
+                                    }
+                                    final TreeSet<String> sortedUsers = new TreeSet<>();
+                                    if (StringUtils.isNotBlank(target.commentAuthorId())) {
+                                        sortedUsers.add(target.commentAuthorId());
+                                    }
+                                    if (StringUtils.isNotBlank(target.articleAuthorId())) {
+                                        sortedUsers.add(target.articleAuthorId());
+                                    }
+                                    for (final String uid : sortedUsers) {
+                                        users.getForUpdate(uid);
+                                    }
+                                    if (StringUtils.isNotBlank(target.articleId())) {
+                                        articles.getForUpdate(target.articleId());
+                                    }
+                                    final JSONObject lockedComment = comments.get(commentId);
+                                    if (lockedComment == null) {
+                                        throw ApiV3Requests.notFound();
+                                    }
+                                    comments.removeComment(commentId);
+                                    professionSourceEventCaptureService.targetRemoved("comment", commentId);
+                                    operations.add(Operation.newOperation(
+                                            request, Operation.OPERATION_CODE_C_REMOVE_COMMENT, commentId, actor.user()));
+                                    return new JSONObject()
+                                            .put("oId", commentId)
+                                            .put("commentId", commentId)
+                                            .put("deleted", true)
+                                            .put("removedAt", System.currentTimeMillis());
+                                }));
+                    },
+                    ignored -> {
+                    });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台移除评论失败, commentId={}", commentId, e);
+            throw unavailable();
+        }
+
+        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+    }
+
+    /**
+     * 多条件分页查询管理后台清风明月列表。
+     */
+    public JSONObject getBreezemoons(final JSONObject identity, final int p, final int size,
+                                     final String keyword, final String status, final String authorId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS, false);
+            requireMenuAdmin(actor);
+
+            final List<String> conditions = new ArrayList<>();
+            final List<Object> args = new ArrayList<>();
+            if (!"all".equals(status)) {
+                conditions.add("b." + Breezemoon.BREEZEMOON_STATUS + "=?");
+                args.add(Integer.parseInt(status));
+            }
+            final String trimmedAuthorId = StringUtils.trimToEmpty(authorId);
+            if (!trimmedAuthorId.isEmpty()) {
+                conditions.add("b." + Breezemoon.BREEZEMOON_AUTHOR_ID + "=?");
+                args.add(trimmedAuthorId);
+            }
+            final String trimmedKeyword = StringUtils.trimToEmpty(keyword);
+            if (!trimmedKeyword.isEmpty()) {
+                final String pattern = "%" + escapeLike(trimmedKeyword) + "%";
+                conditions.add("(b.oId=? OR b." + Breezemoon.BREEZEMOON_CONTENT + " LIKE ? ESCAPE '!' "
+                        + "OR u." + User.USER_NAME + " LIKE ? ESCAPE '!' "
+                        + "OR u." + UserExt.USER_NICKNAME + " LIKE ? ESCAPE '!')");
+                args.add(trimmedKeyword);
+                args.add(pattern);
+                args.add(pattern);
+                args.add(pattern);
+            }
+
+            final String fromClause = " FROM `" + breezemoons.getName() + "` b LEFT JOIN `" + users.getName()
+                    + "` u ON u.oId=b." + Breezemoon.BREEZEMOON_AUTHOR_ID;
+            final String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+            final long total = countQuery("SELECT COUNT(b.oId) AS cnt" + fromClause + where, args.toArray());
+
+            final long offset = (long) (p - 1) * size;
+            final List<Object> listArgs = new ArrayList<>(args);
+            listArgs.add(size);
+            listArgs.add(offset);
+            final List<JSONObject> rows = breezemoons.select(
+                    "SELECT b.*" + fromClause + where + " ORDER BY b.oId DESC LIMIT ? OFFSET ?",
+                    listArgs.toArray());
+
+            final JSONArray list = new JSONArray();
+            for (final JSONObject row : rows) {
+                list.put(buildBreezemoonDto(row, false));
+            }
+            final JSONObject result = ApiV3Requests.pagination(list, p, size, total);
+            tx.commit();
+            return result;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询后台清风明月列表失败", e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 查询单条清风明月详情与最近操作审计记录。
+     */
+    public JSONObject getBreezemoonDetail(final JSONObject identity, final String breezemoonId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS, false);
+            requireMenuAdmin(actor);
+            final JSONObject detail = loadBreezemoonDetailInTransaction(breezemoonId);
+            tx.commit();
+            return detail;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询清风明月详情失败, breezemoonId={}", breezemoonId, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    /**
+     * 管理员更新清风明月正文或有效状态，并写入管理审计记录。
+     */
+    public JSONObject updateBreezemoon(final JSONObject identity, final String breezemoonId,
+                                       final JSONObject body, final String idempotencyKey, final Request request) {
+        if (body == null || body.isEmpty() || !BREEZEMOON_UPDATE_ALLOWED_FIELDS.containsAll(body.keySet())) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final JSONObject normalized = normalizeAdminBreezemoonUpdateInput(body);
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            final ApiV3MutationStore store = guardedWrite(
+                    identity, Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS, false, actorRef);
+            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                    store,
+                    actorId,
+                    "admin.breezemoons.update:" + breezemoonId,
+                    idempotencyKey,
+                    new JSONObject().put("breezemoonId", breezemoonId).put("patch", normalized),
+                    () -> ApiV3TransactionSavepoint.run(() -> {
+                        final AuthorizedActor actor = actorRef.get();
+                        if (!actor.permissions().contains(Permission.PERMISSION_ID_C_BREEZEMOON_UPDATE_BREEZEMOON)) {
+                            throw ApiV3Requests.forbidden();
+                        }
+                        final JSONObject locked = breezemoons.getForUpdate(breezemoonId);
+                        if (locked == null) {
+                            throw ApiV3Requests.notFound();
+                        }
+                        for (final String key : normalized.keySet()) {
+                            locked.put(key, normalized.opt(key));
+                        }
+                        final long now = System.currentTimeMillis();
+                        locked.put(Breezemoon.BREEZEMOON_UPDATED, now);
+                        breezemoons.update(breezemoonId, locked);
+                        operations.add(Operation.newOperation(
+                                request, Operation.OPERATION_CODE_C_UPDATE_BREEZEMOON, breezemoonId, actor.user()));
+                        return new JSONObject()
+                                .put("oId", breezemoonId)
+                                .put("breezemoonId", breezemoonId)
+                                .put("updatedAt", now);
+                    }));
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台更新清风明月失败, breezemoonId={}", breezemoonId, e);
+            throw unavailable();
+        }
+
+        final JSONObject freshDetail = getBreezemoonDetail(identity, breezemoonId);
+        return new JSONObject(execution.result().toString())
+                .put("replayed", !execution.applied())
+                .put("detail", freshDetail);
+    }
+
+    /**
+     * 管理员永久移除指定清风明月内容。
+     */
+    public JSONObject removeBreezemoon(final JSONObject identity, final String breezemoonId,
+                                       final String idempotencyKey, final Request request) {
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            final ApiV3MutationStore store = guardedWrite(
+                    identity, Permission.PERMISSION_ID_C_MENU_ADMIN_BREEZEMOONS, false, actorRef);
+            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                    store,
+                    actorId,
+                    "admin.breezemoons.remove:" + breezemoonId,
+                    idempotencyKey,
+                    new JSONObject().put("breezemoonId", breezemoonId),
+                    () -> ApiV3TransactionSavepoint.run(() -> {
+                        final AuthorizedActor actor = actorRef.get();
+                        if (!actor.permissions().contains(Permission.PERMISSION_ID_C_BREEZEMOON_REMOVE_BREEZEMOON)) {
+                            throw ApiV3Requests.forbidden();
+                        }
+                        final JSONObject locked = breezemoons.getForUpdate(breezemoonId);
+                        if (locked == null) {
+                            throw ApiV3Requests.notFound();
+                        }
+                        breezemoons.remove(breezemoonId);
+                        professionSourceEventCaptureService.targetRemoved("breezemoon", breezemoonId);
+                        operations.add(Operation.newOperation(
+                                request, Operation.OPERATION_CODE_C_REMOVE_BREEZEMOON, breezemoonId, actor.user()));
+                        return new JSONObject()
+                                .put("oId", breezemoonId)
+                                .put("breezemoonId", breezemoonId)
+                                .put("deleted", true)
+                                .put("removedAt", System.currentTimeMillis());
+                    }));
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("后台移除清风明月失败, breezemoonId={}", breezemoonId, e);
+            throw unavailable();
+        }
+
+        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+    }
+
+    /**
+     * 多条件分页检索全站管理操作审计日志（仅展示 operation 表真实字段，不伪造字段级前后快照）。
+     */
+    public JSONObject getAuditLogs(final JSONObject identity, final int p, final int size,
+                                   final String operator, final String code, final String dataId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(identity, "profile.read", null, false);
+            requireMenuAdmin(actor);
+
+            final List<String> conditions = new ArrayList<>();
+            final List<Object> args = new ArrayList<>();
+            final String trimmedOperator = StringUtils.trimToEmpty(operator);
+            if (!trimmedOperator.isEmpty()) {
+                final String pattern = "%" + escapeLike(trimmedOperator) + "%";
+                conditions.add("(op." + Operation.OPERATION_USER_ID + "=? "
+                        + "OR u." + User.USER_NAME + " LIKE ? ESCAPE '!' "
+                        + "OR u." + UserExt.USER_NICKNAME + " LIKE ? ESCAPE '!')");
+                args.add(trimmedOperator);
+                args.add(pattern);
+                args.add(pattern);
+            }
+            if (!"all".equals(code)) {
+                conditions.add("op." + Operation.OPERATION_CODE + "=?");
+                args.add(Integer.parseInt(code));
+            }
+            final String trimmedDataId = StringUtils.trimToEmpty(dataId);
+            if (!trimmedDataId.isEmpty()) {
+                final String pattern = "%" + escapeLike(trimmedDataId) + "%";
+                conditions.add("(op." + Operation.OPERATION_DATA_ID + "=? OR op." + Operation.OPERATION_DATA_ID + " LIKE ? ESCAPE '!')");
+                args.add(trimmedDataId);
+                args.add(pattern);
+            }
+
+            final String fromClause = " FROM `" + operations.getName() + "` op LEFT JOIN `" + users.getName()
+                    + "` u ON u.oId=op." + Operation.OPERATION_USER_ID;
+            final String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+            final long total = countQuery("SELECT COUNT(op.oId) AS cnt" + fromClause + where, args.toArray());
+
+            final long offset = (long) (p - 1) * size;
+            final List<Object> listArgs = new ArrayList<>(args);
+            listArgs.add(size);
+            listArgs.add(offset);
+            final List<JSONObject> rows = operations.select(
+                    "SELECT op.oId,op." + Operation.OPERATION_USER_ID + ",op." + Operation.OPERATION_CODE
+                            + ",op." + Operation.OPERATION_DATA_ID + ",op." + Operation.OPERATION_CREATED
+                            + ",op." + Operation.OPERATION_IP + ",op." + Operation.OPERATION_UA
+                            + fromClause + where
+                            + " ORDER BY op." + Operation.OPERATION_CREATED + " DESC, op.oId DESC LIMIT ? OFFSET ?",
+                    listArgs.toArray());
+
+            final JSONArray list = new JSONArray();
+            for (final JSONObject row : rows) {
+                list.put(formatOperationRow(row));
+            }
+            final JSONObject result = ApiV3Requests.pagination(list, p, size, total);
+            result.put("codeOptions", buildOperationCodeOptions());
+            result.put("auditNote", "当前审计日志来自系统真实 operation 操作表，仅呈现操作者、动作编码、对象 ID、时间、IP 与 UA，不伪造未采集的变更前后字段快照。");
+            tx.commit();
+            return result;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("查询全站操作审计日志失败", e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    private record CommentLockTarget(String commentAuthorId, String articleId, String articleAuthorId) {
+    }
+
+    private record ArticleUpdateInput(JSONObject patch, JSONObject longArticleColumnRequest, JSONObject canonicalRequest) {
+    }
+
+    private JSONObject mutateArticleStick(final JSONObject identity, final String articleId,
+                                          final String idempotencyKey, final Request request,
+                                          final boolean stick, final String operationName,
+                                          final String actionPermission, final int operationCode) {
+        final String targetAuthorId = preReadArticleAuthorId(identity, actionPermission, articleId);
+        final String actorId = actorId(identity);
+        final AtomicReference<AuthorizedActor> actorRef = new AtomicReference<>();
+
+        final ApiV3IdempotencyMgmtService.Execution execution;
+        try {
+            execution = articleMgmtService.withPublicationLock(targetAuthorId, () -> {
+                final ApiV3MutationStore store = guardedWrite(
+                        identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef, true);
+                return ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                        store,
+                        actorId,
+                        operationName,
+                        idempotencyKey,
+                        new JSONObject().put("articleId", articleId).put("stick", stick),
+                        () -> ApiV3TransactionSavepoint.run(() -> {
+                            final AuthorizedActor actor = actorRef.get();
+                            if (!actor.permissions().contains(actionPermission)) {
+                                throw ApiV3Requests.forbidden();
+                            }
+                            if (StringUtils.isNotBlank(targetAuthorId)) {
+                                users.getForUpdate(targetAuthorId);
+                            }
+                            final JSONObject lockedArticle = articles.getForUpdate(articleId);
+                            if (lockedArticle == null) {
+                                throw ApiV3Requests.notFound();
+                            }
+                            final long stickTime = stick ? System.currentTimeMillis() : 0L;
+                            lockedArticle.put(Article.ARTICLE_STICK, stickTime);
+                            articles.update(articleId, lockedArticle);
+                            operations.add(Operation.newOperation(request, operationCode, articleId, actor.user()));
+                            return new JSONObject()
+                                    .put("oId", articleId)
+                                    .put("articleId", articleId)
+                                    .put("articleStick", stickTime)
+                                    .put("updatedAt", System.currentTimeMillis());
+                        }));
+            });
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("调整文章置顶状态失败, articleId={}, stick={}", articleId, stick, e);
+            throw unavailable();
+        }
+
+        final JSONObject freshDetail = getArticleDetail(identity, articleId);
+        return new JSONObject(execution.result().toString())
+                .put("replayed", !execution.applied())
+                .put("detail", freshDetail);
+    }
+
+    private String preReadUserIdByUserName(final JSONObject identity, final String menuPermission,
+                                           final String actionPermission, final String userName) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(identity, "settings.write", menuPermission, false);
+            requireMenuAdmin(actor);
+            if (!actor.permissions().contains(actionPermission)) {
+                throw ApiV3Requests.forbidden();
+            }
+            final List<JSONObject> rows = users.select(
+                    "SELECT oId FROM `" + users.getName() + "` WHERE " + User.USER_NAME + "=? LIMIT 1",
+                    userName);
+            if (rows.isEmpty()) {
+                throw new ApiV3Exception(404, "not_found", "指定作者账号不存在");
+            }
+            final String userId = rows.getFirst().optString(Keys.OBJECT_ID);
+            tx.commit();
+            return userId;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("预读取作者账号失败, userName={}", userName, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    private String preReadArticleAuthorId(final JSONObject identity, final String actionPermission, final String articleId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "settings.write", Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false);
+            requireMenuAdmin(actor);
+            if (!actor.permissions().contains(actionPermission)) {
+                throw ApiV3Requests.forbidden();
+            }
+            final List<JSONObject> rows = articles.select(
+                    "SELECT " + Article.ARTICLE_AUTHOR_ID + " FROM `" + articles.getName() + "` WHERE oId=? LIMIT 1",
+                    articleId);
+            if (rows.isEmpty()) {
+                throw ApiV3Requests.notFound();
+            }
+            final String authorId = rows.getFirst().optString(Article.ARTICLE_AUTHOR_ID);
+            tx.commit();
+            return authorId;
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("预读取文章作者失败, articleId={}", articleId, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    private CommentLockTarget preReadCommentTarget(final JSONObject identity, final String actionPermission,
+                                                   final String commentId) {
+        final Transaction tx = begin();
+        try {
+            final AuthorizedActor actor = authorizeInCurrentTransaction(
+                    identity, "settings.write", Permission.PERMISSION_ID_C_MENU_ADMIN_COMMENTS, false);
+            requireMenuAdmin(actor);
+            if (!actor.permissions().contains(actionPermission)) {
+                throw ApiV3Requests.forbidden();
+            }
+            final List<JSONObject> commentRows = comments.select(
+                    "SELECT " + Comment.COMMENT_AUTHOR_ID + "," + Comment.COMMENT_ON_ARTICLE_ID
+                            + " FROM `" + comments.getName() + "` WHERE oId=? LIMIT 1",
+                    commentId);
+            if (commentRows.isEmpty()) {
+                throw ApiV3Requests.notFound();
+            }
+            final JSONObject cRow = commentRows.getFirst();
+            final String commentAuthorId = cRow.optString(Comment.COMMENT_AUTHOR_ID);
+            final String articleId = cRow.optString(Comment.COMMENT_ON_ARTICLE_ID);
+            String articleAuthorId = "";
+            if (StringUtils.isNotBlank(articleId)) {
+                final List<JSONObject> articleRows = articles.select(
+                        "SELECT " + Article.ARTICLE_AUTHOR_ID + " FROM `" + articles.getName() + "` WHERE oId=? LIMIT 1",
+                        articleId);
+                if (!articleRows.isEmpty()) {
+                    articleAuthorId = articleRows.getFirst().optString(Article.ARTICLE_AUTHOR_ID);
+                }
+            }
+            tx.commit();
+            return new CommentLockTarget(commentAuthorId, articleId, articleAuthorId);
+        } catch (final ApiV3Exception e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("预读取评论关联作者失败, commentId={}", commentId, e);
+            throw unavailable();
+        } finally {
+            rollbackIfActive(tx);
+        }
+    }
+
+    private JSONObject loadArticleDetailInTransaction(final String articleId) throws RepositoryException {
+        final List<JSONObject> rows = articles.select(
+                "SELECT * FROM `" + articles.getName() + "` WHERE oId=? LIMIT 1", articleId);
+        if (rows.isEmpty()) {
+            throw ApiV3Requests.notFound();
+        }
+        final JSONObject row = rows.getFirst();
+        final JSONObject dto = buildArticleSummaryDto(row);
+        dto.put("articleContent", row.optString(Article.ARTICLE_CONTENT));
+        dto.put("articleRewardContent", row.optString(Article.ARTICLE_REWARD_CONTENT));
+        dto.put("articleAnonymous", row.optInt(Article.ARTICLE_ANONYMOUS));
+        dto.put("articleAnonymousView", row.optInt(Article.ARTICLE_ANONYMOUS_VIEW));
+        dto.put("articleCommentable", row.optBoolean(Article.ARTICLE_COMMENTABLE, true));
+        dto.put("articleStatement", row.optInt(Article.ARTICLE_STATEMENT));
+        dto.put("articleRewardPoint", row.optInt(Article.ARTICLE_REWARD_POINT));
+        dto.put("articleQnAOfferPoint", row.optInt(Article.ARTICLE_QNA_OFFER_POINT));
+        dto.put("articlePushOrder", row.optInt(Article.ARTICLE_PUSH_ORDER));
+        dto.put("articleThankCnt", row.optInt(Article.ARTICLE_THANK_CNT));
+        dto.put("articleIP", row.optString(Article.ARTICLE_IP));
+        dto.put("articleUA", row.optString(Article.ARTICLE_UA));
+        dto.put("authorColumns", loadAuthorRawColumns(row.optString(Article.ARTICLE_AUTHOR_ID)));
+        dto.put("recentOperations", loadRecentOperationsByDataId(articleId));
+        return dto;
+    }
+
+    private JSONObject loadCommentDetailInTransaction(final String commentId) throws RepositoryException {
+        final List<JSONObject> rows = comments.select(
+                "SELECT * FROM `" + comments.getName() + "` WHERE oId=? LIMIT 1", commentId);
+        if (rows.isEmpty()) {
+            throw ApiV3Requests.notFound();
+        }
+        final JSONObject dto = buildCommentDto(rows.getFirst(), true);
+        dto.put("recentOperations", loadRecentOperationsByDataId(commentId));
+        return dto;
+    }
+
+    private JSONObject loadBreezemoonDetailInTransaction(final String breezemoonId) throws RepositoryException {
+        final List<JSONObject> rows = breezemoons.select(
+                "SELECT * FROM `" + breezemoons.getName() + "` WHERE oId=? LIMIT 1", breezemoonId);
+        if (rows.isEmpty()) {
+            throw ApiV3Requests.notFound();
+        }
+        final JSONObject dto = buildBreezemoonDto(rows.getFirst(), true);
+        dto.put("recentOperations", loadRecentOperationsByDataId(breezemoonId));
+        return dto;
+    }
+
+    private JSONObject buildArticleSummaryDto(final JSONObject row) throws RepositoryException {
+        final String articleId = row.optString(Keys.OBJECT_ID);
+        final String authorId = row.optString(Article.ARTICLE_AUTHOR_ID);
+        final JSONObject authorBrief = loadUserBrief(authorId);
+        final int status = row.optInt(Article.ARTICLE_STATUS);
+        final int type = row.optInt(Article.ARTICLE_TYPE);
+
+        final JSONObject dto = new JSONObject();
+        dto.put("oId", articleId);
+        dto.put("articleTitle", row.optString(Article.ARTICLE_TITLE));
+        dto.put("articleTags", row.optString(Article.ARTICLE_TAGS));
+        dto.put("articleAuthorId", authorId);
+        dto.put("articleAuthorName", authorBrief.optString("userName"));
+        dto.put("articleAuthorNickname", authorBrief.optString("userNickname"));
+        dto.put("articleAuthorAvatarURL", authorBrief.optString("userAvatarURL"));
+        dto.put("articleStatus", status);
+        dto.put("articleStatusLabel", articleStatusLabel(status));
+        dto.put("articleType", type);
+        dto.put("articleTypeLabel", articleTypeLabel(type));
+        dto.put("articlePerfect", row.optInt(Article.ARTICLE_PERFECT));
+        dto.put("articleStick", row.optLong(Article.ARTICLE_STICK));
+        dto.put("articleCommentCount", row.optInt(Article.ARTICLE_COMMENT_CNT));
+        dto.put("articleViewCount", row.optInt(Article.ARTICLE_VIEW_CNT));
+        dto.put("articleGoodCnt", row.optInt(Article.ARTICLE_GOOD_CNT));
+        dto.put("articleBadCnt", row.optInt(Article.ARTICLE_BAD_CNT));
+        dto.put("articleCollectCnt", row.optInt(Article.ARTICLE_COLLECT_CNT));
+        dto.put("articleWatchCnt", row.optInt(Article.ARTICLE_WATCH_CNT));
+        dto.put("articlePermalink", row.optString(Article.ARTICLE_PERMALINK));
+        dto.put("articleShowInList", row.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES));
+        dto.put("articleCreateTime", row.optLong(Article.ARTICLE_CREATE_TIME));
+        dto.put("articleUpdateTime", row.optLong(Article.ARTICLE_UPDATE_TIME));
+        dto.put("articleLatestCmtTime", row.optLong(Article.ARTICLE_LATEST_CMT_TIME));
+
+        final Object chapter = Article.ARTICLE_TYPE_C_LONG == type
+                ? loadRawArticleChapterSummary(articleId)
+                : JSONObject.NULL;
+        dto.put("longArticleChapter", chapter);
+        return dto;
+    }
+
+    private JSONObject buildCommentDto(final JSONObject row, final boolean includeFullMeta) throws RepositoryException {
+        final String commentId = row.optString(Keys.OBJECT_ID);
+        final String authorId = row.optString(Comment.COMMENT_AUTHOR_ID);
+        final JSONObject authorBrief = loadUserBrief(authorId);
+        final String articleId = row.optString(Comment.COMMENT_ON_ARTICLE_ID);
+        final JSONObject article = StringUtils.isBlank(articleId) ? null : articles.get(articleId);
+        final int status = row.optInt(Comment.COMMENT_STATUS);
+        final String content = row.optString(Comment.COMMENT_CONTENT);
+
+        final JSONObject dto = new JSONObject();
+        dto.put("oId", commentId);
+        dto.put("commentContent", content);
+        dto.put("commentContentPreview", stripTagsAndTrim(content, 240));
+        dto.put("commentAuthorId", authorId);
+        dto.put("commentAuthorName", authorBrief.optString("userName"));
+        dto.put("commentAuthorNickname", authorBrief.optString("userNickname"));
+        dto.put("commentAuthorAvatarURL", authorBrief.optString("userAvatarURL"));
+        dto.put("commentOnArticleId", articleId);
+        dto.put("commentArticleTitle", article == null ? "关联文章已删除" : article.optString(Article.ARTICLE_TITLE));
+        dto.put("commentArticlePermalink", article == null ? "" : article.optString(Article.ARTICLE_PERMALINK));
+        dto.put("commentOriginalCommentId", row.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID));
+        dto.put("commentStatus", status);
+        dto.put("commentStatusLabel", commentStatusLabel(status));
+        dto.put("commentVisible", row.optInt(Comment.COMMENT_VISIBLE));
+        dto.put("commentType", row.optInt(Comment.COMMENT_TYPE));
+        dto.put("commentGoodCnt", row.optInt(Comment.COMMENT_GOOD_CNT));
+        dto.put("commentBadCnt", row.optInt(Comment.COMMENT_BAD_CNT));
+        dto.put("commentReplyCnt", row.optInt(Comment.COMMENT_REPLY_CNT));
+        dto.put("commentThankCnt", row.optInt(Comment.COMMENT_THANK_CNT));
+        dto.put("commentCreateTime", row.optLong(Comment.COMMENT_CREATE_TIME));
+        dto.put("commentSharpURL", row.optString(Comment.COMMENT_SHARP_URL));
+        dto.put("commentIP", row.optString(Comment.COMMENT_IP));
+        if (includeFullMeta) {
+            dto.put("commentUA", row.optString(Comment.COMMENT_UA));
+            dto.put("commentAnonymous", row.optInt(Comment.COMMENT_ANONYMOUS));
+            dto.put("commentQnAOffered", row.optInt(Comment.COMMENT_QNA_OFFERED));
+            dto.put("commentParagraphId", row.optString(Comment.COMMENT_PARAGRAPH_ID));
+            dto.put("commentParagraphIndex", row.optInt(Comment.COMMENT_PARAGRAPH_INDEX));
+            dto.put("commentParagraphSnapshot", row.optString(Comment.COMMENT_PARAGRAPH_SNAPSHOT));
+            dto.put("commentParagraphStatus", row.optInt(Comment.COMMENT_PARAGRAPH_STATUS));
+        }
+        return dto;
+    }
+
+    private JSONObject buildBreezemoonDto(final JSONObject row, final boolean includeFullMeta) throws RepositoryException {
+        final String authorId = row.optString(Breezemoon.BREEZEMOON_AUTHOR_ID);
+        final JSONObject authorBrief = loadUserBrief(authorId);
+        final int status = row.optInt(Breezemoon.BREEZEMOON_STATUS);
+
+        final JSONObject dto = new JSONObject();
+        dto.put("oId", row.optString(Keys.OBJECT_ID));
+        dto.put("breezemoonContent", row.optString(Breezemoon.BREEZEMOON_CONTENT));
+        dto.put("breezemoonAuthorId", authorId);
+        dto.put("breezemoonAuthorName", authorBrief.optString("userName"));
+        dto.put("breezemoonAuthorNickname", authorBrief.optString("userNickname"));
+        dto.put("breezemoonAuthorAvatarURL", authorBrief.optString("userAvatarURL"));
+        dto.put("breezemoonStatus", status);
+        dto.put("breezemoonStatusLabel", breezemoonStatusLabel(status));
+        dto.put("breezemoonCity", row.optString(Breezemoon.BREEZEMOON_CITY));
+        dto.put("breezemoonCreated", row.optLong(Breezemoon.BREEZEMOON_CREATED));
+        dto.put("breezemoonUpdated", row.optLong(Breezemoon.BREEZEMOON_UPDATED));
+        dto.put("breezemoonIP", row.optString(Breezemoon.BREEZEMOON_IP));
+        if (includeFullMeta) {
+            dto.put("breezemoonUA", row.optString(Breezemoon.BREEZEMOON_UA));
+        }
+        return dto;
+    }
+
+    /**
+     * 直接读取原始未 HTML 转义的长文专栏与章节绑定关系，确保编辑回显与持久化一致。
+     */
+    private Object loadRawArticleChapterSummary(final String articleId) throws RepositoryException {
+        final List<JSONObject> chapterRows = longArticleChapters.select(
+                "SELECT c." + LongArticleColumn.COLUMN_ID + ",c." + LongArticleColumn.CHAPTER_NO
+                        + ",col." + LongArticleColumn.COLUMN_TITLE + ",col." + LongArticleColumn.COLUMN_COVER_URL
+                        + " FROM `" + longArticleChapters.getName() + "` c"
+                        + " LEFT JOIN `" + longArticleColumns.getName() + "` col ON col.oId=c." + LongArticleColumn.COLUMN_ID
+                        + " WHERE c." + LongArticleColumn.ARTICLE_ID + "=? LIMIT 1",
+                articleId);
+        if (chapterRows.isEmpty()) {
+            return JSONObject.NULL;
+        }
+        final JSONObject cRow = chapterRows.getFirst();
+        return new JSONObject()
+                .put("columnId", cRow.optString(LongArticleColumn.COLUMN_ID))
+                .put("columnTitle", cRow.optString(LongArticleColumn.COLUMN_TITLE))
+                .put("columnCoverURL", cRow.optString(LongArticleColumn.COLUMN_COVER_URL))
+                .put("chapterNo", cRow.optInt(LongArticleColumn.CHAPTER_NO, 1));
+    }
+
+    private JSONArray loadAuthorRawColumns(final String authorId) throws RepositoryException {
+        final JSONArray list = new JSONArray();
+        if (StringUtils.isBlank(authorId)) {
+            return list;
+        }
+        final List<JSONObject> rows = longArticleColumns.select(
+                "SELECT oId," + LongArticleColumn.COLUMN_TITLE + "," + LongArticleColumn.COLUMN_COVER_URL
+                        + "," + LongArticleColumn.COLUMN_ARTICLE_COUNT + "," + LongArticleColumn.COLUMN_ORDER
+                        + " FROM `" + longArticleColumns.getName() + "` WHERE " + LongArticleColumn.COLUMN_AUTHOR_ID
+                        + "=? AND " + LongArticleColumn.COLUMN_STATUS + "=? ORDER BY "
+                        + LongArticleColumn.COLUMN_ORDER + " ASC, oId ASC",
+                authorId, LongArticleColumn.COLUMN_STATUS_C_VALID);
+        for (final JSONObject row : rows) {
+            list.put(new JSONObject()
+                    .put("oId", row.optString(Keys.OBJECT_ID))
+                    .put("columnTitle", row.optString(LongArticleColumn.COLUMN_TITLE))
+                    .put("columnCoverURL", row.optString(LongArticleColumn.COLUMN_COVER_URL))
+                    .put("columnArticleCount", row.optInt(LongArticleColumn.COLUMN_ARTICLE_COUNT))
+                    .put("columnOrder", row.optInt(LongArticleColumn.COLUMN_ORDER)));
+        }
+        return list;
+    }
+
+    private JSONObject loadUserBrief(final String userId) throws RepositoryException {
+        if (StringUtils.isBlank(userId)) {
+            return new JSONObject()
+                    .put("userName", "未知用户")
+                    .put("userNickname", "")
+                    .put("userAvatarURL", AvatarQueryService.DEFAULT_AVATAR_URL);
+        }
+        final JSONObject user = users.get(userId);
+        if (user == null) {
+            return new JSONObject()
+                    .put("userName", "已删除/未知")
+                    .put("userNickname", "")
+                    .put("userAvatarURL", AvatarQueryService.DEFAULT_AVATAR_URL);
+        }
+        return new JSONObject()
+                .put("userName", user.optString(User.USER_NAME))
+                .put("userNickname", user.optString(UserExt.USER_NICKNAME))
+                .put("userAvatarURL", resolveUserAvatarURL(user));
+    }
+
+    private String resolveUserAvatarURL(final JSONObject user) {
+        final JSONObject avatarProbe = new JSONObject()
+                .put(Keys.OBJECT_ID, user.optString(Keys.OBJECT_ID))
+                .put(UserExt.USER_AVATAR_TYPE, user.optString(UserExt.USER_AVATAR_TYPE))
+                .put(UserExt.USER_AVATAR_URL, user.optString(UserExt.USER_AVATAR_URL))
+                .put(User.USER_EMAIL, user.optString(User.USER_EMAIL));
+        avatarQueryService.fillUserAvatarURL(avatarProbe);
+        return avatarProbe.optString(UserExt.USER_AVATAR_URL);
+    }
+
+    private JSONArray loadRecentOperationsByDataId(final String dataId) throws RepositoryException {
+        final List<JSONObject> opRows = operations.select(
+                "SELECT oId," + Operation.OPERATION_USER_ID + "," + Operation.OPERATION_CODE
+                        + "," + Operation.OPERATION_DATA_ID + "," + Operation.OPERATION_CREATED
+                        + "," + Operation.OPERATION_IP + "," + Operation.OPERATION_UA
+                        + " FROM `" + operations.getName() + "` WHERE " + Operation.OPERATION_DATA_ID
+                        + "=? ORDER BY " + Operation.OPERATION_CREATED + " DESC, oId DESC LIMIT 15",
+                dataId);
+        final JSONArray recentOps = new JSONArray();
+        for (final JSONObject opRow : opRows) {
+            recentOps.put(formatOperationRow(opRow));
+        }
+        return recentOps;
+    }
+
+    private JSONObject normalizeAdminArticleCreateInput(final JSONObject body) {
+        final String userName = ApiV3WriteInputs.string(body, User.USER_NAME, 64, true);
+        if (userName.isEmpty()) {
+            throw new ApiV3Exception(422, "invalid_request", "请填写文章作者用户名");
+        }
+        final String title = ApiV3WriteInputs.string(body, Article.ARTICLE_TITLE, 255, true);
+        if (title.isEmpty()) {
+            throw new ApiV3Exception(422, "invalid_request", "文章标题不能为空");
+        }
+        final String rawContent = ApiV3WriteInputs.string(body, Article.ARTICLE_CONTENT, 102400, false);
+        final String cleanContent = Runes.removeControlChars(rawContent);
+        if (StringUtils.isBlank(cleanContent)) {
+            throw new ApiV3Exception(422, "invalid_request", "文章正文不能为空");
+        }
+        final String rewardContent = body.has(Article.ARTICLE_REWARD_CONTENT)
+                ? Runes.removeControlChars(ApiV3WriteInputs.string(body, Article.ARTICLE_REWARD_CONTENT, 102400, false))
+                : "";
+        final String tags = body.has(Article.ARTICLE_TAGS)
+                ? ApiV3WriteInputs.string(body, Article.ARTICLE_TAGS, 255, true)
+                : "";
+        final int articleType = body.has(Article.ARTICLE_TYPE)
+                ? requireValidArticleType(body, Article.ARTICLE_TYPE)
+                : Article.ARTICLE_TYPE_C_NORMAL;
+        final int rewardPoint = body.has(Article.ARTICLE_REWARD_POINT)
+                ? requireExactInt(body, Article.ARTICLE_REWARD_POINT, 0, 1000000)
+                : 0;
+        final int qnaOfferPoint = body.has(Article.ARTICLE_QNA_OFFER_POINT)
+                ? requireExactInt(body, Article.ARTICLE_QNA_OFFER_POINT, 0, 1000000)
+                : 0;
+        final int showInList = body.has(Article.ARTICLE_SHOW_IN_LIST)
+                ? requireExactInt(body, Article.ARTICLE_SHOW_IN_LIST, 0, 1)
+                : Article.ARTICLE_SHOW_IN_LIST_C_YES;
+        final int statement = body.has(Article.ARTICLE_STATEMENT)
+                ? requireExactInt(body, Article.ARTICLE_STATEMENT, 0, 1)
+                : 0;
+        final boolean commentable = !body.has(Article.ARTICLE_COMMENTABLE)
+                || requireBoolean(body, Article.ARTICLE_COMMENTABLE);
+        final long time = body.has(Common.TIME)
+                ? requireExactLong(body, Common.TIME, 0L, Long.MAX_VALUE)
+                : 0L;
+
+        final JSONObject normalized = new JSONObject()
+                .put(User.USER_NAME, userName)
+                .put(Article.ARTICLE_TITLE, title)
+                .put(Article.ARTICLE_CONTENT, cleanContent)
+                .put(Article.ARTICLE_REWARD_CONTENT, rewardContent)
+                .put(Article.ARTICLE_TAGS, tags)
+                .put(Article.ARTICLE_TYPE, articleType)
+                .put(Article.ARTICLE_REWARD_POINT, rewardPoint)
+                .put(Article.ARTICLE_QNA_OFFER_POINT, qnaOfferPoint)
+                .put(Article.ARTICLE_SHOW_IN_LIST, showInList)
+                .put(Article.ARTICLE_STATEMENT, statement)
+                .put(Article.ARTICLE_COMMENTABLE, commentable);
+        if (time > 0L) {
+            normalized.put(Common.TIME, time);
+        }
+        copyOptionalLongColumnFields(body, normalized);
+        return normalized;
+    }
+
+    private ArticleUpdateInput normalizeAdminArticleUpdateInput(final JSONObject body) {
+        final JSONObject patch = new JSONObject();
+        final JSONObject canonical = new JSONObject();
+
+        if (body.has(Article.ARTICLE_TITLE)) {
+            final String title = ApiV3WriteInputs.string(body, Article.ARTICLE_TITLE, 255, true);
+            if (title.isEmpty()) {
+                throw new ApiV3Exception(422, "invalid_request", "文章标题不能为空");
+            }
+            patch.put(Article.ARTICLE_TITLE, title);
+            canonical.put(Article.ARTICLE_TITLE, title);
+        }
+        if (body.has(Article.ARTICLE_CONTENT)) {
+            final String content = Runes.removeControlChars(
+                    ApiV3WriteInputs.string(body, Article.ARTICLE_CONTENT, 102400, false));
+            if (StringUtils.isBlank(content)) {
+                throw new ApiV3Exception(422, "invalid_request", "文章正文不能为空");
+            }
+            patch.put(Article.ARTICLE_CONTENT, content);
+            canonical.put(Article.ARTICLE_CONTENT, content);
+        }
+        if (body.has(Article.ARTICLE_REWARD_CONTENT)) {
+            final String reward = Runes.removeControlChars(
+                    ApiV3WriteInputs.string(body, Article.ARTICLE_REWARD_CONTENT, 102400, false));
+            patch.put(Article.ARTICLE_REWARD_CONTENT, reward);
+            canonical.put(Article.ARTICLE_REWARD_CONTENT, reward);
+        }
+        if (body.has(Article.ARTICLE_TAGS)) {
+            final String tags = ApiV3WriteInputs.string(body, Article.ARTICLE_TAGS, 255, true);
+            patch.put(Article.ARTICLE_TAGS, tags);
+            canonical.put(Article.ARTICLE_TAGS, tags);
+        }
+        if (body.has(Article.ARTICLE_REWARD_POINT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_REWARD_POINT, 0, 1000000);
+            patch.put(Article.ARTICLE_REWARD_POINT, val);
+            canonical.put(Article.ARTICLE_REWARD_POINT, val);
+        }
+        if (body.has(Article.ARTICLE_QNA_OFFER_POINT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_QNA_OFFER_POINT, 0, 1000000);
+            patch.put(Article.ARTICLE_QNA_OFFER_POINT, val);
+            canonical.put(Article.ARTICLE_QNA_OFFER_POINT, val);
+        }
+        if (body.has(Article.ARTICLE_PUSH_ORDER)) {
+            final int val = requireExactInt(body, Article.ARTICLE_PUSH_ORDER, -1000000, 1000000);
+            patch.put(Article.ARTICLE_PUSH_ORDER, val);
+            canonical.put(Article.ARTICLE_PUSH_ORDER, val);
+        }
+        if (body.has(Article.ARTICLE_VIEW_CNT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_VIEW_CNT, 0, Integer.MAX_VALUE);
+            patch.put(Article.ARTICLE_VIEW_CNT, val);
+            canonical.put(Article.ARTICLE_VIEW_CNT, val);
+        }
+        if (body.has(Article.ARTICLE_GOOD_CNT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_GOOD_CNT, 0, Integer.MAX_VALUE);
+            patch.put(Article.ARTICLE_GOOD_CNT, val);
+            canonical.put(Article.ARTICLE_GOOD_CNT, val);
+        }
+        if (body.has(Article.ARTICLE_BAD_CNT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_BAD_CNT, 0, Integer.MAX_VALUE);
+            patch.put(Article.ARTICLE_BAD_CNT, val);
+            canonical.put(Article.ARTICLE_BAD_CNT, val);
+        }
+        if (body.has(Article.ARTICLE_COLLECT_CNT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_COLLECT_CNT, 0, Integer.MAX_VALUE);
+            patch.put(Article.ARTICLE_COLLECT_CNT, val);
+            canonical.put(Article.ARTICLE_COLLECT_CNT, val);
+        }
+        if (body.has(Article.ARTICLE_WATCH_CNT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_WATCH_CNT, 0, Integer.MAX_VALUE);
+            patch.put(Article.ARTICLE_WATCH_CNT, val);
+            canonical.put(Article.ARTICLE_WATCH_CNT, val);
+        }
+        if (body.has(Article.ARTICLE_COMMENTABLE)) {
+            final boolean val = requireBoolean(body, Article.ARTICLE_COMMENTABLE);
+            patch.put(Article.ARTICLE_COMMENTABLE, val);
+            canonical.put(Article.ARTICLE_COMMENTABLE, val);
+        }
+        if (body.has(Article.ARTICLE_TYPE)) {
+            final int val = requireValidArticleType(body, Article.ARTICLE_TYPE);
+            patch.put(Article.ARTICLE_TYPE, val);
+            canonical.put(Article.ARTICLE_TYPE, val);
+        }
+        if (body.has(Article.ARTICLE_STATUS)) {
+            final int val = requireExactInt(body, Article.ARTICLE_STATUS, 0, 2);
+            patch.put(Article.ARTICLE_STATUS, val);
+            canonical.put(Article.ARTICLE_STATUS, val);
+        }
+        if (body.has(Article.ARTICLE_PERFECT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_PERFECT, 0, 1);
+            patch.put(Article.ARTICLE_PERFECT, val);
+            canonical.put(Article.ARTICLE_PERFECT, val);
+        }
+        if (body.has(Article.ARTICLE_STATEMENT)) {
+            final int val = requireExactInt(body, Article.ARTICLE_STATEMENT, 0, 1);
+            patch.put(Article.ARTICLE_STATEMENT, val);
+            canonical.put(Article.ARTICLE_STATEMENT, val);
+        }
+        if (body.has(Article.ARTICLE_SHOW_IN_LIST)) {
+            final int val = requireExactInt(body, Article.ARTICLE_SHOW_IN_LIST, 0, 1);
+            patch.put(Article.ARTICLE_SHOW_IN_LIST, val);
+            canonical.put(Article.ARTICLE_SHOW_IN_LIST, val);
+        }
+
+        final JSONObject columnReq = new JSONObject();
+        final boolean hasColumnFields = copyOptionalLongColumnFields(body, columnReq);
+        if (hasColumnFields) {
+            for (final String key : columnReq.keySet()) {
+                canonical.put(key, columnReq.opt(key));
+            }
+        }
+        // 当请求携带长文专栏参数或将文章类型变更为非长文时，显式触发章节关联同步或清理
+        final boolean switchedAwayFromLong = patch.has(Article.ARTICLE_TYPE)
+                && patch.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_LONG;
+        final JSONObject effectiveColumnReq = (hasColumnFields || switchedAwayFromLong) ? columnReq : null;
+        return new ArticleUpdateInput(patch, effectiveColumnReq, canonical);
+    }
+
+    private boolean copyOptionalLongColumnFields(final JSONObject body, final JSONObject target) {
+        boolean touched = false;
+        if (body.has(LongArticleColumn.COLUMN_ID)) {
+            target.put(LongArticleColumn.COLUMN_ID,
+                    ApiV3WriteInputs.string(body, LongArticleColumn.COLUMN_ID, 64, true));
+            touched = true;
+        }
+        if (body.has(LongArticleColumn.COLUMN_TITLE)) {
+            target.put(LongArticleColumn.COLUMN_TITLE,
+                    ApiV3WriteInputs.string(body, LongArticleColumn.COLUMN_TITLE, LongArticleColumn.MAX_COLUMN_TITLE_LENGTH, true));
+            touched = true;
+        }
+        if (body.has(LongArticleColumn.COLUMN_COVER_URL)) {
+            final String coverUrl = ApiV3WriteInputs.string(
+                    body, LongArticleColumn.COLUMN_COVER_URL, LongArticleColumn.MAX_COLUMN_COVER_URL_LENGTH, true);
+            if (!coverUrl.isEmpty() && !isValidHttpUrl(coverUrl)) {
+                throw new ApiV3Exception(422, "invalid_request", "长文专栏封面链接必须为 http 或 https 协议");
+            }
+            target.put(LongArticleColumn.COLUMN_COVER_URL, coverUrl);
+            touched = true;
+        }
+        if (body.has(LongArticleColumn.CHAPTER_NO)) {
+            final Object rawNo = body.opt(LongArticleColumn.CHAPTER_NO);
+            if (rawNo == null || rawNo == JSONObject.NULL || (rawNo instanceof String s && s.trim().isEmpty())) {
+                target.put(LongArticleColumn.CHAPTER_NO, "");
+            } else if (rawNo instanceof Number num && !(rawNo instanceof Double) && !(rawNo instanceof Float)) {
+                final long parsed = num.longValue();
+                if (parsed < 1 || parsed > 100000) {
+                    throw new ApiV3Exception(422, "invalid_request", "长文章节序号需在 1 至 100000 之间");
+                }
+                target.put(LongArticleColumn.CHAPTER_NO, String.valueOf(parsed));
+            } else if (rawNo instanceof String str) {
+                final String trimmed = str.trim();
+                try {
+                    final int parsed = Integer.parseInt(trimmed);
+                    if (parsed < 1 || parsed > 100000) {
+                        throw new ApiV3Exception(422, "invalid_request", "长文章节序号需在 1 至 100000 之间");
+                    }
+                    target.put(LongArticleColumn.CHAPTER_NO, String.valueOf(parsed));
+                } catch (final NumberFormatException e) {
+                    throw new ApiV3Exception(422, "invalid_request", "长文章节序号必须为正整数");
+                }
+            } else {
+                throw ApiV3WriteInputs.invalid();
+            }
+            touched = true;
+        }
+        return touched;
+    }
+
+    private JSONObject normalizeAdminCommentUpdateInput(final JSONObject body) {
+        final JSONObject normalized = new JSONObject();
+        if (body.has(Comment.COMMENT_CONTENT)) {
+            final String raw = ApiV3WriteInputs.string(body, Comment.COMMENT_CONTENT, 102400, false);
+            final String processed = Runes.removeControlChars(
+                    ReservedWords.processReservedWord(Emotions.toAliases(raw)));
+            if (StringUtils.isBlank(processed)) {
+                throw new ApiV3Exception(422, "invalid_request", "评论内容不能为空");
+            }
+            normalized.put(Comment.COMMENT_CONTENT, processed);
+        }
+        if (body.has(Comment.COMMENT_STATUS)) {
+            normalized.put(Comment.COMMENT_STATUS, requireExactInt(body, Comment.COMMENT_STATUS, 0, 1));
+        }
+        if (body.has(Comment.COMMENT_GOOD_CNT)) {
+            normalized.put(Comment.COMMENT_GOOD_CNT, requireExactInt(body, Comment.COMMENT_GOOD_CNT, 0, Integer.MAX_VALUE));
+        }
+        if (body.has(Comment.COMMENT_BAD_CNT)) {
+            normalized.put(Comment.COMMENT_BAD_CNT, requireExactInt(body, Comment.COMMENT_BAD_CNT, 0, Integer.MAX_VALUE));
+        }
+        if (body.has(Comment.COMMENT_VISIBLE)) {
+            normalized.put(Comment.COMMENT_VISIBLE, requireExactInt(body, Comment.COMMENT_VISIBLE, 0, 1));
+        }
+        if (normalized.isEmpty()) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        return normalized;
+    }
+
+    private JSONObject normalizeAdminBreezemoonUpdateInput(final JSONObject body) {
+        final JSONObject normalized = new JSONObject();
+        if (body.has(Breezemoon.BREEZEMOON_CONTENT)) {
+            final String raw = ApiV3WriteInputs.string(body, Breezemoon.BREEZEMOON_CONTENT, 102400, false);
+            final String processed = Runes.removeControlChars(
+                    ReservedWords.processReservedWord(Emotions.toAliases(raw)));
+            if (StringUtils.isBlank(processed)) {
+                throw new ApiV3Exception(422, "invalid_request", "清风明月内容不能为空");
+            }
+            normalized.put(Breezemoon.BREEZEMOON_CONTENT, processed);
+        }
+        if (body.has(Breezemoon.BREEZEMOON_STATUS)) {
+            normalized.put(Breezemoon.BREEZEMOON_STATUS, requireExactInt(body, Breezemoon.BREEZEMOON_STATUS, 0, 1));
+        }
+        if (normalized.isEmpty()) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        return normalized;
+    }
+
+    private static int requireValidArticleType(final JSONObject body, final String key) {
+        final int value = requireExactInt(body, key, 0, Article.ARTICLE_TYPE_C_LONG);
+        if (value == 4) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        return value;
+    }
+
+    private static long requireExactLong(final JSONObject body, final String key, final long min, final long max) {
+        final Object raw = body.opt(key);
+        if (!(raw instanceof Number number) || raw instanceof Double || raw instanceof Float) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final long value = number.longValue();
+        if (value < min || value > max) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        return value;
+    }
+
+    private static boolean requireBoolean(final JSONObject body, final String key) {
+        final Object raw = body.opt(key);
+        if (!(raw instanceof Boolean flag)) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        return flag;
+    }
+
+    private static RuntimeException mapAdminServiceException(final ServiceException e,
+                                                             final int status, final String code) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof RepositoryException) {
+                return new IllegalStateException(e);
+            }
+        }
+        final String msg = StringUtils.isBlank(e.getMessage()) ? "操作条件不满足，请检查输入参数" : e.getMessage();
+        return new ApiV3Exception(status, code, msg);
+    }
+
+    private static String articleStatusLabel(final int status) {
+        return switch (status) {
+            case Article.ARTICLE_STATUS_C_VALID -> "正常";
+            case Article.ARTICLE_STATUS_C_INVALID -> "已封禁";
+            case Article.ARTICLE_STATUS_C_LOCKED -> "已锁定";
+            default -> "未知状态";
+        };
+    }
+
+    private static String articleTypeLabel(final int type) {
+        return switch (type) {
+            case Article.ARTICLE_TYPE_C_NORMAL -> "普通帖";
+            case Article.ARTICLE_TYPE_C_DISCUSSION -> "站内讨论";
+            case Article.ARTICLE_TYPE_C_CITY_BROADCAST -> "同城广播";
+            case Article.ARTICLE_TYPE_C_THOUGHT -> "思绪";
+            case Article.ARTICLE_TYPE_C_QNA -> "问答";
+            case Article.ARTICLE_TYPE_C_LONG -> "长文专栏";
+            default -> "类型 #" + type;
+        };
+    }
+
+    private static String commentStatusLabel(final int status) {
+        return switch (status) {
+            case Comment.COMMENT_STATUS_C_VALID -> "正常";
+            case Comment.COMMENT_STATUS_C_INVALID -> "已封禁";
+            default -> "未知状态";
+        };
+    }
+
+    private static String breezemoonStatusLabel(final int status) {
+        return switch (status) {
+            case Breezemoon.BREEZEMOON_STATUS_C_VALID -> "正常";
+            case Breezemoon.BREEZEMOON_STATUS_C_INVALID -> "已封禁";
+            default -> "未知状态";
         };
     }
 

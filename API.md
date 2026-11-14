@@ -17335,3 +17335,531 @@ curl --request POST 'https://fishpi.cn/api/v3/admin/users/1630399192601/remove-m
 | --- | --- | --- |
 | code | 0 表示成功 | 0 |
 | data | 操作结果（`userId`、`hasMfa=false`、`updatedAt`）及最新 `detail` | {} |
+
+### 分页查询管理文章列表
+
+`GET /api/v3/admin/articles`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminArticles` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| p（Query） | 页码（从 1 开始） | 1 |
+| size（Query） | 每页条数（1-50，默认 20） | 20 |
+| keyword（Query） | 可选关键字，匹配文章 ID、标题、标签或作者用户名/昵称 | 前端 |
+| status（Query） | 可选状态筛选：`all`、`0`（正常）、`1`（已封禁）、`2`（已锁定） | all |
+| type（Query） | 可选类型筛选：`all`、`0`、`1`、`2`、`3`、`5`、`6` | all |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/articles?status=all&type=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data.list | 文章摘要列表（含作者与长文专栏章节摘要） | [] |
+| data.pagination | 分页信息 | {} |
+
+### 管理员新建文章
+
+`POST /api/v3/admin/articles`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminArticles` 与 `articleAddArticle` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次发文的幂等键 | article-add-001 |
+| userName | 必填作者用户名 | alice |
+| articleTitle | 必填文章标题（最长 255 字符） | 社区规范 |
+| articleContent | 必填文章正文（Markdown） | 正文内容 |
+| articleRewardContent | 可选打赏可见内容 | 感谢支持 |
+| articleTags | 可选标签列表（逗号分隔） | 公告,反馈 |
+| articleType | 可选类型：`0` 普通、`1` 讨论、`2` 广播、`3` 思绪、`5` 问答、`6` 长文 | 0 |
+| articleRewardPoint | 可选打赏积分 | 0 |
+| articleQnAOfferPoint | 可选悬赏积分 | 0 |
+| articleShowInList | 可选列表可见性：`1` 可见、`0` 隐藏 | 1 |
+| articleStatement | 可选版权声明：`0`、`1` | 0 |
+| articleCommentable | 可选是否允许评论 | true |
+| columnId | 可选长文专栏 ID 或 `__NEW__` | |
+| columnTitle | 可选新建专栏标题 | |
+| columnCoverURL | 可选专栏封面 URL（http/https） | |
+| chapterNo | 可选长文章节序号（1-100000） | |
+| time | 可选自定义发布毫秒时间戳 | 1731571200000 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/articles' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: article-add-001' \
+  --header 'Content-Type: application/json' \
+  --data '{"userName":"alice","articleTitle":"新文章","articleContent":"正文","articleTags":"日常","articleType":0}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `oId`、`articleId`、`articlePermalink`、`createdAt`、`replayed` 及重读详情 `detail` | {} |
+
+### 查询管理文章详情
+
+`GET /api/v3/admin/articles/{articleId}`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminArticles` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| articleId（Path） | 文章 ID | 1731571200000 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/articles/1731571200000' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 完整文章字段、作者长文专栏列表 `authorColumns`、当前章节 `longArticleChapter` 与 `recentOperations` | {} |
+
+### 编辑管理文章
+
+`PUT /api/v3/admin/articles/{articleId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminArticles` 与 `articleUpdateArticleBasic` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次编辑的幂等键 | article-edit-001 |
+| articleId（Path） | 文章 ID | 1731571200000 |
+| articleTitle | 可选新标题 | 修订标题 |
+| articleContent | 可选新正文 | 修订正文 |
+| articleRewardContent | 可选新打赏正文 | |
+| articleTags | 可选新标签（`articleStatus=1` 时后端强制归档为 `回收站`） | 公告 |
+| articleStatus | 可选状态：`0` 正常、`1` 已封禁、`2` 已锁定 | 0 |
+| articleType | 可选类型：`0`、`1`、`2`、`3`、`5`、`6` | 0 |
+| articlePerfect | 可选优选标识：`0` 普通、`1` 优选 | 0 |
+| articleStatement | 可选声明标识：`0`、`1` | 0 |
+| articleShowInList | 可选列表显示：`0`、`1` | 1 |
+| articleCommentable | 可选允许评论 | true |
+| articleRewardPoint | 可选打赏积分 | 0 |
+| articleQnAOfferPoint | 可选悬赏积分 | 0 |
+| articlePushOrder | 可选推送排序 | 0 |
+| articleViewCount | 可选浏览数 | 100 |
+| articleGoodCnt | 可选点赞数 | 5 |
+| articleBadCnt | 可选点踩数 | 0 |
+| articleCollectCnt | 可选收藏数 | 2 |
+| articleWatchCnt | 可选关注数 | 1 |
+| columnId | 可选长文专栏 ID 或 `__NEW__` | |
+| columnTitle | 可选新建专栏标题 | |
+| columnCoverURL | 可选专栏封面 URL（http/https） | |
+| chapterNo | 可选长文章节序号 | |
+
+请求示例：
+
+```bash
+curl --request PUT 'https://fishpi.cn/api/v3/admin/articles/1731571200000' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: article-edit-001' \
+  --header 'Content-Type: application/json' \
+  --data '{"articleTitle":"修订标题","articleStatus":0}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `articleId`、`updatedAt`、`replayed` 及最新 `detail` | {} |
+
+### 置顶文章
+
+`POST /api/v3/admin/articles/{articleId}/stick`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminArticles` 与 `articleStickArticle` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次置顶的幂等键 | article-stick-001 |
+| articleId（Path） | 文章 ID | 1731571200000 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/articles/1731571200000/stick' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: article-stick-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `articleId`、`articleStick`、`replayed` 及最新 `detail` | {} |
+
+### 取消置顶文章
+
+`POST /api/v3/admin/articles/{articleId}/cancel-stick`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminArticles` 与 `articleCancelStickArticle` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次取消置顶的幂等键 | article-unstick-001 |
+| articleId（Path） | 文章 ID | 1731571200000 |
+
+请求示例：
+
+```bash
+curl --request POST 'https://fishpi.cn/api/v3/admin/articles/1731571200000/cancel-stick' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: article-unstick-001' \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `articleId`、`articleStick=0`、`replayed` 及最新 `detail` | {} |
+
+### 移除管理文章
+
+`DELETE /api/v3/admin/articles/{articleId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminArticles` 与 `articleRemoveArticle` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次移除的幂等键 | article-remove-001 |
+| articleId（Path） | 文章 ID | 1731571200000 |
+
+请求示例：
+
+```bash
+curl --request DELETE 'https://fishpi.cn/api/v3/admin/articles/1731571200000' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: article-remove-001'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `articleId`、`deleted=true`、`removedAt` 与 `replayed` | {} |
+
+### 分页查询管理评论列表
+
+`GET /api/v3/admin/comments`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminComments` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| p（Query） | 页码（从 1 开始） | 1 |
+| size（Query） | 每页条数（1-50，默认 20） | 20 |
+| keyword（Query） | 可选关键字，匹配评论 ID、文章 ID、正文、作者或所属文章标题 | 违规 |
+| status（Query） | 可选状态筛选：`all`、`0`（正常）、`1`（已封禁） | all |
+| articleId（Query） | 可选所属文章 ID | 1731571200000 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/comments?status=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data.list | 评论列表（含评论者信息与所属文章标题/永久链接） | [] |
+| data.pagination | 分页信息 | {} |
+
+### 查询管理评论详情
+
+`GET /api/v3/admin/comments/{commentId}`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminComments` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| commentId（Path） | 评论 ID | 1731571200100 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/comments/1731571200100' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 完整评论详情、段落信息及 `recentOperations` | {} |
+
+### 编辑管理评论
+
+`PUT /api/v3/admin/comments/{commentId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminComments` 与 `commentUpdateCommentBasic` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次编辑的幂等键 | comment-edit-001 |
+| commentId（Path） | 评论 ID | 1731571200100 |
+| commentContent | 可选评论正文 | 更新后的评论 |
+| commentStatus | 可选状态：`0` 正常、`1` 已封禁 | 0 |
+| commentGoodCnt | 可选点赞数 | 0 |
+| commentBadCnt | 可选点踩数 | 0 |
+| commentVisible | 可选可见范围：`0` 所有人、`1` 仅作者 | 0 |
+
+请求示例：
+
+```bash
+curl --request PUT 'https://fishpi.cn/api/v3/admin/comments/1731571200100' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: comment-edit-001' \
+  --header 'Content-Type: application/json' \
+  --data '{"commentStatus":1}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `commentId`、`updatedAt`、`replayed` 及最新 `detail` | {} |
+
+### 移除管理评论
+
+`DELETE /api/v3/admin/comments/{commentId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminComments` 与 `commentRemoveComment` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次移除的幂等键 | comment-remove-001 |
+| commentId（Path） | 评论 ID | 1731571200100 |
+
+请求示例：
+
+```bash
+curl --request DELETE 'https://fishpi.cn/api/v3/admin/comments/1731571200100' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: comment-remove-001'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `commentId`、`deleted=true`、`removedAt` 与 `replayed` | {} |
+
+### 分页查询清风明月列表
+
+`GET /api/v3/admin/breezemoons`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminBreezemoons` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| p（Query） | 页码（从 1 开始） | 1 |
+| size（Query） | 每页条数（1-50，默认 20） | 20 |
+| keyword（Query） | 可选关键字，匹配 ID、正文或作者用户名/昵称 | 摸鱼 |
+| status（Query） | 可选状态筛选：`all`、`0`（正常）、`1`（已封禁） | all |
+| authorId（Query） | 可选作者用户 ID | 1630399192600 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/breezemoons?status=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data.list | 清风明月列表（含作者资料） | [] |
+| data.pagination | 分页信息 | {} |
+
+### 查询清风明月详情
+
+`GET /api/v3/admin/breezemoons/{breezemoonId}`
+
+需要网站第一方有效 Bearer accessToken、`profile.read`、`menuAdmin` 与 `menuAdminBreezemoons` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| breezemoonId（Path） | 清风明月 ID | 1731571200200 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/breezemoons/1731571200200' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 清风明月完整信息与 `recentOperations` | {} |
+
+### 编辑清风明月
+
+`PUT /api/v3/admin/breezemoons/{breezemoonId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminBreezemoons` 与 `breezemoonUpdateBreezemoon` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次编辑的幂等键 | bm-edit-001 |
+| breezemoonId（Path） | 清风明月 ID | 1731571200200 |
+| breezemoonContent | 可选清风明月正文 | 今日天气不错 |
+| breezemoonStatus | 可选状态：`0` 正常、`1` 已封禁 | 0 |
+
+请求示例：
+
+```bash
+curl --request PUT 'https://fishpi.cn/api/v3/admin/breezemoons/1731571200200' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: bm-edit-001' \
+  --header 'Content-Type: application/json' \
+  --data '{"breezemoonStatus":1}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `breezemoonId`、`updatedAt`、`replayed` 及最新 `detail` | {} |
+
+### 移除清风明月
+
+`DELETE /api/v3/admin/breezemoons/{breezemoonId}`
+
+需要网站第一方有效 Bearer accessToken、`settings.write`、`Idempotency-Key`、`menuAdmin`、`menuAdminBreezemoons` 与 `breezemoonRemoveBreezemoon` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| Idempotency-Key（Header） | 本次移除的幂等键 | bm-remove-001 |
+| breezemoonId（Path） | 清风明月 ID | 1731571200200 |
+
+请求示例：
+
+```bash
+curl --request DELETE 'https://fishpi.cn/api/v3/admin/breezemoons/1731571200200' \
+  --header 'Authorization: Bearer {accessToken}' \
+  --header 'Idempotency-Key: bm-remove-001'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data | 包含 `breezemoonId`、`deleted=true`、`removedAt` 与 `replayed` | {} |
+
+### 查询全站管理操作审计日志
+
+`GET /api/v3/admin/audit-logs`
+
+需要网站第一方有效 Bearer accessToken、`profile.read` 与 `menuAdmin` 权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 网站第一方 Bearer accessToken | Bearer {accessToken} |
+| p（Query） | 页码（从 1 开始） | 1 |
+| size（Query） | 每页条数（1-50，默认 20） | 20 |
+| operator（Query） | 可选操作者过滤（用户 ID、用户名或昵称） | alice |
+| code（Query） | 可选操作编码（`all` 或整数操作码 `0-999`） | all |
+| dataId（Query） | 可选目标对象 ID（精确或模糊匹配） | 1731571200000 |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
+  --header 'Authorization: Bearer {accessToken}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| code | 0 表示成功 | 0 |
+| data.list | 真实 `operation` 审计记录（含 `operationUserNickname`、`operationUA`、`targetType`） | [] |
+| data.pagination | 分页信息 | {} |
+| data.codeOptions | 系统支持的操作编码与中文标签字典 | [] |
+| data.auditNote | 真实字段范围说明（不伪造字段级前后快照） | "" |

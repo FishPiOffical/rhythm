@@ -4,6 +4,11 @@
 
 # 261114
 
+- **管理后台 V3 第二阶段内容管理与操作审计接口**
+  - 新增文章管理 V3 接口（`GET /api/v3/admin/articles`、`POST /api/v3/admin/articles`、`GET /api/v3/admin/articles/{articleId}`、`PUT /api/v3/admin/articles/{articleId}`、`POST /api/v3/admin/articles/{articleId}/stick`、`POST /api/v3/admin/articles/{articleId}/cancel-stick`、`DELETE /api/v3/admin/articles/{articleId}`），在发布锁与事务缓存边界内执行，支持长文专栏章节与封面联动及强制删帖
+  - 新增评论管理 V3 接口（`GET /api/v3/admin/comments`、`GET /api/v3/admin/comments/{commentId}`、`PUT /api/v3/admin/comments/{commentId}`、`DELETE /api/v3/admin/comments/{commentId}`）与清风明月管理 V3 接口（`GET /api/v3/admin/breezemoons`、`GET /api/v3/admin/breezemoons/{breezemoonId}`、`PUT /api/v3/admin/breezemoons/{breezemoonId}`、`DELETE /api/v3/admin/breezemoons/{breezemoonId}`），写接口均接入 `Idempotency-Key` 幂等保护、保留词/表情处理、索引事件同步与 `operation` 审计写入
+  - 新增全站操作审计查询接口 `GET /api/v3/admin/audit-logs`，支持按操作者、操作编码及目标对象 ID 过滤真实 `operation` 日志，并在能力矩阵 `capabilities` 中补全第一方操作者用户名/角色加载修复及第二阶段精细化动作开关
+
 - **管理后台 V3 基础能力与第一阶段管理接口**
   - 新增 `GET /api/v3/admin/capabilities` 与 `GET /api/v3/admin/dashboard`，提供第一方管理员/运营/指定审核员能力矩阵、真实待办与基础统计汇总
   - 新增举报管理 V3 接口（`GET /api/v3/admin/reports`、`POST /api/v3/admin/reports/{reportId}/handle`、`POST /api/v3/admin/reports/{reportId}/ignore`、`POST /api/v3/admin/repeater/{id}/remove`），强制分离处置动作、禁止自举自审并接入 `Idempotency-Key` 严格事务

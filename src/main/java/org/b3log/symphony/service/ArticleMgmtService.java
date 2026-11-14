@@ -1889,4 +1889,305 @@ public class ArticleMgmtService {
             throw new ServiceException(e.getMessage());
         }
     }
+
+    /**
+     * 在当前外部事务与缓存作用域内以管理员身份新建文章（供 V3 管理接口调用，不在此提交事务）。
+     *
+     * @param requestJSONObject 请求参数对象（需包含 userName、articleTitle、articleTags、articleContent 等）
+     * @return 新建后的文章数据快照
+     * @throws ServiceException 业务或持久化异常
+     */
+    public synchronized JSONObject addArticleByAdminInCurrentTransaction(final JSONObject requestJSONObject) throws ServiceException {
+        if (!articleRepository.hasTransactionBegun() || !ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("管理员新建文章必须在活动事务与发布缓存边界内执行");
+        }
+        try {
+            if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) {
+                throw new IllegalStateException("缺少全站文章统计配置项");
+            }
+            final String userName = StringUtils.trimToEmpty(requestJSONObject.optString(User.USER_NAME));
+            final List<JSONObject> authorIds = userRepository.select(
+                    "SELECT oId FROM `" + userRepository.getName() + "` WHERE userName=? LIMIT 1", userName);
+            if (authorIds.isEmpty()) {
+                throw new ServiceException(langPropsService.get("notFoundUserLabel"));
+            }
+            final String authorId = authorIds.getFirst().optString(Keys.OBJECT_ID);
+            final JSONObject author = userRepository.getForUpdate(authorId);
+            if (null == author) {
+                throw new ServiceException(langPropsService.get("notFoundUserLabel"));
+            }
+
+            long time = requestJSONObject.optLong(Common.TIME, 0L);
+            if (time <= 0L) {
+                time = System.currentTimeMillis();
+            }
+            final String articleId = Ids.genTimeMillisId();
+            final JSONObject article = new JSONObject();
+            article.put(Keys.OBJECT_ID, articleId);
+            article.put(Article.ARTICLE_AUTHOR_ID, authorId);
+            article.put(Article.ARTICLE_TITLE, Emotions.toAliases(requestJSONObject.optString(Article.ARTICLE_TITLE)));
+            article.put(Article.ARTICLE_CONTENT, Emotions.toAliases(requestJSONObject.optString(Article.ARTICLE_CONTENT)));
+            article.put(Article.ARTICLE_REWARD_CONTENT, requestJSONObject.optString(Article.ARTICLE_REWARD_CONTENT));
+            article.put(Article.ARTICLE_EDITOR_TYPE, 0);
+            article.put(Article.ARTICLE_COMMENT_CNT, 0);
+            article.put(Article.ARTICLE_VIEW_CNT, 0);
+            article.put(Article.ARTICLE_THANK_CNT, 0);
+            article.put(Article.ARTICLE_GOOD_CNT, 0);
+            article.put(Article.ARTICLE_BAD_CNT, 0);
+            article.put(Article.ARTICLE_COLLECT_CNT, 0);
+            article.put(Article.ARTICLE_WATCH_CNT, 0);
+            article.put(Article.ARTICLE_COMMENTABLE, requestJSONObject.optBoolean(Article.ARTICLE_COMMENTABLE, true));
+            article.put(Article.ARTICLE_STATEMENT, requestJSONObject.optInt(Article.ARTICLE_STATEMENT, 0));
+            article.put(Article.ARTICLE_CREATE_TIME, time);
+            article.put(Article.ARTICLE_UPDATE_TIME, time);
+            article.put(Article.ARTICLE_LATEST_CMT_TIME, Long.parseLong(articleId));
+            article.put(Article.ARTICLE_LATEST_CMTER_NAME, "");
+            article.put(Article.ARTICLE_PERMALINK, "/article/" + articleId);
+            article.put(Article.ARTICLE_RANDOM_DOUBLE, Math.random());
+            article.put(Article.REDDIT_SCORE, 0);
+            article.put(Article.ARTICLE_STATUS, Article.ARTICLE_STATUS_C_VALID);
+            final int articleType = requestJSONObject.optInt(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL);
+            article.put(Article.ARTICLE_TYPE, articleType);
+            article.put(Article.ARTICLE_REWARD_POINT, Math.max(0, requestJSONObject.optInt(Article.ARTICLE_REWARD_POINT, 0)));
+            article.put(Article.ARTICLE_QNA_OFFER_POINT, Math.max(0, requestJSONObject.optInt(Article.ARTICLE_QNA_OFFER_POINT, 0)));
+            article.put(Article.ARTICLE_PUSH_ORDER, 0);
+            article.put(Article.ARTICLE_IMG1_URL, "");
+            article.put(Article.ARTICLE_CITY, "");
+
+            String articleTags = Tag.formatTags(requestJSONObject.optString(Article.ARTICLE_TAGS));
+            if (StringUtils.containsIgnoreCase(articleTags, Tag.TAG_TITLE_C_SANDBOX)) {
+                articleTags = Tag.TAG_TITLE_C_SANDBOX;
+            }
+            if (StringUtils.isBlank(articleTags)) {
+                articleTags = "待分类";
+            }
+            articleTags = Tag.formatTags(articleTags);
+            if (Article.ARTICLE_TYPE_C_QNA == articleType && !StringUtils.contains(articleTags, "Q&A")) {
+                articleTags += ",Q&A";
+            }
+            article.put(Article.ARTICLE_TAGS, articleTags);
+            tag(articleTags.split(","), article, author);
+
+            article.put(Article.ARTICLE_IP, requestJSONObject.optString(Article.ARTICLE_IP));
+            String ua = requestJSONObject.optString(Article.ARTICLE_UA);
+            if (StringUtils.length(ua) > Common.MAX_LENGTH_UA) {
+                ua = StringUtils.substring(ua, 0, Common.MAX_LENGTH_UA);
+            }
+            article.put(Article.ARTICLE_UA, ua);
+            article.put(Article.ARTICLE_STICK, 0L);
+            article.put(Article.ARTICLE_ANONYMOUS, Article.ARTICLE_ANONYMOUS_C_PUBLIC);
+            article.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_NOT_PERFECT);
+            article.put(Article.ARTICLE_GOOD_POST, "");
+            article.put(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_USE_GLOBAL);
+            article.put(Article.ARTICLE_AUDIO_URL, "");
+            article.put(Article.ARTICLE_SHOW_IN_LIST,
+                    requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES));
+
+            final JSONObject articleCntOption = optionRepository.get(Option.ID_C_STATISTIC_ARTICLE_COUNT);
+            articleCntOption.put(Option.OPTION_VALUE, articleCntOption.optInt(Option.OPTION_VALUE) + 1);
+            optionRepository.update(Option.ID_C_STATISTIC_ARTICLE_COUNT, articleCntOption);
+
+            author.put(UserExt.USER_ARTICLE_COUNT, author.optInt(UserExt.USER_ARTICLE_COUNT) + 1);
+            author.put(UserExt.USER_LATEST_ARTICLE_TIME, time);
+            userRepository.update(authorId, author,
+                    UserExt.USER_ARTICLE_COUNT, UserExt.USER_LATEST_ARTICLE_TIME, UserExt.USER_TAG_COUNT);
+
+            articleRepository.add(article);
+            longArticleColumnMgmtService.syncChapterInCurrentTransaction(article, requestJSONObject);
+            professionSourceEventCaptureService.articlePublished(article);
+            return new JSONObject(article.toString());
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "当前事务内管理员新建文章失败", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理员新建文章事务确认提交后的异步扩展副作用（标签图谱与搜索索引事件）。
+     *
+     * @param article 已提交的文章数据快照
+     */
+    public void afterAdminArticleAdded(final JSONObject article) {
+        if (articleRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("事务尚未结束前禁止触发发布后置操作");
+        }
+        if (null == article) {
+            return;
+        }
+        try {
+            tagMgmtService.relateTags(article.optString(Article.ARTICLE_TAGS));
+        } catch (final Exception e) {
+            LOGGER.error("管理员新建文章更新标签关联失败", e);
+        }
+        final JSONObject eventData = new JSONObject();
+        eventData.put(Article.ARTICLE, article);
+        try {
+            eventManager.fireEventAsynchronously(new Event<>(EventTypes.ADD_ARTICLE, eventData));
+        } catch (final Exception e) {
+            LOGGER.error("管理员新建文章发送异步事件失败", e);
+        }
+    }
+
+    /**
+     * 在当前外部事务与缓存作用域内以管理员身份编辑文章并同步长文专栏与标签计数（供 V3 管理接口调用）。
+     *
+     * @param articleId                目标文章 ID
+     * @param patch                    本次需更新的文章字段集合
+     * @param longArticleColumnRequest 长文专栏章节与封面请求参数，无需同步时传 {@code null}
+     * @return 更新结果，包含 {@code article}、{@code authorId} 与 {@code newlySetPerfect}
+     * @throws ServiceException 业务或持久化异常
+     */
+    public synchronized JSONObject updateArticleByAdminInCurrentTransaction(final String articleId,
+                                                                            final JSONObject patch,
+                                                                            final JSONObject longArticleColumnRequest) throws ServiceException {
+        if (!articleRepository.hasTransactionBegun() || !ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("管理员编辑文章必须在活动事务与发布缓存边界内执行");
+        }
+        try {
+            if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) {
+                throw new IllegalStateException("缺少全站文章统计配置项");
+            }
+            final var ownerRows = articleRepository.select(
+                    "SELECT articleAuthorId FROM `" + articleRepository.getName() + "` WHERE oId=?", articleId);
+            if (ownerRows.isEmpty()) {
+                throw new ServiceException("文章不存在");
+            }
+            final String authorId = ownerRows.getFirst().optString(Article.ARTICLE_AUTHOR_ID);
+            final JSONObject author = userRepository.getForUpdate(authorId);
+            if (null == author) {
+                throw new ServiceException("文章作者账号不存在");
+            }
+            final JSONObject lockedArticle = articleRepository.getForUpdate(articleId);
+            if (null == lockedArticle) {
+                throw new ServiceException("文章不存在");
+            }
+
+            final JSONObject oldArticle = JSONs.clone(lockedArticle);
+            final int oldArticleType = oldArticle.optInt(Article.ARTICLE_TYPE);
+            final String oldContent = oldArticle.optString(Article.ARTICLE_CONTENT);
+
+            final JSONObject nextArticle = JSONs.clone(lockedArticle);
+            for (final String key : patch.keySet()) {
+                nextArticle.put(key, patch.opt(key));
+            }
+            nextArticle.put(Article.ARTICLE_COMMENTABLE, nextArticle.optBoolean(Article.ARTICLE_COMMENTABLE));
+            nextArticle.put(Article.ARTICLE_STATEMENT, nextArticle.optInt(Article.ARTICLE_STATEMENT, 0));
+            nextArticle.put(Article.ARTICLE_UPDATE_TIME, System.currentTimeMillis());
+
+            if (Article.ARTICLE_STATUS_C_INVALID == nextArticle.optInt(Article.ARTICLE_STATUS)) {
+                nextArticle.put(Article.ARTICLE_TAGS, "回收站");
+            }
+
+            processTagsForArticleUpdate(oldArticle, nextArticle, author);
+
+            final String articleTitle = Emotions.toAliases(nextArticle.optString(Article.ARTICLE_TITLE));
+            nextArticle.put(Article.ARTICLE_TITLE, articleTitle);
+
+            final int nextType = nextArticle.optInt(Article.ARTICLE_TYPE);
+            if (Article.ARTICLE_TYPE_C_THOUGHT == nextType) {
+                nextArticle.put(Article.ARTICLE_CONTENT, oldContent);
+            } else {
+                String articleContent = Emotions.toAliases(nextArticle.optString(Article.ARTICLE_CONTENT));
+                articleContent = Runes.removeControlChars(articleContent);
+                nextArticle.put(Article.ARTICLE_CONTENT, articleContent);
+            }
+
+            final int perfect = nextArticle.optInt(Article.ARTICLE_PERFECT);
+            if (Article.ARTICLE_PERFECT_C_PERFECT == perfect) {
+                // 优选帖默认允许未登录游客浏览，并同步标签关联表优选状态
+                nextArticle.put(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_ALLOW);
+                final List<JSONObject> tagArticleRels = tagArticleRepository.getByArticleId(articleId);
+                for (final JSONObject tagArticleRel : tagArticleRels) {
+                    tagArticleRel.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_PERFECT);
+                    tagArticleRepository.update(tagArticleRel.optString(Keys.OBJECT_ID), tagArticleRel);
+                }
+            }
+
+            nextArticle.put(Article.ARTICLE_AUDIO_URL, "");
+
+            userRepository.update(authorId, author, UserExt.USER_TAG_COUNT);
+            articleRepository.update(articleId, nextArticle);
+
+            final String finalContent = nextArticle.optString(Article.ARTICLE_CONTENT);
+            final boolean paragraphStructureChanged = !StringUtils.equals(oldContent, finalContent);
+            if (paragraphStructureChanged
+                    && (Article.ARTICLE_TYPE_C_LONG == nextType || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
+                longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, finalContent);
+            }
+
+            if (null != longArticleColumnRequest) {
+                nextArticle.put(Keys.OBJECT_ID, articleId);
+                longArticleColumnMgmtService.syncChapterInCurrentTransaction(nextArticle, longArticleColumnRequest);
+                updateColumnCoverByAdminInCurrentTransaction(nextArticle, longArticleColumnRequest);
+            }
+
+            final boolean newlySetPerfect = Article.ARTICLE_PERFECT_C_NOT_PERFECT == oldArticle.optInt(Article.ARTICLE_PERFECT)
+                    && Article.ARTICLE_PERFECT_C_PERFECT == perfect;
+            return new JSONObject()
+                    .put("article", JSONs.clone(nextArticle))
+                    .put("authorId", authorId)
+                    .put("newlySetPerfect", newlySetPerfect);
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "当前事务内管理员更新文章 [id={}] 失败", articleId, e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理员编辑文章事务确认提交后的副作用（新设优选通知与积分发放、搜索引擎同步）。
+     *
+     * @param updateOutcome {@link #updateArticleByAdminInCurrentTransaction} 返回的结果对象
+     */
+    public void afterAdminArticleUpdated(final JSONObject updateOutcome) {
+        if (articleRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("事务尚未结束前禁止触发更新后置操作");
+        }
+        if (null == updateOutcome) {
+            return;
+        }
+        final JSONObject article = updateOutcome.optJSONObject("article");
+        if (null == article) {
+            return;
+        }
+        final String articleId = article.optString(Keys.OBJECT_ID);
+        final String authorId = updateOutcome.optString("authorId");
+        final boolean newlySetPerfect = updateOutcome.optBoolean("newlySetPerfect");
+
+        if (newlySetPerfect && StringUtils.isNotBlank(authorId)) {
+            try {
+                final JSONObject notification = new JSONObject();
+                notification.put(Notification.NOTIFICATION_USER_ID, authorId);
+                notification.put(Notification.NOTIFICATION_DATA_ID, articleId);
+                notificationMgmtService.addPerfectArticleNotification(notification);
+                pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, authorId,
+                        Pointtransfer.TRANSFER_TYPE_C_PERFECT_ARTICLE, Pointtransfer.TRANSFER_SUM_C_PERFECT_ARTICLE,
+                        articleId, System.currentTimeMillis(), "");
+            } catch (final Exception e) {
+                LOGGER.error("发放优选文章通知或积分失败, articleId={}", articleId, e);
+            }
+        }
+
+        final int articleType = article.optInt(Article.ARTICLE_TYPE);
+        if (Article.ARTICLE_TYPE_C_DISCUSSION == articleType || Article.ARTICLE_TYPE_C_THOUGHT == articleType) {
+            return;
+        }
+        if (Symphonys.ALGOLIA_ENABLED) {
+            try {
+                searchMgmtService.updateAlgoliaDocument(JSONs.clone(article));
+            } catch (final Exception e) {
+                LOGGER.error("更新 Algolia 文章索引失败, articleId={}", articleId, e);
+            }
+        }
+        if (Symphonys.ES_ENABLED) {
+            try {
+                searchMgmtService.updateESDocument(article, Article.ARTICLE);
+            } catch (final Exception e) {
+                LOGGER.error("更新 Elasticsearch 文章索引失败, articleId={}", articleId, e);
+            }
+        }
+    }
 }
