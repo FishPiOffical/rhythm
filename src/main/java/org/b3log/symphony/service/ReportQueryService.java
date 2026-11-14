@@ -44,6 +44,8 @@ import org.b3log.symphony.util.Markdowns;
 import org.b3log.symphony.util.Symphonys;
 import org.json.JSONObject;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -125,6 +127,15 @@ public class ReportQueryService {
                         + " WHERE type=? AND data LIKE ? ESCAPE '!' ORDER BY oId DESC LIMIT 1",
                 "cr-revoke", "%\"oId\":\"" + escapedId + "\"%");
         return fallback.isEmpty() ? null : fallback.get(0);
+    }
+
+    private static String renderChatReport(final JSONObject content, final boolean revoked) {
+        // 审计原文保持不变，仅在管理展示边界转义身份、清洗正文，两端模板共用安全 HTML。
+        final String notice = revoked ? "[该数据已被撤回或删除，此为快照记录] " : "";
+        final String author = Escapes.escapeHTML(content.optString(User.USER_NAME));
+        // 使用本地私有渲染，保留 Markdown、图片和换行，避免审计正文进入公开缓存或远程转换服务。
+        return "<p>" + notice + "[" + author + "]</p>"
+                + Markdowns.toPrivateHTML(content.optString(Common.CONTENT));
     }
 
     /**
@@ -242,18 +253,18 @@ public class ReportQueryService {
                                 final JSONObject log = findChatRevokeLog(dataId);
                                 if (log != null) {
                                     final JSONObject content = new JSONObject(new JSONObject(log.optString("data")).optString(Common.CONTENT));
-                                    chatContent = "[该数据已被撤回或删除，此为快照记录] [" + content.optString(User.USER_NAME) + "] " + content.optString("content");
+                                    chatContent = renderChatReport(content, true);
                                 } else {
-                                    chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + dataId;
+                                    chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + Escapes.escapeHTML(dataId);
                                 }
                             } catch (Exception e) {
-                                chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + dataId;
+                                chatContent = "内容已被撤回或删除，但日志中无记录，请联系管理员调取。原聊天数据oId为：" + Escapes.escapeHTML(dataId);
                             }
                         } else {
                             final JSONObject content = new JSONObject(redPacket.optString(Common.CONTENT));
-                            chatContent = "[" + content.optString(User.USER_NAME) + "] " + content.optString("content");
+                            chatContent = renderChatReport(content, false);
                         }
-                        reportData = "<a href=\"" + Latkes.getServePath() + "/cr?oId=" + dataId +
+                        reportData = "<a href=\"" + Latkes.getServePath() + "/cr?oId=" + URLEncoder.encode(dataId, StandardCharsets.UTF_8) +
                                 "\" target=\"_blank\">跳转至该消息</a>";
                         break;
                     default:
@@ -301,12 +312,13 @@ public class ReportQueryService {
                     continue;
             }
 
-            String memo = record.optString(Report.REPORT_MEMO);
-            memo = Markdowns.toHTML(memo);
-            memo = Markdowns.clean(memo, "");
-            report.put(Report.REPORT_MEMO, memo);
             if (!chatContent.isEmpty()) {
-                report.put(Report.REPORT_MEMO, chatContent.replaceAll("\n\n", "<br>"));
+                report.put(Report.REPORT_MEMO, chatContent);
+            } else {
+                String memo = record.optString(Report.REPORT_MEMO);
+                memo = Markdowns.toHTML(memo);
+                memo = Markdowns.clean(memo, "");
+                report.put(Report.REPORT_MEMO, memo);
             }
             report.put(Report.REPORT_HANDLED, record.optInt(Report.REPORT_HANDLED));
             reports.add(report);
