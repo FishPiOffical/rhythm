@@ -1140,6 +1140,7 @@ public class ApiV3AdminAssetService {
                                         .put("ok", false).put("error", "目标或金额无效"));
                                 continue;
                             }
+                            final int index = i;
                             try {
                                 ApiV3TransactionSavepoint.run(() -> {
                                     final JSONObject user = resolveUser(target);
@@ -1153,7 +1154,7 @@ public class ApiV3AdminAssetService {
                                         throw new IllegalStateException("转账未生成流水");
                                     }
                                     results.put(new JSONObject()
-                                            .put("index", i)
+                                            .put("index", index)
                                             .put("target", target)
                                             .put("userId", userId)
                                             .put("userName", user.optString(User.USER_NAME))
