@@ -3,6 +3,7 @@
 ## 开始任务必读
 
 - 所有 AI 开始任务先读 [维护问题与规避要求](docs/agent-guides/maintenance.md)、[专题索引](docs/agent-guides/README.md)；代码实施前再读 [开发、验证与交付](docs/agent-guides/workflow.md) 及索引中命中的专题。专题约定与本文件共同生效，不能只读根文件就修改代码。
+- 涉及摸鱼派 v3 用户站联调、检查或优化时，另读 [website_v3 联调](docs/agent-guides/website-v3-integration.md)；前端仓库位于 `C:\Users\陈辉\IdeaProjects\fishpi_website_v3`，与 Rhythm 独立提交，具体入口、协议边界和本地拓扑以该专题为准。
 - 当前问题是规则重复、旧结论覆盖新协议、临时环境写成长久事实，以及只测局部导致反复修 bug；规避办法见必读维护文档。后续架构、业务细节、迁移和验收要求统一维护在 `docs/agent-guides/` 对应专题及其引用文档，更新索引；根文件只保留最高优先级、跨任务的长期约束，禁止追加修复流水账。
 - 所有 AI 对本轮发现的长期规则、明确偏好、实现变化和文档错误负有主动维护责任，不等待用户再次提醒；按 [维护触发与完成标准](docs/agent-guides/maintenance.md#维护触发与完成标准) 当轮更新，交付时说明更新位置或无需更新的理由。不得为凑记录重复追加、猜测用户性格或把临时状态写成长期事实。
 - 文档维护绝对禁止记录任何涉密内容，包括真实密码、密钥、令牌、Cookie、验证码及其片段；此要求覆盖规则文档、任务记录、示例、截图、日志摘录和提交说明，具体按 [文档保密要求](docs/agent-guides/maintenance.md#文档保密要求) 执行。
