@@ -244,16 +244,28 @@ public class CommentMgmtService {
     @Transactional
     public void removeCommentByAdmin(final String commentId) {
         try {
-            final JSONObject comment = commentRepository.get(commentId);
-            if (null == comment) {
-                return;
-            }
-            professionSourceEventCaptureService.targetRemoved("comment", commentId);
-            commentRepository.removeComment(commentId);
+            removeCommentByAdminInCurrentTransaction(commentId);
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Removes a comment error [id=" + commentId + "]", e);
             throw new IllegalStateException("删除评论时撤销职业来源失败", e);
         }
+    }
+
+    /**
+     * 在当前外部事务内以管理员身份移除评论并同步撤销职业来源事件。
+     *
+     * @param commentId 目标评论 ID
+     * @return 若评论存在并完成移除返回 {@code true}，若评论不存在返回 {@code false}
+     * @throws RepositoryException 持久化异常
+     */
+    public boolean removeCommentByAdminInCurrentTransaction(final String commentId) throws RepositoryException {
+        final JSONObject comment = commentRepository.get(commentId);
+        if (null == comment) {
+            return false;
+        }
+        professionSourceEventCaptureService.targetRemoved("comment", commentId);
+        commentRepository.removeComment(commentId);
+        return true;
     }
 
     /**
@@ -563,14 +575,7 @@ public class CommentMgmtService {
                 return;
             }
 
-            String content = comment.optString(Comment.COMMENT_CONTENT);
-            content = Emotions.toAliases(content);
-            content = content.replaceAll("\\s+$", ""); // https://github.com/b3log/symphony/issues/389
-            content += " "; // in case of tailing @user
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
-            content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
-            content = Runes.removeControlChars(content);
-            comment.put(Comment.COMMENT_CONTENT, content);
+            comment.put(Comment.COMMENT_CONTENT, normalizeAdminCommentContent(comment.optString(Comment.COMMENT_CONTENT)));
 
             commentRepository.update(commentId, comment);
 
@@ -582,5 +587,38 @@ public class CommentMgmtService {
 
             LOGGER.log(Level.ERROR, "Updates a comment [id=" + commentId + "] failed", e);
         }
+    }
+
+    /**
+     * 在当前外部事务内以管理员身份更新评论字段（统一执行表情别名转换、上传占位清理与控制字符剔除）。
+     *
+     * @param commentId 目标评论 ID
+     * @param patch     本次需更新的字段集合
+     * @return 若评论存在并完成更新返回 {@code true}，若不存在返回 {@code false}
+     * @throws RepositoryException 持久化异常
+     */
+    public boolean updateCommentByAdminInCurrentTransaction(final String commentId, final JSONObject patch)
+            throws RepositoryException {
+        final JSONObject existing = commentRepository.get(commentId);
+        if (null == existing) {
+            return false;
+        }
+        for (final String key : patch.keySet()) {
+            existing.put(key, patch.opt(key));
+        }
+        if (patch.has(Comment.COMMENT_CONTENT)) {
+            existing.put(Comment.COMMENT_CONTENT, normalizeAdminCommentContent(existing.optString(Comment.COMMENT_CONTENT)));
+        }
+        commentRepository.update(commentId, existing);
+        return true;
+    }
+
+    private String normalizeAdminCommentContent(final String rawContent) {
+        String content = Emotions.toAliases(rawContent);
+        content = content.replaceAll("\\s+$", ""); // https://github.com/b3log/symphony/issues/389
+        content += " "; // in case of tailing @user
+        content = content.replace(langPropsService.get("uploadingLabel", Locale.SIMPLIFIED_CHINESE), "");
+        content = content.replace(langPropsService.get("uploadingLabel", Locale.US), "");
+        return Runes.removeControlChars(content);
     }
 }

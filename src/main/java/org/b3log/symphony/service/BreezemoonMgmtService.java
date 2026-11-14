@@ -163,13 +163,66 @@ public class BreezemoonMgmtService {
         return updated;
     }
 
+    /**
+     * 在当前外部事务内以管理员身份更新清风明月内容（统一保留敏感词替换与长度限制）。
+     *
+     * @param id    目标清风明月 ID
+     * @param patch 需更新的字段集合
+     * @return 更新后的清风明月对象；若记录不存在则返回 {@code null}
+     * @throws RepositoryException 持久化异常
+     */
+    public JSONObject updateBreezemoonByAdminInCurrentTransaction(final String id, final JSONObject patch)
+            throws RepositoryException {
+        final JSONObject old = breezemoonRepository.getForUpdate(id);
+        if (null == old) {
+            return null;
+        }
+        updateLocked(old, patch, false);
+        return old;
+    }
+
+    /**
+     * 在当前外部事务内移除指定清风明月并撤销职业来源事件。
+     *
+     * @param id 目标清风明月 ID
+     * @return 若目标存在并完成移除返回 {@code true}，若不存在返回 {@code false}
+     * @throws RepositoryException 持久化异常
+     */
+    public boolean removeBreezemoonInCurrentTransaction(final String id) throws RepositoryException {
+        final JSONObject breezemoon = breezemoonRepository.getForUpdate(id);
+        if (null == breezemoon) {
+            return false;
+        }
+        professionSourceEventCaptureService.targetRemoved("breezemoon", id);
+        breezemoonRepository.remove(id);
+        return true;
+    }
+
     private void updateLocked(final JSONObject old, final JSONObject request) throws RepositoryException {
-        final String content = ReservedWords.processReservedWord(request.optString(Breezemoon.BREEZEMOON_CONTENT));
-        old.put(Breezemoon.BREEZEMOON_CONTENT, content);
-        old.put(Breezemoon.BREEZEMOON_AUTHOR_ID, request.optString(Breezemoon.BREEZEMOON_AUTHOR_ID, old.optString(Breezemoon.BREEZEMOON_AUTHOR_ID)));
-        old.put(Breezemoon.BREEZEMOON_IP, request.optString(Breezemoon.BREEZEMOON_IP));
-        old.put(Breezemoon.BREEZEMOON_UA, StringUtils.substring(request.optString(Breezemoon.BREEZEMOON_UA), 0, Common.MAX_LENGTH_UA));
-        old.put(Breezemoon.BREEZEMOON_STATUS, request.optInt(Breezemoon.BREEZEMOON_STATUS, Breezemoon.BREEZEMOON_STATUS_C_VALID));
+        updateLocked(old, request, true);
+    }
+
+    private void updateLocked(final JSONObject old, final JSONObject request, final boolean applyLegacyDefaults)
+            throws RepositoryException {
+        if (applyLegacyDefaults || request.has(Breezemoon.BREEZEMOON_CONTENT)) {
+            final String content = ReservedWords.processReservedWord(request.optString(Breezemoon.BREEZEMOON_CONTENT));
+            old.put(Breezemoon.BREEZEMOON_CONTENT, content);
+        }
+        if (request.has(Breezemoon.BREEZEMOON_AUTHOR_ID)) {
+            old.put(Breezemoon.BREEZEMOON_AUTHOR_ID,
+                    request.optString(Breezemoon.BREEZEMOON_AUTHOR_ID, old.optString(Breezemoon.BREEZEMOON_AUTHOR_ID)));
+        }
+        if (applyLegacyDefaults || request.has(Breezemoon.BREEZEMOON_IP)) {
+            old.put(Breezemoon.BREEZEMOON_IP, request.optString(Breezemoon.BREEZEMOON_IP));
+        }
+        if (applyLegacyDefaults || request.has(Breezemoon.BREEZEMOON_UA)) {
+            old.put(Breezemoon.BREEZEMOON_UA,
+                    StringUtils.substring(request.optString(Breezemoon.BREEZEMOON_UA), 0, Common.MAX_LENGTH_UA));
+        }
+        if (applyLegacyDefaults || request.has(Breezemoon.BREEZEMOON_STATUS)) {
+            old.put(Breezemoon.BREEZEMOON_STATUS,
+                    request.optInt(Breezemoon.BREEZEMOON_STATUS, Breezemoon.BREEZEMOON_STATUS_C_VALID));
+        }
         old.put(Breezemoon.BREEZEMOON_UPDATED, System.currentTimeMillis());
         breezemoonRepository.update(old.optString(Keys.OBJECT_ID), old);
     }
@@ -183,12 +236,7 @@ public class BreezemoonMgmtService {
     @Transactional
     public void removeBreezemoon(final String id) throws ServiceException {
         try {
-            final JSONObject breezemoon = breezemoonRepository.getForUpdate(id);
-            if (null == breezemoon) {
-                return;
-            }
-            professionSourceEventCaptureService.targetRemoved("breezemoon", id);
-            breezemoonRepository.remove(id);
+            removeBreezemoonInCurrentTransaction(id);
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, "Removes a breezemoon [id=" + id + "] failed", e);
 

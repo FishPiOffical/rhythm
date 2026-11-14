@@ -312,9 +312,17 @@ public class ApiV3AdminService {
     @Inject
     private ArticleMgmtService articleMgmtService;
     @Inject
+    private ArticleAdminDomainService articleAdminDomainService;
+    @Inject
     private CommentRepository comments;
     @Inject
+    private CommentMgmtService commentMgmtService;
+    @Inject
     private BreezemoonRepository breezemoons;
+    @Inject
+    private BreezemoonMgmtService breezemoonMgmtService;
+    @Inject
+    private UserMgmtService userMgmtService;
     @Inject
     private LongArticleColumnRepository longArticleColumns;
     @Inject
@@ -671,7 +679,8 @@ public class ApiV3AdminService {
             actor = authorizeInCurrentTransaction(
                     identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_USERS, false);
             requireMenuAdmin(actor);
-            detailPayload = loadSanitizedUserDetailInTransaction(userId, actor.userId());
+            final boolean canViewAuditLog = actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN);
+            detailPayload = loadSanitizedUserDetailInTransaction(userId, actor.userId(), canViewAuditLog);
             tx.commit();
         } catch (final ApiV3Exception e) {
             throw e;
@@ -829,40 +838,9 @@ public class ApiV3AdminService {
 
                         final String oldUserName = target.optString(User.USER_NAME);
                         oldUserNameRef.set(oldUserName);
-                        final String newName = UserExt.ANONYMOUS_USER_NAME + target.optString(UserExt.USER_NO);
                         final long now = System.currentTimeMillis();
-                        final String randomPwd = DigestUtils.md5Hex(now + ":" + UUID.randomUUID());
-
-                        final JSONObject changes = new JSONObject()
-                                .put(User.USER_NAME, newName)
-                                .put(User.USER_EMAIL, newName + UserExt.USER_BUILTIN_EMAIL_SUFFIX)
-                                .put("userPhone", UserExt.NULL_USER_PHONE)
-                                .put(User.USER_PASSWORD, randomPwd)
-                                .put(UserExt.USER_NICKNAME, "")
-                                .put(UserExt.USER_TAGS, "")
-                                .put(User.USER_URL, "")
-                                .put(UserExt.USER_INTRO, "")
-                                .put(UserExt.USER_QQ, "")
-                                .put(UserExt.USER_AVATAR_TYPE, UserExt.USER_AVATAR_TYPE_C_UPLOAD)
-                                .put(UserExt.USER_AVATAR_URL, AvatarQueryService.DEFAULT_AVATAR_URL)
-                                .put(UserExt.USER_CITY, "")
-                                .put(UserExt.USER_PROVINCE, "")
-                                .put(UserExt.USER_COUNTRY, "")
-                                .put(UserExt.USER_LATEST_LOGIN_IP, "")
-                                .put(UserExt.USER_INDEX_REDIRECT_URL, "")
-                                .put("secret2fa", "")
-                                .put("mbti", "")
-                                .put(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT)
-                                .put(UserExt.USER_ONLINE_FLAG, false)
-                                .put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_DEACTIVATED)
-                                .put(UserExt.USER_UPDATE_TIME, now);
-
-                        users.updateColumnsInCurrentTransaction(userId, changes);
+                        final String newName = userMgmtService.deactivateUserInCurrentTransaction(userId);
                         revokeUserTokensInCurrentTransaction(userId);
-                        notifications.removeByUserId(userId);
-                        livenesses.removeByUserId(userId);
-                        visits.removeByUserId(userId);
-                        emotions.removeByUserId(userId);
                         operations.add(Operation.newOperation(
                                 request, Operation.OPERATION_CODE_C_DEACTIVATE_USER, userId, actorRef.get().user()));
 
@@ -1391,7 +1369,9 @@ public class ApiV3AdminService {
         return target;
     }
 
-    private JSONObject loadSanitizedUserDetailInTransaction(final String userId, final String actorId)
+    private JSONObject loadSanitizedUserDetailInTransaction(final String userId,
+                                                            final String actorId,
+                                                            final boolean includeRecentOperations)
             throws RepositoryException {
         final List<JSONObject> rows = users.select(
                 "SELECT * FROM `" + users.getName() + "` WHERE oId=? LIMIT 1", userId);
@@ -1413,14 +1393,16 @@ public class ApiV3AdminService {
         profile.put("userFollowerStatus", row.optInt(UserExt.USER_FOLLOWER_STATUS));
         profile.put("userFollowingUserStatus", row.optInt(UserExt.USER_FOLLOWING_USER_STATUS));
 
-        final List<JSONObject> opRows = operations.select(
-                "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP,operationUA "
-                        + "FROM `" + operations.getName()
-                        + "` WHERE operationDataId=? ORDER BY operationCreated DESC, oId DESC LIMIT 15",
-                userId);
         final JSONArray recentOps = new JSONArray();
-        for (final JSONObject opRow : opRows) {
-            recentOps.put(formatOperationRow(opRow));
+        if (includeRecentOperations) {
+            final List<JSONObject> opRows = operations.select(
+                    "SELECT oId,operationUserId,operationCode,operationDataId,operationCreated,operationIP,operationUA "
+                            + "FROM `" + operations.getName()
+                            + "` WHERE operationDataId=? ORDER BY operationCreated DESC, oId DESC LIMIT 15",
+                    userId);
+            for (final JSONObject opRow : opRows) {
+                recentOps.put(formatOperationRow(opRow));
+            }
         }
 
         return new JSONObject()
@@ -1967,7 +1949,7 @@ public class ApiV3AdminService {
                                     .put(Article.ARTICLE_UA, articleUA);
                             final JSONObject created;
                             try {
-                                created = articleMgmtService.addArticleByAdminInCurrentTransaction(adminReq);
+                                created = articleAdminDomainService.addArticleByAdminInCurrentTransaction(adminReq);
                             } catch (final ServiceException e) {
                                 throw mapAdminServiceException(e, 422, "article_create_rejected");
                             }
@@ -1983,7 +1965,7 @@ public class ApiV3AdminService {
                         }));
             }, exec -> {
                 if (exec.applied() && createdArticleRef.get() != null) {
-                    articleMgmtService.afterAdminArticleAdded(createdArticleRef.get());
+                    articleAdminDomainService.afterAdminArticleAdded(createdArticleRef.get());
                 }
             });
         } catch (final ApiV3Exception e) {
@@ -2034,7 +2016,7 @@ public class ApiV3AdminService {
                             }
                             final JSONObject outcome;
                             try {
-                                outcome = articleMgmtService.updateArticleByAdminInCurrentTransaction(
+                                outcome = articleAdminDomainService.updateArticleByAdminInCurrentTransaction(
                                         articleId, updateInput.patch(), updateInput.longArticleColumnRequest());
                             } catch (final ServiceException e) {
                                 if ("文章不存在".equals(e.getMessage())) {
@@ -2052,7 +2034,7 @@ public class ApiV3AdminService {
                         }));
             }, exec -> {
                 if (exec.applied() && outcomeRef.get() != null) {
-                    articleMgmtService.afterAdminArticleUpdated(outcomeRef.get());
+                    articleAdminDomainService.afterAdminArticleUpdated(outcomeRef.get());
                 }
             });
         } catch (final ApiV3Exception e) {
@@ -2279,14 +2261,9 @@ public class ApiV3AdminService {
                             if (StringUtils.isNotBlank(target.articleId())) {
                                 articles.getForUpdate(target.articleId());
                             }
-                            final JSONObject lockedComment = comments.get(commentId);
-                            if (lockedComment == null) {
+                            if (!commentMgmtService.updateCommentByAdminInCurrentTransaction(commentId, normalized)) {
                                 throw ApiV3Requests.notFound();
                             }
-                            for (final String key : normalized.keySet()) {
-                                lockedComment.put(key, normalized.opt(key));
-                            }
-                            comments.update(commentId, lockedComment);
                             operations.add(Operation.newOperation(
                                     request, Operation.OPERATION_CODE_C_UPDATE_COMMENT, commentId, actor.user()));
                             return new JSONObject()
@@ -2356,12 +2333,9 @@ public class ApiV3AdminService {
                                     if (StringUtils.isNotBlank(target.articleId())) {
                                         articles.getForUpdate(target.articleId());
                                     }
-                                    final JSONObject lockedComment = comments.get(commentId);
-                                    if (lockedComment == null) {
+                                    if (!commentMgmtService.removeCommentByAdminInCurrentTransaction(commentId)) {
                                         throw ApiV3Requests.notFound();
                                     }
-                                    comments.removeComment(commentId);
-                                    professionSourceEventCaptureService.targetRemoved("comment", commentId);
                                     operations.add(Operation.newOperation(
                                             request, Operation.OPERATION_CODE_C_REMOVE_COMMENT, commentId, actor.user()));
                                     return new JSONObject()
@@ -2496,16 +2470,12 @@ public class ApiV3AdminService {
                         if (!actor.permissions().contains(Permission.PERMISSION_ID_C_BREEZEMOON_UPDATE_BREEZEMOON)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        final JSONObject locked = breezemoons.getForUpdate(breezemoonId);
-                        if (locked == null) {
+                        final JSONObject updated = breezemoonMgmtService.updateBreezemoonByAdminInCurrentTransaction(
+                                breezemoonId, normalized);
+                        if (updated == null) {
                             throw ApiV3Requests.notFound();
                         }
-                        for (final String key : normalized.keySet()) {
-                            locked.put(key, normalized.opt(key));
-                        }
-                        final long now = System.currentTimeMillis();
-                        locked.put(Breezemoon.BREEZEMOON_UPDATED, now);
-                        breezemoons.update(breezemoonId, locked);
+                        final long now = updated.optLong(Breezemoon.BREEZEMOON_UPDATED, System.currentTimeMillis());
                         operations.add(Operation.newOperation(
                                 request, Operation.OPERATION_CODE_C_UPDATE_BREEZEMOON, breezemoonId, actor.user()));
                         return new JSONObject()
@@ -2549,12 +2519,9 @@ public class ApiV3AdminService {
                         if (!actor.permissions().contains(Permission.PERMISSION_ID_C_BREEZEMOON_REMOVE_BREEZEMOON)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        final JSONObject locked = breezemoons.getForUpdate(breezemoonId);
-                        if (locked == null) {
+                        if (!breezemoonMgmtService.removeBreezemoonInCurrentTransaction(breezemoonId)) {
                             throw ApiV3Requests.notFound();
                         }
-                        breezemoons.remove(breezemoonId);
-                        professionSourceEventCaptureService.targetRemoved("breezemoon", breezemoonId);
                         operations.add(Operation.newOperation(
                                 request, Operation.OPERATION_CODE_C_REMOVE_BREEZEMOON, breezemoonId, actor.user()));
                         return new JSONObject()
@@ -2673,16 +2640,11 @@ public class ApiV3AdminService {
                             if (!actor.permissions().contains(actionPermission)) {
                                 throw ApiV3Requests.forbidden();
                             }
-                            if (StringUtils.isNotBlank(targetAuthorId)) {
-                                users.getForUpdate(targetAuthorId);
-                            }
-                            final JSONObject lockedArticle = articles.getForUpdate(articleId);
-                            if (lockedArticle == null) {
+                            final Long stickTime = articleAdminDomainService.setArticleStickInCurrentTransaction(
+                                    articleId, targetAuthorId, stick);
+                            if (stickTime == null) {
                                 throw ApiV3Requests.notFound();
                             }
-                            final long stickTime = stick ? System.currentTimeMillis() : 0L;
-                            lockedArticle.put(Article.ARTICLE_STICK, stickTime);
-                            articles.update(articleId, lockedArticle);
                             operations.add(Operation.newOperation(request, operationCode, articleId, actor.user()));
                             return new JSONObject()
                                     .put("oId", articleId)

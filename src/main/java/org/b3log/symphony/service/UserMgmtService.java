@@ -176,24 +176,13 @@ public class UserMgmtService {
     public void deactivateUser(final String userId) throws ServiceException {
         final Transaction transaction = userRepository.beginTransaction();
         try {
-            final JSONObject user = userRepository.get(userId);
-            if (null == user) {
-                transaction.rollback();
-                throw new ServiceException("用户不存在");
-            }
-            if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
-                transaction.rollback();
-                throw new ServiceException("账号已永久停用");
-            }
-            anonymizeDeactivatedUser(user);
-            userRepository.update(userId, user);
-
-            notificationRepository.removeByUserId(userId);
-            livenessRepository.removeByUserId(userId);
-            visitRepository.removeByUserId(userId);
-            emotionRepository.removeByUserId(userId);
-
+            deactivateUserInCurrentTransaction(userId);
             transaction.commit();
+        } catch (final ServiceException e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw e;
         } catch (final RepositoryException e) {
             if (transaction.isActive()) {
                 transaction.rollback();
@@ -202,6 +191,32 @@ public class UserMgmtService {
             LOGGER.log(Level.ERROR, "Deactivates a user [id=" + userId + "] failed", e);
             throw new ServiceException(e);
         }
+    }
+
+    /**
+     * 在当前外部事务内执行账号永久停用（统一匿名化账号资料并清理关联通知、活跃度、访问与表情记录）。
+     *
+     * @param userId 目标用户 ID
+     * @return 匿名化后的新用户名
+     * @throws ServiceException    用户不存在或已处于停用状态
+     * @throws RepositoryException 持久化异常
+     */
+    public String deactivateUserInCurrentTransaction(final String userId) throws ServiceException, RepositoryException {
+        final JSONObject user = userRepository.getForUpdate(userId);
+        if (null == user) {
+            throw new ServiceException("用户不存在");
+        }
+        if (UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS)) {
+            throw new ServiceException("账号已永久停用");
+        }
+        anonymizeDeactivatedUser(user);
+        userRepository.update(userId, user);
+
+        notificationRepository.removeByUserId(userId);
+        livenessRepository.removeByUserId(userId);
+        visitRepository.removeByUserId(userId);
+        emotionRepository.removeByUserId(userId);
+        return user.optString(User.USER_NAME);
     }
 
     private void anonymizeDeactivatedUser(final JSONObject user) {

@@ -4,6 +4,11 @@
 
 # 261114
 
+- **管理后台 V3 领域服务收敛与敏感字段权限对齐**
+  - 恢复 `ArticleMgmtService` 至 `f427df8a^` 原始形态，将 V3 管理员文章新建、编辑与置顶事务原语抽离至独立公共领域服务 `ArticleAdminDomainService`
+  - 统一 `CommentMgmtService`、`BreezemoonMgmtService` 与 `UserMgmtService` 事务内写原语，修复 V3 移除评论/清风明月绕过职业来源事件撤销以及编辑/停用逻辑分叉问题
+  - 收紧 `GET /api/v3/admin/users/{userId}` 中 `recentOperations` 的 `menuAdmin` 权限边界，并在 `API.md` 中明确 `userEmail` / `userLatestLoginIP` 在 `menuAdminUsers` 下的旧版兼容返回口径
+
 - **管理后台 V3 第三阶段完整运营功能接口**
   - 新增角色权限配置与邀请码管理 V3 接口（`/api/v3/admin/roles*`、`/api/v3/admin/invitecodes*`），支持角色增删改查、权限矩阵更新（隔离非管理员越权）及邀请码生成与状态维护
   - 新增会员资产运营 V3 接口（`/api/v3/admin/vip/*`、`/api/v3/admin/coupons*`、`/api/v3/admin/medals/*`、`/api/v3/admin/points/*`、`/api/v3/admin/salary/pay`、`/api/v3/admin/bags/adjust`），覆盖 VIP 等级/实例/退订、优惠券（`-1` 无限次）、勋章批量授予与持有预检、积分流水、批量工资与背包调整

@@ -17206,9 +17206,9 @@ curl 'https://fishpi.cn/api/v3/admin/users?status=all&p=1&size=20' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | code | 0 表示成功 | 0 |
-| data | 分页数据，包含脱敏用户列表 `list`、分页 `pagination` 与角色选项 `roleOptions` | {} |
+| data | 分页数据，包含管理用户列表 `list`、分页 `pagination` 与角色选项 `roleOptions` | {} |
 
-> 返回字段仅含展示与管理必需字段，不返回密码哈希、MFA 密钥或各类令牌。
+> 返回字段不返回密码哈希、`secret2fa` 或各类令牌，`userPhone` 做掩码处理；对具备 `menuAdminUsers` 权限的管理员，保留返回 `userEmail` 与 `userLatestLoginIP`（与旧版后台一致）。
 
 ### 查询管理用户详情
 
@@ -17235,7 +17235,7 @@ curl 'https://fishpi.cn/api/v3/admin/users/1630399192600' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | code | 0 表示成功 | 0 |
-| data | 用户详情对象，含脱敏档案 `user`、最近审计操作 `recentOperations`、可选角色 `roleOptions`、背包摘要 `bagItems` 与勋章摘要 `medals` | {} |
+| data | 用户详情对象，含管理档案 `user`（剔除密码/MFA 密钥/令牌并对 `userPhone` 掩码，具备 `menuAdminUsers` 权限时保留 `userEmail` 与 `userLatestLoginIP`）、最近审计操作 `recentOperations`（仅具备 `menuAdmin` 权限时填充，否则为空数组）、可选角色 `roleOptions`、背包摘要 `bagItems` 与勋章摘要 `medals` | {} |
 
 ### 更新用户资料与状态
 
