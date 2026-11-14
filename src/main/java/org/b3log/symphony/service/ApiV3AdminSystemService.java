@@ -35,6 +35,7 @@ import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3TransactionSavepoint;
 import org.b3log.symphony.util.ApiV3WriteInputs;
@@ -103,7 +104,7 @@ public class ApiV3AdminSystemService {
         try {
             filters = PetAdminLogQueryService.filters(tab, user, from, to, operation, page, today);
         } catch (final IllegalArgumentException e) {
-            throw ApiV3WriteInputs.invalid(e.getMessage());
+            throw invalidRequest(e.getMessage());
         }
 
         final PetAdminLogQueryService.Page result;
@@ -166,11 +167,11 @@ public class ApiV3AdminSystemService {
         }
         final String action = StringUtils.trimToEmpty(body.optString("action"));
         if (!"ban".equals(action) && !"unban".equals(action)) {
-            throw ApiV3WriteInputs.invalid("action 仅支持 ban 或 unban");
+            throw invalidRequest("action 仅支持 ban 或 unban");
         }
         final JSONArray rawIps = body.optJSONArray("ipList");
         if (rawIps == null || rawIps.isEmpty() || rawIps.length() > 500) {
-            throw ApiV3WriteInputs.invalid("ipList 不能为空且单次最多 500 条");
+            throw invalidRequest("ipList 不能为空且单次最多 500 条");
         }
         final List<String> ipList = new ArrayList<>();
         for (int i = 0; i < rawIps.length(); i++) {
@@ -180,7 +181,7 @@ public class ApiV3AdminSystemService {
             }
         }
         if (ipList.isEmpty()) {
-            throw ApiV3WriteInputs.invalid("ipList 不含有效 IP");
+            throw invalidRequest("ipList 不含有效 IP");
         }
 
         final String actorId = adminService.actorId(identity);
@@ -262,7 +263,7 @@ public class ApiV3AdminSystemService {
         }
         final JSONObject optionsMap = body.optJSONObject("options");
         if (optionsMap == null || optionsMap.isEmpty()) {
-            throw ApiV3WriteInputs.invalid("options 不能为空");
+            throw invalidRequest("options 不能为空");
         }
 
         final String actorId = adminService.actorId(identity);
@@ -343,7 +344,7 @@ public class ApiV3AdminSystemService {
         }
         final int threshold = body.optInt("threshold", -1);
         if (threshold <= 0) {
-            throw ApiV3WriteInputs.invalid("每分钟请求数 threshold 必须是大于 0 的整数");
+            throw invalidRequest("每分钟请求数 threshold 必须是大于 0 的整数");
         }
         final boolean firewallEnabled = body.optBoolean("firewallEnabled", Firewall.isEnabled());
         final boolean verificationEnabled = body.optBoolean("verificationEnabled", AnonymousCaptchaShield.isEnabled());
@@ -530,6 +531,10 @@ public class ApiV3AdminSystemService {
         } finally {
             adminService.rollbackIfActive(tx);
         }
+    }
+
+    private static ApiV3Exception invalidRequest(final String message) {
+        return new ApiV3Exception(422, "invalid_request", message);
     }
 
     private static JSONObject currentSecuritySwitches() {

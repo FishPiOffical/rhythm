@@ -61,7 +61,7 @@ public class ArticleAdminDomainService {
     private ArticleRepository articleRepository;
 
     @Inject
-    private ArticleMgmtService articleMgmtService;
+    private ColumnCoverMgmtService columnCoverMgmtService;
 
     @Inject
     private UserRepository userRepository;
@@ -335,7 +335,7 @@ public class ArticleAdminDomainService {
             if (null != longArticleColumnRequest) {
                 nextArticle.put(Keys.OBJECT_ID, articleId);
                 longArticleColumnMgmtService.syncChapterInCurrentTransaction(nextArticle, longArticleColumnRequest);
-                articleMgmtService.updateColumnCoverByAdminInCurrentTransaction(nextArticle, longArticleColumnRequest);
+                updateColumnCoverByAdminInCurrentTransaction(nextArticle, longArticleColumnRequest);
             }
 
             final boolean newlySetPerfect = Article.ARTICLE_PERFECT_C_NOT_PERFECT == oldArticle.optInt(Article.ARTICLE_PERFECT)
@@ -630,6 +630,22 @@ public class ArticleAdminDomainService {
             builder.deleteCharAt(builder.length() - 1);
         }
         article.put(Article.ARTICLE_TAGS, builder.toString());
+    }
+
+    private void updateColumnCoverByAdminInCurrentTransaction(final JSONObject article,
+                                                             final JSONObject request) throws ServiceException {
+        if (Article.ARTICLE_TYPE_C_LONG != article.optInt(Article.ARTICLE_TYPE)
+                || !request.has(LongArticleColumn.COLUMN_COVER_URL)) {
+            return;
+        }
+        final String columnId = StringUtils.trimToEmpty(request.optString(LongArticleColumn.COLUMN_ID));
+        if (StringUtils.isBlank(columnId) || "__NEW__".equals(columnId)) {
+            return;
+        }
+        columnCoverMgmtService.updateOwnedCoverURLInCurrentTransaction(
+                article.optString(Article.ARTICLE_AUTHOR_ID),
+                columnId,
+                request.optString(LongArticleColumn.COLUMN_COVER_URL));
     }
 
     private static boolean tagExists(final String tagTitle, final List<JSONObject> tags) throws JSONException {

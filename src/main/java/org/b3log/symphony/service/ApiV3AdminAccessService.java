@@ -387,7 +387,7 @@ public class ApiV3AdminAccessService {
             final List<JSONObject> rows = invitecodeRepository.select(
                     "SELECT oId," + Invitecode.CODE + "," + Invitecode.MEMO + "," + Invitecode.STATUS + ","
                             + Invitecode.GENERATOR_ID + "," + Invitecode.USER_ID + ","
-                            + Invitecode.TIME + "," + Invitecode.USE_TIME
+                            + "time," + Invitecode.USE_TIME
                             + " FROM `" + table + "`" + where + " ORDER BY oId DESC LIMIT ? OFFSET ?",
                     queryParams.toArray());
 
@@ -406,7 +406,7 @@ public class ApiV3AdminAccessService {
                         .put("generatorName", resolveUserName(genId))
                         .put("userId", userId)
                         .put("userName", resolveUserName(userId))
-                        .put("time", row.optLong(Invitecode.TIME, 0L))
+                        .put("time", row.optLong("time", 0L))
                         .put("useTime", row.optLong(Invitecode.USE_TIME, 0L)));
             }
 
@@ -429,7 +429,7 @@ public class ApiV3AdminAccessService {
      */
     public JSONObject generateInvitecodes(final JSONObject identity, final String idempotencyKey,
                                           final Request request, final JSONObject body) {
-        final int quantity = ApiV3AdminService.requireExactInt(body, Common.QUANTITY, 1, 100);
+        final int quantity = ApiV3AdminService.requireExactInt(body, "quantity", 1, 100);
         final String memo = body.has(Invitecode.MEMO)
                 ? ApiV3WriteInputs.string(body, Invitecode.MEMO, 255, true)
                 : "";
@@ -442,7 +442,7 @@ public class ApiV3AdminAccessService {
                     actorId,
                     "admin.invitecode.generate",
                     idempotencyKey,
-                    new JSONObject().put(Common.QUANTITY, quantity).put(Invitecode.MEMO, memo),
+                    new JSONObject().put("quantity", quantity).put(Invitecode.MEMO, memo),
                     () -> ApiV3TransactionSavepoint.run(() -> {
                         invitecodeMgmtService.adminGenInvitecodes(quantity, memo);
                         adminService.recordOperation(request, Operation.OPERATION_CODE_C_GENERATE_INVITECODES,
@@ -497,7 +497,7 @@ public class ApiV3AdminAccessService {
                                 .put(Invitecode.CODE, existing.optString(Invitecode.CODE))
                                 .put(Invitecode.GENERATOR_ID, existing.optString(Invitecode.GENERATOR_ID))
                                 .put(Invitecode.USER_ID, existing.optString(Invitecode.USER_ID))
-                                .put(Invitecode.TIME, existing.optLong(Invitecode.TIME, 0L))
+                                .put("time", existing.optLong("time", 0L))
                                 .put(Invitecode.USE_TIME, existing.optLong(Invitecode.USE_TIME, 0L));
                         invitecodeMgmtService.updateInvitecode(invitecodeId, patch);
                         adminService.recordOperation(request, Operation.OPERATION_CODE_C_UPDATE_INVITECODE,

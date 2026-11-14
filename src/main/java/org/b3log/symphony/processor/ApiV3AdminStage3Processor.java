@@ -53,7 +53,7 @@ public class ApiV3AdminStage3Processor {
 
     private static final Set<String> ROLE_ADD_FIELDS = Set.of(Role.ROLE_NAME, Role.ROLE_DESCRIPTION);
     private static final Set<String> ROLE_PERMS_FIELDS = Set.of("permissionIds");
-    private static final Set<String> INVITECODE_GEN_FIELDS = Set.of(Common.QUANTITY, Invitecode.MEMO);
+    private static final Set<String> INVITECODE_GEN_FIELDS = Set.of("quantity", Invitecode.MEMO);
     private static final Set<String> INVITECODE_UPDATE_FIELDS = Set.of(Invitecode.STATUS, Invitecode.MEMO);
 
     private static final Set<String> VIP_LEVEL_FIELDS = Set.of(

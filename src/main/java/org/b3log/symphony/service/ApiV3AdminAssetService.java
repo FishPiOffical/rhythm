@@ -421,13 +421,13 @@ public class ApiV3AdminAssetService {
                     new JSONObject().put("couponCode", couponCode).put("couponType", couponType)
                             .put("discount", discount).put("times", times),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final String oId = couponMgmtService.add(
+                        final JSONObject createdCoupon = couponMgmtService.add(
                                 actorRef.get().userName(),
                                 StringUtils.trimToNull(couponCode),
                                 couponType,
                                 discount,
                                 times);
-                        return new JSONObject().put("oId", oId);
+                        return new JSONObject().put("oId", createdCoupon == null ? "" : createdCoupon.optString(Keys.OBJECT_ID));
                     }));
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "coupon_create_failed");
@@ -779,9 +779,12 @@ public class ApiV3AdminAssetService {
                     resolved.put(new JSONObject().put("target", t).put("found", false));
                 }
             }
-            final Map<String, Boolean> holds = userIds.isEmpty()
-                    ? Map.of()
-                    : medalBatchService.getHoldStatuses(userIds, medalId);
+            final Map<String, Boolean> holds = new java.util.HashMap<>();
+            if (!userIds.isEmpty()) {
+                for (final JSONObject statusRow : medalBatchService.getHoldStatuses(userIds, medalId)) {
+                    holds.put(statusRow.optString("userId"), statusRow.optBoolean("held"));
+                }
+            }
             for (int i = 0; i < resolved.length(); i++) {
                 final JSONObject item = resolved.getJSONObject(i);
                 if (item.optBoolean("found")) {
@@ -940,7 +943,7 @@ public class ApiV3AdminAssetService {
                                 results.put(new JSONObject()
                                         .put("target", target)
                                         .put("ok", false)
-                                        .put("error", StringUtils.defaultIfBlank(ex.getMessage(), "授予失败")));
+                                        .put("error", StringUtils.isBlank(ex.getMessage()) ? "授予失败" : ex.getMessage()));
                             }
                         }
                         return new JSONObject()
@@ -1145,7 +1148,7 @@ public class ApiV3AdminAssetService {
                                             Pointtransfer.ID_C_SYS, userId,
                                             Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
                                             amount, userId, System.currentTimeMillis(),
-                                            StringUtils.defaultIfBlank(memo, "后台工资发放"));
+                                            StringUtils.isBlank(memo) ? "后台工资发放" : memo);
                                     if (StringUtils.isBlank(transferId)) {
                                         throw new IllegalStateException("转账未生成流水");
                                     }
@@ -1167,7 +1170,7 @@ public class ApiV3AdminAssetService {
                                         .put("index", i)
                                         .put("target", target)
                                         .put("ok", false)
-                                        .put("error", StringUtils.defaultIfBlank(ex.getMessage(), "发放失败")));
+                                        .put("error", StringUtils.isBlank(ex.getMessage()) ? "发放失败" : ex.getMessage()));
                             }
                         }
 

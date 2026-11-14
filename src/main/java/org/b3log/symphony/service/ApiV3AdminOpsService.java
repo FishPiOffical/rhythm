@@ -132,20 +132,20 @@ public class ApiV3AdminOpsService {
             final StringBuilder where = new StringBuilder(" WHERE 1=1");
             final List<Object> params = new ArrayList<>();
             if (status != null) {
-                if (status < FishGame.STATUS_C_PENDING || status > FishGame.STATUS_C_DISABLED) {
+                if (status < FishGame.STATUS_PENDING || status > FishGame.STATUS_DISABLED) {
                     throw ApiV3WriteInputs.invalid();
                 }
-                where.append(" AND ").append(FishGame.FISH_GAME_STATUS).append("=?");
+                where.append(" AND ").append(FishGame.STATUS).append("=?");
                 params.add(status);
             }
             if (editPendingOnly) {
-                where.append(" AND ").append(FishGame.FISH_GAME_EDIT_PENDING).append("=?");
-                params.add(FishGame.EDIT_PENDING_C_YES);
+                where.append(" AND ").append(FishGame.EDIT_PENDING).append("=?");
+                params.add(1);
             }
             if (StringUtils.isNotBlank(keyword)) {
                 final String like = "%" + keyword.trim() + "%";
-                where.append(" AND (").append(FishGame.FISH_GAME_NAME).append(" LIKE ? OR ")
-                        .append(FishGame.FISH_GAME_TAG).append(" LIKE ?)");
+                where.append(" AND (").append(FishGame.NAME).append(" LIKE ? OR ")
+                        .append(FishGame.DESCRIPTION).append(" LIKE ?)");
                 params.add(like);
                 params.add(like);
             }
@@ -185,7 +185,7 @@ public class ApiV3AdminOpsService {
             throw ApiV3WriteInputs.invalid();
         }
         final int status = ApiV3AdminService.requireExactInt(
-                body, "status", FishGame.STATUS_C_PENDING, FishGame.STATUS_C_DISABLED);
+                body, "status", FishGame.STATUS_PENDING, FishGame.STATUS_DISABLED);
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 

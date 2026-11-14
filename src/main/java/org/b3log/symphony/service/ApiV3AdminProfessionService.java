@@ -24,7 +24,6 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.util.ApiV3Exception;
-import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
 
 /**
@@ -75,7 +74,7 @@ public class ApiV3AdminProfessionService {
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final IllegalArgumentException e) {
-            throw ApiV3WriteInputs.invalid(e.getMessage());
+            throw new ApiV3Exception(422, "invalid_request", e.getMessage());
         } catch (final IllegalStateException e) {
             throw new ApiV3Exception(409, "profession_state_conflict", e.getMessage());
         } catch (final Exception e) {
