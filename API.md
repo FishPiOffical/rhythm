@@ -7386,7 +7386,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 | type | URL 参数；links、balance、consumption、checkin、online、adr、mofish、smallmofish、lifeRestart、evolve、emoji、xiaoice、invite、donate、perfect、pets | balance |
 | subType | evolve 支持 achievement（默认）、know、reset、days；xiaoice 支持 0（默认）、1、2、3；其他榜单省略 | achievement |
 | p | 页码，默认 1 | 1 |
-| size | 每页条数，默认 20，最大 50 | 20 |
+| size | 每页条数，默认 20，最大 50；donate 榜实际最多返回前 10 名 | 20 |
 
 请求示例：
 
@@ -7430,7 +7430,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | perfect | 优选文章数量 | count |
 | pets | 宠物等级 | level、experience |
 
-> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
+> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。donate 榜最多返回前 10 名，与旧版捐助榜人数上限一致；其余捐助金额、捐助次数和汇总字段保持现有 V3 响应。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
 
 ### 查看宠物资料
 

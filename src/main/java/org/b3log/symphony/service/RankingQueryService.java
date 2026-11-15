@@ -53,12 +53,19 @@ public class RankingQueryService {
                 + " where type = 6 group by toId order by c desc limit 64"), "toId");
     }
     public JSONObject donate() throws Exception {
+        return donate(64);
+    }
+
+    /**
+     * 按指定条数读取捐助排行。
+     */
+    public JSONObject donate(final int limit) throws Exception {
         final List<JSONObject> totals = sponsorRepository.select("select sum(amount) as totalAmount from " + sponsorRepository.getName() + " limit 1");
         final JSONObject total = totals.isEmpty() ? new JSONObject() : totals.get(0);
         final double amount = total.optDouble("totalAmount", 0);
         total.put("totalAmount", amount).put("donateMakeDays", BigDecimal.valueOf(amount).divide(BigDecimal.valueOf(5), 0, RoundingMode.HALF_UP).doubleValue());
         final List<JSONObject> rows = profiles(sponsorRepository.select("select userId as userId,sum(amount) as total,count(*) as totalCount from "
-                + sponsorRepository.getName() + " group by userId order by total desc limit 64"), "userId");
+                + sponsorRepository.getName() + " group by userId order by total desc limit ?", limit), "userId");
         return new JSONObject().put("data", rows).put("totalData", total).put("type", "donate");
     }
     public JSONObject perfect() throws Exception {

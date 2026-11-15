@@ -45,6 +45,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class ApiV3RankingQueryService {
+    private static final int DONATE_RANKING_LIMIT = 10;
+
     @Inject
     private RankingQueryService rankings;
     @Inject
@@ -214,7 +216,8 @@ public class ApiV3RankingQueryService {
             case "invite" -> source = rankings.invite();
             case "perfect" -> source = ApiV3RankingDto.rows(rankings.perfect().opt("data"));
             case "donate" -> {
-                final JSONObject result = rankings.donate();
+                // 旧版捐助页最多展示前十名，V3 保持相同的人数上限。
+                final JSONObject result = rankings.donate(DONATE_RANKING_LIMIT);
                 source = ApiV3RankingDto.rows(result.opt("data"));
                 summary = ApiV3RankingDto.summary(result.optJSONObject("totalData"));
             }
