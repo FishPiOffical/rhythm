@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "policyVersion": 3,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. On 2026-11-15 Ada explicitly approved V3 captcha flow steps 2/4/5 and continuation: persistent IP challenge, structured 403 captcha_required, shared frontend verification and SSR/realtime recovery. After source review and Java 25 regression (14/14, 60-second process deadlines), only AnonymousCaptchaShield and BeforeRequestHandler.handle fingerprints were updated; ApiV3Cors was added as a protected whole file. Existing counters, exemptions, legacy API/page behavior and Firewall remain unchanged; CORS preflight negotiates transport only and never executes business or clears a challenge. Real provider/browser acceptance remains pending.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. On 2026-11-15 Ada explicitly approved V3 captcha flow steps 2/4/5 and continuation: persistent IP challenge, structured 403 captcha_required, shared frontend verification and SSR/realtime recovery. After source review and Java 25 regression (14/14, 60-second process deadlines), only AnonymousCaptchaShield and BeforeRequestHandler.handle fingerprints were updated; ApiV3Cors was added as a protected whole file. Existing counters, exemptions, legacy API/page behavior and Firewall remain unchanged; CORS preflight negotiates transport only and never executes business or clears a challenge. During delivery review on 2026-11-15, four existing V3 admin methods newly synchronized from upstream were reviewed and individually locked: IP policy status, IP mutation, security switch save, and security switch response snapshot. Their permission checks, idempotent mutation path, Firewall/shield ordering, and production read-only guard were preserved; shield policy unchanged. Real provider/browser acceptance remains pending.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
@@ -122,6 +122,26 @@
     {
       "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
       "sha256": "f47e61ae5d07659fa88aa4dea129dc2e84f8f7cb7b1f0649ff2b84082096ba5d"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject getIpPolicyStatus(final JSONObject identity)",
+      "sha256": "a9aa08d0d9fa33ca6db89f0c8c3b6daab9ea93ab1bdffd11e1ab28bfee35be75"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject mutateIps(final JSONObject identity, final JSONObject body,",
+      "sha256": "451b412515d1c9efd0dc8dbad48ca5785c47e2742ff6e91d527f63ac5d21ae9f"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject saveSecuritySwitches(final JSONObject identity, final JSONObject body,",
+      "sha256": "f5743e26e3412b5c87eca2cf36bd00332d1e608a036b292cf0f501bd7f0427f6"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "private static JSONObject currentSecuritySwitches()",
+      "sha256": "f534f7d9b6f58e8a8a5077078d344a5c1c23131c2ad83063a1901c7d50f3482e"
     }
   ]
 }
