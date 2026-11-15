@@ -116,13 +116,21 @@ public class ApiV3IdempotencyMgmtServiceTest {
         final String operation = "admin.vip.user.add";
         final JSONObject legacy = new JSONObject().put("target", "fixture").put("levelOId", "1");
         final JSONObject request = new JSONObject(legacy.toString()).put("configJson", "{}");
-        final JSONObject different = new JSONObject(legacy.toString()).put("configJson", "{\"color\":0}");
+        final JSONObject defaults = new JSONObject(legacy.toString()).put("configJson", "{}");
+        final JSONObject different = new JSONObject(legacy.toString()).put("configJson", "{\"color\":1}");
         run(store, "user", operation, "legacy", legacy);
 
         final var replay = ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "legacy",
-                different, legacy, () -> new JSONObject().put("value", store.increment()));
+                defaults, legacy, () -> new JSONObject().put("value", store.increment()));
         Assert.assertTrue(replay.getBoolean("legacyReceipt"));
         Assert.assertEquals(store.value, 1);
+        try {
+            ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "legacy",
+                    different, legacy, () -> new JSONObject().put("value", store.increment()));
+            Assert.fail("Expected unverifiable legacy receipt");
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.code, "legacy_receipt_unverifiable");
+        }
         ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "current",
                 request, legacy, () -> new JSONObject().put("value", store.increment()));
         try {

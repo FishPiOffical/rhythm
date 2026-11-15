@@ -18129,6 +18129,6 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `POST /api/v3/admin/professions/*` 使用严格 JSON 对象，请求体上限 16 MiB；字符串、整数、布尔值、数组不进行类型转换。拒绝非法 JSON、重复键和非法编码。配置文本 `configJson` 也须是合法 JSON 对象字符串。
 - `GET /api/v3/admin/images` 每项返回 `oId`、`type`、`userName`、`time`、`path`、`public`、`reviewed` 和 `reviewStatus`。列表状态为 `PENDING`、`IN_PROGRESS` 或 `UNKNOWN`。
 - 图片审核响应保留 `oId`、`decision`、`reviewed`。新增 `status`，`SUCCEEDED` 时 `reviewed=1`，`UNKNOWN` 时 `reviewed=0`，表示云端结果待核对。客户端应保持原请求记录。
-- 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。兼容旧摘要时返回原结果，并带 `legacyReceipt=true`、`replayed=true`。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
+- 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。历史回执只有在新增字段为空或默认值、能够确认是原请求重试时才返回原结果，并带 `legacyReceipt=true`、`replayed=true`；历史回执缺少关键输入且本次带有实际新内容时返回 HTTP 409、`legacy_receipt_unverifiable`，请核对原操作后使用新的幂等键，不会自动重做。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
 - `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
 - `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。
