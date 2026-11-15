@@ -1176,6 +1176,12 @@ curl --request PUT 'https://fishpi.cn/api/v3/review/identity-applications/179280
 
 本模块采用授权码与 PKCE S256，不接收 apiKey。授权页返回 HTML，授权决定返回 HTTP 303，令牌及撤销响应为直接 JSON，不使用 code/msg/data 信封。错误 JSON 包含 error、error_description；参数错误为 HTTP 400，凭据或来源不受支持为 401/403，媒体类型错误为 415，请求过频为 429，暂时不可用为 503。
 
+### 第一方管理后台授权
+
+管理后台通过同一授权页使用内置客户端 `website_v3`，携带 `state`、PKCE S256 和第一方网页登录所用的 scope。生产回调固定为 `https://new.fishpi.cn/manage/oauth/callback`。开发环境仅接受回环 HTTP 来源和同一路径，默认端口 5173，也可使用后端已配置的 `rhythm.dev.websiteOrigin`。
+
+该客户端仅使用 `authorization_code`。换码请求的浏览器 Origin 必须与已绑定的回调来源一致，摸鱼派网页会话也须属于批准授权的账号。普通 OAuth JSON 中的 `access_token`、`token_type`、`expires_in`、`scope` 仍返回，刷新凭据通过第一方 HttpOnly Cookie 交付。后续续期及退出复用 `/api/v3/auth/refresh` 和 `/api/v3/auth/logout`。后台入口随后查询 `/api/v3/admin/capabilities`，业务接口仍各自校验账号权限。
+
 ### 打开授权页面
 
 `GET /api/v3/oauth/authorize`

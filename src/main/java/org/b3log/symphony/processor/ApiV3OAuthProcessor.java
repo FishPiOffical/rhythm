@@ -96,7 +96,9 @@ public class ApiV3OAuthProcessor {
         try {
             final var values = form(context, revocation ? REVOKE : TOKEN);
             final String client = client(values);
-            if (context.header("Authorization") == null && cors.allowed(client, context.header("Origin"))) {
+            final boolean website = ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client);
+            if (context.header("Authorization") == null && (website
+                    ? !revocation && websiteTokenOrigin(context, values) : cors.allowed(client, context.header("Origin")))) {
                 if (revocation) {
                     if (!values.getOrDefault("token_type_hint", "").matches("[\\x21-\\x7E]{0,64}")) throw bad();
                     owner = credentials.token(client, required(values, "token", 256), true);
@@ -104,7 +106,7 @@ public class ApiV3OAuthProcessor {
                     if (values.containsKey("refresh_token") || values.containsKey("scope")) throw bad();
                     owner = credentials.code(client, required(values, "redirect_uri", 2048),
                             required(values, "code", 256), required(values, "code_verifier", 128));
-                } else if ("refresh_token".equals(values.get("grant_type"))) {
+                } else if (!website && "refresh_token".equals(values.get("grant_type"))) {
                     if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier"))
                         throw bad();
                     owner = credentials.token(client, required(values, "refresh_token", 256), false);
@@ -224,7 +226,7 @@ public class ApiV3OAuthProcessor {
 
     private static String client(Map<String, String> form) {
         String value = required(form, "client_id", 64);
-        if (!value.matches("[\\x21-\\x7E]{1,64}") || ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(value))
+        if (!value.matches("[\\x21-\\x7E]{1,64}"))
             throw new ApiV3Exception(401, "invalid_client", "客户端不受支持");
         return value;
     }
@@ -243,7 +245,9 @@ public class ApiV3OAuthProcessor {
             String challenge = required(values, "code_challenge", 43), method = required(values, "code_challenge_method", 16);
             ApiV3Pkce.requireS256(challenge, method);
             ApiV3OAuthCallbacks.validateState(state);
-            if (!ApiV3OAuthRedirects.valid(uri, Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode())) throw bad();
+            if (!ApiV3OAuthRedirects.valid(uri, development())) throw bad();
+            if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)
+                    && (!ApiV3WebsiteOAuth.allowedRedirect(uri, development()) || !state.matches("[A-Za-z0-9_-]{43}"))) throw bad();
             final JSONObject user = cookieUser(c);
             final Map<String, Object> model = new HashMap<>();
             model.put("oauthHome", site());
@@ -301,12 +305,23 @@ public class ApiV3OAuthProcessor {
         }
     }
 
-    private void cors(RequestContext c, String client) throws Exception {
+    private static boolean development() {
+        return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
+    }
+
+    private static boolean websiteTokenOrigin(RequestContext c, Map<String, String> values) {
+        return !"cross-site".equalsIgnoreCase(c.header("Sec-Fetch-Site"))
+                && ApiV3WebsiteOAuth.matchesOrigin(values.get("redirect_uri"), c.header("Origin"), development());
+    }
+
+    private void cors(RequestContext c, String client, Map<String, String> values) throws Exception {
         if (c.header("Authorization") != null)
             throw new ApiV3Exception(401, "invalid_client", "此端点不使用Authorization身份");
         final String origin = c.header("Origin");
         c.setHeader("Vary", "Origin");
-        if (!cors.allowed(client, origin)) throw new ApiV3Exception(403, "access_denied", "请求来源不受支持");
+        final boolean allowed = ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)
+                ? websiteTokenOrigin(c, values) : cors.allowed(client, origin);
+        if (!allowed) throw new ApiV3Exception(403, "access_denied", "请求来源不受支持");
         if (origin != null) c.setHeader("Access-Control-Allow-Origin", origin);
     }
 
@@ -315,23 +330,39 @@ public class ApiV3OAuthProcessor {
         try {
             final var values = form(c, TOKEN);
             final String client = client(values);
-            cors(c, client);
+            cors(c, client, values);
+            final boolean website = ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client);
             final String grant = required(values, "grant_type", 64);
             final JSONObject result;
             if ("authorization_code".equals(grant)) {
                 if (values.containsKey("refresh_token") || values.containsKey("scope")) throw bad();
-                result = codes.exchange(client, required(values, "redirect_uri", 2048),
-                        required(values, "code", 256), required(values, "code_verifier", 128));
-            } else if ("refresh_token".equals(grant)) {
+                final String uri = required(values, "redirect_uri", 2048), code = required(values, "code", 256),
+                        verifier = required(values, "code_verifier", 128);
+                if (website) {
+                    final var user = cookieUser(c);
+                    if (user == null)
+                        throw new ApiV3Exception(400, "invalid_grant", "摸鱼派会话已失效，请重新发起授权");
+                    final var login = codes.exchangeWebsite(uri, code, verifier, user.optString(Keys.OBJECT_ID));
+                    final var session = Sessions.websiteSession(c.getRequest());
+                    final boolean remember = session != null && session.optBoolean("rememberLogin");
+                    ApiV3RefreshCookies.discardFrameworkEcho(c);
+                    WebsiteLoginCookies.attach(c.getResponse(), login, remember);
+                    result = login.tokens();
+                } else {
+                    result = codes.exchange(client, uri, code, verifier);
+                }
+            } else if (!website && "refresh_token".equals(grant)) {
                 if (values.containsKey("redirect_uri") || values.containsKey("code") || values.containsKey("code_verifier"))
                     throw bad();
                 final String scope = values.get("scope");
                 result = tokens.refreshForClient(client, required(values, "refresh_token", 256), scope == null || scope.isEmpty() ? null : scope);
             } else throw new ApiV3Exception(400, "unsupported_grant_type", "授权方式不受支持");
-            json(c, new JSONObject().put("access_token", result.getString("accessToken"))
+            final var response = new JSONObject().put("access_token", result.getString("accessToken"))
                     .put("token_type", "Bearer").put("expires_in", result.getLong("expiresIn"))
-                    .put("refresh_token", result.getString("refreshToken"))
-                    .put("refresh_expires_in", result.getLong("refreshExpiresIn")).put("scope", result.getString("scope")));
+                    .put("scope", result.getString("scope"));
+            if (!website) response.put("refresh_token", result.getString("refreshToken"))
+                    .put("refresh_expires_in", result.getLong("refreshExpiresIn"));
+            json(c, response);
         } catch (Exception e) {
             failure(c, e);
         }
@@ -342,7 +373,9 @@ public class ApiV3OAuthProcessor {
         try {
             final var values = form(c, REVOKE);
             final String client = client(values);
-            cors(c, client);
+            if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client))
+                throw new ApiV3Exception(401, "invalid_client", "客户端不受支持");
+            cors(c, client, values);
             final String credential = required(values, "token", 256);
             if (!values.getOrDefault("token_type_hint", "").matches("[\\x21-\\x7E]{0,64}")) throw bad();
             tokens.revokeTokenForClient(client, credential);

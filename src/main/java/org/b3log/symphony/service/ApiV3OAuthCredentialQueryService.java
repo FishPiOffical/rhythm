@@ -48,7 +48,7 @@ public class ApiV3OAuthCredentialQueryService {
     }
 
     private boolean client(String id) throws Exception {
-        if (id == null || !id.matches("[\\x21-\\x7E]{1,64}") || ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(id))
+        if (id == null || !id.matches("[\\x21-\\x7E]{1,64}"))
             return false;
         final var row = clients.getByClientId(id);
         return row != null && id.equals(row.optString(ApiV3Client.CLIENT_ID))
@@ -72,7 +72,10 @@ public class ApiV3OAuthCredentialQueryService {
         if (!ApiV3TokenUtil.isValidFormat(raw) || !ApiV3Pkce.validVerifier(verifier) || uri == null
                 || !ApiV3OAuthRedirects.valid(uri, Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode()) || !client(client))
             return null;
-        if (redirects.getRegistered(client, uri) == null) return null;
+        final boolean development = Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
+        if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)
+                ? !ApiV3WebsiteOAuth.allowedRedirect(uri, development) : redirects.getRegistered(client, uri) == null)
+            return null;
         final String hash = ApiV3TokenUtil.hash("oauth-code\0" + raw);
         final var rows = codes.select("SELECT * FROM `" + codes.getName() + "` WHERE oId=?", hash);
         if (rows.size() != 1)
@@ -94,7 +97,7 @@ public class ApiV3OAuthCredentialQueryService {
     }
 
     public JSONObject token(String client, String raw, boolean revocation) throws Exception {
-        if (!ApiV3TokenUtil.isValidFormat(raw) || !client(client)) return null;
+        if (!ApiV3TokenUtil.isValidFormat(raw) || ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client) || !client(client)) return null;
         final String hash = ApiV3TokenUtil.hash(raw);
         final var row = tokens.getByHash(hash);
         if (row == null || !hash.equals(row.optString(ApiV3Token.TOKEN_HASH))

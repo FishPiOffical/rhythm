@@ -79,7 +79,8 @@ public class ApiV3AuthorizationCodeService {
     private JSONObject registered(String client, String uri) throws Exception {
         final var row = clients.getByClientIdForUpdate(client);
         if (row == null || !client.equals(row.optString(ApiV3Client.CLIENT_ID)) || row.optInt(ApiV3Client.STATUS, -1) != ApiV3Client.STATUS_ACTIVE
-                || ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client) || redirects.getRegisteredForUpdate(client, uri) == null)
+                || (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)
+                ? !ApiV3WebsiteOAuth.allowedRedirect(uri, development()) : redirects.getRegisteredForUpdate(client, uri) == null))
             throw rejected();
         return row;
     }
@@ -117,7 +118,10 @@ public class ApiV3AuthorizationCodeService {
         if (!codes.hasTransactionBegun()) throw new IllegalStateException("consent transaction required");
         binding(client, uri);
         final var row = registered(client, uri);
-        final String name = row.optString(ApiV3Client.NAME);
+        final boolean website = ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client);
+        if (website && !scopes(ApiV3TokenMgmtService.DEFAULT_SCOPES, row, false).equals(scopes(requestedScope, row, false)))
+            throw rejected();
+        final String name = website ? "Rhythm 管理后台" : row.optString(ApiV3Client.NAME);
         if (name.isBlank() || name.length() > 128)
             throw new IllegalStateException("invalid client display name");
         ApiV3Json.canonical(name);
@@ -141,6 +145,9 @@ public class ApiV3AuthorizationCodeService {
             final var registration = registered(client, uri);
             currentUser(approvedUser);
             final String scope = scopes(approvedScope, registration, false);
+            if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)
+                    && !scope.equals(scopes(ApiV3TokenMgmtService.DEFAULT_SCOPES, registration, false)))
+                throw rejected();
             final long time = now(), expires = Math.addExact(time, TTL);
             if (time <= 0)
                 throw new IllegalStateException("invalid grant clock");
@@ -159,6 +166,16 @@ public class ApiV3AuthorizationCodeService {
      * 在自身的严格事务中消费授权码并签发令牌对，明文令牌不用于重放。
      */
     public JSONObject exchange(String client, String uri, String raw, String verifier) throws Exception {
+        if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)) throw rejected();
+        return exchangeGrant(client, uri, raw, verifier, null).tokens();
+    }
+
+    public ApiV3TokenMgmtService.WebsiteLogin exchangeWebsite(String uri, String raw, String verifier, String cookieActor) throws Exception {
+        if (cookieActor == null || !cookieActor.matches("[1-9][0-9]{0,18}")) throw rejected();
+        return exchangeGrant(ApiV3TokenMgmtService.WEBSITE_CLIENT, uri, raw, verifier, cookieActor);
+    }
+
+    private ApiV3TokenMgmtService.WebsiteLogin exchangeGrant(String client, String uri, String raw, String verifier, String cookieActor) throws Exception {
         binding(client, uri);
         if (!ApiV3TokenUtil.isValidFormat(raw) || !ApiV3Pkce.validVerifier(verifier))
             throw rejected();
@@ -173,6 +190,7 @@ public class ApiV3AuthorizationCodeService {
                     || !uri.equals(code.optString(ApiV3AuthorizationCode.REDIRECT_URI))
                     || !ApiV3Pkce.matches(code.optString(ApiV3AuthorizationCode.CHALLENGE), verifier)) throw rejected();
             final String actor = code.getString(ApiV3AuthorizationCode.USER_ID);
+            if (cookieActor != null && !cookieActor.equals(actor)) throw rejected();
             final long created = code.optLong(ApiV3AuthorizationCode.CREATED_AT, -1), expires = code.optLong(ApiV3AuthorizationCode.EXPIRES_AT, -1), consumed = code.optLong(ApiV3AuthorizationCode.CONSUMED_AT, -1);
             final String storedFamily = code.optString(ApiV3AuthorizationCode.FAMILY_ID);
             if (!actor.matches("[1-9][0-9]{0,18}") || created <= 0 || created > Long.MAX_VALUE - TTL || expires != created + TTL || consumed < 0 || consumed > time
@@ -190,16 +208,20 @@ public class ApiV3AuthorizationCodeService {
             if (time <= 0 || code.optLong(ApiV3AuthorizationCode.CREATED_AT) > time || code.optLong(ApiV3AuthorizationCode.EXPIRES_AT) <= time)
                 throw rejected();
             currentUser(actor);
-            final String scope = scopes(code.getString(ApiV3AuthorizationCode.SCOPE), registration, true);
+            final boolean website = ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client);
+            final String scope = scopes(code.getString(ApiV3AuthorizationCode.SCOPE), registration, !website);
+            if (website && !scope.equals(scopes(ApiV3TokenMgmtService.DEFAULT_SCOPES, registration, false)))
+                throw rejected();
             final JSONObject issued = tokens.issueForClientInCurrentTransaction(actor, client, scope);
             final var refresh = tokenRows.getByHashForUpdate(ApiV3TokenUtil.hash(issued.getString("refreshToken")));
             if (refresh == null || !client.equals(refresh.optString(ApiV3Token.CLIENT_ID)) || !actor.equals(refresh.optString(ApiV3Token.USER_ID))
                     || !ApiV3Token.TYPE_REFRESH.equals(refresh.optString(ApiV3Token.TOKEN_TYPE)) || refresh.optString(ApiV3Token.FAMILY_ID).isEmpty())
                 throw new IllegalStateException("issued refresh binding lost");
-            code.put(ApiV3AuthorizationCode.CONSUMED_AT, time).put(ApiV3AuthorizationCode.FAMILY_ID, refresh.getString(ApiV3Token.FAMILY_ID));
+            final String family = refresh.getString(ApiV3Token.FAMILY_ID);
+            code.put(ApiV3AuthorizationCode.CONSUMED_AT, time).put(ApiV3AuthorizationCode.FAMILY_ID, family);
             codes.update(hash, code, ApiV3AuthorizationCode.CONSUMED_AT, ApiV3AuthorizationCode.FAMILY_ID);
             transaction.commit();
-            return issued;
+            return new ApiV3TokenMgmtService.WebsiteLogin(issued, actor, family);
         } finally {
             if (transaction.isActive())
                 transaction.rollback();
