@@ -7,7 +7,7 @@
 ## 受保护入口与运行模式
 
 - 验证码盾集中在 `util/AnonymousCaptchaShield`；原中间件保留身份解析与匿名阅读限制，全局入口须在 CC 后、CORS 前调用黑名单拦截。极验共享校验、状态及开关只经此类访问；未经阿达明确允许，禁止修改、移动、删除该类及各处受保护调用，禁止增加绕过分支。修改获批后才可同步策略版本、`tools/captcha-shield-lock.json` 与回归；部署前运行 `python tools/check-captcha-shield.py`，不得自动重建指纹来消除失败。范围和验收见 `docs/captcha-shield.md`。
-- `AnonymousViewCheckMidware#handle` 解析适用身份后调用 `AnonymousCaptchaShield.checkAnonymous`；验证码核心的匿名判定顺序为「适用登录态（旧入口含apiKey，V3只用已验证V3身份）→ 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同IP有用户登录过即免验证，属既定设计）→ 2小时内通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 每5次访问」。计数窗口2小时，累计300次触发 `Firewall` 封禁；V3命中验证码规则返回403 `captcha_required`并写入与旧页面共用的待验证黑名单，后续业务持续受限直到真实校验通过；旧非V3 `/api/` 仍返回401且不拉黑。携带Origin的V3/验证提交预检只协商CORS，不执行业务或解封，UA/CC仍在前。`sitemap.xml` 不在豁免名单，依赖已验证蜘蛛通行。策略细节以受保护核心与 `../captcha-shield.md` 为准，本文不授予修改权限。
+- `AnonymousViewCheckMidware#handle` 解析适用身份后调用 `AnonymousCaptchaShield.checkAnonymous`；验证码核心的匿名判定顺序为「适用登录态（旧入口含apiKey，V3只用已验证V3身份）→ 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同IP有用户登录过即免验证，属既定设计）→ 2小时内通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 按站点独立周期计数」。旧站验证码计数仍每5次，V3使用独立计数每100次；两套计数窗口均为2小时。累计300次触发 `Firewall` 封禁；V3命中验证码规则返回403 `captcha_required`并写入与旧页面共用的待验证黑名单，后续业务持续受限直到真实校验通过；旧非V3 `/api/` 仍返回401且不拉黑。携带Origin的V3/验证提交预检只协商CORS，不执行业务或解封，UA/CC仍在前。`sitemap.xml` 不在豁免名单，依赖已验证蜘蛛通行。策略细节以受保护核心与 `../captcha-shield.md` 为准，本文不授予修改权限。
 - `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。监听前解析 `new.fishpi.cn` 并解封，加入 CC 与验证码白名单；CC 白名单不覆盖手动封禁，其他 IP 阈值不变。依赖可信代理正确设置来源 IP。
 
 ## 监控与缓存

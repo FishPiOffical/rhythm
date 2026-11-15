@@ -61,8 +61,13 @@ public final class AnonymousCaptchaShield {
     private AnonymousCaptchaShield() {
     }
 
-    // 访问计数缓存，2 小时过期；窗口必须足够长，否则慢速抓取（间隔超过 5 分钟）会让计数反复归零从而绕过验证码
+    // 旧站访问计数缓存，2 小时过期；旧站仍按原规则每 5 次触发验证码。
     private static final Cache<String, Integer> ipVisitCountCache = Caffeine.newBuilder()
+            .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
+            .maximumSize(100000)
+            .build();
+    // V3 使用独立计数，避免首页拆分的多个公开 API 消耗旧站的验证码额度。
+    private static final Cache<String, Integer> ipV3VisitCountCache = Caffeine.newBuilder()
             .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
             .maximumSize(100000)
             .build();
@@ -75,9 +80,7 @@ public final class AnonymousCaptchaShield {
     private static final java.util.concurrent.ConcurrentHashMap<String, String> whiteListReasons
             = new java.util.concurrent.ConcurrentHashMap<>();
 
-    /**
-     * IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）
-     */
+    /** IP 首次访问时间缓存（用于 2 小时内首次访问需要验证码）。 */
     private static final Cache<String, Long> ipFirstVisitTimeCache = Caffeine.newBuilder()
             .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
             .maximumSize(100000)
@@ -105,6 +108,8 @@ public final class AnonymousCaptchaShield {
     private static final int AUTO_BAN_VISIT_THRESHOLD = 300;
 
     private static final int CAPTCHA_VISIT_INTERVAL = 5;
+
+    private static final int V3_CAPTCHA_VISIT_INTERVAL = 100;
 
     private static final long FIRST_VISIT_CAPTCHA_WINDOW_MILLIS = 2L * 60L * 60L * 1000L;
 
@@ -179,6 +184,7 @@ public final class AnonymousCaptchaShield {
     private static void recordCaptchaPass(final String ip) {
         ipBlacklistCache.invalidate(ip);
         ipVisitCountCache.invalidate(ip);
+        ipV3VisitCountCache.invalidate(ip);
         ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
     }
 
@@ -188,6 +194,7 @@ public final class AnonymousCaptchaShield {
         whiteListReasons.put(ip, "管理员解封");
         ipBlacklistCache.invalidate(ip);
         ipVisitCountCache.invalidate(ip);
+        ipV3VisitCountCache.invalidate(ip);
         ipFirstVisitTimeCache.invalidate(ip);
         ipLastCaptchaPassTimeCache.put(ip, System.currentTimeMillis());
     }
@@ -248,7 +255,7 @@ public final class AnonymousCaptchaShield {
             final String ip = Requests.getRemoteAddr(context.getRequest());
             final String ua = Headers.getHeader(request, Common.USER_AGENT, "");
             final boolean verifiedCrawler = null != SearchEngines.verifiedCrawler(ip, ua);
-            // 匿名非蜘蛛：白名单直接放行，其余按「首访 / 每 5 次」判断；通过验证码只豁免首访规则，不豁免次数规则
+            // 匿名非蜘蛛按首访和各站周期判断；通过验证码只豁免首访，不豁免周期。
             if (shieldEnabled && !verifiedCrawler) {
                 if (isPublicInfoPage(requestURI)) {
                     logShield(ip, requestURI, "放行", "公开信息页", null);
@@ -260,6 +267,9 @@ public final class AnonymousCaptchaShield {
                     whiteListReasons.put(ip, whitelistReason(ip));
                     logShield(ip, requestURI, "放行", "同IP有用户登录", null);
                 } else {
+                    final boolean v3Request = isV3(context);
+                    final Cache<String, Integer> visitCountCache = v3Request ? ipV3VisitCountCache : ipVisitCountCache;
+                    final int captchaVisitInterval = v3Request ? V3_CAPTCHA_VISIT_INTERVAL : CAPTCHA_VISIT_INTERVAL;
                     final long now = System.currentTimeMillis();
                     Long firstVisitTime = ipFirstVisitTimeCache.getIfPresent(ip);
                     if (null == firstVisitTime) {
@@ -267,9 +277,9 @@ public final class AnonymousCaptchaShield {
                         ipFirstVisitTimeCache.put(ip, firstVisitTime);
                     }
 
-                    final Integer visits = ipVisitCountCache.getIfPresent(ip);
+                    final Integer visits = visitCountCache.getIfPresent(ip);
                     final int count = null == visits ? 1 : visits + 1;
-                    ipVisitCountCache.put(ip, count);
+                    visitCountCache.put(ip, count);
 
                     // API 调用方无法通过验证码，不做累计封禁，交给 Firewall 的速率阈值处理
                     if (!requestURI.contains("/api/")
@@ -277,7 +287,7 @@ public final class AnonymousCaptchaShield {
                         logShield(ip, requestURI, "拒绝", "匿名累计超限", "次数=" + count);
                     }
 
-                    // 2 小时内已通过验证码时，不再按「首访」弹窗，但每 5 次访问仍然需要验证
+                    // 2 小时内通过验证码只跳过首访，仍按各站周期验证。
                     final boolean passedRecently = null != ipLastCaptchaPassTimeCache.getIfPresent(ip);
 
                     boolean needCaptcha = false;
@@ -288,10 +298,10 @@ public final class AnonymousCaptchaShield {
                         needCaptcha = true;
                         reason = "首次访问";
                     }
-                    // 之后每访问 5 次需要一次验证码
-                    if (!needCaptcha && count % CAPTCHA_VISIT_INTERVAL == 0) {
+                    // 旧站每 5 次、V3 每 100 次需要一次验证码。
+                    if (!needCaptcha && count % captchaVisitInterval == 0) {
                         needCaptcha = true;
-                        reason = "访问满5次";
+                        reason = v3Request ? "V3访问满100次" : "访问满5次";
                     }
 
                     if (needCaptcha) {
@@ -352,7 +362,8 @@ public final class AnonymousCaptchaShield {
         if (verifyProof(captcha)) {
             recordCaptchaPass(ip);
             SecurityMonitor.captchaValidated(ip, true, !isAwaitingCaptcha(ip)
-                    && ipVisitCountCache.getIfPresent(ip) == null);
+                    && ipVisitCountCache.getIfPresent(ip) == null
+                    && ipV3VisitCountCache.getIfPresent(ip) == null);
             LOGGER.log(Level.INFO, "[SHIELD] ip={} uri=/validateCaptcha 结果=放行 原因=验证码通过", ip);
             context.renderJSON(StatusCodes.SUCC);
         } else {
