@@ -317,7 +317,8 @@ public class ApiV3RepeaterQueryTest {
             AnonymousCaptchaShield.setEnabled(true);
             int before = f.reads;
             var blocked = f.http(null, "items", Map.of());
-            Assert.assertEquals(blocked.attr("test.status"), 401);
+            Assert.assertEquals(blocked.attr("test.status"), 403);
+            Assert.assertEquals(blocked.attr("test.code"), "captcha_required");
             Assert.assertNull(blocked.getResponse().getHeader("Location"));
             Assert.assertEquals(f.reads, before);
             Assert.assertEquals(f.shieldCount(), Integer.valueOf(1));
@@ -328,7 +329,9 @@ public class ApiV3RepeaterQueryTest {
             AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
             for (int visit = 1; visit <= 4; visit++)
                 Assert.assertEquals(f.http(null, "items", Map.of()).attr("test.status"), 200);
-            Assert.assertEquals(f.http(null, "items", Map.of()).attr("test.status"), 401);
+            var periodic = f.http(null, "items", Map.of());
+            Assert.assertEquals(periodic.attr("test.status"), 403);
+            Assert.assertEquals(periodic.attr("test.code"), "captcha_required");
         }
         System.out.println("PASS 6 actual Dispatcher/controller optional auth and anonymous middleware wiring, Cookie/apiKey never personalize, valid/wrong/expired Bearer and input failures");
         try (var f = new Fixture()) {

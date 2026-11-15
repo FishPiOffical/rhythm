@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
-  "policyVersion": 2,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged.",
+  "policyVersion": 3,
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. On 2026-11-15 Ada explicitly approved V3 captcha flow steps 2/4/5 and continuation: persistent IP challenge, structured 403 captcha_required, shared frontend verification and SSR/realtime recovery. After source review and Java 25 regression (14/14, 60-second process deadlines), only AnonymousCaptchaShield and BeforeRequestHandler.handle fingerprints were updated; ApiV3Cors was added as a protected whole file. Existing counters, exemptions, legacy API/page behavior and Firewall remain unchanged; CORS preflight negotiates transport only and never executes business or clears a challenge. Real provider/browser acceptance remains pending.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "8695262ae624d9848206f69e758a924162b5da13bc48de113331ba4dc932f190"
+      "sha256": "0e791e484c76346225d10b7f8741fc7ed5af64a4f1acc060f1cfc1543bb81445"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -14,7 +14,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/BeforeRequestHandler.java",
       "method": "public void handle(final RequestContext context)",
-      "sha256": "f013df922577d69c0de6f5dad56a27ab8ae1d6380a7541d7082466d40cecb11f"
+      "sha256": "f60f942887db21daa57d784aaeac5f033fca9bdd210ca3bd4133a7e840617245"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/CaptchaProcessor.java",
@@ -118,6 +118,10 @@
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
       "sha256": "419a33cd6c58031be3ce5bc9d6cb2fb46c2043f0c9ebbf3b06b53afd4e9e91df"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
+      "sha256": "f47e61ae5d07659fa88aa4dea129dc2e84f8f7cb7b1f0649ff2b84082096ba5d"
     }
   ]
 }

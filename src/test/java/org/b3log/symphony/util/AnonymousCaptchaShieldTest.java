@@ -284,13 +284,47 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void globalBlacklistPrecedesCorsAndDoesNotDependOnPageAuth() throws Exception {
+    public void globalBlacklistPrecedesBusinessAndAllowsOnlyCorsNegotiation() throws Exception {
         cache("ipBlacklistCache").put(IP, true);
         Firewall.setEnabled(false);
         try (final Exchange exchange = new Exchange("/api/v3/me", "OPTIONS", null, UA)) {
             exchange.raw.headers().set("Origin", "https://example.invalid");
             exchange.run(new BeforeRequestHandler());
-            Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
+            Assert.assertEquals(exchange.status, 204);
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertFalse(exchange.reached);
+        }
+        try (final Exchange exchange = new Exchange("/api/v3/me")) {
+            exchange.raw.headers().set("Origin", "https://example.invalid");
+            exchange.raw.headers().set("Authorization", "Bearer test-only");
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 403);
+            Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject().getString("code"), "captcha_required");
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertFalse(exchange.reached);
+        }
+        try (final Exchange exchange = new Exchange("/validateCaptcha", "OPTIONS", null, UA)) {
+            exchange.raw.headers().set("Origin", "https://example.invalid");
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 204);
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertTrue(AnonymousCaptchaShield.isRestricted(IP));
+            Assert.assertFalse(exchange.reached);
+        }
+        try (final Exchange exchange = new Exchange("/api/v3/me", "OPTIONS", null, null)) {
+            exchange.raw.headers().set("Origin", "https://example.invalid");
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 418);
+            Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Origin"));
+            Assert.assertFalse(exchange.reached);
+        }
+        Firewall.setEnabled(true);
+        @SuppressWarnings("unchecked") final Cache<String, Boolean> banned = (Cache<String, Boolean>) field(Firewall.class, "BANNED");
+        banned.put(IP, true);
+        try (final Exchange exchange = new Exchange("/api/v3/me", "OPTIONS", null, UA)) {
+            exchange.raw.headers().set("Origin", "https://example.invalid");
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 429);
             Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Origin"));
             Assert.assertFalse(exchange.reached);
         }
@@ -362,13 +396,62 @@ public class AnonymousCaptchaShieldTest {
             exchange.context.getRequest().setParameter("apiKey", "legacy");
             exchange.context.attr("user", new JSONObject().put("oId", "legacy-user"));
             exchange.run(middleware::handle);
-            Assert.assertEquals(exchange.status, 401);
+            Assert.assertEquals(exchange.status, 403);
         }
         try (final Exchange exchange = new Exchange("/api/v3/columns")) {
             exchange.context.attr(ApiV3Processor.IDENTITY, new JSONObject().put("user", new JSONObject().put("oId", "v3-user")));
             exchange.run(middleware::handle);
             Assert.assertTrue(exchange.reached);
             Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 1);
+        }
+    }
+
+    @Test
+    public void v3FirstAndPeriodicChallengesPersistUntilProviderVerification() throws Exception {
+        Firewall.setEnabled(false);
+        try (final ProofProvider provider = new ProofProvider()) {
+            for (final boolean periodic : List.of(false, true)) {
+                reset();
+                Firewall.setEnabled(false);
+                if (periodic) {
+                    AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
+                    cache("ipVisitCountCache").put(IP, 4);
+                }
+                try (final Exchange exchange = new Exchange("/api/v3/articles")) {
+                    exchange.run(middleware::handle);
+                    Assert.assertEquals(exchange.status, 403);
+                    Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject().getString("code"), "captcha_required");
+                    Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+                    Assert.assertFalse(exchange.reached);
+                }
+                final Object count = cache("ipVisitCountCache").getIfPresent(IP);
+                for (int i = 0; i < 3; i++) {
+                    try (final Exchange exchange = new Exchange("/api/v3/articles")) {
+                        exchange.run(new BeforeRequestHandler());
+                        Assert.assertEquals(exchange.status, 403);
+                        Assert.assertFalse(exchange.reached);
+                        Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), count);
+                    }
+                }
+                provider.mode.set("rejected");
+                try (final Exchange exchange = new Exchange("/validateCaptcha", "POST", null, UA)) {
+                    Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+                    exchange.context.getRequest().setJSON(new JSONObject().put("captcha", provider.proof()));
+                    new CaptchaProcessor().validateCaptcha(exchange.context);
+                    Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+                }
+                provider.mode.set("success");
+                try (final Exchange exchange = new Exchange("/validateCaptcha", "POST", null, UA)) {
+                    exchange.context.getRequest().setJSON(new JSONObject().put("captcha", provider.proof()));
+                    new CaptchaProcessor().validateCaptcha(exchange.context);
+                }
+                Assert.assertFalse(AnonymousCaptchaShield.isRestricted(IP));
+                allowed("/api/v3/articles");
+                Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 1);
+                try (final Exchange exchange = new Exchange("/")) {
+                    Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+                }
+            }
         }
     }
 

@@ -39,6 +39,7 @@ import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
+import org.b3log.symphony.util.ApiV3Cors;
 import org.b3log.symphony.repository.OptionRepository;
 import org.b3log.symphony.service.SkinQueryService;
 import org.b3log.symphony.service.UserQueryService;
@@ -115,16 +116,8 @@ public class BeforeRequestHandler implements Handler {
             return;
         }
 
-        // CORS 头放在全局盾链（无UA→418、fillBotAttrs、Firewall 429、黑名单→/test）之后，
-        // 确保 OPTIONS 预检也走完整反漏扫校验链
-        final String origin = context.header("Origin");
-        if (origin != null && context.requestURI().startsWith("/api/v3")) {
-            context.setHeader("Access-Control-Allow-Origin", origin);
-            context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
-            context.setHeader("Access-Control-Allow-Credentials", "true");
-            context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
-            context.setHeader("Access-Control-Max-Age", "86400");
+        // UA/CC/验证码检查仍在前；被挑战的 V3 请求由盾输出同一 CORS 策略。
+        if (ApiV3Cors.apply(context)) {
             if ("OPTIONS".equals(context.method())) {
                 context.sendStatus(204);
                 context.abort();

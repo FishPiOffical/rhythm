@@ -11,7 +11,7 @@
 | 代码实施、验证、交付、提交 | [开发、验证与交付](workflow.md) | 准入提醒、兼容、构建授权、测试、事务、提交消息 |
 | Commit 审查、合并前检查、发布前复核 | [Commit 审查门禁](code-review.md) | 功能兼容、安全、隐私、防护链路、SQL 汇总、证据分级 |
 | 环境、Java、数据库、Latke、原始请求、模板 | [环境与框架](environment-framework.md) | 当前8080、历史配置、严格提交、IoC、Cookie、原始字节 |
-| Rhythm 与 website_v3 联调、V3 前端、跨仓库检查 | [website_v3 联调](website-v3-integration.md) | 两仓库边界、本地5173→8080、V3 Bearer、SSR/浏览器、分别提交 |
+| Rhythm 与 website_v3 联调、V3 前端、跨仓库检查 | [website_v3 联调](website-v3-integration.md)、[验证码流程工作单](../api-v3-captcha-flow-work.md) | 前端修改前 pull、同意后 PR、两仓库边界、已确认第2/4/5步与未完成项 |
 | 路由、鉴权、公开数据、审查、发布 | [访问控制与公开数据](security-access.md) | 匿名盾、apiKey、CSRF、脱敏、反漏扫、权限 |
 | 验证码盾、黑名单、爬虫、来源统计 | [验证码盾与爬虫](captcha-crawlers.md) | 受保护边界、策略归属、监控、缓存、官方网段 |
 | 验证码验收工具、压力测试、截图报告 | [验证码盾验收](captcha-acceptance.md) | 账号/IP安排、PRODUCTION、真实极验与ipset边界 |
