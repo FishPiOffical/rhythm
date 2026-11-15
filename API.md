@@ -17951,7 +17951,7 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/points/deduct`：扣除违规积分（需管理员或 `userDeductPoint`）
 - `POST /api/v3/admin/points/init`：初始化用户积分（需管理员或 `userAddPoint`）
 - `POST /api/v3/admin/points/exchange`：积分兑换扣减（需管理员或 `userExchangePoint`）
-- `POST /api/v3/admin/salary/pay`：批量发放工资并返回逐条结果明细（需管理员）
+- `POST /api/v3/admin/salary/pay`：批量发放工资并返回逐条结果明细（需管理员）。成功入账时一并写入对应积分变动通知，重放不会再次入账或新增通知。
 - `POST /api/v3/admin/bags/adjust`：调整用户背包道具数量（需管理员或 `userAdjustBag`）
 
 #### 鱼游、大事记与图片审核
@@ -17999,7 +17999,7 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `GET /api/v3/admin/ips`：查询防火墙与验证码盾运行状态摘要（需 `ipManage`）
 - `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，保留验证码盾调用顺序并写日志，需 `ipManage`）
 - `GET /api/v3/admin/settings`：读取站点杂项配置列表（需 `menuAdminMisc`）
-- `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志（需 `menuAdminMisc`）
+- `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志。除了后台入口和 `menuAdminMisc`，还需要对应配置项权限。GET 每项的 `writable`、`allowedValues` 指明可编辑性和允许值。PUT 仅提交要修改的值，值采用枚举字符串，非法字段或值返回 422，逐项权限不足返回 403。
 - `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅安全操作员 `adlered`）
 - `GET /api/v3/admin/security/self-check`：执行安全自检（仅安全操作员 `adlered`）
 - `POST /api/v3/admin/security/switches`：保存临时安全开关（仅安全操作员 `adlered` 且仅开发模式可写，生产模式只读返回 403）
@@ -18127,6 +18127,8 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 ### 职业配置输入、图片字段和鱼游查询
 
 - `POST /api/v3/admin/professions/*` 使用严格 JSON 对象，请求体上限 16 MiB；字符串、整数、布尔值、数组不进行类型转换。拒绝非法 JSON、重复键和非法编码。配置文本 `configJson` 也须是合法 JSON 对象字符串。
-- `GET /api/v3/admin/images` 每项仅返回 `oId`、`type`、`userName`、`time`、`path`、`public`、`reviewed`；原图链接 `path` 保留，移除 `ip`、`md5`。
+- `GET /api/v3/admin/images` 每项返回 `oId`、`type`、`userName`、`time`、`path`、`public`、`reviewed` 和 `reviewStatus`。列表状态为 `PENDING`、`IN_PROGRESS` 或 `UNKNOWN`。
+- 图片审核响应保留 `oId`、`decision`、`reviewed`。新增 `status`，`SUCCEEDED` 时 `reviewed=1`，`UNKNOWN` 时 `reviewed=0`，表示云端结果待核对。客户端应保持原请求记录。
+- 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。兼容旧摘要时返回原结果，并带 `legacyReceipt=true`、`replayed=true`。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
 - `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
 - `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。

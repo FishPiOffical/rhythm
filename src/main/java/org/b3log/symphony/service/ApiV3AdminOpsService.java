@@ -36,6 +36,7 @@ import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.model.Pointtransfer;
 import org.b3log.symphony.model.Tag;
+import org.b3log.symphony.repository.AdminOperationTaskRepository;
 import org.b3log.symphony.repository.DomainRepository;
 import org.b3log.symphony.repository.DomainTagRepository;
 import org.b3log.symphony.repository.FishGameRepository;
@@ -64,7 +65,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ApiV3AdminOpsService {
 
     private static final Logger LOGGER = LogManager.getLogger(ApiV3AdminOpsService.class);
-    private static final long IMAGE_REVIEW_WINDOW_MS = 45L * 24L * 3600L * 1000L;
 
     @Inject
     private ApiV3AdminService adminService;
@@ -83,6 +83,12 @@ public class ApiV3AdminOpsService {
 
     @Inject
     private UploadRepository uploadRepository;
+
+    @Inject
+    private AdminImageReviewService imageReviewService;
+
+    @Inject
+    private AdminOperationTaskRepository operationTasks;
 
     @Inject
     private PointtransferMgmtService pointtransferMgmtService;
@@ -308,18 +314,16 @@ public class ApiV3AdminOpsService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
-                    adminService.guardedWrite(identity, null, false, actorRef),
+            return ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
+                    adminService.guardedWrite(identity, null, false, actorRef, false,
+                            actor -> actor.isAdmin() || actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)),
                     actorId,
                     "admin.fish_game.import",
                     idempotencyKey,
+                    new JSONObject().put("items", games),
                     new JSONObject().put("count", games.length()),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final ApiV3AdminService.AuthorizedActor actor = actorRef.get();
-                        if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)) {
-                            throw ApiV3Requests.forbidden();
-                        }
-                        return fishGameMgmtService.importGames(actorId, games);
+                        return fishGameMgmtService.importGamesInCurrentTransaction(actorId, games);
                     }));
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "fish_game_import_failed");
@@ -522,18 +526,20 @@ public class ApiV3AdminOpsService {
             final int safePage = Math.max(1, page);
             final int safeSize = Math.min(Math.max(1, pageSize), 100);
             final int offset = (safePage - 1) * safeSize;
-            final String sinceTime = String.valueOf(System.currentTimeMillis() - IMAGE_REVIEW_WINDOW_MS);
+            final String sinceId = String.valueOf(System.currentTimeMillis() - AdminImageReviewService.WINDOW);
             final String table = uploadRepository.getName();
-
-            final String where = " WHERE `public`=? AND (`reviewed` IS NULL OR `reviewed`=0) AND `time`>=?";
+            final String where = " WHERE `public`=? AND oId>=?";
             final List<JSONObject> totalRows = uploadRepository.select(
-                    "SELECT COUNT(*) AS totalCount FROM `" + table + "`" + where, true, sinceTime);
+                    "SELECT COUNT(*) AS totalCount FROM `" + table + "`" + where, true, sinceId);
             final int total = totalRows.isEmpty() ? 0 : totalRows.getFirst().optInt("totalCount", 0);
-
             final List<JSONObject> rows = uploadRepository.select(
-                    "SELECT oId,type,userName,time,path,`public`,reviewed FROM `" + table + "`"
-                            + where + " ORDER BY oId DESC LIMIT ? OFFSET ?",
-                    true, sinceTime, safeSize, offset);
+                    "SELECT u.oId,u.type,u.userName,u.time,u.path,u.`public`,0 AS reviewed,"
+                            + " CASE WHEN t.status IN ('IMAGE_DELETING','IMAGE_REFRESHING','IMAGE_UNKNOWN') THEN 'UNKNOWN'"
+                            + " WHEN t.status IS NULL THEN 'PENDING' ELSE 'IN_PROGRESS' END AS reviewStatus"
+                            + " FROM `" + table + "` u LEFT JOIN `" + operationTasks.getName() + "` t"
+                            + " ON t.oId=CONCAT('image-review:',u.oId)"
+                            + " WHERE u.`public`=? AND u.oId>=? ORDER BY u.oId DESC LIMIT ? OFFSET ?",
+                    true, sinceId, safeSize, offset);
 
             tx.commit();
             return new JSONObject()
@@ -569,55 +575,12 @@ public class ApiV3AdminOpsService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject accepted = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
-                    actorId,
-                    "admin.image.review",
-                    idempotencyKey,
+                    actorId, "admin.image.review", idempotencyKey,
                     new JSONObject().put("imageId", imageId).put("decision", decision),
-                    () -> ApiV3TransactionSavepoint.run(() -> {
-                        final JSONObject pic = uploadRepository.get(imageId);
-                        if (pic == null) {
-                            throw ApiV3Requests.notFound();
-                        }
-                        if (pic.optInt("reviewed", 0) == 1) {
-                            throw new ApiV3Exception(409, "image_already_reviewed", "该图片已完成审核");
-                        }
-                        pic.put("reviewed", 1);
-                        pic.put("reviewResult", decision);
-                        if ("illegal".equals(decision)) {
-                            pic.put("public", false);
-                        }
-                        uploadRepository.update(imageId, pic);
-
-                        final String reviewerName = pic.optString("reviewer");
-                        if (StringUtils.isNotBlank(reviewerName)) {
-                            final JSONObject reviewer = users.getByName(reviewerName);
-                            if (reviewer != null) {
-                                final int reward = "illegal".equals(decision) ? 128 : 2;
-                                final String memo = "illegal".equals(decision)
-                                        ? "参与图片审核奖励：违规图片"
-                                        : "参与图片审核奖励：正常图片";
-                                pointtransferMgmtService.transferInCurrentTransaction(
-                                        Pointtransfer.ID_C_SYS,
-                                        reviewer.optString(Keys.OBJECT_ID),
-                                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
-                                        reward,
-                                        imageId,
-                                        System.currentTimeMillis(),
-                                        memo);
-                            }
-                        }
-
-                        if ("illegal".equals(decision)) {
-                            adminService.recordOperation(request, Operation.OPERATION_CODE_C_DELETE_PICTURE,
-                                    imageId, actorRef.get().user());
-                        }
-                        return new JSONObject()
-                                .put("oId", imageId)
-                                .put("decision", decision)
-                                .put("reviewed", 1);
-                    }));
+                    () -> imageReviewService.reserveInCurrentTransaction(imageId, decision, request, actorRef.get().user()));
+            return imageReviewService.complete(accepted, actorId);
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {

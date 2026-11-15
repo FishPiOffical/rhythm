@@ -32,6 +32,7 @@ import org.b3log.symphony.repository.FishGameCommentRepository;
 import org.b3log.symphony.repository.FishGameRepository;
 import org.b3log.symphony.repository.FishGameVoteRepository;
 import org.json.JSONArray;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 import org.b3log.latke.ioc.Inject;
 import java.util.HashSet;
@@ -150,39 +151,42 @@ public class FishGameMgmtService {
         }
     }
     public JSONObject importGames(final String adminId, final JSONArray games) throws ServiceException {
-        if (games.length() > 200) {
-            throw new ServiceException("单次最多导入 200 个鱼游");
+        final Transaction tx = ApiV3Transactions.strict(fishGameRepository.beginTransaction());
+        try {
+            JSONObject result = importGamesInCurrentTransaction(adminId, games);
+            tx.commit();
+            return result;
+        } catch (RepositoryException e) {
+            throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
-        final Transaction tx = fishGameRepository.beginTransaction();
+    }
+
+    public JSONObject importGamesInCurrentTransaction(final String adminId, final JSONArray games) throws ServiceException, RepositoryException {
+        if (!fishGameRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        if (games.length() > 200) throw new ServiceException("单次最多导入 200 个鱼游");
         int imported = 0;
         int skipped = 0;
         final Set<String> urls = new HashSet<>();
-        try {
-            for (int i = 0; i < games.length(); i++) {
-                final JSONObject game = games.optJSONObject(i);
-                if (game == null) {
-                    throw new ServiceException("导入数据格式不合法");
-                }
-                final JSONObject normalized = fishGameValidationService.build(game, adminId, FishGame.STATUS_APPROVED);
-                final String url = normalized.optString(FishGame.URL);
-                if (!urls.add(url) || fishGameRepository.getByUrl(url) != null) {
-                    skipped++;
-                    continue;
-                }
-                normalized.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-                fishGameRepository.add(normalized);
-                imported++;
+        for (int i = 0; i < games.length(); i++) {
+            final JSONObject game = games.optJSONObject(i);
+            if (game == null) {
+                throw new ServiceException("导入数据格式不合法");
             }
-            tx.commit();
-            return new JSONObject().put("imported", imported).put("skipped", skipped);
-        } catch (final ServiceException e) {
-            rollback(tx);
-            throw e;
-        } catch (final RepositoryException e) {
-            rollback(tx);
-            throw new ServiceException(e);
+            final JSONObject normalized = fishGameValidationService.build(game, adminId, FishGame.STATUS_APPROVED);
+            final String url = normalized.optString(FishGame.URL);
+            if (!urls.add(url) || fishGameRepository.getByUrl(url) != null) {
+                skipped++;
+                continue;
+            }
+            normalized.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+            fishGameRepository.add(normalized);
+            imported++;
         }
+        return new JSONObject().put("imported", imported).put("skipped", skipped);
     }
+
     public JSONObject vote(final String userId, final String gameId, final String value) throws ServiceException {
         if (!FishGameVote.VALUE_LIKE.equals(value) && !FishGameVote.VALUE_DISLIKE.equals(value)) throw new ServiceException("投票值不合法");
         final Transaction tx = fishGameRepository.beginTransaction();

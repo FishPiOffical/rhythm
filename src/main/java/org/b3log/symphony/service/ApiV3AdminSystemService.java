@@ -21,7 +21,6 @@ package org.b3log.symphony.service;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -31,7 +30,6 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Operation;
-import org.b3log.symphony.model.Option;
 import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.ApiV3Exception;
@@ -73,10 +71,7 @@ public class ApiV3AdminSystemService {
     private PetAdminLogQueryService petAdminLogQueryService;
 
     @Inject
-    private OptionQueryService optionQueryService;
-
-    @Inject
-    private OptionMgmtService optionMgmtService;
+    private AdminMiscSettingsService miscSettings;
 
     @Inject
     private ArticleQueryService articleQueryService;
@@ -191,9 +186,12 @@ public class ApiV3AdminSystemService {
     public JSONObject listMiscSettings(final JSONObject identity) {
         final Transaction tx = adminService.begin();
         try {
-            adminService.authorizeInCurrentTransaction(
+            final var actor = adminService.authorizeInCurrentTransaction(
                     identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN_MISC, false);
+            final JSONArray options = miscSettings.list(actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN)
+                    ? actor.permissions() : java.util.Set.of());
             tx.commit();
+            return new JSONObject().put("options", options);
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
@@ -203,11 +201,6 @@ public class ApiV3AdminSystemService {
             adminService.rollbackIfActive(tx);
         }
 
-        final JSONArray options = new JSONArray();
-        for (final JSONObject row : optionQueryService.getMisc()) {
-            options.put(new JSONObject(row.toString()));
-        }
-        return new JSONObject().put("options", options);
     }
 
     /**
@@ -236,21 +229,11 @@ public class ApiV3AdminSystemService {
                     idempotencyKey,
                     new JSONObject().put("options", optionsMap),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        for (final String optionId : optionsMap.keySet()) {
-                            final String trimmedId = StringUtils.trimToEmpty(optionId);
-                            if (trimmedId.isEmpty()) {
-                                continue;
-                            }
-                            final JSONObject option = new JSONObject();
-                            option.put(Keys.OBJECT_ID, trimmedId);
-                            option.put(Option.OPTION_VALUE, optionsMap.optString(optionId));
-                            option.put(Option.OPTION_CATEGORY, Option.CATEGORY_C_MISC);
-                            optionMgmtService.updateOptionInCurrentTransaction(trimmedId, option);
-                        }
+                        final int updated = miscSettings.updateInCurrentTransaction(optionsMap, actorRef.get().permissions());
                         adminService.recordOperation(
                                 request, Operation.OPERATION_CODE_C_UPDATE_MISC, "", actorRef.get().user());
                         return new JSONObject()
-                                .put("updatedCount", optionsMap.length())
+                                .put("updatedCount", updated)
                                 .put("updatedAt", System.currentTimeMillis());
                     }));
         } catch (final ApiV3Exception e) {
@@ -260,10 +243,8 @@ public class ApiV3AdminSystemService {
             throw adminService.unavailable();
         }
 
-        final JSONArray freshOptions = new JSONArray();
-        for (final JSONObject row : optionQueryService.getMisc()) {
-            freshOptions.put(new JSONObject(row.toString()));
-        }
+        if (execution.applied()) miscSettings.afterCommit(optionsMap);
+        final JSONArray freshOptions = miscSettings.list(actorRef.get().permissions());
         return new JSONObject(execution.result().toString())
                 .put("replayed", !execution.applied())
                 .put("options", freshOptions);

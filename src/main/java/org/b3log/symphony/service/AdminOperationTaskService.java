@@ -161,7 +161,7 @@ public class AdminOperationTaskService {
             switch (kind) {
                 case "IP" -> executeIps(task, payload, result);
                 case "SWITCHES" -> executeSwitches(payload, result);
-                case "REINDEX_ONE" -> indexOne(payload.getString("articleId"), result);
+                case "REINDEX_ONE" -> indexOne(payload.getString("articleId"), result, true);
                 case "REINDEX_ALL" -> indexAll(task, result);
                 default -> throw new IllegalStateException("未知任务类型");
             }
@@ -247,7 +247,7 @@ public class AdminOperationTaskService {
         result.put("switches", new JSONObject(payload.toString()));
     }
 
-    private void indexOne(final String id, final JSONObject result) throws Exception {
+    private void indexOne(final String id, final JSONObject result, final boolean pushToBaidu) throws Exception {
         final JSONObject article = articles.get(id);
         if (article == null) throw new IllegalStateException("文章不存在");
         if (article.optInt(Article.ARTICLE_TYPE) == Article.ARTICLE_TYPE_C_DISCUSSION
@@ -256,6 +256,7 @@ public class AdminOperationTaskService {
             return;
         }
         search.updateAdminArticleIndex(new JSONObject(article.toString()));
+        if (pushToBaidu) ArticleMgmtService.pushAdminArticleToBaidu(article);
         result.put("processedCount", result.getInt("processedCount") + 1);
     }
 
@@ -270,7 +271,7 @@ public class AdminOperationTaskService {
             for (final JSONObject row : rows) {
                 after = row.getString(Keys.OBJECT_ID);
                 checkpoint(task, result);
-                indexOne(after, result);
+                indexOne(after, result, false);
             }
         }
     }

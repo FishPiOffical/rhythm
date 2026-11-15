@@ -34,6 +34,8 @@
 - 关注/收藏/订阅统一经 `FollowMgmtService#setInCurrentTransaction` + `FollowMutation`，锁定操作者与目标后维护关系/计数；旧入口自行提交事务，v3 加入幂等事务。缓存需在提交或回滚后失效；关注通知经 `NotificationMgmtService#addFollowNotificationInCurrentTransaction` 写入，提交后再刷新。
 - 复读机新旧投稿共用 RepeaterContentModerationService 七牛审核（事务外，异常拒绝）；v3 新回执以 textVersion 区分保留换行规则，旧成功回执仅兼容读。举报 type=4 复用 report；管理员删除须同根软删、职业 targetRemoved 与 operation 审计，PC/mobile 首页及举报后台均有入口。
 
+- 新旧内置图片审核以时间型上传 ID 计算 45 天，复用 `public` 作为待审状态。违规删除/刷新以 `admin_operation_task` 记录阶段，云端未知时挂起。结算同根写入状态、奖惩、扣分通知和审计，群公告在提交后沿旧异步发送。
+
 ## 历史与表情
 
 - 分组写入`ApiV3EmojiGroupService`仅本人type0，type1不可改删，删除保留全局图片/其他组/分享；旧写不共锁，不能宣称新旧全局唯一。

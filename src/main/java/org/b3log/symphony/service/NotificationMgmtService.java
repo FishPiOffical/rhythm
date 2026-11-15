@@ -751,6 +751,11 @@ public class NotificationMgmtService {
         }
     }
 
+    public void addPointChargeNotificationInCurrentTransaction(final String userId, final String transferId)
+            throws RepositoryException {
+        addTransferNoticeInCurrentTransaction(userId, transferId, Notification.DATA_TYPE_C_POINT_CHARGE);
+    }
+
     /**
      * Adds a 'abuse point deduct' type notification with the specified request json object.
      *
@@ -864,6 +869,21 @@ public class NotificationMgmtService {
             final String msg = "Adds a notification [type=point_transfer] failed";
             LOGGER.log(Level.ERROR, msg, e);
         }
+    }
+
+    public void addPointTransferNotificationInCurrentTransaction(final String userId, final String transferId)
+            throws RepositoryException {
+        addTransferNoticeInCurrentTransaction(userId, transferId, Notification.DATA_TYPE_C_POINT_TRANSFER);
+    }
+
+    private void addTransferNoticeInCurrentTransaction(final String userId, final String transferId,
+                                                        final int type) throws RepositoryException {
+        if (!notificationRepository.hasTransactionBegun() || StringUtils.isBlank(transferId)) {
+            throw new IllegalStateException("积分变动通知必须绑定当前事务的流水");
+        }
+        addNotificationRecord(new JSONObject().put(Notification.NOTIFICATION_USER_ID, userId)
+                .put(Notification.NOTIFICATION_DATA_ID, transferId)
+                .put(Notification.NOTIFICATION_DATA_TYPE, type));
     }
 
     /**

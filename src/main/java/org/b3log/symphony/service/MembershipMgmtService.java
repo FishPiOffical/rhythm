@@ -51,6 +51,7 @@ import org.b3log.symphony.repository.MembershipRepository;
 import org.b3log.symphony.repository.CouponRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.cache.MembershipCache;
+import org.b3log.symphony.util.ApiV3Transactions;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
@@ -94,72 +95,85 @@ public class MembershipMgmtService {
     private CloudService cloudService;
 
     @Inject
+    private BagMgmtService adminBagMgmtService;
+
+    @Inject
     private UserRepository userRepository;
 
     public String addLevel(final JSONObject level) throws ServiceException {
-        final Transaction transaction = levelRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(levelRepository.beginTransaction());
         try {
-            final String lvCode = level.optString(MembershipLevel.LV_CODE);
-            final String durationType = level.optString(MembershipLevel.DURATION_TYPE);
-            if (StringUtils.isBlank(lvCode) || StringUtils.isBlank(durationType)) {
-                throw new ServiceException("lvCode 与 durationType 不能为空");
-            }
-            if (null != levelRepository.getByCodeAndDurationType(lvCode, durationType)) {
-                throw new ServiceException("已存在相同 lvCode + durationType 的等级配置");
-            }
-            final long now = System.currentTimeMillis();
-            level.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-            level.put(MembershipLevel.CREATED_AT, now);
-            level.put(MembershipLevel.UPDATED_AT, now);
-            levelRepository.add(level);
-            transaction.commit();
+            String result = addLevelInCurrentTransaction(level);
+            tx.commit();
             MembershipStyleCache.invalidate();
-            return level.optString(Keys.OBJECT_ID);
+            return result;
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Add level failed", e);
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public String addLevelInCurrentTransaction(final JSONObject level) throws ServiceException, RepositoryException {
+        if (!levelRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        final String lvCode = level.optString(MembershipLevel.LV_CODE);
+        final String durationType = level.optString(MembershipLevel.DURATION_TYPE);
+        if (StringUtils.isBlank(lvCode) || StringUtils.isBlank(durationType)) {
+            throw new ServiceException("lvCode 与 durationType 不能为空");
+        }
+        if (null != levelRepository.getByCodeAndDurationType(lvCode, durationType)) {
+            throw new ServiceException("已存在相同 lvCode + durationType 的等级配置");
+        }
+        final long now = System.currentTimeMillis();
+        level.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+        level.put(MembershipLevel.CREATED_AT, now);
+        level.put(MembershipLevel.UPDATED_AT, now);
+        levelRepository.add(level);
+        return level.optString(Keys.OBJECT_ID);
     }
 
     public void updateLevel(final String oId, final JSONObject levelPatch) throws ServiceException {
-        final Transaction transaction = levelRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(levelRepository.beginTransaction());
         try {
-            final JSONObject old = levelRepository.getById(oId);
-            if (null == old) {
-                throw new ServiceException("等级不存在");
-            }
-            for (final String key : levelPatch.keySet()) {
-                old.put(key, levelPatch.opt(key));
-            }
-            old.put(MembershipLevel.UPDATED_AT, System.currentTimeMillis());
-            levelRepository.update(oId, old);
-            transaction.commit();
+            updateLevelInCurrentTransaction(oId, levelPatch);
+            tx.commit();
             MembershipStyleCache.invalidate();
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Update level failed", e);
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
     }
 
+    public void updateLevelInCurrentTransaction(final String oId, final JSONObject levelPatch) throws ServiceException, RepositoryException {
+        if (!levelRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        final JSONObject old = levelRepository.getById(oId);
+        if (null == old) {
+            throw new ServiceException("等级不存在");
+        }
+        for (final String key : levelPatch.keySet()) {
+            old.put(key, levelPatch.opt(key));
+        }
+        old.put(MembershipLevel.UPDATED_AT, System.currentTimeMillis());
+        levelRepository.update(oId, old);
+    }
+
     public void removeLevel(final String oId) throws ServiceException {
-        final Transaction transaction = levelRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(levelRepository.beginTransaction());
         try {
-            levelRepository.remove(oId);
-            transaction.commit();
+            removeLevelInCurrentTransaction(oId);
+            tx.commit();
             MembershipStyleCache.invalidate();
         } catch (RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Remove level failed", e);
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public void removeLevelInCurrentTransaction(final String oId) throws ServiceException, RepositoryException {
+        if (!levelRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        levelRepository.remove(oId);
     }
 
     /**
@@ -413,85 +427,91 @@ public class MembershipMgmtService {
     public JSONObject adminAddMembershipNoCost(final String userId,
                                                final String levelOId,
                                                final String configJson) throws ServiceException {
-        final Transaction transaction = membershipRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(membershipRepository.beginTransaction());
         try {
-            if (StringUtils.isBlank(userId) || StringUtils.isBlank(levelOId)) {
-                throw new ServiceException("参数不完整");
-            }
-
-            final JSONObject user = userRepository.get(userId);
-            if (null == user) {
-                throw new ServiceException("用户不存在");
-            }
-
-            final JSONObject level = levelRepository.getById(levelOId);
-            if (null == level) {
-                throw new ServiceException("等级不存在");
-            }
-
-            final long now = System.currentTimeMillis();
-            final String lvCode = level.optString(MembershipLevel.LV_CODE);
-            final String durationType = level.optString(MembershipLevel.DURATION_TYPE);
-            final int durationValue = level.optInt(MembershipLevel.DURATION_VALUE);
-            if (durationValue <= 0) {
-                throw new ServiceException("等级周期配置非法");
-            }
-
-            JSONObject membership = membershipRepository.getByUserId(userId);
-            final boolean isNewMembership = Objects.isNull(membership);
-            if (isNewMembership) {
-                membership = new JSONObject();
-                membership.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-                membership.put(Membership.USER_ID, userId);
-                membership.put(Membership.CREATED_AT, now);
-            } else {
-                final int state = membership.optInt(Membership.STATE, 0);
-                final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
-                if (state == 1 && (expiresAt == 0L || expiresAt > now)) {
-                    throw new ServiceException("该用户已存在有效VIP");
-                }
-            }
-
-            final long expiresAt = calcExpires(now, durationType, durationValue);
-            membership.put(Membership.LV_CODE, lvCode);
-            membership.put(Membership.STATE, 1);
-            membership.put(Membership.EXPIRES_AT, expiresAt);
-            membership.put(Membership.CONFIG_JSON, StringUtils.defaultString(configJson));
-            membership.put(Membership.UPDATED_AT, now);
-
-            if (isNewMembership) {
-                membershipRepository.add(membership);
-            } else {
-                membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
-            }
-
-            final JSONObject activation = new JSONObject();
-            activation.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
-            activation.put(MembershipActivation.USER_ID, userId);
-            activation.put(MembershipActivation.LV_CODE, lvCode);
-            activation.put(MembershipActivation.PRICE, 0);
-            activation.put(MembershipActivation.DURATION_TYPE, durationType);
-            activation.put(MembershipActivation.DURATION_VALUE, durationValue);
-            activation.put(MembershipActivation.COUPON_CODE, "ADMIN_FREE");
-            activation.put(MembershipActivation.CONFIG_JSON, StringUtils.defaultString(configJson));
-            activation.put(MembershipActivation.CREATED_AT, now);
-            activation.put(MembershipActivation.UPDATED_AT, now);
-            activationRepository.add(activation);
-
-            transaction.commit();
-            membershipCache.put(membership);
-            grantVipStarterBag(userId, lvCode);
-
-            return new JSONObject()
-                    .put("membership", membership)
-                    .put("activation", activation);
-        } catch (final Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Admin add membership without points failed", e);
+            JSONObject result = adminAddMembershipNoCostInCurrentTransaction(userId, levelOId, configJson);
+            tx.commit();
+            invalidateAdminMembership(userId);
+            return result;
+        } catch (RepositoryException e) {
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public JSONObject adminAddMembershipNoCostInCurrentTransaction(final String userId,
+                                               final String levelOId,
+                                               final String configJson) throws ServiceException, RepositoryException {
+        if (!membershipRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(levelOId)) {
+            throw new ServiceException("参数不完整");
+        }
+
+        final JSONObject user = userRepository.getForUpdate(userId);
+        if (null == user) {
+            throw new ServiceException("用户不存在");
+        }
+
+        final JSONObject level = levelRepository.getById(levelOId);
+        if (null == level) {
+            throw new ServiceException("等级不存在");
+        }
+
+        final long now = System.currentTimeMillis();
+        final String lvCode = level.optString(MembershipLevel.LV_CODE);
+        final String durationType = level.optString(MembershipLevel.DURATION_TYPE);
+        final int durationValue = level.optInt(MembershipLevel.DURATION_VALUE);
+        if (durationValue <= 0) {
+            throw new ServiceException("等级周期配置非法");
+        }
+
+        JSONObject membership = membershipRepository.getByUserId(userId);
+        final boolean isNewMembership = Objects.isNull(membership);
+        if (isNewMembership) {
+            membership = new JSONObject();
+            membership.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+            membership.put(Membership.USER_ID, userId);
+            membership.put(Membership.CREATED_AT, now);
+        } else {
+            final int state = membership.optInt(Membership.STATE, 0);
+            final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+            if (state == 1 && (expiresAt == 0L || expiresAt > now)) {
+                throw new ServiceException("该用户已存在有效VIP");
+            }
+        }
+
+        final long expiresAt = calcExpires(now, durationType, durationValue);
+        membership.put(Membership.LV_CODE, lvCode);
+        membership.put(Membership.STATE, 1);
+        membership.put(Membership.EXPIRES_AT, expiresAt);
+        membership.put(Membership.CONFIG_JSON, StringUtils.defaultString(configJson));
+        membership.put(Membership.UPDATED_AT, now);
+
+        if (isNewMembership) {
+            membershipRepository.add(membership);
+        } else {
+            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+        }
+
+        final JSONObject activation = new JSONObject();
+        activation.put(Keys.OBJECT_ID, Ids.genTimeMillisId());
+        activation.put(MembershipActivation.USER_ID, userId);
+        activation.put(MembershipActivation.LV_CODE, lvCode);
+        activation.put(MembershipActivation.PRICE, 0);
+        activation.put(MembershipActivation.DURATION_TYPE, durationType);
+        activation.put(MembershipActivation.DURATION_VALUE, durationValue);
+        activation.put(MembershipActivation.COUPON_CODE, "ADMIN_FREE");
+        activation.put(MembershipActivation.CONFIG_JSON, StringUtils.defaultString(configJson));
+        activation.put(MembershipActivation.CREATED_AT, now);
+        activation.put(MembershipActivation.UPDATED_AT, now);
+        activationRepository.add(activation);
+
+        grantAdminVipStarterBagInCurrentTransaction(userId, lvCode);
+
+        return new JSONObject()
+                .put("membership", membership)
+                .put("activation", activation);
     }
 
     /**
@@ -502,236 +522,264 @@ public class MembershipMgmtService {
                                             final Integer state,
                                             final Long expiresAt,
                                             final String configJson) throws ServiceException {
-        final Transaction transaction = membershipRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(membershipRepository.beginTransaction());
         try {
-            if (StringUtils.isBlank(userId)) {
-                throw new ServiceException("参数错误：userId 不能为空");
-            }
-
-            final JSONObject membership = membershipRepository.getByUserId(userId);
-            if (null == membership) {
-                throw new ServiceException("会员记录不存在");
-            }
-
-            if (StringUtils.isNotBlank(lvCode)) {
-                final Query levelQuery = new Query()
-                        .setFilter(new PropertyFilter(MembershipLevel.LV_CODE, FilterOperator.EQUAL, lvCode.trim()))
-                        .setPageCount(1)
-                        .setPage(1, 1);
-                final JSONObject level = levelRepository.getFirst(levelQuery);
-                if (null == level) {
-                    throw new ServiceException("会员等级代码不存在");
-                }
-                membership.put(Membership.LV_CODE, lvCode.trim());
-            }
-
-            if (null != state) {
-                membership.put(Membership.STATE, state);
-            }
-            if (null != expiresAt) {
-                membership.put(Membership.EXPIRES_AT, expiresAt);
-            }
-            if (null != configJson) {
-                membership.put(Membership.CONFIG_JSON, configJson);
-            }
-            membership.put(Membership.UPDATED_AT, System.currentTimeMillis());
-
-            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
-            transaction.commit();
-
-            final int currentState = membership.optInt(Membership.STATE, 0);
-            final long currentExpiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
-            final long now = System.currentTimeMillis();
-            if (1 == currentState && (0L == currentExpiresAt || currentExpiresAt > now)) {
-                membershipCache.put(membership);
-            } else {
-                membershipCache.remove(userId);
-            }
-
-            return membership;
-        } catch (final Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Admin update membership failed", e);
+            JSONObject result = adminUpdateMembershipInCurrentTransaction(userId, lvCode, state, expiresAt, configJson);
+            tx.commit();
+            invalidateAdminMembership(userId);
+            return result;
+        } catch (RepositoryException e) {
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public JSONObject adminUpdateMembershipInCurrentTransaction(final String userId,
+                                            final String lvCode,
+                                            final Integer state,
+                                            final Long expiresAt,
+                                            final String configJson) throws ServiceException, RepositoryException {
+        if (!membershipRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        if (StringUtils.isBlank(userId)) {
+            throw new ServiceException("参数错误：userId 不能为空");
+        }
+
+        userRepository.getForUpdate(userId);
+        final JSONObject membership = membershipRepository.getByUserId(userId);
+        if (null == membership) {
+            throw new ServiceException("会员记录不存在");
+        }
+
+        if (StringUtils.isNotBlank(lvCode)) {
+            final Query levelQuery = new Query()
+                    .setFilter(new PropertyFilter(MembershipLevel.LV_CODE, FilterOperator.EQUAL, lvCode.trim()))
+                    .setPageCount(1)
+                    .setPage(1, 1);
+            final JSONObject level = levelRepository.getFirst(levelQuery);
+            if (null == level) {
+                throw new ServiceException("会员等级代码不存在");
+            }
+            membership.put(Membership.LV_CODE, lvCode.trim());
+        }
+
+        if (null != state) {
+            membership.put(Membership.STATE, state);
+        }
+        if (null != expiresAt) {
+            membership.put(Membership.EXPIRES_AT, expiresAt);
+        }
+        if (null != configJson) {
+            membership.put(Membership.CONFIG_JSON, configJson);
+        }
+        membership.put(Membership.UPDATED_AT, System.currentTimeMillis());
+
+        membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+
+        return membership;
     }
 
     /**
      * 管理侧：延长会员到期时间（按天）。
      */
     public JSONObject adminExtendMembershipDays(final String userId, final int days) throws ServiceException {
-        final Transaction transaction = membershipRepository.beginTransaction();
+        final Transaction tx = ApiV3Transactions.strict(membershipRepository.beginTransaction());
         try {
-            if (StringUtils.isBlank(userId)) {
-                throw new ServiceException("参数错误：userId 不能为空");
-            }
-            if (days <= 0) {
-                throw new ServiceException("参数错误：days 必须大于 0");
-            }
-            if (days > 36500) {
-                throw new ServiceException("参数错误：days 过大");
-            }
-
-            final JSONObject membership = membershipRepository.getByUserId(userId);
-            if (null == membership) {
-                throw new ServiceException("会员记录不存在");
-            }
-
-            final long now = System.currentTimeMillis();
-            final long oldExpiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
-            if (oldExpiresAt <= 0L) {
-                throw new ServiceException("永久会员不支持延长操作");
-            }
-
-            final long dayMillis = 24L * 60L * 60L * 1000L;
-            final long base = Math.max(oldExpiresAt, now);
-            final long newExpiresAt = base + days * dayMillis;
-
-            membership.put(Membership.EXPIRES_AT, newExpiresAt);
-            membership.put(Membership.STATE, 1);
-            membership.put(Membership.UPDATED_AT, now);
-            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
-
-            transaction.commit();
-            membershipCache.put(membership);
-
-            return new JSONObject()
-                    .put("userId", userId)
-                    .put("days", days)
-                    .put("oldExpiresAt", oldExpiresAt)
-                    .put("newExpiresAt", newExpiresAt)
-                    .put("membership", membership);
-        } catch (final Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Admin extend membership days failed", e);
+            JSONObject result = adminExtendMembershipDaysInCurrentTransaction(userId, days);
+            tx.commit();
+            invalidateAdminMembership(userId);
+            return result;
+        } catch (RepositoryException e) {
             throw new ServiceException(e);
+        } finally {
+            if (tx.isActive()) tx.rollback();
         }
+    }
+
+    public JSONObject adminExtendMembershipDaysInCurrentTransaction(final String userId, final int days) throws ServiceException, RepositoryException {
+        if (!membershipRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        if (StringUtils.isBlank(userId)) {
+            throw new ServiceException("参数错误：userId 不能为空");
+        }
+        if (days <= 0) {
+            throw new ServiceException("参数错误：days 必须大于 0");
+        }
+        if (days > 36500) {
+            throw new ServiceException("参数错误：days 过大");
+        }
+
+        userRepository.getForUpdate(userId);
+        final JSONObject membership = membershipRepository.getByUserId(userId);
+        if (null == membership) {
+            throw new ServiceException("会员记录不存在");
+        }
+
+        final long now = System.currentTimeMillis();
+        final long oldExpiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+        if (oldExpiresAt <= 0L) {
+            throw new ServiceException("永久会员不支持延长操作");
+        }
+
+        final long dayMillis = 24L * 60L * 60L * 1000L;
+        final long base = Math.max(oldExpiresAt, now);
+        final long newExpiresAt = base + days * dayMillis;
+
+        membership.put(Membership.EXPIRES_AT, newExpiresAt);
+        membership.put(Membership.STATE, 1);
+        membership.put(Membership.UPDATED_AT, now);
+        membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+
+
+        return new JSONObject()
+                .put("userId", userId)
+                .put("days", days)
+                .put("oldExpiresAt", oldExpiresAt)
+                .put("newExpiresAt", newExpiresAt)
+                .put("membership", membership);
     }
 
     /**
      * 管理侧：按天退款并使会员失效。
      */
     public JSONObject adminRefundMembershipByDays(final String userId) throws ServiceException {
-        final Transaction transaction = membershipRepository.beginTransaction();
         try {
-            if (StringUtils.isBlank(userId)) {
-                throw new ServiceException("参数错误：userId 不能为空");
-            }
-
-            final JSONObject membership = membershipRepository.getActiveByUserId(userId);
-            if (null == membership) {
-                throw new ServiceException("当前无有效VIP可退款");
-            }
-
-            final long now = System.currentTimeMillis();
-            final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
-            if (expiresAt <= 0L) {
-                throw new ServiceException("永久会员不支持按天退款");
-            }
-            if (expiresAt <= now) {
-                throw new ServiceException("VIP已过期，无法退款");
-            }
-
-            final String lvCode = membership.optString(Membership.LV_CODE);
-            final Query activationQuery = new Query()
-                    .setFilter(CompositeFilterOperator.and(
-                            new PropertyFilter(MembershipActivation.USER_ID, FilterOperator.EQUAL, userId),
-                            new PropertyFilter(MembershipActivation.LV_CODE, FilterOperator.EQUAL, lvCode)
-                    ))
-                    .addSort(MembershipActivation.CREATED_AT, SortDirection.DESCENDING)
-                    .setPageCount(1)
-                    .setPage(1, 1);
-            final JSONObject activation = activationRepository.getFirst(activationQuery);
-            if (null == activation) {
-                throw new ServiceException("未找到对应的开通记录，无法按天退款");
-            }
-
-            final int paidPoints = activation.optInt(MembershipActivation.PRICE, 0);
-            final int totalDays = activation.optInt(MembershipActivation.DURATION_VALUE, 0);
-            if (totalDays <= 0) {
-                throw new ServiceException("开通记录周期非法，无法退款");
-            }
-
-            final long dayMillis = 24L * 60L * 60L * 1000L;
-            final int remainingDays = (int) Math.max(0L, (expiresAt - now) / dayMillis);
-            final int refundPoints = (int) Math.floor((paidPoints * 1.0d / totalDays) * remainingDays);
-            String transferId = "";
-
-            if (refundPoints > 0) {
-                final String memo = "VIP按天退款（" + remainingDays + "天）";
-                transferId = pointtransferMgmtService.transferInCurrentTransaction(
-                        Pointtransfer.ID_C_SYS,
-                        userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
-                        refundPoints,
-                        membership.optString(Keys.OBJECT_ID),
-                        now,
-                        memo
-                );
-                if (null == transferId) {
-                    throw new ServiceException("退款失败，积分转账未完成");
-                }
-            }
-
-            membership.put(Membership.STATE, 0);
-            membership.put(Membership.EXPIRES_AT, now);
-            membership.put(Membership.UPDATED_AT, now);
-            membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
-
-            transaction.commit();
-            membershipCache.remove(userId);
-
-            if (StringUtils.isNotBlank(transferId)) {
+            return pointtransferMgmtService.executeWithTransferLock(Pointtransfer.ID_C_SYS, userId, () -> {
+                final Transaction tx = ApiV3Transactions.strict(membershipRepository.beginTransaction());
                 try {
-                    final JSONObject notification = new JSONObject();
-                    notification.put(Notification.NOTIFICATION_USER_ID, userId);
-                    notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                    notificationMgmtService.addPointTransferNotification(notification);
-                } catch (final Exception notificationException) {
-                    LOGGER.warn("Add refund transfer notification failed [userId=" + userId + ", transferId=" + transferId + "]", notificationException);
+                    final JSONObject result = adminRefundMembershipByDaysInCurrentTransaction(userId);
+                    tx.commit();
+                    afterAdminRefund(userId, result.optString("_transferId"));
+                    result.remove("_transferId");
+                    return result;
+                } finally {
+                    if (tx.isActive()) tx.rollback();
                 }
-            }
-
-            return new JSONObject()
-                    .put("userId", userId)
-                    .put("refundPoints", refundPoints)
-                    .put("remainingDays", remainingDays)
-                    .put("totalDays", totalDays)
-                    .put("paidPoints", paidPoints)
-                    .put("membership", membership);
-        } catch (final Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            LOGGER.error("Admin refund membership by days failed", e);
+            });
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
             throw new ServiceException(e);
         }
     }
 
-    /**
-     * 开通会员后的赠送权益。
-     */
-    private void grantVipStarterBag(final String userId, final String lvCode) {
-        switch (lvCode) {
-            case "VIP1_YEAR":
-                cloudService.putBag(userId, "checkin1day", 20, Integer.MAX_VALUE);
-                break;
-            case "VIP2_YEAR":
-                cloudService.putBag(userId, "checkin1day", 50, Integer.MAX_VALUE);
-                break;
-            case "VIP3_YEAR":
-                cloudService.putBag(userId, "checkin1day", 120, Integer.MAX_VALUE);
-                break;
-            case "VIP4_YEAR":
-                cloudService.putBag(userId, "sysCheckinRemain", 366, Integer.MAX_VALUE);
-                break;
-            default:
-                break;
+    public JSONObject adminRefundMembershipByDaysInCurrentTransaction(final String userId)
+            throws ServiceException, RepositoryException {
+        if (!membershipRepository.hasTransactionBegun()) throw new IllegalStateException("需要活动事务");
+        if (StringUtils.isBlank(userId)) {
+            throw new ServiceException("参数错误：userId 不能为空");
         }
+
+        userRepository.getForUpdate(userId);
+        final JSONObject membership = membershipRepository.getActiveByUserId(userId);
+        if (null == membership) {
+            throw new ServiceException("当前无有效VIP可退款");
+        }
+
+        final long now = System.currentTimeMillis();
+        final long expiresAt = membership.optLong(Membership.EXPIRES_AT, 0L);
+        if (expiresAt <= 0L) {
+            throw new ServiceException("永久会员不支持按天退款");
+        }
+        if (expiresAt <= now) {
+            throw new ServiceException("VIP已过期，无法退款");
+        }
+
+        final String lvCode = membership.optString(Membership.LV_CODE);
+        final Query activationQuery = new Query()
+                .setFilter(CompositeFilterOperator.and(
+                        new PropertyFilter(MembershipActivation.USER_ID, FilterOperator.EQUAL, userId),
+                        new PropertyFilter(MembershipActivation.LV_CODE, FilterOperator.EQUAL, lvCode)
+                ))
+                .addSort(MembershipActivation.CREATED_AT, SortDirection.DESCENDING)
+                .setPageCount(1)
+                .setPage(1, 1);
+        final JSONObject activation = activationRepository.getFirst(activationQuery);
+        if (null == activation) {
+            throw new ServiceException("未找到对应的开通记录，无法按天退款");
+        }
+
+        final int paidPoints = activation.optInt(MembershipActivation.PRICE, 0);
+        final int totalDays = activation.optInt(MembershipActivation.DURATION_VALUE, 0);
+        if (totalDays <= 0) {
+            throw new ServiceException("开通记录周期非法，无法退款");
+        }
+
+        final long dayMillis = 24L * 60L * 60L * 1000L;
+        final int remainingDays = (int) Math.max(0L, (expiresAt - now) / dayMillis);
+        final int refundPoints = (int) Math.floor((paidPoints * 1.0d / totalDays) * remainingDays);
+        String transferId = "";
+
+        if (refundPoints > 0) {
+            final String memo = "VIP按天退款（" + remainingDays + "天）";
+            transferId = pointtransferMgmtService.transferAdminInCurrentTransaction(
+                    Pointtransfer.ID_C_SYS,
+                    userId,
+                    Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
+                    refundPoints,
+                    membership.optString(Keys.OBJECT_ID),
+                    now,
+                    memo
+            );
+            if (null == transferId) {
+                throw new ServiceException("退款失败，积分转账未完成");
+            }
+        }
+
+        membership.put(Membership.STATE, 0);
+        membership.put(Membership.EXPIRES_AT, now);
+        membership.put(Membership.UPDATED_AT, now);
+        membershipRepository.update(membership.optString(Keys.OBJECT_ID), membership);
+
+        if (StringUtils.isNotBlank(transferId)) {
+            notificationMgmtService.addPointTransferNotificationInCurrentTransaction(userId, transferId);
+        }
+        return new JSONObject()
+                .put("userId", userId)
+                .put("refundPoints", refundPoints)
+                .put("remainingDays", remainingDays)
+                .put("totalDays", totalDays)
+                .put("paidPoints", paidPoints)
+                .put("membership", membership).put("_transferId", transferId);
+    }
+
+    public void invalidateAdminMembership(final String userId) {
+        membershipCache.remove(userId);
+    }
+
+    public void afterAdminRefund(final String userId, final String transferId) {
+        invalidateAdminMembership(userId);
+        if (StringUtils.isNotBlank(transferId)) {
+            userRepository.evictSettingsCaches(userId);
+            pointtransferMgmtService.indexTransferAsync(Pointtransfer.ID_C_SYS, userId, transferId);
+            notificationMgmtService.publishRefreshNotification(userId);
+        }
+    }
+
+    private static int starterBagCount(final String level) {
+        return switch (level) {
+            case "VIP1_YEAR" -> 20;
+            case "VIP2_YEAR" -> 50;
+            case "VIP3_YEAR" -> 120;
+            case "VIP4_YEAR" -> 366;
+            default -> 0;
+        };
+    }
+
+    private static String starterBagItem(final String level) {
+        return "VIP4_YEAR".equals(level) ? "sysCheckinRemain" : "checkin1day";
+    }
+
+    private void grantAdminVipStarterBagInCurrentTransaction(final String userId, final String level) throws RepositoryException {
+        final int count = starterBagCount(level);
+        if (count > 0 && adminBagMgmtService.adjustInCurrentTransaction(
+                userId, starterBagItem(level), count, Integer.MAX_VALUE) != 0) {
+            throw new RepositoryException("VIP 礼包写入失败");
+        }
+    }
+
+    private void grantVipStarterBag(final String userId, final String level) {
+        final int count = starterBagCount(level);
+        if (count > 0) cloudService.putBag(userId, starterBagItem(level), count, Integer.MAX_VALUE);
     }
 
     /**

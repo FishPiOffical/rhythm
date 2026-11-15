@@ -36,11 +36,11 @@ import org.b3log.latke.repository.CompositeFilterOperator;
 import org.b3log.latke.repository.FilterOperator;
 import org.b3log.latke.repository.PropertyFilter;
 import org.b3log.latke.repository.Query;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.model.Notification;
 import org.b3log.symphony.model.Pointtransfer;
-import org.b3log.symphony.model.Sponsor;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.repository.SponsorRepository;
@@ -143,17 +143,12 @@ public class WeChatPayProcessor {
      */
     private static void processSponsor(String userId, String total_amount, String note) {
         final BeanManager beanManager = BeanManager.getInstance();
-        PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
-        NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
-        SponsorService sponsorService = beanManager.getReference(SponsorService.class);
-        CloudService cloudService = beanManager.getReference(CloudService.class);
+        final PointtransferMgmtService pointtransferMgmtService = beanManager.getReference(PointtransferMgmtService.class);
+        final NotificationMgmtService notificationMgmtService = beanManager.getReference(NotificationMgmtService.class);
+        final SponsorService sponsorService = beanManager.getReference(SponsorService.class);
 
-        int point;
-        double total = Double.parseDouble(total_amount);
-        point = ((int) total) * 80;
-        if (point == 0) {
-            point = 1;
-        }
+        final double total = Double.parseDouble(total_amount);
+        final int point = SponsorService.pointsForPayment(total);
 
         // 打积分
         final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
@@ -169,14 +164,15 @@ public class WeChatPayProcessor {
             LOGGER.error(e.getMessage());
         }
 
-        // 保存捐赠记录
-        final JSONObject record = new JSONObject();
-        record.put(UserExt.USER_T_ID, userId);
-        record.put("time", System.currentTimeMillis());
-        record.put(Sponsor.SPONSOR_MESSAGE, note);
-        record.put(Sponsor.AMOUNT, total);
-        sponsorService.add(record);
+        sponsorService.add(SponsorService.paymentRecord(userId, total, note, System.currentTimeMillis()));
+        refreshSponsorMedalsAfterCommit(userId);
+    }
 
+    /** 赞助流水提交后，刷新原有粉丝勋章与排名。 */
+    public static void refreshSponsorMedalsAfterCommit(final String userId) {
+        final BeanManager beans = BeanManager.getInstance();
+        final SponsorService sponsorService = beans.getReference(SponsorService.class);
+        final CloudService cloudService = beans.getReference(CloudService.class);
         // 统计用户总积分
         double sum = sponsorService.getSum(userId);
 
@@ -445,90 +441,114 @@ public class WeChatPayProcessor {
      */
     public static void updateAllMedalRanks(String medalName, int level) {
         try {
-            final BeanManager beanManager = BeanManager.getInstance();
-            final SponsorRepository sponsorRepository = beanManager.getReference(SponsorRepository.class);
-            final SponsorService sponsorService = beanManager.getReference(SponsorService.class);
-            final MedalService medalService = beanManager.getReference(MedalService.class);
-            final UserMedalRepository userMedalRepository = beanManager.getReference(UserMedalRepository.class);
-
-            // 查找该勋章的定义
-            JSONObject medalDef = medalService.getMedalByExactName(medalName);
-            if (medalDef == null) {
-                LOGGER.warn("Medal [" + medalName + "] not found, skipping rank update...");
-                return;
-            }
-            String medalId = medalDef.optString("medal_id");
-
-            // 获取所有捐助记录并计算达到该级别的用户顺序
-            List<JSONObject> data = sponsorRepository.listAsc();
-            HashMap<String, Double> map = new HashMap<>();
-            List<String> rank = new ArrayList<>();
-            List<String> ignores = new ArrayList<>();
-
-            double threshold = 0;
-            switch (level) {
-                case 1: threshold = 16; break;
-                case 2: threshold = 256; break;
-                case 3: threshold = 1024; break;
-                case 4: threshold = 4096; break;
-            }
-
-            for (JSONObject i : data) {
-                String id = i.optString("userId");
-                double amount = i.optDouble("amount");
-                if (!ignores.contains(id)) {
-                    double currentSum = map.getOrDefault(id, 0.0) + amount;
-                    if (currentSum >= threshold) {
-                        rank.add(id);
-                        ignores.add(id);
-                    } else {
-                        map.put(id, currentSum);
-                    }
-                }
-            }
-
-            // 更新每个用户的勋章data字段（不影响display、expire_time等其他字段）
-            for (int i = 0; i < rank.size(); i++) {
-                String userId = rank.get(i);
-                int no = i + 1;
-                try {
-                    // 查询用户勋章记录
-                    Query query = new Query()
-                            .setFilter(CompositeFilterOperator.and(
-                                    new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
-                                    new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
-                            ));
-                    JSONObject userMedal = userMedalRepository.getFirst(query);
-
-                    if (userMedal != null && userMedal.length() > 0) {
-                        // 只更新data字段，保留display、expire_time等其他字段
-                        String oId = userMedal.optString("oId");
-                        String newData;
-                        if (level == 4) {
-                            double sum = sponsorService.getSum(userId);
-                            int topRank = TopProcessor.getDonateRankByUserId(userId);
-                            String rankChinese = NumberChineseFormatter.format(topRank, false);
-                            // 狗月定制
-                            if (userId.equals("1659773132440")) {
-                                rankChinese = "续命导师";
-                            }
-                            String formattedSum = String.format("%.2f", sum);
-                            newData = formattedSum + ";" + rankChinese + ";" + no;
-                        } else {
-                            newData = String.valueOf(no);
-                        }
-                        userMedal.put("data", newData);
-
-                        Transaction transaction = userMedalRepository.beginTransaction();
-                        userMedalRepository.update(oId, userMedal);
-                        transaction.commit();
-                    }
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARN, "Failed to update medal rank for user [" + userId + "] medal [" + medalName + "]", e);
-                }
-            }
+            updateMedalRanks(medalName, level, false);
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to update all medal ranks for [" + medalName + "]", e);
+            LOGGER.error("Failed to update all medal ranks for [" + medalName + "]", e);
+        }
+    }
+
+    public static void updateMedalRanksInCurrentTransaction(final String medalName, final int level)
+            throws RepositoryException, ServiceException {
+        updateMedalRanks(medalName, level, true);
+    }
+
+    private static void updateMedalRanks(final String medalName, final int level, final boolean currentTransaction)
+            throws RepositoryException, ServiceException {
+
+        final BeanManager beanManager = BeanManager.getInstance();
+        final SponsorRepository sponsorRepository = beanManager.getReference(SponsorRepository.class);
+        final SponsorService sponsorService = beanManager.getReference(SponsorService.class);
+        final MedalService medalService = beanManager.getReference(MedalService.class);
+        final UserMedalRepository userMedalRepository = beanManager.getReference(UserMedalRepository.class);
+
+        if (currentTransaction && !userMedalRepository.hasTransactionBegun()) {
+            throw new IllegalStateException("勋章重排需要活动事务");
+        }
+
+        // 查找该勋章的定义
+        JSONObject medalDef = medalService.getMedalByExactName(medalName);
+        if (medalDef == null) {
+            LOGGER.warn("Medal [" + medalName + "] not found, skipping rank update...");
+            return;
+        }
+        String medalId = medalDef.optString("medal_id");
+
+        // 获取所有捐助记录并计算达到该级别的用户顺序
+        List<JSONObject> data = sponsorRepository.listAsc();
+        HashMap<String, Double> map = new HashMap<>();
+        List<String> rank = new ArrayList<>();
+        List<String> ignores = new ArrayList<>();
+
+        double threshold = 0;
+        switch (level) {
+            case 1: threshold = 16; break;
+            case 2: threshold = 256; break;
+            case 3: threshold = 1024; break;
+            case 4: threshold = 4096; break;
+        }
+
+        for (JSONObject i : data) {
+            String id = i.optString("userId");
+            double amount = i.optDouble("amount");
+            if (!ignores.contains(id)) {
+                double currentSum = map.getOrDefault(id, 0.0) + amount;
+                if (currentSum >= threshold) {
+                    rank.add(id);
+                    ignores.add(id);
+                } else {
+                    map.put(id, currentSum);
+                }
+            }
+        }
+
+        // 更新每个用户的勋章data字段（不影响display、expire_time等其他字段）
+        for (int i = 0; i < rank.size(); i++) {
+            String userId = rank.get(i);
+            int no = i + 1;
+            try {
+                // 查询用户勋章记录
+                Query query = new Query()
+                        .setFilter(CompositeFilterOperator.and(
+                                new PropertyFilter("user_id", FilterOperator.EQUAL, userId),
+                                new PropertyFilter("medal_id", FilterOperator.EQUAL, medalId)
+                        ));
+                JSONObject userMedal = userMedalRepository.getFirst(query);
+
+                if (userMedal != null && userMedal.length() > 0) {
+                    // 只更新data字段，保留display、expire_time等其他字段
+                    String oId = userMedal.optString("oId");
+                    String newData;
+                    if (level == 4) {
+                        double sum = sponsorService.getSum(userId);
+                        int topRank = TopProcessor.getDonateRankByUserId(userId);
+                        String rankChinese = NumberChineseFormatter.format(topRank, false);
+                        // 狗月定制
+                        if (userId.equals("1659773132440")) {
+                            rankChinese = "续命导师";
+                        }
+                        String formattedSum = String.format("%.2f", sum);
+                        newData = formattedSum + ";" + rankChinese + ";" + no;
+                    } else {
+                        newData = String.valueOf(no);
+                    }
+                    userMedal.put("data", newData);
+
+                    if (currentTransaction) {
+                        userMedalRepository.update(oId, userMedal, "data");
+                    } else {
+                        final Transaction transaction = userMedalRepository.beginTransaction();
+                        try {
+                            userMedalRepository.update(oId, userMedal, "data");
+                            transaction.commit();
+                        } finally {
+                            if (transaction.isActive()) transaction.rollback();
+                        }
+                    }
+                }
+            } catch (RepositoryException | RuntimeException e) {
+                if (currentTransaction) throw e;
+                LOGGER.log(Level.WARN, "Failed to update medal rank for user [" + userId + "] medal [" + medalName + "]", e);
+            }
         }
     }
 }

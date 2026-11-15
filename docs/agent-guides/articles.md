@@ -16,6 +16,8 @@
 
 - 旧后台与 V3 的创建、编辑、置顶统一由 `ArticleMgmtService` 实现；旧入口持有根事务，V3 调用同类当前事务原语并仅在新提交后执行后置操作。禁止重新复制 `ArticleAdminDomainService`。改后台接口前建立旧入口/V3/共享服务/权限/字段/事务/审计对照，无法共用的协议差异必须记录并补兼容测试，详见 [修复与验收](../admin-v3-compatibility-repair.md)。
 
+- 管理后台编辑、单篇索引重建复用按文章类型的百度推送；创建继续走 `ADD_ARTICLE`，整站重建和批量封号不逐篇推送。V3 索引任务先验证 Algolia/ES 结果，再发起百度异步提交，百度受理不是索引任务成功的证明。
+
 ## 发布、编辑与删除
 
 - 文章内容校验共用 `ArticleValidation` + `ArticleValidationService`，旧 `ArticlePostValidationMidware` 只适配旧响应。v3 创建走 `ApiV3ArticleWriteProcessor` + `ApiV3ArticleMgmtService`，需要 content.write 与 commonAddArticle（不是管理权限articleAddArticle）；输入只认Bearer作者、幂等与本人草稿同事务，结果只返回id/permalink。v3不接受免审字段，思绪POST仍关闭；旧免审角色、额度例外与历史打赏长度规则保留，避免悄悄收紧旧API。

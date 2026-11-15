@@ -117,3 +117,11 @@ VALUES ('dispatcher','','DISPATCHER','INTERNAL','{}','{}',0,0);
 - `src/test/java/org/b3log/symphony/service/ArticleAdminCompatibilityTest.java`
 - `src/test/java/org/b3log/symphony/util/ApiV3ProfessionInputsTest.java`
 - `tools/admin-v3-compatibility-test.mjs`
+
+
+## 后续复核的恢复边界
+
+- 历史资产占位回执保留原样。收到结果待核对时，根据原操作人、操作时间和业务对象查账，确认当前状态之后再决定后续动作。新版完整摘要不会改写旧摘要。
+- 图片审核复用本文迁移的 `admin_operation_task` 表，无新增 SQL。包含待执行、删除中、删除确认、刷新中、本地待结算和结束阶段。云端异常记录 `IMAGE_UNKNOWN` 及发生阶段；重启前停在删除或刷新中的记录同样按未知处理。核对供应商删除和刷新受理记录前，不重新执行云端步骤。群公告与即时推送保留旧异步语义。
+- 与旧关系型勋章管理 API 的入口鉴权仍独立。经典用户页的 Cloud 风格勋章入口通过 `CloudService` 适配到 `MedalService`，共用关系型写入；保留既有 V3 委派权限。
+- 适用验收补充：同图片跨两端同时提交并验 2/128 奖励、500 罚单与负余额；确认云端超时停在未知且同键重放不会重复调用。工资对照新旧通知、流水与余额，一项格式错误与保存点失效须产生不同结果。配置用仅菜单权限、单项权限与完整组合验证合法值、未知 ID、非字符串值和混合提交原子性。

@@ -18,12 +18,6 @@
  */
 package org.b3log.symphony.processor;
 
-import com.qiniu.cdn.CdnManager;
-import com.qiniu.cdn.CdnResult;
-import com.qiniu.storage.BucketManager;
-import com.qiniu.storage.Configuration;
-import com.qiniu.storage.Region;
-import com.qiniu.util.Auth;
 
 import cn.hutool.core.collection.CollectionUtil;
 
@@ -51,7 +45,6 @@ import org.b3log.latke.util.CollectionUtils;
 import org.b3log.latke.util.Paginator;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.Server;
-import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.processor.bot.ChatRoomBot;
 import org.b3log.symphony.processor.channel.*;
@@ -78,7 +71,6 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static org.b3log.symphony.util.Symphonys.QN_ENABLED;
 
 /**
  * Admin processor.
@@ -262,6 +254,9 @@ public class AdminProcessor {
     @Inject
     private PointtransferMgmtService pointtransferMgmtService;
 
+    @Inject
+    private AdminSalaryService salaryService;
+
     /**
      * Pointtransfer query service.
      */
@@ -373,6 +368,12 @@ public class AdminProcessor {
 
     @Inject
     private UploadRepository uploadRepository;
+
+    @Inject
+    private AdminImageReviewService imageReviewService;
+
+    @Inject
+    private AdminMiscSettingsService miscSettings;
 
     @Inject
     private SystemSettingsService settingsService;
@@ -584,96 +585,25 @@ public class AdminProcessor {
     }
 
     public void markPic(final RequestContext context) {
-        final Request request = context.getRequest();
-        final JSONObject user = Sessions.getUser();
-        String userId = user.optString(Keys.OBJECT_ID);
-        String uname = user.optString(User.USER_NAME);
-
+        final JSONObject actor = Sessions.getUser();
+        if (actor == null) {
+            context.sendError(401);
+            return;
+        }
         try {
-            String type = context.param("type");
-            String oId = context.param("oId");
-            Long month = System.currentTimeMillis() - 45L * 24 * 60 * 60 * 1000;
-            if (Long.parseLong(oId) < month) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("此图片已超过45天，无法审核！");
+            final JSONObject accepted = imageReviewService.reserveLegacy(context.param("oId"), context.param("type"),
+                    context.getRequest(), actor);
+            final JSONObject result = imageReviewService.complete(accepted, actor.getString(Keys.OBJECT_ID));
+            if (result.optInt("reviewed") != 1) {
+                context.renderJSON(StatusCodes.ERR).renderMsg("图片云端审核结果待核对，请勿重复处理");
                 return;
             }
-
-            JSONObject picture = uploadRepository.get(oId);
-            String path = picture.optString("path");
-
-            if (!picture.optBoolean("public")) {
-                context.renderJSON(StatusCodes.ERR);
-                context.renderMsg("此照片已被审核过，请勿重复审核！");
-                return;
-            }
-
-            // 修改审核状态
-            JSONObject status = new JSONObject();
-            status.put("public", false);
-            Transaction transaction = uploadRepository.beginTransaction();
-            uploadRepository.update(oId, status);
-            transaction.commit();
-
-            if ("normal".equals(type)) {
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, 2, oId, System.currentTimeMillis(), "参与图片审核奖励：正常图片");
-                context.renderJSON(StatusCodes.SUCC);
-                context.renderMsg("审核成功，奖励已发放！");
-                return;
-            }
-
-            // 抹除MD5
-            status = new JSONObject();
-            if ("illegal".equals(type)) {
-                status.put("md5", "delete by " + uname);
-            }
-            transaction = uploadRepository.beginTransaction();
-            uploadRepository.update(oId, status);
-            transaction.commit();
-
-            if ("illegal".equals(type)) {
-                // 删除图片
-                if (QN_ENABLED) {
-                    Auth auth = Auth.create(Symphonys.UPLOAD_QINIU_AK, Symphonys.UPLOAD_QINIU_SK);
-                    Configuration cfg = new Configuration(Region.autoRegion());
-                    BucketManager bucketManager = new BucketManager(auth, cfg);
-                    String filename = path.replaceAll(Symphonys.UPLOAD_QINIU_DOMAIN + "/", "");
-                    LOGGER.log(Level.INFO, "Delete cdn file: " + filename);
-                    bucketManager.delete(Symphonys.UPLOAD_QINIU_BUCKET, filename);
-                    String[] urls = new String[]{path};
-                    CdnManager c = new CdnManager(auth);
-                    CdnResult.RefreshResult result = c.refreshUrls(urls);
-                    LOGGER.log(Level.INFO, "CDN Refresh result: " + result.code);
-                } else {
-                    context.renderJSON(StatusCodes.ERR);
-                    context.renderMsg("不支持操作本地图床！");
-                    return;
-                }
-            }
-
-            // 奖惩
-            if ("illegal".equals(type)) {
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, userId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, 128, oId, System.currentTimeMillis(), "参与图片审核奖励：违规图片");
-
-                String picUserName = picture.optString("userName");
-                String picUserId = userQueryService.getUserByName(picUserName).optString(Keys.OBJECT_ID);
-                ChatRoomBot.sendBotMsg("犯罪嫌疑人 @" + picUserName + "  由于上传违法文件/图片，被处以 500 积分的处罚，请引以为戒。\n@" + uname + "  处理人\n@adlered  审批人");
-                ChatRoomBot.abusePoint(picUserId, 500, "机器人罚单-上传违规文件");
-            }
-            String picData = picture.toString();
-            if (picData.length() > 254) {
-                picData = picData.substring(0, 254);
-            }
-            operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_DELETE_PICTURE, picData));
-
-            context.renderJSON(StatusCodes.SUCC);
-            context.renderMsg("审核成功，奖励已发放！");
-        } catch (Exception e) {
-            context.renderJSON(StatusCodes.ERR);
-            context.renderMsg("审核失败，原因：" + e.getCause());
-            LOGGER.error(e.getMessage(), e);
+            context.renderJSON(StatusCodes.SUCC).renderMsg("审核成功，奖励已发放！");
+        } catch (final ApiV3Exception e) {
+            context.renderJSON(StatusCodes.ERR).renderMsg(e.getMessage());
+        } catch (final Exception e) {
+            LOGGER.error("图片审核未确认", e);
+            context.renderJSON(StatusCodes.ERR).renderMsg("图片审核未确认，请核对原审核记录");
         }
     }
 
@@ -685,7 +615,7 @@ public class AdminProcessor {
         final int pageNum = Paginator.getPage(request);
         final int pageSize = 50;
         final int windowSize = WINDOW_SIZE;
-        String month = String.valueOf(System.currentTimeMillis() - 45L * 24 * 60 * 60 * 1000);
+        String month = String.valueOf(System.currentTimeMillis() - AdminImageReviewService.WINDOW);
         final List<Filter> filters = new ArrayList<>();
         filters.add(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.GREATER_THAN_OR_EQUAL, month));
         filters.add(new PropertyFilter("public", FilterOperator.EQUAL, 1));
@@ -2731,28 +2661,34 @@ public class AdminProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/misc.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
 
-        List<JSONObject> misc = new ArrayList<>();
-
-        final Iterator<String> parameterNames = request.getParameterNames().iterator();
-        while (parameterNames.hasNext()) {
-            final String name = parameterNames.next();
-            final String value = context.param(name);
-
-            final JSONObject option = new JSONObject();
-            option.put(Keys.OBJECT_ID, name);
-            option.put(Option.OPTION_VALUE, value);
-            option.put(Option.OPTION_CATEGORY, Option.CATEGORY_C_MISC);
-
-            misc.add(option);
+        JSONObject actor = Sessions.getUser();
+        try {
+            actor = ApiProcessor.getUserByKey(context.param("apiKey"));
+        } catch (final NullPointerException ignored) { }
+        try {
+            actor = ApiProcessor.getUserByKey(context.requestJSON().optString("apiKey"));
+        } catch (final NullPointerException ignored) { }
+        if (actor == null) {
+            context.sendError(401);
+            return;
+        }
+        final JSONObject changes = new JSONObject();
+        for (final String name : request.getParameterNames()) {
+            if ("apiKey".equals(name) || "csrfToken".equals(name)) continue;
+            changes.put(name, context.param(name));
+        }
+        try {
+            miscSettings.updateLegacy(changes, roleQueryService.getPermissions(actor.optString(User.USER_ROLE)), request, actor);
+        } catch (final ApiV3Exception e) {
+            context.sendError(e.status);
+            return;
+        } catch (final Exception e) {
+            LOGGER.error("更新站点杂项配置失败", e);
+            context.sendError(503);
+            return;
         }
 
-        for (final JSONObject option : misc) {
-            optionMgmtService.updateOption(option.getString(Keys.OBJECT_ID), option);
-        }
-        operationMgmtService.addOperation(Operation.newOperation(request, Operation.OPERATION_CODE_C_UPDATE_MISC, ""));
-
-        misc = optionQueryService.getMisc();
-        dataModel.put(Option.OPTIONS, misc);
+        dataModel.put(Option.OPTIONS, optionQueryService.getMisc());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -3429,10 +3365,17 @@ public class AdminProcessor {
         final long startTime = System.currentTimeMillis();
         int successCount = 0;
         int failCount = 0;
+        int unknownCount = 0;
+        int unprocessedCount = 0;
         final StringBuilder failDetails = new StringBuilder();
 
         for (int i = 0; i < employees.length(); i++) {
             final JSONObject employee = employees.optJSONObject(i);
+            if (employee == null) {
+                failCount++;
+                failDetails.append("员工条目无效\n");
+                continue;
+            }
             final String userName = employee.optString("userName");
             final int amount = employee.optInt("amount");
 
@@ -3451,26 +3394,18 @@ public class AdminProcessor {
                 }
 
                 final String toId = user.optString(Keys.OBJECT_ID);
-                final String memo = "发放工资";
-                final String transferId = pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, toId,
-                        Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT, amount, toId,
-                        System.currentTimeMillis(), memo);
-                final JSONObject notification = new JSONObject();
-                notification.put(Notification.NOTIFICATION_USER_ID, toId);
-                notification.put(Notification.NOTIFICATION_DATA_ID, transferId);
-                notificationMgmtService.addPointTransferNotification(notification);
-
-                if (null != transferId) {
-                    successCount++;
-                    logMessage.append(userName).append("：").append(amount).append(" 积分\n");
-                } else {
-                    failCount++;
-                    failDetails.append("用户名：").append(userName).append("，转账失败\n");
-                }
-            } catch (final Exception e) {
+                salaryService.pay(toId, userName, amount, "发放工资");
+                successCount++;
+                logMessage.append(userName).append("：").append(amount).append(" 积分\n");
+            } catch (final ApiV3Exception e) {
                 failCount++;
-                failDetails.append("用户名：").append(userName).append("，错误：").append(e.getMessage()).append("\n");
+                failDetails.append("用户名：").append(userName).append("，").append(e.getMessage()).append("\n");
+            } catch (final Exception e) {
+                unknownCount = 1;
+                unprocessedCount = employees.length() - i - 1;
+                failDetails.append("用户名：").append(userName).append("，发放结果待核对\n");
                 LOGGER.log(Level.ERROR, "Pay salary to [" + userName + "] failed", e);
+                break;
             }
         }
 
@@ -3481,8 +3416,12 @@ public class AdminProcessor {
         logMessage.append("\n成功发放：").append(successCount).append(" 人\n");
         if (failCount > 0) {
             logMessage.append("发放失败：").append(failCount).append(" 人\n");
-            logMessage.append("失败详情：\n").append(failDetails);
         }
+        if (unknownCount > 0) {
+            logMessage.append("结果待核对：").append(unknownCount).append(" 人，尚未处理：")
+                    .append(unprocessedCount).append(" 人\n");
+        }
+        if (failCount + unknownCount > 0) logMessage.append("详情：\n").append(failDetails);
         logMessage.append("\n完成时间：").append(completeTime);
 
         // 生成日志
@@ -3495,7 +3434,11 @@ public class AdminProcessor {
         result.put("completeTime", completeTime);
         result.put("logMessage", logMessage.toString());
 
-        if (failCount > 0) {
+        if (unknownCount > 0) {
+            result.put("unknownCount", unknownCount).put("unprocessedCount", unprocessedCount);
+            context.renderJSON(StatusCodes.ERR).renderJSON(result);
+            context.renderMsg("工资发放已中止，请核对本次发放结果");
+        } else if (failCount > 0) {
             context.renderJSON(StatusCodes.SUCC).renderJSON(result);
             context.renderMsg("部分员工发放失败");
         } else {

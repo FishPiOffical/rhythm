@@ -18,7 +18,7 @@ const sources = [
   'repository/AdminOperationTaskRepository', 'util/ApiV3ProfessionInputs', 'util/ApiV3Json',
   'util/ApiV3WriteInputs', 'util/Firewall'
 ];
-const suites = ['service/ArticleAdminCompatibilityTest', 'service/AdminOperationTaskServiceTest', 'util/ApiV3ProfessionInputsTest'];
+const suites = ['service/ArticleAdminCompatibilityTest', 'service/AdminOperationTaskServiceTest', 'service/AdminImageReviewServiceTest', 'util/ApiV3ProfessionInputsTest'];
 function run(binary, args) {
   const result = spawnSync(path.join(home, 'bin', binary), args, { stdio: 'inherit', timeout: 60000 });
   if (result.error) throw result.error;

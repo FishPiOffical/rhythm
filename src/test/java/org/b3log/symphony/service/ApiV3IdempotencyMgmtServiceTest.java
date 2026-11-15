@@ -110,6 +110,52 @@ public class ApiV3IdempotencyMgmtServiceTest {
         Assert.assertEquals(store.rows.size(), 1);
     }
 
+    @Test
+    public void adminLegacyReceiptIsReadOnlyAndNewFieldsAreBound() throws Exception {
+        final Store store = new Store();
+        final String operation = "admin.vip.user.add";
+        final JSONObject legacy = new JSONObject().put("target", "fixture").put("levelOId", "1");
+        final JSONObject request = new JSONObject(legacy.toString()).put("configJson", "{}");
+        final JSONObject different = new JSONObject(legacy.toString()).put("configJson", "{\"color\":0}");
+        run(store, "user", operation, "legacy", legacy);
+
+        final var replay = ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "legacy",
+                different, legacy, () -> new JSONObject().put("value", store.increment()));
+        Assert.assertTrue(replay.getBoolean("legacyReceipt"));
+        Assert.assertEquals(store.value, 1);
+        ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "current",
+                request, legacy, () -> new JSONObject().put("value", store.increment()));
+        try {
+            ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "current",
+                    different, legacy, () -> new JSONObject().put("value", store.increment()));
+            Assert.fail("Expected conflict for a changed field");
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.code, "idempotency_conflict");
+        }
+        Assert.assertEquals(store.value, 2);
+    }
+
+    @Test
+    public void committedAdminPlaceholderRequiresReconciliation() throws Exception {
+        final Store store = new Store();
+        final String operation = "admin.fish_game.import";
+        final JSONObject legacy = new JSONObject().put("count", 1);
+        final JSONObject request = new JSONObject().put("items", new org.json.JSONArray().put(new JSONObject()));
+        ApiV3IdempotencyMgmtService.runAtomic(store, "user", operation, "key", legacy, () -> {
+            store.increment();
+            return new JSONObject();
+        });
+        try {
+            ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(store, "user", operation, "key",
+                    request, legacy, () -> new JSONObject().put("value", store.increment()));
+            Assert.fail("Expected historical result to remain unknown");
+        } catch (ApiV3Exception e) {
+            Assert.assertEquals(e.code, "operation_outcome_unknown");
+        }
+        Assert.assertEquals(store.value, 1);
+        Assert.assertEquals(store.rows.size(), 1);
+    }
+
     private JSONObject run(final Store store, final String user, final String operation, final String key, final JSONObject body) throws Exception {
         return ApiV3IdempotencyMgmtService.runAtomic(store, user, operation, key, body, () -> new JSONObject().put("value", store.increment()));
     }
@@ -276,6 +322,8 @@ public class ApiV3IdempotencyMgmtServiceTest {
         test.concurrentIdenticalRequestsCommitOnce();
         test.outcomeDistinguishesFreshCommitFromReplayAndUncertainCommit();
         test.dateBoundRewardReplaysBeforeFreshDateGuard();
-        System.out.println("PASS: 8 ApiV3Idempotency tests (including 32 concurrent requests; SQL integration not covered)");
+        test.adminLegacyReceiptIsReadOnlyAndNewFieldsAreBound();
+        test.committedAdminPlaceholderRequiresReconciliation();
+        System.out.println("PASS: 10 ApiV3Idempotency tests (including 32 concurrent requests; SQL integration not covered)");
     }
 }

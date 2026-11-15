@@ -38,6 +38,8 @@
 
 ## 管理权限
 
+- 新旧站点杂项表单共用 `AdminMiscSettingsService` 白名单，只改指定 Option 的值，校验旧表单枚举和每项权限。访问计数使用旧五项组合，V3 写入额外保留现有菜单与第一方 scope。读取仍可展示原有项，前端只提交有权的变化。
+
 - 举报后台的聊天正文（现存消息与撤回快照）由 `ReportQueryService` 在展示边界统一生成安全 HTML：身份及缺失提示按纯文本转义，消息跳转参数单独编码，正文使用本地私有 Markdown 清洗。不得用未清洗原文覆盖 `reportMemo`，也不得为了展示而修改原始审计快照；PC/移动模板共用此字段并一起回归。验证与兼容范围见 [举报正文安全渲染](../admin-report-content-safety-work.md)。
 - 管理员永久停用用户走 `POST /admin/user/{userId}/deactivate`：仅 `adminRole`、要求 CSRF、禁止停用本人；`UserMgmtService#deactivateUser` 在同一事务内匿名化账号并把 `userPhone` 清为 `_`，状态 4 不允许通过普通用户编辑恢复。
 - 用户分组 OID 常量：`adminRole` 为管理员，`1630552921050` 为 OP，`1630553268292` 为超级会员，`16305533360689` 为成员，`1630631382235` 为纪律委员，`defaultRole` 为 Default，`visitorRole` 为 Visitor。涉及分组权限判断时优先复用这些常量，不新增数据库权限记录；免审发帖绿色通道使用管理员、OP、超级会员、纪律委员四个分组。

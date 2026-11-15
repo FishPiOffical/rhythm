@@ -13,6 +13,8 @@
 - 发积分/扣积分约定：发积分用 `fromId=Pointtransfer.ID_C_SYS`、`toId=userId`；扣积分用 `fromId=userId`、`toId=Pointtransfer.ID_C_SYS`（常用类型 `Pointtransfer.TRANSFER_TYPE_C_ABUSE_DEDUCT`）。
 - 需要给用户发“系统转账通知”时：在转账成功拿到 `transferId` 后，调用 `NotificationMgmtService#addPointTransferNotification`，并设置 `Notification.NOTIFICATION_USER_ID` 与 `Notification.NOTIFICATION_DATA_ID=transferId`。
 
+- 新旧后台工资复用 `AdminSalaryService`。先取账户对锁，流水、余额和积分通知同根，V3 再加幂等回执。索引、缓存刷新和实时提醒在提交后处理。违规图片通过同一后台积分原语允许旧罚单扣成负数；老转账调用的默认余额规则保持。
+
 ## 购买、改名与导出
 
 - v3本人导出`ApiV3PostExportService`第一方当前密码/MFA，Latke默认RC，导出专用根须首次查询前选RR且不改全局隔离；完整RR本人快照→账户对→证明绑定重验→私有DB块/100积分/metadata/回执同严格根；24h下载逐块/总hash及当前授权后发ZIP，每分钟同事务清理并释放连接。先迁移20261024_api_v3_post_export.sql；禁止复用旧公开图床导出或把预算超限截断成功。

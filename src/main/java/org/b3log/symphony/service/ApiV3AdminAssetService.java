@@ -83,7 +83,16 @@ public class ApiV3AdminAssetService {
     private PointtransferMgmtService pointtransferMgmtService;
 
     @Inject
-    private CloudService cloudService;
+    private AdminSalaryService salaryService;
+
+    @Inject
+    private SponsorService sponsorService;
+
+    @Inject
+    private NotificationMgmtService notifications;
+
+    @Inject
+    private BagMgmtService bagMgmtService;
 
     @Inject
     private UserRepository users;
@@ -118,16 +127,18 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.level.add",
                     idempotencyKey,
                     body,
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final String oId = membershipMgmtService.addLevel(new JSONObject(body.toString()));
+                        final String oId = membershipMgmtService.addLevelInCurrentTransaction(new JSONObject(body.toString()));
                         return new JSONObject().put("oId", oId);
                     }));
+            org.b3log.symphony.util.MembershipStyleCache.invalidate();
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "invalid_request");
         } catch (final ApiV3Exception e) {
@@ -149,16 +160,18 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.level.update",
                     idempotencyKey,
                     new JSONObject(body.toString()).put("levelId", levelId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        membershipMgmtService.updateLevel(levelId, new JSONObject(body.toString()));
+                        membershipMgmtService.updateLevelInCurrentTransaction(levelId, new JSONObject(body.toString()));
                         return new JSONObject().put("oId", levelId).put("updated", true);
                     }));
+            org.b3log.symphony.util.MembershipStyleCache.invalidate();
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "invalid_request");
         } catch (final ApiV3Exception e) {
@@ -179,16 +192,18 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.level.remove",
                     idempotencyKey,
                     new JSONObject().put("levelId", levelId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        membershipMgmtService.removeLevel(levelId);
+                        membershipMgmtService.removeLevelInCurrentTransaction(levelId);
                         return new JSONObject().put("oId", levelId).put("removed", true);
                     }));
+            org.b3log.symphony.util.MembershipStyleCache.invalidate();
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 409, "level_remove_failed");
         } catch (final ApiV3Exception e) {
@@ -244,22 +259,27 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
+        final AtomicReference<String> member = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.user.add",
                     idempotencyKey,
+                    new JSONObject().put("target", target).put("levelOId", levelOId).put("configJson", configJson),
                     new JSONObject().put("target", target).put("levelOId", levelOId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
                         final JSONObject user = resolveUser(target);
                         final String userId = user.optString(Keys.OBJECT_ID);
-                        final JSONObject res = membershipMgmtService.adminAddMembershipNoCost(userId, levelOId, configJson);
+                        member.set(userId);
+                        final JSONObject res = membershipMgmtService.adminAddMembershipNoCostInCurrentTransaction(userId, levelOId, configJson);
                         return new JSONObject()
                                 .put("userId", userId)
                                 .put("userName", user.optString(User.USER_NAME))
                                 .put("membership", res);
                     }));
+            if (member.get() != null) membershipMgmtService.invalidateAdminMembership(member.get());
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "vip_grant_failed");
         } catch (final ApiV3Exception e) {
@@ -286,17 +306,19 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.user.update",
                     idempotencyKey,
                     new JSONObject(body.toString()).put("userId", userId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final JSONObject res = membershipMgmtService.adminUpdateMembership(
+                        final JSONObject res = membershipMgmtService.adminUpdateMembershipInCurrentTransaction(
                                 userId, StringUtils.trimToNull(lvCode), state, expiresAt, configJson);
                         return new JSONObject().put("userId", userId).put("membership", res);
                     }));
+            membershipMgmtService.invalidateAdminMembership(userId);
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "vip_update_failed");
         } catch (final ApiV3Exception e) {
@@ -320,16 +342,18 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject result = ApiV3IdempotencyMgmtService.runAtomic(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.user.extend",
                     idempotencyKey,
                     new JSONObject().put("userId", userId).put("days", days),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final JSONObject res = membershipMgmtService.adminExtendMembershipDays(userId, days);
+                        final JSONObject res = membershipMgmtService.adminExtendMembershipDaysInCurrentTransaction(userId, days);
                         return new JSONObject().put("userId", userId).put("days", days).put("membership", res);
                     }));
+            membershipMgmtService.invalidateAdminMembership(userId);
+            return result;
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "vip_extend_failed");
         } catch (final ApiV3Exception e) {
@@ -350,17 +374,23 @@ public class ApiV3AdminAssetService {
         final String actorId = ApiV3AdminService.actorId(identity);
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
+        final AtomicReference<String> transfer = new AtomicReference<>();
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final ApiV3IdempotencyMgmtService.Execution execution = pointtransferMgmtService.executeWithTransferLock(Pointtransfer.ID_C_SYS, userId,
+                    () -> ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.vip.user.refund",
                     idempotencyKey,
                     new JSONObject().put("userId", userId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final JSONObject res = membershipMgmtService.adminRefundMembershipByDays(userId);
+                        final JSONObject res = membershipMgmtService.adminRefundMembershipByDaysInCurrentTransaction(userId);
+                        transfer.set(res.optString("_transferId"));
+                        res.remove("_transferId");
                         return new JSONObject().put("userId", userId).put("refund", res);
-                    }));
+                    })));
+            if (execution.applied()) membershipMgmtService.afterAdminRefund(userId, transfer.get());
+            return execution.result();
         } catch (final ServiceException e) {
             throw ApiV3AdminService.mapAdminServiceException(e, 422, "vip_refund_failed");
         } catch (final ApiV3Exception e) {
@@ -421,7 +451,7 @@ public class ApiV3AdminAssetService {
                     new JSONObject().put("couponCode", couponCode).put("couponType", couponType)
                             .put("discount", discount).put("times", times),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final JSONObject createdCoupon = couponMgmtService.add(
+                        final JSONObject createdCoupon = couponMgmtService.addInCurrentTransaction(
                                 actorRef.get().userName(),
                                 StringUtils.trimToNull(couponCode),
                                 couponType,
@@ -459,7 +489,7 @@ public class ApiV3AdminAssetService {
                     idempotencyKey,
                     new JSONObject().put("couponId", couponId).put("times", times),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        couponMgmtService.updateTimes(couponId, times);
+                        couponMgmtService.updateTimesInCurrentTransaction(couponId, times);
                         return new JSONObject().put("oId", couponId).put("times", times);
                     }));
         } catch (final ServiceException e) {
@@ -490,7 +520,7 @@ public class ApiV3AdminAssetService {
                     idempotencyKey,
                     new JSONObject().put("couponId", couponId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        couponMgmtService.remove(couponId);
+                        couponMgmtService.removeInCurrentTransaction(couponId);
                         return new JSONObject().put("oId", couponId).put("removed", true);
                     }));
         } catch (final ServiceException e) {
@@ -554,14 +584,15 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            return ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.medal.add",
                     idempotencyKey,
+                    new JSONObject().put("name", name).put("type", type).put("description", description).put("attr", attr),
                     new JSONObject().put("name", name).put("type", type),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final String oId = medalService.addMedal(name, type, description, attr);
+                        final String oId = medalService.addMedalInCurrentTransaction(name, type, description, attr);
                         return new JSONObject().put("oId", oId);
                     }));
         } catch (final ServiceException e) {
@@ -594,14 +625,15 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            return ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.medal.update",
                     idempotencyKey,
+                    new JSONObject().put("medalId", medalId).put("name", name).put("type", type).put("description", description).put("attr", attr),
                     new JSONObject().put("medalId", medalId).put("name", name).put("type", type),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        medalService.updateMedal(medalId, name, type, description, attr);
+                        medalService.updateMedalInCurrentTransaction(medalId, name, type, description, attr);
                         return new JSONObject().put("oId", medalId).put("updated", true);
                     }));
         } catch (final ServiceException e) {
@@ -632,7 +664,7 @@ public class ApiV3AdminAssetService {
                     idempotencyKey,
                     new JSONObject().put("medalId", medalId),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        medalService.deleteMedal(medalId);
+                        medalService.deleteMedalInCurrentTransaction(medalId);
                         return new JSONObject().put("oId", medalId).put("removed", true);
                     }));
         } catch (final ServiceException e) {
@@ -659,11 +691,9 @@ public class ApiV3AdminAssetService {
                     idempotencyKey,
                     new JSONObject(),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        medalService.reorderAllSponsorMedals();
+                        medalService.reorderAllSponsorMedalsInCurrentTransaction();
                         return new JSONObject().put("reordered", true);
                     }));
-        } catch (final ServiceException e) {
-            throw ApiV3AdminService.mapAdminServiceException(e, 422, "medal_reorder_failed");
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
@@ -817,20 +847,18 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
-                    adminService.guardedWrite(identity, null, false, actorRef),
+            return ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
+                    adminService.guardedWrite(identity, null, false, actorRef, false,
+                            actor -> actor.isAdmin() || actor.permissions().contains(Permission.PERMISSION_ID_C_USER_GIVE_METAL)),
                     actorId,
                     "admin.medal.grant",
                     idempotencyKey,
+                    new JSONObject().put("target", target).put("medalId", medalId).put("expireTime", expireTime).put("data", data),
                     new JSONObject().put("target", target).put("medalId", medalId).put("expireTime", expireTime),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final ApiV3AdminService.AuthorizedActor actor = actorRef.get();
-                        if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_USER_GIVE_METAL)) {
-                            throw ApiV3Requests.forbidden();
-                        }
                         final JSONObject user = resolveUser(target);
                         final String userId = user.optString(Keys.OBJECT_ID);
-                        medalService.grantMedalToUser(userId, medalId, expireTime, data);
+                        medalService.grantMedalToUserInCurrentTransaction(userId, medalId, expireTime, data);
                         return new JSONObject()
                                 .put("userId", userId)
                                 .put("userName", user.optString(User.USER_NAME))
@@ -870,7 +898,7 @@ public class ApiV3AdminAssetService {
                         }
                         final JSONObject user = resolveUser(target);
                         final String userId = user.optString(Keys.OBJECT_ID);
-                        medalService.revokeMedalFromUser(userId, medalId);
+                        medalService.revokeMedalFromUserInCurrentTransaction(userId, medalId);
                         return new JSONObject()
                                 .put("userId", userId)
                                 .put("userName", user.optString(User.USER_NAME))
@@ -904,17 +932,15 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
-                    adminService.guardedWrite(identity, null, false, actorRef),
+            return ApiV3IdempotencyMgmtService.runAtomicWithLegacyReceipt(
+                    adminService.guardedWrite(identity, null, false, actorRef, false,
+                            actor -> actor.isAdmin() || actor.permissions().contains(Permission.PERMISSION_ID_C_USER_GIVE_METAL)),
                     actorId,
                     "admin.medal.batch_grant",
                     idempotencyKey,
+                    new JSONObject().put("medalId", medalId).put("targets", targets).put("expireTime", expireTime).put("data", data),
                     new JSONObject().put("medalId", medalId).put("targets", targets).put("expireTime", expireTime),
                     () -> ApiV3TransactionSavepoint.run(() -> {
-                        final ApiV3AdminService.AuthorizedActor actor = actorRef.get();
-                        if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_USER_GIVE_METAL)) {
-                            throw ApiV3Requests.forbidden();
-                        }
                         final JSONArray results = new JSONArray();
                         int successCount = 0;
                         int failureCount = 0;
@@ -929,7 +955,7 @@ public class ApiV3AdminAssetService {
                                 ApiV3TransactionSavepoint.run(() -> {
                                     final JSONObject user = resolveUser(target);
                                     final String userId = user.optString(Keys.OBJECT_ID);
-                                    medalService.grantMedalToUser(userId, medalId, expireTime, data);
+                                    medalService.grantMedalToUserInCurrentTransaction(userId, medalId, expireTime, data);
                                     results.put(new JSONObject()
                                             .put("target", target)
                                             .put("userId", userId)
@@ -938,12 +964,14 @@ public class ApiV3AdminAssetService {
                                     return null;
                                 });
                                 successCount++;
-                            } catch (final Exception ex) {
+                            } catch (final ApiV3Exception ex) {
+                                if (ex.getSuppressed().length != 0) throw new IllegalStateException("勋章保存点恢复失败", ex);
+                                if (!"user_not_found".equals(ex.code)) throw ex;
                                 failureCount++;
                                 results.put(new JSONObject()
                                         .put("target", target)
                                         .put("ok", false)
-                                        .put("error", StringUtils.isBlank(ex.getMessage()) ? "授予失败" : ex.getMessage()));
+                                        .put("error", "目标用户不存在"));
                             }
                         }
                         return new JSONObject()
@@ -975,7 +1003,13 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject candidate = readTransferTarget(target, false);
+            final String expectedId = candidate == null ? "" : candidate.getString(Keys.OBJECT_ID);
+            final boolean sponsor = "sponsor".equals(mode);
+            final AtomicReference<String> transfer = new AtomicReference<>();
+            final var execution = pointtransferMgmtService.executeWithTransferLocks(Pointtransfer.ID_C_SYS,
+                    expectedId.isEmpty() ? List.of() : List.of(expectedId),
+                    () -> ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
                     adminService.guardedWrite(identity, null, false, actorRef),
                     actorId,
                     "admin.point.charge",
@@ -986,14 +1020,20 @@ public class ApiV3AdminAssetService {
                         if (!actor.isAdmin() && !actor.permissions().contains(Permission.PERMISSION_ID_C_USER_ADD_POINT)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        final JSONObject user = resolveUser(target);
+                        final JSONObject user = readTransferTarget(target, true);
+                        if (user == null) throw new ApiV3Exception(404, "user_not_found", "未找到目标用户");
                         final String userId = user.optString(Keys.OBJECT_ID);
-                        if ("sponsor".equals(mode)) {
-                            WeChatPayProcessor.manual(userId, String.valueOf(amount), memo);
-                        } else {
-                            pointtransferMgmtService.transferInCurrentTransaction(
-                                    Pointtransfer.ID_C_SYS, userId, Pointtransfer.TRANSFER_TYPE_C_CHARGE,
-                                    amount, memo, System.currentTimeMillis(), "");
+                        if (!userId.equals(expectedId)) throw new ApiV3Exception(409, "point_target_changed", "目标账号已变化");
+                        final int credited = sponsor ? SponsorService.pointsForPayment(amount) : amount;
+                        final long now = System.currentTimeMillis();
+                        final String transferId = pointtransferMgmtService.transferAdminInCurrentTransaction(
+                                Pointtransfer.ID_C_SYS, userId, Pointtransfer.TRANSFER_TYPE_C_CHARGE,
+                                credited, sponsor ? String.valueOf(amount) : memo, now, "");
+                        if (StringUtils.isBlank(transferId)) throw new IllegalStateException("积分充值流水生成失败");
+                        transfer.set(transferId);
+                        if (sponsor) {
+                            notifications.addPointChargeNotificationInCurrentTransaction(userId, transferId);
+                            sponsorService.recordInCurrentTransaction(SponsorService.paymentRecord(userId, amount, memo, now));
                         }
                         adminService.recordOperation(request, Operation.OPERATION_CODE_C_CHARGE_POINT,
                                 userId, actor.user());
@@ -1002,7 +1042,21 @@ public class ApiV3AdminAssetService {
                                 .put("userName", user.optString(User.USER_NAME))
                                 .put("amount", amount)
                                 .put("mode", mode);
-                    }));
+                    })));
+            if (execution.applied()) {
+                final String userId = execution.result().getString("userId");
+                users.evictSettingsCaches(userId);
+                pointtransferMgmtService.indexTransferAsync(Pointtransfer.ID_C_SYS, userId, transfer.get());
+                if (sponsor) {
+                    notifications.publishRefreshNotification(userId);
+                    try {
+                        WeChatPayProcessor.refreshSponsorMedalsAfterCommit(userId);
+                    } catch (final RuntimeException e) {
+                        LOGGER.warn("赞助已入账，刷新赞助勋章失败，userId={}", userId, e);
+                    }
+                }
+            }
+            return execution.result();
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
@@ -1065,7 +1119,11 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final JSONObject candidate = readTransferTarget(target, false);
+            final String expectedId = candidate == null ? "" : candidate.getString(Keys.OBJECT_ID);
+            final var execution = pointtransferMgmtService.executeWithTransferLocks(Pointtransfer.ID_C_SYS,
+                    expectedId.isEmpty() ? List.of() : List.of(expectedId),
+                    () -> ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
                     adminService.guardedWrite(identity, null, false, actorRef),
                     actorId,
                     opName,
@@ -1076,11 +1134,13 @@ public class ApiV3AdminAssetService {
                         if (!actor.isAdmin() && !actor.permissions().contains(requiredPerm)) {
                             throw ApiV3Requests.forbidden();
                         }
-                        final JSONObject user = resolveUser(target);
+                        final JSONObject user = readTransferTarget(target, true);
+                        if (user == null) throw new ApiV3Exception(404, "user_not_found", "未找到目标用户");
                         final String userId = user.optString(Keys.OBJECT_ID);
+                        if (!userId.equals(expectedId)) throw new ApiV3Exception(409, "point_target_changed", "目标账号已变化");
                         final String fromId = sysToUser ? Pointtransfer.ID_C_SYS : userId;
                         final String toId = sysToUser ? userId : Pointtransfer.ID_C_SYS;
-                        final String transferId = pointtransferMgmtService.transferInCurrentTransaction(
+                        final String transferId = pointtransferMgmtService.transferAdminInCurrentTransaction(
                                 fromId, toId, transferType, point, memo, System.currentTimeMillis(), "");
                         if (StringUtils.isBlank(transferId)) {
                             throw new ApiV3Exception(422, "point_transfer_failed", "积分划转失败，请确认用户余额与状态");
@@ -1091,7 +1151,14 @@ public class ApiV3AdminAssetService {
                                 .put("userId", userId)
                                 .put("userName", user.optString(User.USER_NAME))
                                 .put("point", point);
-                    }));
+                    })));
+            if (execution.applied()) {
+                final String userId = execution.result().getString("userId");
+                users.evictSettingsCaches(userId);
+                pointtransferMgmtService.indexTransferAsync(sysToUser ? Pointtransfer.ID_C_SYS : userId,
+                        sysToUser ? userId : Pointtransfer.ID_C_SYS, execution.result().getString("transferId"));
+            }
+            return execution.result();
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
@@ -1112,7 +1179,21 @@ public class ApiV3AdminAssetService {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
 
         try {
-            return ApiV3IdempotencyMgmtService.runAtomic(
+            final List<String> recipients = new ArrayList<>();
+            final Map<String, String> expectedIds = new java.util.HashMap<>();
+            for (int i = 0; i < items.length(); i++) {
+                final JSONObject row = items.optJSONObject(i);
+                if (row == null) continue;
+                final String target = StringUtils.trimToEmpty(row.optString("target"));
+                final JSONObject candidate = readTransferTarget(target, false);
+                if (candidate != null) {
+                    final String userId = candidate.getString(Keys.OBJECT_ID);
+                    expectedIds.put(target, userId);
+                    recipients.add(userId);
+                }
+            }
+            final var execution = pointtransferMgmtService.executeWithTransferLocks(Pointtransfer.ID_C_SYS, recipients,
+                    () -> ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
                     adminService.guardedWrite(identity, null, true, actorRef),
                     actorId,
                     "admin.salary.pay",
@@ -1143,16 +1224,14 @@ public class ApiV3AdminAssetService {
                             final int index = i;
                             try {
                                 ApiV3TransactionSavepoint.run(() -> {
-                                    final JSONObject user = resolveUser(target);
+                                    final JSONObject user = readTransferTarget(target, true);
+                                    if (user == null) throw new ApiV3Exception(404, "user_not_found", "未找到目标用户");
                                     final String userId = user.optString(Keys.OBJECT_ID);
-                                    final String transferId = pointtransferMgmtService.transferInCurrentTransaction(
-                                            Pointtransfer.ID_C_SYS, userId,
-                                            Pointtransfer.TRANSFER_TYPE_C_ACCOUNT2ACCOUNT,
-                                            amount, userId, System.currentTimeMillis(),
-                                            StringUtils.isBlank(memo) ? "后台工资发放" : memo);
-                                    if (StringUtils.isBlank(transferId)) {
-                                        throw new IllegalStateException("转账未生成流水");
+                                    if (!userId.equals(expectedIds.get(target))) {
+                                        throw new ApiV3Exception(409, "salary_target_changed", "目标账号已变化");
                                     }
+                                    final String transferId = salaryService.payInCurrentTransaction(userId, amount,
+                                            StringUtils.isBlank(memo) ? "后台工资发放" : memo);
                                     results.put(new JSONObject()
                                             .put("index", index)
                                             .put("target", target)
@@ -1165,13 +1244,15 @@ public class ApiV3AdminAssetService {
                                 });
                                 successCount++;
                                 totalAmount += amount;
-                            } catch (final Exception ex) {
+                            } catch (final ApiV3Exception ex) {
+                                if (ex.getSuppressed().length != 0) throw new IllegalStateException("工资保存点恢复失败", ex);
+                                if (!Set.of("user_not_found", "salary_target_changed").contains(ex.code)) throw ex;
                                 failureCount++;
                                 results.put(new JSONObject()
                                         .put("index", i)
                                         .put("target", target)
                                         .put("ok", false)
-                                        .put("error", StringUtils.isBlank(ex.getMessage()) ? "发放失败" : ex.getMessage()));
+                                        .put("error", "user_not_found".equals(ex.code) ? "目标用户不存在" : "目标账号已变化"));
                             }
                         }
 
@@ -1180,7 +1261,14 @@ public class ApiV3AdminAssetService {
                                 .put("failureCount", failureCount)
                                 .put("totalAmount", totalAmount)
                                 .put("results", results);
-                    }));
+                    })));
+            if (execution.applied()) {
+                for (final Object value : execution.result().getJSONArray("results")) {
+                    final JSONObject row = (JSONObject) value;
+                    if (row.optBoolean("ok")) salaryService.afterCommit(row.getString("userId"), row.getString("transferId"));
+                }
+            }
+            return execution.result();
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
@@ -1216,7 +1304,9 @@ public class ApiV3AdminAssetService {
                         }
                         final JSONObject user = resolveUser(target);
                         final String userId = user.optString(Keys.OBJECT_ID);
-                        cloudService.putBag(userId, item, number, maxTake);
+                        if (bagMgmtService.adjustInCurrentTransaction(userId, item, number, maxTake) != 0) {
+                            throw new ApiV3Exception(422, "bag_adjust_rejected", "背包数量不足或调整失败");
+                        }
                         return new JSONObject()
                                 .put("userId", userId)
                                 .put("userName", user.optString(User.USER_NAME))
@@ -1246,6 +1336,18 @@ public class ApiV3AdminAssetService {
             throw new ApiV3Exception(404, "user_not_found", "未找到目标用户：" + target);
         }
         return found;
+    }
+
+    private JSONObject readTransferTarget(final String target, final boolean lock) throws RepositoryException {
+        if (StringUtils.isBlank(target)) return null;
+        final String sql = "SELECT oId,userName FROM `" + users.getName() + "` WHERE ";
+        final String tail = " LIMIT 1" + (lock ? " FOR UPDATE" : "");
+        if (target.matches("[1-9][0-9]{0,18}")) {
+            final var byId = users.select(sql + "oId=?" + tail, target);
+            if (!byId.isEmpty()) return byId.getFirst();
+        }
+        final var byName = users.select(sql + "userName=?" + tail, target);
+        return byName.isEmpty() ? null : byName.getFirst();
     }
 
     private JSONObject tryResolveUser(final String target) throws RepositoryException {

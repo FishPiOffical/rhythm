@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.service;
 
+import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
@@ -154,6 +155,7 @@ public class ArticleAdminCompatibilityTest {
         Assert.assertEquals(f.article.getLong("articleStick"), Long.MAX_VALUE); f.active = false;
     }
     @Test public void perfectTransitionAndLongChapterEffectsAreShared() throws Exception {
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.DEVELOPMENT);
         final Fixture f = new Fixture(); final String id = f.service.addArticleByAdmin(f.input());
         final JSONObject patch = new JSONObject(f.article.toString()).put("articlePerfect", Article.ARTICLE_PERFECT_C_PERFECT)
                 .put("articleType", Article.ARTICLE_TYPE_C_LONG).put("articleContent", "新正文");

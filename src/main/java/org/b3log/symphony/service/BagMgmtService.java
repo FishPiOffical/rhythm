@@ -65,12 +65,14 @@ public class BagMgmtService {
         atomic(() -> { final var rows = lock(actor); persist(actor, rows, bag); return null; });
     }
     public int adjust(final String actor, final String item, final int number, final int capacity) throws RepositoryException {
-        return atomic(() -> {
-            final var rows = lock(actor);
-            final var result = BagMutation.adjust(contents(rows), item, number, capacity);
-            if (result.changed()) persist(actor, rows, result.bag());
-            return result.status();
-        });
+        return atomic(() -> adjustInCurrentTransaction(actor, item, number, capacity));
+    }
+
+    public int adjustInCurrentTransaction(final String actor, final String item, final int number, final int capacity) throws RepositoryException {
+        final var rows = lock(actor);
+        final var result = BagMutation.adjust(contents(rows), item, number, capacity);
+        if (result.changed()) persist(actor, rows, result.bag());
+        return result.status();
     }
     public void remove(final String actor, final String item) throws RepositoryException {
         atomic(() -> {

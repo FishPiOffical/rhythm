@@ -67,22 +67,42 @@ public class ApiV3IdempotencyMgmtService {
         return runAtomicWithOutcome(store, userId, operation, key, normalizedRequest, mutation).result();
     }
 
+    static JSONObject runAtomicWithLegacyReceipt(final ApiV3MutationStore store, final String userId,
+                                                   final String operation, final String key, final JSONObject request,
+                                                   final JSONObject legacyRequest, final Mutation mutation) throws Exception {
+        return runAtomicWithOutcome(store, userId, operation, key, request, legacyRequest, mutation).result();
+    }
+
     static Execution runAtomicWithOutcome(final ApiV3MutationStore store, final String userId, final String operation,
                                           final String key, final JSONObject normalizedRequest, final Mutation mutation) throws Exception {
+        return runAtomicWithOutcome(store, userId, operation, key, normalizedRequest, null, mutation);
+    }
+
+    private static Execution runAtomicWithOutcome(final ApiV3MutationStore store, final String userId,
+                                                   final String operation, final String key, final JSONObject normalizedRequest,
+                                                   final JSONObject legacyRequest, final Mutation mutation) throws Exception {
         if (null == key || !key.matches("[A-Za-z0-9._:-]{1,128}"))
             throw new ApiV3Exception(422, "invalid_request", "幂等键格式不合法");
         if (store.hasTransactionBegun()) throw new IllegalStateException("v3 transaction already active");
         final String id = ApiV3TokenUtil.hash("request-key\0" + userId + "\0" + operation + "\0" + key);
         final String hash = ApiV3TokenUtil.hash("request-body\0" + ApiV3Json.canonical(normalizedRequest));
+        final String legacyHash = legacyRequest == null ? null
+                : ApiV3TokenUtil.hash("request-body\0" + ApiV3Json.canonical(legacyRequest));
         for (int attempt = 1; ; attempt++) {
             final Transaction transaction = store.beginTransaction();
             try {
                 final JSONObject existing = store.getForUpdate(id);
                 if (null != existing) {
-                    if (!hash.equals(existing.optString(ApiV3Request.REQUEST_HASH))) {
+                    final String storedHash = existing.optString(ApiV3Request.REQUEST_HASH);
+                    final boolean legacy = !hash.equals(storedHash) && storedHash.equals(legacyHash);
+                    if (!hash.equals(storedHash) && !legacy) {
                         throw new ApiV3Exception(409, "idempotency_conflict", "相同幂等键不能用于不同请求内容");
                     }
                     final JSONObject result = new JSONObject(existing.getString(ApiV3Request.RESPONSE_JSON));
+                    if (operation.startsWith("admin.") && result.isEmpty()) {
+                        throw new ApiV3Exception(409, "operation_outcome_unknown", "旧操作的结果待核对，请保留原幂等键");
+                    }
+                    if (legacy) result.put("legacyReceipt", true).put("replayed", true);
                     transaction.commit();
                     LOGGER.info("api_v3_write operation={} userId={} result=replayed requestId={}", operation, userId, ThreadContext.get("apiV3RequestId"));
                     return new Execution(result, false);

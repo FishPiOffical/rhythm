@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.event.Event;
 import org.b3log.latke.event.EventManager;
 import org.b3log.latke.ioc.Inject;
@@ -36,6 +37,7 @@ import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Ids;
 import org.b3log.latke.util.URLs;
+import org.b3log.symphony.event.ArticleBaiduSender;
 import org.b3log.symphony.event.EventTypes;
 import org.b3log.symphony.model.*;
 import org.b3log.symphony.repository.*;
@@ -2026,6 +2028,16 @@ public class ArticleMgmtService {
             } catch (final Exception e) {
                 LOGGER.error("更新 Elasticsearch 文章索引失败, articleId={}", articleId, e);
             }
+        }
+        pushAdminArticleToBaidu(article);
+    }
+
+    public static void pushAdminArticleToBaidu(final JSONObject article) {
+        if (article == null || Article.ARTICLE_TYPE_C_DISCUSSION == article.optInt(Article.ARTICLE_TYPE)
+                || Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE)) return;
+        final String permalink = article.optString(Article.ARTICLE_PERMALINK);
+        if (StringUtils.isNotBlank(permalink)) {
+            ArticleBaiduSender.sendToBaidu(Latkes.getServePath() + permalink);
         }
     }
 

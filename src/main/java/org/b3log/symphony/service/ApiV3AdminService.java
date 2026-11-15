@@ -1033,6 +1033,14 @@ public class ApiV3AdminService {
                                      final boolean requireAdminRole,
                                      final AtomicReference<AuthorizedActor> actorRef,
                                      final boolean lockStatisticOption) {
+        return guardedWrite(identity, requiredPermission, requireAdminRole, actorRef, lockStatisticOption, actor -> true);
+    }
+
+    ApiV3MutationStore guardedWrite(final JSONObject identity, final String requiredPermission,
+                                     final boolean requireAdminRole,
+                                     final AtomicReference<AuthorizedActor> actorRef,
+                                     final boolean lockStatisticOption,
+                                     final java.util.function.Predicate<AuthorizedActor> actionAllowed) {
         return new ApiV3MutationStore() {
             @Override
             public Transaction beginTransaction() {
@@ -1056,6 +1064,7 @@ public class ApiV3AdminService {
                 final AuthorizedActor actor = authorizeInCurrentTransaction(
                         identity, "settings.write", requiredPermission, requireAdminRole);
                 requireMenuAdmin(actor);
+                if (!actionAllowed.test(actor)) throw ApiV3Requests.forbidden();
                 actorRef.set(actor);
                 return existingRequest;
             }

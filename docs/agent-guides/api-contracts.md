@@ -16,3 +16,5 @@
 ## 写入幂等
 
 - v3 写入幂等由 `ApiV3IdempotencyMgmtService` + `api_v3_request` 在同一事务内提交业务与结果；回调必须调用 `*InCurrentTransaction`，不得自行提交、嵌套事务或直接发送外部事件。草稿写入走 `ApiV3DraftProcessor` + `ApiV3DraftMgmtService`，复用 `ArticleDraftMgmtService` 的现有规则。
+
+- 后台典型资产写入先校验当前身份，再读不变的幂等命名空间。摘要扩充时，旧摘要命中的完整回执只读并标记 `legacyReceipt`。持久化的空占位回执返回 `operation_outcome_unknown`，保留原键并核对流水、会员/勋章记录，禁止把空回执当成可重放业务的授权。
