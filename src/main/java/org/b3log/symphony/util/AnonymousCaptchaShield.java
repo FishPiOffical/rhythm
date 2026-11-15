@@ -34,6 +34,7 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.util.Requests;
 import org.b3log.symphony.cache.UserCache;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.processor.SkinRenderer;
 import org.json.JSONObject;
 
@@ -49,10 +50,11 @@ import java.util.Set;
  *
  * <p>版本 1 为原逻辑搬迁：保留两小时缓存、首访文章豁免、每五次验证、
  * API 401、非 API 累计封禁及原有非原子计数；不在提取中调整业务规则。
+ * 版本 3 将 V3 接入持续挑战及 403 captcha_required，旧 API 和页面规则保持。
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 2;
+    public static final int POLICY_VERSION = 3;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -134,13 +136,25 @@ public final class AnonymousCaptchaShield {
 
     /**
      * 全局入口必须在爬虫核实和 CC 检查之后、CORS/OPTIONS 之前调用。
-     * 返回 true 表示已跳转并终止；本方法不会继续执行请求处理链。
+     * 返回 true 表示已响应并终止；本方法不会继续执行请求处理链。
      */
     public static boolean redirectIfChallenged(final RequestContext context, final boolean verifiedCrawler) {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!verifiedCrawler && isRestricted(ip)
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
+            if (isV3(context)) {
+                // 预检只协商传输权限；实际业务请求仍持续拒绝，且不执行路由。
+                if (ApiV3Cors.apply(context) && "OPTIONS".equals(context.method())) {
+                    context.sendStatus(204);
+                    context.abort();
+                    return true;
+                }
+                requireV3Captcha(context);
+                SecurityMonitor.record(context, "captcha", "deny", "接口等待验证码",
+                        "BeforeRequestHandler -> AnonymousCaptchaShield");
+                return true;
+            }
             logShield(ip, context.requestURI(), "跳转", "已在验证黑名单", null);
             context.sendRedirect("/test");
             context.abort();
@@ -149,6 +163,16 @@ public final class AnonymousCaptchaShield {
             return true;
         }
         return false;
+    }
+
+    private static boolean isV3(final RequestContext context) {
+        return context.requestURI().startsWith(Latkes.getContextPath() + "/api/v3/");
+    }
+
+    private static void requireV3Captcha(final RequestContext context) {
+        ApiV3Cors.apply(context);
+        ApiV3Processor.error(context, 403, "captcha_required", "请完成人机验证后重试");
+        context.abort();
     }
 
     /** 验证成功只清验证码限制，不解除 Firewall/ipset 封禁，也不加入白名单。 */
@@ -271,7 +295,13 @@ public final class AnonymousCaptchaShield {
                     }
 
                     if (needCaptcha) {
-                        if (requestURI.contains("/api/")) {
+                        if (isV3(context)) {
+                            // V3 与旧页面共用待验证状态，只有服务端确认极验通过才清理。
+                            ipBlacklistCache.put(ip, true);
+                            requireV3Captcha(context);
+                            SecurityMonitor.record(context, "captcha", "challenge", "接口需要验证码",
+                                    "AnonymousViewCheckMidware -> AnonymousCaptchaShield");
+                        } else if (requestURI.contains("/api/")) {
                             // API 调用方无法完成验证码，直接拒绝且不拉黑，避免把服务端客户端永久卡死
                             logShield(ip, requestURI, "拒绝", "接口需验证码-" + reason, "次数=" + count);
                             context.sendError(401);

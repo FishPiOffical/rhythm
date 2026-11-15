@@ -3,7 +3,7 @@
 ## 开始任务必读
 
 - 所有 AI 开始任务先读 [维护问题与规避要求](docs/agent-guides/maintenance.md)、[专题索引](docs/agent-guides/README.md)；代码实施前再读 [开发、验证与交付](docs/agent-guides/workflow.md) 及索引中命中的专题。专题约定与本文件共同生效，不能只读根文件就修改代码。
-- 涉及摸鱼派 v3 用户站联调、检查或优化时，另读 [website_v3 联调](docs/agent-guides/website-v3-integration.md)；前端仓库位于 `C:\Users\陈辉\IdeaProjects\fishpi_website_v3`，与 Rhythm 独立提交，具体入口、协议边界和本地拓扑以该专题为准。
+- 涉及摸鱼派 v3 用户站联调、检查或优化时，另读 [website_v3 联调](docs/agent-guides/website-v3-integration.md)；前端仓库位于 `C:\Users\陈辉\IdeaProjects\fishpi_website_v3`，与 Rhythm 独立提交，具体入口、协议边界和本地拓扑以该专题为准。验证码盾已确认的第 2/4/5 步实施范围、未完成项与验收入口见 [V3 验证码流程工作单](docs/api-v3-captcha-flow-work.md)，恢复该任务时必读，不得把已确认方案当成已完成实现。
 - 当前问题是规则重复、旧结论覆盖新协议、临时环境写成长久事实，以及只测局部导致反复修 bug；规避办法见必读维护文档。后续架构、业务细节、迁移和验收要求统一维护在 `docs/agent-guides/` 对应专题及其引用文档，更新索引；根文件只保留最高优先级、跨任务的长期约束，禁止追加修复流水账。
 - 所有 AI 对本轮发现的长期规则、明确偏好、实现变化和文档错误负有主动维护责任，不等待用户再次提醒；按 [维护触发与完成标准](docs/agent-guides/maintenance.md#维护触发与完成标准) 当轮更新，交付时说明更新位置或无需更新的理由。不得为凑记录重复追加、猜测用户性格或把临时状态写成长期事实。
 - 文档维护绝对禁止记录任何涉密内容，包括真实密码、密钥、令牌、Cookie、验证码及其片段；此要求覆盖规则文档、任务记录、示例、截图、日志摘录和提交说明，具体按 [文档保密要求](docs/agent-guides/maintenance.md#文档保密要求) 执行。
@@ -29,6 +29,7 @@
 - Commit 审查、合并前检查和发布前复核按 [Commit 审查门禁](docs/agent-guides/code-review.md) 执行；其中包含功能兼容、安全、隐私、防护链路、SQL 汇总和证据分级要求。
 - 交付列出实际文件与行为、验证命令和结果、未覆盖风险，并提供完整人工测试步骤；前端须开发者亲测PC/移动。阶段完成先报告并等待用户确认，未收到亲测结果只能标“待人工验收”，不得宣称可合入/发布；缺少亲测、检查失败或质量不足按 [交付门禁](docs/agent-guides/workflow.md#测试与交付) 明确“拒绝合入”。
 - 自动 commit 按会话确认，尚无明确选择时只询问一次；同意后每次修改完成并验证即自动本地提交，不重复询问，拒绝或未答复不自动提交，后续明确指令可变更选择。无关工作区改动保留并继续本次任务，结束只提交本次必要改动，告知跳过项；同文件交叉改动按 [提交边界](docs/agent-guides/workflow.md#协作与文档维护) 处理。
-- 用户消息去除首尾空白后仅为 `commit`，即授权提交当前工作区全部未提交内容；仅为 `push`，即授权先提交全部未提交内容再推送。Rhythm 与 website_v3 分别提交，未明确要求不推送；提交消息必须中文，技术标识可保留英文，开头可加一个 Git emoji，**emoji 后必须加一个空格**，例如 `:memo: 精简项目约定`。
+- website_v3 前端每次开始修改前先检查分支/差异并 pull 最新代码，保留已有改动；拉取冲突或失败必须显式处理，不得覆盖本地工作或省略失败继续改。修改完成并验证后，须取得用户明确同意，才可推送工作分支并创建 PR；不得直接 push 目标分支，也不自动合并。此项是前端专用约定，后端 Rhythm 沿用原提交/推送流程，细节见 [联调专题](docs/agent-guides/website-v3-integration.md#前端同步与-pr-交付)。
+- 用户消息去除首尾空白后仅为 `commit`，即授权提交当前工作区全部未提交内容；仅为 `push`，在 Rhythm 授权先提交全部未提交内容再推送，website_v3 仍走前述 PR 流程，不因此直接 push 目标分支。Rhythm 与 website_v3 分别提交，未明确要求不推送；提交消息必须中文，技术标识可保留英文，开头可加一个 Git emoji，**emoji 后必须加一个空格**，例如 `:memo: 精简项目约定`。
 
 目录、模块入口和全部细节见 [专题索引](docs/agent-guides/README.md)；旧条目去向见 [迁移对照](docs/agent-guides/migration-map.md)。Claude/Gemini 入口只引用本文件，不另存一套规则。
