@@ -7410,8 +7410,8 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | -- pet | 仅 pets 返回，含 id、name、speciesId、level、experience | `{...}` |
 | -- link | links 榜单的链接资料，此类记录没有 user | `{...}` |
 | --- id / title / url | 链接 ID / 标题 / 链接地址 | 123 / 标题 / URL |
-| - summary | 仅 donate 返回全站赞助汇总 | `{...}` |
-| -- amount / supportedDays | 总赞助金额 / 支持运营天数 | 100 / 20 |
+| - summary | 仅 donate 返回前 10 名捐助者的汇总 | `{...}` |
+| -- amount / supportedDays | 前 10 名捐助者的捐助金额 / 支持运营天数 | 100 / 20 |
 | - pagination | 分页信息 | `{...}` |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 当前榜单总条数 / 总页数 | 1 / 20 / 64 / 4 |
 
@@ -7430,7 +7430,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | perfect | 优选文章数量 | count |
 | pets | 宠物等级 | level、experience |
 
-> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。donate 榜最多返回前 10 名，与旧版捐助榜人数上限一致；其余捐助金额、捐助次数和汇总字段保持现有 V3 响应。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
+> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。donate 榜最多返回前 10 名，`summary` 也按这 10 名汇总，与旧版捐助榜人数上限一致；其余捐助金额、捐助次数字段保持现有 V3 响应。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
 
 ### 查看宠物资料
 
