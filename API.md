@@ -17870,19 +17870,19 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 
 #### 角色与邀请码
 
-- `GET /api/v3/admin/roles`：分页查询角色列表与绑定用户数（需 `menuAdminRoles`）
+- `GET /api/v3/admin/roles`（`size` 最大 50，使用返回的 pagination 分页）：分页查询角色列表与绑定用户数（需 `menuAdminRoles`）
 - `POST /api/v3/admin/roles`：新增角色（需 `menuAdminRoles`）
 - `DELETE /api/v3/admin/roles/{roleId}`：删除非内置且无绑定用户的角色（需 `menuAdminRoles`）
 - `GET /api/v3/admin/roles/{roleId}/permissions`：查看角色权限矩阵（需 `menuAdminRoles`）
 - `PUT /api/v3/admin/roles/{roleId}/permissions`：更新角色权限矩阵，隔离非管理员对管理员/高危权限的越权修改（需 `menuAdminRoles`）
-- `GET /api/v3/admin/invitecodes`：分页查询邀请码列表（支持 `status` `0/1/2` 与 `keyword` 筛选，需 `menuAdminIcs`）
+- `GET /api/v3/admin/invitecodes`（兼容字段 `time=0` 表示生成时间未记录，`useTime` 为真实使用时间）：分页查询邀请码列表（支持 `status` `0/1/2` 与 `keyword` 筛选，需 `menuAdminIcs`）
 - `POST /api/v3/admin/invitecodes/generate`：批量生成邀请码（需 `menuAdminIcs`）
 - `PUT /api/v3/admin/invitecodes/{invitecodeId}`：更新邀请码状态与备注（需 `menuAdminIcs`）
 
 #### VIP 与优惠券
 
 - `GET /api/v3/admin/vip/levels`：查询 VIP 等级配置列表（需管理员）
-- `POST /api/v3/admin/vip/levels`：新增 VIP 等级（需管理员）
+- `POST /api/v3/admin/vip/levels`：新增 VIP 等级（需管理员）。套餐字段为 `lvCode`、`lvName`、`price`、`durationType`、`durationValue`、`benefits`（JSON 对象字符串）；`durationValue` 沿现有服务按天计，`durationType` 使用已有业务类型代码。PUT 支持同组字段；GET 返回模型原字段并按 `lvCode / durationType / oId` 排序。管理端权益表单需保留未知扩展键与布尔、数值等类型。
 - `PUT /api/v3/admin/vip/levels/{levelId}`：更新 VIP 等级（需管理员）
 - `DELETE /api/v3/admin/vip/levels/{levelId}`：删除 VIP 等级（需管理员）
 - `GET /api/v3/admin/vip/users`：分页查询用户 VIP 实例（需管理员）

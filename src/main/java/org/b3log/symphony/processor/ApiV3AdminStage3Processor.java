@@ -58,7 +58,8 @@ public class ApiV3AdminStage3Processor {
 
     private static final Set<String> VIP_LEVEL_FIELDS = Set.of(
             "oId", "lvCode", "name", "description", "price", "durationDays", "sortOrder", "enabled",
-            "features", "starterBag", "badge", "color", "icon", "priority");
+            "features", "starterBag", "badge", "color", "icon", "priority",
+            "lvName", "durationType", "durationValue", "benefits");
     private static final Set<String> VIP_USER_ADD_FIELDS = Set.of("target", "levelOId", "configJson");
     private static final Set<String> VIP_USER_UPDATE_FIELDS = Set.of("lvCode", "state", "expiresAt", "configJson");
     private static final Set<String> VIP_USER_EXTEND_FIELDS = Set.of("days");

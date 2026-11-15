@@ -98,7 +98,7 @@ public class ApiV3AdminAssetService {
         try {
             adminService.authorizeInCurrentTransaction(identity, "profile.read", null, true);
             final List<JSONObject> rows = levelRepository.select(
-                    "SELECT * FROM `" + levelRepository.getName() + "` ORDER BY sortOrder ASC, oId ASC");
+                    "SELECT * FROM `" + levelRepository.getName() + "` ORDER BY lvCode ASC, durationType ASC, oId ASC");
             tx.commit();
             return new JSONObject().put("items", new JSONArray(rows));
         } catch (final ApiV3Exception e) {

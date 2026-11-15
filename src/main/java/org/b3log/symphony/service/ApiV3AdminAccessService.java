@@ -387,7 +387,7 @@ public class ApiV3AdminAccessService {
             final List<JSONObject> rows = invitecodeRepository.select(
                     "SELECT oId," + Invitecode.CODE + "," + Invitecode.MEMO + "," + Invitecode.STATUS + ","
                             + Invitecode.GENERATOR_ID + "," + Invitecode.USER_ID + ","
-                            + "time," + Invitecode.USE_TIME
+                            + Invitecode.USE_TIME
                             + " FROM `" + table + "`" + where + " ORDER BY oId DESC LIMIT ? OFFSET ?",
                     queryParams.toArray());
 
@@ -406,7 +406,8 @@ public class ApiV3AdminAccessService {
                         .put("generatorName", resolveUserName(genId))
                         .put("userId", userId)
                         .put("userName", resolveUserName(userId))
-                        .put("time", row.optLong("time", 0L))
+                        // 旧邀请码模型不记录生成时间，兼容字段明确返回未知，不能从 ID 推造。
+                        .put("time", 0L)
                         .put("useTime", row.optLong(Invitecode.USE_TIME, 0L)));
             }
 
