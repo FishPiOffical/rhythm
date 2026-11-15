@@ -312,8 +312,6 @@ public class ApiV3AdminService {
     @Inject
     private ArticleMgmtService articleMgmtService;
     @Inject
-    private ArticleAdminDomainService articleAdminDomainService;
-    @Inject
     private CommentRepository comments;
     @Inject
     private CommentMgmtService commentMgmtService;
@@ -1949,7 +1947,7 @@ public class ApiV3AdminService {
                                     .put(Article.ARTICLE_UA, articleUA);
                             final JSONObject created;
                             try {
-                                created = articleAdminDomainService.addArticleByAdminInCurrentTransaction(adminReq);
+                                created = articleMgmtService.addArticleByAdminInCurrentTransaction(adminReq);
                             } catch (final ServiceException e) {
                                 throw mapAdminServiceException(e, 422, "article_create_rejected");
                             }
@@ -1965,7 +1963,7 @@ public class ApiV3AdminService {
                         }));
             }, exec -> {
                 if (exec.applied() && createdArticleRef.get() != null) {
-                    articleAdminDomainService.afterAdminArticleAdded(createdArticleRef.get());
+                    articleMgmtService.afterAdminArticleAdded(createdArticleRef.get());
                 }
             });
         } catch (final ApiV3Exception e) {
@@ -2016,7 +2014,7 @@ public class ApiV3AdminService {
                             }
                             final JSONObject outcome;
                             try {
-                                outcome = articleAdminDomainService.updateArticleByAdminInCurrentTransaction(
+                                outcome = articleMgmtService.updateArticleByAdminInCurrentTransaction(
                                         articleId, updateInput.patch(), updateInput.longArticleColumnRequest());
                             } catch (final ServiceException e) {
                                 if ("文章不存在".equals(e.getMessage())) {
@@ -2034,7 +2032,7 @@ public class ApiV3AdminService {
                         }));
             }, exec -> {
                 if (exec.applied() && outcomeRef.get() != null) {
-                    articleAdminDomainService.afterAdminArticleUpdated(outcomeRef.get());
+                    articleMgmtService.afterAdminArticleUpdated(outcomeRef.get());
                 }
             });
         } catch (final ApiV3Exception e) {
@@ -2051,7 +2049,7 @@ public class ApiV3AdminService {
     }
 
     /**
-     * 置顶指定文章（设置当前置顶时间戳）。
+     * 置顶指定文章（沿用旧后台永久置顶规则）。
      */
     public JSONObject stickArticle(final JSONObject identity, final String articleId,
                                    final String idempotencyKey, final Request request) {
@@ -2640,7 +2638,7 @@ public class ApiV3AdminService {
                             if (!actor.permissions().contains(actionPermission)) {
                                 throw ApiV3Requests.forbidden();
                             }
-                            final Long stickTime = articleAdminDomainService.setArticleStickInCurrentTransaction(
+                            final Long stickTime = articleMgmtService.setArticleStickInCurrentTransaction(
                                     articleId, targetAuthorId, stick);
                             if (stickTime == null) {
                                 throw ApiV3Requests.notFound();

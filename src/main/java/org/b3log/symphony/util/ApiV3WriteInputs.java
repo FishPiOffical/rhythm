@@ -35,7 +35,14 @@ public final class ApiV3WriteInputs {
     }
 
     public static JSONObject body(final RequestContext context, final Set<String> allowed, final boolean emptyAllowed, final int maximumBytes) {
-        if (maximumBytes < 0 || maximumBytes > ApiV3Json.MAX_BODY_BYTES) throw new IllegalArgumentException("body limit");
+        final JSONObject body = objectBody(context, emptyAllowed, maximumBytes);
+        if (!allowed.containsAll(body.keySet())) throw invalid();
+        return body;
+    }
+
+    /** 保留原始字节、媒体类型和严格 JSON 校验；字段规则由调用方按业务结构校验。 */
+    public static JSONObject objectBody(final RequestContext context, final boolean emptyAllowed, final int maximumBytes) {
+        if (maximumBytes < 0 || maximumBytes > ApiV3Json.MAX_IMPORT_BODY_BYTES) throw new IllegalArgumentException("body limit");
         final byte[] bytes;
         try {
             bytes = ApiV3GameSaveRawBody.copy(context.getRequest(), maximumBytes);
@@ -48,9 +55,8 @@ public final class ApiV3WriteInputs {
             throw new ApiV3Exception(415, "unsupported_media_type", "请求体必须使用 application/json");
         }
         final JSONObject body;
-        try { body = ApiV3Json.parse(bytes); }
+        try { body = ApiV3Json.parse(bytes, maximumBytes); }
         catch (final IllegalArgumentException e) { throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法"); }
-        if (!allowed.containsAll(body.keySet())) throw invalid();
         return body;
     }
 

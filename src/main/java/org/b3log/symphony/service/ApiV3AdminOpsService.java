@@ -531,7 +531,7 @@ public class ApiV3AdminOpsService {
             final int total = totalRows.isEmpty() ? 0 : totalRows.getFirst().optInt("totalCount", 0);
 
             final List<JSONObject> rows = uploadRepository.select(
-                    "SELECT oId,type,userName,ip,time,path,md5,`public`,reviewed FROM `" + table + "`"
+                    "SELECT oId,type,userName,time,path,`public`,reviewed FROM `" + table + "`"
                             + where + " ORDER BY oId DESC LIMIT ? OFFSET ?",
                     true, sinceTime, safeSize, offset);
 

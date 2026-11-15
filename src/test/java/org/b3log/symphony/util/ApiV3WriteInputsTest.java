@@ -64,11 +64,32 @@ public class ApiV3WriteInputsTest {
         Assert.assertEquals(ApiV3WriteInputs.integer(new JSONObject().put("n", 1.0), "n", 0, 0, 10), 1);
     }
 
+    @Test
+    public void professionLimitDoesNotWidenOrdinaryWrites() {
+        final byte[] payload = ("{\"title\":\"" + "x".repeat(9 * 1024 * 1024) + "\"}").getBytes(StandardCharsets.UTF_8);
+        status(413, () -> body(payload, "application/json", false, 64 * 1024));
+        status(413, () -> body(payload, "application/json", false, 256 * 1024));
+        status(413, () -> body(payload, "application/json", false));
+        Assert.assertEquals(body(payload, "application/json", false, ApiV3Json.MAX_IMPORT_BODY_BYTES)
+                .getString("title").length(), 9 * 1024 * 1024);
+        final byte[] boundary = ("{\"title\":\"" + "x".repeat(ApiV3Json.MAX_IMPORT_BODY_BYTES - 12) + "\"}")
+                .getBytes(StandardCharsets.UTF_8);
+        Assert.assertEquals(boundary.length, ApiV3Json.MAX_IMPORT_BODY_BYTES);
+        body(boundary, "application/json", false, ApiV3Json.MAX_IMPORT_BODY_BYTES);
+        status(413, () -> body(new byte[ApiV3Json.MAX_IMPORT_BODY_BYTES + 1], "application/json", false, ApiV3Json.MAX_IMPORT_BODY_BYTES));
+        status(400, () -> body("{\"title\":1,\"title\":2}".getBytes(StandardCharsets.UTF_8), "application/json", false, ApiV3Json.MAX_IMPORT_BODY_BYTES));
+        status(400, () -> body(new byte[]{(byte) 0xc3, 0x28}, "application/json", false, ApiV3Json.MAX_IMPORT_BODY_BYTES));
+    }
+
     private JSONObject body(final String text, final String contentType, final boolean empty) {
         return body(text.getBytes(StandardCharsets.UTF_8), contentType, empty);
     }
 
     private JSONObject body(final byte[] bytes, final String contentType, final boolean empty) {
+        return body(bytes, contentType, empty, ApiV3Json.MAX_BODY_BYTES);
+    }
+
+    private JSONObject body(final byte[] bytes, final String contentType, final boolean empty, final int limit) {
         final var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/api/v3/me/drafts");
         if (null != contentType) raw.headers().set("Content-Type", contentType);
         final Request request = new Request(null, raw) { @Override public String getRemoteAddr() { return "127.0.0.1"; } };
@@ -76,7 +97,7 @@ public class ApiV3WriteInputsTest {
         try { final var parse = Request.class.getDeclaredMethod("parseForm"); parse.setAccessible(true); parse.invoke(request); }
         catch (final ReflectiveOperationException e) { throw new AssertionError(e); }
         final Response response = new Response(null, new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK));
-        try { return ApiV3WriteInputs.body(new RequestContext(request, response), Set.of("title"), empty); }
+        try { return ApiV3WriteInputs.body(new RequestContext(request, response), Set.of("title"), empty, limit); }
         finally { raw.release(); }
     }
 
@@ -89,6 +110,7 @@ public class ApiV3WriteInputsTest {
         final var test = new ApiV3WriteInputsTest();
         test.strictBodyMediaTypeKeysAndParseFailuresHaveControlledStatus();
         test.scalarTypesAreNotCoercedAndIntBoundsCannotOverflow();
-        System.out.println("PASS: 2 ApiV3WriteInputs tests using real Latke RequestContext");
+        test.professionLimitDoesNotWidenOrdinaryWrites();
+        System.out.println("PASS: 3 ApiV3WriteInputs tests using real Latke RequestContext");
     }
 }

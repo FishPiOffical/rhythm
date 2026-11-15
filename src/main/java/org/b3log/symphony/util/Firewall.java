@@ -244,6 +244,19 @@ public final class Firewall {
         return "退出码 " + result.exitCode() + " " + output.substring(0, Math.min(160, output.length()));
     }
 
+    /** 后台任务核实最终成员状态，不通过诊断字符串推断执行成功。 */
+    public static boolean verifyIpState(final String ip, final boolean banned) {
+        try {
+            final CommandResult result = executeIpset("test", ip);
+            if (result.timedOut()) return false;
+            return banned ? result.exitCode() == 0
+                    : result.exitCode() == 1 && result.output().contains(" is NOT in set " + IPSET_NAME);
+        } catch (final Exception e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
     private static CommandResult executeIpset(final String operation, final String ip) throws Exception {
         final CommandLine command = new CommandLine("ipset");
         command.addArgument(operation, false);

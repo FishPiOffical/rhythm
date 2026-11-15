@@ -12,6 +12,10 @@
 - v3论坛读取用ApiV3ContentSnapshots绑定当前文章/作者与当前读者；聊天室通知actor仅由合法userOId解析，无ID不按旧用户名关联。评论/段落/通知/表态不从实体缓存恢复资格或正文；内部作者别名只供白名单DTO投影，不能裸返。修订历史本来走当前SQL；勿改回ArticleRepository.get/UserQueryService作为权限依据。 内容型积分/文章公告说明也须用已授权当前标题，不能在校验后再调旧通知缓存描述生成器。 公开资料/列表隐私与清风明月作者由DiscoveryQueryService.currentProfileUser当前查询，不用getByName/get实体缓存授权。 列表作者随分页SQL投影，DTO未提供快照时只读当前公开作者；v3头像共用ApiV3AvatarUrl原URL投影，不能调用旧AvatarQuery显示变换丢掉签名query。
 - `/api/v3` 文章/评论读取走 `ApiV3ContentProcessor` + `ApiV3ContentQueryService`，可选 Bearer 需 `content.read`；当前用户只从 `ApiV3Processor.IDENTITY` 获取，禁止回退 Sessions/apiKey 或复用依赖会话的页面内容组装。详情与评论共用文章可见性检查，匿名作者 DTO 不返回真实身份，打赏和私密评论单独授权。
 
+## 后台单一实现
+
+- 旧后台与 V3 的创建、编辑、置顶统一由 `ArticleMgmtService` 实现；旧入口持有根事务，V3 调用同类当前事务原语并仅在新提交后执行后置操作。禁止重新复制 `ArticleAdminDomainService`。改后台接口前建立旧入口/V3/共享服务/权限/字段/事务/审计对照，无法共用的协议差异必须记录并补兼容测试，详见 [修复与验收](../admin-v3-compatibility-repair.md)。
+
 ## 发布、编辑与删除
 
 - 文章内容校验共用 `ArticleValidation` + `ArticleValidationService`，旧 `ArticlePostValidationMidware` 只适配旧响应。v3 创建走 `ApiV3ArticleWriteProcessor` + `ApiV3ArticleMgmtService`，需要 content.write 与 commonAddArticle（不是管理权限articleAddArticle）；输入只认Bearer作者、幂等与本人草稿同事务，结果只返回id/permalink。v3不接受免审字段，思绪POST仍关闭；旧免审角色、额度例外与历史打赏长度规则保留，避免悄悄收紧旧API。

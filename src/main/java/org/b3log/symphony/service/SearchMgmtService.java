@@ -140,6 +140,89 @@ public class SearchMgmtService {
         }
     }
 
+    /** 后台维护任务使用可观察失败的同步版本，不能调用吞错的历史异步入口。 */
+    public void updateAdminArticleIndex(final JSONObject article) {
+        if (!Symphonys.ES_ENABLED && !Symphonys.ALGOLIA_ENABLED) {
+            throw new IllegalStateException("未启用搜索索引");
+        }
+        if (Symphonys.ES_ENABLED) {
+            final JSONObject payload = new JSONObject().put("doc", article).put("upsert", article);
+            requireSearchSuccess(HttpRequest.post(Symphonys.ES_SERVER + "/" + ES_INDEX_NAME + "/"
+                    + Article.ARTICLE + "/" + article.optString(Keys.OBJECT_ID) + "/_update")
+                    .bodyText(payload.toString()).contentTypeJson().connectionTimeout(5000).timeout(5000).send());
+        }
+        if (Symphonys.ALGOLIA_ENABLED) {
+            final JSONObject doc = new JSONObject(article.toString());
+            String content = Jsoup.parse(Markdowns.toHTML(doc.optString(Article.ARTICLE_CONTENT))).text();
+            doc.put(Article.ARTICLE_CONTENT, content);
+            while (Utf8.size(doc.toString()) >= 9000 && !content.isEmpty()) {
+                int end = Math.max(0, content.length() - 128);
+                if (end > 0 && Character.isHighSurrogate(content.charAt(end - 1))) end--;
+                content = content.substring(0, end);
+                doc.put(Article.ARTICLE_CONTENT, content);
+            }
+            final HttpResponse response = algoliaRequest("PUT", "/" + doc.optString(Keys.OBJECT_ID))
+                    .bodyText(doc.toString()).contentTypeJson().send();
+            awaitAlgoliaTask(response);
+        }
+    }
+
+    /** 清空与建映射也在后台任务线程执行；非成功 HTTP 响应必须令任务失败。 */
+    public void rebuildAdminArticleIndex() {
+        if (!Symphonys.ES_ENABLED && !Symphonys.ALGOLIA_ENABLED) {
+            throw new IllegalStateException("未启用搜索索引");
+        }
+        if (Symphonys.ES_ENABLED) {
+            final String url = Symphonys.ES_SERVER + "/" + ES_INDEX_NAME;
+            final HttpResponse deleted = HttpRequest.delete(url).connectionTimeout(3000).timeout(3000).send();
+            if (deleted.statusCode() != 404) requireSearchSuccess(deleted);
+            requireSearchSuccess(HttpRequest.put(url).connectionTimeout(3000).timeout(3000).send());
+            final JSONObject field = new JSONObject().put("type", "string").put("analyzer", "ik_smart")
+                    .put("search_analyzer", "ik_smart");
+            final JSONObject mapping = new JSONObject().put(Article.ARTICLE, new JSONObject().put("properties",
+                    new JSONObject().put(Article.ARTICLE_TITLE, field).put(Article.ARTICLE_CONTENT, field)));
+            requireSearchSuccess(HttpRequest.post(url + "/" + Article.ARTICLE + "/_mapping")
+                    .bodyText(mapping.toString()).contentTypeJson().connectionTimeout(3000).timeout(3000).send());
+        }
+        if (Symphonys.ALGOLIA_ENABLED) awaitAlgoliaTask(algoliaRequest("POST", "/clear").send());
+    }
+
+    private static HttpRequest algoliaRequest(final String method, final String suffix) {
+        final String url = "https://" + Symphonys.ALGOLIA_APP_ID + "-1.algolianet.com/1/indexes/"
+                + Symphonys.ALGOLIA_INDEX + suffix;
+        final HttpRequest request = "PUT".equals(method) ? HttpRequest.put(url)
+                : "POST".equals(method) ? HttpRequest.post(url) : HttpRequest.get(url);
+        return request.header("X-Algolia-API-Key", Symphonys.ALGOLIA_ADMIN_KEY)
+                .header("X-Algolia-Application-Id", Symphonys.ALGOLIA_APP_ID)
+                .connectionTimeout(5000).timeout(5000);
+    }
+
+    private static void requireSearchSuccess(final HttpResponse response) {
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalStateException("搜索服务返回 HTTP " + response.statusCode());
+        }
+    }
+
+    private static void awaitAlgoliaTask(final HttpResponse response) {
+        requireSearchSuccess(response);
+        final Object task = new JSONObject(response.bodyText()).opt("taskID");
+        if (task == null || !task.toString().matches("[0-9]+")) {
+            throw new IllegalStateException("搜索服务未返回任务标识");
+        }
+        final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+        do {
+            final HttpResponse status = algoliaRequest("GET", "/task/" + task).send();
+            requireSearchSuccess(status);
+            if ("published".equals(new JSONObject(status.bodyText()).optString("status"))) return;
+            try { Thread.sleep(200); }
+            catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("搜索任务已中断", e);
+            }
+        } while (System.nanoTime() < deadline);
+        throw new IllegalStateException("搜索任务结果尚未确认");
+    }
+
     /**
      * Removes the specified document in ES.
      *

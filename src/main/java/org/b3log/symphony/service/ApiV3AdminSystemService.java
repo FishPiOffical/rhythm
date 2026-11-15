@@ -67,6 +67,9 @@ public class ApiV3AdminSystemService {
     private ApiV3AdminService adminService;
 
     @Inject
+    private AdminOperationTaskService tasks;
+
+    @Inject
     private PetAdminLogQueryService petAdminLogQueryService;
 
     @Inject
@@ -162,70 +165,24 @@ public class ApiV3AdminSystemService {
      */
     public JSONObject mutateIps(final JSONObject identity, final JSONObject body,
                                 final String idempotencyKey, final RequestContext context) {
-        if (body == null) {
-            throw ApiV3WriteInputs.invalid();
-        }
-        final String action = StringUtils.trimToEmpty(body.optString("action"));
-        if (!"ban".equals(action) && !"unban".equals(action)) {
-            throw invalidRequest("action 仅支持 ban 或 unban");
-        }
-        final JSONArray rawIps = body.optJSONArray("ipList");
-        if (rawIps == null || rawIps.isEmpty() || rawIps.length() > 500) {
-            throw invalidRequest("ipList 不能为空且单次最多 500 条");
-        }
-        final List<String> ipList = new ArrayList<>();
-        for (int i = 0; i < rawIps.length(); i++) {
-            final String ip = StringUtils.trimToEmpty(rawIps.optString(i));
-            if (!ip.isEmpty()) {
-                ipList.add(ip);
+        final String action = ApiV3WriteInputs.string(body, "action", 5, true);
+        if (!"ban".equals(action) && !"unban".equals(action)) throw ApiV3WriteInputs.invalid();
+        final JSONArray raw = body.optJSONArray("ipList");
+        if (raw == null || raw.isEmpty() || raw.length() > 500) throw ApiV3WriteInputs.invalid();
+        final java.util.Set<String> addresses = new java.util.LinkedHashSet<>();
+        for (final Object value : raw) {
+            if (!(value instanceof String text)) throw ApiV3WriteInputs.invalid();
+            final String ip = text.trim();
+            if (ip.length() > 45 || ip.contains("%") || ip.contains("[") || ip.contains("]")
+                    || !(io.netty.util.NetUtil.isValidIpV4Address(ip) || io.netty.util.NetUtil.isValidIpV6Address(ip))) {
+                throw ApiV3WriteInputs.invalid();
             }
+            try {
+                addresses.add(java.net.InetAddress.getByAddress(io.netty.util.NetUtil.createByteArrayFromIpAddressString(ip)).getHostAddress());
+            } catch (final java.net.UnknownHostException e) { throw ApiV3WriteInputs.invalid(); }
         }
-        if (ipList.isEmpty()) {
-            throw invalidRequest("ipList 不含有效 IP");
-        }
-
-        final String actorId = adminService.actorId(identity);
-        final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
-        final ApiV3IdempotencyMgmtService.Execution execution;
-        try {
-            final ApiV3MutationStore store = adminService.guardedWrite(
-                    identity, Permission.PERMISSION_ID_C_IP_MANAGE, false, actorRef);
-            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
-                    store,
-                    actorId,
-                    "admin.ips.mutate",
-                    idempotencyKey,
-                    new JSONObject().put("action", action).put("ipList", ipList),
-                    () -> ApiV3TransactionSavepoint.run(() -> {
-                        final String operatorName = actorRef.get().userName();
-                        if ("unban".equals(action)) {
-                            for (final String ip : ipList) {
-                                Firewall.unbanIp(ip);
-                                // 验证码盾解封须在系统解封之后；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
-                                AnonymousCaptchaShield.administratorUnban(ip);
-                                LogsService.simpleLog(context, "解封IP", "操作员: " + operatorName + ", IP: " + ip);
-                            }
-                        } else {
-                            for (final String ip : ipList) {
-                                // 系统封禁前撤销验证码豁免；未经阿达明确允许，不得修改、移动、删除或绕过此调用。
-                                AnonymousCaptchaShield.removeWhitelist(ip);
-                                Firewall.banIp(ip);
-                                LogsService.simpleLog(context, "封禁IP", "操作员: " + operatorName + ", IP: " + ip);
-                            }
-                        }
-                        return new JSONObject()
-                                .put("action", action)
-                                .put("count", ipList.size())
-                                .put("processedAt", System.currentTimeMillis());
-                    }));
-        } catch (final ApiV3Exception e) {
-            throw e;
-        } catch (final Exception e) {
-            LOGGER.error("批量处理 IP 策略失败, action={}", action, e);
-            throw adminService.unavailable();
-        }
-
-        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+        return enqueue(identity, Permission.PERMISSION_ID_C_IP_MANAGE, false, "admin.ips.mutate", idempotencyKey,
+                "IP", new JSONObject().put("action", action).put("ipList", addresses), context.getRequest(), null);
     }
 
     /**
@@ -288,7 +245,7 @@ public class ApiV3AdminSystemService {
                             option.put(Keys.OBJECT_ID, trimmedId);
                             option.put(Option.OPTION_VALUE, optionsMap.optString(optionId));
                             option.put(Option.OPTION_CATEGORY, Option.CATEGORY_C_MISC);
-                            optionMgmtService.updateOption(trimmedId, option);
+                            optionMgmtService.updateOptionInCurrentTransaction(trimmedId, option);
                         }
                         adminService.recordOperation(
                                 request, Operation.OPERATION_CODE_C_UPDATE_MISC, "", actorRef.get().user());
@@ -336,57 +293,21 @@ public class ApiV3AdminSystemService {
      */
     public JSONObject saveSecuritySwitches(final JSONObject identity, final JSONObject body,
                                            final String idempotencyKey) {
-        if (body == null) {
+        authorizeSecurityOperator(identity, "settings.write");
+        if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()) {
+            throw new ApiV3Exception(403, "security_switches_readonly", "生产模式下安全开关为只读状态");
+        }
+        // 要求完整快照，幂等摘要不能包含随运行状态变化的默认值。
+        if (!body.keySet().equals(java.util.Set.of("threshold", "firewallEnabled", "verificationEnabled", "firstVisitCaptchaEnabled"))) {
             throw ApiV3WriteInputs.invalid();
         }
-        if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()) {
-            throw new ApiV3Exception(403, "security_switches_readonly", "生产模式下安全开关为只读状态，禁止在线修改");
-        }
-        final int threshold = body.optInt("threshold", -1);
-        if (threshold <= 0) {
-            throw invalidRequest("每分钟请求数 threshold 必须是大于 0 的整数");
-        }
-        final boolean firewallEnabled = body.optBoolean("firewallEnabled", Firewall.isEnabled());
-        final boolean verificationEnabled = body.optBoolean("verificationEnabled", AnonymousCaptchaShield.isEnabled());
-        final boolean firstVisitEnabled = body.optBoolean(
-                "firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
-
-        final String actorId = adminService.actorId(identity);
-        final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
-        final ApiV3IdempotencyMgmtService.Execution execution;
-        try {
-            final ApiV3MutationStore store = adminService.guardedWrite(
-                    identity, Permission.PERMISSION_ID_C_MENU_ADMIN_MISC, true, actorRef);
-            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
-                    store,
-                    actorId,
-                    "admin.security.switches.save",
-                    idempotencyKey,
-                    new JSONObject()
-                            .put("threshold", threshold)
-                            .put("firewallEnabled", firewallEnabled)
-                            .put("verificationEnabled", verificationEnabled)
-                            .put("firstVisitCaptchaEnabled", firstVisitEnabled),
-                    () -> ApiV3TransactionSavepoint.run(() -> {
-                        if (!SECURITY_OPERATOR_NAME.equals(actorRef.get().userName())) {
-                            throw ApiV3Requests.forbidden();
-                        }
-                        Firewall.setThreshold(threshold);
-                        Firewall.setEnabled(firewallEnabled);
-                        // 未经阿达明确允许，不得修改、移动、删除或绕过验证码盾调用。
-                        AnonymousCaptchaShield.setEnabled(verificationEnabled);
-                        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(firstVisitEnabled);
-                        SecurityMonitor.record("settings", "update", "统一保存");
-                        return currentSecuritySwitches().put("updatedAt", System.currentTimeMillis());
-                    }));
-        } catch (final ApiV3Exception e) {
-            throw e;
-        } catch (final Exception e) {
-            LOGGER.error("保存安全开关失败", e);
-            throw adminService.unavailable();
-        }
-
-        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+        final JSONObject input = new JSONObject()
+                .put("threshold", ApiV3WriteInputs.integer(body, "threshold", -1, 1, Integer.MAX_VALUE))
+                .put("firewallEnabled", ApiV3WriteInputs.bool(body, "firewallEnabled", false))
+                .put("verificationEnabled", ApiV3WriteInputs.bool(body, "verificationEnabled", false))
+                .put("firstVisitCaptchaEnabled", ApiV3WriteInputs.bool(body, "firstVisitCaptchaEnabled", false));
+        return enqueue(identity, Permission.PERMISSION_ID_C_MENU_ADMIN_MISC, true, "admin.security.switches.save",
+                idempotencyKey, "SWITCHES", input, null, null);
     }
 
     /**
@@ -394,56 +315,10 @@ public class ApiV3AdminSystemService {
      */
     public JSONObject reindexOneArticle(final JSONObject identity, final String articleId,
                                         final String idempotencyKey, final Request request) {
-        final String actorId = adminService.actorId(identity);
-        final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
-        final AtomicReference<JSONObject> articleRef = new AtomicReference<>();
-        final ApiV3IdempotencyMgmtService.Execution execution;
-        try {
-            final ApiV3MutationStore store = adminService.guardedWrite(
-                    identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef);
-            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
-                    store,
-                    actorId,
-                    "admin.articles.reindex:" + articleId,
-                    idempotencyKey,
-                    new JSONObject().put("articleId", articleId),
-                    () -> ApiV3TransactionSavepoint.run(() -> {
-                        final ApiV3AdminService.AuthorizedActor actor = actorRef.get();
-                        if (!actor.permissions().contains(Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX)) {
-                            throw ApiV3Requests.forbidden();
-                        }
-                        final JSONObject article = articleQueryService.getArticle(articleId);
-                        if (article == null) {
-                            throw ApiV3Requests.notFound();
-                        }
-                        articleRef.set(new JSONObject(article.toString()));
-                        adminService.recordOperation(
-                                request, Operation.OPERATION_CODE_C_REBUILD_ARTICLE_SEARCH, articleId, actor.user());
-                        return new JSONObject()
-                                .put("articleId", articleId)
-                                .put("accepted", true)
-                                .put("triggeredAt", System.currentTimeMillis());
-                    }));
-        } catch (final ApiV3Exception e) {
-            throw e;
-        } catch (final Exception e) {
-            LOGGER.error("重建单篇文章搜索索引失败, articleId={}", articleId, e);
-            throw adminService.unavailable();
-        }
-
-        if (execution.applied() && articleRef.get() != null) {
-            final JSONObject article = articleRef.get();
-            final int articleType = article.optInt(Article.ARTICLE_TYPE);
-            if (Article.ARTICLE_TYPE_C_DISCUSSION != articleType && Article.ARTICLE_TYPE_C_THOUGHT != articleType) {
-                if (Symphonys.ALGOLIA_ENABLED) {
-                    searchMgmtService.updateAlgoliaDocument(new JSONObject(article.toString()));
-                }
-                if (Symphonys.ES_ENABLED) {
-                    searchMgmtService.updateESDocument(article, Article.ARTICLE);
-                }
-            }
-        }
-        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+        return enqueue(identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false,
+                "admin.articles.reindex:" + articleId, idempotencyKey, "REINDEX_ONE",
+                new JSONObject().put("articleId", articleId), request,
+                Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX);
     }
 
     /**
@@ -451,67 +326,72 @@ public class ApiV3AdminSystemService {
      */
     public JSONObject reindexAllArticles(final JSONObject identity, final String idempotencyKey,
                                          final Request request) {
-        final String actorId = adminService.actorId(identity);
+        return enqueue(identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false,
+                "admin.articles.reindexAll", idempotencyKey, "REINDEX_ALL", new JSONObject().put("scope", "all"),
+                request, Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLES_INDEX);
+    }
+
+    private JSONObject enqueue(final JSONObject identity, final String permission, final boolean adminOnly,
+                               final String operation, final String key, final String kind, final JSONObject input,
+                               final Request request, final String extraPermission) {
         final AtomicReference<ApiV3AdminService.AuthorizedActor> actorRef = new AtomicReference<>();
-        final ApiV3IdempotencyMgmtService.Execution execution;
         try {
-            final ApiV3MutationStore store = adminService.guardedWrite(
-                    identity, Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES, false, actorRef);
-            execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
-                    store,
-                    actorId,
-                    "admin.articles.reindexAll",
-                    idempotencyKey,
-                    new JSONObject().put("scope", "all"),
-                    () -> ApiV3TransactionSavepoint.run(() -> {
-                        final ApiV3AdminService.AuthorizedActor actor = actorRef.get();
-                        if (!actor.permissions().contains(Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLES_INDEX)) {
-                            throw ApiV3Requests.forbidden();
+            final ApiV3IdempotencyMgmtService.Execution execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(
+                    adminService.guardedWrite(identity, permission, adminOnly, actorRef), adminService.actorId(identity),
+                    operation, key, input, () -> {
+                        final var actor = actorRef.get();
+                        if (extraPermission != null && !actor.permissions().contains(extraPermission)) throw ApiV3Requests.forbidden();
+                        if ("REINDEX_ONE".equals(kind) && articleQueryService.getArticle(input.getString("articleId")) == null) {
+                            throw ApiV3Requests.notFound();
                         }
-                        adminService.recordOperation(
-                                request, Operation.OPERATION_CODE_C_REBUILD_ARTICLES_SEARCH, "", actor.user());
-                        return new JSONObject()
-                                .put("accepted", true)
-                                .put("triggeredAt", System.currentTimeMillis());
-                    }));
-        } catch (final ApiV3Exception e) {
-            throw e;
-        } catch (final Exception e) {
-            LOGGER.error("触发全站文章索引重建失败", e);
+                        final JSONObject accepted = tasks.createInCurrentTransaction(actor.userId(), kind, input);
+                        if (kind.startsWith("REINDEX")) {
+                            adminService.recordOperation(request, "REINDEX_ALL".equals(kind)
+                                    ? Operation.OPERATION_CODE_C_REBUILD_ARTICLES_SEARCH
+                                    : Operation.OPERATION_CODE_C_REBUILD_ARTICLE_SEARCH,
+                                    input.optString("articleId"), actor.user());
+                        }
+                        return accepted;
+                    });
+            if (extraPermission != null && !actorRef.get().permissions().contains(extraPermission)) {
+                throw ApiV3Requests.forbidden();
+            }
+            if (!execution.result().has("taskId")) {
+                return new JSONObject(execution.result().toString()).put("replayed", true).put("status", "LEGACY_UNVERIFIED");
+            }
+            final String id = execution.result().getString("taskId");
+            tasks.dispatch(id);
+            // 外部任务结果独立查询，响应只确认已持久受理，不把调度或索引结果冒充已完成。
+            return new JSONObject(execution.result().toString()).put("replayed", !execution.applied())
+                    .put("statusUrl", "/api/v3/admin/tasks/" + id);
+        } catch (final ApiV3Exception e) { throw e; }
+        catch (final Exception e) {
+            LOGGER.error("后台任务受理失败，kind={}", kind, e);
             throw adminService.unavailable();
         }
+    }
 
-        if (execution.applied()) {
-            if (Symphonys.ES_ENABLED) {
-                searchMgmtService.rebuildESIndex();
-            }
-            if (Symphonys.ALGOLIA_ENABLED) {
-                searchMgmtService.rebuildAlgoliaIndex();
-            }
-            Symphonys.EXECUTOR_SERVICE.submit(() -> {
-                try {
-                    final JSONObject stat = optionQueryService.getStatistic();
-                    final int articleCount = stat.optInt(Option.ID_C_STATISTIC_ARTICLE_COUNT);
-                    final int pages = (int) Math.ceil((double) articleCount / 50.0);
-                    for (int pageNum = 1; pageNum <= pages; pageNum++) {
-                        final List<JSONObject> articles = articleQueryService.getValidArticles(
-                                pageNum, 50, Article.ARTICLE_TYPE_C_NORMAL, Article.ARTICLE_TYPE_C_CITY_BROADCAST);
-                        for (final JSONObject article : articles) {
-                            if (Symphonys.ALGOLIA_ENABLED) {
-                                searchMgmtService.updateAlgoliaDocument(article);
-                            }
-                            if (Symphonys.ES_ENABLED) {
-                                searchMgmtService.updateESDocument(article, Article.ARTICLE);
-                            }
-                        }
-                    }
-                    LOGGER.info("V3 全站文章搜索索引重建任务完成");
-                } catch (final Exception e) {
-                    LOGGER.error("V3 全站文章搜索索引重建失败", e);
-                }
-            });
-        }
-        return new JSONObject(execution.result().toString()).put("replayed", !execution.applied());
+    public JSONObject getTask(final JSONObject identity, final String id) {
+        final Transaction tx = adminService.begin();
+        try {
+            final JSONObject task = tasks.read(id);
+            if (task == null) throw ApiV3Requests.notFound();
+            final String kind = task.getString("kind");
+            final String permission = "IP".equals(kind) ? Permission.PERMISSION_ID_C_IP_MANAGE
+                    : "SWITCHES".equals(kind) ? Permission.PERMISSION_ID_C_MENU_ADMIN_MISC
+                    : Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES;
+            final var actor = adminService.authorizeInCurrentTransaction(identity, "profile.read", permission, "SWITCHES".equals(kind));
+            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN)) throw ApiV3Requests.forbidden();
+            if ("SWITCHES".equals(kind) && !SECURITY_OPERATOR_NAME.equals(actor.userName())) throw ApiV3Requests.forbidden();
+            if (kind.startsWith("REINDEX") && !actor.permissions().contains("REINDEX_ALL".equals(kind)
+                    ? Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLES_INDEX
+                    : Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX)) throw ApiV3Requests.forbidden();
+            tx.commit();
+            tasks.wake();
+            return task;
+        } catch (final ApiV3Exception e) { throw e; }
+        catch (final Exception e) { throw adminService.unavailable(); }
+        finally { adminService.rollbackIfActive(tx); }
     }
 
     private void authorizeSecurityOperator(final JSONObject identity, final String scope) {

@@ -30,11 +30,18 @@ import java.util.TreeSet;
 /** Strict bounded JSON input and stable fingerprints for v3 writes. */
 public final class ApiV3Json {
     public static final int MAX_BODY_BYTES = 8 * 1024 * 1024;
+    public static final int MAX_IMPORT_BODY_BYTES = 16 * 1024 * 1024;
     private static final int MAX_DEPTH = 32;
     private ApiV3Json() { }
 
     public static JSONObject parse(final byte[] bytes) {
-        if (null == bytes || bytes.length == 0 || bytes.length > MAX_BODY_BYTES) throw new IllegalArgumentException("body");
+        return parse(bytes, MAX_BODY_BYTES);
+    }
+
+    /** 仅显式指定的大配置导入允许使用更高上限，普通接口仍保持原上限。 */
+    public static JSONObject parse(final byte[] bytes, final int maximumBytes) {
+        if (maximumBytes < 0 || maximumBytes > MAX_IMPORT_BODY_BYTES) throw new IllegalArgumentException("body limit");
+        if (null == bytes || bytes.length == 0 || bytes.length > maximumBytes) throw new IllegalArgumentException("body");
         try {
             final String text = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
                     .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();

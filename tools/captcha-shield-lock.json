@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "policyVersion": 2,
-  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged.",
+  "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. 2026-11-15 用户明确授权调整并保留 V3 IP 管理及安全开关入口，用于修复事务、幂等和失败状态；仅登记经复核的两个 V3 状态读取方法、任务执行的 IP/开关方法，既有核心与旧后台指纹不变。",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
@@ -118,6 +118,26 @@
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
       "sha256": "419a33cd6c58031be3ce5bc9d6cb2fb46c2043f0c9ebbf3b06b53afd4e9e91df"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "public JSONObject getIpPolicyStatus(final JSONObject identity)",
+      "sha256": "a9aa08d0d9fa33ca6db89f0c8c3b6daab9ea93ab1bdffd11e1ab28bfee35be75"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
+      "method": "private static JSONObject currentSecuritySwitches()",
+      "sha256": "f534f7d9b6f58e8a8a5077078d344a5c1c23131c2ad83063a1901c7d50f3482e"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AdminOperationTaskService.java",
+      "method": "private void executeIps(final JSONObject task, final JSONObject payload, final JSONObject result) throws Exception",
+      "sha256": "0bbd17927fe34da36250e52b419c5aa479c3a6b4d07da24e279c0f060ca692b7"
+    },
+    {
+      "file": "src/main/java/org/b3log/symphony/service/AdminOperationTaskService.java",
+      "method": "private void executeSwitches(final JSONObject payload, final JSONObject result)",
+      "sha256": "886e8e412c3fff12c0fc030190550b556da091fd26f9d7fc11f1da837a329d61"
     }
   ]
 }

@@ -130,15 +130,17 @@ public class ApiV3AdminStage4Processor {
         Dispatcher.get("/api/v3/admin/security/self-check", p::runSecuritySelfCheck, auth::profileRead);
         Dispatcher.post("/api/v3/admin/security/switches", p::saveSecuritySwitches, auth::settingsWrite, write::handle);
 
+        Dispatcher.get("/api/v3/admin/tasks/{taskId}", p::getTask, auth::profileRead);
+
         // 搜索索引维护工具
         Dispatcher.post("/api/v3/admin/articles/reindex", p::reindexAllArticles, auth::settingsWrite, write::handle);
         Dispatcher.post("/api/v3/admin/articles/{articleId}/reindex", p::reindexOneArticle, auth::settingsWrite, write::handle);
 
         // 职业配置工作台
-        registerProfessionRoutes(p, auth);
+        registerProfessionRoutes(p, auth, write);
     }
 
-    private static void registerProfessionRoutes(final ApiV3AdminStage4Processor p, final ApiV3AuthMidware auth) {
+    private static void registerProfessionRoutes(final ApiV3AdminStage4Processor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware write) {
         Dispatcher.get("/api/v3/admin/professions/catalog", p::professionCatalog, auth::profileRead);
         Dispatcher.get("/api/v3/admin/professions/catalog-summary", p::professionCatalogSummary, auth::profileRead);
         Dispatcher.get("/api/v3/admin/professions/{professionId}", p::professionDetail, auth::profileRead);
@@ -147,28 +149,28 @@ public class ApiV3AdminStage4Processor {
         Dispatcher.get("/api/v3/admin/professions/definition/metadata", p::professionDefinitionMetadata, auth::profileRead);
         Dispatcher.get("/api/v3/admin/professions/automation/metadata", p::professionAutomationMetadata, auth::profileRead);
 
-        Dispatcher.post("/api/v3/admin/professions/config/precheck", p::professionConfigPrecheck, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/config/import", p::professionConfigImport, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/catalog/order", p::professionReorderCatalog, auth::settingsWrite);
+        Dispatcher.post("/api/v3/admin/professions/config/precheck", p::professionConfigPrecheck, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/config/import", p::professionConfigImport, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/catalog/order", p::professionReorderCatalog, auth::settingsWrite, write::handle);
 
-        Dispatcher.post("/api/v3/admin/professions/definition/draft", p::professionCreateDefinition, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/definition/publish", p::professionPublishDefinition, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/definition/retire", p::professionRetireDefinition, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/definition/copy", p::professionCopyDefinition, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/definition/rollback", p::professionRollbackDefinition, auth::settingsWrite);
+        Dispatcher.post("/api/v3/admin/professions/definition/draft", p::professionCreateDefinition, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/definition/publish", p::professionPublishDefinition, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/definition/retire", p::professionRetireDefinition, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/definition/copy", p::professionCopyDefinition, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/definition/rollback", p::professionRollbackDefinition, auth::settingsWrite, write::handle);
 
-        Dispatcher.post("/api/v3/admin/professions/scheme/draft", p::professionCreateScheme, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/scheme/publish", p::professionPublishScheme, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/scheme/retire", p::professionRetireScheme, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/scheme/copy", p::professionCopyScheme, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/scheme/rollback", p::professionRollbackScheme, auth::settingsWrite);
+        Dispatcher.post("/api/v3/admin/professions/scheme/draft", p::professionCreateScheme, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/scheme/publish", p::professionPublishScheme, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/scheme/retire", p::professionRetireScheme, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/scheme/copy", p::professionCopyScheme, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/scheme/rollback", p::professionRollbackScheme, auth::settingsWrite, write::handle);
 
-        Dispatcher.post("/api/v3/admin/professions/automation/draft", p::professionCreateAutomation, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/automation/publish", p::professionPublishAutomation, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/automation/retire", p::professionRetireAutomation, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/automation/copy", p::professionCopyAutomation, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/automation/rollback", p::professionRollbackAutomation, auth::settingsWrite);
-        Dispatcher.post("/api/v3/admin/professions/automation/test", p::professionTestAutomation, auth::settingsWrite);
+        Dispatcher.post("/api/v3/admin/professions/automation/draft", p::professionCreateAutomation, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/automation/publish", p::professionPublishAutomation, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/automation/retire", p::professionRetireAutomation, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/automation/copy", p::professionCopyAutomation, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/automation/rollback", p::professionRollbackAutomation, auth::settingsWrite, write::handle);
+        Dispatcher.post("/api/v3/admin/professions/automation/test", p::professionTestAutomation, auth::settingsWrite, write::handle);
     }
 
     public void listPetLogs(final RequestContext context) {
@@ -211,15 +213,23 @@ public class ApiV3AdminStage4Processor {
                 ApiV3WriteInputs.idempotencyKey(context)));
     }
 
+    public void getTask(final RequestContext context) {
+        ApiV3Requests.read(context, () -> systemService.getTask(identity(context), ApiV3Requests.id(context, "taskId")));
+    }
+
     public void reindexAllArticles(final RequestContext context) {
-        ApiV3Requests.respond(context, () -> systemService.reindexAllArticles(
-                identity(context), ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true, 1024);
+            return systemService.reindexAllArticles(identity(context), ApiV3WriteInputs.idempotencyKey(context), context.getRequest());
+        });
     }
 
     public void reindexOneArticle(final RequestContext context) {
-        ApiV3Requests.respond(context, () -> systemService.reindexOneArticle(
-                identity(context), ApiV3Requests.id(context, "articleId"),
-                ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true, 1024);
+            return systemService.reindexOneArticle(identity(context), ApiV3Requests.id(context, "articleId"),
+                    ApiV3WriteInputs.idempotencyKey(context), context.getRequest());
+        });
     }
 
     public void professionCatalog(final RequestContext context) {
@@ -279,7 +289,7 @@ public class ApiV3AdminStage4Processor {
     public void professionConfigPrecheck(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("configJson"));
             return professionAdminService.executeDomainAction(() -> configPreviewService.preview(
                     requiredText(payload, "configJson")));
         });
@@ -288,7 +298,7 @@ public class ApiV3AdminStage4Processor {
     public void professionConfigImport(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("configJson"));
             return professionAdminService.executeDomainAction(() -> configImportService.importConfig(
                     requiredText(payload, "configJson"), operatorId));
         });
@@ -297,17 +307,18 @@ public class ApiV3AdminStage4Processor {
     public void professionReorderCatalog(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionIds"));
             final JSONArray rawIds = payload.optJSONArray("professionIds");
             if (rawIds == null) {
                 throw new ApiV3Exception(422, "invalid_request", "professionIds 不能为空");
             }
             final List<String> ids = new ArrayList<>();
+            if (rawIds.length() > 1_000) throw ApiV3WriteInputs.invalid();
             for (int i = 0; i < rawIds.length(); i++) {
+                if (!(rawIds.opt(i) instanceof String)) throw ApiV3WriteInputs.invalid();
                 final String id = StringUtils.trimToEmpty(rawIds.optString(i));
-                if (!id.isEmpty()) {
-                    ids.add(id);
-                }
+                if (!id.matches("[0-9]{1,19}")) throw ApiV3WriteInputs.invalid();
+                ids.add(id);
             }
             return professionAdminService.executeDomainAction(() -> {
                 orderService.reorder(ids);
@@ -319,7 +330,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCreateDefinition(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionCode", "displayName", "shortName", "description", "defaultPresentationJson"));
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     definitionService.createProfessionDraft(ProfessionAdminRequestMapper.definition(payload, operatorId))));
         });
@@ -328,7 +339,7 @@ public class ApiV3AdminStage4Processor {
     public void professionPublishDefinition(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String revisionId = requiredText(rawBody(context), "revisionId");
+            final String revisionId = requiredText(rawBody(context, Set.of("revisionId")), "revisionId");
             return professionAdminService.executeDomainAction(() -> {
                 definitionService.publishProfession(revisionId, operatorId);
                 return new JSONObject().put("published", true);
@@ -339,7 +350,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRetireDefinition(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String professionId = requiredText(rawBody(context), "professionId");
+            final String professionId = requiredText(rawBody(context, Set.of("professionId")), "professionId");
             return professionAdminService.executeDomainAction(() -> {
                 definitionService.retireProfession(professionId, operatorId);
                 return new JSONObject().put("retired", true);
@@ -350,7 +361,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCopyDefinition(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String revisionId = requiredText(rawBody(context), "revisionId");
+            final String revisionId = requiredText(rawBody(context, Set.of("revisionId")), "revisionId");
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     definitionService.copyProfessionDraft(revisionId, operatorId)));
         });
@@ -359,7 +370,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRollbackDefinition(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionId", "revisionId"));
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     definitionService.rollbackProfession(
                             requiredText(payload, "professionId"), requiredText(payload, "revisionId"), operatorId)));
@@ -369,7 +380,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCreateScheme(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionId", "professionRevisionId", "migrationPolicy", "rewardMigrationPolicy", "migrationConfigJson", "levels"));
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     definitionService.createLevelSchemeDraft(ProfessionAdminRequestMapper.scheme(payload, operatorId))));
         });
@@ -378,7 +389,7 @@ public class ApiV3AdminStage4Processor {
     public void professionPublishScheme(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String schemeId = requiredText(rawBody(context), "schemeId");
+            final String schemeId = requiredText(rawBody(context, Set.of("schemeId")), "schemeId");
             return professionAdminService.executeDomainAction(() -> {
                 schemeService.publish(schemeId, operatorId);
                 return new JSONObject().put("published", true);
@@ -389,7 +400,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRetireScheme(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String schemeId = requiredText(rawBody(context), "schemeId");
+            final String schemeId = requiredText(rawBody(context, Set.of("schemeId")), "schemeId");
             return professionAdminService.executeDomainAction(() -> {
                 schemeService.retire(schemeId, operatorId);
                 return new JSONObject().put("retired", true);
@@ -400,7 +411,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCopyScheme(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String schemeId = requiredText(rawBody(context), "schemeId");
+            final String schemeId = requiredText(rawBody(context, Set.of("schemeId")), "schemeId");
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     schemeService.copyDraft(schemeId, operatorId)));
         });
@@ -409,7 +420,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRollbackScheme(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionId", "schemeId"));
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     schemeService.rollback(
                             requiredText(payload, "professionId"), requiredText(payload, "schemeId"), operatorId)));
@@ -419,7 +430,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCreateAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("professionId", "automationCode", "configurationJson"));
             final var req = new org.b3log.symphony.service.ProfessionAutomationDraftRequest(
                     requiredText(payload, "professionId"),
                     requiredText(payload, "automationCode"),
@@ -433,7 +444,7 @@ public class ApiV3AdminStage4Processor {
     public void professionPublishAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String revisionId = requiredText(rawBody(context), "revisionId");
+            final String revisionId = requiredText(rawBody(context, Set.of("revisionId")), "revisionId");
             return professionAdminService.executeDomainAction(() -> {
                 automationService.publish(revisionId, operatorId);
                 return new JSONObject().put("published", true);
@@ -444,7 +455,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRetireAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String automationId = requiredText(rawBody(context), "automationId");
+            final String automationId = requiredText(rawBody(context, Set.of("automationId")), "automationId");
             return professionAdminService.executeDomainAction(() -> {
                 automationService.retire(automationId, operatorId);
                 return new JSONObject().put("retired", true);
@@ -455,7 +466,7 @@ public class ApiV3AdminStage4Processor {
     public void professionCopyAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final String revisionId = requiredText(rawBody(context), "revisionId");
+            final String revisionId = requiredText(rawBody(context, Set.of("revisionId")), "revisionId");
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     automationService.copy(revisionId, operatorId)));
         });
@@ -464,7 +475,7 @@ public class ApiV3AdminStage4Processor {
     public void professionRollbackAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             final String operatorId = professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("automationId", "revisionId"));
             return professionAdminService.executeDomainAction(() -> new JSONObject().put("id",
                     automationService.rollback(
                             requiredText(payload, "automationId"), requiredText(payload, "revisionId"), operatorId)));
@@ -474,7 +485,7 @@ public class ApiV3AdminStage4Processor {
     public void professionTestAutomation(final RequestContext context) {
         ApiV3Requests.respond(context, () -> {
             professionAdminService.requireAdminOperatorId(identity(context), "settings.write");
-            final JSONObject payload = rawBody(context);
+            final JSONObject payload = rawBody(context, Set.of("configurationJson", "payloadJson"));
             return professionAdminService.executeDomainAction(() -> automationTestService.test(
                     requiredText(payload, "configurationJson"), requiredText(payload, "payloadJson")));
         });
@@ -488,17 +499,15 @@ public class ApiV3AdminStage4Processor {
         return ApiV3WriteInputs.body(context, allowedFields, false, maxBytes);
     }
 
-    private static JSONObject rawBody(final RequestContext context) {
-        final JSONObject json = context.requestJSON();
-        if (json == null) {
-            throw new ApiV3Exception(400, "invalid_json", "JSON 请求体不合法");
-        }
-        return json;
+    private static JSONObject rawBody(final RequestContext context, final Set<String> fields) {
+        final JSONObject payload = ApiV3WriteInputs.body(context, fields, false, 16 * 1024 * 1024);
+        org.b3log.symphony.util.ApiV3ProfessionInputs.validate(payload);
+        return payload;
     }
 
     private static String requiredText(final JSONObject payload, final String key) {
-        final String value = StringUtils.trimToNull(payload.optString(key));
-        if (value == null) {
+        final String value = StringUtils.trimToNull(ApiV3WriteInputs.string(payload, key, 16_000_000, true));
+        if (value == null || (key.endsWith("Id") && !value.matches("[0-9]{1,19}"))) {
             throw new ApiV3Exception(422, "invalid_request", key + " 不能为空");
         }
         return value;

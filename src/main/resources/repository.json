@@ -1417,6 +1417,50 @@
       ]
     },
     {
+      "name": "admin_operation_task",
+      "description": "后台外部操作状态与逐项执行结果",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "actorId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 16
+        },
+        {
+          "name": "payload",
+          "type": "String",
+          "length": 16777215
+        },
+        {
+          "name": "result",
+          "type": "String",
+          "length": 16777215
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "updatedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "api_v3_request",
       "description": "API v3 committed idempotent mutation results",
       "keys": [

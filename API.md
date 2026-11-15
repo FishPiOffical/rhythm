@@ -17998,3 +17998,99 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/professions/automation/copy`：复制自动化规则为新草稿
 - `POST /api/v3/admin/professions/automation/rollback`：回滚自动化规则至历史版本
 - `POST /api/v3/admin/professions/automation/test`：测试/模拟自动化规则配置
+
+## V3 后台任务与兼容说明
+
+### 提交 IP 操作、安全开关与索引维护
+
+`POST /api/v3/admin/ips`
+
+`POST /api/v3/admin/security/switches`
+
+`POST /api/v3/admin/articles/reindex`
+
+`POST /api/v3/admin/articles/{articleId}/reindex`
+
+这些操作返回任务受理结果，客户端应继续查询任务状态，不应把 `accepted=true` 显示为操作完成。使用 V3 Bearer 凭据及原接口所需管理权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization | V3 Bearer 凭据 | `Bearer <access_token>` |
+| Idempotency-Key | 本次操作的幂等键 | `admin-operation-001` |
+| action | IP 操作：`ban` 或 `unban` | `ban` |
+| ipList | IP 操作：IPv4/IPv6 地址数组，最多 500 项，不接受主机名、网段或区域标识；重复地址合并 | `["192.0.2.1"]` |
+| threshold | 开关操作：正整数 | `100` |
+| firewallEnabled | 开关操作：布尔值，必须提供 | `true` |
+| verificationEnabled | 开关操作：布尔值，必须提供 | `true` |
+| firstVisitCaptchaEnabled | 开关操作：布尔值，必须提供 | `true` |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/api/v3/admin/articles/1234567890123/reindex' \
+  -H 'Authorization: Bearer <access_token>' \
+  -H 'Idempotency-Key: article-index-001'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 受理结果 | |
+| - accepted | 已受理，不表示外部操作完成 | `true` |
+| - taskId | 任务编号 | `1234567890123` |
+| - statusUrl | 查询地址 | `/api/v3/admin/tasks/1234567890123` |
+| - triggeredAt | 受理时间，毫秒 | `1794700000000` |
+| - replayed | 是否复用了同一幂等键的受理记录 | `false` |
+
+> IP 与开关客户端须改为读取任务结果；不再以原同步响应中的计数或开关值判断执行完成。相同幂等键返回同一任务；搜索任务明确失败后，原键重试可重新调度。`PARTIAL`、`UNKNOWN` 必须先核实结果，不能直接自动重发。历史版本回执若没有任务编号，返回 `status=LEGACY_UNVERIFIED`，需人工确认原操作结果。
+
+### 查询后台任务
+
+`GET /api/v3/admin/tasks/{taskId}`
+
+读取任务执行状态及逐项结果。需要 V3 Bearer 凭据和对应操作的管理权限。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| taskId | 任务编号 | `1234567890123` |
+| Authorization | V3 Bearer 凭据 | `Bearer <access_token>` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
+  -H 'Authorization: Bearer <access_token>'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 任务详情 | |
+| - taskId | 任务编号 | `1234567890123` |
+| - kind | `IP`、`SWITCHES`、`REINDEX_ONE`、`REINDEX_ALL` | `IP` |
+| - status | `QUEUED`、`RUNNING`、`SUCCEEDED`、`FAILED`、`PARTIAL`、`UNKNOWN` | `PARTIAL` |
+| - createdAt | 受理时间，毫秒 | `1794700000000` |
+| - updatedAt | 最近进度时间，毫秒 | `1794700001000` |
+| - result | 执行结果 | |
+| -- processedCount | 已确认处理的 IP/文章数量 | `1` |
+| -- items | IP 任务逐项结果 | |
+| --- ip | 规范化后的地址 | `192.0.2.1` |
+| --- status | 该项状态；未确认完成的项不能当成成功 | `SUCCEEDED` |
+| -- switches | 已完成的开关设置，只有开关任务返回 | |
+| -- skipped | 单篇索引因文章类型无需索引时返回 | `true` |
+| -- error | 任务失败代码 | `operation_failed` |
+
+> `UNKNOWN` 表示完成情况暂不能确认，需人工核实后处理；它不是失败或成功的同义词。
+
+### 职业配置输入、图片字段和鱼游查询
+
+- `POST /api/v3/admin/professions/*` 使用严格 JSON 对象，请求体上限 16 MiB；字符串、整数、布尔值、数组不进行类型转换。拒绝非法 JSON、重复键和非法编码。配置文本 `configJson` 也须是合法 JSON 对象字符串。
+- `GET /api/v3/admin/images` 每项仅返回 `oId`、`type`、`userName`、`time`、`path`、`public`、`reviewed`；原图链接 `path` 保留，移除 `ip`、`md5`。
+- `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
+- `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。

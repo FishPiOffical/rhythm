@@ -1168,95 +1168,20 @@ public class ArticleMgmtService {
      */
     public void updateArticleByAdmin(final String articleId, final JSONObject article,
                                      final JSONObject longArticleColumnRequest) throws ServiceException {
-        final Transaction transaction = articleRepository.beginTransaction();
-
         try {
-            final String authorId = article.optString(Article.ARTICLE_AUTHOR_ID);
-            final JSONObject author = userRepository.get(authorId);
-
-            article.put(Article.ARTICLE_COMMENTABLE, Boolean.valueOf(article.optBoolean(Article.ARTICLE_COMMENTABLE)));
-            article.put(Article.ARTICLE_STATEMENT, Integer.valueOf(article.optInt(Article.ARTICLE_STATEMENT, 0)));
-
-            final JSONObject oldArticle = articleRepository.get(articleId);
-            final int oldArticleType = oldArticle.optInt(Article.ARTICLE_TYPE);
-            final String oldContent = oldArticle.optString(Article.ARTICLE_CONTENT);
-
-            if (Article.ARTICLE_STATUS_C_INVALID == article.optInt(Article.ARTICLE_STATUS)) {
-                article.put(Article.ARTICLE_TAGS, "回收站");
-            }
-
-            processTagsForArticleUpdate(oldArticle, article, author);
-
-            String articleTitle = article.optString(Article.ARTICLE_TITLE);
-            articleTitle = Emotions.toAliases(articleTitle);
-            article.put(Article.ARTICLE_TITLE, articleTitle);
-
-            if (Article.ARTICLE_TYPE_C_THOUGHT == article.optInt(Article.ARTICLE_TYPE)) {
-                article.put(Article.ARTICLE_CONTENT, oldArticle.optString(Article.ARTICLE_CONTENT));
-            } else {
-                String articleContent = article.optString(Article.ARTICLE_CONTENT);
-                articleContent = Emotions.toAliases(articleContent);
-                articleContent = Runes.removeControlChars(articleContent);
-                article.put(Article.ARTICLE_CONTENT, articleContent);
-            }
-
-            final int perfect = article.optInt(Article.ARTICLE_PERFECT);
-            if (Article.ARTICLE_PERFECT_C_PERFECT == perfect) {
-                // if it is perfect, allow anonymous view
-                article.put(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_ALLOW);
-
-                // updates tag-article perfect
-                final List<JSONObject> tagArticleRels = tagArticleRepository.getByArticleId(articleId);
-                for (final JSONObject tagArticleRel : tagArticleRels) {
-                    tagArticleRel.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_PERFECT);
-
-                    tagArticleRepository.update(tagArticleRel.optString(Keys.OBJECT_ID), tagArticleRel);
+            withPublicationLock(article.optString(Article.ARTICLE_AUTHOR_ID), () -> {
+                final Transaction transaction = ApiV3Transactions.strict(articleRepository.beginTransaction());
+                try {
+                    final JSONObject outcome = updateArticleByAdminInCurrentTransaction(articleId, article, longArticleColumnRequest);
+                    transaction.commit();
+                    return outcome;
+                } finally {
+                    if (transaction.isActive()) transaction.rollback();
                 }
-            }
-
-            article.put(Article.ARTICLE_AUDIO_URL, ""); // 小薇语音预览更新 https://github.com/b3log/symphony/issues/791
-
-            userRepository.update(authorId, author);
-            articleRepository.update(articleId, article);
-
-            final int articleType = article.optInt(Article.ARTICLE_TYPE);
-            final String articleContent = article.optString(Article.ARTICLE_CONTENT);
-            final boolean paragraphStructureChanged = !StringUtils.equals(oldContent, articleContent);
-            if (paragraphStructureChanged && (Article.ARTICLE_TYPE_C_LONG == articleType
-                    || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
-                longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, articleContent);
-            }
-
-            if (null != longArticleColumnRequest) {
-                article.put(Keys.OBJECT_ID, articleId);
-                longArticleColumnMgmtService.syncChapterInCurrentTransaction(article, longArticleColumnRequest);
-                updateColumnCoverByAdminInCurrentTransaction(article, longArticleColumnRequest);
-            }
-
-            transaction.commit();
-
-            if (Article.ARTICLE_PERFECT_C_NOT_PERFECT == oldArticle.optInt(Article.ARTICLE_PERFECT)
-                    && Article.ARTICLE_PERFECT_C_PERFECT == perfect) {
-                final JSONObject notification = new JSONObject();
-                notification.put(Notification.NOTIFICATION_USER_ID, authorId);
-                notification.put(Notification.NOTIFICATION_DATA_ID, articleId);
-
-                notificationMgmtService.addPerfectArticleNotification(notification);
-
-                pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, authorId,
-                        Pointtransfer.TRANSFER_TYPE_C_PERFECT_ARTICLE, Pointtransfer.TRANSFER_SUM_C_PERFECT_ARTICLE,
-                        articleId, System.currentTimeMillis(), "");
-            }
+            }, outcome -> afterAdminArticleUpdated(outcome, false));
+        } catch (final ServiceException e) {
+            throw e;
         } catch (final Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-
-            LOGGER.log(Level.ERROR, "Updates an article[id=" + articleId + "] failed", e);
-            if (e instanceof ServiceException) {
-                throw (ServiceException) e;
-            }
-
             throw new ServiceException(e);
         }
     }
@@ -1391,14 +1316,7 @@ public class ArticleMgmtService {
     @Transactional
     public synchronized void adminStick(final String articleId) {
         try {
-            final JSONObject article = articleRepository.get(articleId);
-            if (null == article) {
-                return;
-            }
-
-            article.put(Article.ARTICLE_STICK, Long.MAX_VALUE);
-
-            articleRepository.update(articleId, article, Article.ARTICLE_STICK);
+            setArticleStickInCurrentTransaction(articleId, null, true);
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Admin sticks an article[id=" + articleId + "] failed", e);
         }
@@ -1412,14 +1330,7 @@ public class ArticleMgmtService {
     @Transactional
     public synchronized void adminCancelStick(final String articleId) {
         try {
-            final JSONObject article = articleRepository.get(articleId);
-            if (null == article) {
-                return;
-            }
-
-            article.put(Article.ARTICLE_STICK, 0L);
-
-            articleRepository.update(articleId, article, Article.ARTICLE_STICK);
+            setArticleStickInCurrentTransaction(articleId, null, false);
         } catch (final RepositoryException e) {
             LOGGER.log(Level.ERROR, "Admin cancel sticks an article[id=" + articleId + "] failed", e);
         }
@@ -1778,27 +1689,71 @@ public class ArticleMgmtService {
      * @throws ServiceException service exception
      */
     public synchronized String addArticleByAdmin(final JSONObject requestJSONObject) throws ServiceException {
-        JSONObject author;
-
         try {
-            author = userRepository.getByName(requestJSONObject.optString(User.USER_NAME));
+            final JSONObject author = userRepository.getByName(requestJSONObject.optString(User.USER_NAME));
+            if (author == null) throw new ServiceException(langPropsService.get("notFoundUserLabel"));
+            // 旧后台以表单时间生成 ID，固定普通文章与可评论；只在适配层保留这些默认值。
+            final JSONObject input = JSONs.clone(requestJSONObject)
+                    .put(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL)
+                    .put(Article.ARTICLE_COMMENTABLE, true)
+                    .put(Article.ARTICLE_STATEMENT, 0)
+                    .put(Article.ARTICLE_QNA_OFFER_POINT, 0);
+            final String articleId = String.valueOf(input.optLong(Common.TIME));
+            final JSONObject created = withPublicationLock(author.optString(Keys.OBJECT_ID), () -> {
+                final Transaction transaction = ApiV3Transactions.strict(articleRepository.beginTransaction());
+                try {
+                    final JSONObject result = addArticleByAdminInCurrentTransaction(input, articleId);
+                    transaction.commit();
+                    return result;
+                } finally {
+                    if (transaction.isActive()) transaction.rollback();
+                }
+            }, this::afterAdminArticleAdded);
+            return created.optString(Keys.OBJECT_ID);
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 在当前外部事务与缓存作用域内以管理员身份新建文章（不在此提交事务）。
+     *
+     * @param requestJSONObject 请求参数对象（需包含 userName、articleTitle、articleTags、articleContent 等）
+     * @return 新建后的文章数据快照
+     * @throws ServiceException 业务或持久化异常
+     */
+    public synchronized JSONObject addArticleByAdminInCurrentTransaction(final JSONObject requestJSONObject) throws ServiceException {
+        final JSONObject input = JSONs.clone(requestJSONObject);
+        if (input.optLong(Common.TIME) <= 0L) input.put(Common.TIME, System.currentTimeMillis());
+        return addArticleByAdminInCurrentTransaction(input, Ids.genTimeMillisId());
+    }
+
+    private JSONObject addArticleByAdminInCurrentTransaction(final JSONObject requestJSONObject, final String articleId) throws ServiceException {
+        if (!articleRepository.hasTransactionBegun() || !ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("管理员新建文章必须在活动事务与发布缓存边界内执行");
+        }
+        try {
+            if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) {
+                throw new IllegalStateException("缺少全站文章统计配置项");
+            }
+            final String userName = StringUtils.trimToEmpty(requestJSONObject.optString(User.USER_NAME));
+            final List<JSONObject> authorIds = userRepository.select(
+                    "SELECT oId FROM `" + userRepository.getName() + "` WHERE userName=? LIMIT 1", userName);
+            if (authorIds.isEmpty()) {
+                throw new ServiceException(langPropsService.get("notFoundUserLabel"));
+            }
+            final String authorId = authorIds.getFirst().optString(Keys.OBJECT_ID);
+            final JSONObject author = userRepository.getForUpdate(authorId);
             if (null == author) {
                 throw new ServiceException(langPropsService.get("notFoundUserLabel"));
             }
-        } catch (final RepositoryException e) {
-            LOGGER.log(Level.DEBUG, "Admin adds article failed", e);
 
-            throw new ServiceException(e.getMessage());
-        }
-
-        final Transaction transaction = articleRepository.beginTransaction();
-
-        try {
-            final long time = requestJSONObject.optLong(Common.TIME);
-            final String ret = String.valueOf(time);
+            final long time = requestJSONObject.optLong(Common.TIME, 0L);
             final JSONObject article = new JSONObject();
-            article.put(Keys.OBJECT_ID, ret);
-            article.put(Article.ARTICLE_AUTHOR_ID, author.optString(Keys.OBJECT_ID));
+            article.put(Keys.OBJECT_ID, articleId);
+            article.put(Article.ARTICLE_AUTHOR_ID, authorId);
             article.put(Article.ARTICLE_TITLE, Emotions.toAliases(requestJSONObject.optString(Article.ARTICLE_TITLE)));
             article.put(Article.ARTICLE_CONTENT, Emotions.toAliases(requestJSONObject.optString(Article.ARTICLE_CONTENT)));
             article.put(Article.ARTICLE_REWARD_CONTENT, requestJSONObject.optString(Article.ARTICLE_REWARD_CONTENT));
@@ -1810,83 +1765,296 @@ public class ArticleMgmtService {
             article.put(Article.ARTICLE_BAD_CNT, 0);
             article.put(Article.ARTICLE_COLLECT_CNT, 0);
             article.put(Article.ARTICLE_WATCH_CNT, 0);
-            article.put(Article.ARTICLE_COMMENTABLE, true);
-            article.put(Article.ARTICLE_STATEMENT, 0);
+            article.put(Article.ARTICLE_COMMENTABLE, requestJSONObject.optBoolean(Article.ARTICLE_COMMENTABLE, true));
+            article.put(Article.ARTICLE_STATEMENT, requestJSONObject.optInt(Article.ARTICLE_STATEMENT, 0));
             article.put(Article.ARTICLE_CREATE_TIME, time);
             article.put(Article.ARTICLE_UPDATE_TIME, time);
-            article.put(Article.ARTICLE_LATEST_CMT_TIME, ret);
+            article.put(Article.ARTICLE_LATEST_CMT_TIME, Long.parseLong(articleId));
             article.put(Article.ARTICLE_LATEST_CMTER_NAME, "");
-            article.put(Article.ARTICLE_PERMALINK, "/article/" + ret);
+            article.put(Article.ARTICLE_PERMALINK, "/article/" + articleId);
             article.put(Article.ARTICLE_RANDOM_DOUBLE, Math.random());
             article.put(Article.REDDIT_SCORE, 0);
             article.put(Article.ARTICLE_STATUS, Article.ARTICLE_STATUS_C_VALID);
-            article.put(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL);
-            article.put(Article.ARTICLE_REWARD_POINT, requestJSONObject.optInt(Article.ARTICLE_REWARD_POINT));
-            article.put(Article.ARTICLE_QNA_OFFER_POINT, 0);
+            final int articleType = requestJSONObject.optInt(Article.ARTICLE_TYPE, Article.ARTICLE_TYPE_C_NORMAL);
+            article.put(Article.ARTICLE_TYPE, articleType);
+            article.put(Article.ARTICLE_REWARD_POINT, requestJSONObject.optInt(Article.ARTICLE_REWARD_POINT, 0));
+            article.put(Article.ARTICLE_QNA_OFFER_POINT, Math.max(0, requestJSONObject.optInt(Article.ARTICLE_QNA_OFFER_POINT, 0)));
             article.put(Article.ARTICLE_PUSH_ORDER, 0);
             article.put(Article.ARTICLE_IMG1_URL, "");
             article.put(Article.ARTICLE_CITY, "");
-            String articleTags = requestJSONObject.optString(Article.ARTICLE_TAGS);
-            articleTags = Tag.formatTags(articleTags);
+
+            String articleTags = Tag.formatTags(requestJSONObject.optString(Article.ARTICLE_TAGS));
             if (StringUtils.containsIgnoreCase(articleTags, Tag.TAG_TITLE_C_SANDBOX)) {
                 articleTags = Tag.TAG_TITLE_C_SANDBOX;
             }
             if (StringUtils.isBlank(articleTags)) {
                 articleTags = "待分类";
             }
-
             articleTags = Tag.formatTags(articleTags);
+            if (Article.ARTICLE_TYPE_C_QNA == articleType && !StringUtils.contains(articleTags, "Q&A")) {
+                articleTags += ",Q&A";
+            }
             article.put(Article.ARTICLE_TAGS, articleTags);
-            String[] tagTitles = articleTags.split(",");
+            tag(articleTags.split(","), article, author);
 
-            tag(tagTitles, article, author);
-
-            final String ip = requestJSONObject.optString(Article.ARTICLE_IP);
-            article.put(Article.ARTICLE_IP, ip);
-
+            article.put(Article.ARTICLE_IP, requestJSONObject.optString(Article.ARTICLE_IP));
             String ua = requestJSONObject.optString(Article.ARTICLE_UA);
             if (StringUtils.length(ua) > Common.MAX_LENGTH_UA) {
                 ua = StringUtils.substring(ua, 0, Common.MAX_LENGTH_UA);
             }
             article.put(Article.ARTICLE_UA, ua);
-
             article.put(Article.ARTICLE_STICK, 0L);
             article.put(Article.ARTICLE_ANONYMOUS, Article.ARTICLE_ANONYMOUS_C_PUBLIC);
             article.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_NOT_PERFECT);
             article.put(Article.ARTICLE_GOOD_POST, "");
             article.put(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_USE_GLOBAL);
             article.put(Article.ARTICLE_AUDIO_URL, "");
-            article.put(Article.ARTICLE_SHOW_IN_LIST, requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES));
+            article.put(Article.ARTICLE_SHOW_IN_LIST,
+                    requestJSONObject.optInt(Article.ARTICLE_SHOW_IN_LIST, Article.ARTICLE_SHOW_IN_LIST_C_YES));
+
             final JSONObject articleCntOption = optionRepository.get(Option.ID_C_STATISTIC_ARTICLE_COUNT);
-            final int articleCnt = articleCntOption.optInt(Option.OPTION_VALUE);
-            articleCntOption.put(Option.OPTION_VALUE, articleCnt + 1);
+            articleCntOption.put(Option.OPTION_VALUE, articleCntOption.optInt(Option.OPTION_VALUE) + 1);
             optionRepository.update(Option.ID_C_STATISTIC_ARTICLE_COUNT, articleCntOption);
 
             author.put(UserExt.USER_ARTICLE_COUNT, author.optInt(UserExt.USER_ARTICLE_COUNT) + 1);
             author.put(UserExt.USER_LATEST_ARTICLE_TIME, time);
-            // Updates user article count (and new tag count), latest article time
-            userRepository.update(author.optString(Keys.OBJECT_ID), author);
+            userRepository.update(authorId, author,
+                    UserExt.USER_ARTICLE_COUNT, UserExt.USER_LATEST_ARTICLE_TIME, UserExt.USER_TAG_COUNT);
 
             articleRepository.add(article);
+            longArticleColumnMgmtService.syncChapterInCurrentTransaction(article, requestJSONObject);
             professionSourceEventCaptureService.articlePublished(article);
-
-            transaction.commit();
-
-            // Grows the tag graph
-            tagMgmtService.relateTags(article.optString(Article.ARTICLE_TAGS));
-
-            final JSONObject eventData = new JSONObject();
-            eventData.put(Article.ARTICLE, article);
-            eventManager.fireEventAsynchronously(new Event<>(EventTypes.ADD_ARTICLE, eventData));
-
-            return ret;
-        } catch (final RepositoryException e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-
-            LOGGER.log(Level.ERROR, "Admin adds an article failed", e);
-            throw new ServiceException(e.getMessage());
+            return new JSONObject(article.toString());
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "当前事务内管理员新建文章失败", e);
+            throw new ServiceException(e);
         }
     }
+
+    /**
+     * 管理员新建文章事务确认提交后的异步扩展副作用（标签图谱与搜索索引事件）。
+     *
+     * @param article 已提交的文章数据快照
+     */
+    public void afterAdminArticleAdded(final JSONObject article) {
+        if (articleRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("事务尚未结束前禁止触发发布后置操作");
+        }
+        if (null == article) {
+            return;
+        }
+        try {
+            tagMgmtService.relateTags(article.optString(Article.ARTICLE_TAGS));
+        } catch (final Exception e) {
+            throw new IllegalStateException("管理员新建文章更新标签关联失败", e);
+        }
+        final JSONObject eventData = new JSONObject();
+        eventData.put(Article.ARTICLE, article);
+        try {
+            eventManager.fireEventAsynchronously(new Event<>(EventTypes.ADD_ARTICLE, eventData));
+        } catch (final Exception e) {
+            throw new IllegalStateException("管理员新建文章发送异步事件失败", e);
+        }
+    }
+
+    /**
+     * 在当前外部事务与缓存作用域内以管理员身份编辑文章并同步长文专栏与标签计数。
+     *
+     * @param articleId                目标文章 ID
+     * @param patch                    本次需更新的文章字段集合
+     * @param longArticleColumnRequest 长文专栏章节与封面请求参数，无需同步时传 {@code null}
+     * @return 更新结果，包含 {@code article}、{@code authorId} 与 {@code newlySetPerfect}
+     * @throws ServiceException 业务或持久化异常
+     */
+    public synchronized JSONObject updateArticleByAdminInCurrentTransaction(final String articleId,
+                                                                            final JSONObject patch,
+                                                                            final JSONObject longArticleColumnRequest) throws ServiceException {
+        if (!articleRepository.hasTransactionBegun() || !ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("管理员编辑文章必须在活动事务与发布缓存边界内执行");
+        }
+        try {
+            if (null == optionRepository.getForUpdate(Option.ID_C_STATISTIC_ARTICLE_COUNT)) {
+                throw new IllegalStateException("缺少全站文章统计配置项");
+            }
+            final var ownerRows = articleRepository.select(
+                    "SELECT articleAuthorId FROM `" + articleRepository.getName() + "` WHERE oId=?", articleId);
+            if (ownerRows.isEmpty()) {
+                throw new ServiceException("文章不存在");
+            }
+            final String authorId = ownerRows.getFirst().optString(Article.ARTICLE_AUTHOR_ID);
+            final JSONObject author = userRepository.getForUpdate(authorId);
+            if (null == author) {
+                throw new ServiceException("文章作者账号不存在");
+            }
+            final JSONObject lockedArticle = articleRepository.getForUpdate(articleId);
+            if (null == lockedArticle) {
+                throw new ServiceException("文章不存在");
+            }
+
+            final JSONObject oldArticle = JSONs.clone(lockedArticle);
+            final int oldArticleType = oldArticle.optInt(Article.ARTICLE_TYPE);
+            final String oldContent = oldArticle.optString(Article.ARTICLE_CONTENT);
+
+            final JSONObject nextArticle = JSONs.clone(lockedArticle);
+            for (final String key : patch.keySet()) {
+                nextArticle.put(key, patch.opt(key));
+            }
+            nextArticle.put(Article.ARTICLE_COMMENTABLE, nextArticle.optBoolean(Article.ARTICLE_COMMENTABLE));
+            nextArticle.put(Article.ARTICLE_STATEMENT, nextArticle.optInt(Article.ARTICLE_STATEMENT, 0));
+            nextArticle.put(Article.ARTICLE_UPDATE_TIME, patch.optLong(Article.ARTICLE_UPDATE_TIME, System.currentTimeMillis()));
+
+            if (Article.ARTICLE_STATUS_C_INVALID == nextArticle.optInt(Article.ARTICLE_STATUS)) {
+                nextArticle.put(Article.ARTICLE_TAGS, "回收站");
+            }
+
+            processTagsForArticleUpdate(oldArticle, nextArticle, author);
+
+            final String articleTitle = Emotions.toAliases(nextArticle.optString(Article.ARTICLE_TITLE));
+            nextArticle.put(Article.ARTICLE_TITLE, articleTitle);
+
+            final int nextType = nextArticle.optInt(Article.ARTICLE_TYPE);
+            if (Article.ARTICLE_TYPE_C_THOUGHT == nextType) {
+                nextArticle.put(Article.ARTICLE_CONTENT, oldContent);
+            } else {
+                String articleContent = Emotions.toAliases(nextArticle.optString(Article.ARTICLE_CONTENT));
+                articleContent = Runes.removeControlChars(articleContent);
+                nextArticle.put(Article.ARTICLE_CONTENT, articleContent);
+            }
+
+            final int perfect = nextArticle.optInt(Article.ARTICLE_PERFECT);
+            if (Article.ARTICLE_PERFECT_C_PERFECT == perfect) {
+                // 优选帖默认允许未登录游客浏览，并同步标签关联表优选状态
+                nextArticle.put(Article.ARTICLE_ANONYMOUS_VIEW, Article.ARTICLE_ANONYMOUS_VIEW_C_ALLOW);
+                final List<JSONObject> tagArticleRels = tagArticleRepository.getByArticleId(articleId);
+                for (final JSONObject tagArticleRel : tagArticleRels) {
+                    tagArticleRel.put(Article.ARTICLE_PERFECT, Article.ARTICLE_PERFECT_C_PERFECT);
+                    tagArticleRepository.update(tagArticleRel.optString(Keys.OBJECT_ID), tagArticleRel);
+                }
+            }
+
+            nextArticle.put(Article.ARTICLE_AUDIO_URL, "");
+
+            userRepository.update(authorId, author, UserExt.USER_TAG_COUNT);
+            articleRepository.update(articleId, nextArticle);
+
+            final String finalContent = nextArticle.optString(Article.ARTICLE_CONTENT);
+            final boolean paragraphStructureChanged = !StringUtils.equals(oldContent, finalContent);
+            if (paragraphStructureChanged
+                    && (Article.ARTICLE_TYPE_C_LONG == nextType || Article.ARTICLE_TYPE_C_LONG == oldArticleType)) {
+                longArticleParagraphService.migrateCommentsInCurrentTransaction(articleId, oldContent, finalContent);
+            }
+
+            if (null != longArticleColumnRequest) {
+                nextArticle.put(Keys.OBJECT_ID, articleId);
+                longArticleColumnMgmtService.syncChapterInCurrentTransaction(nextArticle, longArticleColumnRequest);
+                updateColumnCoverByAdminInCurrentTransaction(nextArticle, longArticleColumnRequest);
+            }
+
+            final boolean newlySetPerfect = Article.ARTICLE_PERFECT_C_NOT_PERFECT == oldArticle.optInt(Article.ARTICLE_PERFECT)
+                    && Article.ARTICLE_PERFECT_C_PERFECT == perfect;
+            return new JSONObject()
+                    .put("article", JSONs.clone(nextArticle))
+                    .put("authorId", authorId)
+                    .put("newlySetPerfect", newlySetPerfect);
+        } catch (final ServiceException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.log(Level.ERROR, "当前事务内管理员更新文章 [id={}] 失败", articleId, e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * 管理员编辑文章事务确认提交后的副作用（新设优选通知与积分发放、搜索引擎同步）。
+     *
+     * @param updateOutcome {@link #updateArticleByAdminInCurrentTransaction} 返回的结果对象
+     */
+    public void afterAdminArticleUpdated(final JSONObject updateOutcome) {
+        afterAdminArticleUpdated(updateOutcome, true);
+    }
+
+    private void afterAdminArticleUpdated(final JSONObject updateOutcome, final boolean synchronizeSearch) {
+        if (articleRepository.hasTransactionBegun() || ArticlePublicationCaches.active()) {
+            throw new IllegalStateException("事务尚未结束前禁止触发更新后置操作");
+        }
+        if (null == updateOutcome) {
+            return;
+        }
+        final JSONObject article = updateOutcome.optJSONObject("article");
+        if (null == article) {
+            return;
+        }
+        final String articleId = article.optString(Keys.OBJECT_ID);
+        final String authorId = updateOutcome.optString("authorId");
+        final boolean newlySetPerfect = updateOutcome.optBoolean("newlySetPerfect");
+
+        if (newlySetPerfect && StringUtils.isNotBlank(authorId)) {
+            try {
+                final JSONObject notification = new JSONObject();
+                notification.put(Notification.NOTIFICATION_USER_ID, authorId);
+                notification.put(Notification.NOTIFICATION_DATA_ID, articleId);
+                notificationMgmtService.addPerfectArticleNotification(notification);
+                pointtransferMgmtService.transfer(Pointtransfer.ID_C_SYS, authorId,
+                        Pointtransfer.TRANSFER_TYPE_C_PERFECT_ARTICLE, Pointtransfer.TRANSFER_SUM_C_PERFECT_ARTICLE,
+                        articleId, System.currentTimeMillis(), "");
+            } catch (final Exception e) {
+                throw new IllegalStateException("发放优选文章通知或积分失败", e);
+            }
+        }
+
+        if (synchronizeSearch) updateAdminArticleSearchIndex(article);
+    }
+
+    /** 旧编辑页面与 V3 统一使用此后置入口；旧批量封号流程仍不额外触发索引。 */
+    public void updateAdminArticleSearchIndex(final JSONObject article) {
+        if (article == null) return;
+        final String articleId = article.optString(Keys.OBJECT_ID);
+        final int articleType = article.optInt(Article.ARTICLE_TYPE);
+        if (Article.ARTICLE_TYPE_C_DISCUSSION == articleType || Article.ARTICLE_TYPE_C_THOUGHT == articleType) return;
+        if (Symphonys.ALGOLIA_ENABLED) {
+            try {
+                searchMgmtService.updateAlgoliaDocument(JSONs.clone(article));
+            } catch (final Exception e) {
+                LOGGER.error("更新 Algolia 文章索引失败, articleId={}", articleId, e);
+            }
+        }
+        if (Symphonys.ES_ENABLED) {
+            try {
+                searchMgmtService.updateESDocument(article, Article.ARTICLE);
+            } catch (final Exception e) {
+                LOGGER.error("更新 Elasticsearch 文章索引失败, articleId={}", articleId, e);
+            }
+        }
+    }
+
+    /**
+     * 在当前外部事务内设置或取消文章置顶时间戳。
+     *
+     * @param articleId 目标文章 ID
+     * @param authorId  文章作者 ID（可为空）
+     * @param stick     {@code true} 表示置顶，{@code false} 表示取消置顶
+     * @return 更新后的置顶时间戳；若文章不存在则返回 {@code null}
+     * @throws RepositoryException 持久化异常
+     */
+    public Long setArticleStickInCurrentTransaction(final String articleId,
+                                                    final String authorId,
+                                                    final boolean stick) throws RepositoryException {
+        if (!articleRepository.hasTransactionBegun()) {
+            throw new IllegalStateException("设置文章置顶必须在活动事务边界内执行");
+        }
+        if (StringUtils.isNotBlank(authorId)) {
+            userRepository.getForUpdate(authorId);
+        }
+        final JSONObject lockedArticle = articleRepository.getForUpdate(articleId);
+        if (null == lockedArticle) {
+            return null;
+        }
+        final long stickTime = stick ? Long.MAX_VALUE : 0L;
+        lockedArticle.put(Article.ARTICLE_STICK, stickTime);
+        articleRepository.update(articleId, lockedArticle, Article.ARTICLE_STICK);
+        return stickTime;
+    }
+
 }
