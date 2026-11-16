@@ -7387,7 +7387,7 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/me/subscriptions/1770
 | type | URL 参数；links、balance、consumption、checkin、online、adr、mofish、smallmofish、lifeRestart、evolve、emoji、xiaoice、invite、donate、perfect、pets | balance |
 | subType | evolve 支持 achievement（默认）、know、reset、days；xiaoice 支持 0（默认）、1、2、3；其他榜单省略 | achievement |
 | p | 页码，默认 1 | 1 |
-| size | 每页条数，默认 20，最大 50 | 20 |
+| size | 每页条数，默认 20，最大 50；donate 榜实际最多返回前 10 名 | 20 |
 
 请求示例：
 
@@ -7411,8 +7411,8 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | -- pet | 仅 pets 返回，含 id、name、speciesId、level、experience | `{...}` |
 | -- link | links 榜单的链接资料，此类记录没有 user | `{...}` |
 | --- id / title / url | 链接 ID / 标题 / 链接地址 | 123 / 标题 / URL |
-| - summary | 仅 donate 返回全站赞助汇总 | `{...}` |
-| -- amount / supportedDays | 总赞助金额 / 支持运营天数 | 100 / 20 |
+| - summary | 仅 donate 返回前 10 名捐助者的汇总 | `{...}` |
+| -- amount / supportedDays | 前 10 名捐助者的捐助金额 / 支持运营天数 | 100 / 20 |
 | - pagination | 分页信息 | `{...}` |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 当前榜单总条数 / 总页数 | 1 / 20 / 64 / 4 |
 
@@ -7431,7 +7431,7 @@ curl --location --request GET 'https://fishpi.cn/api/v3/rankings/evolve?subType=
 | perfect | 优选文章数量 | count |
 | pets | 宠物等级 | level、experience |
 
-> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
+> 这是现有有限榜单的分页，`total` 表示本次可展示的榜单条数，不代表全站用户数量。donate 榜最多返回前 10 名，`summary` 也按这 10 名汇总，与旧版捐助榜人数上限一致；其余捐助金额、捐助次数字段保持现有 V3 响应。Evolve 与人生重开沿用现有最近 100 份游戏记录的排名范围。未知类型或子榜单返回 HTTP 422；小冰榜上游暂不可用时返回 HTTP 503，可稍后重试。
 
 ### 查看宠物资料
 
@@ -18130,6 +18130,6 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `POST /api/v3/admin/professions/*` 使用严格 JSON 对象，请求体上限 16 MiB；字符串、整数、布尔值、数组不进行类型转换。拒绝非法 JSON、重复键和非法编码。配置文本 `configJson` 也须是合法 JSON 对象字符串。
 - `GET /api/v3/admin/images` 每项返回 `oId`、`type`、`userName`、`time`、`path`、`public`、`reviewed` 和 `reviewStatus`。列表状态为 `PENDING`、`IN_PROGRESS` 或 `UNKNOWN`。
 - 图片审核响应保留 `oId`、`decision`、`reviewed`。新增 `status`，`SUCCEEDED` 时 `reviewed=1`，`UNKNOWN` 时 `reviewed=0`，表示云端结果待核对。客户端应保持原请求记录。
-- 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。兼容旧摘要时返回原结果，并带 `legacyReceipt=true`、`replayed=true`。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
+- 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。历史回执只有在新增字段为空或默认值、能够确认是原请求重试时才返回原结果，并带 `legacyReceipt=true`、`replayed=true`；历史回执缺少关键输入且本次带有实际新内容时返回 HTTP 409、`legacy_receipt_unverifiable`，请核对原操作后使用新的幂等键，不会自动重做。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
 - `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
 - `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。

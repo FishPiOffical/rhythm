@@ -30,7 +30,7 @@
 - v3 清风明月发布/编辑/删除复用 `BreezemoonMgmtService` 的事务内方法，职业发布/撤销事件与内容同事务；`BreezemoonWriteQuota` 与旧入口共用业务频控。公开读取必须检查作者的 `userBreezemoonStatus`；关注流只读取关注用户公开有效内容且不回退全站；编辑不得改变作者、创建时间或审核状态。实时广播只在发布幂等首次确认提交后尽力发送。
 - v3 鱼游投票/评论复用 `FishGameMgmtService` 显式事务内方法，先锁父鱼游并验证已审核；投票与计数同事务，PUT 设置、DELETE 清除，旧入口仍 toggle。新旧业务额度共用 `FishGameWriteQuota`；后台元数据更新必须限定字段，不能用旧对象覆盖投票计数。
 - v3 社区读取走 `ApiV3CommunityQueryService`：鱼游/大事记必须按审核状态过滤；同城用户和文章均需检查作者公开位置，文章还排除匿名发表。统计只输出明确数字字段，在线总数已包含成员；鱼游新 API 必须使用真实分页，不能复用旧 getApproved 的 100 条截断。
-- v3 排行榜由 `ApiV3RankingProcessor` + `ApiV3RankingQueryService` 提供；邀请/赞助/优选/小冰共用 `RankingQueryService`，旧接口也调用该服务。游戏榜只投影排名指标，不得直接输出 cloud 存档；JSON 集合读取需兼容 `JSONArray` 与 `List`。
+- v3 排行榜由 `ApiV3RankingProcessor` + `ApiV3RankingQueryService` 提供；邀请/赞助/优选/小冰共用 `RankingQueryService`，旧接口也调用该服务。V3 捐助榜沿旧版展示人数上限最多返回前 10 名，summary 金额和支持天数按这 10 名计算，单行金额/次数字段保持不变；其他榜单不受影响。游戏榜只投影排名指标，不得直接输出 cloud 存档；JSON 集合读取需兼容 `JSONArray` 与 `List`。
 - 关注/收藏/订阅统一经 `FollowMgmtService#setInCurrentTransaction` + `FollowMutation`，锁定操作者与目标后维护关系/计数；旧入口自行提交事务，v3 加入幂等事务。缓存需在提交或回滚后失效；关注通知经 `NotificationMgmtService#addFollowNotificationInCurrentTransaction` 写入，提交后再刷新。
 - 复读机新旧投稿共用 RepeaterContentModerationService 七牛审核（事务外，异常拒绝）；v3 新回执以 textVersion 区分保留换行规则，旧成功回执仅兼容读。举报 type=4 复用 report；管理员删除须同根软删、职业 targetRemoved 与 operation 审计，PC/mobile 首页及举报后台均有入口。
 
