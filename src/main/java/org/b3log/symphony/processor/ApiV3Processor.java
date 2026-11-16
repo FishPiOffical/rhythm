@@ -124,6 +124,7 @@ public class ApiV3Processor {
         ApiV3EmotionProcessor.register();
         ApiV3EmotionSettingsProcessor.register();
         ApiV3RepeaterProcessor.register();
+        ApiV3CommunityDirectoryProcessor.register();
         ApiV3RepeaterPublicationProcessor.register();
         ApiV3RepeaterLikeProcessor.register();
         ApiV3ReportProcessor.register();

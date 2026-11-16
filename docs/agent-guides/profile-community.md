@@ -24,7 +24,8 @@
 - 单项本人关注状态在`ApiV3FollowQueryService#userState`，当前actor/target有效及关系EXISTS同一只读SQL，仅targetId/following；不调用吞错的旧isFollowing。客户端关注命令只保存未确认的明确PUT/DELETE，回放结果后必须GET当前状态，不能把历史receipt当最新状态。
 - 举报`ApiV3ReportPublicationService`预hint→排序用户→回执→当前目标，fresh重验绑定、重放不依赖目标；仅复用最早pending，旧入口未共用去重。新memo存储编码供两端管理模板直接输出，原始/编码长度均有界。聊天室存储userOId有字符串和整数两种，归属校验须兼容整数且不能浮点化ID。
 - v3复读投稿`ApiV3RepeaterPublicationService`绑定职业来源与回执同严格根；新旧点赞共用`RepeaterLikeMutationService`，用户→目标→本人likes，COUNT用当前锁定读取；只收敛本人重复，保留其他历史重复计数。旧toggle请求/成功字段保持，拒绝嵌套根，不能绕回旧分开计数写入。
-- v3复读机`ApiV3RepeaterQueryService`保留前N列表/前50排除后随机池语义，不假称全量分页；可选content.read与匿名盾，liked仅当前Bearer，失效作者不移除内容而author=null。
+- v3复读机`ApiV3RepeaterQueryService`保留榜单前 N 项，随机接口从当前分类的所有有效内容排除当前项后抽取；可选content.read与匿名盾，liked仅当前Bearer，失效作者不移除内容而author=null。
+- 后台复读机发布复用正文审核和同一内容表，独立标记 admin 来源和审计，不增加职业投稿奖励。客户端下载以 client_download 为权威来源，迁移 sql/20261116_client_download_catalog.sql 保留现有 15 项，重跑不覆盖管理员修改。只有上架记录公开下载链接，前台页脚快捷入口指向对应目录卡片。
 - 大事记个人投稿查询走 `ApiV3MilestoneProcessor` + `ApiV3MilestoneQueryService`，必须 owner+ID 联合过滤，不能复用公开详情。创建的事务内方法在 `MilestoneMgmtService`，`MilestoneSubmission` 白名单强制作者/待审状态/时间；缓存只在提交后清理。v3 投稿正文已确认采用 Markdown，在入口渲染清洗为 HTML 后保存，以兼容既有时间线；本人 content 返回保存后的 HTML。
 - v3 鱼游列表默认按总投票数、点赞数、时间排序（用户已确认），保留 `sort=likes`；不要依据旧的 `/activities` 点赞排序说明更改该默认值。
 - v3 清风明月发布/编辑/删除复用 `BreezemoonMgmtService` 的事务内方法，职业发布/撤销事件与内容同事务；`BreezemoonWriteQuota` 与旧入口共用业务频控。公开读取必须检查作者的 `userBreezemoonStatus`；关注流只读取关注用户公开有效内容且不回退全站；编辑不得改变作者、创建时间或审核状态。实时广播只在发布幂等首次确认提交后尽力发送。

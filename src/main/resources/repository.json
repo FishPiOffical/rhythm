@@ -791,6 +791,16 @@
       ]
     },
     {
+      "name": "client_download",
+      "description": "客户端公开目录与管理版本",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 48 },
+        { "name": "configJson", "type": "String", "length": 4096 },
+        { "name": "sortOrder", "type": "int" },
+        { "name": "revision", "type": "int" }
+      ]
+    },
+    {
       "name": "chat_bubble_style",
       "description": "后台气泡草稿和当前发布配置",
       "keys": [

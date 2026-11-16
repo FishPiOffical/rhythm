@@ -13521,7 +13521,22 @@ curl 'https://fishpi.cn/api/v3/chat/red-packet-types' \
 
 > 当前v3支持目录中五类红包的创建和领取。心跳与猜拳的创建和领取均须显式riskAccepted=true，可能扣除领取者积分。当前未列入骰子红包。
 
+## API v3 客户端下载目录
+
+`GET /api/v3/client-downloads` 可选 Bearer，已认证请求使用 `content.read`。返回 `{list}`，每项含 `id,name,icon,group,status,authors,recommended,sortOrder`。仅 `active` 包含 `links`，已下架 `retired`、即将推出 `comingSoon` 均不返回下载地址。分组有 `desktop`、`mobile`、`tools`、`terminal`、`more`。
+
+管理端使用第一方管理员凭据：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/v3/admin/client-downloads?p=1&size=20` | `profile.read`，标准分页，包含原链接和 `revision` |
+| PUT | `/api/v3/admin/client-downloads/{id}` | `settings.write` 与 `Idempotency-Key`，提交 `{revision,client}`，新建时 `revision=0` |
+
+`client` 是完整配置，含 `name,icon,group,status,authors,links,recommended,sortOrder`；`authors` 最多 4 项（`name,userName`），`links` 最多 5 项（`label,href`）。下载接受 HTTPS 或站内 `/article/{id}`。上架时至少一个链接，只有上架状态可以推荐。下架后管理侧保留原链接，便于重新上架。保存成功返回 `{clientId,revision}`，旧修订返回 409。
+
 ## API v3 复读机
+
+后台可用 `GET /api/v3/admin/repeater/items` 分页读取后台添加记录（`profile.read`），或以 `POST /api/v3/admin/repeater/items` 添加（`settings.write` 与 `Idempotency-Key`）。需第一方管理员凭据。请求为 `{type,content}`，采用与投稿相同的分类、纯文本规范化和审核，有效内容可参与现有公开排行及随机读取。后台发布不触发投稿职业奖励，成功返回 `{id,repeaterId,type,createdTime}`。
 
 ### 复读机列表
 

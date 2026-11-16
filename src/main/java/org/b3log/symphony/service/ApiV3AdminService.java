@@ -273,7 +273,9 @@ public class ApiV3AdminService {
             new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_REPEATER, "移除复读机内容", "repeater"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_SAVE_CHAT_BUBBLE, "保存气泡草稿", "appearance"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_PUBLISH_CHAT_BUBBLE, "发布聊天气泡", "appearance"),
-            new OperationCodeMeta(Operation.OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE, "下架聊天气泡", "appearance")
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE, "下架聊天气泡", "appearance"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_REPEATER, "添加复读机内容", "repeater"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD, "保存客户端下载配置", "clientDownload")
     );
 
     private static final Map<Integer, OperationCodeMeta> OPERATION_CODE_META_MAP = buildOperationCodeMetaMap();
@@ -1128,13 +1130,13 @@ public class ApiV3AdminService {
                         Permission.PERMISSION_ID_C_USER_GIVE_METAL,
                         Permission.PERMISSION_ID_C_USER_REMOVE_METAL,
                         Permission.PERMISSION_ID_C_USER_ADJUST_BAG)))
-                .put("communityOps", canAccessAdmin && hasAny(perms,
+                .put("communityOps", canAccessAdmin && (isAdmin || hasAny(perms,
                         Permission.PERMISSION_ID_C_MENU_ADMIN_DOMAINS,
                         Permission.PERMISSION_ID_C_MENU_ADMIN_TAGS,
                         Permission.PERMISSION_ID_C_MENU_ADMIN_RWS,
                         Permission.PERMISSION_ID_C_MENU_ADMIN_AD,
                         Permission.PERMISSION_ID_C_MENU_MANAGE_MILESTONE,
-                        Permission.PERMISSION_ID_C_MENU_ADMIN_MISC))
+                        Permission.PERMISSION_ID_C_MENU_ADMIN_MISC)))
                 .put("professionsPets", canAccessAdmin && isAdmin)
                 .put("openPlatform", canAccessAdmin && isAdmin)
                 .put("systemSecurity", canAccessAdmin);

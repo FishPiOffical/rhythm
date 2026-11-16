@@ -18,17 +18,23 @@
  */
 package org.b3log.symphony.service;
 
+import org.b3log.latke.http.Request;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Ids;
+import org.b3log.symphony.model.Operation;
+import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.model.RepeaterContent;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.RepeaterContentRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 复读内容、职业来源事件和重放回执在同一个严格根事务中提交。
@@ -45,6 +51,8 @@ public class ApiV3RepeaterPublicationService {
     private ProfessionSourceEventCaptureService capture;
     @Inject
     private RepeaterContentModerationService moderationService;
+    @Inject
+    private ApiV3AdminService admin;
 
     public JSONObject publish(final String actor, final JSONObject body, final String key) throws Exception {
         RepeaterLikeMutationService.id(actor);
@@ -94,7 +102,7 @@ public class ApiV3RepeaterPublicationService {
             return result(ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "repeater.publish", key, receiptBody,
                     () -> {
                         if (moderationFailure != null) throw moderationFailure;
-                        return publishInCurrentTransaction(actor, normalized);
+                        return publishInCurrentTransaction(actor, normalized, RepeaterContent.SOURCE_USER);
                     }));
         } catch (final ApiV3Exception e) {
             throw e;
@@ -103,7 +111,60 @@ public class ApiV3RepeaterPublicationService {
         }
     }
 
-    private JSONObject publishInCurrentTransaction(final String actor, final JSONObject normalized) throws Exception {
+    public JSONObject adminList(JSONObject identity, int page, int size) throws RepositoryException {
+        final var transaction = admin.begin();
+        try {
+            admin.authorizeInCurrentTransaction(identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN, true);
+            final String where = " FROM `" + contents.getName() + "` WHERE " + RepeaterContent.SOURCE + "=?";
+            final long total = contents.select("SELECT COUNT(*) AS total" + where, RepeaterContent.SOURCE_ADMIN)
+                    .getFirst().getLong("total");
+            final var rows = contents.select("SELECT oId," + RepeaterContent.TYPE + "," + RepeaterContent.CONTENT + ","
+                    + RepeaterContent.STATUS + "," + RepeaterContent.CREATED_TIME + where
+                    + " ORDER BY " + RepeaterContent.CREATED_TIME + " DESC,oId DESC LIMIT ? OFFSET ?",
+                    RepeaterContent.SOURCE_ADMIN, size, (page - 1L) * size);
+            final var list = new JSONArray();
+            for (final var row : rows) {
+                list.put(new JSONObject().put("id", row.getString("oId")).put("type", row.getString(RepeaterContent.TYPE))
+                        .put("content", row.getString(RepeaterContent.CONTENT)).put("status", row.getInt(RepeaterContent.STATUS))
+                        .put("createdTime", row.getLong(RepeaterContent.CREATED_TIME)));
+            }
+            transaction.commit();
+            return ApiV3Requests.pagination(list, page, size, total);
+        } finally {
+            ApiV3AdminService.rollbackIfActive(transaction);
+        }
+    }
+
+    public JSONObject publishByAdmin(JSONObject identity, JSONObject body, String key, Request request) throws Exception {
+        final JSONObject normalized = ApiV3RepeaterPublicationInputs.normalize(body);
+        final var preflight = admin.begin();
+        try {
+            admin.authorizeInCurrentTransaction(identity, "settings.write", Permission.PERMISSION_ID_C_MENU_ADMIN, true);
+            preflight.commit();
+        } finally {
+            ApiV3AdminService.rollbackIfActive(preflight);
+        }
+        // 审核在事务外完成，已提交的命令仍可按原键恢复。
+        ApiV3Exception moderationFailure = null;
+        try {
+            moderationService.requireApproved(normalized.getString("content"));
+        } catch (final ApiV3Exception failure) {
+            moderationFailure = failure;
+        }
+        final var review = moderationFailure;
+        final var actor = new AtomicReference<ApiV3AdminService.AuthorizedActor>();
+        final String actorId = ApiV3AdminService.actorId(identity);
+        final JSONObject recorded = result(ApiV3IdempotencyMgmtService.runAtomic(admin.guardedWrite(identity, null, true, actor),
+                actorId, "admin.repeater.publish", key, normalized, () -> {
+                    if (review != null) throw review;
+                    final JSONObject published = publishInCurrentTransaction(actorId, normalized, RepeaterContent.SOURCE_ADMIN);
+                    admin.recordOperation(request, Operation.OPERATION_CODE_C_ADD_REPEATER, published.getString("id"), actor.get().user());
+                    return published;
+                }));
+        return recorded.put("repeaterId", recorded.getString("id"));
+    }
+
+    private JSONObject publishInCurrentTransaction(final String actor, final JSONObject normalized, final String source) throws Exception {
         RepeaterLikeMutationService.id(actor);
         if (!requests.hasTransactionBegun())
             throw new IllegalStateException("repeater publication transaction required");
@@ -111,11 +172,11 @@ public class ApiV3RepeaterPublicationService {
         final long now = System.currentTimeMillis();
         final JSONObject row = new JSONObject().put("oId", id)
                 .put(RepeaterContent.TYPE, normalized.getString("type")).put(RepeaterContent.CONTENT, normalized.getString("content"))
-                .put(RepeaterContent.AUTHOR_ID, actor).put(RepeaterContent.SOURCE, RepeaterContent.SOURCE_USER)
+                .put(RepeaterContent.AUTHOR_ID, actor).put(RepeaterContent.SOURCE, source)
                 .put(RepeaterContent.STATUS, RepeaterContent.STATUS_C_VALID).put(RepeaterContent.LIKE_COUNT, 0)
                 .put(RepeaterContent.CREATED_TIME, now).put(RepeaterContent.UPDATED_TIME, now);
         contents.add(row);
-        capture.repeaterPublished(row);
+        if (RepeaterContent.SOURCE_USER.equals(source)) capture.repeaterPublished(row);
         return new JSONObject().put("id", id).put("type", normalized.getString("type")).put("createdTime", now);
     }
 
