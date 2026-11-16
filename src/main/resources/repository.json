@@ -791,6 +791,18 @@
       ]
     },
     {
+      "name": "chat_bubble_style",
+      "description": "后台气泡草稿和当前发布配置",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 32 },
+        { "name": "draftJson", "type": "String", "length": 3072 },
+        { "name": "publishedJson", "type": "String", "length": 3072 },
+        { "name": "revision", "type": "int" },
+        { "name": "publishedRevision", "type": "int" },
+        { "name": "active", "type": "int" }
+      ]
+    },
+    {
       "name": "user_chat_appearance",
       "description": "用户当前聊天外观，消息另存发送快照",
       "keys": [

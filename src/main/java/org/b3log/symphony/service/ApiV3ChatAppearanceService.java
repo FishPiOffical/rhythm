@@ -48,6 +48,8 @@ public class ApiV3ChatAppearanceService {
 
     @Inject
     private ApiV3AppearanceShopService shop;
+    @Inject
+    private ApiV3BubbleStyleService bubbles;
 
     protected long now() {
         return System.currentTimeMillis();
@@ -105,15 +107,18 @@ public class ApiV3ChatAppearanceService {
                     throw new ApiV3Exception(403, "membership_required", "该外观需要有效会员");
                 // 积分外观独立于会员权限，仅有效权益可以装备。
                 if (paid(input)) shop.effective(actor, input, true);
-                final var existing = appearances.select("SELECT oId FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
+                final var existing = appearances.select("SELECT oId,bubbleId FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
                 final JSONObject value = new JSONObject(input.toString()).put("version", 1).put("updatedAt", now());
+                final JSONObject result = ApiV3ChatAppearance.publicSnapshot(value);
                 if (existing.size() > 1)
                     throw unavailable();
+                final boolean retaining = !existing.isEmpty() && value.getString("bubbleId").equals(existing.getFirst().optString("bubbleId"));
+                custom(actor, value, result, true, retaining);
                 if (existing.isEmpty())
                     appearances.add(new JSONObject(value.toString()).put("oId", actor));
                 else
                     appearances.update(actor, value, "bubbleId", "frameId", "version", "updatedAt");
-                return ApiV3ChatAppearance.publicSnapshot(value);
+                return result;
             });
         } catch (ApiV3Exception e) {
             throw e;
@@ -142,14 +147,42 @@ public class ApiV3ChatAppearanceService {
 
     private JSONObject effective(String actor, JSONObject value) throws RepositoryException {
         final JSONObject result = ApiV3ChatAppearance.effective(value, !ApiV3ChatAppearance.premium(value) || vip(actor));
+        custom(actor, value, result, false, false);
         return paid(result) ? shop.effective(actor, result, false) : result;
+    }
+
+    private void custom(String actor, JSONObject value, JSONObject result, boolean equip, boolean retaining) throws RepositoryException {
+        final String id = value.optString("bubbleId");
+        if (!ApiV3BubbleStyle.customId(id)) return;
+        final var published = bubbles.published(id, equip);
+        if (published == null || equip && !retaining && !published.active() && !"points".equals(published.access())) {
+            if (equip) throw new ApiV3Exception(409, "bubble_unavailable", "该气泡未发布或已下架");
+            return;
+        }
+        final boolean allowed = switch (published.access()) {
+            case "free" -> true;
+            case "vip" -> vip(actor);
+            case "points" -> shop.owns(actor, id, now());
+            default -> false;
+        };
+        if (!allowed) {
+            if (equip) throw new ApiV3Exception(403, "vip".equals(published.access()) ? "membership_required" : "appearance_required",
+                    "vip".equals(published.access()) ? "该气泡需要有效会员" : "请先购买或续期该气泡");
+            return;
+        }
+        result.put("bubbleId", id).put("bubbleRevision", published.revision()).put("bubbleStyle", published.style());
     }
 
     private JSONObject choice(String actor) throws RepositoryException {
         final var rows = appearances.select("SELECT bubbleId,frameId,version FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
         if (rows.size() > 1)
             throw unavailable();
-        return rows.isEmpty() ? ApiV3ChatAppearance.defaults() : ApiV3ChatAppearance.publicSnapshot(rows.getFirst());
+        if (rows.isEmpty()) return ApiV3ChatAppearance.defaults();
+        final JSONObject stored = rows.getFirst();
+        final JSONObject result = ApiV3ChatAppearance.publicSnapshot(stored);
+        if (stored.optInt("version") == 1 && ApiV3BubbleStyle.customId(stored.optString("bubbleId")))
+            result.put("bubbleId", stored.getString("bubbleId"));
+        return result;
     }
 
     private boolean vip(String actor) throws RepositoryException {

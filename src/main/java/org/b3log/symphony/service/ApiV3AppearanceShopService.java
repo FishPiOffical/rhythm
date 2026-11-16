@@ -43,6 +43,7 @@ public class ApiV3AppearanceShopService {
     @Inject private PointtransferRedcRepository transferIndex;
     @Inject private PointtransferMgmtService points;
     @Inject private ApiV3SecurityProofService proofs;
+    @Inject private ApiV3BubbleStyleService bubbles;
 
     protected long now() {
         return System.currentTimeMillis();
@@ -50,7 +51,8 @@ public class ApiV3AppearanceShopService {
 
     public JSONObject catalog() throws RepositoryException {
         final JSONArray list = new JSONArray();
-        for (final var row : products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` ORDER BY oId")) {
+        final var rows = products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` ORDER BY oId");
+        for (final var row : rows) {
             final var item = ApiV3AppearanceCatalog.find(row.optString("oId"));
             if (item == null) continue;
             validatePrice(row);
@@ -58,6 +60,10 @@ public class ApiV3AppearanceShopService {
                     .put("name", item.name()).put("version", 1).put("price7", row.getInt("price7"))
                     .put("price30", row.getInt("price30")).put("enabled", row.getInt("enabled") == 1)
                     .put("revision", row.getLong("revision")));
+        }
+        if (rows.stream().anyMatch(row -> ApiV3BubbleStyle.customId(row.optString("oId")))) {
+            // 获取目录和对应报价使用同一条查询，以免混用不同发布版本的数据。
+            for (final Object entry : bubbles.market()) list.put(entry);
         }
         return new JSONObject().put("list", list);
     }
@@ -74,10 +80,10 @@ public class ApiV3AppearanceShopService {
             final long time = now();
             for (final var row : entitlements.select("SELECT productId,expiresAt,equipped FROM `" + entitlements.getName() + "` WHERE userId=?", actor)) {
                 final var item = ApiV3AppearanceCatalog.find(row.optString("productId"));
-                if (item == null) continue;
+                if (item == null && !ApiV3BubbleStyle.customId(row.optString("productId"))) continue;
                 final long expiry = row.getLong("expiresAt");
-                list.put(new JSONObject().put("productId", item.id()).put("expiresAt", expiry));
-                if (item.kind().equals("mount") && row.optInt("equipped") == 1 && expiry > time) mountId = item.styleId();
+                list.put(new JSONObject().put("productId", row.getString("productId")).put("expiresAt", expiry));
+                if (item != null && item.kind().equals("mount") && row.optInt("equipped") == 1 && expiry > time) mountId = item.styleId();
             }
             final JSONObject result = new JSONObject().put("list", list).put("mountId", mountId)
                     .put("serverNow", time).put("balance", owner.getLong("userPoint"));
@@ -92,7 +98,8 @@ public class ApiV3AppearanceShopService {
         final String actor = actor(identity);
         final String productId = input.optString("productId");
         final var product = ApiV3AppearanceCatalog.find(productId);
-        if (product == null || !(input.opt("days") instanceof Number days) || days.doubleValue() != days.intValue()
+        final boolean custom = ApiV3BubbleStyle.customId(productId);
+        if (product == null && !custom || !(input.opt("days") instanceof Number days) || days.doubleValue() != days.intValue()
                 || !Set.of(7, 30).contains(days.intValue()) || !(input.opt("revision") instanceof Number revision)
                 || revision.longValue() < 1 || revision.doubleValue() != revision.longValue()) throw ApiV3WriteInputs.invalid();
         final JSONObject normalized = new JSONObject().put("productId", productId).put("days", days.intValue()).put("revision", revision.longValue());
@@ -100,11 +107,14 @@ public class ApiV3AppearanceShopService {
             try (final var boundary = ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
                 return ApiV3IdempotencyMgmtService.runAtomic(store(identity), actor, "appearance.buy", key, normalized, () -> {
                     final JSONObject user = owner(actor);
+                    final var published = custom ? bubbles.published(productId, true) : null;
+                    if (custom && (published == null || !"points".equals(published.access()))) throw ApiV3Requests.notFound();
                     final var prices = products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` WHERE oId=? FOR UPDATE", productId);
                     if (prices.size() != 1) throw ApiV3Requests.notFound();
                     final JSONObject price = prices.getFirst();
                     validatePrice(price);
-                    if (price.getInt("enabled") != 1) throw new ApiV3Exception(409, "product_unavailable", "该外观已下架");
+                    if (price.getInt("enabled") != 1 || custom && !published.active())
+                        throw new ApiV3Exception(409, "product_unavailable", "该外观已下架");
                     if (price.getLong("revision") != revision.longValue()) throw new ApiV3Exception(409, "quote_changed", "价格已更新，请重新确认");
                     final int paid = price.getInt(days.intValue() == 7 ? "price7" : "price30");
                     if (user.getLong("userPoint") < paid) throw new ApiV3Exception(409, "insufficient_points", "积分不足");
@@ -114,7 +124,7 @@ public class ApiV3AppearanceShopService {
                     final long expiry = ApiV3AppearanceCatalog.extend(time, previous.isEmpty() ? 0 : previous.getFirst().getLong("expiresAt"), days.intValue());
                     final String purchaseId = Ids.genTimeMillisId();
                     final String transferId = points.transferInCurrentTransaction(actor, Pointtransfer.ID_C_SYS,
-                            Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE, paid, "购买外观：" + product.name() + "（" + days.intValue() + "天）",
+                            Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE, paid, "购买外观：" + (custom ? published.name() : product.name()) + "（" + days.intValue() + "天）",
                             time, "", new PointtransferSource("", "", "appearance.buy", purchaseId), false);
                     if (transferId == null) throw unavailable();
                     // 积分流水索引也在本事务落库，不在提交后补查或异步写入。
@@ -184,7 +194,7 @@ public class ApiV3AppearanceShopService {
         return result;
     }
 
-    private boolean owns(String actor, String product, long time) throws RepositoryException {
+    boolean owns(String actor, String product, long time) throws RepositoryException {
         return !entitlements.select("SELECT oId FROM `" + entitlements.getName() + "` WHERE oId=? AND expiresAt>?", entitlementId(actor, product), time).isEmpty();
     }
 
@@ -226,7 +236,7 @@ public class ApiV3AppearanceShopService {
         }
     }
 
-    private static void validatePrice(JSONObject row) {
+    static void validatePrice(JSONObject row) {
         for (final String field : List.of("price7", "price30", "revision")) {
             if (!(row.opt(field) instanceof Number number) || number.doubleValue() != number.longValue() || number.longValue() < 1
                     || (field.startsWith("price") && number.longValue() > 100000000)) throw unavailable();

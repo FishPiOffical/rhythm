@@ -41,7 +41,7 @@
 - 聊天室已提交变更经ChatRoomRepository及共享ReactionMgmtService写api_v3_chat_event和api_v3_chat_state/main；head行锁串行分配revision，不能用消息ID/时间作提交游标。ApiV3ChatTransaction以外层事务保存点绑定消息/reaction与事件，无法局部撤销时整笔回滚。取票POST /api/v3/chat/realtime-ticket要求content.read；ApiV3ChatStream有界消费已提交序列、逐连接重验content.read；新增/更新附带与消息详情相同的有界白名单快照，撤回/表态仅发标识，缺口或倒退发chat.sync_required。启动时初始化调度，清理只删旧事件、不重置head；两张表及种子须先迁移，非持久化在线另接，弹幕另发即时事件。
 - v3聊天室读取走`ApiV3ChatProcessor`/`ApiV3ChatQueryService`，统一要求content.read；历史记录的content是消息外壳JSON，必须经`ApiV3ChatMessageDto`白名单分普通Markdown/红包摘要/天气/音乐，禁止裸返外壳或红包who/内部字段。游标列表固定按ID范围查询、返回升序；上下文按半径有界读取。作者为消息发布时公开快照，不能从页面Cookie/apiKey补身份。
 - 聊天消息勋章复用发言时存入的 `sysMetal` 快照，按原顺序投影为可选 `medals`。只返回定义 ID、名称、稀有度和说明，省略已关闭条目、原始样式及授予数据，读取历史或实时消息时不查询账户当前勋章。
-- 聊天外观由ApiV3ChatAppearanceService管理固定v1目录，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；版本1目录视觉不可原地改版。
+- 聊天外观由ApiV3ChatAppearanceService管理内置v1目录与可发布气泡，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；内置版本1目录视觉不可原地改版。动态气泡须先执行 sql/20261116_chat_bubble_style.sql，该迁移只加入四款未发布草稿。新发消息保存完整已发布样式和版本，历史快照无须回填。
 
 ## Socket 授权
 

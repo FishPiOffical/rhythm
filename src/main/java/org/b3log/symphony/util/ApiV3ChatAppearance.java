@@ -38,7 +38,7 @@ public final class ApiV3ChatAppearance {
 
     public static JSONObject input(JSONObject body) {
         if (body == null || !body.keySet().equals(Set.of("bubbleId", "frameId"))
-                || !(body.opt("bubbleId") instanceof String bubble) || !BUBBLES.contains(bubble)
+                || !(body.opt("bubbleId") instanceof String bubble) || !(BUBBLES.contains(bubble) || ApiV3BubbleStyle.customId(bubble))
                 || !(body.opt("frameId") instanceof String frame) || !FRAMES.contains(frame))
             throw ApiV3WriteInputs.invalid();
         return new JSONObject().put("bubbleId", bubble).put("frameId", frame);
@@ -62,7 +62,18 @@ public final class ApiV3ChatAppearance {
     public static JSONObject publicSnapshot(Object raw) {
         if (!(raw instanceof JSONObject value) || !(value.opt("version") instanceof Number n) || n.doubleValue() != 1)
             return defaults();
-        return new JSONObject().put("bubbleId", BUBBLES.contains(value.optString("bubbleId")) ? value.getString("bubbleId") : "classic")
+        final String id = value.optString("bubbleId");
+        final JSONObject result = new JSONObject().put("bubbleId", BUBBLES.contains(id) ? id : "classic")
                 .put("frameId", FRAMES.contains(value.optString("frameId")) ? value.getString("frameId") : "none").put("version", 1);
+        if (ApiV3BubbleStyle.customId(id) && value.has("bubbleStyle")) {
+            try {
+                final int revision = ApiV3BubbleStyle.integer(value, "bubbleRevision", 1, Integer.MAX_VALUE);
+                final JSONObject style = ApiV3BubbleStyle.validate(value.optJSONObject("bubbleStyle"));
+                result.put("bubbleId", id).put("bubbleRevision", revision).put("bubbleStyle", style);
+            } catch (ApiV3Exception invalidStyle) {
+                // 损坏的动态样式只退回默认气泡，正文和头像框仍可显示。
+            }
+        }
+        return result;
     }
 }

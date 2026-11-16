@@ -270,7 +270,10 @@ public class ApiV3AdminService {
             new OperationCodeMeta(Operation.OPERATION_CODE_C_UPDATE_MILESTONE, "更新里程碑", "milestone"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_DELETE_MILESTONE, "删除里程碑", "milestone"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_DEACTIVATE_USER, "永久停用用户", "user"),
-            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_REPEATER, "移除复读机内容", "repeater")
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_REMOVE_REPEATER, "移除复读机内容", "repeater"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_SAVE_CHAT_BUBBLE, "保存气泡草稿", "appearance"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_PUBLISH_CHAT_BUBBLE, "发布聊天气泡", "appearance"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE, "下架聊天气泡", "appearance")
     );
 
     private static final Map<Integer, OperationCodeMeta> OPERATION_CODE_META_MAP = buildOperationCodeMetaMap();
