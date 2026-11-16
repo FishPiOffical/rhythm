@@ -26,6 +26,7 @@
 
 ## 账号凭据与验证码
 
+- 2026-11-17源码复核发现旧链路尚未满足下述V3敏感设置规则：`MFAProcessor` 的 GET `/mfa/remove` 仅登录校验，直接清除两步验证配置，未要求二次身份验证、来源或CSRF，也未走凭据版本递增和全撤；`LoginProcessor.authenticate` 的MFA失败在失败计数前返回；`UserQueryService.getSecret2fa` 将RepositoryException转为空字符串，而 `MFAProcessor.verifyLogin` 将空值当未开启MFA放行。共享登录被V3调用，不能把V3设置链路已加固理解为这些旧入口已修复。此为源码确认，尚无隔离运行复现或生产利用证据，未授权修改业务代码。证据与边界见 [复核记录](../api-v3-safety-performance-work.md#账号安全补充复核2026-11-17)。
 - 敏感设置仅第一方`ApiV3SecurityProofService`当前密码/已有TOTP；client命名空间→当前user/access→独立credential state，`AccountCredentialMgmtService`同严格根递增epoch并撤OpenID/v3/code/pending。Cookie/apiKey/OpenID每次当前SQL比版本，缺版本仅epoch0兼容；发行只用认证时Proof，不可重读新epoch升级旧身份。先部署20261023三份credential/MFA/contact迁移，旧重置自动登录绑定本次提交版本。
 - `ApiV3MfaService`准备10分钟、secret/otpauth仅当次，启用消费清secret；`ApiV3ContactSettingsService`先proof→无SQL锁发送→当前epoch/旧联系值快照重验后保存，HMAC码及旧值绑定，修改/消费/全撤同根。WS后续授权检查拒旧凭据；User/Shop关闭按建立时归属清理，不能因凭据失效跳过移除/在线结算。账号验证码邮件须走`Mails.sendAccountBindingCode`专用无debug/正文日志通道，不能复用旧MailSender.sendMessage。完整文件与验收见account-credential-work。
 - v3 注册选项在 `ApiV3AccountProcessor` / `ApiV3RegistrationPolicyService`：直接查询注册开关，邀请资格沿角色权限读取，仅为表单展示，不可作为后续写入授权。账号短信验证核心 `AccountVerificationService` 在调用方事务中先当前读锁用户，再按当前手机号/type/purpose/有效期锁并消费验证码，消费与账号变更同提交；同值重复码全部消费，禁止回退全局getVerifycode(code)。核心不含尝试限额，公开入口须先接共享限额。用户已同意旧register2新增code及新旧账号入口一起加固；reset-pwd及register2已接入，PC/移动页面已传code，不再重复询问。
