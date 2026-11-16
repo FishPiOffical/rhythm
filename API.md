@@ -16816,6 +16816,8 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - `POST /api/v3/me/pet/supplies`：`{expectedDate}`，上海自然日日期 `YYYY-MM-DD`，每日一次。
 - `POST /api/v3/me/pet/purchases`：`{petId,itemId:"food",quantity,catalogVersion}`，数量 1～20，服务端核价及扣宠物币。
 
+领养、重新领养和改名都会审核填写的名字。审核未通过返回 HTTP 422（`content_rejected`），审核暂不可用返回 HTTP 503；这两种情况均不保存宠物变更或扣费。已提交的原键回执可直接恢复。
+
 写回执只包含 `{operation,petId,committedAt}`，客户端再读取聚合状态，不把旧回执当当前余额。未知结果使用原内容和原键恢复，不自动创建另一笔消费。协议、试运行参数、迁移与人工验收见 [宠物第一批说明](docs/api-v3-pets-phase-one.md)。
 
 ### 宠物外出与学校（第二批）

@@ -23,6 +23,7 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -84,6 +85,10 @@ public class ApiV3PetTest {
             protected int transportLimit() { return enforceRisk ? super.transportLimit() : 100_000; }
         };
         boolean rejectName;
+        boolean moderationUnavailable;
+        boolean manualReview;
+        int moderationCalls;
+        boolean checkReviewLock;
         boolean rejectActivityCatalog;
         final ApiV3PetService pets = new ApiV3PetService() {
             protected long now() { return clock; }
@@ -91,8 +96,13 @@ public class ApiV3PetTest {
                 if (rejectActivityCatalog) throw new ApiV3Exception(503, "temporarily_unavailable", "测试目录已变更");
                 return super.activityEntry(kind, id);
             }
-            protected void checkName(final String name) {
-                if (rejectName) throw new ApiV3Exception(422, "content_rejected", "测试审核拒绝");
+            protected CensorResult censorName(final String name) {
+                if (checkReviewLock) Assert.assertFalse(active());
+                moderationCalls++;
+                if (moderationUnavailable) return CensorResult.unavailable();
+                if (manualReview) return CensorResult.fromAIResponse("{\"action\":\"review\"}");
+                if (rejectName) return CensorResult.block("测试", List.of());
+                return CensorResult.pass();
             }
         };
         final ApiV3PetProcessor endpointPet = new ApiV3PetProcessor();
@@ -386,6 +396,50 @@ public class ApiV3PetTest {
         System.out.println("PASS 一账号一宠物、首奖仅一次、换号归属、撤销凭据、禁用账号与第三方拒绝");
     }
 
+    static void nameModeration() throws Exception {
+        Assert.assertFalse(CensorResult.fromQiniuResult(
+                new JSONObject().put("type", "未知").put("action", "review").put("do", "pass")).isVerified());
+        Assert.assertTrue(CensorResult.fromQiniuResult(
+                new JSONObject().put("type", "正常").put("action", "pass").put("do", "pass")).isVerified());
+        try (var f = new Fixture()) {
+            f.checkReviewLock = true;
+            f.moderationUnavailable = true;
+            error(503, f::adopt);
+            Assert.assertEquals(f.count("pet_account"), 0);
+            Assert.assertEquals(f.count("receipt"), 0);
+
+            f.moderationUnavailable = false;
+            final String id = f.adopt();
+            f.moderationUnavailable = true;
+            final int calls = f.moderationCalls;
+            Assert.assertEquals(f.adopt(), id);
+            Assert.assertEquals(f.moderationCalls, calls);
+            final var rename = new JSONObject().put("petId", id).put("name", "新名字");
+            error(503, () -> f.pets.rename(identity(), rename, "rename-retry"));
+            Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "荷小豚");
+
+            sql(f.db, "UPDATE pet_account SET coins=1024");
+            final var replace = new JSONObject().put("petId", id).put("speciesId", "momota")
+                    .put("name", "小水獭").put("catalogVersion", ApiV3PetRules.VERSION).put("resetAccepted", true);
+            error(503, () -> f.pets.readopt(identity(), replace, "new-pet-retry"));
+            Assert.assertEquals(f.coins(), 1024);
+            Assert.assertEquals(f.count("pet_archive"), 0);
+            Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "荷小豚");
+
+            f.moderationUnavailable = false;
+            f.manualReview = true;
+            error(422, () -> f.pets.rename(identity(), rename, "needs-review"));
+            Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "荷小豚");
+            f.manualReview = false;
+            f.pets.rename(identity(), rename, "rename-retry");
+            Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "新名字");
+            f.pets.readopt(identity(), replace, "new-pet-retry");
+            Assert.assertEquals(f.coins(), 1024 - ApiV3PetRules.READOPTION_COINS);
+            Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "小水獭");
+        }
+        System.out.println("PASS 审核在行锁外，复审与故障不保存名字或扣款，成功回执跳过重审");
+    }
+
     static void economy() throws Exception {
         try (var f = new Fixture()) {
             final String id = f.adopt();
@@ -586,7 +640,7 @@ public class ApiV3PetTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        names(); adoptionAndIsolation(); economy(); care(); concurrent(); http();
+        names(); adoptionAndIsolation(); nameModeration(); economy(); care(); concurrent(); http();
         System.out.println("PASS 宠物第一批后端专项完成；真实MySQL与浏览器人工验收另行执行");
     }
 }

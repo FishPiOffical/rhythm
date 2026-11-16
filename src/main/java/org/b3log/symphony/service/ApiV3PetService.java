@@ -24,6 +24,7 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.util.Ids;
 import org.b3log.symphony.censor.CensorFactory;
+import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.PetAccountRepository;
 import org.b3log.symphony.repository.PetActivityRepository;
@@ -83,9 +84,24 @@ public class ApiV3PetService {
         return System.currentTimeMillis();
     }
 
-    protected void checkName(final String name) {
-        if (CensorFactory.getTextCensor().censor(name).isBlocked())
-            throw new ApiV3Exception(422, "content_rejected", "宠物名字中含有不适宜的内容");
+    protected CensorResult censorName(final String name) {
+        return CensorFactory.getTextCensor().censor(name);
+    }
+
+    private void checkName(final String name) {
+        final CensorResult decision;
+        try {
+            decision = censorName(name);
+        } catch (RuntimeException error) {
+            throw nameReviewUnavailable();
+        }
+        if (decision == null || !decision.isVerified()) throw nameReviewUnavailable();
+        if (!"pass".equals(decision.getAction()) || decision.isBlocked())
+            throw new ApiV3Exception(422, "content_rejected", "宠物名字未通过内容审核，请修改后重试");
+    }
+
+    private static ApiV3Exception nameReviewUnavailable() {
+        return new ApiV3Exception(503, "temporarily_unavailable", "宠物名字审核暂不可用，请稍后重试");
     }
 
     public JSONObject catalog(final JSONObject identity) {
@@ -127,11 +143,10 @@ public class ApiV3PetService {
         if (!ApiV3PetRules.SPECIES.contains(species)) throw ApiV3WriteInputs.invalid();
         final String name = ApiV3PetRules.name(body.opt("name"));
         final JSONObject input = new JSONObject().put("speciesId", species).put("name", name);
-        return mutate(identity, "adoption", key, input, () -> {
+        return mutate(identity, "adoption", key, input, name, () -> {
             final String actor = actor(identity);
             if (account(actor) != null || pet(actor) != null)
                 throw ApiV3PetRules.conflict("pet_exists", "你已经有一只宠物了");
-            checkName(name);
             final long current = now();
             final String id = Ids.genTimeMillisId();
             accounts.add(new JSONObject().put("oId", actor).put("coins", ApiV3PetRules.INITIAL_COINS)
@@ -158,7 +173,7 @@ public class ApiV3PetService {
         final int version = ApiV3WriteInputs.integer(body, "catalogVersion", -1, 1, Integer.MAX_VALUE);
         final JSONObject input = new JSONObject().put("petId", previousId).put("speciesId", species).put("name", name)
                 .put("catalogVersion", version).put("resetAccepted", true);
-        return mutate(identity, "readoption", key, input, () -> {
+        return mutate(identity, "readoption", key, input, name, () -> {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             final long current = now();
@@ -172,7 +187,6 @@ public class ApiV3PetService {
                 throw ApiV3PetRules.conflict("catalog_changed", "领养费用已更新，请重新查看");
             if (account.getInt("coins") < ApiV3PetRules.READOPTION_COINS)
                 throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
-            checkName(name);
             final String id = Ids.genTimeMillisId();
             // 原主体先归档再替换，新旧宠物使用不同 ID；历史技能、工作、活动和日志不删除。
             archives.add(new JSONObject().put("oId", previousId).put("userId", actor).put("retiredAt", current)
@@ -205,9 +219,8 @@ public class ApiV3PetService {
         exact(body, Set.of("petId", "name"));
         final String id = petId(body), name = ApiV3PetRules.name(body.opt("name"));
         final JSONObject input = new JSONObject().put("petId", id).put("name", name);
-        return mutate(identity, "name", key, input, () -> {
+        return mutate(identity, "name", key, input, name, () -> {
             final JSONObject pet = owned(actor(identity), id);
-            checkName(name);
             pet.put("name", name).put("updatedAt", now());
             pets.update(id, pet, "name", "updatedAt");
             return receipt("name", id, pet.getLong("updatedAt"));
@@ -1050,8 +1063,23 @@ public class ApiV3PetService {
 
     private JSONObject mutate(final JSONObject identity, final String operation, final String key, final JSONObject input,
                               final ApiV3IdempotencyMgmtService.Mutation mutation) {
+        return mutate(identity, operation, key, input, null, mutation);
+    }
+
+    private JSONObject mutate(final JSONObject identity, final String operation, final String key, final JSONObject input,
+                              final String name, final ApiV3IdempotencyMgmtService.Mutation mutation) {
         final var admission = risk.before(identity, operation, key, input);
         if (admission.receipt() != null) return admission.receipt();
+        // 外部审核不占用业务行锁；并发同键提交时，已确认回执仍可优先返回。
+        ApiV3Exception rejected = null;
+        if (name != null) {
+            try {
+                checkName(name);
+            } catch (ApiV3Exception failure) {
+                rejected = failure;
+            }
+        }
+        final ApiV3Exception nameFailure = rejected;
         final String actor = actor(identity);
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
             public Transaction beginTransaction() { return begin(); }
@@ -1069,6 +1097,7 @@ public class ApiV3PetService {
         try {
             return ApiV3IdempotencyMgmtService.runAtomic(guarded, actor, "pet." + operation, key, input, () -> {
                 risk.authorizeMutation(actor, operation, key, input);
+                if (nameFailure != null) throw nameFailure;
                 return mutation.apply();
             });
         } catch (ApiV3Exception error) {

@@ -130,12 +130,12 @@ public class AITextCensor implements TextCensor {
         }
 
         // 缓存结果
-        if (md5 != null && result != null) {
+        if (md5 != null && result != null && result.isVerified()) {
             cache.put(md5, result);
         }
 
         LOGGER.debug("Text censor result: {}", result);
-        return result != null ? result : CensorResult.pass();
+        return result != null ? result : CensorResult.unavailable();
     }
 
     /**
@@ -154,7 +154,7 @@ public class AITextCensor implements TextCensor {
             // 捕获所有异常和错误，确保不会影响正常流程
             LOGGER.error("Qiniu text censor fallback error", e);
             System.out.println("[七牛文本审核] 审核失败: " + e.getMessage() + "，默认通过");
-            return CensorResult.pass();
+            return CensorResult.unavailable();
         }
     }
 
