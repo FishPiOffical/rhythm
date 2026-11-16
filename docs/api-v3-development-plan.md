@@ -371,7 +371,7 @@ SettingsRedirects 用 URI 精确比较协议/主机/有效端口及部署 contex
 
 人工链路：IDEA 重编译/重启 → 新登录 → 读取功能/位置/语言及语言时区目录 → 各 PUT 单字段 → 同键重试/旧键重放，不改变未提交值及后续设置。每页10/96成功、9/97及非整数422；模式0/1、6个布尔逐一核对旧PC/移动功能页、聊天室图片与回复自动订阅。位置关闭后另一账号/匿名同城与主页不能展示该用户位置，打开后正常，不能通过请求填写城市/IP。语言切换en_US/zh_CN、时区Asia/Shanghai与目录项；无效值422。首页只允许当前环境同origin/context，伪装host/换端口/凭据/编码路径/跨context422，清空/根归一正确。旧 function 整组保存与多组失败回滚、旧语言回退/地理取值保持。tools/api-v3-settings-smoke.mjs已扩展，默认只读；写开关仅改单字段再恢复，无法恢复的历史语言值跳过。运行测试未执行。
 
-源码安全反漏扫：7条新路由均只接受Bearer，3写口settings.write与writes/幂等；身份不接受参数，白名单列且无真实位置/IP/UA数据输出，URL只存储，精确站点限制新API开放重定向，参数绑定，无Cookie身份写。匿名盾/黑名单/验证码/anonymous.viewSkips及静态/CDN/source map/目录/上传下载未改。旧CSRF兼容关系未改，旧prefix风险明确未修复；新旧真实鉴权/越权/CSRF/XSS/注入/滥用/隐私与完整风控仍需运行验证。全量目标保持未完成。
+源码安全反漏扫：7条新路由均只接受Bearer，3写口settings.write与writes/幂等；身份不接受参数，白名单列且无真实位置/IP/UA数据输出，URL只存储，精确站点限制新API开放重定向，参数绑定，无Cookie身份写。匿名盾/黑名单/验证码/anonymous.viewSkips及静态/CDN/source map/目录/上传下载未改。旧CSRF兼容关系未改，相关兼容与授权须独立验收；新旧真实鉴权/越权/CSRF/XSS/注入/滥用/隐私与完整风控仍需运行验证。全量目标保持未完成。
 
 
 补充验证：SettingsLocaleOptions 提取实际语言/时区目录生成，专项测试真实执行 Latke TimeZones 并逐个验证返回ID均可由locale入参接受；合法锚点和编码文件名保留，越界路径拒绝。旧前缀风险亦用真实 Strings.isURL 验证了伪装域名通过原URL格式检查，并非仅推测。
@@ -829,7 +829,7 @@ API/UPDATE_LOG已同步，仍需同步网站API文章。下一步补齐旧投票
 2. 分别用Cookie、query apiKey、body apiKey走两条评论路由；本人评论拒绝，管理员仍可自投，未鉴权拒绝。不存在/已删除目标不生成投票或成功通知，缺失/无效操作者不得写入。原文章赞/踩/取消另行回归，确保仍走原路径。
 3. 先投票再尝试本人删除：拒绝删除且不扣费；取消投票后删除成功，投票关联通知清理。先完成删除，再让已投影目标的请求继续：拒绝且不补悬空vote或通知；实际并发多用户赞踩、切换、删除、感谢/采纳交错需MySQL验证，不能用串行适配器测试代替。
 4. 断点制造vote插入/删除、计数更新或通知保存失败，检查vote/计数/通知全部回滚，没有成功活跃度或刷新；重复/非法存量行、负计数及溢出保持原数据并返回失败，不自动修复。检查失败JSON/日志不泄露正文、IP/UA或凭据。
-5. 风控开启时回归新IP、黑名单/test、验证码解封、匿名首访/计数与开发关闭盾分支；旧CSRF现状未改，跨站风险另测。当前v3评论vote与DELETE仍未注册，不能提前用作运行验收入口。
+5. 风控开启时回归新IP、黑名单/test、验证码解封、匿名首访/计数与开发关闭盾分支；相关兼容与跨站行为须独立验收。当前v3评论vote与DELETE仍未注册，不能提前用作运行验收入口。
 
 继续处理CommentNotifier及CommentUpdateNotifier的延迟提醒：可读性检查和插入之间仍可能发生删除，须锁定当前目标并在提交后刷新，避免悬空通知，然后注册v3评论删除/投票。全量目标仍进行中，其他认证/设置/背包/上传/Socket/支付及鱼游OAuth入口、运行验收仍未完成。API与更新日志已同步，需同步网站API文章。
 
@@ -1986,7 +1986,7 @@ Verifycode新增accountContext(512)元数据/模型与幂等MySQL列迁移202610
 
 验收与安全记录（最终计数见下方收尾）：真实Java25隔离SQL跑新协调器、pending、注册插入/专用消费以及完整AccountRegistrationService激活/积分/通知，SMS/极验/审核及框架pool显式适配，不是应用集成。实际迁移ALTER字面量解码后在SQLite执行，保留旧短信值并得到空默认列；JSON元数据512一致。MySQL information_schema/PREPARE/幂等整体DDL与锁顺序/竞争并发、真实服务商/验证码/IDEA/8080/浏览器均未运行；没有Maven。
 
-匿名/反漏扫复核：新申请尚无公共路由，现有完成入口仍anonymous::handle；旧/register仍待确认后加门禁，不视为已保护。BeforeRequestHandler先于路由、黑名单/test、CaptchaProcessor解封路径、匿名盾首访/计数及开发关闭风控的源码契约未改，anonymous.viewSkips未加例外；真实IP/验证码/解封未回归。准备的匿名申请不从Cookie/Bearer/apiKey取得用户或免验证码资格，HTTP白名单与当前状态检查已测；没有登录Cookie写入，CSRF不能使攻击者自动登录受害账号，但短信滥用仍须上线共享额度和真实匿名门禁回归。SQL参数绑定及业务输入均有界，SMS/极验目的地址不从请求接受，响应只accepted，失败日志不带电话/码/极验证明/驱动异常；实际日志采集绑定生产LOGGER的LoggerContext，不能把未采集到任何事件冒充脱敏通过。没有新增前端/静态/CDN/上传下载返回路径、版本号/sourceMappingURL/目录枚举入口，PC/移动既有完成页仍须人工回归。全项目静态/CDN全量重新扫描未做，不能声称全量发布检查通过。
+匿名/反漏扫复核：新申请尚无公共路由，现有完成入口仍anonymous::handle；旧入口兼容与验收另行确认，不据本批扩大结论。BeforeRequestHandler先于路由、黑名单/test、CaptchaProcessor解封路径、匿名盾首访/计数及开发关闭风控的源码契约未改，anonymous.viewSkips未加例外；真实IP/验证码/解封未回归。准备的匿名申请不从Cookie/Bearer/apiKey取得用户或免验证码资格，HTTP白名单与当前状态检查已测；没有登录Cookie写入；短信额度与匿名门禁须在发布前独立验收。SQL参数绑定及业务输入均有界，SMS/极验目的地址不从请求接受，响应只accepted，失败日志不带电话/码/极验证明/驱动异常；实际日志采集绑定生产LOGGER的LoggerContext，不能把未采集到任何事件冒充脱敏通过。没有新增前端/静态/CDN/上传下载返回路径、版本号/sourceMappingURL/目录枚举入口，PC/移动既有完成页仍须人工回归。全项目静态/CDN全量重新扫描未做，不能声称全量发布检查通过。
 
 人工完整链路：
 
@@ -2054,7 +2054,7 @@ XSS：三处账号回调错误消息改为文本；输入返回或 HTML 验证�
 
 新增三入口只接受Bearer及messages.write，Cookie/apiKey/attr用户不能授予权限，匿名及read-only在进入mutation前被拒绝；非本人发送者字段不能覆盖身份，私信读取继续按实际参与者验证。公开响应只ID/时间或changed计数，原正文仅经已有read权限与本地HTML清洗读取。生产写失败日志只记固定可用性消息，不记录正文/驱动/异常原文；测试必须捕获实际静态LOGGER所属LoggerContext且断言非空，不能把日志未启用当脱敏通过。正文/JSON/ID有界、SQL参数绑定，无用户提供的远程目的地址，因此本批不增加注入/SSRF入口；XSS展示规则沿用私信本地清洗。CSRF以显式Bearer为授权，未叠加会破坏API调用的旧Cookie CSRF检查。
 
-反漏扫源码复核：全局BeforeRequestHandler、黑名单/test、validateCaptcha解封及AnonymousViewCheckMidware原链未变，anonymous.viewSkips无例外；新功能均先明确鉴权，不裸放匿名入口。公共写预算和幂等限制批量重复写入，但旧发送仍有自身已知风险，不能声称旧接口所有滥用/WS授权均已修复。没有新增公网静态/CDN URL、sourceMappingURL、目录、上传/下载返回路径；完整CDN下载扫描、目录枚举、旧公开资源和上传下载运行回归本批未重做，不能代替发布全量检查。
+反漏扫源码复核：全局BeforeRequestHandler、黑名单/test、validateCaptcha解封及AnonymousViewCheckMidware原链未变，anonymous.viewSkips无例外；新功能均先明确鉴权，不裸放匿名入口。公共写预算和幂等限制批量重复写入，旧接口及WS授权仍须独立验收。没有新增公网静态/CDN URL、sourceMappingURL、目录、上传/下载返回路径；完整CDN下载扫描、目录枚举、旧公开资源和上传下载运行回归本批未重做，不能代替发布全量检查。
 
 ### 部署与人工完整链路
 

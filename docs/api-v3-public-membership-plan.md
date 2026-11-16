@@ -2,23 +2,11 @@
 
 ## 结论与范围
 
-已有v3覆盖会员档位、本人会员状态、本人展示配置修改及本人积分开通；“第三方展示他人的会员昵称样式”尚未覆盖，不能用本人GET或已存在旧HTML展示来判定完成。旧全站会员配置导出不等于已批准的新公开契约，不能直接复刻任意configJson或按其无门禁方式注册。本文只读盘点，不增加路由/字段，也不缩小剩余范围。
+已有v3覆盖会员档位、本人会员状态、本人展示配置修改及本人积分开通；“第三方展示他人的会员昵称样式”尚未覆盖，不能用本人GET或已存在旧HTML展示来判定完成。旧全站会员配置导出不等于已批准的新公开契约，新资源须独立确认授权及字段白名单。本文只读盘点，不增加路由/字段，也不缩小剩余范围。
 
-## 旧路由与真实响应
+## 旧接口复用边界
 
-入口在`src/main/java/org/b3log/symphony/processor/MembershipProcessor.java#register`，经Router主注册可达。
-
-| 旧入口 | 实际注册及行为 | 与本次能力关系 |
-| --- | --- | --- |
-| GET `/api/membership/levels` | 第89行，无路由门禁；listLevels调用MembershipQueryService.listLevels，按price/oId排序，返回完整档位行，并增加openedMemberCount。计数仅筛state=1，不按expiresAt排除过期，查询异常计数记0 | 商品档位已有v3对应；完整原benefits、计数与返回形状并非完全等价，不能无评审补进v3 |
-| GET `/api/memberships/configs` | 第91行，无路由门禁；listActiveConfigs第183行投影每项userId和原始configJson，信封code/msg/data数组。方法注释写“Admin”，但实际未执行管理员检查 | 真实全站配置资源，未被v3复刻；注释不能作为访问控制证据 |
-| GET `/api/membership/{userId}` | 第92行，无路由门禁；getUserMembershipStatus调用getStatusByUserId，会员有效时返回原会员行，无效返回state=0；不是只bold/underline/color | 旧任意用户会员状态资源；v3仅本人，不等价于公开他人能力 |
-| POST `/api/membership/open` | loginCheck；本人积分开通 | v3已提供本人开通，不是公开配置读取缺口 |
-| PUT `/api/membership/config` | loginCheck；本人configJson更新 | v3已提供受限展示字段修改，不是公开配置读取缺口 |
-
-`MembershipQueryService.java#listActiveConfigs`（第160行）按state=1及updatedAt降序读取会员记录，过滤expiresAt非0且已到期记录；同时移除过期缓存、写有效缓存。无分页参数，没有在此查询当前userStatus；不应把“激活会员记录”表述成“当前有效账号且已选择公开展示”。底层getList存在框架读取行为，未验证其超大数据上限，不能将注释“一次性所有”当作无限量完整性保证。
-
-原configJson为任意JSON字符串，这两个旧公开接口没有使用`ApiV3MembershipDto.configuration`白名单；可能含购买/后台维护的扩展权益键。本次不对存量响应作未经授权的兼容变更，也不据存量暴露推定新v3可以继续公开。
+旧接口、模板数据与新V3公开资源须分别核对调用方、授权及字段契约；新资源只提供已确认可公开的展示字段，不以历史输出或调用数量推导授权。
 
 ## PC、移动端与第三方调用链
 
@@ -50,7 +38,7 @@
 以下两问足以决定公开契约，不再重复询问已确认的本人设置或开通规则。
 
 1. 他人公开展示需要哪些字段：仅bold/underline/color，还是还要有效会员标记、levelCode、expiresAt？不确定项逐个确认，不默认继承本人config或原configJson。
-2. 访问对象与门禁：只查询客户端已展示的指定用户（可批量），还是确实需要全站分页会员名单？是否允许匿名访问，还是要求Bearer profile.read？当前旧公开路由的无门禁不作为新路由授权。
+2. 访问对象与门禁：只查询客户端已展示的指定用户（可批量），还是确实需要全站分页会员名单？是否允许匿名访问，还是要求Bearer profile.read？旧接口不作为新路由授权依据。
 
 其他诸如分页大小、批量技术上限、SQL实现、回包命名可在确认范围后按项目现有约定设计；若需隐私开关，应另明确旧展示兼容影响，不自行新增或假设存在。
 

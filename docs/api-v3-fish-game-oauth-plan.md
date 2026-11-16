@@ -17,20 +17,9 @@
 - `ApiV3FishGameProcessor`当前只注册投票PUT/DELETE和评论POST；`ApiV3FishGameMgmtService`只提供vote/comment。不能在这里调用旧submit就宣称必需OAuth已实现。
 - `sql/20260907_fish_game.sql`最初有`fishGameOauthUrl`、`fishGameOauthVerified`、`fishGamePendingOauthUrl`；**`sql/20260908_fish_game_remove_oauth.sql`显式删除三列**。当前`FishGame`模型与`repository.json`字段也已移除，不能依赖初始建表SQL假定证明仍存在。
 
-## 指定旧OpenID链路的可信数据和边界
+## 协议证明范围
 
-| 阶段 | 当前方法 / 存储 | 能证明什么 | 缺失什么 |
-| --- | --- | --- | --- |
-| 请求授权 | `OpenIdProcessor.showLoginForm`（180行），内存authRequestMap/AuthRequest | 服务端暂存输入realm、完整returnTo、scope | realm由请求方声明；仅`return_to.startsWith(realm)`，无注册站点或owner；不能用此前缀规则作鱼游站点匹配 |
-| 用户确认 | `OpenIdProcessor.confirm`（268行），内存respNonceMap/AuthResult | 当前登录用户同意该请求scope，签名包含完整return_to | AuthResult仅userId/realm/scopes，不存完整returnTo，未绑定fishGame URL或投稿请求；确认并非站点服务器身份认证 |
-| 校验回跳 | `OpenIdProcessor.verify`（354行） | 短期nonce、签名、OpenID字段与用户匹配后调用issueToken | public POST没有客户端密钥、站点私钥或站点控制挑战；不要求调用方是return_to服务器。它验证摸鱼派签名，不能证明请求来自该站 |
-| 发Token | `OpenIdRefreshTokenMgmtService.issueToken/issueTokenInternal` | 真实verify成功后保存userId、realm、scope、family等refresh记录；access签名payload含userId/realm/scope/iat/exp/jti | realm最多512字符且截断；没有完整return_to、站点登记、game URL、game author绑定或单独“站点完成集成”事件 |
-| 持久表 | `OpenIdRefreshToken`、`OpenIdRefreshTokenRepository`、`sql/20260622_openid_refresh_token.sql` | 可按userId、realm索引检索旧refresh授权记录 | 该用户是在该realm登录的用户，不是域名管理员身份；一条授权不证明其拥有该站，也不证明站点消费了结果 |
-| access验签 | `OpenIdUtil.parseAccessToken`（97行） | 验HMAC和exp，能恢复旧userId/realm | 任意有效token不等于站点拥有权；该函数也不把签名token与当前refresh撤销状态或game提交绑定 |
-
-具体反例：用户本人可以构造任意HTTPS realm/return_to授权链接并同意。签名回跳参数出现在其自己浏览器的跳转URL中，该用户可自行取得参数并向`/openid/verify`提交；现有verify不认证“接收结果的站点服务器”。因此会得到真实userId+realm授权记录，但目标站点可以完全没有部署OAuth代码。把game origin与这个realm比较得再精确，也只能修复字符串匹配，不能弥补证明含义。
-
-无需生产试攻击来得出此结论；它直接来自上述参数生成和校验边界。本轮未发起登录、授权、verify、Token或鱼游写请求。
+用户授权、站点集成和站点控制权是不同的业务证明。投稿资格须按用户明确认可的证明来源核验，不能以某次用户授权记录替代站点归属；本轮未执行真实授权或投稿请求。
 
 ## 不可混用的 v3 记录
 

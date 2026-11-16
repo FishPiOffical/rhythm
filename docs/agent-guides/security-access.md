@@ -18,10 +18,10 @@
 - 旧接口的 `loginCheck::handle` 兼容 `Sessions` + `apiKey`（query参数与JSON body），并写入 `context.attr(User.USER)`；处理方法优先从该attr取当前用户。未登录统一401，特殊URI `/gen` 返回空SVG。页面登录态与apiKey双兼容的新接口优先挂该登录中间件，不只挂permission；V3身份按其独立Bearer边界。
 - `apiCheck::handle` 同样支持 `apiKey` 并写入 `context.attr(User.USER)`，但未登录返回 JSON `{"result":"Unauthorized"}`；适合纯 API 场景。
 - `permissionMidware::check` 只做权限判断，不负责写入 `context.attr(User.USER)`；若处理方法还需要当前用户信息，必须自行取用户（或叠加 `loginCheck`）。
-- `permissionMidware::check` 在 `permission.rule.url.*` 缺失时会直接放行（含匿名）；凡仅挂 `permissionMidware` 的路由必须同步补齐对应权限规则，避免后台能力裸露。
+- 使用 `permissionMidware::check` 的路由须同时核对登录要求及对应 `permission.rule.url.*` 权限规则，不得以挂载权限中间件代替完整授权验证。
 - 处理方法取当前用户推荐顺序：`context.attr(User.USER)` -> `Sessions.getUser()` -> `ApiProcessor.getUserByKey(...)`；不要只依赖 `Sessions.getUser()`。
 - 路由总入口：`Router#requestMapping` + 各 Processor `register()`；新增路由先决定使用 `loginCheck` / `apiCheck` / `permission` / `anonymousViewCheck` 哪条链路。
-- 历史遗留：部分接口未在路由层挂登录中间件而在方法内鉴权（如 `MedalProcessor#requireAdmin/requireLogin`、`UserProcessor` 的 goldFingerKey 系列）；新增接口不要复用该模式，优先路由层显式鉴权。
+- 新增接口优先在路由层显式鉴权；审查既有入口时核对处理方法与服务层的完整授权链，不能仅凭注册行判定。
 
 ## CSRF 与兼容
 
@@ -30,9 +30,9 @@
 - CSRF 安全判断必须先确认接口是否同时支持页面 Cookie 与 `apiKey` 客户端调用；已兼容 `apiKey` 的写接口不能直接补 `csrfMidware::check`，否则会破坏 RESTful/API 客户端。加固这类接口需先拆分页面入口与 API 入口，或设计明确兼容 `apiKey` 的 CSRF 例外。
 - 涉及 API 入参或返回字段变更，且可能影响第三方客户端兼容性时，必须先说明接口、字段、兼容影响和替代方案，经过用户同意后再修改；安全漏洞修复也要把破坏性影响显式说清楚。
 
-## 脱敏与已知风险
+## 脱敏与公开边界
 
-- 用户脱敏基线（已审计）：对外接口用户对象统一走 `DesensitizeUtil`（移除密码/邮箱/手机/QQ/2FA/apiKey/token/IP/UA 等）或字段白名单；已知存量风险（用户知情暂不修）：`/reset-pwd?code=` 与 `/register?code=` 页面把完整 `user.userPhone` 输出到 HTML（LoginProcessor + verify/reset-pwd.ftl、verify/register2.ftl，匿名可见）；`TopProcessor#removePrivateData` 不移除签到/登录时间戳等活动字段。
+- 对外用户对象统一走 `DesensitizeUtil` 或字段白名单；联系方式、凭据与活动字段逐项按当前查看者和用途评估。管理员读取及本人验证流程的授权规则须独立核对，不能仅凭字段完整或脱敏判断是否越权。具体安全发现不保存到公开文档。
 - `symphony.properties` 中提交的 `upload.rhypic.ticketPrivateKey` / `upload.rhypic.internalToken` 是开发调试专用，生产环境使用独立生成的密钥，审计时不要当作泄露误报。
 - 评论/文章公开接口与 WebSocket 事件必须使用响应白名单；允许返回 `commentAuthorId`、`articleAuthorId` 这类公开用户 ID，但禁止返回 `commentIP`、`commentUA`、`articleIP`、`articleUA`、`userPassword`、`userLatestLoginIP`、`userPhone`、`userEmail`、`userQQ`、`secret2fa`、token/key 等高敏字段。完整 `Article` 或完整用户对象不得裸传，需先脱敏。
 - 评论读取类公开接口即使不走 `/article/{id}` 路径，也必须按目标文章执行 `articleAnonymousView` 与讨论帖可见性校验；校验当前用户时必须兼容 `Sessions` 和 `apiKey`，否则会绕过文章页匿名访问限制或误拒绝合法 API 客户端。

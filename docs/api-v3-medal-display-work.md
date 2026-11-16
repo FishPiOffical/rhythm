@@ -125,4 +125,4 @@ curl -X PUT 'https://fishpi.cn/api/v3/me/medals/0/display' \
 
 - 新增 `PUT /api/v3/me/medals/{medalId}/display`：使用 `settings.write` 设置本人有效勋章显示状态，支持 `Idempotency-Key`；不改变勋章顺序。请求字段为必填布尔 `displayed`，返回勋章ID和本次显示设置。
 
-主代理最终补验：路径ID用ApiV3Json.canonical拒绝孤立UTF-16代理项422，正常emoji字符串保持；仍为6组专项并入输入断言。旧MedalService显示/排序写入仍是整行快照和普通commit，本批未修改，不承诺其与新写入并发时没有覆盖；真实MySQL旧授予/续期/排序竞争须实测。
+主代理最终补验：路径ID用ApiV3Json.canonical拒绝孤立UTF-16代理项422，正常emoji字符串保持；仍为6组专项并入输入断言。旧显示及排序入口的兼容与并发须独立验收；真实MySQL旧授予/续期/排序竞争须实测。

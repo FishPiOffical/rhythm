@@ -58,8 +58,8 @@
 | 63 | 保留 | [账号、地址与真实验证边界](captcha-acceptance.md) |
 | 64 | 保留 | [账号、地址与真实验证边界](captcha-acceptance.md) |
 | 65 | 保留 | [账号、地址与真实验证边界](captcha-acceptance.md) |
-| 66 | 保留 | [脱敏与已知风险](security-access.md) |
-| 67 | 保留 | [脱敏与已知风险](security-access.md) |
+| 66 | 保留 | [脱敏与公开边界](security-access.md#脱敏与公开边界) |
+| 67 | 保留 | [脱敏与公开边界](security-access.md#脱敏与公开边界) |
 | 68 | 保留 | [搜索引擎验证与来源统计](captcha-crawlers.md) |
 | 69 | 保留 | [路由与旧接口身份](security-access.md) |
 | 70 | 保留 | [路由与旧接口身份](security-access.md) |
@@ -80,9 +80,9 @@
 | 85 | 合并至原46行对应规则 | [反漏扫与安全检查](security-access.md) |
 | 86 | 保留 | [CSRF 与兼容](security-access.md) |
 | 87 | 保留 | [可见性与详情投影](articles.md) |
-| 88 | 保留 | [脱敏与已知风险](security-access.md) |
-| 89 | 保留 | [脱敏与已知风险](security-access.md) |
-| 90 | 保留 | [脱敏与已知风险](security-access.md) |
+| 88 | 保留 | [脱敏与公开边界](security-access.md#脱敏与公开边界) |
+| 89 | 保留 | [脱敏与公开边界](security-access.md#脱敏与公开边界) |
+| 90 | 保留 | [脱敏与公开边界](security-access.md#脱敏与公开边界) |
 | 91 | 保留 | [CSRF 与兼容](security-access.md) |
 | 92 | 保留 | [公开文档约定](api-contracts.md) |
 | 93 | 保留 | [开发准入与兼容](workflow.md) |
