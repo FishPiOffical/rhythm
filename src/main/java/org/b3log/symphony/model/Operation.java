@@ -326,6 +326,7 @@ public final class Operation {
     public static final int OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE = 53;
     public static final int OPERATION_CODE_C_ADD_REPEATER = 54;
     public static final int OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD = 55;
+    public static final int OPERATION_CODE_C_MODERATE_PET_NAME = 56;
 
 
     //// Transient ////

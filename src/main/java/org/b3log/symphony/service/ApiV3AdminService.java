@@ -275,7 +275,8 @@ public class ApiV3AdminService {
             new OperationCodeMeta(Operation.OPERATION_CODE_C_PUBLISH_CHAT_BUBBLE, "发布聊天气泡", "appearance"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_UNPUBLISH_CHAT_BUBBLE, "下架聊天气泡", "appearance"),
             new OperationCodeMeta(Operation.OPERATION_CODE_C_ADD_REPEATER, "添加复读机内容", "repeater"),
-            new OperationCodeMeta(Operation.OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD, "保存客户端下载配置", "clientDownload")
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD, "保存客户端下载配置", "clientDownload"),
+            new OperationCodeMeta(Operation.OPERATION_CODE_C_MODERATE_PET_NAME, "处理违规宠物昵称", "pet")
     );
 
     private static final Map<Integer, OperationCodeMeta> OPERATION_CODE_META_MAP = buildOperationCodeMetaMap();
@@ -1726,7 +1727,7 @@ public class ApiV3AdminService {
         }
     }
 
-    private static String escapeLike(final String value) {
+    static String escapeLike(final String value) {
         return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 

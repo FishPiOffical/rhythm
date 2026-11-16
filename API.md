@@ -16804,6 +16804,12 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 
 > 用户、勋章不存在或当前未公开展示返回404。当前用户也不能通过此路径读取自己的隐藏勋章，请改用本人路径。公开勋章列表仍可按原接口读取；图片需要profile.read，游客客户端可继续展示名称和描述。
 
+### 后台宠物管理
+
+`GET /api/v3/admin/pets?q=&p=1&size=20` 需要第一方管理员与 `profile.read`。查询当前宠物，支持按宠物 ID、主人 UID、宠物昵称、主人用户名或昵称筛选，返回分页及公开识别字段。
+
+`PUT /api/v3/admin/pets/{petId}/moderate-name` 需要第一方管理员、`settings.write` 及 `Idempotency-Key`。提交 `{expectedName}`，服务端将该昵称改成「违规昵称」加宠物 ID 末六位，并记录审计。当前名字与请求不一致时返回 409（`pet_name_changed`）。已替换为系统名的记录返回同一处理结果，不重复写审计。回执为 `{petId,moderatedName}`。
+
 ### 宠物家园（第一批）
 
 以下接口需要当前第一方 V3 Bearer；不支持 Cookie 或旧 apiKey。两项读取使用 `profile.read`，五项写入使用 `settings.write`，写入需 `Idempotency-Key`。

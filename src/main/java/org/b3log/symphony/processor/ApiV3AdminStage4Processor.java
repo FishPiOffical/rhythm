@@ -26,6 +26,7 @@ import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.processor.middleware.ApiV3WriteMidware;
+import org.b3log.symphony.service.ApiV3AdminPetService;
 import org.b3log.symphony.service.ApiV3AdminProfessionService;
 import org.b3log.symphony.service.ApiV3AdminSystemService;
 import org.b3log.symphony.service.ProfessionAdminQueryService;
@@ -105,6 +106,9 @@ public class ApiV3AdminStage4Processor {
     @Inject
     private ProfessionAutomationTestService automationTestService;
 
+    @Inject
+    private ApiV3AdminPetService petService;
+
     /**
      * 注册第四阶段管理后台 v3 路由。
      */
@@ -116,6 +120,8 @@ public class ApiV3AdminStage4Processor {
 
         // 宠物风控日志（严格只读）
         Dispatcher.get("/api/v3/admin/pets/logs", p::listPetLogs, auth::profileRead);
+        Dispatcher.get("/api/v3/admin/pets", p::listPets, auth::profileRead);
+        Dispatcher.put("/api/v3/admin/pets/{petId}/moderate-name", p::moderatePetName, auth::settingsWrite, write::handle);
 
         // IP 封禁与白名单管理
         Dispatcher.get("/api/v3/admin/ips", p::getIpPolicyStatus, auth::profileRead);
@@ -171,6 +177,17 @@ public class ApiV3AdminStage4Processor {
         Dispatcher.post("/api/v3/admin/professions/automation/copy", p::professionCopyAutomation, auth::settingsWrite, write::handle);
         Dispatcher.post("/api/v3/admin/professions/automation/rollback", p::professionRollbackAutomation, auth::settingsWrite, write::handle);
         Dispatcher.post("/api/v3/admin/professions/automation/test", p::professionTestAutomation, auth::settingsWrite, write::handle);
+    }
+
+    public void listPets(final RequestContext context) {
+        ApiV3Requests.read(context, () -> petService.list(identity(context),
+                ApiV3Requests.text(context.param("q"), 64, false), ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    public void moderatePetName(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> petService.moderateName(identity(context), context.pathVar("petId"),
+                ApiV3WriteInputs.body(context, Set.of("expectedName"), false, 2048),
+                ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
     }
 
     public void listPetLogs(final RequestContext context) {
