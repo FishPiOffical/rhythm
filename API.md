@@ -18200,3 +18200,10 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `GET /api/v3/me/pet/brawl/orders` 返回本人 `{list,next,balance}`，可带 `before` 游标。详情 `GET /api/v3/me/pet/brawl/orders/{id}` 返回当前余额与订单。订单公开字段为 `id,petId,weapon,level,materials,points,version,createdAt,expiresAt,status`，完成后附 `completedAt`。状态为 `pending/completed/expired`。
 - `POST /api/v3/me/pet/brawl/orders/{id}/confirm` 接收 `{petId}`，返回 `operation:brawl-confirm,petId,committedAt,orderId`。确认时重验武器等级、宠物、规则版本、材料和余额。余额不足为 409 `insufficient_points`，结算结果可用订单 ID 查询。
 - 读取要求第一方本人 `profile.read`，写入口要求 `settings.write` 和 `Idempotency-Key`。同一订单只完成一次，重复确认返回既有回执。每份历练材料抵扣 10 积分，当前五档强化全额为 200、400、800、1400、2200 积分。
+
+#### 宠物乱斗进阶配装
+
+- `GET /api/v3/me/pet/brawl` 新增 `gear:{revision,weapons,ranks,catalog,bonuses}`。按武器保存神器、第二槽及两个镶嵌项。道具等级按当前账号保存。目录列明每级材料成本和每级属性增益，生命与基础伤害按百分之一 HP 表示。
+- `POST /api/v3/me/pet/brawl/orders` 可带 `product`。固定 ID 为 `ARTIFACT`、`SLOT`、`SOUL_VITAL`、`SOUL_EDGE`、`RUNE_GUARD`、`RUNE_SPARK`。传入的 `level` 为该项目现有等级，材料折抵继续沿用每份 10 积分。旧强化订单省略 product。
+- `PUT /api/v3/me/pet/brawl/socket` 接收 `{petId,weapon,slot,item,version,revision}`。slot 为 `soul` 或 `rune`，item 为匹配类别的已拥有道具 ID，空字符串表示拆卸。需要本人 `settings.write` 和幂等键，成功后重新读取配装。
+- PvP 战报双方配置增加 `gearHp` 和 `gearAttack` 增益及装备快照，历史配置以结算记录为准。

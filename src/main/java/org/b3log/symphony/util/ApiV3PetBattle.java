@@ -10,14 +10,18 @@ public final class ApiV3PetBattle {
     public static final int[] COST = {20, 40, 80, 140, 220};
     public enum Weapon { SPOON, GUARD, FAN }
     public enum Skill { SPLASH, CURL, BREATHE }
-    public record Setup(Weapon weapon, Skill skill, int level) {
+    public record Setup(Weapon weapon, Skill skill, int level, int gearHp, int gearAttack) {
+        public Setup(final Weapon weapon, final Skill skill, final int level) {
+            this(weapon, skill, level, 0, 0);
+        }
         public Setup {
-            if (weapon == null || skill == null || level < 0 || level > COST.length)
+            if (weapon == null || skill == null || level < 0 || level > COST.length
+                    || gearHp < 0 || gearHp > 40 || gearAttack < 0 || gearAttack > 10)
                 throw new IllegalArgumentException("无效战斗配置");
         }
 
-        public int maxHp() { return 10_000 + 60 * level; }
-        public int attack() { return 900 + 5 * level; }
+        public int maxHp() { return 10_000 + 60 * level + gearHp; }
+        public int attack() { return 900 + 5 * level + gearAttack; }
     }
     public record Turn(int round, int actor, int damage, int healing, int playerHp, int opponentHp) {}
     public record Result(int winner, List<Turn> turns) {}

@@ -43,6 +43,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3PetRules;
 import org.b3log.symphony.util.ApiV3PetBattle;
+import org.b3log.symphony.util.ApiV3PetGear.Product;
 import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3PetWork;
@@ -209,19 +210,45 @@ public class ApiV3PetService {
     }
 
     public JSONObject brawlQuote(final JSONObject identity, final JSONObject input, final String key) {
-        exact(input, Set.of("petId", "weapon", "level", "version", "materials"));
+        exact(input, input.has("product") ? Set.of("petId", "weapon", "level", "version", "materials", "product")
+                : Set.of("petId", "weapon", "level", "version", "materials"));
+        final Product product = input.has("product") ? brawlChoice(input, "product", Product.class) : null;
         final String id = petId(input);
         final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
-        final int level = brawlNumber(input, "level", 0, ApiV3PetBattle.COST.length - 1);
+        final int level = brawlNumber(input, "level", 0, (product == null ? ApiV3PetBattle.COST.length : product.maxLevel()) - 1);
         final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
-        final int materials = brawlNumber(input, "materials", 0, ApiV3PetBattle.COST[level]);
+        final int materials = brawlNumber(input, "materials", 0, product == null ? ApiV3PetBattle.COST[level] : product.cost(level));
         return mutate(identity, "brawl-quote", key, input, () -> {
             requireBrawlVersion(version);
             final String owner = actor(identity);
             brawlPet(owner, id);
             final long current = now();
-            final JSONObject quote = brawl.quote(owner, id, weapon, level, materials, current);
+            final JSONObject quote = brawl.quote(owner, id, weapon, level, materials, product, current);
             return receipt("brawl-quote", id, current).put("orderId", quote.getString("id"));
+        });
+    }
+
+    public JSONObject brawlSocket(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "weapon", "slot", "item", "version", "revision"));
+        final String id = petId(input);
+        final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
+        final String slot = string(input, "slot");
+        if (!Set.of("soul", "rune").contains(slot) || !(input.opt("item") instanceof String item))
+            throw ApiV3WriteInputs.invalid();
+        if (!item.isEmpty()) {
+            final Product product = brawlChoice(input, "item", Product.class);
+            final Set<Product> allowed = "soul".equals(slot) ? Set.of(Product.SOUL_EDGE, Product.SOUL_VITAL)
+                    : Set.of(Product.RUNE_GUARD, Product.RUNE_SPARK);
+            if (!allowed.contains(product)) throw ApiV3WriteInputs.invalid();
+        }
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        final int revision = brawlNumber(input, "revision", 0, Integer.MAX_VALUE);
+        return mutate(identity, "brawl-socket", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            brawlPet(owner, id);
+            brawl.socket(owner, weapon, slot, item, revision);
+            return receipt("brawl-socket", id, now());
         });
     }
 

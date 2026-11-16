@@ -4,6 +4,7 @@ import java.util.Properties;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.PetBrawlAccountRepository;
+import org.b3log.symphony.repository.PetBrawlGearRepository;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
 import org.b3log.symphony.repository.PetBrawlPairRepository;
 import org.b3log.symphony.repository.PetBrawlProfileRepository;
@@ -22,6 +23,12 @@ public final class ApiV3PetBrawlTest {
             sql(db, "CREATE TABLE pet_brawl_match(oId TEXT PRIMARY KEY,userId TEXT,createdAt BIGINT,snapshotJson TEXT)");
             final var brawl = new ApiV3PetBrawl();
             inject(pets, "brawl", brawl);
+            sql(db, "CREATE TABLE pet_brawl_gear(oId TEXT PRIMARY KEY,snapshotJson TEXT)");
+            inject(brawl, "gears", new PetBrawlGearRepository() {
+                public JSONObject get(final String id) throws RepositoryException {
+                    return selectSQL("SELECT * FROM pet_brawl_gear WHERE oId=?", id).stream().findFirst().orElse(null);
+                }
+            });
             sql(db, "CREATE TABLE pet_brawl_profile(oId TEXT PRIMARY KEY,petId TEXT,enabled INT,weapon TEXT,skill TEXT,revision TEXT,version INT)");
             sql(db, "CREATE TABLE pet_brawl_pair(oId TEXT PRIMARY KEY,day TEXT,initiator TEXT,recipient TEXT,pairLow TEXT,pairHigh TEXT)");
             inject(brawl, "profiles", new PetBrawlProfileRepository() {

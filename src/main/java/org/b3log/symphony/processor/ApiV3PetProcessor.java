@@ -60,6 +60,7 @@ public class ApiV3PetProcessor {
         Dispatcher.get("/api/v3/me/pet/brawl/orders/{id}", processor::brawlOrder, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/brawl/orders", processor::brawlQuote, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/orders/{id}/confirm", processor::brawlConfirm, auth::settingsWrite);
+        Dispatcher.put("/api/v3/me/pet/brawl/socket", processor::brawlSocket, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/upgrade", processor::brawlUpgrade, auth::settingsWrite);
         Dispatcher.get("/api/v3/me/pet/risk", processor::riskState, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/risk/challenge", processor::challenge, auth::settingsWrite);
@@ -119,12 +120,17 @@ public class ApiV3PetProcessor {
 
     public void brawlQuote(final RequestContext context) {
         respond(context, () -> pets.brawlQuote(identity(context),
-                body(context, Set.of("petId", "weapon", "level", "version", "materials")), ApiV3WriteInputs.idempotencyKey(context)));
+                body(context, Set.of("petId", "weapon", "level", "version", "materials", "product")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void brawlConfirm(final RequestContext context) {
         respond(context, () -> pets.brawlConfirm(identity(context), body(context, Set.of("petId")),
                 context.pathVar("id"), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlSocket(final RequestContext context) {
+        respond(context, () -> pets.brawlSocket(identity(context),
+                body(context, Set.of("petId", "weapon", "slot", "item", "version", "revision")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void brawlUpgrade(final RequestContext context) {
