@@ -38,7 +38,8 @@
 
 ## 持久事件与读取
 
-- 聊天室已提交变更经ChatRoomRepository及共享ReactionMgmtService写api_v3_chat_event和api_v3_chat_state/main；head行锁串行分配revision，不能用消息ID/时间作提交游标。ApiV3ChatTransaction以外层事务保存点绑定消息/reaction与事件，无法局部撤销时整笔回滚。取票POST /api/v3/chat/realtime-ticket要求content.read；ApiV3ChatStream有界消费已提交序列、逐连接重验content.read；新增/更新附带与消息详情相同的有界白名单快照，撤回/表态仅发标识，缺口或倒退发chat.sync_required。启动时初始化调度，清理只删旧事件、不重置head；两张表及种子须先迁移，非持久化在线另接，弹幕另发即时事件。
+- 聊天室已提交变更经ChatRoomRepository及共享ReactionMgmtService写api_v3_chat_event和api_v3_chat_state/main；head行锁串行分配revision，不能用消息ID/时间作提交游标。ApiV3ChatTransaction以外层事务保存点绑定消息/reaction与事件，无法局部撤销时整笔回滚。取票POST /api/v3/chat/realtime-ticket要求content.read；ApiV3ChatStream有界消费已提交序列、逐连接重验content.read；新增/更新附带与消息详情相同的有界白名单快照，表态可附汇总及连接本人选择，撤回仅发标识，缺口或倒退发chat.sync_required。启动时初始化调度，清理只删旧事件、不重置head；两张表及种子须先迁移，非持久化在线另接，弹幕另发即时事件。
+- 每个最多200事件批次先完整检查revision连续性，再按消息ID去重准备快照；内部20个ID一组批量读取消息与表态，每条消息单独保留2001行探测/2000行快照边界，不得以整个批次的LIMIT造成假空汇总。仅本批复用，发送后清理；原始事件数、顺序及单帧对象协议不变，不推送数组。快照失败保留既有标识补查或reactionsUnavailable语义，个人选择映射只在服务端按连接投影。专项验证入口为 `tools/experiments/api-v3-safety-performance-test.mjs`，需要Java25和本地应用依赖，每个进程60秒硬超时；不等于已部署HTTP/浏览器验收。
 - v3聊天室读取走`ApiV3ChatProcessor`/`ApiV3ChatQueryService`，统一要求content.read；历史记录的content是消息外壳JSON，必须经`ApiV3ChatMessageDto`白名单分普通Markdown/红包摘要/天气/音乐，禁止裸返外壳或红包who/内部字段。游标列表固定按ID范围查询、返回升序；上下文按半径有界读取。作者为消息发布时公开快照，不能从页面Cookie/apiKey补身份。
 - 聊天消息勋章复用发言时存入的 `sysMetal` 快照，按原顺序投影为可选 `medals`。只返回定义 ID、名称、稀有度和说明，省略已关闭条目、原始样式及授予数据，读取历史或实时消息时不查询账户当前勋章。
 - 聊天外观由ApiV3ChatAppearanceService管理内置v1目录与可发布气泡，ChatMessageMgmtService共享保存原语在消息事务覆写appearance快照；DTO只读历史白名单，不按当前会员剥除。新表user_chat_appearance须先执行sql/20261107_api_v3_chat_appearance.sql；内置版本1目录视觉不可原地改版。动态气泡须先执行 sql/20261116_chat_bubble_style.sql，该迁移只加入四款未发布草稿。随后可执行 `sql/20261116_pet_bubble_shapes.sql`，把仍为初始版本的草稿更新为四款异形贴纸气泡，价格 128 积分 / 7 天。管理端修改或已经发布的版本由运营显式处理，迁移不覆盖；轮廓字段缺失的历史继续按原样渲染。新发消息保存完整已发布样式和版本，历史快照无须回填。

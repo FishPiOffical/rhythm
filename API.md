@@ -10,6 +10,8 @@
 
 成功时 `code` 为 `0`。失败时 `data` 为 `null`，并结合 HTTP 状态码与 `code`、`msg` 处理错误。资源 ID 均为字符串，时间字段默认使用毫秒时间戳；自然日等其他格式以各接口字段说明为准。
 
+> 第三方网页调用 V3 业务接口时，请使用 `Authorization: Bearer`，并将 fetch 的 `credentials` 设为 `omit`（Axios 不启用 `withCredentials`）。第三方 OAuth 换码与撤销请求同样不携带站点 Cookie，浏览器来源须符合该应用已登记的回调地址。第一方网站沿用网页登录方式；原生及服务端客户端调用方式不变。
+
 > 支持Idempotency-Key的写接口遇到连接中断或服务端错误时，应使用原键和原请求体重试，不要为同一次操作换新键。
 
 > v3 JSON业务写入请使用标准UTF-8 JSON对象，不接受单引号、重复字段、损坏JSON或无效UTF-8；非法JSON返回400，正文超限返回413，错误媒体类型返回415。只有明确允许省略正文的接口可提交真正空体；正常空对象及业务字段仍按各接口约定校验。
@@ -5118,6 +5120,8 @@ JS
 > 变更类型为 chat.message.created、chat.message.updated、chat.message.deleted、chat.message.reactions，分别表示消息创建、内容/卡片更新、撤回及 emoji reaction 变化。
 >
 > 创建或更新事件可携带 data.message，表态事件可携带 data.reactions。表态快照包含当前连接所属账号的选择。消息快照或表态事件标记 reactionsUnavailable=true 时，显示表态暂不可用并跳过自动补查。未带标记的旧事件缺失快照时，可按消息 ID 补读相应接口。撤回后移除对应缓存。
+
+> 聊天室实时事件仍逐条发送，每帧为一个 JSON 对象；客户端无需接收事件数组。快照表示读取时的消息或表态状态，revision 仍用于变更顺序及缺口同步。
 >
 > chat.topic_changed 的 data 仅包含 revision；收到后重新读取 GET /api/v3/chat/topic，不按消息 ID 查询。客户端应忽略无法识别的提示类型。
 >

@@ -43,6 +43,8 @@ import java.util.*;
 @Service
 public class ApiV3ChatQueryService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3ChatQueryService.class);
+    private static final int REALTIME_EVENT_BATCH_SIZE = 200;
+    private static final int REALTIME_QUERY_BATCH_SIZE = 20;
     @Inject
     private ChatRoomRepository messages;
     @Inject
@@ -183,23 +185,65 @@ public class ApiV3ChatQueryService {
     public record RealtimeSnapshot(JSONObject message, Map<String, String> selections) {}
 
     public RealtimeSnapshot realtimeSnapshot(final String id) throws RepositoryException {
-        final var message = detail(id);
-        if (!hasVisibleContent(message)) return new RealtimeSnapshot(message, Map.of());
-        try {
-            return readRealtimeReactions(id, message);
-        } catch (final RepositoryException | RuntimeException failure) {
-            LOGGER.warn("聊天室实时表态查询失败", failure);
-            markReactionsUnavailable(message);
-            return new RealtimeSnapshot(message, Map.of());
-        }
+        id(id);
+        final var snapshot = realtimeSnapshots(List.of(id)).get(id);
+        if (snapshot == null) throw new ApiV3Exception(404, "not_found", "消息不存在或已撤回");
+        return snapshot;
     }
 
-    private RealtimeSnapshot readRealtimeReactions(final String id, final JSONObject message) throws RepositoryException {
-        // 读取一次供本节点广播使用。大规模表态改由客户端按需读取单条详情。
-        final var rows = reactions.select("SELECT reactionUserId,reactionValue FROM `" + reactions.getName()
-                + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId=? ORDER BY oId LIMIT 2001",
-                Reaction.TARGET_TYPE_CHAT, Reaction.GROUP_EMOJI, id);
+    /** 每个事件批次只准备一次当前快照；消息及每条消息的表态均保留读取边界。 */
+    public Map<String, RealtimeSnapshot> realtimeSnapshots(final Collection<String> messageIds) throws RepositoryException {
+        final var ids = new ArrayList<>(new LinkedHashSet<>(messageIds));
+        if (ids.size() > REALTIME_EVENT_BATCH_SIZE) throw invalid();
+        ids.forEach(ApiV3ChatQueryService::id);
+        final Map<String, RealtimeSnapshot> result = new HashMap<>();
+        for (int start = 0; start < ids.size(); start += REALTIME_QUERY_BATCH_SIZE) {
+            final var batch = ids.subList(start, Math.min(start + REALTIME_QUERY_BATCH_SIZE, ids.size()));
+            final var rows = messages.select("SELECT oId,content FROM `" + messages.getName() + "` WHERE oId IN ("
+                    + String.join(",", Collections.nCopies(batch.size(), "?")) + ")", batch.toArray());
+            final Map<String, JSONObject> visible = new LinkedHashMap<>();
+            for (final var row : rows) {
+                final var message = dto(row);
+                final String id = message.getString("id");
+                result.put(id, new RealtimeSnapshot(message, Map.of()));
+                if (hasVisibleContent(message)) visible.put(id, message);
+            }
+            if (visible.isEmpty()) continue;
+            try {
+                final var grouped = readRealtimeReactions(visible.keySet());
+                visible.forEach((id, message) -> result.put(id,
+                        realtimeReactionSnapshot(message, grouped.getOrDefault(id, List.of()))));
+            } catch (final RepositoryException | RuntimeException failure) {
+                LOGGER.warn("聊天室实时表态查询失败", failure);
+                visible.forEach((id, message) -> {
+                    markReactionsUnavailable(message);
+                    result.put(id, new RealtimeSnapshot(message, Map.of()));
+                });
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    private Map<String, List<JSONObject>> readRealtimeReactions(final Set<String> ids) throws RepositoryException {
+        final var queries = new ArrayList<String>();
+        final var args = new ArrayList<Object>();
+        for (final String id : ids) {
+            // 每个目标各自 LIMIT，不能让热门消息耗尽整个批次、使其他消息得到假空表态。
+            queries.add("SELECT * FROM (SELECT oId,reactionTargetId,reactionUserId,reactionValue FROM `" + reactions.getName()
+                    + "` WHERE reactionTargetType=? AND reactionGroup=? AND reactionTargetId=? ORDER BY oId LIMIT 2001) r"
+                    + queries.size());
+            Collections.addAll(args, Reaction.TARGET_TYPE_CHAT, Reaction.GROUP_EMOJI, id);
+        }
+        final Map<String, List<JSONObject>> grouped = new HashMap<>();
+        for (final var row : reactions.select("SELECT * FROM (" + String.join(" UNION ALL ", queries)
+                + ") batch ORDER BY reactionTargetId,oId", args.toArray()))
+            grouped.computeIfAbsent(row.getString("reactionTargetId"), ignored -> new ArrayList<>()).add(row);
+        return grouped;
+    }
+
+    private static RealtimeSnapshot realtimeReactionSnapshot(final JSONObject message, final List<JSONObject> rows) {
         if (rows.size() > 2000) return new RealtimeSnapshot(message, Map.of());
+        final String id = message.getString("id");
         final Map<String, Long> counts = new LinkedHashMap<>();
         final Map<String, String> selections = new HashMap<>();
         for (final var row : rows) {

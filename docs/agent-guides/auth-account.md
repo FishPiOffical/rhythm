@@ -14,6 +14,7 @@
 
 ## OAuth、Token 与应用管理
 
+- `lastUsedAt` 是近似活动记录：访问令牌认证仍逐次读取当前令牌、客户端与用户状态；已持久化活动未满一分钟时不写。节点内有界缓存仅在事务提交后记录成功时间，非阻塞分段锁合并并发写入；SQL 同时检查活动间隔、access 类型、有效状态与有效期，不回写授权字段。写入失败记录错误并允许后续重试，不得把活动缓存用于认证、刷新或撤销判定。不同令牌争用分段锁时允许跳过该次活动记录。
 - OAuth授权HTML及PC/mobile模板须用Referrer-Policy same-origin：浏览器no-referrer表单会发送Origin:null而被严格同源校验拒绝。token/consent等JSON响应仍no-referrer；不得为修页面把null Origin放行。授权HTML的form-action还须包含该次已绑定回调origin/原生scheme，否则浏览器会阻断表单303外站回调；完整回调仍由核心精确匹配，不用通配符。
 - OAuth token/revoke以`ApiV3OAuthProcessor.protocolAccess`只读当前绑定凭据作为端点身份，无效仍原anonymous；不写Cookie/IDENTITY/IP白名单或viewSkips，全局Before黑名单先执行。正确绑定的已用code/轮换refresh仅可进原家族重放撤销，最终写根仍重验；不能把预检owner用作其他资源身份。
 - OAuth同意页使用 `ApiV3AuthorizationRequestService`：服务端保存owner/client/完整回调/scope/state/PKCE及handle/proof哈希，确认只传request/proof/明确决定，禁止用表单覆盖user/scope。hint先owner过滤供client锁序，再锁请求重验，决定/签码严格同事务，批准和拒绝均一次性。HTTP必须仅取Sessions.currentCookieUser（全局Sessions可能已被apiKey提升），并接 `ApiV3ConsentSecurity` 的配置站点精确来源+非空Session CSRF；不能拿legacy CSRFMidware的Referer前缀替代，也不能回退apiKey/Bearer。state可省略、最多1024 UTF-8字节，回调禁止预置OAuth响应参数并编码state/码；HTTP在ApiV3OAuthProcessor，PC/mobile授权模板同步；普通业务信封不套OAuth协议。

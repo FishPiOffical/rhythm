@@ -25,6 +25,8 @@
 
 ## CSRF 与兼容
 
+- `ApiV3Cors` 与前置验证码拒绝共用响应策略：只有 `WebsiteLoginCookies.trustedOrigin` 精确认可的主站、新站及已有开发回环来源可跨源携带凭据；不信任任意子域。第三方业务与 `/validateCaptcha` 使用无凭据 `*`，客户端须 `credentials: omit`；网站 login/refresh/logout/session/authorize/consent 不开放第三方凭据读取。OAuth token/revoke 的实际来源许可由登记客户端校验，通用预检不授予协议或业务权限。CORS 不替代路由鉴权、CSRF 或验证码盾。
+- 三项后端调整的验证范围、存量扫描告警和人工验收步骤见 [V3 跨域与性能调整](../api-v3-safety-performance-work.md)。
 - CSRF 安全判断必须先确认接口是否同时支持页面 Cookie 与 `apiKey` 客户端调用；已兼容 `apiKey` 的写接口不能直接补 `csrfMidware::check`，否则会破坏 RESTful/API 客户端。加固这类接口需先拆分页面入口与 API 入口，或设计明确兼容 `apiKey` 的 CSRF 例外。
 - 涉及 API 入参或返回字段变更，且可能影响第三方客户端兼容性时，必须先说明接口、字段、兼容影响和替代方案，经过用户同意后再修改；安全漏洞修复也要把破坏性影响显式说清楚。
 

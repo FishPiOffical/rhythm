@@ -95,6 +95,7 @@ public class AnonymousCaptchaShieldTest {
         props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props);
         Latkes.setLocalProps(props);
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
         reset();
         inject(middleware, "optionQueryService", new OptionQueryService() {
             @Override public JSONObject getOption(final String key) {
@@ -322,7 +323,8 @@ public class AnonymousCaptchaShieldTest {
             exchange.raw.headers().set("Origin", "https://example.invalid");
             exchange.run(new BeforeRequestHandler());
             Assert.assertEquals(exchange.status, 204);
-            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "*");
+            Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Credentials"));
             Assert.assertFalse(exchange.reached);
         }
         try (final Exchange exchange = new Exchange("/api/v3/me")) {
@@ -331,14 +333,16 @@ public class AnonymousCaptchaShieldTest {
             exchange.run(new BeforeRequestHandler());
             Assert.assertEquals(exchange.status, 403);
             Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject().getString("code"), "captcha_required");
-            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "*");
+            Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Credentials"));
             Assert.assertFalse(exchange.reached);
         }
         try (final Exchange exchange = new Exchange("/validateCaptcha", "OPTIONS", null, UA)) {
             exchange.raw.headers().set("Origin", "https://example.invalid");
             exchange.run(new BeforeRequestHandler());
             Assert.assertEquals(exchange.status, 204);
-            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "https://example.invalid");
+            Assert.assertEquals(exchange.response.getHeader("Access-Control-Allow-Origin"), "*");
+            Assert.assertNull(exchange.response.getHeader("Access-Control-Allow-Credentials"));
             Assert.assertTrue(AnonymousCaptchaShield.isRestricted(IP));
             Assert.assertFalse(exchange.reached);
         }

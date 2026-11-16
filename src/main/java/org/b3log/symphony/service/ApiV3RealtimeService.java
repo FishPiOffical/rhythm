@@ -480,10 +480,28 @@ public class ApiV3RealtimeService {
                     return chatEvents.after(revision, through, limit);
                 }
             }, new ApiV3ChatStream.Sink() {
+                private Map<String, ApiV3ChatQueryService.RealtimeSnapshot> snapshots = Map.of();
+
+                public void prepare(java.util.List<JSONObject> changes) {
+                    final var ids = changes.stream().filter(row -> needsChatSnapshot(row.getString("kind")))
+                            .map(row -> row.getString("messageId")).distinct().toList();
+                    try {
+                        snapshots = chatQuery.realtimeSnapshots(ids);
+                    } catch (RepositoryException | ApiV3Exception unavailable) {
+                        org.apache.logging.log4j.LogManager.getLogger(ApiV3RealtimeService.class)
+                                .warn("V3 聊天室批次快照读取失败", unavailable);
+                        snapshots = Map.of();
+                    }
+                }
+
                 public void changed(String kind, String id, long revision) {
-                    final var snapshot = chatSnapshot(kind, id);
+                    final var snapshot = needsChatSnapshot(kind) ? snapshots.get(id) : null;
                     if (snapshot == null) sessions.chatChanged(kind, id, revision, null);
                     else sessions.chatChanged(kind, id, revision, snapshot.message(), snapshot.selections());
+                }
+
+                public void finished() {
+                    snapshots = Map.of();
                 }
 
                 public void syncRequired() {
@@ -493,17 +511,8 @@ public class ApiV3RealtimeService {
         chatStream.poll();
     }
 
-    /**
-     * 本节点按 content.read 详情接口的字段白名单，每个已提交事件读取一次消息快照。
-     */
-    private ApiV3ChatQueryService.RealtimeSnapshot chatSnapshot(final String kind, final String id) {
-        if (!ApiV3ChatEvent.CREATED.equals(kind) && !ApiV3ChatEvent.UPDATED.equals(kind) && !"reactions".equals(kind)) return null;
-        try {
-            return chatQuery.realtimeSnapshot(id);
-        } catch (RepositoryException | ApiV3Exception unavailable) {
-            // 消息随后被删除或暂时读取失败时，仅保留重新同步提示。
-            return null;
-        }
+    private static boolean needsChatSnapshot(final String kind) {
+        return ApiV3ChatEvent.CREATED.equals(kind) || ApiV3ChatEvent.UPDATED.equals(kind) || "reactions".equals(kind);
     }
 
     public int cleanupChatEvents() throws Exception {
