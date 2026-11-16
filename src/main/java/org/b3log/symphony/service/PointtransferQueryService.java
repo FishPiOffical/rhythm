@@ -274,20 +274,22 @@ public class PointtransferQueryService {
                     record.put(Common.OPERATION, "+");
                 }
 
-                record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
-
                 final int type = record.optInt(Pointtransfer.TYPE);
                 final String dataId = record.optString(Pointtransfer.DATA_ID);
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
+                    // 外观购买没有对应的语言资源，必须在通用 key 查询前单独投影。
+                    record.put(Common.DISPLAY_TYPE, "外观购买");
+                } else {
+                    record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
+                }
+
                 String desTemplate;
-                if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
+                    desTemplate = Escapes.escapeHTML(dataId);
+                } else if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
                     desTemplate = buildAppPointDescription(record, userId.equals(toId));
                 } else {
                     desTemplate = langPropsService.get("pointType" + typeStr + "DesLabel");
-                }
-
-                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type) {
-                    record.put(Common.DISPLAY_TYPE, "外观购买");
-                    desTemplate = Escapes.escapeHTML(dataId);
                 }
 
                 switch (type) {
@@ -457,6 +459,8 @@ public class PointtransferQueryService {
                         desTemplate = desTemplate.replace("{point}", String.valueOf(record.optInt(Pointtransfer.SUM)));
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST:
+                        break;
+                    case Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE:
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);
