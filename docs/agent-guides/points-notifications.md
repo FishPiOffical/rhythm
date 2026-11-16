@@ -6,6 +6,8 @@
 
 ## 积分锁与转账
 
+- 新增积分流水类型必须同步中英文 `pointType{type}Label` / `pointType{type}DesLabel` 资源；若业务文案是专用投影，必须在通用语言资源读取前分支处理，避免历史流水把缺失资源升级为 500。
+
 - v3转账`ApiV3PointTransferService`完整账户对先于严格根、用户按ID锁；主款/费/通知revision/回执同提交，精确有效VIP4及实际费收款者免。重放从本人回执取得锁提示，仅当前actor必须有效；私有fee账本元数据投影后返回，后置主账验证去重修索引。旧转账未整体改造。
 - 积分锁统一在 `AccountPairLocks`；旧直接转账与外层事务必须共用该池。多收款方通过 `ArticleMgmtService#withPublicationLocks`→`PointtransferMgmtService#executeWithTransferLocks`，在事务前按确定顺序取得完整账户对集合；持锁期间只允许重入原集合的子集，禁止临时扩展。`CommentPublishPoints`共用旧评论预留/扣费规则：普通支付作者、自评支付sys、私密额外付sys；任一匿名不实际扣费，但仍检查原余额门槛。
 - 积分变更统一走 `PointtransferMgmtService`：独立流程用 `transfer(...)`（方法内自带事务）；若外层已有事务，必须用 `transferInCurrentTransaction(...)` 避免事务冲突。
