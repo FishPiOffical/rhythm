@@ -22,9 +22,13 @@ import java.util.List;
 
 /** 稳定素材目录只允许本地已发布的资源，价格和上下架状态另由数据库维护。 */
 public final class ApiV3AppearanceCatalog {
+    public static final String LEGACY_SAKURA = "night-sakura";
+    public static final String SAKURA_LETTER = "sakura-letter";
+    public static final String SAKURA_MOON = "sakura-moon";
+
     public record Product(String id, String kind, String styleId, String name, String verb) {
         public boolean vipIncluded() {
-            return "night-sakura".equals(styleId);
+            return SAKURA_LETTER.equals(styleId) || SAKURA_MOON.equals(styleId);
         }
     }
 
@@ -38,8 +42,10 @@ public final class ApiV3AppearanceCatalog {
             new Product("frame-tide", "frame", "tide", "潮汐", ""),
             new Product("frame-paipai-stamp", "frame", "paipai-stamp", "派派邮票", ""),
             new Product("frame-star-ring", "frame", "star-ring", "星环", ""),
-            new Product("bubble-night-sakura", "bubble", "night-sakura", "夜樱雨气泡", ""),
-            new Product("frame-night-sakura", "frame", "night-sakura", "夜樱雨头像框", ""));
+            new Product("bubble-night-sakura", "bubble", SAKURA_LETTER, "花瓣折笺气泡", ""),
+            new Product("frame-night-sakura", "frame", SAKURA_LETTER, "花瓣折笺头像框", ""),
+            new Product("bubble-sakura-moon", "bubble", SAKURA_MOON, "月弧夜樱气泡", ""),
+            new Product("frame-sakura-moon", "frame", SAKURA_MOON, "月弧夜樱头像框", ""));
 
     private ApiV3AppearanceCatalog() { }
 
@@ -47,8 +53,12 @@ public final class ApiV3AppearanceCatalog {
         return PRODUCTS.stream().filter(item -> item.id().equals(id)).findFirst().orElse(null);
     }
 
+    public static String currentStyle(String id) {
+        return LEGACY_SAKURA.equals(id) ? SAKURA_LETTER : id;
+    }
+
     public static Product style(String kind, String id) {
-        return PRODUCTS.stream().filter(item -> item.kind().equals(kind) && item.styleId().equals(id)).findFirst().orElse(null);
+        return PRODUCTS.stream().filter(item -> item.kind().equals(kind) && item.styleId().equals(currentStyle(id))).findFirst().orElse(null);
     }
 
     /** 按精确时长续期；同键恢复不再执行此计算。 */

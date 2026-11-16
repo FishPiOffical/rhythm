@@ -109,6 +109,7 @@ public class ApiV3ChatAppearanceService {
                 if (paid(input)) shop.effective(actor, input, true);
                 final var existing = appearances.select("SELECT oId,bubbleId FROM `" + appearances.getName() + "` WHERE oId=? FOR UPDATE", actor);
                 final JSONObject value = new JSONObject(input.toString()).put("version", 1).put("updatedAt", now());
+                upgradeSakuraSelection(value);
                 final JSONObject result = ApiV3ChatAppearance.publicSnapshot(value);
                 if (existing.size() > 1)
                     throw unavailable();
@@ -180,9 +181,19 @@ public class ApiV3ChatAppearanceService {
         if (rows.isEmpty()) return ApiV3ChatAppearance.defaults();
         final JSONObject stored = rows.getFirst();
         final JSONObject result = ApiV3ChatAppearance.publicSnapshot(stored);
+        upgradeSakuraSelection(result);
         if (stored.optInt("version") == 1 && ApiV3BubbleStyle.customId(stored.optString("bubbleId")))
             result.put("bubbleId", stored.getString("bubbleId"));
         return result;
+    }
+
+    /** 仅转换当前装备，既有商品权益和消息历史的旧样式标识保持原样。 */
+    private static void upgradeSakuraSelection(JSONObject selection) {
+        for (final String field : new String[]{"bubbleId", "frameId"}) {
+            if (ApiV3AppearanceCatalog.LEGACY_SAKURA.equals(selection.optString(field))) {
+                selection.put(field, ApiV3AppearanceCatalog.SAKURA_LETTER);
+            }
+        }
     }
 
     private boolean vip(String actor) throws RepositoryException {
