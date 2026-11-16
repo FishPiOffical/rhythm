@@ -89,6 +89,7 @@ public class AccountConfigurationReadTest {
         final SingletonContext context = (SingletonContext) field(manager, BeanManager.class, "context");
 
         Fixture() throws Exception {
+            LoginProcessor.WRONG_PWD_TRIES.remove(userId);
             inject(query, UserQueryService.class, "userRepository", new UserRepository() {
                 @Override
                 public JSONObject get(final Query query) throws RepositoryException {
@@ -130,6 +131,12 @@ public class AccountConfigurationReadTest {
 
         LoginProcessor.LoginResult authenticate(final String code) throws Exception {
             return login.authenticate("test-user", credential, code, "127.0.0.1");
+        }
+
+        @SuppressWarnings("unchecked")
+        void clearIpLock() throws Exception {
+            final var locks = (Map<String, Long>) field(null, LoginProcessor.class, "LOGIN_IP_LOCK");
+            locks.clear();
         }
 
         JSONObject http(final String endpoint, final boolean modern) {
@@ -191,12 +198,19 @@ public class AccountConfigurationReadTest {
             fixture.secret = MultiFactorAuthenticator.generateSecretKey();
             Assert.assertEquals(fixture.query.getSecret2fa(fixture.userId), fixture.secret);
             Assert.assertEquals(fixture.authenticate("").code(), "mfa_required");
+            Assert.assertFalse(LoginProcessor.WRONG_PWD_TRIES.containsKey(fixture.userId));
             Assert.assertEquals(fixture.authenticate("1000000").code(), "invalid_mfa");
+            Assert.assertEquals(LoginProcessor.WRONG_PWD_TRIES.get(fixture.userId).optInt("wrongCount"), 1);
+            Assert.assertEquals(fixture.authenticate("1000001").code(), "invalid_mfa");
+            Assert.assertEquals(fixture.authenticate("1000002").code(), "too_many_attempts");
+            LoginProcessor.WRONG_PWD_TRIES.remove(fixture.userId);
+            fixture.clearIpLock();
             final var method = MultiFactorAuthenticator.class.getDeclaredMethod("verifyCode", byte[].class, long.class);
             method.setAccessible(true);
             final String code = method.invoke(null, new Base32().decode(fixture.secret),
                     System.currentTimeMillis() / 30_000L).toString();
             Assert.assertTrue(fixture.authenticate(code).success());
+            Assert.assertFalse(LoginProcessor.WRONG_PWD_TRIES.containsKey(fixture.userId));
             fixture.failRead = true;
             try {
                 fixture.query.getSecret2fa(fixture.userId);
