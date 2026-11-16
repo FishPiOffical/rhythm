@@ -4912,6 +4912,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | --- userNickname | 昵称 | 摸鱼中 |
 | --- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
 | -- client | 客户端标记，可能为空 | Web/PC网页端 |
+| -- medals | 可选，按原顺序返回发言时已公开的勋章，含 `name`、`type`、`description` 和可选 `id` | `[{"id":"12","name":"摸鱼派粉丝","type":"稀有","description":"感谢支持"}]` |
 | -- card | 卡片数据；普通消息及 unavailable 为空对象，字段见下表 | `{}` |
 | -- reactionsUnavailable | 表态查询失败时为 true，消息正文仍可读取 | true |
 | -- reactions | 可读消息的表态快照，含汇总和当前账号的选择 | `{"targetId":"1792304000000","targetType":"chat","groupType":"emoji","currentUserReaction":"","summary":[]}` |
@@ -4941,6 +4942,8 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 > before/after 是数字消息 ID。向前或向后翻页时保留原查询方向，并使用对应游标；空列表时保留上次非空游标。hasMore=false 表示本次查询时该方向已无更多消息，之后仍可能产生新消息。
 >
 > unavailable 表示该历史消息暂不可读取；仍返回 id 以便继续翻页。详情接口也返回 reactions，需查看表态用户明细时可使用 `GET /api/v3/chat/messages/{targetId}/reactions`。读取红包摘要不会领取红包。
+>
+> 勋章名称、类型和说明为纯文本。字段缺失表示该消息没有可用勋章快照。历史、详情、上下文与实时消息快照使用同一结构，不随账户当前勋章变化。
 >
 > 缺少访问凭据返回 HTTP 401，缺少 content.read 返回 HTTP 403；非法或冲突游标、条数超限返回 HTTP 422。
 

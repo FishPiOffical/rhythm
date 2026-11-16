@@ -18,6 +18,7 @@
  */
 package org.b3log.symphony.util;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
@@ -76,7 +77,7 @@ public final class ApiV3ChatMessageDto {
                 projected.remove("msgType");
                 projected.remove("cardVersion");
                 projected.remove("payload");
-                return dto.put("type", kind).put("card", projected);
+                return withMedals(dto.put("type", kind).put("card", projected), source);
             } catch (RuntimeException invalidCard) {
                 return dto;
             }
@@ -101,9 +102,11 @@ public final class ApiV3ChatMessageDto {
                         .put("source", musicSource.matches("[0-9]{1,32}") ? musicSource : ApiV3CommunityDto.safeUrl(musicSource))
                         .put("coverURL", ApiV3CommunityDto.safeUrl(card.optString("coverURL"))).put("from", plain(card.opt("from"), 64)));
             }
-            default -> text(dto, source, content, render);
+            default -> {
+                return text(dto, source, content, render);
+            }
         }
-        return dto;
+        return withMedals(dto, source);
     }
 
     private static JSONObject text(final JSONObject dto, final JSONObject source, final String content,
@@ -115,6 +118,37 @@ public final class ApiV3ChatMessageDto {
         if (tail != null && ApiV3ChatTail.eligibleHtml(html)) dto.put("tail", tail);
         final JSONObject pet = petStatus(source.opt("petStatus"));
         if (pet != null && !dto.getJSONObject("author").optString("id").isEmpty()) dto.put("petStatus", pet);
+        return withMedals(dto, source);
+    }
+
+    private static JSONObject withMedals(final JSONObject dto, final JSONObject source) {
+        if (dto.getJSONObject("author").optString("id").isEmpty()) return dto;
+        // 沿用发言时已公开的勋章快照，消息读取不查当前账户的勋章。
+        Object snapshot = source.opt("sysMetal");
+        if (snapshot instanceof String stored) {
+            if (stored.isBlank()) return dto;
+            try {
+                snapshot = ApiV3Json.parse(stored.getBytes(StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException e) {
+                return dto;
+            }
+        }
+        if (snapshot instanceof JSONObject wrapper) snapshot = wrapper.optJSONArray("list");
+        if (!(snapshot instanceof JSONArray items)) return dto;
+        final JSONArray medals = new JSONArray();
+        for (final Object item : items) {
+            if (!(item instanceof JSONObject medal) || medal.has("enabled") && !medal.optBoolean("enabled")
+                    || !(medal.opt("name") instanceof String rawName)) continue;
+            final String name = ApiV3MedalDto.text(rawName, 128);
+            if (name.isEmpty()) continue;
+            final String id = medal.optString("id");
+            final JSONObject entry = new JSONObject().put("name", name)
+                    .put("type", ApiV3MedalDto.text(medal.optString("type"), 128))
+                    .put("description", ApiV3MedalDto.text(medal.optString("description"), 1024));
+            if (id.matches("[0-9]{1,19}")) entry.put("id", id);
+            medals.put(entry);
+        }
+        if (!medals.isEmpty()) dto.put("medals", medals);
         return dto;
     }
 

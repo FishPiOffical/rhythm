@@ -28,7 +28,7 @@ public final class ApiV3MedalDto {
     private ApiV3MedalDto() {
     }
 
-    private static String text(final String value, final int limit) {
+    static String text(final String value, final int limit) {
         if (value.length() > limit || value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t'))
             return "";
         return Jsoup.parse(value).text();

@@ -20,6 +20,7 @@ package org.b3log.symphony.service;
 
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.*;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.ChatRoomRepository;
@@ -28,6 +29,7 @@ import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.processor.ApiV3ChatProcessor;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.Markdowns;
 import org.json.*;
 import org.testng.Assert;
 import io.netty.handler.codec.http.*;
@@ -73,7 +75,12 @@ public class ApiV3ChatQueryServiceTest {
         String scope = "content.read";
 
         Fixture() throws Exception {
-            this(new ApiV3ChatQueryService());
+            this(new ApiV3ChatQueryService() {
+                @Override
+                protected String render(String content) {
+                    return Markdowns.cleanChat(content, "");
+                }
+            });
         }
 
         Fixture(ApiV3ChatQueryService service) throws Exception {
@@ -158,9 +165,7 @@ public class ApiV3ChatQueryServiceTest {
                 c.attr(User.USER, new JSONObject().put("oId", "321"));
                 c.addHandler(handler::accept);
                 auth.contentRead(c);
-                final var out = new JSONObject().put("status", c.attr("test.status"));
-                if (c.attr("test.data") != null) out.put("data", c.attr("test.data"));
-                if (c.attr("test.code") != null) out.put("code", c.attr("test.code"));
+                final var out = ((JsonRenderer) c.getRenderer()).getJSONObject().put("status", response.status().code());
                 if (out.getInt("status") == 200) {
                     Assert.assertEquals(response.headers().get("Cache-Control"), "no-store");
                     Assert.assertEquals(response.headers().get("Vary"), "Authorization");
@@ -185,6 +190,47 @@ public class ApiV3ChatQueryServiceTest {
 
     static void noPrivate(JSONObject value) {
         Assert.assertFalse(value.toString().contains("PRIVATE"), value.keySet().toString());
+    }
+
+    static void verifyMedalSnapshots() throws Exception {
+        try (var f = new Fixture(new ApiV3ChatQueryService() {
+            @Override
+            protected String render(String content) {
+                return "<p>" + content + "</p>";
+            }
+        })) {
+            var items = new JSONArray();
+            for (int i = 0; i < 12; i++) {
+                items.put(new JSONObject().put("id", Integer.toString(i)).put("name", "<b>勋章 & " + i + "</b>")
+                        .put("type", "稀有").put("description", "<em>说明</em>").put("enabled", true)
+                        .put("attr", "PRIVATE-attr").put("data", "PRIVATE-data"));
+            }
+            items.put(new JSONObject().put("name", "PRIVATE-disabled").put("enabled", false));
+            items.put(new JSONObject().put("name", new JSONObject().put("name", "PRIVATE-invalid")));
+            items.put(new JSONObject().put("name", "旧勋章"));
+            var snapshot = new JSONObject().put("list", items).toString();
+            var row = new JSONObject().put("userOId", 123L).put("content", "正文").put("sysMetal", snapshot);
+            f.raw("101", row.toString());
+            f.raw("102", row.put("sysMetal", "{bad").toString());
+            f.raw("103", row.put("sysMetal", snapshot).put("userOId", 0).toString());
+            f.raw("104", row.put("userOId", 123L).put("content", new JSONArray()).toString());
+            f.raw("105", row.put("content", new JSONObject().put("msgType", "redPacket")).toString());
+            for (var message : List.of(f.service.list(null, null, 5).getJSONArray("list").getJSONObject(0),
+                    f.service.context("101", 1).getJSONArray("list").getJSONObject(0),
+                    f.service.detail("101"), f.service.realtimeSnapshot("101").message(), f.service.detail("105"))) {
+                noPrivate(message);
+                Assert.assertFalse(message.has("sysMetal"));
+                final var medals = message.getJSONArray("medals");
+                Assert.assertEquals(medals.length(), 13);
+                Assert.assertEquals(medals.getJSONObject(0).keySet(), Set.of("name", "id", "type", "description"));
+                Assert.assertEquals(medals.getJSONObject(0).getString("name"), "勋章 & 0");
+                Assert.assertEquals(medals.getJSONObject(11).getString("id"), "11");
+                Assert.assertFalse(medals.getJSONObject(12).has("id"));
+            }
+            Assert.assertEquals(f.service.detail("102").getString("content"), "正文");
+            for (var id : List.of("102", "103", "104")) Assert.assertFalse(f.service.detail(id).has("medals"));
+        }
+        System.out.println("PASS 历史、详情、上下文和实时消息保留完整公开勋章顺序及白名单");
     }
 
     static void verifyReactionReadFailure() throws Exception {
@@ -236,6 +282,7 @@ public class ApiV3ChatQueryServiceTest {
         Latkes.setServerPort("8080");
         Latkes.setContextPath("");
         verifyReactionReadFailure();
+        verifyMedalSnapshots();
         try (var f = new Fixture()) {
             for (int i = 101; i <= 110; i++) f.message("" + i, "message-" + i);
             var first = f.service.list(null, null, 3);
@@ -302,7 +349,7 @@ public class ApiV3ChatQueryServiceTest {
         try (var f = new Fixture()) {
             f.message("101", "<script>alert(1)</script><p onclick='bad()' style='color:red'>hello</p><a href='javascript:bad()'>bad</a><img src='x' onerror='bad()'>");
             var dto = f.service.detail("101");
-            Assert.assertEquals(dto.keySet(), Set.of("id", "createdAt", "type", "content", "contentHtml", "author", "client", "card"));
+            Assert.assertEquals(dto.keySet(), Set.of("id", "createdAt", "type", "content", "contentHtml", "author", "client", "card", "appearance"));
             noPrivate(dto);
             Assert.assertEquals(dto.getString("type"), "text");
             Assert.assertTrue(dto.getString("content").contains("<script>"));
