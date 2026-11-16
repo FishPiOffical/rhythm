@@ -4471,7 +4471,7 @@ version 为样式目录版本；客户端应保留已支持版本的历史视觉
 - `GET /api/v3/chat/bubbles` 需要登录和 `profile.read`。返回 `{list}`，元素为 `{id,name,access,style,bubbleRevision}`，仅含已发布上架的免费和 VIP 气泡。积分气泡及独立报价版本纳入现有外观商城目录。
 - `GET /api/v3/admin/appearance/bubbles?p=1&size=20` 需要第一方管理员身份、后台菜单权限和 `profile.read`，返回标准分页。列表元素为 `{id,revision,publishedRevision,active,hasDraftChanges,draft}`。
 - `PUT /api/v3/admin/appearance/bubbles/{id}` 需要相同的管理员权限、`settings.write` 及 `Idempotency-Key`。请求为 `{action,revision,draft?}`，动作包括 `save`、`publish`、`unpublish`。新建用 0，保存需给完整 `draft`。其余动作仅带当前 `revision`。发布增加 `publishedRevision`，保存只改草稿。获取方式发布后固定，可复制为新气泡。成功回执结构与列表元素相同。
-- 草稿含 `name,access,price7,price30,style`。获取方式为 `free`、`vip`、`points`。免费和 VIP 的两项价格均为 0，积分商品为正整数。样式仅接受两套配色、圆角、边线、阴影和角标配置，不接受 CSS 或脚本。角标图片限指定 RhyPic HTTPS 地址和栅格格式。
+- 草稿含 `name,access,price7,price30,style`。获取方式为 `free`、`vip`、`points`。免费和 VIP 的两项价格均为 0。积分气泡的 7 天价格为正整数，30 天价格为 0 时该时长不可购买，服务端返回 409 `duration_unavailable`。样式可选 `shape`（`memo-v1`、`lotus-v1`、`cat-v1` 或 `fish-v1`），没有该字段时保持原圆角。现有 `image` 可用作异形气泡的装饰贴纸，仍仅接受指定 RhyPic HTTPS 地址和栅格格式，样式不接受 CSS 或脚本。
 - 动态气泡消息的 `appearance` 额外包含 `bubbleRevision` 与发送时的完整 `bubbleStyle`。目录更新、下架、会员或积分权益到期均不改变历史快照。下架后停止首次装备和购买，当前已装备的免费/VIP 气泡可继续使用，积分气泡可用到权益到期。
 
 ## API v3 聊天室消息

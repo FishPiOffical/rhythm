@@ -163,7 +163,7 @@ public class ApiV3ManagedBubbleTest {
             Assert.assertEquals(first.getInt("bubbleRevision"), 1);
 
             final var draft = published.getJSONObject("draft");
-            draft.getJSONObject("style").put("radius", 21);
+            draft.getJSONObject("style").put("radius", 21).put("shape", "memo-v1");
             final var invalid = new JSONObject(draft.toString());
             invalid.getJSONObject("style").put("image", "https://outside.invalid/decoration.png");
             error(422, () -> f.command(owner, PET, action("save", 2).put("draft", invalid), "invalid"));
@@ -175,6 +175,8 @@ public class ApiV3ManagedBubbleTest {
             f.command(owner, PET, action("publish", 3), "publish-next");
             final var next = f.snapshot("13").getJSONObject("appearance");
             Assert.assertEquals(next.getJSONObject("bubbleStyle").getInt("radius"), 21);
+            Assert.assertEquals(next.getJSONObject("bubbleStyle").getString("shape"), "memo-v1");
+            Assert.assertFalse(f.projected("11").getJSONObject("appearance").getJSONObject("bubbleStyle").has("shape"));
             Assert.assertEquals(next.getInt("bubbleRevision"), 2);
             Assert.assertTrue(first.similar(f.projected("11").getJSONObject("appearance")));
             Assert.assertTrue(original.similar(f.projected("10").getJSONObject("appearance")));
@@ -214,6 +216,45 @@ public class ApiV3ManagedBubbleTest {
             Assert.assertEquals(f.snapshot("17").getJSONObject("appearance").getString("bubbleId"), VIP);
             sql(f.db, "UPDATE member_data SET expiresAt=?", NOW);
             Assert.assertEquals(f.snapshot("18").getJSONObject("appearance").getString("bubbleId"), "classic");
+        }
+        try (final var f = new Fixture()) {
+            final String migration = Files.readString(Path.of("sql/20261116_pet_bubble_shapes.sql"))
+                    .replaceAll("(?m)^--[^\n]*", "").replace("symphony_chat_bubble_style", "bubble");
+            for (int run = 0; run < 2; run++) {
+                for (final String statement : migration.split(";")) {
+                    if (!statement.isBlank()) sql(f.db, statement);
+                }
+            }
+            final var drafts = f.bubbles.adminList(identity(), 1, 20).getJSONArray("list");
+            Assert.assertEquals(drafts.length(), 4);
+            final var shapes = new java.util.HashSet<String>();
+            for (final Object value : drafts) {
+                final var row = (JSONObject) value;
+                final var draft = row.getJSONObject("draft");
+                Assert.assertEquals(row.getInt("revision"), 2);
+                Assert.assertFalse(row.getBoolean("active"));
+                Assert.assertEquals(draft.getString("access"), "points");
+                Assert.assertEquals(draft.getInt("price7"), 128);
+                Assert.assertEquals(draft.getInt("price30"), 0);
+                final JSONObject style = draft.getJSONObject("style");
+                Assert.assertTrue(style.getString("image").startsWith("https://file.fishpi.cn/"));
+                shapes.add(style.getString("shape"));
+                final var existing = new JSONObject(draft.toString());
+                existing.getJSONObject("style").put("shape", "unknown");
+                error(422, () -> f.command(identity(), row.getString("id"), action("save", 2).put("draft", existing), "invalid-shape"));
+                f.command(identity(), row.getString("id"), action("publish", 2), "publish-pet");
+            }
+            Assert.assertEquals(shapes, Set.of("memo-v1", "lotus-v1", "cat-v1", "fish-v1"));
+            final var buy = ApiV3AppearanceShopTest.purchase(PET);
+            error(409, () -> f.shop.buy(identity(), new JSONObject(buy.toString()).put("days", 30), "unsupported-duration"));
+            Assert.assertEquals(f.balance(), 10000);
+            final var receipt = f.shop.buy(identity(), buy, "seven-days");
+            Assert.assertEquals(receipt.getInt("paidPoints"), 128);
+            Assert.assertEquals(receipt.getLong("expiresAt"), NOW + 7 * 86400000L);
+            Assert.assertEquals(f.balance(), 9872);
+            f.appearance.update(identity(), ApiV3ChatAppearanceTest.input(PET, "none"), "equip-pet");
+            final var appearance = f.snapshot("19").getJSONObject("appearance");
+            Assert.assertEquals(appearance.getJSONObject("bubbleStyle").getString("shape"), "memo-v1");
         }
         System.out.println("PASS 四款草稿与迁移重入、管理员权限与幂等、发布和下架、历史快照、积分和会员资格");
     }

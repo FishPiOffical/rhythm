@@ -69,7 +69,7 @@ public class ApiV3BubbleStyleService {
                 + " WHERE b.publishedRevision>0 ORDER BY b.oId")) {
             final var bubble = publishedRow(row);
             if (!"points".equals(bubble.access())) continue;
-            ApiV3AppearanceShopService.validatePrice(row);
+            ApiV3AppearanceShopService.validatePrice(row, true);
             list.put(new JSONObject().put("id", bubble.id()).put("styleId", bubble.id()).put("kind", "bubble")
                     .put("name", bubble.name()).put("version", 1).put("enabled", bubble.active() && row.getInt("enabled") == 1)
                     .put("revision", row.getLong("revision")).put("price7", row.getInt("price7")).put("price30", row.getInt("price30"))
@@ -186,7 +186,7 @@ public class ApiV3BubbleStyleService {
         final boolean paid = "points".equals(access);
         return new JSONObject().put("name", name).put("access", access)
                 .put("price7", ApiV3BubbleStyle.integer(input, "price7", paid ? 1 : 0, paid ? 100000000 : 0))
-                .put("price30", ApiV3BubbleStyle.integer(input, "price30", paid ? 1 : 0, paid ? 100000000 : 0))
+                .put("price30", ApiV3BubbleStyle.integer(input, "price30", 0, paid ? 100000000 : 0))
                 .put("style", ApiV3BubbleStyle.validate(input.optJSONObject("style")));
     }
 }

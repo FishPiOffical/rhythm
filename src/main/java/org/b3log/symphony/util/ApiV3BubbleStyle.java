@@ -29,9 +29,10 @@ public final class ApiV3BubbleStyle {
     private static final Pattern ID = Pattern.compile("bubble-custom-[a-z0-9]+(?:-[a-z0-9]+)*");
     private static final Pattern COLOR = Pattern.compile("#[a-fA-F0-9]{6}");
     private static final Set<String> MOTIFS = Set.of("none", "paw", "leaf", "bell", "fish");
+    private static final Set<String> SHAPES = Set.of("memo-v1", "lotus-v1", "cat-v1", "fish-v1");
     private static final Set<String> IMAGE_HOSTS = Set.of("file.fishpi.cn", "pic.fishpi.cn");
     private static final Set<String> PALETTE = Set.of("background", "ownBackground", "border", "ink", "text");
-    private static final Set<String> FIELDS = Set.of("light", "dark", "radius", "borderWidth", "shadow", "motif", "image");
+    private static final Set<String> FIELDS = Set.of("light", "dark", "radius", "borderWidth", "shadow", "motif", "image", "shape");
 
     private ApiV3BubbleStyle() {
     }
@@ -41,12 +42,17 @@ public final class ApiV3BubbleStyle {
     }
 
     public static JSONObject validate(JSONObject input) {
-        if (input == null || !input.keySet().equals(FIELDS) || !(input.opt("shadow") instanceof Boolean shadow)
+        if (input == null || !FIELDS.containsAll(input.keySet()) || !(input.opt("shadow") instanceof Boolean shadow)
                 || !(input.opt("motif") instanceof String motif) || !MOTIFS.contains(motif)
                 || !(input.opt("image") instanceof String image) || !safeImage(image)) throw ApiV3WriteInputs.invalid();
-        return new JSONObject().put("light", palette(input.optJSONObject("light"))).put("dark", palette(input.optJSONObject("dark")))
+        final JSONObject normalized = new JSONObject().put("light", palette(input.optJSONObject("light"))).put("dark", palette(input.optJSONObject("dark")))
                 .put("radius", integer(input, "radius", 6, 24)).put("borderWidth", integer(input, "borderWidth", 0, 2))
                 .put("shadow", shadow).put("motif", motif).put("image", image);
+        if (input.has("shape")) {
+            if (!(input.opt("shape") instanceof String shape) || !SHAPES.contains(shape)) throw ApiV3WriteInputs.invalid();
+            normalized.put("shape", shape);
+        }
+        return normalized;
     }
 
     private static JSONObject palette(JSONObject input) {

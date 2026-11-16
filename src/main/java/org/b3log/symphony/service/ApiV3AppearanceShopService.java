@@ -55,7 +55,7 @@ public class ApiV3AppearanceShopService {
         for (final var row : rows) {
             final var item = ApiV3AppearanceCatalog.find(row.optString("oId"));
             if (item == null) continue;
-            validatePrice(row);
+            validatePrice(row, false);
             list.put(new JSONObject().put("id", item.id()).put("kind", item.kind()).put("styleId", item.styleId())
                     .put("name", item.name()).put("version", 1).put("price7", row.getInt("price7"))
                     .put("price30", row.getInt("price30")).put("enabled", row.getInt("enabled") == 1)
@@ -112,11 +112,12 @@ public class ApiV3AppearanceShopService {
                     final var prices = products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` WHERE oId=? FOR UPDATE", productId);
                     if (prices.size() != 1) throw ApiV3Requests.notFound();
                     final JSONObject price = prices.getFirst();
-                    validatePrice(price);
+                    validatePrice(price, custom);
                     if (price.getInt("enabled") != 1 || custom && !published.active())
                         throw new ApiV3Exception(409, "product_unavailable", "该外观已下架");
                     if (price.getLong("revision") != revision.longValue()) throw new ApiV3Exception(409, "quote_changed", "价格已更新，请重新确认");
                     final int paid = price.getInt(days.intValue() == 7 ? "price7" : "price30");
+                    if (paid == 0) throw new ApiV3Exception(409, "duration_unavailable", "该外观暂未开放此购买时长");
                     if (user.getLong("userPoint") < paid) throw new ApiV3Exception(409, "insufficient_points", "积分不足");
                     final String entitlementId = entitlementId(actor, productId);
                     final var previous = entitlements.select("SELECT expiresAt FROM `" + entitlements.getName() + "` WHERE oId=? FOR UPDATE", entitlementId);
@@ -236,9 +237,10 @@ public class ApiV3AppearanceShopService {
         }
     }
 
-    static void validatePrice(JSONObject row) {
+    static void validatePrice(JSONObject row, boolean allowSevenDaysOnly) {
         for (final String field : List.of("price7", "price30", "revision")) {
-            if (!(row.opt(field) instanceof Number number) || number.doubleValue() != number.longValue() || number.longValue() < 1
+            final int minimum = allowSevenDaysOnly && "price30".equals(field) ? 0 : 1;
+            if (!(row.opt(field) instanceof Number number) || number.doubleValue() != number.longValue() || number.longValue() < minimum
                     || (field.startsWith("price") && number.longValue() > 100000000)) throw unavailable();
         }
         if (!Set.of(0, 1).contains(row.optInt("enabled", -1))) throw unavailable();
