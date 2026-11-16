@@ -1,11 +1,18 @@
 package org.b3log.symphony.service;
 
 import java.security.SecureRandom;
+import java.util.List;
+import java.util.concurrent.Callable;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.service.annotation.Service;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.util.Ids;
 import org.b3log.symphony.repository.PetBrawlAccountRepository;
+import org.b3log.symphony.repository.PetBrawlOrderRepository;
+import org.b3log.symphony.repository.PointtransferRedcRepository;
+import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.model.PointtransferSource;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
 import org.b3log.symphony.repository.PetBrawlPairRepository;
 import org.b3log.symphony.repository.PetBrawlProfileRepository;
@@ -33,6 +40,11 @@ public class ApiV3PetBrawl {
     static final int STAGES = OPPONENTS.length;
     private static final SecureRandom RANDOM = new SecureRandom();
     @Inject private PetBrawlAccountRepository accounts;
+    @Inject private PetBrawlOrderRepository orders;
+    @Inject private PointtransferMgmtService points;
+    @Inject private PointtransferRedcRepository transferIndex;
+    private static final int POINTS_PER_MATERIAL = 10;
+    private static final long QUOTE_TTL_MS = 10 * 60 * 1000L;
     @Inject private PetBrawlMatchRepository matches;
     @Inject private PetBrawlPairRepository pairs;
     @Inject private PetBrawlProfileRepository profiles;
@@ -197,19 +209,120 @@ public class ApiV3PetBrawl {
                 .put("winner", result.winner()).put("turns", turns);
     }
 
+    JSONObject lockPoints(final String owner, final Callable<JSONObject> command) throws Exception {
+        return points.executeWithTransferLocks(owner, List.of(Pointtransfer.ID_C_SYS), command);
+    }
+
+    JSONObject quote(final String owner, final String petId, final Weapon weapon, final int level,
+                     final int materials, final long now) throws RepositoryException {
+        final JSONObject account = account(owner);
+        final int cost = checkUpgrade(account, weapon, level);
+        checkMaterials(account, materials, cost);
+        final String id = Ids.genTimeMillisId();
+        final JSONObject quote = new JSONObject().put("id", id).put("petId", petId).put("weapon", weapon.name())
+                .put("level", level).put("materials", materials).put("points", (cost - materials) * POINTS_PER_MATERIAL)
+                .put("version", ApiV3PetBattle.VERSION).put("createdAt", now).put("expiresAt", now + QUOTE_TTL_MS)
+                .put("status", "pending");
+        orders.add(new JSONObject().put("oId", id).put("userId", owner).put("snapshotJson", quote.toString()));
+        return quote;
+    }
+
+    JSONObject order(final String owner, final String id, final boolean lock) throws RepositoryException {
+        final var rows = orders.select("SELECT snapshotJson FROM `" + orders.getName() + "` WHERE userId=? AND oId=?"
+                + (lock ? " FOR UPDATE" : ""), owner, id);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        return new JSONObject(rows.getFirst().getString("snapshotJson"));
+    }
+
+    JSONObject orderPage(final String owner, final String before, final long now) throws RepositoryException {
+        final String base = "SELECT oId,snapshotJson FROM `" + orders.getName() + "` WHERE userId=?";
+        final var rows = before == null ? orders.select(base + " ORDER BY oId DESC LIMIT 21", owner)
+                : orders.select(base + " AND oId<? ORDER BY oId DESC LIMIT 21", owner, before);
+        final JSONArray list = new JSONArray();
+        for (int i = 0; i < Math.min(rows.size(), 20); i++) {
+            list.put(projectOrder(new JSONObject(rows.get(i).getString("snapshotJson")), now));
+        }
+        return new JSONObject().put("list", list).put("balance", balance(owner))
+                .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : JSONObject.NULL);
+    }
+
+    JSONObject orderDetail(final String owner, final String id, final long now) throws RepositoryException {
+        return projectOrder(order(owner, id, false), now).put("balance", balance(owner));
+    }
+
+    private static JSONObject projectOrder(final JSONObject quote, final long now) {
+        if (!"completed".equals(quote.getString("status")) && now >= quote.getLong("expiresAt"))
+            quote.put("status", "expired");
+        return quote;
+    }
+
+    void settle(final String owner, final JSONObject quote, final long now) throws RepositoryException {
+        if (now >= quote.getLong("expiresAt"))
+            throw ApiV3PetRules.conflict("brawl_quote_expired", "报价已过期，请重新报价");
+        if (quote.getInt("version") != ApiV3PetBattle.VERSION)
+            throw ApiV3PetRules.conflict("brawl_version_changed", "乱斗规则已更新，请重新报价");
+        final Weapon weapon = Weapon.valueOf(quote.getString("weapon"));
+        final int level = quote.getInt("level"), materials = quote.getInt("materials");
+        final JSONObject account = account(owner);
+        final int cost = checkUpgrade(account, weapon, level);
+        checkMaterials(account, materials, cost);
+        final int price = (cost - materials) * POINTS_PER_MATERIAL;
+        if (price != quote.getInt("points"))
+            throw ApiV3PetRules.conflict("brawl_quote_changed", "报价已变更，请重新报价");
+        if (price > 0 && balance(owner) < price)
+            throw ApiV3PetRules.conflict("insufficient_points", "积分余额不足");
+        final String id = quote.getString("id");
+        if (price > 0) {
+            final String label = switch (weapon) {
+                case SPOON -> "小木勺";
+                case GUARD -> "软垫护腕";
+                case FAN -> "折纸扇";
+            };
+            final String transfer = points.transferInCurrentTransaction(owner, Pointtransfer.ID_C_SYS,
+                    Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE, price, label + "强化至 +" + (level + 1) + " · 订单 " + id,
+                    now, "", new PointtransferSource("", "", "pet.brawl.upgrade", id), false);
+            if (transfer == null) throw new ApiV3Exception(503, "temporarily_unavailable", "积分结算暂不可用");
+            for (String user : List.of(owner, Pointtransfer.ID_C_SYS)) {
+                transferIndex.add(new JSONObject().put("oId", Ids.genTimeMillisId()).put("userId", user).put("rawId", transfer));
+            }
+        }
+        applyUpgrade(account, weapon, level, materials);
+        quote.put("status", "completed").put("completedAt", now);
+        orders.update(id, new JSONObject().put("snapshotJson", quote.toString()), "snapshotJson");
+    }
+
+    private int balance(final String owner) throws RepositoryException {
+        final var rows = users.select("SELECT userPoint FROM `" + users.getName() + "` WHERE oId=?", owner);
+        if (rows.size() != 1) throw ApiV3Requests.forbidden();
+        return rows.getFirst().getInt("userPoint");
+    }
+
     JSONObject upgrade(final String owner, final Weapon weapon, final int expectedLevel) throws RepositoryException {
         final JSONObject account = account(owner);
-        final JSONObject levels = new JSONObject(account.getString("levelsJson"));
-        final int level = levels.getInt(weapon.name());
+        final int cost = checkUpgrade(account, weapon, expectedLevel);
+        checkMaterials(account, cost, cost);
+        applyUpgrade(account, weapon, expectedLevel, cost);
+        return new JSONObject().put("weapon", weapon.name()).put("level", expectedLevel + 1);
+    }
+
+    private static int checkUpgrade(final JSONObject account, final Weapon weapon, final int expectedLevel) {
+        final int level = new JSONObject(account.getString("levelsJson")).getInt(weapon.name());
         if (level != expectedLevel || level >= ApiV3PetBattle.COST.length)
             throw ApiV3PetRules.conflict("brawl_stale_level", "装备等级已变化，请重新读取");
-        final int cost = ApiV3PetBattle.COST[level];
-        if (account.getInt("materials") < cost)
+        return ApiV3PetBattle.COST[level];
+    }
+
+    private static void checkMaterials(final JSONObject account, final int materials, final int cost) {
+        if (materials < 0 || materials > cost) throw ApiV3Requests.invalid();
+        if (account.getInt("materials") < materials)
             throw ApiV3PetRules.conflict("brawl_materials", "历练材料不足");
-        account.put("materials", account.getInt("materials") - cost)
+    }
+
+    private void applyUpgrade(final JSONObject account, final Weapon weapon, final int level, final int materials) throws RepositoryException {
+        final JSONObject levels = new JSONObject(account.getString("levelsJson"));
+        account.put("materials", account.getInt("materials") - materials)
                 .put("levelsJson", levels.put(weapon.name(), level + 1).toString());
         save(account);
-        return new JSONObject().put("weapon", weapon.name()).put("level", level + 1);
     }
 
     JSONObject history(final String owner, final String before, final boolean includePvp) throws RepositoryException {

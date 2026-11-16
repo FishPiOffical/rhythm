@@ -56,6 +56,10 @@ public class ApiV3PetProcessor {
         Dispatcher.post("/api/v3/me/pet/brawl/matches", processor::brawlFight, auth::settingsWrite);
         Dispatcher.put("/api/v3/me/pet/brawl/profile", processor::brawlEnroll, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/pvp", processor::brawlMatch, auth::settingsWrite);
+        Dispatcher.get("/api/v3/me/pet/brawl/orders", processor::brawlOrders, auth::profileRead);
+        Dispatcher.get("/api/v3/me/pet/brawl/orders/{id}", processor::brawlOrder, auth::profileRead);
+        Dispatcher.post("/api/v3/me/pet/brawl/orders", processor::brawlQuote, auth::settingsWrite);
+        Dispatcher.post("/api/v3/me/pet/brawl/orders/{id}/confirm", processor::brawlConfirm, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/upgrade", processor::brawlUpgrade, auth::settingsWrite);
         Dispatcher.get("/api/v3/me/pet/risk", processor::riskState, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/risk/challenge", processor::challenge, auth::settingsWrite);
@@ -103,6 +107,24 @@ public class ApiV3PetProcessor {
     public void brawlMatch(final RequestContext context) {
         respond(context, () -> pets.brawlMatch(identity(context),
                 body(context, Set.of("petId", "revision", "version")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlOrders(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlOrders(identity(context), context.param("before")));
+    }
+
+    public void brawlOrder(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlOrder(identity(context), context.pathVar("id")));
+    }
+
+    public void brawlQuote(final RequestContext context) {
+        respond(context, () -> pets.brawlQuote(identity(context),
+                body(context, Set.of("petId", "weapon", "level", "version", "materials")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlConfirm(final RequestContext context) {
+        respond(context, () -> pets.brawlConfirm(identity(context), body(context, Set.of("petId")),
+                context.pathVar("id"), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void brawlUpgrade(final RequestContext context) {

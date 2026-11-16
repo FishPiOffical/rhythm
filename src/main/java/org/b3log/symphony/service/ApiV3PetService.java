@@ -43,6 +43,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3PetRules;
 import org.b3log.symphony.util.ApiV3PetBattle;
+import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3PetWork;
 import org.b3log.symphony.util.ApiV3PetExploration;
@@ -205,6 +206,59 @@ public class ApiV3PetService {
         if (!(input.opt("revision") instanceof String revision) || !revision.matches("(?:[1-9][0-9]{0,18})?"))
             throw ApiV3WriteInputs.invalid();
         return revision;
+    }
+
+    public JSONObject brawlQuote(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "weapon", "level", "version", "materials"));
+        final String id = petId(input);
+        final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
+        final int level = brawlNumber(input, "level", 0, ApiV3PetBattle.COST.length - 1);
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        final int materials = brawlNumber(input, "materials", 0, ApiV3PetBattle.COST[level]);
+        return mutate(identity, "brawl-quote", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            brawlPet(owner, id);
+            final long current = now();
+            final JSONObject quote = brawl.quote(owner, id, weapon, level, materials, current);
+            return receipt("brawl-quote", id, current).put("orderId", quote.getString("id"));
+        });
+    }
+
+    public JSONObject brawlConfirm(final JSONObject identity, final JSONObject body, final String orderId, final String key) throws Exception {
+        exact(body, Set.of("petId"));
+        final String id = petId(body);
+        requireOrderId(orderId);
+        final JSONObject input = new JSONObject().put("petId", id).put("orderId", orderId);
+        final String owner = actor(identity);
+        return brawl.lockPoints(owner, () -> {
+            try (var cache = ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
+                return mutate(identity, "brawl-confirm", key, input, () -> {
+                    final JSONObject quote = brawl.order(owner, orderId, true);
+                    if (!id.equals(quote.getString("petId"))) throw ApiV3Requests.notFound();
+                    // 已完成订单以订单 ID 去重，即使浏览器丢失原命令键，也只恢复原结果。
+                    if (!"completed".equals(quote.getString("status"))) {
+                        brawlPet(owner, id);
+                        brawl.settle(owner, quote, now());
+                    }
+                    return receipt("brawl-confirm", id, quote.getLong("completedAt")).put("orderId", orderId);
+                });
+            }
+        });
+    }
+
+    public JSONObject brawlOrders(final JSONObject identity, final String before) {
+        if (before != null) requireOrderId(before);
+        return readTransaction(identity, () -> brawl.orderPage(actor(identity), before, now()));
+    }
+
+    public JSONObject brawlOrder(final JSONObject identity, final String id) {
+        requireOrderId(id);
+        return readTransaction(identity, () -> brawl.orderDetail(actor(identity), id, now()));
+    }
+
+    private static void requireOrderId(final String id) {
+        if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
     }
 
     public JSONObject brawlUpgrade(final JSONObject identity, final JSONObject input, final String key) {

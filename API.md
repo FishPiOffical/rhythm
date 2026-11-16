@@ -18193,3 +18193,10 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
 - 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
 - 战报列表使用 `includePvp=1` 读取含双方 PvP 的统一游标列表，缺省只列原有 NPC 战报。摘要增加 `mode:npc|pvp`。PvP 的 `stage=0`、`practice=false`、`reward=0`，详情增加 `opponentPetId` 和 `opponentSpecies`。双方共享同一战报 ID。被挑战方读取时，胜负、出场配置、行动者与生命值投影为本人视角。第三人读取返回 404。
+
+#### 宠物乱斗强化订单
+
+- `POST /api/v3/me/pet/brawl/orders` 接收 `{petId,weapon,level,version,materials}`。level 是当前武器等级，materials 是选定要抵扣的份数。回执为 `operation:brawl-quote,petId,committedAt,orderId`。报价有效期 10 分钟。
+- `GET /api/v3/me/pet/brawl/orders` 返回本人 `{list,next,balance}`，可带 `before` 游标。详情 `GET /api/v3/me/pet/brawl/orders/{id}` 返回当前余额与订单。订单公开字段为 `id,petId,weapon,level,materials,points,version,createdAt,expiresAt,status`，完成后附 `completedAt`。状态为 `pending/completed/expired`。
+- `POST /api/v3/me/pet/brawl/orders/{id}/confirm` 接收 `{petId}`，返回 `operation:brawl-confirm,petId,committedAt,orderId`。确认时重验武器等级、宠物、规则版本、材料和余额。余额不足为 409 `insufficient_points`，结算结果可用订单 ID 查询。
+- 读取要求第一方本人 `profile.read`，写入口要求 `settings.write` 和 `Idempotency-Key`。同一订单只完成一次，重复确认返回既有回执。每份历练材料抵扣 10 积分，当前五档强化全额为 200、400、800、1400、2200 积分。
