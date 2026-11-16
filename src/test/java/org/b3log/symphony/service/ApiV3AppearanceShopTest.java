@@ -45,6 +45,8 @@ public class ApiV3AppearanceShopTest {
             sql(db, "CREATE TABLE transfers(oId TEXT PRIMARY KEY,paid INT)");
             sql(db, "CREATE TABLE transfer_index(oId TEXT PRIMARY KEY,userId TEXT,rawId TEXT)");
             for (var item : ApiV3AppearanceCatalog.PRODUCTS) sql(db, "INSERT INTO product VALUES(?,1024,3584,1,1)", item.id());
+            sql(db, "UPDATE product SET price7=256,price30=0 WHERE oId='bubble-night-sakura'");
+            sql(db, "UPDATE product SET price7=128,price30=0 WHERE oId='frame-night-sakura'");
             inject(shop, "products", new AppearanceProductRepository() {
                 public String getName() { return "product"; }
                 public List<JSONObject> select(String q, Object... a) throws RepositoryException { return selectSQL(q,a); }
@@ -80,6 +82,7 @@ public class ApiV3AppearanceShopTest {
             });
             inject(shop,"requests",ApiV3QqSettingsTest.field(service,ApiV3IdentityApplicationService.class,"requests"));
             inject(shop,"proofs",proof);
+            inject(shop,"memberships",ApiV3QqSettingsTest.field(appearance,ApiV3ChatAppearanceService.class,"memberships"));
             inject(appearance,"shop",shop);
         }
         String insert(String table,JSONObject row) throws RepositoryException {
@@ -102,7 +105,7 @@ public class ApiV3AppearanceShopTest {
         final Properties props = new Properties(); props.setProperty("runtimeDatabase","NONE"); props.setProperty("contextPath",""); Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
         final String mount="mount-paipai-scooter";
         try(var f=new Fixture()) {
-            Assert.assertEquals(f.shop.catalog().getJSONArray("list").length(),9);
+            Assert.assertEquals(f.shop.catalog(false).getJSONArray("list").length(),9);
             error(403,()->f.shop.equipMount(identity(),mount,"unowned"));
             final JSONObject first=f.shop.buy(identity(),purchase(mount),"buy");
             Assert.assertEquals(f.balance(),8976); Assert.assertEquals(f.count("purchase"),1);
@@ -153,5 +156,42 @@ public class ApiV3AppearanceShopTest {
         user.put("userStatus",-1);
         Assert.assertNull(ApiV3RealtimeService.chatMountNotice(user,ApiV3AppearanceCatalog.find(mount),NOW));
         System.out.println("PASS 消息外观历史快照和到期回退、座驾独立于在线隐私");
+        try (var f = new Fixture()) {
+            final var catalog = f.shop.catalog(true).getJSONArray("list");
+            Assert.assertEquals(catalog.length(), 11);
+            final var bubbleId = "bubble-night-sakura";
+            final var frameId = "frame-night-sakura";
+            final var bubble = catalog.toList().stream()
+                    .filter(row -> row instanceof Map<?, ?> item && bubbleId.equals(item.get("id"))).findFirst().orElseThrow();
+            Assert.assertEquals(((Map<?, ?>) bubble).get("vipIncluded"), true);
+            final JSONObject selection = ApiV3ChatAppearanceTest.input("night-sakura", "night-sakura");
+            error(403, () -> f.appearance.update(identity(), selection, "no-night-permission"));
+            error(409, () -> f.shop.buy(identity(), purchase(bubbleId).put("days", 30), "no-month"));
+            final JSONObject rentedFrame = f.shop.buy(identity(), purchase(frameId), "rent-frame");
+            Assert.assertEquals(rentedFrame.getInt("paidPoints"), 128);
+            sql(f.db, "INSERT INTO member_data VALUES('1',1,?)", NOW + 86400000L);
+            error(409, () -> f.shop.buy(identity(), purchase(bubbleId), "vip-no-charge"));
+            Assert.assertTrue(rentedFrame.similar(f.shop.buy(identity(), purchase(frameId), "rent-frame")));
+            Assert.assertEquals(f.balance(), 9872);
+            f.appearance.update(identity(), selection, "wear-night-as-vip");
+            Assert.assertEquals(f.snapshot("12").getJSONObject("appearance").getString("bubbleId"), "night-sakura");
+            f.clock = NOW + 86400000L;
+            final JSONObject read = f.appearance.read(identity());
+            Assert.assertEquals(read.getString("bubbleId"), "classic");
+            Assert.assertEquals(read.getString("frameId"), "night-sakura");
+            final JSONObject purchase = f.shop.buy(identity(), purchase(bubbleId), "rent-bubble");
+            Assert.assertEquals(purchase.getInt("paidPoints"), 256);
+            final JSONObject renewed = f.shop.buy(identity(), purchase(bubbleId), "renew-bubble");
+            Assert.assertEquals(renewed.getLong("expiresAt"), f.clock + 14 * 86400000L);
+            f.appearance.update(identity(), selection, "wear-night-with-rental");
+            f.clock = renewed.getLong("expiresAt");
+            final JSONObject current = f.snapshot("13").getJSONObject("appearance");
+            Assert.assertEquals(current.getString("bubbleId"), "classic");
+            Assert.assertEquals(current.getString("frameId"), "none");
+            final JSONObject history = f.projected("12").getJSONObject("appearance");
+            Assert.assertEquals(history.getString("bubbleId"), "night-sakura");
+            Assert.assertEquals(history.getString("frameId"), "night-sakura");
+        }
+        System.out.println("PASS 夜樱雨周租、会员零扣款、幂等、任一资格生效及历史快照");
     }
 }

@@ -186,6 +186,10 @@ public class ApiV3ChatAppearanceService {
     }
 
     private boolean vip(String actor) throws RepositoryException {
+        return hasActiveMembership(memberships, actor, now());
+    }
+
+    static boolean hasActiveMembership(MembershipRepository memberships, String actor, long time) throws RepositoryException {
         final var rows = memberships.select("SELECT state,expiresAt FROM `" + memberships.getName() + "` WHERE userId=? LIMIT 2 FOR UPDATE", actor);
         if (rows.size() > 1)
             throw unavailable();
@@ -194,7 +198,7 @@ public class ApiV3ChatAppearanceService {
         final var value = rows.getFirst();
         if (!(value.opt("state") instanceof Number state) || !(value.opt("expiresAt") instanceof Number expiry) || expiry.longValue() < 0)
             throw unavailable();
-        return state.intValue() == 1 && (expiry.longValue() == 0 || expiry.longValue() > now());
+        return state.intValue() == 1 && (expiry.longValue() == 0 || expiry.longValue() > time);
     }
 
     private void authorize(JSONObject identity, String scope) throws RepositoryException {

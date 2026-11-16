@@ -22,7 +22,11 @@ import java.util.List;
 
 /** 稳定素材目录只允许本地已发布的资源，价格和上下架状态另由数据库维护。 */
 public final class ApiV3AppearanceCatalog {
-    public record Product(String id, String kind, String styleId, String name, String verb) { }
+    public record Product(String id, String kind, String styleId, String name, String verb) {
+        public boolean vipIncluded() {
+            return "night-sakura".equals(styleId);
+        }
+    }
 
     public static final List<Product> PRODUCTS = List.of(
             new Product("mount-paipai-scooter", "mount", "paipai-scooter", "派派小电驴", "骑着"),
@@ -33,7 +37,9 @@ public final class ApiV3AppearanceCatalog {
             new Product("bubble-star-route", "bubble", "star-route", "星夜航线", ""),
             new Product("frame-tide", "frame", "tide", "潮汐", ""),
             new Product("frame-paipai-stamp", "frame", "paipai-stamp", "派派邮票", ""),
-            new Product("frame-star-ring", "frame", "star-ring", "星环", ""));
+            new Product("frame-star-ring", "frame", "star-ring", "星环", ""),
+            new Product("bubble-night-sakura", "bubble", "night-sakura", "夜樱雨气泡", ""),
+            new Product("frame-night-sakura", "frame", "night-sakura", "夜樱雨头像框", ""));
 
     private ApiV3AppearanceCatalog() { }
 

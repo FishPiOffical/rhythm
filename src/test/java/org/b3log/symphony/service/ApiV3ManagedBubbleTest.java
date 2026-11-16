@@ -190,7 +190,7 @@ public class ApiV3ManagedBubbleTest {
             final var paid = new JSONObject(draft.toString()).put("access", "points").put("price7", 64).put("price30", 224);
             f.command(owner, PAID, action("save", 0).put("draft", paid), "paid-save");
             f.command(owner, PAID, action("publish", 1), "paid-publish");
-            Assert.assertEquals(f.shop.catalog().getJSONArray("list").length(), 10);
+            Assert.assertEquals(f.shop.catalog(false).getJSONArray("list").length(), 10);
             final var equipPaid = ApiV3ChatAppearanceTest.input(PAID, "none");
             error(403, () -> f.appearance.update(owner, equipPaid, "unpaid"));
             final var order = ApiV3AppearanceShopTest.purchase(PAID);
