@@ -80,7 +80,7 @@ public class ApiV3ChatAppearanceProcessor {
     }
 
     public void catalog(RequestContext c) {
-        ApiV3Requests.read(c, shop::catalog);
+        ApiV3Requests.read(c, () -> shop.catalog("1".equals(c.param("includeVipWeekly"))));
     }
 
     public void inventory(RequestContext c) {

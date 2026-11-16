@@ -44,22 +44,26 @@ public class ApiV3AppearanceShopService {
     @Inject private PointtransferMgmtService points;
     @Inject private ApiV3SecurityProofService proofs;
     @Inject private ApiV3BubbleStyleService bubbles;
+    @Inject private MembershipRepository memberships;
 
     protected long now() {
         return System.currentTimeMillis();
     }
 
-    public JSONObject catalog() throws RepositoryException {
+    public JSONObject catalog(boolean includeVipWeekly) throws RepositoryException {
         final JSONArray list = new JSONArray();
         final var rows = products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` ORDER BY oId");
         for (final var row : rows) {
             final var item = ApiV3AppearanceCatalog.find(row.optString("oId"));
-            if (item == null) continue;
-            validatePrice(row, false);
-            list.put(new JSONObject().put("id", item.id()).put("kind", item.kind()).put("styleId", item.styleId())
+            // 旧客户端要求内置商品存在月档，只有显式支持周租的客户端才接收新增商品。
+            if (item == null || item.vipIncluded() && !includeVipWeekly) continue;
+            validatePrice(row, item.vipIncluded());
+            final JSONObject product = new JSONObject().put("id", item.id()).put("kind", item.kind()).put("styleId", item.styleId())
                     .put("name", item.name()).put("version", 1).put("price7", row.getInt("price7"))
                     .put("price30", row.getInt("price30")).put("enabled", row.getInt("enabled") == 1)
-                    .put("revision", row.getLong("revision")));
+                    .put("revision", row.getLong("revision"));
+            if (item.vipIncluded()) product.put("vipIncluded", true);
+            list.put(product);
         }
         if (rows.stream().anyMatch(row -> ApiV3BubbleStyle.customId(row.optString("oId")))) {
             // 获取目录和对应报价使用同一条查询，以免混用不同发布版本的数据。
@@ -107,17 +111,21 @@ public class ApiV3AppearanceShopService {
             try (final var boundary = ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
                 return ApiV3IdempotencyMgmtService.runAtomic(store(identity), actor, "appearance.buy", key, normalized, () -> {
                     final JSONObject user = owner(actor);
+                    final boolean vipWeekly = product != null && product.vipIncluded();
+                    if (vipWeekly && ApiV3ChatAppearanceService.hasActiveMembership(memberships, actor, now()))
+                        throw new ApiV3Exception(409, "appearance_included_in_vip", "会员可免费装备该外观");
                     final var published = custom ? bubbles.published(productId, true) : null;
                     if (custom && (published == null || !"points".equals(published.access()))) throw ApiV3Requests.notFound();
                     final var prices = products.select("SELECT oId,price7,price30,enabled,revision FROM `" + products.getName() + "` WHERE oId=? FOR UPDATE", productId);
                     if (prices.size() != 1) throw ApiV3Requests.notFound();
                     final JSONObject price = prices.getFirst();
-                    validatePrice(price, custom);
+                    validatePrice(price, custom || vipWeekly);
                     if (price.getInt("enabled") != 1 || custom && !published.active())
                         throw new ApiV3Exception(409, "product_unavailable", "该外观已下架");
                     if (price.getLong("revision") != revision.longValue()) throw new ApiV3Exception(409, "quote_changed", "价格已更新，请重新确认");
                     final int paid = price.getInt(days.intValue() == 7 ? "price7" : "price30");
-                    if (paid == 0) throw new ApiV3Exception(409, "duration_unavailable", "该外观暂未开放此购买时长");
+                    if (paid == 0 || vipWeekly && days.intValue() != 7)
+                        throw new ApiV3Exception(409, "duration_unavailable", "该外观暂未开放此购买时长");
                     if (user.getLong("userPoint") < paid) throw new ApiV3Exception(409, "insufficient_points", "积分不足");
                     final String entitlementId = entitlementId(actor, productId);
                     final var previous = entitlements.select("SELECT expiresAt FROM `" + entitlements.getName() + "` WHERE oId=? FOR UPDATE", entitlementId);
@@ -171,8 +179,14 @@ public class ApiV3AppearanceShopService {
             if (item != null) required.add(item);
         }
         if (required.isEmpty()) return result;
+        final long time = now();
+        if (required.stream().anyMatch(ApiV3AppearanceCatalog.Product::vipIncluded)
+                && ApiV3ChatAppearanceService.hasActiveMembership(memberships, actor, time)) {
+            required.removeIf(ApiV3AppearanceCatalog.Product::vipIncluded);
+        }
+        if (required.isEmpty()) return result;
         final Set<String> owned = new HashSet<>();
-        for (final var row : entitlements.select("SELECT productId FROM `" + entitlements.getName() + "` WHERE userId=? AND expiresAt>?", actor, now())) owned.add(row.getString("productId"));
+        for (final var row : entitlements.select("SELECT productId FROM `" + entitlements.getName() + "` WHERE userId=? AND expiresAt>?", actor, time)) owned.add(row.getString("productId"));
         for (final var item : required) {
             if (owned.contains(item.id())) continue;
             if (reject) throw new ApiV3Exception(403, "appearance_required", "请先购买或续期该外观");

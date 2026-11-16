@@ -4454,6 +4454,10 @@ JS
 
 气泡支持 `classic`（默认）、`paipai-orange`、`fishpond-blue`、`candy`（会员）；头像框支持 `none`（默认）、`paipai-orange`、`fishpond-blue`、`gold`（会员）。会员样式要求当前有效会员资格，不满足返回 HTTP 403（membership_required）；未知 ID 或多余字段返回 HTTP 422（invalid_request）。
 
+气泡和头像框各支持 `night-sakura`。装备该项需当前有效 VIP 或该项有效周租，否则返回 HTTP 403（appearance_required）。两种资格都到期后，仅有效外观读取和之后发送的消息回退默认样式。历史快照保持原样。
+
+外观商城 `GET /api/v3/appearance-shop?includeVipWeekly=1` 返回新增的 `bubble-night-sakura` 和 `frame-night-sakura`，带 `vipIncluded:true`，`price30:0` 表示仅提供 7 天。旧目录请求省略这两款商品。使用既有 `POST /api/v3/me/appearance-purchases` 购买。有效 VIP 可直接装备，发起新购买返回 HTTP 409（appearance_included_in_vip），同键成功回放仍返回原回执。
+
 两个接口成功的 data 为：
 
 ```json
