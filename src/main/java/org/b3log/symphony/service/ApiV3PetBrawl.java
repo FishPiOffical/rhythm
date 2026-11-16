@@ -7,6 +7,10 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.util.Ids;
 import org.b3log.symphony.repository.PetBrawlAccountRepository;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
+import org.b3log.symphony.repository.PetBrawlPairRepository;
+import org.b3log.symphony.repository.PetBrawlProfileRepository;
+import org.b3log.symphony.repository.UserPetRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3PetBattle;
 import org.b3log.symphony.util.ApiV3PetBattle.Setup;
 import org.b3log.symphony.util.ApiV3PetBattle.Skill;
@@ -30,6 +34,14 @@ public class ApiV3PetBrawl {
     private static final SecureRandom RANDOM = new SecureRandom();
     @Inject private PetBrawlAccountRepository accounts;
     @Inject private PetBrawlMatchRepository matches;
+    @Inject private PetBrawlPairRepository pairs;
+    @Inject private PetBrawlProfileRepository profiles;
+    @Inject private UserPetRepository pets;
+    @Inject private UserRepository users;
+    private static final int ACTIVE_LIMIT = 3;
+    private static final int PASSIVE_LIMIT = 6;
+    private static final int MAX_LEVEL_GAP = 5;
+    private static final int CANDIDATES = 32;
 
     JSONObject state(final String owner, final JSONObject pet, final long now) throws RepositoryException {
         final JSONObject account = account(owner);
@@ -45,6 +57,7 @@ public class ApiV3PetBrawl {
                 .put("unlocked", Math.min(STAGES, account.getInt("unlocked")))
                 .put("cleared", account.getInt("unlocked") - 1).put("rewardCount", rewardCount(account, today))
                 .put("levels", new JSONObject(account.getString("levelsJson")))
+                .put("pvp", pvpState(owner, pet, today))
                 .put("growth", growth).put("costs", new JSONArray(ApiV3PetBattle.COST)).put("rewards", new JSONArray(REWARDS));
     }
 
@@ -70,21 +83,118 @@ public class ApiV3PetBrawl {
             account.put("unlocked", stage + 1);
         if (!practice) save(account);
 
-        final String id = Ids.genTimeMillisId();
+        final JSONObject report = resolve(pet, player, target, now, result)
+                .put("stage", stage).put("practice", practice).put("reward", reward);
+        return store(owner, report, seed);
+    }
+
+    private JSONObject pvpState(final String owner, final JSONObject pet, final String day) throws RepositoryException {
+        final JSONObject profile = profiles.get(owner);
+        final boolean active = pet != null && currentProfile(profile, pet);
+        return new JSONObject().put("enabled", active)
+                .put("revision", profile == null ? "" : profile.getString("revision"))
+                .put("weapon", active ? profile.getString("weapon") : JSONObject.NULL)
+                .put("skill", active ? profile.getString("skill") : JSONObject.NULL)
+                .put("remaining", Math.max(0, ACTIVE_LIMIT - count(owner, day, true)))
+                .put("received", count(owner, day, false)).put("receivedLimit", PASSIVE_LIMIT);
+    }
+
+    void enroll(final String owner, final JSONObject pet, final Weapon weapon, final Skill skill,
+                final boolean enabled, final String revision) throws RepositoryException {
+        final JSONObject old = profiles.get(owner);
+        if (!(old == null ? "" : old.getString("revision")).equals(revision))
+            throw ApiV3PetRules.conflict("brawl_profile_changed", "报名配置已变化，请重新读取");
+        final JSONObject row = new JSONObject().put("oId", owner).put("petId", pet.getString("oId"))
+                .put("weapon", weapon.name()).put("skill", skill.name()).put("enabled", enabled ? 1 : 0)
+                .put("version", ApiV3PetBattle.VERSION).put("revision", Ids.genTimeMillisId());
+        if (old == null) profiles.add(row);
+        else profiles.update(owner, row, "petId", "weapon", "skill", "enabled", "version", "revision");
+    }
+
+    JSONObject match(final String owner, final JSONObject pet, final String revision, final long now) throws RepositoryException {
+        final JSONObject profile = profiles.get(owner);
+        if (!currentProfile(profile, pet) || !revision.equals(profile.getString("revision")))
+            throw ApiV3PetRules.conflict("brawl_profile_changed", "请确认当前报名配置");
+        final String day = ApiV3PetRules.today(now);
+        if (count(owner, day, true) >= ACTIVE_LIMIT)
+            throw ApiV3PetRules.conflict("brawl_pvp_limit", "今天的主动挑战次数已用完");
+        final Setup player = equipped(owner, profile);
+        final int level = ApiV3PetRules.level(pet.getInt("experience"));
+        final String pairTable = "`" + pairs.getName() + "`";
+        final int floor = (Math.max(MIN_LEVEL, level - MAX_LEVEL_GAP) - 1) * ApiV3PetRules.EXPERIENCE_PER_LEVEL;
+        final int ceiling = level + MAX_LEVEL_GAP >= ApiV3PetRules.MAX_LEVEL ? Integer.MAX_VALUE
+                : (level + MAX_LEVEL_GAP) * ApiV3PetRules.EXPERIENCE_PER_LEVEL - 1;
+        final var candidates = profiles.select("SELECT r.oId FROM `" + profiles.getName() + "` r"
+                        + " JOIN `" + pets.getName() + "` p ON p.oId=r.petId AND p.userId=r.oId"
+                        + " JOIN `" + users.getName() + "` u ON u.oId=r.oId AND u.userStatus=0"
+                        + " WHERE r.enabled=1 AND r.version=? AND r.oId<>? AND p.experience BETWEEN ? AND ?"
+                        + " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " d WHERE d.day=?"
+                        + " AND d.pairLow=LEAST(?,r.oId) AND d.pairHigh=GREATEST(?,r.oId))"
+                        + " AND (SELECT COUNT(*) FROM " + pairTable + " d WHERE d.recipient=r.oId AND d.day=?)<?"
+                        + " ORDER BY ABS(LEAST(?, 1+FLOOR(p.experience/?))-?),r.oId LIMIT " + CANDIDATES,
+                ApiV3PetBattle.VERSION, owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT,
+                ApiV3PetRules.MAX_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL, level);
+        for (JSONObject candidate : candidates) {
+            final String opponent = candidate.getString("oId");
+            // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
+            if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=0 FOR UPDATE SKIP LOCKED", opponent).isEmpty())
+                continue;
+            final JSONObject enrolled = profiles.get(opponent);
+            final var current = pets.select("SELECT oId,speciesId,experience FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
+            if (current.size() != 1 || !currentProfile(enrolled, current.getFirst())) continue;
+            final JSONObject targetPet = current.getFirst();
+            if (Math.abs(ApiV3PetRules.level(targetPet.getInt("experience")) - level) > MAX_LEVEL_GAP) continue;
+            final Setup target = equipped(opponent, enrolled);
+            final long seed = RANDOM.nextLong();
+            final JSONObject report = resolve(pet, player, target, now, ApiV3PetBattle.resolve(player, target, seed))
+                    .put("mode", "pvp").put("stage", 0).put("practice", false).put("reward", 0)
+                    .put("opponentPetId", targetPet.getString("oId")).put("opponentSpecies", targetPet.getString("speciesId"));
+            final String low = owner.compareTo(opponent) < 0 ? owner : opponent;
+            final String high = low.equals(owner) ? opponent : owner;
+            pairs.add(new JSONObject().put("oId", report.getString("id")).put("day", day)
+                    .put("initiator", owner).put("recipient", opponent).put("pairLow", low).put("pairHigh", high));
+            return store(owner, report, seed);
+        }
+        throw ApiV3PetRules.conflict("brawl_no_opponent", "暂时没有符合条件的对手，可以稍后再匹配");
+    }
+
+    private int count(final String owner, final String day, final boolean active) throws RepositoryException {
+        final String field = active ? "initiator" : "recipient";
+        return pairs.select("SELECT COUNT(*) AS total FROM `" + pairs.getName() + "` WHERE " + field + "=? AND day=?",
+                owner, day).getFirst().getInt("total");
+    }
+
+    private static boolean currentProfile(final JSONObject profile, final JSONObject pet) {
+        return profile != null && profile.getInt("enabled") == 1 && profile.getInt("version") == ApiV3PetBattle.VERSION
+                && profile.getString("petId").equals(pet.getString("oId"))
+                && ApiV3PetRules.level(pet.getInt("experience")) >= MIN_LEVEL;
+    }
+
+    private Setup equipped(final String owner, final JSONObject profile) throws RepositoryException {
+        final Weapon weapon = Weapon.valueOf(profile.getString("weapon"));
+        final Skill skill = Skill.valueOf(profile.getString("skill"));
+        return new Setup(weapon, skill, new JSONObject(account(owner).getString("levelsJson")).getInt(weapon.name()));
+    }
+
+    private JSONObject store(final String owner, final JSONObject report, final long seed) throws RepositoryException {
+        final String id = report.getString("id");
+        matches.add(new JSONObject().put("oId", id).put("userId", owner).put("createdAt", report.getLong("createdAt"))
+                .put("snapshotJson", new JSONObject().put("seed", seed).put("report", report).toString()));
+        return new JSONObject().put("matchId", id);
+    }
+
+    private static JSONObject resolve(final JSONObject pet, final Setup player, final Setup target,
+                                      final long now, final ApiV3PetBattle.Result result) {
         final JSONArray turns = new JSONArray();
         for (var turn : result.turns()) {
             turns.put(new JSONObject().put("round", turn.round()).put("actor", turn.actor())
                     .put("damage", turn.damage()).put("healing", turn.healing())
                     .put("playerHp", turn.playerHp()).put("opponentHp", turn.opponentHp()));
         }
-        final JSONObject report = new JSONObject().put("id", id).put("createdAt", now)
+        return new JSONObject().put("id", Ids.genTimeMillisId()).put("createdAt", now)
                 .put("version", ApiV3PetBattle.VERSION).put("petId", pet.getString("oId"))
-                .put("species", pet.getString("speciesId")).put("stage", stage).put("practice", practice)
-                .put("player", setup(player)).put("opponent", setup(target))
-                .put("winner", result.winner()).put("reward", reward).put("turns", turns);
-        matches.add(new JSONObject().put("oId", id).put("userId", owner).put("createdAt", now)
-                .put("snapshotJson", new JSONObject().put("seed", seed).put("report", report).toString()));
-        return new JSONObject().put("matchId", id);
+                .put("species", pet.getString("speciesId")).put("player", setup(player)).put("opponent", setup(target))
+                .put("winner", result.winner()).put("turns", turns);
     }
 
     JSONObject upgrade(final String owner, final Weapon weapon, final int expectedLevel) throws RepositoryException {
@@ -102,26 +212,61 @@ public class ApiV3PetBrawl {
         return new JSONObject().put("weapon", weapon.name()).put("level", level + 1);
     }
 
-    JSONObject history(final String owner, final String before) throws RepositoryException {
-        final String query = "SELECT oId,createdAt,snapshotJson FROM `" + matches.getName() + "` WHERE userId=?";
-        final var rows = before == null
-                ? matches.select(query + " ORDER BY oId DESC LIMIT 21", owner)
-                : matches.select(query + " AND oId<? ORDER BY oId DESC LIMIT 21", owner, before);
+    JSONObject history(final String owner, final String before, final boolean includePvp) throws RepositoryException {
+        final String matchTable = "`" + matches.getName() + "`";
+        final String pairTable = "`" + pairs.getName() + "`";
+        final String cursor = before == null ? "" : " AND oId<?";
+        final String npcOnly = includePvp ? "" : " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " p WHERE p.oId=own.oId)";
+        final String entries = "SELECT oId,0 AS mirrored FROM (SELECT oId FROM " + matchTable
+                + " own WHERE userId=?" + cursor + npcOnly + " ORDER BY oId DESC LIMIT 21) sent"
+                + (includePvp ? " UNION ALL SELECT oId,1 AS mirrored FROM (SELECT oId FROM " + pairTable
+                    + " WHERE recipient=?" + cursor + " ORDER BY oId DESC LIMIT 21) received" : "");
+        final String query = "SELECT m.oId,m.snapshotJson,l.mirrored FROM (" + entries + ") l JOIN "
+                + matchTable + " m ON m.oId=l.oId ORDER BY l.oId DESC LIMIT 21";
+        final Object[] params;
+        if (includePvp) params = before == null ? new Object[]{owner, owner} : new Object[]{owner, before, owner, before};
+        else params = before == null ? new Object[]{owner} : new Object[]{owner, before};
+        final var rows = matches.select(query, params);
         final JSONArray list = new JSONArray();
         for (int i = 0; i < Math.min(20, rows.size()); i++) {
-            final JSONObject report = report(rows.get(i));
+            final JSONObject row = rows.get(i), report = report(row);
+            final int winner = report.getInt("winner");
             list.put(new JSONObject().put("id", report.getString("id")).put("createdAt", report.getLong("createdAt"))
                     .put("stage", report.getInt("stage")).put("practice", report.getBoolean("practice"))
-                    .put("winner", report.getInt("winner")).put("reward", report.getInt("reward")));
+                    .put("mode", report.optString("mode", "npc"))
+                    .put("winner", row.getInt("mirrored") == 1 && winner >= 0 ? 1 - winner : winner).put("reward", report.getInt("reward")));
         }
         return new JSONObject().put("list", list)
                 .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : JSONObject.NULL);
     }
 
     JSONObject detail(final String owner, final String id) throws RepositoryException {
-        final var rows = matches.select("SELECT snapshotJson FROM `" + matches.getName() + "` WHERE oId=? AND userId=?", id, owner);
+        final var rows = matches.select("SELECT m.snapshotJson,m.userId FROM `" + matches.getName() + "` m"
+                + " LEFT JOIN `" + pairs.getName() + "` p ON p.oId=m.oId"
+                + " WHERE m.oId=? AND (m.userId=? OR p.recipient=?)", id, owner, owner);
         if (rows.size() != 1) throw ApiV3Requests.notFound();
-        return report(rows.getFirst());
+        final JSONObject row = rows.getFirst(), report = report(row);
+        if (!owner.equals(row.getString("userId"))) mirror(report);
+        return report;
+    }
+
+    private static void mirror(final JSONObject report) {
+        // 同一战报 ID 按当前查看者翻转双方，回合顺序与实际结算一致。
+        swap(report, "petId", "opponentPetId");
+        swap(report, "species", "opponentSpecies");
+        swap(report, "player", "opponent");
+        final int winner = report.getInt("winner");
+        if (winner >= 0) report.put("winner", 1 - winner);
+        for (Object value : report.getJSONArray("turns")) {
+            final JSONObject turn = (JSONObject) value;
+            turn.put("actor", 1 - turn.getInt("actor"));
+            swap(turn, "playerHp", "opponentHp");
+        }
+    }
+
+    private static void swap(final JSONObject row, final String left, final String right) {
+        final Object value = row.get(left);
+        row.put(left, row.get(right)).put(right, value);
     }
 
     private JSONObject account(final String owner) throws RepositoryException {

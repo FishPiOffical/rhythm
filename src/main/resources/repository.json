@@ -10,6 +10,81 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_brawl_pair",
+      "description": "宠物乱斗实装对战",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "day",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "initiator",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "recipient",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "pairLow",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "pairHigh",
+          "type": "String",
+          "length": 19
+        }
+      ]
+    },
+    {
+      "name": "pet_brawl_profile",
+      "description": "宠物乱斗实装对战",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "petId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "enabled",
+          "type": "int"
+        },
+        {
+          "name": "weapon",
+          "type": "String",
+          "length": 12
+        },
+        {
+          "name": "skill",
+          "type": "String",
+          "length": 12
+        },
+        {
+          "name": "revision",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "version",
+          "type": "int"
+        }
+      ]
+    },
+    {
       "name": "pet_brawl_account",
       "description": "宠物乱斗账号材料、进度与每日额度",
       "keys": [

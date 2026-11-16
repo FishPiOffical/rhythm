@@ -18185,3 +18185,11 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 | `POST /api/v3/me/pet/brawl/upgrade` | `{petId,weapon,level,version}`，level 为当前武器等级，成功回执包含 `operation,petId,committedAt,level`。 |
 
 武器为 `SPOON/GUARD/FAN`，招式为 `SPLASH/CURL/BREATHE`。陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。强化只使用历练材料，到 +5 为止。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
+
+#### 宠物乱斗实装 PvP
+
+- `GET /api/v3/me/pet/brawl` 新增 `pvp:{enabled,revision,weapon,skill,remaining,received,receivedLimit}`。首次报名版本为 `""`。未报名时 weapon、skill 为 null。每日主动 3 场、被挑战 6 场，以北京时间计算。
+- `PUT /api/v3/me/pet/brawl/profile` 接收 `{petId,weapon,skill,enabled,revision,version}`，保存或撤回当前报名。回执包含 `operation:brawl-enroll,petId,committedAt`，成功后重读当前版本。
+- `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
+- 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
+- 战报列表使用 `includePvp=1` 读取含双方 PvP 的统一游标列表，缺省只列原有 NPC 战报。摘要增加 `mode:npc|pvp`。PvP 的 `stage=0`、`practice=false`、`reward=0`，详情增加 `opponentPetId` 和 `opponentSpecies`。双方共享同一战报 ID。被挑战方读取时，胜负、出场配置、行动者与生命值投影为本人视角。第三人读取返回 404。

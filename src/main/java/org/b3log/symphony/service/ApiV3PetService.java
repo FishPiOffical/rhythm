@@ -143,9 +143,9 @@ public class ApiV3PetService {
         return readTransaction(identity, () -> brawl.state(actor(identity), pet(actor(identity)), now()));
     }
 
-    public JSONObject brawlHistory(final JSONObject identity, final String before) {
+    public JSONObject brawlHistory(final JSONObject identity, final String before, final boolean includePvp) {
         if (before != null && !before.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
-        return readTransaction(identity, () -> brawl.history(actor(identity), before));
+        return readTransaction(identity, () -> brawl.history(actor(identity), before, includePvp));
     }
 
     public JSONObject brawlDetail(final JSONObject identity, final String id) {
@@ -168,6 +168,43 @@ public class ApiV3PetService {
             final JSONObject result = brawl.fight(owner, brawlPet(owner, id), weapon, skill, stage, practice, current);
             return receipt("brawl-fight", id, current).put("matchId", result.getString("matchId"));
         });
+    }
+
+    public JSONObject brawlEnroll(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "weapon", "skill", "enabled", "revision", "version"));
+        final String id = petId(input);
+        final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
+        final var skill = brawlChoice(input, "skill", ApiV3PetBattle.Skill.class);
+        if (!(input.opt("enabled") instanceof Boolean enabled)) throw ApiV3WriteInputs.invalid();
+        final String revision = brawlRevision(input);
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        return mutate(identity, "brawl-enroll", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            brawl.enroll(owner, brawlPet(owner, id), weapon, skill, enabled, revision);
+            return receipt("brawl-enroll", id, now());
+        });
+    }
+
+    public JSONObject brawlMatch(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "revision", "version"));
+        final String id = petId(input);
+        final String revision = brawlRevision(input);
+        if (revision.isEmpty()) throw ApiV3WriteInputs.invalid();
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        return mutate(identity, "brawl-match", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            final long current = now();
+            final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, current);
+            return receipt("brawl-match", id, current).put("matchId", result.getString("matchId"));
+        });
+    }
+
+    private static String brawlRevision(final JSONObject input) {
+        if (!(input.opt("revision") instanceof String revision) || !revision.matches("(?:[1-9][0-9]{0,18})?"))
+            throw ApiV3WriteInputs.invalid();
+        return revision;
     }
 
     public JSONObject brawlUpgrade(final JSONObject identity, final JSONObject input, final String key) {

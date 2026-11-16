@@ -5,6 +5,8 @@ import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.repository.PetBrawlAccountRepository;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
+import org.b3log.symphony.repository.PetBrawlPairRepository;
+import org.b3log.symphony.repository.PetBrawlProfileRepository;
 import org.b3log.symphony.util.ApiV3PetBattle;
 import org.b3log.symphony.util.ApiV3PetRules;
 import org.json.JSONObject;
@@ -20,6 +22,23 @@ public final class ApiV3PetBrawlTest {
             sql(db, "CREATE TABLE pet_brawl_match(oId TEXT PRIMARY KEY,userId TEXT,createdAt BIGINT,snapshotJson TEXT)");
             final var brawl = new ApiV3PetBrawl();
             inject(pets, "brawl", brawl);
+            sql(db, "CREATE TABLE pet_brawl_profile(oId TEXT PRIMARY KEY,petId TEXT,enabled INT,weapon TEXT,skill TEXT,revision TEXT,version INT)");
+            sql(db, "CREATE TABLE pet_brawl_pair(oId TEXT PRIMARY KEY,day TEXT,initiator TEXT,recipient TEXT,pairLow TEXT,pairHigh TEXT)");
+            inject(brawl, "profiles", new PetBrawlProfileRepository() {
+                public JSONObject get(final String id) throws RepositoryException {
+                    return selectSQL("SELECT * FROM pet_brawl_profile WHERE oId=?", id).stream().findFirst().orElse(null);
+                }
+                public String add(final JSONObject row) throws RepositoryException { return insert("pet_brawl_profile", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException {
+                    modify("pet_brawl_profile", id, row, fields);
+                }
+            });
+            inject(brawl, "pairs", new PetBrawlPairRepository() {
+                public String getName() { return "pet_brawl_pair"; }
+                public java.util.List<JSONObject> select(final String query, final Object... args) throws RepositoryException {
+                    return selectSQL(query, args);
+                }
+            });
             inject(brawl, "accounts", new PetBrawlAccountRepository() {
                 public JSONObject get(final String id) throws RepositoryException {
                     return selectSQL("SELECT * FROM pet_brawl_account WHERE oId=?", id).stream().findFirst().orElse(null);
@@ -86,11 +105,18 @@ public final class ApiV3PetBrawlTest {
             Assert.assertEquals(report.getJSONObject("player").getInt("attack"), 905);
             Assert.assertFalse(report.has("seed"));
             ApiV3PetProcessorRoutes.verify(f, next);
+            final JSONObject enrollment = new JSONObject().put("petId", pet).put("weapon", "SPOON")
+                    .put("skill", "SPLASH").put("enabled", true).put("revision", "").put("version", 1);
+            f.pets.brawlEnroll(identity(), enrollment, "enroll");
+            f.pets.brawlEnroll(identity(), enrollment, "enroll");
+            Assert.assertTrue(f.pets.brawlState(identity()).getJSONObject("pvp").getBoolean("enabled"));
+            error(409, () -> f.pets.brawlEnroll(identity(), enrollment, "stale-enroll"));
             sql(f.db, "UPDATE pet_account SET coins=512");
             final String replacement = f.pets.readopt(identity(), ApiV3PetProgressionTest.replacement(pet), "brawl-readopt").getString("petId");
             Assert.assertNotEquals(replacement, pet);
             Assert.assertEquals(f.pets.brawlState(identity()).getJSONObject("levels").getInt("SPOON"), 1);
             Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 5);
+            Assert.assertFalse(f.pets.brawlState(identity()).getJSONObject("pvp").getBoolean("enabled"));
             Assert.assertEquals(f.pets.brawlDetail(identity(), next).getString("petId"), pet);
             error(404, () -> f.pets.brawlFight(identity(), command, "old-pet"));
             Assert.assertEquals(f.coins(), 0);
