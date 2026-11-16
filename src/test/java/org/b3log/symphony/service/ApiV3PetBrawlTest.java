@@ -142,6 +142,8 @@ public final class ApiV3PetBrawlTest {
             Assert.assertEquals(f.httpPet("GET", PATH, null, null, null).attr("test.status"), 401);
             Assert.assertEquals(f.httpPet("GET", PATH, "owner", null, null).attr("test.status"), 200);
             Assert.assertEquals(f.httpPet("GET", PATH + "/matches", "owner", null, null).attr("test.status"), 200);
+            Assert.assertEquals(f.httpPet("GET", PATH + "/season", null, null, null).attr("test.status"), 401);
+            Assert.assertEquals(f.httpPet("POST", PATH + "/season/1/claim", "scope", "season", "{}").attr("test.status"), 403);
             Assert.assertEquals(f.httpPet("POST", PATH + "/matches", null, "anonymous", "{}").attr("test.status"), 401);
             Assert.assertEquals(f.httpPet("POST", PATH + "/upgrade", "scope", "scope", "{}").attr("test.status"), 403);
             Assert.assertEquals(f.httpPet("GET", PATH + "/matches/" + id, "reviewer", null, null).attr("test.status"), 404);

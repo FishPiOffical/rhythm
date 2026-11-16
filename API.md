@@ -18207,3 +18207,10 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `POST /api/v3/me/pet/brawl/orders` 可带 `product`。固定 ID 为 `ARTIFACT`、`SLOT`、`SOUL_VITAL`、`SOUL_EDGE`、`RUNE_GUARD`、`RUNE_SPARK`。传入的 `level` 为该项目现有等级，材料折抵继续沿用每份 10 积分。旧强化订单省略 product。
 - `PUT /api/v3/me/pet/brawl/socket` 接收 `{petId,weapon,slot,item,version,revision}`。slot 为 `soul` 或 `rune`，item 为匹配类别的已拥有道具 ID，空字符串表示拆卸。需要本人 `settings.write` 和幂等键，成功后重新读取配装。
 - PvP 战报双方配置增加 `gearHp` 和 `gearAttack` 增益及装备快照，历史配置以结算记录为准。
+
+#### 宠物乱斗赛季
+
+- `GET /api/v3/me/pet/brawl/season?season=1&p=1` 使用第一方本人 `profile.read`。省略赛季取当前，省略页码取第 1 页。每页 20 项，返回 `season,current,startsAt,endsAt,settled,page,hasNext,list,mine`。时间为毫秒，按北京时间零点划分。
+- 榜单项仅含 `rank,rating,games,wins,name,nickname,mine`。停用账号隐藏用户名和昵称，保留已结算的名次。本人项含 `rank,rating,games,wins,opponents,reward,claimed`，未上榜的 rank 为 null。opponents 最多计到 5。
+- `POST /api/v3/me/pet/brawl/season/{id}/claim` 接收空对象，要求第一方本人 `settings.write` 与 `Idempotency-Key`。回执为 `operation:brawl-season-claim,season,place,materials,claimedAt,committedAt`。同赛季已领过时返回原结果。尚未结算、未上榜、读取未来赛季分别返回 409 `brawl_season_open`、`brawl_season_unranked`、`brawl_season_future`。
+- 启用后生成的 PvP 战报详情带整数 `season`。老战报和 NPC 战报原样读取。

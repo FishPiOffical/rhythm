@@ -63,6 +63,7 @@ import java.util.Set;
 @Service
 public class ApiV3PetService {
     @Inject private ApiV3PetBrawl brawl;
+    @Inject private ApiV3PetSeasons seasons;
     @Inject private PetAccountRepository accounts;
     @Inject private UserPetRepository pets;
     @Inject private PetInventoryRepository inventory;
@@ -197,10 +198,36 @@ public class ApiV3PetService {
         return mutate(identity, "brawl-match", key, input, () -> {
             requireBrawlVersion(version);
             final String owner = actor(identity);
-            final long current = now();
-            final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, current);
-            return receipt("brawl-match", id, current).put("matchId", result.getString("matchId"));
+            final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, this::now);
+            return receipt("brawl-match", id, result.getLong("createdAt")).put("matchId", result.getString("matchId"));
         });
+    }
+
+    public JSONObject brawlSeason(final JSONObject identity, final String season, final String page) {
+        final Integer requested = season == null ? null : seasonNumber(season, 999999);
+        final int currentPage = page == null ? 1 : seasonNumber(page, 10000);
+        return readTransaction(identity, () -> seasons.board(actor(identity), requested, currentPage, now()));
+    }
+
+    public JSONObject brawlSeasonClaim(final JSONObject identity, final JSONObject input, final String id, final String key) {
+        exact(input, Set.of());
+        final int season = seasonNumber(id, 999999);
+        final JSONObject command = new JSONObject().put("season", season);
+        return mutate(identity, "brawl-season-claim", key, command, () -> {
+            final String owner = actor(identity);
+            final JSONObject claim = seasons.claim(owner, season, now());
+            if (claim.getBoolean("credited")) brawl.creditSeasonMaterials(owner, claim.getInt("materials"));
+            claim.remove("credited");
+            return claim.put("operation", "brawl-season-claim")
+                    .put("season", season).put("committedAt", claim.getLong("claimedAt"));
+        });
+    }
+
+    private static int seasonNumber(final String value, final int max) {
+        if (value == null || !value.matches("[1-9][0-9]{0,5}")) throw ApiV3WriteInputs.invalid();
+        final int number = Integer.parseInt(value);
+        if (number > max) throw ApiV3WriteInputs.invalid();
+        return number;
     }
 
     private static String brawlRevision(final JSONObject input) {

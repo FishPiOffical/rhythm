@@ -60,6 +60,8 @@ public class ApiV3PetProcessor {
         Dispatcher.get("/api/v3/me/pet/brawl/orders/{id}", processor::brawlOrder, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/brawl/orders", processor::brawlQuote, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/orders/{id}/confirm", processor::brawlConfirm, auth::settingsWrite);
+        Dispatcher.get("/api/v3/me/pet/brawl/season", processor::brawlSeason, auth::profileRead);
+        Dispatcher.post("/api/v3/me/pet/brawl/season/{id}/claim", processor::brawlSeasonClaim, auth::settingsWrite);
         Dispatcher.put("/api/v3/me/pet/brawl/socket", processor::brawlSocket, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/upgrade", processor::brawlUpgrade, auth::settingsWrite);
         Dispatcher.get("/api/v3/me/pet/risk", processor::riskState, auth::settingsWrite);
@@ -125,6 +127,15 @@ public class ApiV3PetProcessor {
 
     public void brawlConfirm(final RequestContext context) {
         respond(context, () -> pets.brawlConfirm(identity(context), body(context, Set.of("petId")),
+                context.pathVar("id"), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlSeason(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlSeason(identity(context), context.param("season"), context.param("p")));
+    }
+
+    public void brawlSeasonClaim(final RequestContext context) {
+        respond(context, () -> pets.brawlSeasonClaim(identity(context), body(context, Set.of()),
                 context.pathVar("id"), ApiV3WriteInputs.idempotencyKey(context)));
     }
 

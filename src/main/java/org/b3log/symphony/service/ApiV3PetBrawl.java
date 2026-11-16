@@ -41,6 +41,7 @@ public class ApiV3PetBrawl {
     };
     static final int STAGES = OPPONENTS.length;
     private static final SecureRandom RANDOM = new SecureRandom();
+    @Inject private ApiV3PetSeasons seasons;
     @Inject private PetBrawlAccountRepository accounts;
     @Inject private PetBrawlOrderRepository orders;
     @Inject private PetBrawlGearRepository gears;
@@ -127,10 +128,12 @@ public class ApiV3PetBrawl {
         else profiles.update(owner, row, "petId", "weapon", "skill", "enabled", "version", "revision");
     }
 
-    JSONObject match(final String owner, final JSONObject pet, final String revision, final long now) throws RepositoryException {
+    JSONObject match(final String owner, final JSONObject pet, final String revision, final java.util.function.LongSupplier time) throws RepositoryException {
         final JSONObject profile = profiles.get(owner);
         if (!currentProfile(profile, pet) || !revision.equals(profile.getString("revision")))
             throw ApiV3PetRules.conflict("brawl_profile_changed", "请确认当前报名配置");
+        final var round = seasons.beginRound(time);
+        final long now = round.startedAt();
         final String day = ApiV3PetRules.today(now);
         if (count(owner, day, true) >= ACTIVE_LIMIT)
             throw ApiV3PetRules.conflict("brawl_pvp_limit", "今天的主动挑战次数已用完");
@@ -164,6 +167,7 @@ public class ApiV3PetBrawl {
             final long seed = RANDOM.nextLong();
             final JSONObject report = resolve(pet, player.setup(), target.setup(), now, ApiV3PetBattle.resolve(player.setup(), target.setup(), seed))
                     .put("mode", "pvp").put("stage", 0).put("practice", false).put("reward", 0)
+                    .put("season", round.season())
                     .put("opponentPetId", targetPet.getString("oId")).put("opponentSpecies", targetPet.getString("speciesId"));
             report.getJSONObject("player").put("gear", player.snapshot());
             report.getJSONObject("opponent").put("gear", target.snapshot());
@@ -171,7 +175,8 @@ public class ApiV3PetBrawl {
             final String high = low.equals(owner) ? opponent : owner;
             pairs.add(new JSONObject().put("oId", report.getString("id")).put("day", day)
                     .put("initiator", owner).put("recipient", opponent).put("pairLow", low).put("pairHigh", high));
-            return store(owner, report, seed);
+            seasons.record(round, owner, opponent, report.getInt("winner"));
+            return store(owner, report, seed).put("createdAt", now);
         }
         throw ApiV3PetRules.conflict("brawl_no_opponent", "暂时没有符合条件的对手，可以稍后再匹配");
     }
@@ -497,6 +502,14 @@ public class ApiV3PetBrawl {
         for (Weapon weapon : Weapon.values()) levels.put(weapon.name(), 0);
         return new JSONObject().put("oId", owner).put("materials", 0).put("rewardCount", 0)
                 .put("rewardDate", "").put("unlocked", 1).put("levelsJson", levels.toString());
+    }
+
+    void creditSeasonMaterials(final String owner, final int amount) throws RepositoryException {
+        final var rows = accounts.select("SELECT * FROM `" + accounts.getName() + "` WHERE oId=? FOR UPDATE", owner);
+        final JSONObject account = rows.isEmpty() ? account(owner) : rows.getFirst();
+        account.put("materials", Math.addExact(account.getInt("materials"), amount));
+        if (rows.isEmpty()) accounts.add(account);
+        else accounts.update(owner, account, "materials");
     }
 
     private void save(final JSONObject account) throws RepositoryException {

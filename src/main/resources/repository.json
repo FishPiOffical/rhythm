@@ -46,6 +46,102 @@
       ]
     },
     {
+      "name": "pet_brawl_season",
+      "description": "宠物乱斗赛季起点与结算进度",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "startsAt",
+          "type": "long"
+        },
+        {
+          "name": "settledThrough",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "name": "pet_brawl_standing",
+      "description": "宠物乱斗赛季战绩和排名",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "season",
+          "type": "int"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "rating",
+          "type": "int"
+        },
+        {
+          "name": "wins",
+          "type": "int"
+        },
+        {
+          "name": "games",
+          "type": "int"
+        },
+        {
+          "name": "reachedAt",
+          "type": "long"
+        },
+        {
+          "name": "eligible",
+          "type": "int"
+        },
+        {
+          "name": "opponents",
+          "type": "String",
+          "length": 128
+        }
+      ]
+    },
+    {
+      "name": "pet_brawl_season_reward",
+      "description": "宠物乱斗赛季一次性奖励",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "season",
+          "type": "int"
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "place",
+          "type": "int"
+        },
+        {
+          "name": "materials",
+          "type": "int"
+        },
+        {
+          "name": "claimedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "pet_brawl_gear",
       "description": "宠物乱斗神器、槽位、镶嵌和账号宝石",
       "keys": [
