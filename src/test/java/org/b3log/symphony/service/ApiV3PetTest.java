@@ -302,12 +302,17 @@ public class ApiV3PetTest {
                 parse.invoke(request);
                 request.setParams(new HashMap<>(Map.of("apiKey", "legacy")));
                 new io.netty.handler.codec.http.QueryStringDecoder(path).parameters().forEach((name, values) -> request.setParameter(name, values.getFirst()));
-                final var context = new RequestContext(request, new Response(null,
-                        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)));
+                final var rawResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+                final var context = new RequestContext(request, new Response(null, rawResponse));
                 context.addHandler(new org.b3log.latke.http.handler.RouteHandler());
                 context.addHandler(current -> {
                     final var match = (org.b3log.latke.http.handler.RouteResolution) current.attr("MATCH_RESULT");
                     switch (match.getContextHandlerMeta().getInvokeHolder().getName()) {
+                        case "brawlState" -> endpointPet.brawlState(current);
+                        case "brawlHistory" -> endpointPet.brawlHistory(current);
+                        case "brawlDetail" -> endpointPet.brawlDetail(current);
+                        case "brawlFight" -> endpointPet.brawlFight(current);
+                        case "brawlUpgrade" -> endpointPet.brawlUpgrade(current);
                         case "riskState" -> endpointPet.riskState(current);
                         case "challenge" -> endpointPet.challenge(current);
                         case "verify" -> endpointPet.verify(current);
@@ -329,6 +334,7 @@ public class ApiV3PetTest {
                     }
                 });
                 context.handle();
+                context.attr("test.status", rawResponse.status().code());
                 return context;
             } finally {
                 raw.release();

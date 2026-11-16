@@ -50,6 +50,11 @@ public class ApiV3PetProcessor {
     public static void registerRoutes(final ApiV3PetProcessor processor, final ApiV3AuthMidware auth,
                                       final ApiV3WriteMidware writes) {
         // 宠物写入使用持久化账号额度；已成功原键回执先恢复，不受共享写额度误拦。
+        Dispatcher.get("/api/v3/me/pet/brawl", processor::brawlState, auth::profileRead);
+        Dispatcher.get("/api/v3/me/pet/brawl/matches", processor::brawlHistory, auth::profileRead);
+        Dispatcher.get("/api/v3/me/pet/brawl/matches/{id}", processor::brawlDetail, auth::profileRead);
+        Dispatcher.post("/api/v3/me/pet/brawl/matches", processor::brawlFight, auth::settingsWrite);
+        Dispatcher.post("/api/v3/me/pet/brawl/upgrade", processor::brawlUpgrade, auth::settingsWrite);
         Dispatcher.get("/api/v3/me/pet/risk", processor::riskState, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/risk/challenge", processor::challenge, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/risk/verify", processor::verify, auth::settingsWrite);
@@ -67,6 +72,29 @@ public class ApiV3PetProcessor {
         Dispatcher.get("/api/v3/me/pet/activities", processor::history, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/activities", processor::startActivity, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/activities/claim", processor::claimActivity, auth::settingsWrite);
+    }
+
+    public void brawlState(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlState(identity(context)));
+    }
+
+    public void brawlHistory(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlHistory(identity(context), context.param("before")));
+    }
+
+    public void brawlDetail(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlDetail(identity(context), context.pathVar("id")));
+    }
+
+    public void brawlFight(final RequestContext context) {
+        respond(context, () -> pets.brawlFight(identity(context),
+                body(context, Set.of("petId", "weapon", "skill", "stage", "practice", "version")),
+                ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlUpgrade(final RequestContext context) {
+        respond(context, () -> pets.brawlUpgrade(identity(context),
+                body(context, Set.of("petId", "weapon", "level", "version")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void catalog(final RequestContext context) {

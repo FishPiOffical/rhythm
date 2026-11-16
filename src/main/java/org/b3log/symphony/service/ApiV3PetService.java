@@ -42,6 +42,7 @@ import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3PetRules;
+import org.b3log.symphony.util.ApiV3PetBattle;
 import org.b3log.symphony.util.ApiV3PetActivities;
 import org.b3log.symphony.util.ApiV3PetWork;
 import org.b3log.symphony.util.ApiV3PetExploration;
@@ -59,6 +60,7 @@ import java.util.Set;
 /** 宠物钱包、背包、照顾与回执同事务；站点积分和经典客户端不参与本玩法。 */
 @Service
 public class ApiV3PetService {
+    @Inject private ApiV3PetBrawl brawl;
     @Inject private PetAccountRepository accounts;
     @Inject private UserPetRepository pets;
     @Inject private PetInventoryRepository inventory;
@@ -135,6 +137,78 @@ public class ApiV3PetService {
             return result.put("pet", projected)
                     .put("inventory", inventoryState(actor(identity)));
         });
+    }
+
+    public JSONObject brawlState(final JSONObject identity) {
+        return readTransaction(identity, () -> brawl.state(actor(identity), pet(actor(identity)), now()));
+    }
+
+    public JSONObject brawlHistory(final JSONObject identity, final String before) {
+        if (before != null && !before.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        return readTransaction(identity, () -> brawl.history(actor(identity), before));
+    }
+
+    public JSONObject brawlDetail(final JSONObject identity, final String id) {
+        if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        return readTransaction(identity, () -> brawl.detail(actor(identity), id));
+    }
+
+    public JSONObject brawlFight(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "weapon", "skill", "stage", "practice", "version"));
+        final String id = petId(input);
+        final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
+        final var skill = brawlChoice(input, "skill", ApiV3PetBattle.Skill.class);
+        final int stage = brawlNumber(input, "stage", 1, ApiV3PetBrawl.STAGES);
+        if (!(input.opt("practice") instanceof Boolean practice)) throw ApiV3WriteInputs.invalid();
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        return mutate(identity, "brawl-fight", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            final long current = now();
+            final JSONObject result = brawl.fight(owner, brawlPet(owner, id), weapon, skill, stage, practice, current);
+            return receipt("brawl-fight", id, current).put("matchId", result.getString("matchId"));
+        });
+    }
+
+    public JSONObject brawlUpgrade(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("petId", "weapon", "level", "version"));
+        final String id = petId(input);
+        final var weapon = brawlChoice(input, "weapon", ApiV3PetBattle.Weapon.class);
+        final int level = brawlNumber(input, "level", 0, ApiV3PetBattle.COST.length - 1);
+        final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
+        return mutate(identity, "brawl-upgrade", key, input, () -> {
+            requireBrawlVersion(version);
+            final String owner = actor(identity);
+            brawlPet(owner, id);
+            final JSONObject result = brawl.upgrade(owner, weapon, level);
+            return receipt("brawl-upgrade", id, now()).put("level", result.getInt("level"));
+        });
+    }
+
+    private JSONObject brawlPet(final String owner, final String id) throws RepositoryException {
+        final JSONObject pet = owned(owner, id);
+        if (ApiV3PetRules.level(pet.getInt("experience")) < ApiV3PetBrawl.MIN_LEVEL)
+            throw ApiV3PetRules.conflict("brawl_level_locked", "宠物达到 Lv.10 后才能参与乱斗");
+        return pet;
+    }
+
+    private static void requireBrawlVersion(final int version) {
+        if (version != ApiV3PetBattle.VERSION)
+            throw ApiV3PetRules.conflict("brawl_version_changed", "乱斗规则已更新，请重新读取");
+    }
+
+    private static int brawlNumber(final JSONObject input, final String field, final int min, final int max) {
+        if (!(input.opt(field) instanceof Number number) || number.doubleValue() != number.intValue()
+                || number.intValue() < min || number.intValue() > max) throw ApiV3WriteInputs.invalid();
+        return number.intValue();
+    }
+
+    private static <T extends Enum<T>> T brawlChoice(final JSONObject input, final String field, final Class<T> type) {
+        try {
+            return Enum.valueOf(type, string(input, field));
+        } catch (IllegalArgumentException error) {
+            throw ApiV3WriteInputs.invalid();
+        }
     }
 
     public JSONObject adopt(final JSONObject identity, final JSONObject body, final String key) {

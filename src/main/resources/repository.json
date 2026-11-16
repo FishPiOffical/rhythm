@@ -10,6 +10,64 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_brawl_account",
+      "description": "宠物乱斗账号材料、进度与每日额度",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "materials",
+          "type": "int"
+        },
+        {
+          "name": "rewardDate",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "rewardCount",
+          "type": "int"
+        },
+        {
+          "name": "unlocked",
+          "type": "int"
+        },
+        {
+          "name": "levelsJson",
+          "type": "String",
+          "length": 128
+        }
+      ]
+    },
+    {
+      "name": "pet_brawl_match",
+      "description": "本人宠物乱斗战报",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "snapshotJson",
+          "type": "String",
+          "length": 8192
+        }
+      ]
+    },
+    {
       "name": "pet_risk_state",
       "description": "宠物账号保护状态与有界命令记录",
       "keys": [

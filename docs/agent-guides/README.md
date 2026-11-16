@@ -35,4 +35,4 @@
 - 先检索原约定再修改同一处。移除重复前核对限制、例外、兼容、迁移、安全边界和未验证项，不能只留下摘要；过期结论标明替代依据，历史事实保留到 [历史专题](history.md) 或对应记录。
 - 根文件、专题索引、Claude/Gemini入口和迁移记录是不同职责。`migration-map.md` 只追溯本次整理，不为后续每个提交追加流水账；任务过程放 `.codex-tasks/`。
 
-- 宠物家园与后台日志见 [宠物账号保护](../api-v3-pet-risk.md) 及 [养成](../api-v3-pets-phase-one.md)、[外出与课程](../api-v3-pets-phase-two.md)、[兼职](../api-v3-pets-phase-three.md)、[探索](../api-v3-pets-phase-four.md)、[进阶](../api-v3-pets-phase-five.md)、[成长](../api-v3-pets-phase-six.md)；宠物写入使用用户行锁与原键回执，活动按冻结快照结算，账号资产与历史日志不随重新领养删除。
+- 宠物乱斗见 [V3 免费乱斗](../api-v3-pet-brawl.md)。宠物家园与后台日志见 [宠物账号保护](../api-v3-pet-risk.md) 及 [养成](../api-v3-pets-phase-one.md)、[外出与课程](../api-v3-pets-phase-two.md)、[兼职](../api-v3-pets-phase-three.md)、[探索](../api-v3-pets-phase-four.md)、[进阶](../api-v3-pets-phase-five.md)、[成长](../api-v3-pets-phase-six.md)；宠物写入使用用户行锁与原键回执，活动按冻结快照结算，账号资产与历史日志不随重新领养删除。

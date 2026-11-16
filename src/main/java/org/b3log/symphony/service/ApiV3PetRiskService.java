@@ -49,10 +49,11 @@ public class ApiV3PetRiskService {
     private static final long GRANT_TTL = 15 * MINUTE;
     private static final int COMMAND_LIMIT = 128;
     private static final Set<String> OPERATIONS = Set.of("adoption", "readoption", "story-claim", "name", "action",
-            "supplies", "purchase", "craft", "activity-start", "activity-claim");
+            "supplies", "purchase", "craft", "activity-start", "activity-claim", "brawl-fight", "brawl-upgrade");
     private static final Set<String> BUSINESS_DENIALS = Set.of("care_cooldown", "already_full", "not_enough_energy",
             "not_enough_coins", "not_enough_hunger", "not_enough_water", "not_enough_items", "not_enough_food",
-            "income_limit", "activity_running", "activity_claimed", "supply_claimed", "pet_resting", "pet_busy", "story_claimed", "collection_owned");
+            "income_limit", "activity_running", "activity_claimed", "supply_claimed", "pet_resting", "pet_busy", "story_claimed", "collection_owned",
+            "brawl_level_locked", "brawl_stage_locked", "brawl_stale_level", "brawl_materials", "brawl_version_changed");
     @Inject private PetRiskStateRepository states;
     @Inject private PetRiskAuditRepository audits;
     @Inject private PetRiskProofRepository proofUses;

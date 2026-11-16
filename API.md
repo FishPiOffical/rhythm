@@ -18171,3 +18171,17 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - 鱼游导入、VIP 新增、勋章创建、编辑及发放采用完整有效请求字段判断幂等冲突。历史回执只有在新增字段为空或默认值、能够确认是原请求重试时才返回原结果，并带 `legacyReceipt=true`、`replayed=true`；历史回执缺少关键输入且本次带有实际新内容时返回 HTTP 409、`legacy_receipt_unverifiable`，请核对原操作后使用新的幂等键，不会自动重做。旧操作只有占位回执时返回 HTTP 409、`operation_outcome_unknown`，保留原键并核对现有业务记录。
 - `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
 - `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。
+
+### 宠物乱斗 · 免费陪练、闯关与强化
+
+第一方本人资源。GET 需要 `profile.read`，POST 需要 `settings.write` 和 `Idempotency-Key`。写请求沿用宠物账号冷却与验证，操作名为 `brawl-fight`、`brawl-upgrade`。当前宠物 Lv.10 起可写，旧宠战报保留本人读取权限。
+
+| 路径 | 请求与业务数据 |
+| --- | --- |
+| `GET /api/v3/me/pet/brawl` | 返回当前 petId、species、level、minLevel、version、materials、stages、unlocked、cleared、rewardCount、levels、costs、rewards 和 growth。未领养时 petId 与 species 为 null。 |
+| `POST /api/v3/me/pet/brawl/matches` | `{petId,weapon,skill,stage,practice,version}`，成功回执包含 `operation,petId,committedAt,matchId`。 |
+| `GET /api/v3/me/pet/brawl/matches` | 可选 `before` 战报 ID，返回至多 20 条倒序摘要和 `next` 游标，末页为 null。 |
+| `GET /api/v3/me/pet/brawl/matches/{id}` | 返回本人战报，含双方出战快照和逐行动记录。生命、伤害与治疗按百分之一 HP 表示，actor 为 0 我方、1 对手。winner 为 0 我方胜、1 对手胜、-1 平。 |
+| `POST /api/v3/me/pet/brawl/upgrade` | `{petId,weapon,level,version}`，level 为当前武器等级，成功回执包含 `operation,petId,committedAt,level`。 |
+
+武器为 `SPOON/GUARD/FAN`，招式为 `SPLASH/CURL/BREATHE`。陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。强化只使用历练材料，到 +5 为止。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
