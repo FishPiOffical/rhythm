@@ -385,6 +385,7 @@ curl 'https://fishpi.cn/api/v3/me' --header 'Authorization: Bearer TOKEN'
 | data.userNo / data.userAppRole | 用户编号 / 社区角色 |
 | data.userCity | 公开城市，位置未公开时为空字符串 |
 | data.userOnlineFlag / data.onlineMinute | 在线标记 / 累计在线分钟数 |
+| data.userLatestLoginTime | 最后登录时间，Unix 毫秒时间戳。仅第一方网站令牌读取本人资料且有登录记录时返回 |
 
 
 > 返回当前账号资料；账号不再有效或已删除时，原访问令牌也会返回 HTTP 401。

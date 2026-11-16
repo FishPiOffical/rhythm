@@ -344,7 +344,7 @@ public class ApiV3Processor {
         final JSONObject role = roleQueryService.getRole(roleId);
         final boolean administrator = Role.ROLE_ID_C_ADMIN.equals(roleId)
                 && ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(identity.optString("clientId"));
-        success(context, userDto(user, true)
+        final JSONObject data = userDto(user, true)
                 .put("isAdmin", administrator)
                 .put("capabilities", ApiV3UserCapabilities.project(user, identity,
                         ApiV3UserCapabilities.website(identity) ? roleQueryService.getPermissions(roleId) : Set.of()))
@@ -355,7 +355,12 @@ public class ApiV3Processor {
                 .put("userCity", user.optInt(UserExt.USER_GEO_STATUS, -1) == UserExt.USER_GEO_STATUS_C_PUBLIC
                         ? user.optString(UserExt.USER_CITY) : "")
                 .put("userOnlineFlag", UserOnlineStatus.isOnline(user))
-                .put("onlineMinute", Math.max(0, user.optInt(UserExt.ONLINE_MINUTE))));
+                .put("onlineMinute", Math.max(0, user.optInt(UserExt.ONLINE_MINUTE)));
+        final long latestLoginTime = user.optLong(UserExt.USER_LATEST_LOGIN_TIME);
+        if (ApiV3UserCapabilities.website(identity) && latestLoginTime > 0) {
+            data.put(UserExt.USER_LATEST_LOGIN_TIME, latestLoginTime);
+        }
+        success(context, data);
     }
 
     public void columns(final RequestContext context) {
