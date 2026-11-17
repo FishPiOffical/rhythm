@@ -18190,6 +18190,18 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 
 通用武器为 `SPOON/GUARD/FAN`，通用招式为 `SPLASH/CURL/BREATHE`。进度接口的 `equipmentCatalog:{weapons,skills}` 按当前宠物物种列出通用和专属选项，条目包含 `id,name,effect,exclusive`。写入使用实际选项 ID，武器或招式与当前宠物不兼容时返回 409 `brawl_equipment_unavailable`。等级和配装可能包含新增武器键。战报出战配置也可能包含新增武器、招式 ID。
 
+新战报的 `turns[].effects` 记录实际伤害构成。数值均为百分之一 HP。
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| baseDamage | 出手方本次基础伤害（含配装属性与随机浮动） | 900 |
+| criticalBonus / weaponBonus / skillBonus / followUp | 暴击、武器、招式和追击分别增加的伤害 | 450 / 360 / 0 / 0 |
+| weaponGuard / skillGuard | 受击方武器和招式分别提供的减伤 | 380 / 0 |
+| penetrated | 实际穿透的减伤 | 120 |
+| minimumBonus | 伤害低于下限时的补正 | 0 |
+
+> 最终伤害为基础伤害加各项增伤，减去武器和招式减伤，再加穿透与下限补正。回复仍读取同一行动的 `healing`。旧战报省略 `effects`，被挑战方的战报继续按当前查看者翻转，明细数值以这一行动的出手方和受击方为准。
+
 陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。乱斗版本 2 的武器上限为 +20，`costs` 有 20 档、`growth` 有 21 项；旧武器等级按四倍转换，已有神器保留。战报继续返回各场原始版本、等级和属性。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
 
 #### 宠物乱斗实装 PvP

@@ -97,7 +97,10 @@ public final class ApiV3PetBattle {
         // 每四级之间线性插值，四舍五入到战斗使用的百分之一单位。
         return milestones[index] + ((milestones[index + 1] - milestones[index]) * step + 2) / LEVELS_PER_MILESTONE;
     }
-    public record Turn(int round, int actor, int damage, int healing, int playerHp, int opponentHp) {}
+    // 按出手方和受击方记录伤害构成，战报翻转时可原样使用。
+    public record Effects(int baseDamage, int criticalBonus, int weaponBonus, int skillBonus, int followUp,
+                          int weaponGuard, int skillGuard, int penetrated, int minimumBonus) {}
+    public record Turn(int round, int actor, int damage, int healing, int playerHp, int opponentHp, Effects effects) {}
     public record Result(int winner, List<Turn> turns) {}
 
     private ApiV3PetBattle() {}
@@ -118,19 +121,25 @@ public final class ApiV3PetBattle {
                 final int healing = round == 4
                         ? Math.min(healingPower(attacker.skill), attacker.maxHp() - hp[actor]) : 0;
                 hp[actor] += healing;
-                int damage = attacker.attack() + jitter[actor] * 100;
-                if (critical[actor]) damage = damage * 3 / 2;
-                damage += weaponDamage(attacker.weapon, round) + skillDamage(attacker.skill, round);
+                final int baseDamage = attacker.attack() + jitter[actor] * 100;
+                final int criticalBonus = critical[actor] ? baseDamage / 2 : 0;
+                final int weaponBonus = weaponDamage(attacker.weapon, round);
+                final int skillBonus = skillDamage(attacker.skill, round);
                 // 小鱼弹弓的追击只触发一次，半血判断使用本次攻击前的生命。
-                if (attacker.weapon == Weapon.SLING && !slingUsed[actor] && hp[target] * 2 <= defender.maxHp()) {
-                    damage += 380;
-                    slingUsed[actor] = true;
-                }
-                final int reduction = weaponReduction(defender.weapon, round) + skillReduction(defender.skill, round);
-                damage -= Math.max(0, reduction - pierce(attacker, round));
-                damage = Math.max(100, damage);
+                final boolean followUpTriggered = attacker.weapon == Weapon.SLING && !slingUsed[actor]
+                        && hp[target] * 2 <= defender.maxHp();
+                final int followUp = followUpTriggered ? 380 : 0;
+                if (followUpTriggered) slingUsed[actor] = true;
+                final int weaponGuard = weaponReduction(defender.weapon, round);
+                final int skillGuard = skillReduction(defender.skill, round);
+                final int penetrated = Math.min(weaponGuard + skillGuard, pierce(attacker, round));
+                final int reducedDamage = baseDamage + criticalBonus + weaponBonus + skillBonus + followUp
+                        - weaponGuard - skillGuard + penetrated;
+                final int damage = Math.max(100, reducedDamage);
                 hp[target] = Math.max(0, hp[target] - damage);
-                turns.add(new Turn(round, actor, damage, healing, hp[0], hp[1]));
+                final Effects effects = new Effects(baseDamage, criticalBonus, weaponBonus, skillBonus, followUp,
+                        weaponGuard, skillGuard, penetrated, damage - reducedDamage);
+                turns.add(new Turn(round, actor, damage, healing, hp[0], hp[1], effects));
                 if (hp[target] == 0) return new Result(actor, List.copyOf(turns));
             }
         }

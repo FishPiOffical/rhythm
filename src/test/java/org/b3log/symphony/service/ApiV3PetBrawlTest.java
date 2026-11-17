@@ -111,6 +111,21 @@ public final class ApiV3PetBrawlTest {
             Assert.assertEquals(report.getInt("reward"), 5);
             Assert.assertEquals(report.getJSONObject("player").getInt("attack"), 902);
             Assert.assertFalse(report.has("seed"));
+            final JSONObject firstAction = report.getJSONArray("turns").getJSONObject(0);
+            final JSONObject effects = firstAction.getJSONObject("effects");
+            Assert.assertEquals(effects.getInt("baseDamage") + effects.getInt("criticalBonus") + effects.getInt("weaponBonus")
+                    + effects.getInt("skillBonus") + effects.getInt("followUp") - effects.getInt("weaponGuard")
+                    - effects.getInt("skillGuard") + effects.getInt("penetrated") + effects.getInt("minimumBonus"),
+                    firstAction.getInt("damage"));
+
+            final JSONObject oldReport = f.pets.brawlDetail(identity(), first);
+            final int oldDamage = oldReport.getJSONArray("turns").getJSONObject(0).getInt("damage");
+            for (Object turn : oldReport.getJSONArray("turns")) ((JSONObject) turn).remove("effects");
+            sql(f.db, "UPDATE pet_brawl_match SET snapshotJson=? WHERE oId=?",
+                    new JSONObject().put("report", oldReport).toString(), first);
+            final JSONObject oldAction = f.pets.brawlDetail(identity(), first).getJSONArray("turns").getJSONObject(0);
+            Assert.assertFalse(oldAction.has("effects"));
+            Assert.assertEquals(oldAction.getInt("damage"), oldDamage);
             ApiV3PetProcessorRoutes.verify(f, next);
             final JSONObject enrollment = new JSONObject().put("petId", pet).put("weapon", "SPOON")
                     .put("skill", "SPLASH").put("enabled", true).put("revision", "").put("version", ApiV3PetBattle.VERSION);

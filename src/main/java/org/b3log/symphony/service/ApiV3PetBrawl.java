@@ -364,9 +364,15 @@ public class ApiV3PetBrawl {
                                       final long now, final ApiV3PetBattle.Result result) {
         final JSONArray turns = new JSONArray();
         for (var turn : result.turns()) {
+            final var effects = turn.effects();
             turns.put(new JSONObject().put("round", turn.round()).put("actor", turn.actor())
                     .put("damage", turn.damage()).put("healing", turn.healing())
-                    .put("playerHp", turn.playerHp()).put("opponentHp", turn.opponentHp()));
+                    .put("playerHp", turn.playerHp()).put("opponentHp", turn.opponentHp())
+                    .put("effects", new JSONObject().put("baseDamage", effects.baseDamage())
+                            .put("criticalBonus", effects.criticalBonus()).put("weaponBonus", effects.weaponBonus())
+                            .put("skillBonus", effects.skillBonus()).put("followUp", effects.followUp())
+                            .put("weaponGuard", effects.weaponGuard()).put("skillGuard", effects.skillGuard())
+                            .put("penetrated", effects.penetrated()).put("minimumBonus", effects.minimumBonus())));
         }
         return new JSONObject().put("id", Ids.genTimeMillisId()).put("createdAt", now)
                 .put("version", ApiV3PetBattle.VERSION).put("petId", pet.getString("oId"))
