@@ -34,17 +34,6 @@ export function compileRuntime(output, options = {}) {
   run('javac', ['--release', '25', '-proc:none', '-encoding', 'UTF-8', '-cp', dependencies, '-d', output,
     ...sources.map(file => `src/main/java/org/b3log/symphony/${file}.java`),
     ...tests.map(file => `src/test/java/org/b3log/symphony/service/${file}.java`)]);
-  // 仅替换 HTTP 输出端口以断言状态码；真实路由、中间件、凭据与事务均保留。
-  const shim = path.join(output, 'ApiV3Processor.java');
-  fs.writeFileSync(shim, `package org.b3log.symphony.processor;
-public class ApiV3Processor {
-    public static final String IDENTITY = "apiV3Identity";
-    public static String requestId(org.b3log.latke.http.RequestContext context) { return "test-pets"; }
-    public static void success(org.b3log.latke.http.RequestContext context, Object data) { context.attr("test.status", 200); context.attr("test.data", data); }
-    public static void error(org.b3log.latke.http.RequestContext context, int status, String code, String msg) { context.attr("test.status", status); context.attr("test.code", code); }
-}`);
-  run('javac', ['--release', '25', '-cp', dependencies, '-d', output, shim]);
-
 }
 
 export function cachedRuntime(cacheDirectory, options = {}) {

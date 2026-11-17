@@ -28,6 +28,7 @@ import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.Response;
+import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.processor.ApiV3PetProcessor;
 import org.b3log.symphony.repository.PetAccountRepository;
@@ -334,7 +335,13 @@ public class ApiV3PetTest {
                     }
                 });
                 context.handle();
+                // 直接读取真实路由、中间件和处理器生成的 HTTP 状态及 JSON，无需启动网络监听。
                 context.attr("test.status", rawResponse.status().code());
+                if (context.getRenderer() instanceof JsonRenderer renderer) {
+                    final JSONObject result = renderer.getJSONObject();
+                    context.attr("test.code", result.get("code"));
+                    if (!result.isNull("data")) context.attr("test.data", result.get("data"));
+                }
                 return context;
             } finally {
                 raw.release();
