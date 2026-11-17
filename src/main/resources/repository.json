@@ -10,6 +10,55 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_brawl_attempt",
+      "description": "随机匹配观测记录",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "result",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "weaponLevel",
+          "type": "int"
+        },
+        {
+          "name": "nearCount",
+          "type": "int"
+        },
+        {
+          "name": "midCount",
+          "type": "int"
+        },
+        {
+          "name": "wideCount",
+          "type": "int"
+        },
+        {
+          "name": "matchedTier",
+          "type": "int"
+        },
+        {
+          "name": "weaponGap",
+          "type": "int"
+        }
+      ]
+    },
+    {
       "name": "pet_brawl_invite",
       "description": "宠物友谊约战邀请",
       "keys": [

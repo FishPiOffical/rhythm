@@ -63,6 +63,7 @@ import java.util.Set;
 @Service
 public class ApiV3PetService {
     @Inject private ApiV3PetBrawl brawl;
+    @Inject private PetAnalyticsService analytics;
     @Inject private ApiV3PetSeasons seasons;
     @Inject private PetAccountRepository accounts;
     @Inject private UserPetRepository pets;
@@ -196,12 +197,26 @@ public class ApiV3PetService {
         final String revision = brawlRevision(input);
         if (revision.isEmpty()) throw ApiV3WriteInputs.invalid();
         final int version = brawlNumber(input, "version", 1, Integer.MAX_VALUE);
-        return mutate(identity, "brawl-match", key, input, () -> {
-            requireBrawlVersion(version);
-            final String owner = actor(identity);
-            final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, this::now);
-            return receipt("brawl-match", id, result.getLong("createdAt")).put("matchId", result.getString("matchId"));
-        });
+        final var trace = new ApiV3PetBrawl.MatchTrace();
+        try {
+            final JSONObject receipt = mutate(identity, "brawl-match", key, input, () -> {
+                requireBrawlVersion(version);
+                final String owner = actor(identity);
+                // 每次事务重试从空观测开始，幂等回执重放不创建新的尝试。
+                trace.startedAt = 0;
+                java.util.Arrays.fill(trace.candidateCounts, -1);
+                trace.matchedTier = trace.weaponGap = -1;
+                final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, this::now, trace);
+                return receipt("brawl-match", id, result.getLong("createdAt")).put("matchId", result.getString("matchId"));
+            });
+            if (trace.matchedTier >= 0)
+                analytics.recordMatch(actor(identity), key, trace, "matched");
+            return receipt;
+        } catch (ApiV3Exception error) {
+            if ("brawl_no_opponent".equals(error.code) && trace.startedAt != 0)
+                analytics.recordMatch(actor(identity), key, trace, "no_opponent");
+            throw error;
+        }
     }
 
     public JSONObject brawlInvitations(final JSONObject identity, final String before) {

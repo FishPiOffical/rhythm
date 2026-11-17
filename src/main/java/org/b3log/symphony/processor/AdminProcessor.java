@@ -390,6 +390,9 @@ public class AdminProcessor {
     @Inject
     private PetAdminLogQueryService petAdminLogQueryService;
 
+    @Inject
+    private PetAnalyticsService petAnalyticsService;
+
     /**
      * Register request handlers.
      */
@@ -404,6 +407,7 @@ public class AdminProcessor {
         Dispatcher.get("/cron/long-article/settle", adminProcessor::settleLongArticleReward, loginCheck::handle, permissionMidware::check);
         Dispatcher.get("/admin/auditlog", adminProcessor::showAuditlog, middlewares);
         Dispatcher.get("/admin/pet-logs", adminProcessor::showPetLogs);
+        Dispatcher.get("/admin/pet-logs/export", adminProcessor::exportPetAnalytics);
         Dispatcher.get("/admin/report/ignore/{reportId}", adminProcessor::makeReportIgnored, middlewares);
         Dispatcher.get("/admin/report/{reportId}", adminProcessor::makeReportHandled, middlewares);
         Dispatcher.get("/admin/reports", adminProcessor::showReports, middlewares);
@@ -824,16 +828,44 @@ public class AdminProcessor {
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
 
+    /** 分析导出沿用宠物日志的管理员网页会话权限。 */
+    public void exportPetAnalytics(final RequestContext context) {
+        final var response = context.getResponse();
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        if (!petLogsAuthorized(context)) return;
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        try {
+            final var range = PetAdminLogQueryService.filters("activity", null, context.param("from"), context.param("to"), null, null, today);
+            final byte[] archive = petAnalyticsService.export(LocalDate.parse(range.from()), LocalDate.parse(range.to()));
+            response.setHeader("Content-Type", "application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=pet-analytics-" + range.from() + "-" + range.to() + ".zip");
+            response.sendBytes(archive);
+        } catch (final IllegalArgumentException error) {
+            context.setStatus(400);
+            response.setHeader("Content-Type", "text/plain; charset=utf-8");
+            response.sendBytes(error.getMessage().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (final Exception error) {
+            LOGGER.warn("导出宠物分析失败 ({})", error.getClass().getSimpleName());
+            context.setStatus(503);
+            response.setHeader("Content-Type", "text/plain; charset=utf-8");
+            response.sendBytes("宠物分析暂不可导出，请核对导出配置、数据迁移和日期范围。".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
+
+    private boolean petLogsAuthorized(final RequestContext context) {
+        final JSONObject admin = Sessions.getUser();
+        if (admin != null && Role.ROLE_ID_C_ADMIN.equals(admin.optString(User.USER_ROLE))
+                && admin.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID && !isApiKeyRequest(context)) return true;
+        context.sendError(admin == null ? 401 : 403);
+        context.abort();
+        return false;
+    }
+
     /** 只使用已校验的网页会话，旧 apiKey 不可读取宠物日志。 */
     public void showPetLogs(final RequestContext context) {
         context.getResponse().setHeader("Cache-Control", "private, no-store");
-        final JSONObject admin = Sessions.getUser();
-        if (admin == null || !Role.ROLE_ID_C_ADMIN.equals(admin.optString(User.USER_ROLE))
-                || admin.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID || isApiKeyRequest(context)) {
-            context.sendError(admin == null ? 401 : 403);
-            context.abort();
-            return;
-        }
+        if (!petLogsAuthorized(context)) return;
 
         final LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
         final var renderer = new SkinRenderer(context, "admin/pet-logs.ftl");

@@ -158,7 +158,8 @@ public class ApiV3PetBrawl {
         else profiles.update(owner, row, "petId", "weapon", "skill", "enabled", "version", "revision");
     }
 
-    JSONObject match(final String owner, final JSONObject pet, final String revision, final java.util.function.LongSupplier time) throws RepositoryException {
+    JSONObject match(final String owner, final JSONObject pet, final String revision, final java.util.function.LongSupplier time,
+                     final MatchTrace trace) throws RepositoryException {
         final JSONObject profile = profiles.get(owner);
         if (!currentProfile(profile, pet) || !revision.equals(profile.getString("revision")))
             throw ApiV3PetRules.conflict("brawl_profile_changed", "请确认当前报名配置");
@@ -170,7 +171,9 @@ public class ApiV3PetBrawl {
         final Equipped player = equipped(owner, profile);
         final String profileColumns = "SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?";
         final int level = matchLevel(pet);
-        final var matched = findOpponent(owner, day, level, player.setup().level(), profileColumns);
+        trace.startedAt = now;
+        trace.weaponLevel = player.setup().level();
+        final var matched = findOpponent(owner, day, level, player.setup().level(), profileColumns, trace);
         final String opponent = matched.userId();
         final JSONObject targetPet = matched.pet();
         final Equipped target = matched.equipped();
@@ -308,10 +311,18 @@ public class ApiV3PetBrawl {
         return equipment(Weapon.SPOON, Skill.SPLASH, weaponLevel(account(owner), Weapon.SPOON), gear(owner));
     }
 
+    static final class MatchTrace {
+        long startedAt;
+        int weaponLevel;
+        final int[] candidateCounts = {-1, -1, -1};
+        int matchedTier = -1;
+        int weaponGap = -1;
+    }
+
     private record MatchOpponent(String userId, JSONObject user, JSONObject pet, Equipped equipped) {}
 
     private MatchOpponent findOpponent(final String owner, final String day, final int level, final int weaponLevel,
-                                       final String profileColumns) throws RepositoryException {
+                                       final String profileColumns, final MatchTrace trace) throws RepositoryException {
         final String pairTable = "`" + pairs.getName() + "`";
         final int floor = (Math.max(MIN_LEVEL, level - MAX_LEVEL_GAP) - 1) * ApiV3PetRules.EXPERIENCE_PER_LEVEL;
         final int ceiling = level + MAX_LEVEL_GAP >= MAX_MATCH_LEVEL ? Integer.MAX_VALUE
@@ -334,10 +345,12 @@ public class ApiV3PetBrawl {
 
         int minGap = 0;
         // 两个优先档都没有可用对手时，保留原有宠物等级范围内的其他候选。
-        for (int maxGap : WEAPON_GAPS) {
+        for (int tier = 0; tier < WEAPON_GAPS.length; tier++) {
+            final int maxGap = WEAPON_GAPS[tier];
             final var candidates = profiles.select(candidateQuery, MAX_MATCH_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL,
                     ApiV3PetBattle.LEVELS_PER_MILESTONE, weaponLevel, ApiV3PetBattle.LEGACY_VERSION, ApiV3PetBattle.VERSION,
                     owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT, minGap, maxGap, level);
+            trace.candidateCounts[tier] = candidates.size();
             for (JSONObject candidate : candidates) {
                 final String opponent = candidate.getString("oId");
                 // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
@@ -350,8 +363,11 @@ public class ApiV3PetBrawl {
                 if (Math.abs(matchLevel(targetPet) - level) > MAX_LEVEL_GAP) continue;
                 final Equipped target = equipped(opponent, enrolled);
                 final int gap = Math.abs(target.setup().level() - weaponLevel);
-                if (gap >= minGap && gap <= maxGap)
+                if (gap >= minGap && gap <= maxGap) {
+                    trace.matchedTier = tier;
+                    trace.weaponGap = gap;
                     return new MatchOpponent(opponent, opponentProfile.getFirst(), targetPet, target);
+                }
             }
             minGap = maxGap + 1;
         }

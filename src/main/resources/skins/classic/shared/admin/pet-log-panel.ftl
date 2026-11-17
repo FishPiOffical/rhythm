@@ -50,10 +50,11 @@
         </label>
     </div>
     <div class="pet-log-filter-footer">
-        <p>北京时间，最多 31 天。纯数字用户名请加 @。</p>
+        <p>北京时间，最多 31 天。纯数字用户名请加 @。分析导出仅按日期。</p>
         <div class="pet-log-actions">
             <a class="pet-log-button" href="${logsPath}?tab=${petLogTab?html}">重置</a>
             <button class="pet-log-button pet-log-primary" type="submit">筛选</button>
+            <button class="pet-log-button" type="submit" formaction="${logsPath}/export">导出脱敏分析 ZIP</button>
         </div>
     </div>
 </form>
