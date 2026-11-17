@@ -138,6 +138,7 @@ public class ApiV3PetBrawl {
         if (count(owner, day, true) >= ACTIVE_LIMIT)
             throw ApiV3PetRules.conflict("brawl_pvp_limit", "今天的主动挑战次数已用完");
         final Equipped player = equipped(owner, profile);
+        final String profileColumns = "SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?";
         final int level = ApiV3PetRules.level(pet.getInt("experience"));
         final String pairTable = "`" + pairs.getName() + "`";
         final int floor = (Math.max(MIN_LEVEL, level - MAX_LEVEL_GAP) - 1) * ApiV3PetRules.EXPERIENCE_PER_LEVEL;
@@ -156,10 +157,10 @@ public class ApiV3PetBrawl {
         for (JSONObject candidate : candidates) {
             final String opponent = candidate.getString("oId");
             // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
-            if (users.select("SELECT oId FROM `" + users.getName() + "` WHERE oId=? AND userStatus=0 FOR UPDATE SKIP LOCKED", opponent).isEmpty())
-                continue;
+            final var opponentProfile = users.select(profileColumns + " AND userStatus=0 FOR UPDATE SKIP LOCKED", opponent);
+            if (opponentProfile.isEmpty()) continue;
             final JSONObject enrolled = profiles.get(opponent);
-            final var current = pets.select("SELECT oId,speciesId,experience FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
+            final var current = pets.select("SELECT oId,speciesId,experience,name FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
             if (current.size() != 1 || !currentProfile(enrolled, current.getFirst())) continue;
             final JSONObject targetPet = current.getFirst();
             if (Math.abs(ApiV3PetRules.level(targetPet.getInt("experience")) - level) > MAX_LEVEL_GAP) continue;
@@ -171,6 +172,10 @@ public class ApiV3PetBrawl {
                     .put("opponentPetId", targetPet.getString("oId")).put("opponentSpecies", targetPet.getString("speciesId"));
             report.getJSONObject("player").put("gear", player.snapshot());
             report.getJSONObject("opponent").put("gear", target.snapshot());
+            // 昵称随出战配置保存，被挑战方读取时跟随出战配置一起翻转。
+            final JSONObject ownerProfile = users.select(profileColumns, owner).getFirst();
+            addFighterNames(report.getJSONObject("player"), pet, ownerProfile);
+            addFighterNames(report.getJSONObject("opponent"), targetPet, opponentProfile.getFirst());
             final String low = owner.compareTo(opponent) < 0 ? owner : opponent;
             final String high = low.equals(owner) ? opponent : owner;
             pairs.add(new JSONObject().put("oId", report.getString("id")).put("day", day)
@@ -179,6 +184,12 @@ public class ApiV3PetBrawl {
             return store(owner, report, seed).put("createdAt", now);
         }
         throw ApiV3PetRules.conflict("brawl_no_opponent", "暂时没有符合条件的对手，可以稍后再匹配");
+    }
+
+    private static void addFighterNames(final JSONObject fighter, final JSONObject pet, final JSONObject owner) {
+        final String nickname = owner.optString("userNickname");
+        fighter.put("petName", pet.getString("name"));
+        fighter.put("ownerNickname", nickname.isBlank() ? owner.getString("userName") : nickname);
     }
 
     private int count(final String owner, final String day, final boolean active) throws RepositoryException {
