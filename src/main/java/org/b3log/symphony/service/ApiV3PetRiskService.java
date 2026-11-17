@@ -56,6 +56,8 @@ public class ApiV3PetRiskService {
             "brawl_level_locked", "brawl_stage_locked", "brawl_stale_level", "brawl_materials", "brawl_version_changed",
             "brawl_profile_changed", "brawl_pvp_limit", "brawl_no_opponent", "brawl_quote_expired", "brawl_quote_changed", "insufficient_points",
             "brawl_gear_changed", "brawl_gear_unowned", "brawl_slot_locked", "brawl_gem_in_use", "brawl_artifact_locked");
+    private static final Set<String> BRAWL_AUDIT_ONLY = Set.of("insufficient_points", "brawl_no_opponent",
+            "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open");
     @Inject private PetRiskStateRepository states;
     @Inject private PetRiskAuditRepository audits;
     @Inject private PetRiskProofRepository proofUses;
@@ -127,10 +129,12 @@ public class ApiV3PetRiskService {
             final JSONObject command = command(state, id);
             if (command == null || command.optBoolean("failed") || !bodyHash(input).equals(command.optString("hash"))) return success(new JSONObject());
             command.put("failed", true);
+            audit(actor, operation, id, command.getString("hash"), "business_" + error.code, clock);
+            // 余额、匹配和版本变化属于正常乱斗反馈，保留审计和请求额度，但不累计验证码分数。
+            if (operation.startsWith("brawl-") && BRAWL_AUDIT_ONLY.contains(error.code)) return success(new JSONObject());
             final JSONArray denied = recent(state.optJSONArray("denied"), clock - 5 * MINUTE);
             denied.put(clock);
             state.put("denied", denied);
-            audit(actor, operation, id, command.getString("hash"), "business_" + error.code, clock);
             if (denied.length() >= denialLimit()) state.put("verificationRequired", true);
             return success(new JSONObject());
         });

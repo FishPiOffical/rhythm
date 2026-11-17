@@ -109,6 +109,31 @@ public class ApiV3PetRiskTest {
         System.out.println("PASS 账号突发/分钟限流、同键弱网恢复、提交回执优先、摘要冲突去重、账号隔离与传输上限");
     }
 
+    static void brawlDenialsAreAuditOnly() throws Exception {
+        try (var f = new Fixture()) {
+            f.enforceRisk = true;
+            final JSONObject identity = identity();
+            final JSONObject input = new JSONObject();
+            final String[] operations = {"brawl-confirm", "brawl-match", "brawl-enroll", "brawl-socket", "brawl-season-claim"};
+            final String[] reasons = {"insufficient_points", "brawl_no_opponent", "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open"};
+            f.risk.before(identity, "action", "care", input);
+            f.risk.denied(identity, "action", "care", input, new ApiV3Exception(409, "already_full", "已饱"));
+            for (int index = 0; index < 11; index++) {
+                final int type = index % reasons.length;
+                final String key = "brawl-denial-" + index;
+                final ApiV3Exception failure = new ApiV3Exception(409, reasons[type], "本地乱斗拒绝");
+                f.risk.before(identity, operations[type], key, input);
+                f.risk.denied(identity, operations[type], key, input, failure);
+                f.risk.denied(identity, operations[type], key, input, failure);
+            }
+            Assert.assertFalse(f.risk.state(identity).getBoolean("verificationRequired"));
+            Assert.assertEquals(riskState(f).getJSONArray("denied").length(), 1);
+            Assert.assertEquals(rows(f.db, "SELECT oId FROM pet_risk_audit WHERE operation LIKE 'brawl-%' AND reason LIKE 'business_%'").size(), 11);
+            expect("pet_rate_limited", () -> f.risk.before(identity, "brawl-season-claim", "limit", input));
+        }
+        System.out.println("PASS 乱斗正常拒绝只记一次审计，保留原验证码分数和账号限流");
+    }
+
     static void challengeAndBinding() throws Exception {
         try (var f = new Fixture()) {
             final String id = trip(f);
@@ -280,7 +305,7 @@ public class ApiV3PetRiskTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        rateAndRecovery(); challengeAndBinding(); weakNetworkAndFailure(); cooldownBeforeChallenge(); parallelAndRetention(); guardCommitRecovery(); careAvailability();
+        rateAndRecovery(); brawlDenialsAreAuditOnly(); challengeAndBinding(); weakNetworkAndFailure(); cooldownBeforeChallenge(); parallelAndRetention(); guardCommitRecovery(); careAvailability();
         System.out.println("PASS 宠物账号保护隔离专项完成，真实极验及MySQL另行人工验收");
     }
 }
