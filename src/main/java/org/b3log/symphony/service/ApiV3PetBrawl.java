@@ -59,7 +59,8 @@ public class ApiV3PetBrawl {
     private static final int MAX_LEVEL_GAP = 5;
     private static final int MAX_MATCH_LEVEL = 30;
     private static final String LEVELS_VERSION = "_version";
-    private static final int CANDIDATES = 32;
+    private static final int CANDIDATES_PER_TIER = 32;
+    private static final int[] WEAPON_GAPS = {4, 8, ApiV3PetBattle.MAX_UPGRADE};
 
     JSONObject state(final String owner, final JSONObject pet, final long now) throws RepositoryException {
         final JSONObject account = account(owner);
@@ -164,48 +165,75 @@ public class ApiV3PetBrawl {
         final Equipped player = equipped(owner, profile);
         final String profileColumns = "SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?";
         final int level = matchLevel(pet);
+        final var matched = findOpponent(owner, day, level, player.setup().level(), profileColumns);
+        final String opponent = matched.userId();
+        final JSONObject targetPet = matched.pet();
+        final Equipped target = matched.equipped();
+        final long seed = RANDOM.nextLong();
+        final JSONObject report = resolve(pet, player.setup(), target.setup(), now, ApiV3PetBattle.resolve(player.setup(), target.setup(), seed))
+                .put("mode", "pvp").put("stage", 0).put("practice", false).put("reward", 0)
+                .put("season", round.season())
+                .put("opponentPetId", targetPet.getString("oId")).put("opponentSpecies", targetPet.getString("speciesId"));
+        report.getJSONObject("player").put("gear", player.snapshot());
+        report.getJSONObject("opponent").put("gear", target.snapshot());
+        // 昵称随出战配置保存，被挑战方读取时跟随出战配置一起翻转。
+        final JSONObject ownerProfile = users.select(profileColumns, owner).getFirst();
+        addFighterNames(report.getJSONObject("player"), pet, ownerProfile);
+        addFighterNames(report.getJSONObject("opponent"), targetPet, matched.user());
+        final String low = owner.compareTo(opponent) < 0 ? owner : opponent;
+        final String high = low.equals(owner) ? opponent : owner;
+        pairs.add(new JSONObject().put("oId", report.getString("id")).put("day", day)
+                .put("initiator", owner).put("recipient", opponent).put("pairLow", low).put("pairHigh", high));
+        seasons.record(round, owner, opponent, report.getInt("winner"));
+        return store(owner, report, seed).put("createdAt", now);
+    }
+
+    private record MatchOpponent(String userId, JSONObject user, JSONObject pet, Equipped equipped) {}
+
+    private MatchOpponent findOpponent(final String owner, final String day, final int level, final int weaponLevel,
+                                       final String profileColumns) throws RepositoryException {
         final String pairTable = "`" + pairs.getName() + "`";
         final int floor = (Math.max(MIN_LEVEL, level - MAX_LEVEL_GAP) - 1) * ApiV3PetRules.EXPERIENCE_PER_LEVEL;
         final int ceiling = level + MAX_LEVEL_GAP >= MAX_MATCH_LEVEL ? Integer.MAX_VALUE
                 : (level + MAX_LEVEL_GAP) * ApiV3PetRules.EXPERIENCE_PER_LEVEL - 1;
-        final var candidates = profiles.select("SELECT r.oId FROM `" + profiles.getName() + "` r"
-                        + " JOIN `" + pets.getName() + "` p ON p.oId=r.petId AND p.userId=r.oId"
-                        + " JOIN `" + users.getName() + "` u ON u.oId=r.oId AND u.userStatus=0"
-                        + " WHERE r.enabled=1 AND r.version IN (?,?) AND r.oId<>? AND p.experience BETWEEN ? AND ?"
-                        + " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " d WHERE d.day=?"
-                        + " AND d.pairLow=LEAST(?,r.oId) AND d.pairHigh=GREATEST(?,r.oId))"
-                        + " AND (SELECT COUNT(*) FROM " + pairTable + " d WHERE d.recipient=r.oId AND d.day=?)<?"
-                        + " ORDER BY ABS(LEAST(?, 1+FLOOR(p.experience/?))-?),r.oId LIMIT " + CANDIDATES,
-                ApiV3PetBattle.LEGACY_VERSION, ApiV3PetBattle.VERSION, owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT,
-                MAX_MATCH_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL, level);
-        for (JSONObject candidate : candidates) {
-            final String opponent = candidate.getString("oId");
-            // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
-            final var opponentProfile = users.select(profileColumns + " AND userStatus=0 FOR UPDATE SKIP LOCKED", opponent);
-            if (opponentProfile.isEmpty()) continue;
-            final JSONObject enrolled = profiles.get(opponent);
-            final var current = pets.select("SELECT oId,speciesId,experience,name FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
-            if (current.size() != 1 || !currentProfile(enrolled, current.getFirst())) continue;
-            final JSONObject targetPet = current.getFirst();
-            if (Math.abs(matchLevel(targetPet) - level) > MAX_LEVEL_GAP) continue;
-            final Equipped target = equipped(opponent, enrolled);
-            final long seed = RANDOM.nextLong();
-            final JSONObject report = resolve(pet, player.setup(), target.setup(), now, ApiV3PetBattle.resolve(player.setup(), target.setup(), seed))
-                    .put("mode", "pvp").put("stage", 0).put("practice", false).put("reward", 0)
-                    .put("season", round.season())
-                    .put("opponentPetId", targetPet.getString("oId")).put("opponentSpecies", targetPet.getString("speciesId"));
-            report.getJSONObject("player").put("gear", player.snapshot());
-            report.getJSONObject("opponent").put("gear", target.snapshot());
-            // 昵称随出战配置保存，被挑战方读取时跟随出战配置一起翻转。
-            final JSONObject ownerProfile = users.select(profileColumns, owner).getFirst();
-            addFighterNames(report.getJSONObject("player"), pet, ownerProfile);
-            addFighterNames(report.getJSONObject("opponent"), targetPet, opponentProfile.getFirst());
-            final String low = owner.compareTo(opponent) < 0 ? owner : opponent;
-            final String high = low.equals(owner) ? opponent : owner;
-            pairs.add(new JSONObject().put("oId", report.getString("id")).put("day", day)
-                    .put("initiator", owner).put("recipient", opponent).put("pairLow", low).put("pairHigh", high));
-            seasons.record(round, owner, opponent, report.getInt("winner"));
-            return store(owner, report, seed).put("createdAt", now);
+        // 按报名武器取当前等级，旧账号与实际出战一样换算等价档位，未强化的武器按零级处理。
+        final String storedLevel = "COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.levelsJson, CONCAT('$.', JSON_QUOTE(r.weapon)))) AS SIGNED),0)";
+        final String playerLevel = "LEAST(?,1+FLOOR(p.experience/?))";
+        final String candidateQuery = "SELECT oId FROM (SELECT r.oId," + playerLevel + " AS petLevel,"
+                + " ABS(" + storedLevel + " * CASE WHEN JSON_CONTAINS_PATH(a.levelsJson,'one','$." + LEVELS_VERSION
+                + "')=0 THEN ? ELSE 1 END - ?) AS weaponGap"
+                + " FROM `" + profiles.getName() + "` r"
+                + " JOIN `" + pets.getName() + "` p ON p.oId=r.petId AND p.userId=r.oId"
+                + " JOIN `" + users.getName() + "` u ON u.oId=r.oId AND u.userStatus=0"
+                + " LEFT JOIN `" + accounts.getName() + "` a ON a.oId=r.oId"
+                + " WHERE r.enabled=1 AND r.version IN (?,?) AND r.oId<>? AND p.experience BETWEEN ? AND ?"
+                + " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " d WHERE d.day=?"
+                + " AND d.pairLow=LEAST(?,r.oId) AND d.pairHigh=GREATEST(?,r.oId))"
+                + " AND (SELECT COUNT(*) FROM " + pairTable + " d WHERE d.recipient=r.oId AND d.day=?)<?) pool"
+                + " WHERE weaponGap BETWEEN ? AND ? ORDER BY ABS(petLevel-?),oId LIMIT " + CANDIDATES_PER_TIER;
+
+        int minGap = 0;
+        // 两个优先档都没有可用对手时，保留原有宠物等级范围内的其他候选。
+        for (int maxGap : WEAPON_GAPS) {
+            final var candidates = profiles.select(candidateQuery, MAX_MATCH_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL,
+                    ApiV3PetBattle.LEVELS_PER_MILESTONE, weaponLevel, ApiV3PetBattle.LEGACY_VERSION, ApiV3PetBattle.VERSION,
+                    owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT, minGap, maxGap, level);
+            for (JSONObject candidate : candidates) {
+                final String opponent = candidate.getString("oId");
+                // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
+                final var opponentProfile = users.select(profileColumns + " AND userStatus=0 FOR UPDATE SKIP LOCKED", opponent);
+                if (opponentProfile.isEmpty()) continue;
+                final JSONObject enrolled = profiles.get(opponent);
+                final var current = pets.select("SELECT oId,speciesId,experience,name FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
+                if (current.size() != 1 || !currentProfile(enrolled, current.getFirst())) continue;
+                final JSONObject targetPet = current.getFirst();
+                if (Math.abs(matchLevel(targetPet) - level) > MAX_LEVEL_GAP) continue;
+                final Equipped target = equipped(opponent, enrolled);
+                final int gap = Math.abs(target.setup().level() - weaponLevel);
+                if (gap >= minGap && gap <= maxGap)
+                    return new MatchOpponent(opponent, opponentProfile.getFirst(), targetPet, target);
+            }
+            minGap = maxGap + 1;
         }
         throw ApiV3PetRules.conflict("brawl_no_opponent", "暂时没有符合条件的对手，可以稍后再匹配");
     }

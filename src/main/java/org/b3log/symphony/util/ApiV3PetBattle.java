@@ -20,7 +20,7 @@ public final class ApiV3PetBattle {
         PEBBLE("momota", "卵石拍", "第 3、7 回合各加伤 3.8"),
         SHELL("momota", "贝壳盾", "前 2 回合各减伤 3.8"),
         LEAF("hexiaotun", "荷叶伞", "前 3 回合各减伤 2.6"),
-        LOTUS("hexiaotun", "莲蓬锤", "第 5、8 回合各加伤 3.8"),
+        LOTUS("hexiaotun", "莲蓬锤", "第 5、8 回合各加伤 4"),
         CLAW("yubingmiao", "鱼饼爪套", "前 6 回合各加伤 1.3"),
         SLING("yubingmiao", "小鱼弹弓", "第 4 回合加伤 3.8，首次攻击半血或以下的对手再加伤 3.8"),
         FIN("paixiaoyu", "浪花尾鳍", "第 2 回合减伤 3.8，第 3 回合加伤 3.8"),
@@ -46,12 +46,12 @@ public final class ApiV3PetBattle {
         CURL(null, "卷成一团", "第 5 回合减伤 8"),
         BREATHE(null, "深呼吸", "第 4 回合最多回复 8"),
         COUNTER("momota", "翻身拍浪", "第 5 回合加伤 7.5"),
-        DIVE("momota", "抱石潜水", "第 4 回合减伤 7.5"),
-        SHELTER("hexiaotun", "荷叶挡雨", "第 5 回合减伤 7.5"),
+        DIVE("momota", "抱石潜水", "第 4 回合减伤 7.5，第 5 回合减伤 0.4"),
+        SHELTER("hexiaotun", "荷叶挡雨", "第 5 回合减伤 7.5，第 6 回合减伤 0.4"),
         CHEW("hexiaotun", "嚼叶回血", "第 4 回合最多回复 7.5"),
         DOUBLE("yubingmiao", "两连拍", "第 4、5 回合各加伤 3.8"),
         RUSH("yubingmiao", "叼鱼突袭", "第 4、7 回合各加伤 3.8"),
-        SLIDE("paixiaoyu", "摆尾滑步", "第 5 回合减伤 7.5"),
+        SLIDE("paixiaoyu", "摆尾滑步", "第 5 回合减伤 7.5，第 6 回合减伤 0.4"),
         BURST("paixiaoyu", "泡泡破阵", "第 4 回合加伤 7.5，并穿透最多 1.2 减伤");
 
         public final String species;
@@ -152,7 +152,7 @@ public final class ApiV3PetBattle {
             case SPOON -> round <= 8 ? 100 : 0;
             case FAN -> round == 3 || round == 6 ? 400 : 0;
             case PEBBLE -> round == 3 || round == 7 ? 380 : 0;
-            case LOTUS -> round == 5 || round == 8 ? 380 : 0;
+            case LOTUS -> round == 5 || round == 8 ? 400 : 0;
             case CLAW -> round <= 6 ? 130 : 0;
             case SLING -> round == 4 ? 380 : 0;
             case FIN -> round == 3 ? 380 : 0;
@@ -185,8 +185,8 @@ public final class ApiV3PetBattle {
     private static int skillReduction(final Skill skill, final int round) {
         return switch (skill) {
             case CURL -> round == 5 ? 800 : 0;
-            case DIVE -> round == 4 ? 750 : 0;
-            case SHELTER, SLIDE -> round == 5 ? 750 : 0;
+            case DIVE -> round == 4 ? 750 : round == 5 ? 40 : 0;
+            case SHELTER, SLIDE -> round == 5 ? 750 : round == 6 ? 40 : 0;
             default -> 0;
         };
     }
