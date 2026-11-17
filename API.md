@@ -4480,6 +4480,65 @@ version 为样式目录版本；客户端应保留已支持版本的历史视觉
 - 草稿含 `name,access,price7,price30,style`。获取方式为 `free`、`vip`、`points`。免费和 VIP 的两项价格均为 0。积分气泡的 7 天价格为正整数，30 天价格为 0 时该时长不可购买，服务端返回 409 `duration_unavailable`。样式可选 `shape`（`memo-v1`、`lotus-v1`、`cat-v1` 或 `fish-v1`），没有该字段时保持原圆角。现有 `image` 可用作异形气泡的装饰贴纸，仍仅接受指定 RhyPic HTTPS 地址和栅格格式，样式不接受 CSS 或脚本。
 - 动态气泡消息的 `appearance` 额外包含 `bubbleRevision` 与发送时的完整 `bubbleStyle`。目录更新、下架、会员或积分权益到期均不改变历史快照。下架后停止首次装备和购买，当前已装备的免费/VIP 气泡可继续使用，积分气泡可用到权益到期。
 
+## API v3 聊天室小尾巴
+
+### 读取本人小尾巴设置
+
+`GET /api/v3/me/settings/chat-tail`
+
+查询当前账号的小尾巴设置，需要第一方网站 Bearer 与 `profile.read`。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Authorization（Header） | 第一方网站访问令牌 | `Bearer ACCESS_TOKEN` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/settings/chat-tail' \
+  -H 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 本人设置；从未设置时为 `{"enabled":false,"text":""}` | `{"enabled":true,"text":"今天也来摸鱼 🐟"}` |
+| - enabled | 是否为符合条件的新消息附加小尾巴 | `true` |
+| - text | 保存的单行纯文本，关闭后仍可保留 | `今天也来摸鱼 🐟` |
+
+### 保存本人小尾巴设置
+
+`PUT /api/v3/me/settings/chat-tail`
+
+需要第一方网站 Bearer、`settings.write` 和 `Idempotency-Key`。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| enabled | 必填布尔值 | `true` |
+| text | 必填字符串。启用时必须有可见内容，关闭时可传现有文字以保留 | `今天也来摸鱼 🐟` |
+
+请求示例：
+
+```bash
+curl --request PUT 'https://fishpi.cn/api/v3/me/settings/chat-tail' \
+  -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: CHAT_TAIL_KEY' \
+  -H 'Content-Type: application/json' -d '{"enabled":true,"text":"今天也来摸鱼 🐟"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 本次保存成功的设置 | `{"enabled":true,"text":"今天也来摸鱼 🐟"}` |
+| - enabled / text | 保存的启用状态及去除首尾空白后的纯文本 | `true` / `今天也来摸鱼 🐟` |
+
+> 上限为 24 个字素（组合 Emoji 按一个计算），输入同时受 512 个 UTF-16 单元限制。拒绝换行、控制字符和双向控制字符。内容不合法返回 HTTP 422 `invalid_chat_tail`，内容审核未通过返回 HTTP 422 `content_rejected`。同键同内容返回原回执，查询当前设置请重新 GET。
+
 ## API v3 聊天室消息
 
 ### 发送普通消息
@@ -4520,6 +4579,8 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/messages' \
 > 正文按平台规则处理并去除首尾空白。client 使用支持的品牌和格式，不能识别的标记不展示。未绑定手机或当前账号不可发言时拒绝发送；需要再次确认正文时返回 HTTP 409（confirmation_required），请使用原 Idempotency-Key 和原请求体再次发送。
 >
 > 同键同内容重试返回首次结果，不重复发送或扣分；同键不同内容返回 HTTP 409（idempotency_conflict）。服务端错误或断线后也请使用原键和原请求体重试确认结果。广播和提醒可能延迟或丢失，客户端应结合消息查询与实时提示同步记录。
+
+> 服务端按发送时的设置为符合条件的 V3 消息生成可选 `tail`，并按当前宠物状态生成可选 `petStatus`。客户端只发送原正文和可选 `client`，新字段从消息读取接口取得。小尾巴在发送时也会经过内容审核，审核未通过返回 HTTP 422 `content_rejected`，本次消息不会保存。
 
 ### 撤回聊天室消息
 
@@ -4926,6 +4987,15 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 | --- userNickname | 昵称 | 摸鱼中 |
 | --- userAvatarURL | 头像地址 | https://file.fishpi.cn/avatar.png |
 | -- client | 客户端标记，可能为空 | Web/PC网页端 |
+| -- petStatus | 可选，普通消息发言时的宠物快照 | `{"petId":"1792304000001","speciesId":"hexiaotun","name":"荷小豚","state":"course","level":12}` |
+| --- name | 宠物昵称，纯文本 | 荷小豚 |
+| --- state | `idle` 空闲、`rest` 休息、`outing` 外出、`course` 上课、`work` 兼职、`claimable` 待领取 | course |
+| --- level | 可选，发言时的宠物等级，整数 1–40 | 12 |
+| --- speciesId | 可选，物种 ID，支持 `momota`、`hexiaotun`、`yubingmiao`、`paixiaoyu` | hexiaotun |
+| --- petId | 可选，宠物 ID，字符串 | 1792304000001 |
+| -- tail | 可选，小尾巴快照 | `{"text":"今天也来摸鱼 🐟"}` |
+| --- text | 单行纯文本，可含 Emoji，按纯文本渲染 | 今天也来摸鱼 🐟 |
+| -- appearance | 发言时的外观快照，动态气泡可额外含 `bubbleRevision` 和 `bubbleStyle` | `{"bubbleId":"classic","frameId":"none","version":1}` |
 | -- medals | 可选，按原顺序返回发言时已公开的勋章，含 `name`、`type`、`description` 和可选 `id` | `[{"id":"12","name":"摸鱼派粉丝","type":"稀有","description":"感谢支持"}]` |
 | -- card | 卡片数据；普通消息及 unavailable 为空对象，字段见下表 | `{}` |
 | -- reactionsUnavailable | 表态查询失败时为 true，消息正文仍可读取 | true |
@@ -4957,7 +5027,13 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages?size=20' \
 >
 > unavailable 表示该历史消息暂不可读取；仍返回 id 以便继续翻页。详情接口也返回 reactions，需查看表态用户明细时可使用 `GET /api/v3/chat/messages/{targetId}/reactions`。读取红包摘要不会领取红包。
 >
-> 勋章名称、类型和说明为纯文本。字段缺失表示该消息没有可用勋章快照。历史、详情、上下文与实时消息快照使用同一结构，不随账户当前勋章变化。
+> 历史、详情、上下文与实时的消息快照共用这套字段。宠物、小尾巴、勋章和外观用于展示发言时的状态。可选字段缺失时直接省略对应展示，保留正文。旧消息不会按当前配置补齐快照。
+>
+> `petStatus` 只出现在有作者的普通消息中。宠物资料可从 `GET /api/v3/chat/messages/{messageId}/pet` 查询，旧消息没有 `petId` 时也可用该入口。
+>
+> `tail.text` 独立于 `content` 和 `contentHtml`。有可见正文的文字、图文混排或「引用加正文」可附带小尾巴。纯引用、纯图片或其他纯媒体、红包、天气、音乐和独立即时事件均不附带。引用、复读读取原正文。精简模式的隐藏仅为前端显示设置。
+>
+> 勋章名称、类型和说明为纯文本；省略 `medals` 表示没有可用的公开勋章快照。外观缺少有效快照时，气泡和头像框分别采用 `classic` 和 `none`。
 >
 > 缺少访问凭据返回 HTTP 401，缺少 content.read 返回 HTTP 403；非法或冲突游标、条数超限返回 HTTP 422。
 
@@ -4991,6 +5067,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/messages/1792304100000' \
 | - type | 消息类型 | text |
 | - content / contentHtml | 原始 Markdown / 清洗后 HTML | 大家好 |
 | - author / card / client / createdAt | 作者、卡片、客户端及时间，结构同列表 | `{...}` |
+| - petStatus / tail / medals / appearance | 宠物、小尾巴、勋章及外观，结构与可选规则同消息列表 | `{"text":"今天也来摸鱼 🐟"}`（tail） |
 
 > 消息不存在或已撤回返回 HTTP 404；非法消息 ID 返回 HTTP 422。
 
@@ -5116,6 +5193,7 @@ JS
 | - expiresAt | ready 中的连接授权到期时间，毫秒时间戳 | 1792304100000 |
 | - messageId | chat.message.* 中的目标消息 ID | 1792304100000 |
 | - revision | chat.message.* 或 chat.topic_changed 中的变更版本，字符串 | `"123"` |
+| - message | 创建、更新事件可选的完整消息对象，含可用的 `petStatus`、`tail`、`medals` 和 `appearance` | `{...}` |
 
 > 变更类型为 chat.message.created、chat.message.updated、chat.message.deleted、chat.message.reactions，分别表示消息创建、内容/卡片更新、撤回及 emoji reaction 变化。
 >
@@ -9311,6 +9389,8 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | --- avatar      | 用户头像                                                              | https://...                                       |
 | --- userMoney   | 领取到的积分                                                          | 23                                                |
 | --- time        | 领取时间                                                              | 2021-12-21 16:26:43                               |
+
+> 旧版 `/chat-room/more` 和 `/chat-room/getMessage` 的消息可包含已保存的 `petStatus` 和 `tail` 对象，字段与 V3 消息中的同名字段一致。旧版 WebSocket 的普通 `msg` 消息也可携带这些字段。旧版发送可记录宠物快照，但小尾巴只由 V3 发送生成。旧版只读取并显示已保存的小尾巴，正文和 `md` 保持独立。
 
 ### 发送消息
 
