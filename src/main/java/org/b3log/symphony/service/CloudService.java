@@ -34,7 +34,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -268,9 +271,35 @@ public class CloudService {
      * 获取用户所有“已开启展示且未过期”的勋章（Cloud 风格 JSON）.
      * 返回结构保持不变：{"list":[{name,description,attr,data,enabled,expireDate}]}
      */
-    synchronized public String getEnabledMedal(String userId) {
+    public String getEnabledMedal(String userId) {
         try {
-            List<JSONObject> medals = medalService.getUserDisplayedValidMedals(userId);
+            return toEnabledMedalJson(medalService.getUserDisplayedValidMedals(userId));
+        } catch (Exception e) {
+            return new JSONObject().put("list", new JSONArray()).toString();
+        }
+    }
+
+    /**
+     * 评论列表按作者批量读取，保留单用户入口的返回结构。
+     */
+    public Map<String, String> getEnabledMedals(final Collection<String> userIds) {
+        final Map<String, String> result = new HashMap<>();
+        try {
+            for (Map.Entry<String, List<JSONObject>> entry : medalService.getUsersDisplayedValidMedals(userIds).entrySet()) {
+                result.put(entry.getKey(), toEnabledMedalJson(entry.getValue()));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.ERROR, "批量读取展示勋章失败", e);
+            result.clear();
+            for (String userId : userIds) {
+                result.put(userId, new JSONObject().put("list", new JSONArray()).toString());
+            }
+        }
+        return result;
+    }
+
+    private String toEnabledMedalJson(final List<JSONObject> medals) {
+        try {
             JSONArray list = new JSONArray();
             for (JSONObject medal : medals) {
                 JSONObject item = new JSONObject();
