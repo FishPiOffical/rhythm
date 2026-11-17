@@ -18176,99 +18176,325 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `GET /api/v3/admin/fish-games` 的 `keyword` 匹配鱼游名称和描述，不提供标签匹配。
 - `POST /api/v3/admin/articles/{articleId}/stick` 为管理员永久置顶，与旧后台一致；取消置顶仍使用 `cancel-stick`。
 
-### 宠物乱斗 · 免费陪练、闯关与强化
+## 宠物乱斗
 
-第一方本人资源。GET 需要 `profile.read`，POST 需要 `settings.write` 和 `Idempotency-Key`。写请求沿用宠物账号冷却与验证，操作名为 `brawl-fight`、`brawl-upgrade`。当前宠物 Lv.10 起可写，旧宠战报保留本人读取权限。
+以下为第一方本人资源。读取需要 Bearer 和 `profile.read`，写入需要 Bearer、`settings.write` 与 `Idempotency-Key`。正式开战和强化要求当前宠物达到 Lv.10。本人仍可读取重新领养前的战报。
 
-| 路径 | 请求与业务数据 |
-| --- | --- |
-| `GET /api/v3/me/pet/brawl` | 返回当前 petId、species、level、minLevel、version、materials、stages、unlocked、cleared、rewardCount、levels、costs、rewards 和 growth。未领养时 petId 与 species 为 null。 |
-| `POST /api/v3/me/pet/brawl/matches` | `{petId,weapon,skill,stage,practice,version}`，成功回执包含 `operation,petId,committedAt,matchId`。 |
-| `GET /api/v3/me/pet/brawl/matches` | 可选 `before` 战报 ID，返回至多 20 条倒序摘要和 `next` 游标，末页为 null。 |
-| `GET /api/v3/me/pet/brawl/matches/{id}` | 返回本人战报，含双方出战快照和逐行动记录。生命、伤害与治疗按百分之一 HP 表示，actor 为 0 我方、1 对手。winner 为 0 我方胜、1 对手胜、-1 平。 |
-| `POST /api/v3/me/pet/brawl/upgrade` | `{petId,weapon,level,version}`，level 为当前武器等级，成功回执包含 `operation,petId,committedAt,level`。 |
+### 查询乱斗状态与强化目录
 
-通用武器为 `SPOON/GUARD/FAN`，通用招式为 `SPLASH/CURL/BREATHE`。进度接口的 `equipmentCatalog:{weapons,skills}` 按当前宠物物种列出通用和专属选项，条目包含 `id,name,effect,exclusive`。写入使用实际选项 ID，武器或招式与当前宠物不兼容时返回 409 `brawl_equipment_unavailable`。等级和配装可能包含新增武器键。战报出战配置也可能包含新增武器、招式 ID。
-
-新战报的 `turns[].effects` 记录实际伤害构成。数值均为百分之一 HP。
-
-| Key | 说明 | 示例 |
-| --- | --- | --- |
-| baseDamage | 出手方本次基础伤害（含配装属性与随机浮动） | 900 |
-| criticalBonus / weaponBonus / skillBonus / followUp | 暴击、武器、招式和追击分别增加的伤害 | 450 / 360 / 0 / 0 |
-| weaponGuard / skillGuard | 受击方武器和招式分别提供的减伤 | 380 / 0 |
-| penetrated | 实际穿透的减伤 | 120 |
-| minimumBonus | 伤害低于下限时的补正 | 0 |
-
-> 最终伤害为基础伤害加各项增伤，减去武器和招式减伤，再加穿透与下限补正。回复仍读取同一行动的 `healing`。旧战报省略 `effects`，被挑战方的战报继续按当前查看者翻转，明细数值以这一行动的出手方和受击方为准。
-
-陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。乱斗版本 2 的武器上限为 +20，`costs` 有 20 档、`growth` 有 21 项；旧武器等级按四倍转换，已有神器保留。战报继续返回各场原始版本、等级和属性。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
-
-#### 宠物乱斗实装 PvP
-
-- `GET /api/v3/me/pet/brawl` 新增 `pvp:{enabled,revision,weapon,skill,remaining,received,receivedLimit}`。首次报名版本为 `""`。未报名时 weapon、skill 为 null。每日主动 3 场、被挑战 6 场，以北京时间计算。
-- `PUT /api/v3/me/pet/brawl/profile` 接收 `{petId,weapon,skill,enabled,revision,version}`，保存或撤回当前报名。回执包含 `operation:brawl-enroll,petId,committedAt`，成功后重读当前版本。
-- `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
-- 战报列表可选 `includeFriendly=1`，加入双方的好友约战战报。约战的 `mode=friendly`、`stage=0`、`practice=false`、`reward=0`，无赛季字段。
-- 宠物养成上限为 Lv.40，经验仍每 100 升一级。实装 PvP 的匹配等级按最高 Lv.30 计算，已保存的版本 1 报名仍有效，新报名和新对局写入使用当前版本。
-- 实装 PvP 在原宠物等级范围内，依次尝试报名武器强化差不超过 4、不超过 8、其余符合条件的对手。同档按宠物等级差排序。
-- 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
-- 战报列表使用 `includePvp=1` 读取含双方 PvP 的统一游标列表，缺省只列原有 NPC 战报。摘要增加 `mode:npc|pvp`。PvP 的 `stage=0`、`practice=false`、`reward=0`，详情增加 `opponentPetId` 和 `opponentSpecies`。双方共享同一战报 ID。被挑战方读取时，胜负、出场配置、行动者与生命值投影为本人视角。第三人读取返回 404。
-- 新 PvP 战报的 `player` 和 `opponent` 各包含对局开始时的 `petName`（宠物昵称）和 `ownerNickname`（主人昵称，未设置时使用用户名）。字段随出场配置翻转；旧战报和 NPC 战报不含这两个字段。
-- 含昵称快照的 PvP 列表摘要增加 `opponentPetName` 和 `opponentOwnerNickname`。两字段都以当前查看者为准，来源与详情一致。未保存昵称的战报省略两字段。
-- PvP 摘要也投影对手的 `opponentPetId` 和 `opponentSpecies`，供列表展示头像和链接宠物资料。宠物资料沿用公开资料接口的可见性规则。
-
-### 宠物好友约战
-
-`GET /api/v3/me/pet/brawl/invitations`、`POST /api/v3/me/pet/brawl/invitations`、`POST /api/v3/me/pet/brawl/invitations/{id}/decision`
+`GET /api/v3/me/pet/brawl`
 
 请求：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| before | GET 可选游标 | 邀请 ID |
-| targetPetId | 创建邀请时必填 | 对手当前宠物 ID |
-| decision | 邀请决定，接收方可接受或拒绝，发起方可撤销 | `accept`、`decline`、`cancel` |
+| Authorization（Header） | 第一方网站访问令牌 | `Bearer ACCESS_TOKEN` |
 
 请求示例：
 
 ```bash
-curl -X POST 'https://fishpi.cn/api/v3/me/pet/brawl/invitations' \
-  -H 'Authorization: Bearer <website-token>' \
-  -H 'Idempotency-Key: <unique-key>' -H 'Content-Type: application/json' \
-  -d '{"targetPetId":"1794000000000"}'
+curl 'https://fishpi.cn/api/v3/me/pet/brawl' \
+  -H 'Authorization: Bearer ACCESS_TOKEN'
 ```
 
 响应：
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| list | 双方本人邀请流，每页至多 20 条 | `[]` |
-| - id / outgoing | 邀请 ID、是否本人发出 | `id` / `true` |
-| - petId / petName | 邀请中的对方宠物 ID 和名称 | `id` / `派小鱼` |
-| - status | 待处理、已接受、已拒绝、已撤销、已过期 | `pending` / `accepted` / `declined` / `cancelled` / `expired` |
-| - createdAt / expiresAt | 发出和过期的毫秒时间戳 | `1794000000000` |
-| next / serverNow | 下一页游标和当前服务器时间 | `null` / 毫秒时间戳 |
-| inviteId | 创建与决定的幂等回执中的邀请 ID | `id` |
-| matchId | 仅接受时出现在决定回执和邀请列表 | 战报 ID |
+| data | 本人乱斗状态 | `{}` |
+| - petId / species | 当前宠物 ID、物种 ID，未领养时均为 null | `"1794000000000"` / `"hexiaotun"` |
+| - level / minLevel | 当前宠物等级、参战最低等级，未领养时 level 为 0 | `10` / `10` |
+| - version / materials | 当前乱斗规则版本、本人历练材料余额 | `2` / `20` |
+| - stages / unlocked / cleared | 关卡总数、最高可挑战关卡、已推进的关卡数 | `3` / `1` / `0` |
+| - rewardCount / rewards | 今日已获得闯关奖励的场次、按场次发放的材料数量 | `0` / `[5,5,10]` |
+| - levels | 按武器 ID 分别记录的强化等级 | `{"SPOON":4,"LOTUS":0}` |
+| - equipmentCatalog | 当前物种可装备的 `weapons` 和 `skills` | `{}` |
+| -- weapons[] / skills[] | 条目含 `id`、`name`、`effect` 和 `exclusive`（是否物种专属） | `{"id":"LOTUS","name":"莲蓬锤","effect":"第 5、8 回合各加伤 4","exclusive":true}` |
+| - costs | 按当前武器等级索引的升一级材料费用；版本 2 共 20 项 | `costs[0]=3` |
+| - growth | 按强化等级索引，从 +0 开始；版本 2 共 21 项 | `growth[4].maxHp=10080` |
+| -- level / maxHp / attack | 强化等级、开场生命、基础伤害；生命和伤害均以百分之一 HP 为单位 | `4` / `10080` / `908` |
+| -- weapon / skill / gearHp / gearAttack | 目录条目的示例配装与零值装备增益；本人实际配装独立读取 `levels` 和 `gear` | `"SPOON"` / `"SPLASH"` / `0` / `0` |
+| - pvp / gear | 当前报名、约战出战配置与进阶配装 | 见下文 |
 
-> 读取需要第一方 `profile.read`，写入需要第一方 `settings.write` 和 `Idempotency-Key`。双方宠物须达 Lv.10，邀请有效期 24 小时。同一对账号同时只保留一个有效邀请。接受时重新检查宠物并冻结双方当前配装，双方可读同一战报。查看陌生邀请和战报返回 404。约战不计赛季、不奖励材料、不占随机次数。
+版本 2 所有武器共用同一条强化曲线，每把武器独立保存等级。以下是换算成 HP 后的关键档位，完整逐级数值以 `growth` 为准。
 
-> 乱斗状态的 `pvp.friendlyWeapon`、`pvp.friendlySkill` 表示约战所用的已保存配置；未保存时为小木勺与拍水花。沿用出战配置写入，保存时可保持随机报名关闭。
+| 等级 | 开场生命 | 基础伤害 |
+| --- | ---: | ---: |
+| +0 | 100.00 | 9.00 |
+| +4 | 100.80 | 9.08 |
+| +8 | 101.80 | 9.16 |
+| +12 | 103.00 | 9.26 |
+| +16 | 104.40 | 9.38 |
+| +20 | 106.00 | 9.50 |
+
+| 适用物种 | 武器 ID | 招式 ID |
+| --- | --- | --- |
+| 通用 | `SPOON` 小木勺、`GUARD` 软垫护腕、`FAN` 折纸扇 | `SPLASH`、`CURL`、`BREATHE` |
+| `momota` 摸摸獭 | `PEBBLE` 卵石拍、`SHELL` 贝壳盾 | `COUNTER`、`DIVE` |
+| `hexiaotun` 荷小豚 | `LEAF` 荷叶伞、`LOTUS` 莲蓬锤 | `SHELTER`、`CHEW` |
+| `yubingmiao` 鱼饼喵 | `CLAW` 鱼饼爪套、`SLING` 小鱼弹弓 | `DOUBLE`、`RUSH` |
+| `paixiaoyu` 派小鱼 | `FIN` 浪花尾鳍、`BUBBLE` 泡泡炮 | `SLIDE`、`BURST` |
+
+> 强化只提高开场生命和基础伤害。武器与招式的触发回合及额外伤害、减伤、追击或穿透以当前 `equipmentCatalog` 为准，不随强化等级递增。写入使用真实选项 ID，跨物种使用专属选项返回 HTTP 409 `brawl_equipment_unavailable`。客户端应容许目录、配装和战报出现新增 ID。
+
+> 版本 1 账号的武器强化等级按四倍映射到版本 2，原有神器保留。旧战报继续返回各场原始版本、等级和属性。
+
+### 发起陪练或正式闯关
+
+`POST /api/v3/me/pet/brawl/matches`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| petId | 当前宠物 ID | `"1794000000000"` |
+| weapon / skill | 可用武器与招式 ID | `"LOTUS"` / `"CHEW"` |
+| stage / practice | 关卡号、是否陪练 | `1` / `false` |
+| version | 当前乱斗版本 | `2` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/matches' \
+  -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: NPC_COMMAND_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"petId":"1794000000000","weapon":"LOTUS","skill":"CHEW","stage":1,"practice":false,"version":2}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 开战回执 | `{}` |
+| - operation / petId / committedAt | 操作名、本人宠物 ID、提交时间（毫秒） | `"brawl-fight"` / `"1794000000000"` / `1794700000000` |
+| - matchId | 已结算战报 ID | `"1794700000001"` |
+
+> 陪练双方使用 +0 和无进阶增益的基础属性，保留选择的武器与招式，不发材料、不推进关卡。正式闯关采用当前装备，按北京时间每日前三场依次发 5、5、10 份材料，胜败均可领取。使用相同请求体和幂等键恢复回执时不会创建新对局。
+
+### 查询乱斗战报列表
+
+`GET /api/v3/me/pet/brawl/matches`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| before | 可选，上一页的 `next` 游标 | `1794700000001` |
+| includePvp | 可选，传 `1` 时加入随机匹配战报 | `1` |
+| includeFriendly | 可选，传 `1` 时加入好友约战战报 | `1` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/matches?includePvp=1&includeFriendly=1' \
+  -H 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 本人战报分页 | `{}` |
+| - list | 按战报 ID 倒序，每页最多 20 条，默认仅 NPC 战报 | `[]` |
+| -- id / createdAt | 战报 ID 和创建时间（毫秒） | `"1794700000001"` / `1794700000000` |
+| -- mode / stage / practice / reward | 对局类型、关卡、是否陪练、本场材料奖励；随机与好友约战的后三项固定为 0、false、0 | `"friendly"` / `0` / `false` / `0` |
+| -- winner | 本人视角的胜负，0 胜、1 负、-1 平 | `0` |
+| -- opponentPetId / opponentSpecies | 随机匹配或好友约战的对手宠物 ID 与物种，取出战快照 | `"1794000000002"` / `"paixiaoyu"` |
+| -- opponentPetName / opponentOwnerNickname | 对手宠物和主人昵称，旧快照缺失时省略 | `"派小鱼"` / `"鱼油"` |
+| - next | 下一页游标，末页为 null | `null` |
+
+> `mode` 为 `npc`、`pvp` 或 `friendly`。两个筛选开关相互独立，翻页时保留同一组开关。对手头像可按物种选取，对手资料链接可使用 `GET /api/v3/pets/{petId}/profile`，资料仍受公开可见性规则约束。
+
+### 查询乱斗战报详情
+
+`GET /api/v3/me/pet/brawl/matches/{id}`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| id（Path） | 战报 ID | `1794700000001` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/matches/1794700000001' \
+  -H 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 对局结算快照 | `{}` |
+| - id / createdAt / version | 战报 ID、创建时间（毫秒）、开战时规则版本 | `"1794700000001"` / `1794700000000` / `2` |
+| - mode / stage / practice / reward / winner | 同战报列表含义；NPC 详情可省略 mode，客户端按 `npc` 处理 | `"friendly"` / `0` / `false` / `0` / `0` |
+| - petId / species | 本人出战宠物 ID、物种 | `"1794000000000"` / `"hexiaotun"` |
+| - opponentPetId / opponentSpecies | 随机匹配或好友约战的对手宠物 ID、物种 | `"1794000000002"` / `"paixiaoyu"` |
+| - player / opponent | 本人和对手的出战配置 | `{}` |
+| -- weapon / skill / level | 武器 ID、招式 ID、武器强化等级 | `"LOTUS"` / `"CHEW"` / `20` |
+| -- maxHp / attack | 含配装增益的开场生命、基础伤害 | `10612` / `952` |
+| -- gearHp / gearAttack / gear | 装备生命增益、装备基础伤害增益及可选进阶配装快照 | `12` / `2` / `{"artifact":1,"slot":0,"soul":"","rune":""}` |
+| -- petName / ownerNickname | 可选出战昵称快照；主人未设置昵称时使用用户名 | `"荷小豚"` / `"鱼油"` |
+| - turns | 逐行动结果，数组顺序为实际结算顺序 | `[]` |
+| -- round / actor | 回合号、出手方（0 本人、1 对手） | `5` / `0` |
+| -- damage / healing | 本次造成的伤害、出手方获得的治疗 | `1300` / `0` |
+| -- playerHp / opponentHp | 本次行动结算后双方生命 | `6000` / `4300` |
+| -- effects | 新战报包含的伤害构成，旧战报可省略 | `{}` |
+| --- baseDamage | 本次基础伤害，已含配装属性和随机浮动 | `900` |
+| --- criticalBonus / weaponBonus / skillBonus / followUp | 暴击、武器、招式和追击各自增加的伤害 | `0` / `400` / `0` / `0` |
+| --- weaponGuard / skillGuard | 受击方的武器和招式分别提供的减伤 | `0` / `0` |
+| --- penetrated / minimumBonus | 实际穿透的减伤、最低伤害补正 | `0` / `0` |
+| - season | 参与赛季的实装 PvP 战报才返回的赛季号 | `1` |
+
+> 生命、伤害、治疗及其构成均使用百分之一 HP 的整数。最终伤害等于基础伤害加各项增伤，减去武器和招式减伤，再加实际穿透和下限补正。
+
+> 随机匹配与好友约战双方共用同一战报 ID，服务端按查看者翻转宠物、装备、胜负、行动者及双方剩余生命。伤害构成始终以该行动的实际出手方和受击方为准。第三人访问返回 HTTP 404。后续强化、重新领养或改名不会修改已结算快照。
+
+### 使用历练材料强化武器
+
+`POST /api/v3/me/pet/brawl/upgrade`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| petId / weapon | 当前宠物 ID、要强化的武器 ID | `"1794000000000"` / `"LOTUS"` |
+| level / version | 当前武器强化等级、当前乱斗版本 | `4` / `2` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/upgrade' \
+  -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: UPGRADE_COMMAND_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"petId":"1794000000000","weapon":"LOTUS","level":4,"version":2}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 强化回执 | `{}` |
+| - operation / petId / committedAt | 操作名、当前宠物 ID、提交时间（毫秒） | `"brawl-upgrade"` / `"1794000000000"` / `1794700000000` |
+| - level | 本次成功后的武器等级 | `5` |
+
+> 费用读取状态接口的 `costs[level]`。当前等级已变化返回 HTTP 409 `brawl_stale_level`，规则已变化返回 HTTP 409 `brawl_version_changed`。收到成功回执后重读当前乱斗状态。强化会在之后开打的正式闯关、随机匹配与好友约战中生效。
+
+#### 宠物乱斗实装 PvP
+
+- `GET /api/v3/me/pet/brawl` 新增 `pvp:{enabled,revision,weapon,skill,remaining,received,receivedLimit}`。首次报名版本为 `""`。未报名时 weapon、skill 为 null。每日主动 3 场、被挑战 6 场，以北京时间计算。
+- `PUT /api/v3/me/pet/brawl/profile` 接收 `{petId,weapon,skill,enabled,revision,version}`，保存当前出战配置；`enabled` 只控制是否参加随机匹配。回执包含 `operation:brawl-enroll,petId,committedAt`，成功后重读当前 `revision`。
+- `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
+- 宠物养成上限为 Lv.40，经验仍每 100 升一级。实装 PvP 的匹配等级按最高 Lv.30 计算，已保存的版本 1 报名仍有效，新报名和新对局写入使用当前版本。
+- 实装 PvP 在原宠物等级范围内，依次尝试报名武器强化差不超过 4、不超过 8、其余符合条件的对手。同档按宠物等级差排序。
+- 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
+
+### 查询好友约战邀请
+
+`GET /api/v3/me/pet/brawl/invitations`
+
+查询本人发出和收到的邀请。需要第一方 `profile.read`。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| before | 可选，上一页返回的邀请游标 | `1794700000002` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/invitations' \
+  -H 'Authorization: Bearer ACCESS_TOKEN'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 本人的约战邀请页 | `{}` |
+| - list | 按邀请 ID 倒序，每页最多 20 条 | `[]` |
+| -- id / outgoing | 邀请 ID、是否由本人发出 | `"1794700000002"` / `true` |
+| -- petId / petName | 邀请中对方的宠物 ID 和发出邀请时的宠物昵称 | `"1794000000002"` / `"派小鱼"` |
+| -- status | 邀请状态 | `pending`、`accepted`、`declined`、`cancelled`、`expired` |
+| -- createdAt / expiresAt | 创建和过期时间（毫秒） | `1794700000000` / `1794786400000` |
+| -- matchId | 已接受的邀请携带战报 ID | `"1794700000003"` |
+| - next / serverNow | 下一页游标和当前服务器时间（毫秒）；末页 next 为 null | `null` / `1794700001000` |
+
+### 发起好友约战邀请
+
+`POST /api/v3/me/pet/brawl/invitations`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| targetPetId | 对方当前领养的宠物 ID | `"1794000000002"` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/invitations' \
+  -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: INVITE_COMMAND_KEY' \
+  -H 'Content-Type: application/json' -d '{"targetPetId":"1794000000002"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 邀请创建回执 | `{}` |
+| - operation / petId / committedAt | 操作名、本人宠物 ID、提交时间（毫秒） | `"brawl-invite"` / `"1794000000000"` / `1794700000000` |
+| - inviteId | 创建的邀请 ID | `"1794700000002"` |
+
+> 双方当前宠物均须达到 Lv.10。邀请有效期 24 小时，同一对账号同时只保留一条待处理且未过期的邀请。已有有效邀请时返回 HTTP 409 `brawl_invite_pending`。
+
+### 接受、拒绝或撤销好友约战
+
+`POST /api/v3/me/pet/brawl/invitations/{id}/decision`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| id（Path） | 邀请 ID | `1794700000002` |
+| decision | 接收方可用 `accept`、`decline`，发起方可用 `cancel` | `"accept"` |
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/pet/brawl/invitations/1794700000002/decision' \
+  -H 'Authorization: Bearer ACCESS_TOKEN' -H 'Idempotency-Key: INVITE_DECISION_KEY' \
+  -H 'Content-Type: application/json' -d '{"decision":"accept"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data | 邀请决定回执 | `{}` |
+| - operation / petId / committedAt | 操作名、邀请中的本人宠物 ID、提交时间（毫秒） | `"brawl-invite-decision"` / `"1794000000002"` / `1794700001000` |
+| - inviteId / status | 邀请 ID 和新状态 | `"1794700000002"` / `"accepted"` |
+| - matchId | 接受时已创建的战报 ID；拒绝或撤销时省略 | `"1794700000003"` |
+
+> 接受时重新校验双方当前宠物并按双方最新配装结算，回执返回的 `matchId` 可直接查询战报。已处理、已过期或接受时宠物已更换分别返回 HTTP 409 `brawl_invite_closed`、`brawl_invite_expired`、`brawl_invite_pet_changed`。参与者执行与角色不符的决定返回 HTTP 403，第三人访问返回 HTTP 404。
+
+> 约战无需开启随机报名，不计赛季分、不发材料、不占随机匹配次数。`pvp.friendlyWeapon` 与 `pvp.friendlySkill` 为当前保存的约战配装，未保存时使用小木勺和拍水花。可使用出战配置接口保存配装并保持随机报名关闭。
 
 #### 宠物乱斗强化订单
 
 - `POST /api/v3/me/pet/brawl/orders` 接收 `{petId,weapon,level,version,materials}`。level 是当前武器等级，materials 是选定要抵扣的份数。回执为 `operation:brawl-quote,petId,committedAt,orderId`。报价有效期 10 分钟。
-- `GET /api/v3/me/pet/brawl/orders` 返回本人 `{list,next,balance}`，可带 `before` 游标。详情 `GET /api/v3/me/pet/brawl/orders/{id}` 返回当前余额与订单。订单公开字段为 `id,petId,weapon,level,materials,points,version,createdAt,expiresAt,status`，完成后附 `completedAt`。状态为 `pending/completed/expired`。
+- `GET /api/v3/me/pet/brawl/orders` 返回本人 `{list,next,balance}`，可带 `before` 游标。详情 `GET /api/v3/me/pet/brawl/orders/{id}` 将当前积分余额 `balance` 与订单字段平铺在 `data`。订单字段为 `id,petId,weapon,level,materials,points,version,createdAt,expiresAt,status`，进阶订单另有 `product`，完成后另有 `completedAt`。状态为 `pending/completed/expired`。
 - `POST /api/v3/me/pet/brawl/orders/{id}/confirm` 接收 `{petId}`，返回 `operation:brawl-confirm,petId,committedAt,orderId`。确认时重验武器等级、宠物、规则版本、材料和余额。余额不足为 409 `insufficient_points`，结算结果可用订单 ID 查询。
 - 读取要求第一方本人 `profile.read`，写入口要求 `settings.write` 和 `Idempotency-Key`。同一订单只完成一次，重复确认返回既有回执。版本 1 已完成订单按原值显示；未确认订单视为过期，重新报价后才能扣款。每份历练材料抵扣 10 积分，版本 2 武器强化全程需要 500 份材料，完全使用积分时为 5,000 积分。实际单级价格取当前 `costs`。
 
 #### 宠物乱斗进阶配装
 
-- `GET /api/v3/me/pet/brawl` 新增 `gear:{revision,weapons,ranks,catalog,bonuses}`。按武器保存神器、第二槽及两个镶嵌项。道具等级按当前账号保存。目录列明每级材料成本和每级属性增益，生命与基础伤害按百分之一 HP 表示。
+- `GET /api/v3/me/pet/brawl` 新增 `gear:{revision,weapons,ranks,catalog,bonuses}`。按武器保存神器、第二槽及两个镶嵌项。道具等级按当前账号保存。目录项为 `id,name,hp,attack,costs`，其中 `costs` 按项目当前等级索引。生命与基础伤害按百分之一 HP 表示；武器满 +20 后可进阶神器，单次增加 `hp=12`、`attack=2`，费用为 200 份材料或等值积分。
 - `POST /api/v3/me/pet/brawl/orders` 可带 `product`。固定 ID 为 `ARTIFACT`、`SLOT`、`SOUL_VITAL`、`SOUL_EDGE`、`RUNE_GUARD`、`RUNE_SPARK`。传入的 `level` 为该项目现有等级，材料折抵继续沿用每份 10 积分。旧强化订单省略 product。
 - `PUT /api/v3/me/pet/brawl/socket` 接收 `{petId,weapon,slot,item,version,revision}`。slot 为 `soul` 或 `rune`，item 为匹配类别的已拥有道具 ID，空字符串表示拆卸。需要本人 `settings.write` 和幂等键，成功后重新读取配装。
-- PvP 战报双方配置增加 `gearHp` 和 `gearAttack` 增益及装备快照，历史配置以结算记录为准。
+- 正式闯关、随机匹配和好友约战均在开战时应用出战武器及其进阶配装，增益反映在战报的 `gearHp`、`gearAttack`、`maxHp` 与 `attack`。
 
 #### 宠物乱斗赛季
 
@@ -18276,3 +18502,36 @@ curl -X POST 'https://fishpi.cn/api/v3/me/pet/brawl/invitations' \
 - 榜单项仅含 `rank,rating,games,wins,name,nickname,mine`。停用账号隐藏用户名和昵称，保留已结算的名次。本人项含 `rank,rating,games,wins,opponents,reward,claimed`，未上榜的 rank 为 null。opponents 最多计到 5。
 - `POST /api/v3/me/pet/brawl/season/{id}/claim` 接收空对象，要求第一方本人 `settings.write` 与 `Idempotency-Key`。回执为 `operation:brawl-season-claim,season,place,materials,claimedAt,committedAt`。同赛季已领过时返回原结果。尚未结算、未上榜、读取未来赛季分别返回 409 `brawl_season_open`、`brawl_season_unranked`、`brawl_season_future`。
 - 启用后生成的 PvP 战报详情带整数 `season`。老战报和 NPC 战报原样读取。
+
+## 宠物后台分析
+
+### 导出脱敏宠物分析
+
+`GET /admin/pet-logs/export`
+
+从旧版后台宠物日志页下载脱敏分析 ZIP，用于查看乱斗对局、匹配、消费及日常操作趋势。需要有效的管理员网页登录会话。
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| from | 可选，开始日期，默认取结束日期往前 6 天 | `2026-11-11` |
+| to | 可选，结束日期，默认为当前北京时间日期 | `2026-11-17` |
+
+请求示例：
+
+```bash
+curl --get 'https://fishpi.cn/admin/pet-logs/export' \
+  --cookie '<本地管理员会话 Cookie 文件>' --output pet-analytics.zip \
+  --data-urlencode 'from=2026-11-11' --data-urlencode 'to=2026-11-17'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| Content-Type | 成功响应类型 | `application/zip` |
+| Content-Disposition | 附件文件名 | `pet-analytics-2026-11-11-2026-11-17.zip` |
+| body | ZIP 二进制，包含导出说明及脱敏表 | `manifest.json`、`battles.csv`、`match_attempts.csv`、`orders.csv`、`invitations.csv`、`pet_commands.csv`、`pet_risk.csv`、`pet_signals.csv` |
+
+> 日期按北京时间计算，首尾均包含，最多 31 天。未登录返回 HTTP 401，权限不足返回 HTTP 403，日期无效返回 HTTP 400，导出暂不可用返回 HTTP 503。此接口使用文件下载格式，与 V3 JSON 信封独立。操作信号用于人工复核。
