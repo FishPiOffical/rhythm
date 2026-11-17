@@ -30,6 +30,7 @@
 
 ## 页面渲染与实时事件
 
+- 评论列表组织作者展示勋章时，先按作者去重并批量读取本次列表所需数据，再在并行任务中只读取内存结果；单评论详情仍沿用单用户读取入口，保持 `sysMetal` 的列表结构和展示顺序。
 - 移动端文章页（`skins/classic/mobile/article.ftl`）存在多个 `#replyUseName`（含隐藏占位 `.fn-none`）；`m-article.js` 处理回复目标时需优先选中非 `.fn-none` 节点，避免“回复对象已记录但指示未显示”。
 - 评论区交互不是单点模板：首屏评论列表由 `ArticleProcessor` + `CommentQueryService#getArticleComments` 组装，展开“原评论/回复”走 `CommentProcessor#getOriginalComment/getReplies`，实时新评论卡片由 `processor/channel/ArticleChannel` 渲染 `skins/**/common/comment.ftl`；改评论动作区时需同步评估 PC/移动模板、`article.js`/`m-article.js` 以及实时插入链路。
 - 文章页实时链路走 `ArticleChannel`：新增评论仍是 `type=comment`，评论 reaction 增量走 `type=commentReaction`，帖子本体 reaction 增量走 `type=articleReaction`；联调这类 Java 推送改动时，前端强刷还不够，必须让用户重启或重新编译服务端。

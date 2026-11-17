@@ -40,6 +40,7 @@ import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.CommentRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -1187,14 +1188,16 @@ public class CommentQueryService {
     }
 
     private void fillCommentMedals(final JSONObject comment) {
-        final String commentAuthorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-        final String metal = cloudService.getEnabledMedal(commentAuthorId);
-        if (!metal.equals("{}") && Comment.COMMENT_ANONYMOUS_C_ANONYMOUS != comment.optInt(Comment.COMMENT_ANONYMOUS)) {
-            final List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
-            comment.put("sysMetal", list);
+        if (Comment.COMMENT_ANONYMOUS_C_ANONYMOUS == comment.optInt(Comment.COMMENT_ANONYMOUS)) {
+            comment.put("sysMetal", new ArrayList<>());
             return;
         }
-        comment.put("sysMetal", new ArrayList<>());
+        if (comment.has("sysMetal")) {
+            return;
+        }
+        final String metal = cloudService.getEnabledMedal(comment.optString(Comment.COMMENT_AUTHOR_ID));
+        final JSONArray medalList = new JSONObject(metal).optJSONArray("list");
+        comment.put("sysMetal", null == medalList ? new ArrayList<>() : medalList.toList());
     }
 
     private void fillOriginalCommentMetadata(final JSONObject comment, final String articleId,
@@ -1488,8 +1491,8 @@ public class CommentQueryService {
 
         final List<JSONObject> comments = (List<JSONObject>) result.opt(Keys.RESULTS);
         try {
+            organizeComments(comments);
             for (final JSONObject comment : comments) {
-                organizeComment(comment);
                 final String articleId = comment.optString(Comment.COMMENT_ON_ARTICLE_ID);
                 final JSONObject article = articleRepository.get(articleId);
                 comment.put(Comment.COMMENT_T_ARTICLE_TITLE,
@@ -1511,19 +1514,28 @@ public class CommentQueryService {
      * Organizes the specified comments.
      *
      * @param comments the specified comments
-     * @see #organizeComment(JSONObject)
+     * @see #organizeComment(JSONObject, Map)
      */
     private void organizeComments(final List<JSONObject> comments) {
         if (comments.isEmpty()) {
             return;
         }
 
+        final Set<String> authorIds = new HashSet<>();
+        for (final JSONObject comment : comments) {
+            final String authorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
+            if (StringUtils.isNotBlank(authorId)) {
+                authorIds.add(authorId);
+            }
+        }
+        final Map<String, String> enabledMedals = cloudService.getEnabledMedals(authorIds);
+
         Stopwatchs.start("Organizes comments");
         try {
             final ForkJoinPool pool = new ForkJoinPool(Symphonys.PROCESSORS);
             pool.submit(() -> comments.parallelStream().forEach(comment -> {
                 try {
-                    organizeComment(comment);
+                    organizeComment(comment, enabledMedals);
                 } catch (final Exception e) {
                     LOGGER.log(Level.ERROR, "Organizes comment [" + comment.optString(Keys.OBJECT_ID) + "] failed", e);
                 } finally {
@@ -1559,6 +1571,10 @@ public class CommentQueryService {
      * @throws RepositoryException repository exception
      */
     private void organizeComment(final JSONObject comment) throws RepositoryException {
+        organizeComment(comment, null);
+    }
+
+    private void organizeComment(final JSONObject comment, final Map<String, String> enabledMedals) throws RepositoryException {
         Stopwatchs.start("Organize comment");
 
         try {
@@ -1582,14 +1598,11 @@ public class CommentQueryService {
             comment.put(Comment.COMMENT_T_AUTHOR_THUMBNAIL_URL, thumbnailURL);
 
             final String authorId = comment.optString(Comment.COMMENT_AUTHOR_ID);
-            String metal = cloudService.getEnabledMedal(authorId);
-
-            if (!metal.equals("{}")) {
-                List<Object> list = new JSONObject(metal).optJSONArray("list").toList();
-                comment.put("sysMetal", list);
-            } else {
-                comment.put("sysMetal", new ArrayList<>());
-            }
+            final String metal = enabledMedals == null
+                    ? cloudService.getEnabledMedal(authorId)
+                    : enabledMedals.getOrDefault(authorId, "{\"list\":[]}");
+            final JSONArray medalList = new JSONObject(metal).optJSONArray("list");
+            comment.put("sysMetal", null == medalList ? new ArrayList<>() : medalList.toList());
 
             processCommentContent(comment);
         } finally {
