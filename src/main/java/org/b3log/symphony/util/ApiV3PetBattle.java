@@ -8,8 +8,61 @@ import java.util.Random;
 public final class ApiV3PetBattle {
     public static final int VERSION = 1;
     public static final int[] COST = {20, 40, 80, 140, 220};
-    public enum Weapon { SPOON, GUARD, FAN }
-    public enum Skill { SPLASH, CURL, BREATHE }
+    public enum Weapon {
+        SPOON(null, "小木勺", "前 8 回合各加伤 1"),
+        GUARD(null, "软垫护腕", "前 2 回合各减伤 4"),
+        FAN(null, "折纸扇", "第 3、6 回合各加伤 4"),
+        PEBBLE("momota", "卵石拍", "第 3、7 回合各加伤 3.8"),
+        SHELL("momota", "贝壳盾", "前 2 回合各减伤 3.8"),
+        LEAF("hexiaotun", "荷叶伞", "前 3 回合各减伤 2.6"),
+        LOTUS("hexiaotun", "莲蓬锤", "第 5、8 回合各加伤 3.8"),
+        CLAW("yubingmiao", "鱼饼爪套", "前 6 回合各加伤 1.3"),
+        SLING("yubingmiao", "小鱼弹弓", "第 4 回合加伤 3.8，首次攻击半血或以下的对手再加伤 3.8"),
+        FIN("paixiaoyu", "浪花尾鳍", "第 2 回合减伤 3.8，第 3 回合加伤 3.8"),
+        BUBBLE("paixiaoyu", "泡泡炮", "第 3、5 回合各加伤 3.6，并各穿透最多 1.2 减伤");
+
+        public final String species;
+        public final String label;
+        public final String effect;
+
+        Weapon(final String species, final String label, final String effect) {
+            this.species = species;
+            this.label = label;
+            this.effect = effect;
+        }
+
+        public boolean availableTo(final String speciesId) {
+            return species == null || species.equals(speciesId);
+        }
+    }
+
+    public enum Skill {
+        SPLASH(null, "拍水花", "第 4 回合加伤 8"),
+        CURL(null, "卷成一团", "第 5 回合减伤 8"),
+        BREATHE(null, "深呼吸", "第 4 回合最多回复 8"),
+        COUNTER("momota", "翻身拍浪", "第 5 回合加伤 7.5"),
+        DIVE("momota", "抱石潜水", "第 4 回合减伤 7.5"),
+        SHELTER("hexiaotun", "荷叶挡雨", "第 5 回合减伤 7.5"),
+        CHEW("hexiaotun", "嚼叶回血", "第 4 回合最多回复 7.5"),
+        DOUBLE("yubingmiao", "两连拍", "第 4、5 回合各加伤 3.8"),
+        RUSH("yubingmiao", "叼鱼突袭", "第 4、7 回合各加伤 3.8"),
+        SLIDE("paixiaoyu", "摆尾滑步", "第 5 回合减伤 7.5"),
+        BURST("paixiaoyu", "泡泡破阵", "第 4 回合加伤 7.5，并穿透最多 1.2 减伤");
+
+        public final String species;
+        public final String label;
+        public final String effect;
+
+        Skill(final String species, final String label, final String effect) {
+            this.species = species;
+            this.label = label;
+            this.effect = effect;
+        }
+
+        public boolean availableTo(final String speciesId) {
+            return species == null || species.equals(speciesId);
+        }
+    }
     public record Setup(Weapon weapon, Skill skill, int level, int gearHp, int gearAttack) {
         public Setup(final Weapon weapon, final Skill skill, final int level) {
             this(weapon, skill, level, 0, 0);
@@ -31,6 +84,7 @@ public final class ApiV3PetBattle {
     public static Result resolve(final Setup player, final Setup opponent, final long seed) {
         final Setup[] setups = {player, opponent};
         final int[] hp = {player.maxHp(), opponent.maxHp()};
+        final boolean[] slingUsed = new boolean[2];
         final Random random = new Random(seed);
         final List<Turn> turns = new ArrayList<>();
         for (int round = 1; round <= 12; round++) {
@@ -40,16 +94,19 @@ public final class ApiV3PetBattle {
             for (int position = 0; position < 2; position++) {
                 final int actor = first ^ position, target = 1 - actor;
                 final Setup attacker = setups[actor], defender = setups[target];
-                final int healing = round == 4 && attacker.skill == Skill.BREATHE
-                        ? Math.min(800, attacker.maxHp() - hp[actor]) : 0;
+                final int healing = round == 4
+                        ? Math.min(healingPower(attacker.skill), attacker.maxHp() - hp[actor]) : 0;
                 hp[actor] += healing;
                 int damage = attacker.attack() + jitter[actor] * 100;
                 if (critical[actor]) damage = damage * 3 / 2;
-                if (attacker.weapon == Weapon.SPOON && round <= 8) damage += 100;
-                if (attacker.weapon == Weapon.FAN && (round == 3 || round == 6)) damage += 400;
-                if (attacker.skill == Skill.SPLASH && round == 4) damage += 800;
-                if (defender.weapon == Weapon.GUARD && round <= 2) damage -= 400;
-                if (defender.skill == Skill.CURL && round == 5) damage -= 800;
+                damage += weaponDamage(attacker.weapon, round) + skillDamage(attacker.skill, round);
+                // 小鱼弹弓的追击只触发一次，半血判断使用本次攻击前的生命。
+                if (attacker.weapon == Weapon.SLING && !slingUsed[actor] && hp[target] * 2 <= defender.maxHp()) {
+                    damage += 380;
+                    slingUsed[actor] = true;
+                }
+                final int reduction = weaponReduction(defender.weapon, round) + skillReduction(defender.skill, round);
+                damage -= Math.max(0, reduction - pierce(attacker, round));
                 damage = Math.max(100, damage);
                 hp[target] = Math.max(0, hp[target] - damage);
                 turns.add(new Turn(round, actor, damage, healing, hp[0], hp[1]));
@@ -58,5 +115,63 @@ public final class ApiV3PetBattle {
         }
         final int difference = Integer.compare(hp[0] * opponent.maxHp(), hp[1] * player.maxHp());
         return new Result(difference == 0 ? -1 : difference > 0 ? 0 : 1, List.copyOf(turns));
+    }
+
+    private static int weaponDamage(final Weapon weapon, final int round) {
+        return switch (weapon) {
+            case SPOON -> round <= 8 ? 100 : 0;
+            case FAN -> round == 3 || round == 6 ? 400 : 0;
+            case PEBBLE -> round == 3 || round == 7 ? 380 : 0;
+            case LOTUS -> round == 5 || round == 8 ? 380 : 0;
+            case CLAW -> round <= 6 ? 130 : 0;
+            case SLING -> round == 4 ? 380 : 0;
+            case FIN -> round == 3 ? 380 : 0;
+            case BUBBLE -> round == 3 || round == 5 ? 360 : 0;
+            default -> 0;
+        };
+    }
+
+    private static int skillDamage(final Skill skill, final int round) {
+        return switch (skill) {
+            case SPLASH -> round == 4 ? 800 : 0;
+            case COUNTER -> round == 5 ? 750 : 0;
+            case DOUBLE -> round == 4 || round == 5 ? 380 : 0;
+            case RUSH -> round == 4 || round == 7 ? 380 : 0;
+            case BURST -> round == 4 ? 750 : 0;
+            default -> 0;
+        };
+    }
+
+    private static int weaponReduction(final Weapon weapon, final int round) {
+        return switch (weapon) {
+            case GUARD -> round <= 2 ? 400 : 0;
+            case SHELL -> round <= 2 ? 380 : 0;
+            case LEAF -> round <= 3 ? 260 : 0;
+            case FIN -> round == 2 ? 380 : 0;
+            default -> 0;
+        };
+    }
+
+    private static int skillReduction(final Skill skill, final int round) {
+        return switch (skill) {
+            case CURL -> round == 5 ? 800 : 0;
+            case DIVE -> round == 4 ? 750 : 0;
+            case SHELTER, SLIDE -> round == 5 ? 750 : 0;
+            default -> 0;
+        };
+    }
+
+    private static int healingPower(final Skill skill) {
+        return switch (skill) {
+            case BREATHE -> 800;
+            case CHEW -> 750;
+            default -> 0;
+        };
+    }
+
+    private static int pierce(final Setup attacker, final int round) {
+        int amount = attacker.weapon == Weapon.BUBBLE && (round == 3 || round == 5) ? 120 : 0;
+        if (attacker.skill == Skill.BURST && round == 4) amount += 120;
+        return amount;
     }
 }

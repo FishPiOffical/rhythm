@@ -248,7 +248,7 @@ public class ApiV3PetService {
         return mutate(identity, "brawl-quote", key, input, () -> {
             requireBrawlVersion(version);
             final String owner = actor(identity);
-            brawlPet(owner, id);
+            ApiV3PetBrawl.requireWeapon(brawlPet(owner, id), weapon);
             final long current = now();
             final JSONObject quote = brawl.quote(owner, id, weapon, level, materials, product, current);
             return receipt("brawl-quote", id, current).put("orderId", quote.getString("id"));
@@ -273,8 +273,7 @@ public class ApiV3PetService {
         return mutate(identity, "brawl-socket", key, input, () -> {
             requireBrawlVersion(version);
             final String owner = actor(identity);
-            brawlPet(owner, id);
-            brawl.socket(owner, weapon, slot, item, revision);
+            brawl.socket(owner, brawlPet(owner, id), weapon, slot, item, revision);
             return receipt("brawl-socket", id, now());
         });
     }
@@ -292,7 +291,7 @@ public class ApiV3PetService {
                     if (!id.equals(quote.getString("petId"))) throw ApiV3Requests.notFound();
                     // 已完成订单以订单 ID 去重，即使浏览器丢失原命令键，也只恢复原结果。
                     if (!"completed".equals(quote.getString("status"))) {
-                        brawlPet(owner, id);
+                        ApiV3PetBrawl.requireWeapon(brawlPet(owner, id), ApiV3PetBattle.Weapon.valueOf(quote.getString("weapon")));
                         brawl.settle(owner, quote, now());
                     }
                     return receipt("brawl-confirm", id, quote.getLong("completedAt")).put("orderId", orderId);
@@ -324,7 +323,7 @@ public class ApiV3PetService {
         return mutate(identity, "brawl-upgrade", key, input, () -> {
             requireBrawlVersion(version);
             final String owner = actor(identity);
-            brawlPet(owner, id);
+            ApiV3PetBrawl.requireWeapon(brawlPet(owner, id), weapon);
             final JSONObject result = brawl.upgrade(owner, weapon, level);
             return receipt("brawl-upgrade", id, now()).put("level", result.getInt("level"));
         });

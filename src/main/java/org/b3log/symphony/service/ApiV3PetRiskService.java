@@ -55,9 +55,9 @@ public class ApiV3PetRiskService {
             "income_limit", "activity_running", "activity_claimed", "supply_claimed", "pet_resting", "pet_busy", "story_claimed", "collection_owned",
             "brawl_level_locked", "brawl_stage_locked", "brawl_stale_level", "brawl_materials", "brawl_version_changed",
             "brawl_profile_changed", "brawl_pvp_limit", "brawl_no_opponent", "brawl_quote_expired", "brawl_quote_changed", "insufficient_points",
-            "brawl_gear_changed", "brawl_gear_unowned", "brawl_slot_locked", "brawl_gem_in_use", "brawl_artifact_locked");
+            "brawl_gear_changed", "brawl_gear_unowned", "brawl_slot_locked", "brawl_gem_in_use", "brawl_artifact_locked", "brawl_equipment_unavailable");
     private static final Set<String> BRAWL_AUDIT_ONLY = Set.of("insufficient_points", "brawl_no_opponent",
-            "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open");
+            "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open", "brawl_equipment_unavailable");
     @Inject private PetRiskStateRepository states;
     @Inject private PetRiskAuditRepository audits;
     @Inject private PetRiskProofRepository proofUses;
