@@ -7,6 +7,7 @@ import org.b3log.symphony.repository.PetBrawlAccountRepository;
 import org.b3log.symphony.repository.PetBrawlGearRepository;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
 import org.b3log.symphony.repository.PetBrawlPairRepository;
+import org.b3log.symphony.repository.PetBrawlInviteRepository;
 import org.b3log.symphony.repository.PetBrawlProfileRepository;
 import org.b3log.symphony.util.ApiV3PetBattle;
 import org.b3log.symphony.util.ApiV3PetRules;
@@ -31,6 +32,10 @@ public final class ApiV3PetBrawlTest {
             });
             sql(db, "CREATE TABLE pet_brawl_profile(oId TEXT PRIMARY KEY,petId TEXT,enabled INT,weapon TEXT,skill TEXT,revision TEXT,version INT)");
             sql(db, "CREATE TABLE pet_brawl_pair(oId TEXT PRIMARY KEY,day TEXT,initiator TEXT,recipient TEXT,pairLow TEXT,pairHigh TEXT)");
+            sql(db, "CREATE TABLE pet_brawl_invite(oId TEXT PRIMARY KEY,sender TEXT,recipient TEXT,status TEXT,matchId TEXT)");
+            inject(brawl, "invites", new PetBrawlInviteRepository() {
+                public String getName() { return "pet_brawl_invite"; }
+            });
             inject(brawl, "profiles", new PetBrawlProfileRepository() {
                 public JSONObject get(final String id) throws RepositoryException {
                     return selectSQL("SELECT * FROM pet_brawl_profile WHERE oId=?", id).stream().findFirst().orElse(null);

@@ -56,6 +56,9 @@ public class ApiV3PetProcessor {
         Dispatcher.post("/api/v3/me/pet/brawl/matches", processor::brawlFight, auth::settingsWrite);
         Dispatcher.put("/api/v3/me/pet/brawl/profile", processor::brawlEnroll, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/brawl/pvp", processor::brawlMatch, auth::settingsWrite);
+        Dispatcher.get("/api/v3/me/pet/brawl/invitations", processor::brawlInvitations, auth::profileRead);
+        Dispatcher.post("/api/v3/me/pet/brawl/invitations", processor::brawlInvite, auth::settingsWrite);
+        Dispatcher.post("/api/v3/me/pet/brawl/invitations/{id}/decision", processor::brawlInviteDecision, auth::settingsWrite);
         Dispatcher.get("/api/v3/me/pet/brawl/orders", processor::brawlOrders, auth::profileRead);
         Dispatcher.get("/api/v3/me/pet/brawl/orders/{id}", processor::brawlOrder, auth::profileRead);
         Dispatcher.post("/api/v3/me/pet/brawl/orders", processor::brawlQuote, auth::settingsWrite);
@@ -88,7 +91,8 @@ public class ApiV3PetProcessor {
     }
 
     public void brawlHistory(final RequestContext context) {
-        ApiV3Requests.read(context, () -> pets.brawlHistory(identity(context), context.param("before"), "1".equals(context.param("includePvp"))));
+        ApiV3Requests.read(context, () -> pets.brawlHistory(identity(context), context.param("before"), "1".equals(context.param("includePvp")),
+                "1".equals(context.param("includeFriendly"))));
     }
 
     public void brawlDetail(final RequestContext context) {
@@ -110,6 +114,20 @@ public class ApiV3PetProcessor {
     public void brawlMatch(final RequestContext context) {
         respond(context, () -> pets.brawlMatch(identity(context),
                 body(context, Set.of("petId", "revision", "version")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlInvitations(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.brawlInvitations(identity(context), context.param("before")));
+    }
+
+    public void brawlInvite(final RequestContext context) {
+        respond(context, () -> pets.brawlInvite(identity(context), body(context, Set.of("targetPetId")),
+                ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void brawlInviteDecision(final RequestContext context) {
+        respond(context, () -> pets.brawlInviteDecision(identity(context), context.pathVar("id"),
+                body(context, Set.of("decision")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void brawlOrders(final RequestContext context) {

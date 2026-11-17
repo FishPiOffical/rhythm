@@ -49,7 +49,7 @@ public class ApiV3PetRiskService {
     private static final long GRANT_TTL = 15 * MINUTE;
     private static final int COMMAND_LIMIT = 128;
     private static final Set<String> OPERATIONS = Set.of("adoption", "readoption", "story-claim", "name", "action",
-            "supplies", "purchase", "craft", "activity-start", "activity-claim", "brawl-fight", "brawl-upgrade", "brawl-enroll", "brawl-match", "brawl-quote", "brawl-confirm", "brawl-socket", "brawl-season-claim");
+            "supplies", "purchase", "craft", "activity-start", "activity-claim", "brawl-fight", "brawl-upgrade", "brawl-enroll", "brawl-match", "brawl-quote", "brawl-confirm", "brawl-socket", "brawl-season-claim", "brawl-invite", "brawl-invite-decision");
     private static final Set<String> BUSINESS_DENIALS = Set.of("brawl_season_open", "brawl_season_unranked", "care_cooldown", "already_full", "not_enough_energy",
             "not_enough_coins", "not_enough_hunger", "not_enough_water", "not_enough_items", "not_enough_food",
             "income_limit", "activity_running", "activity_claimed", "supply_claimed", "pet_resting", "pet_busy", "story_claimed", "collection_owned",
@@ -57,7 +57,9 @@ public class ApiV3PetRiskService {
             "brawl_profile_changed", "brawl_pvp_limit", "brawl_no_opponent", "brawl_quote_expired", "brawl_quote_changed", "insufficient_points",
             "brawl_gear_changed", "brawl_gear_unowned", "brawl_slot_locked", "brawl_gem_in_use", "brawl_artifact_locked", "brawl_equipment_unavailable");
     private static final Set<String> BRAWL_AUDIT_ONLY = Set.of("insufficient_points", "brawl_no_opponent",
-            "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open", "brawl_equipment_unavailable");
+            "brawl_profile_changed", "brawl_gear_changed", "brawl_season_open", "brawl_equipment_unavailable",
+            "brawl_invite_level", "brawl_invite_pet_changed", "brawl_invite_pending", "brawl_invite_closed",
+            "brawl_invite_expired", "brawl_invite_self");
     @Inject private PetRiskStateRepository states;
     @Inject private PetRiskAuditRepository audits;
     @Inject private PetRiskProofRepository proofUses;

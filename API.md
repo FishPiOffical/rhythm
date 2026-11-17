@@ -18209,6 +18209,7 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `GET /api/v3/me/pet/brawl` 新增 `pvp:{enabled,revision,weapon,skill,remaining,received,receivedLimit}`。首次报名版本为 `""`。未报名时 weapon、skill 为 null。每日主动 3 场、被挑战 6 场，以北京时间计算。
 - `PUT /api/v3/me/pet/brawl/profile` 接收 `{petId,weapon,skill,enabled,revision,version}`，保存或撤回当前报名。回执包含 `operation:brawl-enroll,petId,committedAt`，成功后重读当前版本。
 - `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
+- 战报列表可选 `includeFriendly=1`，加入双方的好友约战战报。约战的 `mode=friendly`、`stage=0`、`practice=false`、`reward=0`，无赛季字段。
 - 宠物养成上限为 Lv.40，经验仍每 100 升一级。实装 PvP 的匹配等级按最高 Lv.30 计算，已保存的版本 1 报名仍有效，新报名和新对局写入使用当前版本。
 - 实装 PvP 在原宠物等级范围内，依次尝试报名武器强化差不超过 4、不超过 8、其余符合条件的对手。同档按宠物等级差排序。
 - 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
@@ -18216,6 +18217,44 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - 新 PvP 战报的 `player` 和 `opponent` 各包含对局开始时的 `petName`（宠物昵称）和 `ownerNickname`（主人昵称，未设置时使用用户名）。字段随出场配置翻转；旧战报和 NPC 战报不含这两个字段。
 - 含昵称快照的 PvP 列表摘要增加 `opponentPetName` 和 `opponentOwnerNickname`。两字段都以当前查看者为准，来源与详情一致。未保存昵称的战报省略两字段。
 - PvP 摘要也投影对手的 `opponentPetId` 和 `opponentSpecies`，供列表展示头像和链接宠物资料。宠物资料沿用公开资料接口的可见性规则。
+
+### 宠物好友约战
+
+`GET /api/v3/me/pet/brawl/invitations`、`POST /api/v3/me/pet/brawl/invitations`、`POST /api/v3/me/pet/brawl/invitations/{id}/decision`
+
+请求：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| before | GET 可选游标 | 邀请 ID |
+| targetPetId | 创建邀请时必填 | 对手当前宠物 ID |
+| decision | 邀请决定，接收方可接受或拒绝，发起方可撤销 | `accept`、`decline`、`cancel` |
+
+请求示例：
+
+```bash
+curl -X POST 'https://fishpi.cn/api/v3/me/pet/brawl/invitations' \
+  -H 'Authorization: Bearer <website-token>' \
+  -H 'Idempotency-Key: <unique-key>' -H 'Content-Type: application/json' \
+  -d '{"targetPetId":"1794000000000"}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| list | 双方本人邀请流，每页至多 20 条 | `[]` |
+| - id / outgoing | 邀请 ID、是否本人发出 | `id` / `true` |
+| - petId / petName | 邀请中的对方宠物 ID 和名称 | `id` / `派小鱼` |
+| - status | 待处理、已接受、已拒绝、已撤销、已过期 | `pending` / `accepted` / `declined` / `cancelled` / `expired` |
+| - createdAt / expiresAt | 发出和过期的毫秒时间戳 | `1794000000000` |
+| next / serverNow | 下一页游标和当前服务器时间 | `null` / 毫秒时间戳 |
+| inviteId | 创建与决定的幂等回执中的邀请 ID | `id` |
+| matchId | 仅接受时出现在决定回执和邀请列表 | 战报 ID |
+
+> 读取需要第一方 `profile.read`，写入需要第一方 `settings.write` 和 `Idempotency-Key`。双方宠物须达 Lv.10，邀请有效期 24 小时。同一对账号同时只保留一个有效邀请。接受时重新检查宠物并冻结双方当前配装，双方可读同一战报。查看陌生邀请和战报返回 404。约战不计赛季、不奖励材料、不占随机次数。
+
+> 乱斗状态的 `pvp.friendlyWeapon`、`pvp.friendlySkill` 表示约战所用的已保存配置；未保存时为小木勺与拍水花。沿用出战配置写入，保存时可保持随机报名关闭。
 
 #### 宠物乱斗强化订单
 

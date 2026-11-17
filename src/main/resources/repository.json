@@ -10,6 +10,65 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "pet_brawl_invite",
+      "description": "宠物友谊约战邀请",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "sender",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "recipient",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "senderPetId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "recipientPetId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "senderPetName",
+          "type": "String",
+          "length": 256
+        },
+        {
+          "name": "recipientPetName",
+          "type": "String",
+          "length": 256
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "length": 10
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        },
+        {
+          "name": "expiresAt",
+          "type": "long"
+        },
+        {
+          "name": "matchId",
+          "type": "String",
+          "length": 19
+        }
+      ]
+    },
+    {
       "name": "pet_brawl_pair",
       "description": "宠物乱斗实装对战",
       "keys": [

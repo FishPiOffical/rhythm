@@ -1,6 +1,7 @@
 package org.b3log.symphony.service;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.b3log.latke.ioc.Inject;
@@ -17,6 +18,7 @@ import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3PetGear.Product;
 import org.b3log.symphony.repository.PetBrawlMatchRepository;
 import org.b3log.symphony.repository.PetBrawlPairRepository;
+import org.b3log.symphony.repository.PetBrawlInviteRepository;
 import org.b3log.symphony.repository.PetBrawlProfileRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.UserRepository;
@@ -51,6 +53,7 @@ public class ApiV3PetBrawl {
     private static final long QUOTE_TTL_MS = 10 * 60 * 1000L;
     @Inject private PetBrawlMatchRepository matches;
     @Inject private PetBrawlPairRepository pairs;
+    @Inject private PetBrawlInviteRepository invites;
     @Inject private PetBrawlProfileRepository profiles;
     @Inject private UserPetRepository pets;
     @Inject private UserRepository users;
@@ -135,6 +138,8 @@ public class ApiV3PetBrawl {
                 .put("revision", profile == null ? "" : profile.getString("revision"))
                 .put("weapon", active ? profile.getString("weapon") : JSONObject.NULL)
                 .put("skill", active ? profile.getString("skill") : JSONObject.NULL)
+                .put("friendlyWeapon", pet != null && savedProfile(profile, pet) ? profile.getString("weapon") : Weapon.SPOON.name())
+                .put("friendlySkill", pet != null && savedProfile(profile, pet) ? profile.getString("skill") : Skill.SPLASH.name())
                 .put("remaining", Math.max(0, ACTIVE_LIMIT - count(owner, day, true)))
                 .put("received", count(owner, day, false)).put("receivedLimit", PASSIVE_LIMIT);
     }
@@ -186,6 +191,121 @@ public class ApiV3PetBrawl {
                 .put("initiator", owner).put("recipient", opponent).put("pairLow", low).put("pairHigh", high));
         seasons.record(round, owner, opponent, report.getInt("winner"));
         return store(owner, report, seed).put("createdAt", now);
+    }
+
+    JSONObject invite(final String owner, final String targetPetId, final long now) throws RepositoryException {
+        final JSONObject ownPet = friendlyPet(owner, null);
+        final var targets = pets.select("SELECT userId FROM `" + pets.getName() + "` WHERE oId=?", targetPetId);
+        if (targets.size() != 1) throw ApiV3Requests.notFound();
+        final String target = targets.getFirst().getString("userId");
+        if (owner.equals(target)) throw ApiV3PetRules.conflict("brawl_invite_self", "不能约战自己的宠物");
+        friendlyUser(target);
+        final JSONObject targetPet = friendlyPet(target, targetPetId);
+        // 第一方宠物写入先持全局客户端行锁，反向邀请也按同一顺序检查。
+        final var existing = invites.select("SELECT oId FROM `" + invites.getName() + "`"
+                        + " WHERE status='pending' AND expiresAt>? AND ((sender=? AND recipient=?) OR (sender=? AND recipient=?)) LIMIT 1",
+                now, owner, target, target, owner);
+        if (!existing.isEmpty()) throw ApiV3PetRules.conflict("brawl_invite_pending", "你们已有一条待处理的约战邀请");
+        final String id = Ids.genTimeMillisId();
+        invites.add(new JSONObject().put("oId", id).put("sender", owner).put("recipient", target)
+                .put("senderPetId", ownPet.getString("oId")).put("recipientPetId", targetPetId)
+                .put("senderPetName", ownPet.getString("name")).put("recipientPetName", targetPet.getString("name"))
+                .put("status", "pending").put("createdAt", now).put("expiresAt", now + 24 * ApiV3PetRules.HOUR).put("matchId", ""));
+        return new JSONObject().put("inviteId", id).put("petId", ownPet.getString("oId"));
+    }
+
+    JSONObject decideInvite(final String owner, final String id, final String decision, final long now) throws RepositoryException {
+        final var rows = invites.select("SELECT * FROM `" + invites.getName()
+                + "` WHERE oId=? AND (sender=? OR recipient=?) FOR UPDATE", id, owner, owner);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        final JSONObject invite = rows.getFirst();
+        final String sender = invite.getString("sender"), recipient = invite.getString("recipient");
+        final boolean outgoing = owner.equals(sender);
+        if (outgoing != "cancel".equals(decision)) throw ApiV3Requests.forbidden();
+        if (!"pending".equals(invite.getString("status")))
+            throw ApiV3PetRules.conflict("brawl_invite_closed", "这条约战邀请已处理");
+        if (invite.getLong("expiresAt") <= now)
+            throw ApiV3PetRules.conflict("brawl_invite_expired", "约战邀请已过期");
+        final JSONObject receipt = new JSONObject().put("inviteId", id)
+                .put("petId", invite.getString(outgoing ? "senderPetId" : "recipientPetId"));
+        final String status;
+        switch (decision) {
+            case "accept" -> {
+                final JSONObject senderUser = friendlyUser(sender), recipientUser = friendlyUser(recipient);
+                final JSONObject senderPet = friendlyPet(sender, invite.getString("senderPetId"));
+                final JSONObject recipientPet = friendlyPet(recipient, invite.getString("recipientPetId"));
+                final Equipped player = friendlyEquipment(sender, senderPet), opponent = friendlyEquipment(recipient, recipientPet);
+                final long seed = RANDOM.nextLong();
+                final JSONObject report = resolve(senderPet, player.setup(), opponent.setup(), now,
+                        ApiV3PetBattle.resolve(player.setup(), opponent.setup(), seed))
+                        .put("mode", "friendly").put("stage", 0).put("practice", false).put("reward", 0)
+                        .put("opponentPetId", recipientPet.getString("oId")).put("opponentSpecies", recipientPet.getString("speciesId"));
+                report.getJSONObject("player").put("gear", player.snapshot());
+                report.getJSONObject("opponent").put("gear", opponent.snapshot());
+                addFighterNames(report.getJSONObject("player"), senderPet, senderUser);
+                addFighterNames(report.getJSONObject("opponent"), recipientPet, recipientUser);
+                // 约战只写邀请与战报，不写随机配对或赛季积分。
+                final String matchId = store(sender, report, seed).getString("matchId");
+                invite.put("matchId", matchId);
+                receipt.put("matchId", matchId);
+                status = "accepted";
+            }
+            case "decline" -> status = "declined";
+            case "cancel" -> status = "cancelled";
+            default -> throw new IllegalArgumentException("无效约战操作");
+        }
+        invites.update(id, invite.put("status", status), "status", "matchId");
+        return receipt.put("status", status);
+    }
+
+    JSONObject invitations(final String owner, final String before, final long now) throws RepositoryException {
+        final String cursor = before == null ? "" : " AND oId<?";
+        final String table = "`" + invites.getName() + "`";
+        final String query = "SELECT * FROM (SELECT * FROM " + table
+                + " WHERE sender=?" + cursor + " ORDER BY oId DESC LIMIT 21) sent UNION ALL SELECT * FROM (SELECT * FROM "
+                + table + " WHERE recipient=?" + cursor + " ORDER BY oId DESC LIMIT 21) received ORDER BY oId DESC LIMIT 21";
+        final Object[] params = before == null ? new Object[]{owner, owner} : new Object[]{owner, before, owner, before};
+        final var rows = invites.select(query, params);
+        final JSONArray list = new JSONArray();
+        for (int i = 0; i < Math.min(20, rows.size()); i++) {
+            final JSONObject row = rows.get(i);
+            final boolean outgoing = owner.equals(row.getString("sender"));
+            final String other = outgoing ? "recipient" : "sender";
+            final String status = row.getString("status");
+            final long expiry = row.getLong("expiresAt");
+            final JSONObject entry = new JSONObject().put("id", row.getString("oId")).put("outgoing", outgoing)
+                    .put("petId", row.getString(other + "PetId")).put("petName", row.getString(other + "PetName"))
+                    .put("createdAt", row.getLong("createdAt")).put("expiresAt", expiry)
+                    .put("status", "pending".equals(status) && expiry <= now ? "expired" : status);
+            if ("accepted".equals(status)) entry.put("matchId", row.getString("matchId"));
+            list.put(entry);
+        }
+        return new JSONObject().put("list", list).put("serverNow", now)
+                .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : JSONObject.NULL);
+    }
+
+    private JSONObject friendlyUser(final String owner) throws RepositoryException {
+        final var rows = users.select("SELECT userName,userNickname FROM `" + users.getName()
+                + "` WHERE oId=? AND userStatus=0 FOR UPDATE", owner);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        return rows.getFirst();
+    }
+
+    private JSONObject friendlyPet(final String owner, final String requiredId) throws RepositoryException {
+        final var rows = pets.select("SELECT oId,speciesId,experience,name FROM `" + pets.getName()
+                + "` WHERE userId=? FOR UPDATE", owner);
+        if (rows.size() != 1 || (requiredId != null && !requiredId.equals(rows.getFirst().getString("oId"))))
+            throw ApiV3PetRules.conflict("brawl_invite_pet_changed", "约战所需的宠物已变更或尚未领养");
+        final JSONObject pet = rows.getFirst();
+        if (ApiV3PetRules.level(pet.getInt("experience")) < MIN_LEVEL)
+            throw ApiV3PetRules.conflict("brawl_invite_level", "双方宠物都需达到 Lv.10");
+        return pet;
+    }
+
+    private Equipped friendlyEquipment(final String owner, final JSONObject pet) throws RepositoryException {
+        final JSONObject profile = profiles.get(owner);
+        if (savedProfile(profile, pet)) return equipped(owner, profile);
+        return equipment(Weapon.SPOON, Skill.SPLASH, weaponLevel(account(owner), Weapon.SPOON), gear(owner));
     }
 
     private record MatchOpponent(String userId, JSONObject user, JSONObject pet, Equipped equipped) {}
@@ -255,8 +375,11 @@ public class ApiV3PetBrawl {
     }
 
     private static boolean currentProfile(final JSONObject profile, final JSONObject pet) {
-        return profile != null && profile.getInt("enabled") == 1
-                && (profile.getInt("version") == ApiV3PetBattle.LEGACY_VERSION || profile.getInt("version") == ApiV3PetBattle.VERSION)
+        return savedProfile(profile, pet) && profile.getInt("enabled") == 1;
+    }
+
+    private static boolean savedProfile(final JSONObject profile, final JSONObject pet) {
+        return profile != null && (profile.getInt("version") == ApiV3PetBattle.LEGACY_VERSION || profile.getInt("version") == ApiV3PetBattle.VERSION)
                 && profile.getString("petId").equals(pet.getString("oId"))
                 && ApiV3PetRules.level(pet.getInt("experience")) >= MIN_LEVEL
                 && Weapon.valueOf(profile.getString("weapon")).availableTo(pet.getString("speciesId"))
@@ -535,21 +658,29 @@ public class ApiV3PetBrawl {
         save(account);
     }
 
-    JSONObject history(final String owner, final String before, final boolean includePvp) throws RepositoryException {
+    JSONObject history(final String owner, final String before, final boolean includePvp,
+                       final boolean includeFriendly) throws RepositoryException {
         final String matchTable = "`" + matches.getName() + "`";
         final String pairTable = "`" + pairs.getName() + "`";
         final String cursor = before == null ? "" : " AND oId<?";
-        final String npcOnly = includePvp ? "" : " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " p WHERE p.oId=own.oId)";
+        final String inviteTable = "`" + invites.getName() + "`";
+        final String excludePvp = includePvp ? "" : " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " p WHERE p.oId=own.oId)";
+        final String excludeFriendly = includeFriendly ? "" : " AND NOT EXISTS(SELECT 1 FROM " + inviteTable + " i WHERE i.matchId=own.oId)";
+        final String friendlyCursor = before == null ? "" : " AND matchId<?";
         final String entries = "SELECT oId,0 AS mirrored FROM (SELECT oId FROM " + matchTable
-                + " own WHERE userId=?" + cursor + npcOnly + " ORDER BY oId DESC LIMIT 21) sent"
+                + " own WHERE userId=?" + cursor + excludePvp + excludeFriendly + " ORDER BY oId DESC LIMIT 21) sent"
                 + (includePvp ? " UNION ALL SELECT oId,1 AS mirrored FROM (SELECT oId FROM " + pairTable
-                    + " WHERE recipient=?" + cursor + " ORDER BY oId DESC LIMIT 21) received" : "");
+                    + " WHERE recipient=?" + cursor + " ORDER BY oId DESC LIMIT 21) received" : "")
+                + (includeFriendly ? " UNION ALL SELECT matchId AS oId,1 AS mirrored FROM (SELECT matchId FROM " + inviteTable
+                    + " WHERE recipient=? AND status='accepted' AND matchId<>''" + friendlyCursor + " ORDER BY matchId DESC LIMIT 21) invited" : "");
         final String query = "SELECT m.oId,m.snapshotJson,l.mirrored FROM (" + entries + ") l JOIN "
                 + matchTable + " m ON m.oId=l.oId ORDER BY l.oId DESC LIMIT 21";
-        final Object[] params;
-        if (includePvp) params = before == null ? new Object[]{owner, owner} : new Object[]{owner, before, owner, before};
-        else params = before == null ? new Object[]{owner} : new Object[]{owner, before};
-        final var rows = matches.select(query, params);
+        final var params = new ArrayList<String>();
+        for (int side = 0; side < 1 + (includePvp ? 1 : 0) + (includeFriendly ? 1 : 0); side++) {
+            params.add(owner);
+            if (before != null) params.add(before);
+        }
+        final var rows = matches.select(query, params.toArray());
         final JSONArray list = new JSONArray();
         for (int i = 0; i < Math.min(20, rows.size()); i++) {
             final JSONObject row = rows.get(i), report = report(row);
@@ -560,7 +691,7 @@ public class ApiV3PetBrawl {
                     .put("stage", report.getInt("stage")).put("practice", report.getBoolean("practice"))
                     .put("mode", mode)
                     .put("winner", mirrored && winner >= 0 ? 1 - winner : winner).put("reward", report.getInt("reward"));
-            if ("pvp".equals(mode)) {
+            if ("pvp".equals(mode) || "friendly".equals(mode)) {
                 // 被挑战方视角里的对手是原发起方，直接取战报快照，不查询当前昵称。
                 final JSONObject opponent = report.getJSONObject(mirrored ? "player" : "opponent");
                 summary.put("opponentPetId", report.opt(mirrored ? "petId" : "opponentPetId"));
@@ -577,7 +708,8 @@ public class ApiV3PetBrawl {
     JSONObject detail(final String owner, final String id) throws RepositoryException {
         final var rows = matches.select("SELECT m.snapshotJson,m.userId FROM `" + matches.getName() + "` m"
                 + " LEFT JOIN `" + pairs.getName() + "` p ON p.oId=m.oId"
-                + " WHERE m.oId=? AND (m.userId=? OR p.recipient=?)", id, owner, owner);
+                + " WHERE m.oId=? AND (m.userId=? OR p.recipient=? OR EXISTS(SELECT 1 FROM `" + invites.getName() + "` i"
+                + " WHERE i.matchId=m.oId AND i.recipient=? AND i.status='accepted'))", id, owner, owner, owner);
         if (rows.size() != 1) throw ApiV3Requests.notFound();
         final JSONObject row = rows.getFirst(), report = report(row);
         if (!owner.equals(row.getString("userId"))) mirror(report);

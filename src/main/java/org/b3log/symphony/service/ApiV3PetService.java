@@ -146,9 +146,10 @@ public class ApiV3PetService {
         return readTransaction(identity, () -> brawl.state(actor(identity), pet(actor(identity)), now()));
     }
 
-    public JSONObject brawlHistory(final JSONObject identity, final String before, final boolean includePvp) {
+    public JSONObject brawlHistory(final JSONObject identity, final String before, final boolean includePvp,
+                                   final boolean includeFriendly) {
         if (before != null && !before.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
-        return readTransaction(identity, () -> brawl.history(actor(identity), before, includePvp));
+        return readTransaction(identity, () -> brawl.history(actor(identity), before, includePvp, includeFriendly));
     }
 
     public JSONObject brawlDetail(final JSONObject identity, final String id) {
@@ -200,6 +201,38 @@ public class ApiV3PetService {
             final String owner = actor(identity);
             final JSONObject result = brawl.match(owner, brawlPet(owner, id), revision, this::now);
             return receipt("brawl-match", id, result.getLong("createdAt")).put("matchId", result.getString("matchId"));
+        });
+    }
+
+    public JSONObject brawlInvitations(final JSONObject identity, final String before) {
+        if (before != null && !before.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        return readTransaction(identity, () -> brawl.invitations(actor(identity), before, now()));
+    }
+
+    public JSONObject brawlInvite(final JSONObject identity, final JSONObject input, final String key) {
+        exact(input, Set.of("targetPetId"));
+        final String target = string(input, "targetPetId");
+        if (!target.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        return mutate(identity, "brawl-invite", key, input, () -> {
+            final long current = now();
+            final JSONObject result = brawl.invite(actor(identity), target, current);
+            return receipt("brawl-invite", result.getString("petId"), current).put("inviteId", result.getString("inviteId"));
+        });
+    }
+
+    public JSONObject brawlInviteDecision(final JSONObject identity, final String id, final JSONObject input, final String key) {
+        exact(input, Set.of("decision"));
+        final String decision = string(input, "decision");
+        if (id == null || !id.matches("[1-9][0-9]{0,18}") || !Set.of("accept", "decline", "cancel").contains(decision))
+            throw ApiV3WriteInputs.invalid();
+        final JSONObject command = new JSONObject().put("inviteId", id).put("decision", decision);
+        return mutate(identity, "brawl-invite-decision", key, command, () -> {
+            final long current = now();
+            final JSONObject result = brawl.decideInvite(actor(identity), id, decision, current);
+            final JSONObject receipt = receipt("brawl-invite-decision", result.getString("petId"), current)
+                    .put("inviteId", id).put("status", result.getString("status"));
+            if (result.has("matchId")) receipt.put("matchId", result.getString("matchId"));
+            return receipt;
         });
     }
 
