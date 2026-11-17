@@ -468,10 +468,19 @@ public class ApiV3PetBrawl {
         for (int i = 0; i < Math.min(20, rows.size()); i++) {
             final JSONObject row = rows.get(i), report = report(row);
             final int winner = report.getInt("winner");
-            list.put(new JSONObject().put("id", report.getString("id")).put("createdAt", report.getLong("createdAt"))
+            final boolean mirrored = row.getInt("mirrored") == 1;
+            final String mode = report.optString("mode", "npc");
+            final JSONObject summary = new JSONObject().put("id", report.getString("id")).put("createdAt", report.getLong("createdAt"))
                     .put("stage", report.getInt("stage")).put("practice", report.getBoolean("practice"))
-                    .put("mode", report.optString("mode", "npc"))
-                    .put("winner", row.getInt("mirrored") == 1 && winner >= 0 ? 1 - winner : winner).put("reward", report.getInt("reward")));
+                    .put("mode", mode)
+                    .put("winner", mirrored && winner >= 0 ? 1 - winner : winner).put("reward", report.getInt("reward"));
+            if ("pvp".equals(mode)) {
+                // 被挑战方视角里的对手是原发起方，直接取战报快照，不查询当前昵称。
+                final JSONObject opponent = report.getJSONObject(mirrored ? "player" : "opponent");
+                summary.put("opponentPetName", opponent.opt("petName"));
+                summary.put("opponentOwnerNickname", opponent.opt("ownerNickname"));
+            }
+            list.put(summary);
         }
         return new JSONObject().put("list", list)
                 .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : JSONObject.NULL);
