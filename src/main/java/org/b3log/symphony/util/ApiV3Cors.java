@@ -21,8 +21,13 @@ package org.b3log.symphony.util;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
 
+import java.net.URI;
+import java.util.Set;
+
 /** 业务响应与前置验证码拒绝共用同一跨域响应策略；不授予业务访问权限。 */
 public final class ApiV3Cors {
+    private static final Set<String> WEBSITE_AUTH = Set.of("/auth/login", "/auth/refresh", "/auth/logout", "/auth/session",
+            "/oauth/authorize", "/oauth/consent");
     private ApiV3Cors() {
     }
 
@@ -34,13 +39,37 @@ public final class ApiV3Cors {
                 || path.equals(contextPath + "/validateCaptcha"))) {
             return false;
         }
-        context.setHeader("Access-Control-Allow-Origin", origin);
+        context.setHeader("Vary", "Origin");
+        if (!validOrigin(origin)) return true;
+        final String route = path.startsWith(contextPath + "/api/v3/")
+                ? path.substring((contextPath + "/api/v3").length()) : "/validateCaptcha";
+        final boolean website = WebsiteLoginCookies.trustedOrigin(context, false);
+        if (website) {
+            context.setHeader("Access-Control-Allow-Origin", origin);
+            context.setHeader("Access-Control-Allow-Credentials", "true");
+        } else if (!WEBSITE_AUTH.contains(route)) {
+            // OAuth 实际响应交给客户端登记规则决定；第三方业务不接收站点 Cookie 身份。
+            if ((!route.equals("/oauth/token") && !route.equals("/oauth/revoke")) || "OPTIONS".equals(context.method()))
+                context.setHeader("Access-Control-Allow-Origin", "*");
+        } else {
+            return true;
+        }
         context.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
         context.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, X-Request-Id, If-None-Match, If-Match, Idempotency-Key");
-        context.setHeader("Access-Control-Allow-Credentials", "true");
         context.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
         context.setHeader("Access-Control-Max-Age", "86400");
-        context.setHeader("Vary", "Origin");
         return true;
+    }
+
+    private static boolean validOrigin(final String origin) {
+        try {
+            final URI uri = URI.create(origin);
+            return ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost() != null && uri.getRawUserInfo() == null
+                    && (uri.getRawPath() == null || uri.getRawPath().isEmpty())
+                    && uri.getRawQuery() == null && uri.getRawFragment() == null;
+        } catch (final IllegalArgumentException invalid) {
+            return false;
+        }
     }
 }

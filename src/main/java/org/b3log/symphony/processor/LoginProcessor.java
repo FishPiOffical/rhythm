@@ -713,15 +713,18 @@ public class LoginProcessor {
         final var credentialProof = userFound ? AccountCredentialVersions.current(userId) : null;
         final boolean passwordMatches = credentialProof != null && credentialProof.password().equals(password);
         if (passwordMatches) {
+            final boolean mfaProvided = StringUtils.isNotBlank(mfaCode);
             final long code;
             try {
-                code = StringUtils.isBlank(mfaCode) ? 0L : Long.parseLong(mfaCode);
+                code = mfaProvided ? Long.parseLong(mfaCode) : 0L;
             } catch (final NumberFormatException e) {
-                return LoginResult.failure("invalid_mfa", "两步验证码错误");
+                return recordLoginFailure(userId, ip, "invalid_mfa", "两步验证码错误");
             }
             if (!MFAProcessor.verifyLogin(userId, code)) {
-                return LoginResult.failure(StringUtils.isBlank(mfaCode) ? "mfa_required" : "invalid_mfa",
-                        StringUtils.isBlank(mfaCode) ? "需要两步验证码" : "两步验证码错误");
+                if (!mfaProvided) {
+                    return LoginResult.failure("mfa_required", "需要两步验证码");
+                }
+                return recordLoginFailure(userId, ip, "invalid_mfa", "两步验证码错误");
             }
             AccountCredentialVersions.remember(credentialProof);
             if (AccountCredentialVersions.issuance(userId, null) == null) {
@@ -733,6 +736,12 @@ public class LoginProcessor {
             return LoginResult.success(user);
         }
 
+        return recordLoginFailure(userId, ip, "invalid_credentials", langPropsService.get("wrongPwdLabel"));
+    }
+
+    /** 复用密码失败的次数和 IP 冷却，避免新增一套 MFA 限流状态。 */
+    private static LoginResult recordLoginFailure(final String userId, final String ip, final String code,
+                                                  final String message) {
         JSONObject wrong = WRONG_PWD_TRIES.get(userId);
         if (null == wrong) wrong = new JSONObject();
         final int newWrongCount = wrong.optInt(Common.WRON_COUNT) + 1;
@@ -742,7 +751,7 @@ public class LoginProcessor {
             LOGIN_IP_LOCK.put(ip, System.currentTimeMillis() + 5 * 60 * 1000);
             return LoginResult.failure("too_many_attempts", "尝试次数过多，请稍后再试");
         }
-        return LoginResult.failure("invalid_credentials", langPropsService.get("wrongPwdLabel"));
+        return LoginResult.failure(code, message);
     }
 
     public static final class LoginResult {

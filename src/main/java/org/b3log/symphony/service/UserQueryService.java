@@ -749,10 +749,14 @@ public class UserQueryService {
                     .setFilter(new PropertyFilter(Keys.OBJECT_ID, FilterOperator.EQUAL, userId))
                     .select("secret2fa");
             JSONObject result = userRepository.get(query);
-            final List<JSONObject> results = (List<JSONObject>) result.opt(Keys.RESULTS);
-            return results.get(0).optString("secret2fa");
+            final Object rawResults = result.opt(Keys.RESULTS);
+            if (!(rawResults instanceof List<?> results) || results.size() != 1
+                    || !(results.getFirst() instanceof JSONObject user)) {
+                throw new IllegalStateException("Account configuration unavailable");
+            }
+            return user.optString("secret2fa");
         } catch (final RepositoryException e) {
-            return "";
+            throw new IllegalStateException("Account configuration unavailable", e);
         }
     }
 

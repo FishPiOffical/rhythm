@@ -38,6 +38,7 @@ import org.json.JSONObject;
 
 @Repository
 public class ApiV3TokenRepository extends AbstractRepository {
+    public static final long ACCESS_USAGE_INTERVAL_MILLIS = 60_000L;
     public ApiV3TokenRepository() {
         super(ApiV3Token.API_V3_TOKEN);
     }
@@ -109,13 +110,15 @@ public class ApiV3TokenRepository extends AbstractRepository {
         if (!hasTransactionBegun())
             throw new IllegalStateException("token transaction required");
         try (var statement = currentConnection().prepareStatement("UPDATE `" + getName()
-                + "` SET lastUsedAt=?,updatedAt=? WHERE oId=? AND tokenType=? AND state=? AND expiresAt>?")) {
+                + "` SET lastUsedAt=?,updatedAt=? WHERE oId=? AND tokenType=? AND state=? AND expiresAt>?"
+                + " AND (lastUsedAt=0 OR lastUsedAt<=?)")) {
             statement.setLong(1, now);
             statement.setLong(2, now);
             statement.setString(3, id);
             statement.setString(4, ApiV3Token.TYPE_ACCESS);
             statement.setInt(5, ApiV3Token.STATE_ACTIVE);
             statement.setLong(6, now);
+            statement.setLong(7, now - ACCESS_USAGE_INTERVAL_MILLIS);
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RepositoryException(e);

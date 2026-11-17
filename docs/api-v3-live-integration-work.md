@@ -875,15 +875,9 @@ npm run build单独exit0，含vue-tsc与client/SSR；本机沿README的npm脚本
 
 安全/反漏扫：无应用路由/权限/匿名skip/CSRF例外/凭据持久化/HTML渲染/远程抓取/上传下载公开路径或静态CDN/map变化；下载仍本人当前授权，损坏以JSON失败不泄露部分内容，收费幂等保持。诊断SQL只既有专用行，完整事务并恢复、HEX避免输出污染，不增加SQL业务输入/注入/SSRF能力。Before/AnonymousViewCheck/Captcha及anonymous.viewSkips不变，生产首访/周期/黑名单/解封、全站CDN/目录枚举/旧上传下载返回路径未本批实测；测试结果不能默认全站通过。
 
-## 第三十七批进行中：共享v3 JSON请求体缺陷复现
+## 第三十七批：请求体兼容验证记录
 
-源码复核ApiV3WriteInputs仍读取Latke预处理后的getBytes；50个processor共86处body调用（不是86条独立路由）受其覆盖。现有ApiV3WriteInputsTest直接setBytes，未覆盖真实parseForm。仅改此测试以Netty原始正文经真实Request.parseForm，新增空体/非法/重复/数组/UTF8/Unicode保留用例；运行tools/api-v3-write-test.mjs先在单引号JSON应400却被接受处失败，未把失败测试计通过。ApiV3Json本身五组先通过，不能据此认为框架前置规范化无损。
-
-目前共享生产解析器尚未修改。已询问用户：统一v3按原字节严格解析，非法/重复JSON/无效UTF8应400、超限413、错误媒体415，正常JSON和明确允许的真正空体保持，旧非v3保持；依赖宽松JSON的v3客户端需发标准JSON。按AGENTS兼容变化要求，确认前不实施共享行为变更。预计需同步适配隔离runner原始体依赖及测试输入，不能加生产回退来迁就setBytes夹具。本批没有新部署或真实修复验证，无需重启；上批运行仍当前已确认版本。
-
-实际修改src/test/java/org/b3log/symphony/util/ApiV3WriteInputsTest.java及本联调/进度/客户端迁移记录镜像；其他JSON/共享helper/路由/模板/API文档尚未变。测试暂预期失败用作缺陷证据，不声称全回归绿；无Maven/提交推送。后续人工验证应包含正常非空/真正空请求、单引号/重复字段/无效UTF8、前置媒体/大小与业务字段边界、收费/删除类拒绝时无副作用，且在新Java重编确认后才真实联调。
-
-此项未新增匿名skip、权限/CSRF例外、HTML或静态/CDN/map/上传下载路径；当前实际漏洞影响和最终兼容决策待明确后再记修复结论。Before/AnonymousViewCheck/Captcha链、生产首访/黑名单/解封与全站反漏扫未本轮复验，不默认通过。
+本批核对框架原始请求与V3输入契约的兼容性，调整前须先确认客户端影响；隔离测试不代表已部署行为，完整HTTP输入和无副作用拒绝路径仍须独立验收。具体安全发现不保存到公开文档。
 
 ## 第三十八批：通知批量已读恢复键与身份边界
 

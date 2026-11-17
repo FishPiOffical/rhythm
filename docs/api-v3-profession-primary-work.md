@@ -74,7 +74,7 @@ userProgressVersion必须是非负整数且未到Long.MAX_VALUE，否则503且�
 2. 相同key/正文重复→相同回执，选择版本不再增长；另一个key改选B→重试A旧key，回执仍A但GET与旧页面仍B。相同key换body409且不写入；新key选择当前B按旧规则增加版本一次。目标后来退役/删除后旧key仍能回放原成功，不应改写当前选择。
 3. A/B分别Token请求，query userId/Cookie/apiKey不能代替Bearer；单独Cookie/apiKey401，缺settings.write403，body指定owner/额外隐私/状态、numeric/null/空白/20位ID/缺key等拒绝；DRAFT/RETIRED/不存在目标404。停用后首次/旧key重放都拒绝。
 4. 对有CUSTOM/SELF_ONLY/FULLY_HIDDEN状态的测试账号改选，完整对照所有隐私模块和版本/createdAt保留，只有选择相关列及userProgressVersion/updatedAt变化；无隐私测试账号只创建标准默认记录。
-5. MySQL测试环境并发选择/职业增长首次创建/增长计数/退休，核对无部分回执、版本不丢及无重复隐私；旧privacy/skip整行覆盖风险须单独复现/评估，不能要求本批未改旧入口承诺并发安全。
+5. MySQL测试环境并发选择/职业增长首次创建/增长计数/退休，核对无部分回执、版本不丢及无重复隐私；旧入口的并发与兼容须独立验收，本批不扩大验证结论。
 6. 对一次性测试环境注入业务SQL、回执、提交前和提交后确认丢失：失败不返回成功；前者无部分写入，确认丢失后按原key重试恢复。校验保存点捕获场景不提交部分选择，真实连接/锁/死锁/资源释放和两端体验需实测。
 7. 继续全局匿名盾、黑名单/解封、匿名跳过配置与静态/CDN/目录/上传下载反漏扫，不因新入口要求Bearer就跳过全站发布验证。
 

@@ -34,6 +34,10 @@ public final class ApiV3ChatStream {
     }
 
     public interface Sink {
+        default void prepare(List<JSONObject> changes) throws Exception { }
+
+        default void finished() { }
+
         void changed(String kind, String messageId, long revision);
 
         void syncRequired();
@@ -78,18 +82,29 @@ public final class ApiV3ChatStream {
             }
             if (rows.size() > 200)
                 throw new IllegalStateException("invalid chat event batch");
+            long expected = cursor;
             for (final JSONObject row : rows) {
                 final long revision = row.getLong("revision");
                 final String id = row.getString("messageId"), kind = row.getString("kind");
-                if (revision <= cursor || revision > head || !ApiV3ChatEvent.validChange(kind, id))
+                if (revision <= expected || revision > head || !ApiV3ChatEvent.validChange(kind, id))
                     throw new IllegalStateException("invalid chat event");
-                if (revision != cursor + 1) {
+                if (revision != expected + 1) {
                     sink.syncRequired();
                     cursor = head;
                     return;
                 }
-                sink.changed(kind, id, revision);
-                cursor = revision;
+                expected = revision;
+            }
+            try {
+                sink.prepare(List.copyOf(rows));
+                for (final JSONObject row : rows) {
+                    final long revision = row.getLong("revision");
+                    final String id = row.getString("messageId"), kind = row.getString("kind");
+                    sink.changed(kind, id, revision);
+                    cursor = revision;
+                }
+            } finally {
+                sink.finished();
             }
         }
     }

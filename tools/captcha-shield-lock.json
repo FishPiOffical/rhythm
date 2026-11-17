@@ -121,7 +121,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
-      "sha256": "e812a6e1bf5d5d4b62b4ed7264f321d7b7683076effeeb70fdc85b3804fe320c"
+      "sha256": "d853cc0d2176a8b08b0f6f579c605ad24b4588431d9d1063bc77538517a02697"
     },
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",

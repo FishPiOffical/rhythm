@@ -19,6 +19,8 @@
 package org.b3log.symphony.service;
 
 import org.apache.commons.lang.StringUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
@@ -43,6 +45,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.IntStream;
 
 /**
  * 签发、验证、轮换及撤销 API v3 凭据。
@@ -52,6 +56,10 @@ public class ApiV3TokenMgmtService {
     private static final Logger LOGGER = LogManager.getLogger(ApiV3TokenMgmtService.class);
     private static final long ACCESS_TTL = TimeUnit.MINUTES.toMillis(15);
     private static final long REFRESH_TTL = TimeUnit.DAYS.toMillis(30);
+    private final Cache<String, Long> accessActivity = Caffeine.newBuilder()
+            .maximumSize(100_000).expireAfterWrite(1, TimeUnit.MINUTES).build();
+    private final ReentrantLock[] activityLocks = IntStream.range(0, 64).mapToObj(ignored -> new ReentrantLock())
+            .toArray(ReentrantLock[]::new);
     public static final String WEBSITE_CLIENT = "website_v3";
     public static final String DEFAULT_SCOPES = "profile.read content.read activity.read content.write comments.write reactions.write follows.write notifications.read notifications.write activity.write settings.write uploads.write messages.read messages.write";
 
@@ -413,14 +421,31 @@ public class ApiV3TokenMgmtService {
     }
 
     private void markAccessUsed(final JSONObject token) {
-        final Transaction transaction = beginRoot();
+        final String id = token.getString(Keys.OBJECT_ID);
+        final long time = now();
+        if (!activityDue(token.optLong(ApiV3Token.LAST_USED_AT), time)) return;
+        final ReentrantLock lock = activityLocks[Math.floorMod(id.hashCode(), activityLocks.length)];
+        // 只合并活动记录，不缓存身份或等待其他请求；下次鉴权仍读取当前状态。
+        if (!lock.tryLock()) return;
         try {
-            apiV3TokenRepository.markAccessUsedInCurrentTransaction(token.getString(Keys.OBJECT_ID), now());
-            transaction.commit();
-        } catch (final Exception e) {
-            rollback(transaction);
-            LOGGER.warn("Updates API v3 access token activity failed");
+            final Long recorded = accessActivity.getIfPresent(id);
+            if (recorded != null && !activityDue(recorded, time)) return;
+            final Transaction transaction = beginRoot();
+            try {
+                apiV3TokenRepository.markAccessUsedInCurrentTransaction(id, time);
+                transaction.commit();
+                accessActivity.put(id, time);
+            } catch (final Exception e) {
+                rollback(transaction);
+                LOGGER.warn("Updates API v3 access token activity failed", e);
+            }
+        } finally {
+            lock.unlock();
         }
+    }
+
+    private static boolean activityDue(final long recorded, final long time) {
+        return recorded == 0 || time - recorded >= ApiV3TokenRepository.ACCESS_USAGE_INTERVAL_MILLIS;
     }
 
     private void rollback(final Transaction transaction) {

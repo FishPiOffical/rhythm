@@ -27,6 +27,7 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.symphony.processor.middleware.LoginCheckMidware;
 import org.b3log.symphony.service.UserMgmtService;
 import org.b3log.symphony.service.UserQueryService;
@@ -162,10 +163,16 @@ public class MFAProcessor {
         context.renderJSON(StatusCodes.ERR).renderMsg("未绑定2FA");
     }
 
-    public static boolean verifyLogin(String userId, long code) {
+    public static boolean verifyLogin(String userId, long code) throws ServiceException {
         final BeanManager beanManager = BeanManager.getInstance();
         final UserQueryService userQueryService = beanManager.getReference(UserQueryService.class);
-        String secret = userQueryService.getSecret2fa(userId);
+        final String secret;
+        try {
+            secret = userQueryService.getSecret2fa(userId);
+        } catch (final IllegalStateException e) {
+            LOGGER.error("Reads account configuration failed", e);
+            throw new ServiceException(e);
+        }
         if (secret.isEmpty()) {
             return true;
         }
