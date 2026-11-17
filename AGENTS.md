@@ -21,6 +21,7 @@
 - 当前开发环境为 `http://localhost:8080`，生产为 `https://fishpi.cn`。Java 固定25；未经用户明确要求或同意，不主动执行 Maven 编译。Java/FTL 联调前明确提醒用户通过 IDEA 重新编译或重启并等待确认；JS/SCSS 构建后强刷。环境、`target/classes` 与本地 Latke 陷阱见 [框架专题](docs/agent-guides/environment-framework.md)。
 - 前端只改 `.scss` 与非 `min.js` 源码，执行 `yarn run build` 生成产物；同步评估 `skins/classic/pc` 与 `skins/classic/mobile`，不得只修一端。页面卡片保持同级，不嵌套卡片容器。
 - 数据库写入必须完整事务提交；新增 Repository 同步 SQL 和 `src/main/resources/repository.json`，模型/仓库名不加 `symphony_` 前缀。框架严格提交、锁序和缓存边界按相关专题执行。
+- 输出或整合 SQL 前必须先核对目标库默认字符集与排序规则；当前生产默认为 `utf8mb4` / `utf8mb4_0900_ai_ci`，新增表和字段不得擅自使用其他字符集或排序规则，已有库的实际配置不确定时先核实再生成脚本。
 - 新路由默认显式要求登录，匿名入口必须接入验证码盾；旧接口的 Sessions/apiKey 与 V3 Bearer 身份边界不可混用。公开响应、模板和事件使用白名单/脱敏；接口变更须评估鉴权、越权、CSRF、XSS、注入、SSRF、批量滥用及敏感信息泄露，详见 [访问控制](docs/agent-guides/security-access.md)。
 - 新增、修改、删除接口须同步 `API.md` 和 `UPDATE_LOG.md`，影响客户端的契约变更先取得同意；文档格式、鉴权文案、公开边界及网站同步要求见 [接口文档专题](docs/agent-guides/api-contracts.md)。
 
