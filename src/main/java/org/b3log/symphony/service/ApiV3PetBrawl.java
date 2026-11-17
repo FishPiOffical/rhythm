@@ -35,9 +35,9 @@ public class ApiV3PetBrawl {
     static final int MIN_LEVEL = 10;
     private static final int[] REWARDS = {5, 5, 10};
     private static final Setup[] OPPONENTS = {
-            new Setup(Weapon.SPOON, Skill.SPLASH, 0),
-            new Setup(Weapon.GUARD, Skill.CURL, 1),
-            new Setup(Weapon.FAN, Skill.BREATHE, 2)
+            Setup.npc(Weapon.SPOON, Skill.SPLASH, 0),
+            Setup.npc(Weapon.GUARD, Skill.CURL, 1),
+            Setup.npc(Weapon.FAN, Skill.BREATHE, 2)
     };
     static final int STAGES = OPPONENTS.length;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -57,6 +57,8 @@ public class ApiV3PetBrawl {
     private static final int ACTIVE_LIMIT = 3;
     private static final int PASSIVE_LIMIT = 6;
     private static final int MAX_LEVEL_GAP = 5;
+    private static final int MAX_MATCH_LEVEL = 30;
+    private static final String LEVELS_VERSION = "_version";
     private static final int CANDIDATES = 32;
 
     JSONObject state(final String owner, final JSONObject pet, final long now) throws RepositoryException {
@@ -64,6 +66,7 @@ public class ApiV3PetBrawl {
         final String today = ApiV3PetRules.today(now);
         final String species = pet == null ? null : pet.getString("speciesId");
         final JSONObject levels = new JSONObject(account.getString("levelsJson"));
+        levels.remove(LEVELS_VERSION);
         final JSONArray weapons = new JSONArray();
         final JSONArray skills = new JSONArray();
         for (Weapon weapon : Weapon.values()) {
@@ -160,21 +163,21 @@ public class ApiV3PetBrawl {
             throw ApiV3PetRules.conflict("brawl_pvp_limit", "今天的主动挑战次数已用完");
         final Equipped player = equipped(owner, profile);
         final String profileColumns = "SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?";
-        final int level = ApiV3PetRules.level(pet.getInt("experience"));
+        final int level = matchLevel(pet);
         final String pairTable = "`" + pairs.getName() + "`";
         final int floor = (Math.max(MIN_LEVEL, level - MAX_LEVEL_GAP) - 1) * ApiV3PetRules.EXPERIENCE_PER_LEVEL;
-        final int ceiling = level + MAX_LEVEL_GAP >= ApiV3PetRules.MAX_LEVEL ? Integer.MAX_VALUE
+        final int ceiling = level + MAX_LEVEL_GAP >= MAX_MATCH_LEVEL ? Integer.MAX_VALUE
                 : (level + MAX_LEVEL_GAP) * ApiV3PetRules.EXPERIENCE_PER_LEVEL - 1;
         final var candidates = profiles.select("SELECT r.oId FROM `" + profiles.getName() + "` r"
                         + " JOIN `" + pets.getName() + "` p ON p.oId=r.petId AND p.userId=r.oId"
                         + " JOIN `" + users.getName() + "` u ON u.oId=r.oId AND u.userStatus=0"
-                        + " WHERE r.enabled=1 AND r.version=? AND r.oId<>? AND p.experience BETWEEN ? AND ?"
+                        + " WHERE r.enabled=1 AND r.version IN (?,?) AND r.oId<>? AND p.experience BETWEEN ? AND ?"
                         + " AND NOT EXISTS(SELECT 1 FROM " + pairTable + " d WHERE d.day=?"
                         + " AND d.pairLow=LEAST(?,r.oId) AND d.pairHigh=GREATEST(?,r.oId))"
                         + " AND (SELECT COUNT(*) FROM " + pairTable + " d WHERE d.recipient=r.oId AND d.day=?)<?"
                         + " ORDER BY ABS(LEAST(?, 1+FLOOR(p.experience/?))-?),r.oId LIMIT " + CANDIDATES,
-                ApiV3PetBattle.VERSION, owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT,
-                ApiV3PetRules.MAX_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL, level);
+                ApiV3PetBattle.LEGACY_VERSION, ApiV3PetBattle.VERSION, owner, floor, ceiling, day, owner, owner, day, PASSIVE_LIMIT,
+                MAX_MATCH_LEVEL, ApiV3PetRules.EXPERIENCE_PER_LEVEL, level);
         for (JSONObject candidate : candidates) {
             final String opponent = candidate.getString("oId");
             // 本人授权先持有第一方客户端锁。同类写入共享该顺序，遇到外部事务占用的对手账号直接跳过。
@@ -184,7 +187,7 @@ public class ApiV3PetBrawl {
             final var current = pets.select("SELECT oId,speciesId,experience,name FROM `" + pets.getName() + "` WHERE userId=? FOR UPDATE", opponent);
             if (current.size() != 1 || !currentProfile(enrolled, current.getFirst())) continue;
             final JSONObject targetPet = current.getFirst();
-            if (Math.abs(ApiV3PetRules.level(targetPet.getInt("experience")) - level) > MAX_LEVEL_GAP) continue;
+            if (Math.abs(matchLevel(targetPet) - level) > MAX_LEVEL_GAP) continue;
             final Equipped target = equipped(opponent, enrolled);
             final long seed = RANDOM.nextLong();
             final JSONObject report = resolve(pet, player.setup(), target.setup(), now, ApiV3PetBattle.resolve(player.setup(), target.setup(), seed))
@@ -207,6 +210,10 @@ public class ApiV3PetBrawl {
         throw ApiV3PetRules.conflict("brawl_no_opponent", "暂时没有符合条件的对手，可以稍后再匹配");
     }
 
+    private static int matchLevel(final JSONObject pet) {
+        return Math.min(MAX_MATCH_LEVEL, ApiV3PetRules.level(pet.getInt("experience")));
+    }
+
     private static void addFighterNames(final JSONObject fighter, final JSONObject pet, final JSONObject owner) {
         final String nickname = owner.optString("userNickname");
         fighter.put("petName", pet.getString("name"));
@@ -220,7 +227,8 @@ public class ApiV3PetBrawl {
     }
 
     private static boolean currentProfile(final JSONObject profile, final JSONObject pet) {
-        return profile != null && profile.getInt("enabled") == 1 && profile.getInt("version") == ApiV3PetBattle.VERSION
+        return profile != null && profile.getInt("enabled") == 1
+                && (profile.getInt("version") == ApiV3PetBattle.LEGACY_VERSION || profile.getInt("version") == ApiV3PetBattle.VERSION)
                 && profile.getString("petId").equals(pet.getString("oId"))
                 && ApiV3PetRules.level(pet.getInt("experience")) >= MIN_LEVEL
                 && Weapon.valueOf(profile.getString("weapon")).availableTo(pet.getString("speciesId"))
@@ -329,8 +337,8 @@ public class ApiV3PetBrawl {
 
     private static int checkGearUpgrade(final JSONObject account, final JSONObject gear, final Weapon weapon,
                                         final Product product, final int expected) {
-        if (product == Product.ARTIFACT && weaponLevel(account, weapon) < 5)
-            throw ApiV3PetRules.conflict("brawl_artifact_locked", "武器强化到 +5 后才能进阶");
+        if (product == Product.ARTIFACT && weaponLevel(account, weapon) < ApiV3PetBattle.MAX_UPGRADE)
+            throw ApiV3PetRules.conflict("brawl_artifact_locked", "武器强化到 +20 后才能进阶");
         final int level = product.weaponBound() ? weaponGear(gear, weapon).getInt(product == Product.ARTIFACT ? "artifact" : "slot")
                 : gear.getJSONObject("ranks").optInt(product.name());
         if (level != expected || expected >= product.maxLevel())
@@ -410,7 +418,8 @@ public class ApiV3PetBrawl {
     }
 
     private static JSONObject projectOrder(final JSONObject quote, final long now) {
-        if (!"completed".equals(quote.getString("status")) && now >= quote.getLong("expiresAt"))
+        if (!"completed".equals(quote.getString("status"))
+                && (now >= quote.getLong("expiresAt") || quote.getInt("version") != ApiV3PetBattle.VERSION))
             quote.put("status", "expired");
         return quote;
     }
@@ -562,8 +571,19 @@ public class ApiV3PetBrawl {
 
     private JSONObject account(final String owner) throws RepositoryException {
         final JSONObject row = accounts.get(owner);
-        if (row != null) return row;
-        final JSONObject levels = new JSONObject();
+        if (row != null) {
+            final JSONObject levels = new JSONObject(row.getString("levelsJson"));
+            if (!levels.has(LEVELS_VERSION)) {
+                // 旧账号投影等价档位；下次强化或闯关落库时，同事务写入版本标记，避免重复换算。
+                for (Weapon weapon : Weapon.values()) {
+                    if (levels.has(weapon.name()))
+                        levels.put(weapon.name(), Math.multiplyExact(levels.getInt(weapon.name()), ApiV3PetBattle.LEVELS_PER_MILESTONE));
+                }
+                row.put("levelsJson", levels.put(LEVELS_VERSION, ApiV3PetBattle.VERSION).toString());
+            }
+            return row;
+        }
+        final JSONObject levels = new JSONObject().put(LEVELS_VERSION, ApiV3PetBattle.VERSION);
         for (Weapon weapon : Weapon.values()) levels.put(weapon.name(), 0);
         return new JSONObject().put("oId", owner).put("materials", 0).put("rewardCount", 0)
                 .put("rewardDate", "").put("unlocked", 1).put("levelsJson", levels.toString());

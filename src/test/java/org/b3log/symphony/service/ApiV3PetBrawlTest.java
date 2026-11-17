@@ -74,7 +74,7 @@ public final class ApiV3PetBrawlTest {
         try (var f = new Fixture()) {
             final String pet = f.adopt();
             final JSONObject command = new JSONObject().put("petId", pet).put("weapon", "SPOON")
-                    .put("skill", "SPLASH").put("stage", 1).put("practice", false).put("version", 1);
+                    .put("skill", "SPLASH").put("stage", 1).put("practice", false).put("version", ApiV3PetBattle.VERSION);
             Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 0);
             Assert.assertEquals(f.count("pet_brawl_account"), 0);
             sql(f.db, "UPDATE user_pet SET experience=899 WHERE oId=?", pet);
@@ -94,11 +94,11 @@ public final class ApiV3PetBrawlTest {
             }
             Assert.assertEquals(f.count("pet_brawl_match"), 5);
             Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 20);
-            final JSONObject upgrade = new JSONObject().put("petId", pet).put("weapon", "SPOON").put("level", 0).put("version", 1);
+            final JSONObject upgrade = new JSONObject().put("petId", pet).put("weapon", "SPOON").put("level", 0).put("version", ApiV3PetBattle.VERSION);
             Assert.assertEquals(f.pets.brawlUpgrade(identity(), upgrade, "upgrade").getInt("level"), 1);
             Assert.assertEquals(f.pets.brawlUpgrade(identity(), upgrade, "upgrade").getInt("level"), 1);
             error(409, () -> f.pets.brawlUpgrade(identity(), upgrade, "stale-upgrade"));
-            Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 0);
+            Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 17);
             f.clock += 24 * ApiV3PetRules.HOUR;
             Assert.assertEquals(f.pets.brawlFight(identity(), command, "story-0").getString("matchId"), first);
             Assert.assertEquals(f.pets.brawlState(identity()).getInt("rewardCount"), 0);
@@ -109,11 +109,11 @@ public final class ApiV3PetBrawlTest {
             Assert.assertEquals(f.count("pet_brawl_match"), 6);
             final JSONObject report = f.pets.brawlDetail(identity(), next);
             Assert.assertEquals(report.getInt("reward"), 5);
-            Assert.assertEquals(report.getJSONObject("player").getInt("attack"), 905);
+            Assert.assertEquals(report.getJSONObject("player").getInt("attack"), 902);
             Assert.assertFalse(report.has("seed"));
             ApiV3PetProcessorRoutes.verify(f, next);
             final JSONObject enrollment = new JSONObject().put("petId", pet).put("weapon", "SPOON")
-                    .put("skill", "SPLASH").put("enabled", true).put("revision", "").put("version", 1);
+                    .put("skill", "SPLASH").put("enabled", true).put("revision", "").put("version", ApiV3PetBattle.VERSION);
             f.pets.brawlEnroll(identity(), enrollment, "enroll");
             f.pets.brawlEnroll(identity(), enrollment, "enroll");
             Assert.assertTrue(f.pets.brawlState(identity()).getJSONObject("pvp").getBoolean("enabled"));
@@ -122,10 +122,25 @@ public final class ApiV3PetBrawlTest {
             final String replacement = f.pets.readopt(identity(), ApiV3PetProgressionTest.replacement(pet), "brawl-readopt").getString("petId");
             Assert.assertNotEquals(replacement, pet);
             Assert.assertEquals(f.pets.brawlState(identity()).getJSONObject("levels").getInt("SPOON"), 1);
-            Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 5);
+            Assert.assertEquals(f.pets.brawlState(identity()).getInt("materials"), 22);
             Assert.assertFalse(f.pets.brawlState(identity()).getJSONObject("pvp").getBoolean("enabled"));
             Assert.assertEquals(f.pets.brawlDetail(identity(), next).getString("petId"), pet);
             error(404, () -> f.pets.brawlFight(identity(), command, "old-pet"));
+            sql(f.db, "UPDATE user_pet SET experience=3900 WHERE oId=?", replacement);
+            sql(f.db, "UPDATE pet_brawl_account SET levelsJson=?", new JSONObject().put("SPOON", 5).put("FAN", 3).toString());
+            final JSONObject migrated = f.pets.brawlState(identity());
+            Assert.assertEquals(migrated.getInt("level"), 40);
+            Assert.assertEquals(migrated.getJSONObject("levels").getInt("SPOON"), 20);
+            Assert.assertEquals(migrated.getJSONObject("levels").getInt("FAN"), 12);
+            Assert.assertFalse(migrated.getJSONObject("levels").has("_version"));
+            final JSONObject legacyWrite = new JSONObject(upgrade.toString()).put("petId", replacement).put("version", ApiV3PetBattle.LEGACY_VERSION);
+            error(409, () -> f.pets.brawlUpgrade(identity(), legacyWrite, "stale-version"));
+            final JSONObject upgradeFan = new JSONObject(upgrade.toString()).put("petId", replacement).put("weapon", "FAN").put("level", 12);
+            sql(f.db, "UPDATE pet_brawl_account SET materials=28");
+            Assert.assertEquals(f.pets.brawlUpgrade(identity(), upgradeFan, "migrate-and-upgrade").getInt("level"), 13);
+            final JSONObject afterMigration = f.pets.brawlState(identity()).getJSONObject("levels");
+            Assert.assertEquals(afterMigration.getInt("FAN"), 13);
+            Assert.assertEquals(afterMigration.getInt("SPOON"), 20);
             Assert.assertEquals(f.coins(), 0);
         }
         final var base = new ApiV3PetBattle.Setup(ApiV3PetBattle.Weapon.SPOON, ApiV3PetBattle.Skill.SPLASH, 0);

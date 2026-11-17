@@ -18190,13 +18190,14 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 
 通用武器为 `SPOON/GUARD/FAN`，通用招式为 `SPLASH/CURL/BREATHE`。进度接口的 `equipmentCatalog:{weapons,skills}` 按当前宠物物种列出通用和专属选项，条目包含 `id,name,effect,exclusive`。写入使用实际选项 ID，武器或招式与当前宠物不兼容时返回 409 `brawl_equipment_unavailable`。等级和配装可能包含新增武器键。战报出战配置也可能包含新增武器、招式 ID。
 
-陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。材料强化到 +5 为止，积分与材料混合强化见强化订单。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
+陪练使用统一基础属性。闯关每日前三场依次发 5、5、10 材料，以北京时间结算。乱斗版本 2 的武器上限为 +20，`costs` 有 20 档、`growth` 有 21 项；旧武器等级按四倍转换，已有神器保留。战报继续返回各场原始版本、等级和属性。战报、奖励和回执同事务，重放同键不创建新对局。客户端应在确认写入后重新读取进度。
 
 #### 宠物乱斗实装 PvP
 
 - `GET /api/v3/me/pet/brawl` 新增 `pvp:{enabled,revision,weapon,skill,remaining,received,receivedLimit}`。首次报名版本为 `""`。未报名时 weapon、skill 为 null。每日主动 3 场、被挑战 6 场，以北京时间计算。
 - `PUT /api/v3/me/pet/brawl/profile` 接收 `{petId,weapon,skill,enabled,revision,version}`，保存或撤回当前报名。回执包含 `operation:brawl-enroll,petId,committedAt`，成功后重读当前版本。
 - `POST /api/v3/me/pet/brawl/pvp` 接收 `{petId,revision,version}`，回执包含 `operation:brawl-match,petId,committedAt,matchId`。服务端优先相近等级，等级差限 5，使用报名武器及该武器开战时的强化等级。无对手返回 409 `brawl_no_opponent`。
+- 宠物养成上限为 Lv.40，经验仍每 100 升一级。实装 PvP 的匹配等级按最高 Lv.30 计算，已保存的版本 1 报名仍有效，新报名和新对局写入使用当前版本。
 - 两个写入口都需要第一方本人 `settings.write` 及 `Idempotency-Key`，使用既有宠物账号风控。每账号配对每日只结算一次，匹配失败不消耗次数。
 - 战报列表使用 `includePvp=1` 读取含双方 PvP 的统一游标列表，缺省只列原有 NPC 战报。摘要增加 `mode:npc|pvp`。PvP 的 `stage=0`、`practice=false`、`reward=0`，详情增加 `opponentPetId` 和 `opponentSpecies`。双方共享同一战报 ID。被挑战方读取时，胜负、出场配置、行动者与生命值投影为本人视角。第三人读取返回 404。
 - 新 PvP 战报的 `player` 和 `opponent` 各包含对局开始时的 `petName`（宠物昵称）和 `ownerNickname`（主人昵称，未设置时使用用户名）。字段随出场配置翻转；旧战报和 NPC 战报不含这两个字段。
@@ -18208,7 +18209,7 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - `POST /api/v3/me/pet/brawl/orders` 接收 `{petId,weapon,level,version,materials}`。level 是当前武器等级，materials 是选定要抵扣的份数。回执为 `operation:brawl-quote,petId,committedAt,orderId`。报价有效期 10 分钟。
 - `GET /api/v3/me/pet/brawl/orders` 返回本人 `{list,next,balance}`，可带 `before` 游标。详情 `GET /api/v3/me/pet/brawl/orders/{id}` 返回当前余额与订单。订单公开字段为 `id,petId,weapon,level,materials,points,version,createdAt,expiresAt,status`，完成后附 `completedAt`。状态为 `pending/completed/expired`。
 - `POST /api/v3/me/pet/brawl/orders/{id}/confirm` 接收 `{petId}`，返回 `operation:brawl-confirm,petId,committedAt,orderId`。确认时重验武器等级、宠物、规则版本、材料和余额。余额不足为 409 `insufficient_points`，结算结果可用订单 ID 查询。
-- 读取要求第一方本人 `profile.read`，写入口要求 `settings.write` 和 `Idempotency-Key`。同一订单只完成一次，重复确认返回既有回执。每份历练材料抵扣 10 积分，当前五档强化全额为 200、400、800、1400、2200 积分。
+- 读取要求第一方本人 `profile.read`，写入口要求 `settings.write` 和 `Idempotency-Key`。同一订单只完成一次，重复确认返回既有回执。版本 1 已完成订单按原值显示；未确认订单视为过期，重新报价后才能扣款。每份历练材料抵扣 10 积分，版本 2 武器强化全程需要 500 份材料，完全使用积分时为 5,000 积分。实际单级价格取当前 `costs`。
 
 #### 宠物乱斗进阶配装
 

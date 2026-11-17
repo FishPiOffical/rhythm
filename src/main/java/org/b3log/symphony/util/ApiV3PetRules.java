@@ -43,7 +43,7 @@ public final class ApiV3PetRules {
     public static final int PLAY_ENERGY = 10;
     public static final int DAILY_GROWTH = 10;
     public static final int EXPERIENCE_PER_LEVEL = 100;
-    public static final int MAX_LEVEL = 30;
+    public static final int MAX_LEVEL = 40;
     public static final int CARE_EXPERIENCE = 10;
     public static final int CARE_FRIENDSHIP = 2;
     public static final long HOUR = 3_600_000L;

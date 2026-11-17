@@ -13,11 +13,12 @@ public final class ApiV3PetBattleSpeciesTest {
 
     private record Build(int species, Weapon weapon, Skill skill) {
         Setup setup(final boolean strengthened) {
-            return strengthened ? new Setup(weapon, skill, 5, 40, 10) : new Setup(weapon, skill, 0);
+            return strengthened ? new Setup(weapon, skill, ApiV3PetBattle.MAX_UPGRADE, 40, 10) : new Setup(weapon, skill, 0);
         }
     }
 
     public static void main(final String[] args) {
+        checkGrowth();
         final List<Build> builds = new ArrayList<>();
         for (int i = 0; i < SPECIES.size(); i++) {
             final String species = SPECIES.get(i);
@@ -35,10 +36,44 @@ public final class ApiV3PetBattleSpeciesTest {
         checkTier(builds, seeds, false);
         checkTier(builds, seeds, true);
         double advantage = 0;
-        for (Build build : builds) advantage += score(build.setup(true), build.setup(false), seeds);
+        double fullVsTwelve = 0;
+        double fullVsSixteen = 0;
+        for (Build build : builds) {
+            final Setup full = new Setup(build.weapon, build.skill, 20);
+            advantage += score(full, build.setup(false), seeds);
+            fullVsTwelve += score(full, new Setup(build.weapon, build.skill, 12), seeds);
+            fullVsSixteen += score(full, new Setup(build.weapon, build.skill, 16), seeds);
+        }
         final double average = advantage / builds.size();
-        Assert.assertTrue(average >= .65 && average <= .85, "强化优势超出预期：" + average);
-        System.out.printf("PASS 同一配装强化后平均得分 %.2f%%%n", average * 100);
+        Assert.assertTrue(average >= .83 && average <= .90, "强化优势超出预期：" + average);
+        Assert.assertTrue(fullVsTwelve / builds.size() >= .67 && fullVsTwelve / builds.size() <= .75);
+        Assert.assertTrue(fullVsSixteen / builds.size() >= .57 && fullVsSixteen / builds.size() <= .65);
+        System.out.printf("PASS 同一配装 +20 对 +0/+12/+16 的平均得分 %.2f%% / %.2f%% / %.2f%%%n",
+                average * 100, fullVsTwelve * 100 / builds.size(), fullVsSixteen * 100 / builds.size());
+    }
+
+    private static void checkGrowth() {
+        final int[] expenses = {0, 20, 60, 140, 280, 500};
+        final int[] health = {10000, 10080, 10180, 10300, 10440, 10600};
+        final int[] attack = {900, 908, 916, 926, 938, 950};
+        int total = 0;
+        Setup previous = null;
+        for (int level = 0; level <= 20; level++) {
+            final Setup current = new Setup(Weapon.SPOON, Skill.SPLASH, level);
+            if (level > 0) total += ApiV3PetBattle.COST[level - 1];
+            if (level % 4 == 0) {
+                Assert.assertEquals(total, expenses[level / 4]);
+                Assert.assertEquals(current.maxHp(), health[level / 4]);
+                Assert.assertEquals(current.attack(), attack[level / 4]);
+            }
+            if (previous != null) {
+                Assert.assertTrue(current.maxHp() > previous.maxHp());
+                Assert.assertTrue(current.attack() > previous.attack());
+            }
+            previous = current;
+        }
+        Assert.assertEquals(Setup.npc(Weapon.FAN, Skill.BREATHE, 2).maxHp(), 10120);
+        Assert.assertEquals(Setup.npc(Weapon.FAN, Skill.BREATHE, 2).attack(), 910);
     }
 
     private static void checkTier(final List<Build> builds, final long[] seeds, final boolean strengthened) {

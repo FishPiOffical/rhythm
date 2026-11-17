@@ -6,8 +6,13 @@ import java.util.Random;
 
 /** 纯战斗规则，所有生命和伤害以百分之一 HP 计。 */
 public final class ApiV3PetBattle {
-    public static final int VERSION = 1;
-    public static final int[] COST = {20, 40, 80, 140, 220};
+    public static final int LEGACY_VERSION = 1;
+    public static final int VERSION = 2;
+    public static final int[] COST = {3, 4, 6, 7, 8, 9, 11, 12, 14, 18, 22, 26, 28, 32, 36, 44, 46, 52, 58, 64};
+    public static final int MAX_UPGRADE = COST.length;
+    public static final int LEVELS_PER_MILESTONE = 4;
+    private static final int[] HP_BONUS = {0, 80, 180, 300, 440, 600};
+    private static final int[] ATTACK_BONUS = {0, 8, 16, 26, 38, 50};
     public enum Weapon {
         SPOON(null, "小木勺", "前 8 回合各加伤 1"),
         GUARD(null, "软垫护腕", "前 2 回合各减伤 4"),
@@ -63,18 +68,34 @@ public final class ApiV3PetBattle {
             return species == null || species.equals(speciesId);
         }
     }
-    public record Setup(Weapon weapon, Skill skill, int level, int gearHp, int gearAttack) {
+    public record Setup(Weapon weapon, Skill skill, int level, int gearHp, int gearAttack, boolean fixedNpc) {
         public Setup(final Weapon weapon, final Skill skill, final int level) {
             this(weapon, skill, level, 0, 0);
         }
+        public Setup(final Weapon weapon, final Skill skill, final int level, final int gearHp, final int gearAttack) {
+            this(weapon, skill, level, gearHp, gearAttack, false);
+        }
         public Setup {
-            if (weapon == null || skill == null || level < 0 || level > COST.length
-                    || gearHp < 0 || gearHp > 40 || gearAttack < 0 || gearAttack > 10)
+            if (weapon == null || skill == null || level < 0 || level > MAX_UPGRADE
+                    || gearHp < 0 || gearHp > 40 || gearAttack < 0 || gearAttack > 10
+                    || fixedNpc && (level % LEVELS_PER_MILESTONE != 0 || level > 8 || gearHp != 0 || gearAttack != 0))
                 throw new IllegalArgumentException("无效战斗配置");
         }
 
-        public int maxHp() { return 10_000 + 60 * level + gearHp; }
-        public int attack() { return 900 + 5 * level + gearAttack; }
+        public static Setup npc(final Weapon weapon, final Skill skill, final int oldLevel) {
+            return new Setup(weapon, skill, oldLevel * LEVELS_PER_MILESTONE, 0, 0, true);
+        }
+
+        public int maxHp() { return 10_000 + (fixedNpc ? 60 * (level / LEVELS_PER_MILESTONE) : interpolate(HP_BONUS, level)) + gearHp; }
+        public int attack() { return 900 + (fixedNpc ? 5 * (level / LEVELS_PER_MILESTONE) : interpolate(ATTACK_BONUS, level)) + gearAttack; }
+    }
+
+    private static int interpolate(final int[] milestones, final int level) {
+        final int index = level / LEVELS_PER_MILESTONE;
+        final int step = level % LEVELS_PER_MILESTONE;
+        if (step == 0) return milestones[index];
+        // 每四级之间线性插值，四舍五入到战斗使用的百分之一单位。
+        return milestones[index] + ((milestones[index + 1] - milestones[index]) * step + 2) / LEVELS_PER_MILESTONE;
     }
     public record Turn(int round, int actor, int damage, int healing, int playerHp, int opponentHp) {}
     public record Result(int winner, List<Turn> turns) {}
