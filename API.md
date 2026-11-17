@@ -18199,6 +18199,7 @@ curl 'https://fishpi.cn/api/v3/admin/tasks/1234567890123' \
 - 战报列表使用 `includePvp=1` 读取含双方 PvP 的统一游标列表，缺省只列原有 NPC 战报。摘要增加 `mode:npc|pvp`。PvP 的 `stage=0`、`practice=false`、`reward=0`，详情增加 `opponentPetId` 和 `opponentSpecies`。双方共享同一战报 ID。被挑战方读取时，胜负、出场配置、行动者与生命值投影为本人视角。第三人读取返回 404。
 - 新 PvP 战报的 `player` 和 `opponent` 各包含对局开始时的 `petName`（宠物昵称）和 `ownerNickname`（主人昵称，未设置时使用用户名）。字段随出场配置翻转；旧战报和 NPC 战报不含这两个字段。
 - 含昵称快照的 PvP 列表摘要增加 `opponentPetName` 和 `opponentOwnerNickname`。两字段都以当前查看者为准，来源与详情一致。未保存昵称的战报省略两字段。
+- PvP 摘要也投影对手的 `opponentPetId` 和 `opponentSpecies`，供列表展示头像和链接宠物资料。宠物资料沿用公开资料接口的可见性规则。
 
 #### 宠物乱斗强化订单
 

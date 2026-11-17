@@ -477,6 +477,8 @@ public class ApiV3PetBrawl {
             if ("pvp".equals(mode)) {
                 // 被挑战方视角里的对手是原发起方，直接取战报快照，不查询当前昵称。
                 final JSONObject opponent = report.getJSONObject(mirrored ? "player" : "opponent");
+                summary.put("opponentPetId", report.opt(mirrored ? "petId" : "opponentPetId"));
+                summary.put("opponentSpecies", report.opt(mirrored ? "species" : "opponentSpecies"));
                 summary.put("opponentPetName", opponent.opt("petName"));
                 summary.put("opponentOwnerNickname", opponent.opt("ownerNickname"));
             }
