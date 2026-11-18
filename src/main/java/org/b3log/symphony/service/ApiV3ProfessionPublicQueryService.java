@@ -384,26 +384,59 @@ public class ApiV3ProfessionPublicQueryService {
     }
 
     private void appendActivity(final JSONObject result, final String owner, final JSONObject visibility, final JSONObject actor, final boolean experience, final List<CheckedRead> checks) throws RepositoryException {
-        final var rows = bounded(effects.select("SELECT professionId,sourceEventId,actionCode,actualExperienceDelta,beforeLevelCode,afterLevelCode,occurredAt,status AS effectStatus FROM `" + effects.getName()
-                + "` WHERE userId=? AND status='APPLIED' AND occurredAt>=? ORDER BY occurredAt DESC,oId DESC LIMIT ?", owner, System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90), LIMIT + 1));
         final JSONArray feed = new JSONArray(), history = new JSONArray();
+        final boolean showFeed = visible(visibility, "activityFeed", owner, actor);
+        final boolean showHistory = visible(visibility, "levelHistory", owner, actor);
+        final long cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90);
         final long[] bodyBudget = {2L * 1024 * 1024};
-        for (JSONObject row : rows) {
-            if (!"APPLIED".equals(row.opt("effectStatus"))) throw unavailable();
-            final String source = visibleSource(ApiV3ProfessionPublicDto.id(row, "sourceEventId"), owner, actor, bodyBudget, checks);
-            if (source == null) continue;
-            final JSONObject dto = new JSONObject().put("professionId", ApiV3ProfessionPublicDto.id(row, "professionId")).put("actionCode", ApiV3ProfessionPublicDto.action(row)).put("occurredAt", ApiV3ProfessionPublicDto.number(row, "occurredAt", false));
-            dto.put("sourceDescription", source);
-            final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
-            if (experience)
-                dto.put("experienceDelta", delta);
-            if (feed.length() < 30) feed.put(dto);
-            final String before = ApiV3ProfessionPublicDto.text(row, "beforeLevelCode", 64, true), after = ApiV3ProfessionPublicDto.text(row, "afterLevelCode", 64, true);
-            if (!before.equals(after) && history.length() < 30)
-                history.put(new JSONObject().put("professionId", dto.getString("professionId")).put("beforeLevelCode", before).put("afterLevelCode", after).put("occurredAt", dto.getLong("occurredAt")));
+        long beforeOccurredAt = 0L;
+        String beforeEffectId = "";
+        boolean firstPage = true;
+        boolean hasMore = true;
+        while (hasMore && ((showFeed && feed.length() < 30) || (showHistory && history.length() < 30))) {
+            final String columns = "SELECT oId,professionId,sourceEventId,actionCode,actualExperienceDelta,beforeLevelCode,afterLevelCode,occurredAt,status AS effectStatus FROM `" + effects.getName()
+                    + "` WHERE userId=? AND status='APPLIED' AND occurredAt>=? ";
+            final var rows = firstPage
+                    ? effects.select(columns + "ORDER BY occurredAt DESC,oId DESC LIMIT ?", owner, cutoff, LIMIT)
+                    : effects.select(columns + "AND (occurredAt<? OR (occurredAt=? AND oId<?)) ORDER BY occurredAt DESC,oId DESC LIMIT ?",
+                            owner, cutoff, beforeOccurredAt, beforeOccurredAt, beforeEffectId, LIMIT);
+            hasMore = rows.size() == LIMIT;
+            for (JSONObject row : rows) {
+                if ((!showFeed || feed.length() >= 30) && (!showHistory || history.length() >= 30)) break;
+                if (!"APPLIED".equals(row.opt("effectStatus"))) throw unavailable();
+                final long occurredAt = ApiV3ProfessionPublicDto.number(row, "occurredAt", false);
+                final String source = visibleSource(ApiV3ProfessionPublicDto.id(row, "sourceEventId"), owner, actor, bodyBudget, checks);
+                if (source == null) continue;
+                final String professionId = ApiV3ProfessionPublicDto.id(row, "professionId");
+                final String action = ApiV3ProfessionPublicDto.action(row);
+                final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
+                final String before = ApiV3ProfessionPublicDto.text(row, "beforeLevelCode", 64, true);
+                final String after = ApiV3ProfessionPublicDto.text(row, "afterLevelCode", 64, true);
+                if (showFeed && feed.length() < 30) {
+                    final JSONObject dto = new JSONObject().put("professionId", professionId)
+                            .put("actionCode", action).put("occurredAt", occurredAt)
+                            .put("sourceDescription", source);
+                    if (experience)
+                        dto.put("experienceDelta", delta);
+                    feed.put(dto);
+                }
+                if (showHistory && history.length() < 30) {
+                    if (!before.equals(after))
+                        history.put(new JSONObject().put("professionId", professionId).put("beforeLevelCode", before)
+                                .put("afterLevelCode", after).put("occurredAt", occurredAt));
+                }
+            }
+            if (!rows.isEmpty()) {
+                final JSONObject last = rows.getLast();
+                beforeOccurredAt = ApiV3ProfessionPublicDto.number(last, "occurredAt", false);
+                beforeEffectId = ApiV3ProfessionPublicDto.id(last, "oId");
+                firstPage = false;
+            } else {
+                hasMore = false;
+            }
         }
-        if (visible(visibility, "activityFeed", owner, actor)) result.put("activityFeed", feed);
-        if (visible(visibility, "levelHistory", owner, actor)) result.put("levelHistory", history);
+        if (showFeed) result.put("activityFeed", feed);
+        if (showHistory) result.put("levelHistory", history);
     }
 
     private String visibleSource(final String source, final String owner, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
