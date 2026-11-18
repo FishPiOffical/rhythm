@@ -804,6 +804,58 @@
       ]
     },
     {
+      "name": "parking_passenger",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "speciesId",
+          "type": "String",
+          "length": 24
+        }
+      ]
+    },
+    {
+      "name": "parking_observation",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 96
+        },
+        {
+          "name": "actorId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "kind",
+          "type": "String",
+          "length": 16
+        },
+        {
+          "name": "observedAt",
+          "type": "long"
+        },
+        {
+          "name": "dayNo",
+          "type": "int"
+        },
+        {
+          "name": "outcome",
+          "type": "int"
+        },
+        {
+          "name": "commandHash",
+          "type": "String",
+          "length": 64
+        }
+      ]
+    },
+    {
       "name": "parking_visit",
       "keys": [
         {

@@ -16971,7 +16971,7 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 |---|---|---|
 | starter | car | 免费领取三款初始车之一并开放一个车位 |
 | buy | car、可选 expectedPrice | expectedPrice 为确认时看到的售价，价格变化须重新确认 |
-| park | car、hostId、可选 note | 驾驶已拥有的车停入其他玩家的空位，可随车留一张预设便签 |
+| park | car、hostId，可选 note、petId | 驾驶已拥有的车停入其他玩家的空位，可留预设便签或携带宠物副驾 |
 | collect | sessionId | 车主收回该次停车 |
 | ticket | sessionId | 车位主人结束该次停车 |
 | pardon | sessionId | 车位主人对本单放行，到八小时计费期满前不能再贴条；车主可随时收车 |
@@ -17030,6 +17030,25 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 | version | 保存后的目录版本 | 2 |
 
 `GET /api/v3/admin/parking/ledger` 分页读取停车结算和购车流水，需第一方管理员和 `profile.read`。可传 `userId` 精确筛选，分页参数为 `p`、`size`。返回 `list` 和 `pagination`；每笔包含 `oId`、`userId`、`operation`、`referenceId`、`coinDelta`、`createdAt`。停车结算关联停车单号，购车关联车型 ID。
+
+### 宠物副驾和近七日停车指标
+
+第三阶段先执行 `sql/20261118_api_v3_parking_insights.sql`。读取本人车库时，`availablePet` 表示可选的副驾，值为 `{"id":"宠物编号","speciesId":"hexiaotun"}` 或 `null`。出车可选传 `petId`，例如 `{"car":"punch","hostId":"123","petId":"456"}`。服务端检验宠物仍属于本人，选择失效返回 HTTP 409 和 `passenger_changed`。同键恢复须原样保留请求体。
+
+车主的 `driving` 和车位主人的 `occupant` 包含可空的 `passengerSpecies`。显示出发时的物种，不公开宠物昵称或编号。未携带副驾和旧停车单均为 `null`。副驾只作展示。
+
+`GET /api/v3/admin/parking/metrics` 需要第一方管理员和 `profile.read`。返回 `from`、`asOf` 毫秒时间戳，范围为北京时间六天前零点至当前时刻。比率返回整数分子 `hits` 和分母 `samples`，分母为零表示暂无样本。
+
+| 字段 | 统计口径 |
+| --- | --- |
+| `firstPark` | 新版领取初始车后，首次提交有效停车业务请求的车主中成功的比例。验证、鉴权和限流不计入，同一命令恢复仅算一笔。 |
+| `emptySearch` | 有车且当前能出停的玩家，在全部或关注范围每天各自首次读取首页时找不到空位的比例。指定车位及翻页不计入。 |
+| `upgrade` | 在窗口内首次购入非初始车型的新版车主，从初次领车至购车的平均毫秒数 `meanMs` 和人数 `samples`。未购车不参与平均，无样本为 null。 |
+| `nextDay` | 被贴条车主在次日打开停车场的比例。同一车主同日多张贴条算一次，需完整经过次日。 |
+| `repeatPairs` | 窗口内双方各停入对方车位至少两次时，该组合的订单数占全部出停单的比例。包含窗口内迁移前已有订单。 |
+
+除互停订单外，观测从启用本版起累计，不补写历史估算值。
+
 
 ### 游园币钱包（宠物目录 v4）
 

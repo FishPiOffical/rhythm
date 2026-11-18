@@ -119,6 +119,7 @@ public class ApiV3AdminStage4Processor {
         final ApiV3WriteMidware write = manager.getReference(ApiV3WriteMidware.class);
 
         Dispatcher.get("/api/v3/admin/parking/models", p::parkingModels, auth::profileRead);
+        Dispatcher.get("/api/v3/admin/parking/metrics", p::parkingMetrics, auth::profileRead);
         Dispatcher.get("/api/v3/admin/parking/ledger", p::parkingLedger, auth::profileRead);
         Dispatcher.put("/api/v3/admin/parking/models/{model}", p::updateParkingModel, auth::settingsWrite, write::handle);
 
@@ -194,6 +195,12 @@ public class ApiV3AdminStage4Processor {
 
     public void parkingModels(final RequestContext context) {
         ApiV3Requests.read(context, () -> parkingCatalog.read(identity(context), false, null, 1, 1));
+    }
+
+    @Inject private org.b3log.symphony.service.ParkingMetricsService metrics;
+
+    public void parkingMetrics(final RequestContext context) {
+        ApiV3Requests.read(context, () -> metrics.report(identity(context)));
     }
 
     public void parkingLedger(final RequestContext context) {

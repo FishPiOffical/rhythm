@@ -29,7 +29,10 @@ import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.ParkingGarageRepository;
 import org.b3log.symphony.repository.ParkingSessionRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.UserPetRepository;
+import org.b3log.symphony.repository.ParkingPassengerRepository;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.ApiV3Json;
 import org.b3log.symphony.util.ApiV3MutationStore;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3TokenUtil;
@@ -67,6 +70,9 @@ public class ParkingService {
     @Inject private ApiV3PetRiskService risk;
     @Inject private GameWalletService wallet;
 
+    @Inject private UserPetRepository pets;
+    @Inject private ParkingPassengerRepository passengers;
+    @Inject private ParkingMetricsService metrics;
     @Inject private ParkingCatalogService offers;
     @Inject private ApiV3AppearanceShopService appearance;
     @Inject private org.b3log.symphony.repository.ParkingVisitRepository visits;
@@ -131,6 +137,10 @@ public class ParkingService {
                     .put("id",row.getString("oId")).put("name",displayName(row)).put("free",row.getString("occupant").isEmpty()));
             final var recent = sessions.select("SELECT oId,car,endedAt,ending,paid FROM `" + sessions.getName()
                     + "` WHERE driverId=? AND endedAt>0 ORDER BY startedAt DESC LIMIT 5", actor);
+            final var pet = garage == null ? null : ownPet(actor);
+            result.put("availablePet", pet == null ? JSONObject.NULL : pet);
+            metrics.visit(actor, now, garage != null && garage.getString("driving").isEmpty() && after == null && target == null,
+                    "following".equals(scope), spaces.length() == 0);
             result.put("recent", new JSONArray(recent));
             result.put("spaces", spaces).put("next", available.size() > 20 ? available.get(19).getString("oId") : "");
             tx.commit();
@@ -138,6 +148,12 @@ public class ParkingService {
         } finally {
             if (tx.isActive()) tx.rollback();
         }
+    }
+
+    private JSONObject ownPet(String actor) throws RepositoryException {
+        final var rows = pets.select("SELECT oId,speciesId FROM `" + pets.getName() + "` WHERE userId=?", actor);
+        return rows.isEmpty() ? null : new JSONObject().put("id", rows.getFirst().getString("oId"))
+                .put("speciesId", rows.getFirst().getString("speciesId"));
     }
 
     private static String displayName(final JSONObject user) {
@@ -162,7 +178,8 @@ public class ParkingService {
         final String other = row.getString("driving".equals(field) ? "hostId" : "driverId");
         final var names = users.select("SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?", other);
         final var visit = visits.get(row.getString("oId"));
-        return new JSONObject().put("note", visit == null ? "" : visit.getString("note"))
+        final var passenger = passengers.get(row.getString("oId"));
+        return new JSONObject().put("passengerSpecies", passenger == null ? JSONObject.NULL : passenger.getString("speciesId")).put("note", visit == null ? "" : visit.getString("note"))
                 .put("mountStyle", visit == null ? "" : visit.getString("mountStyle"))
                 .put("pardoned", visit != null && visit.getLong("pardonedAt") > 0).put("id", row.getString("oId")).put("car", row.getString("car"))
                 .put("otherName", names.isEmpty() ? "已离开的玩家" : displayName(names.getFirst()))
@@ -174,7 +191,12 @@ public class ParkingService {
         final Set<String> fields = switch (action) {
             case "starter" -> Set.of("car");
             case "buy" -> input.has("expectedPrice") ? Set.of("car","expectedPrice") : Set.of("car");
-            case "park" -> input.has("note") ? Set.of("car","hostId","note") : Set.of("car","hostId");
+            case "park" -> {
+                final Set<String> accepted = new HashSet<>(Set.of("car", "hostId"));
+                if (input.has("note")) accepted.add("note");
+                if (input.has("petId")) accepted.add("petId");
+                yield accepted;
+            }
             case "collect", "ticket", "pardon" -> Set.of("sessionId");
             default -> throw ApiV3Requests.notFound();
         };
@@ -182,7 +204,7 @@ public class ParkingService {
         if (fields.contains("note") && !NOTES.contains(ApiV3WriteInputs.string(input,"note",16,false))) throw ApiV3WriteInputs.invalid();
         if (fields.contains("expectedPrice")) ApiV3WriteInputs.integer(input,"expectedPrice",-1,1,1_000_000);
         if (fields.contains("car")) car(ApiV3WriteInputs.string(input, "car", 24, false));
-        for (String field : List.of("hostId", "sessionId")) {
+        for (String field : List.of("hostId", "sessionId", "petId")) {
             if (fields.contains(field) && !ApiV3WriteInputs.string(input, field, 19, false).matches("[1-9][0-9]{0,18}"))
                 throw ApiV3WriteInputs.invalid();
         }
@@ -190,6 +212,8 @@ public class ParkingService {
         final String actor = identity.getJSONObject("user").getString("oId");
         final String operation = "parking." + action;
         final String commandId = ApiV3TokenUtil.hash(actor + "/" + operation + "/" + key);
+        final long attemptedAt = System.currentTimeMillis();
+        final String parkSample = "park".equals(action) ? ApiV3TokenUtil.hash(commandId + "/" + ApiV3Json.canonical(input)) : null;
         // 原键回执也要重新确认本人权限；已提交的重试先返回，不能重复计入异常样本。
         final ApiV3MutationStore guarded = new ApiV3MutationStore() {
             public Transaction beginTransaction() { return requests.beginTransaction(); }
@@ -205,12 +229,16 @@ public class ParkingService {
             final var execution = ApiV3IdempotencyMgmtService.runAtomicWithOutcome(guarded, actor, operation, key, input,
                     () -> {
                         if (!action.equals("collect") && !action.equals("ticket")) admit(actor, commandId);
-                        return apply(actor, action, input, key);
+                        final var receipt = apply(actor, action, input, key);
+                        if (parkSample != null) metrics.firstPark(actor, attemptedAt, parkSample, true);
+                        return receipt;
                     });
             LOG.info("parking_event actor={} action={} command={} outcome={} session={} amount={}", actor, action, commandId,
                     execution.applied() ? "committed" : "replayed", execution.result().optString("sessionId"), execution.result().getInt("amount"));
             return execution.result();
         } catch (ApiV3Exception e) {
+            if ("park".equals(action) && Set.of("space_unavailable", "own_space", "already_driving", "car_unowned", "passenger_changed").contains(e.code))
+                metrics.rejectedPark(actor, attemptedAt, parkSample);
             if ("parking_verification_required".equals(e.code)) risk.registerParkingChallenge(identity, key, input);
             LOG.info("parking_event actor={} action={} command={} outcome={}", actor, action, commandId, e.code);
             throw e;
@@ -225,6 +253,7 @@ public class ParkingService {
             final Car model = car(input.getString("car"));
             if (!model.starter() || own != null || !offers.offer(model.id()).getBoolean("enabled")) throw conflict("starter_unavailable", "每人可免费选择一辆初始车");
             wallet.open(actor);
+            metrics.milestone(actor, "starter", now);
             garages.add(new JSONObject().put("oId", actor).put("cars", new JSONArray().put(model.id()).toString())
                     .put("driving", "").put("occupant", ""));
             return receipt;
@@ -255,6 +284,7 @@ public class ParkingService {
             if (!offer.getBoolean("enabled")) throw conflict("car_off_sale","车辆已下架");
             if (input.optInt("expectedPrice",car(modelId).price()) != model.price()) throw conflict("parking_price_changed","车价已变更，请重新确认");
             if (hasCar) throw conflict("car_owned", "已拥有这辆车");
+            if (!model.starter()) metrics.milestone(actor, "upgrade", now);
             wallet.change(actor, -model.price(), "parking-buy", model.id(), now);
             garages.update(actor, own.put("cars", owned.put(model.id()).toString()), "cars");
             return receipt.put("amount", -model.price());
@@ -279,6 +309,12 @@ public class ParkingService {
         if (verify && !risk.consumeParkingGrant(actor, key, input))
             throw new ApiV3Exception(403, "parking_verification_required", "请完成验证后继续这次停车");
         final String id = Ids.genTimeMillisId();
+        if (input.has("petId")) {
+            final var pet = ownPet(actor);
+            if (pet == null || !pet.getString("id").equals(input.getString("petId")))
+                throw conflict("passenger_changed", "当前宠物已变更，请重新选择副驾");
+            passengers.add(new JSONObject().put("oId",id).put("speciesId",pet.getString("speciesId")));
+        }
         sessions.add(new JSONObject().put("oId", id).put("driverId", actor).put("hostId", host).put("car", model.id())
                 .put("hourlyRate", model.rate()).put("startedAt", now).put("endedAt", 0L).put("ending", "")
                 .put("paid", 0).put("restartGapMs", gap).put("verified", verify ? 1 : 0));
@@ -335,6 +371,7 @@ public class ParkingService {
         if (own == null || space == null || !id.equals(own.getString("driving")) || !id.equals(space.getString("occupant")))
             throw new IllegalStateException("停车占用记录不一致");
         final int amount = payout(row.getInt("hourlyRate"), row.getLong("startedAt"), now);
+        if ("ticket".equals(action)) metrics.ticket(driver, now);
         wallet.change(driver, amount, "parking-income", id, now);
         sessions.update(id, row.put("endedAt", now).put("ending", action).put("paid", amount), "endedAt", "ending", "paid");
         garages.update(driver, own.put("driving", ""), "driving");
