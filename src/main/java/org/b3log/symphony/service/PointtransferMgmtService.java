@@ -130,7 +130,7 @@ public class PointtransferMgmtService {
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE, Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT,
                             Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));
@@ -259,7 +259,7 @@ public class PointtransferMgmtService {
                 }
 
                 List<Integer> canIncludeArray = new ArrayList<>();
-                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE);
+                Collections.addAll(canIncludeArray, 1, 2, 3, 15, 19, 20, 22, 23, 24, 26, 30, 32, 34, 36, 37, 45, 48, 49, 50, 55, 57, Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE, Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE);
                 if (canIncludeArray.contains(type)) {
                     fromUser.put(UserExt.USER_USED_POINT,
                             Math.addExact(fromUser.optInt(UserExt.USER_USED_POINT), sum));

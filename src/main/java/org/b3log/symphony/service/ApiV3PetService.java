@@ -59,10 +59,11 @@ import org.json.JSONObject;
 import java.time.LocalDate;
 import java.util.Set;
 
-/** 宠物钱包、背包、照顾与回执同事务；站点积分和经典客户端不参与本玩法。 */
+/** 宠物钱包、背包、照顾与回执同事务；积分消费需走各自显式入口。 */
 @Service
 public class ApiV3PetService {
     @Inject private ApiV3PetBrawl brawl;
+    @Inject private ApiV3PetCoffee coffee;
     @Inject private PetAnalyticsService analytics;
     @Inject private ApiV3PetSeasons seasons;
     @Inject private PetAccountRepository accounts;
@@ -592,6 +593,63 @@ public class ApiV3PetService {
             accounts.update(actor, account, ACCOUNT_FIELDS);
             record(actor, pet.getString("oId"), "supplies", ApiV3PetRules.DAILY_COINS, ApiV3PetRules.DAILY_FOOD, current);
             return receipt("supplies", pet.getString("oId"), current);
+        });
+    }
+
+    public JSONObject coffeeOffer(final JSONObject identity) {
+        return readTransaction(identity, () -> {
+            final String owner = actor(identity);
+            owned(owner, null);
+            final String today = ApiV3PetRules.today(now());
+            final var offer = coffee.offer(false);
+            return offer.json().put("today", today).put("energy", ApiV3PetCoffee.ENERGY)
+                    .put("dailyLimit", ApiV3PetCoffee.DAILY_LIMIT)
+                    .put("remaining", ApiV3PetCoffee.DAILY_LIMIT - coffee.usedToday(coffee.usage(owner, false), today))
+                    .put("balance", coffee.balance(owner, false));
+        });
+    }
+
+    public JSONObject buyCoffee(final JSONObject identity, final JSONObject body, final String key) throws Exception {
+        exact(body, Set.of("petId", "expectedDate", "version"));
+        final String id = petId(body), date = string(body, "expectedDate"), owner = actor(identity);
+        try {
+            if (!LocalDate.parse(date).toString().equals(date)) throw ApiV3WriteInputs.invalid();
+        } catch (java.time.DateTimeException error) {
+            throw ApiV3WriteInputs.invalid();
+        }
+        final int version = ApiV3WriteInputs.integer(body, "version", -1, 1, Integer.MAX_VALUE);
+        final JSONObject input = new JSONObject().put("petId", id).put("expectedDate", date).put("version", version);
+        return coffee.withPointLocks(owner, () -> {
+            try (var cache = ArticlePublicationCaches.open(requests::hasTransactionBegun)) {
+                return mutate(identity, "coffee", key, input, () -> {
+                    // 与后台调价用同一行锁，确认过的版本与实际扣款保持一致。
+                    final var offer = coffee.offer(true);
+                    if (!offer.enabled()) throw ApiV3PetRules.conflict("coffee_off_sale", "宠物咖啡已下架");
+                    if (version != offer.version()) throw ApiV3PetRules.conflict("coffee_price_changed", "售价已更新，请重新确认");
+                    final long current = now();
+                    final String today = ApiV3PetRules.today(current);
+                    final var usage = coffee.usage(owner, true);
+                    if (!today.equals(date) || (usage != null && today.compareTo(usage.date()) < 0))
+                        throw ApiV3PetRules.conflict("date_changed", "日期已更新，请刷新后购买");
+                    final int used = coffee.usedToday(usage, today);
+                    if (used >= ApiV3PetCoffee.DAILY_LIMIT)
+                        throw ApiV3PetRules.conflict("coffee_daily_limit", "今天的咖啡次数已用完");
+                    final JSONObject pet = ApiV3PetRules.settle(owned(owner, id), current);
+                    requireActivityFree(owner, id);
+                    if ("rest".equals(pet.getString("activityKind")))
+                        throw ApiV3PetRules.conflict("pet_resting", "宠物醒来后才能喝咖啡");
+                    final double before = pet.getDouble("energy");
+                    if (before >= 100) throw ApiV3PetRules.conflict("already_full", "宠物精力已满");
+                    final double after = Math.min(100, before + ApiV3PetCoffee.ENERGY);
+                    coffee.charge(owner, offer.price(), current);
+                    coffee.recordUse(owner, usage, today, used);
+                    pet.put("energy", after).put("updatedAt", current);
+                    pets.update(id, pet, PET_FIELDS);
+                    appendJournal(owner, id, "care", "coffee", "宠物咖啡 · " + offer.price() + " 积分",
+                            new JSONArray(), 0, ApiV3PetJournal.zeroEffects().put("energy", after - before), null, current);
+                    return receipt("coffee", id, current);
+                });
+            }
         });
     }
 

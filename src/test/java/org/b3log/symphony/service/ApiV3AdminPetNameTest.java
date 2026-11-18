@@ -24,6 +24,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.model.Operation;
+import org.b3log.symphony.repository.PetCoffeeRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.json.JSONObject;
@@ -46,6 +47,19 @@ public class ApiV3AdminPetNameTest {
             sql(db, "INSERT INTO user_pet VALUES(?, '2', '待处理测试名', 'yubingmiao', ?, ?)", PET_ID, NOW, NOW);
             sql(db, "INSERT INTO user_pet VALUES('1800000123457', '1', '100% 可可', 'hexiaotun', ?, ?)", NOW - 1, NOW);
             inject(management, "admin", ApiV3QqSettingsTest.field(bubbles, ApiV3BubbleStyleService.class, "admin"));
+            sql(db, "CREATE TABLE pet_coffee(oId TEXT PRIMARY KEY,snapshotJson TEXT)");
+            sql(db, "INSERT INTO pet_coffee VALUES (?, ?)", "settings", new ApiV3PetCoffee.Offer(true, 64, 1).json().toString());
+            final var coffee = new ApiV3PetCoffee();
+            inject(coffee, "repository", new PetCoffeeRepository() {
+                public String getName() { return "pet_coffee"; }
+                public List<JSONObject> select(String query, Object... parameters) throws RepositoryException {
+                    return selectSQL(query, parameters);
+                }
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                    modify(getName(), id, row, fields);
+                }
+            });
+            inject(management, "coffee", coffee);
             inject(management, "users", new UserRepository() {
                 public String getName() { return "u"; }
             });
@@ -58,6 +72,17 @@ public class ApiV3AdminPetNameTest {
                     modify(getName(), id, row, fields);
                 }
             });
+        }
+
+        JSONObject coffee(JSONObject actor, boolean enabled, int price, int version, String key) throws Exception {
+            final var raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.PUT, "/api/v3/admin/pets/coffee");
+            try {
+                raw.headers().set("X-Forwarded-For", "127.0.0.1");
+                return management.updateCoffee(actor, new JSONObject().put("enabled", enabled)
+                        .put("price", price).put("version", version), key, new Request(null, raw));
+            } finally {
+                raw.release();
+            }
         }
 
         JSONObject moderate(JSONObject actor, String id, String expectedName, String key) throws Exception {
@@ -101,7 +126,23 @@ public class ApiV3AdminPetNameTest {
             Assert.assertEquals(audit.getInt("operationCode"), Operation.OPERATION_CODE_C_MODERATE_PET_NAME);
             Assert.assertEquals(audit.getString("operationDataId"), PET_ID);
             Assert.assertEquals(audit.getString("operationUserId"), "1");
+
+            error(403, () -> f.management.coffeeSettings(ordinary));
+            error(403, () -> f.coffee(ordinary, false, 80, 1, "coffee-ordinary"));
+            Assert.assertEquals(f.management.coffeeSettings(owner).getInt("price"), 64);
+            error(422, () -> f.coffee(owner, false, 0, 1, "coffee-invalid"));
+            final var sale = f.coffee(owner, false, 80, 1, "coffee-off");
+            Assert.assertTrue(sale.similar(f.coffee(owner, false, 80, 1, "coffee-off")));
+            Assert.assertFalse(sale.getBoolean("enabled"));
+            Assert.assertEquals(sale.getInt("version"), 2);
+            error(409, () -> f.coffee(owner, true, 96, 1, "coffee-stale"));
+            Assert.assertEquals(f.count("bubble_audit"), 2);
+            final var enabled = f.coffee(owner, true, 96, 2, "coffee-on");
+            Assert.assertTrue(enabled.similar(f.management.coffeeSettings(owner)));
+            Assert.assertEquals(enabled.getInt("price"), 96);
+            Assert.assertEquals(f.count("bubble_audit"), 3);
         }
         System.out.println("PASS 宠物管理筛选分页、管理员权限、过期昵称拒绝、系统替换和审计去重");
+        System.out.println("PASS 宠物咖啡后台权限、调价、上下架、过期设置拒绝与幂等审计");
     }
 }

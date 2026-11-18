@@ -121,6 +121,8 @@ public class ApiV3AdminStage4Processor {
         // 宠物风控日志（严格只读）
         Dispatcher.get("/api/v3/admin/pets/logs", p::listPetLogs, auth::profileRead);
         Dispatcher.get("/api/v3/admin/pets", p::listPets, auth::profileRead);
+        Dispatcher.get("/api/v3/admin/pets/coffee", p::getPetCoffee, auth::profileRead);
+        Dispatcher.put("/api/v3/admin/pets/coffee", p::updatePetCoffee, auth::settingsWrite, write::handle);
         Dispatcher.put("/api/v3/admin/pets/{petId}/moderate-name", p::moderatePetName, auth::settingsWrite, write::handle);
 
         // IP 封禁与白名单管理
@@ -182,6 +184,16 @@ public class ApiV3AdminStage4Processor {
     public void listPets(final RequestContext context) {
         ApiV3Requests.read(context, () -> petService.list(identity(context),
                 ApiV3Requests.text(context.param("q"), 64, false), ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    public void getPetCoffee(final RequestContext context) {
+        ApiV3Requests.read(context, () -> petService.coffeeSettings(identity(context)));
+    }
+
+    public void updatePetCoffee(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> petService.updateCoffee(identity(context),
+                ApiV3WriteInputs.body(context, Set.of("enabled", "price", "version"), false, 2048),
+                ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
     }
 
     public void moderatePetName(final RequestContext context) {

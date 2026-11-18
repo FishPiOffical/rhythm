@@ -66,7 +66,7 @@ public final class ApiV3PetJournal {
                 if (!event.getString(field).matches("[0-9]{1,19}")) throw unavailable();
             final String kind = event.getString("kind"), action = event.getString("action");
             if ("care".equals(kind)) {
-                if (!ApiV3PetRules.ACTIONS.contains(action)) throw unavailable();
+                if (!ApiV3PetRules.ACTIONS.contains(action) && !"coffee".equals(action)) throw unavailable();
             } else if ("story".equals(kind)) {
                 if (!"story-claim".equals(action)) throw unavailable();
             } else if (!Set.of("craft", "purchase", "readoption").contains(kind) || !kind.equals(action)) throw unavailable();

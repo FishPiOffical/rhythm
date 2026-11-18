@@ -43,6 +43,7 @@ public class ApiV3AdminPetService {
     @Inject private ApiV3AdminService admin;
     @Inject private UserPetRepository pets;
     @Inject private UserRepository users;
+    @Inject private ApiV3PetCoffee coffee;
 
     public JSONObject list(final JSONObject identity, final String query, final int page, final int size)
             throws RepositoryException {
@@ -105,6 +106,39 @@ public class ApiV3AdminPetService {
                         admin.recordOperation(request, Operation.OPERATION_CODE_C_MODERATE_PET_NAME, id, actor.get().user());
                     }
                     return new JSONObject().put("petId", id).put("moderatedName", name);
+                });
+    }
+
+    public JSONObject coffeeSettings(final JSONObject identity) throws RepositoryException {
+        final var tx = admin.begin();
+        try {
+            admin.authorizeInCurrentTransaction(identity, "profile.read", Permission.PERMISSION_ID_C_MENU_ADMIN, true);
+            final JSONObject result = coffee.offer(false).json();
+            tx.commit();
+            return result;
+        } finally {
+            ApiV3AdminService.rollbackIfActive(tx);
+        }
+    }
+
+    public JSONObject updateCoffee(final JSONObject identity, final JSONObject body, final String key,
+                                   final Request request) throws Exception {
+        if (!body.keySet().equals(Set.of("enabled", "price", "version")) || !(body.opt("enabled") instanceof Boolean enabled))
+            throw ApiV3WriteInputs.invalid();
+        final int price = ApiV3WriteInputs.integer(body, "price", -1, 1, ApiV3PetCoffee.MAX_PRICE);
+        final int version = ApiV3WriteInputs.integer(body, "version", -1, 1, Integer.MAX_VALUE);
+        final var input = new JSONObject().put("enabled", enabled).put("price", price).put("version", version);
+        final var actor = new AtomicReference<ApiV3AdminService.AuthorizedActor>();
+        return ApiV3IdempotencyMgmtService.runAtomic(admin.guardedWrite(identity, null, true, actor),
+                ApiV3AdminService.actorId(identity), "admin.pet.coffee", key, input, () -> {
+                    final var current = coffee.offer(true);
+                    if (current.version() != version)
+                        throw new ApiV3Exception(409, "coffee_price_changed", "设置已更新，请刷新后再保存");
+                    if (current.price() == price && current.enabled() == enabled) return current.json();
+                    final var next = new ApiV3PetCoffee.Offer(enabled, price, Math.addExact(version, 1));
+                    coffee.saveOffer(next);
+                    admin.recordOperation(request, Operation.OPERATION_CODE_C_PET_COFFEE_SETTINGS, "coffee", actor.get().user());
+                    return next.json();
                 });
     }
 

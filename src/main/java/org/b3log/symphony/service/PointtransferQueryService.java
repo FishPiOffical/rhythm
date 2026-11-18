@@ -281,12 +281,15 @@ public class PointtransferQueryService {
                     record.put(Common.DISPLAY_TYPE, "外观购买");
                 } else if (Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type) {
                     record.put(Common.DISPLAY_TYPE, "宠物乱斗强化");
+                } else if (Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE == type) {
+                    record.put(Common.DISPLAY_TYPE, "宠物咖啡");
                 } else {
                     record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
                 }
 
                 String desTemplate;
-                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type || Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type) {
+                if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type || Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type
+                        || Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE == type) {
                     desTemplate = Escapes.escapeHTML(dataId);
                 } else if (Pointtransfer.TRANSFER_TYPE_C_APP_ADJUST == type) {
                     desTemplate = buildAppPointDescription(record, userId.equals(toId));
@@ -464,6 +467,7 @@ public class PointtransferQueryService {
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE:
                     case Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE:
+                    case Pointtransfer.TRANSFER_TYPE_C_PET_COFFEE:
                         break;
                     case Pointtransfer.TRANSFER_TYPE_C_INVITE_REGISTER:
                         final JSONObject newUser = userRepository.get(dataId);

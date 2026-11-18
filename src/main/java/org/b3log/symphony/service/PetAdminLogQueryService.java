@@ -54,11 +54,11 @@ public class PetAdminLogQueryService {
             entry("outing", "外出"), entry("course", "上课"), entry("work", "兼职"),
             entry("feed", "喂食"), entry("water", "饮水"), entry("pet", "抚摸"), entry("play", "玩耍"),
             entry("rest", "休息"), entry("wake", "醒来"), entry("purchase", "购买"),
-            entry("craft", "制作"), entry("story-claim", "领取事件奖励"), entry("readoption", "重新领养"));
-    private static final Map<String, String> RISK_TYPES = Map.of(
-            "adoption", "领养", "readoption", "重新领养", "story-claim", "领取事件奖励", "name", "改名",
-            "action", "照顾", "supplies", "领取补给", "purchase", "购买", "craft", "制作",
-            "activity-start", "开始活动", "activity-claim", "领取活动");
+            entry("coffee", "宠物咖啡"), entry("craft", "制作"), entry("story-claim", "领取事件奖励"), entry("readoption", "重新领养"));
+    private static final Map<String, String> RISK_TYPES = Map.ofEntries(
+            entry("adoption", "领养"), entry("readoption", "重新领养"), entry("story-claim", "领取事件奖励"), entry("name", "改名"),
+            entry("action", "照顾"), entry("supplies", "领取补给"), entry("purchase", "购买"), entry("coffee", "宠物咖啡"),
+            entry("craft", "制作"), entry("activity-start", "开始活动"), entry("activity-claim", "领取活动"));
     private static final Map<String, String> RISK_REASONS = Map.of(
             "rate_limited", "账号限流", "verification_required", "要求验证", "challenge_issued", "已发起验证",
             "verification_passed", "验证通过", "verification_failed", "验证失败",

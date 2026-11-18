@@ -32,6 +32,10 @@ import org.b3log.latke.http.renderer.JsonRenderer;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.symphony.processor.ApiV3PetProcessor;
 import org.b3log.symphony.repository.PetAccountRepository;
+import org.b3log.symphony.repository.PetCoffeeRepository;
+import org.b3log.symphony.repository.PointtransferRepository;
+import org.b3log.symphony.repository.PointtransferRedcRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.repository.PetRiskStateRepository;
 import org.b3log.symphony.repository.PetRiskAuditRepository;
 import org.b3log.symphony.repository.PetRiskProofRepository;
@@ -324,6 +328,8 @@ public class ApiV3PetTest {
                         case "action" -> endpointPet.action(current);
                         case "supplies" -> endpointPet.supplies(current);
                         case "purchase" -> endpointPet.purchase(current);
+                        case "coffeeOffer" -> endpointPet.coffeeOffer(current);
+                        case "buyCoffee" -> endpointPet.buyCoffee(current);
                         case "startActivity" -> endpointPet.startActivity(current);
                         case "claimActivity" -> endpointPet.claimActivity(current);
                         case "history" -> endpointPet.history(current);
@@ -616,11 +622,111 @@ public class ApiV3PetTest {
         System.out.println("PASS 双连接并发领养、不同幂等键消费与同日补给唯一约束");
     }
 
+    static class CoffeeFixture extends Fixture {
+        CoffeeFixture() throws Exception {
+            sql(db, "CREATE TABLE pet_coffee(oId TEXT PRIMARY KEY,snapshotJson TEXT)");
+            sql(db, "INSERT INTO pet_coffee VALUES (?, ?)", "settings", new ApiV3PetCoffee.Offer(true, 64, 1).json().toString());
+            sql(db, "CREATE TABLE coffee_points(oId TEXT PRIMARY KEY,userPoint INT,userUsedPoint INT)");
+            sql(db, "INSERT INTO coffee_points VALUES ('1', 256, 0)");
+            sql(db, "CREATE TABLE coffee_transfer(oId TEXT PRIMARY KEY, type INT, sum INT)");
+            sql(db, "CREATE TABLE coffee_transfer_index(oId TEXT PRIMARY KEY,userId TEXT,rawId TEXT)");
+            final var coffee = new ApiV3PetCoffee();
+            final var pointService = new PointtransferMgmtService();
+            final var pointUsers = new UserRepository() {
+                public String getName() { return "coffee_points"; }
+                public JSONObject getForUpdate(String id) throws RepositoryException {
+                    return selectSQL("SELECT * FROM coffee_points WHERE oId=? FOR UPDATE", id).getFirst();
+                }
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException {
+                    modify("coffee_points", id, row, fields);
+                }
+            };
+            inject(coffee, "users", pointUsers);
+            inject(coffee, "points", pointService);
+            inject(pointService, "userRepository", pointUsers);
+            inject(pointService, "pointtransferRepository", new PointtransferRepository() {
+                public String add(JSONObject row) throws RepositoryException {
+                    final String id = org.b3log.latke.util.Ids.genTimeMillisId();
+                    sql(writer, "INSERT INTO coffee_transfer VALUES (?,?,?)", id, row.getInt("type"), row.getInt("sum"));
+                    return id;
+                }
+            });
+            inject(coffee, "transferIndex", new PointtransferRedcRepository() {
+                public String add(JSONObject row) throws RepositoryException { return insert("coffee_transfer_index", row); }
+            });
+            inject(coffee, "repository", new PetCoffeeRepository() {
+                public String getName() { return "pet_coffee"; }
+                public List<JSONObject> select(String q, Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(JSONObject row) throws RepositoryException { return insert("pet_coffee", row); }
+                public void update(String id, JSONObject row, String... fields) throws RepositoryException { modify("pet_coffee", id, row, fields); }
+            });
+            inject(pets, "coffee", coffee);
+        }
+
+        JSONObject coffeeInput(String id, int version) {
+            return new JSONObject().put("petId", id).put("expectedDate", ApiV3PetRules.today(clock)).put("version", version);
+        }
+
+        void assertCoffee(int remaining, int balance, int transfers, double energy) throws Exception {
+            final var offer = pets.coffeeOffer(identity());
+            Assert.assertEquals(offer.getInt("remaining"), remaining);
+            Assert.assertEquals(offer.getInt("balance"), balance);
+            Assert.assertEquals(count("coffee_transfer"), transfers);
+            Assert.assertEquals(count("coffee_transfer_index"), transfers * 2);
+            Assert.assertEquals(rows(db, "SELECT count(*) AS n FROM pet_journal WHERE action='coffee'").getFirst().getInt("n"), transfers);
+            Assert.assertEquals(state().getJSONObject("pet").getDouble("energy"), energy, 0.001);
+        }
+    }
+
+    static void coffee() throws Exception {
+        try (var first = new CoffeeFixture(); var second = new CoffeeFixture(); var pool = Executors.newFixedThreadPool(2)) {
+            second.db.close();
+            second.url = first.url;
+            second.db = DriverManager.getConnection(first.url);
+            final String id = first.adopt();
+            sql(first.db, "UPDATE user_pet SET energy=0");
+            final var input = first.coffeeInput(id, 1);
+            first.writeFault = "INSERT INTO pet_journal";
+            error(503, () -> first.pets.buyCoffee(identity(), input, "rollback"));
+            first.assertCoffee(3, 256, 0, 0);
+            first.writeFault = "";
+            first.fault = "ack";
+            error(503, () -> first.pets.buyCoffee(identity(), input, "rollback"));
+            first.fault = "";
+            first.assertCoffee(2, 192, 1, 30);
+            final var recovered = first.pets.buyCoffee(identity(), input, "rollback");
+            Assert.assertTrue(recovered.similar(second.pets.buyCoffee(identity(), input, "rollback")));
+            first.assertCoffee(2, 192, 1, 30);
+            first.pets.buyCoffee(identity(), input, "second");
+            final CountDownLatch start = new CountDownLatch(1);
+            final var a = pool.submit(() -> { start.await(); return outcome(() -> first.pets.buyCoffee(identity(), input, "final-a")); });
+            final var b = pool.submit(() -> { start.await(); return outcome(() -> second.pets.buyCoffee(identity(), input, "final-b")); });
+            start.countDown();
+            Assert.assertEquals(Set.of(a.get(), b.get()), Set.of(200, 409));
+            first.assertCoffee(0, 64, 3, 90);
+
+            first.clock += 86_400_000L;
+            error(409, () -> first.pets.buyCoffee(identity(), input, "stale-date"));
+            sql(first.db, "UPDATE user_pet SET energy=85,lastCalculatedAt=?", first.clock);
+            sql(first.db, "UPDATE pet_coffee SET snapshotJson=? WHERE oId='settings'", new ApiV3PetCoffee.Offer(false, 65, 2).json().toString());
+            error(409, () -> first.pets.buyCoffee(identity(), first.coffeeInput(id, 2), "offline"));
+            sql(first.db, "UPDATE pet_coffee SET snapshotJson=? WHERE oId='settings'", new ApiV3PetCoffee.Offer(true, 65, 3).json().toString());
+            error(409, () -> first.pets.buyCoffee(identity(), first.coffeeInput(id, 1), "stale-price"));
+            error(409, () -> first.pets.buyCoffee(identity(), first.coffeeInput(id, 3), "short-balance"));
+            first.assertCoffee(3, 64, 3, 85);
+            sql(first.db, "UPDATE coffee_points SET userPoint=128");
+            first.pets.buyCoffee(identity(), first.coffeeInput(id, 3), "new-day");
+            first.assertCoffee(2, 63, 4, 100);
+        }
+        System.out.println("PASS 宠物咖啡并发额度、事务回滚、丢回包同键重试、跨日、调价、下架、余额和精力上限");
+    }
+
     static void http() throws Exception {
-        try (var f = new Fixture()) {
+        try (var f = new CoffeeFixture()) {
             ApiV3PetProcessor.registerRoutes(f.endpointPet, f.auth, f.writes);
             org.b3log.latke.http.Dispatcher.mapping();
-            for (String path : List.of("adoption", "name", "actions", "supplies", "purchases")) {
+            for (String path : List.of("adoption", "name", "actions", "supplies", "purchases", "coffee")) {
                 final String method = path.equals("name") ? "PUT" : "POST";
                 Assert.assertEquals(f.httpPet(method, "/api/v3/me/pet/" + path, null, "anonymous", "{}").attr("test.status"), 401);
                 Assert.assertEquals(f.httpPet(method, "/api/v3/me/pet/" + path, "scope", "scope", "{}").attr("test.status"), 403);
@@ -644,6 +750,14 @@ public class ApiV3PetTest {
             Assert.assertEquals(f.coins(), 115);
             Assert.assertEquals(f.food(), 9);
             Assert.assertEquals(f.httpPet("GET", "/api/v3/me/pet", "reviewer", null, null).attr("test.status"), 200);
+            final String coffeePath = "/api/v3/me/pet/coffee";
+            final String petId = f.state().getJSONObject("pet").getString("id");
+            sql(f.db, "UPDATE user_pet SET energy=40");
+            Assert.assertEquals(f.httpPet("GET", coffeePath, "owner", null, null).attr("test.status"), 200);
+            final String coffeeInput = f.coffeeInput(petId, 1).toString();
+            Assert.assertEquals(f.httpPet("POST", coffeePath, "owner", "coffee-http", coffeeInput).attr("test.status"), 200);
+            Assert.assertEquals(f.httpPet("POST", coffeePath, "owner", "coffee-http", coffeeInput).attr("test.status"), 200);
+            f.assertCoffee(2, 192, 1, 70);
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/adoption", "owner", "oversize", " ".repeat(2049)).attr("test.status"), 413);
         }
         System.out.println("PASS 七路由显式鉴权链、旧Cookie/apiKey拒绝、严格JSON/字段/请求体/幂等键");
@@ -653,7 +767,7 @@ public class ApiV3PetTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        names(); adoptionAndIsolation(); nameModeration(); economy(); care(); concurrent(); http();
+        names(); adoptionAndIsolation(); nameModeration(); economy(); care(); concurrent(); coffee(); http();
         System.out.println("PASS 宠物第一批后端专项完成；真实MySQL与浏览器人工验收另行执行");
     }
 }

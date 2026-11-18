@@ -328,6 +328,9 @@ public final class Operation {
     public static final int OPERATION_CODE_C_SAVE_CLIENT_DOWNLOAD = 55;
     public static final int OPERATION_CODE_C_MODERATE_PET_NAME = 56;
 
+    /** 修改宠物咖啡售价或在售状态。 */
+    public static final int OPERATION_CODE_C_PET_COFFEE_SETTINGS = 57;
+
 
     //// Transient ////
 

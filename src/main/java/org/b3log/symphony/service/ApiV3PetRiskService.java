@@ -49,8 +49,9 @@ public class ApiV3PetRiskService {
     private static final long GRANT_TTL = 15 * MINUTE;
     private static final int COMMAND_LIMIT = 128;
     private static final Set<String> OPERATIONS = Set.of("adoption", "readoption", "story-claim", "name", "action",
-            "supplies", "purchase", "craft", "activity-start", "activity-claim", "brawl-fight", "brawl-upgrade", "brawl-enroll", "brawl-match", "brawl-quote", "brawl-confirm", "brawl-socket", "brawl-season-claim", "brawl-invite", "brawl-invite-decision");
-    private static final Set<String> BUSINESS_DENIALS = Set.of("brawl_season_open", "brawl_season_unranked", "care_cooldown", "already_full", "not_enough_energy",
+            "supplies", "purchase", "coffee", "craft", "activity-start", "activity-claim", "brawl-fight", "brawl-upgrade", "brawl-enroll", "brawl-match", "brawl-quote", "brawl-confirm", "brawl-socket", "brawl-season-claim", "brawl-invite", "brawl-invite-decision");
+    private static final Set<String> BUSINESS_DENIALS = Set.of("coffee_off_sale", "coffee_price_changed", "coffee_daily_limit", "date_changed",
+            "brawl_season_open", "brawl_season_unranked", "care_cooldown", "already_full", "not_enough_energy",
             "not_enough_coins", "not_enough_hunger", "not_enough_water", "not_enough_items", "not_enough_food",
             "income_limit", "activity_running", "activity_claimed", "supply_claimed", "pet_resting", "pet_busy", "story_claimed", "collection_owned",
             "brawl_level_locked", "brawl_stage_locked", "brawl_stale_level", "brawl_materials", "brawl_version_changed",
@@ -133,6 +134,8 @@ public class ApiV3PetRiskService {
             command.put("failed", true);
             audit(actor, operation, id, command.getString("hash"), "business_" + error.code, clock);
             // 余额、匹配和版本变化属于正常乱斗反馈，保留审计和请求额度，但不累计验证码分数。
+            // 咖啡到达上限、价格变化或余额不足只记审计，账号请求额度照常执行。
+            if ("coffee".equals(operation)) return success(new JSONObject());
             if (operation.startsWith("brawl-") && BRAWL_AUDIT_ONLY.contains(error.code)) return success(new JSONObject());
             final JSONArray denied = recent(state.optJSONArray("denied"), clock - 5 * MINUTE);
             denied.put(clock);

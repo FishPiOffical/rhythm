@@ -266,6 +266,14 @@
       ]
     },
     {
+      "name": "pet_coffee",
+      "description": "宠物咖啡售价、上架状态和账号每日用量",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 19 },
+        { "name": "snapshotJson", "type": "String", "length": 256 }
+      ]
+    },
+    {
       "name": "pet_brawl_order",
       "description": "宠物乱斗强化报价和确认结果",
       "keys": [

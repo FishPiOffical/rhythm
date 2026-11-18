@@ -524,6 +524,9 @@ public final class Pointtransfer {
     /** 宠物乱斗武器强化 */
     public static final int TRANSFER_TYPE_C_PET_BRAWL_UPGRADE = 58;
 
+    /** 宠物咖啡即时补充精力。 */
+    public static final int TRANSFER_TYPE_C_PET_COFFEE = 59;
+
 
     /**
      * Private constructor.

@@ -77,6 +77,8 @@ public class ApiV3PetProcessor {
         Dispatcher.post("/api/v3/me/pet/stories/claim", processor::claimStory, auth::settingsWrite);
         Dispatcher.put("/api/v3/me/pet/name", processor::rename, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/actions", processor::action, auth::settingsWrite);
+        Dispatcher.get("/api/v3/me/pet/coffee", processor::coffeeOffer, auth::profileRead);
+        Dispatcher.post("/api/v3/me/pet/coffee", processor::buyCoffee, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/supplies", processor::supplies, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/purchases", processor::purchase, auth::settingsWrite);
         Dispatcher.post("/api/v3/me/pet/crafts", processor::craft, auth::settingsWrite);
@@ -203,6 +205,15 @@ public class ApiV3PetProcessor {
     public void supplies(final RequestContext context) {
         respond(context, () -> pets.supplies(identity(context),
                 body(context, Set.of("expectedDate")), ApiV3WriteInputs.idempotencyKey(context)));
+    }
+
+    public void coffeeOffer(final RequestContext context) {
+        ApiV3Requests.read(context, () -> pets.coffeeOffer(identity(context)));
+    }
+
+    public void buyCoffee(final RequestContext context) {
+        respond(context, () -> pets.buyCoffee(identity(context),
+                body(context, Set.of("petId", "expectedDate", "version")), ApiV3WriteInputs.idempotencyKey(context)));
     }
 
     public void purchase(final RequestContext context) {

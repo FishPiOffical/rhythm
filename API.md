@@ -16912,6 +16912,15 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 
 `PUT /api/v3/admin/pets/{petId}/moderate-name` 需要第一方管理员、`settings.write` 及 `Idempotency-Key`。提交 `{expectedName}`，服务端将该昵称改成「违规昵称」加宠物 ID 末六位，并记录审计。当前名字与请求不一致时返回 409（`pet_name_changed`）。已替换为系统名的记录返回同一处理结果，不重复写审计。回执为 `{petId,moderatedName}`。
 
+### 宠物咖啡（第一方）
+
+执行 `sql/20261118_api_v3_pet_coffee.sql` 后可用。
+
+- `GET /api/v3/me/pet/coffee` 需要 `profile.read`，返回 `{product,enabled,price,version,today,dailyLimit,remaining,energy,balance}`。`product` 为 `coffee`，`price` 和 `balance` 单位为站点积分，`today` 是北京时间日期。默认售价 64 积分，每个账号每天三次。
+- `POST /api/v3/me/pet/coffee` 需要 `settings.write` 和 `Idempotency-Key`。提交 `{petId,expectedDate,version}`，使用上次读取的日期和商品版本。购买立即恢复至多 30 精力（上限 100），需当前宠物空闲且精力未满。成功回执为 `{operation:"coffee",petId,committedAt}`。扣积分、恢复精力、扣当日次数、积分流水及活动日志一并提交。同键同内容重放返回原回执，客户端成功后重新读取当前状态和咖啡信息。
+- 当前日期、售价版本变化或商品下架分别返回 409（`date_changed`、`coffee_price_changed`、`coffee_off_sale`）。用完次数、余额不足或满精力也返回 409（`coffee_daily_limit`、`insufficient_points`、`already_full`）。拒绝时不扣积分或次数。
+- `GET /api/v3/admin/pets/coffee` 需要第一方管理员与 `profile.read`。`PUT /api/v3/admin/pets/coffee` 需要第一方管理员、`settings.write` 和 `Idempotency-Key`，提交 `{enabled,price,version}`，价格为 1 至 100000 的整数，版本取最近读取值。两者返回 `{product,enabled,price,version}`，实际更新会递增版本并记录后台审计。
+
 ### 宠物家园（第一批）
 
 以下接口需要当前第一方 V3 Bearer；不支持 Cookie 或旧 apiKey。两项读取使用 `profile.read`，五项写入使用 `settings.write`，写入需 `Idempotency-Key`。
