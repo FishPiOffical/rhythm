@@ -19,12 +19,19 @@
 package org.b3log.symphony.service;
 
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.symphony.model.Domain;
 import org.b3log.symphony.model.Tag;
+import org.b3log.symphony.model.UserExt;
+import org.b3log.symphony.repository.SystemSettingsRepository;
+import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 public class ApiV3DiscoveryQueryServiceTest {
@@ -52,5 +59,51 @@ public class ApiV3DiscoveryQueryServiceTest {
         final JSONObject dto = ApiV3DiscoveryQueryService.domainDto(raw);
         Assert.assertEquals(dto.keySet(), Set.of("id", "title", "uri", "description", "iconURL", "tagCount"));
         Assert.assertFalse(dto.toString().contains("secret"));
+    }
+
+    @Test
+    public void memberProfileOnlyIncludesValidLoginTimeWhenRequested() throws Exception {
+        final var settings = new Properties();
+        settings.setProperty("runtimeDatabase", "NONE");
+        Latkes.setLatkeProps(settings);
+        Latkes.setLocalProps(settings);
+        final var query = new ApiV3DiscoveryQueryService();
+        final var target = new JSONObject().put(Keys.OBJECT_ID, "123").put("userName", "Alice")
+                .put(UserExt.USER_POINT, 1).put(UserExt.ONLINE_MINUTE, 2)
+                .put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID)
+                .put(UserExt.USER_LATEST_LOGIN_TIME, 1794960000000L).put(UserExt.USER_LATEST_LOGIN_IP, "fixture ip");
+        ApiV3SecurityTest.inject(query, "userRepository", new UserRepository() {
+            @Override
+            public List<JSONObject> select(String sql, Object... args) {
+                return "Alice".equals(args[0]) ? List.of(target) : List.of();
+            }
+        });
+        ApiV3SecurityTest.inject(query, "systemSettingsRepository", new SystemSettingsRepository() {
+            @Override
+            public List<JSONObject> select(String sql, Object... args) { return List.of(); }
+        });
+        ApiV3SecurityTest.inject(query, "contentDtoService", new ApiV3ContentDtoService() {
+            @Override
+            public JSONObject author(JSONObject user, boolean anonymous) {
+                return new JSONObject().put("id", user.getString(Keys.OBJECT_ID)).put("userName", user.getString("userName"));
+            }
+        });
+
+        final var account = query.targetUser("Alice");
+        final var summary = query.profile(account, false);
+        final var member = query.profile(account, true);
+        Assert.assertFalse(summary.has(UserExt.USER_LATEST_LOGIN_TIME));
+        Assert.assertEquals(member.getLong(UserExt.USER_LATEST_LOGIN_TIME), 1794960000000L);
+        member.remove(UserExt.USER_LATEST_LOGIN_TIME);
+        Assert.assertTrue(member.similar(summary));
+        Assert.assertFalse(summary.has(UserExt.USER_LATEST_LOGIN_IP));
+        for (long time : new long[]{0, -1, 1794960000L, Long.MAX_VALUE}) {
+            target.put(UserExt.USER_LATEST_LOGIN_TIME, time);
+            Assert.assertFalse(query.profile(account, true).has(UserExt.USER_LATEST_LOGIN_TIME));
+        }
+        target.remove(UserExt.USER_LATEST_LOGIN_TIME);
+        Assert.assertFalse(query.profile(account, true).has(UserExt.USER_LATEST_LOGIN_TIME));
+        target.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_DEACTIVATED);
+        Assert.assertEquals(Assert.expectThrows(ApiV3Exception.class, () -> query.targetUser("Alice")).status, 404);
     }
 }
