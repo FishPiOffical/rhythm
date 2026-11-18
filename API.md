@@ -3136,6 +3136,35 @@ curl 'https://fishpi.cn/api/v3/me/points' --header 'Authorization: Bearer TOKEN'
 | - pagination | 分页信息 |
 | -- p / size / total / pageCount | 页码 / 每页数量 / 总条数 / 总页数 |
 
+### 读取会员积分记录
+
+`GET /api/v3/users/{userName}/points`
+
+按用户的积分公开设置分页读取流水概要。关闭公开时，本人及管理员通过第一方网页登录仍可读取，其他查看者收到 HTTP 403，`code=point_history_private`。接口响应不可缓存。详细说明仍由本人积分流水接口返回。
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| userName | 路径参数，用户名 | Alice |
+| Authorization | 可选 Bearer 访问令牌，提供时需要 `profile.read` | Bearer TOKEN |
+| p | 页码，默认 1，最大 42949672 | 1 |
+| size | 每页数量，默认 20，最大 50 | 20 |
+
+```bash
+curl 'https://fishpi.cn/api/v3/users/Alice/points?p=1&size=20'
+```
+
+| Key | 说明 |
+| --- | --- |
+| code / msg | 结果码 / 提示 |
+| data.list | 流水概要数组 |
+| -- time | 流水时间，毫秒时间戳 |
+| -- type / displayType | 流水类型编号 / 展示名称 |
+| -- amount / operation | 变动金额 / 记账方向（`+` 或 `-`） |
+| -- balance | 目标用户交易后余额 |
+| data.pagination | `{p,size,total,pageCount}` |
+
+> 用户不存在或不可访问时返回 404。流水概要省略交易备注、交易对手和来源细节。
+
 ### 读取草稿列表
 
 `GET /api/v3/me/drafts`
@@ -14214,6 +14243,7 @@ curl 'http://localhost:8080/api/v3/users/Alice/professions'
 | - activityFeed | 可选，近90天最多30条当前可读公开来源动态 | 数组 |
 | -- professionId | 职业ID | 10 |
 | -- actionCode | 动作编码 | article.publish |
+| -- sourceDescription | 当前公开可见的来源类型说明 | 发布帖子 |
 | -- occurredAt | 发生时间，毫秒 | 1792636800000 |
 | -- experienceDelta | 经验可见时提供的变化，可为负 | 5 |
 | - levelHistory | 可选，近90天最多30条当前可读公开来源等级变化 | 数组 |

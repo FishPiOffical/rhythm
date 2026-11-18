@@ -238,6 +238,10 @@ public class PointtransferQueryService {
      * </pre>
      */
     public JSONObject getUserPoints(final String userId, final int currentPageNum, final int pageSize) {
+        return getUserPoints(userId, currentPageNum, pageSize, true);
+    }
+
+    public JSONObject getUserPoints(final String userId, final int currentPageNum, final int pageSize, final boolean includeDescription) {
         try {
             final JSONObject ret = PointtransferRedcRepository.getPointtransferByUserId(userId, currentPageNum, pageSize);
             JSONArray arr = ret.optJSONArray("rslts");
@@ -254,6 +258,8 @@ public class PointtransferQueryService {
 
                 final String toId = record.optString(Pointtransfer.TO_ID);
                 final String fromId = record.optString(Pointtransfer.FROM_ID);
+                if (!includeDescription && !userId.equals(toId) && !userId.equals(fromId))
+                    throw new RepositoryException("会员流水索引与用户不匹配");
 
                 String typeStr = record.optString(Pointtransfer.TYPE);
                 if (("3".equals(typeStr) && userId.equals(toId))
@@ -286,6 +292,8 @@ public class PointtransferQueryService {
                 } else {
                     record.put(Common.DISPLAY_TYPE, langPropsService.get("pointType" + typeStr + "Label"));
                 }
+
+                if (!includeDescription) continue;
 
                 String desTemplate;
                 if (Pointtransfer.TRANSFER_TYPE_C_APPEARANCE_PURCHASE == type || Pointtransfer.TRANSFER_TYPE_C_PET_BRAWL_UPGRADE == type

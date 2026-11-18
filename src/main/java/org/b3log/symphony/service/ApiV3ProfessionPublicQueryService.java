@@ -390,9 +390,10 @@ public class ApiV3ProfessionPublicQueryService {
         final long[] bodyBudget = {2L * 1024 * 1024};
         for (JSONObject row : rows) {
             if (!"APPLIED".equals(row.opt("effectStatus"))) throw unavailable();
-            if (!sourceVisible(ApiV3ProfessionPublicDto.id(row, "sourceEventId"), owner, actor, bodyBudget, checks))
-                continue;
+            final String source = visibleSource(ApiV3ProfessionPublicDto.id(row, "sourceEventId"), owner, actor, bodyBudget, checks);
+            if (source == null) continue;
             final JSONObject dto = new JSONObject().put("professionId", ApiV3ProfessionPublicDto.id(row, "professionId")).put("actionCode", ApiV3ProfessionPublicDto.action(row)).put("occurredAt", ApiV3ProfessionPublicDto.number(row, "occurredAt", false));
+            dto.put("sourceDescription", source);
             final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
             if (experience)
                 dto.put("experienceDelta", delta);
@@ -405,18 +406,19 @@ public class ApiV3ProfessionPublicQueryService {
         if (visible(visibility, "levelHistory", owner, actor)) result.put("levelHistory", history);
     }
 
-    private boolean sourceVisible(final String source, final String owner, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
+    private String visibleSource(final String source, final String owner, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
         final var rows = checked(checks, sources, "SELECT subjectUserId,visibilityClass,targetType,targetId FROM `" + sources.getName() + "` WHERE oId=? LIMIT 2", source);
         if (rows.size() > 1)
             throw unavailable();
         if (rows.isEmpty() || !"PUBLIC".equals(rows.getFirst().optString("visibilityClass")))
-            return false;
+            return null;
         final JSONObject row = rows.getFirst();
         if (!owner.equals(row.optString("subjectUserId"))) throw unavailable();
         if (!Set.of("article", "comment", "breezemoon", "repeater", "chatroom_message").contains(row.optString("targetType")))
-            return false;
+            return null;
         final String target = ApiV3ProfessionPublicDto.id(row, "targetId");
-        return switch (row.optString("targetType")) {
+        final String type = row.getString("targetType");
+        final boolean visible = switch (type) {
             case "article" -> articleVisible(target, actor, bodyBudget, checks);
             case "comment" -> commentVisible(target, actor, bodyBudget, checks);
             case "breezemoon" -> moonVisible(target, actor, checks);
@@ -426,6 +428,15 @@ public class ApiV3ProfessionPublicQueryService {
             case "chatroom_message" ->
                     actor != null && checked(checks, chats, "SELECT oId FROM `" + chats.getName() + "` WHERE oId=? LIMIT 2", target).size() == 1;
             default -> false;
+        };
+        if (!visible) return null;
+        return switch (type) {
+            case "article" -> "发布帖子";
+            case "comment" -> "发表评论";
+            case "breezemoon" -> "发布清风明月";
+            case "repeater" -> "发布复读机内容";
+            case "chatroom_message" -> "聊天室发言";
+            default -> throw unavailable();
         };
     }
 

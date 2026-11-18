@@ -36,9 +36,11 @@ import org.b3log.symphony.model.ArticleDraft;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.model.LongArticleColumn;
 import org.b3log.symphony.model.Pointtransfer;
+import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.ArticleDraftRepository;
 import org.b3log.symphony.repository.ArticleRepository;
+import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.repository.LongArticleChapterRepository;
 import org.b3log.symphony.util.ApiV3ArticleEditorDto;
 import org.b3log.symphony.repository.LongArticleColumnRepository;
@@ -70,6 +72,8 @@ public class ApiV3PersonalQueryService {
     private CloudService cloudService;
     @Inject
     private PointtransferQueryService pointtransferQueryService;
+    @Inject
+    private UserRepository userRepository;
 
     public JSONObject settings(final JSONObject user) {
         final JSONObject privacy = new JSONObject();
@@ -101,18 +105,52 @@ public class ApiV3PersonalQueryService {
         return BagMutation.dto(new JSONObject(cloudService.getBag(userId)));
     }
 
+    public JSONObject memberPoints(final String name, final JSONObject identity, final int p, final int size) throws RepositoryException {
+        if (!name.matches("[A-Za-z0-9_-]{1,64}")) throw ApiV3Requests.invalid();
+        final JSONObject target = memberPointOwner(name);
+        final String ownerId = target.getString(Keys.OBJECT_ID);
+        requireMemberPointAccess(target, identity);
+        final JSONObject result = pointPage(pointtransferQueryService.getUserPoints(ownerId, p, size, false), p, size, false);
+        // 查询流水后再次读取可见性，避免设置变更或账号替换时返回旧权限下的记录。
+        final JSONObject current = memberPointOwner(name);
+        if (!ownerId.equals(current.getString(Keys.OBJECT_ID))) throw ApiV3Requests.notFound();
+        requireMemberPointAccess(current, identity);
+        return result;
+    }
+
+    private JSONObject memberPointOwner(final String name) throws RepositoryException {
+        final var rows = userRepository.select("SELECT oId,userPointStatus FROM `" + userRepository.getName()
+                        + "` WHERE userName=? AND userStatus IN (?,?) LIMIT 2",
+                name, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        return rows.getFirst();
+    }
+
+    private static void requireMemberPointAccess(final JSONObject target, final JSONObject identity) {
+        if (UserExt.USER_XXX_STATUS_C_ENABLED == target.optInt(UserExt.USER_POINT_STATUS, -1)) return;
+        final JSONObject viewer = identity == null ? null : identity.optJSONObject("user");
+        final boolean firstParty = identity != null && ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(identity.optString("clientId"));
+        if (viewer != null && firstParty && (target.getString(Keys.OBJECT_ID).equals(viewer.optString(Keys.OBJECT_ID))
+                || Role.ROLE_ID_C_ADMIN.equals(viewer.optString(UserExt.USER_ROLE)))) return;
+        throw new ApiV3Requests.ApiException(403, "point_history_private", "积分记录未公开");
+    }
+
     public JSONObject points(final String userId, final int p, final int size) {
-        final JSONObject result = pointtransferQueryService.getUserPoints(userId, p, size);
+        return pointPage(pointtransferQueryService.getUserPoints(userId, p, size), p, size, true);
+    }
+
+    private static JSONObject pointPage(final JSONObject result, final int p, final int size, final boolean detailed) {
         if (null == result) throw new ApiV3Requests.ApiException(503, "service_unavailable", "积分服务暂不可用");
         final JSONArray raw = result.optJSONArray(Keys.RESULTS);
         final JSONArray list = new JSONArray();
         if (null != raw) for (int i = 0; i < raw.length(); i++) {
             final JSONObject row = raw.getJSONObject(i);
-            // 投影时隐藏双方余额、内部请求 ID、应用凭据及数据 ID。
-            list.put(new JSONObject().put("time", row.optLong(Pointtransfer.TIME)).put("amount", row.optLong(Pointtransfer.SUM))
+            // 会员页只投影该用户的账面变动，说明中的转账备注及来源详情只在本人接口展示。
+            final JSONObject item = new JSONObject().put("time", row.optLong(Pointtransfer.TIME)).put("amount", row.optLong(Pointtransfer.SUM))
                     .put("type", row.optInt(Pointtransfer.TYPE)).put("operation", row.optString(Common.OPERATION))
-                    .put("balance", row.optLong(Common.BALANCE)).put("displayType", row.optString(Common.DISPLAY_TYPE))
-                    .put("descriptionHtml", Markdowns.clean(row.optString(Common.DESCRIPTION), "")));
+                    .put("balance", row.optLong(Common.BALANCE)).put("displayType", row.optString(Common.DISPLAY_TYPE));
+            if (detailed) item.put("descriptionHtml", Markdowns.clean(row.optString(Common.DESCRIPTION), ""));
+            list.put(item);
         }
         return ApiV3Requests.pagination(list, p, size, result.optLong(Pagination.PAGINATION_RECORD_COUNT));
     }

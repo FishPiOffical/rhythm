@@ -24,12 +24,14 @@ import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.ioc.BeanManager;
 import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.ioc.Singleton;
+import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3PersonalQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
+import org.json.JSONObject;
 
 /**
- * 个人资源的用户身份来自当前认证，查询参数、路径及正文均不接收目标用户。
+ * 本人资源从认证读取用户身份，会员积分记录按目标用户的公开设置判断权限。
  */
 @Singleton
 public class ApiV3PersonalProcessor {
@@ -40,6 +42,8 @@ public class ApiV3PersonalProcessor {
         final BeanManager beans = BeanManager.getInstance();
         final ApiV3PersonalProcessor processor = beans.getReference(ApiV3PersonalProcessor.class);
         final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
+        final AnonymousViewCheckMidware anonymous = beans.getReference(AnonymousViewCheckMidware.class);
+        registerMemberPoints(processor, auth, anonymous);
         Dispatcher.get("/api/v3/me/settings", processor::settings, auth::profileRead);
         Dispatcher.get("/api/v3/me/checkin", processor::checkin, auth::activityRead);
         Dispatcher.get("/api/v3/me/bag", processor::bag, auth::activityRead);
@@ -48,6 +52,18 @@ public class ApiV3PersonalProcessor {
         Dispatcher.get("/api/v3/me/drafts/{draftId}", processor::draft, auth::contentRead);
         Dispatcher.get("/api/v3/me/columns", processor::columns, auth::contentRead);
         Dispatcher.get("/api/v3/me/articles/{articleId}/source", processor::articleSource, auth::contentRead);
+    }
+
+    public static void registerMemberPoints(final ApiV3PersonalProcessor processor, final ApiV3AuthMidware auth,
+                                            final AnonymousViewCheckMidware anonymous) {
+        Dispatcher.get("/api/v3/users/{userName}/points", processor::memberPoints, auth::optionalProfile, anonymous::handle);
+    }
+
+    public void memberPoints(final RequestContext context) {
+        ApiV3Requests.read(context, () -> personal.memberPoints(
+                ApiV3Requests.text(context.pathVar("userName"), 64, true),
+                (JSONObject) context.attr(ApiV3Processor.IDENTITY),
+                ApiV3Requests.page(context), ApiV3Requests.size(context)));
     }
 
     public void settings(final RequestContext context) {
