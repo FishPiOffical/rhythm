@@ -405,10 +405,12 @@ public class ApiV3ProfessionPublicQueryService {
                 if ((!showFeed || feed.length() >= 30) && (!showHistory || history.length() >= 30)) break;
                 if (!"APPLIED".equals(row.opt("effectStatus"))) throw unavailable();
                 final long occurredAt = ApiV3ProfessionPublicDto.number(row, "occurredAt", false);
+                final String action = ApiV3ProfessionPublicDto.action(row);
+                final String sourceEventId = ApiV3ProfessionPublicDto.text(row, "sourceEventId", 19, true);
+                if ("level.migration".equals(action) && sourceEventId.isEmpty()) continue;
                 final String source = visibleSource(ApiV3ProfessionPublicDto.id(row, "sourceEventId"), owner, actor, bodyBudget, checks);
                 if (source == null) continue;
                 final String professionId = ApiV3ProfessionPublicDto.id(row, "professionId");
-                final String action = ApiV3ProfessionPublicDto.action(row);
                 final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
                 final String before = ApiV3ProfessionPublicDto.text(row, "beforeLevelCode", 64, true);
                 final String after = ApiV3ProfessionPublicDto.text(row, "afterLevelCode", 64, true);
