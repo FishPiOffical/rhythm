@@ -153,15 +153,47 @@ public class ApiV3PetRiskService {
         });
     }
 
+    /** 停车只复用已有验证码的单次凭证，不改变宠物的拒绝计数或额度。 */
+    public void registerParkingChallenge(final JSONObject identity, final String key, final JSONObject input) {
+        locked(identity, (actor, state, clock) -> {
+            final String id = commandId(actor, "parking-start", key);
+            final String hash = bodyHash(input);
+            final JSONObject existing = command(state, id);
+            if (existing != null && !hash.equals(existing.getString("hash")))
+                return failure(409, "idempotency_conflict", "相同操作编号不能用于不同的停车请求");
+            if (existing == null) {
+                appendCommand(state, new JSONObject().put("id", id).put("operation", "parking-start")
+                        .put("key", key).put("hash", hash).put("seenAt", clock).put("challenged", true));
+                audit(actor, "parking-start", id, hash, "verification_required", clock);
+            }
+            return success(new JSONObject());
+        });
+    }
+
+    /** 调用方已锁定本人；验证授权随停车事务一次消费，失败时共同回滚。 */
+    public boolean consumeParkingGrant(final String actor, final String key, final JSONObject input) throws RepositoryException {
+        final var rows = states.select("SELECT * FROM `" + states.getName() + "` WHERE oId=? FOR UPDATE", actor);
+        if (rows.isEmpty()) return false;
+        final JSONObject row = rows.getFirst(), state = new JSONObject(row.getString("stateJson"));
+        final JSONObject item = command(state, commandId(actor, "parking-start", key));
+        if (item == null || item.optLong("grantUntil") <= now()) return false;
+        if (!bodyHash(input).equals(item.getString("hash"))) throw ApiV3WriteInputs.invalid();
+        item.put("grantUntil", 0L);
+        row.put("stateJson", state.toString()).put("updatedAt", now());
+        states.update(actor, row, "stateJson", "updatedAt");
+        return true;
+    }
+
     public JSONObject challenge(final JSONObject identity, final String operation, final String key) {
-        validateCommand(operation, key);
+        if (!"parking-start".equals(operation)) validateCommand(operation, key);
+        else if (key == null || !key.matches("[A-Za-z0-9._:-]{1,128}")) throw ApiV3WriteInputs.invalid();
         final JSONObject widget = options.options();
         return locked(identity, (actor, state, clock) -> {
             final Outcome quota = transport(state, clock, "control", 60);
             if (quota != null) return quota;
             final JSONObject command = command(state, commandId(actor, operation, key));
             if (command == null) return failure(409, "pet_challenge_unavailable", "当前操作不需要验证");
-            if (state.optLong("retryAt") > clock && command.optLong("grantUntil") <= clock) return rateLimited();
+            if (!"parking-start".equals(operation) && state.optLong("retryAt") > clock && command.optLong("grantUntil") <= clock) return rateLimited();
             // 首次可能先被冷却拦下。冷却结束后仍只接受已经登记并冻结了摘要的原命令。
             if (!command.optBoolean("challenged")) {
                 if (!state.optBoolean("verificationRequired")) return failure(409, "pet_challenge_unavailable", "当前操作不需要验证");

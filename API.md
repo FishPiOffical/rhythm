@@ -16961,6 +16961,24 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - 当前日期、售价版本变化或商品下架分别返回 409（`date_changed`、`coffee_price_changed`、`coffee_off_sale`）。用完次数、余额不足或满精力也返回 409（`coffee_daily_limit`、`insufficient_points`、`already_full`）。拒绝时不扣积分或次数。
 - `GET /api/v3/admin/pets/coffee` 需要第一方管理员与 `profile.read`。`PUT /api/v3/admin/pets/coffee` 需要第一方管理员、`settings.write` 和 `Idempotency-Key`，提交 `{enabled,price,version}`，价格为 1 至 100000 的整数，版本取最近读取值。两者返回 `{product,enabled,price,version}`，实际更新会递增版本并记录后台审计。
 
+### 抢车位（第一方本人游戏）
+
+`GET /api/v3/me/parking` 使用第一方 Bearer 和 `profile.read`。返回服务器时间戳 `serverNow`、整数游园币余额 `coins`、车型目录 `catalog`、本人已拥有的车型 ID `owned`、正在出停和占用本人车位的记录 `driving/occupant`（空闲为 null）、本人最近五次结算 `recent`，以及可选车位 `spaces`。每页最多 20 个车位，非空的 `next` 作为下一次读取的 `after`。
+
+`POST /api/v3/me/parking/{action}` 使用第一方 Bearer、`settings.write` 和 `Idempotency-Key`。按动作提交以下 JSON 字段。
+
+| action | 字段 | 效果 |
+|---|---|---|
+| starter | car | 免费领取三款初始车之一并开放一个车位 |
+| buy | car | 按目录价格扣游园币购车 |
+| park | car、hostId | 驾驶已拥有的车停入其他玩家的空位 |
+| collect | sessionId | 车主收回该次停车 |
+| ticket | sessionId | 车位主人结束该次停车 |
+
+停车每账号限同时出停一辆，按开始时的小时费率计满整数，最多累计八小时。两种结束方式都只向车主入账，独立于宠物兼职每日额度。回执包含 action、amount，有停车记录时包含 sessionId。结果未知时用原动作、原输入及原键恢复，确认后重读当前状态。停车要求人机验证时返回 `parking_verification_required`，使用既有宠物验证接口、操作名 `parking-start` 与原键，验证后继续原请求。
+
+启用前在游园币迁移之后执行 `sql/20261118_api_v3_parking.sql`。运营可用 `tools/parking-analytics.sql` 查看最近七天的结算及重复续停情况。
+
 ### 游园币钱包（宠物目录 v4）
 
 `GET /api/v3/me/pet` 的 `catalogVersion=4` 与 `GET /api/v3/pets/catalog` 的 `version=4`、`activityVersion=6` 配套。以下各批记录中的旧金额按 1 宠物币兑 10 游园币换算。接口直接返回游园币整数，客户端原样显示。本人聚合沿用 `wallet.coins`、`income.{date,earned,remaining,limit}`；活动成本、预期和实际收益、操作日志的金额采用相同单位。未领养的用户也能读到自己的已有游戏余额。

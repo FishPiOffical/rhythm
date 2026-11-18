@@ -170,6 +170,34 @@ public class ApiV3PetRiskTest {
         System.out.println("PASS 验证绑定用户/命令/摘要、验证不消费、丢回执恢复、原命令提交解锁、全局证明单用");
     }
 
+    static void parkingProofIsIndependent() throws Exception {
+        try (var f = new Fixture()) {
+            final String key = "park-proof";
+            final JSONObject route = new JSONObject().put("car", "creek").put("hostId", "2");
+            f.risk.registerParkingChallenge(identity(), key, route);
+            f.risk.registerParkingChallenge(identity(), key, route);
+            Assert.assertFalse(f.risk.state(identity()).getBoolean("verificationRequired"));
+            final JSONObject challenge = f.risk.challenge(identity(), "parking-start", key);
+            f.risk.verify(identity(), challenge.getString("challengeId"), proof(f, "parking-lot"));
+            final var interrupted = f.begin();
+            try {
+                Assert.assertTrue(f.risk.consumeParkingGrant("1", key, route));
+            } finally {
+                interrupted.rollback();
+            }
+            final var finished = f.begin();
+            try {
+                Assert.assertFalse(f.risk.consumeParkingGrant("1", "another-command", route));
+                Assert.assertTrue(f.risk.consumeParkingGrant("1", key, route));
+                Assert.assertFalse(f.risk.consumeParkingGrant("1", key, route));
+                finished.commit();
+            } finally {
+                if (finished.isActive()) finished.rollback();
+            }
+        }
+        System.out.println("PASS 停车验证绑定原命令，事务回滚保留授权，成功后只使用一次");
+    }
+
     static void weakNetworkAndFailure() throws Exception {
         try (var f = new Fixture()) {
             f.enforceRisk = true;
@@ -305,6 +333,7 @@ public class ApiV3PetRiskTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
+        parkingProofIsIndependent();
         rateAndRecovery(); brawlDenialsAreAuditOnly(); challengeAndBinding(); weakNetworkAndFailure(); cooldownBeforeChallenge(); parallelAndRetention(); guardCommitRecovery(); careAvailability();
         System.out.println("PASS 宠物账号保护隔离专项完成，真实极验及MySQL另行人工验收");
     }

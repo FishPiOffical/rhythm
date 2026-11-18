@@ -779,6 +779,85 @@
       ]
     },
     {
+      "name": "parking_garage",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "cars",
+          "type": "String",
+          "length": 256
+        },
+        {
+          "name": "driving",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "occupant",
+          "type": "String",
+          "length": 19
+        }
+      ]
+    },
+    {
+      "name": "parking_session",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "driverId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "hostId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "car",
+          "type": "String",
+          "length": 24
+        },
+        {
+          "name": "hourlyRate",
+          "type": "int"
+        },
+        {
+          "name": "startedAt",
+          "type": "long"
+        },
+        {
+          "name": "endedAt",
+          "type": "long"
+        },
+        {
+          "name": "ending",
+          "type": "String",
+          "length": 12
+        },
+        {
+          "name": "paid",
+          "type": "int"
+        },
+        {
+          "name": "restartGapMs",
+          "type": "long"
+        },
+        {
+          "name": "verified",
+          "type": "int"
+        }
+      ]
+    },
+    {
       "name": "game_wallet",
       "keys": [
         {
