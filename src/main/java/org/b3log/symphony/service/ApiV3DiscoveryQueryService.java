@@ -284,7 +284,7 @@ public class ApiV3DiscoveryQueryService {
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
-    public JSONObject profile(final JSONObject user) throws RepositoryException {
+    public JSONObject profile(final JSONObject user, final boolean includeLoginTime) throws RepositoryException {
         final long points = user.getLong(UserExt.USER_POINT);
         final long onlineMinutes = user.getLong(UserExt.ONLINE_MINUTE);
         if (points < -9007199254740991L || points > 9007199254740991L || onlineMinutes < 0 || onlineMinutes > 9007199254740991L) {
@@ -296,7 +296,7 @@ public class ApiV3DiscoveryQueryService {
         // 仅当用户明确公开位置时返回城市，不投影其他地理资料。
         final String city = user.optInt(UserExt.USER_GEO_STATUS, -1) == UserExt.USER_GEO_STATUS_C_PUBLIC
                 ? user.optString(UserExt.USER_CITY) : "";
-        return author(user).put("userIntro", user.optString(UserExt.USER_INTRO))
+        final JSONObject result = author(user).put("userIntro", user.optString(UserExt.USER_INTRO))
                 .put("userURL", user.optString(User.USER_URL))
                 .put("cardBg", cardBackground(user.optString(Keys.OBJECT_ID)))
                 .put("userNo", memberNumber.matches("[1-9][0-9]{0,18}") ? memberNumber : "")
@@ -305,6 +305,13 @@ public class ApiV3DiscoveryQueryService {
                 .put("userCity", city)
                 .put("userOnlineFlag", UserOnlineStatus.publicFlag(user))
                 .put("userPoint", points).put("onlineMinute", onlineMinutes);
+        // 会员页沿用旧站的最后登录记录，默认公开摘要及位置隐私字段保持原有范围。
+        if (includeLoginTime) {
+            final long time = user.optLong(UserExt.USER_LATEST_LOGIN_TIME);
+            if (time >= 1_000_000_000_000L && time < 10_000_000_000_000L)
+                result.put(UserExt.USER_LATEST_LOGIN_TIME, time);
+        }
+        return result;
     }
 
     private String cardBackground(final String userId) throws RepositoryException {

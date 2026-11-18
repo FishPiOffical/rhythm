@@ -134,7 +134,7 @@ public class ApiV3DiscoveryProcessor {
     }
 
     public void user(final RequestContext context) {
-        ApiV3Requests.read(context, () -> discovery.profile(targetUser(context)));
+        ApiV3Requests.read(context, () -> discovery.profile(targetUser(context), "true".equals(context.param("includeLoginTime"))));
     }
 
     public void userArticles(final RequestContext context) {

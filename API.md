@@ -2609,6 +2609,7 @@ curl 'https://fishpi.cn/api/v3/domains/20261016002/articles'
 | --- | --- | --- |
 | Authorization | Bearer 访问令牌（可选），使用令牌时需要 profile.read | Bearer TOKEN |
 | userName | 用户名，最多 64 字符 | Vanessa |
+| includeLoginTime | 可选，值为 true 时包含有效最后登录时间 | true |
 
 请求示例：
 
@@ -2629,6 +2630,7 @@ curl 'https://fishpi.cn/api/v3/users/Vanessa'
 | - cardBg | 个性卡片背景图片 URL，未设置或无有效图片地址时为空字符串 |
 | - userPoint | 当前积分余额，整数 |
 | - onlineMinute | 累计在线时长，单位分钟，非负整数 |
+| - userLatestLoginTime | 可选，被查看用户的最后登录时间，Unix 毫秒时间戳。显式请求且有有效记录时返回 |
 
 > 用户不存在或不可用时返回 HTTP 404。 资料及相关列表按当前账号状态和隐私范围读取；收回公开权限后，无权读者的相关列表返回 HTTP 403，本人和符合既有权限的管理员例外保持。
 
