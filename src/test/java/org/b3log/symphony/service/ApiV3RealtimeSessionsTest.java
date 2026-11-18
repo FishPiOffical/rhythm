@@ -221,6 +221,30 @@ public class ApiV3RealtimeSessionsTest {
         System.out.println("PASS 公告仅发给已认证连接，进出提示独立于在线隐私且多会话去重");
     }
 
+    private static void verifyBreezemoonInvalidation() throws Exception {
+        try (var f = new Live()) {
+            Assert.expectThrows(ApiV3Exception.class, () -> f.core.issueBreezemoons("123", "456"));
+            write("UPDATE symphony_api_v3_token SET scope='content.read' WHERE oId='456'");
+            var moon = f.open("moon", "192.0.2.20");
+            var chat = f.chat("chat");
+            var waiting = f.open("waiting", "192.0.2.21");
+            final var ticket = f.core.issueBreezemoons("123", "456").ticket();
+            f.registry.receive("moon", new JSONObject().put("type", "authenticate").put("ticket", ticket).toString());
+            Assert.assertEquals(moon.sent.getLast().getJSONObject("data").getString("channel"), "breezemoons");
+            f.registry.breezemoonsChanged();
+            final var update = moon.sent.getLast();
+            Assert.assertEquals(update.getString("type"), "breezemoons.changed");
+            Assert.assertEquals(update.getJSONObject("data").length(), 0);
+            Assert.assertEquals(chat.sent.size(), 2);
+            Assert.assertEquals(waiting.sent.size(), 1);
+            write("UPDATE symphony_api_v3_token SET state=2 WHERE oId='456'");
+            f.registry.breezemoonsChanged();
+            Assert.assertTrue(moon.closed);
+            Assert.assertEquals(moon.sent.size(), 3);
+        }
+        System.out.println("PASS breezemoon ticket, channel isolation, minimal invalidation and revocation");
+    }
+
     public static void main(String[] args) throws Exception {
         verifyChatReactionSelection();
         var props = new Properties();
@@ -231,6 +255,7 @@ public class ApiV3RealtimeSessionsTest {
             field.set(null, props);
         }
         verifyChatNotices();
+        verifyBreezemoonInvalidation();
         try (var f = new Live()) {
             var a = f.authenticate("a", "123", "456");
             var b = f.authenticate("b", "321", "654");

@@ -94,6 +94,7 @@ public class ApiV3RealtimeService {
     private final AtomicBoolean ticking = new AtomicBoolean();
     private final AtomicBoolean cleaning = new AtomicBoolean();
     private final AtomicBoolean polling = new AtomicBoolean();
+    private final AtomicBoolean breezemoonsDirty = new AtomicBoolean();
     private final ConcurrentHashMap<String, String> seen = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> seenMessages = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> seenArticles = new ConcurrentHashMap<>();
@@ -106,6 +107,26 @@ public class ApiV3RealtimeService {
     public Set<String> chatUserIds() {
         final var active = sessions;
         return active == null ? Set.of() : active.chatUserIds();
+    }
+
+    public void markBreezemoonsChanged() {
+        final var active = sessions;
+        if (active == null || !breezemoonsDirty.compareAndSet(false, true)) return;
+        // 合并相邻事务的变更，广播在线程池中执行，不阻塞写入回执。
+        try {
+            timer.schedule(() -> {
+                try {
+                    executeWorker(() -> {
+                        breezemoonsDirty.set(false);
+                        active.breezemoonsChanged();
+                    });
+                } catch (RejectedExecutionException ignored) {
+                    breezemoonsDirty.set(false);
+                }
+            }, 200, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException ignored) {
+            breezemoonsDirty.set(false);
+        }
     }
 
     public int articleConnectionCount(final String articleId) {

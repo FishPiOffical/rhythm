@@ -64,6 +64,7 @@ public class ApiV3RealtimeProcessor {
         final var writes = beans.getReference(ApiV3WriteMidware.class);
         Dispatcher.post("/api/v3/realtime/tickets", p::ticket, auth::notificationsRead, writes::handle);
         Dispatcher.post("/api/v3/articles/{articleId}/realtime-ticket", p::articleTicket, auth::contentRead, writes::handle);
+        Dispatcher.post("/api/v3/breezemoons/realtime-ticket", p::breezemoonTicket, auth::contentRead, writes::handle);
         Dispatcher.post("/api/v3/chat/realtime-ticket", p::chatTicket, auth::contentRead, writes::handle);
         Dispatcher.post("/api/v3/me/messages/realtime-ticket", p::messagesTicket, auth::messagesRead, writes::handle);
         Dispatcher.webSocket("/api/v3/realtime", beans.getReference(ApiV3RealtimeChannel.class));
@@ -120,6 +121,17 @@ public class ApiV3RealtimeProcessor {
             final var issued = tickets.issueChat(actor, identity.getString("tokenId"));
             return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
                     .put("path", ApiV3RealtimeChannel.path()).put("channel", "chat");
+        });
+    }
+
+    public void breezemoonTicket(RequestContext context) {
+        ApiV3Requests.respond(context, () -> {
+            ApiV3WriteInputs.body(context, Set.of(), true);
+            final var identity = (JSONObject) context.attr(ApiV3Processor.IDENTITY);
+            final String actor = ApiV3Requests.viewer(context).getString(Keys.OBJECT_ID);
+            final var issued = tickets.issueBreezemoons(actor, identity.getString("tokenId"));
+            return new JSONObject().put("ticket", issued.ticket()).put("expiresIn", issued.expiresIn())
+                    .put("path", ApiV3RealtimeChannel.path()).put("channel", "breezemoons");
         });
     }
 

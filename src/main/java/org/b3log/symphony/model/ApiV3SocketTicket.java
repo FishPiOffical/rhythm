@@ -32,6 +32,7 @@ public final class ApiV3SocketTicket {
     public static final String TARGET_ID = "targetId";
     public static final String CHANNEL_NOTIFICATIONS = "notifications";
     public static final String CHANNEL_ARTICLE = "article";
+    public static final String CHANNEL_BREEZEMOONS = "breezemoons";
     public static final String CHANNEL_CHAT = "chat";
     public static final String CHANNEL_MESSAGES = "messages";
     public static final String CREATED_AT = "createdAt";

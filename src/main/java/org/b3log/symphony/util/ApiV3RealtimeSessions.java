@@ -65,6 +65,7 @@ public final class ApiV3RealtimeSessions {
     private final ConcurrentHashMap<String, Set<Connection>> byUser = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Set<Connection>> byArticle = new ConcurrentHashMap<>();
     private final Set<Connection> chat = ConcurrentHashMap.newKeySet();
+    private final Set<Connection> breezemoons = ConcurrentHashMap.newKeySet();
     private final Map<String, Integer> ips = new HashMap<>(), users = new HashMap<>();
     private Set<String> lastChatPresence = Set.of();
     private final Set<String> announcedChatPresence = new HashSet<>();
@@ -175,6 +176,8 @@ public final class ApiV3RealtimeSessions {
                         byArticle.computeIfAbsent(grant.targetId(), ignored -> ConcurrentHashMap.newKeySet()).add(c);
                     if (ApiV3SocketTicket.CHANNEL_CHAT.equals(grant.channel()))
                         chat.add(c);
+                    if (ApiV3SocketTicket.CHANNEL_BREEZEMOONS.equals(grant.channel()))
+                        breezemoons.add(c);
                 }
                 c.nextCheck = clock.getAsLong() + RECHECK_INTERVAL;
                 final var ready = new JSONObject().put("channel", grant.channel()).put("expiresAt", grant.expiresAt());
@@ -261,6 +264,26 @@ public final class ApiV3RealtimeSessions {
                 }
                 c.transport.send(new JSONObject().put("type", "article.changed")
                         .put("data", new JSONObject().put("articleId", articleId)).toString());
+            } catch (Exception e) {
+                remove(c);
+            } finally {
+                c.lock.unlock();
+            }
+        }
+    }
+
+    /** 仅通知列表失效，不广播清风正文、作者或记录编号。 */
+    public void breezemoonsChanged() {
+        final String frame = new JSONObject().put("type", "breezemoons.changed").put("data", new JSONObject()).toString();
+        for (Connection c : breezemoons) {
+            c.lock.lock();
+            try {
+                if (c.closed || !c.ready) continue;
+                if (!valid(c)) {
+                    remove(c);
+                    continue;
+                }
+                c.transport.send(frame);
             } catch (Exception e) {
                 remove(c);
             } finally {
@@ -521,6 +544,7 @@ public final class ApiV3RealtimeSessions {
             decrement(ips, c.ip);
             if (c.grant != null) {
                 chat.remove(c);
+                breezemoons.remove(c);
                 decrement(users, c.grant.userId());
                 final Set<Connection> owned = byUser.get(c.grant.userId());
                 if (owned != null) {

@@ -93,6 +93,10 @@ public class ApiV3SocketTicketService {
         return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_CHAT, "");
     }
 
+    public Issued issueBreezemoons(final String actor, final String parentTokenId) throws Exception {
+        return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_BREEZEMOONS, "");
+    }
+
     public Issued issueMessages(final String actor, final String parentTokenId) throws Exception {
         return issue(actor, parentTokenId, ApiV3SocketTicket.CHANNEL_MESSAGES, "");
     }
@@ -162,7 +166,7 @@ public class ApiV3SocketTicketService {
         if (ApiV3SocketTicket.CHANNEL_NOTIFICATIONS.equals(channel) && "".equals(targetId)) return SCOPE;
         if (ApiV3SocketTicket.CHANNEL_ARTICLE.equals(channel) && targetId != null && targetId.matches("[0-9]{1,32}"))
             return "content.read";
-        if (ApiV3SocketTicket.CHANNEL_CHAT.equals(channel) && "".equals(targetId)) return "content.read";
+        if ((ApiV3SocketTicket.CHANNEL_CHAT.equals(channel) || ApiV3SocketTicket.CHANNEL_BREEZEMOONS.equals(channel)) && "".equals(targetId)) return "content.read";
         if (ApiV3SocketTicket.CHANNEL_MESSAGES.equals(channel) && "".equals(targetId)) return "messages.read";
         return null;
     }

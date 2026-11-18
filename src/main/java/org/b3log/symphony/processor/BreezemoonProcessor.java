@@ -87,6 +87,8 @@ public class BreezemoonProcessor {
      */
     @Inject
     private BreezemoonMgmtService breezemoonMgmtService;
+    @Inject
+    private ApiV3RealtimeService realtime;
 
     /**
      * Data model service.
@@ -327,6 +329,7 @@ public class BreezemoonProcessor {
             data.put("oId", list.get(0).optString("oId"));
 
             if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS)) {
+                realtime.markBreezemoonsChanged();
                 UserChannel.sendCmdToAll(new JSONObject().put("bz", data).put("command", "bz-update"));
             } else {
                 context.renderMsg("您的清风明月发表成功，但由于您的隐私设置为不公开，将不会显示在公开列表。请至设置-隐私中，打开“公开清风明月列表”选项。");
@@ -401,6 +404,8 @@ public class BreezemoonProcessor {
             breezemoon.put(Breezemoon.BREEZEMOON_UA, ua);
 
             breezemoonMgmtService.updateBreezemoon(breezemoon);
+            if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED))
+                realtime.markBreezemoonsChanged();
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
         } catch (final Exception e) {
@@ -430,6 +435,8 @@ public class BreezemoonProcessor {
             }
 
             breezemoonMgmtService.removeBreezemoon(id);
+            if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED))
+                realtime.markBreezemoonsChanged();
 
             context.renderJSONValue(Keys.CODE, StatusCodes.SUCC);
         } catch (final Exception e) {

@@ -28,7 +28,7 @@
 - 后台复读机发布复用正文审核和同一内容表，独立标记 admin 来源和审计，不增加职业投稿奖励。客户端下载以 client_download 为权威来源，迁移 sql/20261116_client_download_catalog.sql 保留现有 15 项，重跑不覆盖管理员修改。只有上架记录公开下载链接，前台页脚快捷入口指向对应目录卡片。
 - 大事记个人投稿查询走 `ApiV3MilestoneProcessor` + `ApiV3MilestoneQueryService`，必须 owner+ID 联合过滤，不能复用公开详情。创建的事务内方法在 `MilestoneMgmtService`，`MilestoneSubmission` 白名单强制作者/待审状态/时间；缓存只在提交后清理。v3 投稿正文已确认采用 Markdown，在入口渲染清洗为 HTML 后保存，以兼容既有时间线；本人 content 返回保存后的 HTML。
 - v3 鱼游列表默认按总投票数、点赞数、时间排序（用户已确认），保留 `sort=likes`；不要依据旧的 `/activities` 点赞排序说明更改该默认值。
-- v3 清风明月发布/编辑/删除复用 `BreezemoonMgmtService` 的事务内方法，职业发布/撤销事件与内容同事务；`BreezemoonWriteQuota` 与旧入口共用业务频控。公开读取必须检查作者的 `userBreezemoonStatus`；关注流只读取关注用户公开有效内容且不回退全站；编辑不得改变作者、创建时间或审核状态。实时广播只在发布幂等首次确认提交后尽力发送。
+- v3 清风明月发布/编辑/删除复用 `BreezemoonMgmtService` 的事务内方法，职业发布/撤销事件与内容同事务；`BreezemoonWriteQuota` 与旧入口共用业务频控。公开读取必须检查作者的 `userBreezemoonStatus`；关注流只读取关注用户公开有效内容且不回退全站；编辑不得改变作者、创建时间或审核状态。旧频道发布广播只在发布幂等首次确认提交后尽力发送。V3 清风订阅使用 `content.read` 票据，同实例公开发布、编辑或删除首次确认提交后合并发无内容的失效信号；当前可见性以列表 GET 为准。
 - v3 鱼游投票/评论复用 `FishGameMgmtService` 显式事务内方法，先锁父鱼游并验证已审核；投票与计数同事务，PUT 设置、DELETE 清除，旧入口仍 toggle。新旧业务额度共用 `FishGameWriteQuota`；后台元数据更新必须限定字段，不能用旧对象覆盖投票计数。
 - v3 社区读取走 `ApiV3CommunityQueryService`：鱼游/大事记必须按审核状态过滤；同城用户和文章均需检查作者公开位置，文章还排除匿名发表。统计只输出明确数字字段，在线总数已包含成员；鱼游新 API 必须使用真实分页，不能复用旧 getApproved 的 100 条截断。
 - v3 排行榜由 `ApiV3RankingProcessor` + `ApiV3RankingQueryService` 提供；邀请/赞助/优选/小冰共用 `RankingQueryService`，旧接口也调用该服务。V3 捐助榜沿旧版展示人数上限最多返回前 10 名，summary 金额和支持天数按这 10 名计算，单行金额/次数字段保持不变；其他榜单不受影响。游戏榜只投影排名指标，不得直接输出 cloud 存档；JSON 集合读取需兼容 `JSONArray` 与 `List`。

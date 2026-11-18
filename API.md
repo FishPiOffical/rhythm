@@ -7088,6 +7088,14 @@ curl --location --request DELETE 'https://fishpi.cn/api/v3/breezemoons/177000000
 
 > 请求体可省略或为 `{}`。其他账号的记录、记录不存在时返回 HTTP 404；成功后使用原幂等键重试仍成功。删除后重试原发布请求不会重新创建内容。
 
+### 清风明月实时订阅
+
+`POST /api/v3/breezemoons/realtime-ticket`
+
+需要 V3 Bearer 和 `content.read`。请求体可省略或为 `{}`。响应的 `data` 包含一次性 `ticket`、`expiresIn`、`path`（`/api/v3/realtime`）及 `channel`（`breezemoons`），沿用 V3 WebSocket 的认证、心跳、过期和连接限制。
+
+同一 Rhythm 实例上的公开清风发布、编辑或删除提交后，已认证的该频道连接可收到 `{"type":"breezemoons.changed","data":{}}`。事件可以合并，不携带正文、作者或编号。收到事件或重连后，客户端重新读取 `GET /api/v3/breezemoons`。旧版 `/user-channel` 继续提供原有发布通知。
+
 ## API v3 关注、收藏与订阅
 
 ### 本人的关注用户列表

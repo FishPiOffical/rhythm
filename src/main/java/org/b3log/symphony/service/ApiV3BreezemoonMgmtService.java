@@ -51,6 +51,8 @@ public class ApiV3BreezemoonMgmtService {
     private UserQueryService users;
     @Inject
     private RoleQueryService roles;
+    @Inject
+    private ApiV3RealtimeService realtime;
 
     public JSONObject create(final JSONObject viewer, final String raw, final String key, final String ip, final String ua, final String city) throws Exception {
         permission(viewer, Permission.PERMISSION_ID_C_COMMON_ADD_BREEZEMOON);
@@ -74,7 +76,7 @@ public class ApiV3BreezemoonMgmtService {
 
     public JSONObject update(final JSONObject viewer, final String id, final String raw, final String key, final String ip, final String ua) throws Exception {
         permission(viewer, Permission.PERMISSION_ID_C_COMMON_UPDATE_BREEZEMOON);
-        return idempotency.execute(viewer.optString(Keys.OBJECT_ID), "breezemoons.update:" + id, key, new JSONObject().put("content", raw), () -> {
+        final var execution = idempotency.executeWithOutcome(viewer.optString(Keys.OBJECT_ID), "breezemoons.update:" + id, key, new JSONObject().put("content", raw), () -> {
             final String content = ApiV3BreezemoonInputs.editable(ReservedWords.processReservedWord(raw));
             final JSONObject request = new JSONObject().put(Breezemoon.BREEZEMOON_CONTENT, content)
                     .put(Breezemoon.BREEZEMOON_IP, ip).put(Breezemoon.BREEZEMOON_UA, ua);
@@ -86,14 +88,23 @@ public class ApiV3BreezemoonMgmtService {
             });
             return discovery.breezemoonDto(row);
         });
+        if (execution.applied()) notifyPublic(viewer);
+        return execution.result();
     }
 
     public JSONObject remove(final JSONObject viewer, final String id, final String key) throws Exception {
         permission(viewer, Permission.PERMISSION_ID_C_COMMON_REMOVE_BREEZEMOON);
-        return idempotency.execute(viewer.optString(Keys.OBJECT_ID), "breezemoons.delete:" + id, key, new JSONObject(), () -> {
+        final var execution = idempotency.executeWithOutcome(viewer.optString(Keys.OBJECT_ID), "breezemoons.delete:" + id, key, new JSONObject(), () -> {
             management.removeOwnedInCurrentTransaction(viewer.optString(Keys.OBJECT_ID), id);
             return new JSONObject();
         });
+        if (execution.applied()) notifyPublic(viewer);
+        return execution.result();
+    }
+
+    private void notifyPublic(final JSONObject user) {
+        if (UserExt.USER_XXX_STATUS_C_ENABLED == user.optInt(UserExt.USER_BREEZEMOON_STATUS, UserExt.USER_XXX_STATUS_C_DISABLED))
+            realtime.markBreezemoonsChanged();
     }
 
     private void permission(final JSONObject viewer, final String permission) throws Exception {
@@ -107,6 +118,7 @@ public class ApiV3BreezemoonMgmtService {
             if (null == user || UserExt.USER_STATUS_C_INVALID == user.optInt(UserExt.USER_STATUS)
                     || UserExt.USER_STATUS_C_DEACTIVATED == user.optInt(UserExt.USER_STATUS) || UserExt.USER_XXX_STATUS_C_ENABLED != user.optInt(UserExt.USER_BREEZEMOON_STATUS))
                 return;
+            notifyPublic(user);
             final JSONObject author = result.getJSONObject("author");
             final JSONObject data = new JSONObject().put("oId", result.getString("id")).put("breezemoonContent", result.getString("contentHtml"))
                     .put("breezemoonAuthorName", author.optString("userName")).put("breezemoonAuthorThumbnailURL48", author.optString("userAvatarURL"));
