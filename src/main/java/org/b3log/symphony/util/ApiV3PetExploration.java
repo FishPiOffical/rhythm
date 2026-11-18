@@ -29,9 +29,9 @@ public final class ApiV3PetExploration {
 
     public static final List<Item> ITEMS = List.of(
             new Item("food", "口粮", "日常饱食补给", "food", ApiV3PetRules.FOOD_PRICE, ApiV3PetRules.FOOD_HUNGER, 0, 0, 0),
-            new Item("fruit", "鲜果", "补充饱食，也让心情好一点", "food", 6, 20, 0, 8, 0),
-            new Item("spring-water", "清泉饮", "清凉饮水与一点精力补充", "drink", 5, 0, 35, 0, 5),
-            new Item("reed", "芦苇", "荷塘采集的柔韧材料，可制作芦苇小舟", "material", 6, 0, 0, 0, 0),
+            new Item("fruit", "鲜果", "补充饱食，也让心情好一点", "food", 60, 20, 0, 8, 0),
+            new Item("spring-water", "清泉饮", "清凉饮水与一点精力补充", "drink", 50, 0, 35, 0, 5),
+            new Item("reed", "芦苇", "荷塘采集的柔韧材料，可制作芦苇小舟", "material", 60, 0, 0, 0, 0),
             new Item("forest-seed", "森林种子", "森林寻种带回的纪念材料", "material", null, 0, 0, 0, 0),
             new Item("sea-shell", "海贝", "潮汐拾贝带回的纪念材料", "material", null, 0, 0, 0, 0));
 
@@ -60,7 +60,7 @@ public final class ApiV3PetExploration {
         public JSONObject json() {
             return new JSONObject().put("id", id).put("name", name).put("description", description).put("durationMs", 20 * 60_000L)
                     .put("requirements", requirements(skillId))
-                    .put("cost", new JSONObject().put("coins", 5).put("energy", 12).put("hunger", 4).put("water", 6))
+                    .put("cost", new JSONObject().put("coins", 50).put("energy", 12).put("hunger", 4).put("water", 6))
                     .put("rewards", new JSONObject().put("coins", 0).put("proficiency", 0).put("experience", 25).put("food", 0).put("mood", 6)
                             .put("skills", new JSONArray().put(new JSONObject().put("id", skillId).put("experience", 8)))
                             .put("items", new JSONArray().put(new JSONObject().put("itemId", itemId).put("quantity", 2))));
@@ -70,7 +70,7 @@ public final class ApiV3PetExploration {
     public record Recipe(String id, String name, String description, String itemId, String skillId) {
         public JSONObject json() {
             return new JSONObject().put("id", id).put("name", name).put("description", description)
-                    .put("requirements", requirements(skillId)).put("coins", 2).put("collectionId", id)
+                    .put("requirements", requirements(skillId)).put("coins", 20).put("collectionId", id)
                     .put("ingredients", new JSONArray().put(new JSONObject().put("itemId", itemId).put("quantity", 2)));
         }
         public JSONObject collection() {

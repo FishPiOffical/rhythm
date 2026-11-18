@@ -21,21 +21,19 @@ package org.b3log.symphony.util;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 /** 第一批试运行数值及目录集中维护，后续课程、地点和工作不伪造可用入口。 */
 public final class ApiV3PetRules {
-    public static final int VERSION = 3;
-    public static final int READOPTION_COINS = 512;
+    public static final int VERSION = 4;
+    public static final int READOPTION_COINS = 5120;
     public static final int NAME_LENGTH = 12;
-    public static final int INITIAL_COINS = 100;
+    public static final int INITIAL_COINS = 1000;
     public static final int INITIAL_FOOD = 6;
-    public static final int DAILY_COINS = 20;
+    public static final int DAILY_COINS = 200;
     public static final int DAILY_FOOD = 2;
-    public static final int FOOD_PRICE = 5;
+    public static final int FOOD_PRICE = 50;
     public static final int FOOD_HUNGER = 35;
     public static final int WATER_GAIN = 40;
     public static final int PET_MOOD = 10;
@@ -53,7 +51,6 @@ public final class ApiV3PetRules {
     public static final Set<String> SPECIES = Set.of("momota", "hexiaotun", "yubingmiao", "paixiaoyu");
     public static final Set<String> ACTIONS = Set.of("feed", "water", "pet", "play", "rest", "wake");
     private static final Pattern GRAPHEME = Pattern.compile("\\X");
-    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
 
     private ApiV3PetRules() { }
 
@@ -62,7 +59,7 @@ public final class ApiV3PetRules {
     }
 
     public static String today(final long now) {
-        return Instant.ofEpochMilli(now).atZone(ZONE).toLocalDate().toString();
+        return GameWalletRules.today(now);
     }
 
     public static String name(final Object value) {

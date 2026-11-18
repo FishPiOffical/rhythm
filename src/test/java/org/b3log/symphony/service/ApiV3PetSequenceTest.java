@@ -47,7 +47,7 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 
 /** 可复现的持久化随机序列；仅连接夹具临时 SQLite，不读取真实账号或线上服务。 */
 public class ApiV3PetSequenceTest {
-    private static final List<String> TABLES = List.of("pet_account", "user_pet", "pet_inventory", "pet_ledger",
+    private static final List<String> TABLES = List.of("game_wallet", "game_wallet_ledger", "pet_account", "user_pet", "pet_inventory", "pet_ledger",
             "pet_activity", "pet_skill", "pet_job_progress", "pet_income_account", "pet_activity_result",
             "pet_collection", "pet_journal", "pet_story_progress", "pet_archive");
     private record Command(String operation, JSONObject input, String key, JSONObject receipt) { }
@@ -139,7 +139,7 @@ public class ApiV3PetSequenceTest {
     private void warmup(final Fixture f, final JSONObject catalog) throws Exception {
         final String initial = f.adopt();
         // 种子序列从可访问全部玩法的测试前置开始，不把这笔夹具资金算作生产收益。
-        sql(f.db, "UPDATE pet_account SET coins=10000");
+        sql(f.db, "UPDATE game_wallet SET coins=100000");
         for (Object value : catalog.getJSONArray("skills")) {
             final String skill = ((JSONObject) value).getString("id");
             sql(f.db, "INSERT INTO pet_skill VALUES(?,?,?,?,?,?)", initial + ":" + skill, "1", initial, skill, 20, f.clock);
@@ -181,13 +181,14 @@ public class ApiV3PetSequenceTest {
         Assert.assertTrue(before.similar(snapshot(f)), "读取产生了业务写入");
         Assert.assertEquals(f.count("user_pet"), 1);
         Assert.assertEquals(f.count("pet_account"), 1);
-        long money = 9900;
+        long money = 99000;
         final Map<String, Long> items = new HashMap<>();
         for (JSONObject ledger : rows(f.db, "SELECT * FROM pet_ledger")) {
             money += ledger.getLong("coinDelta");
             if (Set.of("adoption", "supplies").contains(ledger.getString("operation"))) items.merge("food", ledger.getLong("foodDelta"), Long::sum);
         }
         Assert.assertEquals((long) state.getJSONObject("wallet").getInt("coins"), money, "钱包与已提交流水不守恒");
+        Assert.assertEquals(rows(f.db, "SELECT SUM(coinDelta) AS total FROM game_wallet_ledger").getFirst().getLong("total") + 99000, money);
         Assert.assertTrue(money >= 0);
         long experience = 0, friendship = 0;
         for (JSONObject row : rows(f.db, "SELECT * FROM pet_journal")) {
@@ -220,9 +221,9 @@ public class ApiV3PetSequenceTest {
         for (String stat : List.of("hunger", "water", "mood", "energy")) Assert.assertTrue(p.getInt(stat) >= 0 && p.getInt(stat) <= 100, stat);
         Assert.assertTrue(p.getInt("friendship") <= 100);
         Assert.assertTrue(p.getJSONObject("growthToday").getInt("used") <= 10);
-        Assert.assertTrue(state.getJSONObject("income").getInt("earned") <= 60);
+        Assert.assertTrue(state.getJSONObject("income").getInt("earned") <= 600);
         Assert.assertTrue(state.getJSONObject("income").getInt("earned") >= 0);
-        Assert.assertEquals(state.getJSONObject("income").getInt("earned") + state.getJSONObject("income").getInt("remaining"), 60);
+        Assert.assertEquals(state.getJSONObject("income").getInt("earned") + state.getJSONObject("income").getInt("remaining"), 600);
         final Set<String> currentCollections = new HashSet<>();
         for (JSONObject collection : rows(f.db, "SELECT * FROM pet_collection")) currentCollections.add(collection.getString("collectionId"));
         Assert.assertTrue(currentCollections.containsAll(priorCollections), "换宠或重放删除了永久收藏");
@@ -315,7 +316,7 @@ public class ApiV3PetSequenceTest {
                 counts.merge("history.read", 1, Integer::sum);
             }
             case 18 -> {
-                if (f.coins() >= 5) {
+                if (f.coins() >= ApiV3PetRules.FOOD_PRICE) {
                     currentOperation = "purchase.unknown-result";
                     final int beforeCoins = f.coins();
                     final JSONObject input = buy(current, "food", 1);
@@ -324,7 +325,7 @@ public class ApiV3PetSequenceTest {
                     try { error(503, () -> f.pets.purchase(identity(), input, key)); }
                     finally { f.fault = ""; }
                     final JSONObject receipt = f.pets.purchase(identity(), input, key);
-                    Assert.assertEquals(f.coins(), beforeCoins - 5);
+                    Assert.assertEquals(f.coins(), beforeCoins - ApiV3PetRules.FOOD_PRICE);
                     final JSONObject committed = snapshot(f);
                     Assert.assertTrue(receipt.similar(f.pets.purchase(identity(), input, key)));
                     Assert.assertTrue(committed.similar(snapshot(f)), "未知消费原键恢复重复入账");
@@ -346,7 +347,7 @@ public class ApiV3PetSequenceTest {
                 check(f);
             }
             settleActive(f);
-            if (f.coins() >= 512) execute(f, "readoption", replacement(id(f)), true);
+            if (f.coins() >= ApiV3PetRules.READOPTION_COINS) execute(f, "readoption", replacement(id(f)), true);
             check(f);
             // 并发用两个独立连接和真实事务，不以顺序调用模拟竞争。
             currentOperation = "concurrency";

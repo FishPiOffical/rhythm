@@ -43,6 +43,8 @@ import org.b3log.latke.repository.Transaction;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.PetJobProgressRepository;
+import org.b3log.symphony.repository.GameWalletRepository;
+import org.b3log.symphony.repository.GameWalletLedgerRepository;
 import org.b3log.symphony.repository.PetIncomeAccountRepository;
 import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetCollectionRepository;
@@ -110,11 +112,14 @@ public class ApiV3PetTest {
                 return CensorResult.pass();
             }
         };
+        final GameWalletService wallet = new GameWalletService();
         final ApiV3PetProcessor endpointPet = new ApiV3PetProcessor();
 
         Fixture() throws Exception {
             // IMMEDIATE 使并发测试有真正的写事务排队；生产按客户端、用户、回执、宠物顺序持行锁。
             url += "?busy_timeout=10000&transaction_mode=IMMEDIATE";
+            sql(db, "CREATE TABLE game_wallet(oId TEXT PRIMARY KEY,coins BIGINT)");
+            sql(db, "CREATE TABLE game_wallet_ledger(oId TEXT PRIMARY KEY,userId TEXT,operation TEXT,referenceId TEXT,coinDelta BIGINT,createdAt BIGINT)");
             sql(db, "CREATE TABLE pet_account(oId TEXT PRIMARY KEY,coins INT,supplyDate TEXT,growthDate TEXT,growthCount INT,createdAt BIGINT,updatedAt BIGINT)");
             sql(db, "CREATE TABLE user_pet(oId TEXT PRIMARY KEY,userId TEXT UNIQUE,speciesId TEXT,name TEXT,hunger DOUBLE,water DOUBLE,mood DOUBLE,energy DOUBLE,experience INT,friendship INT,lastCalculatedAt BIGINT,activityKind TEXT,activityStartedAt BIGINT,activityEndsAt BIGINT,petAvailableAt BIGINT,playAvailableAt BIGINT,adoptedAt BIGINT,updatedAt BIGINT)");
             sql(db, "CREATE TABLE pet_inventory(oId TEXT PRIMARY KEY,userId TEXT,itemId TEXT,quantity INT,updatedAt BIGINT,UNIQUE(userId,itemId))");
@@ -206,7 +211,18 @@ public class ApiV3PetTest {
                 public String add(final JSONObject row) throws RepositoryException { return insert("pet_job_progress", row); }
                 public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("pet_job_progress", id, row, fields); }
             });
-            inject(pets, "income", new PetIncomeAccountRepository() {
+            inject(pets, "wallet", wallet);
+            inject(wallet, "wallets", new GameWalletRepository() {
+                public String getName() { return "game_wallet"; }
+                public boolean hasTransactionBegun() { return active(); }
+                public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
+                public String add(final JSONObject row) throws RepositoryException { return insert("game_wallet", row); }
+                public void update(final String id, final JSONObject row, final String... fields) throws RepositoryException { modify("game_wallet", id, row, fields); }
+            });
+            inject(wallet, "ledger", new GameWalletLedgerRepository() {
+                public String add(final JSONObject row) throws RepositoryException { return insert("game_wallet_ledger", row); }
+            });
+            inject(wallet, "income", new PetIncomeAccountRepository() {
                 public String getName() { return "pet_income_account"; }
                 public List<JSONObject> select(final String q, final Object... a) throws RepositoryException { return selectSQL(q, a); }
                 public String add(final JSONObject row) throws RepositoryException { return insert("pet_income_account", row); }
@@ -362,7 +378,7 @@ public class ApiV3PetTest {
         return input;
     }
     static JSONObject purchase(final String id, final int quantity) {
-        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", quantity).put("catalogVersion", 3);
+        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", quantity).put("catalogVersion", 4);
     }
 
     static void names() throws Exception {
@@ -382,7 +398,7 @@ public class ApiV3PetTest {
             Assert.assertEquals(f.count("pet_account"), 0);
             Assert.assertEquals(f.pets.catalog(identity()).getJSONArray("species").length(), 4);
             final String id = f.adopt();
-            Assert.assertEquals(f.coins(), 100); Assert.assertEquals(f.food(), 6);
+            Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(f.food(), 6);
             Assert.assertEquals(f.state().getJSONObject("pet").getInt("energy"), 100);
             Assert.assertEquals(f.pets.adopt(identity(), adoption("荷小豚"), "adopt").getString("petId"), id);
             Assert.assertEquals(f.count("pet_ledger"), 1);
@@ -437,11 +453,11 @@ public class ApiV3PetTest {
             error(503, () -> f.pets.rename(identity(), rename, "rename-retry"));
             Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "荷小豚");
 
-            sql(f.db, "UPDATE pet_account SET coins=1024");
+            sql(f.db, "UPDATE game_wallet SET coins=10240");
             final var replace = new JSONObject().put("petId", id).put("speciesId", "momota")
                     .put("name", "小水獭").put("catalogVersion", ApiV3PetRules.VERSION).put("resetAccepted", true);
             error(503, () -> f.pets.readopt(identity(), replace, "new-pet-retry"));
-            Assert.assertEquals(f.coins(), 1024);
+            Assert.assertEquals(f.coins(), 10240);
             Assert.assertEquals(f.count("pet_archive"), 0);
             Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "荷小豚");
 
@@ -453,7 +469,7 @@ public class ApiV3PetTest {
             f.pets.rename(identity(), rename, "rename-retry");
             Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "新名字");
             f.pets.readopt(identity(), replace, "new-pet-retry");
-            Assert.assertEquals(f.coins(), 1024 - ApiV3PetRules.READOPTION_COINS);
+            Assert.assertEquals(f.coins(), 10240 - ApiV3PetRules.READOPTION_COINS);
             Assert.assertEquals(f.state().getJSONObject("pet").getString("name"), "小水獭");
         }
         System.out.println("PASS 审核在行锁外，复审与故障不保存名字或扣款，成功回执跳过重审");
@@ -463,9 +479,9 @@ public class ApiV3PetTest {
         try (var f = new Fixture()) {
             final String id = f.adopt();
             final JSONObject bought = f.pets.purchase(identity(), purchase(id, 2), "buy");
-            Assert.assertEquals(f.coins(), 90); Assert.assertEquals(f.food(), 8);
+            Assert.assertEquals(f.coins(), 900); Assert.assertEquals(f.food(), 8);
             Assert.assertTrue(bought.similar(f.pets.purchase(identity(), purchase(id, 2), "buy")));
-            Assert.assertEquals(f.coins(), 90);
+            Assert.assertEquals(f.coins(), 900);
             error(409, () -> f.pets.purchase(identity(), purchase(id, 20), "poor"));
             error(409, () -> f.pets.purchase(identity(), purchase(id, 1).put("catalogVersion", 1), "old-price"));
             error(422, () -> f.pets.purchase(identity(), purchase(id, 0), "zero"));
@@ -473,29 +489,29 @@ public class ApiV3PetTest {
             error(422, () -> f.pets.purchase(identity(), purchase(id, 1).put("quantity", "1"), "string"));
             final JSONObject date = new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock));
             final JSONObject receipt = f.pets.supplies(identity(), date, "daily");
-            Assert.assertEquals(f.coins(), 110); Assert.assertEquals(f.food(), 10);
+            Assert.assertEquals(f.coins(), 1100); Assert.assertEquals(f.food(), 10);
             error(409, () -> f.pets.supplies(identity(), date, "second-daily"));
             f.clock += 86_400_000L;
             Assert.assertFalse(f.state().getJSONObject("dailySupply").getBoolean("claimed"));
             Assert.assertTrue(receipt.similar(f.pets.supplies(identity(), date, "daily")));
-            Assert.assertEquals(f.coins(), 110);
+            Assert.assertEquals(f.coins(), 1100);
             error(409, () -> f.pets.supplies(identity(), date, "yesterday-new-key"));
             f.pets.supplies(identity(), new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)), "next-daily");
-            Assert.assertEquals(f.coins(), 130); Assert.assertEquals(f.food(), 12);
+            Assert.assertEquals(f.coins(), 1300); Assert.assertEquals(f.food(), 12);
             f.clock -= 86_400_000L;
             error(409, () -> f.pets.supplies(identity(), date, "clock-rollback"));
-            Assert.assertEquals(f.coins(), 130);
+            Assert.assertEquals(f.coins(), 1300);
         }
         for (String fault : List.of("INSERT INTO pet_ledger", "UPDATE pet_account")) {
             try (var f = new Fixture()) {
                 final String id = f.adopt();
                 f.writeFault = fault;
                 error(503, () -> f.pets.purchase(identity(), purchase(id, 2), "fault"));
-                Assert.assertEquals(f.coins(), 100); Assert.assertEquals(f.food(), 6);
+                Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(f.count("receipt"), 1); Assert.assertEquals(f.count("pet_ledger"), 1);
                 f.writeFault = "";
                 f.pets.purchase(identity(), purchase(id, 2), "fault");
-                Assert.assertEquals(f.coins(), 90); Assert.assertEquals(f.food(), 8);
+                Assert.assertEquals(f.coins(), 900); Assert.assertEquals(f.food(), 8);
             }
         }
         try (var f = new Fixture()) {
@@ -504,7 +520,7 @@ public class ApiV3PetTest {
             error(503, () -> f.pets.purchase(identity(), purchase(id, 2), "lost-ack"));
             f.fault = "";
             f.pets.purchase(identity(), purchase(id, 2), "lost-ack");
-            Assert.assertEquals(f.coins(), 90); Assert.assertEquals(f.food(), 8);
+            Assert.assertEquals(f.coins(), 900); Assert.assertEquals(f.food(), 8);
         }
         System.out.println("PASS 购买去重/余额/报价、上海跨日补给、失败回滚、提交回包丢失同键恢复");
     }
@@ -603,7 +619,7 @@ public class ApiV3PetTest {
             final var b = pool.submit(() -> { start.await(); return outcome(() -> second.pets.adopt(identity(), adoption("乙"), "b")); });
             start.countDown();
             Assert.assertEquals(Set.of(a.get(), b.get()), Set.of(200, 409));
-            Assert.assertEquals(first.count("user_pet"), 1); Assert.assertEquals(first.coins(), 100);
+            Assert.assertEquals(first.count("user_pet"), 1); Assert.assertEquals(first.coins(), 1000);
             final String id = first.state().getJSONObject("pet").getString("id");
             final CountDownLatch buy = new CountDownLatch(1);
             final var p = pool.submit(() -> { buy.await(); return outcome(() -> first.pets.purchase(identity(), purchase(id, 20), "buy-a")); });
@@ -617,7 +633,7 @@ public class ApiV3PetTest {
             final var y = pool.submit(() -> { supply.await(); return outcome(() -> second.pets.supplies(identity(), date, "supply-b")); });
             supply.countDown();
             Assert.assertEquals(Set.of(x.get(), y.get()), Set.of(200, 409));
-            Assert.assertEquals(first.coins(), 20); Assert.assertEquals(first.food(), 28);
+            Assert.assertEquals(first.coins(), 200); Assert.assertEquals(first.food(), 28);
         }
         System.out.println("PASS 双连接并发领养、不同幂等键消费与同日补给唯一约束");
     }
@@ -747,7 +763,7 @@ public class ApiV3PetTest {
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/purchases", "owner", "http-buy", purchase(id, 1).toString()).attr("test.status"), 200);
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/supplies", "owner", "http-supply",
                     new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)).toString()).attr("test.status"), 200);
-            Assert.assertEquals(f.coins(), 115);
+            Assert.assertEquals(f.coins(), 1150);
             Assert.assertEquals(f.food(), 9);
             Assert.assertEquals(f.httpPet("GET", "/api/v3/me/pet", "reviewer", null, null).attr("test.status"), 200);
             final String coffeePath = "/api/v3/me/pet/coffee";

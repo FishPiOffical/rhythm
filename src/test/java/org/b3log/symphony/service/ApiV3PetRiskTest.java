@@ -79,7 +79,7 @@ public class ApiV3PetRiskTest {
             expect("pet_rate_limited", () -> f.risk.before(identity(), "name", "n-12", new JSONObject().put("name", "豚")));
             Assert.assertEquals(f.risk.state(identity()).getLong("retryAt"), f.clock + 60_000);
             Assert.assertTrue(f.pets.purchase(identity(), purchase(id, 1), "paid").similar(original));
-            Assert.assertEquals(f.coins(), 95);
+            Assert.assertEquals(f.coins(), 950);
             Assert.assertEquals(f.count("pet_ledger"), 2);
             // 相同键、不同内容记录一次摘要冲突；不会再次扣款，也不误当普通恢复。
             expect("idempotency_conflict", () -> f.pets.purchase(identity(), purchase(id, 2), "paid"));
@@ -144,7 +144,7 @@ public class ApiV3PetRiskTest {
             expect("idempotency_conflict", () -> f.pets.purchase(identity(), purchase(id, 2), "frozen-buy"));
             final JSONObject verified = f.risk.verify(identity(), challenge.getString("challengeId"), proof(f, "unique-lot"));
             Assert.assertTrue(verified.getBoolean("verified"));
-            Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(f.coins(), 1000);
             Assert.assertTrue(f.risk.state(identity()).getBoolean("verificationRequired"));
             expect("pet_verification_required", () -> f.pets.purchase(identity(), purchase(id, 1), "another-command"));
             final JSONObject lostAcknowledgement = f.risk.challenge(identity(), "purchase", "frozen-buy");
@@ -153,10 +153,10 @@ public class ApiV3PetRiskTest {
             Assert.assertEquals(f.captchaCalls, 1);
             f.pets.purchase(identity(), purchase(id, 1), "frozen-buy");
             Assert.assertFalse(f.risk.state(identity()).getBoolean("verificationRequired"));
-            Assert.assertEquals(f.coins(), 95);
+            Assert.assertEquals(f.coins(), 950);
             f.clock += 16 * 60_000;
             f.pets.purchase(identity(), purchase(id, 1), "frozen-buy");
-            Assert.assertEquals(f.coins(), 95);
+            Assert.assertEquals(f.coins(), 950);
             // 已消费的极验批次不可给其他账号的另一挑战使用。
             final JSONObject other = ApiV3IdentityApplicationTest.reviewer();
             for (int i = 0; i < 8; i++) {
@@ -184,7 +184,7 @@ public class ApiV3PetRiskTest {
             f.captchaUnavailable = true;
             expect("temporarily_unavailable", () -> f.risk.verify(identity(), challenge, proof(f, "network-failed")));
             Assert.assertTrue(f.risk.state(identity()).getBoolean("verificationRequired"));
-            Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(f.coins(), 1000);
             f.captchaUnavailable = false;
             f.captchaValid = false;
             for (int i = 0; i < 5; i++) {
@@ -197,10 +197,10 @@ public class ApiV3PetRiskTest {
             f.captchaValid = true;
             f.risk.verify(identity(), replacement, proof(f, "replacement-lot"));
             // 验证之后业务仍检查余额，失败不能清掉账号风险或消耗授权。
-            sql(f.db, "UPDATE pet_account SET coins=0 WHERE oId='1'");
+            sql(f.db, "UPDATE game_wallet SET coins=0 WHERE oId='1'");
             expect("not_enough_coins", () -> f.pets.purchase(identity(), purchase(id, 1), "frozen-buy"));
             Assert.assertTrue(f.risk.state(identity()).getBoolean("verificationRequired"));
-            sql(f.db, "UPDATE pet_account SET coins=100 WHERE oId='1'");
+            sql(f.db, "UPDATE game_wallet SET coins=1000 WHERE oId='1'");
             f.pets.purchase(identity(), purchase(id, 1), "frozen-buy");
             Assert.assertFalse(f.risk.state(identity()).getBoolean("verificationRequired"));
         }
@@ -227,7 +227,7 @@ public class ApiV3PetRiskTest {
             final String challenge = f.risk.challenge(identity(), "purchase", "limited-before-challenge").getString("challengeId");
             f.risk.verify(identity(), challenge, proof(f, "after-cooldown"));
             f.pets.purchase(identity(), purchase(id, 1), "limited-before-challenge");
-            Assert.assertEquals(f.coins(), 95);
+            Assert.assertEquals(f.coins(), 950);
             Assert.assertFalse(f.risk.state(identity()).getBoolean("verificationRequired"));
         }
         System.out.println("PASS 先429后需验证的原命令可在冷却后挑战并恢复，不接受未登记命令");
@@ -274,12 +274,12 @@ public class ApiV3PetRiskTest {
                 expect("temporarily_unavailable", () -> f.pets.purchase(identity(), purchase(id, 1), "guard-fault"));
                 f.riskCommitFault = "";
                 // 风险写入失败或回包丢失都不能先扣款；重试后只产生一笔真实消费。
-                Assert.assertEquals(f.coins(), 100);
+                Assert.assertEquals(f.coins(), 1000);
                 Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(riskState(f).getJSONArray("commands").length(), commands + (fault.equals("ack") ? 1 : 0));
                 final JSONObject receipt = f.pets.purchase(identity(), purchase(id, 1), "guard-fault");
                 Assert.assertTrue(receipt.similar(f.pets.purchase(identity(), purchase(id, 1), "guard-fault")));
-                Assert.assertEquals(f.coins(), 95);
+                Assert.assertEquals(f.coins(), 950);
                 Assert.assertEquals(f.food(), 7);
                 Assert.assertEquals(riskState(f).getJSONArray("commands").length(), commands + 1);
             }

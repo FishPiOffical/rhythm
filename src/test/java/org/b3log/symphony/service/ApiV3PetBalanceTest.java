@@ -60,24 +60,24 @@ public class ApiV3PetBalanceTest {
     }
 
     static JSONObject purchase(final String id) {
-        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", 1).put("catalogVersion", 3);
+        return new JSONObject().put("petId", id).put("itemId", "food").put("quantity", 1).put("catalogVersion", 4);
     }
 
     static void catalogAndGrowth() throws Exception {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 3);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 5);
+            Assert.assertEquals(catalog.getInt("version"), 4);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 6);
             Assert.assertTrue(catalog.getJSONObject("growthRules").similar(new JSONObject()
-                    .put("experiencePerLevel", 100).put("maxLevel", 30).put("careExperience", 10).put("careFriendship", 2)));
-            Assert.assertEquals(catalog.getJSONObject("readoptionRules").getInt("coins"), 512);
-            Assert.assertEquals(catalog.getJSONObject("incomeRules").getInt("dailyLimit"), 60);
+                    .put("experiencePerLevel", 100).put("maxLevel", 40).put("careExperience", 10).put("careFriendship", 2)));
+            Assert.assertEquals(catalog.getJSONObject("readoptionRules").getInt("coins"), 5120);
+            Assert.assertEquals(catalog.getJSONObject("incomeRules").getInt("dailyLimit"), 600);
             final String id = f.adopt();
             final String activity = begin(f, id, "outing", "plaza");
             finish(f, id, activity, "claim");
             Assert.assertEquals(pet(f).getInt("experience"), 5);
             Assert.assertEquals(skill(f, "exploration"), 3);
-            Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(f.coins(), 1000);
             for (int index = 0; index < 11; index++) {
                 care(f, id, "pet", "pet-" + index);
                 f.clock += ApiV3PetRules.CARE_COOLDOWN;
@@ -146,19 +146,19 @@ public class ApiV3PetBalanceTest {
                 care(f, id, "feed", key + "-dinner");
                 care(f, id, "water", key + "-evening-water");
                 final JSONObject current = pet(f);
-                Assert.assertEquals(f.coins(), 100 + (day + 1) * 27);
+                Assert.assertEquals(f.coins(), 1000 + (day + 1) * 270);
                 Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(current.getInt("experience"), (day + 1) * 90);
                 Assert.assertEquals(current.getInt("friendship"), Math.min(100, (day + 1) * 12));
                 Assert.assertEquals(current.getJSONObject("growthToday").getInt("used"), 6);
                 Assert.assertEquals(skill(f, "exploration"), (day + 1) * 10);
                 Assert.assertEquals(job(f, "trail-assistant").getInt("experience"), (day + 1) * 10);
-                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 12);
+                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 120);
                 care(f, id, "rest", key + "-rest");
             }
             Assert.assertEquals(pet(f).getInt("level"), 7);
         }
-        System.out.println("PASS 连续七日轻度路线：真实照顾/课程/工作/休息，日净27币、90经验、无额外口粮消费");
+        System.out.println("PASS 连续七日轻度路线：真实照顾/课程/工作/休息，日净270币、90经验、无额外口粮消费");
     }
 
     static void sevenFrequentDays() throws Exception {
@@ -197,20 +197,20 @@ public class ApiV3PetBalanceTest {
                 care(f, id, "feed", key + "-dinner");
                 care(f, id, "water", key + "-evening-water");
                 final JSONObject current = pet(f);
-                Assert.assertEquals(f.coins(), 100 + (day + 1) * 50);
+                Assert.assertEquals(f.coins(), 1000 + (day + 1) * 500);
                 Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(current.getInt("experience"), (day + 1) * 275);
                 Assert.assertEquals(current.getInt("friendship"), Math.min(100, (day + 1) * 20));
                 Assert.assertEquals(current.getJSONObject("growthToday").getInt("used"), 10);
                 Assert.assertEquals(skill(f, "exploration"), (day + 1) * 58);
                 Assert.assertEquals(job(f, "trail-assistant").getInt("experience"), (day + 1) * 50);
-                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 60);
+                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 600);
                 Assert.assertEquals(f.state().getJSONObject("income").getInt("remaining"), 0);
                 care(f, id, "rest", key + "-night-rest");
             }
             Assert.assertEquals(pet(f).getInt("level"), 20);
         }
-        System.out.println("PASS 连续七日高频路线：工作60币共限、补给独立、补买粮原键去重，日净50币/275经验");
+        System.out.println("PASS 连续七日高频路线：工作600币共限、补给独立、补买粮原键去重，日净500币/275经验");
     }
 
     static void purchaseUnknownResult() throws Exception {
@@ -220,13 +220,13 @@ public class ApiV3PetBalanceTest {
             error(503, () -> f.pets.purchase(identity(), purchase(id), "unknown-purchase"));
             f.fault = "";
             f.pets.purchase(identity(), purchase(id), "unknown-purchase");
-            Assert.assertEquals(f.coins(), 95);
+            Assert.assertEquals(f.coins(), 950);
             Assert.assertEquals(f.food(), 7);
             // 后续读取损坏不应倒退已经成功的消费；原键仍只返回回执，不依赖状态读取。
             sql(f.db, "UPDATE user_pet SET hunger=-1");
             error(503, () -> f.state());
             f.pets.purchase(identity(), purchase(id), "unknown-purchase");
-            Assert.assertEquals(rows(f.db, "SELECT coins FROM pet_account WHERE oId='1'").getFirst().getInt("coins"), 95);
+            Assert.assertEquals(rows(f.db, "SELECT coins FROM game_wallet WHERE oId='1'").getFirst().getInt("coins"), 950);
             Assert.assertEquals(rows(f.db, "SELECT quantity FROM pet_inventory WHERE userId='1' AND itemId='food'")
                     .getFirst().getInt("quantity"), 7);
         }

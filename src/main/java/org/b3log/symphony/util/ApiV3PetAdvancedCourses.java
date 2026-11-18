@@ -37,7 +37,7 @@ public final class ApiV3PetAdvancedCourses {
 
     private static ApiV3PetActivities.Entry course(final String id, final String name, final String description, final String skill) {
         // 同样三十分钟与三次入门课成长相当，但节省宠物币和精力，体现进修价值。
-        return new ApiV3PetActivities.Entry("course", id, name, description, 30, 10, 14, 5, 7, 45, 0, 5, skill, 30);
+        return new ApiV3PetActivities.Entry("course", id, name, description, 30, 100, 14, 5, 7, 45, 0, 5, skill, 30);
     }
 
     public static JSONObject json(final ApiV3PetActivities.Entry entry) {

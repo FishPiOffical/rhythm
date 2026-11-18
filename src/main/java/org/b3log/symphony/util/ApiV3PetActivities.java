@@ -28,7 +28,7 @@ import java.util.Set;
 
 /** 外出与入门课程的试运行目录；费用和成果均在出发时冻结，领取不重新计算目录。 */
 public final class ApiV3PetActivities {
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
     public static final List<Skill> SKILLS = List.of(
             new Skill("vitality", "体能", "散步、运动和远足积累的好体力"),
             new Skill("exploration", "探索", "观察身边的变化，发现新事物"),
@@ -38,8 +38,8 @@ public final class ApiV3PetActivities {
             new Skill("kindness", "亲和", "学会礼貌相处，结交新伙伴"));
     public static final List<Entry> ENTRIES = List.of(
             new Entry("outing", "plaza", "广场散步", "绕广场走一走，认识附近的小伙伴", 5, 0, 5, 2, 3, 5, 0, 8, "exploration", 3),
-            new Entry("outing", "riverside", "河岸探索", "沿着河岸找找新发现，也带一点口粮回来", 15, 3, 10, 4, 6, 20, 1, 10, "exploration", 6),
-            new Entry("outing", "forest", "林间远足", "穿过林间小径，锻炼体力并收集口粮", 30, 5, 15, 6, 10, 30, 1, 12, "vitality", 8),
+            new Entry("outing", "riverside", "河岸探索", "沿着河岸找找新发现，也带一点口粮回来", 15, 30, 10, 4, 6, 20, 1, 10, "exploration", 6),
+            new Entry("outing", "forest", "林间远足", "穿过林间小径，锻炼体力并收集口粮", 30, 50, 15, 6, 10, 30, 1, 12, "vitality", 8),
             course("fitness-basics", "活力运动课", "认识热身与基础运动", "vitality"),
             course("nature-basics", "自然观察课", "观察植物和小动物", "exploration"),
             course("reading-basics", "阅读启蒙课", "读一段故事，记住一个新知识", "knowledge"),
@@ -67,7 +67,7 @@ public final class ApiV3PetActivities {
     }
 
     private static Entry course(final String id, final String name, final String description, final String skillId) {
-        return new Entry("course", id, name, description, 10, 5, 8, 3, 4, 15, 0, 3, skillId, 10);
+        return new Entry("course", id, name, description, 10, 50, 8, 3, 4, 15, 0, 3, skillId, 10);
     }
 
     public static JSONObject extendCatalog(final JSONObject catalog) {

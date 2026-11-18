@@ -47,7 +47,7 @@ public class ApiV3PetExplorationTest {
     }
 
     static JSONObject crafting(final String id, final String recipe) {
-        return new JSONObject().put("petId", id).put("recipeId", recipe).put("catalogVersion", 3);
+        return new JSONObject().put("petId", id).put("recipeId", recipe).put("catalogVersion", 4);
     }
 
     static int item(final Fixture f, final String id) {
@@ -74,8 +74,8 @@ public class ApiV3PetExplorationTest {
     static void catalogAndExpeditions() throws Exception {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 3);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 5);
+            Assert.assertEquals(catalog.getInt("version"), 4);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 6);
             Assert.assertEquals(catalog.getJSONArray("items").length(), 6);
             Assert.assertEquals(catalog.getJSONArray("recipes").length(), 3);
             Assert.assertEquals(catalog.getJSONArray("collections").length(), 3);
@@ -107,7 +107,7 @@ public class ApiV3PetExplorationTest {
                 error(409, () -> begin(f, id, "outing", place.id()));
                 sql(f.db, "UPDATE pet_skill SET experience=10");
                 final String trip = begin(f, id, "outing", place.id());
-                Assert.assertEquals(f.coins(), 95);
+                Assert.assertEquals(f.coins(), 950);
                 Assert.assertEquals(row(f, trip).getLong("endsAt") - f.clock, 20 * 60_000L);
                 f.clock = row(f, trip).getLong("endsAt");
                 Assert.assertEquals(item(f, place.itemId()), 0);
@@ -135,7 +135,7 @@ public class ApiV3PetExplorationTest {
             f.pets.purchase(identity(), buy(id, "fruit", 2), "fruit");
             f.pets.purchase(identity(), buy(id, "spring-water", 2), "drink");
             f.pets.purchase(identity(), buy(id, "reed", 2), "reed");
-            Assert.assertEquals(f.coins(), 66);
+            Assert.assertEquals(f.coins(), 660);
             Assert.assertEquals(item(f, "fruit"), 2);
             Assert.assertEquals(item(f, "spring-water"), 2);
             for (String unavailable : List.of("forest-seed", "sea-shell", "unknown"))
@@ -193,12 +193,12 @@ public class ApiV3PetExplorationTest {
             error(409, () -> f.pets.craft(identity(), crafting(id, "reed-boat").put("catalogVersion", 1), "old-craft"));
             error(422, () -> f.pets.craft(identity(), crafting(id, "unknown"), "bad-craft"));
             error(422, () -> f.pets.craft(identity(), crafting(id, "reed-boat").put("coins", 0), "forged-craft"));
-            sql(f.db, "UPDATE pet_account SET coins=1");
+            sql(f.db, "UPDATE game_wallet SET coins=10");
             error(409, () -> f.pets.craft(identity(), crafting(id, "reed-boat"), "broke"));
             Assert.assertEquals(item(f, "reed"), 2);
-            sql(f.db, "UPDATE pet_account SET coins=88");
+            sql(f.db, "UPDATE game_wallet SET coins=880");
             final JSONObject receipt = f.pets.craft(identity(), crafting(id, "reed-boat"), "craft");
-            Assert.assertEquals(f.coins(), 86);
+            Assert.assertEquals(f.coins(), 860);
             Assert.assertEquals(item(f, "reed"), 0);
             Assert.assertEquals(f.state().getJSONArray("collections").length(), 1);
             Assert.assertEquals(f.state().getJSONArray("collections").getJSONObject(0).getString("id"), "reed-boat");
@@ -208,7 +208,7 @@ public class ApiV3PetExplorationTest {
             Assert.assertEquals(log(f, "craft", 1, 10).getJSONObject("pagination").getInt("total"), 1);
             final JSONObject event = latest(f, "craft");
             Assert.assertEquals(event.getString("collectionId"), "reed-boat");
-            Assert.assertEquals(event.getInt("coinsDelta"), -2);
+            Assert.assertEquals(event.getInt("coinsDelta"), -20);
             Assert.assertEquals(event.getJSONArray("itemChanges").getJSONObject(0).getInt("quantity"), -2);
             Assert.assertEquals(f.pets.read(ApiV3IdentityApplicationTest.reviewer()).getJSONArray("collections").length(), 0);
             error(404, () -> f.pets.craft(identity(), crafting("99", "reed-boat"), "wrong-pet"));
@@ -220,7 +220,7 @@ public class ApiV3PetExplorationTest {
                 sql(f.db, "INSERT INTO pet_inventory VALUES(?,?,?,?,?)", "1:" + recipe.itemId(), "1", recipe.itemId(), 2, f.clock);
                 f.pets.craft(identity(), crafting(id, recipe.id()), "craft");
                 Assert.assertEquals(item(f, recipe.itemId()), 0);
-                Assert.assertEquals(f.coins(), 98);
+                Assert.assertEquals(f.coins(), 980);
                 Assert.assertEquals(f.state().getJSONArray("collections").getJSONObject(0).getString("id"), recipe.id());
                 // 收藏以账号归属而非宠物归属存储；未来重新领养不能再次获取首次收藏。
                 Assert.assertEquals(rows(f.db, "SELECT userId,collectionId FROM pet_collection").getFirst().getString("userId"), "1");
@@ -325,7 +325,7 @@ public class ApiV3PetExplorationTest {
                 if (corruption.equals("false-collection")) event.put("collectionId", "reed-boat");
                 sql(f.db, "UPDATE pet_journal SET eventJson=?", corruption.equals("json") ? "broken" : event.toString());
                 error(503, () -> log(f, "all", 1, 10));
-                Assert.assertEquals(f.coins(), 94);
+                Assert.assertEquals(f.coins(), 940);
             }
         }
         for (String corruption : List.of("unknown-item", "duplicate-item", "negative-quantity", "missing-items", "unknown-requirement")) {
@@ -362,14 +362,14 @@ public class ApiV3PetExplorationTest {
                 else f.fault = failure;
                 error(503, () -> f.pets.craft(identity(), crafting(id, "reed-boat"), "craft"));
                 f.writeFault = ""; f.fault = "";
-                Assert.assertEquals(f.coins(), 88);
+                Assert.assertEquals(f.coins(), 880);
                 Assert.assertEquals(item(f, "reed"), 2);
                 Assert.assertEquals(f.count("pet_collection"), 0);
                 Assert.assertEquals(f.count("pet_journal"), journal);
                 Assert.assertEquals(f.count("pet_ledger"), ledger);
                 f.pets.craft(identity(), crafting(id, "reed-boat"), "craft");
                 Assert.assertEquals(f.count("pet_collection"), 1);
-                Assert.assertEquals(f.coins(), 86);
+                Assert.assertEquals(f.coins(), 860);
             }
         }
         for (String operation : List.of("purchase", "care", "claim")) {
@@ -380,7 +380,7 @@ public class ApiV3PetExplorationTest {
                     error(503, () -> f.pets.purchase(identity(), buy(id, "fruit", 2), "buy"));
                     f.writeFault = "";
                     Assert.assertEquals(item(f, "fruit"), 0);
-                    Assert.assertEquals(f.coins(), 100);
+                    Assert.assertEquals(f.coins(), 1000);
                     Assert.assertEquals(f.count("pet_journal"), 0);
                 } else if (operation.equals("care")) {
                     sql(f.db, "UPDATE user_pet SET hunger=50");
@@ -413,7 +413,7 @@ public class ApiV3PetExplorationTest {
             f.fault = "";
             Assert.assertEquals(f.count("pet_collection"), 1);
             f.pets.craft(identity(), crafting(id, "reed-boat"), "lost-ack");
-            Assert.assertEquals(f.coins(), 86);
+            Assert.assertEquals(f.coins(), 860);
             Assert.assertEquals(f.count("pet_collection"), 1);
             Assert.assertEquals(log(f, "craft", 1, 10).getJSONObject("pagination").getInt("total"), 1);
         }
@@ -433,7 +433,7 @@ public class ApiV3PetExplorationTest {
                 final List<Integer> result = List.of(a.get(), b.get());
                 Assert.assertEquals(result.stream().filter(code -> code == 200).count(), sameKey ? 2L : 1L);
                 if (!sameKey) Assert.assertTrue(result.contains(409));
-                Assert.assertEquals(first.coins(), 86);
+                Assert.assertEquals(first.coins(), 860);
                 Assert.assertEquals(item(first, "reed"), 0);
                 Assert.assertEquals(first.count("pet_collection"), 1);
                 Assert.assertEquals(log(first, "craft", 1, 10).getJSONObject("pagination").getInt("total"), 1);
@@ -442,7 +442,7 @@ public class ApiV3PetExplorationTest {
         try (var first = new Fixture(); var second = new Fixture(); var pool = Executors.newFixedThreadPool(2)) {
             second.db.close(); second.url = first.url; second.db = DriverManager.getConnection(first.url);
             final String id = first.adopt();
-            sql(first.db, "UPDATE pet_account SET coins=6");
+            sql(first.db, "UPDATE game_wallet SET coins=60");
             final CountDownLatch start = new CountDownLatch(1);
             final var a = pool.submit(() -> { start.await(); return outcome(() -> first.pets.purchase(identity(), buy(id, "fruit", 1), "first")); });
             final var b = pool.submit(() -> { start.await(); return outcome(() -> second.pets.purchase(identity(), buy(id, "reed", 1), "second")); });
@@ -459,7 +459,7 @@ public class ApiV3PetExplorationTest {
             sql(f.db, "INSERT INTO pet_inventory VALUES(?,?,?,?,?)", "1:reed", "1", "reed", Integer.MAX_VALUE, f.clock);
             error(503, () -> f.pets.purchase(identity(), buy(id, "reed", 1), "overflow"));
             Assert.assertEquals(item(f, "reed"), Integer.MAX_VALUE);
-            Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(f.coins(), 1000);
             Assert.assertEquals(f.count("pet_journal"), 0);
         }
         System.out.println("PASS 两独立连接制作同键/异键去重、不同物品并发消费共享余额、材料溢出完整回滚");

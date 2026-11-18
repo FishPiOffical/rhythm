@@ -30,7 +30,6 @@ import org.b3log.symphony.repository.PetAccountRepository;
 import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.PetSkillRepository;
 import org.b3log.symphony.repository.PetJobProgressRepository;
-import org.b3log.symphony.repository.PetIncomeAccountRepository;
 import org.b3log.symphony.repository.PetActivityResultRepository;
 import org.b3log.symphony.repository.PetInventoryRepository;
 import org.b3log.symphony.repository.PetCollectionRepository;
@@ -77,7 +76,7 @@ public class ApiV3PetService {
     @Inject private PetActivityRepository activities;
     @Inject private PetSkillRepository skills;
     @Inject private PetJobProgressRepository jobs;
-    @Inject private PetIncomeAccountRepository income;
+    @Inject private GameWalletService wallet;
     @Inject private PetActivityResultRepository results;
     @Inject private ApiV3RequestRepository requests;
     @Inject private ApiV3SecurityProofService proofs;
@@ -85,7 +84,7 @@ public class ApiV3PetService {
 
     private static final String[] PET_FIELDS = {"name", "hunger", "water", "mood", "energy", "experience", "friendship",
             "lastCalculatedAt", "activityKind", "activityStartedAt", "activityEndsAt", "petAvailableAt", "playAvailableAt", "updatedAt"};
-    private static final String[] ACCOUNT_FIELDS = {"coins", "supplyDate", "growthDate", "growthCount", "updatedAt"};
+    private static final String[] ACCOUNT_FIELDS = {"supplyDate", "growthDate", "growthCount", "updatedAt"};
 
     protected long now() {
         return System.currentTimeMillis();
@@ -122,12 +121,14 @@ public class ApiV3PetService {
             final JSONObject account = account(actor(identity));
             final JSONObject pet = pet(actor(identity));
             if ((account == null) != (pet == null)) throw unavailable();
+            final Long balance = wallet.balance(actor(identity));
+            if (account != null && balance == null) throw unavailable();
             final JSONObject result = new JSONObject().put("serverNow", current).put("today", today)
                     .put("catalogVersion", ApiV3PetRules.VERSION)
                     .put("collections", collectionState(actor(identity)))
                     .put("stories", storyState(actor(identity)))
-                    .put("income", incomeState(incomeRow(actor(identity)), today))
-                    .put("wallet", new JSONObject().put("coins", account == null ? 0 : account.getInt("coins")))
+                    .put("income", wallet.dailyIncome(actor(identity), current))
+                    .put("wallet", new JSONObject().put("coins", balance == null ? 0L : balance))
                     .put("dailySupply", new JSONObject().put("claimed", account != null && today.compareTo(account.getString("supplyDate")) <= 0)
                             .put("coins", ApiV3PetRules.DAILY_COINS).put("food", ApiV3PetRules.DAILY_FOOD));
             if (pet == null) return result.put("pet", JSONObject.NULL).put("inventory", new JSONArray());
@@ -416,7 +417,7 @@ public class ApiV3PetService {
                 throw ApiV3PetRules.conflict("pet_exists", "你已经有一只宠物了");
             final long current = now();
             final String id = Ids.genTimeMillisId();
-            accounts.add(new JSONObject().put("oId", actor).put("coins", ApiV3PetRules.INITIAL_COINS)
+            accounts.add(new JSONObject().put("oId", actor).put("coins", 0)
                     .put("supplyDate", "").put("growthDate", ApiV3PetRules.today(current)).put("growthCount", 0)
                     .put("createdAt", current).put("updatedAt", current));
             inventory.add(new JSONObject().put("oId", actor + ":food").put("userId", actor).put("itemId", "food")
@@ -426,6 +427,8 @@ public class ApiV3PetService {
                     .put("experience", 0).put("friendship", 0).put("lastCalculatedAt", current)
                     .put("activityKind", "").put("activityStartedAt", 0L).put("activityEndsAt", 0L)
                     .put("petAvailableAt", 0L).put("playAvailableAt", 0L).put("adoptedAt", current).put("updatedAt", current));
+            wallet.open(actor);
+            wallet.change(actor, ApiV3PetRules.INITIAL_COINS, "pet-adoption", id, current);
             record(actor, id, "adoption", ApiV3PetRules.INITIAL_COINS, ApiV3PetRules.INITIAL_FOOD, current);
             return receipt("adoption", id, current);
         });
@@ -452,8 +455,6 @@ public class ApiV3PetService {
                 throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再领养");
             if (version != ApiV3PetRules.VERSION)
                 throw ApiV3PetRules.conflict("catalog_changed", "领养费用已更新，请重新查看");
-            if (account.getInt("coins") < ApiV3PetRules.READOPTION_COINS)
-                throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             final String id = Ids.genTimeMillisId();
             // 原主体先归档再替换，新旧宠物使用不同 ID；历史技能、工作、活动和日志不删除。
             archives.add(new JSONObject().put("oId", previousId).put("userId", actor).put("retiredAt", current)
@@ -466,7 +467,8 @@ public class ApiV3PetService {
                     .put("petAvailableAt", previous.getLong("petAvailableAt")).put("playAvailableAt", previous.getLong("playAvailableAt"))
                     .put("adoptedAt", current).put("updatedAt", current));
             // 只扣领养费用，不重置补给、成长日限、工作预算或首次奖励，也不赠新手物品。
-            account.put("coins", account.getInt("coins") - ApiV3PetRules.READOPTION_COINS).put("updatedAt", current);
+            wallet.change(actor, -ApiV3PetRules.READOPTION_COINS, "pet-readoption", id, current);
+            account.put("updatedAt", current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
             final String speciesName = switch (species) {
                 case "momota" -> "摸摸獭";
@@ -587,8 +589,8 @@ public class ApiV3PetService {
                 throw ApiV3PetRules.conflict("date_changed", "日期已更新，请刷新后领取今天的补给");
             if (date.compareTo(account.getString("supplyDate")) <= 0)
                 throw ApiV3PetRules.conflict("supply_claimed", "今天的补给已经领取了");
-            account.put("coins", Math.addExact(account.getInt("coins"), ApiV3PetRules.DAILY_COINS))
-                    .put("supplyDate", date).put("updatedAt", current);
+            wallet.change(actor, ApiV3PetRules.DAILY_COINS, "pet-supplies", pet.getString("oId"), current);
+            account.put("supplyDate", date).put("updatedAt", current);
             changeFood(food(actor), ApiV3PetRules.DAILY_FOOD, current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
             record(actor, pet.getString("oId"), "supplies", ApiV3PetRules.DAILY_COINS, ApiV3PetRules.DAILY_FOOD, current);
@@ -669,9 +671,9 @@ public class ApiV3PetService {
             owned(actor, id);
             if (version != ApiV3PetRules.VERSION) throw ApiV3PetRules.conflict("catalog_changed", "商品价格已更新，请重新查看");
             final int price = Math.multiplyExact(quantity, item.price());
-            if (account.getInt("coins") < price) throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             final long current = now();
-            account.put("coins", account.getInt("coins") - price).put("updatedAt", current);
+            wallet.change(actor, -price, "pet-purchase", id, current);
+            account.put("updatedAt", current);
             changeItem(actor, itemId, quantity, current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
             record(actor, id, "purchase", -price, "food".equals(itemId) ? quantity : 0, current);
@@ -705,7 +707,6 @@ public class ApiV3PetService {
             }
             requireSkills(actor, id, recipe.getJSONArray("requirements"));
             final int cost = recipe.getInt("coins");
-            if (account.getInt("coins") < cost) throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             final JSONArray ingredients = recipe.getJSONArray("ingredients"), changes = new JSONArray();
             // 用户锁串行化所有背包写入，逐项校验与扣除仍在同一事务，失败时不会留下部分消耗。
             for (int index = 0; index < ingredients.length(); index++) {
@@ -715,7 +716,8 @@ public class ApiV3PetService {
                 changeItem(actor, itemId, -quantity, current);
                 changes.put(itemChange(itemId, -quantity));
             }
-            account.put("coins", account.getInt("coins") - cost).put("updatedAt", current);
+            wallet.change(actor, -cost, "pet-craft", id, current);
+            account.put("updatedAt", current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
             collections.add(new JSONObject().put("oId", actor + ":" + collectionId).put("userId", actor)
                     .put("collectionId", collectionId).put("unlockedAt", current));
@@ -804,9 +806,7 @@ public class ApiV3PetService {
                     .put("claimedAt", 0L).put("snapshotJson", new JSONObject().put("version", version).put("entry", entry).toString());
             ApiV3PetActivities.snapshot(row);
             if ("work".equals(kind)) {
-                final JSONObject budget = incomeRow(actor);
-                checkIncomeClock(budget, current);
-                if (incomeState(budget, ApiV3PetRules.today(current)).getInt("remaining") == 0)
+                if (wallet.availableIncome(actor, current) == 0)
                     throw ApiV3PetRules.conflict("income_limit", "今天的工作收入已达上限，明天再来吧");
                 final JSONObject requirement = entry.getJSONObject("requirement");
                 final int experience = skillRows(actor, id).stream()
@@ -816,15 +816,14 @@ public class ApiV3PetService {
                     throw ApiV3PetRules.conflict("job_locked", "先完成对应的入门课程，再来尝试这份工作吧");
             }
             requireSkills(actor, id, entry.getJSONArray("requirements"));
-            if (account.getInt("coins") < cost.getInt("coins"))
-                throw ApiV3PetRules.conflict("not_enough_coins", "宠物币不足");
             for (String field : Set.of("energy", "hunger", "water")) {
                 if (pet.getDouble(field) < cost.getInt(field))
                     throw ApiV3PetRules.conflict("not_enough_" + field, "宠物状态不足，先照顾好它再出发吧");
             }
             for (String field : Set.of("energy", "hunger", "water")) pet.put(field, pet.getDouble(field) - cost.getInt(field));
             pet.put("updatedAt", current);
-            account.put("coins", account.getInt("coins") - cost.getInt("coins")).put("updatedAt", current);
+            wallet.change(actor, -cost.getInt("coins"), "pet-activity-start", activityId, current);
+            account.put("updatedAt", current);
             // 用户行锁与活动槽唯一键同时保护不同幂等键；费用、计时、快照和流水不可分开提交。
             activities.add(row);
             pets.update(id, pet, PET_FIELDS);
@@ -860,9 +859,9 @@ public class ApiV3PetService {
             final JSONObject actual = new JSONObject(rewards.toString());
             actual.put("mood", Math.min(100, pet.getDouble("mood") + rewards.getInt("mood")) - pet.getDouble("mood"));
             if ("work".equals(activity.getString("kind"))) {
-                final int credited = settleIncome(actor, rewards.getInt("coins"), current);
+                final int credited = wallet.creditEarned(actor, rewards.getInt("coins"), "pet-work", activityId, current);
                 actual.put("coins", credited);
-                account.put("coins", Math.addExact(account.getInt("coins"), credited)).put("updatedAt", current);
+                account.put("updatedAt", current);
                 accounts.update(actor, account, ACCOUNT_FIELDS);
                 advanceJob(actor, id, activity.getString("entryId"), rewards.getInt("proficiency"), current);
             }
@@ -1028,49 +1027,6 @@ public class ApiV3PetService {
         }
     }
 
-    private JSONObject incomeRow(final String actor) throws RepositoryException {
-        final var rows = income.select("SELECT * FROM `" + income.getName() + "` WHERE oId=? FOR UPDATE", actor);
-        if (rows.isEmpty()) return null;
-        if (rows.size() != 1) throw unavailable();
-        final JSONObject row = rows.getFirst();
-        nonnegative(row, "earned");
-        try {
-            final String date = row.getString("date");
-            if (!LocalDate.parse(date).toString().equals(date) || row.getLong("lastSettlementAt") < 0
-                    || !ApiV3PetRules.today(row.getLong("lastSettlementAt")).equals(date)) throw unavailable();
-        } catch (Exception error) {
-            throw unavailable();
-        }
-        return row;
-    }
-
-    private JSONObject incomeState(final JSONObject budget, final String today) {
-        final boolean current = budget != null && today.compareTo(budget.getString("date")) <= 0;
-        final int earned = current ? budget.getInt("earned") : 0;
-        return new JSONObject().put("date", current ? budget.getString("date") : today).put("earned", earned)
-                .put("limit", ApiV3PetWork.DAILY_LIMIT).put("remaining", Math.max(0, ApiV3PetWork.DAILY_LIMIT - earned));
-    }
-
-    private void checkIncomeClock(final JSONObject budget, final long current) {
-        if (budget != null && (current < budget.getLong("lastSettlementAt")
-                || ApiV3PetRules.today(current).compareTo(budget.getString("date")) < 0))
-            throw ApiV3PetRules.conflict("clock_changed", "时间正在校准，请稍后再处理工作");
-    }
-
-    private int settleIncome(final String actor, final int planned, final long current) throws RepositoryException {
-        final JSONObject previous = incomeRow(actor);
-        checkIncomeClock(previous, current);
-        final String date = ApiV3PetRules.today(current);
-        final JSONObject state = incomeState(previous, date);
-        final int credited = Math.min(planned, state.getInt("remaining"));
-        final JSONObject next = new JSONObject().put("oId", actor).put("date", date)
-                .put("earned", Math.addExact(state.getInt("earned"), credited)).put("lastSettlementAt", current);
-        // 上限按领取日与账号计算，不随换宠物重置；满额仍允许领取已开始工作的其他成果并释放活动槽。
-        if (previous == null) income.add(next);
-        else income.update(actor, next, "date", "earned", "lastSettlementAt");
-        return credited;
-    }
-
     private java.util.List<JSONObject> jobRows(final String actor, final String id) throws RepositoryException {
         final var rows = jobs.select("SELECT * FROM `" + jobs.getName() + "` WHERE petId=? FOR UPDATE", id);
         final Set<String> seen = new java.util.HashSet<>();
@@ -1169,7 +1125,6 @@ public class ApiV3PetService {
         if (rows.size() > 1) throw unavailable();
         if (rows.isEmpty()) return null;
         final JSONObject row = rows.getFirst();
-        nonnegative(row, "coins");
         nonnegative(row, "growthCount");
         if (row.getInt("growthCount") > ApiV3PetRules.DAILY_GROWTH || !(row.opt("supplyDate") instanceof String)
                 || !(row.opt("growthDate") instanceof String)) throw unavailable();

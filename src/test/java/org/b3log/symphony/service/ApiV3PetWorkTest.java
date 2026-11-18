@@ -66,7 +66,7 @@ public class ApiV3PetWorkTest {
     static void jobsAndLearning() throws Exception {
         try (var f = new Fixture()) {
             Assert.assertEquals(f.pets.catalog(identity()).getJSONArray("jobs").length(), 6);
-            Assert.assertEquals(f.state().getJSONObject("income").getInt("remaining"), 60);
+            Assert.assertEquals(f.state().getJSONObject("income").getInt("remaining"), 600);
             Assert.assertEquals(history(f, "all", 1, 10).getJSONArray("list").length(), 0);
             Assert.assertEquals(history(f, "all", 1, 10).getJSONObject("pagination").getInt("pageCount"), 1);
             Assert.assertEquals(f.count("pet_income_account"), 0);
@@ -83,7 +83,7 @@ public class ApiV3PetWorkTest {
             Assert.assertEquals(job(f, "delivery-assistant").getInt("experience"), 10);
             Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1);
             Assert.assertEquals(job(f, "library-assistant").getInt("experience"), 0);
-            Assert.assertEquals(f.coins(), 107);
+            Assert.assertEquals(f.coins(), 1070);
         }
         for (var definition : ApiV3PetWork.JOBS) {
             try (var f = new Fixture()) {
@@ -93,13 +93,13 @@ public class ApiV3PetWorkTest {
                 Assert.assertEquals(pet(f).getInt("energy"), 88);
                 Assert.assertEquals(pet(f).getInt("hunger"), 96);
                 Assert.assertEquals(pet(f).getInt("water"), 94);
-                Assert.assertEquals(f.coins(), 100);
+                Assert.assertEquals(f.coins(), 1000);
                 Assert.assertEquals(row(f, work).getLong("endsAt") - f.clock, 1_200_000L);
                 finish(f, id, work, "claim");
-                Assert.assertEquals(f.coins(), 112);
+                Assert.assertEquals(f.coins(), 1120);
                 Assert.assertEquals(pet(f).getInt("experience"), 15);
                 Assert.assertEquals(job(f, definition.id()).getInt("experience"), 10);
-                Assert.assertEquals(actual(f).getInt("coins"), 12);
+                Assert.assertEquals(actual(f).getInt("coins"), 120);
                 Assert.assertEquals(actual(f).getInt("proficiency"), 10);
                 Assert.assertEquals(actual(f).getJSONArray("skills").length(), 0);
             }
@@ -107,23 +107,52 @@ public class ApiV3PetWorkTest {
         System.out.println("PASS 六类工作真实课程解锁、独立熟练度、费用/成果与无产币读取");
     }
 
+    static void sharedWalletAndFrozenPay() throws Exception {
+        try (var f = new Fixture()) {
+            // 模拟另一款游戏先开户、获得收入，宠物首次领养仍只发一次首奖。
+            final var tx = f.begin();
+            f.wallet.open("1");
+            Assert.assertEquals(f.wallet.creditEarned("1", 480, "other-game", "reward", f.clock), 480);
+            tx.commit();
+            Assert.assertTrue(f.state().isNull("pet"));
+            Assert.assertEquals(f.coins(), 480);
+            final String id = f.adopt();
+            Assert.assertEquals(f.adopt(), id);
+            Assert.assertEquals(f.coins(), 1480);
+            unlock(f, id, "vitality");
+            final String work = begin(f, id, "work", "delivery-assistant");
+            // 旧版约定的9币已在迁移时折算成90，新版同一工作目录为120。
+            final JSONObject frozen = new JSONObject(row(f, work).getString("snapshotJson")).put("version", 5);
+            frozen.getJSONObject("entry").getJSONObject("rewards").put("coins", 90);
+            sql(f.db, "UPDATE pet_activity SET snapshotJson=? WHERE oId=?", frozen.toString(), work);
+            f.rejectActivityCatalog = true;
+            finish(f, id, work, "old-work");
+            f.pets.claimActivity(identity(), claim(id, work), "old-work");
+            Assert.assertEquals(f.coins(), 1570);
+            Assert.assertEquals(actual(f).getInt("coins"), 90);
+            Assert.assertEquals(f.state().getJSONObject("income").getInt("remaining"), 30);
+            Assert.assertEquals(f.count("game_wallet_ledger"), 3);
+            Assert.assertEquals(rows(f.db, "SELECT SUM(coinDelta) AS total FROM game_wallet_ledger").getFirst().getLong("total"), 1570L);
+        }
+    }
+
     static void sharedCapAndDates() throws Exception {
         try (var f = new Fixture()) {
             final String id = f.adopt();
             unlock(f, id, "vitality"); unlock(f, id, "knowledge");
-            budget(f, 55);
+            budget(f, 550);
             final String work = begin(f, id, "work", "delivery-assistant");
             finish(f, id, work, "claim");
-            Assert.assertEquals(f.coins(), 105);
-            Assert.assertEquals(actual(f).getInt("coins"), 5);
-            Assert.assertEquals(history(f, "work", 1, 10).getJSONArray("list").getJSONObject(0).getJSONObject("rewards").getInt("coins"), 12);
+            Assert.assertEquals(f.coins(), 1050);
+            Assert.assertEquals(actual(f).getInt("coins"), 50);
+            Assert.assertEquals(history(f, "work", 1, 10).getJSONArray("list").getJSONObject(0).getJSONObject("rewards").getInt("coins"), 120);
             Assert.assertEquals(f.state().getJSONObject("income").getInt("remaining"), 0);
             error(409, () -> f.pets.startActivity(identity(), start(id, "work", "library-assistant"), "full-cap"));
             Assert.assertEquals(begin(f, id, "work", "delivery-assistant"), work);
             f.pets.supplies(identity(), new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)), "daily");
-            Assert.assertEquals(f.coins(), 125); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 60);
+            Assert.assertEquals(f.coins(), 1250); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 600);
             f.pets.claimActivity(identity(), claim(id, work), "claim");
-            Assert.assertEquals(f.coins(), 125);
+            Assert.assertEquals(f.coins(), 1250);
             sql(f.db, "DELETE FROM receipt WHERE operation='pet.activity-claim'");
             error(409, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
             // 模拟未来更换宠物：熟练度跟随宠物，产币额度仍属于原账号。
@@ -135,27 +164,27 @@ public class ApiV3PetWorkTest {
         try (var f = new Fixture()) {
             final String id = f.adopt(); unlock(f, id, "vitality");
             final String work = begin(f, id, "work", "delivery-assistant");
-            budget(f, 60);
+            budget(f, 600);
             finish(f, id, work, "claim");
-            Assert.assertEquals(actual(f).getInt("coins"), 0); Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(actual(f).getInt("coins"), 0); Assert.assertEquals(f.coins(), 1000);
             Assert.assertEquals(job(f, "delivery-assistant").getInt("experience"), 10); Assert.assertTrue(pet(f).isNull("activity"));
         }
         try (var f = new Fixture()) {
             final String id = f.adopt(); unlock(f, id, "vitality");
             f.clock = LocalDate.parse(ApiV3PetRules.today(f.clock)).atTime(23, 50).atZone(ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli();
-            budget(f, 55);
+            budget(f, 550);
             final String work = begin(f, id, "work", "delivery-assistant");
             finish(f, id, work, "claim");
-            Assert.assertEquals(f.coins(), 112); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 12);
+            Assert.assertEquals(f.coins(), 1120); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 120);
             Assert.assertEquals(f.state().getJSONObject("income").getString("date"), ApiV3PetRules.today(f.clock));
             f.clock -= 2 * 86_400_000L;
             // 即使换宠物重置计算时间，也不能重置账号级最高结算日。
             sql(f.db, "UPDATE user_pet SET lastCalculatedAt=?", f.clock);
             error(409, () -> f.pets.startActivity(identity(), start(id, "work", "delivery-assistant"), "rollback"));
-            Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 12);
-            Assert.assertEquals(f.coins(), 112);
+            Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 120);
+            Assert.assertEquals(f.coins(), 1120);
         }
-        System.out.println("PASS 账号共享60上限、余5入5/满额已有工作入0、补给独立、跨日/回拨/换宠防重");
+        System.out.println("PASS 账号共享600上限、余50入50/满额已有工作入0、补给独立、跨日/回拨/换宠防重");
     }
 
     static void historyAndLegacy() throws Exception {
@@ -216,7 +245,7 @@ public class ApiV3PetWorkTest {
                 if (fault.equals("bad-json")) sql(f.db, "UPDATE pet_activity_result SET actualJson='bad'");
                 if (fault.equals("wrong-owner")) sql(f.db, "UPDATE pet_activity_result SET userId='2'");
                 if (fault.equals("bad-value")) {
-                    final JSONObject actual = actual(f).put("coins", 13);
+                    final JSONObject actual = actual(f).put("coins", 130);
                     sql(f.db, "UPDATE pet_activity_result SET actualJson=?", actual.toString());
                 }
                 error(503, () -> history(f, "all", 1, 10));
@@ -226,7 +255,7 @@ public class ApiV3PetWorkTest {
     }
 
     static void atomicity() throws Exception {
-        for (String failure : List.of("INSERT INTO pet_income_account", "UPDATE pet_account", "INSERT INTO pet_job_progress", "UPDATE pet_inventory", "UPDATE user_pet", "UPDATE pet_activity", "INSERT INTO pet_activity_result", "INSERT INTO pet_ledger", "commit", "receipt")) {
+        for (String failure : List.of("INSERT INTO pet_income_account", "UPDATE game_wallet", "INSERT INTO game_wallet_ledger", "UPDATE pet_account", "INSERT INTO pet_job_progress", "UPDATE pet_inventory", "UPDATE user_pet", "UPDATE pet_activity", "INSERT INTO pet_activity_result", "INSERT INTO pet_ledger", "commit", "receipt")) {
             try (var f = new Fixture()) {
                 final String id = f.adopt(); unlock(f, id, "vitality");
                 final String work = begin(f, id, "work", "delivery-assistant");
@@ -234,23 +263,23 @@ public class ApiV3PetWorkTest {
                 if (failure.startsWith("INSERT") || failure.startsWith("UPDATE")) f.writeFault = failure; else f.fault = failure;
                 error(503, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
                 f.fault = ""; f.writeFault = "";
-                Assert.assertEquals(f.coins(), 100); Assert.assertEquals(f.count("pet_income_account"), 0);
+                Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(f.count("pet_income_account"), 0);
                 Assert.assertEquals(f.count("pet_job_progress"), 0); Assert.assertEquals(f.count("pet_activity_result"), 0);
                 Assert.assertEquals(pet(f).getInt("experience"), 0); Assert.assertEquals(row(f, work).getLong("claimedAt"), 0L);
                 f.pets.claimActivity(identity(), claim(id, work), "claim");
-                Assert.assertEquals(f.coins(), 112); Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1);
+                Assert.assertEquals(f.coins(), 1120); Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1);
             }
         }
         for (String failure : List.of("UPDATE pet_income_account", "UPDATE pet_job_progress")) {
             try (var f = new Fixture()) {
-                final String id = f.adopt(); unlock(f, id, "vitality"); budget(f, 12);
+                final String id = f.adopt(); unlock(f, id, "vitality"); budget(f, 120);
                 sql(f.db, "INSERT INTO pet_job_progress VALUES(?,?,?,?,?,?,?)", id + ":delivery-assistant", "1", id, "delivery-assistant", 10, 1, f.clock);
                 final String work = begin(f, id, "work", "delivery-assistant"); f.clock += 1_200_000L;
                 f.writeFault = failure;
                 error(503, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
                 f.writeFault = "";
-                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 12);
-                Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1); Assert.assertEquals(f.coins(), 100);
+                Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 120);
+                Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1); Assert.assertEquals(f.coins(), 1000);
             }
         }
         try (var f = new Fixture()) {
@@ -260,7 +289,7 @@ public class ApiV3PetWorkTest {
             error(503, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
             f.fault = "";
             f.pets.claimActivity(identity(), claim(id, work), "claim");
-            Assert.assertEquals(f.coins(), 112); Assert.assertEquals(f.count("pet_activity_result"), 1);
+            Assert.assertEquals(f.coins(), 1120); Assert.assertEquals(f.count("pet_activity_result"), 1);
             Assert.assertEquals(job(f, "delivery-assistant").getInt("completed"), 1);
         }
         System.out.println("PASS 收入/钱包/熟练度/成果各写入点失败同事务回滚，断流原键恢复不重复产币");
@@ -270,7 +299,7 @@ public class ApiV3PetWorkTest {
         for (boolean sameKey : List.of(false, true)) {
             try (var a = new Fixture(); var b = new Fixture(); var pool = Executors.newFixedThreadPool(2)) {
                 b.db.close(); b.url = a.url; b.db = DriverManager.getConnection(a.url);
-                final String id = a.adopt(); unlock(a, id, "vitality"); budget(a, 55);
+                final String id = a.adopt(); unlock(a, id, "vitality"); budget(a, 550);
                 final String work = begin(a, id, "work", "delivery-assistant");
                 a.clock += 1_200_000L; b.clock = a.clock;
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -280,7 +309,7 @@ public class ApiV3PetWorkTest {
                 final var outcomes = List.of(x.get(), y.get());
                 Assert.assertEquals(outcomes.stream().filter(code -> code == 200).count(), sameKey ? 2L : 1L);
                 if (!sameKey) Assert.assertTrue(outcomes.contains(409));
-                Assert.assertEquals(a.coins(), 105); Assert.assertEquals(a.state().getJSONObject("income").getInt("earned"), 60);
+                Assert.assertEquals(a.coins(), 1050); Assert.assertEquals(a.state().getJSONObject("income").getInt("earned"), 600);
                 Assert.assertEquals(job(a, "delivery-assistant").getInt("completed"), 1); Assert.assertEquals(a.count("pet_activity_result"), 1);
             }
         }
@@ -291,7 +320,7 @@ public class ApiV3PetWorkTest {
                 sql(f.db, "UPDATE pet_job_progress SET " + field + "=?", Integer.MAX_VALUE);
                 final String work = begin(f, id, "work", "delivery-assistant"); f.clock += 1_200_000L;
                 error(503, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
-                Assert.assertEquals(f.coins(), 100); Assert.assertEquals(f.count("pet_income_account"), 0);
+                Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(f.count("pet_income_account"), 0);
                 Assert.assertEquals(row(f, work).getLong("claimedAt"), 0L);
             }
         }
@@ -320,7 +349,7 @@ public class ApiV3PetWorkTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        jobsAndLearning(); sharedCapAndDates(); historyAndLegacy(); atomicity(); concurrencyAndOverflow(); routes();
+        jobsAndLearning(); sharedWalletAndFrozenPay(); sharedCapAndDates(); historyAndLegacy(); atomicity(); concurrencyAndOverflow(); routes();
         System.out.println("PASS 宠物见习工作与日志第三批后端专项完成；MySQL运行态验收另行记录");
     }
 }

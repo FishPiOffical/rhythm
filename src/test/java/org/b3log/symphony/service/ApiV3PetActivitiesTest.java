@@ -37,7 +37,7 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 /** 第二批隔离持久化测试：读取无奖励、服务端计时、活动槽互斥、快照结算与故障恢复。 */
 public class ApiV3PetActivitiesTest {
     static JSONObject start(final String petId, final String kind, final String entry) {
-        return new JSONObject().put("petId", petId).put("kind", kind).put("entryId", entry).put("activityVersion", 5);
+        return new JSONObject().put("petId", petId).put("kind", kind).put("entryId", entry).put("activityVersion", 6);
     }
     static JSONObject claim(final String petId, final String activityId) {
         return new JSONObject().put("petId", petId).put("activityId", activityId);
@@ -58,8 +58,8 @@ public class ApiV3PetActivitiesTest {
     static void catalogAndEntries() throws Exception {
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 3);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 5);
+            Assert.assertEquals(catalog.getInt("version"), 4);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 6);
             Assert.assertEquals(catalog.getJSONArray("skills").length(), 6);
             Assert.assertEquals(catalog.getJSONArray("places").length(), 6);
             Assert.assertEquals(catalog.getJSONArray("courses").length(), 12);
@@ -71,7 +71,7 @@ public class ApiV3PetActivitiesTest {
         for (var entry : ApiV3PetActivities.ENTRIES) {
             try (var f = new Fixture()) {
                 final String id = f.adopt(), activity = begin(f, id, entry.kind(), entry.id());
-                Assert.assertEquals(f.coins(), 100 - entry.coins());
+                Assert.assertEquals(f.coins(), 1000 - entry.coins());
                 Assert.assertEquals(pet(f).getInt("energy"), 100 - entry.energy());
                 Assert.assertEquals(pet(f).getInt("hunger"), 100 - entry.hunger());
                 Assert.assertEquals(pet(f).getInt("water"), 100 - entry.water());
@@ -81,7 +81,7 @@ public class ApiV3PetActivitiesTest {
                 Assert.assertEquals(pet(f).getInt("experience"), entry.experience());
                 Assert.assertEquals(skill(f, entry.skillId()), entry.skillExperience());
                 Assert.assertEquals(f.food(), 6 + entry.food());
-                Assert.assertEquals(f.coins(), 100 - entry.coins());
+                Assert.assertEquals(f.coins(), 1000 - entry.coins());
                 Assert.assertTrue(pet(f).isNull("activity"));
             }
         }
@@ -173,13 +173,13 @@ public class ApiV3PetActivitiesTest {
             error(422, () -> f.pets.startActivity(identity(), start(id, "course", "plaza"), "unknown-course"));
             error(422, () -> f.pets.startActivity(identity(), start(id, "outing", "plaza").put("rewards", new JSONObject()), "forged"));
             error(422, () -> f.pets.claimActivity(identity(), claim(id, "not-an-id"), "bad-id"));
-            Assert.assertEquals(f.coins(), 100); Assert.assertEquals(f.count("pet_activity"), 0);
+            Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(f.count("pet_activity"), 0);
             for (String field : List.of("energy", "hunger", "water")) {
                 sql(f.db, "UPDATE user_pet SET " + field + "=0 WHERE oId=?", id);
                 error(409, () -> begin(f, id, "outing", "plaza"));
                 sql(f.db, "UPDATE user_pet SET " + field + "=100 WHERE oId=?", id);
             }
-            sql(f.db, "UPDATE pet_account SET coins=2");
+            sql(f.db, "UPDATE game_wallet SET coins=20");
             error(409, () -> begin(f, id, "outing", "riverside"));
             Assert.assertEquals(f.count("pet_activity"), 0);
         }
@@ -210,11 +210,11 @@ public class ApiV3PetActivitiesTest {
                 if (failure.startsWith("INSERT") || failure.startsWith("UPDATE")) f.writeFault = failure; else f.fault = failure;
                 error(503, () -> begin(f, id, "course", "fitness-basics"));
                 f.fault = ""; f.writeFault = "";
-                Assert.assertEquals(f.coins(), 100); Assert.assertEquals(pet(f).getInt("energy"), 100);
+                Assert.assertEquals(f.coins(), 1000); Assert.assertEquals(pet(f).getInt("energy"), 100);
                 Assert.assertTrue(pet(f).isNull("activity")); Assert.assertEquals(f.count("pet_activity"), 0);
                 Assert.assertEquals(f.count("receipt"), 1); Assert.assertEquals(f.count("pet_ledger"), 1);
                 begin(f, id, "course", "fitness-basics");
-                Assert.assertEquals(f.coins(), 95);
+                Assert.assertEquals(f.coins(), 950);
             }
         }
         for (String failure : List.of("INSERT INTO pet_skill", "UPDATE pet_inventory", "UPDATE user_pet", "UPDATE pet_activity", "INSERT INTO pet_ledger", "commit", "receipt")) {
@@ -237,7 +237,7 @@ public class ApiV3PetActivitiesTest {
             error(503, () -> begin(f, id, "outing", "riverside"));
             f.fault = "";
             final String activity = begin(f, id, "outing", "riverside");
-            Assert.assertEquals(f.coins(), 97); Assert.assertEquals(f.count("pet_activity"), 1);
+            Assert.assertEquals(f.coins(), 970); Assert.assertEquals(f.count("pet_activity"), 1);
             f.clock += 900_000L;
             f.fault = "ack";
             error(503, () -> f.pets.claimActivity(identity(), claim(id, activity), "claim"));
@@ -285,7 +285,7 @@ public class ApiV3PetActivitiesTest {
                 final var startOutcomes = List.of(x.get(), y.get());
                 Assert.assertEquals(startOutcomes.stream().filter(code -> code == 200).count(), sameKey ? 2L : 1L);
                 if (!sameKey) Assert.assertTrue(startOutcomes.contains(409));
-                Assert.assertEquals(a.count("pet_activity"), 1); Assert.assertEquals(a.coins(), 97);
+                Assert.assertEquals(a.count("pet_activity"), 1); Assert.assertEquals(a.coins(), 970);
                 final String activity = pet(a).getJSONObject("activity").getString("id");
                 a.clock += 900_000L; b.clock = a.clock;
                 final CountDownLatch claims = new CountDownLatch(1);

@@ -16961,6 +16961,14 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 - 当前日期、售价版本变化或商品下架分别返回 409（`date_changed`、`coffee_price_changed`、`coffee_off_sale`）。用完次数、余额不足或满精力也返回 409（`coffee_daily_limit`、`insufficient_points`、`already_full`）。拒绝时不扣积分或次数。
 - `GET /api/v3/admin/pets/coffee` 需要第一方管理员与 `profile.read`。`PUT /api/v3/admin/pets/coffee` 需要第一方管理员、`settings.write` 和 `Idempotency-Key`，提交 `{enabled,price,version}`，价格为 1 至 100000 的整数，版本取最近读取值。两者返回 `{product,enabled,price,version}`，实际更新会递增版本并记录后台审计。
 
+### 游园币钱包（宠物目录 v4）
+
+`GET /api/v3/me/pet` 的 `catalogVersion=4` 与 `GET /api/v3/pets/catalog` 的 `version=4`、`activityVersion=6` 配套。以下各批记录中的旧金额按 1 宠物币兑 10 游园币换算。接口直接返回游园币整数，客户端原样显示。本人聚合沿用 `wallet.coins`、`income.{date,earned,remaining,limit}`；活动成本、预期和实际收益、操作日志的金额采用相同单位。未领养的用户也能读到自己的已有游戏余额。
+
+首次领养奖励 1,000，每日补给 200，基础口粮 50，兼职计划薪酬 120，每账号每日活动收益上限 600，重新领养 5,120。补给单独发放，消费不会增加当日可赚额度。跨日兼职按出发时冻结的薪酬和领取当日剩余额度结算。已用额度及已领取记录一起换算，重放已确认命令仍返回原回执。积分商品仍用站点积分计价。
+
+迁移文件为 `sql/20261118_api_v3_game_wallet.sql`。备份并停止所有旧实例写入后执行，成功再启动新版。余额、当日额度、活动快照、历史实际成果与货币日志在同一事务内换算，重复执行跳过已完成的版本。旧版服务不能继续写入已换算的库。
+
 ### 宠物家园（第一批）
 
 以下接口需要当前第一方 V3 Bearer；不支持 Cookie 或旧 apiKey。两项读取使用 `profile.read`，五项写入使用 `settings.write`，写入需 `Idempotency-Key`。

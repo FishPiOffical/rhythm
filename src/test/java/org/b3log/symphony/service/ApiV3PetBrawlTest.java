@@ -156,7 +156,7 @@ public final class ApiV3PetBrawlTest {
             f.pets.brawlEnroll(identity(), enrollment, "enroll");
             Assert.assertTrue(f.pets.brawlState(identity()).getJSONObject("pvp").getBoolean("enabled"));
             error(409, () -> f.pets.brawlEnroll(identity(), enrollment, "stale-enroll"));
-            sql(f.db, "UPDATE pet_account SET coins=512");
+            sql(f.db, "UPDATE game_wallet SET coins=5120");
             final String replacement = f.pets.readopt(identity(), ApiV3PetProgressionTest.replacement(pet), "brawl-readopt").getString("petId");
             Assert.assertNotEquals(replacement, pet);
             Assert.assertEquals(f.pets.brawlState(identity()).getJSONObject("levels").getInt("SPOON"), 1);

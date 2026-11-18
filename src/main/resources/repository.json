@@ -779,8 +779,55 @@
       ]
     },
     {
+      "name": "game_wallet",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "coins",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "game_wallet_ledger",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "operation",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "referenceId",
+          "type": "String",
+          "length": 64
+        },
+        {
+          "name": "coinDelta",
+          "type": "long"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "pet_account",
-      "description": "宠物钱包及账号级每日奖励，oId为用户ID",
+      "description": "宠物账号级每日奖励，coins保留迁移前数值，余额读取game_wallet",
       "keys": [
         {
           "name": "oId",
@@ -929,7 +976,7 @@
     },
     {
       "name": "pet_ledger",
-      "description": "宠物币与口粮流水，不参与站点积分",
+      "description": "宠物操作的游园币与口粮变动记录",
       "keys": [
         {
           "name": "oId",

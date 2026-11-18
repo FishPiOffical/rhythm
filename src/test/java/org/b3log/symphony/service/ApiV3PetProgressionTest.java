@@ -44,11 +44,11 @@ import static org.b3log.symphony.service.ApiV3SecurityTest.*;
 public class ApiV3PetProgressionTest {
     static JSONObject replacement(final String id) {
         return new JSONObject().put("petId", id).put("speciesId", "paixiaoyu").put("name", "新伙伴")
-                .put("catalogVersion", 3).put("resetAccepted", true);
+                .put("catalogVersion", 4).put("resetAccepted", true);
     }
 
     static JSONObject reward(final String id, final String story) {
-        return new JSONObject().put("petId", id).put("storyId", story).put("catalogVersion", 3);
+        return new JSONObject().put("petId", id).put("storyId", story).put("catalogVersion", 4);
     }
 
     static JSONObject story(final Fixture f, final String id) {
@@ -77,11 +77,11 @@ public class ApiV3PetProgressionTest {
                 "reading-advanced", "knowledge", "expression-advanced", "expression", "craft-advanced", "crafting", "manners-advanced", "kindness");
         try (var f = new Fixture()) {
             final JSONObject catalog = f.pets.catalog(identity());
-            Assert.assertEquals(catalog.getInt("version"), 3);
-            Assert.assertEquals(catalog.getInt("activityVersion"), 5);
+            Assert.assertEquals(catalog.getInt("version"), 4);
+            Assert.assertEquals(catalog.getInt("activityVersion"), 6);
             Assert.assertEquals(catalog.getJSONArray("courses").length(), 12);
             Assert.assertEquals(catalog.getJSONArray("stories").length(), 3);
-            Assert.assertEquals(catalog.getJSONObject("readoptionRules").getInt("coins"), 512);
+            Assert.assertEquals(catalog.getJSONObject("readoptionRules").getInt("coins"), 5120);
             Assert.assertEquals(f.state().getJSONArray("stories").length(), 3);
             Assert.assertEquals(f.count("pet_story_progress"), 0);
         }
@@ -93,7 +93,7 @@ public class ApiV3PetProgressionTest {
                 error(409, () -> begin(f, id, "course", course.getKey()));
                 sql(f.db, "UPDATE pet_skill SET experience=20");
                 final String activity = begin(f, id, "course", course.getKey());
-                Assert.assertEquals(f.coins(), 90);
+                Assert.assertEquals(f.coins(), 900);
                 Assert.assertEquals(pet(f).getInt("energy"), 86);
                 Assert.assertEquals(pet(f).getInt("hunger"), 95);
                 Assert.assertEquals(pet(f).getInt("water"), 93);
@@ -137,7 +137,7 @@ public class ApiV3PetProgressionTest {
             Assert.assertEquals(item(f, "food"), 5);
             final JSONObject receipt = f.pets.claimStory(identity(), reward(id, "care-companion"), "reward");
             Assert.assertEquals(item(f, "food"), 7);
-            Assert.assertEquals(f.coins(), 100);
+            Assert.assertEquals(f.coins(), 1000);
             Assert.assertEquals(story(f, "care-companion").getString("status"), "claimed");
             Assert.assertTrue(receipt.similar(f.pets.claimStory(identity(), reward(id, "care-companion"), "reward")));
             error(409, () -> f.pets.claimStory(identity(), reward(id, "care-companion"), "other-key"));
@@ -214,8 +214,9 @@ public class ApiV3PetProgressionTest {
             f.pets.claimStory(identity(), reward(oldId, "care-companion"), "care-reward");
             complete(f, oldId, "course", "fitness-basics", "learn");
             complete(f, oldId, "work", "delivery-assistant", "job");
-            budgetReset(f, 60);
-            sql(f.db, "UPDATE pet_account SET coins=1024,supplyDate=?,growthDate=?,growthCount=10", ApiV3PetRules.today(f.clock), ApiV3PetRules.today(f.clock));
+            budgetReset(f, 600);
+            sql(f.db, "UPDATE game_wallet SET coins=10240");
+            sql(f.db, "UPDATE pet_account SET supplyDate=?,growthDate=?,growthCount=10", ApiV3PetRules.today(f.clock), ApiV3PetRules.today(f.clock));
             sql(f.db, "UPDATE user_pet SET petAvailableAt=?,playAvailableAt=?", f.clock + 300_000L, f.clock + 300_000L);
             sql(f.db, "INSERT INTO pet_collection VALUES(?,?,?,?)", "1:reed-boat", "1", "reed-boat", f.clock);
             final int food = item(f, "food"), historyCount = f.count("pet_activity"), journalCount = f.count("pet_journal");
@@ -227,12 +228,12 @@ public class ApiV3PetProgressionTest {
             Assert.assertEquals(f.count("user_pet"), 1);
             Assert.assertEquals(f.count("pet_archive"), 1);
             Assert.assertEquals(rows(f.db, "SELECT oId,userId FROM pet_archive").getFirst().getString("oId"), oldId);
-            Assert.assertEquals(f.coins(), 512);
+            Assert.assertEquals(f.coins(), 5120);
             Assert.assertEquals(item(f, "food"), food);
             Assert.assertEquals(f.state().getJSONArray("collections").length(), 1);
             for (String field : List.of("supplyDate", "growthDate", "growthCount", "createdAt"))
                 Assert.assertEquals(rows(f.db, "SELECT * FROM pet_account").getFirst().get(field), before.get(field));
-            Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 60);
+            Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 600);
             Assert.assertEquals(story(f, "care-companion").getString("status"), "claimed");
             Assert.assertEquals(story(f, "first-career").getInt("completedSteps"), 2);
             Assert.assertEquals(pet(f).getInt("experience"), 0);
@@ -243,7 +244,7 @@ public class ApiV3PetProgressionTest {
             Assert.assertEquals(f.count("pet_activity"), historyCount);
             Assert.assertEquals(f.count("pet_journal"), journalCount + 1);
             Assert.assertEquals(history(f, "all", 1, 50).getJSONObject("pagination").getInt("total"), historyCount);
-            Assert.assertEquals(latest(f, "readoption").getInt("coinsDelta"), -512);
+            Assert.assertEquals(latest(f, "readoption").getInt("coinsDelta"), -5120);
             Assert.assertEquals(latest(f, "readoption").getJSONArray("itemChanges").length(), 0);
             error(409, () -> f.pets.adopt(identity(), adoption("再领首奖"), "new-adopt"));
             Assert.assertEquals(f.pets.adopt(identity(), adoption("荷小豚"), "adopt").getString("petId"), oldId);
@@ -257,7 +258,7 @@ public class ApiV3PetProgressionTest {
             unlock(f, id, "vitality");
             error(409, () -> f.pets.startActivity(identity(), start(id, "work", "delivery-assistant"), "budget"));
             Assert.assertTrue(receipt.similar(f.pets.readopt(identity(), replacement(oldId), "replace")));
-            Assert.assertEquals(f.coins(), 512);
+            Assert.assertEquals(f.coins(), 5120);
             Assert.assertEquals(f.count("pet_archive"), 1);
         }
         System.out.println("PASS 换宠新ID/初始状态与旧宠归档、成长技能职业重置、钱包背包收藏和账号额度/履历保留");
@@ -270,7 +271,7 @@ public class ApiV3PetProgressionTest {
     static void staleCommandsAndGates() throws Exception {
         try (var f = new Fixture()) {
             final String old = f.adopt();
-            sql(f.db, "UPDATE pet_account SET coins=1024");
+            sql(f.db, "UPDATE game_wallet SET coins=10240");
             error(422, () -> f.pets.readopt(identity(), replacement(old).put("resetAccepted", false), "not-accepted"));
             error(409, () -> f.pets.readopt(identity(), replacement(old).put("catalogVersion", 2), "old-price"));
             error(422, () -> f.pets.readopt(identity(), replacement(old).put("speciesId", "unknown"), "bad-species"));
@@ -285,9 +286,9 @@ public class ApiV3PetProgressionTest {
             f.clock = row(f, activity).getLong("endsAt");
             error(409, () -> f.pets.readopt(identity(), replacement(old), "busy-claimable"));
             f.pets.claimActivity(identity(), claim(old, activity), "claim");
-            sql(f.db, "UPDATE pet_account SET coins=511");
+            sql(f.db, "UPDATE game_wallet SET coins=5110");
             error(409, () -> f.pets.readopt(identity(), replacement(old), "not-enough"));
-            sql(f.db, "UPDATE pet_account SET coins=1024");
+            sql(f.db, "UPDATE game_wallet SET coins=10240");
             final String id = f.pets.readopt(identity(), replacement(old), "replace").getString("petId");
             error(404, () -> f.pets.rename(identity(), new JSONObject().put("petId", old).put("name", "迟到改名"), "stale-name"));
             error(404, () -> f.pets.action(identity(), action(old, "water"), "stale-care"));
@@ -301,7 +302,7 @@ public class ApiV3PetProgressionTest {
             f.pets.claimActivity(identity(), claim(old, activity), "claim");
             Assert.assertEquals(pet(f).getString("id"), id);
             Assert.assertEquals(pet(f).getInt("experience"), 0);
-            Assert.assertEquals(f.coins(), 512);
+            Assert.assertEquals(f.coins(), 5120);
         }
         try (var f = new Fixture()) {
             final String id = f.adopt();
@@ -322,18 +323,18 @@ public class ApiV3PetProgressionTest {
         for (String failure : List.of("INSERT INTO pet_archive", "DELETE FROM user_pet", "INSERT INTO user_pet", "UPDATE pet_account", "INSERT INTO pet_journal", "INSERT INTO pet_ledger", "receipt", "commit")) {
             try (var f = new Fixture()) {
                 final String id = f.adopt();
-                sql(f.db, "UPDATE pet_account SET coins=1024");
+                sql(f.db, "UPDATE game_wallet SET coins=10240");
                 if (failure.contains("INTO") || failure.startsWith("DELETE") || failure.startsWith("UPDATE")) f.writeFault = failure;
                 else f.fault = failure;
                 error(503, () -> f.pets.readopt(identity(), replacement(id), "replace"));
                 f.writeFault = ""; f.fault = "";
                 Assert.assertEquals(pet(f).getString("id"), id);
-                Assert.assertEquals(f.coins(), 1024);
+                Assert.assertEquals(f.coins(), 10240);
                 Assert.assertEquals(f.count("pet_archive"), 0);
                 Assert.assertEquals(f.count("pet_journal"), 0);
                 Assert.assertEquals(f.count("pet_ledger"), 1);
                 f.pets.readopt(identity(), replacement(id), "replace");
-                Assert.assertEquals(f.coins(), 512);
+                Assert.assertEquals(f.coins(), 5120);
                 Assert.assertEquals(f.count("pet_archive"), 1);
             }
         }
@@ -369,7 +370,7 @@ public class ApiV3PetProgressionTest {
         for (String operation : List.of("readoption", "story")) {
             try (var f = new Fixture()) {
                 final String id = f.adopt();
-                sql(f.db, "UPDATE pet_account SET coins=1024");
+                sql(f.db, "UPDATE game_wallet SET coins=10240");
                 if (operation.equals("story")) careReady(f, id);
                 f.fault = "ack";
                 if (operation.equals("story")) error(503, () -> f.pets.claimStory(identity(), reward(id, "care-companion"), "unknown"));
@@ -381,7 +382,7 @@ public class ApiV3PetProgressionTest {
                     Assert.assertEquals(log(f, "story", 1, 10).getJSONObject("pagination").getInt("total"), 1);
                 } else {
                     f.pets.readopt(identity(), replacement(id), "unknown");
-                    Assert.assertEquals(f.coins(), 512);
+                    Assert.assertEquals(f.coins(), 5120);
                     Assert.assertEquals(f.count("pet_archive"), 1);
                 }
             }
@@ -395,7 +396,7 @@ public class ApiV3PetProgressionTest {
                 try (var first = new Fixture(); var second = new Fixture(); var pool = Executors.newFixedThreadPool(2)) {
                     second.db.close(); second.url = first.url; second.db = DriverManager.getConnection(first.url);
                     final String id = first.adopt();
-                    sql(first.db, "UPDATE pet_account SET coins=1024");
+                    sql(first.db, "UPDATE game_wallet SET coins=10240");
                     if (operation.equals("story")) careReady(first, id);
                     final CountDownLatch latch = new CountDownLatch(1);
                     final var a = pool.submit(() -> { latch.await(); return outcome(() -> {
@@ -412,7 +413,7 @@ public class ApiV3PetProgressionTest {
                     if (!sameKey) Assert.assertTrue(responses.contains(operation.equals("story") ? 409 : 404));
                     if (operation.equals("story")) Assert.assertEquals(item(first, "food"), 7);
                     else {
-                        Assert.assertEquals(first.coins(), 512);
+                        Assert.assertEquals(first.coins(), 5120);
                         Assert.assertEquals(first.count("pet_archive"), 1);
                         Assert.assertEquals(first.count("user_pet"), 1);
                     }
@@ -422,7 +423,7 @@ public class ApiV3PetProgressionTest {
         try (var first = new Fixture(); var second = new Fixture(); var pool = Executors.newFixedThreadPool(2)) {
             second.db.close(); second.url = first.url; second.db = DriverManager.getConnection(first.url);
             final String id = first.adopt();
-            sql(first.db, "UPDATE pet_account SET coins=1024");
+            sql(first.db, "UPDATE game_wallet SET coins=10240");
             final CountDownLatch latch = new CountDownLatch(1);
             final var a = pool.submit(() -> { latch.await(); return outcome(() -> first.pets.readopt(identity(), replacement(id), "replace")); });
             final var b = pool.submit(() -> { latch.await(); return outcome(() -> second.pets.startActivity(identity(), start(id, "outing", "plaza"), "start")); });
@@ -458,7 +459,7 @@ public class ApiV3PetProgressionTest {
             final String id = f.adopt();
             careReady(f, id);
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/stories/claim", "owner", "reward", reward(id, "care-companion").toString()).attr("test.status"), 200);
-            sql(f.db, "UPDATE pet_account SET coins=1024");
+            sql(f.db, "UPDATE game_wallet SET coins=10240");
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/readoption", "owner", "replace", replacement(id).toString()).attr("test.status"), 200);
             final JSONObject other = ApiV3IdentityApplicationTest.reviewer();
             f.pets.adopt(other, adoption("另一位伙伴"), "other-adopt");
