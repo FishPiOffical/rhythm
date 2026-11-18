@@ -47,6 +47,8 @@ public final class ChatMessageClients {
             "Dart",
             "Harmony",
             "Rust",
+            "Deepseek Harness",
+            "Codex",
             "Other");
     public static String normalize(final String input){
         try{

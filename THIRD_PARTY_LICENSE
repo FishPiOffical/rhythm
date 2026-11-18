@@ -44,6 +44,7 @@ alipay-sdk-java: Proprietary, no explicit open-source license; allowed for comme
 
 # Frontend
 
+Lobe Icons (DeepSeek and Codex SVG paths): MIT, Copyright (c) 2023 LobeHub; see docs/licenses/lobe-icons-MIT.txt
 aplayer: SATA
 algolia*: MIT
 echarts: BSD

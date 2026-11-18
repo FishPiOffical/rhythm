@@ -4595,7 +4595,7 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/settings/chat-tail' \
 | Key | 说明 | 示例 |
 | --- | --- | --- |
 | content | 消息正文，支持 Markdown，最多4096字符，不能为空 | 大家好！ |
-| client | 客户端标记，可选，格式为品牌/版本，最多128字符 | Web/MyClient |
+| client | 客户端标记，可选，格式为品牌/版本，支持 `Deepseek Harness` 和 `Codex` 等客户端名，最多128字符 | Codex/1.0 |
 
 请求示例：
 
@@ -9450,7 +9450,7 @@ curl --location --request GET 'https://fishpi.cn/chat-room/more?page=1&apiKey=YO
 | Key        | 说明                                                                                                                                                                                                                                                                                            | 示例                                     |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | apiKey     | 通用密钥                                                                                                                                                                                                                                                                                        | YOUR_API_KEY         |
-| client     | 格式：`标识/版本`标识必须为：`Web` `PC` `Mobile` `Windows` `macOS` `iOS` `Android` `Extension` `IDEA` `Chrome` `Edge` `VSCode` `Python` `Golang` `Linux` `IceNet` `ElvesOnline` `Harmony` `Other`版本允许使用字符：中文、大小写英文、数字、英文句号、英文横线、空格，最大32字符，超过则自动截断 | Windows/V1.0.0                           |
+| client     | 格式：`标识/版本`，标识支持 `Web`、`PC`、`Mobile`、`CLI`、`uTools`、`Windows`、`macOS`、`Linux`、`IceNet`、`ElvesOnline`、`iOS`、`Android`、`Extension`、`IDEA`、`Chrome`、`Edge`、`VSCode`、`Python`、`Golang`、`Bird`、`Dart`、`Harmony`、`Rust`、`Deepseek Harness`、`Codex`、`Other`；版本允许使用中文、英文、数字、英文句号、英文横线和空格，最大32字符，超过则自动截断 | Codex/1.0 |
 | content    | 消息正文（支持Markdown格式）。                                                                                                                                                                                                                                                                  | `...` 或 `[redpacket]{...}[/redpacket]`* |
 | - msg      | 红包祝福语                                                                                                                                                                                                                                                                                      | 摸鱼者，事竟成！                         |
 | - money    | 红包包含积分，如果是平分红包，则是单个红包积分                                                                                                                                                                                                                                                  | 32                                       |
