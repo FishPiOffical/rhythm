@@ -3682,6 +3682,14 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/settings/avatar' \
 
 > 可先使用上传票据上传图片，再提交公开图片 URL，也可直接使用外部 HTTPS 图片地址。接口只校验地址格式，不检查远程图片是否可访问；允许无扩展名和带查询参数的图片地址。不接受空字符串清空。重复请求返回原结果，不覆盖后来保存的新头像；同键不同内容返回 HTTP 409。旧页面的头像缩放、静态化及来源展示规则仍适用。
 
+### 个人卡片背景设置
+
+`GET /api/v3/me/settings/card-background` 需要 `profile.read`。返回 `data.cardBg`，默认背景用空字符串表示。已在经典站设置的背景沿用原地址。
+
+`PUT /api/v3/me/settings/card-background` 需要 `settings.write` 和 `Idempotency-Key`。JSON 请求体只接受必填字符串 `cardBg`。先通过上传票据取得图片地址，再提交该地址。非空地址须为合法 HTTPS URL，最多 2048 个 UTF-16 单位，禁止用户凭据，保留签名查询参数。提交 `{"cardBg":""}` 恢复默认。服务端仅校验地址，不会读取远端图片。
+
+写入只更新经典站共用的背景字段。响应的 `data.cardBg` 是本次写入的回执，同键重试返回原回执，同键不同内容返回 HTTP 409。查询当前背景使用 GET。
+
 ### 使用积分修改用户名
 
 `PUT /api/v3/me/settings/user-name`

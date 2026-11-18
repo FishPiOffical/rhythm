@@ -46,13 +46,16 @@ public class ApiV3SettingsProcessor {
 
     public static void register() {
         final BeanManager beans = BeanManager.getInstance();
-        final ApiV3SettingsProcessor p = beans.getReference(ApiV3SettingsProcessor.class);
-        final ApiV3AuthMidware auth = beans.getReference(ApiV3AuthMidware.class);
-        final ApiV3WriteMidware writes = beans.getReference(ApiV3WriteMidware.class);
+        registerRoutes(beans.getReference(ApiV3SettingsProcessor.class), beans.getReference(ApiV3AuthMidware.class),
+                beans.getReference(ApiV3WriteMidware.class));
+    }
+
+    public static void registerRoutes(final ApiV3SettingsProcessor p, final ApiV3AuthMidware auth, final ApiV3WriteMidware writes) {
         Dispatcher.get("/api/v3/me/settings/personality", p::personality, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/personality-options", p::personalityOptions, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/avatar", p::avatar, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/profile", p::profile, auth::profileRead);
+        Dispatcher.get("/api/v3/me/settings/card-background", p::cardBackground, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/privacy", p::privacy, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/display", p::display, auth::profileRead);
         Dispatcher.get("/api/v3/me/settings/skins", p::skins, auth::profileRead);
@@ -66,6 +69,7 @@ public class ApiV3SettingsProcessor {
         Dispatcher.put("/api/v3/me/settings/location", p::updateLocation, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/locale", p::updateLocale, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/profile", p::updateProfile, auth::settingsWrite, writes::handle);
+        Dispatcher.put("/api/v3/me/settings/card-background", p::updateCardBackground, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/privacy", p::updatePrivacy, auth::settingsWrite, writes::handle);
         Dispatcher.put("/api/v3/me/settings/display", p::updateDisplay, auth::settingsWrite, writes::handle);
     }
@@ -84,6 +88,15 @@ public class ApiV3SettingsProcessor {
 
     public void profile(final RequestContext c) {
         read(c, "profile");
+    }
+
+    public void cardBackground(final RequestContext c) {
+        ApiV3Requests.read(c, () -> management.readCardBackground(actor(c)));
+    }
+
+    public void updateCardBackground(final RequestContext c) {
+        ApiV3Requests.respond(c, () -> management.updateCardBackground(actor(c),
+                ApiV3WriteInputs.body(c, java.util.Set.of("cardBg"), false), ApiV3WriteInputs.idempotencyKey(c)));
     }
 
     public void privacy(final RequestContext c) {

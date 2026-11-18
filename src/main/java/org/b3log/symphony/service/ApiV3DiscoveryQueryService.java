@@ -37,7 +37,6 @@ import org.b3log.symphony.model.Domain;
 import org.b3log.symphony.model.Follow;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.Tag;
-import org.b3log.symphony.model.SystemSettings;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.BreezemoonRepository;
@@ -54,7 +53,6 @@ import org.b3log.symphony.util.ApiV3ArticleStickState;
 import org.b3log.symphony.util.Symphonys;
 import org.b3log.symphony.util.ApiV3ProfileQueries;
 import org.b3log.symphony.util.ApiV3Requests;
-import org.b3log.symphony.util.ApiV3AvatarUrl;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
@@ -310,17 +308,7 @@ public class ApiV3DiscoveryQueryService {
     }
 
     private String cardBackground(final String userId) throws RepositoryException {
-        final var rows = systemSettingsRepository.select("SELECT settings FROM `" + systemSettingsRepository.getName()
-                + "` WHERE userId=? LIMIT 2", userId);
-        if (rows.isEmpty()) return "";
-        if (rows.size() != 1) throw new ApiV3Exception(503, "temporarily_unavailable", "个性卡片配置暂不可用");
-        try {
-            final JSONObject settings = new JSONObject(rows.getFirst().getString(SystemSettings.SETTINGS));
-            final Object background = settings.opt("cardBg");
-            return background instanceof String url ? ApiV3AvatarUrl.stored(url) : "";
-        } catch (final org.json.JSONException e) {
-            throw new ApiV3Exception(503, "temporarily_unavailable", "个性卡片配置暂不可用");
-        }
+        return ApiV3SettingsMgmtService.cardBackground(systemSettingsRepository, userId);
     }
 
     public void requireUserList(final JSONObject user, final JSONObject viewer, final String field) {
