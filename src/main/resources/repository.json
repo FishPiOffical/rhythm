@@ -804,6 +804,49 @@
       ]
     },
     {
+      "name": "parking_visit",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "note",
+          "type": "String",
+          "length": 16
+        },
+        {
+          "name": "mountStyle",
+          "type": "String",
+          "length": 48
+        },
+        {
+          "name": "pardonedAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "parking_catalog",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "settings",
+          "type": "String",
+          "length": 4096
+        },
+        {
+          "name": "version",
+          "type": "int"
+        }
+      ]
+    },
+    {
       "name": "parking_session",
       "keys": [
         {

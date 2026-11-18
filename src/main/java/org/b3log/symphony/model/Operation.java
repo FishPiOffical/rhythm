@@ -330,6 +330,7 @@ public final class Operation {
 
     /** 修改宠物咖啡售价或在售状态。 */
     public static final int OPERATION_CODE_C_PET_COFFEE_SETTINGS = 57;
+    public static final int OPERATION_CODE_C_PARKING_SETTINGS = 58;
 
 
     //// Transient ////

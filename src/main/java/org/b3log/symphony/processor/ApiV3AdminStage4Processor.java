@@ -118,6 +118,10 @@ public class ApiV3AdminStage4Processor {
         final ApiV3AuthMidware auth = manager.getReference(ApiV3AuthMidware.class);
         final ApiV3WriteMidware write = manager.getReference(ApiV3WriteMidware.class);
 
+        Dispatcher.get("/api/v3/admin/parking/models", p::parkingModels, auth::profileRead);
+        Dispatcher.get("/api/v3/admin/parking/ledger", p::parkingLedger, auth::profileRead);
+        Dispatcher.put("/api/v3/admin/parking/models/{model}", p::updateParkingModel, auth::settingsWrite, write::handle);
+
         // 宠物风控日志（严格只读）
         Dispatcher.get("/api/v3/admin/pets/logs", p::listPetLogs, auth::profileRead);
         Dispatcher.get("/api/v3/admin/pets", p::listPets, auth::profileRead);
@@ -184,6 +188,23 @@ public class ApiV3AdminStage4Processor {
     public void listPets(final RequestContext context) {
         ApiV3Requests.read(context, () -> petService.list(identity(context),
                 ApiV3Requests.text(context.param("q"), 64, false), ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    @Inject private org.b3log.symphony.service.ParkingCatalogService parkingCatalog;
+
+    public void parkingModels(final RequestContext context) {
+        ApiV3Requests.read(context, () -> parkingCatalog.read(identity(context), false, null, 1, 1));
+    }
+
+    public void parkingLedger(final RequestContext context) {
+        ApiV3Requests.read(context, () -> parkingCatalog.read(identity(context), true, context.param("userId"),
+                ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    public void updateParkingModel(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> parkingCatalog.update(identity(context), context.pathVar("model"),
+                ApiV3WriteInputs.body(context, Set.of("enabled","rate","price","version"), false, 2048),
+                ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
     }
 
     public void getPetCoffee(final RequestContext context) {

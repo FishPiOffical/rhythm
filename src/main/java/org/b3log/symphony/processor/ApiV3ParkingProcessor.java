@@ -38,11 +38,16 @@ public class ApiV3ParkingProcessor {
         final var processor = beans.getReference(ApiV3ParkingProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         Dispatcher.get("/api/v3/me/parking", processor::state, auth::profileRead);
+        Dispatcher.get("/api/v3/me/parking/weekly", processor::weekly, auth::profileRead);
         Dispatcher.post("/api/v3/me/parking/{action}", processor::write, auth::settingsWrite);
     }
 
     public void state(final RequestContext context) {
-        ApiV3Requests.read(context, () -> parking.state((JSONObject) context.attr(ApiV3Processor.IDENTITY), context.param("after")));
+        ApiV3Requests.read(context, () -> parking.state((JSONObject) context.attr(ApiV3Processor.IDENTITY), context.param("after"), context.param("scope"), context.param("host")));
+    }
+
+    public void weekly(final RequestContext context) {
+        ApiV3Requests.read(context, () -> parking.weekly((JSONObject) context.attr(ApiV3Processor.IDENTITY)));
     }
 
     public void write(final RequestContext context) {

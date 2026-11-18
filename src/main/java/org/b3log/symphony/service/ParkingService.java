@@ -67,32 +67,72 @@ public class ParkingService {
     @Inject private ApiV3PetRiskService risk;
     @Inject private GameWalletService wallet;
 
-    public JSONObject state(final JSONObject identity, final String after) throws Exception {
+    @Inject private ParkingCatalogService offers;
+    @Inject private ApiV3AppearanceShopService appearance;
+    @Inject private org.b3log.symphony.repository.ParkingVisitRepository visits;
+    @Inject private org.b3log.symphony.repository.FollowRepository follows;
+
+    private static final Set<String> NOTES = Set.of("hello","thanks","coffee");
+    private static final String JOIN_ID = " COLLATE utf8mb4_0900_ai_ci";
+
+    public JSONObject weekly(final JSONObject identity) throws Exception {
+        final Transaction tx = requests.beginTransaction();
+        try {
+            proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read");
+            final var zone = java.time.ZoneId.of("Asia/Shanghai");
+            final var monday = java.time.LocalDate.now(zone).with(java.time.DayOfWeek.MONDAY);
+            final long start = monday.atStartOfDay(zone).toInstant().toEpochMilli();
+            final long end = monday.plusWeeks(1).atStartOfDay(zone).toInstant().toEpochMilli();
+            final var rows = sessions.select("SELECT s.driverId,u.userName,u.userNickname,SUM(s.paid) AS income"
+                    + " FROM `" + sessions.getName() + "` s JOIN `" + users.getName() + "` u ON u.oId" + JOIN_ID + "=s.driverId"
+                    + " WHERE s.endedAt>=? AND s.endedAt<? AND s.paid>0 AND u.userStatus=0"
+                    + " GROUP BY s.driverId,u.userName,u.userNickname ORDER BY income DESC,s.driverId LIMIT 50",start,end);
+            final var list = new JSONArray();
+            for (var row : rows) list.put(new JSONObject().put("userName",row.getString("userName"))
+                    .put("name",displayName(row)).put("income",row.getLong("income")));
+            tx.commit();
+            return new JSONObject().put("weekStart",start).put("list",list);
+        } finally { if (tx.isActive()) tx.rollback(); }
+    }
+
+    public JSONObject state(final JSONObject identity, final String after, final String scope, final String target) throws Exception {
         if (after != null && !after.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+        if (scope != null && !Set.of("following","all").contains(scope)) throw ApiV3WriteInputs.invalid();
+        if (target != null && !target.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
         final Transaction tx = requests.beginTransaction();
         try {
             final String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
             final long now = System.currentTimeMillis();
             final Long coins = wallet.balance(actor);
             final JSONObject garage = garage(actor);
-            final JSONObject result = new JSONObject().put("serverNow", now).put("catalog", catalog())
+            final JSONObject result = new JSONObject().put("serverNow", now).put("catalog", offers.models().getJSONArray("models"))
                     .put("coins", coins == null ? 0L : coins).put("owned", garage == null ? new JSONArray() : new JSONArray(garage.getString("cars")))
                     .put("driving", activity(garage, "driving", now)).put("occupant", activity(garage, "occupant", now));
-            final var available = garages.select("SELECT oId FROM `" + garages.getName()
-                    + "` WHERE occupant='' AND oId<>? AND oId>? ORDER BY oId LIMIT 21", actor, after == null ? "" : after);
-            final JSONArray spaces = new JSONArray();
-            final List<String> ids = available.stream().limit(20).map(r -> r.getString("oId")).toList();
-            if (!ids.isEmpty()) {
-                final var names = users.select("SELECT oId,userName,userNickname FROM `" + users.getName()
-                        + "` WHERE userStatus=0 AND oId IN (" + String.join(",", Collections.nCopies(ids.size(), "?")) + ")", ids.toArray());
-                final Map<String,String> labels = new HashMap<>();
-                for (JSONObject u : names) labels.put(u.getString("oId"), displayName(u));
-                for (String id : ids) if (labels.containsKey(id)) spaces.put(new JSONObject().put("id", id).put("name", labels.get(id)));
+            final List<Object> params = new ArrayList<>();
+            String from = " FROM `" + garages.getName() + "` g JOIN `" + users.getName()
+                    + "` u ON u.oId" + JOIN_ID + "=g.oId AND u.userStatus=0";
+            if ("following".equals(scope)) {
+                from += " WHERE EXISTS (SELECT 1 FROM `" + follows.getName() + "` f WHERE f.followingId"
+                        + JOIN_ID + "=g.oId AND f.followerId=? AND f.followingType=0) AND ";
+                params.add(actor);
+            } else from += " WHERE ";
+            from += "g.oId<>? AND g.oId>?";
+            params.add(actor);
+            params.add(after == null ? "" : after);
+            if (target == null) from += " AND g.occupant=''";
+            else {
+                from += " AND g.oId=?";
+                params.add(target);
             }
+            final var available = garages.select("SELECT g.oId,g.occupant,u.userName,u.userNickname" + from
+                    + " ORDER BY g.oId LIMIT 21",params.toArray());
+            final JSONArray spaces = new JSONArray();
+            for (var row : available.stream().limit(20).toList()) spaces.put(new JSONObject()
+                    .put("id",row.getString("oId")).put("name",displayName(row)).put("free",row.getString("occupant").isEmpty()));
             final var recent = sessions.select("SELECT oId,car,endedAt,ending,paid FROM `" + sessions.getName()
                     + "` WHERE driverId=? AND endedAt>0 ORDER BY startedAt DESC LIMIT 5", actor);
             result.put("recent", new JSONArray(recent));
-            result.put("spaces", spaces).put("next", available.size() > 20 ? ids.getLast() : "");
+            result.put("spaces", spaces).put("next", available.size() > 20 ? available.get(19).getString("oId") : "");
             tx.commit();
             return result;
         } finally {
@@ -121,7 +161,10 @@ public class ParkingService {
         final JSONObject row = session(garage.getString(field));
         final String other = row.getString("driving".equals(field) ? "hostId" : "driverId");
         final var names = users.select("SELECT userName,userNickname FROM `" + users.getName() + "` WHERE oId=?", other);
-        return new JSONObject().put("id", row.getString("oId")).put("car", row.getString("car"))
+        final var visit = visits.get(row.getString("oId"));
+        return new JSONObject().put("note", visit == null ? "" : visit.getString("note"))
+                .put("mountStyle", visit == null ? "" : visit.getString("mountStyle"))
+                .put("pardoned", visit != null && visit.getLong("pardonedAt") > 0).put("id", row.getString("oId")).put("car", row.getString("car"))
                 .put("otherName", names.isEmpty() ? "已离开的玩家" : displayName(names.getFirst()))
                 .put("startedAt", row.getLong("startedAt")).put("rate", row.getInt("hourlyRate"))
                 .put("earned", payout(row.getInt("hourlyRate"), row.getLong("startedAt"), now));
@@ -129,12 +172,15 @@ public class ParkingService {
 
     public JSONObject command(final JSONObject identity, final String action, final String key, final JSONObject input) throws Exception {
         final Set<String> fields = switch (action) {
-            case "starter", "buy" -> Set.of("car");
-            case "park" -> Set.of("car", "hostId");
-            case "collect", "ticket" -> Set.of("sessionId");
+            case "starter" -> Set.of("car");
+            case "buy" -> input.has("expectedPrice") ? Set.of("car","expectedPrice") : Set.of("car");
+            case "park" -> input.has("note") ? Set.of("car","hostId","note") : Set.of("car","hostId");
+            case "collect", "ticket", "pardon" -> Set.of("sessionId");
             default -> throw ApiV3Requests.notFound();
         };
         if (!fields.equals(input.keySet())) throw ApiV3WriteInputs.invalid();
+        if (fields.contains("note") && !NOTES.contains(ApiV3WriteInputs.string(input,"note",16,false))) throw ApiV3WriteInputs.invalid();
+        if (fields.contains("expectedPrice")) ApiV3WriteInputs.integer(input,"expectedPrice",-1,1,1_000_000);
         if (fields.contains("car")) car(ApiV3WriteInputs.string(input, "car", 24, false));
         for (String field : List.of("hostId", "sessionId")) {
             if (fields.contains(field) && !ApiV3WriteInputs.string(input, field, 19, false).matches("[1-9][0-9]{0,18}"))
@@ -177,7 +223,7 @@ public class ParkingService {
         final JSONObject receipt = new JSONObject().put("action", action).put("amount", 0);
         if ("starter".equals(action)) {
             final Car model = car(input.getString("car"));
-            if (!model.starter() || own != null) throw conflict("starter_unavailable", "每人可免费选择一辆初始车");
+            if (!model.starter() || own != null || !offers.offer(model.id()).getBoolean("enabled")) throw conflict("starter_unavailable", "每人可免费选择一辆初始车");
             wallet.open(actor);
             garages.add(new JSONObject().put("oId", actor).put("cars", new JSONArray().put(model.id()).toString())
                     .put("driving", "").put("occupant", ""));
@@ -185,11 +231,29 @@ public class ParkingService {
         }
         if (own == null) throw conflict("garage_missing", "请先领取初始车");
         if ("collect".equals(action) || "ticket".equals(action)) return end(actor, action, input.getString("sessionId"), now, receipt);
-        final Car model = car(input.getString("car"));
+        if ("pardon".equals(action)) {
+            final String id = input.getString("sessionId");
+            final var row = session(id);
+            if (!actor.equals(row.getString("hostId"))) throw ApiV3Requests.forbidden();
+            if (!id.equals(own.getString("occupant")) || row.getLong("endedAt") != 0 || now >= row.getLong("startedAt") + MAX_DURATION)
+                throw conflict("pardon_unavailable","本次停车已结束或已满时");
+            final var visit = visits.get(id);
+            if (visit == null) visits.add(new JSONObject().put("oId",id).put("note","").put("mountStyle","").put("pardonedAt",now));
+            else {
+                if (visit.getLong("pardonedAt") > 0) throw conflict("already_pardoned","已经放行这辆车");
+                visits.update(id,visit.put("pardonedAt",now),"pardonedAt");
+            }
+            return receipt.put("sessionId",id);
+        }
+        final String modelId = input.getString("car");
+        final var offer = offers.offer(modelId);
+        final var model = new Car(modelId,offer.getString("name"),offer.getInt("price"),offer.getInt("rate"),offer.getBoolean("starter"));
         final JSONArray owned = new JSONArray(own.getString("cars"));
         boolean hasCar = false;
         for (int i = 0; i < owned.length(); i++) if (model.id().equals(owned.getString(i))) hasCar = true;
         if ("buy".equals(action)) {
+            if (!offer.getBoolean("enabled")) throw conflict("car_off_sale","车辆已下架");
+            if (input.optInt("expectedPrice",car(modelId).price()) != model.price()) throw conflict("parking_price_changed","车价已变更，请重新确认");
             if (hasCar) throw conflict("car_owned", "已拥有这辆车");
             wallet.change(actor, -model.price(), "parking-buy", model.id(), now);
             garages.update(actor, own.put("cars", owned.put(model.id()).toString()), "cars");
@@ -218,6 +282,9 @@ public class ParkingService {
         sessions.add(new JSONObject().put("oId", id).put("driverId", actor).put("hostId", host).put("car", model.id())
                 .put("hourlyRate", model.rate()).put("startedAt", now).put("endedAt", 0L).put("ending", "")
                 .put("paid", 0).put("restartGapMs", gap).put("verified", verify ? 1 : 0));
+        final var mount = appearance.mounts(List.of(actor),now).get(actor);
+        visits.add(new JSONObject().put("oId",id).put("note",input.optString("note"))
+                .put("mountStyle",mount == null ? "" : mount.styleId()).put("pardonedAt",0L));
         garages.update(actor, own.put("driving", id), "driving");
         garages.update(host, space.put("occupant", id), "occupant");
         return receipt.put("sessionId", id);
@@ -258,6 +325,10 @@ public class ParkingService {
         final String driver = row.getString("driverId"), host = row.getString("hostId");
         if (!actor.equals("collect".equals(action) ? driver : host)) throw ApiV3Requests.forbidden();
         if (row.getLong("endedAt") != 0) throw conflict("session_closed", "这次停车已结算");
+        if ("ticket".equals(action) && now < row.getLong("startedAt") + MAX_DURATION) {
+            final var visit = visits.get(id);
+            if (visit != null && visit.getLong("pardonedAt") > 0) throw conflict("parking_pardoned","已放行，计费期满可清位");
+        }
         // 贴条也只给车主入账；与其他游戏对同一车主的钱包写入使用相同的锁。
         if (!driver.equals(actor) && users.getForUpdate(driver) == null) throw ApiV3Requests.notFound();
         final JSONObject own = garage(driver), space = garage(host);

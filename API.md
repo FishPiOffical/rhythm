@@ -16970,14 +16970,66 @@ curl 'https://fishpi.cn/api/v3/users/FishPi/medals/image?medalId=7&size=mini' \
 | action | 字段 | 效果 |
 |---|---|---|
 | starter | car | 免费领取三款初始车之一并开放一个车位 |
-| buy | car | 按目录价格扣游园币购车 |
-| park | car、hostId | 驾驶已拥有的车停入其他玩家的空位 |
+| buy | car、可选 expectedPrice | expectedPrice 为确认时看到的售价，价格变化须重新确认 |
+| park | car、hostId、可选 note | 驾驶已拥有的车停入其他玩家的空位，可随车留一张预设便签 |
 | collect | sessionId | 车主收回该次停车 |
 | ticket | sessionId | 车位主人结束该次停车 |
+| pardon | sessionId | 车位主人对本单放行，到八小时计费期满前不能再贴条；车主可随时收车 |
 
 停车每账号限同时出停一辆，按开始时的小时费率计满整数，最多累计八小时。两种结束方式都只向车主入账，独立于宠物兼职每日额度。回执包含 action、amount，有停车记录时包含 sessionId。结果未知时用原动作、原输入及原键恢复，确认后重读当前状态。停车要求人机验证时返回 `parking_verification_required`，使用既有宠物验证接口、操作名 `parking-start` 与原键，验证后继续原请求。
 
 启用前在游园币迁移之后执行 `sql/20261118_api_v3_parking.sql`。运营可用 `tools/parking-analytics.sql` 查看最近七天的结算及重复续停情况。
+
+第二阶段在第一阶段迁移之后执行 `sql/20261118_api_v3_parking_social.sql`。车位列表可传 `scope=following` 只看自己关注的鱼友，或传 `host`（用户 ID）查看指定车位及空闲标记 `free`。未开放的车位返回空列表。车型的 `enabled` 为在售状态；已购车辆下架后仍可出停。出车时冻结费率、当前装备的有效座驾外观及便签。便签值为 `hello`（来串个门）、`thanks`（谢谢你的车位）、`coffee`（请你喝杯咖啡）。本人车位与出停车记录附带 `mountStyle`、`note`、`pardoned`。
+
+### 停车周榜
+
+`GET /api/v3/me/parking/weekly`
+
+需要第一方 Bearer 和 `profile.read`。按北京时间本周已实际结算的正收益排名，最多 50 人。同收益按用户 ID 稳定排序。
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/parking/weekly' -H 'Authorization: Bearer <token>'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| weekStart | 本周一零点的毫秒时间戳 | 1794758400000 |
+| list | 顺序排列的车主及游园币收入 | `[{"userName":"example","name":"车友","income":192}]` |
+
+### 后台车行与流水
+
+`GET /api/v3/admin/parking/models` 读取车行目录与配置版本。需要第一方管理员和 `profile.read`。
+
+`PUT /api/v3/admin/parking/models/{model}` 保存指定车型，需第一方管理员、`settings.write` 及 `Idempotency-Key`。请求字段如下。
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| price | 购车价，1 至 1000000 游园币 | 600 |
+| rate | 每小时收益，1 至 10000 游园币 | 24 |
+| enabled | 在售标记 | true |
+| version | 读取目录时的版本 | 1 |
+
+请求示例：
+
+```bash
+curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
+  -H 'Authorization: Bearer <token>' -H 'Idempotency-Key: <key>' \
+  -H 'Content-Type: application/json' -d '{"price":600,"rate":24,"enabled":true,"version":1}'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| parkingModel | 更新的车型 | punch |
+| version | 保存后的目录版本 | 2 |
+
+`GET /api/v3/admin/parking/ledger` 分页读取停车结算和购车流水，需第一方管理员和 `profile.read`。可传 `userId` 精确筛选，分页参数为 `p`、`size`。返回 `list` 和 `pagination`；每笔包含 `oId`、`userId`、`operation`、`referenceId`、`coinDelta`、`createdAt`。停车结算关联停车单号，购车关联车型 ID。
 
 ### 游园币钱包（宠物目录 v4）
 
