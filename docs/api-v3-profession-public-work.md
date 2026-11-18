@@ -18,8 +18,8 @@
 - 模块：primaryProfession、allProfessions（响应 professions）、experience、rarity、majorContributions、contributionStats、activityFeed、levelHistory、rewards、ranking。PUBLIC、LOGGED_IN、SELF、HIDDEN 按当前 v3 读者逐模块判定。
 - rarity 仅嵌在已允许返回的真实 primary/professions 内；ranking 独立数组。均复用新可见用户榜单 `{rank,totalUsers,surpassedPercent}`；目标不在可见榜单就不返回对应条目/rarity。历史退役职业不进入当前榜单。
 - 贡献计数/分类和奖励概要独立受其模块控制；experience 隐藏时仍可保留次数、时间和等级名。排名本身可按用户已确认规则保留，绝不返回隐藏的数值经验。
-- activity/levelHistory 只从90天 APPLIED 真实效果取概要，上限30条可读摘要。仅接受 PUBLIC 来源且其当前目标仍可读，owner也不跳过。文章/评论同时检查当前作者状态、文章匿名浏览开关、讨论邀请（共享精确 UserMentionCandidates）、评论私密性；匿名发帖/匿名评论来源排除。聊天室目标必须仍存在且读者有 Bearer；清风明月/复读目标有效。私密来源的本人完整经验记录仍走已有 `/me/professions/{id}/records`。
-- 来源正文只用于讨论邀请判断，从不作为响应、标签或内部 ID 输出。全视图512记录技术预算、讨论正文累计2MiB预算；整请求所有职业排行首次/重验读取共享8192真实候选行预算，超预算整请求503；不截断为伪完整结果。SQL只读白名单投影；讨论正文SHA2绑定，源subject与效果owner绑定，清风明月按当前作者公开设置判权，复读机使用真实repeaterContentStatus并检查当前作者；末尾当前owner/reader/privacy/progress及所有来源授权快照重验，变化503或404，不宣称多SQL全局原子快照。
+- activity/levelHistory 只从90天 APPLIED 真实效果取概要，上限30条可读摘要。仅接受 PUBLIC 来源且其当前目标仍可读，owner也不跳过；`level.migration` 且 sourceEventId 为空的内部迁移效果不作为公开来源动态，跳过后继续读取。文章/评论同时检查当前作者状态、文章匿名浏览开关、讨论邀请（共享精确 UserMentionCandidates）、评论私密性；匿名发帖/匿名评论来源排除。聊天室目标必须仍存在且读者有 Bearer；清风明月/复读目标有效。私密来源的本人完整经验记录仍走已有 `/me/professions/{id}/records`。
+- 来源正文只用于讨论邀请判断，从不作为响应、标签或内部 ID 输出。公开动态按最近90天效果以512条一页倒序读取，直至填满各可见动态/等级历史列表（各最多30条）或读完；讨论正文累计2MiB预算、整请求所有职业排行首次/重验读取共享8192真实候选行预算仍为硬上限，超预算整请求503，不截断为伪完整结果。SQL只读白名单投影；讨论正文SHA2绑定，源subject与效果owner绑定，清风明月按当前作者公开设置判权，复读机使用真实repeaterContentStatus并检查当前作者；末尾当前owner/reader/privacy/progress及所有来源授权快照重验，变化503或404，不宣称多SQL全局原子快照。
 - 无新增公网静态资源、CDN、sourceMappingURL、目录或上传/下载地址。未修改 anonymous.viewSkips、黑名单/验证码解封及 BeforeRequestHandler；生产级整链路仍待根代理验收。
 
 ## 已执行验证
