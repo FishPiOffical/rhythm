@@ -66,7 +66,8 @@ public class ApiV3ParagraphProcessor {
     }
 
     public void location(final RequestContext context) {
-        ApiV3Requests.respond(context, () -> queries.location(ApiV3Requests.id(context, "commentId"), ApiV3Requests.viewer(context)));
+        ApiV3Requests.respond(context, () -> queries.location(ApiV3Requests.id(context, "commentId"),
+                ApiV3Requests.viewer(context), "threads".equals(ApiV3Requests.choice(context, "view", "flat", Set.of("flat", "threads")))));
     }
 
     public void comment(final RequestContext context) {

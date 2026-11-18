@@ -49,6 +49,7 @@ import org.b3log.symphony.util.ApiV3ProfileQueries;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3ContentUtil;
 import org.b3log.symphony.util.ApiV3ContentSnapshots;
+import org.b3log.symphony.util.ApiV3CommentThreads;
 import org.b3log.symphony.util.UserMentionCandidates;
 import org.b3log.symphony.util.Emotions;
 import org.b3log.symphony.util.Markdowns;
@@ -227,6 +228,65 @@ public class ApiV3ContentQueryService {
             list.put(item);
         }
         return paginated(list, p, size, commentRepository.count(new Query().setFilter(filter)));
+    }
+
+    public JSONObject commentThreads(final JSONObject article, final JSONObject viewer, final int page) throws RepositoryException {
+        final String articleId = article.getString(Keys.OBJECT_ID);
+        final String comments = commentRepository.getName();
+        final var rows = commentRepository.select(ApiV3CommentThreads.rootPage(comments, userRepository.getName()),
+                articleId, ApiV3CommentThreads.offset(page), ApiV3CommentThreads.PAGE_SIZE);
+        final var items = threadItems(rows, article, viewer);
+        final JSONArray roots = new JSONArray();
+        final Map<String, JSONArray> replies = new HashMap<>();
+        for (int index = 0; index < rows.size(); index++) {
+            final JSONObject row = rows.get(index);
+            final JSONObject item = items.get(index);
+            final String rootId = row.getString("threadRoot");
+            if (rootId.equals(item.getString("id"))) {
+                final JSONArray preview = new JSONArray();
+                replies.put(rootId, preview);
+                roots.put(item.put("replyCount", row.getLong("threadTotal")).put("replies", preview));
+            } else {
+                replies.get(rootId).put(item);
+            }
+        }
+        final long total = commentRepository.select(ApiV3CommentThreads.rootCount(comments), articleId).getFirst().getLong("total");
+        return paginated(roots, page, ApiV3CommentThreads.PAGE_SIZE, total);
+    }
+
+    public JSONObject commentThreadReplies(final JSONObject article, final JSONObject viewer, final String rootId, final int page)
+            throws RepositoryException {
+        final long offset = ApiV3CommentThreads.offset(page);
+        final var rows = commentRepository.select(ApiV3CommentThreads.replyPage(commentRepository.getName(), userRepository.getName()),
+                article.getString(Keys.OBJECT_ID), rootId, offset, offset + ApiV3CommentThreads.PAGE_SIZE);
+        if (rows.isEmpty()) throw ApiV3Requests.notFound();
+        final var replies = rows.subList(1, rows.size());
+        return paginated(new JSONArray(threadItems(replies, article, viewer)), page, ApiV3CommentThreads.PAGE_SIZE,
+                rows.getFirst().getLong("threadTotal")).put("rootId", rootId);
+    }
+
+    public JSONObject commentThreadPosition(final String articleId, final String commentId) throws RepositoryException {
+        final var rows = commentRepository.select(ApiV3CommentThreads.position(commentRepository.getName()),
+                articleId, commentId, articleId, commentId);
+        if (rows.size() != 1) throw ApiV3Requests.notFound();
+        final JSONObject row = rows.getFirst();
+        final String rootId = row.getString("rootId");
+        return new JSONObject().put("rootId", rootId)
+                .put("page", threadPage(row.getLong("rootPosition")))
+                .put("replyPage", rootId.equals(commentId) ? 0 : threadPage(row.getLong("replyPosition")));
+    }
+
+    private static long threadPage(final long position) {
+        if (position <= 0) throw ApiV3Requests.notFound();
+        return (position - 1) / ApiV3CommentThreads.PAGE_SIZE + 1;
+    }
+
+    private List<JSONObject> threadItems(final List<JSONObject> rows, final JSONObject article, final JSONObject viewer)
+            throws RepositoryException {
+        final List<JSONObject> items = new ArrayList<>();
+        for (final JSONObject row : rows) items.add(commentDto(row, article, viewer));
+        fillCommentInteractions(rows, items, viewer);
+        return items;
     }
 
     /**

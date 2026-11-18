@@ -917,6 +917,8 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191?includeInteractions=true' 
 | p | 页码，默认 1，最大 42949672 | 1 |
 | size | 每页数量，默认 20，最大 50 | 20 |
 | sort | oldest（默认）、latest、hot | oldest |
+| view | 默认 flat。threads 按一级评论分页，replies 读取同一线程的回复页 | threads |
+| rootId | view=replies 时必填，指定本文一级评论 ID | 1770000000003 |
 
 请求示例：
 
@@ -947,6 +949,8 @@ curl 'https://fishpi.cn/api/v3/articles/1636516552191/comments?p=1&size=20&sort=
 
 
 > 每条评论附带 `interactions`，其中 `vote` 含赞同数、反对数，`thanks` 含感谢数，`reactions` 含各表情的计数。登录读者同时获得自己的投票、感谢状态与费用、表态选择。正文不可见时 `interactions` 为 null。表态用户明细可通过单条表态接口读取。
+
+> `threads` 和 `replies` 固定 `oldest`、每页 20 条。线程视图的每条一级评论额外返回 `replyCount` 和至多 3 条 `replies`，分页只统计一级评论。回复视图返回 `data.rootId`，按评论 ID 升序分页返回该线程所有层的回复，`parentId` 仍指直接回复对象。缺失或失效父评论的可用子评论以独立线程展示。不可用的线程返回 HTTP 404。默认平铺视图的字段与分页保持原规则。
 
 ## API v3 官方认证（企业）
 
@@ -1503,6 +1507,8 @@ curl 'https://fishpi.cn/api/v3/comments/1770000000003' \
 `GET /api/v3/comments/{commentId}/location`
 
 查询普通评论或段评在当前列表中的位置，用于打开文章后定位评论。
+
+普通评论附加 `?view=threads` 时，`data.page` 是根评论所在页，并返回 `rootId` 和 `replyPage`。目标是根评论时 `replyPage` 为 0，否则为该回复在 `view=replies` 中的页码。段评沿用原定位规则。
 
 请求：
 

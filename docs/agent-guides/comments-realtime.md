@@ -12,6 +12,8 @@
 
 ## 评论定位与段评
 
+- 新版普通评论选用 `view=threads`，按一级评论分页并带前三条回复；`view=replies` 单独按线程分页查正文。两个视图共用同文章同类型有效评论关系与原正文权限投影，定位以 `rootId`、根评论页和回复页为准。默认平铺与段评接口继续按各自列表定位。
+
 - v3评论定位在ApiV3ParagraphQueryService.location，按与普通/段评oldest相同筛选SQL计当前位置，每页20；段评沿现有别名分组和active/orphaned，不能用旧缓存、创建时间或扫描客户端分页猜位置。只返ID/分页/分组，不给私密正文或匿名身份；客户端目标须绑定当前文章/读者，真实当前页挂载后再滚动，位置变化显式重查。
 - v3 长篇段落/段评和评论详情走 `ApiV3ParagraphProcessor` + `ApiV3ParagraphQueryService`，挂可选content.read与匿名校验。`LongArticleParagraphService.compatibleMarkdown` 用同次标题快照配对旧标识与公开安全视图，只返回安全正文/摘要；别名计数/筛选共用SQL条件，冲突409而不猜归属。历史快照不输出，v3回复也不复制；v3文章编辑在原事务中迁移临时锚点并检查冲突，旧编辑同步拦截仍待用户确认。匿名实时作者ID已获用户同意置空，须在权限/模板处理后脱敏。
 - 长文段评链路：`LongArticleParagraphService` 根据服务端清洗后的正文生成段落锚点并给 HTML 添加 `data-long-paragraph-*`；段评字段存于 `comment`（`commentType=1`），新增接口位于 `CommentProcessor` 的 `/comment/paragraph*`；评论编辑事务调用段落迁移，无法匹配的段评标记为失效但保留快照。PC/移动均加载 `long-article-paragraph.js`，段评列表复用现有评论线程与编辑器能力。

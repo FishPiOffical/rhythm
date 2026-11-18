@@ -33,6 +33,8 @@ import org.b3log.symphony.service.ApiV3ArticleVoteService;
 import org.b3log.symphony.service.ApiV3ContentQueryService;
 import org.b3log.symphony.service.ApiV3FollowQueryService;
 import org.b3log.symphony.service.ApiV3ReactionService;
+import org.b3log.symphony.util.ApiV3CommentThreads;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
 import java.util.Set;
@@ -140,7 +142,22 @@ public class ApiV3ContentProcessor {
                 ApiV3Processor.error(context, 404, "not_found", "文章不存在或不可访问");
                 return;
             }
-            ApiV3Processor.success(context, contentQueryService.comments(article, viewer(context), p, size, sort));
+            final String view = choice(context, "view", "flat", Set.of("flat", "threads", "replies"));
+            final String rootId = context.param("rootId");
+            if (!"flat".equals(view) && (size != ApiV3CommentThreads.PAGE_SIZE || !"oldest".equals(sort))) {
+                throw new IllegalArgumentException("threaded pagination");
+            }
+            final JSONObject result = switch (view) {
+                case "threads" -> contentQueryService.commentThreads(article, viewer(context), p);
+                case "replies" -> {
+                    if (rootId == null || !rootId.matches("[0-9]{1,19}")) throw new IllegalArgumentException("rootId");
+                    yield contentQueryService.commentThreadReplies(article, viewer(context), rootId, p);
+                }
+                default -> contentQueryService.comments(article, viewer(context), p, size, sort);
+            };
+            ApiV3Processor.success(context, result);
+        } catch (final ApiV3Exception e) {
+            ApiV3Processor.error(context, e.status, e.code, e.getMessage());
         } catch (final IllegalArgumentException e) {
             ApiV3Processor.error(context, 422, "invalid_request", "文章 ID、分页或排序参数不合法");
         } catch (final Exception e) {

@@ -104,6 +104,10 @@ public class ApiV3ParagraphQueryService {
      * 只返回定位所需元数据，隐藏评论正文和作者身份。
      */
     public JSONObject location(final String id, final JSONObject viewer) throws Exception {
+        return location(id, viewer, false);
+    }
+
+    public JSONObject location(final String id, final JSONObject viewer, final boolean threaded) throws Exception {
         final JSONObject row = content.currentComment(id);
         if (row == null || row.optInt(Comment.COMMENT_STATUS) != Comment.COMMENT_STATUS_C_VALID)
             throw ApiV3Requests.notFound();
@@ -114,6 +118,10 @@ public class ApiV3ParagraphQueryService {
         final ApiV3ParagraphQueries.Selection selection;
         JSONObject paragraph = null;
         if (type == Comment.COMMENT_TYPE_C_ARTICLE) {
+            if (threaded) {
+                return content.commentThreadPosition(articleId, id).put("id", id).put("articleId", articleId).put("type", type)
+                        .put("size", ApiV3CommentLocationQueries.PAGE_SIZE).put("paragraph", JSONObject.NULL);
+            }
             selection = ApiV3CommentLocationQueries.ordinary(comments.getName(), articleId);
         } else if (type == Comment.COMMENT_TYPE_C_PARAGRAPH) {
             if (article.optInt(Article.ARTICLE_TYPE) != Article.ARTICLE_TYPE_C_LONG) throw ApiV3Requests.notFound();
