@@ -10,7 +10,7 @@
 
 后端 `/Users/ling/Documents/GitHub/rhythm`：
 
-- `src/main/java/org/b3log/symphony/processor/ApiV3ChatMuteProcessor.java`：独立只读路由、Bearer/content.read、严格原查询参数/UTF8/重复/未知项/页码校验、并发与请求预算，统一no-store错误信封。
+- `src/main/java/org/b3log/symphony/processor/ApiV3ChatMuteProcessor.java`：独立只读路由、Bearer/content.read、严格原查询参数/UTF8/重复/未知项/页码校验、用户/IP分钟频率限制，统一no-store错误信封。
 - `src/main/java/org/b3log/symphony/service/ApiV3ChatMuteQueryService.java`：真实ID/状态/期限查询、完整公开投影、稳定排序分页、异常显式503。
 - `src/main/java/org/b3log/symphony/processor/ApiV3Processor.java`：总register接通新Processor。
 - `src/test/java/org/b3log/symphony/service/ApiV3ChatMutesTest.java`、`tools/api-v3-chat-mutes-test.mjs`：Java25实际服务/路由与SQLite及临时MySQL数据专项。
@@ -33,11 +33,11 @@
 
 `corepack yarn run build`类型/客户端/SSR通过，日志 `/tmp/rhythm-v3-chat-mutes-build.log`。72个JS版本发现0，无map/sourceMappingURL/sourceURL；报告 `/tmp/rhythm-v3-chat-mutes-version-audit.json`。两仓diff --check通过。路由清单832全仓路由，其中v3 HTTP284条（GET142/POST72/PUT46/DELETE24，无重复），加既有WebSocket1条共285；新Processor总register已接。静态计数不证明整站IoC成功。
 
-Java改动已在commentary提醒：用户必须先通过IDEA重新编译或重启服务端再联调，未获实际运行确认前不以浏览器旧行为判断代码问题。没有Maven、FTL/旧皮肤改动、SQL迁移、APP改动、提交或推送。未用浏览器，实际桌面/移动窄屏、完整服务/迁移、真实凭据和全局风控仍未验收。
+Java改动已在commentary提醒：用户必须先通过IDEA重新编译或重启服务端再联调，未获实际运行确认前不以浏览器旧行为判断代码问题。原功能开发轮未执行Maven、未修改FTL/旧皮肤、未做SQL迁移或APP改动；本轮修复已本地提交且未推送。未用浏览器，实际桌面/移动窄屏、完整服务/迁移、真实凭据和全局风控仍未验收。
 
 ## 安全与反漏扫
 
-新增入口明确要求Bearer/content.read，匿名、旧Cookie/apiKey不能调用，不新增anonymous.viewSkips例外；已有Router.startRequestHandler→BeforeRequestHandler的黑名单/firewall处理保持。未改AnonymousViewCheckMidware或CaptchaProcessor，首访/周期验证码、黑名单→test→validateCaptcha解封、开发关闭风控真实回归仍待。只读GET无写副作用，CSRF不能用它修改禁言；不存在指定owner或任意表/SQL/远程抓取输入，SQL参数化、分页有界。五字段白名单与Vue文本展示避免敏感泄露及HTML执行，头像限制浏览器安全地址，服务端不抓取，无SSRF入口。身份与Abort/代数隔离防旧名单写回新账号，请求并发有界但真实滥用未压测。
+新增入口明确要求Bearer/content.read，匿名、旧Cookie/apiKey不能调用，不新增anonymous.viewSkips例外；已有Router.startRequestHandler→BeforeRequestHandler的黑名单/firewall处理保持。未改AnonymousViewCheckMidware或CaptchaProcessor，首访/周期验证码、黑名单→test→validateCaptcha解封、开发关闭风控真实回归仍待。只读GET无写副作用，CSRF不能用它修改禁言；不存在指定owner或任意表/SQL/远程抓取输入，SQL参数化、分页有界。五字段白名单与Vue文本展示避免敏感泄露及HTML执行，头像限制浏览器安全地址，服务端不抓取，无SSRF入口。用户/IP分钟频率限制仍保留；已移除独立并发硬拒绝，真实环境负载能力及滥用仍未压测。
 
 未新增CDN、公开目录、上传下载地址，构建版本/map扫描通过；整个历史工作区、生产CDN/目录枚举、存量上传下载路径仍需发布前审计。单SQL读快照不是实时订阅，也不保证后续翻页时数据库未变化。超预算503及损坏状态显式失败不自行清理历史数据。
 
