@@ -2,10 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
-const ide='/Applications/Android Studio.app/Contents',home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`,dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-chat-mutes-')),shims=[];
+const ide='/Applications/Android Studio.app/Contents';
+const home=process.env.JAVA_HOME||`${ide}/jbr/Contents/Home`;
+const java=path.join(home,'bin',process.platform==='win32'?'java.exe':'java');
+const javac=path.join(home,'bin',process.platform==='win32'?'javac.exe':'javac');
+const caffeine=process.env.CAFFEINE_JAR||`${ide}/lib/intellij.libraries.caffeine.jar`;
+const sqlite=process.env.SQLITE_JDBC_JAR||`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`;
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rhythm-chat-mutes-')),shims=[];
 const mysql = process.argv.includes('--mysql');
 let container;
-const cp=[...(mysql?[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')]:[]),`${ide}/lib/intellij.libraries.caffeine.jar`,'src/main/resources/lib/latke-core.jar',`${ide}/plugins/android/lib/sqlite-jdbc-3.51.1.0.jar`].join(path.delimiter);
+const cp=[...(mysql?[path.join(os.homedir(),'.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar')]:[]),caffeine,'src/main/resources/lib/latke-core.jar',sqlite].join(path.delimiter);
 function shim(name, body) {
  const p = path.join(dir, name + '.java');
  fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -34,7 +40,7 @@ try{
    .replaceAll('oId TEXT PRIMARY KEY', 'oId VARCHAR(19) PRIMARY KEY'));
   test = file;
  }
- run(home+'/bin/javac',['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...source.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
+ run(javac,['--release','25','-proc:none','-cp',cp,'-d',dir,...shims,...source.map(s=>'src/main/java/org/b3log/symphony/'+s+'.java'),test]);
  const opts=[];
  if(mysql){
   function docker(args) {
@@ -58,7 +64,7 @@ try{
   docker(['exec', container, 'mysql', '-uroot', '-e', 'CREATE DATABASE suggestions CHARACTER SET utf8mb4;']);
   opts.push('-Dsuggest.mysql=jdbc:mysql://' + bound + '/suggestions?user=root&sslMode=DISABLED&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000');
  }
- run(home+'/bin/java',[...opts,'-cp',dir+path.delimiter+cp,'org.b3log.symphony.service.ApiV3ChatMutesTest']);
+ run(java,[...opts,'-cp',dir+path.delimiter+cp,'org.b3log.symphony.service.ApiV3ChatMutesTest']);
 } finally {
  if (container) {
   const r = spawnSync('docker', ['rm', '-f', container], { encoding: 'utf8', timeout: 20000 });

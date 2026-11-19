@@ -4956,7 +4956,7 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/online-users?p=1&size=20' \
 
 `GET /api/v3/chat/mutes`
 
-查询当前尚未到期的个人聊天室禁言，按解除时间、用户ID升序分页。需要 apiKey，权限为 content.read。
+查询当前尚未到期的个人聊天室禁言，按解除时间、用户ID升序分页。需要 Bearer 访问令牌及 content.read。
 
 请求：
 

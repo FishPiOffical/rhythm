@@ -31,7 +31,6 @@ import org.b3log.symphony.service.ApiV3ChatMuteQueryService;
 import org.b3log.symphony.util.*;
 
 import java.util.Set;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,7 +39,6 @@ public class ApiV3ChatMuteProcessor {
     @Inject
     private ApiV3ChatMuteQueryService query;
     private static final Cache<String, AtomicInteger> COUNTS = Caffeine.newBuilder().maximumSize(100000).expireAfterWrite(1, TimeUnit.MINUTES).build();
-    private static final Semaphore QUERIES = new Semaphore(4);
 
     public static void register() {
         final var b = BeanManager.getInstance();
@@ -64,19 +62,14 @@ public class ApiV3ChatMuteProcessor {
                 throw ApiV3Requests.invalid();
             }
             final int page = number(values.get("p"), 1, Integer.MAX_VALUE / 50), size = number(values.get("size"), 20, 50);
-            // 分别计入用户与 IP 的查询额度，再尝试取得执行查询的并发许可。
+            // 分别计入用户与 IP 的查询额度。
             final int owner = COUNTS.get("user:" + user.getString("oId"), k -> new AtomicInteger()).incrementAndGet();
             final int ip = COUNTS.get("ip:" + Requests.getRemoteAddr(context.getRequest()), k -> new AtomicInteger()).incrementAndGet();
             if (owner > 120 || ip > 600) {
                 context.getResponse().setHeader("Retry-After", "60");
                 throw new ApiV3Exception(429, "too_many_requests", "请求过于频繁，请稍后再试");
             }
-            if (!QUERIES.tryAcquire()) throw new ApiV3Exception(503, "temporarily_unavailable", "思过崖暂不可用");
-            try {
-                return query.list(page, size);
-            } finally {
-                QUERIES.release();
-            }
+            return query.list(page, size);
         });
     }
 

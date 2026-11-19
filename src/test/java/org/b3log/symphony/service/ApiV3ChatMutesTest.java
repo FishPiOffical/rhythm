@@ -91,7 +91,7 @@ public class ApiV3ChatMutesTest {
                 st.execute("CREATE TABLE users(oId TEXT PRIMARY KEY,userName TEXT,userNickname TEXT,userAvatarURL TEXT,userStatus INT,userPassword TEXT)");
                 st.execute("CREATE TABLE cloud(oId TEXT PRIMARY KEY,userId TEXT,gameId TEXT,data TEXT)");
                 st.execute("INSERT INTO users VALUES('1','renamed','<img onerror=x>','javascript:bad()',0,'secret'),('2','active','nick','https://example.invalid/a.png?sig=1',0,'secret'),('3','disabled','','',4,'secret'),('4','waiting','','',1,'secret'),('5','expired','','',0,'secret'),('6','boundary','','',0,'secret')");
-                st.execute("INSERT INTO cloud VALUES('1','1','sys-mute','3000'),('2','2','sys-mute','2000'),('3','3','sys-mute','9000'),('4','4','sys-mute','9000'),('5','5','sys-mute','999'),('6','6','sys-mute','1000'),('7','all:fish:mute','sys-mute','9000'),('8','1','sys-risk','9000'),('9','si:guo','record','{bad legacy names}')");
+                st.execute("INSERT INTO cloud VALUES('1','1','sys-mute','3000'),('2','2','sys-mute','2000'),('3','3','sys-mute','9000'),('4','4','sys-mute','9000'),('5','5','sys-mute','999'),('6','6','sys-mute','1000'),('7','all:fish:mute','sys-mute','9000'),('8','1','sys-risk','9000'),('9','si:guo','record','{bad legacy names}'),('10','1','sys-mute','3500')");
             }
             final boolean[] fail = {false};
             var service = new ApiV3ChatMuteQueryService() {
@@ -131,27 +131,29 @@ public class ApiV3ChatMutesTest {
             });
             var result = service.list(1, 20);
             var list = result.getJSONArray("list");
-            check(list.length() == 2);
-            check(result.getJSONObject("pagination").getInt("total") == 2);
+            check(list.length() == 3);
+            check(result.getJSONObject("pagination").getInt("total") == 3);
             check(list.getJSONObject(0).getString("id").equals("2"));
+            check(list.getJSONObject(1).getString("id").equals("1"));
+            check(list.getJSONObject(2).getString("id").equals("1"));
             check(list.getJSONObject(1).getString("userName").equals("renamed"));
             check(list.getJSONObject(1).getString("userAvatarURL").isEmpty());
             check(list.getJSONObject(1).getString("userNickname").contains("<img"));
             check(list.getJSONObject(0).getString("userAvatarURL").endsWith("sig=1"));
             check(list.getJSONObject(0).keySet().equals(Set.of("id", "userName", "userNickname", "userAvatarURL", "expiresAt")));
-            System.out.println("PASS mutes 1 actual SQL ID binding/current valid status/expiry excludes global risk and legacy snapshots, public projection/safe avatar");
+            System.out.println("PASS mutes 1 cloud record ID binding allows multiple active records per user and excludes global risk/legacy snapshots");
             try (var st = db.createStatement()) {
-                for (int i = 10; i < 62; i++) {
+                for (int i = 11; i < 63; i++) {
                     st.execute("INSERT INTO users VALUES('" + i + "','user" + i + "','','',0,'secret')");
                     st.execute("INSERT INTO cloud VALUES('" + i + "','" + i + "','sys-mute','4000')");
                 }
             }
             result = service.list(2, 20);
             check(result.getJSONArray("list").length() == 20);
-            check(result.getJSONObject("pagination").getInt("total") == 54);
+            check(result.getJSONObject("pagination").getInt("total") == 55);
             check(result.getJSONObject("pagination").getInt("pageCount") == 3);
             check(result.getBoolean("hasMore"));
-            check(service.list(3, 20).getJSONArray("list").length() == 14);
+            check(service.list(3, 20).getJSONArray("list").length() == 15);
             check(!service.list(3, 20).getBoolean("hasMore"));
             check(service.list(4, 20).getJSONArray("list").isEmpty());
             check(service.list(1, 50).getJSONArray("list").length() == 50);
@@ -176,16 +178,19 @@ public class ApiV3ChatMutesTest {
             }
             try (var st = db.createStatement()) {
                 st.execute("UPDATE cloud SET data='3000' WHERE oId='1'");
-                st.execute("INSERT INTO cloud VALUES('999','1','sys-mute','1')");
             }
+            final var duplicateCloudId = new ApiV3ChatMuteQueryService() {
+                protected List<JSONObject> rows() {
+                    return List.of(
+                            new JSONObject().put("cloudOId", "10").put("oId", "1").put("userId", "1").put("gameId", "sys-mute").put("data", "3000").put("userName", "renamed"),
+                            new JSONObject().put("cloudOId", "10").put("oId", "1").put("userId", "1").put("gameId", "sys-mute").put("data", "3500").put("userName", "renamed"));
+                }
+            };
             try {
-                service.list(1, 20);
+                duplicateCloudId.list(1, 20);
                 throw new AssertionError();
             } catch (ApiV3Exception e) {
                 check(e.status == 503);
-            }
-            try (var st = db.createStatement()) {
-                st.execute("DELETE FROM cloud WHERE oId='999'");
             }
             fail[0] = true;
             try {
@@ -223,6 +228,9 @@ public class ApiV3ChatMutesTest {
             check(status(request(p, "Bearer wrong", null)) == 403);
             for (String qs : List.of("p=1&p=2", "size=51", "p=0", "p=-1", "p=%FF", "p=1&owner=2", "size=1.5", "p=2147483647", "p=1%0A"))
                 check(status(request(p, "Bearer good", qs)) == 422);
+            var counts = ApiV3ChatMuteProcessor.class.getDeclaredField("COUNTS");
+            counts.setAccessible(true);
+            ((com.github.benmanes.caffeine.cache.Cache<?, ?>) counts.get(null)).invalidateAll();
             var c = request(p, "Bearer good", null);
             check(status(c) == 200);
             check(((JSONObject) c.attr("data")).getJSONObject("pagination").getInt("size") == 20);
@@ -230,24 +238,21 @@ public class ApiV3ChatMutesTest {
             check("Authorization".equals(c.getResponse().getHeader("Vary")));
             check(status(request(p, "Bearer good", "p=2&size=50")) == 200);
             System.out.println("PASS mutes 4 actual route content.read/Bearer required, no legacy Cookie/apiKey fallback; strict UTF8/query/defaults/no-store");
-            var counts = ApiV3ChatMuteProcessor.class.getDeclaredField("COUNTS");
-            counts.setAccessible(true);
             ((com.github.benmanes.caffeine.cache.Cache<?, ?>) counts.get(null)).invalidateAll();
             for (int i = 0; i < 120; i++)
                 check(status(request(p, "Bearer good", null)) == 200);
             check(status(request(p, "Bearer good", null)) == 429);
             ((com.github.benmanes.caffeine.cache.Cache<?, ?>) counts.get(null)).invalidateAll();
-            var field = ApiV3ChatMuteProcessor.class.getDeclaredField("QUERIES");
-            field.setAccessible(true);
-            var permits = (java.util.concurrent.Semaphore) field.get(null);
-            permits.acquire(4);
+            for (int i = 0; i < 10; i++) check(status(request(p, "Bearer good", null)) == 200);
+            var executor = java.util.concurrent.Executors.newFixedThreadPool(10);
             try {
-                check(status(request(p, "Bearer good", null)) == 503);
+                var requests = new ArrayList<java.util.concurrent.Future<Integer>>();
+                for (int i = 0; i < 10; i++) requests.add(executor.submit(() -> status(request(p, "Bearer good", null))));
+                for (var request : requests) check(request.get() == 200);
             } finally {
-                permits.release(4);
+                executor.shutdownNow();
             }
-            check(status(request(p, "Bearer good", null)) == 200);
-            System.out.println("PASS mutes 5 bounded requests/concurrency release correctly and do not mutate restrictions");
+            System.out.println("PASS mutes 5 ten concurrent route requests succeed; frequency limits remain independently enforced");
         }
     }
 }

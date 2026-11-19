@@ -47,7 +47,7 @@ public class ApiV3ChatMuteQueryService {
     }
 
     protected List<JSONObject> rows() throws RepositoryException {
-        return cloud.select("SELECT c.userId,c.gameId,c.data,u.oId,u.userName,u.userNickname,u.userAvatarURL FROM `"
+        return cloud.select("SELECT c.oId AS cloudOId,c.userId,c.gameId,c.data,u.oId,u.userName,u.userNickname,u.userAvatarURL FROM `"
                 + cloud.getName() + "` c INNER JOIN `" + users.getName() + "` u ON u.oId=c.userId"
                 + " WHERE c.gameId=? AND u.userStatus=0 ORDER BY c.oId LIMIT " + (READ_BUDGET + 1), "sys-mute");
     }
@@ -63,9 +63,11 @@ public class ApiV3ChatMuteQueryService {
             final var seen = new HashSet<String>();
             final var active = new ArrayList<JSONObject>();
             for (final var row : rows) {
-                final String id = row.optString("oId"), value = row.optString("data"), name = row.optString("userName");
+                final String id = row.optString("oId"), cloudId = row.optString("cloudOId");
+                final String value = row.optString("data"), name = row.optString("userName");
                 if (!id.matches("[1-9][0-9]{0,18}") || !id.equals(row.optString("userId"))
-                        || !"sys-mute".equals(row.optString("gameId")) || !seen.add(id)
+                        || !cloudId.matches("[1-9][0-9]{0,18}")
+                        || !"sys-mute".equals(row.optString("gameId")) || !seen.add(cloudId)
                         || !value.matches("[0-9]{1,19}"))
                     throw unavailable();
                 final long until;
