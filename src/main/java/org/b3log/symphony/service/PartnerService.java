@@ -85,11 +85,12 @@ public class PartnerService {
         if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
     }
 
-    private JSONObject directoryCard(JSONObject row, String actor, JSONObject policy) {
+    private JSONObject directoryCard(JSONObject row, String actor, JSONObject policy, long transfers) {
         int price = quote(row);
         return new JSONObject().put("id", row.getString("oId")).put("name", display(row))
                 .put("userName", row.getString("userName")).put("avatar", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL")))
                 .put("rate", PartnerOperationsService.rate(policy, Math.min(price, 200))).put("rateVersion", policy.getInt("version"))
+                .put("displayValue", PartnerOperationsService.displayValue(transfers))
                 .put("price", Math.min(price, 200)).put("full", price > 200).put("mine", actor.equals(row.getString("holder")))
                 .put("following", row.optInt("followed") == 1).put("revision", row.getLong("revision"));
     }
@@ -107,7 +108,8 @@ public class PartnerService {
         try {
             String actor = proofs.authorizePartnerInCurrentTransaction(identity, "profile.read").getString("oId");
             var rows = members.select(CARD + directoryFrom() + " AND p.oId=?", peer);
-            var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor, operations.policy(false)));
+            var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor, operations.policy(false),
+                    operations.effectiveTransfers(java.util.List.of(peer)).getOrDefault(peer, 0L)));
             tx.commit();
             return result;
         } finally { if (tx.isActive()) tx.rollback(); }
@@ -189,7 +191,15 @@ public class PartnerService {
             }
             var rows = members.select(sql + (social ? " ORDER BY followed DESC,p.oId" : " ORDER BY p.oId") + " LIMIT 21", params.toArray());
             JSONObject policy = operations.policy(false);
-            for (var row : rows.stream().limit(20).toList()) list.put(directoryCard(row, actor, policy));
+            var page = rows.stream().limit(20).toList();
+            var peers = new java.util.ArrayList<String>();
+            for (var row : page) peers.add(row.getString("oId"));
+            if (own != null) peers.add(actor);
+            var counts = operations.effectiveTransfers(peers);
+            if (own != null) result.put("displayValue", PartnerOperationsService.displayValue(counts.getOrDefault(actor, 0L)));
+            for (var row : page) {
+                list.put(directoryCard(row, actor, policy, counts.getOrDefault(row.getString("oId"), 0L)));
+            }
             Long coins = wallet.balance(actor);
             String next = "";
             if (rows.size() > 20) {
@@ -313,7 +323,7 @@ public class PartnerService {
         if (actor.equals(id)) throw conflict("不能请自己当搭子");
         JSONObject peer = r.account(id);
         if (!joined(peer) || peer.getLong("revision") != input.getLong("revision")
-                || actor.equals(peer.getString("holder"))) throw conflict("这张名片已变化，请查看最新身价");
+                || actor.equals(peer.getString("holder"))) throw conflict("这张名片已变化，请查看最新请人费用");
         if (users.select("SELECT oId FROM " + users.getName() + " WHERE oId=? AND userStatus=0", id).isEmpty())
             throw conflict("这位鱼友目前不可邀请");
         int price = quote(peer);

@@ -18792,17 +18792,22 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 
 #### 搭子名片和本人动态
 
-- 会员页 `GET /api/v3/me/partners/card/{用户ID}` 使用第一方 Bearer 和 `profile.read`。只读开放、账号正常的名片，当前未开放返回 `{"card":null}`。名片与大厅共用身价、满价、本人关系及版本字段，点击入口后按新的名片版本确认。
+- 会员页 `GET /api/v3/me/partners/card/{用户ID}` 使用第一方 Bearer 和 `profile.read`。只读开放、账号正常的名片，当前未开放返回 `{"card":null}`。名片与大厅共用展示身价、请人费用、满价、本人关系及版本字段，点击入口后按新的名片版本确认。
 - 大厅可传 `sort=following` 优先返回本人关注的鱼友，名片的 `following` 标记只在此排序下有意义。后续页将服务端的 `next` 原样作为 `after` 并保留排序参数。省略排序沿用原编号游标。传 `peer=用户ID` 只查看这一位其他鱼友，不与翻页组合。
 - `GET /api/v3/me/partners/activity?kind=events|wallet` 使用相同鉴权，仅按当前访问者读取，每页最近 20 条，后续页可传 `before=next`。返回 `list/next`，记录含 `oId/createdAt/amount`。动态另含纯文本 `summary` 和成交价 `price`（解约为 0）；钱包记录另含原流水类型 `operation`。动态的金额是本人本次关系变更的现金收支，另行结算的按时营业收入见钱包。
 - 先执行 `sql/20261119_api_v3_partner_social.sql`。参与者动态和交易同时提交；幂等重放继续返回原回执。升级前的金额只在本人收支中展示，不补造交易参与人。
 
 #### 搭子运营与营业费率
 
-第二批迁移完成后执行 `sql/20261119_api_v3_partner_operations.sql`。默认基础时薪 40 币，身价每增加 20 币，时薪增加 2 币。名片新增 `rate`（本次成交时薪）和 `rateVersion`。请人时原样传入 `rateVersion`，版本过期会返回 409，需刷新报价再确认。旧客户端省略版本时，仅在其显示的默认时薪仍准确时成交。已成交的位置按原时薪结算。
+第二批迁移完成后执行 `sql/20261119_api_v3_partner_operations.sql`。默认基础时薪 40 币，成交价每增加 20 币，时薪增加 2 币。名片新增 `rate`（本次成交时薪）和 `rateVersion`。请人时原样传入 `rateVersion`，版本过期会返回 409，需刷新报价再确认。旧客户端省略版本时，仅在其显示的默认时薪仍准确时成交。已成交的位置按原时薪结算。
 
 以下接口要求管理员身份。两个 GET 使用 `profile.read`，PUT 使用 `settings.write` 和 `Idempotency-Key`。
 
 - `GET /api/v3/admin/partners/report` 返回当前加入人数、用满已购邀请位的人数，以及最近七个北京时间自然日的实际营业收入、有收入的用户人日数、净投放、转手总数和半小时内反向转手次数。净投放为实际营业收入减开位费及每次转手回收的 2 币。同一搭子连续两次转手的买卖双方刚好互换才算一次反向转手。交易观察从本批迁移时的 `policy.sinceAt` 起积累，无样本时不计算比例。
 - `GET /api/v3/admin/partners/ledger` 可组合 `userId`、`referenceId`，使用原钱包的带符号金额、交易单号和标准 `p/size` 分页，包含升级前的流水。
 - `PUT /api/v3/admin/partners/rate` 提交整数 `baseRate`（1～1000）、`stepRate`（0～100）和当前 `version`。同版本并发修改只有一次成功。未知结果用原键、原请求核对，成功后重新读取报表。
+
+
+#### 搭子展示身价
+
+大厅名片和单张名片返回 `displayValue`（十进制整数字符串），大厅顶层也返回当前账号的展示身价，尚未加入过的账号省略该字段。身价为 10000 ×（有效转手次数 + 1）的平方。使用已记录的成交，排除首次请人，同一买家与同一搭子在北京时间同一天只计一次。放手或退出保留记录。请人费用仍取 `price`，营业时薪取 `rate`。运营迁移之后执行 `sql/20261119_api_v3_partner_value.sql` 添加查询索引。

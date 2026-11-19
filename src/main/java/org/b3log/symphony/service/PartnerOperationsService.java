@@ -16,9 +16,14 @@ import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
@@ -46,6 +51,23 @@ public class PartnerOperationsService {
 
     static int rate(JSONObject policy, int price) {
         return policy.getInt("baseRate") + ((price - 100) / 20) * policy.getInt("stepRate");
+    }
+
+    /** 按当前页的搭子一次统计，首次请人没有上任邀请人，不计身价。 */
+    Map<String, Long> effectiveTransfers(List<String> peers) throws RepositoryException {
+        Map<String, Long> counts = new HashMap<>();
+        if (peers.isEmpty()) return counts;
+        String placeholders = String.join(",", Collections.nCopies(peers.size(), "?"));
+        var rows = trades.select("SELECT peer, COUNT(DISTINCT buyer, (createdAt+28800000) DIV 86400000) AS n"
+                + " FROM " + trades.getName() + " WHERE peer IN (" + placeholders + ") AND seller<>'' GROUP BY peer",
+                peers.toArray());
+        for (var row : rows) counts.put(row.getString("peer"), row.getLong("n"));
+        return counts;
+    }
+
+    static String displayValue(long transfers) {
+        return BigInteger.valueOf(transfers).add(BigInteger.ONE).pow(2)
+                .multiply(BigInteger.valueOf(10000)).toString();
     }
 
     void trade(String ref, String buyer, String seller, String peer, long now) throws RepositoryException {
