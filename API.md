@@ -18787,3 +18787,10 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 - `GET /api/v3/me/partners` 使用 `profile.read`，自动结清本人的营业收入。返回 `joined/revision/coins/today/holderName/slots/list/next`。每个已购位置含 `peer/name（有搭子时）/rate/today/usedMs`。零点重置位置的八小时额度。页内最多二十张其他已加入用户的名片，下一页传 `after=next`。
 - `POST /api/v3/me/partners/{action}` 使用 `settings.write` 和 `Idempotency-Key`。加入 `join` 传空对象；开位 `unlock`、退出 `leave` 传本人最近读取的整数 `revision`；请人 `hire` 传目标用户 ID `peer` 与目标名片的 `revision`；放手 `release` 传 `peer` 与本人 `revision`。成功回执仅含 `action`，随后重读。名片变化返回 409，需要查看最新标价；未知结果使用原命令原键。
 - 首签 100，每次转手加 20，成交 200 后本轮满价。转手退上任成交本金并另给 14，搭子分 4，回收 2。放手或退出只退 100。退出结束双向所有关系，保留已购位置及当日计时。营业收入按实际成交价每小时 40 至 50，本人搭班另计每小时 2。跨日离线按日累计，在打开玩法或相关交易时自动入账。
+
+#### 搭子名片和本人动态
+
+- 会员页 `GET /api/v3/me/partners/card/{用户ID}` 使用第一方 Bearer 和 `profile.read`。只读开放、账号正常的名片，当前未开放返回 `{"card":null}`。名片与大厅共用身价、满价、本人关系及版本字段，点击入口后按新的名片版本确认。
+- 大厅可传 `sort=following` 优先返回本人关注的鱼友，名片的 `following` 标记只在此排序下有意义。后续页将服务端的 `next` 原样作为 `after` 并保留排序参数。省略排序沿用原编号游标。传 `peer=用户ID` 只查看这一位其他鱼友，不与翻页组合。
+- `GET /api/v3/me/partners/activity?kind=events|wallet` 使用相同鉴权，仅按当前访问者读取，每页最近 20 条，后续页可传 `before=next`。返回 `list/next`，记录含 `oId/createdAt/amount`。动态另含纯文本 `summary` 和成交价 `price`（解约为 0）；钱包记录另含原流水类型 `operation`。动态的金额是本人本次关系变更的现金收支，另行结算的按时营业收入见钱包。
+- 先执行 `sql/20261119_api_v3_partner_social.sql`。参与者动态和交易同时提交；幂等重放继续返回原回执。升级前的金额只在本人收支中展示，不补造交易参与人。

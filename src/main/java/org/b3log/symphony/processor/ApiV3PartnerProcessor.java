@@ -38,11 +38,23 @@ public class ApiV3PartnerProcessor {
         final var processor = beans.getReference(ApiV3PartnerProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
         Dispatcher.get("/api/v3/me/partners", processor::state, auth::profileRead);
+        Dispatcher.get("/api/v3/me/partners/card/{id}", processor::card, auth::profileRead);
+        Dispatcher.get("/api/v3/me/partners/activity", processor::activity, auth::profileRead);
         Dispatcher.post("/api/v3/me/partners/{action}", processor::write, auth::settingsWrite);
     }
 
     public void state(final RequestContext context) {
-        ApiV3Requests.read(context, () -> partners.state((JSONObject) context.attr(ApiV3Processor.IDENTITY), context.param("after")));
+        ApiV3Requests.read(context, () -> partners.state((JSONObject) context.attr(ApiV3Processor.IDENTITY), context.param("after"),
+                context.param("sort"), context.param("peer")));
+    }
+
+    public void card(final RequestContext context) {
+        ApiV3Requests.read(context, () -> partners.card((JSONObject) context.attr(ApiV3Processor.IDENTITY), context.pathVar("id")));
+    }
+
+    public void activity(final RequestContext context) {
+        ApiV3Requests.read(context, () -> partners.activity((JSONObject) context.attr(ApiV3Processor.IDENTITY),
+                context.param("kind"), context.param("before")));
     }
 
     public void write(final RequestContext context) {

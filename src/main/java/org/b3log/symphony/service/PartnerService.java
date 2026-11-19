@@ -8,6 +8,9 @@ import org.b3log.latke.util.Ids;
 import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.PartnerMemberRepository;
 import org.b3log.symphony.repository.UserRepository;
+import org.b3log.symphony.repository.FollowRepository;
+import org.b3log.symphony.repository.GameWalletLedgerRepository;
+import org.b3log.symphony.repository.PartnerEventRepository;
 import org.b3log.symphony.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,6 +21,9 @@ import java.util.Set;
 
 @Service
 public class PartnerService {
+    @Inject private PartnerEventRepository events;
+    @Inject private FollowRepository follows;
+    @Inject private GameWalletLedgerRepository ledger;
     @Inject private PartnerMemberRepository members;
     @Inject private UserRepository users;
     @Inject private ApiV3RequestRepository requests;
@@ -75,8 +81,68 @@ public class PartnerService {
         return nickname.isBlank() ? row.getString("userName") : nickname;
     }
 
-    public JSONObject state(JSONObject identity, String after) throws Exception {
-        if (after != null && !after.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+    private static void validId(String id) {
+        if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
+    }
+
+    private JSONObject directoryCard(JSONObject row, String actor) {
+        int price = quote(row);
+        return new JSONObject().put("id", row.getString("oId")).put("name", display(row))
+                .put("userName", row.getString("userName")).put("avatar", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL")))
+                .put("price", Math.min(price, 200)).put("full", price > 200).put("mine", actor.equals(row.getString("holder")))
+                .put("following", row.optInt("followed") == 1).put("revision", row.getLong("revision"));
+    }
+
+    private String directoryFrom() {
+        return " FROM " + members.getName() + " p JOIN " + users.getName()
+                + " u ON u.oId COLLATE utf8mb4_0900_ai_ci=p.oId WHERE p.joined=1 AND u.userStatus=0";
+    }
+
+    private static final String CARD = "SELECT p.oId,p.holder,p.price,p.revision,u.userName,u.userNickname,u.userAvatarURL";
+
+    public JSONObject card(JSONObject identity, String peer) throws Exception {
+        validId(peer);
+        Transaction tx = requests.beginTransaction();
+        try {
+            String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
+            var rows = members.select(CARD + directoryFrom() + " AND p.oId=?", peer);
+            var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor));
+            tx.commit();
+            return result;
+        } finally { if (tx.isActive()) tx.rollback(); }
+    }
+
+    public JSONObject activity(JSONObject identity, String kind, String before) throws Exception {
+        if (!"events".equals(kind) && !"wallet".equals(kind)) throw ApiV3WriteInputs.invalid();
+        if (before != null && !before.matches("[0-9]{1,32}")) throw ApiV3WriteInputs.invalid();
+        Transaction tx = requests.beginTransaction();
+        try {
+            String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
+            String cursor = before == null ? "" : " AND oId<?";
+            Object[] params = before == null ? new Object[]{actor} : new Object[]{actor, before};
+            String tail = cursor + " ORDER BY oId DESC LIMIT 21";
+            var rows = "events".equals(kind)
+                    ? events.select("SELECT oId,createdAt,summary,price,amount FROM " + events.getName() + " WHERE userId=?" + tail, params)
+                    : ledger.select("SELECT oId,createdAt,operation,coinDelta AS amount FROM " + ledger.getName()
+                            + " WHERE userId=? AND operation LIKE 'partner-%'" + tail, params);
+            var result = new JSONObject().put("list", new JSONArray(rows.stream().limit(20).toList()))
+                    .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : "");
+            tx.commit();
+            return result;
+        } finally { if (tx.isActive()) tx.rollback(); }
+    }
+
+    private void event(String viewer, String summary, int price, int amount, long now) throws RepositoryException {
+        events.add(new JSONObject().put("oId", Ids.genTimeMillisId()).put("userId", viewer).put("createdAt", now)
+                .put("summary", summary).put("price", price).put("amount", amount));
+    }
+
+    public JSONObject state(JSONObject identity, String after, String sort, String peer) throws Exception {
+        boolean social = "following".equals(sort);
+        if (sort != null && !social) throw ApiV3WriteInputs.invalid();
+        if (peer != null) validId(peer);
+        if (after != null && (!after.matches(social ? "[01]:[1-9][0-9]{0,18}" : "[1-9][0-9]{0,18}") || peer != null))
+            throw ApiV3WriteInputs.invalid();
         Transaction tx = requests.beginTransaction();
         try {
             String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
@@ -92,28 +158,43 @@ public class PartnerService {
                     JSONObject m = meters(own).getJSONObject(i);
                     today += m.getLong("today");
                     if (i == 0) continue;
-                    String peer = m.getString("peer");
-                    JSONObject slot = new JSONObject().put("peer", peer).put("rate", m.getInt("rate"))
+                    String slotPeer = m.getString("peer");
+                    JSONObject slot = new JSONObject().put("peer", slotPeer).put("rate", m.getInt("rate"))
                             .put("today", m.getLong("today")).put("usedMs", m.getLong("used"));
-                    if (!peer.isEmpty()) slot.put("name", name(peer).getString("name"));
+                    if (!slotPeer.isEmpty()) slot.put("name", name(slotPeer).getString("name"));
                     slots.put(slot);
                 }
                 round.save();
             }
-            var rows = members.select("SELECT p.oId,p.holder,p.price,p.revision,u.userName,u.userNickname,u.userAvatarURL FROM "
-                    + members.getName() + " p JOIN " + users.getName() + " u ON u.oId COLLATE utf8mb4_0900_ai_ci=p.oId"
-                    + " WHERE p.joined=1 AND p.oId<>? AND p.oId>? AND u.userStatus=0 ORDER BY p.oId LIMIT 21",
-                    actor, after == null ? "" : after);
-            for (var row : rows.stream().limit(20).toList()) {
-                int price = quote(row);
-                list.put(new JSONObject().put("id", row.getString("oId")).put("name", display(row))
-                        .put("userName", row.getString("userName")).put("avatar", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL")))
-                        .put("price", Math.min(price, 200)).put("full", price > 200).put("mine", actor.equals(row.getString("holder")))
-                        .put("revision", row.getLong("revision")));
+            // 旧客户端继续按用户编号翻页；关注优先使用“关注分组、用户编号”双字段游标。
+            String sql = CARD + (social ? ",EXISTS(SELECT 1 FROM " + follows.getName()
+                    + " f WHERE f.followerId=? AND f.followingType=0 AND f.followingId COLLATE utf8mb4_0900_ai_ci=p.oId) AS followed" : "")
+                    + directoryFrom() + " AND p.oId<>?";
+            var params = new java.util.ArrayList<Object>();
+            if (social) params.add(actor);
+            params.add(actor);
+            if (peer != null) {
+                sql += " AND p.oId=?";
+                params.add(peer);
+            } else if (after != null && social) {
+                sql += " HAVING followed<? OR (followed=? AND p.oId>?)";
+                int section = after.charAt(0) - '0';
+                params.add(section);
+                params.add(section);
+                params.add(after.substring(2));
+            } else if (after != null) {
+                sql += " AND p.oId>?";
+                params.add(after);
             }
+            var rows = members.select(sql + (social ? " ORDER BY followed DESC,p.oId" : " ORDER BY p.oId") + " LIMIT 21", params.toArray());
+            for (var row : rows.stream().limit(20).toList()) list.put(directoryCard(row, actor));
             Long coins = wallet.balance(actor);
-            result.put("coins", coins == null ? 0 : coins).put("today", today)
-                    .put("next", rows.size() > 20 ? rows.get(19).getString("oId") : "");
+            String next = "";
+            if (rows.size() > 20) {
+                JSONObject last = rows.get(19);
+                next = (social ? last.getInt("followed") + ":" : "") + last.getString("oId");
+            }
+            result.put("coins", coins == null ? 0 : coins).put("today", today).put("next", next);
             tx.commit();
             return result;
         } finally { if (tx.isActive()) tx.rollback(); }
@@ -176,13 +257,13 @@ public class PartnerService {
                 case "release" -> {
                     JSONObject peer = r.account(input.getString("peer"));
                     if (!joined(peer) || !actor.equals(peer.getString("holder"))) throw conflict("这位搭子已经离开");
-                    end(r, own, peer, 100);
+                    release(r, own, peer, false);
                 }
                 case "leave" -> {
-                    if (!own.getString("holder").isEmpty()) end(r, r.account(own.getString("holder")), own, 100);
+                    if (!own.getString("holder").isEmpty()) release(r, r.account(own.getString("holder")), own, true);
                     for (int i = 1; i < meters(own).length(); i++) {
                         String peer = meters(own).getJSONObject(i).getString("peer");
-                        if (!peer.isEmpty()) end(r, own, r.account(peer), 100);
+                        if (!peer.isEmpty()) release(r, own, r.account(peer), true);
                     }
                     own.put("joined", 0);
                     bump(own);
@@ -207,6 +288,14 @@ public class PartnerService {
         if (best != null) return best;
         throw conflict(peer.isEmpty() ? "请先腾出一个搭子位" : "搭子位状态已变化");
     }
+    private void release(Round r, JSONObject owner, JSONObject peer, boolean leaving) throws Exception {
+        String ownerId = owner.getString("oId"), peerId = peer.getString("oId");
+        end(r, owner, peer, 100);
+        String reason = leaving ? "因退出搭子社而结束" : "已结束";
+        event(ownerId, "你与" + name(peerId).getString("name") + "的搭班" + reason + "，退回保证金", 0, 100, r.now);
+        event(peerId, "你与" + name(ownerId).getString("name") + "的搭班" + reason, 0, 0, r.now);
+    }
+
     private void end(Round r, JSONObject owner, JSONObject peer, int refund) throws Exception {
         slot(owner, peer.getString("oId")).put("peer", "").put("rate", 0);
         meters(peer).getJSONObject(0).put("rate", 0);
@@ -227,10 +316,19 @@ public class PartnerService {
         if (price > 200) throw conflict("这位搭子已满价");
         JSONObject free = slot(own, "");
         r.change(own, -price, "partner-hire");
-        if (!peer.getString("holder").isEmpty()) {
+        String previous = peer.getString("holder");
+        String buyerName = name(actor).getString("name"), peerName = name(id).getString("name");
+        if (!previous.isEmpty()) {
+            String previousName = name(previous).getString("name");
+            event(actor, "你从" + previousName + "手中请到了" + peerName, price, -price, r.now);
+            event(id, buyerName + "从" + previousName + "手中请走了你，获得分成", price, 4, r.now);
+            event(previous, buyerName + "请走了你的搭子" + peerName + "，退回本金 " + (price - 20) + "，赚取差价 14", price, price - 6, r.now);
             // 旧邀请人的成交本金及差价分成由新邀请人付款，名片只保留基础保证金。
             end(r, r.account(peer.getString("holder")), peer, price - 20 + 14);
             r.change(peer, 4, "partner-share");
+        } else {
+            event(actor, "你请到了" + peerName, price, -price, r.now);
+            event(id, buyerName + "请你搭班", price, 0, r.now);
         }
         free.put("peer", id).put("rate", rate(price));
         peer.put("price", price).put("holder", actor);

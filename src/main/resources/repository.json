@@ -779,6 +779,38 @@
       ]
     },
     {
+      "name": "partner_event",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "userId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "summary",
+          "type": "String",
+          "length": 512
+        },
+        {
+          "name": "price",
+          "type": "int"
+        },
+        {
+          "name": "amount",
+          "type": "int"
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "partner_member",
       "keys": [
         {
