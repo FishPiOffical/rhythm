@@ -26,6 +26,7 @@ import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 
 /**
@@ -124,8 +125,20 @@ public class ApiV3AuthMidware {
         required(context, "profile.read");
     }
 
+    public void partnerRead(final RequestContext context) {
+        required(context, "profile.read", true);
+    }
+
+    public void partnerWrite(final RequestContext context) {
+        required(context, "settings.write", true);
+    }
+
     private void required(final RequestContext context, final String scope) {
-        final JSONObject identity = resolve(context);
+        required(context, scope, false);
+    }
+
+    private void required(final RequestContext context, final String scope, final boolean partner) {
+        final JSONObject identity = resolve(context, partner);
         if (null == identity) return;
         if (!ApiV3TokenMgmtService.hasScope(identity.optString("scope"), scope)) {
             LOGGER.info("api_v3_auth result=insufficient_scope required={} requestId={}", scope, ApiV3Processor.requestId(context));
@@ -137,6 +150,10 @@ public class ApiV3AuthMidware {
     }
 
     private JSONObject resolve(final RequestContext context) {
+        return resolve(context, false);
+    }
+
+    private JSONObject resolve(final RequestContext context, final boolean partner) {
         final String header = context.header("Authorization");
         if (null == header || !header.startsWith("Bearer ") || header.length() > 300) {
             LOGGER.info("api_v3_auth result=unauthorized requestId={}", ApiV3Processor.requestId(context));
@@ -144,7 +161,15 @@ public class ApiV3AuthMidware {
             context.abort();
             return null;
         }
-        final JSONObject identity = apiV3TokenMgmtService.authenticate(header.substring("Bearer ".length()).trim());
+        final String token = header.substring("Bearer ".length()).trim();
+        final JSONObject identity;
+        try {
+            identity = partner ? apiV3TokenMgmtService.authenticatePartner(token) : apiV3TokenMgmtService.authenticate(token);
+        } catch (final ApiV3Exception error) {
+            ApiV3Processor.error(context, error.status, error.code, error.getMessage());
+            context.abort();
+            return null;
+        }
         if (null == identity) {
             LOGGER.info("api_v3_auth result=unauthorized requestId={}", ApiV3Processor.requestId(context));
             ApiV3Processor.error(context, 401, "unauthorized", "登录凭据无效");

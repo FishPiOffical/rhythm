@@ -103,9 +103,9 @@ public class PartnerService {
 
     public JSONObject card(JSONObject identity, String peer) throws Exception {
         validId(peer);
-        Transaction tx = requests.beginTransaction();
+        Transaction tx = PartnerTransactions.begin(requests::beginTransaction);
         try {
-            String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
+            String actor = proofs.authorizePartnerInCurrentTransaction(identity, "profile.read").getString("oId");
             var rows = members.select(CARD + directoryFrom() + " AND p.oId=?", peer);
             var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor, operations.policy(false)));
             tx.commit();
@@ -116,9 +116,9 @@ public class PartnerService {
     public JSONObject activity(JSONObject identity, String kind, String before) throws Exception {
         if (!"events".equals(kind) && !"wallet".equals(kind)) throw ApiV3WriteInputs.invalid();
         if (before != null && !before.matches("[0-9]{1,32}")) throw ApiV3WriteInputs.invalid();
-        Transaction tx = requests.beginTransaction();
+        Transaction tx = PartnerTransactions.begin(requests::beginTransaction);
         try {
-            String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
+            String actor = proofs.authorizePartnerInCurrentTransaction(identity, "profile.read").getString("oId");
             String cursor = before == null ? "" : " AND oId<?";
             Object[] params = before == null ? new Object[]{actor} : new Object[]{actor, before};
             String tail = cursor + " ORDER BY oId DESC LIMIT 21";
@@ -144,9 +144,9 @@ public class PartnerService {
         if (peer != null) validId(peer);
         if (after != null && (!after.matches(social ? "[01]:[1-9][0-9]{0,18}" : "[1-9][0-9]{0,18}") || peer != null))
             throw ApiV3WriteInputs.invalid();
-        Transaction tx = requests.beginTransaction();
+        Transaction tx = PartnerTransactions.begin(requests::beginTransaction);
         try {
-            String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
+            String actor = proofs.authorizePartnerInCurrentTransaction(identity, "profile.read").getString("oId");
             Round round = new Round();
             JSONObject own = round.account(actor);
             JSONArray slots = new JSONArray(), list = new JSONArray();
@@ -218,10 +218,10 @@ public class PartnerService {
         if (identity == null || identity.optJSONObject("user") == null) throw ApiV3Requests.forbidden();
         String actor = identity.getJSONObject("user").getString("oId");
         var guarded = new ApiV3MutationStore() {
-            public Transaction beginTransaction() { return requests.beginTransaction(); }
+            public Transaction beginTransaction() { return PartnerTransactions.begin(requests::beginTransaction); }
             public boolean hasTransactionBegun() { return requests.hasTransactionBegun(); }
             public JSONObject getForUpdate(String id) throws RepositoryException {
-                proofs.authorizeFirstPartyInCurrentTransaction(identity, "settings.write");
+                proofs.authorizePartnerInCurrentTransaction(identity, "settings.write");
                 return requests.getForUpdate(id);
             }
             public String add(JSONObject row) throws RepositoryException { return requests.add(row); }
@@ -318,7 +318,7 @@ public class PartnerService {
             throw conflict("这位鱼友目前不可邀请");
         int price = quote(peer);
         if (price > 200) throw conflict("这位搭子已满价");
-        JSONObject policy = operations.policy(true);
+        JSONObject policy = operations.hirePolicy();
         int hourly = PartnerOperationsService.rate(policy, price);
         // 旧客户端展示固定费率，只在它展示的报价仍然准确时允许成交。
         if (input.has("rateVersion") ? input.getInt("rateVersion") != policy.getInt("version") : hourly != 40 + (price - 100) / 10)

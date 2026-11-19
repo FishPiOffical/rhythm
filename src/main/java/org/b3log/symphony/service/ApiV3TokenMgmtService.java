@@ -36,6 +36,8 @@ import org.b3log.symphony.repository.ApiV3ClientRepository;
 import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3TokenUtil;
+import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.PartnerTransactions;
 import org.b3log.symphony.util.ApiV3Transactions;
 import org.b3log.symphony.util.ApiV3TransactionStatements;
 import org.b3log.symphony.util.ApiV3TransactionSavepoint;
@@ -278,8 +280,18 @@ public class ApiV3TokenMgmtService {
     }
 
     public JSONObject authenticate(final String token) {
+        return authenticate(token, false);
+    }
+
+    public JSONObject authenticatePartner(final String token) {
+        return authenticate(token, true);
+    }
+
+    private JSONObject authenticate(final String token, final boolean partner) {
+        if (!ApiV3TokenUtil.isValidFormat(token)) return null;
+        // 单独的短读事务在进入业务前归还连接，也能区分借连接失败和令牌无效。
+        final Transaction read = partner ? PartnerTransactions.begin(this::beginRoot) : null;
         try {
-            if (!ApiV3TokenUtil.isValidFormat(token)) return null;
             final JSONObject row = apiV3TokenRepository.getByHash(ApiV3TokenUtil.hash(token));
             if (null == row || !ApiV3Token.TYPE_ACCESS.equals(row.optString(ApiV3Token.TOKEN_TYPE))
                     || ApiV3Token.STATE_ACTIVE != row.optInt(ApiV3Token.STATE)
@@ -290,11 +302,17 @@ public class ApiV3TokenMgmtService {
             final var users = userRepository.select("SELECT * FROM `" + userRepository.getName() + "` WHERE oId=? LIMIT 2", row.optString(ApiV3Token.USER_ID));
             final JSONObject user = users.size() == 1 ? users.getFirst() : null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) return null;
-            markAccessUsed(row);
+            if (read != null) read.commit();
+            markAccessUsed(row, partner);
             return new JSONObject().put("user", user).put("scope", row.optString(ApiV3Token.SCOPE))
                     .put("tokenId", row.optString(Keys.OBJECT_ID)).put("clientId", row.optString(ApiV3Token.CLIENT_ID));
+        } catch (final ApiV3Exception e) {
+            if (partner) throw e;
+            return null;
         } catch (final Exception e) {
             return null;
+        } finally {
+            if (read != null) rollback(read);
         }
     }
 
@@ -420,7 +438,7 @@ public class ApiV3TokenMgmtService {
                 token.getString(ApiV3Token.USER_ID), token.getString(ApiV3Token.FAMILY_ID), now);
     }
 
-    private void markAccessUsed(final JSONObject token) {
+    private void markAccessUsed(final JSONObject token, final boolean partner) {
         final String id = token.getString(Keys.OBJECT_ID);
         final long time = now();
         if (!activityDue(token.optLong(ApiV3Token.LAST_USED_AT), time)) return;
@@ -430,7 +448,7 @@ public class ApiV3TokenMgmtService {
         try {
             final Long recorded = accessActivity.getIfPresent(id);
             if (recorded != null && !activityDue(recorded, time)) return;
-            final Transaction transaction = beginRoot();
+            final Transaction transaction = partner ? PartnerTransactions.begin(this::beginRoot) : beginRoot();
             try {
                 apiV3TokenRepository.markAccessUsedInCurrentTransaction(id, time);
                 transaction.commit();

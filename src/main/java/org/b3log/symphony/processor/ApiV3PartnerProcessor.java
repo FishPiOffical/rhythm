@@ -37,10 +37,10 @@ public class ApiV3PartnerProcessor {
         final var beans = BeanManager.getInstance();
         final var processor = beans.getReference(ApiV3PartnerProcessor.class);
         final var auth = beans.getReference(ApiV3AuthMidware.class);
-        Dispatcher.get("/api/v3/me/partners", processor::state, auth::profileRead);
-        Dispatcher.get("/api/v3/me/partners/card/{id}", processor::card, auth::profileRead);
-        Dispatcher.get("/api/v3/me/partners/activity", processor::activity, auth::profileRead);
-        Dispatcher.post("/api/v3/me/partners/{action}", processor::write, auth::settingsWrite);
+        Dispatcher.get("/api/v3/me/partners", processor::state, auth::partnerRead);
+        Dispatcher.get("/api/v3/me/partners/card/{id}", processor::card, auth::partnerRead);
+        Dispatcher.get("/api/v3/me/partners/activity", processor::activity, auth::partnerRead);
+        Dispatcher.post("/api/v3/me/partners/{action}", processor::write, auth::partnerWrite);
     }
 
     public void state(final RequestContext context) {

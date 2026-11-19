@@ -99,12 +99,25 @@ public class ApiV3SecurityProofService {
         return authorize(identity, "profile.read", false);
     }
 
+    /** 搭子只读第一方客户端配置，共享锁仍与停用客户端和账号重置的独占锁互斥。 */
+    public JSONObject authorizePartnerInCurrentTransaction(final JSONObject identity, final String scope) throws RepositoryException {
+        if (!java.util.Set.of("profile.read", "settings.write").contains(scope))
+            throw new IllegalArgumentException("partner scope");
+        if (!users.hasTransactionBegun() || !tokens.hasTransactionBegun())
+            throw new IllegalStateException("partner root required");
+        return new JSONObject().put("oId", authorize(identity, scope, true, " FOR SHARE").getString("oId"));
+    }
+
     private JSONObject authorize(final JSONObject identity, final String scope, final boolean lock) throws RepositoryException {
+        return authorize(identity, scope, lock, lock ? " FOR UPDATE" : "");
+    }
+
+    private JSONObject authorize(final JSONObject identity, final String scope, final boolean lock, final String clientLock) throws RepositoryException {
         final String actor = actor(identity), tokenId = identity.optString("tokenId");
         if (!tokenId.matches("[1-9][0-9]{0,18}"))
             throw ApiV3Requests.forbidden();
         final String suffix = lock ? " FOR UPDATE" : "";
-        final var websites = clients.select("SELECT clientId,status,scope FROM `" + clients.getName() + "` WHERE clientId=?" + suffix, ApiV3TokenMgmtService.WEBSITE_CLIENT);
+        final var websites = clients.select("SELECT clientId,status,scope FROM `" + clients.getName() + "` WHERE clientId=?" + clientLock, ApiV3TokenMgmtService.WEBSITE_CLIENT);
         final var owners = users.select("SELECT oId,userStatus,userPassword,secret2fa FROM `" + users.getName() + "` WHERE oId=?" + suffix, actor);
         final var access = tokens.select("SELECT oId,userId,clientId,tokenType,state,expiresAt,scope FROM `" + tokens.getName() + "` WHERE oId=?" + suffix, tokenId);
         if (websites.size() != 1 || owners.size() != 1 || access.size() != 1) throw ApiV3Requests.forbidden();

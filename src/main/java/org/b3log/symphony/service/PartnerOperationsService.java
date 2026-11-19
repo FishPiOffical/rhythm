@@ -30,8 +30,16 @@ public class PartnerOperationsService {
     @Inject private GameWalletLedgerRepository ledger;
 
     JSONObject policy(boolean lock) throws RepositoryException {
+        return readPolicy(lock ? " FOR UPDATE" : "");
+    }
+
+    JSONObject hirePolicy() throws RepositoryException {
+        return readPolicy(" FOR SHARE");
+    }
+
+    private JSONObject readPolicy(String lockClause) throws RepositoryException {
         var rows = rates.select("SELECT baseRate,stepRate,version,sinceAt FROM " + rates.getName()
-                + " WHERE oId='rate'" + (lock ? " FOR UPDATE" : ""));
+                + " WHERE oId='rate'" + lockClause);
         if (rows.isEmpty()) throw new ApiV3Exception(503, "partner_migration_required", "搭子营业配置尚未就绪");
         return rows.getFirst();
     }
