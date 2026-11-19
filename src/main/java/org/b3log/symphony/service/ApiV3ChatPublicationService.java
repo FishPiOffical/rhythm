@@ -69,6 +69,8 @@ public class ApiV3ChatPublicationService {
     private ChatroomProcessor delivery;
     @Inject
     private ChatMessageNoticeService notices;
+    @Inject
+    private ApiV3ChatQueryService query;
 
     protected long now() {
         return System.currentTimeMillis();
@@ -88,17 +90,29 @@ public class ApiV3ChatPublicationService {
             case "weather" -> ApiV3ChatCardInputs.weather(body);
             default -> throw ApiV3WriteInputs.invalid();
         };
-        return publishInternal(viewer, "", "", key, kind, card, null);
+        return publishInternal(viewer, "", "", key, kind, card, null, null);
     }
 
     public JSONObject publish(final JSONObject viewer, final String content, final String client, final String key,
                               final Request request) throws Exception {
-        ChatMessageText.requireMessage(content, true);
-        return publishInternal(viewer, content, client, key, null, null, request);
+        return publish(viewer, content, client, key, request, null);
+    }
+
+    public JSONObject publish(final JSONObject viewer, final String content, final String client, final String key,
+                              final Request request, final String replyToMessageId) throws Exception {
+        if (replyToMessageId == null) {
+            ChatMessageText.requireMessage(content, true);
+        } else {
+            if (!replyToMessageId.matches("[0-9]{1,32}") || content == null)
+                throw ApiV3WriteInputs.invalid();
+            if (!content.isBlank()) ChatMessageText.requireOrdinary(content);
+        }
+        return publishInternal(viewer, content, client, key, null, null, request, replyToMessageId);
     }
 
     private JSONObject publishInternal(final JSONObject viewer, final String content, final String client, final String key,
-                                       final String kind, final JSONObject card, final Request request) throws Exception {
+                                       final String kind, final JSONObject card, final Request request,
+                                       final String replyToMessageId) throws Exception {
         final String actor = viewer == null ? "" : viewer.optString(Keys.OBJECT_ID);
         if (!actor.matches("[0-9]{1,19}")) throw new ApiV3Exception(401, "unauthorized", "登录凭据无效");
         if (client == null || client.length() > 128 || client.indexOf(0) >= 0) throw ApiV3WriteInputs.invalid();
@@ -106,7 +120,7 @@ public class ApiV3ChatPublicationService {
         final var penalty = new AtomicReference<ChatMessagePenaltyMgmtService.Result>();
         final var repeat = new AtomicReference<RepeatDecision>();
         final var confirmed = new AtomicReference<String>();
-        final boolean lawCommand = card == null && ChatMessageText.isLawCommand(content.strip());
+        final boolean lawCommand = card == null && replyToMessageId == null && ChatMessageText.isLawCommand(content.strip());
         final var lawActor = new AtomicReference<JSONObject>();
         final JSONObject petStatus = card == null && !lawCommand ? messages.capturePetStatus(actor) : null;
         final Published result = points.executeWithTransferLocks(actor, List.of(Pointtransfer.ID_C_SYS), () -> {
@@ -130,7 +144,9 @@ public class ApiV3ChatPublicationService {
                         throw new ApiV3Exception(403, "phone_required", "请先绑定手机号码");
                     final String prepared;
                     try {
-                        prepared = card == null ? validation.prepare(current, content)
+                        final String messageContent = replyToMessageId == null ? content
+                                : content + quoteSuffix(query.detail(replyToMessageId), replyToMessageId);
+                        prepared = card == null ? validation.prepare(current, messageContent)
                                 : ApiV3ChatCardInputs.content(kind, ApiV3ChatCardInputs.prepare(kind, card, text -> validation.prepare(current, text)));
                     } catch (final ChatMessageValidation.Rejected e) {
                         throw new ApiV3Exception(e.status, e.code, e.getMessage());
@@ -178,7 +194,7 @@ public class ApiV3ChatPublicationService {
                 };
                 final ApiV3IdempotencyMgmtService.Execution outcome;
                 if (card == null) outcome = idempotency.executeWithOutcome(actor, "chat.messages.create", key,
-                        new JSONObject().put("content", content).put("client", client), mutation);
+                        new JSONObject().put("content", content).put("client", client).put("replyToMessageId", replyToMessageId), mutation);
                 else {
                     // 先锁定当前用户，再读取回执；回放成功请求也遵循此顺序。
                     final ApiV3MutationStore store = new ApiV3MutationStore() {
@@ -212,6 +228,32 @@ public class ApiV3ChatPublicationService {
         });
         if (result.execution().applied()) afterPublished(actor, result, request);
         return result.execution().result();
+    }
+
+    // 用公开投影生成旧客户端可读的引用，重试已提交的命令时不再读取来源。
+    private static String quoteSuffix(final JSONObject source, final String messageId) {
+        final String sourceText = switch (source.getString("type")) {
+            case "text" -> source.getString("content");
+            case "music" -> "【音乐卡片公开摘要】\n" + source.getJSONObject("card").toString(2);
+            case "weather" -> "【天气卡片公开摘要】\n" + source.getJSONObject("card").toString(2);
+            case "redPacket" -> "【红包卡片公开摘要】\n" + source.getJSONObject("card").toString(2);
+            default -> throw new ApiV3Exception(404, "not_found", "消息不存在或已撤回");
+        };
+        if (sourceText.isBlank()) throw new ApiV3Exception(422, "invalid_content", "当前消息没有可引用内容");
+        final String name = source.getJSONObject("author").optString("userName");
+        final var author = new StringBuilder();
+        if (!name.isBlank()) {
+            author.append('@');
+            for (int i = 0; i < name.length(); i++) {
+                final char ch = name.charAt(i);
+                if ("\\`*_[]<>!#|".indexOf(ch) >= 0) author.append('\\');
+                author.append(ch);
+            }
+            author.append(' ');
+        }
+        // 统一使用绝对链接，避免旧版清洗丢失消息定位。
+        return "\n\n##### 引用 " + author + "[↩](https://fishpi.cn/cr#chatroom" + messageId
+                + " \"跳转至原消息\")  \n> " + sourceText.replace("\r\n", "\n").replace('\r', '\n').replace("\n", "\n> ") + "\n";
     }
 
     private void afterPublished(final String actor, final Published result, final Request request) {

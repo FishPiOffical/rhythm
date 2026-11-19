@@ -34,6 +34,7 @@ import org.b3log.symphony.repository.PetActivityRepository;
 import org.b3log.symphony.repository.UserPetRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3AppearanceCatalog;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ArticlePublicationCaches;
 import org.b3log.symphony.util.ChatMessageRestrictions;
 import org.b3log.symphony.util.ChatMessageText;
@@ -64,6 +65,8 @@ public class ApiV3ChatLawTest {
     static class Fixture extends F {
         int executions, deliveries, restrictionsRead, saveAttempts, failures, petReads;
         String replacement;
+        JSONObject replySource;
+        int replyReads;
         final DefaultFullHttpRequest raw = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                 HttpMethod.POST, "/api/v3/chat/messages");
         final Request request = new Request(null, raw);
@@ -113,6 +116,14 @@ public class ApiV3ChatLawTest {
             final var idempotency = new ApiV3IdempotencyMgmtService();
             inject(idempotency, "requestRepository", requests);
             inject(publication, "idempotency", idempotency);
+            inject(publication, "query", new ApiV3ChatQueryService() {
+                @Override
+                public JSONObject detail(final String id) {
+                    Assert.assertTrue(active());
+                    replyReads++;
+                    return replySource == null ? new JSONObject().put("type", "unavailable") : replySource;
+                }
+            });
             inject(publication, "users", new UserRepository() {
                 public boolean hasTransactionBegun() { return active(); }
                 public JSONObject getForUpdate(final String id) throws RepositoryException {
@@ -177,6 +188,10 @@ public class ApiV3ChatLawTest {
                     content, "", key, request);
         }
 
+        JSONObject reply(final String content, final String key, final String sourceId) throws Exception {
+            return publication.publish(new JSONObject().put("oId", "1"), content, "", key, request, sourceId);
+        }
+
         void role(final String role) throws Exception { sql(db, "UPDATE u SET userRole=? WHERE oId='1'", role); }
         int count(final String table) throws Exception { return rows(db, "SELECT COUNT(*) n FROM " + table).getFirst().getInt("n"); }
 
@@ -184,6 +199,44 @@ public class ApiV3ChatLawTest {
         public void close() throws Exception {
             raw.release();
             super.close();
+        }
+    }
+
+    @Test
+    public void structuredReplyUsesVisibleSourceAndReplaysAfterWithdrawal() throws Exception {
+        try (final var f = new Fixture()) {
+            f.replySource = new JSONObject().put("type", "text").put("content", "原文第一行\r\n原文第二行")
+                    .put("author", new JSONObject().put("userName", "fish_[x]"))
+                    .put("tail", new JSONObject().put("text", "小尾巴不参与引用"));
+            final var result = f.reply("自己的正文", "structured-reply", "101");
+            final var saved = new JSONObject(rows(f.db, "SELECT content FROM chat").getFirst().getString("content"));
+            Assert.assertEquals(saved.getString("content"), "自己的正文\n\n##### 引用 @fish\\_\\[x\\] "
+                    + "[↩](https://fishpi.cn/cr#chatroom101 \"跳转至原消息\")  \n> 原文第一行\n> 原文第二行");
+            f.replySource = null;
+            Assert.assertEquals(f.reply("自己的正文", "structured-reply", "101").getString("id"), result.getString("id"));
+            Assert.assertEquals(Assert.expectThrows(ApiV3Exception.class,
+                    () -> f.reply("自己的正文", "structured-reply", "102")).code, "idempotency_conflict");
+            Assert.assertEquals(f.replyReads, 1);
+            Assert.assertEquals(Assert.expectThrows(ApiV3Exception.class,
+                    () -> f.reply("自己的正文", "withdrawn-source", "101")).status, 404);
+            Assert.assertEquals(f.count("chat"), 1);
+            Assert.assertEquals(f.count("receipt"), 1);
+            Assert.assertEquals(f.deliveries, 1);
+        }
+    }
+
+    @Test
+    public void structuredReplyAllowsEmptyBodyAndRejectsCommandsAndInvalidIds() throws Exception {
+        try (final var f = new Fixture()) {
+            f.replySource = new JSONObject().put("type", "text").put("content", "仅引用测试内容")
+                    .put("author", new JSONObject());
+            Assert.expectThrows(ApiV3Exception.class, () -> f.reply("zf 帮助", "reply-command", "103"));
+            Assert.expectThrows(ApiV3Exception.class, () -> f.reply("正文", "reply-unsafe-id", "../103"));
+            Assert.assertEquals(f.replyReads, 0);
+            f.reply("", "quote-only", "103");
+            final var saved = new JSONObject(rows(f.db, "SELECT content FROM chat").getFirst().getString("content"));
+            Assert.assertTrue(saved.getString("content").startsWith("##### 引用 [↩]"));
+            Assert.assertEquals(f.executions, 0);
         }
     }
 

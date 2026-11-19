@@ -34,6 +34,8 @@ import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.ApiV3ChatTopicService;
 import org.b3log.symphony.service.ApiV3ChatBarrageService;
+import org.b3log.symphony.service.ApiV3TokenMgmtService;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.ApiV3Requests;
 import org.b3log.symphony.util.ApiV3WriteInputs;
 import org.json.JSONObject;
@@ -84,9 +86,17 @@ public class ApiV3ChatProcessor {
 
     public void create(final RequestContext c) {
         ApiV3Requests.respond(c, () -> {
-            final var body = ApiV3WriteInputs.body(c, Set.of("content", "client"), false);
+            final var body = ApiV3WriteInputs.body(c, Set.of("content", "client", "replyToMessageId"), false);
+            final String replyToMessageId = body.has("replyToMessageId")
+                    ? ApiV3WriteInputs.string(body, "replyToMessageId", 32, false) : null;
+            if (replyToMessageId != null) {
+                final var identity = (JSONObject) c.attr(ApiV3Processor.IDENTITY);
+                if (identity == null || !ApiV3TokenMgmtService.hasScope(identity.optString("scope"), "content.read"))
+                    throw new ApiV3Exception(403, "insufficient_scope", "缺少所需权限");
+            }
             return publication.publish(ApiV3Requests.viewer(c), ApiV3WriteInputs.string(body, "content", 4096, false),
-                    ApiV3WriteInputs.string(body, "client", 128, false), ApiV3WriteInputs.idempotencyKey(c), c.getRequest());
+                    ApiV3WriteInputs.string(body, "client", 128, false), ApiV3WriteInputs.idempotencyKey(c),
+                    c.getRequest(), replyToMessageId);
         });
     }
 

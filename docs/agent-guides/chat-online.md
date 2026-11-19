@@ -30,6 +30,8 @@
 
 ## 普通消息与风控
 
+V3 普通发送可单独传 `replyToMessageId`，要求同时有 `content.read`；仅首次写入时从可见消息投影生成兼容 Markdown，已提交的重放直接读原回执。
+
 - v3 普通消息 POST `/chat/messages` 走 `ApiV3ChatPublicationService`：content.write、白名单正文/客户端与幂等；先取得actor/sys账户对，再打开缓存边界和事务，当前用户/限制/适用处罚/消息/职业/最后发言时间同事务。仅applied后广播、活跃度与提醒；处罚由 `ChatMessagePenaltyMgmtService` 写禁言/思过簿/扣分通知，提醒走 `ChatMessageNoticeService` 独立严格提交并释放连接。具备旧版执法权限的账号可在正文中使用 `执法`/`zf`，提交成功后复用 `ChatRoomBot.handleLawCommand` 执行一次，幂等回放不重复执行；其他普通正文不执行业务命令或AI。
 - 聊天风控重复确认和复读计数由 `ChatMessageAbuseState` 供新旧入口共用；普通保存核心不能替代准入。v3 禁言/风控读取走 `ChatMessageRestrictionQueryService`，要求已有事务并锁定当前记录，只读到期时间、不自行清理或提交；损坏/重复记录须报错，不能当作未限制。`ChatMessageRestrictions` 保留风险校验→确认→禁言顺序及全员禁言时的管理例外。
 - 聊天客户端 `client` 标记由 `ChatMessageClients` 统一白名单校验，新旧入口共用；经典 PC/移动两套聊天室按标记选择 `symbol-defs.js` 的本地图标。新增标记须同步服务端白名单、两套聊天室渲染和 SVG symbol，API 文档更新示例并执行前端构建。`Deepseek Harness` 和 `Codex` 使用 Lobe Icons 的 MIT 授权 SVG 路径。

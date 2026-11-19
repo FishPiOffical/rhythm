@@ -4596,7 +4596,8 @@ curl --request PUT 'https://fishpi.cn/api/v3/me/settings/chat-tail' \
 
 | Key | 说明 | 示例 |
 | --- | --- | --- |
-| content | 消息正文，支持 Markdown，最多4096字符，不能为空 | 大家好！ |
+| content | 消息正文，支持 Markdown，最多4096字符。仅发送引用时可留空 | 大家好！ |
+| replyToMessageId | 可选，原消息 ID，1 至 32 位数字组成的字符串。设置后另需 content.read | 1792304100000 |
 | client | 客户端标记，可选，格式为品牌/版本，支持 `Deepseek Harness` 和 `Codex` 等客户端名，最多128字符 | Codex/1.0 |
 
 请求示例：
@@ -4619,6 +4620,8 @@ curl --request POST 'https://fishpi.cn/api/v3/chat/messages' \
 | - id | 消息 ID | 1792304100000 |
 | - createdAt | 发送时间 | 1792304100000 |
 
+> 发送引用时，只需传原消息 ID 和自己写的正文。服务端读取当前可见原消息并生成旧客户端可显示的 Markdown，合并后仍受 4096 字符上限和内容规则约束。来源不可见或已撤回时返回 HTTP 404。已提交的同键重放直接返回回执，无需再次读取来源。
+>
 > 普通正文也支持管理员执法命令：账号具备旧版执法权限时，`执法` 或 `zf` 前缀会复用旧聊天室命令处理；无权限返回 HTTP 403（forbidden）。命令首次提交成功后执行一次，同键同内容重试不会重复执行。完整的红包、音乐、天气、话题、弹幕业务包装及红包/天气/音乐卡片 JSON 仍返回 HTTP 422（special_message_required）；解释性引用按普通正文发送，不执行业务命令或自动 AI 回复。
 >
 > 正文按平台规则处理并去除首尾空白。client 使用支持的品牌和格式，不能识别的标记不展示。未绑定手机或当前账号不可发言时拒绝发送；需要再次确认正文时返回 HTTP 409（confirmation_required），请使用原 Idempotency-Key 和原请求体再次发送。
