@@ -67,14 +67,20 @@ public class ApiV3ProfessionPublicQueryService {
     private record CheckedRead(AbstractRepository repository, String sql, Object[] args, List<JSONObject> rows) {
     }
 
-    private static List<JSONObject> checked(final List<CheckedRead> checks, final AbstractRepository repository, final String sql, final Object... args) throws RepositoryException {
+    private record ReadKey(AbstractRepository repository, String sql, List<Object> args) {
+    }
+
+    private static List<JSONObject> checked(final Map<ReadKey, CheckedRead> checks, final AbstractRepository repository, final String sql, final Object... args) throws RepositoryException {
+        final ReadKey key = new ReadKey(repository, sql, Arrays.asList(args.clone()));
+        final CheckedRead cached = checks.get(key);
+        if (cached != null) return cached.rows();
         final List<JSONObject> rows = repository.select(sql, args);
-        checks.add(new CheckedRead(repository, sql, args, rows));
+        checks.put(key, new CheckedRead(repository, sql, args.clone(), rows));
         return rows;
     }
 
-    private static void recheck(final List<CheckedRead> checks) throws RepositoryException {
-        for (CheckedRead read : checks)
+    private static void recheck(final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
+        for (CheckedRead read : checks.values())
             if (!new JSONArray(read.rows()).similar(new JSONArray(read.repository().select(read.sql(), read.args()))))
                 throw unavailable();
     }
@@ -195,7 +201,7 @@ public class ApiV3ProfessionPublicQueryService {
             final JSONObject result = new JSONObject();
             if (primary.isEmpty() || !visible(visibility, "primaryProfession", ownerId, actor)) return result;
             final var rows = progress(ownerId, primary);
-            final List<CheckedRead> checks = new ArrayList<>();
+            final Map<ReadKey, CheckedRead> checks = new LinkedHashMap<>();
             appendPrimary(result, primary, rows, false, checks, true);
             if (!owner.similar(user("userName", name, false)) || actor != null && !actor.similar(user("oId", actorId, true))
                     || !state.similar(state(ownerId)) || !new JSONArray(rows).similar(new JSONArray(progress(ownerId, primary))))
@@ -243,6 +249,7 @@ public class ApiV3ProfessionPublicQueryService {
     public JSONObject profile(final String name, final String actorId) {
         validateReader(name, actorId);
         String stage = "account";
+        final Map<ReadKey, CheckedRead> checks = new LinkedHashMap<>();
         try {
             final JSONObject owner = user("userName", name, false), actor = actorId.isEmpty() ? null : user("oId", actorId, true);
             stage = "privacy";
@@ -254,7 +261,6 @@ public class ApiV3ProfessionPublicQueryService {
             stage = "progress";
             final var rows = progress(ownerId);
             final JSONObject result = new JSONObject();
-            final List<CheckedRead> checks = new ArrayList<>();
             if (visible(visibility, "primaryProfession", ownerId, actor))
                 appendPrimary(result, state.getString("primaryProfessionId"), rows, experience, checks, false);
             if (visible(visibility, "allProfessions", ownerId, actor)) {
@@ -318,7 +324,7 @@ public class ApiV3ProfessionPublicQueryService {
         if (showRanking) result.put("ranking", ranks);
     }
 
-    private void appendPrimary(final JSONObject result, final String primary, final List<JSONObject> rows, final boolean experience, final List<CheckedRead> checks, final boolean summary) throws RepositoryException {
+    private void appendPrimary(final JSONObject result, final String primary, final List<JSONObject> rows, final boolean experience, final Map<ReadKey, CheckedRead> checks, final boolean summary) throws RepositoryException {
         if (primary.isEmpty()) return;
         for (JSONObject row : rows)
             if (primary.equals(row.getString("professionId"))) {
@@ -391,7 +397,7 @@ public class ApiV3ProfessionPublicQueryService {
         result.put("rewards", list);
     }
 
-    private void appendActivity(final JSONObject result, final String owner, final JSONObject visibility, final JSONObject actor, final boolean experience, final List<CheckedRead> checks) throws RepositoryException {
+    private void appendActivity(final JSONObject result, final String owner, final JSONObject visibility, final JSONObject actor, final boolean experience, final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
         final JSONArray feed = new JSONArray(), history = new JSONArray();
         final boolean showFeed = visible(visibility, "activityFeed", owner, actor);
         final boolean showHistory = visible(visibility, "levelHistory", owner, actor);
@@ -452,7 +458,7 @@ public class ApiV3ProfessionPublicQueryService {
         if (showHistory) result.put("levelHistory", history);
     }
 
-    private String visibleSource(final String source, final String owner, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
+    private String visibleSource(final String source, final String owner, final JSONObject actor, final long[] bodyBudget, final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
         final var rows = checked(checks, sources, "SELECT subjectUserId,visibilityClass,targetType,targetId FROM `" + sources.getName() + "` WHERE oId=? LIMIT 2", source);
         if (rows.size() > 1)
             throw unavailable();
@@ -486,7 +492,7 @@ public class ApiV3ProfessionPublicQueryService {
         };
     }
 
-    private boolean articleVisible(final String id, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
+    private boolean articleVisible(final String id, final JSONObject actor, final long[] bodyBudget, final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
         final var rows = checked(checks, articles, "SELECT a.oId,a.articleAuthorId,a.articleType,a.articleStatus,a.articleAnonymous,a.articleAnonymousView,"
                 + "CASE WHEN a.articleType=1 THEN OCTET_LENGTH(a.articleContent) ELSE 0 END AS bodyBytes,CASE WHEN a.articleType=1 THEN SHA2(a.articleContent,256) ELSE '' END AS bodyHash,u.userStatus AS authorStatus FROM `" + articles.getName() + "` a JOIN `" + users.getName()
                 + "` u ON u.oId=a.articleAuthorId WHERE a.oId=? AND a.articleStatus IN (0,2) AND a.articleAnonymous=0 AND u.userStatus IN (?,?)"
@@ -510,7 +516,7 @@ public class ApiV3ProfessionPublicQueryService {
         return ApiV3ContentUtil.canViewArticle(article, actor, invited);
     }
 
-    private boolean moonVisible(final String id, final JSONObject actor, final List<CheckedRead> checks) throws RepositoryException {
+    private boolean moonVisible(final String id, final JSONObject actor, final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
         final var rows = checked(checks, moons, "SELECT b.oId,b.breezemoonAuthorId,u.oId AS authorId,u.userStatus,u.userBreezemoonStatus FROM `" + moons.getName() + "` b JOIN `" + users.getName()
                 + "` u ON u.oId=b.breezemoonAuthorId WHERE b.oId=? AND b.breezemoonStatus=0 AND u.userStatus IN (?,?) LIMIT 2", id, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN);
         if (rows.size() > 1)
@@ -523,7 +529,7 @@ public class ApiV3ProfessionPublicQueryService {
         return ApiV3ContentUtil.canViewUserList(new JSONObject().put("oId", row.getString("authorId")).put("userBreezemoonStatus", setting), actor, "userBreezemoonStatus");
     }
 
-    private boolean commentVisible(final String id, final JSONObject actor, final long[] bodyBudget, final List<CheckedRead> checks) throws RepositoryException {
+    private boolean commentVisible(final String id, final JSONObject actor, final long[] bodyBudget, final Map<ReadKey, CheckedRead> checks) throws RepositoryException {
         final var rows = checked(checks, comments, "SELECT c.commentAuthorId,c.commentOnArticleId,c.commentVisible,u.userStatus AS authorStatus FROM `" + comments.getName() + "` c JOIN `" + users.getName()
                 + "` u ON u.oId=c.commentAuthorId WHERE c.oId=? AND c.commentStatus=0 AND c.commentAnonymous=0 AND u.userStatus IN (?,?) LIMIT 2", id, UserExt.USER_STATUS_C_VALID, UserExt.USER_STATUS_C_INVALID_LOGIN);
         if (rows.size() > 1)
