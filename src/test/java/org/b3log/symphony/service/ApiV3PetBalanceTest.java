@@ -51,8 +51,8 @@ public class ApiV3PetBalanceTest {
 
     static void supply(final Fixture f, final String key) throws Exception {
         final JSONObject body = new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock));
-        final JSONObject receipt = f.pets.supplies(identity(), body, key);
         final int coins = f.coins(), food = f.food();
+        final JSONObject receipt = f.pets.supplies(identity(), body, key);
         Assert.assertTrue(receipt.similar(f.pets.supplies(identity(), body, key)));
         error(409, () -> f.pets.supplies(identity(), body, key + "-another"));
         Assert.assertEquals(f.coins(), coins);
@@ -135,6 +135,7 @@ public class ApiV3PetBalanceTest {
                 final String key = "light-" + day;
                 at(f, start, day, 30);
                 supply(f, key + "-supply");
+                f.pets.purchase(identity(), purchase(id).put("quantity", 2), key + "-food");
                 care(f, id, "feed", key + "-breakfast");
                 care(f, id, "water", key + "-morning-water");
                 care(f, id, "pet", key + "-pet");
@@ -146,7 +147,7 @@ public class ApiV3PetBalanceTest {
                 care(f, id, "feed", key + "-dinner");
                 care(f, id, "water", key + "-evening-water");
                 final JSONObject current = pet(f);
-                Assert.assertEquals(f.coins(), 1000 + (day + 1) * 270);
+                Assert.assertEquals(f.coins(), 1000 + (day + 1) * -30);
                 Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(current.getInt("experience"), (day + 1) * 90);
                 Assert.assertEquals(current.getInt("friendship"), Math.min(100, (day + 1) * 12));
@@ -158,7 +159,7 @@ public class ApiV3PetBalanceTest {
             }
             Assert.assertEquals(pet(f).getInt("level"), 7);
         }
-        System.out.println("PASS 连续七日轻度路线：真实照顾/课程/工作/休息，日净270币、90经验、无额外口粮消费");
+        System.out.println("PASS 连续七日轻度路线：真实照顾/课程/工作/休息，日净支出30币、90经验");
     }
 
     static void sevenFrequentDays() throws Exception {
@@ -170,9 +171,9 @@ public class ApiV3PetBalanceTest {
                 final String key = "frequent-" + day;
                 at(f, start, day, 30);
                 supply(f, key + "-supply");
-                // 每日补买一份而非消耗初始库存，测得可持续净收益；一次性事件奖不计日收入。
-                final JSONObject bought = f.pets.purchase(identity(), purchase(id), key + "-food");
-                Assert.assertTrue(bought.similar(f.pets.purchase(identity(), purchase(id), key + "-food")));
+                // 每日购买三份，维持初始库存，测得可持续净收益；一次性事件奖不计日收入。
+                final JSONObject bought = f.pets.purchase(identity(), purchase(id).put("quantity", 3), key + "-food");
+                Assert.assertTrue(bought.similar(f.pets.purchase(identity(), purchase(id).put("quantity", 3), key + "-food")));
                 care(f, id, "feed", key + "-breakfast");
                 care(f, id, "water", key + "-morning-water");
                 care(f, id, "pet", key + "-morning-pet");
@@ -197,7 +198,7 @@ public class ApiV3PetBalanceTest {
                 care(f, id, "feed", key + "-dinner");
                 care(f, id, "water", key + "-evening-water");
                 final JSONObject current = pet(f);
-                Assert.assertEquals(f.coins(), 1000 + (day + 1) * 500);
+                Assert.assertEquals(f.coins(), 1000 + (day + 1) * 200);
                 Assert.assertEquals(f.food(), 6);
                 Assert.assertEquals(current.getInt("experience"), (day + 1) * 275);
                 Assert.assertEquals(current.getInt("friendship"), Math.min(100, (day + 1) * 20));
@@ -210,7 +211,7 @@ public class ApiV3PetBalanceTest {
             }
             Assert.assertEquals(pet(f).getInt("level"), 20);
         }
-        System.out.println("PASS 连续七日高频路线：工作600币共限、补给独立、补买粮原键去重，日净500币/275经验");
+        System.out.println("PASS 连续七日高频路线：工作600币共限、购买口粮原键去重，日净200币/275经验");
     }
 
     static void purchaseUnknownResult() throws Exception {

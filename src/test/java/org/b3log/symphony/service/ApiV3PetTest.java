@@ -489,18 +489,19 @@ public class ApiV3PetTest {
             error(422, () -> f.pets.purchase(identity(), purchase(id, 1).put("quantity", "1"), "string"));
             final JSONObject date = new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock));
             final JSONObject receipt = f.pets.supplies(identity(), date, "daily");
-            Assert.assertEquals(f.coins(), 1100); Assert.assertEquals(f.food(), 10);
+            Assert.assertEquals(f.coins(), 900); Assert.assertEquals(f.food(), 8);
+            Assert.assertTrue(f.state().getJSONObject("dailySupply").getBoolean("claimed"));
             error(409, () -> f.pets.supplies(identity(), date, "second-daily"));
             f.clock += 86_400_000L;
             Assert.assertFalse(f.state().getJSONObject("dailySupply").getBoolean("claimed"));
             Assert.assertTrue(receipt.similar(f.pets.supplies(identity(), date, "daily")));
-            Assert.assertEquals(f.coins(), 1100);
+            Assert.assertEquals(f.coins(), 900);
             error(409, () -> f.pets.supplies(identity(), date, "yesterday-new-key"));
             f.pets.supplies(identity(), new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)), "next-daily");
-            Assert.assertEquals(f.coins(), 1300); Assert.assertEquals(f.food(), 12);
+            Assert.assertEquals(f.coins(), 900); Assert.assertEquals(f.food(), 8);
             f.clock -= 86_400_000L;
             error(409, () -> f.pets.supplies(identity(), date, "clock-rollback"));
-            Assert.assertEquals(f.coins(), 1300);
+            Assert.assertEquals(f.coins(), 900);
         }
         for (String fault : List.of("INSERT INTO pet_ledger", "UPDATE pet_account")) {
             try (var f = new Fixture()) {
@@ -633,7 +634,13 @@ public class ApiV3PetTest {
             final var y = pool.submit(() -> { supply.await(); return outcome(() -> second.pets.supplies(identity(), date, "supply-b")); });
             supply.countDown();
             Assert.assertEquals(Set.of(x.get(), y.get()), Set.of(200, 409));
-            Assert.assertEquals(first.coins(), 200); Assert.assertEquals(first.food(), 28);
+            Assert.assertEquals(first.coins(), 0); Assert.assertEquals(first.food(), 26);
+            final var audits = rows(first.db, "SELECT userId, petId, coinDelta, foodDelta FROM pet_ledger WHERE operation='supplies'");
+            Assert.assertEquals(audits.size(), 1);
+            Assert.assertEquals(audits.getFirst().getString("userId"), identity().getJSONObject("user").getString("oId"));
+            Assert.assertEquals(audits.getFirst().getString("petId"), id);
+            Assert.assertEquals(audits.getFirst().getInt("coinDelta"), 0);
+            Assert.assertEquals(audits.getFirst().getInt("foodDelta"), 0);
         }
         System.out.println("PASS 双连接并发领养、不同幂等键消费与同日补给唯一约束");
     }
@@ -763,8 +770,8 @@ public class ApiV3PetTest {
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/purchases", "owner", "http-buy", purchase(id, 1).toString()).attr("test.status"), 200);
             Assert.assertEquals(f.httpPet("POST", "/api/v3/me/pet/supplies", "owner", "http-supply",
                     new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)).toString()).attr("test.status"), 200);
-            Assert.assertEquals(f.coins(), 1150);
-            Assert.assertEquals(f.food(), 9);
+            Assert.assertEquals(f.coins(), 950);
+            Assert.assertEquals(f.food(), 7);
             Assert.assertEquals(f.httpPet("GET", "/api/v3/me/pet", "reviewer", null, null).attr("test.status"), 200);
             final String coffeePath = "/api/v3/me/pet/coffee";
             final String petId = f.state().getJSONObject("pet").getString("id");

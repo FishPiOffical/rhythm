@@ -150,9 +150,9 @@ public class ApiV3PetWorkTest {
             error(409, () -> f.pets.startActivity(identity(), start(id, "work", "library-assistant"), "full-cap"));
             Assert.assertEquals(begin(f, id, "work", "delivery-assistant"), work);
             f.pets.supplies(identity(), new JSONObject().put("expectedDate", ApiV3PetRules.today(f.clock)), "daily");
-            Assert.assertEquals(f.coins(), 1250); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 600);
+            Assert.assertEquals(f.coins(), 1050); Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 600);
             f.pets.claimActivity(identity(), claim(id, work), "claim");
-            Assert.assertEquals(f.coins(), 1250);
+            Assert.assertEquals(f.coins(), 1050);
             sql(f.db, "DELETE FROM receipt WHERE operation='pet.activity-claim'");
             error(409, () -> f.pets.claimActivity(identity(), claim(id, work), "claim"));
             // 模拟未来更换宠物：熟练度跟随宠物，产币额度仍属于原账号。
@@ -184,7 +184,7 @@ public class ApiV3PetWorkTest {
             Assert.assertEquals(f.state().getJSONObject("income").getInt("earned"), 120);
             Assert.assertEquals(f.coins(), 1120);
         }
-        System.out.println("PASS 账号共享600上限、余50入50/满额已有工作入0、补给独立、跨日/回拨/换宠防重");
+        System.out.println("PASS 账号共享600上限、余50入50/满额已有工作入0、补给零发放、跨日/回拨/换宠防重");
     }
 
     static void historyAndLegacy() throws Exception {

@@ -589,11 +589,10 @@ public class ApiV3PetService {
                 throw ApiV3PetRules.conflict("date_changed", "日期已更新，请刷新后领取今天的补给");
             if (date.compareTo(account.getString("supplyDate")) <= 0)
                 throw ApiV3PetRules.conflict("supply_claimed", "今天的补给已经领取了");
-            wallet.change(actor, ApiV3PetRules.DAILY_COINS, "pet-supplies", pet.getString("oId"), current);
             account.put("supplyDate", date).put("updatedAt", current);
-            changeFood(food(actor), ApiV3PetRules.DAILY_FOOD, current);
             accounts.update(actor, account, ACCOUNT_FIELDS);
-            record(actor, pet.getString("oId"), "supplies", ApiV3PetRules.DAILY_COINS, ApiV3PetRules.DAILY_FOOD, current);
+            // 旧客户端仍可得到正常回执，流水仅记录调用，资产变化为零。
+            record(actor, pet.getString("oId"), "supplies", 0, 0, current);
             return receipt("supplies", pet.getString("oId"), current);
         });
     }

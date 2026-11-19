@@ -17054,7 +17054,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 `GET /api/v3/me/pet` 的 `catalogVersion=4` 与 `GET /api/v3/pets/catalog` 的 `version=4`、`activityVersion=6` 配套。以下各批记录中的旧金额按 1 宠物币兑 10 游园币换算。接口直接返回游园币整数，客户端原样显示。本人聚合沿用 `wallet.coins`、`income.{date,earned,remaining,limit}`；活动成本、预期和实际收益、操作日志的金额采用相同单位。未领养的用户也能读到自己的已有游戏余额。
 
-首次领养奖励 1,000，每日补给 200，基础口粮 50，兼职计划薪酬 120，每账号每日活动收益上限 600，重新领养 5,120。补给单独发放，消费不会增加当日可赚额度。跨日兼职按出发时冻结的薪酬和领取当日剩余额度结算。已用额度及已领取记录一起换算，重放已确认命令仍返回原回执。积分商品仍用站点积分计价。
+首次领养奖励 1,000，基础口粮 50，兼职计划薪酬 120，每账号每日活动收益上限 600，重新领养 5,120。消费不会增加当日可赚额度。跨日兼职按出发时冻结的薪酬和领取当日剩余额度结算。已用额度及已领取记录一起换算，重放已确认命令仍返回原回执。积分商品仍用站点积分计价。
 
 迁移文件为 `sql/20261118_api_v3_game_wallet.sql`。备份并停止所有旧实例写入后执行，成功再启动新版。余额、当日额度、活动快照、历史实际成果与货币日志在同一事务内换算，重复执行跳过已完成的版本。旧版服务不能继续写入已换算的库。
 
@@ -17067,7 +17067,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 - `POST /api/v3/me/pet/adoption`：`{speciesId,name}`，每账号免费领养一次；名字为 1～12 个可见字素。
 - `PUT /api/v3/me/pet/name`：`{petId,name}`，修改当前宠物名字。
 - `POST /api/v3/me/pet/actions`：`{petId,action,itemId?}`；action 为 `feed/water/pet/play/rest/wake`，仅 feed 需要 `itemId:"food"`。
-- `POST /api/v3/me/pet/supplies`：`{expectedDate}`，上海自然日日期 `YYYY-MM-DD`，每日一次。
+- `POST /api/v3/me/pet/supplies`：`{expectedDate}`，上海自然日日期 `YYYY-MM-DD`，每日一次。兼容旧客户端，仍返回原写回执并更新领取状态，游园币和口粮发放已停止。`dailySupply.coins` 和 `dailySupply.food` 是保留的旧字段。
 - `POST /api/v3/me/pet/purchases`：`{petId,itemId:"food",quantity,catalogVersion}`，数量 1～20，服务端核价及扣宠物币。
 
 领养、重新领养和改名都会审核填写的名字。审核未通过返回 HTTP 422（`content_rejected`），审核暂不可用返回 HTTP 503；这两种情况均不保存宠物变更或扣费。已提交的原键回执可直接恢复。
@@ -17087,7 +17087,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 - `GET /api/v3/me/pet/activities`：第一方本人 `profile.read`。`kind=all|outing|course|work`，`p=1..10000`，`size=1..50`（缺省10），按开始时间/ID倒序，返回 `{serverNow,list,pagination:{page,pageSize,total,pageCount}}`。日志分别提供冻结 `rewards` 与 `actualRewards`，旧记录实际成果未知为 null。
 
-原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算，每日补给独立。迁移、完整字段与兼容见 [第三批协议](docs/api-v3-pets-phase-three.md)。
+原活动开始接口新增 kind=work，继续原幂等与领取协议。目录 activityVersion 升2，新增六工作及技能解锁条件、incomeRules；本人状态新增 income 与 pet.jobs。六工作均20分钟、对应技能经验10解锁，计划薪酬12宠物币/熟练度10。账号每日工作产币上限60，按上海领取日实际剩余额度结算。迁移、完整字段与兼容见 [第三批协议](docs/api-v3-pets-phase-three.md)。
 
 
 ### 宠物进阶探索、配方与统一日志（第四批）
@@ -17134,7 +17134,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 | - careExperience | 当日成长次数内，每次成功照顾的经验 | 10 |
 | - careFriendship | 当日成长次数内，每次成功照顾的亲密度，上限 100 | 2 |
 
-> 成长照顾包括喂食、饮水、抚摸、玩耍；休息和醒来不增加经验或亲密度。每日次数继续读取 `rules.growthDailyLimit`，超过次数仍能照顾宠物。等级为 `min(maxLevel,1+floor(experience/experiencePerLevel))`，满级后仍保留实际累计经验。工作收入与每日补给分别查询原 `income`、`dailySupply`，消费不会恢复当天工作收入额度。
+> 成长照顾包括喂食、饮水、抚摸、玩耍；休息和醒来不增加经验或亲密度。每日次数继续读取 `rules.growthDailyLimit`，超过次数仍能照顾宠物。等级为 `min(maxLevel,1+floor(experience/experiencePerLevel))`，满级后仍保留实际累计经验。工作收入查询 `income`，消费不会恢复当天工作收入额度。
 
 > 客户端兼容旧后端时，可以将 `growthRules` 作为可选字段；缺少时不应猜测下一级进度。开始新活动应使用当前返回的 `activityVersion`，原成功命令仍使用原请求和原幂等键恢复。
 
