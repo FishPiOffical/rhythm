@@ -779,6 +779,61 @@
       ]
     },
     {
+      "name": "partner_trade",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 32
+        },
+        {
+          "name": "buyer",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "seller",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "peer",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "createdAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
+      "name": "partner_rate",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "baseRate",
+          "type": "int"
+        },
+        {
+          "name": "stepRate",
+          "type": "int"
+        },
+        {
+          "name": "version",
+          "type": "int"
+        },
+        {
+          "name": "sinceAt",
+          "type": "long"
+        }
+      ]
+    },
+    {
       "name": "partner_event",
       "keys": [
         {

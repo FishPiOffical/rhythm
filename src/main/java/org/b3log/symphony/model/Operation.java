@@ -332,6 +332,9 @@ public final class Operation {
     public static final int OPERATION_CODE_C_PET_COFFEE_SETTINGS = 57;
     public static final int OPERATION_CODE_C_PARKING_SETTINGS = 58;
 
+    /** 修改搭子营业费率。 */
+    public static final int OPERATION_CODE_C_PARTNER_RATE = 59;
+
 
     //// Transient ////
 

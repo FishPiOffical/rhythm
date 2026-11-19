@@ -118,6 +118,9 @@ public class ApiV3AdminStage4Processor {
         final ApiV3AuthMidware auth = manager.getReference(ApiV3AuthMidware.class);
         final ApiV3WriteMidware write = manager.getReference(ApiV3WriteMidware.class);
 
+        Dispatcher.get("/api/v3/admin/partners/report", p::partnerReport, auth::profileRead);
+        Dispatcher.get("/api/v3/admin/partners/ledger", p::partnerLedger, auth::profileRead);
+        Dispatcher.put("/api/v3/admin/partners/rate", p::partnerRate, auth::settingsWrite, write::handle);
         Dispatcher.get("/api/v3/admin/parking/models", p::parkingModels, auth::profileRead);
         Dispatcher.get("/api/v3/admin/parking/metrics", p::parkingMetrics, auth::profileRead);
         Dispatcher.get("/api/v3/admin/parking/ledger", p::parkingLedger, auth::profileRead);
@@ -189,6 +192,23 @@ public class ApiV3AdminStage4Processor {
     public void listPets(final RequestContext context) {
         ApiV3Requests.read(context, () -> petService.list(identity(context),
                 ApiV3Requests.text(context.param("q"), 64, false), ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    @Inject private org.b3log.symphony.service.PartnerOperationsService partners;
+
+    public void partnerReport(final RequestContext context) {
+        ApiV3Requests.read(context, () -> partners.report(identity(context)));
+    }
+
+    public void partnerLedger(final RequestContext context) {
+        ApiV3Requests.read(context, () -> partners.ledger(identity(context), context.param("userId"), context.param("referenceId"),
+                ApiV3Requests.page(context), ApiV3Requests.size(context)));
+    }
+
+    public void partnerRate(final RequestContext context) {
+        ApiV3Requests.respond(context, () -> partners.update(identity(context),
+                ApiV3WriteInputs.body(context, Set.of("baseRate","stepRate","version"), false, 512),
+                ApiV3WriteInputs.idempotencyKey(context), context.getRequest()));
     }
 
     @Inject private org.b3log.symphony.service.ParkingCatalogService parkingCatalog;

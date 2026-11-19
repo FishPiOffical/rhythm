@@ -38,7 +38,7 @@ public class PartnerService {
     private static int quote(JSONObject row) {
         return row.getString("holder").isEmpty() ? 100 : row.getInt("price") + 20;
     }
-    private static int rate(int price) { return 40 + (price - 100) / 10; }
+    @Inject private PartnerOperationsService operations;
     private static JSONArray meters(JSONObject row) { return row.getJSONArray("meters"); }
 
     /** 同一事务共享对象，互为搭子时也只结算每个账号一次。零号位置记录本人被请的分成。 */
@@ -85,10 +85,11 @@ public class PartnerService {
         if (id == null || !id.matches("[1-9][0-9]{0,18}")) throw ApiV3WriteInputs.invalid();
     }
 
-    private JSONObject directoryCard(JSONObject row, String actor) {
+    private JSONObject directoryCard(JSONObject row, String actor, JSONObject policy) {
         int price = quote(row);
         return new JSONObject().put("id", row.getString("oId")).put("name", display(row))
                 .put("userName", row.getString("userName")).put("avatar", ApiV3CommunityDto.safeUrl(row.optString("userAvatarURL")))
+                .put("rate", PartnerOperationsService.rate(policy, Math.min(price, 200))).put("rateVersion", policy.getInt("version"))
                 .put("price", Math.min(price, 200)).put("full", price > 200).put("mine", actor.equals(row.getString("holder")))
                 .put("following", row.optInt("followed") == 1).put("revision", row.getLong("revision"));
     }
@@ -106,7 +107,7 @@ public class PartnerService {
         try {
             String actor = proofs.authorizeFirstPartyInCurrentTransaction(identity, "profile.read").getString("oId");
             var rows = members.select(CARD + directoryFrom() + " AND p.oId=?", peer);
-            var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor));
+            var result = new JSONObject().put("card", rows.isEmpty() ? JSONObject.NULL : directoryCard(rows.getFirst(), actor, operations.policy(false)));
             tx.commit();
             return result;
         } finally { if (tx.isActive()) tx.rollback(); }
@@ -187,7 +188,8 @@ public class PartnerService {
                 params.add(after);
             }
             var rows = members.select(sql + (social ? " ORDER BY followed DESC,p.oId" : " ORDER BY p.oId") + " LIMIT 21", params.toArray());
-            for (var row : rows.stream().limit(20).toList()) list.put(directoryCard(row, actor));
+            JSONObject policy = operations.policy(false);
+            for (var row : rows.stream().limit(20).toList()) list.put(directoryCard(row, actor, policy));
             Long coins = wallet.balance(actor);
             String next = "";
             if (rows.size() > 20) {
@@ -203,13 +205,15 @@ public class PartnerService {
     public JSONObject command(JSONObject identity, String action, String key, JSONObject input) throws Exception {
         Set<String> fields = switch (action) {
             case "join" -> Set.of();
-            case "hire", "release" -> Set.of("peer", "revision");
+            case "hire" -> input.has("rateVersion") ? Set.of("peer", "revision", "rateVersion") : Set.of("peer", "revision");
+            case "release" -> Set.of("peer", "revision");
             case "leave", "unlock" -> Set.of("revision");
             default -> throw ApiV3Requests.notFound();
         };
         if (!input.keySet().equals(fields)) throw ApiV3WriteInputs.invalid();
         if (fields.contains("peer") && !ApiV3WriteInputs.string(input, "peer", 19, false).matches("[1-9][0-9]{0,18}"))
             throw ApiV3WriteInputs.invalid();
+        if (fields.contains("rateVersion")) ApiV3WriteInputs.integer(input, "rateVersion", -1, 1, Integer.MAX_VALUE);
         if (fields.contains("revision")) ApiV3WriteInputs.integer(input, "revision", -1, 0, Integer.MAX_VALUE);
         if (identity == null || identity.optJSONObject("user") == null) throw ApiV3Requests.forbidden();
         String actor = identity.getJSONObject("user").getString("oId");
@@ -314,6 +318,11 @@ public class PartnerService {
             throw conflict("这位鱼友目前不可邀请");
         int price = quote(peer);
         if (price > 200) throw conflict("这位搭子已满价");
+        JSONObject policy = operations.policy(true);
+        int hourly = PartnerOperationsService.rate(policy, price);
+        // 旧客户端展示固定费率，只在它展示的报价仍然准确时允许成交。
+        if (input.has("rateVersion") ? input.getInt("rateVersion") != policy.getInt("version") : hourly != 40 + (price - 100) / 10)
+            throw conflict("营业费率已更新，请刷新名片后重新确认");
         JSONObject free = slot(own, "");
         r.change(own, -price, "partner-hire");
         String previous = peer.getString("holder");
@@ -330,7 +339,8 @@ public class PartnerService {
             event(actor, "你请到了" + peerName, price, -price, r.now);
             event(id, buyerName + "请你搭班", price, 0, r.now);
         }
-        free.put("peer", id).put("rate", rate(price));
+        operations.trade(r.reference, actor, previous, id, r.now);
+        free.put("peer", id).put("rate", hourly);
         peer.put("price", price).put("holder", actor);
         meters(peer).getJSONObject(0).put("rate", 2);
         bump(own);
