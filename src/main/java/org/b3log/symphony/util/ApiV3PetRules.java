@@ -48,6 +48,8 @@ public final class ApiV3PetRules {
     public static final long CARE_COOLDOWN = HOUR / 2;
     public static final long REST_DURATION = 4 * HOUR;
     public static final int REST_ENERGY_PER_HOUR = 20;
+    private static final int AUTO_REST_ENERGY = 15;
+    private static final long AUTO_REST_IDLE = 2 * HOUR;
     public static final Set<String> SPECIES = Set.of("momota", "hexiaotun", "yubingmiao", "paixiaoyu");
     public static final Set<String> ACTIONS = Set.of("feed", "water", "pet", "play", "rest", "wake");
     private static final Pattern GRAPHEME = Pattern.compile("\\X");
@@ -108,9 +110,26 @@ public final class ApiV3PetRules {
         return new JSONObject().put("id", id).put("name", name).put("description", description);
     }
 
+    public static long autoRestAt(final JSONObject stored) {
+        if (!stored.getString("activityKind").isEmpty() || stored.getDouble("energy") >= AUTO_REST_ENERGY) return 0L;
+        // 改名等资料写入不算照顾，沿用状态最后结算时间。
+        return Math.addExact(stored.getLong("lastCalculatedAt"), AUTO_REST_IDLE);
+    }
+
+    /** 仅空闲宠物可自动休息。离线回来时从达到空闲条件的时刻起计算恢复。 */
+    public static JSONObject settleIdle(final JSONObject stored, final long clock) {
+        final long autoStart = autoRestAt(stored);
+        return settle(stored, clock, autoStart > 0L && autoStart <= clock ? autoStart : 0L);
+    }
+
     /** 读取与动作使用同一离线投影；保留小数余量，不因频繁操作丢失未满一小时的衰减。 */
     public static JSONObject settle(final JSONObject stored, final long clock) {
+        return settle(stored, clock, 0L);
+    }
+
+    private static JSONObject settle(final JSONObject stored, final long clock, final long autoStart) {
         final JSONObject pet = new JSONObject(stored.toString());
+        if (autoStart > 0L) startRest(pet, autoStart);
         final long last = pet.getLong("lastCalculatedAt");
         final long current = Math.max(clock, last);
         final double hours = (current - last) / (double) HOUR;
@@ -125,6 +144,11 @@ public final class ApiV3PetRules {
         }
         pet.put("lastCalculatedAt", current);
         return pet;
+    }
+
+    public static void startRest(final JSONObject pet, final long start) {
+        pet.put("activityKind", "rest").put("activityStartedAt", start)
+                .put("activityEndsAt", Math.addExact(start, REST_DURATION));
     }
 
     public static void clearActivity(final JSONObject pet) {

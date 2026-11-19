@@ -132,13 +132,17 @@ public class ApiV3PetService {
                     .put("dailySupply", new JSONObject().put("claimed", account != null && today.compareTo(account.getString("supplyDate")) <= 0)
                             .put("coins", ApiV3PetRules.DAILY_COINS).put("food", ApiV3PetRules.DAILY_FOOD));
             if (pet == null) return result.put("pet", JSONObject.NULL).put("inventory", new JSONArray());
-            final JSONObject projected = ApiV3PetRules.publicPet(ApiV3PetRules.settle(pet, current), account, today)
+            final JSONObject active = activeActivity(actor(identity), pet.getString("oId"));
+            final JSONObject settled = active == null ? ApiV3PetRules.settleIdle(pet, current) : ApiV3PetRules.settle(pet, current);
+            final JSONObject projected = ApiV3PetRules.publicPet(settled, account, today)
                     .put("skills", skillState(actor(identity), pet.getString("oId")))
                     .put("jobs", jobState(actor(identity), pet.getString("oId")));
-            final JSONObject active = activeActivity(actor(identity), pet.getString("oId"));
             if (active != null) {
                 if (!projected.isNull("activity")) throw unavailable();
                 projected.put("activity", ApiV3PetActivities.publicActivity(active, current));
+            } else {
+                final long autoRestAt = ApiV3PetRules.autoRestAt(pet);
+                if (autoRestAt > current) projected.put("autoRestAt", autoRestAt);
             }
             return result.put("pet", projected)
                     .put("inventory", inventoryState(actor(identity)));
@@ -447,8 +451,7 @@ public class ApiV3PetService {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             final long current = now();
-            final JSONObject previous = ApiV3PetRules.settle(owned(actor, previousId), current);
-            requireActivityFree(actor, previousId);
+            final JSONObject previous = settleAvailablePet(actor, previousId, current);
             if ("rest".equals(previous.getString("activityKind")))
                 throw ApiV3PetRules.conflict("pet_resting", "先让宠物醒来，再重新领养吧");
             if (current < previous.getLong("lastCalculatedAt"))
@@ -513,8 +516,7 @@ public class ApiV3PetService {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             final long current = now();
-            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
-            requireActivityFree(actor, id);
+            final JSONObject pet = settleAvailablePet(actor, id, current);
             if ("rest".equals(pet.getString("activityKind")) && !"wake".equals(action))
                 throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再照顾它吧");
             final JSONObject before = new JSONObject(pet.toString());
@@ -551,8 +553,7 @@ public class ApiV3PetService {
                             .put("mood", Math.min(100, pet.getDouble("mood") + ApiV3PetRules.PLAY_MOOD))
                             .put("playAvailableAt", current + ApiV3PetRules.CARE_COOLDOWN);
                 }
-                case "rest" -> pet.put("activityKind", "rest").put("activityStartedAt", current)
-                        .put("activityEndsAt", current + ApiV3PetRules.REST_DURATION);
+                case "rest" -> ApiV3PetRules.startRest(pet, current);
                 case "wake" -> {
                     // 休息已自然结束时仍允许醒来，避免客户端恰好跨到结束时间时误报失败。
                     ApiV3PetRules.clearActivity(pet);
@@ -635,8 +636,7 @@ public class ApiV3PetService {
                     final int used = coffee.usedToday(usage, today);
                     if (used >= ApiV3PetCoffee.DAILY_LIMIT)
                         throw ApiV3PetRules.conflict("coffee_daily_limit", "今天的咖啡次数已用完");
-                    final JSONObject pet = ApiV3PetRules.settle(owned(owner, id), current);
-                    requireActivityFree(owner, id);
+                    final JSONObject pet = settleAvailablePet(owner, id, current);
                     if ("rest".equals(pet.getString("activityKind")))
                         throw ApiV3PetRules.conflict("pet_resting", "宠物醒来后才能喝咖啡");
                     final double before = pet.getDouble("energy");
@@ -691,8 +691,7 @@ public class ApiV3PetService {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             final long current = now();
-            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
-            requireActivityFree(actor, id);
+            final JSONObject pet = settleAvailablePet(actor, id, current);
             if ("rest".equals(pet.getString("activityKind")))
                 throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再制作吧");
             if (version != ApiV3PetRules.VERSION)
@@ -737,8 +736,7 @@ public class ApiV3PetService {
             final String actor = actor(identity);
             requiredAccount(actor);
             final long current = now();
-            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
-            requireActivityFree(actor, id);
+            final JSONObject pet = settleAvailablePet(actor, id, current);
             if ("rest".equals(pet.getString("activityKind")))
                 throw ApiV3PetRules.conflict("pet_resting", "先让宠物醒来，再领取事件奖励吧");
             if (version != ApiV3PetRules.VERSION)
@@ -789,8 +787,7 @@ public class ApiV3PetService {
             final String actor = actor(identity);
             final JSONObject account = requiredAccount(actor);
             final long current = now();
-            final JSONObject pet = ApiV3PetRules.settle(owned(actor, id), current);
-            requireActivityFree(actor, id);
+            final JSONObject pet = settleAvailablePet(actor, id, current);
             if ("rest".equals(pet.getString("activityKind")))
                 throw ApiV3PetRules.conflict("pet_resting", "宠物正在休息，醒来后再出发吧");
             if (current < pet.getLong("lastCalculatedAt"))
@@ -1078,9 +1075,11 @@ public class ApiV3PetService {
         return active;
     }
 
-    private void requireActivityFree(final String actor, final String id) throws RepositoryException {
+    private JSONObject settleAvailablePet(final String actor, final String id, final long current) throws RepositoryException {
+        final JSONObject pet = owned(actor, id);
         if (activeActivity(actor, id) != null)
             throw ApiV3PetRules.conflict("pet_busy", "宠物正在活动或等待领取成果，完成后再照顾它吧");
+        return ApiV3PetRules.settleIdle(pet, current);
     }
 
     private java.util.List<JSONObject> skillRows(final String actor, final String id) throws RepositoryException {

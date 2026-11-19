@@ -526,6 +526,56 @@ public class ApiV3PetTest {
         System.out.println("PASS 购买去重/余额/报价、上海跨日补给、失败回滚、提交回包丢失同键恢复");
     }
 
+    static void automaticRest() throws Exception {
+        final long hour = ApiV3PetRules.HOUR;
+        try (var f = new Fixture()) {
+            final String id = f.adopt();
+            sql(f.db, "UPDATE user_pet SET energy=15");
+            f.clock = NOW + 3 * hour;
+            Assert.assertFalse(f.state().getJSONObject("pet").has("autoRestAt"));
+            Assert.assertTrue(f.state().getJSONObject("pet").isNull("activity"));
+
+            sql(f.db, "UPDATE user_pet SET energy=10");
+            f.clock = NOW + 2 * hour - 1;
+            Assert.assertEquals(f.state().getJSONObject("pet").getLong("autoRestAt"), NOW + 2 * hour);
+            Assert.assertTrue(f.state().getJSONObject("pet").isNull("activity"));
+            f.clock++;
+            final JSONObject started = f.state().getJSONObject("pet");
+            Assert.assertFalse(started.has("autoRestAt"));
+            Assert.assertEquals(started.getJSONObject("activity").getLong("startedAt"), NOW + 2 * hour);
+            Assert.assertEquals(started.getJSONObject("activity").getLong("endsAt"), NOW + 6 * hour);
+            f.pets.action(identity(), action(id, "wake"), "wake-at-threshold");
+            Assert.assertEquals(f.state().getJSONObject("pet").getLong("autoRestAt"), NOW + 4 * hour);
+            f.clock = NOW + 5 * hour;
+            final JSONObject offline = f.state().getJSONObject("pet");
+            Assert.assertEquals(offline.getJSONObject("activity").getLong("startedAt"), NOW + 4 * hour);
+            Assert.assertEquals(offline.getInt("energy"), 30);
+            f.pets.rename(identity(), new JSONObject().put("petId", id).put("name", "睡觉中的小豚"), "rename-during-auto-rest");
+            Assert.assertEquals(f.state().getJSONObject("pet").getInt("energy"), 30);
+            Assert.assertEquals(rows(f.db, "SELECT energy FROM user_pet").getFirst().getInt("energy"), 10);
+            error(409, () -> f.pets.action(identity(), action(id, "pet"), "pet-during-auto-rest"));
+            f.clock = NOW + 24 * hour;
+            Assert.assertTrue(f.state().getJSONObject("pet").isNull("activity"));
+            Assert.assertEquals(f.state().getJSONObject("pet").getInt("energy"), 90);
+            f.pets.action(identity(), action(id, "pet"), "pet-after-auto-rest");
+            Assert.assertEquals(rows(f.db, "SELECT energy FROM user_pet").getFirst().getInt("energy"), 90);
+        }
+        try (var f = new Fixture()) {
+            final String id = f.adopt();
+            final String activity = ApiV3PetActivitiesTest.begin(f, id, "outing", "plaza");
+            sql(f.db, "UPDATE user_pet SET energy=10");
+            Assert.assertEquals(f.state().getJSONObject("pet").getJSONObject("activity").getString("status"), "running");
+            f.clock = NOW + 7 * hour;
+            final JSONObject pending = f.state().getJSONObject("pet");
+            Assert.assertFalse(pending.has("autoRestAt"));
+            Assert.assertEquals(pending.getJSONObject("activity").getString("status"), "claimable");
+            Assert.assertEquals(pending.getInt("energy"), 10);
+            f.pets.claimActivity(identity(), ApiV3PetActivitiesTest.claim(id, activity), "claim-before-auto-rest");
+            Assert.assertEquals(f.state().getJSONObject("pet").getLong("autoRestAt"), NOW + 9 * hour);
+        }
+        System.out.println("PASS 自动休息精力与时间阈值、离线起点、无读取写入、提前唤醒重计时及活动优先");
+    }
+
     static void care() throws Exception {
         try (var f = new Fixture()) {
             final String id = f.adopt();
@@ -790,7 +840,7 @@ public class ApiV3PetTest {
         final Properties props = new Properties();
         props.setProperty("runtimeDatabase", "NONE"); props.setProperty("contextPath", "");
         Latkes.setLatkeProps(props); Latkes.setLocalProps(props);
-        names(); adoptionAndIsolation(); nameModeration(); economy(); care(); concurrent(); coffee(); http();
+        names(); adoptionAndIsolation(); nameModeration(); economy(); care(); automaticRest(); concurrent(); coffee(); http();
         System.out.println("PASS 宠物第一批后端专项完成；真实MySQL与浏览器人工验收另行执行");
     }
 }

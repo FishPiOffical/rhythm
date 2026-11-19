@@ -17064,6 +17064,7 @@ curl -X PUT 'https://fishpi.cn/api/v3/admin/parking/models/punch' \
 
 - `GET /api/v3/pets/catalog`：四种宠物、食品价格、规则及目录版本。
 - `GET /api/v3/me/pet`：本人宠物、宠物币、背包、今日补给与活动状态。未领养返回 `pet:null`，读取不创建账号。
+  精力低于 15 且空闲满 2 小时后自动休息。还未到时可返回可选的 `pet.autoRestAt`（Unix 毫秒），到时沿用原 `activity.kind=rest`。离线时按应开始休息的时刻结算，活动进行中和待领取时优先显示原活动。
 - `POST /api/v3/me/pet/adoption`：`{speciesId,name}`，每账号免费领养一次；名字为 1～12 个可见字素。
 - `PUT /api/v3/me/pet/name`：`{petId,name}`，修改当前宠物名字。
 - `POST /api/v3/me/pet/actions`：`{petId,action,itemId?}`；action 为 `feed/water/pet/play/rest/wake`，仅 feed 需要 `itemId:"food"`。
