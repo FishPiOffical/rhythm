@@ -227,7 +227,15 @@ public class ApiV3ProfessionPublicQueryService {
                 break;
             }
         }
-        final var origin = frames.length > 1 && frames[0].getMethodName().equals("unavailable") ? frames[1] : frames.length > 0 ? frames[0] : null;
+        StackTraceElement origin = null;
+        for (StackTraceElement frame : frames) {
+            if (frame.getClassName().equals(ApiV3ProfessionPublicQueryService.class.getName())
+                    && !frame.getMethodName().equals("unavailable")) {
+                origin = frame;
+                break;
+            }
+        }
+        if (origin == null && frames.length > 0) origin = frames[0];
         LogManager.getLogger(getClass()).warn("Public profession read unavailable: stage={}, type={}, sqlState={}, at={}",
                 stage, error.getClass().getSimpleName(), sqlState, origin);
     }
@@ -394,8 +402,10 @@ public class ApiV3ProfessionPublicQueryService {
         boolean firstPage = true;
         boolean hasMore = true;
         while (hasMore && ((showFeed && feed.length() < 30) || (showHistory && history.length() < 30))) {
+            final boolean collectFeed = showFeed && feed.length() < 30;
             final String columns = "SELECT oId,professionId,sourceEventId,actionCode,actualExperienceDelta,beforeLevelCode,afterLevelCode,occurredAt,status AS effectStatus FROM `" + effects.getName()
-                    + "` WHERE userId=? AND status='APPLIED' AND occurredAt>=? ";
+                    + "` WHERE userId=? AND status='APPLIED' AND occurredAt>=? "
+                    + (collectFeed ? "" : "AND (beforeLevelCode IS NULL OR afterLevelCode IS NULL OR HEX(beforeLevelCode)<>HEX(afterLevelCode)) ");
             final var rows = firstPage
                     ? effects.select(columns + "ORDER BY occurredAt DESC,oId DESC LIMIT ?", owner, cutoff, LIMIT)
                     : effects.select(columns + "AND (occurredAt<? OR (occurredAt=? AND oId<?)) ORDER BY occurredAt DESC,oId DESC LIMIT ?",
@@ -405,6 +415,9 @@ public class ApiV3ProfessionPublicQueryService {
                 if ((!showFeed || feed.length() >= 30) && (!showHistory || history.length() >= 30)) break;
                 if (!"APPLIED".equals(row.opt("effectStatus"))) throw unavailable();
                 final long occurredAt = ApiV3ProfessionPublicDto.number(row, "occurredAt", false);
+                final String before = ApiV3ProfessionPublicDto.text(row, "beforeLevelCode", 64, true);
+                final String after = ApiV3ProfessionPublicDto.text(row, "afterLevelCode", 64, true);
+                if ((!showFeed || feed.length() >= 30) && before.equals(after)) continue;
                 final String action = ApiV3ProfessionPublicDto.action(row);
                 final String sourceEventId = ApiV3ProfessionPublicDto.text(row, "sourceEventId", 19, true);
                 if ("level.migration".equals(action) && sourceEventId.isEmpty()) continue;
@@ -412,8 +425,6 @@ public class ApiV3ProfessionPublicQueryService {
                 if (source == null) continue;
                 final String professionId = ApiV3ProfessionPublicDto.id(row, "professionId");
                 final long delta = ApiV3ProfessionPublicDto.number(row, "actualExperienceDelta", true);
-                final String before = ApiV3ProfessionPublicDto.text(row, "beforeLevelCode", 64, true);
-                final String after = ApiV3ProfessionPublicDto.text(row, "afterLevelCode", 64, true);
                 if (showFeed && feed.length() < 30) {
                     final JSONObject dto = new JSONObject().put("professionId", professionId)
                             .put("actionCode", action).put("occurredAt", occurredAt)
