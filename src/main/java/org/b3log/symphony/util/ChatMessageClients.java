@@ -49,6 +49,7 @@ public final class ChatMessageClients {
             "Rust",
             "Deepseek Harness",
             "Codex",
+            "WPS",
             "Other");
     public static String normalize(final String input){
         try{
