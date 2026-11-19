@@ -779,6 +779,38 @@
       ]
     },
     {
+      "name": "partner_member",
+      "keys": [
+        {
+          "name": "oId",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "joined",
+          "type": "int"
+        },
+        {
+          "name": "holder",
+          "type": "String",
+          "length": 19
+        },
+        {
+          "name": "price",
+          "type": "int"
+        },
+        {
+          "name": "revision",
+          "type": "long"
+        },
+        {
+          "name": "meters",
+          "type": "String",
+          "length": 4096
+        }
+      ]
+    },
+    {
       "name": "parking_garage",
       "keys": [
         {

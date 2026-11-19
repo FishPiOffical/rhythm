@@ -103,6 +103,7 @@ public class ApiV3Processor {
         ApiV3ChatTailProcessor.register();
         ApiV3PetProcessor.register();
         ApiV3ParkingProcessor.register();
+        ApiV3PartnerProcessor.register();
         ApiV3ChatMuteProcessor.register();
         ApiV3PrivateMessageProcessor.register();
         ApiV3FishGameProcessor.register();

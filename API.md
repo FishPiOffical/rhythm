@@ -18779,3 +18779,11 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 | body | ZIP 二进制，包含导出说明及脱敏表 | `manifest.json`、`battles.csv`、`match_attempts.csv`、`orders.csv`、`invitations.csv`、`pet_commands.csv`、`pet_risk.csv`、`pet_signals.csv` |
 
 > 日期按北京时间计算，首尾均包含，最多 31 天。未登录返回 HTTP 401，权限不足返回 HTTP 403，日期无效返回 HTTP 400，导出暂不可用返回 HTTP 503。此接口使用文件下载格式，与 V3 JSON 信封独立。操作信号用于人工复核。
+
+### 抢搭子
+
+第一方 Bearer。游园币共用账号钱包，搭子收入按北京时间独立计算。启用前在钱包迁移之后执行 `sql/20261119_api_v3_partners.sql`。
+
+- `GET /api/v3/me/partners` 使用 `profile.read`，自动结清本人的营业收入。返回 `joined/revision/coins/today/holderName/slots/list/next`。每个已购位置含 `peer/name（有搭子时）/rate/today/usedMs`。零点重置位置的八小时额度。页内最多二十张其他已加入用户的名片，下一页传 `after=next`。
+- `POST /api/v3/me/partners/{action}` 使用 `settings.write` 和 `Idempotency-Key`。加入 `join` 传空对象；开位 `unlock`、退出 `leave` 传本人最近读取的整数 `revision`；请人 `hire` 传目标用户 ID `peer` 与目标名片的 `revision`；放手 `release` 传 `peer` 与本人 `revision`。成功回执仅含 `action`，随后重读。名片变化返回 409，需要查看最新标价；未知结果使用原命令原键。
+- 首签 100，每次转手加 20，成交 200 后本轮满价。转手退上任成交本金并另给 14，搭子分 4，回收 2。放手或退出只退 100。退出结束双向所有关系，保留已购位置及当日计时。营业收入按实际成交价每小时 40 至 50，本人搭班另计每小时 2。跨日离线按日累计，在打开玩法或相关交易时自动入账。
