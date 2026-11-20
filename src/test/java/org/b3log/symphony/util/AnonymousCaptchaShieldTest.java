@@ -205,7 +205,7 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void v3UsesIndependentHundredRequestInterval() throws Exception {
+    public void v3UsesIndependentThirtyRequestInterval() throws Exception {
         try (final Exchange exchange = new Exchange("/api/v3/articles")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 403);
@@ -218,20 +218,20 @@ public class AnonymousCaptchaShieldTest {
         }
         Assert.assertNull(cache("ipV3VisitCountCache").getIfPresent(IP));
         for (int i = 0; i < 4; i++) allowed("/shield-test-page");
-        for (int i = 0; i < 99; i++) allowed("/api/v3/articles");
-        Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 99);
+        for (int i = 0; i < 29; i++) allowed("/api/v3/articles");
+        Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 29);
         Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 4);
         try (final Exchange exchange = new Exchange("/api/v3/articles")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 403);
-            Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 100);
+            Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 30);
             Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
         }
         try (final Exchange exchange = new Exchange("/shield-test-page")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);
             Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 5);
-            Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 100);
+            Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 30);
         }
     }
 
@@ -518,7 +518,7 @@ public class AnonymousCaptchaShieldTest {
                 Firewall.setEnabled(false);
                 if (periodic) {
                     AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
-                    cache("ipV3VisitCountCache").put(IP, 99);
+                    cache("ipV3VisitCountCache").put(IP, 29);
                 }
                 try (final Exchange exchange = new Exchange("/api/v3/articles")) {
                     exchange.run(middleware::handle);
@@ -564,7 +564,7 @@ public class AnonymousCaptchaShieldTest {
         try (final ProofProvider provider = new ProofProvider()) {
             cache("ipBlacklistCache").put(IP, true);
             cache("ipVisitCountCache").put(IP, 5);
-            cache("ipV3VisitCountCache").put(IP, 100);
+            cache("ipV3VisitCountCache").put(IP, 30);
             cache("ipFirstVisitTimeCache").put(IP, 123L);
             final JSONObject body = new JSONObject().put("captcha", provider.proof());
             try (final Exchange exchange = new Exchange("/validateCaptcha", "POST", body, UA)) {
@@ -580,7 +580,7 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertNotNull(cache("ipLastCaptchaPassTimeCache").getIfPresent(IP));
             Assert.assertEquals(cache("ipFirstVisitTimeCache").getIfPresent(IP), 123L);
             Assert.assertFalse(whitelist().contains(IP));
-            cache("ipV3VisitCountCache").put(IP, 99);
+            cache("ipV3VisitCountCache").put(IP, 29);
             AnonymousCaptchaShield.administratorUnban(IP);
             Assert.assertTrue(whitelist().contains(IP));
             Assert.assertNull(cache("ipFirstVisitTimeCache").getIfPresent(IP));

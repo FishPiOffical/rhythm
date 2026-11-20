@@ -7,7 +7,7 @@
 ## 反漏扫与安全检查
 
 - 发布前在 Windows 核对 `git status --short` 与未提交 diff，按路由、模板、JS/CSS、SQL/Repository 分类；WSL 的状态噪声按环境专题处理。按下方反漏扫底线逐项给结论，不适用项说明依据，未验证项不得默认通过。
-- 未提交代码审查、发布前检查、公开入口新增或改造必须覆盖反漏扫：匿名/登录/apiKey、黑名单跳转 `/test`、`/validateCaptcha` 解封、`anonymous.viewSkips`、公开 API 鉴权、静态资源/CDN 路径与内容版本号、`sourceMappingURL`、目录枚举、上传/下载返回路径；新增或改造匿名入口须经 `AnonymousViewCheckMidware` 接入验证码盾或明确要求登录，不得绕过首访及各站周期验证码（旧站每5次、V3每100次）。适用的验证码盾指纹和 JS 版本号检查必须执行，不得擅自更新指纹消除失败。接口同时按未鉴权、越权、CSRF、XSS、注入、SSRF、批量滥用和敏感信息泄露评估。
+- 未提交代码审查、发布前检查、公开入口新增或改造必须覆盖反漏扫：匿名/登录/apiKey、黑名单跳转 `/test`、`/validateCaptcha` 解封、`anonymous.viewSkips`、公开 API 鉴权、静态资源/CDN 路径与内容版本号、`sourceMappingURL`、目录枚举、上传/下载返回路径；新增或改造匿名入口须经 `AnonymousViewCheckMidware` 接入验证码盾或明确要求登录，不得绕过首访及各站周期验证码（旧站每5次、V3每30次）。适用的验证码盾指纹和 JS 版本号检查必须执行，不得擅自更新指纹消除失败。接口同时按未鉴权、越权、CSRF、XSS、注入、SSRF、批量滥用和敏感信息泄露评估。
 - 验证码策略、状态及开关核心是 `AnonymousCaptchaShield`；`BeforeRequestHandler` 执行全局拦截，`AnonymousViewCheckMidware#handle` 保留身份解析与匿名阅读限制并调用核心，`CaptchaProcessor#validateCaptcha` 负责验证/解封。`LoginCheckMidware#handle` 负责登录态（含 apiKey）；风控与登录两套链路均不可绕过，受保护边界见 `captcha-crawlers.md`。
 
 ## 路由与旧接口身份

@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 4;
+    public static final int POLICY_VERSION = 5;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -104,12 +104,12 @@ public final class AnonymousCaptchaShield {
      */
     private static volatile boolean firstVisitCaptchaEnabled = true;
 
-    // 计数窗口为 2 小时，阈值需相应放大，避免正常用户 2 小时内浏览 100 个页面被误封
+    // 计数窗口为 2 小时，阈值需相应放大，避免正常用户 2 小时内浏览大量页面被误封
     private static final int AUTO_BAN_VISIT_THRESHOLD = 300;
 
     private static final int CAPTCHA_VISIT_INTERVAL = 5;
 
-    private static final int V3_CAPTCHA_VISIT_INTERVAL = 100;
+    private static final int V3_CAPTCHA_VISIT_INTERVAL = 30;
 
     private static final long FIRST_VISIT_CAPTCHA_WINDOW_MILLIS = 2L * 60L * 60L * 1000L;
 
@@ -304,10 +304,10 @@ public final class AnonymousCaptchaShield {
                         needCaptcha = true;
                         reason = "首次访问";
                     }
-                    // 旧站每 5 次、V3 每 100 次需要一次验证码。
+                    // 旧站每 5 次、V3 每 30 次需要一次验证码。
                     if (!needCaptcha && count % captchaVisitInterval == 0) {
                         needCaptcha = true;
-                        reason = v3Request ? "V3访问满100次" : "访问满5次";
+                        reason = v3Request ? "V3访问满30次" : "访问满5次";
                     }
 
                     if (needCaptcha) {
