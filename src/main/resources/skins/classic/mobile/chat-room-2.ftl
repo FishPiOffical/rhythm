@@ -395,6 +395,7 @@
     }
     Label.onlineAvatarData = "";
 </script>
+<#if currentUser??><script src="${staticServePath}/js/chat-game-status${miniPostfix}.js?${staticResourceVersion}"></script></#if>
 <script>
     // 判断消息区是否接近底部（用于决定是否自动跟随新消息滚动）
     ChatRoom.isAtBottom = function (threshold) {

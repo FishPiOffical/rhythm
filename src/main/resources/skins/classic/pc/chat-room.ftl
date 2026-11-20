@@ -346,6 +346,7 @@
     }
     Label.onlineAvatarData = "";
 </script>
+<#if currentUser??><script src="${staticServePath}/js/chat-game-status${miniPostfix}.js?${staticResourceVersion}"></script></#if>
 <script>
     $(window).scroll(
         function() {

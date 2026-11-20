@@ -335,6 +335,7 @@
     }
     Label.onlineAvatarData = "";
 </script>
+<#if currentUser??><script src="${staticServePath}/js/chat-game-status${miniPostfix}.js?${staticResourceVersion}"></script></#if>
 <script type="text/javascript">
     function getActivityStatus() {
         let liveness = ${liveness};

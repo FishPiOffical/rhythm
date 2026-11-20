@@ -36,11 +36,30 @@ public class ChatGameStatusService {
     }
 
     public JSONObject list(final JSONObject identity, final String rawIds) throws RepositoryException {
-        final var ids = ids(rawIds);
+        // 复用游戏名片的第一方权限；仅从公开状态投影，不触发停车访问或搭班结算。
+        return list(ids(rawIds), () -> proofs.authorizePartnerInCurrentTransaction(identity, "profile.read"));
+    }
+
+    public JSONObject listForSession(final JSONObject cookieUser, final String rawIds) throws RepositoryException {
+        if (cookieUser == null) throw new ApiV3Requests.ApiException(401, "unauthorized", "请先登录");
+        final String actor = cookieUser.optString("oId");
+        return list(ids(rawIds), () -> {
+            // 旧站凭据由页面会话校验，再按当前账号状态读取同一份公开摘要。
+            if (users.select("SELECT oId FROM " + users.getName() + " WHERE oId=? AND userStatus=0", actor).isEmpty()) {
+                throw ApiV3Requests.forbidden();
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface ViewerCheck {
+        void verify() throws RepositoryException;
+    }
+
+    private JSONObject list(final List<String> ids, final ViewerCheck viewer) throws RepositoryException {
         final var tx = PartnerTransactions.begin(requests::beginTransaction);
         try {
-            // 复用游戏名片的第一方权限；仅从公开状态投影，不触发停车访问或搭班结算。
-            proofs.authorizePartnerInCurrentTransaction(identity, "profile.read");
+            viewer.verify();
             final String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
             final String uid = "u.oId COLLATE utf8mb4_0900_ai_ci";
             final var rows = users.select("SELECT u.oId, g.occupant, p.holder, p.price FROM " + users.getName()

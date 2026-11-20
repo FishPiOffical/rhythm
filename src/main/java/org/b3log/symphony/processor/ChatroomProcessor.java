@@ -73,6 +73,7 @@ import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.AvatarQueryService;
 import org.b3log.symphony.service.ChatRoomService;
+import org.b3log.symphony.service.ChatGameStatusService;
 import org.b3log.symphony.service.ApiV3ChatRedPacketService;
 import org.b3log.symphony.util.ApiV3ChatTail;
 import org.b3log.symphony.service.ChatMessageMgmtService;
@@ -245,6 +246,7 @@ public class ChatroomProcessor {
     @Inject
     private RoleQueryService roleQueryService;
 
+    @Inject private ChatGameStatusService chatGameStatus;
     @Inject private ChatMessageMgmtService chatMessageMgmtService;
     @Inject private ChatTopicWriteService chatTopicWrites;
     @Inject private ChatMessageWithdrawalMgmtService chatMessageWithdrawals;
@@ -272,6 +274,7 @@ public class ChatroomProcessor {
         Dispatcher.get("/chat-room/more", chatroomProcessor::getMore);
         Dispatcher.get("/chat-room/getMessage", chatroomProcessor::getContextMessage);
         Dispatcher.get("/chat-room/online-users", chatroomProcessor::getChatRoomUsers);
+        Dispatcher.get("/chat-room/game-status", chatroomProcessor::getGameStatus);
         Dispatcher.get("/cr/raw/{id}", chatroomProcessor::getChatRaw, anonymousViewCheckMidware::handle);
         Dispatcher.delete("/chat-room/revoke/{oId}", chatroomProcessor::revokeMessage, loginCheck::handle);
         Dispatcher.post("/chat-room/red-packet/open", chatroomProcessor::openRedPacket, loginCheck::handle);
@@ -283,6 +286,13 @@ public class ChatroomProcessor {
 
         Dispatcher.get("/gen", chatroomProcessor::genMetalGif, loginCheck::handle);
         Dispatcher.get("/gen/maker", chatroomProcessor::genMetalMaker, loginCheck::handle);
+    }
+
+    public void getGameStatus(final RequestContext context) {
+        ApiV3Requests.read(context, () -> {
+            context.setHeader("Vary", "Cookie");
+            return chatGameStatus.listForSession(Sessions.currentCookieUser(context.getRequest()), context.param("userIds"));
+        });
     }
 
     public void getBarragerCost(final RequestContext context) {

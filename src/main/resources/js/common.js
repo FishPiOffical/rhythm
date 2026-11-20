@@ -93,6 +93,17 @@ var Util = {
         return element.outerHTML;
     },
 
+    // 旧版有些消息用数字存作者编号，超出安全整数后不能再据此关联账号。
+    renderChatGameAnchor: function (data) {
+        const id = value => (typeof value === 'string' || Number.isSafeInteger(value)) &&
+            /^[1-9][0-9]{0,18}$/.test(value);
+        if (!id(Label.currentUserId) || !data || !id(data.userOId) || !id(data.oId) ||
+            typeof data.userName !== 'string' || !data.userName.trim() || data.anonymous === true) return '';
+        const own = String(data.userOId) === String(Label.currentUserId);
+        return '<span class="chat-game-anchor" data-game-user="' + data.userOId + '" data-game-message="' +
+            data.oId + '" data-game-own="' + own + '"></span>';
+    },
+
     bling: undefined,
     isBlinging: false,
 

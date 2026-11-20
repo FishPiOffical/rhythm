@@ -4918,6 +4918,8 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/barrager/price' \
 - 已开放搭子名片的账号返回 `partner.displayValue`（十进制身价字符串）和 `partner.full`（已到最高成交档）。
 - 宠物沿用消息已有的宠物快照。读取游园状态不产生访问流水或营业结算。
 
+旧站聊天室使用 `GET /chat-room/game-status?userIds=1,2`，由旧站网页登录 Cookie 验证身份，参数、响应字段及展示范围与上面一致。
+
 ### 查询在线用户
 
 `GET /api/v3/chat/online-users`
