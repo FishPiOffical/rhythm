@@ -14,6 +14,8 @@
 
 ## 在线状态与隐私
 
+- Rhythm 的子节点登记配置为 `chatroom.node.url`，不存数据库；新格式为 `公网WSS地址,内网地址(可空),名称,权重`，旧三列配置继续兼容。服务端主动连接子节点时使用内网 `ws` 地址（省略端口默认 10831），失败后走公网 `wss`，失败节点内网路径冷却 5 分钟；该路由仅用于 Rhythm 到子节点的出站 WebSocket，客户端节点分配和 HTTP 请求保持各自原路径。公网 WebSocket 使用 JDK 默认 TLS 信任与主机名校验。
+
 - 单实例在线状态/时长由 `UserOnlineTracker` + `UserOnlineService` 统一：旧 `/user-channel` 不加心跳，V3 JSON ping 60秒租约且授权到期优先；按用户连接并集计时，最终离线/停机结算，余数仅存内存。`userOnlineStatus` 仍是隐私，`userOnlineFlag` 异步兼容写库；累计分钟与职业事件在锁定用户行的同一事务提交，失败固定目标重试，不能用会话分钟替代连续累计 before/after。耗时采用单调 long，禁止强转 int 毫秒差。
 - v3 聊天室在线名单由 `ApiV3ChatOnlineQueryService` 合并当前实例旧连接、已认证 chat 订阅和 `ChatOnlineSnapshot` 节点采样，按当前资料过滤在线隐私与有效状态后分页；人数只计可见用户。节点采样原子发布仅用户名，不返回节点凭据；其他实例的 v3 连接未共享，不能宣称全站实时人数。
 - 聊天室进出提示和座驾独立于 `userOnlineStatus` 在线隐私；仍校验账号有效性、文案配置与座驾权益，在线名单继续遵守隐私，不能把名单过滤复用于播报。

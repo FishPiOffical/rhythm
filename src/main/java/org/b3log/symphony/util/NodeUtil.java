@@ -21,7 +21,6 @@ package org.b3log.symphony.util;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,11 +30,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,35 +64,35 @@ public class NodeUtil {
 
     public static Map<String, Integer> nodeWeights = new HashMap<>();
 
+    private static final Map<String, NodeConfiguration> NODE_CONFIGURATIONS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final NodeConnectionCooldown INTERNAL_COOLDOWN = new NodeConnectionCooldown();
+
+    private static final Map<String, Object> NODE_CONNECTION_LOCKS = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static void init() {
         LOGGER.log(Level.INFO, "Loading nodes");
         List<WebSocket> tmp_wsNodes = new ArrayList<>();
         List<String> tmp_uriNodes = new ArrayList<>();
         HashMap<String, String> tmp_nodeNickNames = new HashMap<>();
         Map<String, Integer> tmp_nodeWeights = new HashMap<>();
-        String[] nodes = Symphonys.get("chatroom.node.url").split(";");
-        for (String i : nodes) {
-            tmp_nodeNickNames.put(i.split(",")[0], i.split(",")[1]);
-            tmp_nodeWeights.put(i.split(",")[0], Integer.parseInt(i.split(",")[2]));
-            i = i.split(",")[0];
-            String serverUri = i + "?apiKey=" + Symphonys.get("chatroom.node.adminKey");
+        final Map<String, NodeConfiguration> configurations = new java.util.HashMap<>();
+        for (final NodeConfiguration node : NodeConfiguration.parse(Symphonys.get("chatroom.node.url"))) {
+            final String i = node.publicUrl();
+            configurations.put(i, node);
+            tmp_nodeNickNames.put(i, node.name());
+            tmp_nodeWeights.put(i, node.weight());
             try {
-                SSLContext sslContext = createInsecureSSLContext();
-                HttpClient client = HttpClient.newBuilder()
-                        .sslContext(sslContext)
-                        .build();
-
-                CompletableFuture<String> future = new CompletableFuture<>();
-                WebSocket webSocket = client.newWebSocketBuilder()
-                        .buildAsync(URI.create(serverUri), new WebSocketListener(future))
-                        .join();
+                NodeWebSocketConnection connection = openNodeConnection(node);
+                WebSocket webSocket = connection.webSocket();
+                CompletableFuture<String> future = connection.responseFuture();
 
                 webSocket.sendText(Symphonys.get("chatroom.node.adminKey") + ":::hello", true);
                 future.get(10, TimeUnit.SECONDS);
                 tmp_wsNodes.add(webSocket);
                 tmp_uriNodes.add(i);
             } catch (Exception e) {
-                LOGGER.log(Level.ERROR, "Failed to connect to node: " + serverUri, e);
+                LOGGER.error("Failed to initialize node {}: {}", node.name(), e.getClass().getSimpleName());
             }
         }
 
@@ -109,6 +103,8 @@ public class NodeUtil {
         uriNodes.clear();
         nodeNickNames.clear();
         nodeWeights.clear();
+        NODE_CONFIGURATIONS.clear();
+        NODE_CONFIGURATIONS.putAll(configurations);
 
         wsNodes.addAll(tmp_wsNodes);
         uriNodes.addAll(tmp_uriNodes);
@@ -152,15 +148,13 @@ public class NodeUtil {
     public static void sendClear() {
         for (String i : uriNodes) {
             try {
-                String serverUri = i + "?apiKey=" + Symphonys.get("chatroom.node.adminKey");
-                SSLContext sslContext = createInsecureSSLContext();
-                HttpClient client = HttpClient.newBuilder()
-                        .sslContext(sslContext)
-                        .build();
-                CompletableFuture<String> responseFuture = new CompletableFuture<>();
-                WebSocket webSocket = client.newWebSocketBuilder()
-                        .buildAsync(URI.create(serverUri), new WebSocketListener(responseFuture))
-                        .join();
+                final NodeConfiguration node = NODE_CONFIGURATIONS.get(i);
+                if (node == null) {
+                    throw new IllegalStateException("Node configuration disappeared: " + i);
+                }
+                NodeWebSocketConnection connection = openNodeConnection(node);
+                WebSocket webSocket = connection.webSocket();
+                CompletableFuture<String> responseFuture = connection.responseFuture();
                 webSocket.sendText(Symphonys.get("chatroom.node.adminKey") + ":::clear", true);
                 try {
                     String response = responseFuture.get(10, TimeUnit.SECONDS);
@@ -182,17 +176,17 @@ public class NodeUtil {
                     webSocket.sendClose(1000, "Nornal Closure");
                 } catch (Exception e) {
                     webSocket.sendClose(1000, "Nornal Closure");
-                    LOGGER.log(Level.ERROR,
-                            "Send clear command to " + serverUri + " has no response within 10 seconds. giveup.", e);
+                    LOGGER.error("Send clear command to node {} has no response within 10 seconds: {}",
+                            i, e.getClass().getSimpleName());
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                LOGGER.error("Failed to send clear command to node {}: {}", i, e.getClass().getSimpleName());
             }
         }
     }
 
     public static void initOnline() {
-        LOGGER.info("[Rhys init] === loading Rhys nodes, configured URL: {} ===", Symphonys.get("chatroom.node.url"));
-        LOGGER.info("[Rhys init] === adminKey present: {} ===", Symphonys.get("chatroom.node.adminKey") != null && !Symphonys.get("chatroom.node.adminKey").isEmpty());
+        LOGGER.info("[Rhys init] === loading configured nodes ===");
         final long deadline = System.currentTimeMillis() + 15_000L; // 总超时 15s，不管多少个节点
         JSONArray onlineList = new JSONArray();
         Map<String, Integer> tmp_wsOnline = new HashMap<>();
@@ -205,19 +199,13 @@ public class NodeUtil {
             LOGGER.info("[Rhys init] --- connecting node: {} ---", i);
             tmp_remoteUserPerNode.put(i, new HashMap<>());
             try {
-                String serverUri = i + "?apiKey=" + Symphonys.get("chatroom.node.adminKey");
-                LOGGER.info("[Rhys init]   serverUri: {}", serverUri.replace(Symphonys.get("chatroom.node.adminKey"), "<REDACTED>"));
-                SSLContext sslContext = createInsecureSSLContext();
-                LOGGER.info("[Rhys init]   SSL context created");
-                HttpClient client = HttpClient.newBuilder()
-                        .sslContext(sslContext)
-                        .build();
-                LOGGER.info("[Rhys init]   HttpClient built, building WebSocket...");
-                CompletableFuture<String> responseFuture = new CompletableFuture<>();
-                WebSocket webSocket = client.newWebSocketBuilder()
-                        .buildAsync(URI.create(serverUri), new WebSocketListener(responseFuture))
-                        .orTimeout(5, TimeUnit.SECONDS).join();
-                LOGGER.info("[Rhys init]   WebSocket connected: {}", webSocket);
+                final NodeConfiguration node = NODE_CONFIGURATIONS.get(i);
+                if (node == null) {
+                    throw new IllegalStateException("Node configuration disappeared: " + i);
+                }
+                NodeWebSocketConnection connection = openNodeConnection(node);
+                WebSocket webSocket = connection.webSocket();
+                CompletableFuture<String> responseFuture = connection.responseFuture();
                 webSocket.sendText(Symphonys.get("chatroom.node.adminKey") + ":::online", true);
                 LOGGER.info("[Rhys init]   sent online request, waiting up to 10s...");
                 try {
@@ -238,13 +226,14 @@ public class NodeUtil {
                     LOGGER.info("[Rhys init]   node {} online users: {}", i, jsonArray.length());
                     webSocket.sendClose(1000, "Normal Closure");
                 } catch (Exception e) {
-                    LOGGER.log(Level.ERROR, "[Rhys init]   node {} No response within 10 seconds. giveup.", i, e);
+                    LOGGER.error("[Rhys init] node {} gave no response within 10 seconds: {}",
+                            i, e.getClass().getSimpleName());
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.ERROR, "[Rhys init]   node {} connection FAILED: {}", i, e.getMessage(), e);
+                LOGGER.error("[Rhys init] node connection failed for {}: {}", i, e.getClass().getSimpleName());
             }
         }
-        LOGGER.info("[Rhys init] === node scan done. wsOnline keys: {}, expected nodes: {} ===", tmp_wsOnline.keySet(), Symphonys.get("chatroom.node.url"));
+        LOGGER.info("[Rhys init] === node scan done. wsOnline keys: {} ===", tmp_wsOnline.keySet());
         remoteUsers = onlineList;
 
         final var names = new java.util.HashSet<String>();
@@ -302,15 +291,13 @@ public class NodeUtil {
 
         for (String i : uriNodes) {
             try {
-                String serverUri = i + "?apiKey=" + Symphonys.get("chatroom.node.adminKey");
-                SSLContext sslContext = createInsecureSSLContext();
-                HttpClient client = HttpClient.newBuilder()
-                        .sslContext(sslContext)
-                        .build();
-                CompletableFuture<String> responseFuture = new CompletableFuture<>();
-                WebSocket webSocket = client.newWebSocketBuilder()
-                        .buildAsync(URI.create(serverUri), new WebSocketListener(responseFuture))
-                        .join();
+                final NodeConfiguration node = NODE_CONFIGURATIONS.get(i);
+                if (node == null) {
+                    throw new IllegalStateException("Node configuration disappeared: " + i);
+                }
+                NodeWebSocketConnection connection = openNodeConnection(node);
+                WebSocket webSocket = connection.webSocket();
+                CompletableFuture<String> responseFuture = connection.responseFuture();
 
                 String message = Symphonys.get("chatroom.node.adminKey") + ":::push " + result;
                 webSocket.sendText(message, true);
@@ -320,37 +307,69 @@ public class NodeUtil {
                     webSocket.sendClose(1000, "Nornal Closure");
                 } catch (Exception e) {
                     webSocket.sendClose(1000, "Nornal Closure");
-                    LOGGER.log(Level.ERROR,
-                            "Push online list to " + serverUri + " has no response within 10 seconds. giveup.", e);
+                    LOGGER.error("Push online list to node {} has no response within 10 seconds: {}",
+                            i, e.getClass().getSimpleName());
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                LOGGER.error("Failed to push online list to node {}: {}", i, e.getClass().getSimpleName());
             }
         }
     }
 
-    // 创建忽略 SSL 证书的 SSLContext
-    private static SSLContext createInsecureSSLContext() throws Exception {
-        TrustManager[] trustAllCerts = new TrustManager[] {
-                new X509TrustManager() {
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                    }
-
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                    }
-
-                    @Override
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                }
-        };
-
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-        return sslContext;
+    static NodeWebSocketConnection openNodeConnection(final NodeConfiguration node) throws Exception {
+        final Object lock = NODE_CONNECTION_LOCKS.computeIfAbsent(node.publicUrl(), key -> new Object());
+        synchronized (lock) {
+            return openNodeConnectionLocked(node);
+        }
     }
+
+    private static NodeWebSocketConnection openNodeConnectionLocked(final NodeConfiguration node) throws Exception {
+        final String apiKey = Symphonys.get("chatroom.node.adminKey");
+        final boolean tryInternal = !node.internalAddress().isEmpty()
+                && INTERNAL_COOLDOWN.shouldTryInternal(node.publicUrl(), System.nanoTime());
+        if (tryInternal) {
+            try {
+                final URI internalUri = node.internalWebSocketUri();
+                final NodeWebSocketConnection connection = openWebSocket(internalUri, apiKey);
+                INTERNAL_COOLDOWN.internalSucceeded(node.publicUrl());
+                LOGGER.info("Connected to node {} over internal WebSocket [{}]", node.name(), endpointLabel(internalUri));
+                return connection;
+            } catch (final Exception e) {
+                INTERNAL_COOLDOWN.internalFailed(node.publicUrl(), System.nanoTime());
+                LOGGER.warn("Internal WebSocket connection failed for node {} [{}] ({}), falling back to public WebSocket [{}]",
+                        node.name(), node.internalAddress(), e.getClass().getSimpleName(), endpointLabel(node.publicWebSocketUri()));
+            }
+        } else if (!node.internalAddress().isEmpty()) {
+            LOGGER.info("Internal WebSocket for node {} is cooling down, using public WebSocket [{}]",
+                    node.name(), endpointLabel(node.publicWebSocketUri()));
+        } else {
+            LOGGER.info("Node {} has no internal address, using public WebSocket [{}]",
+                    node.name(), endpointLabel(node.publicWebSocketUri()));
+        }
+        final URI publicUri = node.publicWebSocketUri();
+        final NodeWebSocketConnection connection = openWebSocket(publicUri, apiKey);
+        LOGGER.info("Connected to node {} over public WebSocket [{}]", node.name(), endpointLabel(publicUri));
+        return connection;
+    }
+
+    private static String endpointLabel(final URI uri) {
+        return uri.getHost() + ":" + (uri.getPort() < 0 ? ("wss".equals(uri.getScheme()) ? 443 : 80) : uri.getPort());
+    }
+
+    private static NodeWebSocketConnection openWebSocket(final URI uri, final String apiKey) {
+        final String separator = uri.getRawQuery() == null ? "?" : "&";
+        final URI endpoint = URI.create(uri + separator + "apiKey=" + java.net.URLEncoder.encode(apiKey,
+                java.nio.charset.StandardCharsets.UTF_8));
+        final HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(5)).build();
+        final CompletableFuture<String> responseFuture = new CompletableFuture<>();
+        final WebSocket webSocket = client.newWebSocketBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(5))
+                .buildAsync(endpoint, new WebSocketListener(responseFuture))
+                .orTimeout(5, TimeUnit.SECONDS).join();
+        return new NodeWebSocketConnection(webSocket, responseFuture);
+    }
+
+    record NodeWebSocketConnection(WebSocket webSocket, CompletableFuture<String> responseFuture) { }
 
     private static class WebSocketListener implements WebSocket.Listener {
         private final CompletableFuture<String> responseFuture;
