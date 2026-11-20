@@ -36,6 +36,7 @@ import org.b3log.symphony.repository.ApiV3ClientRepository;
 import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3TokenUtil;
+import org.b3log.symphony.util.WebsiteDevice;
 import org.b3log.symphony.util.ApiV3Exception;
 import org.b3log.symphony.util.PartnerTransactions;
 import org.b3log.symphony.util.ApiV3Transactions;
@@ -101,23 +102,71 @@ public class ApiV3TokenMgmtService {
     }
 
     /** 第一方网页会话同时绑定旧版 Cookie 与 V3 令牌家族，不向客户端 JSON 暴露家族标识。 */
-    public record WebsiteLogin(JSONObject tokens, String actor, String family) { }
+    public record WebsiteLogin(JSONObject tokens, String actor, String family, String deviceId) { }
 
-    public WebsiteLogin issueWebsite(final String userId) throws ServiceException {
+    public WebsiteLogin issueWebsite(final String userId, final WebsiteDevice device, final String sourceFamily) throws ServiceException {
         final Transaction transaction = beginRoot();
         try {
             final JSONObject client = ensureWebsiteClient();
             if (org.b3log.symphony.util.AccountCredentialVersions.issuance(userId, null) == null)
                 throw new ServiceException("unauthorized");
             final String family = UUID.randomUUID().toString().replace("-", "");
-            final JSONObject tokens = issueInternal(userId, WEBSITE_CLIENT, client.getString(ApiV3Client.SCOPE), family, null);
+            String deviceId = device.id(userId);
+            if (sourceFamily != null) {
+                final var source = activeWebsiteBinding(userId, sourceFamily);
+                if (source != null) {
+                    final String known = source.optString(ApiV3Token.DEVICE_ID);
+                    if (known.isEmpty()) tagWebsiteFamily(userId, sourceFamily, deviceId, "早期网页登录");
+                    else deviceId = known;
+                }
+            }
+            final JSONObject tokens = issueInternal(userId, WEBSITE_CLIENT, client.getString(ApiV3Client.SCOPE),
+                    family, null, deviceId, device.label());
             recordSuccessfulLoginInCurrentTransaction(userId, now());
             transaction.commit();
             evictLoginCacheAfterTransaction(userId);
-            return new WebsiteLogin(tokens, userId, family);
+            return new WebsiteLogin(tokens, userId, family, deviceId);
         } catch (final Exception error) {
             rollback(transaction);
             throw new ServiceException(error);
+        }
+    }
+
+    /** 在登录或授权码交换的同一事务，给已锁定的令牌家族记上浏览器来源。 */
+    void tagWebsiteFamily(String actor, String family, String id, String label) throws Exception {
+        if (ApiV3TransactionStatements.execute("UPDATE `" + apiV3TokenRepository.getName()
+                + "` SET websiteDeviceId=?,websiteDeviceLabel=? WHERE clientId=? AND userId=? AND familyId=?"
+                + " AND websiteDeviceId='' AND state=?",
+                id, label, WEBSITE_CLIENT, actor, family, ApiV3Token.STATE_ACTIVE) < 1)
+            throw new ServiceException("unauthorized");
+    }
+
+    JSONObject activeWebsiteBinding(String actor, String family) throws Exception {
+        final var rows = apiV3TokenRepository.select("SELECT t.websiteDeviceId,t.websiteDeviceLabel FROM `"
+                + apiV3TokenRepository.getName() + "` t JOIN `" + apiV3ClientRepository.getName() + "` c ON c.clientId=t.clientId"
+                + " WHERE t.clientId=? AND t.userId=? AND t.familyId=? AND t.tokenType=? AND t.state=?"
+                + " AND t.expiresAt>? AND c.status=? LIMIT 1", WEBSITE_CLIENT, actor, family,
+                ApiV3Token.TYPE_REFRESH, ApiV3Token.STATE_ACTIVE, now(), ApiV3Client.STATUS_ACTIVE);
+        return rows.isEmpty() ? null : rows.getFirst();
+    }
+
+    /** 仅在新旧站绑定和账号凭据都已核验后，识别升级前的当前浏览器。 */
+    public String recognizeWebsiteFamily(String actor, String family, WebsiteDevice device) throws Exception {
+        final var prior = activeWebsiteBinding(actor, family);
+        if (prior == null) return null;
+        if (!prior.optString(ApiV3Token.DEVICE_ID).isEmpty()) return prior.getString(ApiV3Token.DEVICE_ID);
+        final Transaction transaction = beginRoot();
+        try {
+            apiV3ClientRepository.getByClientIdForUpdate(WEBSITE_CLIENT);
+            final var current = activeWebsiteBinding(actor, family);
+            if (current == null) return null;
+            if (!current.optString(ApiV3Token.DEVICE_ID).isEmpty()) return current.getString(ApiV3Token.DEVICE_ID);
+            final String id = device.id(actor);
+            tagWebsiteFamily(actor, family, id, "早期网页登录");
+            transaction.commit();
+            return id;
+        } finally {
+            rollback(transaction);
         }
     }
 
@@ -265,7 +314,8 @@ public class ApiV3TokenMgmtService {
                 scope = narrowed;
             }
             final JSONObject result = issueInternal(current.optString(ApiV3Token.USER_ID), clientId, scope,
-                    current.optString(ApiV3Token.FAMILY_ID), current.optString(Keys.OBJECT_ID));
+                    current.optString(ApiV3Token.FAMILY_ID), current.optString(Keys.OBJECT_ID),
+                    current.optString(ApiV3Token.DEVICE_ID), current.optString(ApiV3Token.DEVICE_LABEL));
             transaction.commit();
             committed = true;
             return result;
@@ -404,13 +454,18 @@ public class ApiV3TokenMgmtService {
 
     private JSONObject issueInternal(final String userId, final String clientId, final String scope, final String existingFamily, final String parentId)
             throws Exception {
+        return issueInternal(userId, clientId, scope, existingFamily, parentId, "", "");
+    }
+
+    private JSONObject issueInternal(final String userId, final String clientId, final String scope, final String existingFamily,
+                                     final String parentId, final String deviceId, final String deviceLabel) throws Exception {
         final long now = now();
         final String familyId = StringUtils.isBlank(existingFamily) ? UUID.randomUUID().toString().replace("-", "") : existingFamily;
         final String normalizedScope = normalizeScope(scope);
         final String access = ApiV3TokenUtil.generate();
         final String refresh = ApiV3TokenUtil.generate();
-        add(access, ApiV3Token.TYPE_ACCESS, userId, clientId, normalizedScope, familyId, parentId, now + ACCESS_TTL, now);
-        add(refresh, ApiV3Token.TYPE_REFRESH, userId, clientId, normalizedScope, familyId, parentId, now + REFRESH_TTL, now);
+        add(access, ApiV3Token.TYPE_ACCESS, userId, clientId, normalizedScope, familyId, parentId, now + ACCESS_TTL, now, deviceId, deviceLabel);
+        add(refresh, ApiV3Token.TYPE_REFRESH, userId, clientId, normalizedScope, familyId, parentId, now + REFRESH_TTL, now, deviceId, deviceLabel);
         return new JSONObject().put("accessToken", access).put("expiresIn", TimeUnit.MILLISECONDS.toSeconds(ACCESS_TTL))
                 .put("refreshToken", refresh).put("refreshExpiresIn", TimeUnit.MILLISECONDS.toSeconds(REFRESH_TTL))
                 .put("scope", normalizedScope).put("tokenType", "Bearer");
@@ -436,10 +491,11 @@ public class ApiV3TokenMgmtService {
     }
 
     private void add(final String token, final String type, final String userId, final String clientId, final String scope, final String familyId,
-                     final String parentId, final long expiresAt, final long now) throws Exception {
+                     final String parentId, final long expiresAt, final long now, final String deviceId, final String deviceLabel) throws Exception {
         apiV3TokenRepository.add(new JSONObject().put(Keys.OBJECT_ID, Ids.genTimeMillisId())
                 .put(ApiV3Token.TOKEN_HASH, ApiV3TokenUtil.hash(token)).put(ApiV3Token.TOKEN_TYPE, type)
                 .put(ApiV3Token.USER_ID, userId).put(ApiV3Token.CLIENT_ID, clientId).put(ApiV3Token.SCOPE, scope)
+                .put(ApiV3Token.DEVICE_ID, deviceId).put(ApiV3Token.DEVICE_LABEL, deviceLabel)
                 .put(ApiV3Token.FAMILY_ID, familyId).put(ApiV3Token.PARENT_ID, StringUtils.defaultString(parentId))
                 .put(ApiV3Token.STATE, ApiV3Token.STATE_ACTIVE).put(ApiV3Token.CREATED_AT, now)
                 .put(ApiV3Token.UPDATED_AT, now).put(ApiV3Token.LAST_USED_AT, 0L).put(ApiV3Token.EXPIRES_AT, expiresAt));

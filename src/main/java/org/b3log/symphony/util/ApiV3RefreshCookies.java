@@ -28,7 +28,8 @@ public final class ApiV3RefreshCookies {
     /** Latke prepopulates response cookies from request headers without their original security attributes. */
     public static void discardFrameworkEcho(final RequestContext context) {
         // 旧站绑定 Cookie 同样不能被框架无属性地回写，否则浏览页面后会丢失 HttpOnly。
-        context.getResponse().getCookies().removeIf(cookie -> NAME.equals(cookie.getName()) || "sym-ce".equals(cookie.getName()));
+        context.getResponse().getCookies().removeIf(cookie -> NAME.equals(cookie.getName()) || "sym-ce".equals(cookie.getName())
+                || WebsiteDevice.cookieName(cookie.getName()));
     }
 
     public static Cookie create(final String value, final long seconds) {

@@ -264,6 +264,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/password-reset/complete' \
 | nameOrEmail | 用户名或邮箱 | username |
 | userPassword | 密码的 32 位小写 MD5 | e10adc3949ba59abbe56e057f20f883e |
 | mfaCode | 两步验证码，未启用时可不传 | 123456 |
+| deviceId | 可选 UUID v4 设备提示；服务端以签名设备 Cookie 识别网站设备 | 随机 UUID v4 |
 
 请求示例：
 
@@ -288,6 +289,54 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/login' \
 > 密码登录成功后记录最近登录时间；登录失败、刷新登录状态和普通读取不会更新该时间。
 
 > 请求体最多4096字节，使用标准UTF-8 JSON对象，仅接受表中的字符串字段；非法JSON返回400，未知字段或非字符串值返回422，超限413，错误媒体类型415。
+
+### 查看网页登录设备
+
+`GET /api/v3/me/security/devices`
+
+请求：第一方已绑定网页设备的 Bearer，权限为 `profile.read`。
+
+请求示例：
+
+```bash
+curl 'https://fishpi.cn/api/v3/me/security/devices' --header 'Authorization: Bearer <access_token>'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.list | 本人的有效网页登录设备，按最近活动排序 | 数组 |
+| - id | 本次可退出的设备编号，原样用于退出请求 | 字符串 |
+| - label | 浏览器和系统名称 | Safari · iPhone |
+| - lastActiveAt | 最近活动的毫秒时间戳，访问时间按分钟记录 | 1795000000000 |
+| - current | 是否为发起请求的设备 | true |
+
+> 同一浏览器的多个标签和新旧网站共享设备；第三方应用的授权独立管理。上线前先执行 `sql/20261120_api_v3_website_devices.sql`。已有绑定的浏览器在后续会话核验时显示为「早期网页登录」，未能核实归属的历史登录不会列入。
+
+### 退出其他网页登录设备
+
+`DELETE /api/v3/me/security/devices/{deviceId}`
+
+请求：第一方已绑定网页设备的 Bearer，权限为 `settings.write`。
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| deviceId | 路径参数，使用列表返回的本次设备编号 | data.list 中的 id |
+
+请求示例：
+
+```bash
+curl --request DELETE 'https://fishpi.cn/api/v3/me/security/devices/<deviceId>' --header 'Authorization: Bearer <access_token>'
+```
+
+响应：
+
+| Key | 说明 | 示例 |
+| --- | --- | --- |
+| data.revoked | 指定的有效登录已清除，重复请求可安全返回 | true |
+
+> 退出当前设备返回 409 `current_device`。设备重新登录后旧编号返回 409 `device_changed`，须重新读取列表并确认。操作只影响当前账号在所选浏览器上的网页登录。
 
 ### 刷新登录状态
 

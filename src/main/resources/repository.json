@@ -2327,6 +2327,18 @@
           "description": "Rotation family"
         },
         {
+          "name": "websiteDeviceId",
+          "type": "String",
+          "length": 32,
+          "description": "已验证的第一方网页设备编号"
+        },
+        {
+          "name": "websiteDeviceLabel",
+          "type": "String",
+          "length": 80,
+          "description": "已识别的浏览器与系统"
+        },
+        {
           "name": "parentId",
           "type": "String",
           "length": 19,

@@ -99,6 +99,12 @@ public class ApiV3SecurityProofService {
         return authorize(identity, "profile.read", false);
     }
 
+    /** 与网页登录签发和续期采用相同的客户端行锁，让远程退出和再次登录有确定的先后顺序。 */
+    public JSONObject authorizeWebsiteDeviceInCurrentTransaction(final JSONObject identity) throws RepositoryException {
+        if (!tokens.hasTransactionBegun()) throw new IllegalStateException("device transaction required");
+        return new JSONObject().put("oId", authorize(identity, "settings.write", true).getString("oId"));
+    }
+
     /** 搭子只读第一方客户端配置，共享锁仍与停用客户端和账号重置的独占锁互斥。 */
     public JSONObject authorizePartnerInCurrentTransaction(final JSONObject identity, final String scope) throws RepositoryException {
         if (!java.util.Set.of("profile.read", "settings.write").contains(scope))

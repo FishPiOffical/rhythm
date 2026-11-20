@@ -667,7 +667,7 @@ public class LoginProcessor {
                     Requests.getRemoteAddr(request));
             if (result.success()) {
                 final String userId = result.user().optString(Keys.OBJECT_ID);
-                final String token = WebsiteLoginCookies.login(response, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
+                final String token = WebsiteLoginCookies.login(context, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue(Keys.TOKEN, token);
                 return;

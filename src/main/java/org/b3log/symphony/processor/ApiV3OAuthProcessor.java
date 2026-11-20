@@ -342,11 +342,14 @@ public class ApiV3OAuthProcessor {
                     final var user = cookieUser(c);
                     if (user == null)
                         throw new ApiV3Exception(400, "invalid_grant", "摸鱼派会话已失效，请重新发起授权");
-                    final var login = codes.exchangeWebsite(uri, code, verifier, user.optString(Keys.OBJECT_ID));
+                    final var device = WebsiteDevice.from(c, null);
                     final var session = Sessions.websiteSession(c.getRequest());
+                    final var login = codes.exchangeWebsite(uri, code, verifier, user.optString(Keys.OBJECT_ID),
+                            session == null ? null : session.getString("websiteFamily"), device);
                     final boolean remember = session != null && session.optBoolean("rememberLogin");
                     ApiV3RefreshCookies.discardFrameworkEcho(c);
                     WebsiteLoginCookies.attach(c.getResponse(), login, remember);
+                    device.attach(c.getResponse(), login.actor(), login.deviceId());
                     result = login.tokens();
                 } else {
                     result = codes.exchange(client, uri, code, verifier);

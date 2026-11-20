@@ -35,6 +35,7 @@ import org.b3log.symphony.util.ApiV3TokenUtil;
 import org.b3log.symphony.util.ApiV3UserCapabilities;
 import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.WebsiteLoginCookies;
+import org.b3log.symphony.util.WebsiteDevice;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
@@ -121,6 +122,7 @@ public class ApiV3Processor {
         ApiV3PostExportProcessor.register();
         ApiV3IdentityApplicationProcessor.register();
         ApiV3SecurityProcessor.register();
+        ApiV3DeviceSessionProcessor.register();
         ApiV3MfaProcessor.register();
         ApiV3ContactSettingsProcessor.register();
         ApiV3EmotionProcessor.register();
@@ -181,8 +183,12 @@ public class ApiV3Processor {
     }
 
     public void login(final RequestContext context) {
-        final JSONObject body = authenticationBody(context, Set.of("nameOrEmail", User.USER_PASSWORD, "mfaCode"), false);
+        final JSONObject body = authenticationBody(context, Set.of("nameOrEmail", User.USER_PASSWORD, "mfaCode", "deviceId"), false);
         if (body == null) return;
+        if (body.has("deviceId") && !WebsiteDevice.validHint(body.opt("deviceId"))) {
+            error(context, 422, "invalid_request", "设备编号格式不正确");
+            return;
+        }
         final String nameOrEmail = StringUtils.trimToEmpty(body.optString("nameOrEmail"));
         final String password = StringUtils.trimToEmpty(body.optString(User.USER_PASSWORD));
         if (nameOrEmail.length() > MAX_LOGIN_FIELD || password.length() != 32 || !password.matches("[a-f0-9]{32}")) {
@@ -206,8 +212,11 @@ public class ApiV3Processor {
             }
             final JSONObject token;
             if (WebsiteLoginCookies.trustedOrigin(context, false)) {
-                final var website = apiV3TokenMgmtService.issueWebsite(result.user().getString(Keys.OBJECT_ID));
+                final var device = WebsiteDevice.from(context, body.optString("deviceId"));
+                final String actor = result.user().getString(Keys.OBJECT_ID);
+                final var website = apiV3TokenMgmtService.issueWebsite(actor, device, WebsiteLoginCookies.priorFamily(context, actor));
                 WebsiteLoginCookies.attach(context.getResponse(), website, true);
+                device.attach(context.getResponse(), actor, website.deviceId());
                 token = website.tokens();
             } else {
                 // 无网页来源的既有客户端维持原令牌流程，不扩展为旧站会话。
@@ -285,11 +294,15 @@ public class ApiV3Processor {
                 // 显式检查存储故障，不能把查询失败当成已退出。
                 final String actor = binding.getString(Keys.OBJECT_ID);
                 final String family = binding.getString("websiteFamily");
-                if (apiV3TokenMgmtService.websiteFamilyActive(actor, family)
-                        && Sessions.websiteCredentialValid(context.getRequest(), actor)) {
-                    success(context, new JSONObject().put("userId", actor)
-                            .put("revision", ApiV3TokenUtil.hash(family)));
-                    return;
+                if (Sessions.websiteCredentialValid(context.getRequest(), actor)) {
+                    final var device = WebsiteDevice.from(context, null);
+                    final String id = apiV3TokenMgmtService.recognizeWebsiteFamily(actor, family, device);
+                    if (id != null) {
+                        if (device.needsCookie(actor, id)) device.attach(context.getResponse(), actor, id);
+                        success(context, new JSONObject().put("userId", actor)
+                                .put("revision", ApiV3TokenUtil.hash(family)));
+                        return;
+                    }
                 }
             }
             success(context, new JSONObject().put("userId", JSONObject.NULL).put("revision", JSONObject.NULL));

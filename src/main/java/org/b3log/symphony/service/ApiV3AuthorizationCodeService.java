@@ -167,15 +167,15 @@ public class ApiV3AuthorizationCodeService {
      */
     public JSONObject exchange(String client, String uri, String raw, String verifier) throws Exception {
         if (ApiV3TokenMgmtService.WEBSITE_CLIENT.equals(client)) throw rejected();
-        return exchangeGrant(client, uri, raw, verifier, null).tokens();
+        return exchangeGrant(client, uri, raw, verifier, null, null, null).tokens();
     }
 
-    public ApiV3TokenMgmtService.WebsiteLogin exchangeWebsite(String uri, String raw, String verifier, String cookieActor) throws Exception {
+    public ApiV3TokenMgmtService.WebsiteLogin exchangeWebsite(String uri, String raw, String verifier, String cookieActor, String sourceFamily, WebsiteDevice device) throws Exception {
         if (cookieActor == null || !cookieActor.matches("[1-9][0-9]{0,18}")) throw rejected();
-        return exchangeGrant(ApiV3TokenMgmtService.WEBSITE_CLIENT, uri, raw, verifier, cookieActor);
+        return exchangeGrant(ApiV3TokenMgmtService.WEBSITE_CLIENT, uri, raw, verifier, cookieActor, sourceFamily, device);
     }
 
-    private ApiV3TokenMgmtService.WebsiteLogin exchangeGrant(String client, String uri, String raw, String verifier, String cookieActor) throws Exception {
+    private ApiV3TokenMgmtService.WebsiteLogin exchangeGrant(String client, String uri, String raw, String verifier, String cookieActor, String sourceFamily, WebsiteDevice device) throws Exception {
         binding(client, uri);
         if (!ApiV3TokenUtil.isValidFormat(raw) || !ApiV3Pkce.validVerifier(verifier))
             throw rejected();
@@ -218,10 +218,27 @@ public class ApiV3AuthorizationCodeService {
                     || !ApiV3Token.TYPE_REFRESH.equals(refresh.optString(ApiV3Token.TOKEN_TYPE)) || refresh.optString(ApiV3Token.FAMILY_ID).isEmpty())
                 throw new IllegalStateException("issued refresh binding lost");
             final String family = refresh.getString(ApiV3Token.FAMILY_ID);
+            String deviceId = "";
+            if (website) {
+                deviceId = device.id(actor);
+                String label = device.label();
+                // 已绑定的旧会话只能在仍有效时换码；远程退出与此处持相同客户端锁。
+                if (sourceFamily != null) {
+                    final var source = tokens.activeWebsiteBinding(actor, sourceFamily);
+                    if (source == null) throw rejected();
+                    if (source.optString(ApiV3Token.DEVICE_ID).isEmpty()) {
+                        tokens.tagWebsiteFamily(actor, sourceFamily, deviceId, label);
+                    } else {
+                        deviceId = source.getString(ApiV3Token.DEVICE_ID);
+                        label = source.getString(ApiV3Token.DEVICE_LABEL);
+                    }
+                }
+                tokens.tagWebsiteFamily(actor, family, deviceId, label);
+            }
             code.put(ApiV3AuthorizationCode.CONSUMED_AT, time).put(ApiV3AuthorizationCode.FAMILY_ID, family);
             codes.update(hash, code, ApiV3AuthorizationCode.CONSUMED_AT, ApiV3AuthorizationCode.FAMILY_ID);
             transaction.commit();
-            return new ApiV3TokenMgmtService.WebsiteLogin(issued, actor, family);
+            return new ApiV3TokenMgmtService.WebsiteLogin(issued, actor, family, deviceId);
         } finally {
             if (transaction.isActive())
                 transaction.rollback();

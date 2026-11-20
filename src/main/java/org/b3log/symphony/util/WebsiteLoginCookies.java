@@ -83,10 +83,19 @@ public final class WebsiteLoginCookies {
         return "localhost".equals(host) || "127.0.0.1".equals(host);
     }
 
-    public static String login(final Response response, final String actor, final boolean remember) throws ServiceException {
+    public static String login(final RequestContext context, final String actor, final boolean remember) throws ServiceException {
         final var service = BeanManager.getInstance().getReference(ApiV3TokenMgmtService.class);
-        final var login = service.issueWebsite(actor);
-        return attach(response, login, remember);
+        final var device = WebsiteDevice.from(context, null);
+        final var login = service.issueWebsite(actor, device, priorFamily(context, actor));
+        final String result = attach(context.getResponse(), login, remember);
+        device.attach(context.getResponse(), actor, login.deviceId());
+        return result;
+    }
+
+    /** 已有签名绑定只在同一账号使用，家族有效性由签发事务在锁内核对。 */
+    public static String priorFamily(RequestContext context, String actor) {
+        final var binding = Sessions.websiteSession(context.getRequest());
+        return binding != null && actor.equals(binding.optString(Keys.OBJECT_ID)) ? binding.getString("websiteFamily") : null;
     }
 
     public static String attach(final Response response, final ApiV3TokenMgmtService.WebsiteLogin login,
