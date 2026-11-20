@@ -31,6 +31,8 @@ public final class ApiV3Token {
     public static final String USER_ID = "userId";
     public static final String CLIENT_ID = "clientId";
     public static final String SCOPE = "scope";
+    public static final String DEVICE_ID = "websiteDeviceId";
+    public static final String DEVICE_LABEL = "websiteDeviceLabel";
     public static final String FAMILY_ID = "familyId";
     public static final String PARENT_ID = "parentId";
     public static final String STATE = "state";
