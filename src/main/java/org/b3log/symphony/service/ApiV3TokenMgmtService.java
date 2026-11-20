@@ -310,10 +310,22 @@ public class ApiV3TokenMgmtService {
             if (partner) throw e;
             return null;
         } catch (final Exception e) {
+            if (partner) throw partnerAuthUnavailable(e);
             return null;
         } finally {
-            if (read != null) rollback(read);
+            if (read != null) {
+                try {
+                    rollback(read);
+                } catch (final RuntimeException e) {
+                    throw partnerAuthUnavailable(e);
+                }
+            }
         }
+    }
+
+    private ApiV3Exception partnerAuthUnavailable(final Exception failure) {
+        LOGGER.warn("搭子鉴权存储暂不可用，异常类型：{}", failure.getClass().getSimpleName());
+        return new ApiV3Exception(503, "partner_busy", "服务繁忙，请稍后再试");
     }
 
     public void revokeRefresh(final String refreshToken) throws ServiceException {

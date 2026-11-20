@@ -18788,7 +18788,7 @@ curl --get 'https://fishpi.cn/admin/pet-logs/export' \
 - `POST /api/v3/me/partners/{action}` 使用 `settings.write` 和 `Idempotency-Key`。加入 `join` 传空对象；开位 `unlock`、退出 `leave` 传本人最近读取的整数 `revision`；请人 `hire` 传目标用户 ID `peer` 与目标名片的 `revision`；放手 `release` 传 `peer` 与本人 `revision`。成功回执仅含 `action`，随后重读。名片变化返回 409，需要查看最新标价；未知结果使用原命令原键。
 - 首签 100，每次转手加 20，成交 200 后本轮满价。转手退上任成交本金并另给 14，搭子分 4，回收 2。放手或退出只退 100。退出结束双向所有关系，保留已购位置及当日计时。默认营业收入按实际成交价每小时 40 至 50，本人搭班另计每小时 2。跨日离线按日累计，在打开玩法或相关交易时自动入账。
 
-- 搭子接口暂时无法取得数据库连接时返回 HTTP 503，`code=partner_busy`。读取可稍后重试。写入请保留原操作、原请求体和 `Idempotency-Key`，使用同一编号核对结果。无效或已撤销的令牌返回 401，权限不足返回 403。
+- 搭子接口暂时无法取得数据库连接，或鉴权时数据库读取失败，返回 HTTP 503，`code=partner_busy`。读取可稍后重试。写入请保留原操作、原请求体和 `Idempotency-Key`，使用同一编号核对结果。无效或已撤销的令牌返回 401，权限不足返回 403。
 
 #### 搭子名片和本人动态
 

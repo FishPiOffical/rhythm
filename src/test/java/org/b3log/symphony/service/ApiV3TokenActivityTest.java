@@ -26,6 +26,7 @@ import org.b3log.symphony.repository.ApiV3TokenRepository;
 import org.b3log.symphony.repository.ApiV3ClientRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.util.ApiV3TokenUtil;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
 
@@ -49,9 +50,10 @@ public class ApiV3TokenActivityTest {
         final JSONObject row = new JSONObject().put("oId", "123").put("tokenType", "access").put("state", 0)
                 .put("expiresAt", Long.MAX_VALUE).put("clientId", "website_v3").put("userId", "456")
                 .put("scope", "profile.read").put("lastUsedAt", 0L);
-        volatile boolean failCommit, failWrite;
+        volatile boolean failCommit, failWrite, failRead;
         public boolean hasTransactionBegun() { return false; }
-        public JSONObject getByHash(final String hash) {
+        public JSONObject getByHash(final String hash) throws RepositoryException {
+            if (failRead) throw new RepositoryException("测试读取失败");
             reads.incrementAndGet();
             return new JSONObject(row.toString());
         }
@@ -140,6 +142,21 @@ public class ApiV3TokenActivityTest {
         Assert.assertNotNull(service.authenticate(credential));
         Assert.assertEquals(tokens.roots.get(), freshRoots);
         System.out.println("PASS per-request authorization, minute boundary, concurrent coalescing and failed commit/update retry");
+
+        tokens.failRead = true;
+        try {
+            service.authenticatePartner(credential);
+            Assert.fail("存储异常应返回服务繁忙");
+        } catch (final ApiV3Exception e) {
+            Assert.assertEquals(e.status, 503);
+            Assert.assertEquals(e.code, "partner_busy");
+        }
+        tokens.failRead = false;
+        tokens.row.put("expiresAt", service.time);
+        Assert.assertNull(service.authenticatePartner(credential));
+        tokens.row.put("expiresAt", Long.MAX_VALUE);
+        Assert.assertNotNull(service.authenticatePartner(credential));
+        System.out.println("PASS partner storage failure, expired credential and recovery");
 
         try (final Connection db = DriverManager.getConnection("jdbc:h2:mem:tokenActivity;MODE=MySQL")) {
             db.createStatement().execute("CREATE TABLE token(oId VARCHAR(19) PRIMARY KEY,tokenType VARCHAR(16),state INT,expiresAt BIGINT,lastUsedAt BIGINT,updatedAt BIGINT)");
