@@ -26,14 +26,25 @@ function run(command, args) {
 try {
   const classes = path.join(work, 'classes');
   const cp = [latke, testng].join(path.delimiter);
+  // 设备 Cookie 使用真实实现；仅在临时目录提供签名配置，避免加载整站或读取真实密钥。
+  const fixtureConfig = path.join(work, 'Symphonys.java');
+  fs.writeFileSync(fixtureConfig, `package org.b3log.symphony.util;
+public final class Symphonys {
+    public static final String COOKIE_SECRET = java.util.UUID.randomUUID().toString();
+}
+`);
   run(javac, ['--release', '25', '-proc:none', '-cp', cp, '-d', classes,
+    fixtureConfig,
     'src/main/java/org/b3log/symphony/util/ApiV3TokenUtil.java',
+    'src/main/java/org/b3log/symphony/util/WebsiteDevice.java',
     'src/main/java/org/b3log/symphony/util/ApiV3RefreshCookies.java',
     'src/main/java/org/b3log/symphony/util/ApiV3Pkce.java',
     'src/test/java/org/b3log/symphony/util/ApiV3TokenUtilTest.java',
     'src/test/java/org/b3log/symphony/util/ApiV3RefreshCookiesTest.java',
+    'src/test/java/org/b3log/symphony/service/WebsiteDeviceTest.java',
     'src/test/java/org/b3log/symphony/util/ApiV3PkceTest.java']);
   for (const name of ['ApiV3TokenUtilTest', 'ApiV3RefreshCookiesTest','ApiV3PkceTest']) run(java, ['-cp', [classes, cp].join(path.delimiter), `org.b3log.symphony.util.${name}`]);
+  run(java, ['-cp', [classes, cp].join(path.delimiter), 'org.b3log.symphony.service.WebsiteDeviceTest']);
 } finally {
   fs.rmSync(work, { recursive: true, force: true });
 }

@@ -27,7 +27,7 @@ public class ApiV3DeviceSessionService {
 
         Device(final String actor, final JSONObject newest) throws Exception {
             publicId = ApiV3TokenUtil.hash("web-device:" + actor + ":" + newest.getString("websiteDeviceId"));
-            label = newest.getString("websiteDeviceLabel");
+            label = newest.getString("activeLabel");
             lastActiveAt = newest.getLong("activity");
         }
 
@@ -38,11 +38,14 @@ public class ApiV3DeviceSessionService {
     }
 
     private Map<String, Device> activeDevices(final String actor, final long now) throws Exception {
-        final var rows = tokens.select("SELECT websiteDeviceId,websiteDeviceLabel,familyId,"
+        // 按家族判断会话是否仍有效；已到期的访问令牌也保存着这个家族的真实活动时间。
+        final var rows = tokens.select("SELECT websiteDeviceId,familyId,"
+                + " MAX(CASE WHEN state=? AND expiresAt>? THEN websiteDeviceLabel END) AS activeLabel,"
                 + " MAX(GREATEST(createdAt,lastUsedAt)) AS activity FROM `" + tokens.getName()
-                + "` WHERE clientId=? AND userId=? AND state=? AND expiresAt>? AND websiteDeviceId<>''"
-                + " GROUP BY websiteDeviceId,websiteDeviceLabel,familyId ORDER BY activity DESC,websiteDeviceId",
-                ApiV3TokenMgmtService.WEBSITE_CLIENT, actor, ApiV3Token.STATE_ACTIVE, now);
+                + "` WHERE clientId=? AND userId=? AND websiteDeviceId<>''"
+                + " GROUP BY websiteDeviceId,familyId HAVING activeLabel IS NOT NULL"
+                + " ORDER BY activity DESC,websiteDeviceId,familyId",
+                ApiV3Token.STATE_ACTIVE, now, ApiV3TokenMgmtService.WEBSITE_CLIENT, actor);
         final Map<String, Device> devices = new LinkedHashMap<>();
         for (final var row : rows) {
             final String id = row.getString("websiteDeviceId");

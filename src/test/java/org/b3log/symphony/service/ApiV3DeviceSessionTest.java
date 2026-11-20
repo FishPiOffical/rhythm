@@ -33,6 +33,49 @@ public class ApiV3DeviceSessionTest {
         }
     }
 
+    private static void activityAcrossExpiry(final F f, final ApiV3DeviceSessionService devices,
+                                             final JSONObject owner) throws Exception {
+        // 同一台手机最后访问在 900，刷新令牌签发在 100，另一台设备的活动在两者之间。
+        session(f, "209", "1", "website_v3", "phone", "new", "access");
+        sql(f.db, "UPDATE tokens SET createdAt=100,lastUsedAt=0 WHERE oId='208'");
+        sql(f.db, "UPDATE tokens SET createdAt=100,lastUsedAt=900 WHERE oId='209'");
+        sql(f.db, "UPDATE tokens SET lastUsedAt=600 WHERE oId='100'");
+        final var before = devices.list(owner).getJSONArray("list");
+        final var first = before.getJSONObject(0);
+        final String handle = first.getString("id");
+        Assert.assertFalse(first.getBoolean("current"));
+        Assert.assertEquals(first.getLong("lastActiveAt"), 900L);
+        Assert.assertEquals(before.getJSONObject(1).getLong("lastActiveAt"), 600L);
+
+        // 已结束的家族即使有更新的记录，也不能参与这次手机登录的时间或退出编号。
+        sql(f.db, "UPDATE tokens SET lastUsedAt=1100 WHERE oId='201'");
+        session(f, "210", "1", "website_v3", "phone", "ended", "access");
+        sql(f.db, "UPDATE tokens SET lastUsedAt=1200,expiresAt=1300 WHERE oId='210'");
+        session(f, "212", "2", "website_v3", "phone", "new", "access");
+        session(f, "213", "1", "third", "phone", "new", "access");
+        sql(f.db, "UPDATE tokens SET lastUsedAt=1800 WHERE oId IN ('212','213')");
+        sql(f.db, "UPDATE tokens SET expiresAt=1000 WHERE oId='209'");
+        final var after = devices.list(owner).getJSONArray("list");
+        Assert.assertEquals(after.length(), 2);
+        final var top = after.getJSONObject(0);
+        final var phone = top.getBoolean("current") ? after.getJSONObject(1) : top;
+        Assert.assertEquals(phone.getLong("lastActiveAt"), 900L, "访问令牌到期后手机的最近活动应保留");
+        Assert.assertEquals(phone.getString("id"), handle);
+        Assert.assertFalse(top.getBoolean("current"), "最近使用的手机仍应排第一");
+
+        sql(f.db, "UPDATE tokens SET expiresAt=1400 WHERE oId='208'");
+        final var remaining = devices.list(owner).getJSONArray("list");
+        Assert.assertEquals(remaining.length(), 1);
+        Assert.assertTrue(remaining.getJSONObject(0).getBoolean("current"));
+        session(f, "211", "1", "website_v3", "phone", "next-login", "refresh");
+        final var fresh = devices.list(owner).getJSONArray("list").getJSONObject(1);
+        Assert.assertEquals(fresh.getLong("lastActiveAt"), 15L);
+        Assert.assertNotEquals(fresh.getString("id"), handle);
+        fails("device_changed", () -> devices.revoke(owner, handle));
+        Assert.assertTrue(devices.revoke(owner, fresh.getString("id")).getBoolean("revoked"));
+        Assert.assertEquals(devices.list(owner).getJSONArray("list").length(), 1);
+    }
+
     public static void main(String[] args) throws Exception {
         final var properties = new Properties();
         properties.setProperty("runtimeDatabase", "NONE");
@@ -88,6 +131,7 @@ public class ApiV3DeviceSessionTest {
             session(f, "208", "1", "website_v3", "phone", "new", "refresh");
             fails("device_changed", () -> devices.revoke(owner, id));
             Assert.assertEquals(rows(f.db,"SELECT oId FROM tokens WHERE state=0 AND oId IN ('100','204','205','206','208')").size(), 5);
+            activityAcrossExpiry(f, devices, owner);
             System.out.println("通过：设备合并、当前设备、第一方权限、跨账号、刷新、重复退出与重新登录保护");
         }
     }

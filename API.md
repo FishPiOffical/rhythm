@@ -309,7 +309,7 @@ curl 'https://fishpi.cn/api/v3/me/security/devices' --header 'Authorization: Bea
 | data.list | 本人的有效网页登录设备，按最近活动排序 | 数组 |
 | - id | 本次可退出的设备编号，原样用于退出请求 | 字符串 |
 | - label | 浏览器和系统名称 | Safari · iPhone |
-| - lastActiveAt | 最近活动的毫秒时间戳，访问时间按分钟记录 | 1795000000000 |
+| - lastActiveAt | 该设备仍有效的登录会话中，最近一次登录、续期或访问的毫秒时间戳；访问时间按分钟记录 | 1795000000000 |
 | - current | 是否为发起请求的设备 | true |
 
 > 同一浏览器的多个标签和新旧网站共享设备；第三方应用的授权独立管理。上线前先执行 `sql/20261120_api_v3_website_devices.sql`。已有绑定的浏览器在后续会话核验时显示为「早期网页登录」，未能核实归属的历史登录不会列入。
