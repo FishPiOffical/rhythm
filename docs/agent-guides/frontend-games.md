@@ -38,5 +38,6 @@
 
 - Evolve 游戏入口是 `/games/evolve/`，PC/移动模板都在 `skins/classic/*/games/evolve/index.ftl`；生产资源使用 `https://file.fishpi.cn/evolve/`，模板需设置 `window.fishpiEvolveAssetBase` 供语言包、Worker 与 Wiki 链接解析；Worker 跨源加载需走同源 Blob 包装后 `importScripts` CDN 脚本；鱼排集成包含鱼游入口、左下角云存档面板、`gameId=40` 排行榜同步与 `gameId=evolve-save` 云存档；不再覆盖 CDN 根 `/main.js`；Evolve CDN 依赖是长缓存，主脚本和与主脚本版本强绑定的库（如 Popper）都需要带 `${staticResourceVersion}`。
 - 上传链路：编辑器贴图走 RhyPic 前端直传（`Util.rhypicTicket` + `pic.fishpi.cn/api/v1/files`，字段名 `file`）；头像/裁剪/涂鸦等 `/upload` 代理通道字段名必须是 `file[]`，由 `FileUploadProcessor#uploadViaRhypic` 签票转发。图床拒绝无扩展名文件：FormData 裸 Blob（cropper、聊天室涂鸦）必须带文件名（append 第三参数），后端同时按 Content-Type 为无后缀文件名补扩展名，并在 succMap 保留原名别名兼容 `succMap.blob` 类老前端。前端魔数校验 `isImage` 只认 JPEG(SOI FF D8 FF)/PNG/GIF，WebP 不在 `upload.suffix` 白名单，头像场景给明确提示。
+- RhyPic 上传、浏览器授权与服务端调用 Rhythm 是不同链路；`pic.fishpi.cn` 的 [启动白名单](captcha-crawlers.md#受保护入口与运行模式) 仅影响 Rhythm 实际看到的匹配来源 IP，不改变上传或 OAuth 鉴权。
 - v3游戏存档仅`ApiV3GameSaveInputs`精确目录，首批evolve-save单槽；`ApiV3GameSaveService`新旧HTTP共锁owner，CAS/metadata回执/版本同严格根，迁移只复制唯一旧记录不覆盖。旧登记游戏保存须JSON、盲写递增版本，其他cloud键保留；先迁移20261025_api_v3_game_save.sql。
 - v3 上传签票走 `ApiV3UploadProcessor` / `ApiV3UploadTicketService`，要求 uploads.write，当前用户只取Bearer并从数据库投影重读；`RhypicUploadTickets`只共用Ed25519协议，旧入口字段保持。v3的uploadURL是含/api/v1/files的完整公开地址，不能用internalUrl；短期凭据不落业务幂等表，每次取票新签发。文件直传字段file，旧/upload代理仍是file[]。

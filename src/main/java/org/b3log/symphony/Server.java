@@ -367,17 +367,19 @@ public final class Server extends BaseServer {
             });
         }
 
-        try {
-            for (final InetAddress address : InetAddress.getAllByName("new.fishpi.cn")) {
-                final String ip = address.getHostAddress();
-                Firewall.unbanIp(ip);
-                Firewall.addCcWhitelist(ip);
-                // 启动时复用后台解封流程；阿达已授权为 SSR 域名解析结果加白。
-                AnonymousCaptchaShield.administratorUnban(ip);
-                LOGGER.info("SSR server startup unban requested and CC/captcha whitelist added [host=new.fishpi.cn, ip={}]", ip);
+        for (final String host : List.of("new.fishpi.cn", "pic.fishpi.cn", "10.0.24.8")) {
+            try {
+                for (final InetAddress address : InetAddress.getAllByName(host)) {
+                    final String ip = address.getHostAddress();
+                    Firewall.unbanIp(ip);
+                    Firewall.addCcWhitelist(ip);
+                    // 启动时复用后台解封流程，将确认的服务地址加入全局白名单。
+                    AnonymousCaptchaShield.administratorUnban(ip);
+                    LOGGER.info("Startup unban requested and CC/captcha whitelist added [host={}, ip={}]", host, ip);
+                }
+            } catch (final Exception e) {
+                LOGGER.warn("Startup unban/whitelist failed [host={}]", host, e);
             }
-        } catch (final Exception e) {
-            LOGGER.warn("SSR server startup unban/whitelist failed [host=new.fishpi.cn]", e);
         }
 
         final String unixDomainSocketPath = commandLine.getOptionValue("unix_domain_socket_path");

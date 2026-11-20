@@ -23,6 +23,7 @@
 - 已批准应用登记核心为 `ApiV3ClientRegistrationService#createApprovedInCurrentTransaction`：服务端生成client_id，客户端行和精确回调行在调用方事务内同保存点写入，scope仅允许已实现的v3权限；不做HTTP身份/审批/幂等，调用方须完整提供这些边界，用户已确认仅管理员登记和维护；`ApiV3ClientManagementProcessor/Service`提供第一方当前管理员的列表/详情/幂等登记，最多20回调、每个2048；先按账号重置顺序锁客户端命名空间，再锁user/token/request，重放也重验。停用由`ApiV3ClientDisableService`把status=1、全部目标Token撤销与回执同严格事务，不删登记/回调；票据/WS在后续当前授权检查失效，不承诺同步跨实例断连。`ApiV3ClientUpdateService`完整替换名称/scope/回调，实际权限或回调集合变更同事务撤销全部Token、删除旧code与pending请求，保留已决定历史；名称或排序变化保留授权，状态不变；禁止自助登记。
 - 管理后台的内置 OAuth 客户端仍为 `website_v3`。仅允许固定 `/manage/oauth/callback` 地址与精确匹配的换码 Origin，沿用同意页、PKCE、一次性码及当前账号校验。申请完整第一方网站 scope，使共用刷新 Cookie 的网站功能保持一致。换码只在 HttpOnly Cookie 中交付刷新凭据，后台仍按现有能力矩阵及端点权限鉴权。
 - OAuth/OpenID 用户资源链路在 `OpenIdProcessor`：`/openid/login` 通过 `fishpi.scope` 请求 `profile.read/profile.detail.read/points.read/articles.read/membership.read`，`/openid/verify` 成功后返回 Bearer `access_token` 与可轮换 `refresh_token`；资源接口只认 `Authorization: Bearer`，续签走匿名 `POST /openid/token`，不接收 `apiKey`、不支持 `userId` 代查。
+- OAuth/OpenID 请求先经过全局验证码黑名单检查；命中时旧入口跳转 `/test`，V3 实际业务请求返回 403 `captcha_required`。旧 `/openid/confirm` 在授权请求过期、用户取消、授权范围不匹配或当前用户凭据版本变化时也可返回“登录失败”。排查需核对实际失败的步骤、响应与来源 IP，不能单凭提示判定验证码拦截。
 
 ## 账号凭据与验证码
 
