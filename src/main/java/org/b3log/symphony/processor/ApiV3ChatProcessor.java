@@ -30,6 +30,7 @@ import org.b3log.symphony.service.ApiV3ChatPublicationService;
 import org.b3log.symphony.service.ApiV3ChatQueryService;
 import org.b3log.symphony.service.ApiV3RankingQueryService;
 import org.b3log.symphony.service.ApiV3ChatOnlineQueryService;
+import org.b3log.symphony.service.ChatGameStatusService;
 import org.b3log.symphony.service.ChatMessageWithdrawalMgmtService;
 import org.b3log.symphony.service.LogsService;
 import org.b3log.symphony.service.ApiV3ChatTopicService;
@@ -51,6 +52,8 @@ public class ApiV3ChatProcessor {
     @Inject
     private ApiV3ChatOnlineQueryService onlineQuery;
     @Inject
+    private ChatGameStatusService gameStatus;
+    @Inject
     private ApiV3ChatPublicationService publication;
     @Inject
     private ChatMessageWithdrawalMgmtService withdrawals;
@@ -70,6 +73,7 @@ public class ApiV3ChatProcessor {
         Dispatcher.delete("/api/v3/chat/messages/{messageId}", p::withdraw, auth::contentWrite, writes::handle);
         Dispatcher.get("/api/v3/chat/messages", p::list, auth::contentRead);
         Dispatcher.get("/api/v3/chat/online-users", p::online, auth::contentRead);
+        Dispatcher.get("/api/v3/chat/game-status", p::gameStatus, auth::contentRead);
         Dispatcher.get("/api/v3/chat/topic", p::topic, auth::contentRead);
         Dispatcher.put("/api/v3/chat/topic", p::setTopic, auth::contentWrite, writes::handle);
         Dispatcher.post("/api/v3/chat/barrager", p::sendBarrage, auth::contentWrite, writes::handle);
@@ -114,6 +118,10 @@ public class ApiV3ChatProcessor {
 
     public void online(final RequestContext c) {
         ApiV3Requests.read(c, () -> onlineQuery.list(ApiV3Requests.viewer(c), ApiV3Requests.page(c), ApiV3Requests.size(c)));
+    }
+
+    public void gameStatus(final RequestContext c) {
+        ApiV3Requests.read(c, () -> gameStatus.list((JSONObject) c.attr(ApiV3Processor.IDENTITY), c.param("userIds")));
     }
 
     public void withdraw(final RequestContext c) {

@@ -35,7 +35,7 @@ public class PartnerService {
     }
 
     private static boolean joined(JSONObject row) { return row != null && row.getInt("joined") == 1; }
-    private static int quote(JSONObject row) {
+    static int quote(JSONObject row) {
         return row.getString("holder").isEmpty() ? 100 : row.getInt("price") + 20;
     }
     @Inject private PartnerOperationsService operations;

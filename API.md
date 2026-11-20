@@ -4908,6 +4908,16 @@ curl --request GET 'https://fishpi.cn/api/v3/chat/barrager/price' \
 
 > 此接口不发送弹幕或扣分。unit 为显示文本，实际使用积分；价格可能调整，消耗以发送时的规则为准。
 
+### 查询聊天室作者游园状态
+
+`GET /api/v3/chat/game-status?userIds=1,2`
+
+第一方登录态需要 `content.read` 和 `profile.read`。参数是 1 到 50 个以半角逗号分隔的用户编号。响应的 `data.list` 通过 `userId` 关联作者，未参加两个游戏或不可展示的账号省略。
+
+- 已有车位的账号返回 `parkingFree` 布尔值，表示该用户自己的车位当前是否空闲。
+- 已开放搭子名片的账号返回 `partner.displayValue`（十进制身价字符串）和 `partner.full`（已到最高成交档）。
+- 宠物沿用消息已有的宠物快照。读取游园状态不产生访问流水或营业结算。
+
 ### 查询在线用户
 
 `GET /api/v3/chat/online-users`
