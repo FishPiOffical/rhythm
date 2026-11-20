@@ -12,8 +12,8 @@
 
 | 位置 | 约束 |
 | --- | --- |
-| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3仅允许CORS预检协商，实际业务403；其他CORS/OPTIONS再后；登录态不越过黑名单 |
-| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前 |
+| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3业务请求403，CORS预检只协商；网页续期按下方版本4处理 |
+| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前，网页续期按下方版本4处理 |
 | `CaptchaProcessor.register/captcha/validateCaptcha` | 原路由不变，展示及验证委托核心；验证码状态清理只能在验证成功后发生 |
 | `AdminProcessor.modifyIp` | 系统解封后清验证码状态并加白；系统封禁前撤白；原管理员鉴权不变 |
 | `AdminProcessor` 开关入口 | 保留原管理员鉴权，开关仍是临时进程状态 |
@@ -40,6 +40,10 @@
 前端统一验证、首页队列、SSR来源隔离与实时重新取票见[联调专题](agent-guides/website-v3-integration.md)。运行态仍有容量淘汰、重启清空和多实例不一致；“持续”不是永久存储承诺。真实极验、运行服务及PC/移动验收结果见工作单，不以隔离测试代替。
 
 本轮先审查核心、全局入口与新增CORS协商实现，再完成14项Java25回归（各进程60秒硬超时），仅更新核心及 `BeforeRequestHandler.handle` 的受影响指纹，新增CORS整文件保护；交付复核时又审查并登记了上游同步的 `ApiV3AdminSystemService` 四个既有方法（IP策略状态、IP变更、安全开关保存及安全开关快照），策略版本仍为3，当时锁共29项；后续管理任务调用登记后当前共31项。版本3不是自动重建锁的授权，后续改动仍须明确允许及复核。
+
+## 版本 4：V3 网页续期
+
+V3 网页续期直接使用原有来源、正文和刷新凭据校验。验证码待验证状态、匿名计数和 IP 白名单不会因续期请求改变。后续内容请求仍按既有规则处理，UA、CC 与系统封禁仍先执行。
 
 ## 修改授权与指纹
 

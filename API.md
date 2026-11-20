@@ -368,7 +368,7 @@ curl --request POST 'https://fishpi.cn/api/v3/auth/refresh'
 
 > 刷新成功后浏览器使用新的登录 Cookie。请勿重复使用刷新前的 Cookie；重复使用会使本次登录失效，需要重新登录。 账号已停用、未激活或不存在时返回 HTTP 401，不能继续刷新。
 
-> 登录存储暂时不可用时返回 HTTP 503，保留刷新 Cookie。
+> 缺少刷新 Cookie 或刷新凭据失效时返回 HTTP 401。登录存储暂时不可用时返回 HTTP 503，保留刷新 Cookie。
 
 ### 退出登录
 

@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 3;
+    public static final int POLICY_VERSION = 4;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -146,6 +146,7 @@ public final class AnonymousCaptchaShield {
     public static boolean redirectIfChallenged(final RequestContext context, final boolean verifiedCrawler) {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!verifiedCrawler && isRestricted(ip)
+                && !isV3Refresh(context)
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
             if (isV3(context)) {
@@ -168,6 +169,11 @@ public final class AnonymousCaptchaShield {
             return true;
         }
         return false;
+    }
+
+    public static boolean isV3Refresh(final RequestContext context) {
+        return "POST".equalsIgnoreCase(context.method())
+                && (Latkes.getContextPath() + "/api/v3/auth/refresh").equals(context.requestURI());
     }
 
     private static boolean isV3(final RequestContext context) {

@@ -41,6 +41,7 @@ import org.b3log.symphony.processor.CaptchaProcessor;
 import org.b3log.symphony.processor.SkinRenderer;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.ArticleRepository;
+import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.OptionQueryService;
 import org.json.JSONObject;
 import org.testng.Assert;
@@ -377,6 +378,73 @@ public class AnonymousCaptchaShieldTest {
         try (final Exchange exchange = new Exchange("/")) {
             Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, true));
         }
+    }
+
+    @Test
+    public void websiteRefreshReachesCredentialValidationWithShieldEnabled() throws Exception {
+        final String refreshPath = "/api/v3/auth/refresh";
+        final ApiV3Processor processor = new ApiV3Processor();
+        inject(processor, "apiV3TokenMgmtService", new ApiV3TokenMgmtService());
+        Firewall.setEnabled(false);
+        for (final boolean pending : List.of(false, true)) {
+            if (pending) cache("ipBlacklistCache").put(IP, true);
+            try (final Exchange exchange = new Exchange(refreshPath, "POST", null, UA)) {
+                exchange.raw.headers().set("Origin", Latkes.getServer());
+                exchange.run(middleware::handle);
+                Assert.assertTrue(exchange.reached);
+                Assert.assertEquals(AnonymousCaptchaShield.isAwaitingCaptcha(IP), pending);
+                Assert.assertNull(cache("ipV3VisitCountCache").getIfPresent(IP));
+                Assert.assertFalse(whitelist().contains(IP));
+            }
+            if (pending) {
+                try (final Exchange exchange = new Exchange(refreshPath, "POST", null, UA)) {
+                    exchange.raw.headers().set("Origin", Latkes.getServer());
+                    processor.refresh(exchange.context);
+                    Assert.assertEquals(exchange.status, 401);
+                    Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject()
+                            .getString("code"), "unauthorized");
+                    Assert.assertEquals(AnonymousCaptchaShield.isAwaitingCaptcha(IP), pending);
+                    Assert.assertNull(cache("ipV3VisitCountCache").getIfPresent(IP));
+                    Assert.assertFalse(whitelist().contains(IP));
+                }
+            }
+        }
+        try (final Exchange exchange = new Exchange(refreshPath, "POST", null, UA)) {
+            exchange.raw.headers().set("Origin", "https://example.invalid");
+            exchange.run(middleware::handle);
+            Assert.assertTrue(exchange.reached);
+            processor.refresh(exchange.context);
+            Assert.assertEquals(exchange.status, 403);
+            Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject()
+                    .getString("code"), "forbidden");
+        }
+        for (final String path : List.of(refreshPath + "/extra", "/api/v3/auth/session")) {
+            final boolean refreshSubpath = path.endsWith("/extra");
+            try (final Exchange exchange = new Exchange(path, refreshSubpath ? "POST" : "GET", null, UA)) {
+                Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+                Assert.assertFalse(AnonymousCaptchaShield.isV3Refresh(exchange.context));
+                Assert.assertEquals(exchange.status, 403);
+                Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject()
+                        .getString("code"), "captcha_required");
+                Assert.assertFalse(exchange.reached);
+            }
+        }
+        Firewall.setEnabled(true);
+        final Cache<String, Boolean> banned = cacheForFirewall();
+        final Boolean priorBan = banned.getIfPresent(IP);
+        banned.put(IP, true);
+        try (final Exchange exchange = new Exchange(refreshPath, "POST", null, UA)) {
+            exchange.run(new BeforeRequestHandler());
+            Assert.assertEquals(exchange.status, 429);
+            Assert.assertFalse(exchange.reached);
+        } finally {
+            if (priorBan == null) banned.invalidate(IP); else banned.put(IP, priorBan);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Cache<String, Boolean> cacheForFirewall() throws Exception {
+        return (Cache<String, Boolean>) field(Firewall.class, "BANNED");
     }
 
     @Test
