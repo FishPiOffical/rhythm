@@ -10,6 +10,17 @@
   "since": "0.2.0",
   "repositories": [
     {
+      "name": "user_ip_lease",
+      "description": "有时效的账号来源 IP 租约",
+      "keys": [
+        { "name": "oId", "type": "String", "length": 32 },
+        { "name": "userId", "type": "String", "length": 19 },
+        { "name": "ip", "type": "String", "length": 45 },
+        { "name": "lastSeenAt", "type": "long" },
+        { "name": "expiresAt", "type": "long" }
+      ]
+    },
+    {
       "name": "pet_brawl_attempt",
       "description": "随机匹配观测记录",
       "keys": [

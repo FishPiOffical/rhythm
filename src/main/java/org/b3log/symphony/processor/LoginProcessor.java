@@ -49,6 +49,7 @@ import org.b3log.symphony.censor.CensorFactory;
 import org.b3log.symphony.censor.CensorResult;
 import org.b3log.symphony.service.*;
 import org.b3log.symphony.util.WebsiteLoginCookies;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.AccountCredentialVersions;
 import org.b3log.symphony.util.StatusCodes;
@@ -668,6 +669,7 @@ public class LoginProcessor {
             if (result.success()) {
                 final String userId = result.user().optString(Keys.OBJECT_ID);
                 final String token = WebsiteLoginCookies.login(context, userId, requestJSONObject.optBoolean(Common.REMEMBER_LOGIN));
+                UserIpLeaseService.renew(result.user(), context);
                 context.renderCodeMsg(StatusCodes.SUCC, "");
                 context.renderJSONValue(Keys.TOKEN, token);
                 return;

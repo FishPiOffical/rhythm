@@ -18,12 +18,9 @@
  */
 package org.b3log.symphony.cache;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.b3log.latke.Keys;
 import org.b3log.latke.ioc.Singleton;
 import org.b3log.latke.model.User;
-import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.util.JSONs;
 import org.b3log.symphony.util.Sessions;
 import org.json.JSONObject;
@@ -62,15 +59,7 @@ public class UserCache {
         }
     });
 
-    /**
-     * IP, User.
-     */
-    private static final Map<String, String> IP_CACHE = Collections.synchronizedMap(new LinkedHashMap<String, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > 50000;
-        }
-    });
+    private static final Object USER_CACHE_LOCK = new Object();
 
     /**
      * Administrators cache.
@@ -126,20 +115,6 @@ public class UserCache {
         return JSONs.clone(user);
     }
 
-    public static boolean hasUserByIP(final String ip) {
-        return IP_CACHE.containsKey(ip);
-    }
-
-    /** Returns the cached username associated with a previously logged-in IP. */
-    public static String getUserNameByIP(final String ip) {
-        final String userId = IP_CACHE.get(ip);
-        if (userId == null) {
-            return null;
-        }
-        final JSONObject user = ID_CACHE.get(userId);
-        return user == null ? null : user.optString(User.USER_NAME, null);
-    }
-
     /**
      * Adds or updates the specified user.
      *
@@ -147,7 +122,7 @@ public class UserCache {
      */
     public void putUser(final JSONObject user) {
         final String userId = user.optString(Keys.OBJECT_ID);
-        synchronized (IP_CACHE) {
+        synchronized (USER_CACHE_LOCK) {
             final JSONObject previous = ID_CACHE.get(userId);
             final JSONObject cached = null == previous ? JSONs.clone(user) : JSONs.clone(previous);
             for (final String key : user.keySet()) {
@@ -156,21 +131,11 @@ public class UserCache {
             cached.put(Keys.OBJECT_ID, userId);
             final String oldName = null == previous ? "" : previous.optString(User.USER_NAME);
             final String name = cached.optString(User.USER_NAME);
-            final String oldIp = null == previous ? "" : previous.optString(UserExt.USER_LATEST_LOGIN_IP);
-            final String ip = cached.optString(UserExt.USER_LATEST_LOGIN_IP);
             ID_CACHE.put(userId, cached);
             if (!oldName.isEmpty() && !oldName.equals(name)) {
                 NAME_CACHE.remove(oldName);
             }
             NAME_CACHE.put(name, cached);
-            if (null != previous) {
-                if (!oldIp.equals(ip)) {
-                    removeIpMapping(oldIp, userId);
-                }
-            }
-            if (!ip.isEmpty()) {
-                IP_CACHE.put(ip, userId);
-            }
             Sessions.put(userId, cached);
         }
     }
@@ -182,33 +147,11 @@ public class UserCache {
      */
     public void removeUser(final JSONObject user) {
         final String userId = user.optString(Keys.OBJECT_ID);
-        synchronized (IP_CACHE) {
+        synchronized (USER_CACHE_LOCK) {
             final JSONObject cached = ID_CACHE.remove(userId);
             NAME_CACHE.remove(user.optString(User.USER_NAME));
             if (null != cached) {
                 NAME_CACHE.remove(cached.optString(User.USER_NAME));
-            }
-            final String ip = null == cached
-                    ? user.optString(UserExt.USER_LATEST_LOGIN_IP)
-                    : cached.optString(UserExt.USER_LATEST_LOGIN_IP);
-            removeIpMapping(ip, userId);
-        }
-    }
-
-    /** Removes a user's IP mapping and preserves another cached account sharing that IP. */
-    private static void removeIpMapping(final String ip, final String userId) {
-        if (ip.isEmpty() || userId.isEmpty() || !userId.equals(IP_CACHE.get(ip))) {
-            return;
-        }
-
-        IP_CACHE.remove(ip);
-        synchronized (ID_CACHE) {
-            for (final JSONObject cached : ID_CACHE.values()) {
-                final String cachedUserId = cached.optString(Keys.OBJECT_ID);
-                if (!userId.equals(cachedUserId) && ip.equals(cached.optString(UserExt.USER_LATEST_LOGIN_IP))) {
-                    IP_CACHE.put(ip, cachedUserId);
-                    break;
-                }
             }
         }
     }

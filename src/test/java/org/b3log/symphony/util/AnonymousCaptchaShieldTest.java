@@ -33,8 +33,11 @@ import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.Response;
 import org.b3log.latke.http.renderer.JsonRenderer;
-import org.b3log.symphony.cache.UserCache;
+import org.b3log.latke.Keys;
+import org.b3log.latke.model.User;
 import org.b3log.symphony.model.Article;
+import org.b3log.symphony.model.Role;
+import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.processor.BeforeRequestHandler;
 import org.b3log.symphony.processor.CaptchaProcessor;
@@ -43,6 +46,7 @@ import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.OptionQueryService;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -249,21 +253,30 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void whitelistAndKnownUserIpStillExempt() throws Exception {
-        AnonymousCaptchaShield.administratorUnban(IP);
-        for (int i = 0; i < 6; i++) allowed("/shield-test-page");
-        Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
-        reset();
-        @SuppressWarnings("unchecked") final Map<String, String> known = (Map<String, String>) field(UserCache.class, "IP_CACHE");
-        final String previous = known.put(IP, "fixture-user");
+    public void leasedIpNeverEntersPermanentWhitelist() throws Exception {
+        final JSONObject user = new JSONObject().put(Keys.OBJECT_ID, "lease-fixture")
+                .put(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT).put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
         try {
+            Sessions.setUser(user);
             allowed("/shield-test-page");
-            Assert.assertTrue(whitelist().contains(IP));
-            known.remove(IP);
+            Sessions.clearThreadLocalData();
             allowed("/shield-test-page");
+            Assert.assertFalse(whitelist().contains(IP));
             Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
+            moveLease(user);
+            try (final Exchange exchange = new Exchange("/shield-test-page")) {
+                exchange.run(middleware::handle);
+                Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
+            }
         } finally {
-            if (previous != null) known.put(IP, previous); else known.remove(IP);
+            moveLease(user);
+        }
+    }
+
+    private static void moveLease(final JSONObject user) {
+        try (final Exchange exchange = new Exchange("/shield-test-page")) {
+            exchange.raw.headers().set("X-Waf-Ip", "198.51.100.212");
+            UserIpLeaseService.renew(user, exchange.context);
         }
     }
 

@@ -29,9 +29,11 @@ import org.b3log.latke.util.Locales;
 import org.b3log.latke.util.Stopwatchs;
 import org.b3log.latke.util.Strings;
 import org.b3log.symphony.model.Common;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.SecurityMonitor;
 import org.b3log.symphony.util.Symphonys;
+import org.json.JSONObject;
 
 import java.util.Map;
 
@@ -51,6 +53,9 @@ public class AfterRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        if (context.attr(ApiV3Processor.IDENTITY) instanceof JSONObject identity) {
+            UserIpLeaseService.renew(identity.optJSONObject("user"), context);
+        }
         SecurityMonitor.requestFinished(context);
         Locales.setLocale(null);
         Sessions.clearThreadLocalData();

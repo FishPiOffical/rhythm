@@ -30,7 +30,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-/** Verifies that cached latest-login IP mappings follow user updates. */
+/** Verifies that profile updates still keep ID and username lookups consistent. */
 public class UserCacheTest {
     private static final String OLD_IP = "198.51.100.10";
     private static final String NEW_IP = "198.51.100.11";
@@ -42,27 +42,26 @@ public class UserCacheTest {
     public void clearCaches() throws Exception {
         map("ID_CACHE").clear();
         map("NAME_CACHE").clear();
-        map("IP_CACHE").clear();
     }
 
     @Test
-    public void replacingUserMovesLatestLoginIpMapping() {
+    public void updatingUserRetainsLatestLoginIpAsProfileMetadata() {
         cache.putUser(user("u1", "tester", OLD_IP));
         cache.putUser(user("u1", "tester", NEW_IP));
 
-        Assert.assertFalse(UserCache.hasUserByIP(OLD_IP));
-        Assert.assertTrue(UserCache.hasUserByIP(NEW_IP));
-        Assert.assertEquals(UserCache.getUserNameByIP(NEW_IP), "tester");
+        Assert.assertEquals(cache.getUser("u1").getString(UserExt.USER_LATEST_LOGIN_IP), NEW_IP);
+        Assert.assertEquals(cache.getUserByName("tester").getString(UserExt.USER_LATEST_LOGIN_IP), NEW_IP);
     }
 
     @Test
-    public void removingUserPreservesSharedIpMapping() {
+    public void removingUserDoesNotRemoveAnotherProfile() {
         cache.putUser(user("u1", "first", OLD_IP));
         cache.putUser(user("u2", "second", OLD_IP));
         cache.removeUser(user("u2", "second", OLD_IP));
 
-        Assert.assertTrue(UserCache.hasUserByIP(OLD_IP));
-        Assert.assertEquals(UserCache.getUserNameByIP(OLD_IP), "first");
+        Assert.assertNull(cache.getUser("u2"));
+        Assert.assertNull(cache.getUserByName("second"));
+        Assert.assertEquals(cache.getUserByName("first").getString(Keys.OBJECT_ID), "u1");
     }
 
     private static JSONObject user(final String id, final String name, final String ip) {

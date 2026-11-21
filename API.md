@@ -344,7 +344,7 @@ curl --request DELETE 'https://fishpi.cn/api/v3/me/security/devices/<deviceId>' 
 
 `POST /api/v3/auth/refresh`
 
-用于同域 website_v3 恢复登录状态。
+用于同域 website_v3 恢复登录状态。刷新凭据校验和轮换成功后，服务端续期当前账号的来源 IP 租约，不清除已触发的人机验证或 IP 封禁。
 
 请求：
 

@@ -28,7 +28,7 @@ import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.b3log.symphony.cache.UserCache;
+import org.b3log.symphony.service.UserIpLeaseService;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -133,7 +133,7 @@ public final class Firewall {
         }
 
         final long nowBucket = System.currentTimeMillis() / WINDOW_MILLIS;
-        final int effectiveThreshold = UserCache.hasUserByIP(ip) ? threshold : Math.min(threshold, 250);
+        final int effectiveThreshold = UserIpLeaseService.isIpCovered(ip) ? threshold : Math.min(threshold, 250);
         final Counter counter = COUNTERS.compute(ip, (key, existing) -> {
             if (existing == null || existing.bucket != nowBucket) {
                 return new Counter(nowBucket, 1);

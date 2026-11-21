@@ -158,6 +158,28 @@
             <button type="button" onclick="SalaryUtil.paySalary()" class="green fn-right" style="width:100%;">发放工资</button>
         </div>
     </div>
+    <#if leaseUserName??>
+    <div class="module security-panel">
+        <div class="module-header"><h2>账号 IP 租约</h2></div>
+        <div class="module-panel form form--admin">
+            <form action="${servePath}/admin/misc" method="GET">
+                <label>用户名 <input name="leaseUserName" maxlength="64" value="${leaseUserName?html}" required/></label>
+                <button type="submit">查询</button>
+            </form>
+            <#if leaseSearchResult??>
+            <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
+                <#list leaseSearchResult as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
+                <#else><tr><td colspan="4">没有记录</td></tr></#list>
+            </tbody></table></div>
+            </#if>
+            <h3>最近 200 个用户</h3>
+            <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
+                <#list leaseRecentUsers![] as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
+                <#else><tr><td colspan="4">没有记录</td></tr></#list>
+            </tbody></table></div>
+        </div>
+    </div>
+    </#if>
     </#if>
 </div>
 

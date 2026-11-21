@@ -2663,6 +2663,30 @@ public class AdminProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/misc.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
 
+        final JSONObject sessionUser = Sessions.getUser();
+        if (isSecurityOperator(sessionUser) && sessionUser.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID) {
+            final UserIpLeaseService leaseService = BeanManager.getInstance().getReference(UserIpLeaseService.class);
+            final String name = StringUtils.trimToEmpty(context.param("leaseUserName"));
+            context.getResponse().setHeader("Cache-Control", "private, no-store");
+            if (name.length() > 64 || name.codePoints().anyMatch(java.lang.Character::isISOControl)) {
+                context.sendError(400);
+                context.abort();
+                return;
+            }
+            try {
+                dataModel.put("leaseRecentUsers", leaseService.findRecentUsers().stream().map(JSONObject::toMap).toList());
+                if (!name.isEmpty()) {
+                    dataModel.put("leaseSearchResult", leaseService.findByUserName(name).stream().map(JSONObject::toMap).toList());
+                }
+                dataModel.put("leaseUserName", name);
+            } catch (final RepositoryException error) {
+                LOGGER.error("查询账号 IP 租约失败", error);
+                context.sendError(503);
+                context.abort();
+                return;
+            }
+        }
+
         final List<JSONObject> misc = optionQueryService.getMisc();
         dataModel.put(Option.OPTIONS, misc);
         dataModel.put("firewallEnabled", Firewall.isEnabled());

@@ -126,6 +126,7 @@ public class ApiV3SecurityTest {
             sql(db, "CREATE TABLE u(oId TEXT PRIMARY KEY,userStatus INT,userPassword TEXT,secret2fa TEXT)");
             sql(db, "INSERT INTO u VALUES('1',0,?,''),('2',0,?,'')", OLD, OLD);
             sql(db, "CREATE TABLE clients(clientId TEXT PRIMARY KEY,status INT,scope TEXT)");
+            sql(db, "ALTER TABLE u ADD COLUMN userRole TEXT DEFAULT 'defaultRole'");
             sql(db, "INSERT INTO clients VALUES('website_v3',0,'profile.read settings.write'),('third',0,'profile.read settings.write')");
             sql(db, "CREATE TABLE tokens(oId TEXT PRIMARY KEY,userId TEXT,clientId TEXT,tokenType TEXT,state INT,expiresAt INT,scope TEXT,updatedAt INT)");
             sql(db, "INSERT INTO tokens VALUES('100','1','website_v3','access',0,?,'profile.read settings.write',0),('101','1','third','refresh',0,?,'settings.write',0),('102','2','website_v3','access',0,?,'profile.read',0)", NOW + 100000, NOW + 100000, NOW + 100000);

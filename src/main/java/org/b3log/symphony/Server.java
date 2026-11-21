@@ -67,6 +67,7 @@ import org.b3log.symphony.processor.channel.UserChannel;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.service.ArticleQueryService;
 import org.b3log.symphony.service.UserOnlineService;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.service.CronMgmtService;
 import org.b3log.symphony.service.InitMgmtService;
 import org.b3log.symphony.util.*;
@@ -225,6 +226,8 @@ public final class Server extends BaseServer {
 
         final InitMgmtService initMgmtService = beanManager.getReference(InitMgmtService.class);
         initMgmtService.initSym();
+
+        beanManager.getReference(UserIpLeaseService.class).start();
 
         // Register event listeners
         final EventManager eventManager = beanManager.getReference(EventManager.class);

@@ -238,8 +238,11 @@ public class ApiV3TokenMgmtService {
     /**
      * Existing website cookie refresh cannot be used to refresh a different registered client's grant.
      */
-    public JSONObject refresh(final String refreshToken) throws ServiceException {
-        return refreshForClient(WEBSITE_CLIENT, refreshToken);
+    public RefreshedGrant refreshWebsite(final String refreshToken) throws ServiceException {
+        return refreshGrant(WEBSITE_CLIENT, refreshToken, null);
+    }
+
+    public record RefreshedGrant(JSONObject tokens, JSONObject user) {
     }
 
     public JSONObject refreshForClient(final String clientId, final String refreshToken) throws ServiceException {
@@ -247,6 +250,10 @@ public class ApiV3TokenMgmtService {
     }
 
     public JSONObject refreshForClient(final String clientId, final String refreshToken, final String requestedScope) throws ServiceException {
+        return refreshGrant(clientId, refreshToken, requestedScope).tokens();
+    }
+
+    private RefreshedGrant refreshGrant(final String clientId, final String refreshToken, final String requestedScope) throws ServiceException {
         if (clientId == null || clientId.isBlank() || clientId.length() > 64 || !ApiV3TokenUtil.isValidFormat(refreshToken)) {
             throw new ServiceException("unauthorized");
         }
@@ -282,7 +289,7 @@ public class ApiV3TokenMgmtService {
                 throw new ServiceException("unauthorized");
             }
             // Every client, including the website, must use the current locked account status.
-            final var rows = userRepository.select("SELECT oId,userStatus FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", current.getString(ApiV3Token.USER_ID));
+            final var rows = userRepository.select("SELECT oId,userStatus,userRole FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", current.getString(ApiV3Token.USER_ID));
             final JSONObject user = rows.size() == 1 ? rows.getFirst() : null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) {
                 current.put(ApiV3Token.STATE, ApiV3Token.STATE_REVOKED).put(ApiV3Token.UPDATED_AT, now);
@@ -318,7 +325,7 @@ public class ApiV3TokenMgmtService {
                     current.optString(ApiV3Token.DEVICE_ID), current.optString(ApiV3Token.DEVICE_LABEL));
             transaction.commit();
             committed = true;
-            return result;
+            return new RefreshedGrant(result, user);
         } catch (final ServiceException e) {
             if (!committed) rollback(transaction);
             throw e;

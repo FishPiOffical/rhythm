@@ -39,6 +39,7 @@ import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.OptionQueryService;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.util.AnonymousCaptchaShield;
 import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.util.Symphonys;
@@ -133,6 +134,7 @@ public class AnonymousViewCheckMidware {
             } catch (NullPointerException ignored) {
             }
         }
+        UserIpLeaseService.renew(currentUser, context);
         // 验证码盾保护入口：须在下方登录要求、viewSkips 和阅读限制之前执行。
         // 未经阿达明确允许，不得修改、移动、删除此调用或增加绕过分支。
         if (!AnonymousCaptchaShield.checkAnonymous(context, currentUser, articleId, shieldEnabled)) {

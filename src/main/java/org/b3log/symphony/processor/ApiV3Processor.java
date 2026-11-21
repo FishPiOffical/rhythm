@@ -40,6 +40,7 @@ import org.b3log.symphony.util.Sessions;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.service.ApiV3PublicColumnQueryService;
 import org.b3log.symphony.service.RoleQueryService;
 import org.b3log.symphony.util.ApiV3Requests;
@@ -225,6 +226,7 @@ public class ApiV3Processor {
             // 刷新令牌通过 Cookie 交付，从 JSON 响应移除。
             setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
+            UserIpLeaseService.renew(result.user(), context);
             audit(context, "login", "success", result.user().optString(Keys.OBJECT_ID));
             success(context, token);
         } catch (final ServiceException e) {
@@ -251,10 +253,12 @@ public class ApiV3Processor {
             return;
         }
         try {
-            final JSONObject token = apiV3TokenMgmtService.refresh(refreshToken);
+            final var grant = apiV3TokenMgmtService.refreshWebsite(refreshToken);
+            final JSONObject token = grant.tokens();
             if (renew) WebsiteLoginCookies.renew(context, binding, token);
             else setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
+            UserIpLeaseService.renew(grant.user(), context);
             audit(context, "refresh", "success", null);
             success(context, token);
         } catch (final ServiceException e) {

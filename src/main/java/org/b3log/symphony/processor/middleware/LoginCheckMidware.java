@@ -24,6 +24,7 @@ import org.b3log.latke.model.User;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiProcessor;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.json.JSONObject;
 /**
  * Login check. Gets user from request attribute named "user" if logged in.
@@ -58,6 +59,8 @@ public class LoginCheckMidware {
             context.abort();
             return;
         }
+
+        UserIpLeaseService.renew(currentUser, context);
 
         final int point = currentUser.optInt(UserExt.USER_POINT);
         final int appRole = currentUser.optInt(UserExt.USER_APP_ROLE);

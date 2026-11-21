@@ -7,7 +7,8 @@
 ## 受保护入口与运行模式
 
 - 验证码盾集中在 `util/AnonymousCaptchaShield`；原中间件保留身份解析与匿名阅读限制，全局入口须在 CC 后、CORS 前调用黑名单拦截。极验共享校验、状态及开关只经此类访问；未经阿达明确允许，禁止修改、移动、删除该类及各处受保护调用，禁止增加绕过分支。修改获批后才可同步策略版本、`tools/captcha-shield-lock.json` 与回归；部署前运行 `python tools/check-captcha-shield.py`，不得自动重建指纹来消除失败。范围和验收见 `docs/captcha-shield.md`。
-- `AnonymousViewCheckMidware#handle` 解析适用身份后调用 `AnonymousCaptchaShield.checkAnonymous`；验证码核心的匿名判定顺序为「适用登录态（旧入口含apiKey，V3只用已验证V3身份）→ 已验证蜘蛛 → 公开信息页（`/about` `/download` `/privacy` `/agreement`）→ `UserCache.hasUserByIP` 白名单（同IP有用户登录过即免验证，属既定设计）→ 2小时内通过验证码 → 文章页首访豁免 → 非文章页首访（受后台开关控制）→ 按站点独立周期计数」。旧站验证码计数仍每5次，V3使用独立计数每30次；两套计数窗口均为2小时。非 `/api/` 匿名请求累计300次会调用 `Firewall` 封禁，该计数缓存闲置2小时后过期；这不是 CC 的每分钟阈值，触发后的封禁不会因计数缓存过期而自动解除。V3 `/api/` 请求跳过这条匿名累计封禁，但仍受每分钟CC限制。V3命中验证码规则返回403 `captcha_required`并写入与旧页面共用的待验证黑名单，后续业务持续受限直到真实校验通过；旧非V3 `/api/` 仍返回401且不拉黑。携带Origin的V3/验证提交预检只协商CORS，不执行业务或解封，UA/CC仍在前。`sitemap.xml` 不在豁免名单，依赖已验证蜘蛛通行。策略细节以受保护核心与 `../captcha-shield.md` 为准，本文不授予修改权限。
+- `AnonymousViewCheckMidware#handle` 解析适用身份后调用 `AnonymousCaptchaShield.checkAnonymous`。匿名判定按已验证蜘蛛、公开信息页、显式白名单、有效账号 IP 租约和原首访/周期规则处理。旧站验证码周期每 5 次，V3 独立计数每 30 次；非 `/api/` 匿名累计封禁不是每分钟 CC 限速。V3 挑战返回 403 `captcha_required`，旧页面仍跳转 `/test`；黑名单、预检、旧 API 和爬虫边界以[验证码盾说明](../captcha-shield.md)为准，本文不授予修改权限。
+- 验证码盾和 `Firewall` 共用 `UserIpLeaseService` 的有效租约查询；禁止从 `UserCache` 的最近登录 IP 推断身份或将租约写入进程白名单。认证后立即更新内存，按分钟合并写库；查明细只走后台现有安全管理员会话。规则、迁移和验收见[账号 IP 租约](../captcha-shield.md#版本-10账号-ip-租约)。
 - `Server` 启动逻辑：`DEVELOPMENT` 模式会关闭 `Firewall` 与 `AnonymousViewCheck`（验证码盾），联调时不要误判“线上无校验”。监听前分别解析 `new.fishpi.cn` 和 `pic.fishpi.cn`，并处理 RhyPic/RhyUS 共用的固定内网单 IP（不依赖 DNS，不豁免整个网段）。任一域名解析失败不影响其他条目。对这些地址清理应用内封禁及验证码限制、请求系统解封，并加入 CC 和验证码白名单。启动加白日志不代表系统已解封，Linux ipset 结果须单独核实。
 - 启动白名单按可信代理解析后的请求来源 IP 全局生效。RhyPic/RhyUS 发往 Rhythm 的请求仅在实际出口地址匹配时受益；该 IP 的其他请求也会豁免，部署前须确认解析结果不是共享代理/CDN 地址。CC 白名单不覆盖之后的手动封禁，其他 IP 阈值不变。
 

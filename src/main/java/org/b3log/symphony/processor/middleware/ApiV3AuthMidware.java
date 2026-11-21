@@ -62,11 +62,12 @@ public class ApiV3AuthMidware {
             context.abort();
             return;
         }
-        context.handle();
+        proceed(context, identity);
     }
 
     public void handle(final RequestContext context) {
-        if (null != resolve(context)) context.handle();
+        final JSONObject identity = resolve(context);
+        if (identity != null) proceed(context, identity);
     }
 
     public void messagesRead(final RequestContext context) {
@@ -146,7 +147,7 @@ public class ApiV3AuthMidware {
             context.abort();
             return;
         }
-        context.handle();
+        proceed(context, identity);
     }
 
     private JSONObject resolve(final RequestContext context) {
@@ -176,8 +177,12 @@ public class ApiV3AuthMidware {
             context.abort();
             return null;
         }
+        return identity;
+    }
+
+    private void proceed(final RequestContext context, final JSONObject identity) {
         context.attr(User.USER, identity.optJSONObject("user"));
         context.attr(ApiV3Processor.IDENTITY, identity);
-        return identity;
+        context.handle();
     }
 }

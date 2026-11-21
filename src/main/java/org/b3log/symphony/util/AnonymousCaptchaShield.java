@@ -32,7 +32,7 @@ import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.util.Requests;
-import org.b3log.symphony.cache.UserCache;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.b3log.symphony.model.Common;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.processor.SkinRenderer;
@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 9;
+    public static final int POLICY_VERSION = 10;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -75,7 +75,7 @@ public final class AnonymousCaptchaShield {
     private static final Cache<String, Boolean> ipBlacklistCache = Caffeine.newBuilder()
             .maximumSize(100000)
             .build();
-    // 管理员解封/已有用户 IP 豁免，仅本次进程内有效。
+    // 启动配置和管理员解封白名单仅在本次进程内有效。
     private static final Set<String> whiteList = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final java.util.concurrent.ConcurrentHashMap<String, String> whiteListReasons
             = new java.util.concurrent.ConcurrentHashMap<>();
@@ -234,15 +234,7 @@ public final class AnonymousCaptchaShield {
 
     /** Describes why an IP is treated as a captcha whitelist entry for admin telemetry. */
     public static String whitelistReason(final String ip) {
-        final String explicitReason = whiteListReasons.get(ip);
-        if (explicitReason != null) {
-            return explicitReason;
-        }
-        if (UserCache.hasUserByIP(ip)) {
-            final String userName = UserCache.getUserNameByIP(ip);
-            return "同IP用户：" + (StringUtils.isBlank(userName) ? "已登录用户" : userName);
-        }
-        return null;
+        return whiteListReasons.get(ip);
     }
 
     private static boolean isPublicInfoPage(final String requestURI) {
@@ -291,11 +283,8 @@ public final class AnonymousCaptchaShield {
                     logShield(ip, requestURI, "放行", "公开信息页", null);
                 } else if (whiteList.contains(ip)) {
                     logShield(ip, requestURI, "放行", "白名单", null);
-                } else if (UserCache.hasUserByIP(ip)) {
-                    // 该 IP 上有用户登录过，按既定策略整台机器免验证
-                    whiteList.add(ip);
-                    whiteListReasons.put(ip, whitelistReason(ip));
-                    logShield(ip, requestURI, "放行", "同IP有用户登录", null);
+                } else if (UserIpLeaseService.isIpCovered(ip)) {
+                    logShield(ip, requestURI, "放行", "账号IP租约有效", null);
                 } else {
                     final boolean v3Request = isV3(context);
                     final Cache<String, Integer> visitCountCache = v3Request ? ipV3VisitCountCache : ipVisitCountCache;
