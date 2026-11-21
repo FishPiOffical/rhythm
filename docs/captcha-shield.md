@@ -12,8 +12,8 @@
 
 | 位置 | 约束 |
 | --- | --- |
-| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3业务请求403，CORS预检只协商；网页续期按下方版本4处理 |
-| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前，网页续期按下方版本4处理 |
+| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3业务请求403，CORS预检只协商；网页续期和 OAuth 按下方版本4/6处理 |
+| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前，网页续期和 OAuth 按下方版本4/6处理 |
 | `CaptchaProcessor.register/captcha/validateCaptcha` | 原路由不变，展示及验证委托核心；验证码状态清理只能在验证成功后发生 |
 | `AdminProcessor.modifyIp` | 系统解封后清验证码状态并加白；系统封禁前撤白；原管理员鉴权不变 |
 | `AdminProcessor` 开关入口 | 保留原管理员鉴权，开关仍是临时进程状态 |
@@ -48,6 +48,10 @@ V3 网页续期直接使用原有来源、正文和刷新凭据校验。验证�
 ## 版本 5：V3 匿名周期
 
 按用户于 2026-11-21 的明确要求，V3 匿名周期验证码由每 100 个受检查请求调整为每 30 个；旧站每 5 次、两小时计数缓存、首访规则及 Firewall 的 CC 阈值保持不变。
+
+## 版本 6：V3 OAuth 授权流程
+
+仅精确匹配的 `GET /api/v3/oauth/authorize`、`POST /api/v3/oauth/consent`、`POST /api/v3/oauth/token` 和 `POST /api/v3/oauth/revoke` 不受全局验证码黑名单及匿名首访/周期检查影响。请求不改变验证码状态、不累计验证码访问次数、不加白。UA、Firewall/CC、OAuth 限流、会话、凭据、来源、CSRF、PKCE 与 CORS 规则保持原样。豁免不延伸到站点登录页、旧 OpenID、管理接口或第三方 Bearer 业务接口。
 
 ## 修改授权与指纹
 
@@ -88,6 +92,7 @@ python tools/check-captcha-shield.py
 5. 已触发验证的 IP 在盾关闭后访问普通页面不再强制进入 `/test`；直接访问 `/test` 仍能显示验证页；重开盾后未清理的限制恢复。
 6. 管理员 IP 解封后，该来源按原策略本次启动免验证码；再次系统封禁应撤销豁免。Linux ipset 的真实封禁/解封仅在隔离测试环境验证，避免封禁生产用户。
 7. PC/mobile 检查原极验页面和后台开关。开发模式重启仍默认关闭原开关，生产模式使用原默认值。
+8. 隔离环境中先让已登录测试浏览器的来源进入待验证状态，再用已登记的测试客户端走授权、确认、换码、第三方续期与撤销；应返回原 OAuth 结果，不出现 `captcha_required`。核对无登录的确认请求、错误 PKCE 和来源不被接受，超限仍拒绝；同来源的普通 V3 业务仍需完成验证。
 
 未完成真实服务重启、极验浏览器交互、Linux ipset 或数据库鉴权时应明确记为未验，不能以隔离回归替代。Nginx/CDN、目录枚举、静态版本/source map、上传下载路径未纳入本次提取验收，不宣称全站防漏扫通过。
 

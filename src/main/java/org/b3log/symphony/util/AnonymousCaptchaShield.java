@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 5;
+    public static final int POLICY_VERSION = 6;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -146,7 +146,7 @@ public final class AnonymousCaptchaShield {
     public static boolean redirectIfChallenged(final RequestContext context, final boolean verifiedCrawler) {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!verifiedCrawler && isRestricted(ip)
-                && !isV3Refresh(context)
+                && !isV3CaptchaExempt(context)
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
             if (isV3(context)) {
@@ -171,9 +171,19 @@ public final class AnonymousCaptchaShield {
         return false;
     }
 
-    public static boolean isV3Refresh(final RequestContext context) {
-        return "POST".equalsIgnoreCase(context.method())
-                && (Latkes.getContextPath() + "/api/v3/auth/refresh").equals(context.requestURI());
+    private static boolean isV3CaptchaExempt(final RequestContext context) {
+        final String prefix = Latkes.getContextPath() + "/api/v3";
+        final String uri = context.requestURI();
+        if (!uri.startsWith(prefix + "/")) {
+            return false;
+        }
+        final String method = context.method();
+        return switch (uri.substring(prefix.length())) {
+            case "/auth/refresh" -> "POST".equalsIgnoreCase(method);
+            case "/oauth/authorize" -> "GET".equals(method);
+            case "/oauth/consent", "/oauth/token", "/oauth/revoke" -> "POST".equals(method);
+            default -> false;
+        };
     }
 
     private static boolean isV3(final RequestContext context) {
@@ -254,6 +264,9 @@ public final class AnonymousCaptchaShield {
      */
     public static boolean checkAnonymous(final RequestContext context, final JSONObject currentUser,
                                          final String articleId, final boolean shieldEnabled) {
+        if (isV3CaptchaExempt(context)) {
+            return true;
+        }
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
         final boolean firstVisitArticle = StringUtils.isNotBlank(articleId);

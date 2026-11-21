@@ -47,16 +47,15 @@
 
 ### V3 验证码盾的两层范围
 
-- **已有验证码黑名单：所有经过全局 HTTP 入口的 V3 路由。** `BeforeRequestHandler` 在路由鉴权、CORS/OPTIONS 之前调用 `redirectIfChallenged`；盾启用且 IP 已受限时，已核实蜘蛛及 `/test`、`/validateCaptcha` 保持原豁免；V3 业务返回 HTTP 403 `captcha_required`，其他旧请求继续重定向 `/test`。因此本人资源、写入、登录/刷新及极验配置接口均受此限制，合法 Bearer 也不能越过这一层。携带 Origin 的 V3 OPTIONS 只返回 204 协商跨域，UA/CC 检查仍在前且不执行路由、不解封；`/validateCaptcha` 的预检和提交可达。实时 WebSocket 另外在接入、消息及存活检查中检查同一 IP 限制，不依赖 HTTP 跳转恢复。
+- **已有验证码黑名单：通过全局 HTTP 入口的请求。** `BeforeRequestHandler` 在路由鉴权、CORS/OPTIONS 之前调用 `redirectIfChallenged`；盾启用且 IP 已受限时，已核实蜘蛛及 `/test`、`/validateCaptcha` 保持原豁免，网页续期按[策略版本4](../captcha-shield.md#版本-4v3-网页续期)、OAuth按[策略版本6](../captcha-shield.md#版本-6v3-oauth-授权流程)豁免。其他 V3 业务返回 HTTP 403 `captcha_required`，其他旧请求继续重定向 `/test`。因此本人资源、写入、登录及极验配置接口仍受此限制，合法 Bearer 也不能越过这一层。携带 Origin 的 V3 OPTIONS 只返回 204 协商跨域，UA/CC 检查仍在前且不执行路由、不解封；`/validateCaptcha` 的预检和提交可达。实时 WebSocket 另外在接入、消息及存活检查中检查同一 IP 限制，不依赖 HTTP 跳转恢复。
 - **匿名首访/每30次检查：只对挂载 `AnonymousViewCheckMidware` 的路由执行。** 下表按当前 `ApiV3*Processor` 的直接挂载归类；所有路径均以 `/api/v3` 开头，花括号表示路由参数，不能把某个分类前缀理解为其全部子路由都挂载了该中间件。
 
 | 方法/分类 | 路径后缀 |
 | --- | --- |
-| POST 网页认证 | `/auth/login`、`/auth/refresh`、`/auth/logout`、`/auth/session` |
+| POST 网页认证 | `/auth/login`、`/auth/logout`、`/auth/session` |
 | GET 账号准备 | `/auth/registration-options`、`/auth/captcha-options` |
 | POST 注册/找回 | `/auth/registration/request`、`/auth/registration/complete`、`/auth/password-reset/request`、`/auth/password-reset/complete` |
 | POST 应用登录 | `/auth/app-login/claim`、`/auth/app-login/app-status`、`/auth/app-login/app-decision`、`/auth/app-login/exchange` |
-| GET OAuth | `/oauth/authorize` |
 | GET 文章/评论 | `/articles`、`/articles/random`、`/articles/{articleId}`、`/articles/{articleId}/comments`、`/articles/{articleId}/paragraphs`、`/articles/{articleId}/paragraph-comments`、`/comments/{commentId}`、`/comments/{commentId}/location` |
 | GET 专栏 | `/columns`、`/columns/hot`、`/columns/{columnId}`、`/columns/{columnId}/articles`、`/articles/{articleId}/column` |
 | GET 搜索/标签/领域 | `/search`、`/tags`、`/tags/{tagId}`、`/tags/{tagId}/articles`、`/domains`、`/domains/{domainId}`、`/domains/{domainId}/tags`、`/domains/{domainId}/articles` |
@@ -66,8 +65,8 @@
 | GET 职业/勋章/外观 | `/professions`、`/users/{userName}/professions`、`/users/{userName}/professions/summary`、`/users/{userName}/medals`、`/users/{userName}/medals/image`、`/appearance-shop` |
 | GET 表态 | `/reactions/emojis`、`/articles/{targetId}/reactions`、`/comments/{targetId}/reactions` |
 
-- `POST /oauth/token`、`POST /oauth/revoke` 另有条件调用：协议凭据预检未确认有效所有者时进入匿名检查；有效协议凭据走原协议核验与限流，不建立 Bearer 身份或 IP 白名单，也不能越过全局黑名单。
-- 可选鉴权路由先验证显式 Bearer，建立有效 V3 身份后不进入匿名计数；旧 Cookie/apiKey 不作为 V3 身份。登录、刷新等未在匿名中间件前建立 V3 身份的入口，仍按匿名链路判断，不能仅因请求携带凭据就认定免检。
+- OAuth 授权页仍挂载匿名中间件，换码和撤销在凭据预检未确认有效所有者时仍调用该中间件，但四个精确 OAuth 端点及网页续期均不进入匿名验证码判定。匿名阅读限制与各端点原有授权、来源校验及限流不变。
+- 可选鉴权路由先验证显式 Bearer，建立有效 V3 身份后不进入匿名计数；旧 Cookie/apiKey 不作为 V3 身份。未明确豁免、又未在匿名中间件前建立 V3 身份的入口，仍按匿名链路判断，不能仅因请求携带凭据就认定免检。
 - 未获豁免时，计数按同 IP 到达匿名检查的请求累加，不按页面、接口分别计算；旧站与 V3 在同一个 `AnonymousCaptchaShield` 类内使用独立计数缓存（沿用两小时 expireAfterWrite），旧站每5次、V3每30次触发。首个非文章请求在首访开关开启时触发；首次访问时间、通过记录和验证码黑名单仍共用。文章首访豁免只解析旧 `/article/{id}` 路径，**不覆盖** `/api/v3/articles/{articleId}`。白名单、同 IP 用户缓存和已验证蜘蛛等按核心既有顺序处理；通过验证码的两小时记录只豁免首访，不豁免各站周期规则。
 - V3 触发首访/周期规则后写入与旧站共用的验证码黑名单，返回统一 HTTP 403 JSON `{code:"captcha_required",msg:...,data:null}`，并带 no-store 与适用 CORS；后续业务持续拒绝且不继续计数，直到服务端真实验证通过。旧 `/api/` 分支仍保留普通401、不加黑的行为；非API累计300次封禁规则未变。不要把所有401或403当验证码。
 - 2026-11-15 前 V3 仅拒绝首访/周期的当次请求，返回普通401、不加黑，第2～4次等可继续；这是本轮已替代的行为，不再作为现行协议。路由覆盖未扩充，V3周期已按用户确认独立为每30个受检查请求；多实例、计数竞态及第三方完整矩阵仍见工作单待办。

@@ -135,8 +135,7 @@ public class AnonymousViewCheckMidware {
         }
         // 验证码盾保护入口：须在下方登录要求、viewSkips 和阅读限制之前执行。
         // 未经阿达明确允许，不得修改、移动、删除此调用或增加绕过分支。
-        if (!AnonymousCaptchaShield.isV3Refresh(context)
-                && !AnonymousCaptchaShield.checkAnonymous(context, currentUser, articleId, shieldEnabled)) {
+        if (!AnonymousCaptchaShield.checkAnonymous(context, currentUser, articleId, shieldEnabled)) {
             return;
         }
 
