@@ -180,7 +180,12 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void firstVisitPageAndApiHaveDifferentConsequences() throws Exception {
+    public void freshLegacyApiTrafficDoesNotConsumeFirstPageVisitAndRemainsSubjectToChallenge() throws Exception {
+        for (int index = 0; index < 21; index++) allowed("/api/repeater/next");
+        Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
+        Assert.assertNull(cache("ipV3VisitCountCache").getIfPresent(IP));
+        Assert.assertNull(cache("ipFirstVisitTimeCache").getIfPresent(IP));
+        Assert.assertFalse(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
         try (final Exchange exchange = new Exchange("/")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
@@ -188,13 +193,29 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
             Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 1);
         }
-        reset();
-        try (final Exchange exchange = new Exchange("/api/search")) {
-            exchange.run(middleware::handle);
-            Assert.assertEquals(exchange.status, 401);
-            Assert.assertFalse(exchange.reached);
-            Assert.assertFalse(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+        Firewall.setEnabled(false);
+        for (int index = 0; index < 2; index++) {
+            try (final Exchange exchange = new Exchange("/api/repeater/next")) {
+                exchange.run(new BeforeRequestHandler());
+                Assert.assertEquals(exchange.status, 302);
+                Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
+                Assert.assertFalse(exchange.reached);
+            }
         }
+        Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 1);
+        Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+        try (final ProofProvider provider = new ProofProvider();
+             final Exchange exchange = new Exchange("/validateCaptcha", "POST", null, UA)) {
+            exchange.context.getRequest().setJSON(new JSONObject().put("captcha", provider.proof()));
+            new CaptchaProcessor().validateCaptcha(exchange.context);
+            Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject().getInt("code"), StatusCodes.SUCC);
+        }
+        try (final Exchange exchange = new Exchange("/api/repeater/next")) {
+            Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+            exchange.run(middleware::handle);
+            Assert.assertTrue(exchange.reached);
+        }
+        Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
     }
 
     @Test
@@ -212,6 +233,36 @@ public class AnonymousCaptchaShieldTest {
         try (final Exchange exchange = new Exchange("/shield-test-page")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);
+        }
+    }
+
+    @Test
+    public void legacyApiNeverConsumesTheTenthPageVisit() throws Exception {
+        cache("ipLastCaptchaPassTimeCache").put(IP, System.currentTimeMillis());
+        for (int index = 0; index < 9; index++) {
+            allowed("/");
+            allowed("/api/repeater/next");
+        }
+        allowed("/api/repeater/next");
+        Assert.assertFalse(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+        Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 9);
+        try (final Exchange page = new Exchange("/")) {
+            page.run(middleware::handle);
+            Assert.assertEquals(page.status, 302);
+            Assert.assertEquals(page.response.getHeader("Location"), "/test");
+            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 10);
+        }
+    }
+
+    @Test
+    public void legacyApiExclusionRequiresExactPathPrefix() throws Exception {
+        for (final String path : List.of("/page/api/example", "/apiary/example")) {
+            reset();
+            try (final Exchange exchange = new Exchange(path)) {
+                exchange.run(middleware::handle);
+                Assert.assertEquals(exchange.status, 302);
+                Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
+            }
         }
     }
 
@@ -865,27 +916,18 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void allowListDoesNotPrecedeCaptchaAndLegacyApiStillReturnsUnauthorized() throws Exception {
+    public void allowListDoesNotPrecedeCaptcha() throws Exception {
         Assert.assertTrue(List.of(Symphonys.ANONYMOUS_VIEW_SKIPS.split(",")).contains("/recent"));
         try (final Exchange exchange = new Exchange("/recent")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);
-        }
-        reset();
-        cache("ipVisitCountCache").put(IP, 299);
-        @SuppressWarnings("unchecked") final Cache<String, Boolean> banned = (Cache<String, Boolean>) field(Firewall.class, "BANNED");
-        Assert.assertNull(banned.getIfPresent(IP));
-        try (final Exchange exchange = new Exchange("/api/search")) {
-            exchange.run(middleware::handle);
-            Assert.assertEquals(exchange.status, 401);
-            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 300);
-            Assert.assertNull(banned.getIfPresent(IP));
         }
     }
 
     @Test
     public void legacyPageAtThreeHundredStillChallengesWithoutFirewallBan() throws Exception {
         final String source = "192.0.2.144";
+        AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
         cache("ipVisitCountCache").put(source, 299);
         @SuppressWarnings("unchecked") final Cache<String, Boolean> banned = (Cache<String, Boolean>) field(Firewall.class, "BANNED");
         Assert.assertNull(banned.getIfPresent(source));

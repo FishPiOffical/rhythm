@@ -9885,6 +9885,8 @@ curl --location --request GET 'https://fishpi.cn/api/repeater/items?repeaterCont
 
 按类型从全部有效内容中随机获取一条。传入 `excludeId` 或 `excludeIds` 排除已看内容；`excludeIds` 非空时优先使用它。无候选时返回空对象。
 
+> 匿名调用无需登录。如果站点要求先完成人机验证，请完成验证后再重试。
+
 请求：
 
 | Key                 | 说明                                      | 示例                             |

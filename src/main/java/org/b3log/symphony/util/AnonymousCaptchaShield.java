@@ -54,14 +54,14 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 11;
+    public static final int POLICY_VERSION = 12;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
     private AnonymousCaptchaShield() {
     }
 
-    // 旧站访问计数缓存，2 小时过期；每 10 次触发验证码。
+    // 旧站页面访问计数缓存，2 小时过期；每 10 次触发验证码。
     private static final Cache<String, Integer> ipVisitCountCache = Caffeine.newBuilder()
             .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
             .maximumSize(100000)
@@ -277,6 +277,10 @@ public final class AnonymousCaptchaShield {
         }
         final Request request = context.getRequest();
         final String requestURI = context.requestURI();
+        final boolean v3Request = isV3(context);
+        if (!v3Request && requestURI.startsWith(Latkes.getContextPath() + "/api/")) {
+            return true;
+        }
         final boolean firstVisitArticle = StringUtils.isNotBlank(articleId);
         if (null == currentUser) {
             final String ip = Requests.getRemoteAddr(context.getRequest());
@@ -291,7 +295,6 @@ public final class AnonymousCaptchaShield {
                 } else if (UserIpLeaseService.isIpCovered(ip)) {
                     logShield(ip, requestURI, "放行", "账号IP租约有效", null);
                 } else {
-                    final boolean v3Request = isV3(context);
                     final Cache<String, Integer> visitCountCache = v3Request ? ipV3VisitCountCache : ipVisitCountCache;
                     final int captchaVisitInterval = v3Request ? V3_CAPTCHA_VISIT_INTERVAL : CAPTCHA_VISIT_INTERVAL;
                     final long now = System.currentTimeMillis();
@@ -301,9 +304,7 @@ public final class AnonymousCaptchaShield {
                         ipFirstVisitTimeCache.put(ip, firstVisitTime);
                     }
 
-                    final Integer visits = visitCountCache.getIfPresent(ip);
-                    final int count = null == visits ? 1 : visits + 1;
-                    visitCountCache.put(ip, count);
+                    final int count = visitCountCache.asMap().merge(ip, 1, Integer::sum);
 
                     // 2 小时内通过验证码只跳过首访，仍按各站周期验证。
                     final boolean passedRecently = null != ipLastCaptchaPassTimeCache.getIfPresent(ip);
@@ -323,18 +324,12 @@ public final class AnonymousCaptchaShield {
                     }
 
                     if (needCaptcha) {
-                        if (isV3(context)) {
+                        if (v3Request) {
                             // V3 与旧页面共用待验证状态，只有服务端确认极验通过才清理。
                             ipBlacklistCache.put(ip, true);
                             requireV3Captcha(context);
                             logV3Challenge(context, ip, "验证码", reason, count);
                             SecurityMonitor.record(context, "captcha", "challenge", "接口需要验证码",
-                                    "AnonymousViewCheckMidware -> AnonymousCaptchaShield");
-                        } else if (requestURI.contains("/api/")) {
-                            // API 调用方无法完成验证码，直接拒绝且不拉黑，避免把服务端客户端永久卡死
-                            logShield(ip, requestURI, "拒绝", "接口需验证码-" + reason, "次数=" + count);
-                            context.sendError(401);
-                            SecurityMonitor.record(context, "captcha", "deny", "接口需要验证码",
                                     "AnonymousViewCheckMidware -> AnonymousCaptchaShield");
                         } else {
                             logShield(ip, requestURI, "验证码", reason, "次数=" + count);

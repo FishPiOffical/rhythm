@@ -160,24 +160,25 @@
     </div>
     </#if>
     <#if securityPanelAllowed && leaseUserName??>
-    <div class="module security-panel">
+    <div class="module security-panel" id="account-ip-leases">
         <div class="module-header"><h2>账号 IP 租约</h2></div>
-        <div class="module-panel form form--admin">
-            <form action="${servePath}/admin/misc" method="GET">
-                <label>用户名 <input name="leaseUserName" maxlength="64" value="${leaseUserName?html}" required/></label>
+        <div class="module-panel form">
+            <form class="lease-search" action="${servePath}/admin/misc#account-ip-leases" method="GET">
+                <label for="lease-user-name">用户名</label>
+                <input id="lease-user-name" type="text" name="leaseUserName" maxlength="64" value="${leaseUserName?html}" required/>
                 <button type="submit">查询</button>
             </form>
             <#if leaseError??>
             <p role="alert">${leaseError?html}</p>
             <#else>
             <#if leaseSearchResult??>
-            <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
+            <div class="security-events-wrap lease-search-result"><table class="table security-events lease-table"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
                 <#list leaseSearchResult as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
                 <#else><tr><td colspan="4">没有记录</td></tr></#list>
             </tbody></table></div>
             </#if>
-            <h3>最近 200 个用户</h3>
-            <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
+            <h3 class="lease-recent-title">最近 200 个用户</h3>
+            <div class="security-events-wrap"><table class="table security-events lease-table"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
                 <#list leaseRecentUsers![] as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
                 <#else><tr><td colspan="4">没有记录</td></tr></#list>
             </tbody></table></div>

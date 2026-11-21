@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -54,16 +55,22 @@ public final class SecurityMonitor {
             .withZone(ZoneId.of("Asia/Hong_Kong"));
     private static final LongAdder TOTAL = new LongAdder();
     private static final ConcurrentHashMap<String, LongAdder> COUNTERS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, LongAdder> IP_VISITS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicLong> IP_VISITS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, String> HANDLER_CACHE = new ConcurrentHashMap<>();
     private static final long[] MINUTES = new long[MINUTE_BUCKETS];
     private static long minuteEpoch = System.currentTimeMillis() / 60000L;
     private static final Deque<Map<String, Object>> EVENTS = new ArrayDeque<>();
     private static final ThreadLocal<Map<String, Object>> CURRENT_EVENT = new ThreadLocal<>();
+    private static final ThreadLocal<RequestVisit> REQUEST_VISIT = new ThreadLocal<>();
+
     private static final int MAX_OBSERVATIONS = 200;
     private static final long OBSERVATION_TTL = java.util.concurrent.TimeUnit.HOURS.toMillis(2);
     private static final Deque<Observation> OBSERVATIONS = new ArrayDeque<>();
     private static long discardedObservations;
+
+    private static final class RequestVisit {
+        private long number;
+    }
 
     private static final class Observation {
         final long started = System.currentTimeMillis();
@@ -352,8 +359,14 @@ public final class SecurityMonitor {
         CURRENT_EVENT.remove();
     }
 
+    public static void beginRequest() {
+        CURRENT_EVENT.remove();
+        REQUEST_VISIT.set(new RequestVisit());
+    }
+
     public static void clearRequest() {
         CURRENT_EVENT.remove();
+        REQUEST_VISIT.remove();
     }
 
     private static String resolveHandler(final String uri, final String method) {
@@ -380,10 +393,12 @@ public final class SecurityMonitor {
         final String whitelistReason = AnonymousCaptchaShield.whitelistReason(ip);
         if (whitelistReason != null) return "访客+白名单IP（" + whitelistReason + "）";
         if (lease != null) return "访客+有效租约IP";
-        final LongAdder visits = IP_VISITS.computeIfAbsent(ip, ignored -> new LongAdder());
-        visits.increment();
+        final RequestVisit request = REQUEST_VISIT.get();
+        if (request != null && request.number != 0) return "访客（访问次数 " + request.number + "）";
+        final long number = IP_VISITS.computeIfAbsent(ip, ignored -> new AtomicLong()).incrementAndGet();
         if (IP_VISITS.size() > 100000) IP_VISITS.clear();
-        return "访客（访问次数 " + visits.sum() + "）";
+        if (request != null) request.number = number;
+        return "访客（访问次数 " + number + "）";
     }
 
     private static String cacheHandler(final String key, final String handler) {

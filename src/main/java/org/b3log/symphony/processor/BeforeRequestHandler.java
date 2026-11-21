@@ -82,6 +82,7 @@ public class BeforeRequestHandler implements Handler {
 
     @Override
     public void handle(final RequestContext context) {
+        SecurityMonitor.beginRequest();
         ApiV3RefreshCookies.discardFrameworkEcho(context);
         org.b3log.symphony.util.AccountCredentialVersions.beginHttp();
         Stopwatchs.start("Request initialized [" + context.requestURI() + "]");

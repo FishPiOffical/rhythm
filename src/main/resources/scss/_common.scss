@@ -989,7 +989,58 @@ blockquote {
   }
 }
 
+#account-ip-leases {
+  scroll-margin-top: 76px;
+
+  .lease-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    label {
+      float: none;
+      flex: none;
+      margin: 0;
+    }
+
+    input[type='text'] {
+      flex: 1 1 16rem;
+      min-width: 0;
+      max-width: 16rem;
+    }
+
+    button {
+      flex: none;
+    }
+  }
+
+  .lease-recent-title {
+    margin: 12px 0 8px;
+  }
+
+  .lease-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+
+    th,
+    td {
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
 @media (max-width: 680px) {
+  #account-ip-leases .lease-table {
+    th,
+    td {
+      padding: 8px 5px;
+    }
+  }
+
   .security-panel {
     .security-mode {
       flex-wrap: wrap;

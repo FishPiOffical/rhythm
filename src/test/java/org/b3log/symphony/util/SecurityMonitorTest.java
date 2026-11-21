@@ -125,6 +125,23 @@ public class SecurityMonitorTest {
         Assert.assertEquals(SecurityMonitor.recentEvents().size(), 1);
     }
 
+    public void oneHttpRequestKeepsBothDecisionsWithTheSameVisitNumber() {
+        SecurityMonitor.beginRequest();
+        SecurityMonitor.record(IP, "GET", "/", "firewall", "cc", "allow", "阈值内");
+        SecurityMonitor.record(context("/"), "captcha", "challenge", "首次访问", "shield");
+        final var events = SecurityMonitor.recentEvents();
+        Assert.assertEquals(events.size(), 2);
+        Assert.assertEquals(events.getFirst().get("userStatus"), events.getLast().get("userStatus"));
+        Assert.assertEquals(events.getFirst().get("type"), "captcha");
+        Assert.assertEquals(events.getLast().get("type"), "cc");
+
+        SecurityMonitor.clearRequest();
+        SecurityMonitor.beginRequest();
+        SecurityMonitor.record(IP, "GET", "/", "firewall", "cc", "allow", "阈值内");
+        Assert.assertNotEquals(SecurityMonitor.recentEvents().getFirst().get("userStatus"),
+                events.getFirst().get("userStatus"));
+    }
+
     public void actualArrivalAndRecoveryAreSeparateFromRedirect() {
         challenge();
         Assert.assertEquals(latest().get("state"), "待到达");
@@ -272,6 +289,9 @@ public class SecurityMonitorTest {
             Assert.assertTrue(success.toString().contains("x&lt;y"));
             Assert.assertTrue(success.toString().contains("192.0.2.1"));
             Assert.assertTrue(success.toString().contains("没有记录"));
+            Assert.assertTrue(success.toString().contains("action=\"/admin/misc#account-ip-leases\""));
+            Assert.assertTrue(success.toString().contains("id=\"account-ip-leases\""));
+            Assert.assertTrue(success.toString().contains("security-events lease-table"));
             data.put("leaseError", "暂时无法查询租约");
             final var failed = new java.io.StringWriter();
             template.process(data, failed);
