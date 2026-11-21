@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 7;
+    public static final int POLICY_VERSION = 8;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -178,7 +178,12 @@ public final class AnonymousCaptchaShield {
         if (uri.equals(contextPath + "/openid/login") && "GET".equals(method)
                 || uri.equals(contextPath + "/openid/confirm") && "POST".equals(method)
                 || uri.equals(contextPath + "/openid/verify") && "POST".equals(method)
-                || uri.equals(contextPath + "/openid/token") && "POST".equals(method)) {
+                || uri.equals(contextPath + "/openid/token") && "POST".equals(method)
+                || uri.equals(contextPath + "/openid/user/profile") && "GET".equals(method)
+                || uri.equals(contextPath + "/openid/user/detail") && "GET".equals(method)
+                || uri.equals(contextPath + "/openid/user/points") && "GET".equals(method)
+                || uri.equals(contextPath + "/openid/user/articles") && "GET".equals(method)
+                || uri.equals(contextPath + "/openid/user/membership") && "GET".equals(method)) {
             return true;
         }
         final String prefix = contextPath + "/api/v3";

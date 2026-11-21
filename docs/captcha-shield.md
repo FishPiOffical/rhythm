@@ -55,7 +55,11 @@ V3 网页续期直接使用原有来源、正文和刷新凭据校验。验证�
 
 ## 版本 7：旧 OpenID 授权闭环
 
-仅精确匹配的 `GET /openid/login`、`POST /openid/confirm`、`POST /openid/verify` 和 `POST /openid/token` 不受全局验证码黑名单及匿名验证码首访/周期检查影响。`openid.return_to` 是 OpenID 授权请求校验并保存在服务端授权状态中的第三方回调地址；确认后签名响应重定向至该地址，它不是 Rhythm 内的下一条 HTTP 路由。豁免覆盖浏览器登录/确认和第三方服务端核验/续期端点，不覆盖 `/openid/user/*` 资源 API 或其他 OpenID 路径。UA、Firewall/CC、`/openid/login` 与 `/openid/confirm` 原有网页登录鉴权、CSRF、return_to/realm 校验、响应签名、nonce、令牌校验与 OAuth/OpenID 业务限制保持不变，不修改、不信任或绕过回调地址校验；不改变验证码状态、不计数、不加白。
+仅精确匹配的 `GET /openid/login`、`POST /openid/confirm`、`POST /openid/verify` 和 `POST /openid/token` 不受全局验证码黑名单及匿名验证码首访/周期检查影响。`openid.return_to` 是 OpenID 授权请求校验并保存在服务端授权状态中的第三方回调地址；确认后签名响应重定向至该地址，它不是 Rhythm 内的下一条 HTTP 路由。UA、Firewall/CC、`/openid/login` 与 `/openid/confirm` 原有网页登录鉴权、CSRF、return_to/realm 校验、响应签名、nonce、令牌校验与 OAuth/OpenID 业务限制保持不变，不修改、不信任或绕过回调地址校验；不改变验证码状态、不计数、不加白。
+
+## 版本 8：OpenID 用户资源读取
+
+额外豁免已注册的五个精确 GET 路由：`/openid/user/profile`、`/openid/user/detail`、`/openid/user/points`、`/openid/user/articles`、`/openid/user/membership`。豁免只跳过全局验证码黑名单及匿名验证码计数，不创建或放宽 Bearer 身份、访问令牌状态和对应 scope 校验；Firewall/CC、UA 与资源处理器原有权限检查保持不变。其他 `/openid/user/*` 路径、错误 HTTP 方法及子路径仍按原盾策略处理。
 
 ## 修改授权与指纹
 

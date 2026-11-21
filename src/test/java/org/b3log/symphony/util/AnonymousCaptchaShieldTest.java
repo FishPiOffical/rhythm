@@ -505,10 +505,15 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertNull(cache("ipLastCaptchaPassTimeCache").getIfPresent(IP));
             Assert.assertFalse(whitelist().contains(IP));
         }
-        try (final Exchange exchange = new Exchange("/openid/user/profile")) {
-            Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
-            Assert.assertEquals(exchange.status, 302);
+        for (final String resource : List.of("profile", "detail", "points", "articles", "membership")) {
+            final String path = "/openid/user/" + resource;
+            try (final Exchange exchange = new Exchange(path)) {
+                Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false), path);
+            }
+            assertPageNotCaptchaExempt(path, "POST");
+            assertPageNotCaptchaExempt(path + "/extra", "GET");
         }
+        assertPageNotCaptchaExempt("/openid/user/unknown", "GET");
     }
 
     private static void assertPageNotCaptchaExempt(final String path, final String method) {
