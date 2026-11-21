@@ -47,7 +47,7 @@
 
 ### V3 验证码盾的两层范围
 
-- **已有验证码黑名单：通过全局 HTTP 入口的请求。** `BeforeRequestHandler` 在路由鉴权、CORS/OPTIONS 之前调用 `redirectIfChallenged`；盾启用且 IP 已受限时，已核实蜘蛛及 `/test`、`/validateCaptcha` 保持原豁免，网页续期按[策略版本4](../captcha-shield.md#版本-4v3-网页续期)、OAuth按[策略版本6](../captcha-shield.md#版本-6v3-oauth-授权流程)豁免。其他 V3 业务返回 HTTP 403 `captcha_required`，其他旧请求继续重定向 `/test`。因此本人资源、写入、登录及极验配置接口仍受此限制，合法 Bearer 也不能越过这一层。携带 Origin 的 V3 OPTIONS 只返回 204 协商跨域，UA/CC 检查仍在前且不执行路由、不解封；`/validateCaptcha` 的预检和提交可达。实时 WebSocket 另外在接入、消息及存活检查中检查同一 IP 限制，不依赖 HTTP 跳转恢复。
+- **已有验证码黑名单：通过全局 HTTP 入口的请求。** `BeforeRequestHandler` 在路由鉴权、CORS/OPTIONS 之前调用 `redirectIfChallenged`；盾启用且 IP 已受限时，已核实蜘蛛及 `/test`、`/validateCaptcha` 保持原豁免，网页续期按[策略版本4](../captcha-shield.md#版本-4v3-网页续期)、V3 OAuth按[策略版本6](../captcha-shield.md#版本-6v3-oauth-授权流程)、旧 OpenID 协议端点按[策略版本7](../captcha-shield.md#版本-7旧-openid-授权闭环)豁免。其他 V3 业务返回 HTTP 403 `captcha_required`，其他旧请求继续重定向 `/test`。普通本人资源、写入、登录及极验配置接口仍受此限制，合法 Bearer 也不能越过这一层。携带 Origin 的 V3 OPTIONS 只返回 204 协商跨域，UA/CC 检查仍在前且不执行路由、不解封；`/validateCaptcha` 的预检和提交可达。实时 WebSocket 另外在接入、消息及存活检查中检查同一 IP 限制，不依赖 HTTP 跳转恢复。
 - **匿名首访/每30次检查：只对挂载 `AnonymousViewCheckMidware` 的路由执行。** 下表按当前 `ApiV3*Processor` 的直接挂载归类；所有路径均以 `/api/v3` 开头，花括号表示路由参数，不能把某个分类前缀理解为其全部子路由都挂载了该中间件。
 
 | 方法/分类 | 路径后缀 |

@@ -1234,6 +1234,8 @@ curl --request PUT 'https://fishpi.cn/api/v3/review/identity-applications/179280
 
 授权、同意、令牌和撤销接口不会要求接入方提交站点访问人机验证。站点登录和授权后的业务请求仍遵循各自规则；OAuth 的凭据、来源、权限和速率限制不变。
 
+旧 OpenID 浏览器授权与服务端响应核验/续期端点（`/openid/login`、`/openid/confirm`、`/openid/verify`、`/openid/token`）同样不受站点访问人机验证拦截。`openid.return_to` 仍须满足原有校验并与授权请求绑定；豁免不覆盖 `/openid/user/*` 资源接口，也不改变登录、CSRF、签名或令牌验证。
+
 ### 第一方管理后台授权
 
 管理后台通过同一授权页使用内置客户端 `website_v3`，携带 `state`、PKCE S256 和第一方网页登录所用的 scope。生产回调固定为 `https://new.fishpi.cn/manage/oauth/callback`。开发环境仅接受回环 HTTP 来源和同一路径，默认端口 5173，也可使用后端已配置的 `rhythm.dev.websiteOrigin`。

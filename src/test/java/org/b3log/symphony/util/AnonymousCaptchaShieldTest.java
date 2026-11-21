@@ -475,6 +475,49 @@ public class AnonymousCaptchaShieldTest {
         assertV3CaptchaRequired("/api/v3/admin/oauth/clients", "GET");
     }
 
+    @Test
+    public void legacyOpenIdProtocolExemptionIsExactAndLeavesCaptchaStateIntact() throws Exception {
+        final var routes = Map.of("/openid/login", "GET", "/openid/confirm", "POST",
+                "/openid/verify", "POST", "/openid/token", "POST");
+        for (final boolean pending : List.of(false, true)) {
+            if (pending) {
+                cache("ipBlacklistCache").put(IP, true);
+                cache("ipV3VisitCountCache").put(IP, 29);
+            }
+            for (final var route : routes.entrySet()) {
+                final String path = route.getKey();
+                final String method = route.getValue();
+                try (final Exchange exchange = new Exchange(path, method, null, UA)) {
+                    Assert.assertFalse(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false), path);
+                    exchange.run(middleware::handle);
+                    Assert.assertTrue(exchange.reached, path);
+                }
+                if (pending) {
+                    final String wrongMethod = "GET".equals(method) ? "POST" : "GET";
+                    assertPageNotCaptchaExempt(path, wrongMethod);
+                    assertPageNotCaptchaExempt(path + "/extra", method);
+                }
+            }
+            Assert.assertEquals(AnonymousCaptchaShield.isAwaitingCaptcha(IP), pending);
+            Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), pending ? 29 : null);
+            Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
+            Assert.assertNull(cache("ipFirstVisitTimeCache").getIfPresent(IP));
+            Assert.assertNull(cache("ipLastCaptchaPassTimeCache").getIfPresent(IP));
+            Assert.assertFalse(whitelist().contains(IP));
+        }
+        try (final Exchange exchange = new Exchange("/openid/user/profile")) {
+            Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+            Assert.assertEquals(exchange.status, 302);
+        }
+    }
+
+    private static void assertPageNotCaptchaExempt(final String path, final String method) {
+        try (final Exchange exchange = new Exchange(path, method, null, UA)) {
+            Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false), path);
+            Assert.assertEquals(exchange.status, 302);
+        }
+    }
+
     private static void assertV3CaptchaRequired(final String path, final String method) {
         try (final Exchange exchange = new Exchange(path, method, null, UA)) {
             Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false), path);

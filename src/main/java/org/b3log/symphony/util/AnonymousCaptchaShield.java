@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 6;
+    public static final int POLICY_VERSION = 7;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
@@ -146,7 +146,7 @@ public final class AnonymousCaptchaShield {
     public static boolean redirectIfChallenged(final RequestContext context, final boolean verifiedCrawler) {
         final String ip = Requests.getRemoteAddr(context.getRequest());
         if (!verifiedCrawler && isRestricted(ip)
-                && !isV3CaptchaExempt(context)
+                && !isCaptchaExempt(context)
                 && !context.requestURI().equals("/test")
                 && !context.requestURI().equals("/validateCaptcha")) {
             if (isV3(context)) {
@@ -171,17 +171,23 @@ public final class AnonymousCaptchaShield {
         return false;
     }
 
-    private static boolean isV3CaptchaExempt(final RequestContext context) {
-        final String prefix = Latkes.getContextPath() + "/api/v3";
+    private static boolean isCaptchaExempt(final RequestContext context) {
+        final String contextPath = Latkes.getContextPath();
         final String uri = context.requestURI();
+        final String method = context.method();
+        if (uri.equals(contextPath + "/openid/login") && "GET".equals(method)
+                || uri.equals(contextPath + "/openid/confirm") && "POST".equals(method)
+                || uri.equals(contextPath + "/openid/verify") && "POST".equals(method)
+                || uri.equals(contextPath + "/openid/token") && "POST".equals(method)) {
+            return true;
+        }
+        final String prefix = contextPath + "/api/v3";
         if (!uri.startsWith(prefix + "/")) {
             return false;
         }
-        final String method = context.method();
         return switch (uri.substring(prefix.length())) {
-            case "/auth/refresh" -> "POST".equalsIgnoreCase(method);
-            case "/oauth/authorize" -> "GET".equals(method);
-            case "/oauth/consent", "/oauth/token", "/oauth/revoke" -> "POST".equals(method);
+            case "/auth/refresh", "/oauth/consent", "/oauth/token", "/oauth/revoke" -> "POST".equalsIgnoreCase(method);
+            case "/oauth/authorize" -> "GET".equalsIgnoreCase(method);
             default -> false;
         };
     }
@@ -264,7 +270,7 @@ public final class AnonymousCaptchaShield {
      */
     public static boolean checkAnonymous(final RequestContext context, final JSONObject currentUser,
                                          final String articleId, final boolean shieldEnabled) {
-        if (isV3CaptchaExempt(context)) {
+        if (isCaptchaExempt(context)) {
             return true;
         }
         final Request request = context.getRequest();

@@ -12,8 +12,8 @@
 
 | 位置 | 约束 |
 | --- | --- |
-| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3业务请求403，CORS预检只协商；网页续期和 OAuth 按下方版本4/6处理 |
-| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前，网页续期和 OAuth 按下方版本4/6处理 |
+| `BeforeRequestHandler.handle` | 缺 UA、爬虫识别、CC 在前，验证码黑名单在后；受限V3业务请求403，CORS预检只协商；明确的 V3 OAuth、旧 OpenID 协议端点和网页续期豁免按下方版本处理 |
+| `AnonymousViewCheckMidware.handle` | 进入时读开关快照，沿原方法解析身份和 articleId；验证码检查在登录要求、viewSkips 和阅读限制之前；明确的 V3 OAuth、旧 OpenID 协议端点和网页续期不进入验证码判定 |
 | `CaptchaProcessor.register/captcha/validateCaptcha` | 原路由不变，展示及验证委托核心；验证码状态清理只能在验证成功后发生 |
 | `AdminProcessor.modifyIp` | 系统解封后清验证码状态并加白；系统封禁前撤白；原管理员鉴权不变 |
 | `AdminProcessor` 开关入口 | 保留原管理员鉴权，开关仍是临时进程状态 |
@@ -52,6 +52,10 @@ V3 网页续期直接使用原有来源、正文和刷新凭据校验。验证�
 ## 版本 6：V3 OAuth 授权流程
 
 仅精确匹配的 `GET /api/v3/oauth/authorize`、`POST /api/v3/oauth/consent`、`POST /api/v3/oauth/token` 和 `POST /api/v3/oauth/revoke` 不受全局验证码黑名单及匿名首访/周期检查影响。请求不改变验证码状态、不累计验证码访问次数、不加白。UA、Firewall/CC、OAuth 限流、会话、凭据、来源、CSRF、PKCE 与 CORS 规则保持原样。豁免不延伸到站点登录页、旧 OpenID、管理接口或第三方 Bearer 业务接口。
+
+## 版本 7：旧 OpenID 授权闭环
+
+仅精确匹配的 `GET /openid/login`、`POST /openid/confirm`、`POST /openid/verify` 和 `POST /openid/token` 不受全局验证码黑名单及匿名验证码首访/周期检查影响。`openid.return_to` 是 OpenID 授权请求校验并保存在服务端授权状态中的第三方回调地址；确认后签名响应重定向至该地址，它不是 Rhythm 内的下一条 HTTP 路由。豁免覆盖浏览器登录/确认和第三方服务端核验/续期端点，不覆盖 `/openid/user/*` 资源 API 或其他 OpenID 路径。UA、Firewall/CC、`/openid/login` 与 `/openid/confirm` 原有网页登录鉴权、CSRF、return_to/realm 校验、响应签名、nonce、令牌校验与 OAuth/OpenID 业务限制保持不变，不修改、不信任或绕过回调地址校验；不改变验证码状态、不计数、不加白。
 
 ## 修改授权与指纹
 
