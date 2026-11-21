@@ -54,14 +54,14 @@ import java.util.Set;
  */
 public final class AnonymousCaptchaShield {
 
-    public static final int POLICY_VERSION = 10;
+    public static final int POLICY_VERSION = 11;
 
     private static final Logger LOGGER = LogManager.getLogger(AnonymousCaptchaShield.class);
 
     private AnonymousCaptchaShield() {
     }
 
-    // 旧站访问计数缓存，2 小时过期；旧站仍按原规则每 5 次触发验证码。
+    // 旧站访问计数缓存，2 小时过期；每 10 次触发验证码。
     private static final Cache<String, Integer> ipVisitCountCache = Caffeine.newBuilder()
             .expireAfterWrite(2, java.util.concurrent.TimeUnit.HOURS)
             .maximumSize(100000)
@@ -104,10 +104,7 @@ public final class AnonymousCaptchaShield {
      */
     private static volatile boolean firstVisitCaptchaEnabled = true;
 
-    // 计数窗口为 2 小时，阈值需相应放大，避免正常用户 2 小时内浏览大量页面被误封
-    private static final int AUTO_BAN_VISIT_THRESHOLD = 300;
-
-    private static final int CAPTCHA_VISIT_INTERVAL = 5;
+    private static final int CAPTCHA_VISIT_INTERVAL = 10;
 
     private static final int V3_CAPTCHA_VISIT_INTERVAL = 30;
 
@@ -157,6 +154,7 @@ public final class AnonymousCaptchaShield {
                     return true;
                 }
                 requireV3Captcha(context);
+                logV3Challenge(context, ip, "等待验证码", "已在验证黑名单", null);
                 SecurityMonitor.record(context, "captcha", "deny", "接口等待验证码",
                         "BeforeRequestHandler -> AnonymousCaptchaShield");
                 return true;
@@ -205,6 +203,13 @@ public final class AnonymousCaptchaShield {
         ApiV3Cors.apply(context);
         ApiV3Processor.error(context, 403, "captcha_required", "请完成人机验证后重试");
         context.abort();
+    }
+
+    private static void logV3Challenge(final RequestContext context, final String ip, final String decision,
+                                       final String reason, final Integer count) {
+        LOGGER.info("[SHIELD] ip={} uri={} 结果={} 原因={} 次数={} requestId={}",
+                ip, context.requestURI(), decision, reason, count == null ? "-" : count,
+                ApiV3Processor.requestId(context));
     }
 
     /** 验证成功只清验证码限制，不解除 Firewall/ipset 封禁，也不加入白名单。 */
@@ -300,12 +305,6 @@ public final class AnonymousCaptchaShield {
                     final int count = null == visits ? 1 : visits + 1;
                     visitCountCache.put(ip, count);
 
-                    // API 调用方无法通过验证码，不做累计封禁，交给 Firewall 的速率阈值处理
-                    if (!requestURI.contains("/api/")
-                            && count >= AUTO_BAN_VISIT_THRESHOLD && Firewall.banIpIfAbsent(ip, "匿名累计超限")) {
-                        logShield(ip, requestURI, "拒绝", "匿名累计超限", "次数=" + count);
-                    }
-
                     // 2 小时内通过验证码只跳过首访，仍按各站周期验证。
                     final boolean passedRecently = null != ipLastCaptchaPassTimeCache.getIfPresent(ip);
 
@@ -317,10 +316,10 @@ public final class AnonymousCaptchaShield {
                         needCaptcha = true;
                         reason = "首次访问";
                     }
-                    // 旧站每 5 次、V3 每 30 次需要一次验证码。
+                    // 旧站每 10 次、V3 每 30 次需要一次验证码。
                     if (!needCaptcha && count % captchaVisitInterval == 0) {
                         needCaptcha = true;
-                        reason = v3Request ? "V3访问满30次" : "访问满5次";
+                        reason = v3Request ? "V3访问满30次" : "访问满10次";
                     }
 
                     if (needCaptcha) {
@@ -328,6 +327,7 @@ public final class AnonymousCaptchaShield {
                             // V3 与旧页面共用待验证状态，只有服务端确认极验通过才清理。
                             ipBlacklistCache.put(ip, true);
                             requireV3Captcha(context);
+                            logV3Challenge(context, ip, "验证码", reason, count);
                             SecurityMonitor.record(context, "captcha", "challenge", "接口需要验证码",
                                     "AnonymousViewCheckMidware -> AnonymousCaptchaShield");
                         } else if (requestURI.contains("/api/")) {

@@ -216,32 +216,71 @@ public class SecurityMonitorTest {
         CrawlerMonitor.record(new SearchEngines.Verification(SearchEngines.Engine.GOOGLE, false, "测试校验", "", "", 123L, false), "192.0.2.241", "/<script>unsafe</script>");
         for (String skin : List.of("pc", "mobile")) {
             final String source = java.nio.file.Files.readString(Path.of(
-                    "src/main/resources/skins/classic", skin, "admin/misc.ftl"));
+                    "src/main/resources/skins/classic", skin, "admin/misc.ftl")).replace("\r\n", "\n");
             Assert.assertTrue(source.contains("<th>后续状态</th>"));
             Assert.assertTrue(source.contains("item.subsequentStatus"));
             Assert.assertTrue(source.contains("item.recoveredAt"));
             Assert.assertTrue(source.contains("td.colSpan = 9;"));
             Assert.assertTrue(source.contains("td.textContent = value;"));
-            final int start = source.indexOf("            <#if currentUser.userName == \"adlered\">");
-            final int end = source.indexOf("            <div class=\"security-self-check\"", start);
+            final int start = source.indexOf("    <#if securityPanelAllowed>");
+            final int end = source.indexOf("    <#if permissions[\"miscBroadCast\"].permissionGrant>", start);
             final var template = new freemarker.template.Template("observations",
                     new java.io.StringReader(source.substring(start, end)), cfg);
             SecurityMonitor.ipsetResult("<img src=x>", "封禁", false, "<script>unsafe</script>");
+            final var data = new java.util.HashMap<String, Object>(Map.of(
+                    "securityPanelAllowed", true, "securityRuntimeMode", "PRODUCTION", "securitySwitchEditable", false,
+                    "securityEvents", SecurityMonitor.recentEvents(), "crawlerStats", CrawlerMonitor.snapshot(null),
+                    "securitySelfCheck", Map.of("status", "通过", "checks", List.of(), "note", "")));
+            data.put("securityStats", SecurityMonitor.snapshot());
             final var output = new java.io.StringWriter();
-            template.process(Map.of("currentUser", Map.of("userName", "adlered"),
-                    "securityStats", SecurityMonitor.snapshot(), "crawlerStats", CrawlerMonitor.snapshot(null)), output);
+            template.process(data, output);
             Assert.assertTrue(output.toString().contains("&lt;script&gt;"));
             Assert.assertFalse(output.toString().contains("<script>unsafe"));
             final var hidden = new java.io.StringWriter();
-            template.process(Map.of("currentUser", Map.of("userName", "other-admin"),
-                    "securityStats", SecurityMonitor.snapshot()), hidden);
-            Assert.assertFalse(hidden.toString().contains("链路观测"));
-            Assert.assertFalse(hidden.toString().contains("爬虫访问"));
+            template.process(Map.of("securityPanelAllowed", false), hidden);
+            Assert.assertTrue(hidden.toString().isBlank());
             final var empty = new java.io.StringWriter();
-            template.process(Map.of("currentUser", Map.of("userName", "adlered"),
-                    "securityStats", Map.of("observations", List.of(), "observationDiscarded", 0),
-                    "crawlerStats", CrawlerMonitor.snapshot(null)), empty);
+            final var emptyStats = new java.util.HashMap<>(SecurityMonitor.snapshot());
+            emptyStats.put("observations", List.of());
+            data.put("securityStats", emptyStats);
+            template.process(data, empty);
             Assert.assertTrue(empty.toString().contains("暂无观测"));
+            final int scriptStart = source.indexOf("<#if securityPanelAllowed>\nconst SecuritySwitches");
+            final int scriptEnd = source.indexOf("</#if>", source.indexOf("SecuritySwitches.startAutoRefresh();", scriptStart));
+            final var script = new freemarker.template.Template("monitor-script", source.substring(scriptStart, scriptEnd + "</#if>".length()), cfg);
+            final var hiddenScript = new java.io.StringWriter();
+            script.process(Map.of("securityPanelAllowed", false), hiddenScript);
+            Assert.assertTrue(hiddenScript.toString().isBlank());
+        }
+    }
+
+    public void leaseCardRendersRecordsAndLocalErrorsOnlyForSecurityAdmins() throws Exception {
+        final var cfg = new Configuration(Configuration.VERSION_2_3_30);
+        for (final String skin : List.of("pc", "mobile")) {
+            final String source = java.nio.file.Files.readString(Path.of(
+                    "src/main/resources/skins/classic", skin, "admin/misc.ftl")).replace("\r\n", "\n");
+            final int start = source.indexOf("    <#if securityPanelAllowed && leaseUserName??>");
+            final int end = source.indexOf("\n</div>\n\n<script>", start);
+            final var template = new freemarker.template.Template("lease-card", source.substring(start, end), cfg);
+            final var data = new java.util.HashMap<String, Object>(Map.of("securityPanelAllowed", true,
+                    "servePath", "", "leaseUserName", "a<b", "leaseSearchResult", List.of(),
+                    "leaseRecentUsers", List.of(Map.of("userName", "x<y", "ip", "192.0.2.1",
+                            "lastSeenAt", 1000L, "expiresAt", 2000L))));
+            final var success = new java.io.StringWriter();
+            template.process(data, success);
+            Assert.assertTrue(success.toString().contains("a&lt;b"));
+            Assert.assertTrue(success.toString().contains("x&lt;y"));
+            Assert.assertTrue(success.toString().contains("192.0.2.1"));
+            Assert.assertTrue(success.toString().contains("没有记录"));
+            data.put("leaseError", "暂时无法查询租约");
+            final var failed = new java.io.StringWriter();
+            template.process(data, failed);
+            Assert.assertTrue(failed.toString().contains("role=\"alert\">暂时无法查询租约"));
+            Assert.assertFalse(failed.toString().contains("没有记录"));
+            Assert.assertFalse(failed.toString().contains("192.0.2.1"));
+            final var hidden = new java.io.StringWriter();
+            template.process(Map.of("securityPanelAllowed", false), hidden);
+            Assert.assertTrue(hidden.toString().isBlank());
         }
     }
 

@@ -289,7 +289,9 @@ public class ApiV3TokenMgmtService {
                 throw new ServiceException("unauthorized");
             }
             // Every client, including the website, must use the current locked account status.
-            final var rows = userRepository.select("SELECT oId,userStatus,userRole FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", current.getString(ApiV3Token.USER_ID));
+            final var rows = userRepository.select("SELECT oId,userStatus,userRole"
+                    + (WEBSITE_CLIENT.equals(clientId) ? ",userName" : "")
+                    + " FROM `" + userRepository.getName() + "` WHERE oId=? FOR UPDATE", current.getString(ApiV3Token.USER_ID));
             final JSONObject user = rows.size() == 1 ? rows.getFirst() : null;
             if (null == user || UserExt.USER_STATUS_C_VALID != user.optInt(UserExt.USER_STATUS)) {
                 current.put(ApiV3Token.STATE, ApiV3Token.STATE_REVOKED).put(ApiV3Token.UPDATED_AT, now);

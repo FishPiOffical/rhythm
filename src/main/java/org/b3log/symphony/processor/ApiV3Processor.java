@@ -37,6 +37,7 @@ import org.b3log.symphony.util.ApiV3RefreshCookies;
 import org.b3log.symphony.util.WebsiteLoginCookies;
 import org.b3log.symphony.util.WebsiteDevice;
 import org.b3log.symphony.util.Sessions;
+import org.b3log.symphony.util.SecurityMonitor;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
 import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
@@ -227,6 +228,7 @@ public class ApiV3Processor {
             setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
             UserIpLeaseService.renew(result.user(), context);
+            SecurityMonitor.markAuthenticated(result.user());
             audit(context, "login", "success", result.user().optString(Keys.OBJECT_ID));
             success(context, token);
         } catch (final ServiceException e) {
@@ -259,6 +261,7 @@ public class ApiV3Processor {
             else setRefreshCookie(context, token.optString("refreshToken"), token.optLong("refreshExpiresIn"));
             token.remove("refreshToken");
             UserIpLeaseService.renew(grant.user(), context);
+            SecurityMonitor.markAuthenticated(grant.user());
             audit(context, "refresh", "success", null);
             success(context, token);
         } catch (final ServiceException e) {

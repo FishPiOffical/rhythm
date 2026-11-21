@@ -13,9 +13,6 @@ export const TEST_MODULES = Object.freeze([
 
 export const FIRST_FLOW_MODULES = Object.freeze(['baseline', 'captcha', 'session']);
 
-// AdminProcessor.isSecurityOperator restricts monitor/self-check to this account.
-export const SECURITY_MONITOR_USERNAME = 'adlered';
-
 // IndexProcessor.showAbout redirects to the community's introduction article.
 const ABOUT_ARTICLE_PATH = '/article/1630569106133';
 
@@ -59,6 +56,8 @@ export function canonicalIp(value) {
   return new URL(`http://[${ip}]/`).hostname.replace(/^\[|\]$/g, '');
 }
 
+const isLoopback = ip => ['127.0.0.1', '::1', '::ffff:7f00:1'].includes(canonicalIp(ip));
+
 const eventKey = event => JSON.stringify([
   event.timestamp, event.ip, event.method, event.uri, event.flow, event.result, event.reason, event.userStatus,
 ]);
@@ -68,6 +67,7 @@ export function matchesCurrentEvent(event, before, expected) {
   if (Number(event.timestamp) < watermark || before.events.some(item => eventKey(item) === eventKey(event))) return false;
   return Object.entries(expected).every(([key, value]) => {
     if (key === 'ip') return canonicalIp(event.ip) === canonicalIp(value);
+    if (key === 'loopback') return isLoopback(event.ip) === value;
     if (key === 'userStatusPrefix') return String(event.userStatus).startsWith(value);
     if (key === 'resultIn') return value.includes(event.result);
     return event[key] === value;
@@ -79,8 +79,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   const baseline = config.accounts.find(account => account.key === 'baseline');
   const admin = config.accounts.find(account => account.key === 'admin');
   if (!baseline || !admin) throw new Error('配置缺少基线账号或管理员账号');
-  const monitorAccount = config.accounts.find(account => account.username === SECURITY_MONITOR_USERNAME);
-  if (!monitorAccount) throw new Error(`安全监控接口仅允许 ${SECURITY_MONITOR_USERNAME}，请补填监控账号后重试`);
+  const monitorAccount = admin;
   const entries = rt.entries(config);
   const sessions = new Map();
   const result = {
@@ -112,7 +111,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   async function open(key, sourceKey = key) {
     if (!sessions.has(key)) {
       const entry = { ...source(sourceKey), key };
-      const purpose = key === 'Monitor-L' ? `安全监控，${SECURITY_MONITOR_USERNAME} 登录`
+      const purpose = key === 'Monitor-L' ? '安全监控，独立管理员会话'
         : key === 'IP-admin' ? '管理员解封操作'
         : key === 'Guest-L' ? '匿名后台权限检查' : `${sourceKey} 来源业务测试`;
       console.log(`打开窗口 ${key}：${purpose}；地址 ${rt.sourceUrl(config, entry.item)}`);
@@ -181,7 +180,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
     const data = await rt.evaluate(session.client, `(async () => {
       if (!document.querySelector('.security-panel')) throw new Error('未找到社区安全面板');
       const response = await fetch('/admin/security/monitor', {cache:'no-store', signal:AbortSignal.timeout(10000)});
-      if (!response.ok || response.redirected) throw new Error('监控接口 '+new URL(response.url).pathname+' 返回 HTTP '+response.status+'（与后台页面状态独立；仅允许 ${SECURITY_MONITOR_USERNAME}）');
+      if (!response.ok || response.redirected) throw new Error('监控接口 '+new URL(response.url).pathname+' 返回 HTTP '+response.status+'（请核对管理员会话及路由权限）');
       const body = await response.json();
       if (body.code !== 0 || !Array.isArray(body.data?.events) || !Number.isFinite(body.data?.total)) throw new Error('监控响应格式错误');
       const data = body.data;
@@ -196,14 +195,8 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
   }
   async function verifyMonitor(label, session, before, expected, minimumGrowth = 1, http) {
     currentStep = label;
-    const target = { ip: session.entry.item.ip, ...expected };
-    // localhost may resolve to either loopback family. Learn the actual monitor IP from its own authenticated request.
-    if (session.entry.item === source('L').item) {
-      const own = before.events.find(event => event.uri === '/admin/security/monitor'
-        && event.userStatus === `本人登录（用户：${monitorAccount.username}）`);
-      if (!own) throw new Error('无法从管理员监控请求确认 localhost 的实际来源IP');
-      target.ip = own.ip;
-    }
+    const loopback = session.entry.item === source('L').item;
+    const target = { ...(loopback ? { loopback: true } : { ip: session.entry.item.ip }), ...expected };
     let match;
     let after;
     const deadline = Date.now() + 8000;
@@ -214,7 +207,7 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await rt.sleep(500);
     } while (Date.now() < deadline);
     if (!match) {
-      const recent = after.events.filter(event => canonicalIp(event.ip) === canonicalIp(target.ip))
+      const recent = after.events.filter(event => loopback ? isLoopback(event.ip) : canonicalIp(event.ip) === canonicalIp(target.ip))
         .slice(0, 5).map(event => `${event.method} ${event.uri} ${event.flow} ${event.result} ${event.reason}`).join('；');
       throw new Error(`${label}：未找到本轮监控 ${JSON.stringify(target)}；该IP近期记录：${recent || '无'}。记录可能已超出100条保留范围，不能据此判通过。`);
     }
@@ -295,14 +288,14 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await observe('A 首访验证', a, () => enterChallenge(a), { ...challenge('/'), reason: '首次访问' });
       await completeChallenge(a);
       let redirected = false;
-      for (let i = 1; i <= 5; i++) {
-        currentStep = `A 周期累计访问 ${i}/5`;
+      for (let i = 1; i <= 10; i++) {
+        currentStep = `A 周期累计访问 ${i}/10`;
         const pathname = i <= 2 ? '/' : paths[i - 3];
         const before = await monitor();
         const href = await navigate(a, pathname);
         if (rt.isCaptcha(href) || a.client.lastCaptchaRedirect) {
           if (!rt.isCaptcha(href)) await rt.ensureCaptcha(a.entry, a.client, url(a), a.lastAt);
-          const event = await verifyMonitor('A 周期验证日志', a, before, { type: 'captcha', result: 'challenge', reason: '访问满5次',
+          const event = await verifyMonitor('A 周期验证日志', a, before, { type: 'captcha', result: 'challenge', reason: '访问满10次',
             flow: 'AnonymousViewCheckMidware -> AnonymousCaptchaShield' });
           console.log(`通过：A 第 ${i} 次页面访问触发周期验证；日志 ${event.method} ${event.uri} ${event.reason}`);
           await addCheck({ label: 'A 周期验证', status: 'PASS', pageVisits: i, event }, a);
@@ -311,10 +304,10 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
           break;
         }
         requireOk(a, href, pathname);
-        await addCheck({ label: `A 周期累计访问 ${i}/5`, status: 'OBSERVED', pageVisits: i,
+        await addCheck({ label: `A 周期累计访问 ${i}/10`, status: 'OBSERVED', pageVisits: i,
           http: a.client.lastDocumentResponse }, a);
       }
-      if (!redirected) throw new Error('A 五次页面访问内未重新触发验证码');
+      if (!redirected) throw new Error('A 十次页面访问内未重新触发验证码');
       await login(a, admin);
       aLoggedIn = a;
       for (let i = 0; i < 5; i++) {
@@ -332,28 +325,10 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await rt.close(a);
       sessions.delete('A');
       const returned = await open('A-return', 'A');
-      await observe('匿名A回访五次内进入验证', returned, async () => {
-        let href = '';
-        for (let attempt = 1; attempt <= 5; attempt++) {
-          href = await navigate(returned, '/', { reload: attempt > 1, freshDocument: true });
-          if (rt.isCaptcha(href) || returned.client.lastCaptchaRedirect) {
-            console.log(`A 回访在第 ${attempt} 次真实请求进入/test。`);
-            break;
-          }
-          console.log(`A 回访第 ${attempt}/5 次未进入/test，继续等待验证码周期。`);
-          await addCheck({
-            label: `A 回访 ${attempt}/5`,
-            status: 'OBSERVED',
-            httpStatus: returned.client.lastDocumentResponse?.status,
-            pathname: new URL(href).pathname,
-          }, returned);
-        }
-        if (!rt.isCaptcha(href) && !returned.client.lastCaptchaRedirect) {
-          throw new Error('A 回访五次真实请求均未进入/test');
-        }
-        if (!rt.isCaptcha(href)) await rt.ensureCaptcha(returned.entry, returned.client, url(returned), returned.lastAt);
-      }, challenge('/'));
-      await completeChallenge(returned);
+      await observe('匿名A回访命中仍有效的管理员租约', returned, async () => {
+        const href = await navigate(returned, '/', { freshDocument: true });
+        requireOk(returned, href, '/');
+      }, cc('/', { userStatus: `访客+有效租约IP（匹配账号：${admin.username}）` }));
     },
     async blacklist() {
       const c = await open('C');
@@ -453,13 +428,19 @@ export async function runAcceptanceSuite({ config, selected, runtime: rt, persis
       await addCheck({ label: '后台结构自检（不代替真实请求测试）', status: 'PASS', selfCheck }, session);
       const guest = await open('Guest-L', 'L');
       for (const pathname of ['/admin/security/monitor', '/admin/security/self-check']) {
-        await observe(`匿名拒绝 ${pathname}`, guest, async () => {
+        const checkDenial = async () => {
           // /login is public and supplies an origin for browser fetch without triggering anonymous-page counters.
           await noCaptcha(guest, '/login');
           const response = await rt.evaluate(guest.client, `(async()=>{const r=await fetch(${JSON.stringify(pathname)},{cache:'no-store',signal:AbortSignal.timeout(10000)});return {status:r.status,redirected:r.redirected,body:(await r.text()).slice(0,120)};})()`);
           if (response.status !== 403 || response.redirected) throw new Error(`匿名后台读取未403：${pathname} HTTP ${response.status}`);
           return { status: response.status, url: url(guest, pathname), preview: response.body };
-        }, cc(pathname, { userStatusPrefix: '访客' }));
+        };
+        if (pathname === '/admin/security/monitor') {
+          const http = await checkDenial();
+          await addCheck({ label: `匿名拒绝 ${pathname}`, status: 'PASS', http }, guest);
+        } else {
+          await observe(`匿名拒绝 ${pathname}`, guest, checkDenial, cc(pathname, { userStatusPrefix: '访客' }));
+        }
       }
       console.log('通过：生产控件只读、真实保存403且状态未变、匿名后台拒绝、结构自检。');
     },

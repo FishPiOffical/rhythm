@@ -2663,45 +2663,45 @@ public class AdminProcessor {
         final AbstractFreeMarkerRenderer renderer = new SkinRenderer(context, "admin/misc.ftl");
         final Map<String, Object> dataModel = renderer.getDataModel();
 
-        final JSONObject sessionUser = Sessions.getUser();
-        if (isSecurityOperator(sessionUser) && sessionUser.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID) {
-            final UserIpLeaseService leaseService = BeanManager.getInstance().getReference(UserIpLeaseService.class);
-            final String name = StringUtils.trimToEmpty(context.param("leaseUserName"));
+        final boolean securityPanelAllowed = isSecurityAdminSession();
+        dataModel.put("securityPanelAllowed", securityPanelAllowed);
+        if (securityPanelAllowed) {
             context.getResponse().setHeader("Cache-Control", "private, no-store");
-            if (name.length() > 64 || name.codePoints().anyMatch(java.lang.Character::isISOControl)) {
-                context.sendError(400);
-                context.abort();
-                return;
-            }
-            try {
-                dataModel.put("leaseRecentUsers", leaseService.findRecentUsers().stream().map(JSONObject::toMap).toList());
-                if (!name.isEmpty()) {
-                    dataModel.put("leaseSearchResult", leaseService.findByUserName(name).stream().map(JSONObject::toMap).toList());
+            final String name = StringUtils.trimToEmpty(context.param("leaseUserName"));
+            final boolean validName = name.length() <= 64 && name.codePoints().noneMatch(java.lang.Character::isISOControl);
+            dataModel.put("leaseUserName", validName ? name : "");
+            if (!validName) {
+                dataModel.put("leaseError", "用户名格式无效");
+            } else {
+                final UserIpLeaseService leaseService = BeanManager.getInstance().getReference(UserIpLeaseService.class);
+                try {
+                    final var recent = leaseService.findRecentUsers().stream().map(JSONObject::toMap).toList();
+                    if (!name.isEmpty()) {
+                        dataModel.put("leaseSearchResult", leaseService.findByUserName(name).stream().map(JSONObject::toMap).toList());
+                    }
+                    dataModel.put("leaseRecentUsers", recent);
+                } catch (final RepositoryException error) {
+                    LOGGER.error("查询账号 IP 租约失败", error);
+                    dataModel.put("leaseError", "暂时无法查询租约");
                 }
-                dataModel.put("leaseUserName", name);
-            } catch (final RepositoryException error) {
-                LOGGER.error("查询账号 IP 租约失败", error);
-                context.sendError(503);
-                context.abort();
-                return;
             }
         }
 
         final List<JSONObject> misc = optionQueryService.getMisc();
         dataModel.put(Option.OPTIONS, misc);
-        dataModel.put("firewallEnabled", Firewall.isEnabled());
-        dataModel.put("firewallThreshold", Firewall.getThreshold());
-        // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
-        dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
-        dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
-        dataModel.put("securityRuntimeMode", Latkes.getRuntimeMode().name());
-        dataModel.put("securitySwitchEditable", Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode());
-        dataModel.put("securityStats", SecurityMonitor.snapshot());
-        dataModel.put("securityEvents", SecurityMonitor.recentEvents());
-        if (isSecurityOperator(getCurrentUser(context))) {
+        if (securityPanelAllowed) {
+            dataModel.put("firewallEnabled", Firewall.isEnabled());
+            dataModel.put("firewallThreshold", Firewall.getThreshold());
+            // 验证码盾状态唯一来源；未经阿达明确允许，不得修改、移动、删除或绕过这些调用。
+            dataModel.put("verificationShieldEnabled", AnonymousCaptchaShield.isEnabled());
+            dataModel.put("firstVisitCaptchaEnabled", AnonymousCaptchaShield.isFirstVisitCaptchaEnabled());
+            dataModel.put("securityRuntimeMode", Latkes.getRuntimeMode().name());
+            dataModel.put("securitySwitchEditable", isSecurityEditable());
+            dataModel.put("securityStats", SecurityMonitor.snapshot());
+            dataModel.put("securityEvents", SecurityMonitor.recentEvents(true));
             dataModel.put("crawlerStats", CrawlerMonitor.snapshot(null));
+            dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
         }
-        dataModel.put("securitySelfCheck", SecuritySelfCheck.run());
 
         dataModelService.fillHeaderAndFooter(context, dataModel);
     }
@@ -2753,8 +2753,7 @@ public class AdminProcessor {
      * Toggle CC firewall (temporary, resets on restart).
      */
     public void toggleFirewall(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2783,8 +2782,7 @@ public class AdminProcessor {
      * Toggle anonymous verification shield (temporary, resets on restart).
      */
     public void toggleVerificationShield(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2804,8 +2802,7 @@ public class AdminProcessor {
      * Toggle first-visit captcha rule (temporary, resets on restart).
      */
     public void toggleFirstVisitCaptcha(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2823,8 +2820,7 @@ public class AdminProcessor {
 
     /** Atomically applies all temporary security switches in development mode. */
     public void saveSecuritySwitches(final RequestContext context) {
-        final JSONObject currentUser = getCurrentUser(context);
-        if (!isSecurityOperator(currentUser) || !isSecurityEditable()) {
+        if (!isSecurityAdminSession() || !isSecurityEditable()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2855,18 +2851,19 @@ public class AdminProcessor {
     }
 
     public void securityMonitor(final RequestContext context) {
-        if (!isSecurityOperator(getCurrentUser(context))) {
+        if (!isSecurityAdminSession()) {
             context.sendError(403);
             context.abort();
             return;
         }
+        context.getResponse().setHeader("Cache-Control", "private, no-store");
         context.renderJSON(StatusCodes.SUCC).renderData(new JSONObject(SecurityMonitor.snapshot())
                 .put("crawlers", CrawlerMonitor.snapshot(context.param("crawler")))
-                .put("events", SecurityMonitor.recentEvents()));
+                .put("events", SecurityMonitor.recentEvents(true)));
     }
 
     public void securitySelfCheck(final RequestContext context) {
-        if (!isSecurityOperator(getCurrentUser(context))) {
+        if (!isSecurityAdminSession()) {
             context.sendError(403);
             context.abort();
             return;
@@ -2887,17 +2884,10 @@ public class AdminProcessor {
         return Latkes.RuntimeMode.DEVELOPMENT == Latkes.getRuntimeMode();
     }
 
-    private JSONObject getCurrentUser(final RequestContext context) {
-        JSONObject currentUser = Sessions.getUser();
-        try {
-            currentUser = ApiProcessor.getUserByKey(context.param("apiKey"));
-        } catch (final Exception ignored) {
-        }
-        return currentUser;
-    }
-
-    private boolean isSecurityOperator(final JSONObject currentUser) {
-        return currentUser != null && "adlered".equals(currentUser.optString(User.USER_NAME));
+    private boolean isSecurityAdminSession() {
+        final JSONObject sessionUser = Sessions.getUser();
+        return sessionUser != null && Role.ROLE_ID_C_ADMIN.equals(sessionUser.optString(User.USER_ROLE))
+                && sessionUser.optInt(UserExt.USER_STATUS, -1) == UserExt.USER_STATUS_C_VALID;
     }
 
     /**

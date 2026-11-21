@@ -5,6 +5,7 @@ import org.b3log.latke.repository.AbstractRepository;
 import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.annotation.Repository;
 import org.b3log.latke.repository.jdbc.JdbcRepository;
+import org.b3log.latke.util.Ids;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.model.UserIpLease;
 import org.b3log.symphony.model.UserIpLease.Change;
@@ -17,8 +18,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
 
 @Repository
 public class UserIpLeaseRepository extends AbstractRepository {
@@ -30,31 +33,44 @@ public class UserIpLeaseRepository extends AbstractRepository {
     }
 
     public List<UserIpLease> active(final long now) throws RepositoryException {
-        return select("SELECT l.userId,l.ip,l.lastSeenAt,l.expiresAt FROM `" + getName()
+        return select("SELECT l.userId,u.userName,l.ip,l.lastSeenAt,l.expiresAt FROM `" + getName()
                 + "` l INNER JOIN `" + users.getName() + "` u ON u.oId=l.userId"
                 + " WHERE l.expiresAt>? AND u.userStatus=?", now, UserExt.USER_STATUS_C_VALID).stream()
-                .map(row -> new UserIpLease(row.getString("userId"), row.getString("ip"),
+                .map(row -> new UserIpLease(row.getString("userId"), row.getString("userName"), row.getString("ip"),
                         row.getLong("lastSeenAt"), row.getLong("expiresAt"))).toList();
     }
 
     public void persist(final List<Change> batch) throws RepositoryException {
+        if (batch.isEmpty()) return;
+        final var newIds = allocateNewLeaseIds(batch);
         try {
             final var tx = ApiV3Transactions.strict(beginTransaction());
             final var connection = JdbcRepository.TX.get().getConnection();
-            try (var upsert = connection.prepareStatement("INSERT INTO `" + getName()
-                     + "` (oId,userId,ip,lastSeenAt,expiresAt) VALUES (?,?,?,?,?) AS incoming"
-                     + " ON DUPLICATE KEY UPDATE lastSeenAt=incoming.lastSeenAt,expiresAt=incoming.expiresAt")) {
+            try (var insert = connection.prepareStatement("INSERT INTO `" + getName()
+                         + "` (oId,userId,ip,lastSeenAt,expiresAt) VALUES (?,?,?,?,?)");
+                 var renew = connection.prepareStatement("UPDATE `" + getName()
+                         + "` SET lastSeenAt=?,expiresAt=? WHERE userId=? AND ip=?")) {
                 for (final var change : batch) {
                     for (final var lease : change.current().values()) {
-                        upsert.setString(1, UUID.randomUUID().toString().replace("-", ""));
-                        upsert.setString(2, lease.userId());
-                        upsert.setString(3, lease.ip());
-                        upsert.setLong(4, lease.lastSeenAt());
-                        upsert.setLong(5, lease.expiresAt());
-                        upsert.addBatch();
+                        final String newId = newIds.get(lease);
+                        if (newId == null) {
+                            renew.setLong(1, lease.lastSeenAt());
+                            renew.setLong(2, lease.expiresAt());
+                            renew.setString(3, lease.userId());
+                            renew.setString(4, lease.ip());
+                            renew.addBatch();
+                        } else {
+                            insert.setString(1, newId);
+                            insert.setString(2, lease.userId());
+                            insert.setString(3, lease.ip());
+                            insert.setLong(4, lease.lastSeenAt());
+                            insert.setLong(5, lease.expiresAt());
+                            insert.addBatch();
+                        }
                     }
                 }
-                upsert.executeBatch();
+                if (!newIds.isEmpty()) insert.executeBatch();
+                renew.executeBatch();
             }
             removeSuperseded(batch, connection);
             tx.commit();
@@ -63,6 +79,29 @@ public class UserIpLeaseRepository extends AbstractRepository {
         } finally {
             ApiV3Transactions.releaseThreadResources();
         }
+    }
+
+    private Map<UserIpLease, String> allocateNewLeaseIds(final List<Change> batch) throws RepositoryException {
+        final var userIds = batch.stream().filter(change -> !change.current().isEmpty()).map(Change::userId).toList();
+        if (userIds.isEmpty()) return Map.of();
+        final Map<String, Set<String>> existing = new HashMap<>();
+        final String placeholders = String.join(",", Collections.nCopies(userIds.size(), "?"));
+        try {
+            for (final var row : select("SELECT userId,ip FROM `" + getName()
+                    + "` WHERE userId IN (" + placeholders + ")", userIds.toArray())) {
+                existing.computeIfAbsent(row.getString("userId"), ignored -> new HashSet<>()).add(row.getString("ip"));
+            }
+        } finally {
+            ApiV3Transactions.releaseThreadResources();
+        }
+        final Map<UserIpLease, String> newIds = new HashMap<>();
+        for (final var change : batch) {
+            final var addresses = existing.getOrDefault(change.userId(), Set.of());
+            for (final var lease : change.current().values()) {
+                if (!addresses.contains(lease.ip())) newIds.put(lease, Ids.genTimeMillisId());
+            }
+        }
+        return newIds;
     }
 
     private void removeSuperseded(final List<Change> batch, final Connection connection) throws SQLException {

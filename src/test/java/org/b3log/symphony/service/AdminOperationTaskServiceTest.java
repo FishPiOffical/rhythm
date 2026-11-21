@@ -19,12 +19,16 @@
 package org.b3log.symphony.service;
 
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.symphony.repository.AdminOperationTaskRepository;
+import org.b3log.symphony.repository.ApiV3IdentityReviewerRepository;
+import org.b3log.symphony.repository.ApiV3RequestRepository;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.repository.UserRepository;
 import org.b3log.symphony.model.Permission;
 import org.b3log.symphony.model.Role;
+import org.b3log.symphony.util.ApiV3Exception;
 import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -36,8 +40,9 @@ public class AdminOperationTaskServiceTest {
     static {
         final Properties properties = new Properties();
         properties.setProperty("runtimeDatabase", "NONE");
-        org.b3log.latke.Latkes.setLatkeProps(properties);
-        org.b3log.latke.Latkes.setLocalProps(properties);
+        Latkes.setLatkeProps(properties);
+        Latkes.setLocalProps(properties);
+        Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
     }
     static final class Store extends AdminOperationTaskRepository {
         final Map<String, JSONObject> rows = new LinkedHashMap<>();
@@ -142,6 +147,67 @@ public class AdminOperationTaskServiceTest {
         Assert.assertNull(call(f.service, "claim"));
         Assert.assertEquals(f.search.writes, 1);
     }
+
+    @Test public void communitySecurityRequiresAdminRoleAndProductionSwitchesStayReadOnly() throws Exception {
+        final var store = new Store();
+        final var admin = new ApiV3AdminService();
+        final var system = new ApiV3AdminSystemService();
+        final var user = new JSONObject().put("oId", "1").put("userName", "test-operator")
+                .put("userRole", Role.ROLE_ID_C_ADMIN);
+        final var identity = new JSONObject().put("user", user);
+        inject(system, "adminService", admin);
+        inject(admin, "requests", new ApiV3RequestRepository() {
+            @Override public boolean hasTransactionBegun() { return store.hasTransactionBegun(); }
+            @Override public Transaction beginTransaction() { return store.beginTransaction(); }
+        });
+        inject(admin, "proofs", new ApiV3SecurityProofService() {
+            @Override public JSONObject authorizeFirstPartyInCurrentTransaction(final JSONObject proof, final String scope) {
+                return identity == proof && proof.optString("scope").equals(scope) ? user : null;
+            }
+        });
+        inject(admin, "users", new UserRepository() {
+            @Override public List<JSONObject> select(final String sql, final Object... args) { return List.of(user); }
+        });
+        inject(admin, "reviewers", new ApiV3IdentityReviewerRepository() {
+            @Override public List<JSONObject> select(final String sql, final Object... args) { return List.of(); }
+        });
+        inject(admin, "roleQueryService", new RoleQueryService() {
+            @Override public Set<String> getPermissions(final String role) {
+                return Set.of(Permission.PERMISSION_ID_C_MENU_ADMIN, Permission.PERMISSION_ID_C_MENU_ADMIN_MISC);
+            }
+            @Override public JSONObject getRole(final String role) { return null; }
+        });
+        inject(admin, "avatarQueryService", new AvatarQueryService() {
+            @Override public void fillUserAvatarURL(final JSONObject profile) { }
+        });
+
+        final var runtime = Latkes.getRuntimeMode();
+        try {
+            Latkes.setRuntimeMode(Latkes.RuntimeMode.PRODUCTION);
+            identity.put("scope", "profile.read");
+            Assert.assertTrue(admin.capabilities(identity).getBoolean("isSecurityOperator"));
+            Assert.assertTrue(system.getSecurityMonitor(identity, null).has("events"));
+            Assert.expectThrows(ApiV3Exception.class, () -> system.saveSecuritySwitches(identity, new JSONObject(), "key"));
+            identity.put("scope", "settings.write");
+            final var readonly = Assert.expectThrows(ApiV3Exception.class,
+                    () -> system.saveSecuritySwitches(identity, new JSONObject(), "key"));
+            Assert.assertEquals(readonly.code, "security_switches_readonly");
+            user.put("userRole", Role.ROLE_ID_C_DEFAULT);
+            final var denied = Assert.expectThrows(ApiV3Exception.class,
+                    () -> system.saveSecuritySwitches(identity, new JSONObject(), "key"));
+            Assert.assertEquals(denied.status, 403);
+            Assert.assertNotEquals(denied.code, "security_switches_readonly");
+            identity.put("scope", "profile.read");
+            Assert.assertFalse(admin.capabilities(identity).getBoolean("isSecurityOperator"));
+            Assert.assertEquals(Assert.expectThrows(ApiV3Exception.class,
+                    () -> system.getSecurityMonitor(identity, null)).status, 403);
+            Assert.assertEquals(Assert.expectThrows(ApiV3Exception.class,
+                    () -> system.runSecuritySelfCheck(identity)).status, 403);
+        } finally {
+            Latkes.setRuntimeMode(runtime);
+        }
+    }
+
     static void inject(final Object target, final String name, final Object value) throws Exception {
         final var field = target.getClass().getDeclaredField(name); field.setAccessible(true); field.set(target, value);
     }

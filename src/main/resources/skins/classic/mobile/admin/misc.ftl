@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    <#if permissions["miscBroadCast"].permissionGrant>
+    <#if securityPanelAllowed>
     <div class="module security-panel">
         <div class="module-header"><h2>社区安全</h2></div>
         <div class="module-panel form fn-clear form--admin">
@@ -83,9 +83,8 @@
                 <div class="security-monitor-heading"><h3 id="securityEventsTitle">最近访问</h3><span>本次启动 · 最多100条</span></div>
                 <div class="security-stat-strip"><span>记录 <strong class="security-stat-value" id="securityTotal">${securityStats.total}</strong></span><span>近10分钟 <strong class="security-stat-value" id="securityLast10">${securityStats.last10Minutes}</strong></span><span id="securityRefreshMessage" role="status" aria-live="polite">刚刚更新</span></div>
                 <div class="security-actions"><button type="button" onclick="SecuritySwitches.refresh()">刷新</button><button type="button" onclick="SecuritySwitches.showLatest()">最新记录</button><button type="button" onclick="SecuritySwitches.check()">执行自检</button><label><input type="checkbox" id="securityAutoRefresh" checked/> 自动刷新（1秒）</label></div>
-                <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time}</td><td>${event.ip}</td><td>${event.userStatus}</td><td>${event.method} ${event.uri}</td><td>${event.handler}</td><td>${event.flow}</td><td>${event.result}</td><td>${event.reason}</td></tr></#list></tbody></table></div>
+                <div class="security-events-wrap" id="securityEventsViewport" role="region" aria-labelledby="securityEventsTitle" tabindex="0"><table class="table security-events"><thead><tr><th>时间</th><th>IP</th><th>用户状态</th><th>请求</th><th>处理器</th><th>流程</th><th>结果</th><th>原因</th></tr></thead><tbody id="securityEvents"><#list securityEvents as event><tr><td>${event.time?html}</td><td>${event.ip?html}</td><td>${event.userStatus?html}</td><td>${event.method?html} ${event.uri?html}</td><td>${event.handler?html}</td><td>${event.flow?html}</td><td>${event.result?html}</td><td>${event.reason?html}</td></tr></#list></tbody></table></div>
             </div>
-            <#if currentUser.userName == "adlered">
             <div class="security-monitor security-crawlers">
                 <div class="security-monitor-heading">
                     <h3 id="securityCrawlerTitle">爬虫访问</h3><span>本次启动 · 重启清空</span>
@@ -141,11 +140,12 @@
                 </div>
                 <p class="security-observation-note" id="securityObservationRetention">已过期或淘汰 ${securityStats.observationDiscarded} 条；重启清空。未有后续访问时保持待确认。</p>
             </div>
-            </#if>
             <div class="security-self-check" id="securitySelfCheck"><strong>结构自检：${securitySelfCheck.status}</strong><#list securitySelfCheck.checks as check><div>${check.passed?then('通过','需核对')}：${check.name}（${check.detail}）</div></#list><div class="ft-small">${securitySelfCheck.note}</div></div>
         </div>
     </div>
 
+    </#if>
+    <#if permissions["miscBroadCast"].permissionGrant>
     <div class="module">
         <div class="module-header">
             <h2>发放工资</h2>
@@ -158,7 +158,8 @@
             <button type="button" onclick="SalaryUtil.paySalary()" class="green fn-right" style="width:100%;">发放工资</button>
         </div>
     </div>
-    <#if leaseUserName??>
+    </#if>
+    <#if securityPanelAllowed && leaseUserName??>
     <div class="module security-panel">
         <div class="module-header"><h2>账号 IP 租约</h2></div>
         <div class="module-panel form form--admin">
@@ -166,6 +167,9 @@
                 <label>用户名 <input name="leaseUserName" maxlength="64" value="${leaseUserName?html}" required/></label>
                 <button type="submit">查询</button>
             </form>
+            <#if leaseError??>
+            <p role="alert">${leaseError?html}</p>
+            <#else>
             <#if leaseSearchResult??>
             <div class="security-events-wrap"><table class="table security-events"><thead><tr><th>用户名</th><th>IP</th><th>最近活动</th><th>到期时间</th></tr></thead><tbody>
                 <#list leaseSearchResult as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
@@ -177,13 +181,14 @@
                 <#list leaseRecentUsers![] as lease><tr><td>${lease.userName?html}</td><td>${lease.ip?html}</td><td>${lease.lastSeenAt?number_to_datetime}</td><td>${lease.expiresAt?number_to_datetime}</td></tr>
                 <#else><tr><td colspan="4">没有记录</td></tr></#list>
             </tbody></table></div>
+            </#if>
         </div>
     </div>
-    </#if>
     </#if>
 </div>
 
 <script>
+<#if permissions["miscBroadCast"].permissionGrant>
 const SalaryUtil = {
     STORAGE_KEY: 'admin_salary_list',
     servePath: '${servePath}',
@@ -279,7 +284,9 @@ const SalaryUtil = {
 
 // 页面加载时初始化
 SalaryUtil.init();
+</#if>
 
+<#if securityPanelAllowed>
 const SecuritySwitches = {
     servePath: '${servePath}',
     save() {
@@ -522,5 +529,6 @@ const SecuritySwitches = {
     check() { fetch(this.servePath+'/admin/security/self-check').then(res=>res.json()).then(result=>{const d=result.data||{};const box=document.getElementById('securitySelfCheck');box.textContent='结构自检：'+(d.status||'未知')+'；'+(d.note||'');(d.checks||[]).forEach(c=>{const line=document.createElement('div');line.textContent=(c.passed?'通过':'需核对')+'：'+c.name+'（'+c.detail+'）';box.appendChild(line);});}).catch(err=>alert('自检失败：'+err.message)); }
 };
 SecuritySwitches.startAutoRefresh();
+</#if>
 </script>
 </@admin>

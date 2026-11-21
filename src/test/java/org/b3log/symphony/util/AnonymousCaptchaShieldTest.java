@@ -28,6 +28,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.http.Request;
 import org.b3log.latke.http.RequestContext;
@@ -39,10 +42,12 @@ import org.b3log.symphony.model.Article;
 import org.b3log.symphony.model.Role;
 import org.b3log.symphony.model.UserExt;
 import org.b3log.symphony.processor.ApiV3Processor;
+import org.b3log.symphony.processor.AdminProcessor;
 import org.b3log.symphony.processor.BeforeRequestHandler;
 import org.b3log.symphony.processor.CaptchaProcessor;
 import org.b3log.symphony.processor.SkinRenderer;
 import org.b3log.symphony.processor.middleware.AnonymousViewCheckMidware;
+import org.b3log.symphony.processor.middleware.ApiV3AuthMidware;
 import org.b3log.symphony.repository.ArticleRepository;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.service.OptionQueryService;
@@ -58,6 +63,7 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -126,6 +132,7 @@ public class AnonymousCaptchaShieldTest {
         AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(true);
         Firewall.setEnabled(true);
         Sessions.clearThreadLocalData();
+        SecurityMonitor.clearRequest();
     }
 
     private static final class Exchange implements AutoCloseable {
@@ -191,17 +198,17 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void fifthVisitAndRecentPassKeepOriginalIntervals() throws Exception {
+    public void tenthLegacyVisitChallengesEvenAfterRecentPass() throws Exception {
         AnonymousCaptchaShield.setFirstVisitCaptchaEnabled(false);
-        for (int i = 0; i < 4; i++) allowed("/shield-test-page");
+        for (int index = 0; index < 9; index++) allowed("/shield-test-page");
         try (final Exchange exchange = new Exchange("/shield-test-page")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
-            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 5);
+            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 10);
         }
         reset();
         cache("ipLastCaptchaPassTimeCache").put(IP, System.currentTimeMillis());
-        for (int i = 0; i < 4; i++) allowed("/shield-test-page");
+        for (int index = 0; index < 9; index++) allowed("/shield-test-page");
         try (final Exchange exchange = new Exchange("/shield-test-page")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);
@@ -221,10 +228,10 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertEquals(((JsonRenderer) exchange.context.getRenderer()).getJSONObject().getInt("code"), StatusCodes.SUCC);
         }
         Assert.assertNull(cache("ipV3VisitCountCache").getIfPresent(IP));
-        for (int i = 0; i < 4; i++) allowed("/shield-test-page");
+        for (int index = 0; index < 9; index++) allowed("/shield-test-page");
         for (int i = 0; i < 29; i++) allowed("/api/v3/articles");
         Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 29);
-        Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 4);
+        Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 9);
         try (final Exchange exchange = new Exchange("/api/v3/articles")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 403);
@@ -234,7 +241,7 @@ public class AnonymousCaptchaShieldTest {
         try (final Exchange exchange = new Exchange("/shield-test-page")) {
             exchange.run(middleware::handle);
             Assert.assertEquals(exchange.status, 302);
-            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 5);
+            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 10);
             Assert.assertEquals(cache("ipV3VisitCountCache").getIfPresent(IP), 30);
         }
     }
@@ -255,6 +262,7 @@ public class AnonymousCaptchaShieldTest {
     @Test
     public void leasedIpNeverEntersPermanentWhitelist() throws Exception {
         final JSONObject user = new JSONObject().put(Keys.OBJECT_ID, "lease-fixture")
+                .put(User.USER_NAME, "fixture-owner")
                 .put(User.USER_ROLE, Role.ROLE_ID_C_DEFAULT).put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
         try {
             Sessions.setUser(user);
@@ -263,6 +271,13 @@ public class AnonymousCaptchaShieldTest {
             allowed("/shield-test-page");
             Assert.assertFalse(whitelist().contains(IP));
             Assert.assertNull(cache("ipVisitCountCache").getIfPresent(IP));
+            SecurityMonitor.record(IP, "GET", "/shield-test-page", "fixture", "cc", "allow", "阈值内");
+            Assert.assertEquals(SecurityMonitor.recentEvents().getFirst().get("userStatus"), "访客+有效租约IP");
+            final var event = SecurityMonitor.recentEvents(true).getFirst();
+            Assert.assertEquals(event.get("ip"), IP);
+            Assert.assertEquals(event.get("userStatus"), "访客+有效租约IP（匹配账号：fixture-owner）");
+            SecurityMonitor.markAuthenticated(user);
+            Assert.assertEquals(SecurityMonitor.recentEvents(true).getFirst().get("userStatus"), "本人登录（用户：fixture-owner）");
             moveLease(user);
             try (final Exchange exchange = new Exchange("/shield-test-page")) {
                 exchange.run(middleware::handle);
@@ -676,6 +691,67 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
+    public void v3MonitorUpdatesOnlyAfterBearerAndScopeSucceed() throws Exception {
+        final String path = "/api/v3/columns";
+        final var auth = new ApiV3AuthMidware();
+        final var user = new JSONObject().put(User.USER_NAME, "bearer-fixture");
+        final var identity = new JSONObject().put("user", user).put("scope", "profile.read");
+        inject(auth, "apiV3TokenMgmtService", new ApiV3TokenMgmtService() {
+            @Override public JSONObject authenticate(final String token) {
+                return "fixture-token".equals(token) ? identity : null;
+            }
+        });
+        Sessions.setUser(new JSONObject().put(User.USER_NAME, "legacy-fixture"));
+        for (final String scope : List.of("profile.read", "content.read")) {
+            identity.put("scope", scope);
+            try (final Exchange exchange = new Exchange(path)) {
+                SecurityMonitor.record(IP, "GET", path, "fixture", "cc", "allow", "阈值内");
+                exchange.raw.headers().set("Authorization", "Bearer fixture-token");
+                exchange.run(auth::optionalContent);
+                final var event = SecurityMonitor.recentEvents(true).getFirst();
+                if ("content.read".equals(scope)) {
+                    Assert.assertTrue(exchange.reached);
+                    Assert.assertEquals(event.get("userStatus"), "本人登录（用户：bearer-fixture）");
+                } else {
+                    Assert.assertEquals(exchange.status, 403);
+                    Assert.assertTrue(event.get("userStatus").toString().startsWith("访客"));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void v3ChallengeTextLogsMatchResponseRequestIdsAndOmitQuery() throws Exception {
+        final var logger = (org.apache.logging.log4j.core.Logger) field(AnonymousCaptchaShield.class, "LOGGER");
+        final var lines = new ArrayList<String>();
+        final var capture = new AbstractAppender("shield-fixture", null, null, false, Property.EMPTY_ARRAY) {
+            @Override public void append(final LogEvent event) { lines.add(event.getMessage().getFormattedMessage()); }
+        };
+        capture.start();
+        logger.addAppender(capture);
+        try {
+            final String path = "/api/v3/articles?fixture=not-for-logs";
+            try (final Exchange exchange = new Exchange(path)) {
+                exchange.run(middleware::handle);
+                Assert.assertEquals(exchange.status, 403);
+                Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(IP));
+                Assert.assertTrue(lines.getLast().contains("结果=验证码 原因=首次访问 次数=1 requestId="
+                        + exchange.response.getHeader("X-Request-Id")));
+            }
+            try (final Exchange exchange = new Exchange(path)) {
+                Assert.assertTrue(AnonymousCaptchaShield.redirectIfChallenged(exchange.context, false));
+                Assert.assertEquals(exchange.status, 403);
+                Assert.assertTrue(lines.getLast().contains("结果=等待验证码 原因=已在验证黑名单 次数=- requestId="
+                        + exchange.response.getHeader("X-Request-Id")));
+            }
+            Assert.assertTrue(lines.stream().noneMatch(line -> line.contains("not-for-logs")));
+        } finally {
+            logger.removeAppender(capture);
+            capture.stop();
+        }
+    }
+
+    @Test
     public void v3FirstAndPeriodicChallengesPersistUntilProviderVerification() throws Exception {
         Firewall.setEnabled(false);
         try (final ProofProvider provider = new ProofProvider()) {
@@ -789,7 +865,7 @@ public class AnonymousCaptchaShieldTest {
     }
 
     @Test
-    public void allowListDoesNotPrecedeCaptchaAndApiNeverEntersCumulativeBan() throws Exception {
+    public void allowListDoesNotPrecedeCaptchaAndLegacyApiStillReturnsUnauthorized() throws Exception {
         Assert.assertTrue(List.of(Symphonys.ANONYMOUS_VIEW_SKIPS.split(",")).contains("/recent"));
         try (final Exchange exchange = new Exchange("/recent")) {
             exchange.run(middleware::handle);
@@ -804,6 +880,56 @@ public class AnonymousCaptchaShieldTest {
             Assert.assertEquals(exchange.status, 401);
             Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(IP), 300);
             Assert.assertNull(banned.getIfPresent(IP));
+        }
+    }
+
+    @Test
+    public void legacyPageAtThreeHundredStillChallengesWithoutFirewallBan() throws Exception {
+        final String source = "192.0.2.144";
+        cache("ipVisitCountCache").put(source, 299);
+        @SuppressWarnings("unchecked") final Cache<String, Boolean> banned = (Cache<String, Boolean>) field(Firewall.class, "BANNED");
+        Assert.assertNull(banned.getIfPresent(source));
+        try (final Exchange exchange = new Exchange("/shield-test-page")) {
+            exchange.raw.headers().set("X-Waf-Ip", source);
+            exchange.run(middleware::handle);
+            Assert.assertEquals(exchange.status, 302);
+            Assert.assertEquals(exchange.response.getHeader("Location"), "/test");
+            Assert.assertEquals(cache("ipVisitCountCache").getIfPresent(source), 300);
+            Assert.assertTrue(AnonymousCaptchaShield.isAwaitingCaptcha(source));
+            Assert.assertNull(banned.getIfPresent(source));
+        } finally {
+            banned.invalidate(source);
+        }
+    }
+
+    @Test
+    public void legacySecurityMonitorRequiresValidAdminSessionAndProductionSwitchesStayReadOnly() {
+        final var processor = new AdminProcessor();
+        final var session = new JSONObject().put(User.USER_NAME, "another-admin")
+                .put(User.USER_ROLE, Role.ROLE_ID_C_OP).put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_VALID);
+        try (final Exchange exchange = new Exchange("/admin/security/monitor")) {
+            processor.securityMonitor(exchange.context);
+            Assert.assertEquals(exchange.status, 403);
+        }
+        Sessions.setUser(session);
+        try (final Exchange exchange = new Exchange("/admin/security/monitor")) {
+            processor.securityMonitor(exchange.context);
+            Assert.assertEquals(exchange.status, 403);
+        }
+        session.put(User.USER_ROLE, Role.ROLE_ID_C_ADMIN);
+        try (final Exchange exchange = new Exchange("/admin/security/monitor")) {
+            processor.securityMonitor(exchange.context);
+            Assert.assertEquals(exchange.status, 200);
+            Assert.assertEquals(exchange.response.getHeader("Cache-Control"), "private, no-store");
+        }
+        try (final Exchange exchange = new Exchange("/admin/security/save", "POST", null, UA)) {
+            processor.saveSecuritySwitches(exchange.context);
+            Assert.assertEquals(exchange.status, 403);
+        }
+        session.put(UserExt.USER_STATUS, UserExt.USER_STATUS_C_INVALID);
+        try (final Exchange exchange = new Exchange("/admin/security/self-check")) {
+            processor.securitySelfCheck(exchange.context);
+            Assert.assertEquals(exchange.status, 403);
         }
     }
 

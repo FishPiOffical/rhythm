@@ -18,22 +18,24 @@ public class UserIpLeaseServiceTest {
     @Test
     public void sharedAddressSurvivesOnlyWhileAnotherLeaseIsActive() {
         final var index = new LeaseIndex();
-        index.renew("first", FIRST, Role.ROLE_ID_C_DEFAULT, START);
-        index.renew("second", FIRST, Role.ROLE_ID_C_ADMIN, START);
-        index.renew("first", SECOND, Role.ROLE_ID_C_DEFAULT, START + 1);
+        index.renew("first", "first-owner", FIRST, Role.ROLE_ID_C_DEFAULT, START);
+        index.renew("second", "second-owner", FIRST, Role.ROLE_ID_C_ADMIN, START);
+        index.renew("first", "first-owner", SECOND, Role.ROLE_ID_C_DEFAULT, START + 1);
         Assert.assertTrue(index.covers(FIRST, START + 1));
+        Assert.assertEquals(index.match(FIRST, START + 1).userName(), "second-owner");
         Assert.assertTrue(index.covers(SECOND, START + 1));
         final long expiry = START + TimeUnit.DAYS.toMillis(30);
         Assert.assertTrue(index.covers(FIRST, expiry - 1));
         Assert.assertFalse(index.covers(FIRST, expiry));
+        Assert.assertNull(index.match(FIRST, expiry));
     }
 
     @Test
     public void persistedAddressIsEvictedImmediatelyAndRemovedInNextBatch() {
         final var index = new LeaseIndex();
-        index.renew("account", FIRST, Role.ROLE_ID_C_DEFAULT, START);
+        index.renew("account", "owner", FIRST, Role.ROLE_ID_C_DEFAULT, START);
         index.committed(index.pending(START));
-        index.renew("account", SECOND, Role.ROLE_ID_C_DEFAULT, START + 1);
+        index.renew("account", "owner", SECOND, Role.ROLE_ID_C_DEFAULT, START + 1);
         Assert.assertFalse(index.covers(FIRST, START + 1));
         final var change = index.pending(START + 1).getFirst();
         Assert.assertFalse(change.current().containsKey(FIRST));
@@ -49,7 +51,7 @@ public class UserIpLeaseServiceTest {
             final long ttl = member ? TimeUnit.HOURS.toMillis(72) : TimeUnit.DAYS.toMillis(30);
             final var index = new LeaseIndex();
             for (int sequence = 0; sequence <= limit; sequence++) {
-                index.renew("account", "192.0.2." + sequence, role, START + sequence);
+                index.renew("account", "owner", "192.0.2." + sequence, role, START + sequence);
             }
             final var leases = index.pending(START + limit).getFirst().current();
             Assert.assertEquals(leases.size(), limit);
@@ -65,14 +67,14 @@ public class UserIpLeaseServiceTest {
         final var index = new LeaseIndex();
         try (final var executor = Executors.newFixedThreadPool(8)) {
             for (int request = 0; request < 256; request++) {
-                executor.submit(() -> index.renew("account", FIRST, Role.ROLE_ID_C_VISITOR));
+                executor.submit(() -> index.renew("account", "owner", FIRST, Role.ROLE_ID_C_VISITOR));
             }
         }
         final var firstBatch = index.pending(System.currentTimeMillis());
         Assert.assertEquals(firstBatch.size(), 1);
         Assert.assertEquals(firstBatch.getFirst().current().size(), 1);
         final long newer = firstBatch.getFirst().current().get(FIRST).lastSeenAt() + 1;
-        index.renew("account", FIRST, Role.ROLE_ID_C_VISITOR, newer);
+        index.renew("account", "owner", FIRST, Role.ROLE_ID_C_VISITOR, newer);
         index.committed(firstBatch);
         Assert.assertEquals(index.pending(newer).getFirst().current().get(FIRST).lastSeenAt(), newer);
         index.committed(index.pending(newer));
@@ -90,7 +92,7 @@ public class UserIpLeaseServiceTest {
     public void startupSnapshotPreservesLeasesAndExpiresUntouchedAccounts() {
         final var index = new LeaseIndex();
         final long expiry = START + TimeUnit.HOURS.toMillis(48);
-        index.load(List.of(new UserIpLease("account", FIRST, START, expiry)));
+        index.load(List.of(new UserIpLease("account", "owner", FIRST, START, expiry)));
         Assert.assertTrue(index.covers(FIRST, expiry - 1));
         Assert.assertTrue(index.pending(expiry - 1).isEmpty());
         Assert.assertFalse(index.covers(FIRST, expiry));

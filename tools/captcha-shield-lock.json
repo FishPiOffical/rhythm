@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
-  "policyVersion": 10,
-  "latestApproval": "Ada explicitly confirmed the account IP lease refactor on 2026-11-22. The reviewed change replaces automatic login IP whitelisting with expiring leases, wires the existing startup and admin entry points, and preserves challenge ordering and explicit exemptions.",
+  "policyVersion": 11,
+  "latestApproval": "On 2026-11-22 Ada approved removing only the legacy cumulative 300-request anonymous firewall ban, changing the legacy captcha interval from 5 to 10, restoring the lease match label, isolating lease lookup failures, and gating the community security panel and actions by the admin role. Ada then approved V3 authenticated identity labels and request-ID logging for new and pending challenges. V3 captcha interval, CC, first-visit article exception, and existing bans are unchanged; production switches remain read-only.",
   "approval": "Initial extraction and monitoring instrumentation authorized by Ada on 2026-11-08; subsequent protected changes require explicit approval. User authorized formatting ApiV3RealtimeService and ApiV3ContactSettingsService on 2026-11-09; only the whitespace-equivalent registry method fingerprint changed, with policy unchanged. Ada explicitly authorized Server.main to resolve yui.fishpi.cn and reuse Firewall.unbanIp followed by AnonymousCaptchaShield.administratorUnban at startup on 2026-11-09, and subsequently authorized adding those addresses to the CC whitelist; shield rules remain unchanged. User explicitly authorized the three-stage runtime observations on 2026-11-11. Version 2 adds observation only: proof verification, captcha state transitions, exemption and ban rules stay unchanged; SecurityMonitor and the core were reviewed and regression tested before updating only their fingerprints. On 2026-11-12 Ada explicitly requested replacing the retired yui.fishpi.cn with new.fishpi.cn; reviewed Server.main changes are limited to DNS hostname and two corresponding log literals. Only that method fingerprint was updated; shield policy and calls are unchanged. On 2026-11-15 Ada explicitly approved V3 captcha flow steps 2/4/5 and continuation: persistent IP challenge, structured 403 captcha_required, shared frontend verification and SSR/realtime recovery. After source review and Java 25 regression (14/14, 60-second process deadlines), only AnonymousCaptchaShield and BeforeRequestHandler.handle fingerprints were updated; ApiV3Cors was added as a protected whole file. Existing counters, exemptions, legacy API/page behavior and Firewall remain unchanged; CORS preflight negotiates transport only and never executes business or clears a challenge. During delivery review on 2026-11-15, four existing V3 admin methods newly synchronized from upstream were reviewed and individually locked: IP policy status, IP mutation, security switch save, and security switch response snapshot. Their permission checks, idempotent mutation path, Firewall/shield ordering, and production read-only guard were preserved; shield policy unchanged. Real provider/browser acceptance remains pending. 2026-11-15 合并已授权的 V3 后台事务修复：保留策略版本 3 及远端核心/CORS 指纹；用户明确授权调整并保留 IP/安全开关入口，HTTP 适配方法改为持久任务受理，执行调用由 AdminOperationTaskService 承接。保留两层保护项，仅同步这两个已审查适配方法指纹并加入已审查的任务执行指纹。 2026-11-15 用户明确授权保留 ApiV3Cors 许可证注释的两处空格调整并更新对应整文件指纹；已核对去除空白后的源码一致，业务逻辑、调用和策略版本 3 不变。 2026-11-15 用户明确授权 V3 验证码独立计数：V3 首访后每100个受检查请求触发验证；旧站每5次及 Firewall 总请求计数保持不变。仅更新 AnonymousCaptchaShield 计数实现、回归和对应核心指纹。 2026-11-20 用户确认将 pic.fishpi.cn 解析地址及 RhyPic/RhyUS 共用的固定内网单 IP 与 new.fishpi.cn 一样，在启动时解封并加入 CC/验证码白名单；三个条目独立处理，策略版本保持 3。 User approved on 2026-11-21 the narrowly scoped V3 website refresh captcha exception; UA, CC, credential validation, refresh counters and all other routes remain protected. Reviewed the shield core and middleware and updated only their fingerprints after Java 25 regression (16/16). User approved on 2026-11-21 changing the V3 anonymous periodic captcha interval from 100 to 30 checked requests. Old-site interval and Firewall limits unchanged; Java 25 captcha regression passed 16/16. User explicitly approved on 2026-11-21 exempting only GET /api/v3/oauth/authorize and POST /api/v3/oauth/{consent,token,revoke} from the global captcha blacklist and anonymous captcha counter. Firewall/CC, OAuth rate limits, identity, credentials, CSRF, PKCE, source checks and CORS remain unchanged. After Java 25 shield regression (18/18), reviewed and updated only the AnonymousCaptchaShield and AnonymousViewCheckMidware whole-file fingerprints; policy version 6. User clarified on 2026-11-21 that legacy OpenID login, confirmation, response verification and token renewal used with openid.return_to must also bypass the captcha shield, while V3 OAuth exemptions remain. Exempt only GET /openid/login and POST /openid/{confirm,verify,token}; preserve return_to/realm validation, login, CSRF, signatures, nonce, token checks, UA, Firewall/CC and endpoint rate limits; /openid/user/* remains protected. After Java 25 regression (19/19), reviewed and updated only the AnonymousCaptchaShield and AnonymousViewCheckMidware whole-file fingerprints; policy version 7. User confirmed on 2026-11-21 to exempt the five registered GET /openid/user/{profile,detail,points,articles,membership} resource routes from captcha blacklisting/counters. Bearer, token-status and per-resource scope checks, UA, Firewall/CC and all resource handler behavior remain unchanged; other methods, paths and subpaths remain protected. After Java 25 captcha/OAuth/CORS regression (19/19), reviewed and updated only the AnonymousCaptchaShield core fingerprint; policy version 8. User explicitly confirmed on 2026-11-21 to exempt only POST /api/v3/auth/session from captcha blacklist and anonymous counter, in addition to existing exemptions. The endpoint retains trusted-Origin, request-body and server-bound website-cookie session checks and does not issue tokens, clear IP challenge state or whitelist the source. UA/Firewall/CC and other routes remain protected. After Java 25 shield/OAuth/CORS regression (20/20), reviewed and updated only the AnonymousCaptchaShield core fingerprint; policy version 9.",
   "checks": [
     {
       "file": "src/main/java/org/b3log/symphony/util/AnonymousCaptchaShield.java",
-      "sha256": "1cc7576d028c9b5950256e863f415a2ff2ceccbf4424942125957c67f4f06e23"
+      "sha256": "4dc6c90f68992eb27f8203e138116ecf3f59586852f6dfcaa6eb2e1535f10069"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/middleware/AnonymousViewCheckMidware.java",
@@ -40,17 +40,17 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void showMisc(final RequestContext context)",
-      "sha256": "7a25a068642f60dbd0a36ed79b866dcef5ba15b56e4389b0823f08372a392017"
+      "sha256": "4a4ac9851de0b020887be19362d4f37dc83f0d69a5699c3abf4c557c370c2f18"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void toggleVerificationShield(final RequestContext context)",
-      "sha256": "88236afbe43c081e6a12b8106486e864a26ac59649edcf8f5b55a8c6ed9e743c"
+      "sha256": "a2a86572c7c48459d56b7d9dfa4889ce93f321f5b0738f21a524f815d6b6303c"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void toggleFirstVisitCaptcha(final RequestContext context)",
-      "sha256": "3d73727f547ea6d5761a050aad379bc1f33903c8eec428eb4335402d36a54a80"
+      "sha256": "02d9e5fbb6ee639ce529e6e1cc9545c4e146141fd6cd682a41e485a8fd24f3a5"
     },
     {
       "file": "src/main/java/org/b3log/symphony/Server.java",
@@ -109,7 +109,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
       "method": "public void saveSecuritySwitches(final RequestContext context)",
-      "sha256": "9234c239a2674341be964ba5ee02818d4335dc44c844a1ecc2e324e30941a527"
+      "sha256": "36de659487be2df762c665888db306e8cd16c95f48dcdb0641bbdc01677af308"
     },
     {
       "file": "src/main/java/org/b3log/symphony/processor/AdminProcessor.java",
@@ -118,7 +118,7 @@
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/SecurityMonitor.java",
-      "sha256": "419a33cd6c58031be3ce5bc9d6cb2fb46c2043f0c9ebbf3b06b53afd4e9e91df"
+      "sha256": "f80912c32d7c46ac37eb836cc91652507dfcf95b49196719373e2dfcfc309c11"
     },
     {
       "file": "src/main/java/org/b3log/symphony/util/ApiV3Cors.java",
@@ -137,7 +137,7 @@
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",
       "method": "public JSONObject saveSecuritySwitches(final JSONObject identity, final JSONObject body,",
-      "sha256": "d4d574dff2c8d37dae928a31528e7c0aaf684fd270c85b54dc1dec11bcebc72f"
+      "sha256": "cd00625ba7b2ee0d72d0f1a627184c24548645fb54086226ee966e54c2e75d7c"
     },
     {
       "file": "src/main/java/org/b3log/symphony/service/ApiV3AdminSystemService.java",

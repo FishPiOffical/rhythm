@@ -176,7 +176,7 @@ public class AdminOperationTaskService {
     }
 
     private void authorize(final JSONObject task) throws Exception {
-        final List<JSONObject> rows = users.select("SELECT userName,userRole,userStatus FROM `" + users.getName()
+        final List<JSONObject> rows = users.select("SELECT userRole,userStatus FROM `" + users.getName()
                 + "` WHERE oId=?", task.getString("actorId"));
         if (rows.isEmpty() || rows.getFirst().optInt("userStatus", -1) != UserExt.USER_STATUS_C_VALID) {
             throw new IllegalStateException("操作员不可用");
@@ -197,8 +197,9 @@ public class AdminOperationTaskService {
                 : Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX)) {
             throw new IllegalStateException("缺少索引维护权限");
         }
-        if ("SWITCHES".equals(kind) && (!Role.ROLE_ID_C_ADMIN.equals(user.getString("userRole"))
-                || !"adlered".equals(user.getString("userName")))) throw new IllegalStateException("缺少安全操作员权限");
+        if ("SWITCHES".equals(kind) && !Role.ROLE_ID_C_ADMIN.equals(user.getString("userRole"))) {
+            throw new IllegalStateException("缺少社区安全管理员权限");
+        }
     }
 
     private void executeIps(final JSONObject task, final JSONObject payload, final JSONObject result) throws Exception {

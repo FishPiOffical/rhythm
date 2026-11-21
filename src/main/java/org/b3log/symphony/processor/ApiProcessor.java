@@ -210,7 +210,9 @@ public class ApiProcessor {
             if (null == r) {
                 r = "/";
             }
-            Sessions.login(response, currentUser.optString(Keys.OBJECT_ID), true);
+            if (Sessions.login(response, currentUser.optString(Keys.OBJECT_ID), true) != null) {
+                UserIpLeaseService.renew(currentUser, context);
+            }
             response.sendRedirect(Latkes.getServePath() + r);
         } else {
             context.renderJSON(StatusCodes.ERR).renderMsg("ApiKey 错误。");

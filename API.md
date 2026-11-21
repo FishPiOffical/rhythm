@@ -17401,7 +17401,7 @@ curl 'https://fishpi.cn/api/v3/admin/capabilities' \
 | - canEnterConsole | 是否允许进入后台或独立认证审核工作台 | true |
 | - userId / userName / userNickname / avatarUrl | 当前操作者基础身份信息 | 1630399192600 / admin |
 | - roleId / roleName | 当前角色 ID 与名称 | adminRole / 管理员 |
-| - isAdmin / isSecurityOperator / isIdentityReviewer / rhypicEnabled | 管理员、安全特殊操作员、指定认证审核员与图床启用标记 | true / false / true / false |
+| - isAdmin / isSecurityOperator / isIdentityReviewer / rhypicEnabled | 管理员、社区安全面板访问资格（管理员角色且具有后台与杂项菜单权限）、指定认证审核员与图床启用标记 | true / true / true / false |
 | - permissions | 各细粒度后台与用户权限布尔字典 | {} |
 | - menus | 九大一级菜单可见性字典 | {} |
 | - actions | 各管理写操作授权布尔字典 | {} |
@@ -18354,11 +18354,13 @@ curl 'https://fishpi.cn/api/v3/admin/audit-logs?code=all&p=1&size=20' \
 - `POST /api/v3/admin/ips`：批量封禁或解封 IP（`action=ban|unban`，保留验证码盾调用顺序并写日志，需 `ipManage`）
 - `GET /api/v3/admin/settings`：读取站点杂项配置列表（需 `menuAdminMisc`）
 - `PUT /api/v3/admin/settings`：更新站点杂项配置并记录审计日志。除了后台入口和 `menuAdminMisc`，还需要对应配置项权限。GET 每项的 `writable`、`allowedValues` 指明可编辑性和允许值。PUT 仅提交要修改的值，值采用枚举字符串，非法字段或值返回 422，逐项权限不足返回 403。
-- `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅安全操作员 `adlered`）
-- `GET /api/v3/admin/security/self-check`：执行安全自检（仅安全操作员 `adlered`）
-- `POST /api/v3/admin/security/switches`：保存临时安全开关（仅安全操作员 `adlered` 且仅开发模式可写，生产模式只读返回 403）
+- `GET /api/v3/admin/security/monitor`：查询安全监控、爬虫统计、近期事件与当前开关状态（仅管理员分组）。事件的 `ip` 是来源；`userStatus` 可标注匹配租约的账号，但不代表访客本人已认证。
+- `GET /api/v3/admin/security/self-check`：执行安全自检（仅管理员分组）
+- `POST /api/v3/admin/security/switches`：保存临时安全开关（仅管理员分组且仅开发模式可写，生产模式只读返回 403）
 - `POST /api/v3/admin/articles/reindex`：异步重建全站文章搜索索引并写审计日志（需 `articleReindexArticlesIndex`）
 - `POST /api/v3/admin/articles/{articleId}/reindex`：重建单篇文章搜索索引并写审计日志（需 `articleReindexArticleIndex`）
+
+社区安全的三个接口另需第一方 Bearer 及 `menuAdmin`、`menuAdminMisc` 权限；读取需要 `profile.read`，提交需要 `settings.write`。
 
 #### 职业配置工作台（仅管理员）
 

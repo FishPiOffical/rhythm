@@ -9,7 +9,7 @@ import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import net from 'node:net';
 import readline from 'node:readline/promises';
-import { TEST_MODULES, FIRST_FLOW_MODULES, SECURITY_MONITOR_USERNAME, initializeBusinessAccounts, parseTestModules, canonicalIp, runAcceptanceSuite } from './captcha-shield-suite.mjs';
+import { TEST_MODULES, FIRST_FLOW_MODULES, initializeBusinessAccounts, parseTestModules, canonicalIp, runAcceptanceSuite } from './captcha-shield-suite.mjs';
 import { requestFromIp } from './captcha-shield-pressure.mjs';
 import { createEvidenceRecorder, exportPdfReport } from './captcha-shield-report.mjs';
 import { beginUnauthorizedCapture, getUnauthorizedResponses, trackUnauthorizedResponses } from './captcha-shield-network-diagnostics.mjs';
@@ -198,29 +198,6 @@ function saveConfig(config) {
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-}
-
-async function withSecurityMonitorAccount(config) {
-  if (!config?.accounts) throw new Error('请先运行配置向导');
-  const existing = config.accounts.find(account => account.username === SECURITY_MONITOR_USERNAME && account.passwordProtected);
-  if (existing) {
-    console.log(`安全监控复用已保存账号：${existing.username}（仅使用 L 地址）。`);
-    return config;
-  }
-  console.log(`安全监控和自检接口仅允许 ${SECURITY_MONITOR_USERNAME}，A/B 仍使用原管理员测试账号。`);
-  console.log('只需补填一次监控账号密码；须确认该账号属于管理员分组，后续自动复用。');
-  const password = await ask(`${SECURITY_MONITOR_USERNAME} 密码（直接输入，保存时会加密）`);
-  if (!password) throw new Error('监控账号密码不能为空');
-  return { ...config, accounts: [...config.accounts.filter(account => account.key !== 'monitor'), {
-    key: 'monitor', label: '安全监控账号', username: SECURITY_MONITOR_USERNAME,
-    role: 'admin', passwordProtected: protectSecret(password),
-  }] };
-}
-
-async function prepareSecurityMonitorConfig(config) {
-  const prepared = await withSecurityMonitorAccount(config);
-  if (prepared !== config) saveConfig(prepared);
-  return prepared;
 }
 
 function maskUsername(account) {
@@ -1295,19 +1272,19 @@ async function runFirstAcceptanceFlow(config) {
 
     console.log('L 基线完成；管理员监控核对将在 A 登录管理员后执行。');
 
-    console.log('\n=== 第一阶段：A 首访与每 5 次访问 ===');
+    console.log('\n=== 第一阶段：A 首访与每 10 次访问 ===');
     sessions.set(entryA.key, await createChromeSession(driver.driverUrl, entryA, runProfileRoot));
     await resetBrowserSession(driver.driverUrl, sessions.get(entryA.key));
     const aSession = sessions.get('A');
     await requireCaptcha(entryA, driver.driverUrl, aSession, sourceUrl(config, entryA.item));
     const aArticleUrls = articleUrls.map(url => `${sourceUrl(config, entryA.item)}${new URL(url).pathname.replace(/^\//, '')}`);
     let redirectedAt = 0;
-    for (let count = 1; count <= 5; count++) {
+    for (let count = 1; count <= 10; count++) {
       const target = count <= 2 ? sourceUrl(config, entryA.item) : aArticleUrls[count - 3];
       const current = await navigate(driver.driverUrl, aSession, target);
       if (isCaptchaPath(current)) { redirectedAt = count; await waitForCaptchaCompletion(entryA, driver.driverUrl, aSession); break; }
     }
-    if (!redirectedAt) throw new Error('A 通过 5 次主页/文章访问后仍未回到 /test');
+    if (!redirectedAt) throw new Error('A 通过 10 次主页/文章访问后仍未回到 /test');
     console.log(`A 已在第 ${redirectedAt} 次访问内重新进入 /test。`);
     await loginWithAccount(entryA, driver.driverUrl, aSession, config, admin);
     await checkAdminMisc(entryA, driver.driverUrl, aSession, config, 'A 验证码后管理员登录');
@@ -1474,9 +1451,6 @@ async function configure() {
     }
   }
 
-  const monitorConfig = await withSecurityMonitorAccount({ accounts });
-  accounts = monitorConfig.accounts;
-
   console.log('\n=== 三项确认（脚本完全信任勾选，不做额外环境检查）===');
   const environmentConfirmed = (await ask('1. 我已确认端口、runtimeMode、临时 jiyan.key、服务已启动且代码最新（输入 y）', ''))
     .toLowerCase() === 'y';
@@ -1521,13 +1495,12 @@ async function main() {
     }
     else if (command === 'flow') {
       const config = await prepareTestIpConfig(loadConfig());
-      await runFirstAcceptanceFlowCdp(await prepareSecurityMonitorConfig(config));
+      await runFirstAcceptanceFlowCdp(config);
     }
     else if (command === 'suite') {
       const config = await prepareTestIpConfig(loadConfig());
       const selected = await chooseAcceptanceModules(config, process.argv.slice(3).join(','));
-      const prepared = await prepareSecurityMonitorConfig({ ...config, testModules: selected });
-      await runFirstAcceptanceFlowCdp(prepared, selected);
+      await runFirstAcceptanceFlowCdp({ ...config, testModules: selected }, selected);
     }
     else if (command === 'webdriver-flow') {
       const config = await prepareTestIpConfig(loadConfig());

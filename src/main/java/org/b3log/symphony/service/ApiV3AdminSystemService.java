@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ApiV3AdminSystemService {
 
     private static final Logger LOGGER = LogManager.getLogger(ApiV3AdminSystemService.class);
-    private static final String SECURITY_OPERATOR_NAME = "adlered";
     private static final ZoneId SHANGHAI_ZONE = ZoneId.of("Asia/Shanghai");
 
     @Inject
@@ -251,21 +250,21 @@ public class ApiV3AdminSystemService {
     }
 
     /**
-     * 查询安全监控面板快照（仅安全操作员 `adlered` + 管理员可用）。
+     * 查询管理员安全监控面板快照。
      */
     public JSONObject getSecurityMonitor(final JSONObject identity, final String crawler) {
-        authorizeSecurityOperator(identity, "profile.read");
+        authorizeSecurityAdmin(identity, "profile.read");
         return new JSONObject(SecurityMonitor.snapshot())
                 .put("crawlers", CrawlerMonitor.snapshot(crawler))
-                .put("events", SecurityMonitor.recentEvents())
+                .put("events", SecurityMonitor.recentEvents(true))
                 .put("switches", currentSecuritySwitches());
     }
 
     /**
-     * 执行安全自检（仅安全操作员 `adlered` + 管理员可用）。
+     * 执行管理员安全自检。
      */
     public JSONObject runSecuritySelfCheck(final JSONObject identity) {
-        authorizeSecurityOperator(identity, "profile.read");
+        authorizeSecurityAdmin(identity, "profile.read");
         return new JSONObject(SecuritySelfCheck.run());
     }
 
@@ -274,7 +273,7 @@ public class ApiV3AdminSystemService {
      */
     public JSONObject saveSecuritySwitches(final JSONObject identity, final JSONObject body,
                                            final String idempotencyKey) {
-        authorizeSecurityOperator(identity, "settings.write");
+        authorizeSecurityAdmin(identity, "settings.write");
         if (Latkes.RuntimeMode.DEVELOPMENT != Latkes.getRuntimeMode()) {
             throw new ApiV3Exception(403, "security_switches_readonly", "生产模式下安全开关为只读状态");
         }
@@ -363,7 +362,6 @@ public class ApiV3AdminSystemService {
                     : Permission.PERMISSION_ID_C_MENU_ADMIN_ARTICLES;
             final var actor = adminService.authorizeInCurrentTransaction(identity, "profile.read", permission, "SWITCHES".equals(kind));
             if (!actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN)) throw ApiV3Requests.forbidden();
-            if ("SWITCHES".equals(kind) && !SECURITY_OPERATOR_NAME.equals(actor.userName())) throw ApiV3Requests.forbidden();
             if (kind.startsWith("REINDEX") && !actor.permissions().contains("REINDEX_ALL".equals(kind)
                     ? Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLES_INDEX
                     : Permission.PERMISSION_ID_C_ARTICLE_REINDEX_ARTICLE_INDEX)) throw ApiV3Requests.forbidden();
@@ -375,19 +373,17 @@ public class ApiV3AdminSystemService {
         finally { adminService.rollbackIfActive(tx); }
     }
 
-    private void authorizeSecurityOperator(final JSONObject identity, final String scope) {
+    private void authorizeSecurityAdmin(final JSONObject identity, final String scope) {
         final Transaction tx = adminService.begin();
         try {
-            final ApiV3AdminService.AuthorizedActor actor = adminService.authorizeInCurrentTransaction(
+            final var actor = adminService.authorizeInCurrentTransaction(
                     identity, scope, Permission.PERMISSION_ID_C_MENU_ADMIN_MISC, true);
-            if (!SECURITY_OPERATOR_NAME.equals(actor.userName())) {
-                throw ApiV3Requests.forbidden();
-            }
+            if (!actor.permissions().contains(Permission.PERMISSION_ID_C_MENU_ADMIN)) throw ApiV3Requests.forbidden();
             tx.commit();
         } catch (final ApiV3Exception e) {
             throw e;
         } catch (final Exception e) {
-            LOGGER.error("校验安全操作员权限失败", e);
+            LOGGER.error("校验社区安全管理员权限失败", e);
             throw adminService.unavailable();
         } finally {
             adminService.rollbackIfActive(tx);

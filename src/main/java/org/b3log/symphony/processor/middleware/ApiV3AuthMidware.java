@@ -27,6 +27,7 @@ import org.b3log.latke.model.User;
 import org.b3log.symphony.processor.ApiV3Processor;
 import org.b3log.symphony.service.ApiV3TokenMgmtService;
 import org.b3log.symphony.util.ApiV3Exception;
+import org.b3log.symphony.util.SecurityMonitor;
 import org.json.JSONObject;
 
 /**
@@ -181,8 +182,10 @@ public class ApiV3AuthMidware {
     }
 
     private void proceed(final RequestContext context, final JSONObject identity) {
-        context.attr(User.USER, identity.optJSONObject("user"));
+        final JSONObject user = identity.optJSONObject("user");
+        context.attr(User.USER, user);
         context.attr(ApiV3Processor.IDENTITY, identity);
+        SecurityMonitor.markAuthenticated(user);
         context.handle();
     }
 }

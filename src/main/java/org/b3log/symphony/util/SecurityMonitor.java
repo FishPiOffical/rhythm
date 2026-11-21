@@ -18,12 +18,15 @@
  */
 package org.b3log.symphony.util;
 
+import org.b3log.latke.Latkes;
 import org.b3log.latke.http.RequestContext;
 import org.b3log.latke.http.handler.ContextHandlerMeta;
 import org.b3log.latke.http.handler.RouteHandler;
 import org.b3log.latke.http.handler.RouteResolution;
 import org.b3log.latke.model.User;
 import org.b3log.latke.util.Requests;
+import org.b3log.symphony.model.UserIpLease;
+import org.b3log.symphony.service.UserIpLeaseService;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -142,7 +145,12 @@ public final class SecurityMonitor {
         event.put("timestamp", now);
         event.put("time", TIME_FORMAT.format(Instant.ofEpochMilli(now)));
         event.put("ip", clean(ip, "-"));
-        event.put("userStatus", userStatus(ip));
+        final boolean pageSession = Sessions.getUser() != null
+                && (uri == null || !uri.startsWith(Latkes.getContextPath() + "/api/v3/"));
+        final UserIpLease lease = ip == null || ip.isBlank() || pageSession
+                || AnonymousCaptchaShield.whitelistReason(ip) != null ? null : UserIpLeaseService.matchingLease(ip);
+        event.put("userStatus", userStatus(ip, lease, pageSession));
+        if (lease != null && !lease.userName().isBlank()) event.put("leaseUserName", clean(lease.userName(), ""));
         event.put("method", clean(method, "-"));
         event.put("uri", clean(uri, "-"));
         event.put("handler", resolveHandler(uri, method));
@@ -313,10 +321,19 @@ public final class SecurityMonitor {
     }
 
     public static List<Map<String, Object>> recentEvents() {
+        return recentEvents(false);
+    }
+
+    public static List<Map<String, Object>> recentEvents(final boolean includeLeaseUserName) {
         synchronized (EVENTS) {
             final List<Map<String, Object>> copy = new ArrayList<>(EVENTS.size());
             for (final Map<String, Object> event : EVENTS) {
-                copy.add(Collections.unmodifiableMap(new LinkedHashMap<>(event)));
+                final Map<String, Object> visible = new LinkedHashMap<>(event);
+                final Object leaseUserName = visible.remove("leaseUserName");
+                if (includeLeaseUserName && leaseUserName instanceof String name && !name.isBlank()) {
+                    visible.put("userStatus", visible.get("userStatus") + "（匹配账号：" + name + "）");
+                }
+                copy.add(Collections.unmodifiableMap(visible));
             }
             return copy;
         }
@@ -329,6 +346,7 @@ public final class SecurityMonitor {
             final String userName = user.optString(User.USER_NAME, "未知用户");
             synchronized (EVENTS) {
                 event.put("userStatus", "本人登录（用户：" + clean(userName, "未知用户") + "）");
+                event.remove("leaseUserName");
             }
         }
         CURRENT_EVENT.remove();
@@ -356,11 +374,12 @@ public final class SecurityMonitor {
         }
     }
 
-    private static String userStatus(final String ip) {
+    private static String userStatus(final String ip, final UserIpLease lease, final boolean pageSession) {
         if (ip == null || ip.isBlank()) return "-";
-        if (Sessions.getUser() != null) return "已登录";
+        if (pageSession) return "已登录";
         final String whitelistReason = AnonymousCaptchaShield.whitelistReason(ip);
         if (whitelistReason != null) return "访客+白名单IP（" + whitelistReason + "）";
+        if (lease != null) return "访客+有效租约IP";
         final LongAdder visits = IP_VISITS.computeIfAbsent(ip, ignored -> new LongAdder());
         visits.increment();
         if (IP_VISITS.size() > 100000) IP_VISITS.clear();

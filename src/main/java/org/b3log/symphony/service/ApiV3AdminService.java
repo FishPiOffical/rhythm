@@ -102,7 +102,6 @@ import java.util.regex.Pattern;
 public class ApiV3AdminService {
 
     private static final Logger LOGGER = LogManager.getLogger(ApiV3AdminService.class);
-    private static final String SECURITY_OPERATOR_NAME = "adlered";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
@@ -1107,7 +1106,8 @@ public class ApiV3AdminService {
         final boolean canAccessAdmin = perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN);
         final boolean isAdmin = actor.isAdmin();
         final boolean isReviewer = actor.isIdentityReviewer();
-        final boolean isSecurityOperator = isAdmin && SECURITY_OPERATOR_NAME.equals(actor.userName());
+        final boolean isSecurityOperator = isAdmin && canAccessAdmin
+                && perms.contains(Permission.PERMISSION_ID_C_MENU_ADMIN_MISC);
 
         final JSONObject permFlags = new JSONObject();
         for (final String tracked : TRACKED_PERMISSIONS) {

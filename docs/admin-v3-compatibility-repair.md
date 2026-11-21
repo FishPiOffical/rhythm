@@ -12,7 +12,7 @@
 | 管理员置顶 | ArticleMgmtService.adminStick/adminCancelStick | ApiV3AdminService → setArticleStickInCurrentTransaction | ArticleMgmtService | 原置顶权限；统一永久置顶 Long.MAX_VALUE | 旧注解事务保留；V3 审计和回执同事务 |
 | 职业配置 | ProfessionAdminProcessor | ApiV3AdminStage4Processor | 原 Profession* 领域服务 | 旧管理员会话/CSRF；V3 第一方 Bearer + settings.write + adminRole；不混用身份 | 领域服务原事务不变，V3 原始字节严格输入、写频控 |
 | IP | POST /admin/ip | POST /api/v3/admin/ips | 原 Firewall/AnonymousCaptchaShield；V3 由 AdminOperationTaskService 编排 | 旧 ipManage；V3 另需第一方 settings.write、menuAdmin；查询需 profile.read 和对应管理权限 | 旧入口保留；V3 同事务保存受理+任务，外部操作后逐项独立提交结果 |
-| 安全开关 | POST /admin/security/save | POST /api/v3/admin/security/switches | 原进程状态 API；V3 任务编排 | 旧 permission+CSRF+adlered+开发模式；V3 第一方 settings.write+menuAdmin+menuAdminMisc+adminRole+adlered+开发模式 | V3 完整严格类型快照，不在幂等数据库事务中改进程状态 |
+| 安全开关 | POST /admin/security/save | POST /api/v3/admin/security/switches | 原进程状态 API；V3 任务编排 | 当前：旧站有效管理员会话+路由权限+CSRF+开发模式；V3 第一方 settings.write+menuAdmin+menuAdminMisc+adminRole+开发模式 | V3 完整严格类型快照，不在幂等数据库事务中改进程状态 |
 | 索引维护 | AdminProcessor 原维护入口 | /api/v3/admin/articles/*reindex | SearchMgmtService；V3 使用明确报告失败的方法 | 原索引细分权限；V3 叠加第一方、scope、menuAdminArticles/menuAdmin | V3 受理/审计同事务，全部网络操作在后台；任务可查询、明确失败原键重试 |
 | 图片审核 | /admin/pic + PC/mobile pic.ftl | GET /api/v3/admin/images | Upload 查询 | V3 实际要求 adminRole，不是仅 profile.read；保留 path，移除 ip/md5 | 只读，显式 SQL 列白名单 |
 
@@ -58,7 +58,7 @@
 4. 两端编辑长篇章节、换专栏、保存及清空封面、变更段落，验证章节顺序、封面和段评迁移。注入正文/标签/封面写失败，应整体回滚，不发提交后事件。两端管理员置顶应永久，取消后归零；普通用户付费置顶不受影响。
 5. 职业导入先预检后导入：合法 JSON（含中文、emoji）、16 MiB 边界、超限一字节、重复键（含转义同名键）、嵌套配置重复键、非法 UTF-8、字符串冒充整数/布尔/数组、未知字段。错误输入不得改变职业数据；普通写接口超过64 KiB和对应批量接口超过256 KiB仍拒绝。
 6. 仅在隔离 Linux 测试环境执行 V3 IP 批量，包含 IPv4/IPv6、重复 IP；域名、CIDR、zone ID、错误类型应拒绝。查询任务到完成；制造 ipset 失败、第二项失败和结果提交失败，核对逐项状态、UNKNOWN/PARTIAL、数据库记录和真实成员；原键重复不得重复已确认操作。切勿封禁当前管理出口。
-7. 非 adlered 或生产模式不得改安全开关；开发模式提交完整布尔/整数快照应受理并最终成功。字符串布尔、1.5 阈值、缺字段应422。旧安全页面照常工作；真实匿名首访/第五次访问/黑名单/test/validateCaptcha 在受控新 IP 回归。
+7. 非管理员或生产模式不得改安全开关；有相应权限的管理员在开发模式提交完整布尔/整数快照应受理并最终成功。字符串布尔、1.5 阈值、缺字段应422。确认非管理员不显示社区安全面板；真实匿名首访/旧站第十次受检查请求/黑名单/test/validateCaptcha 在受控环境回归。
 8. 单篇索引模拟 HTTP 非2xx、超时和数据库结果提交失败，核对任务失败/未知而非假成功；明确 FAILED 恢复供应商后原键重试。全站任务受理应快速返回，清索引也在后台；并发申请不得交叉清空，查询进度/最终状态，服务重启后 UNKNOWN 不自动重放。
 9. 图片列表核对响应没有 ip/md5、原图 path仍可打开，普通读取权限账号不能访问；旧文章/评论/审计页面的既有 IP/UA保持。鱼游使用仅在名称、仅在描述出现的关键词分别验证，不承诺不存在的标签检索。
 

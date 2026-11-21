@@ -25,8 +25,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 @Singleton
@@ -52,6 +54,10 @@ public class UserIpLeaseService {
         return INDEX.covers(normalize(source), System.currentTimeMillis());
     }
 
+    public static UserIpLease matchingLease(final String source) {
+        return INDEX.match(normalize(source), System.currentTimeMillis());
+    }
+
     public static void renew(final JSONObject user, final RequestContext context) {
         if (user == null || user.optInt(UserExt.USER_STATUS, -1) != UserExt.USER_STATUS_C_VALID
                 || context.getRequest().isStaticResource() || "OPTIONS".equals(context.method())) return;
@@ -59,7 +65,7 @@ public class UserIpLeaseService {
         if (userId.isBlank() || userId.equals(context.attr(RENEWED))) return;
         final String ip = normalize(Requests.getRemoteAddr(context));
         if (ip == null) return;
-        INDEX.renew(userId, ip, user.optString(User.USER_ROLE));
+        INDEX.renew(userId, user.optString(User.USER_NAME), ip, user.optString(User.USER_ROLE));
         context.attr(RENEWED, userId);
     }
 
@@ -107,8 +113,10 @@ public class UserIpLeaseService {
     static final class LeaseIndex {
         private static final Comparator<UserIpLease> RECENCY = Comparator.comparingLong(UserIpLease::lastSeenAt)
                 .thenComparing(UserIpLease::ip);
+        private static final Comparator<UserIpLease> COVERAGE = Comparator.comparingLong(UserIpLease::expiresAt)
+                .thenComparingLong(UserIpLease::lastSeenAt).thenComparing(UserIpLease::userId);
         private final Map<String, Map<String, UserIpLease>> owners = new HashMap<>();
-        private final Map<String, TreeMap<Long, Integer>> expiryByIp = new HashMap<>();
+        private final Map<String, NavigableSet<UserIpLease>> leasesByIp = new HashMap<>();
         private final TreeMap<Long, Set<UserIpLease>> expiryQueue = new TreeMap<>();
         private final Set<String> dirty = new HashSet<>();
 
@@ -119,31 +127,37 @@ public class UserIpLeaseService {
             }
         }
 
-        synchronized void renew(final String userId, final String ip, final String role) {
-            renew(userId, ip, role, System.currentTimeMillis());
+        synchronized void renew(final String userId, final String userName, final String ip, final String role) {
+            renew(userId, userName, ip, role, System.currentTimeMillis());
         }
 
         synchronized boolean covers(final String ip, final long now) {
-            final var expiries = expiryByIp.get(ip);
-            return expiries != null && expiries.lastKey() > now;
+            return match(ip, now) != null;
         }
 
-        synchronized void renew(final String userId, final String ip, final String role, final long now) {
+        synchronized UserIpLease match(final String ip, final long now) {
+            final var leases = leasesByIp.get(ip);
+            if (leases == null) return null;
+            final UserIpLease latest = leases.last();
+            return latest.expiresAt() > now ? latest : null;
+        }
+
+        synchronized void renew(final String userId, final String userName, final String ip, final String role, final long now) {
             final Policy policy = Policy.forRole(role);
             final var leases = owners.computeIfAbsent(userId, ignored -> new HashMap<>());
             prune(leases, now);
             leases.replaceAll((address, lease) -> {
                 final long expiresAt = Math.min(lease.expiresAt(), lease.lastSeenAt() + policy.ttl());
-                if (lease.expiresAt() == expiresAt) return lease;
+                if (lease.expiresAt() == expiresAt && lease.userName().equals(userName)) return lease;
                 removeIp(lease);
-                final var adjusted = new UserIpLease(userId, address, lease.lastSeenAt(), expiresAt);
+                final var adjusted = new UserIpLease(userId, userName, address, lease.lastSeenAt(), expiresAt);
                 addIp(adjusted);
                 return adjusted;
             });
             prune(leases, now);
             final UserIpLease existing = leases.get(ip);
             if (existing != null) removeIp(existing);
-            final var renewed = new UserIpLease(userId, ip, now, now + policy.ttl());
+            final var renewed = new UserIpLease(userId, userName, ip, now, now + policy.ttl());
             leases.put(ip, renewed);
             addIp(renewed);
             while (leases.size() > policy.limit()) {
@@ -161,7 +175,7 @@ public class UserIpLeaseService {
                     final var leases = owners.get(lease.userId());
                     leases.remove(lease.ip());
                     if (leases.isEmpty()) owners.remove(lease.userId());
-                    removeIpExpiry(lease);
+                    removeFromIpIndex(lease);
                     dirty.add(lease.userId());
                 }
             }
@@ -187,7 +201,7 @@ public class UserIpLeaseService {
         }
 
         private void addIp(final UserIpLease lease) {
-            expiryByIp.computeIfAbsent(lease.ip(), ignored -> new TreeMap<>()).merge(lease.expiresAt(), 1, Integer::sum);
+            leasesByIp.computeIfAbsent(lease.ip(), ignored -> new TreeSet<>(COVERAGE)).add(lease);
             expiryQueue.computeIfAbsent(lease.expiresAt(), ignored -> new HashSet<>()).add(lease);
         }
 
@@ -195,13 +209,13 @@ public class UserIpLeaseService {
             final var leases = expiryQueue.get(lease.expiresAt());
             leases.remove(lease);
             if (leases.isEmpty()) expiryQueue.remove(lease.expiresAt());
-            removeIpExpiry(lease);
+            removeFromIpIndex(lease);
         }
 
-        private void removeIpExpiry(final UserIpLease lease) {
-            final var expiries = expiryByIp.get(lease.ip());
-            expiries.computeIfPresent(lease.expiresAt(), (expiry, count) -> count == 1 ? null : count - 1);
-            if (expiries.isEmpty()) expiryByIp.remove(lease.ip());
+        private void removeFromIpIndex(final UserIpLease lease) {
+            final var leases = leasesByIp.get(lease.ip());
+            leases.remove(lease);
+            if (leases.isEmpty()) leasesByIp.remove(lease.ip());
         }
     }
 }
